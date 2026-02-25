@@ -13,6 +13,8 @@ export default function Nav({ memberArea = false }: NavProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const isLoggedIn = !!session;
+  // Auto-detect member area from route so layout doesn't need to pass prop
+  const isMemberArea = memberArea || (pathname?.startsWith("/account") ?? false);
 
   const current = (path: string) =>
     pathname === path || pathname.startsWith(path + "/") ? " w--current" : "";
@@ -50,14 +52,14 @@ export default function Nav({ memberArea = false }: NavProps) {
                 className="flowbase-logo"
               />
               <h1 className="heading-8">
-                {memberArea ? "My Member Area" : "Rooted In Mindfulness"}
+                {isMemberArea ? "My Member Area" : "Rooted In Mindfulness"}
               </h1>
             </Link>
           </div>
 
           <div className="navigation-right">
             <nav role="navigation" className="nav-menu-2 w-nav-menu">
-              {memberArea ? (
+              {isMemberArea ? (
                 /* Member area desktop nav */
                 <>
                   <div data-hover="true" data-delay="0" className="dropdown w-dropdown">
@@ -221,12 +223,12 @@ export default function Nav({ memberArea = false }: NavProps) {
           <Link href="/" className="brand-4 w-nav-brand">
             <img src="/images/Rooted-In-Mindfulness-Logo.png" alt="Rooted In Mindfulness" className="flowbase-logo" />
             <h1 className="heading-8">
-              {memberArea ? "My Member Area" : "Rooted In Mindfulness"}
+              {isMemberArea ? "My Member Area" : "Rooted In Mindfulness"}
             </h1>
           </Link>
 
           <nav role="navigation" className="mobile-nav w-nav-menu">
-            {memberArea ? (
+            {isMemberArea ? (
               <>
                 <Link href="/account/dashboard" className={`mobile-nav-link w-nav-link${current("/account/dashboard")}`}>Today&apos;s Zoom Links</Link>
                 <Link href="/account/dashboard-my-library" className={`mobile-nav-link w-nav-link${current("/account/dashboard-my-library")}`}>My Library</Link>
