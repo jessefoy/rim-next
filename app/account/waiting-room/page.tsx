@@ -190,7 +190,6 @@ function WaitingRoomContent() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="waiting-room-attendance-button w-button"
-                style={{ display: "flex" }}
               >
                 Join us on Zoom
               </a>

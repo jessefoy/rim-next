@@ -307,3 +307,14 @@
 .accordion-item.accordion-open .accordion-arrow {
   transform: rotate(270deg);
 }
+
+/* ═══════════════════════════════════════════════════
+   WAITING ROOM — ZOOM LINK BUTTON
+   Webflow CSS sets display:none (was toggled by webflow.js).
+   In rim-next we use React conditional rendering instead,
+   so when the element is in the DOM it should be visible.
+═══════════════════════════════════════════════════ */
+
+.waiting-room-attendance-button {
+  display: flex;
+}
