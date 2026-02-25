@@ -39,41 +39,48 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
   const lesson = await sanityClient.fetch<Lesson | null>(lessonBySlugQuery, { slug });
   if (!lesson) notFound();
 
+  const hasHeroContent =
+    (lesson.includesAudio && lesson.podcastId) || !!lesson.headerQuote;
+
   return (
     <>
-      <div className="section lesson-hero background-light">
-        <div className="content-container centered">
-          <h1 className="lesson-page-heading">{lesson.lessonTitleDisplayed}</h1>
-          {lesson.includesAudio && lesson.podcastId ? (
-            <div className="lesson-audio-block">
-              <div className="captivate-player-embed">
-                <iframe
-                  src={`https://player.captivate.fm/episode/${lesson.podcastId}`}
-                  width="100%"
-                  height="200"
-                  frameBorder="0"
-                  scrolling="no"
-                />
-              </div>
-            </div>
-          ) : lesson.headerQuote ? (
-            <div className="program-quote-block">
-              <p className="program-quote-text">{lesson.headerQuote}</p>
-              {lesson.quoteSource && (
-                <div className="quote-source">
-                  <div className="program-quote-source-dash">-</div>
-                  <div className="program-quote-source-text">{lesson.quoteSource}</div>
-                </div>
-              )}
-            </div>
-          ) : null}
+      {/* ── Lesson hero: label + title + white overlay box (quote or audio) ── */}
+      <div className="section lesson-hero">
+        <div className="container-4"></div>
+        <div>
+          <div className="text-block-53">Learning &amp; Practice</div>
         </div>
+        <h1 className="lesson-page-heading">{lesson.lessonTitleDisplayed}</h1>
+
+        {hasHeroContent && (
+          <div className="div-block-129">
+            {lesson.includesAudio && lesson.podcastId ? (
+              <iframe
+                src={`https://player.captivate.fm/episode/${lesson.podcastId}`}
+                width="100%"
+                height="200"
+                frameBorder="0"
+                scrolling="no"
+              />
+            ) : lesson.headerQuote ? (
+              <div className="quote-header-container">
+                <p className="block-quote-2">{lesson.headerQuote}</p>
+                {lesson.quoteSource && (
+                  <div className="text-block-56">— {lesson.quoteSource}</div>
+                )}
+              </div>
+            ) : null}
+          </div>
+        )}
+
+        <div className="container-4"></div>
       </div>
 
-      <div className="section background-white">
-        <div className="content-container">
+      {/* ── Lesson content ── */}
+      <div className="section-10">
 
-          {lesson.teachers && lesson.teachers.length > 0 && (
+        {lesson.teachers && lesson.teachers.length > 0 && (
+          <div className="content-container centered">
             <div className="lesson-teachers">
               {lesson.teachers.map((teacher) => (
                 <Link
@@ -85,9 +92,11 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
                 </Link>
               ))}
             </div>
-          )}
+          </div>
+        )}
 
-          {lesson.videoLessonLink && (
+        {lesson.videoLessonLink && (
+          <div className="content-container centered">
             <div className="lesson-video-block">
               <div className="w-video w-embed">
                 <iframe
@@ -99,16 +108,20 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
                 />
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {lesson.lessonContent && (
-            <div className="rich-text-block-19 w-richtext">
+        {lesson.lessonContent && (
+          <div className="content-container centered">
+            <div className="rich-text-container">
               <PortableText value={lesson.lessonContent as any} />
             </div>
-          )}
+          </div>
+        )}
 
-          {lesson.downloadableResources && lesson.downloadableResources.length > 0 && (
-            <div className="lesson-resources-block">
+        {lesson.downloadableResources && lesson.downloadableResources.length > 0 && (
+          <div className="content-container centered">
+            <div className="lesson-resource-block-continer">
               <h3 className="details-header">Downloadable Resources</h3>
               {lesson.downloadableResources.map((resource, i) => (
                 <div key={i} className="resource-item">
@@ -127,8 +140,9 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
                 </div>
               ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
+
       </div>
     </>
   );
