@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
@@ -59,6 +59,14 @@ function createEventDate(timeInfo: { hours: number; minutes: number }): Date {
 }
 
 export default function WaitingRoomPage() {
+  return (
+    <Suspense fallback={<div className="page-wrapper"><div className="dashboard-section">Loading...</div></div>}>
+      <WaitingRoomContent />
+    </Suspense>
+  );
+}
+
+function WaitingRoomContent() {
   const searchParams = useSearchParams();
   const eventName = searchParams.get("name") ?? "The program";
   const eventTime = searchParams.get("time") ?? "";
