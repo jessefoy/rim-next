@@ -299,6 +299,22 @@
   background-color: #fafafa;
 }
 
+/* Course subtitle — rim.webflow.css .course-type uses a bad variable
+   (#db1d40 red). Use a neutral gray instead. */
+.course-subheading {
+  color: #666;
+  text-align: center;
+  font-size: 18px;
+  margin-top: -10px;
+  margin-bottom: 24px;
+}
+
+/* rim.webflow.css sets font-weight: 700 on rich-text-block-19 but body
+   content in course/lesson descriptions should be normal weight. */
+.rich-text-block-19 {
+  font-weight: 400;
+}
+
 /* Lessons panel — subtle gray container inside the section */
 .course-lessons-list {
   background-color: #f0f0f0;

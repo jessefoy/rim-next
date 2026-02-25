@@ -43,6 +43,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
     <>
       <div className="section lesson-hero background-light">
         <div className="content-container centered">
+          <h1 className="lesson-page-heading">{lesson.lessonTitleDisplayed}</h1>
           {lesson.includesAudio && lesson.podcastId ? (
             <div className="lesson-audio-block">
               <div className="captivate-player-embed">
@@ -71,7 +72,6 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
 
       <div className="section background-white">
         <div className="content-container">
-          <h1 className="heading-9">{lesson.lessonTitleDisplayed}</h1>
 
           {lesson.teachers && lesson.teachers.length > 0 && (
             <div className="lesson-teachers">
