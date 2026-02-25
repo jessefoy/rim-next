@@ -288,110 +288,46 @@
 
 
 /* ═══════════════════════════════════════════════════
-   COURSE PAGE — LESSON LIST
-   Matches the Webflow live-site card layout:
-   gray panel, white lesson cards, "Go →" button right.
+   COURSE PAGE
+   Uses the real Webflow classes (course-header,
+   lesson-resource-item, button-2, etc.) so the layout
+   matches the live site without custom overrides.
 ═══════════════════════════════════════════════════ */
 
-/* Give the course page the same #fafafa background as
-   the Webflow lessons-collection-page variant */
+/* Give the course content section the same #fafafa bg as the
+   Webflow lessons-collection-page variant */
 .section.background-white.lessons-collection-page {
   background-color: #fafafa;
 }
 
-/* Course subtitle — rim.webflow.css .course-type uses a bad variable
-   (#db1d40 red). Use a neutral gray instead. */
+/* Course subtitle — rim.webflow.css .course-type uses #db1d40 (red).
+   course-subheading is our safe replacement. */
 .course-subheading {
   color: #666;
   text-align: center;
   font-size: 18px;
-  margin-top: -10px;
-  margin-bottom: 24px;
+  margin-top: 8px;
+  margin-bottom: 0;
 }
 
-/* rim.webflow.css sets font-weight: 700 on rich-text-block-19 but body
-   content in course/lesson descriptions should be normal weight. */
+/* rim.webflow.css sets font-weight: 700 on rich-text-block-19;
+   body text should be normal weight. */
 .rich-text-block-19 {
   font-weight: 400;
 }
 
-/* Lessons panel — subtle gray container inside the section */
-.course-lessons-list {
-  background-color: #f0f0f0;
-  border-radius: 8px;
-  padding: 32px 40px 40px;
-  margin-top: 40px;
+/* lesson-resource-block-continer has a fixed width:700px in Webflow CSS —
+   make it responsive so it fills the content column. */
+.lesson-resource-block-continer {
+  width: 100%;
+  max-width: 100%;
 }
 
-/* "Lessons" heading uses the Quincycf serif already defined
-   in rim.webflow.css for .details-header — no override needed */
-
-/* Section titles (e.g. "Introduction to the Handful of Leaves Model") */
-.lesson-section-header {
-  margin-top: 24px;
-  margin-bottom: 12px;
-}
-
-.lesson-section-header h3 {
-  color: var(--rim-blue);
-  font-size: 22px;
-  font-weight: 500;
-  margin: 0;
-}
-
-/* Individual lesson card */
-.course-lesson-item {
-  background-color: #fff;
-  border-radius: 6px;
-  margin-bottom: 14px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-}
-
-/* Link fills the entire card; flex keeps title left, button right */
-.course-lesson-link {
-  display: flex;
-  align-items: center;
+/* lesson-resource-item uses display:flex but lacks justify-content:
+   space-between, so the "Go" button needs a push to the right. */
+.lesson-resource-item {
   justify-content: space-between;
-  padding: 18px 20px;
-  color: #333;
-  text-decoration: none;
-  font-size: 16px;
-  border-radius: 6px;
-  transition: background-color 0.15s;
-}
-
-.course-lesson-link:hover {
-  background-color: #f8f9fa;
-}
-
-/* "Go →" pill button rendered via CSS, matching the Webflow design */
-.course-lesson-link::after {
-  content: "Go \2192";
-  background-color: #135274;
-  color: #fff;
-  padding: 7px 18px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-  flex-shrink: 0;
-  margin-left: 16px;
-}
-
-@media screen and (max-width: 767px) {
-  .course-lessons-list {
-    padding: 24px 20px 28px;
-  }
-
-  .course-lesson-link {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .course-lesson-link::after {
-    align-self: flex-start;
-  }
+  align-items: center;
 }
 
 
