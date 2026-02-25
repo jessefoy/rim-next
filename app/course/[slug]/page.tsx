@@ -39,44 +39,73 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
 
   return (
     <>
+      {/* ── Course header: label + title + description ── */}
       <div className="course-header">
-        <div className="program-title-block">
-          <h1 className="course-title">{course.name}</h1>
-          {course.subheading && <p className="course-subheading">{course.subheading}</p>}
+        <div className="content-container w-container">
+          <div className="f-container-regular">
+            <div className="f-header-wrapper-left">
+              {course.subheading && (
+                <div className="f-margin-bottom-08">
+                  <h5 className="course-type">{course.subheading}</h5>
+                </div>
+              )}
+              <div className="f-margin-bottom-24">
+                <h1 className="course-title">{course.name}</h1>
+              </div>
+              {course.mainContentDescription && (
+                <div className="text-block-65 w-richtext">
+                  <PortableText value={course.mainContentDescription as any} />
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
+      {/* ── Lessons section ── */}
       <div className="section background-white lessons-collection-page">
         <div className="content-container">
-          {course.mainContentDescription && (
-            <div className="rich-text-block-19 w-richtext">
-              <PortableText value={course.mainContentDescription as any} />
-            </div>
-          )}
-
           {course.lessons && course.lessons.length > 0 && (
-            <div className="lesson-resource-block-continer">
-              <h3 className="details-header">Lessons</h3>
-              {course.lessons.map((lesson, i) =>
-                lesson.isSectionTitle ? (
-                  <div key={i} className="lesson-section-break">
-                    {lesson.lessonTitleDisplayed}
-                  </div>
-                ) : (
-                  <div key={i} className="lesson-resource-item">
-                    <div className="lesson-resource-name">
-                      {lesson.lessonTitleDisplayed}
-                      {lesson.includesAudio && <span className="audio-badge"> 🎧</span>}
-                    </div>
-                    <Link
-                      href={`/lessons/${lesson.slug.current}`}
-                      className="button-2 w-button no-top-margin"
-                    >
-                      Go →
-                    </Link>
-                  </div>
-                )
-              )}
+            <div className="series-list-section">
+              <div className="program-details-content no-bottom-margin">
+                <h2 className="text-center bottom-margin-30">Lessons</h2>
+                <div className="series-list-wrapper">
+                  {course.lessons.map((lesson, i) =>
+                    lesson.isSectionTitle ? (
+                      // Section title row — transparent bg, no button
+                      <div key={i} className="w-layout-grid series-list-grid section-title-bg">
+                        <div className="dashboard-list-name-and-date-container">
+                          <div className="dashboard-title-container">
+                            <div className="lesson-section-break">
+                              {lesson.lessonTitleDisplayed}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      // Regular lesson row — white card + Go button
+                      <div key={i} className="w-layout-grid series-list-grid">
+                        <div className="dashboard-list-name-and-date-container">
+                          <div className="dashboard-title-container">
+                            <div className="event-name">
+                              {lesson.lessonTitleDisplayed}
+                              {lesson.includesAudio && <span className="audio-badge"> 🎧</span>}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="program-links">
+                          <Link
+                            href={`/lessons/${lesson.slug.current}`}
+                            className="button-2-copy w-button"
+                          >
+                            Go ➞
+                          </Link>
+                        </div>
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </div>

@@ -289,26 +289,10 @@
 
 /* ═══════════════════════════════════════════════════
    COURSE PAGE
-   Uses the real Webflow classes (course-header,
-   lesson-resource-item, button-2, etc.) so the layout
-   matches the live site without custom overrides.
+   Uses real Webflow classes (series-list-grid,
+   series-list-section, event-name, button-2-copy, etc.)
+   matching the live site DOM exactly.
 ═══════════════════════════════════════════════════ */
-
-/* Give the course content section the same #fafafa bg as the
-   Webflow lessons-collection-page variant */
-.section.background-white.lessons-collection-page {
-  background-color: #fafafa;
-}
-
-/* Course subtitle — rim.webflow.css .course-type uses #db1d40 (red).
-   course-subheading is our safe replacement. */
-.course-subheading {
-  color: #666;
-  text-align: center;
-  font-size: 18px;
-  margin-top: 8px;
-  margin-bottom: 0;
-}
 
 /* rim.webflow.css sets font-weight: 700 on rich-text-block-19;
    body text should be normal weight. */
@@ -316,18 +300,11 @@
   font-weight: 400;
 }
 
-/* lesson-resource-block-continer has a fixed width:700px in Webflow CSS —
-   make it responsive so it fills the content column. */
-.lesson-resource-block-continer {
-  width: 100%;
-  max-width: 100%;
-}
-
-/* lesson-resource-item uses display:flex but lacks justify-content:
-   space-between, so the "Go" button needs a push to the right. */
-.lesson-resource-item {
-  justify-content: space-between;
-  align-items: center;
+/* f-header-wrapper-left has max-width: 620px which centers the header
+   content, but we need it to be wider for the course title + description. */
+.course-header .f-header-wrapper-left {
+  max-width: 820px;
+  text-align: center;
 }
 
 
