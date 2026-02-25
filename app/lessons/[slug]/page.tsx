@@ -1,8 +1,9 @@
 import { sanityClient } from "@/lib/sanity";
 import { lessonBySlugQuery, allLessonSlugsQuery } from "@/lib/queries";
 import { PortableText } from "@portabletext/react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import DanaSection from "@/components/DanaSection";
+import TeacherList from "@/components/TeacherList";
 
 export const revalidate = 60;
 
@@ -104,28 +105,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
                 <PortableText value={lesson.lessonContent as any} />
               </div>
             )}
-            {lesson.teachers && lesson.teachers.length > 0 && (
-              <div className="lesson-teachers">
-                {lesson.teachers.map((teacher) => (
-                  <Link
-                    key={teacher.slug.current}
-                    href={`/team/${teacher.slug.current}`}
-                    className="teacher-container w-inline-block"
-                  >
-                    {teacher.bioPicture?.asset?.url && (
-                      <img
-                        src={teacher.bioPicture.asset.url}
-                        alt={teacher.name}
-                        className="image-11"
-                        loading="lazy"
-                      />
-                    )}
-                    <div className="facilitator-name letter-space">By </div>
-                    <div className="facilitator-name underline">{teacher.name}</div>
-                  </Link>
-                ))}
-              </div>
-            )}
+            <TeacherList teachers={lesson.teachers ?? []} variant="lesson" />
           </div>
         )}
 
@@ -152,18 +132,8 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
           </div>
         )}
 
-        {/* Dana / generosity — always shown, matches live site */}
-        <p className="small-text-box">
-          RIM is a small and dedicated community that continues the tradition of offering
-          authentic teachings and practices freely — to all who may benefit. In turn,
-          contributions from people like you support these offerings, our teachers, and a
-          community of people who aspire to co-create a wise, compassionate, and healthy
-          world.<br /><br />
-          <Link href="/donate"><strong>♥ Donate to RIM</strong></Link>
-          <strong> </strong>— Your generosity is appreciated and makes a real impact.
-          <br /><br />
-          <span className="text-span-12"><em>RIM is a 501(c3) non-profit organization.</em></span>
-        </p>
+        {/* Dana / generosity — always shown */}
+        <DanaSection />
 
         <div className="div-block-129"></div>
 

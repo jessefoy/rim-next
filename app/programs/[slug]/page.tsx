@@ -4,6 +4,8 @@ import { PortableText } from "@portabletext/react";
 import { auth } from "@/auth";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import TeacherList from "@/components/TeacherList";
+import MemberGate from "@/components/MemberGate";
 
 export const revalidate = 60;
 
@@ -176,24 +178,10 @@ export default async function ProgramDetailPage({
                     <>
                       <div className="_10px-spacer"></div>
                       <h3 className="details-header top-margin-20-px">Facilitators:</h3>
-                      {program.teacherFacilitators.map((teacher) => (
-                        <Link
-                          key={teacher.slug.current}
-                          href={`/team/${teacher.slug.current}`}
-                          className="teacher-container w-inline-block"
-                        >
-                          {teacher.bioPicture && (
-                            <img
-                              alt={teacher.name}
-                              width={35}
-                              height={35}
-                              src={teacher.bioPicture.asset.url}
-                              className="facilitator"
-                            />
-                          )}
-                          <div className="facilitator-name underline">{teacher.name}</div>
-                        </Link>
-                      ))}
+                      <TeacherList
+                        teachers={program.teacherFacilitators}
+                        variant="program"
+                      />
                     </>
                   )}
                 </div>
@@ -202,22 +190,7 @@ export default async function ProgramDetailPage({
 
             <div id="registration-section" className="program-registration-section">
               {!isLoggedIn && (
-                <div className="logged-out---message">
-                  <h3 className="details-header">Join Us</h3>
-                  {program.signedOutInstructions && (
-                    <div className="signed-out-instuctions w-richtext">
-                      <PortableText value={program.signedOutInstructions} />
-                    </div>
-                  )}
-                  <div className="become-member-buttons">
-                    <Link href="/community-membership" className="button-2 w-button">
-                      Become a Member
-                    </Link>
-                    <Link href="/login" className="already-member-link">
-                      or Login
-                    </Link>
-                  </div>
-                </div>
+                <MemberGate signedOutInstructions={program.signedOutInstructions} />
               )}
 
               {isLoggedIn && program.registrationRequired && !program.registrationClosed && (

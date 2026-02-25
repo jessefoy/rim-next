@@ -3,6 +3,7 @@ import { classRecordingBySlugQuery, allClassRecordingSlugsQuery } from "@/lib/qu
 import { PortableText } from "@portabletext/react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import TeacherList from "@/components/TeacherList";
 
 export const revalidate = 60;
 
@@ -13,7 +14,7 @@ type ClassRecording = {
   audioEmbedCode?: string;
   videoLink?: string;
   description?: unknown[];
-  teachers?: { name: string; slug: { current: string } }[];
+  teachers?: { name: string; slug: { current: string }; bioPicture?: { asset?: { url?: string } } }[];
   topics?: { name: string; slug: { current: string } }[];
 };
 
@@ -52,19 +53,7 @@ export default async function ClassRecordingPage({ params }: { params: Promise<{
           </p>
         )}
 
-        {recording.teachers && recording.teachers.length > 0 && (
-          <div className="lesson-teachers">
-            {recording.teachers.map((teacher) => (
-              <Link
-                key={teacher.slug.current}
-                href={`/team/${teacher.slug.current}`}
-                className="teacher-container w-inline-block"
-              >
-                <div className="facilitator-name underline">{teacher.name}</div>
-              </Link>
-            ))}
-          </div>
-        )}
+        <TeacherList teachers={recording.teachers ?? []} variant="lesson" />
 
         {recording.audioEmbedCode && (
           <div

@@ -1,8 +1,8 @@
 import { sanityClient } from "@/lib/sanity";
 import { courseBySlugQuery, allCourseSlugsQuery } from "@/lib/queries";
 import { PortableText } from "@portabletext/react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import SeriesListItem from "@/components/SeriesListItem";
 
 export const revalidate = 60;
 
@@ -70,40 +70,15 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
               <div className="program-details-content no-bottom-margin">
                 <h2 className="text-center bottom-margin-30">Lessons</h2>
                 <div className="series-list-wrapper">
-                  {course.lessons.map((lesson, i) =>
-                    lesson.isSectionTitle ? (
-                      // Section title row — transparent bg, no button
-                      <div key={i} className="w-layout-grid series-list-grid section-title-bg">
-                        <div className="dashboard-list-name-and-date-container">
-                          <div className="dashboard-title-container">
-                            <div className="lesson-section-break">
-                              {lesson.lessonTitleDisplayed}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      // Regular lesson row — white card + Go button
-                      <div key={i} className="w-layout-grid series-list-grid">
-                        <div className="dashboard-list-name-and-date-container">
-                          <div className="dashboard-title-container">
-                            <div className="event-name">
-                              {lesson.lessonTitleDisplayed}
-                              {lesson.includesAudio && <span className="audio-badge"> 🎧</span>}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="program-links">
-                          <Link
-                            href={`/lessons/${lesson.slug.current}`}
-                            className="button-2-copy w-button"
-                          >
-                            Go ➞
-                          </Link>
-                        </div>
-                      </div>
-                    )
-                  )}
+                  {course.lessons.map((lesson, i) => (
+                    <SeriesListItem
+                      key={i}
+                      title={lesson.lessonTitleDisplayed}
+                      href={lesson.isSectionTitle ? undefined : `/lessons/${lesson.slug.current}`}
+                      isSectionTitle={lesson.isSectionTitle}
+                      includesAudio={lesson.includesAudio}
+                    />
+                  ))}
                 </div>
               </div>
             </div>
