@@ -2,7 +2,6 @@ import { auth } from "@/auth";
 import { sanityClient } from "@/lib/sanity";
 import { dashboardProgramsQuery } from "@/lib/queries";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 
 export const metadata = { title: "Dashboard — Rooted In Mindfulness" };
 
@@ -95,12 +94,20 @@ export default async function DashboardPage() {
                           )}
                         </div>
                         <div className="program-links">
-                          <Link
-                            href={`/account/waiting-room?name=${encodeURIComponent(program.name)}&time=${encodeURIComponent(program.listingDayAndTimeText ?? "")}&zoom=${encodeURIComponent(program.zoomLink ?? "")}`}
-                            className="attendance-button w-button"
-                          >
-                            Join
-                          </Link>
+                          {program.zoomLink ? (
+                            <a
+                              href={program.zoomLink}
+                              className="attendance-button w-button"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              Join
+                            </a>
+                          ) : (
+                            <span className="attendance-button w-button" style={{ opacity: 0.5, cursor: "default" }}>
+                              No link yet
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>

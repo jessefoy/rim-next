@@ -308,20 +308,3 @@
   transform: rotate(270deg);
 }
 
-/* ═══════════════════════════════════════════════════
-   WAITING ROOM — ZOOM LINK BUTTON
-   Webflow CSS sets display:none (was toggled by webflow.js).
-   In rim-next we use React conditional rendering instead,
-   so when the element is in the DOM it should be visible.
-═══════════════════════════════════════════════════ */
-
-.waiting-room-attendance-button {
-  display: flex;
-}
-
-/* Override the mobile breakpoint rule in rim.webflow.css (line 8628) */
-@media screen and (max-width: 479px) {
-  .waiting-room-attendance-button {
-    display: flex;
-  }
-}
