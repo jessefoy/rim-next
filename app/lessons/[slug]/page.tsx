@@ -79,31 +79,6 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
       {/* ── Lesson content ── */}
       <div className="section-10">
 
-        {lesson.teachers && lesson.teachers.length > 0 && (
-          <div className="content-container centered">
-            <div className="lesson-teachers">
-              {lesson.teachers.map((teacher) => (
-                <Link
-                  key={teacher.slug.current}
-                  href={`/team/${teacher.slug.current}`}
-                  className="teacher-container w-inline-block"
-                >
-                  {teacher.bioPicture?.asset?.url && (
-                    <img
-                      src={teacher.bioPicture.asset.url}
-                      alt={teacher.name}
-                      className="image-11"
-                      loading="lazy"
-                    />
-                  )}
-                  <div className="facilitator-name letter-space">By </div>
-                  <div className="facilitator-name underline">{teacher.name}</div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
         {lesson.videoLessonLink && (
           <div className="content-container centered">
             <div className="lesson-video-block">
@@ -125,6 +100,28 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
             <div className="rich-text-container">
               <PortableText value={lesson.lessonContent as any} />
             </div>
+            {lesson.teachers && lesson.teachers.length > 0 && (
+              <div className="lesson-teachers">
+                {lesson.teachers.map((teacher) => (
+                  <Link
+                    key={teacher.slug.current}
+                    href={`/team/${teacher.slug.current}`}
+                    className="teacher-container w-inline-block"
+                  >
+                    {teacher.bioPicture?.asset?.url && (
+                      <img
+                        src={teacher.bioPicture.asset.url}
+                        alt={teacher.name}
+                        className="image-11"
+                        loading="lazy"
+                      />
+                    )}
+                    <div className="facilitator-name letter-space">By </div>
+                    <div className="facilitator-name underline">{teacher.name}</div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
