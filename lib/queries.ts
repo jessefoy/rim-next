@@ -81,3 +81,17 @@ export const dashboardProgramsQuery = `*[_type == "programs" && !(_id in path("d
 }`;
 
 export const allProgramSlugsQuery = `*[_type == "programs" && !(_id in path("drafts.**"))] { "slug": slug.current }`;
+
+export const teamsQuery = `*[_type == "teams" && !(_id in path("drafts.**"))] | order(sortOrder asc) {
+  _id, name, slug, sortOrder, title,
+  bio,
+  bioPicture { asset-> { url } }
+}`;
+
+export const teamBySlugQuery = `*[_type == "teams" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
+  _id, name, slug, title,
+  bio,
+  bioPicture { asset-> { url } }
+}`;
+
+export const allTeamSlugsQuery = `*[_type == "teams" && !(_id in path("drafts.**"))] { "slug": slug.current }`;
