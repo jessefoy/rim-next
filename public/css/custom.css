@@ -318,3 +318,10 @@
 .waiting-room-attendance-button {
   display: flex;
 }
+
+/* Override the mobile breakpoint rule in rim.webflow.css (line 8628) */
+@media screen and (max-width: 479px) {
+  .waiting-room-attendance-button {
+    display: flex;
+  }
+}
