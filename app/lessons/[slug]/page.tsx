@@ -15,7 +15,7 @@ type Lesson = {
   headerQuote?: string;
   quoteSource?: string;
   lessonContent?: unknown[];
-  teachers?: { name: string; slug: { current: string } }[];
+  teachers?: { name: string; slug: { current: string }; bioPicture?: { asset?: { url: string } } }[];
   downloadableResources?: {
     name: string;
     description?: string;
@@ -88,6 +88,15 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
                   href={`/team/${teacher.slug.current}`}
                   className="teacher-container w-inline-block"
                 >
+                  {teacher.bioPicture?.asset?.url && (
+                    <img
+                      src={teacher.bioPicture.asset.url}
+                      alt={teacher.name}
+                      className="image-11"
+                      loading="lazy"
+                    />
+                  )}
+                  <div className="facilitator-name letter-space">By </div>
                   <div className="facilitator-name underline">{teacher.name}</div>
                 </Link>
               ))}
