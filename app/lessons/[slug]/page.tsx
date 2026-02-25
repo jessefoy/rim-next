@@ -44,7 +44,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
 
   return (
     <>
-      {/* ── Lesson hero: label + title + white overlay box (quote or audio) ── */}
+      {/* ── Hero: label + title + quote or audio overlay box ── */}
       <div className="section lesson-hero">
         <div className="container-4"></div>
         <div>
@@ -76,9 +76,10 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
         <div className="container-4"></div>
       </div>
 
-      {/* ── Lesson content ── */}
+      {/* ── Content ── */}
       <div className="section-10">
 
+        {/* Video */}
         {lesson.videoLessonLink && (
           <div className="content-container centered">
             <div className="lesson-video-block">
@@ -95,11 +96,14 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
           </div>
         )}
 
-        {lesson.lessonContent && (
+        {/* Lesson text + teachers (teachers live inside this container, after the text) */}
+        {(lesson.lessonContent || (lesson.teachers && lesson.teachers.length > 0)) && (
           <div className="content-container centered">
-            <div className="rich-text-container">
-              <PortableText value={lesson.lessonContent as any} />
-            </div>
+            {lesson.lessonContent && (
+              <div className="rich-text-container">
+                <PortableText value={lesson.lessonContent as any} />
+              </div>
+            )}
             {lesson.teachers && lesson.teachers.length > 0 && (
               <div className="lesson-teachers">
                 {lesson.teachers.map((teacher) => (
@@ -125,29 +129,43 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
           </div>
         )}
 
+        {/* Downloadable resources */}
         {lesson.downloadableResources && lesson.downloadableResources.length > 0 && (
           <div className="content-container centered">
+            <h3>Resourse Downloads</h3>
             <div className="lesson-resource-block-continer">
-              <h3 className="details-header">Downloadable Resources</h3>
               {lesson.downloadableResources.map((resource, i) => (
-                <div key={i} className="resource-item">
+                <div key={i} className="w-layout-grid lesson-resource-item">
                   {resource.resourceFile?.asset?.url && (
                     <a
                       href={resource.resourceFile.asset.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="button-2 w-button"
+                      className="w-inline-block"
                     >
-                      <img src="/images/file_upload_black_24dp-1.svg" width={20} alt="" />{" "}
-                      {resource.name}
+                      <h1 className="event-name">{resource.name}</h1>
                     </a>
                   )}
-                  {resource.description && <p>{resource.description}</p>}
                 </div>
               ))}
             </div>
           </div>
         )}
+
+        {/* Dana / generosity — always shown, matches live site */}
+        <p className="small-text-box">
+          RIM is a small and dedicated community that continues the tradition of offering
+          authentic teachings and practices freely — to all who may benefit. In turn,
+          contributions from people like you support these offerings, our teachers, and a
+          community of people who aspire to co-create a wise, compassionate, and healthy
+          world.<br /><br />
+          <Link href="/donate"><strong>♥ Donate to RIM</strong></Link>
+          <strong> </strong>— Your generosity is appreciated and makes a real impact.
+          <br /><br />
+          <span className="text-span-12"><em>RIM is a 501(c3) non-profit organization.</em></span>
+        </p>
+
+        <div className="div-block-129"></div>
 
       </div>
     </>
