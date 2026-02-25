@@ -288,6 +288,98 @@
 
 
 /* ═══════════════════════════════════════════════════
+   COURSE PAGE — LESSON LIST
+   Matches the Webflow live-site card layout:
+   gray panel, white lesson cards, "Go →" button right.
+═══════════════════════════════════════════════════ */
+
+/* Give the course page the same #fafafa background as
+   the Webflow lessons-collection-page variant */
+.section.background-white.lessons-collection-page {
+  background-color: #fafafa;
+}
+
+/* Lessons panel — subtle gray container inside the section */
+.course-lessons-list {
+  background-color: #f0f0f0;
+  border-radius: 8px;
+  padding: 32px 40px 40px;
+  margin-top: 40px;
+}
+
+/* "Lessons" heading uses the Quincycf serif already defined
+   in rim.webflow.css for .details-header — no override needed */
+
+/* Section titles (e.g. "Introduction to the Handful of Leaves Model") */
+.lesson-section-header {
+  margin-top: 24px;
+  margin-bottom: 12px;
+}
+
+.lesson-section-header h3 {
+  color: var(--rim-blue);
+  font-size: 22px;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Individual lesson card */
+.course-lesson-item {
+  background-color: #fff;
+  border-radius: 6px;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Link fills the entire card; flex keeps title left, button right */
+.course-lesson-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  color: #333;
+  text-decoration: none;
+  font-size: 16px;
+  border-radius: 6px;
+  transition: background-color 0.15s;
+}
+
+.course-lesson-link:hover {
+  background-color: #f8f9fa;
+}
+
+/* "Go →" pill button rendered via CSS, matching the Webflow design */
+.course-lesson-link::after {
+  content: "Go \2192";
+  background-color: #135274;
+  color: #fff;
+  padding: 7px 18px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: 16px;
+}
+
+@media screen and (max-width: 767px) {
+  .course-lessons-list {
+    padding: 24px 20px 28px;
+  }
+
+  .course-lesson-link {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .course-lesson-link::after {
+    align-self: flex-start;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════
    DONATE PAGE — ACCORDIONS
    Collapsed by default; JS toggles max-height on click.
    The arrow (rotate 90deg = pointing down = "expand")

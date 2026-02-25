@@ -38,7 +38,7 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
   if (!course) notFound();
 
   return (
-    <div className="section background-white">
+    <div className="section background-white lessons-collection-page">
       <div className="content-container">
         <h1 className="heading-9">{course.name}</h1>
         {course.subheading && <h2 className="heading-39">{course.subheading}</h2>}
