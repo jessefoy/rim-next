@@ -1,6 +1,7 @@
 import { sanityClient } from "@/lib/sanity";
 import { programsQuery, programCategoriesQuery } from "@/lib/queries";
 import Link from "next/link";
+import ListRow from "@/components/ListRow";
 
 export const metadata = {
   title: "Programs and Events — Rooted In Mindfulness",
@@ -61,33 +62,14 @@ export default async function CommunityProgramsPage() {
                   <h1 className="program-category-header">{category.name}</h1>
                 </div>
                 {categoryPrograms.map((program) => (
-                  <div key={program._id} className="w-layout-grid programlistblock">
-                    <div className="dashboard-list-name-and-date-container">
-                      <div className="name-day-and-time-block">
-                        <div className="dashboard-title-container">
-                          <h1 className="event-name">{program.name}</h1>
-                        </div>
-                        {program.listingDayAndTimeText && (
-                          <div className="dashboard-date-time-container">
-                            <div className="text-block-46">{program.listingDayAndTimeText}</div>
-                          </div>
-                        )}
-                      </div>
-                      {program.dashboardSpecialAnnouncement && (
-                        <div className="special-program-announcment">
-                          <h1 className="special-announcment">{program.dashboardSpecialAnnouncement}</h1>
-                        </div>
-                      )}
-                    </div>
-                    <div className="program-links">
-                      <Link
-                        href={`/programs/${program.slug.current}`}
-                        className="program-list-button w-button"
-                      >
-                        Learn More
-                      </Link>
-                    </div>
-                  </div>
+                  <ListRow
+                    key={program._id}
+                    title={program.name}
+                    subtitle={program.listingDayAndTimeText}
+                    announcement={program.dashboardSpecialAnnouncement}
+                    href={`/programs/${program.slug.current}`}
+                    buttonLabel="Learn More"
+                  />
                 ))}
               </div>
             );

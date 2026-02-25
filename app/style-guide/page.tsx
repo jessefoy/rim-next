@@ -2,6 +2,7 @@ import DanaSection from "@/components/DanaSection";
 import TeacherList from "@/components/TeacherList";
 import MemberGate from "@/components/MemberGate";
 import SeriesListItem from "@/components/SeriesListItem";
+import ListRow from "@/components/ListRow";
 import Link from "next/link";
 
 export const metadata = { title: "Style Guide — Rooted In Mindfulness" };
@@ -42,6 +43,53 @@ export default function StyleGuidePage() {
         ══════════════════════════════════════════════════ */}
         <section className="sg-section">
           <h2 className="sg-section-title">Custom Components</h2>
+
+          {/* ── ListRow ── */}
+          <div className="sg-component">
+            <div className="sg-component-header">
+              <code className="sg-component-name">&lt;ListRow /&gt;</code>
+              <span className="sg-component-path">components/ListRow.tsx</span>
+            </div>
+            <p className="sg-component-desc">
+              Universal list-row card used everywhere: community programs, dashboard Zoom links,
+              My Library, and course lessons (via SeriesListItem). All four lists now share
+              this one component. Props: <code>title</code>, <code>subtitle</code>,{" "}
+              <code>note</code> (italic), <code>announcement</code>, <code>badge</code>,{" "}
+              <code>href</code>, <code>buttonLabel</code> (default "Go →"),{" "}
+              <code>external</code>, <code>disabled</code>.
+            </p>
+            <div className="sg-component-preview sg-component-preview--grey">
+              {/* Programs variant */}
+              <ListRow
+                title="The Art of Meditation:"
+                subtitle="Tuesdays | 9:30–10:30 am (CT) | In-person and Zoom"
+                href="/programs/the-art-of-meditation"
+                buttonLabel="Learn More"
+              />
+              {/* Dashboard / Zoom variant */}
+              <ListRow
+                title="Good Morning Silent Meditation:"
+                subtitle="Monday – Friday | 6:30–7:00 am (CT) | Zoom Only"
+                note="Held in Noble Silence before and during session."
+                href="https://zoom.us/j/example"
+                buttonLabel="Join Zoom"
+                external
+              />
+              {/* Library variant — disabled */}
+              <ListRow
+                title="Glossary of Dharma Terms"
+                buttonLabel="Coming Soon"
+                disabled
+              />
+              {/* Course lesson variant */}
+              <ListRow
+                title="Introduction to the Handful of Leaves Model"
+                badge=" 🎧"
+                href="/lessons/introduction-to-the-handful-of-leaves-model"
+                buttonLabel="Go →"
+              />
+            </div>
+          </div>
 
           {/* ── DanaSection ── */}
           <div className="sg-component">

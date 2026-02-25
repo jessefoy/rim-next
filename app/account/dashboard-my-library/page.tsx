@@ -1,4 +1,4 @@
-import Link from "next/link";
+import ListRow from "@/components/ListRow";
 
 export const metadata = { title: "My Library — Rooted In Mindfulness" };
 
@@ -38,26 +38,13 @@ export default function MyLibraryPage() {
             change ;)
           </p>
           {LIBRARY_ITEMS.map((item) => (
-            <div key={item.name} className="w-layout-grid programlistblock">
-              <div className="dashboard-list-name-and-date-container">
-                <div className="name-day-and-time-block">
-                  <div className="dashboard-title-container">
-                    <h1 className="event-name">{item.name}</h1>
-                  </div>
-                </div>
-              </div>
-              <div className="program-links">
-                {item.href ? (
-                  <Link href={item.href} className="program-list-button w-button">
-                    {item.label}
-                  </Link>
-                ) : (
-                  <span className="program-list-button w-button" style={{ opacity: 0.5, cursor: "default" }}>
-                    {item.label}
-                  </span>
-                )}
-              </div>
-            </div>
+            <ListRow
+              key={item.name}
+              title={item.name}
+              href={item.href ?? undefined}
+              buttonLabel={item.label}
+              disabled={!item.href}
+            />
           ))}
         </div>
       </div>

@@ -1,12 +1,11 @@
-import Link from "next/link";
+import ListRow from "@/components/ListRow";
 
 /**
- * SeriesListItem — w-layout-grid series-list-grid rows
- * Used in course pages (lesson lists) and anywhere else that renders
- * a series/lesson list in the Webflow series-list-grid layout.
+ * SeriesListItem — lesson rows inside .series-list-wrapper on course pages.
  *
- * isSectionTitle=true renders a transparent header row with no Go button.
- * isSectionTitle=false (default) renders a white card row with a Go ➞ link.
+ * Regular items delegate to <ListRow> for consistent card styling.
+ * Section-title items use the Webflow series-list-grid section-title-bg style
+ * (transparent, no button) which is unique to the course page outline layout.
  */
 export default function SeriesListItem({
   title,
@@ -32,22 +31,11 @@ export default function SeriesListItem({
   }
 
   return (
-    <div className="w-layout-grid series-list-grid">
-      <div className="dashboard-list-name-and-date-container">
-        <div className="dashboard-title-container">
-          <div className="event-name">
-            {title}
-            {includesAudio && <span className="audio-badge"> 🎧</span>}
-          </div>
-        </div>
-      </div>
-      {href && (
-        <div className="program-links">
-          <Link href={href} className="button-2-copy w-button">
-            Go ➞
-          </Link>
-        </div>
-      )}
-    </div>
+    <ListRow
+      title={title}
+      badge={includesAudio ? " 🎧" : undefined}
+      href={href}
+      buttonLabel="Go →"
+    />
   );
 }

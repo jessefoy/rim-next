@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { sanityClient } from "@/lib/sanity";
 import { dashboardProgramsQuery } from "@/lib/queries";
 import { redirect } from "next/navigation";
+import ListRow from "@/components/ListRow";
 
 export const metadata = { title: "Dashboard — Rooted In Mindfulness" };
 
@@ -28,14 +29,12 @@ function getMilwaukeeDay(): string {
 }
 
 function programIsToday(program: DashboardProgram, today: string): boolean {
-  // Check dayFiltering string first (e.g. "Monday, Wednesday")
   if (program.dayFiltering) {
     return program.dayFiltering
       .split(",")
       .map((d) => d.trim())
       .includes(today);
   }
-  // Fall back to dayOfWeek reference array
   if (program.dayOfWeek && program.dayOfWeek.length > 0) {
     return program.dayOfWeek.some((d) => d.name === today);
   }
@@ -67,50 +66,17 @@ export default async function DashboardPage() {
                   </div>
                 ) : (
                   todaysPrograms.map((program) => (
-                    <div
+                    <ListRow
                       key={program._id}
-                      role="listitem"
-                      className="program-collection-item w-dyn-item"
-                    >
-                      <div className="w-layout-grid programlistblock">
-                        <div className="dashboard-list-name-and-date-container">
-                          <div className="name-day-and-time-block">
-                            <div className="dashboard-title-container">
-                              <h1 className="event-name">{program.name}</h1>
-                            </div>
-                            {program.listingDayAndTimeText && (
-                              <div className="dashboard-date-time-container">
-                                <div className="text-block-46">{program.listingDayAndTimeText}</div>
-                              </div>
-                            )}
-                          </div>
-                          {program.dashboardEarlyArrivalMessage && (
-                            <h1 className="presession-message">{program.dashboardEarlyArrivalMessage}</h1>
-                          )}
-                          {program.dashboardSpecialAnnouncement && (
-                            <div className="special-program-announcment">
-                              <h1 className="special-announcment">{program.dashboardSpecialAnnouncement}</h1>
-                            </div>
-                          )}
-                        </div>
-                        <div className="program-links">
-                          {program.zoomLink ? (
-                            <a
-                              href={program.zoomLink}
-                              className="attendance-button w-button"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              Join
-                            </a>
-                          ) : (
-                            <span className="attendance-button w-button" style={{ opacity: 0.5, cursor: "default" }}>
-                              No link yet
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                      title={program.name}
+                      subtitle={program.listingDayAndTimeText}
+                      note={program.dashboardEarlyArrivalMessage}
+                      announcement={program.dashboardSpecialAnnouncement}
+                      href={program.zoomLink}
+                      buttonLabel="Join Zoom"
+                      external
+                      disabled={!program.zoomLink}
+                    />
                   ))
                 )}
               </div>
