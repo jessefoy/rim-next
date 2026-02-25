@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export const metadata = { title: "My Library — Rooted In Mindfulness" };
 
 const LIBRARY_ITEMS = [
@@ -8,17 +10,17 @@ const LIBRARY_ITEMS = [
   },
   {
     name: "Four Foundations of Mindfulness (Satipatthana) Sutta",
-    href: "https://www.rootedinmindfulness.org/course/satipatthana-sutta",
+    href: "/course/satipatthana-sutta",
     label: "Go →",
   },
   {
     name: "Loving-Kindness (Metta) Sutta",
-    href: "https://www.rootedinmindfulness.org/lessons/metta-sutta",
+    href: "/lessons/metta-sutta",
     label: "Go →",
   },
   {
     name: "Handful of Leaves Learning and Practice Resources",
-    href: "https://www.rootedinmindfulness.org/course/essential-dharma-study-resources",
+    href: "/course/essential-dharma-study-resources",
     label: "Go →",
   },
 ];
@@ -46,14 +48,9 @@ export default function MyLibraryPage() {
               </div>
               <div className="program-links">
                 {item.href ? (
-                  <a
-                    href={item.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="program-list-button w-button"
-                  >
+                  <Link href={item.href} className="program-list-button w-button">
                     {item.label}
-                  </a>
+                  </Link>
                 ) : (
                   <span className="program-list-button w-button" style={{ opacity: 0.5, cursor: "default" }}>
                     {item.label}
