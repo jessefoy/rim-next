@@ -1,0 +1,309 @@
+/*
+  custom.css — Site-specific overrides for RIM website
+  Loaded after Webflow CSS to take precedence.
+  Do not modify normalize.css, webflow.css, or rim.webflow.css directly.
+*/
+
+
+/* ═══════════════════════════════════════════════════
+   PROGRAM LIST ROW
+   Used on community-programs and elsewhere.
+   Replaces Webflow's fixed-pixel grid (802px 1fr) with
+   a clean flexbox layout: info left, button right.
+═══════════════════════════════════════════════════ */
+
+.programlistblock {
+  display: flex;           /* override w-layout-grid's display:grid */
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+/* Button column: never shrink, always push to the right */
+.program-links {
+  flex-shrink: 0;
+}
+
+/* Tablet (≤991px): same flex layout, just tighter */
+@media screen and (max-width: 991px) {
+  .programlistblock {
+    gap: 16px;
+  }
+}
+
+/* Mobile (≤767px): stack vertically, button below info */
+@media screen and (max-width: 767px) {
+  .programlistblock {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .program-links {
+    /* On mobile Webflow uses flex-direction: row-reverse which
+       visually reversed the button. With flexbox column stacking
+       we just left-align the button naturally. */
+    justify-content: flex-start;
+    margin-top: 0;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════
+   NAVIGATION DROPDOWNS
+   Webflow JS normally adds w--open on hover/click.
+   CSS hover covers desktop; nav.js handles click +
+   the mobile hamburger toggle.
+═══════════════════════════════════════════════════ */
+
+/* Desktop (>767px): open dropdown on hover */
+@media screen and (min-width: 768px) {
+  .w-dropdown:hover > .w-dropdown-list {
+    display: block;
+  }
+
+  /* Apply the w--open visual styles when shown via hover */
+  .w-dropdown:hover > .navigation-dropdown {
+    background-color: transparent;
+    min-width: 360px;
+    max-height: 100vh;
+    padding-top: 10px;
+    left: -100px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   ACTIVE / CURRENT PAGE INDICATORS
+   Webflow sets w--current on matching links; these styles
+   make the active state visually clear.
+═══════════════════════════════════════════════════ */
+
+/* Top-level nav link active state */
+.navigation-link.w--current {
+  color: #39607a !important; /* RIM green */
+  border-bottom: 2px solid #39607a;
+  padding-bottom: 2px;
+}
+
+/* Dropdown link active state */
+.dropdown-link.w--current .dropdown-title {
+  color: #39607a;
+}
+
+/* Mobile nav link active state */
+.mobile-nav-link.w--current {
+  color: #39607a !important;
+  font-weight: 600;
+}
+
+
+/* Mobile: when hamburger is open, show the nav menu */
+.w-nav-menu.w--open {
+  display: block !important;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  z-index: 999;
+  padding: 10px 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+
+/* ═══════════════════════════════════════════════════
+   FOOTER — centered, single-column layout
+   Form on top, logo + contact info below.
+═══════════════════════════════════════════════════ */
+
+.rim-footer {
+  background-color: #135274;
+  padding: 60px 24px 32px;
+  text-align: center;
+}
+
+.rim-footer-inner {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+/* Newsletter section */
+.rim-footer-newsletter { margin-bottom: 8px; }
+
+.rim-footer-heading {
+  color: #fff;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+
+.rim-footer-sub {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 15px;
+  margin: 0 0 20px;
+}
+
+/* Divider between form and contact */
+.rim-footer-divider {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  margin: 36px 0;
+}
+
+/* Contact section */
+.rim-footer-contact {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.rim-footer-logo   { width: 65px; margin-bottom: 4px; }
+
+.rim-footer-name {
+  color: #fff;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.rim-footer-address {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 14px;
+}
+
+.rim-footer-contact-links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.rim-footer-contact-links a {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 14px;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.rim-footer-contact-links a:hover { color: #fff; }
+
+.rim-footer-dot { color: rgba(255, 255, 255, 0.4); }
+
+/* Bottom copyright row */
+.rim-footer-bottom {
+  max-width: 680px;
+  margin: 36px auto 0;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+}
+
+.rim-footer-bottom a {
+  color: rgba(255, 255, 255, 0.5);
+  text-decoration: none;
+}
+
+.rim-footer-bottom a:hover { color: #fff; }
+
+@media screen and (max-width: 767px) {
+  .rim-footer-bottom {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+}
+
+/* Newsletter form — inline row on desktop, stacked on mobile */
+.footer-subscribe-form { margin-top: 0; }
+
+.footer-subscribe-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.footer-input {
+  flex: 1;
+  max-width: 210px;
+  padding: 11px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.footer-input::placeholder { color: rgba(255, 255, 255, 0.55); }
+.footer-input:focus        { border-color: rgba(255, 255, 255, 0.75); }
+
+.footer-subscribe-btn {
+  padding: 11px 22px;
+  background: #fff;
+  color: #135274;
+  border: none;
+  border-radius: 6px;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.footer-subscribe-btn:hover    { background: #e8f0f5; }
+.footer-subscribe-btn:disabled { opacity: 0.65; cursor: default; }
+
+.footer-subscribe-msg {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 10px 0 0;
+}
+
+.footer-subscribe-success {
+  color: #a8d5a2;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+@media screen and (max-width: 600px) {
+  .footer-subscribe-row {
+    flex-direction: column;
+  }
+
+  .footer-input {
+    max-width: none;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════
+   DONATE PAGE — ACCORDIONS
+   Collapsed by default; JS toggles max-height on click.
+   The arrow (rotate 90deg = pointing down = "expand")
+   flips to rotate 270deg (pointing up) when open.
+═══════════════════════════════════════════════════ */
+
+.accordion-content-wrapper {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.accordion-arrow {
+  transition: transform 0.3s ease;
+}
+
+.accordion-item.accordion-open .accordion-arrow {
+  transform: rotate(270deg);
+}

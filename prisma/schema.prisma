@@ -1,0 +1,143 @@
+// RIM Member Management Database Schema
+// Prisma + Vercel Postgres
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
+}
+
+// ─── AUTH (required by NextAuth/Auth.js) ─────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── MEMBER PROFILE ──────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  firstName     String?
+  lastName      String?
+  phone         String?
+  role          Role      @default(MEMBER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Legacy data imported from Memberstack (kept for historical reference)
+  legacyMemberstackId     String?   @unique
+  legacyLastLogin         DateTime?
+  legacyLastAttendance    DateTime?
+  legacyActivityCount     Int?
+  legacyMemberSince       DateTime?
+
+  // Relations
+  accounts    Account[]
+  sessions    Session[]
+  memberships UserMembership[]
+  attendance  AttendanceRecord[]
+
+  @@map("users")
+}
+
+enum Role {
+  MEMBER
+  VOLUNTEER
+  TEACHER
+  ADMIN
+}
+
+// ─── MEMBERSHIP TYPES ────────────────────────────────────────────────────────
+
+model MembershipType {
+  id          String   @id @default(cuid())
+  name        String   @unique  // e.g. "General Member", "Dharma Study Group"
+  slug        String   @unique  // e.g. "general", "dharma-study-group"
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  members UserMembership[]
+
+  @@map("membership_types")
+}
+
+model UserMembership {
+  id               String         @id @default(cuid())
+  userId           String
+  membershipTypeId String
+  joinedAt         DateTime       @default(now())
+  isActive         Boolean        @default(true)
+
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  membershipType MembershipType @relation(fields: [membershipTypeId], references: [id])
+
+  @@unique([userId, membershipTypeId])
+  @@map("user_memberships")
+}
+
+// ─── ATTENDANCE (Phase 2 — table created now, populated later) ───────────────
+
+model AttendanceRecord {
+  id          String           @id @default(cuid())
+  userId      String
+  recordedAt  DateTime         @default(now())
+  eventDate   DateTime
+  eventName   String
+  eventType   AttendanceType
+  format      AttendanceFormat
+  notes       String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("attendance_records")
+}
+
+enum AttendanceType {
+  CLASS
+  RETREAT
+  STUDY_GROUP
+  VOLUNTEER
+  EVENT
+}
+
+enum AttendanceFormat {
+  IN_PERSON
+  ONLINE
+}
