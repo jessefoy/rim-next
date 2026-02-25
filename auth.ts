@@ -18,9 +18,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     error: "/login/error",
   },
   callbacks: {
-    session({ session, user }) {
+    async session({ session, user }) {
       if (session.user) {
         session.user.id = user.id;
+        const dbUser = await db.user.findUnique({
+          where: { id: user.id },
+          select: { firstName: true },
+        });
+        if (dbUser?.firstName) {
+          session.user.name = dbUser.firstName;
+        }
       }
       return session;
     },
