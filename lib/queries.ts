@@ -95,3 +95,61 @@ export const teamBySlugQuery = `*[_type == "teams" && slug.current == $slug && !
 }`;
 
 export const allTeamSlugsQuery = `*[_type == "teams" && !(_id in path("drafts.**"))] { "slug": slug.current }`;
+
+// ─── Lessons ──────────────────────────────────────────────────────────────────
+
+export const lessonBySlugQuery = `*[_type == "lessons" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
+  _id, name, slug, lessonTitleDisplayed, includesAudio, podcastId,
+  videoLessonLink, headerQuote, quoteSource, lessonContent,
+  teachers[]-> { name, slug },
+  downloadableResources[]-> {
+    name, description,
+    resourceFile { asset-> { url } }
+  }
+}`;
+
+export const allLessonSlugsQuery = `*[_type == "lessons" && !(_id in path("drafts.**"))] { "slug": slug.current }`;
+
+// ─── Courses ──────────────────────────────────────────────────────────────────
+
+export const courseBySlugQuery = `*[_type == "courses" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
+  _id, name, slug, subheading, mainContentDescription,
+  lessons[]-> { lessonTitleDisplayed, slug, isSectionTitle, includesAudio }
+}`;
+
+export const allCourseSlugsQuery = `*[_type == "courses" && !(_id in path("drafts.**"))] { "slug": slug.current }`;
+
+// ─── Glossary ─────────────────────────────────────────────────────────────────
+
+export const glossaryTermBySlugQuery = `*[_type == "glossary" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
+  _id, name, slug, pali, sanskrit, synonyms
+}`;
+
+export const allGlossaryTermSlugsQuery = `*[_type == "glossary" && !(_id in path("drafts.**"))] { "slug": slug.current }`;
+
+// ─── Class Recordings ─────────────────────────────────────────────────────────
+
+export const classRecordingBySlugQuery = `*[_type == "classRecordings" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
+  _id, name, slug, dateRecorded, audioEmbedCode, videoLink, description,
+  teachers[]-> { name, slug },
+  topics[]-> { name, slug }
+}`;
+
+export const allClassRecordingSlugsQuery = `*[_type == "classRecordings" && !(_id in path("drafts.**"))] { "slug": slug.current }`;
+
+// ─── Magazine Articles ────────────────────────────────────────────────────────
+
+export const magazineArticleBySlugQuery = `*[_type == "magazineArticles" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
+  _id, slug, articleTitleDisplayed, articleContent
+}`;
+
+export const allMagazineArticleSlugsQuery = `*[_type == "magazineArticles" && !(_id in path("drafts.**"))] { "slug": slug.current }`;
+
+// ─── Volunteer Positions ──────────────────────────────────────────────────────
+
+export const volunteerPositionBySlugQuery = `*[_type == "volunteerPositions" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
+  _id, name, slug, isOpen, positionDescription,
+  currentVolunteers[]-> { name, slug }
+}`;
+
+export const allVolunteerPositionSlugsQuery = `*[_type == "volunteerPositions" && !(_id in path("drafts.**"))] { "slug": slug.current }`;
