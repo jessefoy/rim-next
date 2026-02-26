@@ -78,10 +78,6 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
       <div className="section-10">
         <div className="content-container centered">
 
-          {lesson.teachers && lesson.teachers.length > 0 && (
-            <TeacherList teachers={lesson.teachers} variant="lesson" />
-          )}
-
           {lesson.videoLessonLink && (
             <div className="lesson-video-block">
               <div className="w-video w-embed">
@@ -123,6 +119,10 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
                 </div>
               ))}
             </div>
+          )}
+
+          {lesson.teachers && lesson.teachers.length > 0 && (
+            <TeacherList teachers={lesson.teachers} variant="lesson" />
           )}
 
           <DanaSection />
