@@ -320,6 +320,24 @@
   align-items: center;
 }
 
+/* ═══════════════════════════════════════════════════
+   LESSON CONTENT — teacher block width
+   content-container has align-items: center so lesson-teachers
+   shrinks to content width and centers. Fix by matching the
+   700px width of rich-text-container so teacher aligns with text.
+═══════════════════════════════════════════════════ */
+.section-10 .lesson-teachers {
+  width: 700px;
+}
+
+@media screen and (max-width: 991px) {
+  .section-10 .lesson-teachers { width: 99%; }
+}
+
+@media screen and (max-width: 767px) {
+  .section-10 .lesson-teachers { width: 100%; }
+}
+
 
 /* ═══════════════════════════════════════════════════
    DONATE PAGE — ACCORDIONS
