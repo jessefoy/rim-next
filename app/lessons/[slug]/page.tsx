@@ -133,8 +133,6 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
         {/* Dana / generosity — always shown */}
         <DanaSection />
 
-        <div className="div-block-129"></div>
-
       </div>
     </>
   );

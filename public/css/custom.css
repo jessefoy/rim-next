@@ -307,6 +307,19 @@
   text-align: center;
 }
 
+/* ═══════════════════════════════════════════════════
+   LESSON HERO — center label, title, and audio/quote card
+   container-4 has no display set in rim.webflow.css so
+   lesson-page-heading (inline-block) would be left-aligned.
+   Making container-4 a flex column with align-items: center
+   centers all three children correctly.
+═══════════════════════════════════════════════════ */
+.section.lesson-hero .container-4 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 
 /* ═══════════════════════════════════════════════════
    DONATE PAGE — ACCORDIONS
