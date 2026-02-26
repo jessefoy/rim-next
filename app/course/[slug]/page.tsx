@@ -41,23 +41,21 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
     <>
       {/* ── Course header: label + title + description ── */}
       <div className="course-header">
-        <div className="content-container w-container">
-          <div className="f-container-regular">
-            <div className="f-header-wrapper-left">
-              {course.subheading && (
-                <div className="f-margin-bottom-08">
-                  <h5 className="course-type">{course.subheading}</h5>
-                </div>
-              )}
-              <div className="f-margin-bottom-24">
-                <h1 className="course-title">{course.name}</h1>
+        <div className="f-container-regular">
+          <div className="f-header-wrapper-left">
+            {course.subheading && (
+              <div className="f-margin-bottom-08">
+                <h5 className="course-type">{course.subheading}</h5>
               </div>
-              {course.mainContentDescription && (
-                <div className="text-block-65 w-richtext">
-                  <PortableText value={course.mainContentDescription as any} />
-                </div>
-              )}
+            )}
+            <div className="f-margin-bottom-24">
+              <h1 className="course-title">{course.name}</h1>
             </div>
+            {course.mainContentDescription && (
+              <div className="text-block-65 w-richtext">
+                <PortableText value={course.mainContentDescription as any} />
+              </div>
+            )}
           </div>
         </div>
       </div>

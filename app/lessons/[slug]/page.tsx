@@ -47,34 +47,31 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
     <>
       {/* ── Hero: label + title + quote or audio overlay box ── */}
       <div className="section lesson-hero">
-        <div className="container-4"></div>
-        <div>
+        <div className="container-4">
           <div className="text-block-53">Learning &amp; Practice</div>
+          <h1 className="lesson-page-heading">{lesson.lessonTitleDisplayed}</h1>
+
+          {hasHeroContent && (
+            <div className="div-block-129">
+              {lesson.includesAudio && lesson.podcastId ? (
+                <iframe
+                  src={`https://player.captivate.fm/episode/${lesson.podcastId}`}
+                  width="100%"
+                  height="200"
+                  frameBorder="0"
+                  scrolling="no"
+                />
+              ) : lesson.headerQuote ? (
+                <div className="quote-header-container">
+                  <p className="block-quote-2">{lesson.headerQuote}</p>
+                  {lesson.quoteSource && (
+                    <div className="text-block-56">— {lesson.quoteSource}</div>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          )}
         </div>
-        <h1 className="lesson-page-heading">{lesson.lessonTitleDisplayed}</h1>
-
-        {hasHeroContent && (
-          <div className="div-block-129">
-            {lesson.includesAudio && lesson.podcastId ? (
-              <iframe
-                src={`https://player.captivate.fm/episode/${lesson.podcastId}`}
-                width="100%"
-                height="200"
-                frameBorder="0"
-                scrolling="no"
-              />
-            ) : lesson.headerQuote ? (
-              <div className="quote-header-container">
-                <p className="block-quote-2">{lesson.headerQuote}</p>
-                {lesson.quoteSource && (
-                  <div className="text-block-56">— {lesson.quoteSource}</div>
-                )}
-              </div>
-            ) : null}
-          </div>
-        )}
-
-        <div className="container-4"></div>
       </div>
 
       {/* ── Content ── */}
