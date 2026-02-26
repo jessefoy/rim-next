@@ -304,6 +304,12 @@
   text-align: center;
 }
 
+/* series-list-grid uses place-items: center end (justify-items: end = right-aligned).
+   Section title headers should be left-aligned. */
+.series-list-grid.section-title-bg {
+  justify-items: start;
+}
+
 
 /* ═══════════════════════════════════════════════════
    DONATE PAGE — ACCORDIONS
