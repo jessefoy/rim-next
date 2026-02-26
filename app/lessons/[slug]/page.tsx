@@ -112,18 +112,19 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
         {/* Downloadable resources */}
         {lesson.downloadableResources && lesson.downloadableResources.length > 0 && (
           <div className="content-container centered">
-            <h3>Resourse Downloads</h3>
+            <h3 className="details-header">Downloadable Resources</h3>
             <div className="lesson-resource-block-continer">
               {lesson.downloadableResources.map((resource, i) => (
-                <div key={i} className="w-layout-grid lesson-resource-item">
+                <div key={i} className="lesson-resource-item">
+                  <div className="event-name">{resource.name}</div>
                   {resource.resourceFile?.asset?.url && (
                     <a
                       href={resource.resourceFile.asset.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-inline-block"
+                      className="program-list-button w-button"
                     >
-                      <h1 className="event-name">{resource.name}</h1>
+                      Download
                     </a>
                   )}
                 </div>
