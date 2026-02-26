@@ -4,6 +4,7 @@ import { PortableText } from "@portabletext/react";
 import { notFound } from "next/navigation";
 import DanaSection from "@/components/DanaSection";
 import TeacherList from "@/components/TeacherList";
+import Link from "next/link";
 
 export const revalidate = 60;
 
@@ -40,46 +41,52 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
   const lesson = await sanityClient.fetch<Lesson | null>(lessonBySlugQuery, { slug });
   if (!lesson) notFound();
 
-  const hasHeroContent =
-    (lesson.includesAudio && lesson.podcastId) || !!lesson.headerQuote;
+  const hasAudio = !!(lesson.includesAudio && lesson.podcastId);
+  const hasQuote = !!lesson.headerQuote;
 
   return (
     <>
-      {/* ── Hero: label + title + quote or audio overlay box ── */}
-      <div className="section lesson-hero">
-        <div className="container-4">
-          <div className="text-block-53">Learning &amp; Practice</div>
-          <h1 className="lesson-page-heading">{lesson.lessonTitleDisplayed}</h1>
-
-          {hasHeroContent && (
-            <div className="div-block-129">
-              {lesson.includesAudio && lesson.podcastId ? (
-                <iframe
-                  src={`https://player.captivate.fm/episode/${lesson.podcastId}`}
-                  width="100%"
-                  height="200"
-                  frameBorder="0"
-                  scrolling="no"
-                />
-              ) : lesson.headerQuote ? (
-                <div className="quote-header-container">
-                  <p className="block-quote-2">{lesson.headerQuote}</p>
-                  {lesson.quoteSource && (
-                    <div className="text-block-56">— {lesson.quoteSource}</div>
-                  )}
-                </div>
-              ) : null}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── Content ── */}
-      <div className="section-10">
-
-        {/* Video */}
-        {lesson.videoLessonLink && (
+      {/* ── Hero: audio OR quote only (no title here) ── */}
+      {(hasAudio || hasQuote) && (
+        <div className="section lesson-hero background-light">
           <div className="content-container centered">
+            {hasAudio ? (
+              <div className="lesson-audio-block">
+                <div className="captivate-player-embed">
+                  <iframe
+                    src={`https://player.captivate.fm/episode/${lesson.podcastId}`}
+                    width="100%"
+                    height="200"
+                    frameBorder="0"
+                    scrolling="no"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="program-quote-block">
+                <p className="program-quote-text">{lesson.headerQuote}</p>
+                {lesson.quoteSource && (
+                  <div className="quote-source">
+                    <div className="program-quote-source-dash">-</div>
+                    <div className="program-quote-source-text">{lesson.quoteSource}</div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Content: title, teachers, video, body, resources, dana ── */}
+      <div className="section background-white">
+        <div className="content-container">
+          <h1 className="heading-9">{lesson.lessonTitleDisplayed}</h1>
+
+          {lesson.teachers && lesson.teachers.length > 0 && (
+            <TeacherList teachers={lesson.teachers} variant="lesson" />
+          )}
+
+          {lesson.videoLessonLink && (
             <div className="lesson-video-block">
               <div className="w-video w-embed">
                 <iframe
@@ -91,48 +98,37 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
                 />
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Lesson text + teachers (teachers live inside this container, after the text) */}
-        {(lesson.lessonContent || (lesson.teachers && lesson.teachers.length > 0)) && (
-          <div className="content-container centered">
-            {lesson.lessonContent && (
-              <div className="rich-text-container">
-                <PortableText value={lesson.lessonContent as any} />
-              </div>
-            )}
-            <TeacherList teachers={lesson.teachers ?? []} variant="lesson" />
-          </div>
-        )}
+          {lesson.lessonContent && (
+            <div className="rich-text-block-19 w-richtext">
+              <PortableText value={lesson.lessonContent as any} />
+            </div>
+          )}
 
-        {/* Downloadable resources */}
-        {lesson.downloadableResources && lesson.downloadableResources.length > 0 && (
-          <div className="content-container centered">
-            <h3 className="details-header">Downloadable Resources</h3>
-            <div className="lesson-resource-block-continer">
+          {lesson.downloadableResources && lesson.downloadableResources.length > 0 && (
+            <div className="lesson-resources-block">
+              <h3 className="details-header">Downloadable Resources</h3>
               {lesson.downloadableResources.map((resource, i) => (
-                <div key={i} className="lesson-resource-item">
-                  <div className="event-name">{resource.name}</div>
+                <div key={i} className="resource-item">
                   {resource.resourceFile?.asset?.url && (
                     <a
                       href={resource.resourceFile.asset.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="program-list-button w-button"
+                      className="button-2 w-button"
                     >
-                      Download
+                      {resource.name}
                     </a>
                   )}
+                  {resource.description && <p>{resource.description}</p>}
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Dana / generosity — always shown */}
-        <DanaSection />
-
+          <DanaSection />
+        </div>
       </div>
     </>
   );

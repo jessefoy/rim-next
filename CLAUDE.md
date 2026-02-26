@@ -47,13 +47,15 @@
 - Login flow: `/login` → Resend sends magic link → `/login/check-email` → user clicks link → redirects to `/account/dashboard`.
 
 ## CSS Class Patterns (Key Webflow Classes)
-- Page sections: `.section`, `.background-white`, `.background-grey`, `.section-10`
+- Page sections: `.section`, `.background-white`, `.background-grey`, `.background-light`
 - Containers: `.content-container`, `.content-container.centered`, `.content-container.left`
 - Program list rows: `.w-layout-grid.programlistblock` → `.dashboard-list-name-and-date-container` → `.event-name`
-- Course header: `.course-header` → `.f-container-regular` → `.f-header-wrapper-left`
-- Lesson hero: `.section.lesson-hero` → `.lesson-page-heading`
-- Lesson resources: `.lesson-resource-block-continer` → `.lesson-resource-item` (flex card: name + button)
-- Headings: `.heading-9` (main), `.heading-39` (sub), `.heading-9-copy` (list page), `.course-title`, `.lesson-page-heading`
+- Lesson page: `.section.lesson-hero.background-light` → `.content-container.centered` (audio/quote only, NO title)
+- Lesson content: `.section.background-white` → `.content-container` → `h1.heading-9`, `.lesson-teachers`, `.lesson-video-block`, `.rich-text-block-19.w-richtext`, `.lesson-resources-block`
+- Lesson resources: `.lesson-resources-block` → `.resource-item` → `a.button-2.w-button` (resource name IS the link text)
+- Course page: `.section.background-white` → `.content-container` → `h1.heading-9`, `h2.heading-39`, `.rich-text-block-19`, `.course-lessons-list`
+- Course lessons: `.course-lessons-list` → `.lesson-section-header > h3` (section title) OR `.course-lesson-item > a.course-lesson-link` (lesson link)
+- Headings: `.heading-9` (main), `.heading-39` (sub), `.heading-9-copy` (list page), `.course-title`
 - Buttons: `.button-2.w-button`, `.button-2-white.w-button`, `.program-list-button.w-button`, `.button-primary.w-button`
 - Breadcrumb: `.breadcrumb-link.w-inline-block` → `.text-block-58`
 - Dashboard: `.page-wrapper` → `.dashboard-section` → `.dashboard-content`

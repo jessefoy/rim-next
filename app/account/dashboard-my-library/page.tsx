@@ -5,23 +5,31 @@ export const metadata = { title: "My Library — Rooted In Mindfulness" };
 const LIBRARY_ITEMS = [
   {
     name: "Glossary of Dharma Terms",
-    href: null,
+    href: undefined,
     label: "Coming Soon",
+    disabled: true,
+    external: false,
   },
   {
     name: "Four Foundations of Mindfulness (Satipatthana) Sutta",
-    href: "/course/satipatthana-sutta",
+    href: "https://www.rootedinmindfulness.org/course/satipatthana-sutta",
     label: "Go →",
+    disabled: false,
+    external: true,
   },
   {
     name: "Loving-Kindness (Metta) Sutta",
     href: "/lessons/metta-sutta",
     label: "Go →",
+    disabled: false,
+    external: false,
   },
   {
     name: "Handful of Leaves Learning and Practice Resources",
     href: "/course/essential-dharma-study-resources",
     label: "Go →",
+    disabled: false,
+    external: false,
   },
 ];
 
@@ -41,9 +49,10 @@ export default function MyLibraryPage() {
             <ListRow
               key={item.name}
               title={item.name}
-              href={item.href ?? undefined}
+              href={item.href}
               buttonLabel={item.label}
-              disabled={!item.href}
+              disabled={item.disabled}
+              external={item.external}
             />
           ))}
         </div>

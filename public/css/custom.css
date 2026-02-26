@@ -289,53 +289,52 @@
 
 /* ═══════════════════════════════════════════════════
    COURSE PAGE
-   Uses real Webflow classes (series-list-grid,
-   series-list-section, event-name, button-2-copy, etc.)
-   matching the live site DOM exactly.
+   Body text override: rim.webflow.css sets font-weight: 700
+   on rich-text-block-19; body text should be normal weight.
 ═══════════════════════════════════════════════════ */
 
-/* rim.webflow.css sets font-weight: 700 on rich-text-block-19;
-   body text should be normal weight. */
 .rich-text-block-19 {
   font-weight: 400;
 }
 
-/* f-header-wrapper-left has max-width: 620px which centers the header
-   content, but we need it to be wider for the course title + description. */
-.course-header .f-header-wrapper-left {
-  max-width: 820px;
-  text-align: center;
+/* Course lesson list — classes from course.njk Eleventy template */
+.course-lessons-list {
+  margin-top: 32px;
 }
 
-/* ═══════════════════════════════════════════════════
-   LESSON HERO — center label, title, and audio/quote card
-   container-4 has no display set in rim.webflow.css so
-   lesson-page-heading (inline-block) would be left-aligned.
-   Making container-4 a flex column with align-items: center
-   centers all three children correctly.
-═══════════════════════════════════════════════════ */
-.section.lesson-hero .container-4 {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+.lesson-section-header {
+  padding: 14px 0 6px;
 }
 
-/* ═══════════════════════════════════════════════════
-   LESSON CONTENT — teacher block width
-   content-container has align-items: center so lesson-teachers
-   shrinks to content width and centers. Fix by matching the
-   700px width of rich-text-container so teacher aligns with text.
-═══════════════════════════════════════════════════ */
-.section-10 .lesson-teachers {
-  width: 700px;
+.lesson-section-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #135274;
+  margin: 0;
 }
 
-@media screen and (max-width: 991px) {
-  .section-10 .lesson-teachers { width: 99%; }
+.course-lesson-item {
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
 }
 
-@media screen and (max-width: 767px) {
-  .section-10 .lesson-teachers { width: 100%; }
+.course-lesson-item:last-child {
+  border-bottom: none;
+}
+
+.course-lesson-link {
+  color: #39607a;
+  text-decoration: none;
+  font-size: 16px;
+  display: block;
+}
+
+.course-lesson-link:hover {
+  text-decoration: underline;
+}
+
+.audio-badge {
+  margin-left: 6px;
 }
 
 
@@ -580,4 +579,3 @@
   text-align: center;
   line-height: 1.4;
 }
-
