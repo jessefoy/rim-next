@@ -53,8 +53,8 @@
 - Lesson page: `.section.lesson-hero.background-light` → `.content-container.centered` (audio/quote only, NO title)
 - Lesson content: `.section.background-white` → `.content-container` → `h1.heading-9`, `.lesson-teachers`, `.lesson-video-block`, `.rich-text-block-19.w-richtext`, `.lesson-resources-block`
 - Lesson resources: `.lesson-resources-block` → `.resource-item` → `a.button-2.w-button` (resource name IS the link text)
-- Course page: `.section.background-white` → `.content-container` → `h1.heading-9`, `h2.heading-39`, `.rich-text-block-19`, `.course-lessons-list`
-- Course lessons: `.course-lessons-list` → `.lesson-section-header > h3` (section title) OR `.course-lesson-item > a.course-lesson-link` (lesson link)
+- Course page header: `.course-header` → `.f-container-regular` → `.f-header-wrapper-left` → `h5.course-type` + `h1.course-title` + `div.text-block-65.w-richtext`
+- Course lessons: `.section.background-white` → `.content-container` → `.series-list-section` → `.series-list-wrapper` → `<SeriesListItem>`
 - Headings: `.heading-9` (main), `.heading-39` (sub), `.heading-9-copy` (list page), `.course-title`
 - Buttons: `.button-2.w-button`, `.button-2-white.w-button`, `.program-list-button.w-button`, `.button-primary.w-button`
 - Breadcrumb: `.breadcrumb-link.w-inline-block` → `.text-block-58`

@@ -289,52 +289,19 @@
 
 /* ═══════════════════════════════════════════════════
    COURSE PAGE
-   Body text override: rim.webflow.css sets font-weight: 700
-   on rich-text-block-19; body text should be normal weight.
+   rim.webflow.css sets font-weight: 700 on rich-text-block-19;
+   body text should be normal weight.
+   f-header-wrapper-left max-width is 620px by default —
+   too narrow for long course titles, so we widen it here.
 ═══════════════════════════════════════════════════ */
 
 .rich-text-block-19 {
   font-weight: 400;
 }
 
-/* Course lesson list — classes from course.njk Eleventy template */
-.course-lessons-list {
-  margin-top: 32px;
-}
-
-.lesson-section-header {
-  padding: 14px 0 6px;
-}
-
-.lesson-section-header h3 {
-  font-size: 18px;
-  font-weight: 600;
-  color: #135274;
-  margin: 0;
-}
-
-.course-lesson-item {
-  padding: 10px 0;
-  border-bottom: 1px solid #eee;
-}
-
-.course-lesson-item:last-child {
-  border-bottom: none;
-}
-
-.course-lesson-link {
-  color: #39607a;
-  text-decoration: none;
-  font-size: 16px;
-  display: block;
-}
-
-.course-lesson-link:hover {
-  text-decoration: underline;
-}
-
-.audio-badge {
-  margin-left: 6px;
+.course-header .f-header-wrapper-left {
+  max-width: 820px;
+  text-align: center;
 }
 
 

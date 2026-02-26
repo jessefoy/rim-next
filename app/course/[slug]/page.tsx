@@ -2,7 +2,7 @@ import { sanityClient } from "@/lib/sanity";
 import { courseBySlugQuery, allCourseSlugsQuery } from "@/lib/queries";
 import { PortableText } from "@portabletext/react";
 import { notFound } from "next/navigation";
-import Link from "next/link";
+import SeriesListItem from "@/components/SeriesListItem";
 
 export const revalidate = 60;
 
@@ -38,42 +38,51 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
   if (!course) notFound();
 
   return (
-    <div className="section background-white">
-      <div className="content-container">
-        <h1 className="heading-9">{course.name}</h1>
-        {course.subheading && <h2 className="heading-39">{course.subheading}</h2>}
-
-        {course.mainContentDescription && (
-          <div className="rich-text-block-19 w-richtext">
-            <PortableText value={course.mainContentDescription as any} />
-          </div>
-        )}
-
-        {course.lessons && course.lessons.length > 0 && (
-          <div className="course-lessons-list">
-            <h3 className="details-header">Lessons</h3>
-            {course.lessons.map((lesson, i) =>
-              lesson.isSectionTitle ? (
-                <div key={i} className="lesson-section-header">
-                  <h3>{lesson.lessonTitleDisplayed}</h3>
-                </div>
-              ) : (
-                <div key={i} className="course-lesson-item">
-                  <Link
-                    href={`/lessons/${lesson.slug.current}`}
-                    className="course-lesson-link"
-                  >
-                    {lesson.lessonTitleDisplayed}
-                    {lesson.includesAudio && (
-                      <span className="audio-badge"> 🎧</span>
-                    )}
-                  </Link>
-                </div>
-              )
+    <>
+      {/* ── Course header: fafafa gradient background, blue title ── */}
+      <div className="course-header">
+        <div className="f-container-regular">
+          <div className="f-header-wrapper-left">
+            {course.subheading && (
+              <div className="f-margin-bottom-08">
+                <h5 className="course-type">{course.subheading}</h5>
+              </div>
+            )}
+            <div className="f-margin-bottom-24">
+              <h1 className="course-title">{course.name}</h1>
+            </div>
+            {course.mainContentDescription && (
+              <div className="text-block-65 w-richtext">
+                <PortableText value={course.mainContentDescription as any} />
+              </div>
             )}
           </div>
-        )}
+        </div>
       </div>
-    </div>
+
+      {/* ── Lessons section ── */}
+      {course.lessons && course.lessons.length > 0 && (
+        <div className="section background-white">
+          <div className="content-container">
+            <div className="series-list-section">
+              <div className="program-details-content no-bottom-margin">
+                <h2 className="text-center bottom-margin-30">Lessons</h2>
+                <div className="series-list-wrapper">
+                  {course.lessons.map((lesson, i) => (
+                    <SeriesListItem
+                      key={i}
+                      title={lesson.lessonTitleDisplayed}
+                      href={lesson.isSectionTitle ? undefined : `/lessons/${lesson.slug.current}`}
+                      isSectionTitle={lesson.isSectionTitle}
+                      includesAudio={lesson.includesAudio}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
