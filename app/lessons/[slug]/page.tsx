@@ -56,7 +56,13 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
         </div>
       </header>
 
-      {/* ── Audio player (below title, above content) ── */}
+      {/* ── Hero image — full width within reading column ── */}
+      {/* TODO: wire to lesson.heroImage from Sanity once field is added */}
+      <div className="lp-hero-image">
+        <div className="lp-hero-image-placeholder">Editorial Image</div>
+      </div>
+
+      {/* ── Audio player (below hero image, above content) ── */}
       {hasAudio && (
         <div className="lp-audio">
           <iframe

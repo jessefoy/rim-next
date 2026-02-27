@@ -358,12 +358,42 @@
   margin: 0;
 }
 
+/* ── Hero Image ── */
+
+.lp-hero-image {
+  max-width: var(--reading-width);
+  margin: 0 auto;
+  /* no horizontal padding — image goes edge to edge within reading column */
+}
+
+.lp-hero-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Shown while no CMS image is set — remove once wired to Sanity */
+.lp-hero-image-placeholder {
+  aspect-ratio: 16 / 9;
+  background: var(--rim-bg-accent);
+  border: 1px dashed var(--rim-rule);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--rim-text-muted);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
 /* ── Audio Player ── */
 
 .lp-audio {
   max-width: var(--reading-width);
   margin: 0 auto;
-  padding: 0 24px 56px;
+  padding: 40px 24px 56px;
 }
 
 .lp-audio iframe {
