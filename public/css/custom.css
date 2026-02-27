@@ -556,9 +556,33 @@
   font-size: 16px;
   line-height: 1.7;
   color: var(--rim-text);
-  margin: 0;
-  white-space: pre-wrap;        /* respects line breaks entered in Sanity */
 }
+
+.lp-callout__content p {
+  margin: 0 0 0.9em;
+}
+
+.lp-callout__content p:last-child {
+  margin-bottom: 0;
+}
+
+.lp-callout__content ul,
+.lp-callout__content ol {
+  margin: 0 0 0.9em 1.4em;
+  padding: 0;
+}
+
+.lp-callout__content ul:last-child,
+.lp-callout__content ol:last-child {
+  margin-bottom: 0;
+}
+
+.lp-callout__content li {
+  margin-bottom: 0.35em;
+}
+
+.lp-callout__content strong { font-weight: 700; }
+.lp-callout__content em     { font-style: italic; }
 
 /* ── Body Quote Block ── */
 

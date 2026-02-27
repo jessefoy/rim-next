@@ -113,7 +113,11 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
                   practiceCallout: ({ value }: any) => (
                     <div className="lp-callout">
                       <p className="lp-callout__title">{value.title || "Practice Suggestion"}</p>
-                      <p className="lp-callout__content">{value.content}</p>
+                      {value.content && (
+                        <div className="lp-callout__content">
+                          <PortableText value={value.content} />
+                        </div>
+                      )}
                     </div>
                   ),
                   bodyQuote: ({ value }: any) => (
