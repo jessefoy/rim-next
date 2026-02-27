@@ -418,12 +418,13 @@
   font-family: var(--font-serif);
   font-size: 26px;
   font-weight: 400;
+  font-style: italic;
   line-height: 1.55;
   color: var(--rim-text-quote);
   text-align: center;
   border: none;
   padding: 64px 0 0;   /* reserves space for " mark + gap to text */
-  margin: 0 0 52px;
+  margin: 0 0 80px;    /* matches visual space above the " mark (52px content padding + 28px mark offset) */
   position: relative;
 }
 
