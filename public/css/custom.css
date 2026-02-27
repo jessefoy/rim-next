@@ -431,10 +431,10 @@
   content: "\201C";                /* left double quotation mark " */
   display: block;
   font-family: var(--font-serif);
-  font-size: 96px;
+  font-size: 112px;
   line-height: 0.75;
   color: var(--rim-rule);
-  margin-bottom: 20px;
+  margin-bottom: 8px;
   pointer-events: none;
 }
 
