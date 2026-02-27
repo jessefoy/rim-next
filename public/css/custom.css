@@ -159,14 +159,15 @@
 
 .rim-footer-heading {
   color: #fff;
-  font-family: 'Open Sans', sans-serif;
+  font-family: var(--font-serif);
   font-size: 24px;
-  font-weight: 600;
+  font-weight: 400;
   margin: 0 0 8px;
 }
 
 .rim-footer-sub {
   color: rgba(255, 255, 255, 0.75);
+  font-family: var(--font-sans);
   font-size: 15px;
   margin: 0 0 20px;
 }
@@ -190,13 +191,14 @@
 
 .rim-footer-name {
   color: #fff;
-  font-family: 'Open Sans', sans-serif;
+  font-family: var(--font-serif);
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 400;
 }
 
 .rim-footer-address {
   color: rgba(255, 255, 255, 0.75);
+  font-family: var(--font-sans);
   font-size: 14px;
 }
 
@@ -210,6 +212,7 @@
 
 .rim-footer-contact-links a {
   color: rgba(255, 255, 255, 0.75);
+  font-family: var(--font-sans);
   font-size: 14px;
   text-decoration: none;
   transition: color 0.15s;
