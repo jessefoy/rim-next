@@ -432,9 +432,9 @@
   display: block;
   font-family: var(--font-serif);
   font-size: 112px;
-  line-height: 0.75;
+  line-height: 0.55;
   color: var(--rim-rule);
-  margin-bottom: 8px;
+  margin-bottom: 2px;
   pointer-events: none;
 }
 
