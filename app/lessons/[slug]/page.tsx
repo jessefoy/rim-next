@@ -65,7 +65,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
                 <>
                   <p className="block-quote-2">{lesson.headerQuote}</p>
                   {lesson.quoteSource && (
-                    <div className="text-block-56">— {lesson.quoteSource}</div>
+                    <div className="text-block-56">{lesson.quoteSource}</div>
                   )}
                 </>
               )}

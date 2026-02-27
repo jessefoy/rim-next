@@ -299,10 +299,25 @@
   text-align: center;
 }
 
+/* lesson-page-heading is inline-block by default — block + auto margins
+   is more reliable for centering than relying on text-align alone */
+.section.lesson-hero h1.lesson-page-heading {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 /* div-block-129 (quote/audio card) is a fixed-width block — auto margins center it */
 .section.lesson-hero .div-block-129 {
   margin-left: auto;
   margin-right: auto;
+}
+
+/* teacher-container has margin: 30px auto by default (centered);
+   on lesson pages the teacher is left-aligned with the body text */
+.section-10 .teacher-container {
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .section-10 .lesson-teachers {
@@ -315,6 +330,11 @@
 
 @media screen and (max-width: 767px) {
   .section-10 .lesson-teachers { width: 100%; }
+}
+
+/* section-10 default padding-bottom: 103px is too much on lesson pages */
+.section-10 {
+  padding-bottom: 60px;
 }
 
 
