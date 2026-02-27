@@ -45,15 +45,14 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
 
   return (
     <>
-      {/* ── Hero: dark blue background, title + optional audio/quote card ── */}
-      <div className="section lesson-hero">
-        <div className="container-4">
-          <div className="lesson-hero-content">
-          <div className="text-block-53">Learning &amp; Practice</div>
-          <h1 className="lesson-page-heading">{lesson.lessonTitleDisplayed}</h1>
+      {/* ── Hero: dark background, category label, title, optional audio/quote ── */}
+      <div className="lp-hero">
+        <div className="lp-hero__inner">
+          <div className="lp-hero__label">Learning &amp; Practice</div>
+          <h1 className="lp-hero__title">{lesson.lessonTitleDisplayed}</h1>
 
           {(hasAudio || hasQuote) && (
-            <div className="div-block-129">
+            <div className="lp-hero__card">
               {hasAudio ? (
                 <iframe
                   src={`https://player.captivate.fm/episode/${lesson.podcastId}`}
@@ -64,67 +63,65 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
                 />
               ) : (
                 <>
-                  <p className="block-quote-2">{lesson.headerQuote}</p>
+                  <p className="lp-hero__quote">{lesson.headerQuote}</p>
                   {lesson.quoteSource && (
-                    <div className="text-block-56">{lesson.quoteSource}</div>
+                    <div className="lp-hero__quote-source">{lesson.quoteSource}</div>
                   )}
                 </>
               )}
             </div>
           )}
-          </div>
         </div>
       </div>
 
-      {/* ── Content: teachers, video, body, resources, dana ── */}
-      <div className="section-10">
-        <div className="content-container centered">
+      {/* ── Content: video, body, resources, teachers, dana ── */}
+      <div className="lp-content">
+        <div className="lp-content__inner">
 
           {lesson.videoLessonLink && (
-            <div className="lesson-video-block">
-              <div className="w-video w-embed">
-                <iframe
-                  src={lesson.videoLessonLink}
-                  frameBorder="0"
-                  allow="autoplay; fullscreen"
-                  allowFullScreen
-                  style={{ width: "100%", height: "100%" }}
-                />
-              </div>
+            <div className="lp-video">
+              <iframe
+                src={lesson.videoLessonLink}
+                frameBorder="0"
+                allow="autoplay; fullscreen"
+                allowFullScreen
+              />
             </div>
           )}
 
           {lesson.lessonContent && (
-            <div className="rich-text-container">
-              <div className="rich-text-block-19 w-richtext">
-                <PortableText value={lesson.lessonContent as any} />
-              </div>
+            <div className="lp-body">
+              <PortableText value={lesson.lessonContent as any} />
             </div>
           )}
 
           {lesson.downloadableResources && lesson.downloadableResources.length > 0 && (
-            <div className="lesson-resources-block">
-              <h3 className="details-header">Downloadable Resources</h3>
+            <div className="lp-resources">
+              <h3 className="lp-resources__label">Downloadable Resources</h3>
               {lesson.downloadableResources.map((resource, i) => (
-                <div key={i} className="resource-item">
+                <div key={i} className="lp-resources__item">
                   {resource.resourceFile?.asset?.url && (
                     <a
                       href={resource.resourceFile.asset.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="button-2 w-button"
+                      className="lp-resource-link"
                     >
                       {resource.name}
                     </a>
                   )}
-                  {resource.description && <p>{resource.description}</p>}
+                  {resource.description && (
+                    <p className="lp-resources__desc">{resource.description}</p>
+                  )}
                 </div>
               ))}
             </div>
           )}
 
           {lesson.teachers && lesson.teachers.length > 0 && (
-            <TeacherList teachers={lesson.teachers} variant="lesson" />
+            <div className="lp-teachers">
+              <TeacherList teachers={lesson.teachers} variant="lesson" />
+            </div>
           )}
 
           <DanaSection />

@@ -288,44 +288,268 @@
 
 
 /* ═══════════════════════════════════════════════════
-   LESSON PAGE
-   lesson-hero-content: our own centering wrapper inside
-   container-4 — avoids patching Webflow's layout class.
-   section-10 padding reduced from 103px default.
-   teacher-container margin: auto overridden so teacher
-   sits left-aligned with body text.
+   LESSON PAGE — NEW DESIGN SYSTEM
+   lp- prefix. No Webflow dependencies.
 ═══════════════════════════════════════════════════ */
 
-.lesson-hero-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+/* ── Hero ── */
+.lp-hero {
+  background-color: #0d2235;
+  padding: 72px 24px 56px;
   text-align: center;
 }
 
-.lesson-hero-content .div-block-129 {
-  text-align: left; /* quote/audio card content should be left-aligned inside */
+.lp-hero__inner {
+  max-width: 720px;
+  margin: 0 auto;
 }
 
-.section-10 {
-  padding-bottom: 60px;
+.lp-hero__label {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0 0 20px;
 }
 
-.section-10 .lesson-teachers {
-  width: 700px;
+.lp-hero__title {
+  font-family: 'quincy-cf', Georgia, serif;
+  font-size: 42px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.2;
+  margin: 0 0 40px;
 }
 
-.section-10 .teacher-container {
-  margin-left: 0;
-  margin-right: 0;
+.lp-hero__card {
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  padding: 28px 32px;
+  text-align: left;
 }
 
-@media screen and (max-width: 991px) {
-  .section-10 .lesson-teachers { width: 99%; }
+.lp-hero__quote {
+  font-family: 'Libre Baskerville', Baskerville, Georgia, serif;
+  font-size: 20px;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.88);
+  line-height: 1.65;
+  margin: 0 0 14px;
 }
 
+.lp-hero__quote-source {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.45);
+  margin: 0;
+}
+
+/* ── Content ── */
+.lp-content {
+  background: #ffffff;
+  padding: 64px 24px 80px;
+}
+
+.lp-content__inner {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* ── Video ── */
+.lp-video {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 48px;
+}
+
+.lp-video iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* ── Rich text body ── */
+.lp-body {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 17px;
+  line-height: 1.8;
+  color: #333333;
+  margin-bottom: 56px;
+}
+
+.lp-body p { margin: 0 0 1.4em; }
+.lp-body p:last-child { margin-bottom: 0; }
+
+.lp-body h2 {
+  font-family: 'quincy-cf', Georgia, serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: #222222;
+  line-height: 1.25;
+  margin: 1.8em 0 0.6em;
+}
+
+.lp-body h3 {
+  font-family: 'quincy-cf', Georgia, serif;
+  font-size: 21px;
+  font-weight: 700;
+  color: #222222;
+  line-height: 1.3;
+  margin: 1.5em 0 0.5em;
+}
+
+.lp-body blockquote {
+  font-family: 'Libre Baskerville', Baskerville, Georgia, serif;
+  font-size: 19px;
+  font-style: italic;
+  color: #555555;
+  border-left: 3px solid #39607a;
+  padding: 6px 0 6px 22px;
+  margin: 1.5em 0;
+}
+
+.lp-body ul,
+.lp-body ol {
+  margin: 0 0 1.4em 1.5em;
+  padding: 0;
+}
+
+.lp-body li { margin-bottom: 0.5em; }
+.lp-body strong { font-weight: 700; }
+.lp-body em { font-style: italic; }
+
+.lp-body a {
+  color: #39607a;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.lp-body a:hover { color: #135274; }
+
+/* ── Downloadable resources ── */
+.lp-resources {
+  margin-bottom: 56px;
+  padding-top: 40px;
+  border-top: 1px solid #e8e8e8;
+}
+
+.lp-resources__label {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #aaaaaa;
+  margin: 0 0 20px;
+}
+
+.lp-resources__item { margin-bottom: 16px; }
+
+.lp-resource-link {
+  display: inline-block;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #39607a;
+  background: #edf3f7;
+  padding: 10px 20px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.lp-resource-link:hover { background: #d8e8f2; }
+
+.lp-resources__desc {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 14px;
+  color: #999999;
+  margin: 6px 0 0;
+}
+
+/* ── Teacher attribution ── */
+.lp-teachers {
+  padding-top: 40px;
+  margin-bottom: 56px;
+  border-top: 1px solid #e8e8e8;
+}
+
+.lp-teachers .lesson-teachers { width: auto; }
+
+.lp-teachers .teacher-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  text-decoration: none;
+}
+
+.lp-teachers .image-11 {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.lp-teachers .facilitator-name {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 15px;
+  color: #777777;
+  text-decoration: none;
+}
+
+.lp-teachers .facilitator-name.underline {
+  color: #39607a;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ── Dana section ── */
+.lp-dana {
+  background: #f7f2ee;
+  border-radius: 10px;
+  padding: 40px 48px;
+  text-align: center;
+}
+
+.lp-dana p {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 16px;
+  line-height: 1.75;
+  color: #555555;
+  margin: 0 0 1em;
+}
+
+.lp-dana p:last-child { margin-bottom: 0; }
+
+.lp-dana a {
+  color: #39607a;
+  text-decoration: none;
+}
+
+.lp-dana a:hover { color: #135274; }
+
+.lp-dana em {
+  font-size: 14px;
+  color: #999999;
+}
+
+/* ── Mobile ── */
 @media screen and (max-width: 767px) {
-  .section-10 .lesson-teachers { width: 100%; }
+  .lp-hero { padding: 52px 20px 44px; }
+  .lp-hero__title { font-size: 30px; margin-bottom: 32px; }
+  .lp-hero__card { padding: 22px 24px; }
+  .lp-hero__quote { font-size: 18px; }
+  .lp-content { padding: 44px 20px 60px; }
+  .lp-body { font-size: 16px; }
+  .lp-dana { padding: 32px 24px; }
 }
 
 
