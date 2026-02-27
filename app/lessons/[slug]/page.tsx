@@ -16,6 +16,7 @@ type Lesson = {
   headerQuote?: string;
   quoteSource?: string;
   lessonContent?: unknown[];
+  heroImage?: { asset?: { url: string }; alt?: string };
   teachers?: { name: string; slug: { current: string }; bioPicture?: { asset?: { url: string } } }[];
   downloadableResources?: {
     name: string;
@@ -57,9 +58,15 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
       </header>
 
       {/* ── Hero image — full width within reading column ── */}
-      {/* TODO: wire to lesson.heroImage from Sanity once field is added */}
       <div className="lp-hero-image">
-        <div className="lp-hero-image-placeholder">Editorial Image</div>
+        {lesson.heroImage?.asset?.url ? (
+          <img
+            src={lesson.heroImage.asset.url}
+            alt={lesson.heroImage.alt ?? lesson.lessonTitleDisplayed}
+          />
+        ) : (
+          <div className="lp-hero-image-placeholder">Editorial Image</div>
+        )}
       </div>
 
       {/* ── Audio player (below hero image, above content) ── */}
