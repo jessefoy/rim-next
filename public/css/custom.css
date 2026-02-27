@@ -408,7 +408,7 @@
 ═══════════════════════════════════════════════════ */
 
 .ap-player {
-  background: #2e2826;
+  background: rgba(46, 40, 38, 0.9);
   border-radius: 14px;
   padding: 18px 22px 20px;
   width: 100%;
