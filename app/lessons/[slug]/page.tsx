@@ -57,17 +57,15 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
         </div>
       </header>
 
-      {/* ── Hero image — full width within reading column ── */}
-      <div className="lp-hero-image">
-        {lesson.heroImage?.asset?.url ? (
+      {/* ── Hero image — only renders when an image is set in Sanity ── */}
+      {lesson.heroImage?.asset?.url && (
+        <div className="lp-hero-image">
           <img
             src={lesson.heroImage.asset.url}
             alt={lesson.heroImage.alt ?? lesson.lessonTitleDisplayed}
           />
-        ) : (
-          <div className="lp-hero-image-placeholder">Editorial Image</div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* ── Audio player (below hero image, above content) ── */}
       {hasAudio && (
