@@ -535,13 +535,22 @@
 
 /* Skip buttons — slightly smaller, no bg */
 .ap-btn--skip {
-  width: 36px;
+  width: auto;
   height: 36px;
+  gap: 6px;
   opacity: 0.85;
 }
 
 .ap-btn--skip:hover {
   opacity: 1;
+}
+
+.ap-skip-label {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  line-height: 1;
 }
 
 /* ── Content Column ── */

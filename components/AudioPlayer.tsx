@@ -21,60 +21,32 @@ function PauseIcon() {
   );
 }
 
-// Skip-back arrow with "30" label
-function SkipBackIcon() {
+// Simple left arrow — direction is unambiguous
+function ArrowLeft() {
   return (
-    <svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-hidden="true">
-      {/* Curved arrow going counter-clockwise */}
+    <svg width="14" height="12" viewBox="0 0 14 12" fill="none" aria-hidden="true">
       <path
-        d="M18 8 A10 10 0 1 0 27.5 23"
+        d="M13 6H1M1 6L6 1M1 6L6 11"
         stroke="currentColor"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        fill="none"
-      />
-      {/* Arrowhead pointing back */}
-      <polyline
-        points="13,4 18,8 14,13"
-        stroke="currentColor"
-        strokeWidth="2.2"
+        strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        fill="none"
       />
-      {/* "30" text in center */}
-      <text x="18" y="22" textAnchor="middle" fontSize="8" fill="currentColor" fontFamily="sans-serif" fontWeight="600">
-        30
-      </text>
     </svg>
   );
 }
 
-// Skip-forward arrow with "30" label
-function SkipForwardIcon() {
+// Simple right arrow
+function ArrowRight() {
   return (
-    <svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-hidden="true">
-      {/* Curved arrow going clockwise */}
+    <svg width="14" height="12" viewBox="0 0 14 12" fill="none" aria-hidden="true">
       <path
-        d="M18 8 A10 10 0 1 1 8.5 23"
+        d="M1 6H13M13 6L8 1M13 6L8 11"
         stroke="currentColor"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        fill="none"
-      />
-      {/* Arrowhead pointing forward */}
-      <polyline
-        points="23,4 18,8 22,13"
-        stroke="currentColor"
-        strokeWidth="2.2"
+        strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        fill="none"
       />
-      {/* "30" text in center */}
-      <text x="18" y="22" textAnchor="middle" fontSize="8" fill="currentColor" fontFamily="sans-serif" fontWeight="600">
-        30
-      </text>
     </svg>
   );
 }
@@ -110,7 +82,10 @@ export default function AudioPlayer({ src }: { src: string }) {
   const skip = (seconds: number) => {
     const audio = audioRef.current;
     if (!audio) return;
-    audio.currentTime = Math.min(Math.max(0, audio.currentTime + seconds), duration);
+    // Use audio.currentTime directly — do not clamp against the duration state
+    // variable, which may still be 0 if metadata is loading. The browser
+    // automatically clamps currentTime to [0, duration].
+    audio.currentTime = Math.max(0, audio.currentTime + seconds);
   };
 
   const handleScrub = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -120,7 +95,6 @@ export default function AudioPlayer({ src }: { src: string }) {
   };
 
   const remaining = Math.max(0, duration - currentTime);
-  // scrubber progress % for the filled-track CSS trick
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
@@ -154,14 +128,18 @@ export default function AudioPlayer({ src }: { src: string }) {
 
       {/* ── Controls row ── */}
       <div className="ap-controls">
+
+        {/* ← 30s */}
         <button
           className="ap-btn ap-btn--skip"
           onClick={() => skip(-30)}
           aria-label="Rewind 30 seconds"
         >
-          <SkipBackIcon />
+          <ArrowLeft />
+          <span className="ap-skip-label">30s</span>
         </button>
 
+        {/* Play / Pause */}
         <button
           className="ap-btn ap-btn--play"
           onClick={togglePlay}
@@ -170,13 +148,16 @@ export default function AudioPlayer({ src }: { src: string }) {
           {isPlaying ? <PauseIcon /> : <PlayIcon />}
         </button>
 
+        {/* 30s → */}
         <button
           className="ap-btn ap-btn--skip"
           onClick={() => skip(30)}
           aria-label="Forward 30 seconds"
         >
-          <SkipForwardIcon />
+          <span className="ap-skip-label">30s</span>
+          <ArrowRight />
         </button>
+
       </div>
     </div>
   );
