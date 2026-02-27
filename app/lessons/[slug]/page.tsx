@@ -106,7 +106,27 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
         {/* Body content */}
         {lesson.lessonContent && (
           <div className="lp-body">
-            <PortableText value={lesson.lessonContent as any} />
+            <PortableText
+              value={lesson.lessonContent as any}
+              components={{
+                types: {
+                  practiceCallout: ({ value }: any) => (
+                    <div className="lp-callout">
+                      <p className="lp-callout__title">{value.title || "Practice Suggestion"}</p>
+                      <p className="lp-callout__content">{value.content}</p>
+                    </div>
+                  ),
+                  bodyQuote: ({ value }: any) => (
+                    <blockquote className="lp-body-quote">
+                      <p className="lp-body-quote__text">"{value.quote}"</p>
+                      {value.attribution && (
+                        <cite className="lp-body-quote__cite">— {value.attribution}</cite>
+                      )}
+                    </blockquote>
+                  ),
+                },
+              }}
+            />
           </div>
         )}
 

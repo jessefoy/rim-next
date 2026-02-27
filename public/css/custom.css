@@ -531,6 +531,63 @@
 
 .lp-body a:hover { color: var(--rim-blue); }
 
+/* ── Practice Callout Block ── */
+
+.lp-callout {
+  background: #ede8e3;           /* slightly warmer/darker than rim-bg */
+  border-left: 3px solid var(--rim-mid);
+  border-radius: 4px;
+  padding: 24px 28px;
+  margin: 2em 0;
+}
+
+.lp-callout__title {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rim-mid);
+  margin: 0 0 12px;
+}
+
+.lp-callout__content {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--rim-text);
+  margin: 0;
+  white-space: pre-wrap;        /* respects line breaks entered in Sanity */
+}
+
+/* ── Body Quote Block ── */
+
+.lp-body-quote {
+  font-family: var(--font-serif);
+  font-size: 21px;
+  font-weight: 400;
+  font-style: italic;
+  line-height: 1.55;
+  color: var(--rim-text-quote);
+  border: none;
+  padding: 0 0 0 24px;
+  border-left: 2px solid var(--rim-rule);
+  margin: 2em 0;
+}
+
+.lp-body-quote__text {
+  margin: 0 0 10px;
+}
+
+.lp-body-quote__cite {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-style: normal;
+  color: var(--rim-text-muted);
+  letter-spacing: 0.04em;
+}
+
 /* ── Section Divider ── */
 
 .lp-divider {

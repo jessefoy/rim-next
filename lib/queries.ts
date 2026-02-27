@@ -100,7 +100,12 @@ export const allTeamSlugsQuery = `*[_type == "teams" && !(_id in path("drafts.**
 
 export const lessonBySlugQuery = `*[_type == "lessons" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
   _id, name, slug, lessonTitleDisplayed, includesAudio, podcastId,
-  videoLessonLink, headerQuote, quoteSource, lessonContent,
+  videoLessonLink, headerQuote, quoteSource,
+  lessonContent[] {
+    ...,
+    _type == "practiceCallout" => { _type, _key, title, content },
+    _type == "bodyQuote"       => { _type, _key, quote, attribution }
+  },
   heroImage { asset-> { url }, alt },
   teachers[]-> { name, slug, bioPicture { asset-> { url } } },
   downloadableResources[]-> {
