@@ -422,7 +422,7 @@
   color: var(--rim-text-quote);
   text-align: center;
   border: none;
-  padding: 84px 0 0;   /* reserves space for " mark (28px above) + glyph (~35px) + gap (~21px) */
+  padding: 64px 0 0;   /* reserves space for " mark + gap to text */
   margin: 0 0 52px;
   position: relative;
 }
