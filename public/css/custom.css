@@ -289,39 +289,35 @@
 
 /* ═══════════════════════════════════════════════════
    LESSON PAGE
-   container-4 is a plain div — needs flex column + center
-   to keep the label, heading, and audio/quote card aligned.
-   lesson-teachers has no width set in rim.webflow.css —
-   constrain it to match the rich-text-container (700px).
+   lesson-hero-content: our own centering wrapper inside
+   container-4 — avoids patching Webflow's layout class.
+   section-10 padding reduced from 103px default.
+   teacher-container margin: auto overridden so teacher
+   sits left-aligned with body text.
 ═══════════════════════════════════════════════════ */
 
-.section.lesson-hero .container-4 {
+.lesson-hero-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
 }
 
-/* lesson-page-heading is inline-block by default — block + auto margins
-   is more reliable for centering than relying on text-align alone */
-.section.lesson-hero h1.lesson-page-heading {
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
+.lesson-hero-content .div-block-129 {
+  text-align: left; /* quote/audio card content should be left-aligned inside */
 }
 
-/* div-block-129 (quote/audio card) is a fixed-width block — auto margins center it */
-.section.lesson-hero .div-block-129 {
-  margin-left: auto;
-  margin-right: auto;
-}
-
-/* teacher-container has margin: 30px auto by default (centered);
-   on lesson pages the teacher is left-aligned with the body text */
-.section-10 .teacher-container {
-  margin-left: 0;
-  margin-right: 0;
+.section-10 {
+  padding-bottom: 60px;
 }
 
 .section-10 .lesson-teachers {
   width: 700px;
+}
+
+.section-10 .teacher-container {
+  margin-left: 0;
+  margin-right: 0;
 }
 
 @media screen and (max-width: 991px) {
@@ -332,9 +328,16 @@
   .section-10 .lesson-teachers { width: 100%; }
 }
 
-/* section-10 default padding-bottom: 103px is too much on lesson pages */
-.section-10 {
-  padding-bottom: 60px;
+
+/* ═══════════════════════════════════════════════════
+   COURSE PAGE
+   course-lessons: our own wrapper replacing section.background-white
+   (which inherits 120px padding from .section — too much).
+═══════════════════════════════════════════════════ */
+
+.course-lessons {
+  background-color: #fafafa;
+  padding: 40px 0 60px;
 }
 
 

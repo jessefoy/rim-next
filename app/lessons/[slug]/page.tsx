@@ -48,6 +48,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
       {/* ── Hero: dark blue background, title + optional audio/quote card ── */}
       <div className="section lesson-hero">
         <div className="container-4">
+          <div className="lesson-hero-content">
           <div className="text-block-53">Learning &amp; Practice</div>
           <h1 className="lesson-page-heading">{lesson.lessonTitleDisplayed}</h1>
 
@@ -71,6 +72,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
               )}
             </div>
           )}
+          </div>
         </div>
       </div>
 

@@ -62,7 +62,7 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
 
       {/* ── Lessons section ── */}
       {course.lessons && course.lessons.length > 0 && (
-        <div className="section background-white">
+        <div className="course-lessons">
           <div className="content-container">
             <div className="series-list-section">
               <div className="program-details-content no-bottom-margin">
