@@ -20,7 +20,7 @@
   --rim-mid:         #39607a;  /* mid teal-blue — links, accents */
   --rim-text:        #333333;  /* primary text */
   --rim-text-quote:  #383838;  /* pull-quote text */
-  --rim-text-muted:  #a09890;  /* labels, captions, attribution */
+  --rim-text-muted:  #6b6059;  /* labels, captions, attribution — 5:1 contrast on rim-bg */
   --rim-rule:        #c8bcb2;  /* borders, dividers, quote left-rule */
 
   /* Fonts */
@@ -341,7 +341,7 @@
 
 .lp-label {
   font-family: var(--font-sans);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -462,12 +462,11 @@
   font-size: 17px;
   font-weight: 400;
   line-height: 1.8;
-  letter-spacing: 0.3px;
   color: var(--rim-text);
   margin-bottom: 52px;
 }
 
-.lp-body p { margin: 0 0 1.4em; }
+.lp-body p { margin: 0 0 1.8em; }
 .lp-body p:last-child { margin-bottom: 0; }
 
 .lp-body h2 {
@@ -501,7 +500,7 @@
 
 .lp-body ul,
 .lp-body ol {
-  margin: 0 0 1.4em 1.5em;
+  margin: 0 0 1.8em 1.5em;
   padding: 0;
 }
 
@@ -532,7 +531,7 @@
 
 .lp-resources__label {
   font-family: var(--font-sans);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
