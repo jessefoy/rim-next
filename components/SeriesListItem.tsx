@@ -20,12 +20,8 @@ export default function SeriesListItem({
 }) {
   if (isSectionTitle) {
     return (
-      <div className="w-layout-grid series-list-grid section-title-bg">
-        <div className="dashboard-list-name-and-date-container">
-          <div className="dashboard-title-container">
-            <div className="lesson-section-break">{title}</div>
-          </div>
-        </div>
+      <div className="lesson-section-header">
+        <div className="lesson-section-break">{title}</div>
       </div>
     );
   }

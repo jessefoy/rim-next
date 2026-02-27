@@ -335,10 +335,10 @@
   text-align: center;
 }
 
-/* series-list-grid uses place-items: center end (justify-items: end = right-aligned).
-   Section title headers should be left-aligned. */
-.series-list-grid.section-title-bg {
-  justify-items: start;
+/* Section title headers in course lesson list — plain block, no grid */
+.lesson-section-header {
+  padding: 15px 5px 0;
+  margin-bottom: 20px;
 }
 
 
