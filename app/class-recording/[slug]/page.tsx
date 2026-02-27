@@ -4,6 +4,7 @@ import { PortableText } from "@portabletext/react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import TeacherList from "@/components/TeacherList";
+import DanaSection from "@/components/DanaSection";
 
 export const revalidate = 60;
 
@@ -34,63 +35,89 @@ export default async function ClassRecordingPage({ params }: { params: Promise<{
   const recording = await sanityClient.fetch<ClassRecording | null>(classRecordingBySlugQuery, { slug });
   if (!recording) notFound();
 
+  const hasAudio    = !!recording.audioEmbedCode;
+  const hasVideo    = !!recording.videoLink;
+  const hasBody     = !!(recording.description && recording.description.length > 0);
+  const hasTeachers = !!(recording.teachers && recording.teachers.length > 0);
+  const hasTopics   = !!(recording.topics && recording.topics.length > 0);
+
+  const formattedDate = recording.dateRecorded
+    ? new Date(recording.dateRecorded).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : null;
+
   return (
-    <div className="section background-white">
-      <div className="content-container">
-        <Link href="/work-in-progress/class-recordings" className="breadcrumb-link w-inline-block">
-          <div className="text-block-58">← Class Recordings</div>
-        </Link>
+    <div className="cr-page">
 
-        <h1 className="heading-9">{recording.name}</h1>
+      {/* ── Breadcrumb ── */}
+      <div className="cr-breadcrumb">
+        <Link href="/account/dashboard-my-library" className="cr-back">← My Library</Link>
+      </div>
 
-        {recording.dateRecorded && (
-          <p className="recording-date">
-            {new Date(recording.dateRecorded).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
-          </p>
+      {/* ── Header: label + title + date ── */}
+      <header className="cr-header">
+        <div className="cr-header__inner">
+          <p className="lp-label">Class Recording</p>
+          <h1 className="cr-title">{recording.name}</h1>
+          {formattedDate && <p className="cr-date">{formattedDate}</p>}
+        </div>
+      </header>
+
+      {/* ── Audio embed (full-width within reading column) ── */}
+      {hasAudio && (
+        <div
+          className="cr-audio"
+          dangerouslySetInnerHTML={{ __html: recording.audioEmbedCode! }}
+        />
+      )}
+
+      {/* ── Content column ── */}
+      <div className="lp-content">
+
+        {/* Teacher byline */}
+        {hasTeachers && (
+          <TeacherList teachers={recording.teachers!} variant="lesson" />
         )}
 
-        <TeacherList teachers={recording.teachers ?? []} variant="lesson" />
-
-        {recording.audioEmbedCode && (
-          <div
-            className="lesson-audio-block"
-            dangerouslySetInnerHTML={{ __html: recording.audioEmbedCode }}
-          />
-        )}
-
-        {recording.videoLink && (
-          <div className="lesson-video-block">
-            <div className="w-video w-embed">
-              <iframe
-                src={recording.videoLink}
-                frameBorder="0"
-                allow="autoplay; fullscreen"
-                allowFullScreen
-                style={{ width: "100%", height: "100%" }}
-              />
-            </div>
+        {/* Video */}
+        {hasVideo && (
+          <div className="lp-video">
+            <iframe
+              src={recording.videoLink}
+              frameBorder="0"
+              allow="autoplay; fullscreen"
+              allowFullScreen
+            />
           </div>
         )}
 
-        {recording.description && (
-          <div className="rich-text-block-19 w-richtext">
+        {/* Body / description */}
+        {hasBody && (
+          <div className="lp-body">
             <PortableText value={recording.description as any} />
           </div>
         )}
 
-        {recording.topics && recording.topics.length > 0 && (
-          <div className="recording-topics">
-            {recording.topics.map((topic) => (
-              <span key={topic.slug.current} className="topic-tag">
-                {topic.name}
-              </span>
-            ))}
-          </div>
+        {/* Topics */}
+        {hasTopics && (
+          <>
+            <hr className="lp-divider" />
+            <div className="cr-topics">
+              {recording.topics!.map((topic) => (
+                <span key={topic.slug.current} className="cr-topic-tag">
+                  {topic.name}
+                </span>
+              ))}
+            </div>
+          </>
         )}
+
+        {/* Dana */}
+        <DanaSection />
+
       </div>
     </div>
   );
