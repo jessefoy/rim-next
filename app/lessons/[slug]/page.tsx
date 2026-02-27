@@ -4,6 +4,7 @@ import { PortableText } from "@portabletext/react";
 import { notFound } from "next/navigation";
 import DanaSection from "@/components/DanaSection";
 import TeacherList from "@/components/TeacherList";
+import AudioPlayer from "@/components/AudioPlayer";
 
 export const revalidate = 60;
 
@@ -11,7 +12,7 @@ type Lesson = {
   _id: string;
   lessonTitleDisplayed: string;
   includesAudio?: boolean;
-  podcastId?: string;
+  audioFile?: { asset?: { url: string } };
   videoLessonLink?: string;
   headerQuote?: string;
   quoteSource?: string;
@@ -41,7 +42,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
   const lesson = await sanityClient.fetch<Lesson | null>(lessonBySlugQuery, { slug });
   if (!lesson) notFound();
 
-  const hasAudio = !!(lesson.includesAudio && lesson.podcastId);
+  const hasAudio = !!(lesson.includesAudio && lesson.audioFile?.asset?.url);
   const hasQuote = !!lesson.headerQuote;
   const hasResources = !!(lesson.downloadableResources && lesson.downloadableResources.length > 0);
   const hasTeachers = !!(lesson.teachers && lesson.teachers.length > 0);
@@ -70,11 +71,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
       {/* ── Audio player (below hero image, above content) ── */}
       {hasAudio && (
         <div className="lp-audio">
-          <iframe
-            src={`https://player.captivate.fm/episode/${lesson.podcastId}`}
-            frameBorder="0"
-            scrolling="no"
-          />
+          <AudioPlayer src={lesson.audioFile!.asset!.url} />
         </div>
       )}
 

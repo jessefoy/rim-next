@@ -391,7 +391,7 @@
   text-transform: uppercase;
 }
 
-/* ── Audio Player ── */
+/* ── Audio Player wrapper (positions card within reading column) ── */
 
 .lp-audio {
   max-width: var(--reading-width);
@@ -399,12 +399,149 @@
   padding: 40px 24px 56px;
 }
 
-.lp-audio iframe {
+
+/* ═══════════════════════════════════════════════════
+   AUDIO PLAYER  (.ap-)
+   Dark card player — play/pause, ← 30s / 30s →,
+   seekable progress bar, elapsed + remaining time.
+   Inspired by minimal podcast player reference.
+═══════════════════════════════════════════════════ */
+
+.ap-player {
+  background: #2e2826;
+  border-radius: 14px;
+  padding: 18px 22px 20px;
   width: 100%;
-  height: 170px;
-  border: 0;
-  border-radius: 6px;
-  display: block;
+  box-sizing: border-box;
+  color: #fff;
+  user-select: none;
+}
+
+/* ── Progress row: time | scrubber | time ── */
+
+.ap-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.ap-time {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+  white-space: nowrap;
+  min-width: 32px;
+  letter-spacing: 0.02em;
+}
+
+.ap-time--remaining {
+  text-align: right;
+}
+
+/* Range input — custom track with filled-progress trick via CSS var */
+.ap-scrubber {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    rgba(255,255,255,0.85) var(--ap-progress, 0%),
+    rgba(255,255,255,0.22) var(--ap-progress, 0%)
+  );
+  outline: none;
+  cursor: pointer;
+}
+
+.ap-scrubber::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+  transition: transform 0.1s ease;
+}
+
+.ap-scrubber::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+}
+
+.ap-scrubber:hover::-webkit-slider-thumb,
+.ap-scrubber:focus::-webkit-slider-thumb {
+  transform: scale(1.2);
+}
+
+/* ── Controls row: skip | play | skip ── */
+
+.ap-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+}
+
+.ap-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, transform 0.1s ease;
+  line-height: 1;
+}
+
+.ap-btn:hover {
+  color: #fff;
+}
+
+.ap-btn:active {
+  transform: scale(0.92);
+}
+
+/* Play/Pause — filled white circle */
+.ap-btn--play {
+  width: 52px;
+  height: 52px;
+  background: #fff;
+  border-radius: 50%;
+  color: #2e2826;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.ap-btn--play:hover {
+  background: #f0eded;
+  color: #2e2826;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.4);
+}
+
+.ap-btn--play:active {
+  transform: scale(0.93);
+}
+
+/* Skip buttons — slightly smaller, no bg */
+.ap-btn--skip {
+  width: 36px;
+  height: 36px;
+  opacity: 0.85;
+}
+
+.ap-btn--skip:hover {
+  opacity: 1;
 }
 
 /* ── Content Column ── */

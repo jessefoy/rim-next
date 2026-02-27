@@ -99,7 +99,8 @@ export const allTeamSlugsQuery = `*[_type == "teams" && !(_id in path("drafts.**
 // ─── Lessons ──────────────────────────────────────────────────────────────────
 
 export const lessonBySlugQuery = `*[_type == "lessons" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
-  _id, name, slug, lessonTitleDisplayed, includesAudio, podcastId,
+  _id, name, slug, lessonTitleDisplayed, includesAudio,
+  audioFile { asset->{ url } },
   videoLessonLink, headerQuote, quoteSource,
   lessonContent[] {
     ...,
