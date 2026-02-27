@@ -24,6 +24,31 @@ export default function TeacherList({
 }) {
   if (!teachers || teachers.length === 0) return null;
 
+  if (variant === "lesson") {
+    return (
+      <div>
+        {teachers.map((teacher) => (
+          <Link
+            key={teacher.slug.current}
+            href={`/team/${teacher.slug.current}`}
+            className="lp-teacher"
+          >
+            {teacher.bioPicture?.asset?.url && (
+              <img
+                src={teacher.bioPicture.asset.url}
+                alt={teacher.name}
+                className="lp-teacher__photo"
+                loading="lazy"
+              />
+            )}
+            <span className="lp-teacher__by">By</span>
+            <span className="lp-teacher__name">{teacher.name}</span>
+          </Link>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="lesson-teachers">
       {teachers.map((teacher) => (
@@ -33,25 +58,13 @@ export default function TeacherList({
           className="teacher-container w-inline-block"
         >
           {teacher.bioPicture?.asset?.url && (
-            variant === "lesson" ? (
-              <img
-                src={teacher.bioPicture.asset.url}
-                alt={teacher.name}
-                className="image-11"
-                loading="lazy"
-              />
-            ) : (
-              <img
-                src={teacher.bioPicture.asset.url}
-                alt={teacher.name}
-                className="facilitator"
-                width={35}
-                height={35}
-              />
-            )
-          )}
-          {variant === "lesson" && (
-            <div className="facilitator-name letter-space">By </div>
+            <img
+              src={teacher.bioPicture.asset.url}
+              alt={teacher.name}
+              className="facilitator"
+              width={35}
+              height={35}
+            />
           )}
           <div className="facilitator-name underline">{teacher.name}</div>
         </Link>

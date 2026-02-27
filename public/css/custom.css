@@ -1,8 +1,35 @@
 /*
-  custom.css — Site-specific overrides for RIM website
+  custom.css — RIM design system + page-specific styles.
   Loaded after Webflow CSS to take precedence.
   Do not modify normalize.css, webflow.css, or rim.webflow.css directly.
 */
+
+
+/* ═══════════════════════════════════════════════════
+   DESIGN TOKENS
+   Derived from the RIM newsletter (Flodesk) editorial style.
+   Use these variables on all new pages to keep a consistent look.
+═══════════════════════════════════════════════════ */
+
+:root {
+  /* Colors */
+  --rim-bg:          #f6f3f0;  /* warm parchment — newsletter bg */
+  --rim-bg-accent:   #ede9e5;  /* slightly darker warm — callouts, dana */
+  --rim-dark:        #0d2235;  /* deep navy */
+  --rim-blue:        #135274;  /* darker teal-blue */
+  --rim-mid:         #39607a;  /* mid teal-blue — links, accents */
+  --rim-text:        #333333;  /* primary text */
+  --rim-text-quote:  #383838;  /* pull-quote text */
+  --rim-text-muted:  #a09890;  /* labels, captions, attribution */
+  --rim-rule:        #c8bcb2;  /* borders, dividers, quote left-rule */
+
+  /* Fonts */
+  --font-serif: 'Libre Baskerville', Baskerville, Georgia, serif;
+  --font-sans:  'Open Sans', sans-serif;
+
+  /* Layout */
+  --reading-width: 640px;
+}
 
 
 /* ═══════════════════════════════════════════════════
@@ -288,82 +315,106 @@
 
 
 /* ═══════════════════════════════════════════════════
-   LESSON PAGE — NEW DESIGN SYSTEM
+   LESSON PAGE — Editorial Design
+   Matches the RIM newsletter style (Flodesk).
+   Background: #f6f3f0 warm parchment throughout.
+   Headings: Baskerville 400 weight, not bold.
+   Body: Open Sans 17px / 1.8 line-height.
    lp- prefix. No Webflow dependencies.
 ═══════════════════════════════════════════════════ */
 
-/* ── Hero ── */
-.lp-hero {
-  background-color: #0d2235;
-  padding: 72px 24px 56px;
+.lp-page {
+  background: var(--rim-bg);
+}
+
+/* ── Page Header ── */
+
+.lp-header {
+  padding: 80px 24px 64px;
   text-align: center;
 }
 
-.lp-hero__inner {
-  max-width: 720px;
+.lp-header__inner {
+  max-width: var(--reading-width);
   margin: 0 auto;
 }
 
-.lp-hero__label {
-  font-family: 'Open Sans', sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
-  margin: 0 0 20px;
-}
-
-.lp-hero__title {
-  font-family: 'quincy-cf', Georgia, serif;
-  font-size: 42px;
+.lp-label {
+  font-family: var(--font-sans);
+  font-size: 11px;
   font-weight: 700;
-  color: #ffffff;
-  line-height: 1.2;
-  margin: 0 0 40px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rim-text-muted);
+  margin: 0 0 28px;
 }
 
-.lp-hero__card {
-  background: rgba(255, 255, 255, 0.07);
-  border-radius: 12px;
-  padding: 28px 32px;
-  text-align: left;
-}
-
-.lp-hero__quote {
-  font-family: 'Libre Baskerville', Baskerville, Georgia, serif;
-  font-size: 20px;
-  font-style: italic;
-  color: rgba(255, 255, 255, 0.88);
-  line-height: 1.65;
-  margin: 0 0 14px;
-}
-
-.lp-hero__quote-source {
-  font-family: 'Open Sans', sans-serif;
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.45);
+.lp-title {
+  font-family: var(--font-serif);
+  font-size: 44px;
+  font-weight: 400;
+  line-height: 1.3;
+  color: var(--rim-text);
   margin: 0;
 }
 
-/* ── Content ── */
-.lp-content {
-  background: #ffffff;
-  padding: 64px 24px 80px;
+/* ── Audio Player ── */
+
+.lp-audio {
+  max-width: var(--reading-width);
+  margin: 0 auto;
+  padding: 0 24px 56px;
 }
 
-.lp-content__inner {
-  max-width: 800px;
+.lp-audio iframe {
+  width: 100%;
+  height: 170px;
+  border: 0;
+  border-radius: 6px;
+  display: block;
+}
+
+/* ── Content Column ── */
+
+.lp-content {
+  max-width: var(--reading-width);
   margin: 0 auto;
+  padding: 0 50px 80px;
+}
+
+/* ── Editorial Pull Quote ── */
+
+.lp-pullquote {
+  font-family: var(--font-serif);
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 1.55;
+  letter-spacing: 0.1px;
+  color: var(--rim-text-quote);
+  border: none;
+  border-left: 2px solid var(--rim-rule);
+  padding: 4px 0 4px 28px;
+  margin: 0 0 52px;
+}
+
+.lp-pullquote__cite {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-style: normal;
+  letter-spacing: 0.05em;
+  color: var(--rim-text-muted);
+  margin-top: 16px;
 }
 
 /* ── Video ── */
+
 .lp-video {
   position: relative;
   aspect-ratio: 16 / 9;
-  border-radius: 8px;
+  border-radius: 4px;
   overflow: hidden;
-  margin-bottom: 48px;
+  margin-bottom: 52px;
 }
 
 .lp-video iframe {
@@ -374,43 +425,47 @@
   border: 0;
 }
 
-/* ── Rich text body ── */
+/* ── Rich Text Body ── */
+
 .lp-body {
-  font-family: 'Open Sans', sans-serif;
+  font-family: var(--font-sans);
   font-size: 17px;
+  font-weight: 400;
   line-height: 1.8;
-  color: #333333;
-  margin-bottom: 56px;
+  letter-spacing: 0.3px;
+  color: var(--rim-text);
+  margin-bottom: 52px;
 }
 
 .lp-body p { margin: 0 0 1.4em; }
 .lp-body p:last-child { margin-bottom: 0; }
 
 .lp-body h2 {
-  font-family: 'quincy-cf', Georgia, serif;
-  font-size: 26px;
-  font-weight: 700;
-  color: #222222;
-  line-height: 1.25;
-  margin: 1.8em 0 0.6em;
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 400;
+  color: var(--rim-text);
+  line-height: 1.3;
+  margin: 1.8em 0 0.5em;
 }
 
 .lp-body h3 {
-  font-family: 'quincy-cf', Georgia, serif;
-  font-size: 21px;
-  font-weight: 700;
-  color: #222222;
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--rim-text);
   line-height: 1.3;
-  margin: 1.5em 0 0.5em;
+  margin: 1.5em 0 0.4em;
 }
 
 .lp-body blockquote {
-  font-family: 'Libre Baskerville', Baskerville, Georgia, serif;
-  font-size: 19px;
-  font-style: italic;
-  color: #555555;
-  border-left: 3px solid #39607a;
-  padding: 6px 0 6px 22px;
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--rim-text-quote);
+  border: none;
+  border-left: 2px solid var(--rim-rule);
+  padding: 4px 0 4px 28px;
   margin: 1.5em 0;
 }
 
@@ -425,72 +480,67 @@
 .lp-body em { font-style: italic; }
 
 .lp-body a {
-  color: #39607a;
+  color: var(--rim-mid);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
-.lp-body a:hover { color: #135274; }
+.lp-body a:hover { color: var(--rim-blue); }
 
-/* ── Downloadable resources ── */
-.lp-resources {
-  margin-bottom: 56px;
-  padding-top: 40px;
-  border-top: 1px solid #e8e8e8;
+/* ── Section Divider ── */
+
+.lp-divider {
+  width: 60px;
+  border: none;
+  border-top: 2px solid var(--rim-rule);
+  margin: 56px auto;
 }
 
+/* ── Downloadable Resources ── */
+
+.lp-resources { margin-bottom: 52px; }
+
 .lp-resources__label {
-  font-family: 'Open Sans', sans-serif;
+  font-family: var(--font-sans);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #aaaaaa;
+  color: var(--rim-text-muted);
   margin: 0 0 20px;
 }
 
-.lp-resources__item { margin-bottom: 16px; }
+.lp-resources__item { margin-bottom: 12px; }
 
 .lp-resource-link {
-  display: inline-block;
-  font-family: 'Open Sans', sans-serif;
-  font-size: 14px;
-  font-weight: 600;
-  color: #39607a;
-  background: #edf3f7;
-  padding: 10px 20px;
-  border-radius: 6px;
-  text-decoration: none;
-  transition: background 0.15s;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  color: var(--rim-mid);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
-.lp-resource-link:hover { background: #d8e8f2; }
+.lp-resource-link:hover { color: var(--rim-blue); }
 
 .lp-resources__desc {
-  font-family: 'Open Sans', sans-serif;
+  font-family: var(--font-sans);
   font-size: 14px;
-  color: #999999;
-  margin: 6px 0 0;
+  color: var(--rim-text-muted);
+  margin: 4px 0 0;
 }
 
-/* ── Teacher attribution ── */
-.lp-teachers {
-  padding-top: 40px;
-  margin-bottom: 56px;
-  border-top: 1px solid #e8e8e8;
-}
+/* ── Teacher Attribution ── */
 
-.lp-teachers .lesson-teachers { width: auto; }
-
-.lp-teachers .teacher-container {
+.lp-teacher {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   margin-bottom: 12px;
   text-decoration: none;
+  color: inherit;
 }
 
-.lp-teachers .image-11 {
+.lp-teacher__photo {
   width: 44px;
   height: 44px;
   border-radius: 50%;
@@ -498,31 +548,34 @@
   flex-shrink: 0;
 }
 
-.lp-teachers .facilitator-name {
-  font-family: 'Open Sans', sans-serif;
-  font-size: 15px;
-  color: #777777;
-  text-decoration: none;
+.lp-teacher__by {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--rim-text-muted);
+  margin-right: 2px;
 }
 
-.lp-teachers .facilitator-name.underline {
-  color: #39607a;
+.lp-teacher__name {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  color: var(--rim-mid);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
-/* ── Dana section ── */
+/* ── Dana / Donation Section ── */
+
 .lp-dana {
-  background: #f7f2ee;
-  border-radius: 10px;
+  background: var(--rim-bg-accent);
+  border-radius: 4px;
   padding: 40px 48px;
   text-align: center;
 }
 
 .lp-dana p {
-  font-family: 'Open Sans', sans-serif;
+  font-family: var(--font-sans);
   font-size: 16px;
-  line-height: 1.75;
+  line-height: 1.8;
   color: #555555;
   margin: 0 0 1em;
 }
@@ -530,24 +583,27 @@
 .lp-dana p:last-child { margin-bottom: 0; }
 
 .lp-dana a {
-  color: #39607a;
-  text-decoration: none;
+  color: var(--rim-mid);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
-.lp-dana a:hover { color: #135274; }
+.lp-dana a:hover { color: var(--rim-blue); }
 
 .lp-dana em {
   font-size: 14px;
-  color: #999999;
+  color: var(--rim-text-muted);
+  font-style: italic;
 }
 
 /* ── Mobile ── */
+
 @media screen and (max-width: 767px) {
-  .lp-hero { padding: 52px 20px 44px; }
-  .lp-hero__title { font-size: 30px; margin-bottom: 32px; }
-  .lp-hero__card { padding: 22px 24px; }
-  .lp-hero__quote { font-size: 18px; }
-  .lp-content { padding: 44px 20px 60px; }
+  .lp-header { padding: 56px 24px 44px; }
+  .lp-title { font-size: 32px; }
+  .lp-audio { padding: 0 24px 44px; }
+  .lp-content { padding: 0 24px 60px; }
+  .lp-pullquote { font-size: 21px; padding-left: 20px; }
   .lp-body { font-size: 16px; }
   .lp-dana { padding: 32px 24px; }
 }

@@ -42,92 +42,98 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
 
   const hasAudio = !!(lesson.includesAudio && lesson.podcastId);
   const hasQuote = !!lesson.headerQuote;
+  const hasResources = !!(lesson.downloadableResources && lesson.downloadableResources.length > 0);
+  const hasTeachers = !!(lesson.teachers && lesson.teachers.length > 0);
 
   return (
-    <>
-      {/* ── Hero: dark background, category label, title, optional audio/quote ── */}
-      <div className="lp-hero">
-        <div className="lp-hero__inner">
-          <div className="lp-hero__label">Learning &amp; Practice</div>
-          <h1 className="lp-hero__title">{lesson.lessonTitleDisplayed}</h1>
+    <div className="lp-page">
 
-          {(hasAudio || hasQuote) && (
-            <div className="lp-hero__card">
-              {hasAudio ? (
-                <iframe
-                  src={`https://player.captivate.fm/episode/${lesson.podcastId}`}
-                  width="100%"
-                  height="200"
-                  frameBorder="0"
-                  scrolling="no"
-                />
-              ) : (
-                <>
-                  <p className="lp-hero__quote">{lesson.headerQuote}</p>
-                  {lesson.quoteSource && (
-                    <div className="lp-hero__quote-source">{lesson.quoteSource}</div>
-                  )}
-                </>
-              )}
-            </div>
-          )}
+      {/* ── Header: label + title ── */}
+      <header className="lp-header">
+        <div className="lp-header__inner">
+          <p className="lp-label">Learning &amp; Practice</p>
+          <h1 className="lp-title">{lesson.lessonTitleDisplayed}</h1>
         </div>
-      </div>
+      </header>
 
-      {/* ── Content: video, body, resources, teachers, dana ── */}
+      {/* ── Audio player (below title, above content) ── */}
+      {hasAudio && (
+        <div className="lp-audio">
+          <iframe
+            src={`https://player.captivate.fm/episode/${lesson.podcastId}`}
+            frameBorder="0"
+            scrolling="no"
+          />
+        </div>
+      )}
+
+      {/* ── Content column ── */}
       <div className="lp-content">
-        <div className="lp-content__inner">
 
-          {lesson.videoLessonLink && (
-            <div className="lp-video">
-              <iframe
-                src={lesson.videoLessonLink}
-                frameBorder="0"
-                allow="autoplay; fullscreen"
-                allowFullScreen
-              />
-            </div>
-          )}
+        {/* Pull quote — editorial style, no box */}
+        {hasQuote && (
+          <blockquote className="lp-pullquote">
+            {lesson.headerQuote}
+            {lesson.quoteSource && (
+              <cite className="lp-pullquote__cite">— {lesson.quoteSource}</cite>
+            )}
+          </blockquote>
+        )}
 
-          {lesson.lessonContent && (
-            <div className="lp-body">
-              <PortableText value={lesson.lessonContent as any} />
-            </div>
-          )}
+        {/* Video */}
+        {lesson.videoLessonLink && (
+          <div className="lp-video">
+            <iframe
+              src={lesson.videoLessonLink}
+              frameBorder="0"
+              allow="autoplay; fullscreen"
+              allowFullScreen
+            />
+          </div>
+        )}
 
-          {lesson.downloadableResources && lesson.downloadableResources.length > 0 && (
-            <div className="lp-resources">
-              <h3 className="lp-resources__label">Downloadable Resources</h3>
-              {lesson.downloadableResources.map((resource, i) => (
-                <div key={i} className="lp-resources__item">
-                  {resource.resourceFile?.asset?.url && (
-                    <a
-                      href={resource.resourceFile.asset.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="lp-resource-link"
-                    >
-                      {resource.name}
-                    </a>
-                  )}
-                  {resource.description && (
-                    <p className="lp-resources__desc">{resource.description}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+        {/* Body content */}
+        {lesson.lessonContent && (
+          <div className="lp-body">
+            <PortableText value={lesson.lessonContent as any} />
+          </div>
+        )}
 
-          {lesson.teachers && lesson.teachers.length > 0 && (
-            <div className="lp-teachers">
-              <TeacherList teachers={lesson.teachers} variant="lesson" />
-            </div>
-          )}
+        <hr className="lp-divider" />
 
-          <DanaSection />
+        {/* Downloadable resources */}
+        {hasResources && (
+          <div className="lp-resources">
+            <p className="lp-resources__label">Downloadable Resources</p>
+            {lesson.downloadableResources!.map((resource, i) => (
+              <div key={i} className="lp-resources__item">
+                {resource.resourceFile?.asset?.url && (
+                  <a
+                    href={resource.resourceFile.asset.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="lp-resource-link"
+                  >
+                    {resource.name}
+                  </a>
+                )}
+                {resource.description && (
+                  <p className="lp-resources__desc">{resource.description}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
-        </div>
+        {/* Teachers */}
+        {hasTeachers && (
+          <TeacherList teachers={lesson.teachers!} variant="lesson" />
+        )}
+
+        {/* Dana */}
+        <DanaSection />
+
       </div>
-    </>
+    </div>
   );
 }
