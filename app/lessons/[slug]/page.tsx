@@ -99,7 +99,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
           </div>
         )}
 
-        <hr className="lp-divider" />
+        {(hasResources || hasTeachers) && <hr className="lp-divider" />}
 
         {/* Downloadable resources */}
         {hasResources && (
