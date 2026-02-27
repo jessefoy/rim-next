@@ -337,8 +337,14 @@
 
 /* Section title headers in course lesson list — plain block, no grid */
 .lesson-section-header {
-  padding: 15px 5px 0;
-  margin-bottom: 20px;
+  padding: 8px 5px 16px;
+  margin-bottom: 16px;
+}
+
+/* lesson-section-break has margin-top: 10px by default — zero it out
+   so all spacing is controlled by the wrapper above */
+.lesson-section-header .lesson-section-break {
+  margin-top: 0;
 }
 
 
