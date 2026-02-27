@@ -422,7 +422,7 @@
   color: var(--rim-text-quote);
   text-align: center;
   border: none;
-  padding: 58px 0 0;   /* reserves space for absolutely-positioned " mark */
+  padding: 84px 0 0;   /* reserves space for " mark (28px above) + glyph (~35px) + gap (~21px) */
   margin: 0 0 52px;
   position: relative;
 }
@@ -430,13 +430,13 @@
 .lp-pullquote::before {
   content: "\201C";                /* left double quotation mark " */
   position: absolute;
-  top: 0;
+  top: 28px;                     /* pushes mark DOWN — gap below ≈ gap to attribution */
   left: 0;
   right: 0;
   text-align: center;
   font-family: var(--font-serif);
   font-size: 112px;
-  line-height: 0.5;              /* ~56px block; glyph ink sits in top ~40px */
+  line-height: 0.5;
   color: var(--rim-rule);
   pointer-events: none;
 }
@@ -646,8 +646,8 @@
   .lp-title { font-size: 32px; }
   .lp-audio { padding: 0 24px 44px; }
   .lp-content { padding: 0 24px 60px; }
-  .lp-pullquote { font-size: 21px; padding-top: 42px; }
-  .lp-pullquote::before { font-size: 76px; }
+  .lp-pullquote { font-size: 21px; padding-top: 60px; }
+  .lp-pullquote::before { font-size: 76px; top: 18px; }
   .lp-body { font-size: 16px; }
   .lp-dana { padding: 32px 24px; }
 }
