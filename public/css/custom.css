@@ -333,7 +333,14 @@
    COURSE PAGE
    course-lessons: our own wrapper replacing section.background-white
    (which inherits 120px padding from .section — too much).
+   course-header has margin-bottom: -30px baked in (designed for the
+   old 120px-padded section) — zero it out so the lessons box doesn't
+   overlap the description text.
 ═══════════════════════════════════════════════════ */
+
+.course-header {
+  margin-bottom: 0;
+}
 
 .course-lessons {
   background-color: #fafafa;
