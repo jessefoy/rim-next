@@ -617,12 +617,12 @@ h1, h2, h3, h4, h5, h6 {
 .lp-pullquote::before {
   content: "\201C";                /* left double quotation mark " */
   position: absolute;
-  top: 28px;                     /* pushes mark DOWN — gap below ≈ gap to attribution */
+  top: 28px;
   left: 0;
   right: 0;
   text-align: center;
   font-family: var(--font-serif);
-  font-size: 112px;
+  font-size: 72px;               /* reduced from 112px — more subtle, less dominant */
   line-height: 0.5;
   color: var(--rim-rule);
   pointer-events: none;
@@ -1089,7 +1089,7 @@ h1, h2, h3, h4, h5, h6 {
   .lp-audio { padding: 0 24px 44px; }
   .lp-content { padding: 0 24px 60px; }
   .lp-pullquote { font-size: 21px; padding-top: 60px; }
-  .lp-pullquote::before { font-size: 76px; top: 18px; }
+  .lp-pullquote::before { font-size: 52px; top: 18px; }
   .lp-body { font-size: 16px; }
   .lp-dana { padding: 32px 24px; }
 

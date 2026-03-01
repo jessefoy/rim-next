@@ -199,8 +199,6 @@ export default async function ProgramDetailPage({
           </figure>
         )}
 
-        <hr className="lp-divider" />
-
         {/* Program description — PortableText with full custom block support */}
         {hasDescription && (
           <div className="lp-body">
