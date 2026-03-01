@@ -370,7 +370,7 @@ h1, h2, h3, h4, h5, h6 {
 /* ── Page Header ── */
 
 .lp-header {
-  padding: 80px 24px 64px;
+  padding: 80px 24px 40px; /* bottom: 64→40 — was pushing 104px of space above the audio player */
   text-align: center;
 }
 
@@ -433,7 +433,7 @@ h1, h2, h3, h4, h5, h6 {
 .lp-audio {
   max-width: var(--reading-width);
   margin: 0 auto;
-  padding: 40px 24px;
+  padding: 8px 24px 56px; /* 8px top + 40px header = 48px above card; 56px below — near-symmetric, slight downward lean grounds the player toward its content */
 }
 
 
@@ -990,7 +990,7 @@ h1, h2, h3, h4, h5, h6 {
 /* ── Mobile ── */
 
 @media screen and (max-width: 767px) {
-  .lp-header { padding: 56px 24px 44px; }
+  .lp-header { padding: 56px 24px 32px; }
   .lp-title { font-size: 32px; }
   .lp-audio { padding: 0 24px 44px; }
   .lp-content { padding: 0 24px 60px; }
