@@ -1366,19 +1366,18 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ── Details card ──
    Floats up into the hero header. margin-top: -84px pulls the card
-   so the top third overlaps the colored band — the box-shadow gives
-   the "lifted card" effect. White bg reads cleanly against both
-   the blue-grey header above and the warm parchment below. */
+   so the top third overlaps the colored band. White bg reads cleanly
+   against both the blue-grey header above and the warm parchment below.
+   margin-bottom: 64px creates generous breathing room above the pull quote. */
 
 .pg-details {
   background: #fff;
   border-radius: 8px;
   padding: 32px 36px;
   margin-top: -84px;
-  margin-bottom: 0;
+  margin-bottom: 64px;
   position: relative;
   z-index: 2;
-  box-shadow: 0 4px 28px rgba(0, 0, 0, 0.12);
 }
 
 .pg-details__row {
