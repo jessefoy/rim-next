@@ -896,7 +896,7 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
   text-align: center;
   margin: 3em -40px;   /* break out of .lp-content padding → full 640px width */
-  padding: 0 60px;     /* pull text inward so it reads narrower than body */
+  padding: 0 24px;     /* text ~592px — clearly wider than body's 560px */
   font-family: var(--font-serif);
   font-size: 20px;
   font-weight: 400;
@@ -950,7 +950,7 @@ h1, h2, h3, h4, h5, h6 {
   line-height: 1.75;
   color: var(--rim-text-quote);
   margin: 2.5em -40px;  /* break out of .lp-content padding */
-  padding: 0 40px;      /* text runs full container width (~640px) */
+  padding: 0 20px;      /* text ~600px — clearly wider than body's 560px */
 }
 
 /* ── Section Divider ── */
