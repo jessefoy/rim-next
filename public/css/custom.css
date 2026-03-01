@@ -851,10 +851,13 @@ h1, h2, h3, h4, h5, h6 {
 .lp-callout__content em     { font-style: italic; }
 
 /* ── Body Quote Block ── */
+/* .lp-body .lp-body-quote = specificity (0,2,0) — beats Webflow's
+   blockquote { border-left:5px; padding:10px 20px; font-family:Quincycf; font-size:24px } (0,0,1) */
 
-.lp-body-quote {
+.lp-body .lp-body-quote {
   background: var(--rim-bg-accent);
   border: 1px solid var(--rim-rule);
+  border-left: 1px solid var(--rim-rule); /* explicit longhand — overrides Webflow border-left:5px */
   border-radius: 4px;
   padding: 40px;
   margin: 2.5em 0;
@@ -866,8 +869,8 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--rim-text-quote);
 }
 
-.lp-body-quote p {
-  margin-bottom: 0; /* suppress .lp-body p margin inside blockquote */
+.lp-body .lp-body-quote p {
+  margin-bottom: 0;
 }
 
 .lp-body-quote__text {
