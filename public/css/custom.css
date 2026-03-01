@@ -922,7 +922,16 @@ h1, h2, h3, h4, h5, h6 {
 .lp-body .lp-verse-quote::after  { margin-top: 28px; }
 
 .lp-body .lp-verse-quote p {
-  margin-bottom: 0; /* suppress .lp-body p margin */
+  /* Webflow has a p { font-size: 17px } element rule — declared values beat
+     inherited values, so we must set font-size explicitly here (not just on
+     the parent container) with high specificity to win. */
+  font-size: 32px;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.55;
+  color: var(--rim-text-quote);
+  margin-bottom: 0;
 }
 
 .lp-verse-quote__text {
