@@ -646,7 +646,7 @@
   font-weight: 400;
   color: var(--rim-text);
   line-height: 1.3;
-  margin: 36px 0 10px; /* px avoids em-relative trap (1.8em at 28px = 50px!) */
+  margin: 64px 0 14px; /* 64px above = clear section break (~2× para spacing); 14px below = heading stays close to its content */
 }
 
 .lp-body h3 {
@@ -655,7 +655,7 @@
   font-weight: 400;
   color: var(--rim-text);
   line-height: 1.3;
-  margin: 28px 0 8px; /* px avoids em-relative trap (1.5em at 22px = 33px) */
+  margin: 48px 0 10px; /* proportionally smaller than h2 */
 }
 
 .lp-body blockquote {
