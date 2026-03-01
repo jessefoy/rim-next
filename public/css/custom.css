@@ -856,7 +856,7 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--rim-bg-accent);
   border: 1px solid var(--rim-rule);
   border-radius: 4px;
-  padding: 24px 28px;
+  padding: 32px;
   margin: 2.5em 0;
   font-family: var(--font-serif);
   font-size: 18px;
@@ -864,6 +864,10 @@ h1, h2, h3, h4, h5, h6 {
   font-style: italic;
   line-height: 1.65;
   color: var(--rim-text-quote);
+}
+
+.lp-body-quote p {
+  margin-bottom: 0; /* suppress .lp-body p margin inside blockquote */
 }
 
 .lp-body-quote__text {
