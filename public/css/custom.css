@@ -633,6 +633,13 @@
 .lp-body p { margin: 0 0 1.8em; }
 .lp-body p:last-child { margin-bottom: 0; }
 
+/* Suppress blank paragraphs the CMS editor creates (Sanity/PortableText
+   renders empty blocks as <p></p> or <p><span></span></p> — they carry
+   full line-height + margin-bottom, creating ~61px of invisible space) */
+.lp-body p:empty,
+.lp-body p:has(> br:only-child),
+.lp-body p:has(> span:only-child:empty) { display: none; }
+
 .lp-body h2 {
   font-family: var(--font-serif);
   font-size: 28px;
@@ -677,7 +684,7 @@
 /* Unordered lists — absolutely-positioned bullet, immune to cascade quirks */
 .lp-body ul {
   list-style: none;
-  margin: 0 0 1em;
+  margin: 0 0 1.8em; /* match paragraph rhythm — 1em made post-list gaps half the size of post-paragraph gaps */
   padding: 0;
 }
 
@@ -697,7 +704,7 @@
 /* Ordered lists */
 .lp-body ol {
   list-style-type: decimal;
-  margin: 0 0 1em;
+  margin: 0 0 1.8em; /* match paragraph rhythm */
   padding-left: 1.4em;
 }
 .lp-body strong { font-weight: 700; }
