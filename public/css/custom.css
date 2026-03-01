@@ -659,17 +659,36 @@
   border: none;
   border-left: 2px solid var(--rim-rule);
   padding: 4px 0 4px 28px;
-  margin: 1.5em 0;
+  margin: 1.8em 0;  /* matches paragraph spacing — was 1.5em */
 }
 
-.lp-body ul,
+/* Unordered lists — custom bullet via ::before so the marker sits
+   flush with paragraph text, with wrapped lines properly indented. */
+.lp-body ul {
+  list-style: none;
+  margin: 0 0 1em;   /* tighter below list — paragraph above provides its own 1.8em gap */
+  padding: 0;
+}
+
+.lp-body ul > li {
+  padding-left: 1.2em;
+  text-indent: -1.2em;   /* hanging indent: first line flush, wraps indented */
+  margin-bottom: 0.5em;
+}
+
+.lp-body ul > li::before {
+  content: "•";
+  display: inline-block;
+  width: 1.2em;          /* exactly matches padding-left — keeps text aligned */
+  color: var(--rim-text-muted);
+}
+
+/* Ordered lists — numbers need standard list-style */
 .lp-body ol {
-  margin: 0 0 1.8em;
-  padding-left: 1.6em;  /* bullet sits inside text flow, not outside */
+  list-style-type: decimal;
+  margin: 0 0 1em;
+  padding-left: 1.5em;
 }
-
-.lp-body ul { list-style-type: disc; }
-.lp-body ol { list-style-type: decimal; }
 
 .lp-body li { margin-bottom: 0.5em; }
 .lp-body strong { font-weight: 700; }
@@ -718,14 +737,30 @@
   margin-bottom: 0;
 }
 
-.lp-callout__content ul,
+.lp-callout__content ul {
+  list-style: none;
+  margin: 0 0 0.9em;
+  padding: 0;
+}
+
+.lp-callout__content ul > li {
+  padding-left: 1.2em;
+  text-indent: -1.2em;
+  margin-bottom: 0.35em;
+}
+
+.lp-callout__content ul > li::before {
+  content: "•";
+  display: inline-block;
+  width: 1.2em;
+  color: var(--rim-text-muted);
+}
+
 .lp-callout__content ol {
+  list-style-type: decimal;
   margin: 0 0 0.9em;
   padding-left: 1.4em;
 }
-
-.lp-callout__content ul { list-style-type: disc; }
-.lp-callout__content ol { list-style-type: decimal; }
 
 .lp-callout__content ul:last-child,
 .lp-callout__content ol:last-child {
