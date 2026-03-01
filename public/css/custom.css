@@ -797,12 +797,12 @@ h1, h2, h3, h4, h5, h6 {
 .lp-callout__content {
   font-family: var(--font-sans);
   font-size: 16px;
-  line-height: 1.7;
+  line-height: 1.75;
   color: var(--rim-text);
 }
 
 .lp-callout__content p {
-  margin: 0 0 1.2em; /* 1.2em × 16px = 19px — proportional to 16px/1.7 box content; 0.9em was too tight */
+  margin: 0 0 1.2em; /* 1.2em × 16px = 19px — proportional to 16px/1.75 box content */
 }
 
 .lp-callout__content p:last-child {
@@ -856,15 +856,14 @@ h1, h2, h3, h4, h5, h6 {
 
 .lp-body .lp-body-quote {
   background: var(--rim-bg-accent);
-  border: 1px solid var(--rim-rule);
   border-radius: 4px;
   padding: 40px;
   margin: 2.5em 0;
   font-family: var(--font-serif);
   font-size: 18px;
   font-weight: 400;
-  font-style: italic;
-  line-height: 1.65;
+  font-style: normal;   /* not italic — distinct from the hero pull quote which is italic */
+  line-height: 1.75;
   color: var(--rim-text-quote);
 }
 
