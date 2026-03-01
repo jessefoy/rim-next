@@ -896,13 +896,13 @@ h1, h2, h3, h4, h5, h6 {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  margin: 2.5em -40px;  /* break 40px beyond body text on each side */
+  margin: 3.5em -40px;  /* break 40px beyond body text on each side; generous vertical breathing room */
   padding: 0;           /* no inner padding — text fills extended width, making breakout visible */
   font-family: var(--font-serif);
-  font-size: 24px;
+  font-size: 32px;      /* ~1.9× body (17px) — prominent display size matching Flodesk reference */
   font-weight: 400;
   font-style: italic;
-  line-height: 1.65;
+  line-height: 1.55;
   color: var(--rim-text-quote);
 }
 
@@ -911,15 +911,15 @@ h1, h2, h3, h4, h5, h6 {
   content: '~';
   font-family: var(--font-serif);
   font-style: italic;
-  font-size: 32px;      /* slightly larger than quote text (24px) — decorative prominence */
+  font-size: 28px;      /* slightly smaller than quote text — decorative, not dominant */
   line-height: 1;
   color: var(--rim-rule);
   flex-shrink: 0;
 }
 
 /* Equal spacing above and below the text — even, per design philosophy */
-.lp-body .lp-verse-quote::before { margin-bottom: 24px; }
-.lp-body .lp-verse-quote::after  { margin-top: 24px; }
+.lp-body .lp-verse-quote::before { margin-bottom: 28px; }
+.lp-body .lp-verse-quote::after  { margin-top: 28px; }
 
 .lp-body .lp-verse-quote p {
   margin-bottom: 0; /* suppress .lp-body p margin */
@@ -1085,7 +1085,7 @@ h1, h2, h3, h4, h5, h6 {
     margin-right: 0;
     padding-left: 0;
     padding-right: 0;
-    font-size: 20px;
+    font-size: 24px;
   }
   .lp-body .lp-callout-text {
     margin-left: 0;
