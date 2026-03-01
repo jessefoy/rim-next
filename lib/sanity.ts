@@ -5,7 +5,7 @@ export const sanityClient = createClient({
   dataset: process.env.NEXT_PUBLIC_SANITY_DATASET!,
   apiVersion: "2024-01-01",
   token: process.env.SANITY_API_TOKEN,
-  useCdn: true,
+  useCdn: false, // false = bypass CDN, fetch directly from API — published changes appear within the ISR window (revalidate: 60s)
 });
 
 // Helper to build image URLs from Sanity image references
