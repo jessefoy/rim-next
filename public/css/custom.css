@@ -33,6 +33,43 @@
 
 
 /* ═══════════════════════════════════════════════════
+   BASE TYPOGRAPHY — global site defaults
+   Webflow equivalent: "Body (All Pages)" + "All Heading Tags"
+
+   These apply to every page. Component/page styles override as needed.
+
+   🟠 pages still loading Webflow CSS: Webflow's class-based rules
+   (e.g. .heading-2 { font-size:28px }) override these where they clash,
+   so those pages are unaffected.
+
+   🟢 migrated pages: inherit these directly — no duplication needed.
+
+   Once ALL pages are 🟢 and the three Webflow <link> tags are removed
+   from app/layout.tsx, this block becomes the single source of truth
+   for typography across the entire site.
+═══════════════════════════════════════════════════ */
+
+body {
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.8;
+  color: var(--rim-text);
+  background-color: var(--rim-bg);
+}
+
+/* Headings: Libre Baskerville 400, consistent color and leading.
+   Sizes are intentionally NOT set here — they vary by context
+   (page hero h1 vs. content h2 vs. sidebar h3).
+   Use .lp-body h2/h3/h4 for rich-text content heading sizes. */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  line-height: 1.3;
+  color: var(--rim-text);
+}
+
+
+/* ═══════════════════════════════════════════════════
    PROGRAM LIST ROW
    Used on community-programs and elsewhere.
    Replaces Webflow's fixed-pixel grid (802px 1fr) with
