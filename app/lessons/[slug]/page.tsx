@@ -78,14 +78,15 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
       {/* ── Content column ── */}
       <div className="lp-content">
 
-        {/* Pull quote — editorial style, no box */}
+        {/* Pull quote — editorial style, no box. Uses <figure> not <blockquote>
+            to avoid Webflow's aggressive blockquote element styles. */}
         {hasQuote && (
-          <blockquote className="lp-pullquote">
+          <figure className="lp-pullquote">
             {lesson.headerQuote}
             {lesson.quoteSource && (
               <cite className="lp-pullquote__cite">— {lesson.quoteSource}</cite>
             )}
-          </blockquote>
+          </figure>
         )}
 
         {/* Video */}
@@ -118,20 +119,22 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
                     </div>
                   ),
                   bodyQuote: ({ value }: any) => (
-                    <blockquote className="lp-body-quote">
+                    /* <div> not <blockquote> — avoids Webflow's blockquote element styles */
+                    <div className="lp-body-quote">
                       <p className="lp-body-quote__text">{value.quote}</p>
                       {value.attribution && (
                         <cite className="lp-body-quote__cite">— {value.attribution}</cite>
                       )}
-                    </blockquote>
+                    </div>
                   ),
                   verseQuote: ({ value }: any) => (
-                    <blockquote className="lp-verse-quote">
+                    /* <div> not <blockquote> — avoids Webflow's blockquote element styles */
+                    <div className="lp-verse-quote">
                       <p className="lp-verse-quote__text">{value.quote}</p>
                       {value.attribution && (
                         <cite className="lp-verse-quote__cite">— {value.attribution}</cite>
                       )}
-                    </blockquote>
+                    </div>
                   ),
                   calloutText: ({ value }: any) => (
                     <p className="lp-callout-text">{value.text}</p>

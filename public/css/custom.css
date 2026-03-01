@@ -851,13 +851,11 @@ h1, h2, h3, h4, h5, h6 {
 .lp-callout__content em     { font-style: italic; }
 
 /* ── Body Quote Block ── */
-/* .lp-body .lp-body-quote = specificity (0,2,0) — beats Webflow's
-   blockquote { border-left:5px; padding:10px 20px; font-family:Quincycf; font-size:24px } (0,0,1) */
+/* Uses <div> not <blockquote> in JSX — Webflow's blockquote rules don't apply. */
 
 .lp-body .lp-body-quote {
   background: var(--rim-bg-accent);
   border: 1px solid var(--rim-rule);
-  border-left: 1px solid var(--rim-rule); /* explicit longhand — overrides Webflow border-left:5px */
   border-radius: 4px;
   padding: 40px;
   margin: 2.5em 0;
@@ -889,7 +887,7 @@ h1, h2, h3, h4, h5, h6 {
 /* ── Verse Quote Block ── */
 /* Centered, decorative ~ above/below — for short poignant quotes.
    Breaks out of body padding to sit slightly wider than body text.
-   Uses .lp-body .lp-verse-quote (0,2,0) to override Webflow's blockquote rule (0,0,1). */
+   Uses <div> not <blockquote> in JSX — Webflow's blockquote rules don't apply. */
 
 .lp-body .lp-verse-quote {
   display: flex;
@@ -904,7 +902,6 @@ h1, h2, h3, h4, h5, h6 {
   font-style: italic;
   line-height: 1.65;
   color: var(--rim-text-quote);
-  border-left: none;    /* override Webflow blockquote border */
 }
 
 .lp-body .lp-verse-quote::before,
