@@ -662,35 +662,44 @@
   margin: 1.8em 0;  /* matches paragraph spacing — was 1.5em */
 }
 
-/* Unordered lists — custom bullet via ::before so the marker sits
-   flush with paragraph text, with wrapped lines properly indented. */
+/* rim.webflow.css sets on all li: margin-left:-20px; font-size:18px;
+   line-height:32px; font-family:"Source Sans 3". Reset everything here
+   so it doesn't corrupt our list layout. */
+.lp-body li {
+  margin-left: 0;
+  margin-bottom: 0.5em;
+  padding-left: 0;
+  font-size: inherit;
+  line-height: inherit;
+  font-family: inherit;
+}
+
+/* Unordered lists — absolutely-positioned bullet, immune to cascade quirks */
 .lp-body ul {
   list-style: none;
-  margin: 0 0 1em;   /* tighter below list — paragraph above provides its own 1.8em gap */
+  margin: 0 0 1em;
   padding: 0;
 }
 
 .lp-body ul > li {
-  padding-left: 1.2em;
-  text-indent: -1.2em;   /* hanging indent: first line flush, wraps indented */
-  margin-bottom: 0.5em;
+  position: relative;
+  padding-left: 1.1em;   /* space for the bullet */
 }
 
 .lp-body ul > li::before {
   content: "•";
-  display: inline-block;
-  width: 1.2em;          /* exactly matches padding-left — keeps text aligned */
+  position: absolute;
+  left: 0;
+  top: 0;
   color: var(--rim-text-muted);
 }
 
-/* Ordered lists — numbers need standard list-style */
+/* Ordered lists */
 .lp-body ol {
   list-style-type: decimal;
   margin: 0 0 1em;
-  padding-left: 1.5em;
+  padding-left: 1.4em;
 }
-
-.lp-body li { margin-bottom: 0.5em; }
 .lp-body strong { font-weight: 700; }
 .lp-body em { font-style: italic; }
 
@@ -737,6 +746,15 @@
   margin-bottom: 0;
 }
 
+.lp-callout__content li {
+  margin-left: 0;
+  margin-bottom: 0.35em;
+  padding-left: 0;
+  font-size: inherit;
+  line-height: inherit;
+  font-family: inherit;
+}
+
 .lp-callout__content ul {
   list-style: none;
   margin: 0 0 0.9em;
@@ -744,15 +762,15 @@
 }
 
 .lp-callout__content ul > li {
-  padding-left: 1.2em;
-  text-indent: -1.2em;
-  margin-bottom: 0.35em;
+  position: relative;
+  padding-left: 1.1em;
 }
 
 .lp-callout__content ul > li::before {
   content: "•";
-  display: inline-block;
-  width: 1.2em;
+  position: absolute;
+  left: 0;
+  top: 0;
   color: var(--rim-text-muted);
 }
 
@@ -765,10 +783,6 @@
 .lp-callout__content ul:last-child,
 .lp-callout__content ol:last-child {
   margin-bottom: 0;
-}
-
-.lp-callout__content li {
-  margin-bottom: 0.35em;
 }
 
 .lp-callout__content strong { font-weight: 700; }
