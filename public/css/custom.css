@@ -646,7 +646,7 @@
   font-weight: 400;
   color: var(--rim-text);
   line-height: 1.3;
-  margin: 64px 0 14px; /* 64px above = clear section break (~2× para spacing); 14px below = heading stays close to its content */
+  margin: 64px 0 20px; /* 64px above = clear section break (~2× para spacing); 20px below ≈ 2/3 line height — comfortable entry into content */
 }
 
 .lp-body h3 {
@@ -655,7 +655,7 @@
   font-weight: 400;
   color: var(--rim-text);
   line-height: 1.3;
-  margin: 48px 0 10px; /* proportionally smaller than h2 */
+  margin: 48px 0 16px; /* proportionally smaller than h2 */
 }
 
 .lp-body blockquote {
@@ -674,7 +674,7 @@
    so it doesn't corrupt our list layout. */
 .lp-body li {
   margin-left: 0;
-  margin-bottom: 0.5em;
+  margin-bottom: 0.9em; /* was 0.5em (8.5px) — 0.9em (15px) ≈ 50% of line height, right for multi-line items */
   padding-left: 0;
   font-size: inherit;
   line-height: inherit;
