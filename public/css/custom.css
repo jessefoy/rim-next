@@ -887,7 +887,8 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ── Verse Quote Block ── */
 /* Centered, decorative ~ above/below — for short poignant quotes.
-   Breaks out of body padding to sit slightly wider than body text.
+   Extends 40px beyond body text on each side (body = 592px, verse quote = 672px).
+   No inner padding — text fills the full extended width so the breakout is visible.
    Uses <div> not <blockquote> in JSX — Webflow's blockquote rules don't apply. */
 
 .lp-body .lp-verse-quote {
@@ -895,8 +896,8 @@ h1, h2, h3, h4, h5, h6 {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  margin: 3em -40px;    /* break out of .lp-content padding → full 640px width */
-  padding: 0 24px;      /* text ~592px — clearly wider than body's 560px */
+  margin: 2.5em -40px;  /* break 40px beyond body text on each side */
+  padding: 0;           /* no inner padding — text fills extended width, making breakout visible */
   font-family: var(--font-serif);
   font-size: 24px;
   font-weight: 400;
@@ -910,21 +911,22 @@ h1, h2, h3, h4, h5, h6 {
   content: '~';
   font-family: var(--font-serif);
   font-style: italic;
-  font-size: 28px;
+  font-size: 32px;      /* slightly larger than quote text (24px) — decorative prominence */
   line-height: 1;
   color: var(--rim-rule);
   flex-shrink: 0;
 }
 
-.lp-body .lp-verse-quote::before { margin-bottom: 28px; }
-.lp-body .lp-verse-quote::after  { margin-top: 20px; }
+/* Equal spacing above and below the text — even, per design philosophy */
+.lp-body .lp-verse-quote::before { margin-bottom: 24px; }
+.lp-body .lp-verse-quote::after  { margin-top: 24px; }
 
 .lp-body .lp-verse-quote p {
   margin-bottom: 0; /* suppress .lp-body p margin */
 }
 
 .lp-verse-quote__text {
-  margin: 0 0 12px;
+  margin: 0 0 10px;
 }
 
 .lp-verse-quote__cite {
@@ -940,7 +942,7 @@ h1, h2, h3, h4, h5, h6 {
 /* ── Callout Text (Pull Quote) ── */
 /* A key sentence/phrase set apart from body — Baskerville italic,
    slightly larger, extends into the left margin only (magazine pull-quote style).
-   Design ratio: body text starts at body left edge; callout text starts 20px to the left. */
+   -40px = same breakout as verse quote but left-only, matching body text right edge. */
 
 .lp-callout-text {
   font-family: var(--font-serif);
@@ -949,7 +951,7 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 400;
   line-height: 1.75;
   color: var(--rim-text-quote);
-  margin: 2.5em 0 2.5em -20px;  /* extend 20px into the left margin only */
+  margin: 2.5em 0 2.5em -40px;  /* extend 40px into left margin — matches verse quote breakout amount */
   padding: 0;
 }
 
