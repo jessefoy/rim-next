@@ -136,19 +136,10 @@ export default async function ProgramDetailPage({
       {/* ── Content column ── */}
       <div className="lp-content">
 
-        {/* Pull quote — editorial style, no box */}
-        {program.quote && (
-          <figure className="lp-pullquote">
-            {program.quote}
-            {program.quoteSource && (
-              <cite className="lp-pullquote__cite">— {program.quoteSource}</cite>
-            )}
-          </figure>
-        )}
-
-        {/* Details card — date / time / location / dana / registration CTA.
-            Placed before description so visitors can quickly assess
-            whether they can attend before reading the full description. */}
+        {/* Details card — floats up into the hero header (~1/3 overlap).
+            Date / time / location / dana / registration CTA.
+            Placed first so visitors can quickly assess attendance
+            feasibility before reading the full description. */}
         {hasDetails && (
           <div className="pg-details">
             {program.dateText && (
@@ -196,6 +187,16 @@ export default async function ProgramDetailPage({
               </div>
             )}
           </div>
+        )}
+
+        {/* Pull quote — editorial style, no box. Sits below the details card. */}
+        {program.quote && (
+          <figure className="lp-pullquote">
+            {program.quote}
+            {program.quoteSource && (
+              <cite className="lp-pullquote__cite">— {program.quoteSource}</cite>
+            )}
+          </figure>
         )}
 
         <hr className="lp-divider" />
