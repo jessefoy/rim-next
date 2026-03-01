@@ -133,6 +133,9 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
                       )}
                     </blockquote>
                   ),
+                  calloutText: ({ value }: any) => (
+                    <p className="lp-callout-text">{value.text}</p>
+                  ),
                 },
               }}
             />

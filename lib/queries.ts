@@ -106,7 +106,8 @@ export const lessonBySlugQuery = `*[_type == "lessons" && slug.current == $slug 
     ...,
     _type == "practiceCallout" => { _type, _key, title, content[] { ... } },
     _type == "bodyQuote"       => { _type, _key, quote, attribution },
-    _type == "verseQuote"      => { _type, _key, quote, attribution }
+    _type == "verseQuote"      => { _type, _key, quote, attribution },
+    _type == "calloutText"     => { _type, _key, text }
   },
   heroImage { asset-> { url }, alt },
   teachers[]-> { name, slug, bioPicture { asset-> { url } } },

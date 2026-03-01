@@ -856,7 +856,7 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--rim-bg-accent);
   border: 1px solid var(--rim-rule);
   border-radius: 4px;
-  padding: 32px;
+  padding: 40px;
   margin: 2.5em 0;
   font-family: var(--font-serif);
   font-size: 18px;
@@ -884,17 +884,18 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ── Verse Quote Block ── */
-/* Centered, narrow, framed by thin rules — for short poignant quotes */
+/* Centered, decorative ~ above/below — for short poignant quotes.
+   Breaks out of body padding to sit slightly wider than body text. */
 
 .lp-verse-quote {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  max-width: 480px;
-  margin: 3em auto;
+  margin: 3em -40px;   /* break out of .lp-content padding → full 640px width */
+  padding: 0 60px;     /* pull text inward so it reads narrower than body */
   font-family: var(--font-serif);
-  font-size: 19px;
+  font-size: 21px;
   font-weight: 400;
   font-style: italic;
   line-height: 1.7;
@@ -903,23 +904,24 @@ h1, h2, h3, h4, h5, h6 {
 
 .lp-verse-quote::before,
 .lp-verse-quote::after {
-  content: '';
-  display: block;
-  width: 36px;
-  height: 1px;
-  background: var(--rim-rule);
+  content: '~';
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 26px;
+  line-height: 1;
+  color: var(--rim-rule);
   flex-shrink: 0;
 }
 
 .lp-verse-quote::before { margin-bottom: 28px; }
-.lp-verse-quote::after  { margin-top: 24px; }
+.lp-verse-quote::after  { margin-top: 20px; }
 
 .lp-verse-quote p {
   margin-bottom: 0; /* suppress .lp-body p margin */
 }
 
 .lp-verse-quote__text {
-  margin: 0 0 10px;
+  margin: 0 0 12px;
 }
 
 .lp-verse-quote__cite {
@@ -929,6 +931,23 @@ h1, h2, h3, h4, h5, h6 {
   font-style: normal;
   color: var(--rim-text-muted);
   letter-spacing: 0.06em;
+  margin-bottom: 0;
+}
+
+/* ── Callout Text (Pull Quote) ── */
+/* A key sentence/phrase set apart from body — Baskerville italic,
+   slightly larger, breaks to full container width for visual emphasis.
+   Design ratio: body text ~560px, callout ~640px (full container). */
+
+.lp-callout-text {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 19px;
+  font-weight: 400;
+  line-height: 1.75;
+  color: var(--rim-text-quote);
+  margin: 2.5em -40px;  /* break out of .lp-content padding */
+  padding: 0 40px;      /* text runs full container width (~640px) */
 }
 
 /* ── Section Divider ── */
