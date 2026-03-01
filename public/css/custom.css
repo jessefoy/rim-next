@@ -940,14 +940,14 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ── Callout Text (Pull Quote) ── */
-/* A key sentence/phrase set apart from body — Baskerville italic,
+/* A key sentence/phrase set apart from body — Baskerville regular (not italic),
    slightly larger, extends into the left margin only (magazine pull-quote style).
    Uses .lp-body .lp-callout-text (0,2,0) to beat .lp-body p (0,1,1) which
    would otherwise reset margin-left to 0 and kill the left extension. */
 
 .lp-body .lp-callout-text {
   font-family: var(--font-serif);
-  font-style: italic;
+  font-style: normal;
   font-size: 19px;
   font-weight: 400;
   line-height: 1.75;
