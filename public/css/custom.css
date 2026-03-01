@@ -19,7 +19,7 @@
   --rim-blue:        #135274;  /* darker teal-blue */
   --rim-mid:         #39607a;  /* mid teal-blue — links, accents */
   --rim-text:        #333333;  /* primary text */
-  --rim-text-quote:  #383838;  /* pull-quote text */
+  --rim-text-quote:  #56504a;  /* pull-quotes, secondary text — warm mid-tone between body (#333) and muted (#6b6059) */
   --rim-text-muted:  #6b6059;  /* labels, captions, attribution — 5:1 contrast on rim-bg */
   --rim-rule:        #c8bcb2;  /* borders, dividers, quote left-rule */
 
@@ -606,7 +606,7 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 400;
   font-style: italic;
   line-height: 1.65;
-  color: var(--rim-text-muted); /* lighter warm tone — feels contemplative, not declarative */
+  color: var(--rim-text-quote);
   text-align: center;
   border: none;
   padding: 64px 0 0;   /* reserves space for " mark + gap to text */
@@ -634,7 +634,7 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 13px;
   font-style: normal;
   letter-spacing: 0.05em;
-  color: var(--rim-text-muted);
+  color: var(--rim-text-quote);
   margin-top: 20px;
 }
 
