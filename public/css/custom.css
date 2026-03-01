@@ -639,7 +639,7 @@
   font-weight: 400;
   color: var(--rim-text);
   line-height: 1.3;
-  margin: 1.8em 0 0.5em;
+  margin: 36px 0 10px; /* px avoids em-relative trap (1.8em at 28px = 50px!) */
 }
 
 .lp-body h3 {
@@ -648,7 +648,7 @@
   font-weight: 400;
   color: var(--rim-text);
   line-height: 1.3;
-  margin: 1.5em 0 0.4em;
+  margin: 28px 0 8px; /* px avoids em-relative trap (1.5em at 22px = 33px) */
 }
 
 .lp-body blockquote {
@@ -671,7 +671,7 @@
   padding-left: 0;
   font-size: inherit;
   line-height: inherit;
-  font-family: inherit;
+  font-family: var(--font-sans); /* explicit — "inherit" still loses to rim.webflow.css in some cascade scenarios */
 }
 
 /* Unordered lists — absolutely-positioned bullet, immune to cascade quirks */
