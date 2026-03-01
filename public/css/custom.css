@@ -899,10 +899,10 @@ h1, h2, h3, h4, h5, h6 {
   margin: 3.5em -40px;  /* break 40px beyond body text on each side; generous vertical breathing room */
   padding: 0;           /* no inner padding — text fills extended width, making breakout visible */
   font-family: var(--font-serif);
-  font-size: 32px;      /* ~1.9× body (17px) — prominent display size matching Flodesk reference */
+  font-size: 25px;      /* matches Flodesk: 25px vs 17px body = 1.47× — clear but not oversized */
   font-weight: 400;
   font-style: italic;
-  line-height: 1.55;
+  line-height: 1.6;
   color: var(--rim-text-quote);
 }
 
@@ -911,25 +911,25 @@ h1, h2, h3, h4, h5, h6 {
   content: '~';
   font-family: var(--font-serif);
   font-style: italic;
-  font-size: 28px;      /* slightly smaller than quote text — decorative, not dominant */
+  font-size: 22px;      /* slightly smaller than quote text (25px) — decorative, not dominant */
   line-height: 1;
   color: var(--rim-rule);
   flex-shrink: 0;
 }
 
 /* Equal spacing above and below the text — even, per design philosophy */
-.lp-body .lp-verse-quote::before { margin-bottom: 28px; }
-.lp-body .lp-verse-quote::after  { margin-top: 28px; }
+.lp-body .lp-verse-quote::before { margin-bottom: 24px; }
+.lp-body .lp-verse-quote::after  { margin-top: 24px; }
 
 .lp-body .lp-verse-quote p {
   /* Webflow has a p { font-size: 17px } element rule — declared values beat
      inherited values, so we must set font-size explicitly here (not just on
      the parent container) with high specificity to win. */
-  font-size: 32px;
+  font-size: 25px;
   font-family: var(--font-serif);
   font-style: italic;
   font-weight: 400;
-  line-height: 1.55;
+  line-height: 1.6;
   color: var(--rim-text-quote);
   margin-bottom: 0;
 }
@@ -1094,7 +1094,10 @@ h1, h2, h3, h4, h5, h6 {
     margin-right: 0;
     padding-left: 0;
     padding-right: 0;
-    font-size: 24px;
+    font-size: 21px;
+  }
+  .lp-body .lp-verse-quote p {
+    font-size: 21px;
   }
   .lp-body .lp-callout-text {
     margin-left: 0;
