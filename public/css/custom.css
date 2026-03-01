@@ -853,20 +853,21 @@ h1, h2, h3, h4, h5, h6 {
 /* ── Body Quote Block ── */
 
 .lp-body-quote {
+  background: var(--rim-bg-accent);
+  border: 1px solid var(--rim-rule);
+  border-radius: 4px;
+  padding: 24px 28px;
+  margin: 2.5em 0;
   font-family: var(--font-serif);
-  font-size: 21px;
+  font-size: 18px;
   font-weight: 400;
   font-style: italic;
-  line-height: 1.55;
+  line-height: 1.65;
   color: var(--rim-text-quote);
-  border: none;
-  padding: 0 0 0 24px;
-  border-left: 2px solid var(--rim-rule);
-  margin: 2em 0;
 }
 
 .lp-body-quote__text {
-  margin: 0 0 10px;
+  margin: 0 0 8px;
 }
 
 .lp-body-quote__cite {

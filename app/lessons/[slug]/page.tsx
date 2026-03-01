@@ -119,7 +119,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
                   ),
                   bodyQuote: ({ value }: any) => (
                     <blockquote className="lp-body-quote">
-                      <p className="lp-body-quote__text">"{value.quote}"</p>
+                      <p className="lp-body-quote__text">{value.quote}</p>
                       {value.attribution && (
                         <cite className="lp-body-quote__cite">— {value.attribution}</cite>
                       )}
