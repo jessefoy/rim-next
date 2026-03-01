@@ -883,6 +883,54 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: 0.04em;
 }
 
+/* ── Verse Quote Block ── */
+/* Centered, narrow, framed by thin rules — for short poignant quotes */
+
+.lp-verse-quote {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 480px;
+  margin: 3em auto;
+  font-family: var(--font-serif);
+  font-size: 19px;
+  font-weight: 400;
+  font-style: italic;
+  line-height: 1.7;
+  color: var(--rim-text-quote);
+}
+
+.lp-verse-quote::before,
+.lp-verse-quote::after {
+  content: '';
+  display: block;
+  width: 36px;
+  height: 1px;
+  background: var(--rim-rule);
+  flex-shrink: 0;
+}
+
+.lp-verse-quote::before { margin-bottom: 28px; }
+.lp-verse-quote::after  { margin-top: 24px; }
+
+.lp-verse-quote p {
+  margin-bottom: 0; /* suppress .lp-body p margin */
+}
+
+.lp-verse-quote__text {
+  margin: 0 0 10px;
+}
+
+.lp-verse-quote__cite {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-style: normal;
+  color: var(--rim-text-muted);
+  letter-spacing: 0.06em;
+}
+
 /* ── Section Divider ── */
 
 .lp-divider {

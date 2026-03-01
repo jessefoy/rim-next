@@ -125,6 +125,14 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
                       )}
                     </blockquote>
                   ),
+                  verseQuote: ({ value }: any) => (
+                    <blockquote className="lp-verse-quote">
+                      <p className="lp-verse-quote__text">{value.quote}</p>
+                      {value.attribution && (
+                        <cite className="lp-verse-quote__cite">— {value.attribution}</cite>
+                      )}
+                    </blockquote>
+                  ),
                 },
               }}
             />
