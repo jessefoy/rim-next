@@ -777,11 +777,11 @@ h1, h2, h3, h4, h5, h6 {
 /* ── Practice Callout Block ── */
 
 .lp-callout {
-  background: #ede8e3;           /* slightly warmer/darker than rim-bg */
+  background: var(--rim-bg-accent); /* design token — consistent with body-quote and dana */
   border-left: 3px solid var(--rim-mid);
   border-radius: 4px;
   padding: 24px 28px;
-  margin: 2em 0;
+  margin: 2.5em 0; /* 2.5em × 17px = 42.5px — matches featured-block rhythm (42–51px range) */
 }
 
 .lp-callout__title {
@@ -802,7 +802,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .lp-callout__content p {
-  margin: 0 0 0.9em;
+  margin: 0 0 1.2em; /* 1.2em × 16px = 19px — proportional to 16px/1.7 box content; 0.9em was too tight */
 }
 
 .lp-callout__content p:last-child {
@@ -811,7 +811,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .lp-callout__content li {
   margin-left: 0;
-  margin-bottom: 0.35em;
+  margin-bottom: 0.6em; /* 0.6em × 16px = 9.6px — ~50% of line height (27px), matches body li rhythm */
   padding-left: 0;
   font-size: inherit;
   line-height: inherit;
@@ -896,7 +896,7 @@ h1, h2, h3, h4, h5, h6 {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  margin: 3.5em -40px;  /* break 40px beyond body text on each side; generous vertical breathing room */
+  margin: 2em -40px;    /* 2em × 25px = 50px top/bottom — within 42–51px featured-block range; part of flow, not isolated */
   padding: 0;           /* no inner padding — text fills extended width, making breakout visible */
   font-family: var(--font-serif);
   font-size: 25px;      /* matches Flodesk: 25px vs 17px body = 1.47× — clear but not oversized */
