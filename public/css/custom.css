@@ -888,38 +888,40 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ── Verse Quote Block ── */
 /* Centered, decorative ~ above/below — for short poignant quotes.
-   Breaks out of body padding to sit slightly wider than body text. */
+   Breaks out of body padding to sit slightly wider than body text.
+   Uses .lp-body .lp-verse-quote (0,2,0) to override Webflow's blockquote rule (0,0,1). */
 
-.lp-verse-quote {
+.lp-body .lp-verse-quote {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  margin: 3em -40px;   /* break out of .lp-content padding → full 640px width */
-  padding: 0 24px;     /* text ~592px — clearly wider than body's 560px */
+  margin: 3em -40px;    /* break out of .lp-content padding → full 640px width */
+  padding: 0 24px;      /* text ~592px — clearly wider than body's 560px */
   font-family: var(--font-serif);
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 400;
   font-style: italic;
-  line-height: 1.7;
+  line-height: 1.65;
   color: var(--rim-text-quote);
+  border-left: none;    /* override Webflow blockquote border */
 }
 
-.lp-verse-quote::before,
-.lp-verse-quote::after {
+.lp-body .lp-verse-quote::before,
+.lp-body .lp-verse-quote::after {
   content: '~';
   font-family: var(--font-serif);
   font-style: italic;
-  font-size: 26px;
+  font-size: 28px;
   line-height: 1;
   color: var(--rim-rule);
   flex-shrink: 0;
 }
 
-.lp-verse-quote::before { margin-bottom: 28px; }
-.lp-verse-quote::after  { margin-top: 20px; }
+.lp-body .lp-verse-quote::before { margin-bottom: 28px; }
+.lp-body .lp-verse-quote::after  { margin-top: 20px; }
 
-.lp-verse-quote p {
+.lp-body .lp-verse-quote p {
   margin-bottom: 0; /* suppress .lp-body p margin */
 }
 
@@ -930,7 +932,7 @@ h1, h2, h3, h4, h5, h6 {
 .lp-verse-quote__cite {
   display: block;
   font-family: var(--font-sans);
-  font-size: 12px;
+  font-size: 13px;
   font-style: normal;
   color: var(--rim-text-muted);
   letter-spacing: 0.06em;
