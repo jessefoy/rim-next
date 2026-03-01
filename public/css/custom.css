@@ -402,7 +402,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .lp-hero-image {
   max-width: var(--reading-width);
-  margin: 0 auto;
+  margin: 0 auto 48px;  /* 48px below — matches header's 40px bottom padding; gives breathing room before body */
   /* no horizontal padding — image goes edge to edge within reading column */
 }
 
