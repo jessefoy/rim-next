@@ -1293,6 +1293,194 @@ h1, h2, h3, h4, h5, h6 {
 
 
 /* ═══════════════════════════════════════════════════
+   PROGRAM DETAIL PAGE  (pg- prefix)
+   Shares lp-content, lp-body, lp-pullquote, lp-teacher*, lp-divider, lp-label
+   with the lesson page. pg- covers the page shell, hero header,
+   details card, special notes, and registration section.
+   Background: warm parchment throughout. No Webflow dependencies.
+
+   NOTE: pg-hero is a placeholder — the colored band gives the
+   program page a distinct feel from the lesson page's plain header.
+   Revisit once all pages are migrated and the full design is settled.
+═══════════════════════════════════════════════════ */
+
+.pg-page {
+  background: var(--rim-bg);
+}
+
+/* ── Hero header (placeholder) ── */
+
+.pg-hero {
+  background: var(--rim-blue);
+  padding: 72px 24px 56px;
+  text-align: center;
+}
+
+.pg-hero__inner {
+  max-width: var(--reading-width);
+  margin: 0 auto;
+}
+
+.pg-hero__category {
+  display: inline-block;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 100px;
+  padding: 5px 16px;
+  margin-bottom: 24px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.pg-hero__category:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+.pg-hero__title {
+  font-family: var(--font-serif);
+  font-size: 44px;
+  font-weight: 400;
+  line-height: 1.2;
+  color: #fff;
+  margin: 0 0 16px;
+}
+
+.pg-hero__tagline {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+/* ── Details card ──
+   Clean label / value rows — date, time, location, dana, registration CTA.
+   Placed before description: visitors can assess attendance feasibility
+   before committing to reading the full program description. */
+
+.pg-details {
+  background: var(--rim-bg-accent);
+  border-radius: 6px;
+  padding: 32px 36px;
+  margin-bottom: 0; /* lp-divider provides spacing below */
+}
+
+.pg-details__row {
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--rim-rule);
+}
+
+.pg-details__row:first-child { padding-top: 0; }
+.pg-details__row:last-child  { padding-bottom: 0; border-bottom: none; }
+
+.pg-details__label {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rim-text-muted);
+  min-width: 52px;
+  flex-shrink: 0;
+}
+
+.pg-details__value {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  color: var(--rim-text);
+  line-height: 1.5;
+}
+
+.pg-details__link {
+  color: var(--rim-mid);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.pg-details__link:hover { color: var(--rim-blue); }
+
+/* Registration CTA row — sits at bottom of details card */
+.pg-details__row--cta {
+  border-bottom: none;
+}
+
+.pg-details__reg-cta {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--rim-mid);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+}
+
+.pg-details__reg-cta:hover { color: var(--rim-blue); }
+
+/* ── Special Notes ──
+   Additional context editors add (location description, schedule notes, etc.).
+   Warm card treatment — visually set apart from the main description
+   without the heavier teal-border treatment of a practice callout. */
+
+.pg-notes {
+  background: var(--rim-bg-accent);
+  border-radius: 6px;
+  padding: 32px 36px;
+  margin-top: 0; /* lp-body margin-bottom provides spacing above */
+  margin-bottom: 52px;
+}
+
+/* Override lp-body's bottom margin inside the notes card */
+.pg-notes .lp-body {
+  margin-bottom: 0;
+}
+
+/* ── Registration section ──
+   Auth-gated. Warm card containing instructions + optional Fillout form. */
+
+.pg-registration {
+  margin-top: 52px;
+}
+
+.pg-registration__inner {
+  background: var(--rim-bg-accent);
+  border-radius: 6px;
+  padding: 36px 40px;
+}
+
+/* Override lp-body margin inside registration card */
+.pg-registration__inner .lp-body {
+  margin-bottom: 0;
+}
+
+/* Fillout embed container */
+.pg-fillout {
+  margin-top: 24px;
+}
+
+/* ── Mobile ── */
+
+@media screen and (max-width: 767px) {
+  .pg-hero          { padding: 52px 24px 40px; }
+  .pg-hero__title   { font-size: 32px; }
+  .pg-details       { padding: 24px 20px; }
+  .pg-details__row  { gap: 12px; }
+  .pg-details__label { min-width: 44px; }
+  .pg-notes         { padding: 24px 20px; }
+  .pg-registration__inner { padding: 28px 20px; }
+}
+
+
+/* ═══════════════════════════════════════════════════
    STYLE GUIDE  (/style-guide)
    Developer reference page only — sg- prefix.
 ═══════════════════════════════════════════════════ */

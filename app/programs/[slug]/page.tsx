@@ -40,7 +40,45 @@ interface Program {
   programCategory?: { name: string; slug: { current: string } };
   teacherFacilitators?: Teacher[];
   dayOfWeek?: { name: string; slug: { current: string } }[];
+  largeProgramImage?: { asset: { url: string } };
 }
+
+/* Shared PortableText component map — same custom blocks as lesson page */
+const portableTextComponents = {
+  types: {
+    practiceCallout: ({ value }: any) => (
+      <div className="lp-callout">
+        <p className="lp-callout__title">{value.title || "Practice Suggestion"}</p>
+        {value.content && (
+          <div className="lp-callout__content">
+            <PortableText value={value.content} />
+          </div>
+        )}
+      </div>
+    ),
+    bodyQuote: ({ value }: any) => (
+      /* <div> not <blockquote> — avoids Webflow's blockquote element styles */
+      <div className="lp-body-quote">
+        <p className="lp-body-quote__text">{value.quote}</p>
+        {value.attribution && (
+          <cite className="lp-body-quote__cite">— {value.attribution}</cite>
+        )}
+      </div>
+    ),
+    verseQuote: ({ value }: any) => (
+      /* <div> not <blockquote> — avoids Webflow's blockquote element styles */
+      <div className="lp-verse-quote">
+        <p className="lp-verse-quote__text">{value.quote}</p>
+        {value.attribution && (
+          <cite className="lp-verse-quote__cite">— {value.attribution}</cite>
+        )}
+      </div>
+    ),
+    calloutText: ({ value }: any) => (
+      <p className="lp-callout-text">{value.text}</p>
+    ),
+  },
+};
 
 export async function generateStaticParams() {
   const slugs = await sanityClient.fetch<{ slug: string }[]>(allProgramSlugsQuery);
@@ -69,168 +107,178 @@ export default async function ProgramDetailPage({
   if (!program) notFound();
 
   const isLoggedIn = !!session;
+  const hasDetails = !!(program.dateText || program.timeText || program.locationText || program.danaText);
+  const hasFacilitators = !!(program.teacherFacilitators && program.teacherFacilitators.length > 0);
+  const hasDescription = !!(program.programDescription && program.programDescription.length > 0);
+  const hasSpecialNotes = !!(program.specialNotes && program.specialNotes.length > 0);
 
   return (
-    <>
-      <div id="Community-Programs-Header-Link" className="program-header-section community-programs-page">
-        <div className="program-title-block">
-          <Link href="/community-programs" className="breadcrumb-link w-inline-block">
-            <div className="text-block-58">
-              {program.programCategory?.name ?? "Programs"}
-            </div>
-          </Link>
-          <h1 className="heading-9">{program.name}</h1>
-          {program.tagline && <h2 className="heading-39">{program.tagline}</h2>}
-        </div>
-      </div>
+    <div className="pg-page">
 
-      <div className="program-details-section">
-        <div className="content-container centered">
-          {program.quote && (
-            <div className="program-quote-block">
-              <p className="program-quote-text">{program.quote}</p>
-              {program.quoteSource && (
-                <div className="quote-source">
-                  <div className="program-quote-source-dash">-</div>
-                  <div className="program-quote-source-text">{program.quoteSource}</div>
+      {/* ── Hero header — placeholder for future design refinement ──
+          Currently: solid --rim-blue band with category, title, tagline.
+          TODO: Explore a more distinctive treatment (texture, image, etc.)
+          once the rest of the design system is settled. */}
+      <header className="pg-hero">
+        <div className="pg-hero__inner">
+          {program.programCategory && (
+            <Link href="/community-programs" className="pg-hero__category">
+              {program.programCategory.name}
+            </Link>
+          )}
+          <h1 className="pg-hero__title">{program.name}</h1>
+          {program.tagline && (
+            <p className="pg-hero__tagline">{program.tagline}</p>
+          )}
+        </div>
+      </header>
+
+      {/* ── Content column ── */}
+      <div className="lp-content">
+
+        {/* Pull quote — editorial style, no box */}
+        {program.quote && (
+          <figure className="lp-pullquote">
+            {program.quote}
+            {program.quoteSource && (
+              <cite className="lp-pullquote__cite">— {program.quoteSource}</cite>
+            )}
+          </figure>
+        )}
+
+        {/* Details card — date / time / location / dana / registration CTA.
+            Placed before description so visitors can quickly assess
+            whether they can attend before reading the full description. */}
+        {hasDetails && (
+          <div className="pg-details">
+            {program.dateText && (
+              <div className="pg-details__row">
+                <span className="pg-details__label">Date</span>
+                <span className="pg-details__value">{program.dateText}</span>
+              </div>
+            )}
+            {program.timeText && (
+              <div className="pg-details__row">
+                <span className="pg-details__label">Time</span>
+                <span className="pg-details__value">{program.timeText}</span>
+              </div>
+            )}
+            {program.locationText && (
+              <div className="pg-details__row">
+                <span className="pg-details__label">Where</span>
+                <span className="pg-details__value">
+                  {program.locationText}
+                  {program.locationLink && (
+                    <a
+                      href={program.locationLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="pg-details__link"
+                    >
+                      {" "}↗
+                    </a>
+                  )}
+                </span>
+              </div>
+            )}
+            {program.danaText && (
+              <div className="pg-details__row">
+                <span className="pg-details__label">Dana</span>
+                <span className="pg-details__value">{program.danaText}</span>
+              </div>
+            )}
+            {program.registrationRequired && (
+              <div className="pg-details__row pg-details__row--cta">
+                <span className="pg-details__label"></span>
+                <a href="#registration-section" className="pg-details__reg-cta">
+                  ↓ Please Register to Attend
+                </a>
+              </div>
+            )}
+          </div>
+        )}
+
+        <hr className="lp-divider" />
+
+        {/* Program description — PortableText with full custom block support */}
+        {hasDescription && (
+          <div className="lp-body">
+            <PortableText
+              value={program.programDescription as any}
+              components={portableTextComponents}
+            />
+          </div>
+        )}
+
+        {/* Special notes — additional context (location details, schedule, etc.) */}
+        {hasSpecialNotes && (
+          <div className="pg-notes">
+            <div className="lp-body">
+              <PortableText value={program.specialNotes as any} />
+            </div>
+          </div>
+        )}
+
+        {/* Facilitators */}
+        {hasFacilitators && (
+          <>
+            <hr className="lp-divider" />
+            <p className="lp-label">Facilitators</p>
+            <TeacherList
+              teachers={program.teacherFacilitators!}
+              variant="program"
+            />
+          </>
+        )}
+
+        {/* Registration section — auth-gated */}
+        <div id="registration-section" className="pg-registration">
+
+          {/* Logged out */}
+          {!isLoggedIn && (
+            <MemberGate signedOutInstructions={program.signedOutInstructions} />
+          )}
+
+          {/* Logged in + registration required + not closed */}
+          {isLoggedIn && program.registrationRequired && !program.registrationClosed && (
+            <div className="pg-registration__inner">
+              <p className="lp-label">Register</p>
+              {program.signedInInstructions && (
+                <div className="lp-body">
+                  <PortableText value={program.signedInInstructions as any} />
+                </div>
+              )}
+              {program.filloutRegistrationFormId && (
+                <div className="pg-fillout">
+                  <div
+                    style={{ width: "100%", height: "500px" }}
+                    data-fillout-id={program.filloutRegistrationFormId}
+                    data-fillout-embed-type="standard"
+                    data-fillout-inherit-parameters=""
+                    data-fillout-dynamic-resize=""
+                  />
+                  {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+                  <script src="https://server.fillout.com/embed/v1/" />
                 </div>
               )}
             </div>
           )}
 
-          <div className="program-description-and-details-block">
-            {program.programDescription && (
-              <div className="rich-text-block-19 w-richtext">
-                <PortableText value={program.programDescription} />
-              </div>
-            )}
-
-            {program.specialNotes && (
-              <div className="additional-program-noted w-richtext">
-                <PortableText value={program.specialNotes} />
-              </div>
-            )}
-
-            <div className="registration-details-section">
-              <div className="program-details-content no-bottom-margin">
-                <h3 className="details-header">Details:</h3>
-                <div>
-                  {program.dateText && (
-                    <>
-                      <div className="_10px-spacer"></div>
-                      <div>
-                        <img src="/images/Date.png" width={20} height={20} alt="" />
-                        <div className="program-detail-item">{program.dateText}</div>
-                      </div>
-                    </>
-                  )}
-                  {program.timeText && (
-                    <>
-                      <div className="_10px-spacer"></div>
-                      <div>
-                        <img src="/images/Time.png" width={25} height={25} alt="" />
-                        <div className="program-detail-item">{program.timeText}</div>
-                      </div>
-                    </>
-                  )}
-                  {program.locationText && (
-                    <>
-                      <div className="_10px-spacer"></div>
-                      <div className="date-time-register-dana-block">
-                        <img src="/images/Location.png" width={30} height={30} alt="" />
-                        <div className="program-detail-item">{program.locationText}</div>
-                        {program.locationLink && (
-                          <a
-                            href={program.locationLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="w-inline-block"
-                          >
-                            <div className="more-details-trigger-text-dana">--&gt;</div>
-                          </a>
-                        )}
-                      </div>
-                    </>
-                  )}
-                  {program.danaText && (
-                    <>
-                      <div className="_10px-spacer"></div>
-                      <div className="date-time-register-dana-block">
-                        <img src="/images/Dana.png" width={35} height={35} alt="" />
-                        <div className="program-detail-item">{program.danaText}</div>
-                      </div>
-                    </>
-                  )}
-                  {program.registrationRequired && (
-                    <>
-                      <div className="_10px-spacer"></div>
-                      <div className="date-time-register-dana-block">
-                        <img src="/images/Registration_Icon.png" width={20} height={20} alt="" />
-                        <a href="#registration-section" className="w-inline-block">
-                          <div className="program-detail-item link">
-                            <strong>Please Register to Attend ↓</strong>
-                          </div>
-                        </a>
-                      </div>
-                    </>
-                  )}
-                  {program.teacherFacilitators && program.teacherFacilitators.length > 0 && (
-                    <>
-                      <div className="_10px-spacer"></div>
-                      <h3 className="details-header top-margin-20-px">Facilitators:</h3>
-                      <TeacherList
-                        teachers={program.teacherFacilitators}
-                        variant="program"
-                      />
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div id="registration-section" className="program-registration-section">
-              {!isLoggedIn && (
-                <MemberGate signedOutInstructions={program.signedOutInstructions} />
-              )}
-
-              {isLoggedIn && program.registrationRequired && !program.registrationClosed && (
-                <div className="logged-in---registration-required">
-                  <h3 className="details-header">Register</h3>
-                  {program.signedInInstructions && (
-                    <div className="signed-in-instructions w-richtext">
-                      <PortableText value={program.signedInInstructions} />
-                    </div>
-                  )}
-                  {program.filloutRegistrationFormId && (
-                    <div className="fillout-registration-embed w-embed w-script">
-                      <div
-                        style={{ width: "100%", height: "500px" }}
-                        data-fillout-id={program.filloutRegistrationFormId}
-                        data-fillout-embed-type="standard"
-                        data-fillout-inherit-parameters=""
-                        data-fillout-dynamic-resize=""
-                      ></div>
-                      {/* eslint-disable-next-line @next/next/no-sync-scripts */}
-                      <script src="https://server.fillout.com/embed/v1/"></script>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {isLoggedIn && !program.registrationRequired && (
-                <div className="logged-in---registration-not-required-message">
-                  <h3 className="details-header">No Registration Required</h3>
-                  {program.signedInInstructions && (
-                    <div className="signed-in-instructions w-richtext">
-                      <PortableText value={program.signedInInstructions} />
-                    </div>
-                  )}
+          {/* Logged in + no registration required */}
+          {isLoggedIn && !program.registrationRequired && (
+            <div className="pg-registration__inner">
+              <p className="lp-label">No Registration Required</p>
+              {program.signedInInstructions && (
+                <div className="lp-body">
+                  <PortableText value={program.signedInInstructions as any} />
                 </div>
               )}
             </div>
-          </div>
+          )}
+
         </div>
+
       </div>
-    </>
+    </div>
   );
 }

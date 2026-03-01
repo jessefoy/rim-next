@@ -51,7 +51,13 @@ export const programBySlugQuery = `*[_type == "programs" && slug.current == $slu
   zoomLinkText,
   quote,
   quoteSource,
-  programDescription,
+  programDescription[] {
+    ...,
+    _type == "practiceCallout" => { _type, _key, title, content[] { ... } },
+    _type == "bodyQuote"       => { _type, _key, quote, attribution },
+    _type == "verseQuote"      => { _type, _key, quote, attribution },
+    _type == "calloutText"     => { _type, _key, text }
+  },
   specialNotes,
   signedOutInstructions,
   signedInInstructions,
