@@ -939,8 +939,8 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ── Callout Text (Pull Quote) ── */
 /* A key sentence/phrase set apart from body — Baskerville italic,
-   slightly larger, breaks to full container width for visual emphasis.
-   Design ratio: body text ~560px, callout ~640px (full container). */
+   slightly larger, extends into the left margin only (magazine pull-quote style).
+   Design ratio: body text starts at body left edge; callout text starts 20px to the left. */
 
 .lp-callout-text {
   font-family: var(--font-serif);
@@ -949,8 +949,8 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 400;
   line-height: 1.75;
   color: var(--rim-text-quote);
-  margin: 2.5em -40px;  /* break out of .lp-content padding */
-  padding: 0 20px;      /* text ~600px — clearly wider than body's 560px */
+  margin: 2.5em 0 2.5em -20px;  /* extend 20px into the left margin only */
+  padding: 0;
 }
 
 /* ── Section Divider ── */
