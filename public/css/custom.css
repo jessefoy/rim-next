@@ -903,7 +903,7 @@ h1, h2, h3, h4, h5, h6 {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  margin: 2em -40px;    /* 2em × 22px = 44px top/bottom — within 42–51px featured-block range; part of flow, not isolated */
+  margin: 1.2em -40px;  /* 1.2em × 22px ≈ 26px — paragraph spacing adds ~30px, total ~56px visible gap; part of flow */
   padding: 0;           /* no inner padding — text fills extended width, making breakout visible */
   font-family: var(--font-serif);
   font-size: 22px;      /* 22px vs 17px body = 1.29× — Baskerville reads heavier at larger sizes; 22px balances visual weight */
@@ -925,8 +925,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Equal spacing above and below the text — even, per design philosophy */
-.lp-body .lp-verse-quote::before { margin-bottom: 24px; }
-.lp-body .lp-verse-quote::after  { margin-top: 24px; }
+.lp-body .lp-verse-quote::before { margin-bottom: 16px; }
+.lp-body .lp-verse-quote::after  { margin-top: 16px; }
 
 .lp-body .lp-verse-quote p {
   /* Webflow has a p { font-size: 17px } element rule — declared values beat
