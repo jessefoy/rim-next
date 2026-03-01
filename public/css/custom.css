@@ -942,16 +942,17 @@ h1, h2, h3, h4, h5, h6 {
 /* ── Callout Text (Pull Quote) ── */
 /* A key sentence/phrase set apart from body — Baskerville italic,
    slightly larger, extends into the left margin only (magazine pull-quote style).
-   -40px = same breakout as verse quote but left-only, matching body text right edge. */
+   Uses .lp-body .lp-callout-text (0,2,0) to beat .lp-body p (0,1,1) which
+   would otherwise reset margin-left to 0 and kill the left extension. */
 
-.lp-callout-text {
+.lp-body .lp-callout-text {
   font-family: var(--font-serif);
   font-style: italic;
   font-size: 19px;
   font-weight: 400;
   line-height: 1.75;
   color: var(--rim-text-quote);
-  margin: 2.5em 0 2.5em -40px;  /* extend 40px into left margin — matches verse quote breakout amount */
+  margin: 2.5em 0 2.5em -40px;  /* extend 40px into left margin — clearly visible beyond body text */
   padding: 0;
 }
 
@@ -1086,7 +1087,7 @@ h1, h2, h3, h4, h5, h6 {
     padding-right: 0;
     font-size: 20px;
   }
-  .lp-callout-text {
+  .lp-body .lp-callout-text {
     margin-left: 0;
   }
 }
