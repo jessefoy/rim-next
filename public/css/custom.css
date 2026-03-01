@@ -705,6 +705,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .lp-body h4 {
+  display: block;  /* rim.webflow.css sets h4 { display: inline-block } — must override */
   font-family: var(--font-serif);
   font-size: 20px;
   font-weight: 400;
@@ -1072,6 +1073,20 @@ h1, h2, h3, h4, h5, h6 {
   .lp-pullquote::before { font-size: 76px; top: 18px; }
   .lp-body { font-size: 16px; }
   .lp-dana { padding: 32px 24px; }
+
+  /* Breakout elements use negative margins to extend beyond .lp-content's padding.
+     On mobile, the container fills the viewport — no room for negative margins.
+     Zero them out so they stay within the viewport and don't cause horizontal scroll. */
+  .lp-body .lp-verse-quote {
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 0;
+    padding-right: 0;
+    font-size: 20px;
+  }
+  .lp-callout-text {
+    margin-left: 0;
+  }
 }
 
 
