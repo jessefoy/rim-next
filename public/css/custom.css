@@ -558,7 +558,7 @@
 .lp-content {
   max-width: var(--reading-width);
   margin: 0 auto;
-  padding: 0 50px 80px;
+  padding: 0 24px 80px;
 }
 
 /* ── Editorial Pull Quote ── */
@@ -664,9 +664,12 @@
 
 .lp-body ul,
 .lp-body ol {
-  margin: 0 0 1.8em 1.5em;
-  padding: 0;
+  margin: 0 0 1.8em;
+  padding-left: 1.6em;  /* bullet sits inside text flow, not outside */
 }
+
+.lp-body ul { list-style-type: disc; }
+.lp-body ol { list-style-type: decimal; }
 
 .lp-body li { margin-bottom: 0.5em; }
 .lp-body strong { font-weight: 700; }
@@ -717,9 +720,12 @@
 
 .lp-callout__content ul,
 .lp-callout__content ol {
-  margin: 0 0 0.9em 1.4em;
-  padding: 0;
+  margin: 0 0 0.9em;
+  padding-left: 1.4em;
 }
+
+.lp-callout__content ul { list-style-type: disc; }
+.lp-callout__content ol { list-style-type: decimal; }
 
 .lp-callout__content ul:last-child,
 .lp-callout__content ol:last-child {
