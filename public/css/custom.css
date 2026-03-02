@@ -2320,13 +2320,100 @@ h1, h2, h3, h4, h5, h6 {
 .vol-save-btn:hover:not(:disabled) { background: var(--rim-blue); }
 .vol-save-btn:disabled { background: var(--rim-rule); cursor: default; }
 
+/* ── Contact meta row (phone + date) inside expanded panel ──
+   Hidden on desktop where those values are already visible as
+   table columns; revealed on mobile via media query below.       */
+
+.vol-detail__contact {
+  display: none;
+  gap: 20px;
+  font-size: 13px;
+  color: var(--rim-text-muted);
+  flex-wrap: wrap;
+  padding-bottom: 4px;
+}
+
 /* ── Mobile ── */
 
 @media screen and (max-width: 767px) {
-  .vol-content      { padding: 0 20px; }
-  .vol-card         { flex-direction: column; align-items: flex-start; }
-  .vol-table        { font-size: 13px; }
-  .vol-row__phone,
-  .vol-row__date    { display: none; }
-  .vol-detail       { padding-left: 16px; }
+
+  /* Page chrome */
+  .vol-page    { padding: 24px 0 64px; }
+  .vol-content { padding: 0 16px; }
+
+  /* Programs list cards (landing page) */
+  .vol-card        { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .vol-card__stats { flex-wrap: wrap; }
+
+  /* ── Toolbar ── */
+  .vol-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  /* Filter tabs: single scrollable row instead of wrapping */
+  .vol-filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 6px;
+    gap: 6px;
+  }
+
+  .vol-filter       { flex-shrink: 0; white-space: nowrap; }
+  .vol-csv-btn      { align-self: flex-start; }
+
+  /* ── Table → card layout ──
+     Each registrant row becomes a 3-column grid:
+       [▶]  [Name       ]  [Status ▾]
+             email
+  */
+  .vol-table,
+  .vol-table tbody  { display: block; }
+  .vol-table thead  { display: none; }
+
+  .vol-row {
+    display: grid;
+    grid-template-columns: 20px 1fr auto;
+    grid-template-rows: auto auto;
+    column-gap: 10px;
+    row-gap: 3px;
+    align-items: center;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--rim-rule);
+  }
+
+  /* Hide all cells then selectively reveal */
+  .vol-row td {
+    display: none;
+    padding: 0;
+    border: none;
+    vertical-align: unset;
+  }
+
+  .vol-row__toggle { display: block; grid-column: 1; grid-row: 1 / 3; align-self: center; }
+  .vol-row__name   { display: block; grid-column: 2; grid-row: 1; font-size: 15px; }
+  .vol-row__email  { display: block; grid-column: 2; grid-row: 2; font-size: 13px; }
+  .vol-row__status { display: block; grid-column: 3; grid-row: 1 / 3; align-self: center; }
+
+  /* Status select: compact touch target */
+  .vol-status-select {
+    font-size: 12px;
+    padding: 6px 22px 6px 8px;
+  }
+
+  /* ── Expanded detail row ── */
+  .vol-row-detail    { display: block; }
+  .vol-row-detail td { display: block; padding: 0; border: none; }
+
+  .vol-detail        { padding: 16px; gap: 16px; }
+
+  /* Notes textarea and save button fill full width */
+  .vol-notes    { max-width: 100%; }
+  .vol-save-btn { align-self: stretch; text-align: center; }
+
+  /* Show the contact summary (phone + date) inside the expanded panel */
+  .vol-detail__contact { display: flex; }
+
 }

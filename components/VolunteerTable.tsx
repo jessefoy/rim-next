@@ -241,6 +241,12 @@ export default function VolunteerTable({
                       <td colSpan={7}>
                         <div className="vol-detail">
 
+                          {/* Contact info — hidden on desktop, visible on mobile where phone/date cols are hidden */}
+                          <div className="vol-detail__contact">
+                            {r.phone && <span>{formatPhone(r.phone)}</span>}
+                            <span>Registered {formatDate(r.createdAt)}</span>
+                          </div>
+
                           {/* Custom fields */}
                           {hasCustom && (
                             <div className="vol-detail__section">
