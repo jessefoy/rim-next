@@ -75,7 +75,9 @@ export default function VolunteerTable({
   const [editingNotes, setEditingNotes] = useState<Record<string, string>>({});
   const [savingNotes, setSavingNotes] = useState<string | null>(null);
   const [savedNotes, setSavedNotes] = useState<string | null>(null);
-  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+  // Two-step status update: user selects → pending → must click Confirm to save
+  const [pendingStatus, setPendingStatus] = useState<{ id: string; status: string } | null>(null);
+  const [savingStatus, setSavingStatus] = useState<string | null>(null);
 
   // ── Counts ──────────────────────────────────────────────────────────────────
   const counts: Record<string, number> = { ALL: registrations.length };
@@ -87,10 +89,25 @@ export default function VolunteerTable({
   const visible =
     filter === "ALL" ? registrations : registrations.filter((r) => r.status === filter);
 
-  // ── Status update ───────────────────────────────────────────────────────────
-  async function updateStatus(id: string, status: string) {
-    setUpdatingStatus(id);
+  // ── Status update (two-step) ─────────────────────────────────────────────────
+  // Step 1: dropdown onChange → sets pendingStatus (no API call yet)
+  // Step 2: Confirm button → confirmStatus() → saves to API
+
+  function selectStatus(id: string, newStatus: string, currentStatus: string) {
+    if (newStatus === currentStatus) {
+      setPendingStatus(null); // user reverted — nothing pending
+    } else {
+      setPendingStatus({ id, status: newStatus });
+    }
+  }
+
+  async function confirmStatus() {
+    if (!pendingStatus) return;
+    const { id, status } = pendingStatus;
     const prev = registrations.find((r) => r.id === id)?.status;
+
+    setSavingStatus(id);
+    setPendingStatus(null);
 
     // Optimistic update
     setRegistrations((rs) => rs.map((r) => (r.id === id ? { ...r, status } : r)));
@@ -107,8 +124,12 @@ export default function VolunteerTable({
       setRegistrations((rs) => rs.map((r) => (r.id === id ? { ...r, status: prev! } : r)));
       alert("Failed to update status. Please try again.");
     } finally {
-      setUpdatingStatus(null);
+      setSavingStatus(null);
     }
+  }
+
+  function cancelStatus() {
+    setPendingStatus(null);
   }
 
   // ── Notes save ──────────────────────────────────────────────────────────────
@@ -216,17 +237,44 @@ export default function VolunteerTable({
                     <td className="vol-row__email">{r.email}</td>
                     <td className="vol-row__phone">{formatPhone(r.phone)}</td>
                     <td className="vol-row__status" onClick={(e) => e.stopPropagation()}>
-                      <select
-                        className={`vol-status-select vol-status-select--${r.status.toLowerCase()}`}
-                        value={r.status}
-                        onChange={(e) => updateStatus(r.id, e.target.value)}
-                        disabled={updatingStatus === r.id}
-                      >
-                        <option value="REGISTERED">Registered</option>
-                        <option value="WAITLISTED">Waitlisted</option>
-                        <option value="APPROVED">Approved</option>
-                        <option value="CANCELLED">Cancelled</option>
-                      </select>
+                      {(() => {
+                        const isPending = pendingStatus?.id === r.id;
+                        const displayStatus = isPending ? pendingStatus!.status : r.status;
+                        return (
+                          <>
+                            <select
+                              className={`vol-status-select vol-status-select--${displayStatus.toLowerCase()}${isPending ? " vol-status-select--pending" : ""}`}
+                              value={displayStatus}
+                              onChange={(e) => selectStatus(r.id, e.target.value, r.status)}
+                              disabled={savingStatus === r.id}
+                            >
+                              <option value="REGISTERED">Registered</option>
+                              <option value="WAITLISTED">Waitlisted</option>
+                              <option value="APPROVED">Approved</option>
+                              <option value="CANCELLED">Cancelled</option>
+                            </select>
+                            {isPending && (
+                              <div className="vol-status-confirm">
+                                <button
+                                  className="vol-status-confirm__btn"
+                                  onClick={confirmStatus}
+                                >
+                                  Confirm
+                                </button>
+                                <button
+                                  className="vol-status-confirm__cancel"
+                                  onClick={cancelStatus}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            )}
+                            {savingStatus === r.id && (
+                              <span className="vol-status-saving">Saving…</span>
+                            )}
+                          </>
+                        );
+                      })()}
                     </td>
                     <td className="vol-row__donation">
                       <span className={`vol-badge vol-badge--donation-${r.donationStatus.toLowerCase()}`}>

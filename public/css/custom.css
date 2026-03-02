@@ -2229,6 +2229,53 @@ h1, h2, h3, h4, h5, h6 {
 .vol-status-select--approved   { background-color: #e0ecf8; border-color: #a8c8ea; color: #1a5c94; }
 .vol-status-select--cancelled  { background-color: #f2f2f2; border-color: #ddd;    color: #888;    }
 
+/* Pending state — dashed border signals "not yet saved" */
+.vol-status-select--pending { border-style: dashed; }
+
+/* Confirm / Cancel buttons (appear below dropdown when a change is pending) */
+.vol-status-confirm {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.vol-status-confirm__btn {
+  padding: 3px 10px;
+  background: var(--rim-blue);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.vol-status-confirm__btn:hover { background: var(--rim-mid); }
+
+.vol-status-confirm__cancel {
+  padding: 3px 8px;
+  background: none;
+  border: 1px solid var(--rim-rule);
+  border-radius: 4px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--rim-text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.vol-status-confirm__cancel:hover { border-color: var(--rim-mid); color: var(--rim-text); }
+
+.vol-status-saving {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--rim-text-muted);
+}
+
 /* ── Expanded row detail ── */
 
 .vol-row-detail td {

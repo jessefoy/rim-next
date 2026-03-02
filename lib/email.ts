@@ -59,6 +59,118 @@ export async function sendRegistrationEmail(data: RegistrationEmailData): Promis
   }
 }
 
+// ─── Waitlist approval email ─────────────────────────────────────────────────
+
+export interface ApprovalEmailData {
+  to: string;
+  firstName: string;
+  programTitle: string;
+  programSlug: string;
+}
+
+/**
+ * Sent when a registrar moves someone from WAITLISTED → APPROVED.
+ * Errors are caught and logged — must never fail the status update.
+ */
+export async function sendApprovalEmail(data: ApprovalEmailData): Promise<void> {
+  const { to, firstName, programTitle, programSlug } = data;
+  const programUrl = `${BASE_URL}/programs/${programSlug}`;
+
+  try {
+    await resend.emails.send({
+      from:    FROM,
+      to,
+      subject: `Your spot is confirmed — ${programTitle}`,
+      html:    buildApprovalHtml({ firstName, programTitle, programUrl }),
+      text:    buildApprovalText({ firstName, programTitle, programUrl }),
+    });
+  } catch (err) {
+    console.error("[email] Failed to send approval confirmation:", err);
+  }
+}
+
+function buildApprovalHtml({ firstName, programTitle, programUrl }: {
+  firstName: string; programTitle: string; programUrl: string;
+}): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Your spot is confirmed</title>
+</head>
+<body style="margin:0;padding:24px 0;background-color:#f6f3f0;font-family:Georgia,'Times New Roman',serif;">
+  <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:6px;overflow:hidden;">
+
+    <!-- Header -->
+    <div style="background:#135274;padding:24px 36px;">
+      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;
+                letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.75);">
+        Rooted In Mindfulness
+      </p>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:36px 36px 28px;">
+      <h1 style="margin:0 0 24px;font-family:Georgia,'Times New Roman',serif;font-size:26px;
+                 font-weight:400;line-height:1.3;color:#135274;">
+        Your spot is confirmed
+      </h1>
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,serif;">
+        Hi ${firstName},
+      </p>
+      <p style="margin:0 0 28px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,serif;">
+        Good news — a spot has opened up and you&#39;ve been confirmed for
+        <strong>${programTitle}</strong>. We look forward to practicing together.
+      </p>
+
+      <!-- CTA -->
+      <table role="presentation" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="border-radius:4px;background:#135274;">
+            <a href="${programUrl}"
+               style="display:inline-block;padding:12px 24px;font-family:Arial,Helvetica,sans-serif;
+                      font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:4px;">
+              View Program Details
+            </a>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:20px 36px 28px;border-top:1px solid #ede9e5;">
+      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">
+        Rooted In Mindfulness &middot; Brookfield, WI<br>
+        Questions? Reply to this email or visit
+        <a href="https://rootedinmindfulness.org" style="color:#39607a;text-decoration:none;">
+          rootedinmindfulness.org
+        </a>
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>`;
+}
+
+function buildApprovalText({ firstName, programTitle, programUrl }: {
+  firstName: string; programTitle: string; programUrl: string;
+}): string {
+  return [
+    `Hi ${firstName},`,
+    "",
+    `Good news — a spot has opened up and you've been confirmed for ${programTitle}.`,
+    "We look forward to practicing together.",
+    "",
+    `View program details: ${programUrl}`,
+    "",
+    "—",
+    "Rooted In Mindfulness · Brookfield, WI",
+    "rootedinmindfulness.org",
+  ].join("\n");
+}
+
 // ─── Internal helpers ────────────────────────────────────────────────────────
 
 interface BuildParams {

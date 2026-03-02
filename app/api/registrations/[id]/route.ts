@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { RegistrationStatus, DonationStatus } from "@prisma/client";
+import { sendApprovalEmail } from "@/lib/email";
 
 export async function PATCH(
   request: NextRequest,
@@ -25,6 +26,12 @@ export async function PATCH(
       return NextResponse.json({ error: "Invalid donationStatus" }, { status: 400 });
     }
 
+    // Fetch current record so we can detect status transitions
+    const current = await db.registration.findUnique({ where: { id } });
+    if (!current) {
+      return NextResponse.json({ error: "Registration not found" }, { status: 404 });
+    }
+
     const registration = await db.registration.update({
       where: { id },
       data: {
@@ -33,6 +40,16 @@ export async function PATCH(
         ...(donationStatus && { donationStatus }),
       },
     });
+
+    // Send approval email when a waitlisted person is confirmed
+    if (status === "APPROVED" && current.status === "WAITLISTED") {
+      await sendApprovalEmail({
+        to:           current.email,
+        firstName:    current.firstName,
+        programTitle: current.programTitle,
+        programSlug:  current.programSlug,
+      });
+    }
 
     return NextResponse.json({ success: true, registration });
   } catch (error) {
