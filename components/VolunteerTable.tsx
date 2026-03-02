@@ -22,7 +22,7 @@ export interface SerializedRegistration {
   createdAt: string;
 }
 
-type Filter = "ALL" | "REGISTERED" | "WAITLISTED" | "APPROVED" | "CANCELLED";
+type Filter = "ALL" | "REGISTERED" | "WAITLISTED" | "CANCELLED";
 
 interface Props {
   initialRegistrations: SerializedRegistration[];
@@ -35,7 +35,7 @@ interface Props {
 const STATUS_LABELS: Record<string, string> = {
   REGISTERED: "Registered",
   WAITLISTED: "Waitlisted",
-  APPROVED: "Approved",
+  APPROVED: "Registered",   // treated same as REGISTERED; kept in DB enum for compat
   CANCELLED: "Cancelled",
 };
 
@@ -85,10 +85,11 @@ export default function VolunteerTable({
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [reminderSent, setReminderSent] = useState<string | null>(null);
 
-  // ── Counts ──────────────────────────────────────────────────────────────────
+  // ── Counts — APPROVED is bucketed under REGISTERED ──────────────────────────
   const counts: Record<string, number> = { ALL: registrations.length };
   for (const r of registrations) {
-    counts[r.status] = (counts[r.status] ?? 0) + 1;
+    const key = r.status === "APPROVED" ? "REGISTERED" : r.status;
+    counts[key] = (counts[key] ?? 0) + 1;
   }
 
   // ── Stat bar derived values ──────────────────────────────────────────────────
@@ -106,7 +107,11 @@ export default function VolunteerTable({
 
   // ── Filtered list ───────────────────────────────────────────────────────────
   const visible = registrations
-    .filter((r) => filter === "ALL" || r.status === filter)
+    .filter((r) => {
+      if (filter === "ALL") return true;
+      if (filter === "REGISTERED") return r.status === "REGISTERED" || r.status === "APPROVED";
+      return r.status === filter;
+    })
     .filter((r) => {
       if (!search.trim()) return true;
       const q = search.toLowerCase();
@@ -124,7 +129,7 @@ export default function VolunteerTable({
     setActionLoading(id);
     setRegistrations((rs) =>
       rs.map((r) =>
-        r.id === id ? { ...r, status: "APPROVED", donationStatus: optimisticDonation } : r
+        r.id === id ? { ...r, status: "REGISTERED", donationStatus: optimisticDonation } : r
       )
     );
 
@@ -132,7 +137,7 @@ export default function VolunteerTable({
       const res = await fetch(`/api/registrations/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "APPROVED", danaMode: danaMode ?? "none" }),
+        body: JSON.stringify({ status: "REGISTERED", danaMode: danaMode ?? "none" }),
       });
       if (!res.ok) throw new Error();
     } catch {
@@ -319,7 +324,7 @@ export default function VolunteerTable({
       {/* ── Toolbar ── */}
       <div className="vol-toolbar">
         <div className="vol-filters">
-          {(["ALL", "REGISTERED", "WAITLISTED", "APPROVED", "CANCELLED"] as Filter[]).map((f) => (
+          {(["ALL", "REGISTERED", "WAITLISTED", "CANCELLED"] as Filter[]).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -503,7 +508,7 @@ export default function VolunteerTable({
                                   disabled={actionLoading === r.id}
                                   onClick={() => promoteRegistration(r.id)}
                                 >
-                                  {actionLoading === r.id ? "Promoting…" : "Promote to Approved"}
+                                  {actionLoading === r.id ? "Promoting…" : "Promote to Registered"}
                                 </button>
                               )}
 

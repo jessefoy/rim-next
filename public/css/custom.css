@@ -2466,7 +2466,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .vol-row--registered  { border-left-color: #2e7d52; }
 .vol-row--waitlisted  { border-left-color: #856404; }
-.vol-row--approved    { border-left-color: #1a5c94; }
+.vol-row--approved    { border-left-color: #2e7d52; }
 .vol-row--cancelled   { border-left-color: var(--rim-rule); opacity: 0.65; }
 
 .vol-row td {
@@ -2513,7 +2513,7 @@ h1, h2, h3, h4, h5, h6 {
 .vol-row__status-text             { font-size: 13px; font-weight: 600; display: block; }
 .vol-row__status-text--registered { color: #2e7d52; }
 .vol-row__status-text--waitlisted { color: #856404; }
-.vol-row__status-text--approved   { color: #1a5c94; }
+.vol-row__status-text--approved   { color: #2e7d52; }
 .vol-row__status-text--cancelled  { color: var(--rim-text-muted); }
 
 /* Inline promote — text link style, not a full button */
