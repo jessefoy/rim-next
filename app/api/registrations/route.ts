@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sendRegistrationEmail } from "@/lib/email";
+import { sanityClient } from "@/lib/sanity";
+import { portableTextToEmailHtml, portableTextToEmailText } from "@/lib/portableTextEmail";
 
 export async function POST(request: NextRequest) {
   try {
@@ -103,6 +105,22 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Fetch program-specific confirmation message from Sanity (fire-and-forget on error)
+    let confirmationMessageHtml: string | undefined;
+    let confirmationMessageText: string | undefined;
+    try {
+      const prog = await sanityClient.fetch<{ confirmationMessage?: unknown[] } | null>(
+        `*[_type == "programs" && _id == $id && !(_id in path("drafts.**"))][0]{ confirmationMessage }`,
+        { id: programId }
+      );
+      if (prog?.confirmationMessage?.length) {
+        confirmationMessageHtml = portableTextToEmailHtml(prog.confirmationMessage);
+        confirmationMessageText = portableTextToEmailText(prog.confirmationMessage);
+      }
+    } catch (err) {
+      console.error("[registration] Failed to fetch confirmation message:", err);
+    }
+
     // Send confirmation email — fire-and-forget, never blocks the response
     await sendRegistrationEmail({
       to:              normalizedEmail,
@@ -114,6 +132,8 @@ export async function POST(request: NextRequest) {
       dateText:        dateText ?? null,
       timeText:        timeText ?? null,
       locationText:    locationText ?? null,
+      confirmationMessageHtml,
+      confirmationMessageText,
     });
 
     return NextResponse.json({

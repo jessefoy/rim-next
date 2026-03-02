@@ -11,6 +11,7 @@
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
     "@portabletext/react": "^6.0.2",
+    "@portabletext/to-html": "^5.0.1",
     "@prisma/client": "^5.22.0",
     "@sanity/client": "^7.16.0",
     "next": "16.1.6",

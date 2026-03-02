@@ -26,6 +26,9 @@ export interface RegistrationEmailData {
   dateText?: string | null;
   timeText?: string | null;
   locationText?: string | null;
+  // Program-specific confirmation copy from Sanity (rendered from Portable Text)
+  confirmationMessageHtml?: string;
+  confirmationMessageText?: string;
 }
 
 /**
@@ -49,6 +52,8 @@ export async function sendRegistrationEmail(data: RegistrationEmailData): Promis
     firstName, programTitle, programUrl,
     isWaitlisted, waitlistPosition,
     dateText, timeText, locationText,
+    confirmationMessageHtml: data.confirmationMessageHtml,
+    confirmationMessageText: data.confirmationMessageText,
   };
 
   // Resend v4+ returns { data, error } instead of throwing — check both.
@@ -436,6 +441,8 @@ interface BuildParams {
   dateText?: string | null;
   timeText?: string | null;
   locationText?: string | null;
+  confirmationMessageHtml?: string;
+  confirmationMessageText?: string;
 }
 
 function buildHtml(p: BuildParams): string {
@@ -451,6 +458,14 @@ function buildHtml(p: BuildParams): string {
         ${detailRows}
       </table>`
     : "";
+
+  // Custom program message — only shown on confirmed (non-waitlisted) registrations
+  const customMessageBlock =
+    !p.isWaitlisted && p.confirmationMessageHtml
+      ? `<div style="margin:0 0 28px;padding:20px 24px;background:#f6f3f0;border-radius:4px;">
+           ${p.confirmationMessageHtml}
+         </div>`
+      : "";
 
   const bodyHtml = p.isWaitlisted
     ? `<p style="margin:0 0 16px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,serif;">
@@ -473,7 +488,8 @@ function buildHtml(p: BuildParams): string {
          You&#39;re registered for <strong>${p.programTitle}</strong>.
          We look forward to practicing together.
        </p>
-       ${detailsBlock}`;
+       ${detailsBlock}
+       ${customMessageBlock}`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -557,12 +573,18 @@ function buildText(p: BuildParams): string {
     ].join("\n");
   }
 
+  const customMessageLines =
+    p.confirmationMessageText?.trim()
+      ? ["─", p.confirmationMessageText.trim(), ""]
+      : [];
+
   return [
     `Hi ${p.firstName},`,
     "",
     `You're registered for ${p.programTitle}. We look forward to practicing together.`,
     "",
     ...(details ? [details, ""] : []),
+    ...customMessageLines,
     `View program details: ${p.programUrl}`,
     "",
     "—",
