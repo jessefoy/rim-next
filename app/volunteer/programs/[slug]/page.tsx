@@ -85,13 +85,9 @@ export default async function VolunteerProgramPage({
       <div className="vol-content">
 
         <div className="vol-header">
-          <Link href="/volunteer" className="vol-back">← All Programs</Link>
+          <Link href="/volunteer" className="vol-back">← Programs</Link>
+          <p className="lp-label">Volunteer Admin</p>
           <h1 className="vol-header__title">{program.name}</h1>
-          {program.registrationCapacity && (
-            <p className="vol-header__meta">
-              Capacity: {program.registrationCapacity} &nbsp;·&nbsp; {registrations.length} total registrations
-            </p>
-          )}
         </div>
 
         <VolunteerTable
@@ -99,6 +95,7 @@ export default async function VolunteerProgramPage({
           programSlug={slug}
           programTitle={program.name}
           danaMode={program.danaMode ?? null}
+          registrationCapacity={program.registrationCapacity ?? null}
         />
 
       </div>

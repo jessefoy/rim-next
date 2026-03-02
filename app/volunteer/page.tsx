@@ -37,17 +37,35 @@ export default async function VolunteerPage() {
 
   const programs = await sanityClient.fetch<SanityProgram[]>(volunteerProgramsQuery);
 
-  // Get registration counts grouped by program + status in one query
-  const counts = await db.registration.groupBy({
-    by: ["programId", "status"],
-    _count: { _all: true },
-  });
+  // Get registration counts grouped by program + status, and pending dana counts — in parallel
+  const [counts, pendingDanaRows] = await Promise.all([
+    db.registration.groupBy({
+      by: ["programId", "status"],
+      _count: { _all: true },
+    }),
+    db.registration.groupBy({
+      by: ["programId"],
+      where: { donationStatus: "PENDING" },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const pendingDanaByProgram = Object.fromEntries(
+    pendingDanaRows.map((r) => [r.programId, r._count._all])
+  );
 
   const programsWithCounts = programs.map((p) => {
     const rows = counts.filter((c) => c.programId === p._id);
     const byStatus = Object.fromEntries(rows.map((c) => [c.status, c._count._all]));
-    const total = rows.reduce((sum, c) => sum + c._count._all, 0);
-    return { ...p, byStatus, total };
+    const confirmedCount = (byStatus.REGISTERED ?? 0) + (byStatus.APPROVED ?? 0);
+    const waitlistedCount = byStatus.WAITLISTED ?? 0;
+    const pendingDanaCount = pendingDanaByProgram[p._id] ?? 0;
+    const capacityPct =
+      p.registrationCapacity
+        ? Math.min(100, Math.round((confirmedCount / p.registrationCapacity) * 100))
+        : null;
+    const needsAttention = waitlistedCount > 0 || pendingDanaCount > 0;
+    return { ...p, byStatus, confirmedCount, waitlistedCount, pendingDanaCount, capacityPct, needsAttention };
   });
 
   return (
@@ -73,32 +91,51 @@ export default async function VolunteerPage() {
               <Link
                 key={p._id}
                 href={`/volunteer/programs/${p.slug.current}`}
-                className="vol-card"
+                className={`vol-card${p.needsAttention ? " vol-card--attention" : ""}`}
               >
                 <div className="vol-card__main">
                   <h2 className="vol-card__title">{p.name}</h2>
                   {p.tagline && <p className="vol-card__tagline">{p.tagline}</p>}
+                  {p.registrationCapacity && p.capacityPct !== null && (
+                    <div className="vol-capacity">
+                      <div className="vol-capacity__bar">
+                        <div
+                          className={`vol-capacity__fill${
+                            p.capacityPct >= 100
+                              ? " vol-capacity__fill--full"
+                              : p.capacityPct >= 80
+                              ? " vol-capacity__fill--near"
+                              : ""
+                          }`}
+                          style={{ width: `${p.capacityPct}%` }}
+                        />
+                      </div>
+                      <span className="vol-capacity__label">
+                        {p.confirmedCount} / {p.registrationCapacity}
+                      </span>
+                    </div>
+                  )}
                 </div>
-                <div className="vol-card__stats">
-                  <span className="vol-stat">
-                    <span className="vol-stat__num">{p.total}</span>
-                    <span className="vol-stat__label">total</span>
-                  </span>
-                  {(p.byStatus.REGISTERED ?? 0) > 0 && (
-                    <span className="vol-badge vol-badge--registered">
-                      {p.byStatus.REGISTERED} registered
+                <div className="vol-card__signals">
+                  {p.waitlistedCount > 0 && (
+                    <span className="vol-signal vol-signal--amber">
+                      {p.waitlistedCount} waitlisted
                     </span>
                   )}
-                  {(p.byStatus.WAITLISTED ?? 0) > 0 && (
-                    <span className="vol-badge vol-badge--waitlisted">
-                      {p.byStatus.WAITLISTED} waitlisted
+                  {p.pendingDanaCount > 0 && (
+                    <span className="vol-signal vol-signal--amber">
+                      {p.pendingDanaCount} dana pending
                     </span>
                   )}
-                  {(p.byStatus.APPROVED ?? 0) > 0 && (
-                    <span className="vol-badge vol-badge--approved">
-                      {p.byStatus.APPROVED} approved
+                  {!p.needsAttention && p.confirmedCount > 0 && (
+                    <span className="vol-signal vol-signal--clear">
+                      {p.confirmedCount} confirmed
                     </span>
                   )}
+                  {!p.needsAttention && p.confirmedCount === 0 && (
+                    <span className="vol-signal vol-signal--empty">No registrations</span>
+                  )}
+                  <span className="vol-card__arrow">→</span>
                 </div>
               </Link>
             ))}
