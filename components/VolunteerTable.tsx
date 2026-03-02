@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Fragment } from "react";
 
 export interface SerializedRegistration {
   id: string;
@@ -373,9 +373,8 @@ export default function VolunteerTable({
               const hasComments = !!r.comments;
 
               return (
-                <>
+                <Fragment key={r.id}>
                   <tr
-                    key={r.id}
                     className={`vol-row vol-row--${r.status.toLowerCase()}${isExpanded ? " vol-row--expanded" : ""}`}
                     onClick={() => toggleExpand(r.id, r.notes)}
                   >
@@ -392,8 +391,8 @@ export default function VolunteerTable({
                       <span className="vol-row__email">{r.email}</span>
                     </td>
 
-                    {/* Status — text label + inline quick-actions */}
-                    <td className="vol-row__status-cell" onClick={(e) => e.stopPropagation()}>
+                    {/* Status — text label; Promote inline for waitlisted only */}
+                    <td className="vol-row__status-cell">
                       <span className={`vol-row__status-text vol-row__status-text--${r.status.toLowerCase()}`}>
                         {STATUS_LABELS[r.status]}
                         {r.status === "WAITLISTED" && r.waitlistPosition && (
@@ -401,56 +400,14 @@ export default function VolunteerTable({
                         )}
                       </span>
 
-                      {/* WAITLISTED → promote */}
+                      {/* WAITLISTED → Promote (safe, no confirm needed) */}
                       {r.status === "WAITLISTED" && (
                         <button
                           className="vol-promote-inline"
                           disabled={actionLoading === r.id}
-                          onClick={() => promoteRegistration(r.id)}
+                          onClick={(e) => { e.stopPropagation(); promoteRegistration(r.id); }}
                         >
                           {actionLoading === r.id ? "…" : "Promote"}
-                        </button>
-                      )}
-
-                      {/* REGISTERED / APPROVED → inline cancel confirm */}
-                      {(r.status === "REGISTERED" || r.status === "APPROVED") && (
-                        confirmCancelId === r.id ? (
-                          <div className="vol-cancel-confirm">
-                            <button
-                              className="vol-cancel-confirm__yes"
-                              disabled={actionLoading === r.id}
-                              onClick={() => {
-                                cancelRegistration(r.id);
-                                setConfirmCancelId(null);
-                              }}
-                            >
-                              {actionLoading === r.id ? "…" : "Confirm"}
-                            </button>
-                            <button
-                              className="vol-cancel-confirm__no"
-                              onClick={() => setConfirmCancelId(null)}
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            className="vol-cancel-inline"
-                            onClick={() => setConfirmCancelId(r.id)}
-                          >
-                            Cancel
-                          </button>
-                        )
-                      )}
-
-                      {/* CANCELLED → restore */}
-                      {r.status === "CANCELLED" && (
-                        <button
-                          className="vol-restore-inline"
-                          disabled={actionLoading === r.id}
-                          onClick={() => restoreRegistration(r.id)}
-                        >
-                          {actionLoading === r.id ? "…" : "Restore"}
                         </button>
                       )}
                     </td>
@@ -468,7 +425,7 @@ export default function VolunteerTable({
 
                   {/* ── Expanded detail panel ── */}
                   {isExpanded && (
-                    <tr className="vol-row-detail" key={`${r.id}-detail`}>
+                    <tr className="vol-row-detail">
                       <td colSpan={5}>
                         <div className="vol-detail">
 
@@ -689,7 +646,7 @@ export default function VolunteerTable({
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               );
             })}
           </tbody>
