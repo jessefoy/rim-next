@@ -60,6 +60,13 @@
 - Breadcrumb: `.breadcrumb-link.w-inline-block` → `.text-block-58`
 - Dashboard: `.page-wrapper` → `.dashboard-section` → `.dashboard-content`
 
+## End-of-Session Rule
+At the end of every working session, update `FEATURES.md` in the repo root.
+- Add or update any feature that was built, changed, or removed
+- Add a row to the Session Log at the bottom with the date and a one-line summary
+- Keep the human-readable sections plain and clear
+- Keep technical notes (🔧) accurate and specific — they exist so future Claude sessions don't repeat past mistakes
+
 ## Do Not
 - Add webflow.js — removed intentionally (conflicts with nav.js)
 - Create two nav menus — single `w-nav-menu` required for hamburger
