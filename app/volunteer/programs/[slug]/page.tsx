@@ -4,9 +4,11 @@ import { sanityClient } from "@/lib/sanity";
 import { db } from "@/lib/db";
 import Link from "next/link";
 import VolunteerTable, { SerializedRegistration } from "@/components/VolunteerTable";
+import type { RegistrationField } from "@/components/RegistrationForm";
 
 const programForVolunteerQuery = `*[_type == "programs" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
-  _id, name, slug, tagline, registrationCapacity, danaMode
+  _id, name, slug, tagline, registrationCapacity, danaMode,
+  registrationFields[] { _key, label, fieldType, required, options }
 }`;
 
 interface SanityProgram {
@@ -16,6 +18,7 @@ interface SanityProgram {
   tagline?: string;
   registrationCapacity?: number | null;
   danaMode?: string | null;
+  registrationFields?: RegistrationField[];
 }
 
 export default async function VolunteerProgramPage({
@@ -95,6 +98,7 @@ export default async function VolunteerProgramPage({
           programTitle={program.name}
           danaMode={program.danaMode ?? null}
           registrationCapacity={program.registrationCapacity ?? null}
+          registrationFields={program.registrationFields ?? []}
         />
 
       </div>

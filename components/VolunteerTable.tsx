@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, Fragment } from "react";
+import type { RegistrationField } from "@/components/RegistrationForm";
 
 export interface SerializedRegistration {
   id: string;
@@ -29,6 +30,7 @@ interface Props {
   programTitle: string;
   danaMode?: string | null;
   registrationCapacity?: number | null;
+  registrationFields?: RegistrationField[];
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -71,6 +73,7 @@ export default function VolunteerTable({
   programTitle,
   danaMode,
   registrationCapacity,
+  registrationFields = [],
 }: Props) {
   const [registrations, setRegistrations] = useState(initialRegistrations);
   const [filter, setFilter] = useState<Filter>("ALL");
@@ -537,21 +540,53 @@ export default function VolunteerTable({
                                 ) : (
                                   /* Edit mode */
                                   <div className="vol-fields-edit" onClick={(e) => e.stopPropagation()}>
-                                    {Object.entries(editingFields[r.id] ?? {}).map(([q, a]) => (
-                                      <div key={q}>
-                                        <label className="vol-field-edit__label">{q}</label>
-                                        <input
-                                          className="vol-field-edit__input"
-                                          value={a}
-                                          onChange={(e) =>
-                                            setEditingFields((prev) => ({
-                                              ...prev,
-                                              [r.id]: { ...prev[r.id], [q]: e.target.value },
-                                            }))
-                                          }
-                                        />
-                                      </div>
-                                    ))}
+                                    {Object.entries(editingFields[r.id] ?? {}).map(([q, a]) => {
+                                      const fieldDef = registrationFields.find((f) => f.label === q);
+                                      const onChange = (val: string) =>
+                                        setEditingFields((prev) => ({
+                                          ...prev,
+                                          [r.id]: { ...prev[r.id], [q]: val },
+                                        }));
+                                      return (
+                                        <div key={q}>
+                                          <label className="vol-field-edit__label">{q}</label>
+                                          {fieldDef?.fieldType === "longText" ? (
+                                            <textarea
+                                              className="vol-field-edit__input vol-field-edit__textarea"
+                                              value={a}
+                                              onChange={(e) => onChange(e.target.value)}
+                                            />
+                                          ) : fieldDef?.fieldType === "yesNo" ? (
+                                            <select
+                                              className="vol-field-edit__select"
+                                              value={a}
+                                              onChange={(e) => onChange(e.target.value)}
+                                            >
+                                              <option value="">— select —</option>
+                                              <option value="Yes">Yes</option>
+                                              <option value="No">No</option>
+                                            </select>
+                                          ) : fieldDef?.fieldType === "select" && fieldDef.options?.length ? (
+                                            <select
+                                              className="vol-field-edit__select"
+                                              value={a}
+                                              onChange={(e) => onChange(e.target.value)}
+                                            >
+                                              <option value="">— select —</option>
+                                              {fieldDef.options.map((opt) => (
+                                                <option key={opt} value={opt}>{opt}</option>
+                                              ))}
+                                            </select>
+                                          ) : (
+                                            <input
+                                              className="vol-field-edit__input"
+                                              value={a}
+                                              onChange={(e) => onChange(e.target.value)}
+                                            />
+                                          )}
+                                        </div>
+                                      );
+                                    })}
                                     <div className="vol-field-edit__actions">
                                       <button
                                         className="vol-save-btn"
