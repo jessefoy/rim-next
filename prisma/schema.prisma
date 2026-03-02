@@ -56,7 +56,7 @@ model User {
   firstName     String?
   lastName      String?
   phone         String?
-  role          Role      @default(MEMBER)
+  roles         Role[]    @default([])
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -68,19 +68,20 @@ model User {
   legacyMemberSince       DateTime?
 
   // Relations
-  accounts    Account[]
-  sessions    Session[]
-  memberships UserMembership[]
-  attendance  AttendanceRecord[]
+  accounts      Account[]
+  sessions      Session[]
+  memberships   UserMembership[]
+  attendance    AttendanceRecord[]
+  registrations Registration[]
 
   @@map("users")
 }
 
 enum Role {
-  MEMBER
-  VOLUNTEER
-  TEACHER
-  ADMIN
+  REGISTRAR  // manages program registrations
+  TEACHER    // content access, profile page
+  VOLUNTEER  // general volunteer
+  ADMIN      // full access
 }
 
 // ─── MEMBERSHIP TYPES ────────────────────────────────────────────────────────
@@ -140,4 +141,61 @@ enum AttendanceType {
 enum AttendanceFormat {
   IN_PERSON
   ONLINE
+}
+
+// ─── PROGRAM REGISTRATIONS ────────────────────────────────────────────────────
+
+model Registration {
+  id             String             @id @default(cuid())
+
+  // Program (sourced from Sanity)
+  programId      String             // Sanity _id
+  programSlug    String             // for URL routing
+  programTitle   String             // snapshot at registration time
+
+  // User — nullable (non-members get an account created on submit)
+  userId         String?
+
+  // Standard fields
+  email          String
+  firstName      String
+  lastName       String
+  phone          String?
+  comments       String?
+
+  // Dynamic fields from Sanity registrationFields config
+  customFields   Json?              // { "question label": "answer value" }
+
+  // Registration status
+  status           RegistrationStatus @default(REGISTERED)
+  waitlistPosition Int?               // null if not waitlisted
+
+  // Volunteer notes (internal only)
+  notes          String?
+
+  // Donation (Stripe)
+  donationStatus  DonationStatus  @default(NOT_REQUIRED)
+  donationAmount  Int?            // in cents
+  stripeSessionId String?
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user           User?     @relation(fields: [userId], references: [id])
+
+  @@map("registrations")
+}
+
+enum RegistrationStatus {
+  REGISTERED  // confirmed, under capacity
+  WAITLISTED  // capacity reached
+  APPROVED    // promoted from waitlist
+  CANCELLED
+}
+
+enum DonationStatus {
+  NOT_REQUIRED  // waitlisted — hold until approved
+  PENDING       // registered or approved, donation not yet made
+  COMPLETED     // donation received
+  WAIVED        // volunteer marked as no donation needed
 }

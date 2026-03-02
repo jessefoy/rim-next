@@ -1474,6 +1474,160 @@ h1, h2, h3, h4, h5, h6 {
   margin-top: 24px;
 }
 
+/* ── Built-in registration form ── */
+
+.pg-form {
+  margin-top: 24px;
+}
+
+.pg-form__warning {
+  background: #fef8e7;
+  border-left: 3px solid #c8960c;
+  padding: 12px 16px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  font-size: 15px;
+  color: var(--rim-text);
+}
+
+.pg-form__waitlist-notice {
+  background: var(--rim-bg-accent);
+  border-left: 3px solid var(--rim-mid);
+  padding: 12px 16px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  font-size: 15px;
+  color: var(--rim-text);
+}
+
+.pg-form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.pg-form__field {
+  margin-bottom: 18px;
+}
+
+.pg-form__label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--rim-text-muted);
+  margin-bottom: 6px;
+}
+
+.pg-form__required {
+  color: #b94040;
+  margin-left: 1px;
+}
+
+.pg-form__input,
+.pg-form__textarea,
+.pg-form__select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--rim-rule);
+  border-radius: 4px;
+  background: #fff;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  color: var(--rim-text);
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+}
+
+.pg-form__input:focus,
+.pg-form__textarea:focus,
+.pg-form__select:focus {
+  outline: none;
+  border-color: var(--rim-mid);
+}
+
+.pg-form__input[readonly] {
+  background: var(--rim-bg-accent);
+  color: var(--rim-text-muted);
+  cursor: default;
+}
+
+.pg-form__textarea {
+  min-height: 96px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.pg-form__submit {
+  margin-top: 24px;
+  width: 100%;
+  padding: 14px 24px;
+  background: var(--rim-blue);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.pg-form__submit:hover:not(:disabled) {
+  background: var(--rim-mid);
+}
+
+.pg-form__submit:disabled {
+  background: var(--rim-rule);
+  cursor: not-allowed;
+}
+
+.pg-form__error {
+  background: #fde8e8;
+  border-left: 3px solid #b94040;
+  padding: 12px 16px;
+  border-radius: 4px;
+  margin-top: 16px;
+  font-size: 15px;
+  color: #7b1f1f;
+}
+
+.pg-form__success {
+  background: #eaf4ee;
+  border-left: 3px solid #2e7d52;
+  padding: 24px 28px;
+  border-radius: 6px;
+}
+
+.pg-form__success--waitlist {
+  background: var(--rim-bg-accent);
+  border-left-color: var(--rim-mid);
+}
+
+.pg-form__success h3 {
+  font-family: var(--font-serif);
+  font-size: 21px;
+  font-weight: 400;
+  color: var(--rim-text);
+  margin: 0 0 8px;
+}
+
+.pg-form__success p {
+  font-size: 16px;
+  color: var(--rim-text-muted);
+  margin: 0;
+}
+
+.pg-form__already {
+  color: var(--rim-text-muted);
+  font-size: 16px;
+  font-style: italic;
+  margin: 8px 0 0;
+}
+
 /* ── Mobile ── */
 
 @media screen and (max-width: 767px) {
@@ -1486,6 +1640,7 @@ h1, h2, h3, h4, h5, h6 {
   .pg-details__label { min-width: 44px; }
   .pg-notes         { padding: 24px 20px; }
   .pg-registration__inner { padding: 28px 20px; }
+  .pg-form__row     { grid-template-columns: 1fr; gap: 0; }
 }
 
 

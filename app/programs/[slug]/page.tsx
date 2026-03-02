@@ -6,6 +6,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import TeacherList from "@/components/TeacherList";
 import MemberGate from "@/components/MemberGate";
+import RegistrationForm, { RegistrationField } from "@/components/RegistrationForm";
+import { db } from "@/lib/db";
 
 export const revalidate = 60;
 
@@ -29,6 +31,11 @@ interface Program {
   registrationRequired?: boolean;
   registrationClosed?: boolean;
   filloutRegistrationFormId?: string;
+  registrationEnabled?: boolean;
+  registrationCapacity?: number | null;
+  registrationDeadline?: string | null;
+  suggestedDonation?: number | null;
+  registrationFields?: RegistrationField[];
   zoomLink?: string;
   zoomLinkText?: string;
   quote?: string;
@@ -107,6 +114,39 @@ export default async function ProgramDetailPage({
   if (!program) notFound();
 
   const isLoggedIn = !!session;
+  const useBuiltInForm = !!program.registrationEnabled;
+  const deadlinePassed = !!(
+    program.registrationDeadline && new Date(program.registrationDeadline) < new Date()
+  );
+
+  // DB queries — only when built-in form is active
+  const [activeCount, userProfile, existingRegistration] = await Promise.all([
+    useBuiltInForm && program.registrationCapacity
+      ? db.registration.count({
+          where: { programId: program._id, status: { in: ["REGISTERED", "APPROVED"] } },
+        })
+      : Promise.resolve(0),
+    useBuiltInForm && session?.user?.id
+      ? db.user.findUnique({
+          where: { id: session.user.id },
+          select: { firstName: true, lastName: true, phone: true, email: true },
+        })
+      : Promise.resolve(null),
+    useBuiltInForm && session?.user?.id
+      ? db.registration.findFirst({
+          where: {
+            programId: program._id,
+            userId: session.user.id,
+            status: { not: "CANCELLED" },
+          },
+        })
+      : Promise.resolve(null),
+  ]);
+
+  const spotsRemaining =
+    useBuiltInForm && program.registrationCapacity
+      ? Math.max(0, program.registrationCapacity - activeCount)
+      : null;
   const hasDetails = !!(program.dateText || program.timeText || program.locationText || program.danaText);
   const hasFacilitators = !!(program.teacherFacilitators && program.teacherFacilitators.length > 0);
   const hasDescription = !!(program.programDescription && program.programDescription.length > 0);
@@ -230,49 +270,74 @@ export default async function ProgramDetailPage({
           </>
         )}
 
-        {/* Registration section — auth-gated */}
+        {/* Registration section */}
         <div id="registration-section" className="pg-registration">
 
-          {/* Logged out */}
-          {!isLoggedIn && (
-            <MemberGate signedOutInstructions={program.signedOutInstructions} />
-          )}
-
-          {/* Logged in + registration required + not closed */}
-          {isLoggedIn && program.registrationRequired && !program.registrationClosed && (
+          {/* ── Built-in registration form (new system) ── */}
+          {useBuiltInForm && (
             <div className="pg-registration__inner">
-              <p className="lp-label">Register</p>
+              <p className="lp-label">{spotsRemaining === 0 ? "Join Waitlist" : "Register"}</p>
               {program.signedInInstructions && (
                 <div className="lp-body">
                   <PortableText value={program.signedInInstructions as any} />
                 </div>
               )}
-              {program.filloutRegistrationFormId && (
-                <div className="pg-fillout">
-                  <div
-                    style={{ width: "100%", height: "500px" }}
-                    data-fillout-id={program.filloutRegistrationFormId}
-                    data-fillout-embed-type="standard"
-                    data-fillout-inherit-parameters=""
-                    data-fillout-dynamic-resize=""
-                  />
-                  {/* eslint-disable-next-line @next/next/no-sync-scripts */}
-                  <script src="https://server.fillout.com/embed/v1/" />
-                </div>
-              )}
+              <RegistrationForm
+                program={program}
+                spotsRemaining={spotsRemaining}
+                userProfile={userProfile}
+                sessionUserId={session?.user?.id ?? null}
+                alreadyRegistered={!!existingRegistration}
+                deadlinePassed={deadlinePassed}
+              />
             </div>
           )}
 
-          {/* Logged in + no registration required */}
-          {isLoggedIn && !program.registrationRequired && (
-            <div className="pg-registration__inner">
-              <p className="lp-label">No Registration Required</p>
-              {program.signedInInstructions && (
-                <div className="lp-body">
-                  <PortableText value={program.signedInInstructions as any} />
+          {/* ── Legacy path (Fillout / auth-gated) ── */}
+          {!useBuiltInForm && (
+            <>
+              {/* Logged out */}
+              {!isLoggedIn && (
+                <MemberGate signedOutInstructions={program.signedOutInstructions} />
+              )}
+
+              {/* Logged in + registration required + not closed */}
+              {isLoggedIn && program.registrationRequired && !program.registrationClosed && (
+                <div className="pg-registration__inner">
+                  <p className="lp-label">Register</p>
+                  {program.signedInInstructions && (
+                    <div className="lp-body">
+                      <PortableText value={program.signedInInstructions as any} />
+                    </div>
+                  )}
+                  {program.filloutRegistrationFormId && (
+                    <div className="pg-fillout">
+                      <div
+                        style={{ width: "100%", height: "500px" }}
+                        data-fillout-id={program.filloutRegistrationFormId}
+                        data-fillout-embed-type="standard"
+                        data-fillout-inherit-parameters=""
+                        data-fillout-dynamic-resize=""
+                      />
+                      {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+                      <script src="https://server.fillout.com/embed/v1/" />
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
+
+              {/* Logged in + no registration required */}
+              {isLoggedIn && !program.registrationRequired && (
+                <div className="pg-registration__inner">
+                  <p className="lp-label">No Registration Required</p>
+                  {program.signedInInstructions && (
+                    <div className="lp-body">
+                      <PortableText value={program.signedInInstructions as any} />
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
           )}
 
         </div>

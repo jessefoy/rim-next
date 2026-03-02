@@ -47,6 +47,13 @@ export const programBySlugQuery = `*[_type == "programs" && slug.current == $slu
   registrationRequired,
   registrationClosed,
   filloutRegistrationFormId,
+  registrationEnabled,
+  registrationCapacity,
+  registrationDeadline,
+  suggestedDonation,
+  registrationFields[] {
+    _key, label, fieldType, required, options
+  },
   zoomLink,
   zoomLinkText,
   quote,
