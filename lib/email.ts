@@ -46,16 +46,16 @@ export async function sendRegistrationEmail(data: RegistrationEmailData): Promis
     dateText, timeText, locationText,
   };
 
-  try {
-    await resend.emails.send({
-      from:    FROM,
-      to,
-      subject,
-      html:    buildHtml(params),
-      text:    buildText(params),
-    });
-  } catch (err) {
-    console.error("[email] Failed to send registration confirmation:", err);
+  // Resend v4+ returns { data, error } instead of throwing — check both.
+  const { error } = await resend.emails.send({
+    from:    FROM,
+    to,
+    subject,
+    html:    buildHtml(params),
+    text:    buildText(params),
+  });
+  if (error) {
+    console.error("[email] Failed to send registration confirmation:", error);
   }
 }
 
@@ -76,16 +76,16 @@ export async function sendApprovalEmail(data: ApprovalEmailData): Promise<void> 
   const { to, firstName, programTitle, programSlug } = data;
   const programUrl = `${BASE_URL}/programs/${programSlug}`;
 
-  try {
-    await resend.emails.send({
-      from:    FROM,
-      to,
-      subject: `Your spot is confirmed — ${programTitle}`,
-      html:    buildApprovalHtml({ firstName, programTitle, programUrl }),
-      text:    buildApprovalText({ firstName, programTitle, programUrl }),
-    });
-  } catch (err) {
-    console.error("[email] Failed to send approval confirmation:", err);
+  // Resend v4+ returns { data, error } instead of throwing — check both.
+  const { error } = await resend.emails.send({
+    from:    FROM,
+    to,
+    subject: `Your spot is confirmed — ${programTitle}`,
+    html:    buildApprovalHtml({ firstName, programTitle, programUrl }),
+    text:    buildApprovalText({ firstName, programTitle, programUrl }),
+  });
+  if (error) {
+    console.error("[email] Failed to send approval confirmation:", error);
   }
 }
 
