@@ -9,6 +9,11 @@ const BASE_URL = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 // TODO: Switch EMAIL_FROM to a verified RIM domain after Resend DNS verification.
 const FROM = `Rooted In Mindfulness <${process.env.EMAIL_FROM ?? "onboarding@resend.dev"}>`;
 
+// REGISTRAR_EMAIL — set in Vercel env vars. Used for cancellation notifications.
+// Falls back to EMAIL_FROM if not set.
+const REGISTRAR_EMAIL =
+  process.env.REGISTRAR_EMAIL ?? process.env.EMAIL_FROM ?? "onboarding@resend.dev";
+
 // ─── Public interface ────────────────────────────────────────────────────────
 
 export interface RegistrationEmailData {
@@ -66,32 +71,88 @@ export interface ApprovalEmailData {
   firstName: string;
   programTitle: string;
   programSlug: string;
+  danaMode?: string | null; // if set and not "none", include a dana section
 }
 
 /**
- * Sent when a registrar moves someone from WAITLISTED → APPROVED.
+ * Sent when a registrar promotes someone from WAITLISTED → APPROVED.
+ * When the program has a dana practice, includes a section with a link to complete the offering.
  * Errors are caught and logged — must never fail the status update.
  */
 export async function sendApprovalEmail(data: ApprovalEmailData): Promise<void> {
-  const { to, firstName, programTitle, programSlug } = data;
+  const { to, firstName, programTitle, programSlug, danaMode } = data;
   const programUrl = `${BASE_URL}/programs/${programSlug}`;
+  const hasDana = !!danaMode && danaMode !== "none";
 
   // Resend v4+ returns { data, error } instead of throwing — check both.
   const { error } = await resend.emails.send({
     from:    FROM,
     to,
     subject: `Your spot is confirmed — ${programTitle}`,
-    html:    buildApprovalHtml({ firstName, programTitle, programUrl }),
-    text:    buildApprovalText({ firstName, programTitle, programUrl }),
+    html:    buildApprovalHtml({ firstName, programTitle, programUrl, hasDana }),
+    text:    buildApprovalText({ firstName, programTitle, programUrl, hasDana }),
   });
   if (error) {
     console.error("[email] Failed to send approval confirmation:", error);
   }
 }
 
-function buildApprovalHtml({ firstName, programTitle, programUrl }: {
-  firstName: string; programTitle: string; programUrl: string;
+// ─── Cancellation notification email (to registrar) ─────────────────────────
+
+export interface CancellationNotificationData {
+  registrantName: string;
+  registrantEmail: string;
+  programTitle: string;
+  programSlug: string;
+}
+
+/**
+ * Sent to the registrar when any registration is cancelled (by staff or by the member).
+ * Uses REGISTRAR_EMAIL env var. Errors are caught and logged.
+ */
+export async function sendCancellationNotificationEmail(
+  data: CancellationNotificationData
+): Promise<void> {
+  const { registrantName, registrantEmail, programTitle, programSlug } = data;
+  const volunteerUrl = `${BASE_URL}/volunteer/programs/${programSlug}`;
+
+  const { error } = await resend.emails.send({
+    from:    FROM,
+    to:      REGISTRAR_EMAIL,
+    subject: `Registration cancelled — ${registrantName} (${programTitle})`,
+    html:    buildCancellationHtml({ registrantName, registrantEmail, programTitle, volunteerUrl }),
+    text:    buildCancellationText({ registrantName, registrantEmail, programTitle, volunteerUrl }),
+  });
+  if (error) {
+    console.error("[email] Failed to send cancellation notification:", error);
+  }
+}
+
+// ─── Email builders ──────────────────────────────────────────────────────────
+
+function buildApprovalHtml({ firstName, programTitle, programUrl, hasDana }: {
+  firstName: string; programTitle: string; programUrl: string; hasDana: boolean;
 }): string {
+  const danaSection = hasDana ? `
+    <div style="margin:28px 0 0;padding:20px 24px;background:#ede9e5;border-radius:4px;">
+      <p style="margin:0 0 14px;font-family:Georgia,'Times New Roman',serif;font-size:16px;
+                line-height:1.7;color:#333333;">
+        This program includes a dana (generosity) practice. When you&rsquo;re ready,
+        you can make your offering from the program page.
+      </p>
+      <table role="presentation" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="border-radius:4px;background:#39607a;">
+            <a href="${programUrl}"
+               style="display:inline-block;padding:10px 20px;font-family:Arial,Helvetica,sans-serif;
+                      font-size:13px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:4px;">
+              Complete Dana Offering
+            </a>
+          </td>
+        </tr>
+      </table>
+    </div>` : "";
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -136,6 +197,8 @@ function buildApprovalHtml({ firstName, programTitle, programUrl }: {
           </td>
         </tr>
       </table>
+
+      ${danaSection}
     </div>
 
     <!-- Footer -->
@@ -154,24 +217,125 @@ function buildApprovalHtml({ firstName, programTitle, programUrl }: {
 </html>`;
 }
 
-function buildApprovalText({ firstName, programTitle, programUrl }: {
-  firstName: string; programTitle: string; programUrl: string;
+function buildApprovalText({ firstName, programTitle, programUrl, hasDana }: {
+  firstName: string; programTitle: string; programUrl: string; hasDana: boolean;
 }): string {
-  return [
+  const lines = [
     `Hi ${firstName},`,
     "",
     `Good news — a spot has opened up and you've been confirmed for ${programTitle}.`,
     "We look forward to practicing together.",
     "",
     `View program details: ${programUrl}`,
+  ];
+
+  if (hasDana) {
+    lines.push(
+      "",
+      "─",
+      "Dana Practice",
+      "This program includes a dana (generosity) practice.",
+      "When you're ready, visit the program page to complete your offering:",
+      programUrl,
+    );
+  }
+
+  lines.push("", "—", "Rooted In Mindfulness · Brookfield, WI", "rootedinmindfulness.org");
+  return lines.join("\n");
+}
+
+function buildCancellationHtml({ registrantName, registrantEmail, programTitle, volunteerUrl }: {
+  registrantName: string; registrantEmail: string; programTitle: string; volunteerUrl: string;
+}): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Registration cancelled</title>
+</head>
+<body style="margin:0;padding:24px 0;background-color:#f6f3f0;font-family:Georgia,'Times New Roman',serif;">
+  <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:6px;overflow:hidden;">
+
+    <!-- Header -->
+    <div style="background:#135274;padding:24px 36px;">
+      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;
+                letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.75);">
+        Rooted In Mindfulness — Registrar Notification
+      </p>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:36px 36px 28px;">
+      <h1 style="margin:0 0 24px;font-family:Georgia,'Times New Roman',serif;font-size:22px;
+                 font-weight:400;line-height:1.3;color:#135274;">
+        Registration Cancelled
+      </h1>
+      <p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,serif;">
+        A registration has been cancelled for <strong>${programTitle}</strong>.
+      </p>
+      <table role="presentation" cellpadding="0" cellspacing="0"
+             style="margin:0 0 28px;border-left:3px solid #c8bcb2;padding-left:16px;">
+        <tr>
+          <td style="padding:3px 0;font-size:15px;color:#56504a;">
+            <strong>Name:</strong> ${registrantName}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:3px 0;font-size:15px;color:#56504a;">
+            <strong>Email:</strong> ${registrantEmail}
+          </td>
+        </tr>
+      </table>
+      <p style="margin:0 0 20px;font-size:15px;line-height:1.7;color:#56504a;font-family:Georgia,serif;">
+        If there are waitlisted members, you may want to offer the spot to the next person.
+      </p>
+
+      <!-- CTA -->
+      <table role="presentation" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="border-radius:4px;background:#135274;">
+            <a href="${volunteerUrl}"
+               style="display:inline-block;padding:12px 24px;font-family:Arial,Helvetica,sans-serif;
+                      font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:4px;">
+              View Registrations
+            </a>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:20px 36px 28px;border-top:1px solid #ede9e5;">
+      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">
+        Rooted In Mindfulness &middot; Brookfield, WI
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>`;
+}
+
+function buildCancellationText({ registrantName, registrantEmail, programTitle, volunteerUrl }: {
+  registrantName: string; registrantEmail: string; programTitle: string; volunteerUrl: string;
+}): string {
+  return [
+    `Registration Cancelled — ${programTitle}`,
+    "",
+    `Name: ${registrantName}`,
+    `Email: ${registrantEmail}`,
+    "",
+    "If there are waitlisted members, you may want to offer the spot to the next person.",
+    "",
+    `View registrations: ${volunteerUrl}`,
     "",
     "—",
     "Rooted In Mindfulness · Brookfield, WI",
-    "rootedinmindfulness.org",
   ].join("\n");
 }
 
-// ─── Internal helpers ────────────────────────────────────────────────────────
+// ─── Internal helpers (registration confirmation / waitlist) ─────────────────
 
 interface BuildParams {
   firstName: string;

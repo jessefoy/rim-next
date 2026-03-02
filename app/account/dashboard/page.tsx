@@ -4,6 +4,7 @@ import { dashboardProgramsQuery } from "@/lib/queries";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import ListRow from "@/components/ListRow";
+import { db } from "@/lib/db";
 
 export const metadata = { title: "Dashboard — Rooted In Mindfulness" };
 
@@ -60,7 +61,16 @@ export default async function DashboardPage() {
   const session = await auth();
   if (!session) redirect("/login");
 
-  const allPrograms = await sanityClient.fetch<DashboardProgram[]>(dashboardProgramsQuery);
+  const [allPrograms, pendingDanaRegistrations] = await Promise.all([
+    sanityClient.fetch<DashboardProgram[]>(dashboardProgramsQuery),
+    session.user?.id
+      ? db.registration.findMany({
+          where: { userId: session.user.id, donationStatus: "PENDING" },
+          select: { id: true, programTitle: true, programSlug: true },
+          orderBy: { createdAt: "desc" },
+        })
+      : Promise.resolve([]),
+  ]);
   const today = getMilwaukeeDay();
   const todaysPrograms = allPrograms.filter((p) => programIsToday(p, today));
 
@@ -108,6 +118,29 @@ export default async function DashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* ── Pending dana reminder — shown when promoted from waitlist ── */}
+        {pendingDanaRegistrations.length > 0 && (
+          <div className="db-dana-reminder">
+            <p className="db-dana-reminder__label">Dana Offering Pending</p>
+            <p className="db-dana-reminder__desc">
+              A spot opened up for the following program{pendingDanaRegistrations.length > 1 ? "s" : ""}.
+              Visit the program page to complete your dana offering.
+            </p>
+            <div className="db-dana-reminder__items">
+              {pendingDanaRegistrations.map((r) => (
+                <Link
+                  key={r.id}
+                  href={`/programs/${r.programSlug}`}
+                  className="db-dana-reminder__item"
+                >
+                  {r.programTitle}
+                  <span className="db-dana-reminder__arrow">→</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ── Staff access panel (visible only if user has elevated roles) ── */}
         {staffLinks.length > 0 && (

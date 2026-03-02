@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { RegistrationStatus, DonationStatus } from "@prisma/client";
-import { sendApprovalEmail } from "@/lib/email";
+import { sendApprovalEmail, sendCancellationNotificationEmail } from "@/lib/email";
 
 export async function PATCH(
   request: NextRequest,
@@ -16,7 +16,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { status, notes, donationStatus } = body;
+    const { status, notes, donationStatus, danaMode } = body;
 
     // Validate enum values if provided
     if (status && !Object.values(RegistrationStatus).includes(status)) {
@@ -32,23 +32,47 @@ export async function PATCH(
       return NextResponse.json({ error: "Registration not found" }, { status: 404 });
     }
 
+    // Detect waitlist promotion (WAITLISTED → APPROVED or REGISTERED)
+    const isPromotion =
+      current.status === "WAITLISTED" &&
+      (status === "APPROVED" || status === "REGISTERED");
+
+    // Auto-set donationStatus on promotion unless caller explicitly overrides it.
+    // If danaMode is provided and is not "none", the promoted member needs to complete dana.
+    let resolvedDonationStatus: DonationStatus | undefined = donationStatus as DonationStatus | undefined;
+    if (isPromotion && !donationStatus) {
+      resolvedDonationStatus =
+        danaMode && danaMode !== "none" ? "PENDING" : "WAIVED";
+    }
+
     const registration = await db.registration.update({
       where: { id },
       data: {
         ...(status && { status }),
         ...(notes !== undefined && { notes }),
-        ...(donationStatus && { donationStatus }),
+        ...(resolvedDonationStatus && { donationStatus: resolvedDonationStatus }),
       },
     });
 
-    // Send approval email when a waitlisted person gets a confirmed spot
-    // (registrar may use either APPROVED or REGISTERED to confirm)
-    if (current.status === "WAITLISTED" && (status === "APPROVED" || status === "REGISTERED")) {
+    // Send approval email when promoted from waitlist
+    if (isPromotion) {
       await sendApprovalEmail({
         to:           current.email,
         firstName:    current.firstName,
         programTitle: current.programTitle,
         programSlug:  current.programSlug,
+        danaMode:     danaMode ?? null,
+      });
+    }
+
+    // Notify registrar when any registration is cancelled
+    const isCancellation = status === "CANCELLED" && current.status !== "CANCELLED";
+    if (isCancellation) {
+      await sendCancellationNotificationEmail({
+        registrantName:  `${current.firstName} ${current.lastName}`,
+        registrantEmail: current.email,
+        programTitle:    current.programTitle,
+        programSlug:     current.programSlug,
       });
     }
 

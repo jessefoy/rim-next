@@ -307,6 +307,8 @@ export default async function ProgramDetailPage({
                 userProfile={userProfile}
                 sessionUserId={session?.user?.id ?? null}
                 alreadyRegistered={!!existingRegistration}
+                existingDonationStatus={existingRegistration?.donationStatus ?? null}
+                existingRegistrationId={existingRegistration?.id ?? null}
                 deadlinePassed={deadlinePassed}
               />
             </div>

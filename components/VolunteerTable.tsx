@@ -28,6 +28,7 @@ interface Props {
   initialRegistrations: SerializedRegistration[];
   programSlug: string;
   programTitle: string;
+  danaMode?: string | null;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -68,6 +69,7 @@ export default function VolunteerTable({
   initialRegistrations,
   programSlug,
   programTitle,
+  danaMode,
 }: Props) {
   const [registrations, setRegistrations] = useState(initialRegistrations);
   const [filter, setFilter] = useState<Filter>("ALL");
@@ -75,9 +77,7 @@ export default function VolunteerTable({
   const [editingNotes, setEditingNotes] = useState<Record<string, string>>({});
   const [savingNotes, setSavingNotes] = useState<string | null>(null);
   const [savedNotes, setSavedNotes] = useState<string | null>(null);
-  // Two-step status update: user selects → pending → must click Confirm to save
-  const [pendingStatus, setPendingStatus] = useState<{ id: string; status: string } | null>(null);
-  const [savingStatus, setSavingStatus] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // ── Counts ──────────────────────────────────────────────────────────────────
   const counts: Record<string, number> = { ALL: registrations.length };
@@ -89,47 +89,85 @@ export default function VolunteerTable({
   const visible =
     filter === "ALL" ? registrations : registrations.filter((r) => r.status === filter);
 
-  // ── Status update (two-step) ─────────────────────────────────────────────────
-  // Step 1: dropdown onChange → sets pendingStatus (no API call yet)
-  // Step 2: Confirm button → confirmStatus() → saves to API
+  // ── Action: promote from waitlist ────────────────────────────────────────────
+  // Sends APPROVED + danaMode so the endpoint can set donationStatus correctly.
+  async function promoteRegistration(id: string) {
+    const prevStatus = registrations.find((r) => r.id === id)?.status;
+    // Optimistic update — resolve donationStatus the same way the server will
+    const optimisticDonation = danaMode && danaMode !== "none" ? "PENDING" : "WAIVED";
 
-  function selectStatus(id: string, newStatus: string, currentStatus: string) {
-    if (newStatus === currentStatus) {
-      setPendingStatus(null); // user reverted — nothing pending
-    } else {
-      setPendingStatus({ id, status: newStatus });
-    }
-  }
-
-  async function confirmStatus() {
-    if (!pendingStatus) return;
-    const { id, status } = pendingStatus;
-    const prev = registrations.find((r) => r.id === id)?.status;
-
-    setSavingStatus(id);
-    setPendingStatus(null);
-
-    // Optimistic update
-    setRegistrations((rs) => rs.map((r) => (r.id === id ? { ...r, status } : r)));
+    setActionLoading(id);
+    setRegistrations((rs) =>
+      rs.map((r) =>
+        r.id === id ? { ...r, status: "APPROVED", donationStatus: optimisticDonation } : r
+      )
+    );
 
     try {
       const res = await fetch(`/api/registrations/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status: "APPROVED", danaMode: danaMode ?? "none" }),
       });
       if (!res.ok) throw new Error();
     } catch {
       // Revert on error
-      setRegistrations((rs) => rs.map((r) => (r.id === id ? { ...r, status: prev! } : r)));
-      alert("Failed to update status. Please try again.");
+      setRegistrations((rs) =>
+        rs.map((r) => (r.id === id ? { ...r, status: prevStatus! } : r))
+      );
+      alert("Failed to promote. Please try again.");
     } finally {
-      setSavingStatus(null);
+      setActionLoading(null);
     }
   }
 
-  function cancelStatus() {
-    setPendingStatus(null);
+  // ── Action: cancel a registration ────────────────────────────────────────────
+  async function cancelRegistration(id: string) {
+    if (!confirm("Cancel this registration? The registrar will be notified by email.")) return;
+    const prevStatus = registrations.find((r) => r.id === id)?.status;
+
+    setActionLoading(id);
+    setRegistrations((rs) => rs.map((r) => (r.id === id ? { ...r, status: "CANCELLED" } : r)));
+
+    try {
+      const res = await fetch(`/api/registrations/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "CANCELLED" }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setRegistrations((rs) =>
+        rs.map((r) => (r.id === id ? { ...r, status: prevStatus! } : r))
+      );
+      alert("Failed to cancel. Please try again.");
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  // ── Action: restore a cancelled registration ─────────────────────────────────
+  async function restoreRegistration(id: string) {
+    const prevStatus = registrations.find((r) => r.id === id)?.status;
+
+    setActionLoading(id);
+    setRegistrations((rs) => rs.map((r) => (r.id === id ? { ...r, status: "REGISTERED" } : r)));
+
+    try {
+      const res = await fetch(`/api/registrations/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "REGISTERED" }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setRegistrations((rs) =>
+        rs.map((r) => (r.id === id ? { ...r, status: prevStatus! } : r))
+      );
+      alert("Failed to restore. Please try again.");
+    } finally {
+      setActionLoading(null);
+    }
   }
 
   // ── Notes save ──────────────────────────────────────────────────────────────
@@ -217,6 +255,7 @@ export default function VolunteerTable({
               const isExpanded = expandedId === r.id;
               const hasCustom = r.customFields && Object.keys(r.customFields).length > 0;
               const hasComments = !!r.comments;
+              const isLoading = actionLoading === r.id;
 
               return (
                 <>
@@ -230,52 +269,49 @@ export default function VolunteerTable({
                     </td>
                     <td className="vol-row__name">
                       {r.firstName} {r.lastName}
-                      {r.waitlistPosition && (
+                      {r.status === "WAITLISTED" && r.waitlistPosition && (
                         <span className="vol-waitlist-pos"> #{r.waitlistPosition}</span>
                       )}
                     </td>
                     <td className="vol-row__email">{r.email}</td>
                     <td className="vol-row__phone">{formatPhone(r.phone)}</td>
+
+                    {/* Status column — badge + context-aware action button */}
                     <td className="vol-row__status" onClick={(e) => e.stopPropagation()}>
-                      {(() => {
-                        const isPending = pendingStatus?.id === r.id;
-                        const displayStatus = isPending ? pendingStatus!.status : r.status;
-                        return (
-                          <>
-                            <select
-                              className={`vol-status-select vol-status-select--${displayStatus.toLowerCase()}${isPending ? " vol-status-select--pending" : ""}`}
-                              value={displayStatus}
-                              onChange={(e) => selectStatus(r.id, e.target.value, r.status)}
-                              disabled={savingStatus === r.id}
-                            >
-                              <option value="REGISTERED">Registered</option>
-                              <option value="WAITLISTED">Waitlisted</option>
-                              <option value="APPROVED">Approved</option>
-                              <option value="CANCELLED">Cancelled</option>
-                            </select>
-                            {isPending && (
-                              <div className="vol-status-confirm">
-                                <button
-                                  className="vol-status-confirm__btn"
-                                  onClick={confirmStatus}
-                                >
-                                  Confirm
-                                </button>
-                                <button
-                                  className="vol-status-confirm__cancel"
-                                  onClick={cancelStatus}
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            )}
-                            {savingStatus === r.id && (
-                              <span className="vol-status-saving">Saving…</span>
-                            )}
-                          </>
-                        );
-                      })()}
+                      <span className={`vol-badge vol-badge--${r.status.toLowerCase()}`}>
+                        {STATUS_LABELS[r.status]}
+                      </span>
+                      <div className="vol-row__actions">
+                        {r.status === "WAITLISTED" && (
+                          <button
+                            className="vol-action vol-action--promote"
+                            disabled={isLoading}
+                            onClick={() => promoteRegistration(r.id)}
+                          >
+                            {isLoading ? "Saving…" : "Promote →"}
+                          </button>
+                        )}
+                        {(r.status === "REGISTERED" || r.status === "APPROVED") && (
+                          <button
+                            className="vol-action vol-action--cancel"
+                            disabled={isLoading}
+                            onClick={() => cancelRegistration(r.id)}
+                          >
+                            {isLoading ? "Saving…" : "Cancel"}
+                          </button>
+                        )}
+                        {r.status === "CANCELLED" && (
+                          <button
+                            className="vol-action vol-action--restore"
+                            disabled={isLoading}
+                            onClick={() => restoreRegistration(r.id)}
+                          >
+                            {isLoading ? "Saving…" : "Restore"}
+                          </button>
+                        )}
+                      </div>
                     </td>
+
                     <td className="vol-row__donation">
                       <span className={`vol-badge vol-badge--donation-${r.donationStatus.toLowerCase()}`}>
                         {DONATION_LABELS[r.donationStatus]}

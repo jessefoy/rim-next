@@ -2063,6 +2063,61 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--rim-text-muted);
 }
 
+/* ── Pending dana reminder (shown when promoted from waitlist) ── */
+.db-dana-reminder {
+  margin-top: 32px;
+  padding: 20px 24px;
+  background: #fef9f0;
+  border: 1px solid #f0d8a0;
+  border-radius: 6px;
+}
+
+.db-dana-reminder__label {
+  margin: 0 0 6px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #856404;
+}
+
+.db-dana-reminder__desc {
+  margin: 0 0 14px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--rim-text);
+}
+
+.db-dana-reminder__items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.db-dana-reminder__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: #fff;
+  border: 1px solid #f0d8a0;
+  border-radius: 4px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--rim-blue);
+  text-decoration: none;
+}
+
+.db-dana-reminder__item:hover { background: #fef3cd; }
+
+.db-dana-reminder__arrow {
+  font-size: 16px;
+  color: #c9a230;
+}
+
 
 /* ═══════════════════════════════════════════════════
    VOLUNTEER ADMIN  (/volunteer)
@@ -2347,74 +2402,49 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ── Status dropdown ── */
 
-.vol-status-select {
-  padding: 4px 8px;
-  border-radius: 20px;
-  border: 1px solid var(--rim-rule);
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  background: #fff;
-  -webkit-appearance: none;
-  appearance: none;
-  padding-right: 20px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 6px center;
+/* Context-aware action buttons (Promote / Cancel / Restore) */
+.vol-row__actions {
+  margin-top: 5px;
 }
 
-.vol-status-select--registered { background-color: #e8f4ec; border-color: #b8dfc6; color: #2e7d52; }
-.vol-status-select--waitlisted { background-color: #fef3cd; border-color: #f0d070; color: #856404; }
-.vol-status-select--approved   { background-color: #e0ecf8; border-color: #a8c8ea; color: #1a5c94; }
-.vol-status-select--cancelled  { background-color: #f2f2f2; border-color: #ddd;    color: #888;    }
-
-/* Pending state — dashed border signals "not yet saved" */
-.vol-status-select--pending { border-style: dashed; }
-
-/* Confirm / Cancel buttons (appear below dropdown when a change is pending) */
-.vol-status-confirm {
-  display: flex;
-  gap: 6px;
-  margin-top: 6px;
-}
-
-.vol-status-confirm__btn {
+.vol-action {
+  display: inline-block;
   padding: 3px 10px;
-  background: var(--rim-blue);
-  color: #fff;
-  border: none;
   border-radius: 4px;
+  border: 1px solid transparent;
   font-family: var(--font-sans);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
+  transition: opacity 0.15s;
 }
 
-.vol-status-confirm__btn:hover { background: var(--rim-mid); }
+.vol-action:disabled { opacity: 0.5; cursor: default; }
 
-.vol-status-confirm__cancel {
-  padding: 3px 8px;
+/* Promote — teal/positive */
+.vol-action--promote {
+  background: #e0f0ec;
+  border-color: #9ecfbe;
+  color: #1e6b58;
+}
+.vol-action--promote:hover:not(:disabled) { background: #c8e8e0; }
+
+/* Cancel — muted warning */
+.vol-action--cancel {
   background: none;
-  border: 1px solid var(--rim-rule);
-  border-radius: 4px;
-  font-family: var(--font-sans);
-  font-size: 12px;
-  color: var(--rim-text-muted);
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.vol-status-confirm__cancel:hover { border-color: var(--rim-mid); color: var(--rim-text); }
-
-.vol-status-saving {
-  display: block;
-  margin-top: 4px;
-  font-family: var(--font-sans);
-  font-size: 11px;
+  border-color: var(--rim-rule);
   color: var(--rim-text-muted);
 }
+.vol-action--cancel:hover:not(:disabled) { border-color: #c06060; color: #c06060; }
+
+/* Restore — neutral */
+.vol-action--restore {
+  background: none;
+  border-color: var(--rim-rule);
+  color: var(--rim-text-muted);
+}
+.vol-action--restore:hover:not(:disabled) { border-color: var(--rim-mid); color: var(--rim-mid); }
 
 /* ── Expanded row detail ── */
 
@@ -2585,10 +2615,10 @@ h1, h2, h3, h4, h5, h6 {
   .vol-row .vol-row__email  { display: block; grid-column: 2; grid-row: 2; font-size: 13px; }
   .vol-row .vol-row__status { display: block; grid-column: 3; grid-row: 1 / 3; align-self: center; }
 
-  /* Status select: compact touch target */
-  .vol-status-select {
-    font-size: 12px;
-    padding: 6px 22px 6px 8px;
+  /* Action buttons: compact on mobile */
+  .vol-action {
+    font-size: 11px;
+    padding: 4px 8px;
   }
 
   /* ── Expanded detail row ── */

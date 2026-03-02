@@ -45,6 +45,9 @@ interface Props {
   } | null;
   sessionUserId?: string | null;
   alreadyRegistered?: boolean;
+  // For members promoted from waitlist — show dana step immediately
+  existingDonationStatus?: string | null;
+  existingRegistrationId?: string | null;
   deadlinePassed?: boolean;
 }
 
@@ -64,8 +67,13 @@ export default function RegistrationForm({
   userProfile,
   sessionUserId,
   alreadyRegistered,
+  existingDonationStatus,
+  existingRegistrationId,
   deadlinePassed,
 }: Props) {
+  // If the member was promoted from waitlist, show the dana step immediately
+  const hasPendingDana = alreadyRegistered && existingDonationStatus === "PENDING";
+
   const [form, setForm] = useState({
     firstName: userProfile?.firstName ?? "",
     lastName: userProfile?.lastName ?? "",
@@ -74,17 +82,19 @@ export default function RegistrationForm({
     comments: "",
   });
   const [customAnswers, setCustomAnswers] = useState<Record<string, string>>({});
-  const [formState, setFormState] = useState<FormState>("idle");
+  const [formState, setFormState] = useState<FormState>(hasPendingDana ? "dana" : "idle");
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Dana state
-  const [registrationId, setRegistrationId] = useState<string | null>(null);
+  // Dana state — pre-populate registrationId for promoted waitlist members
+  const [registrationId, setRegistrationId] = useState<string | null>(
+    hasPendingDana ? (existingRegistrationId ?? null) : null
+  );
   const [danaInput, setDanaInput] = useState<string>(
     String(program.suggestedDana ?? "")
   );
 
-  // ── Already registered ──────────────────────────────────────────────────────
-  if (alreadyRegistered) {
+  // ── Already registered (and NOT in pending-dana state) ───────────────────────
+  if (alreadyRegistered && !hasPendingDana) {
     return (
       <p className="pg-form__already">
         ✓ You&rsquo;re already registered for this program.
@@ -177,8 +187,20 @@ export default function RegistrationForm({
 
     return (
       <div className="pg-form__success">
-        <h3>You&rsquo;re registered!</h3>
-        <p>A confirmation will be sent to {form.email}.</p>
+        {hasPendingDana ? (
+          <>
+            <h3>Your spot is confirmed!</h3>
+            <p>
+              A spot opened up and you&rsquo;ve been confirmed for this program.
+              Complete your dana offering below when you&rsquo;re ready.
+            </p>
+          </>
+        ) : (
+          <>
+            <h3>You&rsquo;re registered!</h3>
+            <p>A confirmation will be sent to {form.email}.</p>
+          </>
+        )}
 
         <div className="pg-dana">
           {program.danaMessage && (

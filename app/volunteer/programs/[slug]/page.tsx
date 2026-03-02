@@ -6,7 +6,7 @@ import Link from "next/link";
 import VolunteerTable, { SerializedRegistration } from "@/components/VolunteerTable";
 
 const programForVolunteerQuery = `*[_type == "programs" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
-  _id, name, slug, tagline, registrationCapacity
+  _id, name, slug, tagline, registrationCapacity, danaMode
 }`;
 
 interface SanityProgram {
@@ -15,6 +15,7 @@ interface SanityProgram {
   slug: { current: string };
   tagline?: string;
   registrationCapacity?: number | null;
+  danaMode?: string | null;
 }
 
 export default async function VolunteerProgramPage({
@@ -97,6 +98,7 @@ export default async function VolunteerProgramPage({
           initialRegistrations={serialized}
           programSlug={slug}
           programTitle={program.name}
+          danaMode={program.danaMode ?? null}
         />
 
       </div>
