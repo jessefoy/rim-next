@@ -2635,3 +2635,123 @@ h1, h2, h3, h4, h5, h6 {
   .vol-detail__contact { display: flex; }
 
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Register Page (rg-) — dedicated /programs/[slug]/register
+   Design-system page; no Webflow CSS dependency.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.rg-page {
+  min-height: 100vh;
+  background: var(--rim-bg);
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+
+.rg-header {
+  background: var(--rim-blue);
+  color: #fff;
+  padding: 36px 24px 32px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.rg-header__back {
+  display: inline-block;
+  color: rgba(255, 255, 255, 0.65);
+  font: 500 12px / 1 var(--font-sans);
+  text-decoration: none;
+  letter-spacing: 0.04em;
+  align-self: flex-start;       /* left-align the back link */
+  transition: color 0.15s;
+}
+.rg-header__back:hover { color: rgba(255, 255, 255, 0.95); }
+
+.rg-header__program-name {
+  font: 600 11px / 1 var(--font-sans);
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin: 0;
+}
+
+.rg-header__title {
+  font: 400 30px / 1.2 var(--font-serif);
+  color: #fff;
+  margin: 0;
+}
+
+/* ── Content column ──────────────────────────────────────────────────────── */
+
+.rg-content {
+  max-width: 580px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+
+/* ── Already-registered message ─────────────────────────────────────────── */
+
+.rg-already {
+  text-align: center;
+  padding: 48px 0;
+  font-family: var(--font-sans);
+  color: var(--rim-text);
+}
+.rg-already p {
+  font-size: 17px;
+  line-height: 1.6;
+  margin: 0 0 20px;
+}
+.rg-already a {
+  font-size: 15px;
+  color: var(--rim-mid);
+  text-decoration: underline;
+}
+.rg-already a:hover { color: var(--rim-blue); }
+
+/* ── Program page CTA buttons (replaces embedded form) ─────────────────── */
+
+.pg-register-cta {
+  margin-top: 4px;
+}
+
+.pg-register-btn {
+  display: inline-block;
+  background: var(--rim-blue);
+  color: #fff;
+  font: 600 14px / 1 var(--font-sans);
+  padding: 11px 22px;
+  border-radius: 3px;
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  transition: opacity 0.15s;
+}
+.pg-register-btn:hover { opacity: 0.85; color: #fff; }
+
+.pg-register-btn--secondary {
+  background: transparent;
+  border: 1.5px solid var(--rim-mid);
+  color: var(--rim-mid);
+}
+.pg-register-btn--secondary:hover {
+  background: rgba(57, 96, 122, 0.07);
+  opacity: 1;
+  color: var(--rim-mid);
+}
+
+.pg-register-status {
+  display: inline-block;
+  font: 14px / 1.4 var(--font-sans);
+  color: var(--rim-text-muted);
+}
+
+/* ── Register page mobile ────────────────────────────────────────────────── */
+
+@media (max-width: 767px) {
+  .rg-header { padding: 28px 20px 24px; gap: 8px; }
+  .rg-header__title { font-size: 24px; }
+  .rg-content { padding: 28px 20px 60px; }
+}

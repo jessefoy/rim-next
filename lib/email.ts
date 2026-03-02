@@ -81,7 +81,9 @@ export interface ApprovalEmailData {
  */
 export async function sendApprovalEmail(data: ApprovalEmailData): Promise<void> {
   const { to, firstName, programTitle, programSlug, danaMode } = data;
-  const programUrl = `${BASE_URL}/programs/${programSlug}`;
+  // Dana link goes to the dedicated register page so the member lands directly
+  // on the dana step without scrolling past program content.
+  const programUrl = `${BASE_URL}/programs/${programSlug}/register`;
   const hasDana = !!danaMode && danaMode !== "none";
 
   // Resend v4+ returns { data, error } instead of throwing — check both.

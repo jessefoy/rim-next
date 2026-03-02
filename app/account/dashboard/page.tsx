@@ -131,7 +131,7 @@ export default async function DashboardPage() {
               {pendingDanaRegistrations.map((r) => (
                 <Link
                   key={r.id}
-                  href={`/programs/${r.programSlug}`}
+                  href={`/programs/${r.programSlug}/register`}
                   className="db-dana-reminder__item"
                 >
                   {r.programTitle}

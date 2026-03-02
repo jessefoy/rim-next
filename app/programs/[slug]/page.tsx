@@ -6,7 +6,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import TeacherList from "@/components/TeacherList";
 import MemberGate from "@/components/MemberGate";
-import RegistrationForm, { RegistrationField } from "@/components/RegistrationForm";
 import { db } from "@/lib/db";
 
 export const revalidate = 60;
@@ -39,7 +38,7 @@ interface Program {
   danaBaseAmount?: number | null;
   danaFixedAmount?: number | null;
   danaMessage?: string | null;
-  registrationFields?: RegistrationField[];
+  registrationFields?: any[];
   zoomLink?: string;
   zoomLinkText?: string;
   quote?: string;
@@ -237,14 +236,40 @@ export default async function ProgramDetailPage({
                 <span className="pg-details__value">{program.danaText}</span>
               </div>
             )}
-            {program.registrationRequired && (
+            {/* ── Registration CTA — built-in form → links to /register page ── */}
+            {useBuiltInForm ? (
+              <div className="pg-details__row pg-details__row--cta">
+                <span className="pg-details__label"></span>
+                <div className="pg-register-cta">
+                  {deadlinePassed ? (
+                    <span className="pg-register-status">Registration is now closed.</span>
+                  ) : existingRegistration?.donationStatus === "PENDING" ? (
+                    <Link href={`/programs/${slug}/register`} className="pg-register-btn pg-register-btn--secondary">
+                      Complete Dana →
+                    </Link>
+                  ) : existingRegistration?.status === "WAITLISTED" ? (
+                    <span className="pg-register-status">You&rsquo;re on the waitlist.</span>
+                  ) : existingRegistration ? (
+                    <span className="pg-register-status">✓ You&rsquo;re registered.</span>
+                  ) : spotsRemaining === 0 ? (
+                    <Link href={`/programs/${slug}/register`} className="pg-register-btn">
+                      Join Waitlist →
+                    </Link>
+                  ) : (
+                    <Link href={`/programs/${slug}/register`} className="pg-register-btn">
+                      Register →
+                    </Link>
+                  )}
+                </div>
+              </div>
+            ) : program.registrationRequired ? (
               <div className="pg-details__row pg-details__row--cta">
                 <span className="pg-details__label"></span>
                 <a href="#registration-section" className="pg-details__reg-cta">
                   ↓ Please Register to Attend
                 </a>
               </div>
-            )}
+            ) : null}
           </div>
         )}
 
@@ -289,79 +314,54 @@ export default async function ProgramDetailPage({
           </>
         )}
 
-        {/* Registration section */}
-        <div id="registration-section" className="pg-registration">
+        {/* ── Legacy registration section (Fillout / auth-gated) ──
+            Only shown for programs NOT using the built-in form.
+            Built-in form programs now use the dedicated /register page. */}
+        {!useBuiltInForm && (
+          <div id="registration-section" className="pg-registration">
+            {/* Logged out */}
+            {!isLoggedIn && (
+              <MemberGate signedOutInstructions={program.signedOutInstructions} />
+            )}
 
-          {/* ── Built-in registration form (new system) ── */}
-          {useBuiltInForm && (
-            <div className="pg-registration__inner">
-              <p className="lp-label">{spotsRemaining === 0 ? "Join Waitlist" : "Register"}</p>
-              {program.signedInInstructions && (
-                <div className="lp-body">
-                  <PortableText value={program.signedInInstructions as any} />
-                </div>
-              )}
-              <RegistrationForm
-                program={program}
-                spotsRemaining={spotsRemaining}
-                userProfile={userProfile}
-                sessionUserId={session?.user?.id ?? null}
-                alreadyRegistered={!!existingRegistration}
-                existingDonationStatus={existingRegistration?.donationStatus ?? null}
-                existingRegistrationId={existingRegistration?.id ?? null}
-                deadlinePassed={deadlinePassed}
-              />
-            </div>
-          )}
+            {/* Logged in + registration required + not closed */}
+            {isLoggedIn && program.registrationRequired && !program.registrationClosed && (
+              <div className="pg-registration__inner">
+                <p className="lp-label">Register</p>
+                {program.signedInInstructions && (
+                  <div className="lp-body">
+                    <PortableText value={program.signedInInstructions as any} />
+                  </div>
+                )}
+                {program.filloutRegistrationFormId && (
+                  <div className="pg-fillout">
+                    <div
+                      style={{ width: "100%", height: "500px" }}
+                      data-fillout-id={program.filloutRegistrationFormId}
+                      data-fillout-embed-type="standard"
+                      data-fillout-inherit-parameters=""
+                      data-fillout-dynamic-resize=""
+                    />
+                    {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+                    <script src="https://server.fillout.com/embed/v1/" />
+                  </div>
+                )}
+              </div>
+            )}
 
-          {/* ── Legacy path (Fillout / auth-gated) ── */}
-          {!useBuiltInForm && (
-            <>
-              {/* Logged out */}
-              {!isLoggedIn && (
-                <MemberGate signedOutInstructions={program.signedOutInstructions} />
-              )}
-
-              {/* Logged in + registration required + not closed */}
-              {isLoggedIn && program.registrationRequired && !program.registrationClosed && (
-                <div className="pg-registration__inner">
-                  <p className="lp-label">Register</p>
-                  {program.signedInInstructions && (
-                    <div className="lp-body">
-                      <PortableText value={program.signedInInstructions as any} />
-                    </div>
-                  )}
-                  {program.filloutRegistrationFormId && (
-                    <div className="pg-fillout">
-                      <div
-                        style={{ width: "100%", height: "500px" }}
-                        data-fillout-id={program.filloutRegistrationFormId}
-                        data-fillout-embed-type="standard"
-                        data-fillout-inherit-parameters=""
-                        data-fillout-dynamic-resize=""
-                      />
-                      {/* eslint-disable-next-line @next/next/no-sync-scripts */}
-                      <script src="https://server.fillout.com/embed/v1/" />
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Logged in + no registration required */}
-              {isLoggedIn && !program.registrationRequired && (
-                <div className="pg-registration__inner">
-                  <p className="lp-label">No Registration Required</p>
-                  {program.signedInInstructions && (
-                    <div className="lp-body">
-                      <PortableText value={program.signedInInstructions as any} />
-                    </div>
-                  )}
-                </div>
-              )}
-            </>
-          )}
-
-        </div>
+            {/* Logged in + no registration required */}
+            {isLoggedIn && !program.registrationRequired && (
+              <div className="pg-registration__inner">
+                <p className="lp-label">No Registration Required</p>
+                {program.signedInInstructions && (
+                  <div className="lp-body">
+                    <PortableText value={program.signedInInstructions as any} />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
       </div>
     </div>
