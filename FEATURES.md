@@ -133,7 +133,7 @@ UPDATE users SET roles = '{REGISTRAR,ADMIN}' WHERE email = 'person@example.com';
 - `sessionUserId` is passed directly through the POST body so the API doesn't have to re-lookup the user by email (prevents account mismatch edge case)
 - Custom field answers are stored as a JSON object `{ "Question label": "Answer" }` in the `customFields` column (Postgres `Json` type)
 - `alreadyRegistered` is checked server-side for logged-in users only; guest duplicate prevention happens in the API by resolving the email to a userId first
-- Form states: `idle | submitting | registered | waitlisted | dana | error | duplicate`
+- Form states: `idle | submitting | waitlisted | dana | dana_redirecting | done | error | duplicate` — "registered" was renamed to "done"; "dana" shows the contribution step; "dana_redirecting" disables the button while the Stripe session is being created
 - `dateText`, `timeText`, `locationText` are passed in the POST body (already available on the program page from Sanity) so the API can include them in the email without an extra Sanity fetch
 
 ### 4b. Capacity & Waitlist Logic
@@ -185,18 +185,15 @@ At the same time, the center has real financial needs, and some programs (retrea
 
 **Stripe metadata on every session (for QuickBooks reconciliation):**
 ```
-program_title        — e.g. "Spring Retreat at Siena Center"
-program_id           — Sanity _id
-dana_mode            — voluntary | base_plus_dana | fixed
-base_amount_cents    — required base (0 if not applicable)
-dana_amount_cents    — voluntary portion
-total_amount_cents   — what was actually charged
-donor_first_name
-donor_last_name
-donor_email
-registration_id      — our DB registration ID
+registrationId   — our DB registration ID
+programId        — Sanity _id
+programTitle     — e.g. "Spring Retreat at Siena Center"
+programSlug      — for URL routing
+donorName        — full name
+donorEmail       — email address
+source           — "registration_dana"
 ```
-This metadata makes every Stripe transaction self-describing for the treasurer entering line items into QuickBooks.
+This metadata makes every Stripe transaction self-describing. The `amountCents` in the line item is the total charged (base + dana combined). Future: add `danaMode` and `baseAmountCents` as additional metadata fields for more granular QuickBooks breakdown.
 
 **Key files:**
 - `components/RegistrationForm.tsx` — dana step UI (state: `dana`)
@@ -344,39 +341,42 @@ Stores one record per person per program.
 | `donationAmount` | Int? | Cents — set by Stripe webhook on completion |
 | `stripeSessionId` | String? | Stripe Checkout session ID — set by webhook, used for reconciliation |
 
-#### Donation (Phase 2 — schema to be added when building Section 11)
-Unified record of every contribution to RIM regardless of source. Designed now so Stripe registration dana lands here from day one and the Phase 2 management UI requires no migration.
+#### Donation (schema live — Phase 2 UI planned in Section 11)
+Unified record of every contribution to RIM regardless of source. Schema is in Prisma and pushed to DB. Stripe registration dana writes here automatically via webhook from day one. Phase 2 UI (manual entry, reporting) requires no migration.
 
 | Field | Type | Notes |
 |---|---|---|
 | `id` | cuid | Primary key |
-| `userId` | String? | Links to User if donor is a known member |
-| `donorFirstName` | String | Denormalized — needed for guests and manual entries |
-| `donorLastName` | String | |
-| `donorEmail` | String? | |
+| `source` | DonationSource | STRIPE / GIVEBUTTER / CASH / CHECK / OTHER |
 | `amountCents` | Int | Total amount in cents |
-| `source` | DonationSource | stripe / givebutter / cash / check / other |
-| `sourceId` | String? | Stripe session ID, GiveButter ID, check number, etc. — for deduplication |
-| `notes` | String? | Staff notes (e.g. "Anonymous — cash in donation box") |
-| `programId` | String? | Sanity program ID if donation was for a specific program |
-| `registrationId` | String? | Links to Registration if from the registration dana flow |
-| `recordedBy` | String? | userId of staff who manually entered it; null for automatic (Stripe/webhook) |
+| `currency` | String | Default "usd" |
 | `donatedAt` | DateTime | Actual date of donation (may differ from createdAt for manual entries) |
+| `userId` | String? | Links to User if donor is a known member |
+| `donorName` | String? | Denormalized — needed for guests and manual entries |
+| `donorEmail` | String? | |
+| `programId` | String? | Sanity `_id` if donation was for a specific program |
+| `programTitle` | String? | Denormalized snapshot |
+| `registrationId` | String? | Links to Registration if from the registration dana flow |
+| `stripePaymentIntentId` | String? | Unique — prevents duplicate webhook processing |
+| `stripeCheckoutSessionId` | String? | Stripe session ID |
+| `givebutterId` | String? | GiveButter transaction ID for import deduplication |
+| `notes` | String? | Staff notes (e.g. "cash in envelope 3/2") |
+| `quickbooksRef` | String? | QB transaction ID (future reconciliation) |
 | `createdAt` | DateTime | When the record was created in our system |
 
 #### Enums
 ```
-Role:               REGISTRAR | TEACHER | VOLUNTEER | ADMIN | TREASURER
+Role:               REGISTRAR | TREASURER | TEACHER | VOLUNTEER | ADMIN
 RegistrationStatus: REGISTERED | WAITLISTED | APPROVED | CANCELLED
 DonationStatus:     NOT_REQUIRED | PENDING | COMPLETED | WAIVED
-DonationSource:     stripe | givebutter | cash | check | other   (Phase 2)
+DonationSource:     STRIPE | GIVEBUTTER | CASH | CHECK | OTHER
 ```
 
 **🔧 Technical notes:**
 - `db push` (not `migrate`) is used for schema changes — no migration history files
 - To apply schema changes: `set -a && source .env.local && set +a && npx prisma db push`
 - Roles migration from single `role` to array `roles` required raw SQL — Prisma couldn't handle the enum + column type change atomically. See session log 2026-03-01 in MEMORY.md for the exact SQL used
-- `TREASURER` enum value should be added to `Role` when building Section 11 — add it via `db push` after updating `schema.prisma`
+- `TREASURER` is already in the `Role` enum and live in the DB — added 2026-03-02
 
 ---
 
@@ -419,9 +419,10 @@ The Sanity schema lives at `/Users/jessefoy/Sites/rim-website/sanity/` and is sh
 | `danaMode` | string (select) | `none` / `voluntary` / `base_plus_dana` / `fixed` — controls the dana step behavior |
 | `suggestedDana` | number | The suggested voluntary contribution in dollars (shown as the default amount in the dana step) |
 | `danaBaseAmount` | number | Required base cost in dollars — for `base_plus_dana` (e.g. retreat venue/meals) and `fixed` modes only |
-| `danaMessage` | text | Short program-specific message (1–3 sentences) shown on the dana step. Replaces the long generic philosophy text. Leave blank to use the default site-wide message. |
+| `danaFixedAmount` | number | Set price in dollars — for `fixed` mode only |
+| `danaMessage` | text | Short program-specific message (1–3 sentences) shown on the dana step. Leave blank for no message. |
 
-> **Note:** The old `suggestedDonation` field was replaced by `suggestedDana` + `danaMode` + `danaBaseAmount` to support the full range of dana configurations. `suggestedDonation` should be removed from the schema and any existing data migrated.
+> **Note:** The old `suggestedDonation` field was replaced by the five new dana fields above. It has been removed from the Sanity schema (deployed 2026-03-02).
 
 **danaMode reference:**
 - `none` — No dana step shown at all. Registration is free.
@@ -441,7 +442,7 @@ Each item in `registrationFields`:
 - `registrationEnabled` being `false` (or absent) falls back to the old Fillout.com form path on the program page
 - The `label` string doubles as the storage key — if a label is renamed in Sanity after registrations exist, old data will appear under the old key name in the CSV. Treat labels as permanent once in use
 - `danaMode` defaults to `none` if not set — no dana step shown unless explicitly configured
-- GROQ query for program pages must include all dana fields: `danaMode, suggestedDana, danaBaseAmount, danaMessage`
+- GROQ query for program pages must include all five dana fields: `danaMode, suggestedDana, danaBaseAmount, danaFixedAmount, danaMessage`
 
 ---
 
