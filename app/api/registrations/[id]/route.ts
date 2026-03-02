@@ -41,8 +41,9 @@ export async function PATCH(
       },
     });
 
-    // Send approval email when a waitlisted person is confirmed
-    if (status === "APPROVED" && current.status === "WAITLISTED") {
+    // Send approval email when a waitlisted person gets a confirmed spot
+    // (registrar may use either APPROVED or REGISTERED to confirm)
+    if (current.status === "WAITLISTED" && (status === "APPROVED" || status === "REGISTERED")) {
       await sendApprovalEmail({
         to:           current.email,
         firstName:    current.firstName,
