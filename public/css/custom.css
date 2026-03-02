@@ -1866,6 +1866,65 @@ h1, h2, h3, h4, h5, h6 {
 
 
 /* ═══════════════════════════════════════════════════
+   MEMBER DASHBOARD — Staff panel  (db- prefix)
+   Appended below existing dashboard (Webflow-class) content.
+═══════════════════════════════════════════════════ */
+
+.db-staff {
+  margin-top: 40px;
+  padding-top: 32px;
+  border-top: 1px solid var(--rim-rule);
+}
+
+.db-staff__label {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rim-text-muted);
+  margin: 0 0 16px;
+}
+
+.db-staff__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.db-staff__card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 20px;
+  background: #fff;
+  border: 1px solid var(--rim-rule);
+  border-radius: 6px;
+  text-decoration: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  min-width: 200px;
+}
+
+.db-staff__card:hover {
+  border-color: var(--rim-mid);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.db-staff__card-title {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--rim-blue);
+}
+
+.db-staff__card-desc {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--rim-text-muted);
+}
+
+
+/* ═══════════════════════════════════════════════════
    VOLUNTEER ADMIN  (/volunteer)
    Internal registration management. vol- prefix.
 ═══════════════════════════════════════════════════ */
