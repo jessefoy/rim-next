@@ -114,7 +114,7 @@ UPDATE users SET roles = '{REGISTRAR,ADMIN}' WHERE email = 'person@example.com';
 - If ≤5 spots remain: "Only X spots remaining!" warning
 - If already registered: form replaced with confirmation message
 - If deadline passed: form replaced with "Registration closed" message
-- After submitting: success message (registered or waitlisted)
+- After submitting: success message on screen + confirmation email sent to registrant
 
 **Non-member handling:** If someone registers without being logged in, the system finds or creates a User record by email automatically. They don't need an account to register.
 
@@ -122,6 +122,7 @@ UPDATE users SET roles = '{REGISTRAR,ADMIN}' WHERE email = 'person@example.com';
 - `components/RegistrationForm.tsx` — client component, all form logic
 - `app/programs/[slug]/page.tsx` — server component; fetches capacity, user profile, existing registration; passes props to form
 - `app/api/registrations/route.ts` — POST endpoint
+- `lib/email.ts` — Resend email utility (`sendRegistrationEmail`)
 
 **🔧 Technical notes:**
 - Phone auto-formats as `(XXX) XXX-XXXX` while typing — `formatPhoneInput()` strips all non-digits then reformats, so any input format works
@@ -130,6 +131,7 @@ UPDATE users SET roles = '{REGISTRAR,ADMIN}' WHERE email = 'person@example.com';
 - Custom field answers are stored as a JSON object `{ "Question label": "Answer" }` in the `customFields` column (Postgres `Json` type)
 - `alreadyRegistered` is checked server-side for logged-in users only; guest duplicate prevention happens in the API by resolving the email to a userId first
 - Form states: `idle | submitting | registered | waitlisted | error | duplicate`
+- `dateText`, `timeText`, `locationText` are passed in the POST body (already available on the program page from Sanity) so the API can include them in the email without an extra Sanity fetch
 
 ### 4b. Capacity & Waitlist Logic
 
@@ -354,8 +356,9 @@ All custom styles: `public/css/custom.css`
 
 | Date | Summary |
 |---|---|
-| 2026-03-01 | Built complete registration system: RegistrationForm, volunteer admin table, API routes, DB schema (roles array, Registration model), Sanity schema fields, route protection, staff dashboard panel, mobile-friendly volunteer pages |
+| 2026-03-01 | Built complete registration system: RegistrationForm, volunteer admin table, API routes, DB schema (roles array, Registration model), Sanity schema fields, route protection, staff dashboard panel, mobile-friendly volunteer pages; added FEATURES.md |
+| 2026-03-01 | Registration confirmation emails via Resend (`lib/email.ts`) — HTML + plain-text, REGISTERED and WAITLISTED variants, includes program date/time/location when available |
 
 ---
 
-*Last updated: 2026-03-01*
+*Last updated: 2026-03-01 (session 2)*
