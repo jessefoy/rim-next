@@ -443,32 +443,9 @@ export default function VolunteerTable({
                                 {formatPhone(r.phone)}
                               </a>
                             )}
-                            <div className="vol-detail__meta">
-                              <span className={`vol-badge vol-badge--${r.status.toLowerCase()}`}>
-                                {STATUS_LABELS[r.status]}
-                              </span>
-                              {r.status === "WAITLISTED" && r.waitlistPosition && (
-                                <span className="vol-detail__meta-text">
-                                  Waitlist #{r.waitlistPosition}
-                                </span>
-                              )}
-                              <span className="vol-detail__meta-text">
-                                Registered {formatDate(r.createdAt)}
-                              </span>
-                            </div>
-                            {r.donationStatus !== "NOT_REQUIRED" && (
-                              <div className="vol-detail__dana-row">
-                                <span className="vol-detail__dana-label">Dana</span>
-                                <span className={`vol-badge vol-badge--donation-${r.donationStatus.toLowerCase()}`}>
-                                  {DONATION_LABELS[r.donationStatus]}
-                                </span>
-                                {r.donationAmount && (
-                                  <span className="vol-detail__meta-text">
-                                    ${(r.donationAmount / 100).toFixed(2)} received
-                                  </span>
-                                )}
-                              </div>
-                            )}
+                            <p className="vol-detail__meta-text">
+                              Registered {formatDate(r.createdAt)}
+                            </p>
                           </div>
 
                           {/* ── Col 2: Submission ── */}
@@ -497,44 +474,15 @@ export default function VolunteerTable({
                             )}
                           </div>
 
-                          {/* ── Col 3: Staff (notes + actions) ── */}
+                          {/* ── Col 3: Actions + Notes ── */}
                           <div className="vol-detail__staff-col">
-                            <div className="vol-detail__notes-wrap">
-                              <p className="vol-detail__col-label">Internal Notes</p>
-                              <textarea
-                                className="vol-notes"
-                                placeholder="Notes visible only to staff…"
-                                value={editingNotes[r.id] ?? r.notes ?? ""}
-                                onChange={(e) =>
-                                  setEditingNotes((prev) => ({
-                                    ...prev,
-                                    [r.id]: e.target.value,
-                                  }))
-                                }
-                                onClick={(e) => e.stopPropagation()}
-                                rows={4}
-                              />
-                              <button
-                                className="vol-save-btn"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  saveNotes(r.id);
-                                }}
-                                disabled={savingNotes === r.id}
-                              >
-                                {savingNotes === r.id
-                                  ? "Saving…"
-                                  : savedNotes === r.id
-                                  ? "Saved ✓"
-                                  : "Save Notes"}
-                              </button>
-                            </div>
 
-                            {/* Actions */}
+                            {/* Actions — top of column so they're seen immediately */}
                             <div
                               className="vol-detail__actions-wrap"
                               onClick={(e) => e.stopPropagation()}
                             >
+                              <p className="vol-detail__col-label">Actions</p>
                               {/* Dana reminder — shown whenever donation is pending */}
                               {r.donationStatus === "PENDING" && (
                                 <button
@@ -640,6 +588,39 @@ export default function VolunteerTable({
                                 </>
                               )}
                             </div>
+
+                            {/* Notes — below actions */}
+                            <div className="vol-detail__notes-wrap">
+                              <p className="vol-detail__col-label">Internal Notes</p>
+                              <textarea
+                                className="vol-notes"
+                                placeholder="Notes visible only to staff…"
+                                value={editingNotes[r.id] ?? r.notes ?? ""}
+                                onChange={(e) =>
+                                  setEditingNotes((prev) => ({
+                                    ...prev,
+                                    [r.id]: e.target.value,
+                                  }))
+                                }
+                                onClick={(e) => e.stopPropagation()}
+                                rows={3}
+                              />
+                              <button
+                                className="vol-save-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  saveNotes(r.id);
+                                }}
+                                disabled={savingNotes === r.id}
+                              >
+                                {savingNotes === r.id
+                                  ? "Saving…"
+                                  : savedNotes === r.id
+                                  ? "Saved ✓"
+                                  : "Save Notes"}
+                              </button>
+                            </div>
+
                           </div>
 
                         </div>
