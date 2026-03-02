@@ -162,7 +162,6 @@ model Registration {
   firstName      String
   lastName       String
   phone          String?
-  comments       String?
 
   // Dynamic fields from Sanity registrationFields config
   customFields   Json?              // { "question label": "answer value" }

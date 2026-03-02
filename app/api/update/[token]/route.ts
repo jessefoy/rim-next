@@ -11,7 +11,7 @@ export async function POST(
   try {
     const { token } = await params;
     const body = await request.json();
-    const { customFields, comments } = body;
+    const { customFields } = body;
 
     // Look up registration by token
     const registration = await db.registration.findUnique({
@@ -32,7 +32,6 @@ export async function POST(
       where: { id: registration.id },
       data: {
         ...(customFields !== undefined && { customFields }),
-        ...(comments !== undefined && { comments }),
         editToken:          null,
         editTokenExpiresAt: null,
       },

@@ -17,7 +17,6 @@ export async function POST(request: NextRequest) {
       firstName,
       lastName,
       phone,
-      comments,
       customFields,
       danaMode,
     } = body;
@@ -92,7 +91,6 @@ export async function POST(request: NextRequest) {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         phone: phone?.trim() ?? null,
-        comments: comments?.trim() ?? null,
         customFields: customFields ?? undefined,
         status: hasCapacity ? "REGISTERED" : "WAITLISTED",
         waitlistPosition,

@@ -58,7 +58,6 @@ export default async function UpdateResponsesPage({ params }: PageProps) {
           token={token}
           fields={fields}
           currentCustomFields={(registration.customFields as Record<string, string>) ?? {}}
-          currentComments={registration.comments ?? ""}
         />
       </div>
     </main>

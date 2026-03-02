@@ -2566,7 +2566,7 @@ h1, h2, h3, h4, h5, h6 {
 .vol-detail__submission-col { border-right: 1px solid var(--rim-rule); }
 .vol-detail__staff-col     { background: var(--rim-bg); }
 
-/* Column label */
+/* Column label — standalone or inside header row */
 .vol-detail__col-label {
   font-size: 10px;
   font-weight: 700;
@@ -2574,6 +2574,17 @@ h1, h2, h3, h4, h5, h6 {
   text-transform: uppercase;
   color: var(--rim-text-muted);
   margin: 0 0 12px;
+}
+
+/* Label + inline Edit button row (Responses column) */
+.vol-detail__col-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.vol-detail__col-header .vol-detail__col-label {
+  margin: 0;
 }
 
 /* Contact column */
@@ -2827,7 +2838,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Inline field editor — Responses column */
 .vol-edit-fields-btn {
-  display: inline-block; margin-top: 8px; padding: 0; background: none; border: none;
+  display: inline-block; padding: 0; background: none; border: none;
   font-family: var(--font-sans); font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
   text-transform: uppercase; color: var(--rim-mid); cursor: pointer;
   text-decoration: underline; text-underline-offset: 2px; transition: color 0.15s;

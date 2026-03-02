@@ -79,7 +79,6 @@ export default function RegistrationForm({
     lastName: userProfile?.lastName ?? "",
     email: userProfile?.email ?? "",
     phone: userProfile?.phone ?? "",
-    comments: "",
   });
   const [customAnswers, setCustomAnswers] = useState<Record<string, string>>({});
   const [formState, setFormState] = useState<FormState>(hasPendingDana ? "dana" : "idle");
@@ -526,20 +525,6 @@ export default function RegistrationForm({
           )}
         </div>
       ))}
-
-      {/* ── Comments ── */}
-      <div className="pg-form__field">
-        <label className="pg-form__label" htmlFor="reg-comments">
-          Questions or Comments
-        </label>
-        <textarea
-          id="reg-comments"
-          name="comments"
-          className="pg-form__textarea"
-          value={form.comments}
-          onChange={handleField}
-        />
-      </div>
 
       {/* ── Error ── */}
       {formState === "error" && (

@@ -7,12 +7,10 @@ interface Props {
   token: string;
   fields: RegistrationField[];
   currentCustomFields: Record<string, string>;
-  currentComments: string;
 }
 
-export default function UpdateForm({ token, fields, currentCustomFields, currentComments }: Props) {
+export default function UpdateForm({ token, fields, currentCustomFields }: Props) {
   const [customAnswers, setCustomAnswers] = useState<Record<string, string>>(currentCustomFields);
-  const [comments, setComments] = useState(currentComments);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +24,7 @@ export default function UpdateForm({ token, fields, currentCustomFields, current
       const res = await fetch(`/api/update/${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customFields: customAnswers, comments }),
+        body: JSON.stringify({ customFields: customAnswers }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -143,19 +141,6 @@ export default function UpdateForm({ token, fields, currentCustomFields, current
           />
         </div>
       ))}
-
-      {/* Comments */}
-      <div className="ur-field">
-        <label className="ur-label" htmlFor="comments">
-          Additional comments
-        </label>
-        <textarea
-          id="comments"
-          className="ur-textarea"
-          value={comments}
-          onChange={(e) => setComments(e.target.value)}
-        />
-      </div>
 
       {error && (
         <p style={{ color: "#a83232", fontSize: "14px", marginBottom: "16px" }}>{error}</p>

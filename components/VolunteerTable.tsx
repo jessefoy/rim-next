@@ -12,7 +12,6 @@ export interface SerializedRegistration {
   firstName: string;
   lastName: string;
   phone: string | null;
-  comments: string | null;
   customFields: Record<string, string> | null;
   status: string;
   waitlistPosition: number | null;
@@ -424,7 +423,6 @@ export default function VolunteerTable({
             {visible.map((r) => {
               const isExpanded = expandedId === r.id;
               const hasCustom = r.customFields && Object.keys(r.customFields).length > 0;
-              const hasComments = !!r.comments;
 
               return (
                 <Fragment key={r.id}>
@@ -504,21 +502,12 @@ export default function VolunteerTable({
 
                           {/* ── Col 2: Submission ── */}
                           <div className="vol-detail__submission-col">
-                            {hasCustom && (
+                            {hasCustom ? (
                               <>
-                                <p className="vol-detail__col-label">Responses</p>
-
-                                {/* Display mode */}
-                                {editFieldsOpen !== r.id ? (
-                                  <>
-                                    <dl className="vol-detail__fields">
-                                      {Object.entries(r.customFields!).map(([q, a]) => (
-                                        <div className="vol-detail__field-row" key={q}>
-                                          <dt>{q}</dt>
-                                          <dd>{a as string}</dd>
-                                        </div>
-                                      ))}
-                                    </dl>
+                                {/* Label + Edit button inline */}
+                                <div className="vol-detail__col-header">
+                                  <p className="vol-detail__col-label">Responses</p>
+                                  {editFieldsOpen !== r.id && (
                                     <button
                                       className="vol-edit-fields-btn"
                                       onClick={(e) => {
@@ -530,9 +519,21 @@ export default function VolunteerTable({
                                         }));
                                       }}
                                     >
-                                      {savedFields === r.id ? "Saved ✓" : "Edit Responses"}
+                                      {savedFields === r.id ? "Saved ✓" : "Edit"}
                                     </button>
-                                  </>
+                                  )}
+                                </div>
+
+                                {/* Display mode */}
+                                {editFieldsOpen !== r.id ? (
+                                  <dl className="vol-detail__fields">
+                                    {Object.entries(r.customFields!).map(([q, a]) => (
+                                      <div className="vol-detail__field-row" key={q}>
+                                        <dt>{q}</dt>
+                                        <dd>{a as string}</dd>
+                                      </div>
+                                    ))}
+                                  </dl>
                                 ) : (
                                   /* Edit mode */
                                   <div className="vol-fields-edit" onClick={(e) => e.stopPropagation()}>
@@ -569,14 +570,7 @@ export default function VolunteerTable({
                                   </div>
                                 )}
                               </>
-                            )}
-                            {hasComments && (
-                              <div className={hasCustom ? "vol-detail__comments-section" : ""}>
-                                <p className="vol-detail__col-label">Comments</p>
-                                <p className="vol-detail__comments">{r.comments}</p>
-                              </div>
-                            )}
-                            {!hasCustom && !hasComments && (
+                            ) : (
                               <p className="vol-detail__empty">No additional responses.</p>
                             )}
                           </div>

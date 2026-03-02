@@ -70,7 +70,6 @@ export default async function VolunteerProgramPage({
     firstName: r.firstName,
     lastName: r.lastName,
     phone: r.phone,
-    comments: r.comments,
     customFields: r.customFields as Record<string, string> | null,
     status: r.status,
     waitlistPosition: r.waitlistPosition,

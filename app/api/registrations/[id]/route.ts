@@ -23,7 +23,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { action, status, notes, donationStatus, danaMode, customFields, comments } = body;
+    const { action, status, notes, donationStatus, danaMode, customFields } = body;
 
     // ── Special action: send self-service edit request email ─────────────────
     if (action === "sendEditRequest") {
@@ -103,7 +103,6 @@ export async function PATCH(
         ...(notes !== undefined && { notes }),
         ...(resolvedDonationStatus && { donationStatus: resolvedDonationStatus }),
         ...(customFields !== undefined && { customFields }),
-        ...(comments !== undefined && { comments }),
       },
     });
 
