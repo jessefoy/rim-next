@@ -25,7 +25,12 @@ interface Props {
     slug: { current: string };
     name: string;
     registrationCapacity?: number | null;
-    suggestedDonation?: number | null;
+    // Dana fields (replaces suggestedDonation)
+    danaMode?: string | null;        // "none" | "voluntary" | "base_plus_dana" | "fixed"
+    suggestedDana?: number | null;   // pre-filled amount for voluntary / extra dana
+    danaBaseAmount?: number | null;  // required base fee for base_plus_dana
+    danaFixedAmount?: number | null; // set price for fixed mode
+    danaMessage?: string | null;     // CMS-authored message for the dana step
     registrationFields?: RegistrationField[];
     dateText?: string | null;
     timeText?: string | null;
@@ -43,7 +48,15 @@ interface Props {
   deadlinePassed?: boolean;
 }
 
-type FormState = "idle" | "submitting" | "registered" | "waitlisted" | "error" | "duplicate";
+type FormState =
+  | "idle"
+  | "submitting"
+  | "waitlisted"
+  | "dana"             // registration confirmed, dana step shown
+  | "dana_redirecting" // checkout session created, about to redirect
+  | "done"             // all complete (no dana needed or dana skipped)
+  | "error"
+  | "duplicate";
 
 export default function RegistrationForm({
   program,
@@ -64,6 +77,12 @@ export default function RegistrationForm({
   const [formState, setFormState] = useState<FormState>("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
+  // Dana state
+  const [registrationId, setRegistrationId] = useState<string | null>(null);
+  const [danaInput, setDanaInput] = useState<string>(
+    String(program.suggestedDana ?? "")
+  );
+
   // ── Already registered ──────────────────────────────────────────────────────
   if (alreadyRegistered) {
     return (
@@ -82,16 +101,7 @@ export default function RegistrationForm({
     );
   }
 
-  // ── Success states ──────────────────────────────────────────────────────────
-  if (formState === "registered") {
-    return (
-      <div className="pg-form__success">
-        <h3>You&rsquo;re registered!</h3>
-        <p>We&rsquo;ll look forward to seeing you. A confirmation will be sent to {form.email}.</p>
-      </div>
-    );
-  }
-
+  // ── Waitlisted ──────────────────────────────────────────────────────────────
   if (formState === "waitlisted") {
     return (
       <div className="pg-form__success pg-form__success--waitlist">
@@ -103,8 +113,173 @@ export default function RegistrationForm({
     );
   }
 
+  // ── Done (no dana needed, or dana skipped) ──────────────────────────────────
+  if (formState === "done") {
+    return (
+      <div className="pg-form__success">
+        <h3>You&rsquo;re registered!</h3>
+        <p>We&rsquo;ll look forward to seeing you. A confirmation will be sent to {form.email}.</p>
+      </div>
+    );
+  }
+
+  // ── Dana step ───────────────────────────────────────────────────────────────
+  if (formState === "dana" || formState === "dana_redirecting") {
+    const danaMode = program.danaMode ?? "voluntary";
+    const isFixed = danaMode === "fixed";
+    const isBasePlusDana = danaMode === "base_plus_dana";
+    const baseAmount = program.danaBaseAmount ?? 0;
+    const fixedAmount = program.danaFixedAmount ?? 0;
+    const extraDana = Math.max(0, parseFloat(danaInput) || 0);
+
+    // Total amount in dollars
+    const totalDollars = isFixed
+      ? fixedAmount
+      : isBasePlusDana
+      ? baseAmount + extraDana
+      : extraDana; // voluntary
+
+    const totalCents = Math.round(totalDollars * 100);
+    const canSubmit = totalCents >= 100; // Stripe minimum $1.00
+
+    const handleDanaCheckout = async () => {
+      if (!registrationId || totalCents < 100) return;
+      setFormState("dana_redirecting");
+      setErrorMessage("");
+
+      try {
+        const res = await fetch("/api/stripe/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            registrationId,
+            amountCents: totalCents,
+            programTitle: program.name,
+            programSlug: program.slug.current,
+            donorName: `${form.firstName} ${form.lastName}`.trim(),
+            donorEmail: form.email,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.url) {
+          setErrorMessage(data.error ?? "Could not start checkout. Please try again.");
+          setFormState("dana");
+          return;
+        }
+        window.location.href = data.url;
+      } catch {
+        setErrorMessage("Network error. Please check your connection and try again.");
+        setFormState("dana");
+      }
+    };
+
+    const handleSkipDana = () => setFormState("done");
+
+    return (
+      <div className="pg-form__success">
+        <h3>You&rsquo;re registered!</h3>
+        <p>A confirmation will be sent to {form.email}.</p>
+
+        <div className="pg-dana">
+          {program.danaMessage && (
+            <p className="pg-dana__message">{program.danaMessage}</p>
+          )}
+
+          {/* Fixed mode — single set price */}
+          {isFixed && (
+            <div className="pg-dana__field">
+              <div className="pg-dana__fixed-amount">
+                ${fixedAmount.toFixed(2)}
+              </div>
+            </div>
+          )}
+
+          {/* Base + Dana mode — fixed base fee, optional dana on top */}
+          {isBasePlusDana && (
+            <div className="pg-dana__breakdown">
+              <div className="pg-dana__row">
+                <span className="pg-dana__row-label">Program fee</span>
+                <span className="pg-dana__row-value">${baseAmount.toFixed(2)}</span>
+              </div>
+              <div className="pg-dana__row">
+                <label className="pg-dana__row-label" htmlFor="dana-extra">
+                  Additional dana
+                </label>
+                <div className="pg-dana__input-wrap">
+                  <span className="pg-dana__currency">$</span>
+                  <input
+                    id="dana-extra"
+                    type="number"
+                    className="pg-dana__input"
+                    value={danaInput}
+                    onChange={(e) => setDanaInput(e.target.value)}
+                    min="0"
+                    step="1"
+                  />
+                </div>
+              </div>
+              <div className="pg-dana__total">
+                Total: ${totalDollars.toFixed(2)}
+              </div>
+            </div>
+          )}
+
+          {/* Voluntary mode — fully editable amount */}
+          {danaMode === "voluntary" && (
+            <div className="pg-dana__field">
+              <label className="pg-dana__label" htmlFor="dana-amount">
+                Your offering
+              </label>
+              <div className="pg-dana__input-wrap">
+                <span className="pg-dana__currency">$</span>
+                <input
+                  id="dana-amount"
+                  type="number"
+                  className="pg-dana__input"
+                  value={danaInput}
+                  onChange={(e) => setDanaInput(e.target.value)}
+                  min="1"
+                  step="1"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+          )}
+
+          {errorMessage && (
+            <div className="pg-form__error">{errorMessage}</div>
+          )}
+
+          <button
+            type="button"
+            className="pg-form__submit"
+            disabled={formState === "dana_redirecting" || !canSubmit}
+            onClick={handleDanaCheckout}
+          >
+            {formState === "dana_redirecting"
+              ? "Redirecting to checkout…"
+              : `Continue — $${totalDollars.toFixed(2)}`}
+          </button>
+
+          {/* Skip option for voluntary mode only */}
+          {danaMode === "voluntary" && (
+            <button
+              type="button"
+              className="pg-dana__skip"
+              onClick={handleSkipDana}
+            >
+              No thank you
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   // ── Handlers ────────────────────────────────────────────────────────────────
-  const handleField = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleField = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
@@ -132,6 +307,7 @@ export default function RegistrationForm({
           programSlug: program.slug.current,
           programTitle: program.name,
           registrationCapacity: program.registrationCapacity ?? null,
+          danaMode: program.danaMode ?? "none",
           dateText: program.dateText ?? null,
           timeText: program.timeText ?? null,
           locationText: program.locationText ?? null,
@@ -153,7 +329,25 @@ export default function RegistrationForm({
         return;
       }
 
-      setFormState(data.status === "WAITLISTED" ? "waitlisted" : "registered");
+      if (data.status === "WAITLISTED") {
+        setFormState("waitlisted");
+        return;
+      }
+
+      // Registration confirmed — check if dana step is needed
+      setRegistrationId(data.registrationId ?? null);
+
+      const shouldShowDana =
+        data.registrationId &&
+        program.danaMode &&
+        program.danaMode !== "none";
+
+      if (shouldShowDana) {
+        setDanaInput(String(program.suggestedDana ?? ""));
+        setFormState("dana");
+      } else {
+        setFormState("done");
+      }
     } catch {
       setErrorMessage("Network error. Please check your connection and try again.");
       setFormState("error");

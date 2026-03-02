@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
       phone,
       comments,
       customFields,
+      danaMode,
     } = body;
 
     if (!programId || !email?.trim() || !firstName?.trim() || !lastName?.trim()) {
@@ -95,7 +96,12 @@ export async function POST(request: NextRequest) {
         customFields: customFields ?? undefined,
         status: hasCapacity ? "REGISTERED" : "WAITLISTED",
         waitlistPosition,
-        donationStatus: hasCapacity ? "PENDING" : "NOT_REQUIRED",
+        // WAIVED if no dana practice; NOT_REQUIRED if waitlisted (promoted later); else PENDING
+        donationStatus: !hasCapacity
+          ? "NOT_REQUIRED"
+          : !danaMode || danaMode === "none"
+          ? "WAIVED"
+          : "PENDING",
       },
     });
 

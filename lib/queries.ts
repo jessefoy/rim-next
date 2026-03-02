@@ -50,7 +50,11 @@ export const programBySlugQuery = `*[_type == "programs" && slug.current == $slu
   registrationEnabled,
   registrationCapacity,
   registrationDeadline,
-  suggestedDonation,
+  danaMode,
+  suggestedDana,
+  danaBaseAmount,
+  danaFixedAmount,
+  danaMessage,
   registrationFields[] {
     _key, label, fieldType, required, options
   },

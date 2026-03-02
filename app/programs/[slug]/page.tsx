@@ -34,7 +34,11 @@ interface Program {
   registrationEnabled?: boolean;
   registrationCapacity?: number | null;
   registrationDeadline?: string | null;
-  suggestedDonation?: number | null;
+  danaMode?: string | null;
+  suggestedDana?: number | null;
+  danaBaseAmount?: number | null;
+  danaFixedAmount?: number | null;
+  danaMessage?: string | null;
   registrationFields?: RegistrationField[];
   zoomLink?: string;
   zoomLinkText?: string;
@@ -102,10 +106,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function ProgramDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ dana?: string; session_id?: string }>;
 }) {
   const { slug } = await params;
+  const resolvedSearch = searchParams ? await searchParams : {};
   const [program, session] = await Promise.all([
     sanityClient.fetch<Program | null>(programBySlugQuery, { slug }),
     auth(),
@@ -175,6 +182,18 @@ export default async function ProgramDetailPage({
 
       {/* ── Content column ── */}
       <div className="lp-content">
+
+        {/* Dana result banners — shown after Stripe redirects back */}
+        {resolvedSearch?.dana === "success" && (
+          <div className="pg-dana-result pg-dana-result--success">
+            ✓ Thank you — your dana offering has been received.
+          </div>
+        )}
+        {resolvedSearch?.dana === "cancelled" && (
+          <div className="pg-dana-result pg-dana-result--cancelled">
+            Your registration is confirmed. You can return anytime to complete your dana offering.
+          </div>
+        )}
 
         {/* Details card — floats up into the hero header (~1/3 overlap).
             Date / time / location / dana / registration CTA.

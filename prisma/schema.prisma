@@ -78,10 +78,11 @@ model User {
 }
 
 enum Role {
-  REGISTRAR  // manages program registrations
-  TEACHER    // content access, profile page
-  VOLUNTEER  // general volunteer
-  ADMIN      // full access
+  REGISTRAR   // manages program registrations
+  TREASURER   // views donation reports, manages donation records
+  TEACHER     // content access, profile page
+  VOLUNTEER   // general volunteer
+  ADMIN       // full access
 }
 
 // ─── MEMBERSHIP TYPES ────────────────────────────────────────────────────────
@@ -198,4 +199,52 @@ enum DonationStatus {
   PENDING       // registered or approved, donation not yet made
   COMPLETED     // donation received
   WAIVED        // volunteer marked as no donation needed
+}
+
+// ─── DONATION MANAGEMENT (Phase 2) ───────────────────────────────────────────
+// Unified log of all contributions regardless of source.
+// Registration-linked Stripe donations are also captured here via webhook.
+
+model Donation {
+  id            String         @id @default(cuid())
+
+  // Source tracking
+  source        DonationSource
+  amountCents   Int            // always stored in cents
+  currency      String         @default("usd")
+  donatedAt     DateTime
+
+  // Donor info (optional — cash donations may be anonymous)
+  userId        String?        // linked RIM member, if known
+  donorName     String?
+  donorEmail    String?
+
+  // Program context (optional — not all donations are program-linked)
+  programId     String?        // Sanity _id
+  programTitle  String?
+
+  // Registration link (for Stripe registration-flow donations)
+  registrationId String?
+
+  // Source-specific reference IDs
+  stripePaymentIntentId   String?  @unique
+  stripeCheckoutSessionId String?
+  givebutterId            String?  // GiveButter transaction ID
+
+  // Reconciliation
+  notes         String?        // for cash/check: e.g. "envelope received 3/2"
+  quickbooksRef String?        // QB transaction ID (future)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("donations")
+}
+
+enum DonationSource {
+  STRIPE        // registration flow or direct link
+  GIVEBUTTER    // imported from GiveButter
+  CASH          // manually entered by treasurer
+  CHECK         // manually entered by treasurer
+  OTHER
 }
