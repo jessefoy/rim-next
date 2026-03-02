@@ -507,8 +507,8 @@ export default function VolunteerTable({
                                 </button>
                               )}
 
-                              {/* Cancel with inline confirm */}
-                              {(r.status === "REGISTERED" || r.status === "APPROVED") && (
+                              {/* Cancel with inline confirm — all active statuses */}
+                              {(r.status === "REGISTERED" || r.status === "APPROVED" || r.status === "WAITLISTED") && (
                                 confirmCancelId === r.id ? (
                                   <div className="vol-confirm-wrap">
                                     <span className="vol-confirm-label">
