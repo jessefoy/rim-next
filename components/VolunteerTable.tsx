@@ -267,15 +267,6 @@ export default function VolunteerTable({
     }
   }
 
-  // ── Helper: open row and pre-trigger cancel confirm ──────────────────────────
-  function openWithCancelConfirm(id: string, currentNotes: string | null) {
-    setExpandedId(id);
-    setConfirmCancelId(id);
-    setConfirmDeleteId(null);
-    if (!(id in editingNotes)) {
-      setEditingNotes((prev) => ({ ...prev, [id]: currentNotes ?? "" }));
-    }
-  }
 
   return (
     <div className="vol-table-wrap">
@@ -421,14 +412,35 @@ export default function VolunteerTable({
                         </button>
                       )}
 
-                      {/* REGISTERED / APPROVED → cancel (opens row + shows confirm) */}
+                      {/* REGISTERED / APPROVED → inline cancel confirm */}
                       {(r.status === "REGISTERED" || r.status === "APPROVED") && (
-                        <button
-                          className="vol-cancel-inline"
-                          onClick={() => openWithCancelConfirm(r.id, r.notes)}
-                        >
-                          Cancel
-                        </button>
+                        confirmCancelId === r.id ? (
+                          <div className="vol-cancel-confirm">
+                            <button
+                              className="vol-cancel-confirm__yes"
+                              disabled={actionLoading === r.id}
+                              onClick={() => {
+                                cancelRegistration(r.id);
+                                setConfirmCancelId(null);
+                              }}
+                            >
+                              {actionLoading === r.id ? "…" : "Confirm"}
+                            </button>
+                            <button
+                              className="vol-cancel-confirm__no"
+                              onClick={() => setConfirmCancelId(null)}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            className="vol-cancel-inline"
+                            onClick={() => setConfirmCancelId(r.id)}
+                          >
+                            Cancel
+                          </button>
+                        )
                       )}
 
                       {/* CANCELLED → restore */}

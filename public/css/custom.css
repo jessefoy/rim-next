@@ -2762,6 +2762,43 @@ h1, h2, h3, h4, h5, h6 {
 }
 .vol-cancel-inline:hover { color: #c06060; }
 
+/* Inline cancel confirm (appears in status cell on click) */
+.vol-cancel-confirm {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 3px;
+}
+.vol-cancel-confirm__yes {
+  padding: 2px 7px;
+  border: 1px solid #a83232;
+  border-radius: 3px;
+  background: none;
+  color: #a83232;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.vol-cancel-confirm__yes:hover:not(:disabled) { background: #fdf0f0; }
+.vol-cancel-confirm__yes:disabled { opacity: 0.5; cursor: default; }
+.vol-cancel-confirm__no {
+  padding: 2px 5px;
+  background: none;
+  border: 1px solid var(--rim-rule);
+  border-radius: 3px;
+  color: var(--rim-text-muted);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.vol-cancel-confirm__no:hover { color: var(--rim-text); border-color: var(--rim-text-muted); }
+
 /* Inline restore text link (status cell — CANCELLED rows) */
 .vol-restore-inline {
   display: block; margin-top: 3px; padding: 0; background: none; border: none;
@@ -2877,6 +2914,9 @@ h1, h2, h3, h4, h5, h6 {
 
   /* Save button full width */
   .vol-save-btn { align-self: stretch; text-align: center; }
+
+  /* Inline cancel confirm — right-align to match status cell */
+  .vol-cancel-confirm { justify-content: flex-end; }
 
 }
 
