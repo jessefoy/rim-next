@@ -27,6 +27,9 @@ interface Props {
     registrationCapacity?: number | null;
     suggestedDonation?: number | null;
     registrationFields?: RegistrationField[];
+    dateText?: string | null;
+    timeText?: string | null;
+    locationText?: string | null;
   };
   spotsRemaining: number | null;
   userProfile?: {
@@ -129,6 +132,9 @@ export default function RegistrationForm({
           programSlug: program.slug.current,
           programTitle: program.name,
           registrationCapacity: program.registrationCapacity ?? null,
+          dateText: program.dateText ?? null,
+          timeText: program.timeText ?? null,
+          locationText: program.locationText ?? null,
           userId: sessionUserId ?? undefined,
           ...form,
           customFields: Object.keys(customFields).length > 0 ? customFields : undefined,

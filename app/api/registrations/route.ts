@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { sendRegistrationEmail } from "@/lib/email";
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,6 +10,9 @@ export async function POST(request: NextRequest) {
       programSlug,
       programTitle,
       registrationCapacity,
+      dateText,
+      timeText,
+      locationText,
       email,
       firstName,
       lastName,
@@ -93,6 +97,19 @@ export async function POST(request: NextRequest) {
         waitlistPosition,
         donationStatus: hasCapacity ? "PENDING" : "NOT_REQUIRED",
       },
+    });
+
+    // Send confirmation email — fire-and-forget, never blocks the response
+    await sendRegistrationEmail({
+      to:              normalizedEmail,
+      firstName:       firstName.trim(),
+      programTitle,
+      programSlug,
+      status:          registration.status as "REGISTERED" | "WAITLISTED",
+      waitlistPosition: registration.waitlistPosition,
+      dateText:        dateText ?? null,
+      timeText:        timeText ?? null,
+      locationText:    locationText ?? null,
     });
 
     return NextResponse.json({
