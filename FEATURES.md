@@ -115,6 +115,7 @@ UPDATE users SET roles = '{REGISTRAR,ADMIN}' WHERE email = 'person@example.com';
 - If the program is full: banner notice + button changes to "Join Waitlist"
 - If ≤5 spots remain: "Only X spots remaining!" warning
 - If already registered: form replaced with confirmation message
+- If already registered AND `donationStatus === PENDING` (promoted from waitlist): dana step shown immediately instead of "already registered" message
 - If deadline passed: form replaced with "Registration closed" message
 - After submitting: success message on screen + confirmation email sent to registrant
 - For registered (not waitlisted) participants: inline dana step appears after confirmation (see 4c)
@@ -223,7 +224,9 @@ STRIPE_WEBHOOK_SECRET        — from Stripe dashboard, used to verify webhook s
 - **REGISTERED** — subject "You're registered — [Program]", includes date/time/location if set in Sanity
 - **WAITLISTED** — subject "You're on the waitlist — [Program]", includes waitlist position if > 0
 
-**Waitlist approval email** — sent by the API when a registrar moves a registrant from `WAITLISTED` → `APPROVED` or `WAITLISTED` → `REGISTERED`. Subject: "Your spot is confirmed — [Program]".
+**Waitlist approval email** — sent by the API when a registrar promotes a registrant from `WAITLISTED` → `APPROVED` or `REGISTERED`. Subject: "Your spot is confirmed — [Program]". When the program has a dana practice (`danaMode !== "none"`), the email includes a warm dana section with a "Complete Dana Offering" button linking to the program page.
+
+**Cancellation notification email** — sent to the registrar (`REGISTRAR_EMAIL` env var) whenever any registration is cancelled (by staff via the volunteer table, or in future by the member themselves). Includes registrant name, email, program, and a link to the registration table. `REGISTRAR_EMAIL` must be added to Vercel env vars; if not set, falls back to `EMAIL_FROM`.
 
 **Key file:** `lib/email.ts`
 
@@ -231,8 +234,9 @@ STRIPE_WEBHOOK_SECRET        — from Stripe dashboard, used to verify webhook s
 - Uses Resend SDK (`resend@6.9.2`). **Critical:** Resend v4+ returns `{ data, error }` instead of throwing on failure — always destructure and check `error`. A plain `try/catch` will never fire on a Resend send error.
 - `EMAIL_FROM` env var controls the sender address. Currently `onboarding@resend.dev` (Resend's shared sandbox domain). Switch to a verified RIM domain after DNS verification.
 - `NEXTAUTH_URL` env var must be set in Vercel so program links in emails resolve correctly (e.g. `https://rim-next.vercel.app`).
+- `REGISTRAR_EMAIL` env var — set in Vercel to the registrar's email address (e.g. `registrar@rootedinmindfulness.org`). Used for cancellation notifications.
 - Email failures are logged (`console.error`) but never throw — a failed email must never block the registration or status update.
-- Both functions are fire-and-forget (`Promise<void>`) — no return value.
+- All email functions are fire-and-forget (`Promise<void>`) — no return value.
 
 ### 4e. Duplicate Prevention
 
@@ -257,12 +261,15 @@ A registration is considered a duplicate if the same `userId` + `programId` alre
 **What the registrar can do:**
 - See all registrants in a table (name, email, phone, status, donation status, registration date)
 - Filter by status: All / Registered / Waitlisted / Approved / Cancelled
-- Change a registrant's status inline — two-step: select new status (dashed border = pending), then click **Confirm** to save. Cancel reverts with no change. Prevents accidental updates.
+- Take context-aware actions per row:
+  - **WAITLISTED** → **"Promote →"** button: moves to APPROVED, sets `donationStatus` to PENDING (if program has dana) or WAIVED (if no dana), sends approval email (with dana section if applicable), and sends cancellation notification to the registrar email
+  - **REGISTERED / APPROVED** → **"Cancel"** button: confirms via browser dialog, moves to CANCELLED, fires cancellation notification email to registrar
+  - **CANCELLED** → **"Restore"** button: moves back to REGISTERED
 - Click any row to expand it and see: custom field answers, comments, and internal notes
 - Write and save internal notes per registrant (not visible to the member)
 - Export all registrations as a CSV file (includes all custom fields as columns)
 
-**Mobile layout:** On small screens the table transforms into cards — each row shows name + email stacked on the left, status dropdown on the right. Phone number and registration date appear inside the expanded panel on mobile.
+**Mobile layout:** On small screens the table transforms into cards — each row shows name + email stacked on the left, status badge + action button on the right. Phone number and registration date appear inside the expanded panel on mobile.
 
 **Key files:**
 - `app/volunteer/programs/[slug]/page.tsx` — server component (fetches program + registrations)
@@ -385,7 +392,7 @@ DonationSource:     STRIPE | GIVEBUTTER | CASH | CHECK | OTHER
 | Method | Path | Auth | What it does |
 |---|---|---|---|
 | `POST` | `/api/registrations` | None required | Create a registration; finds/creates user by email if not logged in |
-| `PATCH` | `/api/registrations/[id]` | REGISTRAR or ADMIN | Update `status`, `notes`, or `donationStatus` on a registration |
+| `PATCH` | `/api/registrations/[id]` | REGISTRAR or ADMIN | Update `status`, `notes`, or `donationStatus`; on WAITLISTED→APPROVED promotion auto-sets `donationStatus` from `danaMode`; fires approval or cancellation email |
 | `GET` | `/api/programs/[slug]/registrations` | REGISTRAR or ADMIN | List registrations for a program; add `?format=csv` for CSV download |
 | `POST` | `/api/stripe/checkout` | None required | Create a Stripe Checkout session for registration dana; returns session URL |
 | `POST` | `/api/stripe/webhook` | Stripe signature | Receive `checkout.session.completed`; update registration donationStatus/amount |
@@ -556,7 +563,8 @@ The Stripe metadata structure (Section 4c) and `Donation` DB model (Section 7) a
 | 2026-03-02 | Fixed approval email not sending: condition expanded to include WAITLISTED→REGISTERED (not just WAITLISTED→APPROVED); root cause was Resend v4+ `{ data, error }` return pattern — `try/catch` never fires on Resend errors, must check `error` field explicitly |
 | 2026-03-02 | Designed full dana + Stripe integration (Section 4c) and Donation Management System (Section 11); documented dana philosophy, four dana modes, Stripe metadata for QuickBooks, Donation DB model, future TREASURER role and management UI |
 | 2026-03-02 | Implemented full Stripe dana integration: installed stripe SDK, lib/stripe.ts singleton; Sanity schema dana group (danaMode/suggestedDana/danaBaseAmount/danaFixedAmount/danaMessage replacing suggestedDonation); Prisma TREASURER role + Donation ledger model; /api/stripe/checkout + /api/stripe/webhook routes; RegistrationForm dana step UI (voluntary/base_plus_dana/fixed modes, skip for voluntary); /api/registrations danaMode handling (WAIVED status for none mode); program page ?dana=success/cancelled banners; pg-dana* CSS |
+| 2026-03-02 | Waitlist promotion + cancellation flow: PATCH endpoint auto-sets donationStatus on promotion (PENDING if dana, WAIVED if none); approval email updated with dana section (hasDana flag); new sendCancellationNotificationEmail() to registrar on any cancellation (REGISTRAR_EMAIL env var); VolunteerTable dropdown replaced with context-aware Promote/Cancel/Restore buttons; RegistrationForm shows dana step for promoted waitlist members with existingDonationStatus===PENDING; dashboard shows pending dana reminder card linking to program page; vol-action CSS and db-dana-reminder CSS added |
 
 ---
 
-*Last updated: 2026-03-02 (session 4)*
+*Last updated: 2026-03-02 (session 5)*
