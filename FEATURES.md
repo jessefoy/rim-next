@@ -168,7 +168,7 @@ A registration is considered a duplicate if the same `userId` + `programId` alre
 **What the registrar can do:**
 - See all registrants in a table (name, email, phone, status, donation status, registration date)
 - Filter by status: All / Registered / Waitlisted / Approved / Cancelled
-- Change a registrant's status inline (dropdown, saves immediately)
+- Change a registrant's status inline — two-step: select new status (dashed border = pending), then click **Confirm** to save. Cancel reverts with no change. Prevents accidental updates.
 - Click any row to expand it and see: custom field answers, comments, and internal notes
 - Write and save internal notes per registrant (not visible to the member)
 - Export all registrations as a CSV file (includes all custom fields as columns)
@@ -358,6 +358,7 @@ All custom styles: `public/css/custom.css`
 |---|---|
 | 2026-03-01 | Built complete registration system: RegistrationForm, volunteer admin table, API routes, DB schema (roles array, Registration model), Sanity schema fields, route protection, staff dashboard panel, mobile-friendly volunteer pages; added FEATURES.md |
 | 2026-03-01 | Registration confirmation emails via Resend (`lib/email.ts`) — HTML + plain-text, REGISTERED and WAITLISTED variants, includes program date/time/location when available |
+| 2026-03-01 | Status change confirmation step in volunteer table (select → pending → Confirm/Cancel); WAITLISTED→APPROVED transition auto-sends approval email via `sendApprovalEmail()` |
 
 ---
 
