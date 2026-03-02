@@ -145,9 +145,26 @@ UPDATE users SET roles = '{REGISTRAR,ADMIN}' WHERE email = 'person@example.com';
 **🔧 Technical notes:**
 - Capacity check and registration creation are not wrapped in a transaction — there's a theoretical race condition if two people register simultaneously for the last spot. Acceptable for current scale; fix with a DB transaction if needed later
 
-### 4c. Duplicate Prevention
+### 4d. Email Delivery
 
-A registration is considered a duplicate if the same `userId` + `programId` already exists with status not equal to `CANCELLED`. Cancellations are allowed to re-register.
+**Registration confirmation email** — sent immediately after a successful registration. Two variants:
+- **REGISTERED** — subject "You're registered — [Program]", includes date/time/location if set in Sanity
+- **WAITLISTED** — subject "You're on the waitlist — [Program]", includes waitlist position if > 0
+
+**Waitlist approval email** — sent by the API when a registrar moves a registrant from `WAITLISTED` → `APPROVED` or `WAITLISTED` → `REGISTERED`. Subject: "Your spot is confirmed — [Program]".
+
+**Key file:** `lib/email.ts`
+
+**🔧 Technical notes:**
+- Uses Resend SDK (`resend@6.9.2`). **Critical:** Resend v4+ returns `{ data, error }` instead of throwing on failure — always destructure and check `error`. A plain `try/catch` will never fire on a Resend send error.
+- `EMAIL_FROM` env var controls the sender address. Currently `onboarding@resend.dev` (Resend's shared sandbox domain). Switch to a verified RIM domain after DNS verification.
+- `NEXTAUTH_URL` env var must be set in Vercel so program links in emails resolve correctly (e.g. `https://rim-next.vercel.app`).
+- Email failures are logged (`console.error`) but never throw — a failed email must never block the registration or status update.
+- Both functions are fire-and-forget (`Promise<void>`) — no return value.
+
+### 4e. Duplicate Prevention
+
+A registration is considered a duplicate if the same `userId` + `programId` already exists with a status that is not `CANCELLED`. Cancellations are allowed to re-register.
 
 ---
 
@@ -359,7 +376,8 @@ All custom styles: `public/css/custom.css`
 | 2026-03-01 | Built complete registration system: RegistrationForm, volunteer admin table, API routes, DB schema (roles array, Registration model), Sanity schema fields, route protection, staff dashboard panel, mobile-friendly volunteer pages; added FEATURES.md |
 | 2026-03-01 | Registration confirmation emails via Resend (`lib/email.ts`) — HTML + plain-text, REGISTERED and WAITLISTED variants, includes program date/time/location when available |
 | 2026-03-01 | Status change confirmation step in volunteer table (select → pending → Confirm/Cancel); WAITLISTED→APPROVED transition auto-sends approval email via `sendApprovalEmail()` |
+| 2026-03-02 | Fixed approval email not sending: condition expanded to include WAITLISTED→REGISTERED (not just WAITLISTED→APPROVED); root cause was Resend v4+ `{ data, error }` return pattern — `try/catch` never fires on Resend errors, must check `error` field explicitly |
 
 ---
 
-*Last updated: 2026-03-01 (session 2)*
+*Last updated: 2026-03-02 (session 3)*
