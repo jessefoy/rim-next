@@ -52,6 +52,18 @@ function formatDate(iso: string) {
   });
 }
 
+function formatPhone(raw: string | null): string {
+  if (!raw) return "—";
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length === 11 && digits[0] === "1") {
+    return `(${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
+  }
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+  return raw; // return as-is if format is unrecognised
+}
+
 export default function VolunteerTable({
   initialRegistrations,
   programSlug,
@@ -202,7 +214,7 @@ export default function VolunteerTable({
                       )}
                     </td>
                     <td className="vol-row__email">{r.email}</td>
-                    <td className="vol-row__phone">{r.phone ?? "—"}</td>
+                    <td className="vol-row__phone">{formatPhone(r.phone)}</td>
                     <td className="vol-row__status" onClick={(e) => e.stopPropagation()}>
                       <select
                         className={`vol-status-select vol-status-select--${r.status.toLowerCase()}`}
