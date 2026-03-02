@@ -179,6 +179,10 @@ model Registration {
   donationAmount  Int?            // in cents
   stripeSessionId String?
 
+  // Self-service response edit link (single-use, 7-day expiry)
+  editToken          String?   @unique
+  editTokenExpiresAt DateTime?
+
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 

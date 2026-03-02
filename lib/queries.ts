@@ -179,3 +179,9 @@ export const volunteerPositionBySlugQuery = `*[_type == "volunteerPositions" && 
 }`;
 
 export const allVolunteerPositionSlugsQuery = `*[_type == "volunteerPositions" && !(_id in path("drafts.**"))] { "slug": slug.current }`;
+
+// ─── Registration field definitions (for self-service edit form) ──────────────
+
+export const registrationFieldsBySlugQuery = `*[_type == "programs" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
+  registrationFields[] { _key, label, fieldType, required, options }
+}`;

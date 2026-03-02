@@ -337,6 +337,64 @@ function buildCancellationText({ registrantName, registrantEmail, programTitle, 
   ].join("\n");
 }
 
+// ─── Self-service edit request email (to registrant) ─────────────────────────
+
+export interface EditRequestEmailData {
+  to: string;
+  firstName: string;
+  programTitle: string;
+  token: string;
+}
+
+/**
+ * Sent by a registrar to invite a registrant to update their own responses.
+ * The token is single-use and expires after 7 days.
+ * Errors are caught and logged — must never fail the request.
+ */
+export async function sendEditRequestEmail(data: EditRequestEmailData): Promise<void> {
+  const { to, firstName, programTitle, token } = data;
+  const editUrl = `${BASE_URL}/update/${token}`;
+
+  const { error } = await resend.emails.send({
+    from:    FROM,
+    to,
+    subject: `Update your responses — ${programTitle}`,
+    html:    buildEditRequestHtml({ firstName, programTitle, editUrl }),
+    text:    buildEditRequestText({ firstName, programTitle, editUrl }),
+  });
+  if (error) {
+    console.error("[email] Failed to send edit request:", error);
+  }
+}
+
+// ─── Responses-updated notification email (to registrar) ─────────────────────
+
+export interface ResponsesUpdatedEmailData {
+  registrantName: string;
+  programTitle: string;
+  programSlug: string;
+}
+
+/**
+ * Sent to REGISTRAR_EMAIL when a registrant submits their self-service response update.
+ * Errors are caught and logged.
+ */
+export async function sendResponsesUpdatedEmail(data: ResponsesUpdatedEmailData): Promise<void> {
+  const { registrantName, programTitle, programSlug } = data;
+  const volunteerUrl = `${BASE_URL}/volunteer/programs/${programSlug}`;
+
+  const { error } = await resend.emails.send({
+    from:    FROM,
+    to:      REGISTRAR_EMAIL,
+    subject: `${registrantName} updated their responses — ${programTitle}`,
+    html:    buildResponsesUpdatedHtml({ registrantName, programTitle, volunteerUrl }),
+    text:    buildResponsesUpdatedText({ registrantName, programTitle, volunteerUrl }),
+  });
+  if (error) {
+    console.error("[email] Failed to send responses-updated notification:", error);
+  }
+}
+
 // ─── Dana reminder email (to registrant) ─────────────────────────────────────
 
 export interface DanaReminderEmailData {
@@ -604,5 +662,170 @@ function buildDanaReminderText({ firstName, programTitle, registerUrl }: {
     "—",
     "Rooted In Mindfulness · Brookfield, WI",
     "rootedinmindfulness.org",
+  ].join("\n");
+}
+
+// ─── Edit request builders ────────────────────────────────────────────────────
+
+function buildEditRequestHtml({ firstName, programTitle, editUrl }: {
+  firstName: string; programTitle: string; editUrl: string;
+}): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Update your responses</title>
+</head>
+<body style="margin:0;padding:24px 0;background-color:#f6f3f0;font-family:Georgia,'Times New Roman',serif;">
+  <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:6px;overflow:hidden;">
+
+    <!-- Header -->
+    <div style="background:#135274;padding:24px 36px;">
+      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;
+                letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.75);">
+        Rooted In Mindfulness
+      </p>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:36px 36px 28px;">
+      <h1 style="margin:0 0 24px;font-family:Georgia,'Times New Roman',serif;font-size:26px;
+                 font-weight:400;line-height:1.3;color:#135274;">
+        Update your responses
+      </h1>
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,serif;">
+        Hi ${firstName},
+      </p>
+      <p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,serif;">
+        Your registrar has invited you to review and update your registration responses for
+        <strong>${programTitle}</strong>. Click below to open your pre-filled form.
+      </p>
+
+      <!-- CTA -->
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
+        <tr>
+          <td style="border-radius:4px;background:#39607a;">
+            <a href="${editUrl}"
+               style="display:inline-block;padding:12px 24px;font-family:Arial,Helvetica,sans-serif;
+                      font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:4px;">
+              Update My Responses
+            </a>
+          </td>
+        </tr>
+      </table>
+
+      <p style="margin:0;font-size:14px;line-height:1.7;color:#6b6059;font-family:Arial,Helvetica,sans-serif;">
+        This link is unique to you and expires in 7 days. It can only be used once.
+      </p>
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:20px 36px 28px;border-top:1px solid #ede9e5;">
+      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">
+        Rooted In Mindfulness &middot; Brookfield, WI<br>
+        Questions? Reply to this email or visit
+        <a href="https://rootedinmindfulness.org" style="color:#39607a;text-decoration:none;">
+          rootedinmindfulness.org
+        </a>
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>`;
+}
+
+function buildEditRequestText({ firstName, programTitle, editUrl }: {
+  firstName: string; programTitle: string; editUrl: string;
+}): string {
+  return [
+    `Hi ${firstName},`,
+    "",
+    `Your registrar has invited you to review and update your registration responses for ${programTitle}.`,
+    "",
+    "Update your responses here:",
+    editUrl,
+    "",
+    "This link is unique to you, expires in 7 days, and can only be used once.",
+    "",
+    "—",
+    "Rooted In Mindfulness · Brookfield, WI",
+    "rootedinmindfulness.org",
+  ].join("\n");
+}
+
+// ─── Responses-updated notification builders ──────────────────────────────────
+
+function buildResponsesUpdatedHtml({ registrantName, programTitle, volunteerUrl }: {
+  registrantName: string; programTitle: string; volunteerUrl: string;
+}): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Responses updated</title>
+</head>
+<body style="margin:0;padding:24px 0;background-color:#f6f3f0;font-family:Georgia,'Times New Roman',serif;">
+  <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:6px;overflow:hidden;">
+
+    <!-- Header -->
+    <div style="background:#135274;padding:24px 36px;">
+      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;
+                letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.75);">
+        Rooted In Mindfulness — Registrar Notification
+      </p>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:36px 36px 28px;">
+      <h1 style="margin:0 0 24px;font-family:Georgia,'Times New Roman',serif;font-size:22px;
+                 font-weight:400;line-height:1.3;color:#135274;">
+        Responses Updated
+      </h1>
+      <p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,serif;">
+        <strong>${registrantName}</strong> has updated their registration responses for
+        <strong>${programTitle}</strong>.
+      </p>
+
+      <!-- CTA -->
+      <table role="presentation" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="border-radius:4px;background:#135274;">
+            <a href="${volunteerUrl}"
+               style="display:inline-block;padding:12px 24px;font-family:Arial,Helvetica,sans-serif;
+                      font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:4px;">
+              View Registration
+            </a>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:20px 36px 28px;border-top:1px solid #ede9e5;">
+      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">
+        Rooted In Mindfulness &middot; Brookfield, WI
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>`;
+}
+
+function buildResponsesUpdatedText({ registrantName, programTitle, volunteerUrl }: {
+  registrantName: string; programTitle: string; volunteerUrl: string;
+}): string {
+  return [
+    `Responses Updated — ${programTitle}`,
+    "",
+    `${registrantName} has updated their registration responses.`,
+    "",
+    `View registration: ${volunteerUrl}`,
+    "",
+    "—",
+    "Rooted In Mindfulness · Brookfield, WI",
   ].join("\n");
 }

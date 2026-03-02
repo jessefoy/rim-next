@@ -84,6 +84,11 @@ export default function VolunteerTable({
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [reminderSent, setReminderSent] = useState<string | null>(null);
+  const [editRequestSent, setEditRequestSent] = useState<string | null>(null);
+  const [editingFields, setEditingFields] = useState<Record<string, Record<string, string>>>({});
+  const [editFieldsOpen, setEditFieldsOpen] = useState<string | null>(null);
+  const [savingFields, setSavingFields] = useState<string | null>(null);
+  const [savedFields, setSavedFields] = useState<string | null>(null);
 
   // ── Counts — APPROVED is bucketed under REGISTERED ──────────────────────────
   const counts: Record<string, number> = { ALL: registrations.length };
@@ -230,6 +235,50 @@ export default function VolunteerTable({
       alert("Failed to send reminder. Please try again.");
     } finally {
       setActionLoading(null);
+    }
+  }
+
+  // ── Action: send self-service edit request email ──────────────────────────────
+  async function sendEditRequest(id: string) {
+    setActionLoading(id);
+    try {
+      const res = await fetch(`/api/registrations/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "sendEditRequest" }),
+      });
+      if (!res.ok) throw new Error();
+      setEditRequestSent(id);
+      setTimeout(() => setEditRequestSent(null), 4000);
+    } catch {
+      alert("Failed to send edit request. Please try again.");
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  // ── Action: save inline-edited custom fields ──────────────────────────────────
+  async function saveCustomFields(id: string) {
+    const fields = editingFields[id];
+    if (!fields) return;
+    setSavingFields(id);
+    try {
+      const res = await fetch(`/api/registrations/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customFields: fields }),
+      });
+      if (!res.ok) throw new Error();
+      setRegistrations((rs) =>
+        rs.map((r) => (r.id === id ? { ...r, customFields: fields } : r))
+      );
+      setSavedFields(id);
+      setEditFieldsOpen(null);
+      setTimeout(() => setSavedFields(null), 2500);
+    } catch {
+      alert("Failed to save responses. Please try again.");
+    } finally {
+      setSavingFields(null);
     }
   }
 
@@ -458,14 +507,67 @@ export default function VolunteerTable({
                             {hasCustom && (
                               <>
                                 <p className="vol-detail__col-label">Responses</p>
-                                <dl className="vol-detail__fields">
-                                  {Object.entries(r.customFields!).map(([q, a]) => (
-                                    <div className="vol-detail__field-row" key={q}>
-                                      <dt>{q}</dt>
-                                      <dd>{a}</dd>
+
+                                {/* Display mode */}
+                                {editFieldsOpen !== r.id ? (
+                                  <>
+                                    <dl className="vol-detail__fields">
+                                      {Object.entries(r.customFields!).map(([q, a]) => (
+                                        <div className="vol-detail__field-row" key={q}>
+                                          <dt>{q}</dt>
+                                          <dd>{a as string}</dd>
+                                        </div>
+                                      ))}
+                                    </dl>
+                                    <button
+                                      className="vol-edit-fields-btn"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditFieldsOpen(r.id);
+                                        setEditingFields((prev) => ({
+                                          ...prev,
+                                          [r.id]: { ...(r.customFields as Record<string, string>) },
+                                        }));
+                                      }}
+                                    >
+                                      {savedFields === r.id ? "Saved ✓" : "Edit Responses"}
+                                    </button>
+                                  </>
+                                ) : (
+                                  /* Edit mode */
+                                  <div className="vol-fields-edit" onClick={(e) => e.stopPropagation()}>
+                                    {Object.entries(editingFields[r.id] ?? {}).map(([q, a]) => (
+                                      <div key={q}>
+                                        <label className="vol-field-edit__label">{q}</label>
+                                        <input
+                                          className="vol-field-edit__input"
+                                          value={a}
+                                          onChange={(e) =>
+                                            setEditingFields((prev) => ({
+                                              ...prev,
+                                              [r.id]: { ...prev[r.id], [q]: e.target.value },
+                                            }))
+                                          }
+                                        />
+                                      </div>
+                                    ))}
+                                    <div className="vol-field-edit__actions">
+                                      <button
+                                        className="vol-save-btn"
+                                        disabled={savingFields === r.id}
+                                        onClick={() => saveCustomFields(r.id)}
+                                      >
+                                        {savingFields === r.id ? "Saving…" : "Save Changes"}
+                                      </button>
+                                      <button
+                                        className="vol-action-btn vol-action-btn--ghost"
+                                        onClick={() => setEditFieldsOpen(null)}
+                                      >
+                                        Cancel
+                                      </button>
                                     </div>
-                                  ))}
-                                </dl>
+                                  </div>
+                                )}
                               </>
                             )}
                             {hasComments && (
@@ -498,6 +600,18 @@ export default function VolunteerTable({
                                   {reminderSent === r.id
                                     ? "Reminder Sent ✓"
                                     : "Send Dana Reminder"}
+                                </button>
+                              )}
+
+                              {/* Send Edit Request — only for active registrations with custom fields */}
+                              {(r.status === "REGISTERED" || r.status === "APPROVED" || r.status === "WAITLISTED") &&
+                                r.customFields && Object.keys(r.customFields).length > 0 && (
+                                <button
+                                  className="vol-action-btn vol-action-btn--edit-request"
+                                  disabled={actionLoading === r.id}
+                                  onClick={() => sendEditRequest(r.id)}
+                                >
+                                  {editRequestSent === r.id ? "Edit Link Sent ✓" : "Send Edit Request"}
                                 </button>
                               )}
 

@@ -6,6 +6,7 @@ import {
   sendApprovalEmail,
   sendCancellationNotificationEmail,
   sendDanaReminderEmail,
+  sendEditRequestEmail,
 } from "@/lib/email";
 
 // ─── PATCH — update status, notes, donationStatus, or send dana reminder ─────
@@ -22,7 +23,28 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { action, status, notes, donationStatus, danaMode } = body;
+    const { action, status, notes, donationStatus, danaMode, customFields, comments } = body;
+
+    // ── Special action: send self-service edit request email ─────────────────
+    if (action === "sendEditRequest") {
+      const reg = await db.registration.findUnique({ where: { id } });
+      if (!reg || reg.status === "CANCELLED") {
+        return NextResponse.json({ error: "Invalid registration" }, { status: 400 });
+      }
+      const token   = crypto.randomUUID();
+      const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+      await db.registration.update({
+        where: { id },
+        data: { editToken: token, editTokenExpiresAt: expires },
+      });
+      await sendEditRequestEmail({
+        to:           reg.email,
+        firstName:    reg.firstName,
+        programTitle: reg.programTitle,
+        token,
+      });
+      return NextResponse.json({ ok: true });
+    }
 
     // ── Special action: send dana reminder email ──────────────────────────────
     if (action === "sendDanaReminder") {
@@ -80,6 +102,8 @@ export async function PATCH(
         ...(status && { status }),
         ...(notes !== undefined && { notes }),
         ...(resolvedDonationStatus && { donationStatus: resolvedDonationStatus }),
+        ...(customFields !== undefined && { customFields }),
+        ...(comments !== undefined && { comments }),
       },
     });
 
