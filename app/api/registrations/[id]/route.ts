@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { RegistrationStatus, DonationStatus } from "@prisma/client";
-import { sendApprovalEmail, sendCancellationNotificationEmail } from "@/lib/email";
+import {
+  sendApprovalEmail,
+  sendCancellationNotificationEmail,
+  sendDanaReminderEmail,
+} from "@/lib/email";
+
+// ─── PATCH — update status, notes, donationStatus, or send dana reminder ─────
 
 export async function PATCH(
   request: NextRequest,
@@ -16,7 +22,30 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { status, notes, donationStatus, danaMode } = body;
+    const { action, status, notes, donationStatus, danaMode } = body;
+
+    // ── Special action: send dana reminder email ──────────────────────────────
+    if (action === "sendDanaReminder") {
+      const reg = await db.registration.findUnique({ where: { id } });
+      if (!reg) {
+        return NextResponse.json({ error: "Registration not found" }, { status: 404 });
+      }
+      if (reg.donationStatus !== "PENDING") {
+        return NextResponse.json(
+          { error: "Dana reminder only applies to registrations with PENDING dana" },
+          { status: 400 }
+        );
+      }
+      await sendDanaReminderEmail({
+        to:           reg.email,
+        firstName:    reg.firstName,
+        programTitle: reg.programTitle,
+        programSlug:  reg.programSlug,
+      });
+      return NextResponse.json({ ok: true });
+    }
+
+    // ── Standard field updates ────────────────────────────────────────────────
 
     // Validate enum values if provided
     if (status && !Object.values(RegistrationStatus).includes(status)) {
@@ -80,5 +109,40 @@ export async function PATCH(
   } catch (error) {
     console.error("Update registration error:", error);
     return NextResponse.json({ error: "Update failed" }, { status: 500 });
+  }
+}
+
+// ─── DELETE — permanently remove a CANCELLED registration ─────────────────────
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session?.user?.roles?.some((r) => ["REGISTRAR", "ADMIN"].includes(r))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
+  try {
+    const { id } = await params;
+
+    const registration = await db.registration.findUnique({ where: { id } });
+    if (!registration) {
+      return NextResponse.json({ error: "Registration not found" }, { status: 404 });
+    }
+
+    // Guard: only CANCELLED records may be permanently deleted
+    if (registration.status !== "CANCELLED") {
+      return NextResponse.json(
+        { error: "Only CANCELLED registrations may be deleted. Cancel it first." },
+        { status: 400 }
+      );
+    }
+
+    await db.registration.delete({ where: { id } });
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("Delete registration error:", error);
+    return NextResponse.json({ error: "Delete failed" }, { status: 500 });
   }
 }

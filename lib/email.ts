@@ -337,6 +337,36 @@ function buildCancellationText({ registrantName, registrantEmail, programTitle, 
   ].join("\n");
 }
 
+// ─── Dana reminder email (to registrant) ─────────────────────────────────────
+
+export interface DanaReminderEmailData {
+  to: string;
+  firstName: string;
+  programTitle: string;
+  programSlug: string;
+}
+
+/**
+ * Sent by a registrar to a member whose donationStatus is PENDING.
+ * Gentle reminder with a direct link to the /register page dana step.
+ * Errors are caught and logged — must never fail the request.
+ */
+export async function sendDanaReminderEmail(data: DanaReminderEmailData): Promise<void> {
+  const { to, firstName, programTitle, programSlug } = data;
+  const registerUrl = `${BASE_URL}/programs/${programSlug}/register`;
+
+  const { error } = await resend.emails.send({
+    from:    FROM,
+    to,
+    subject: `A gentle reminder — your dana for ${programTitle}`,
+    html:    buildDanaReminderHtml({ firstName, programTitle, registerUrl }),
+    text:    buildDanaReminderText({ firstName, programTitle, registerUrl }),
+  });
+  if (error) {
+    console.error("[email] Failed to send dana reminder:", error);
+  }
+}
+
 // ─── Internal helpers (registration confirmation / waitlist) ─────────────────
 
 interface BuildParams {
@@ -476,6 +506,100 @@ function buildText(p: BuildParams): string {
     "",
     ...(details ? [details, ""] : []),
     `View program details: ${p.programUrl}`,
+    "",
+    "—",
+    "Rooted In Mindfulness · Brookfield, WI",
+    "rootedinmindfulness.org",
+  ].join("\n");
+}
+
+// ─── Dana reminder builders ───────────────────────────────────────────────────
+
+function buildDanaReminderHtml({ firstName, programTitle, registerUrl }: {
+  firstName: string; programTitle: string; registerUrl: string;
+}): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>A gentle reminder — your dana</title>
+</head>
+<body style="margin:0;padding:24px 0;background-color:#f6f3f0;font-family:Georgia,'Times New Roman',serif;">
+  <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:6px;overflow:hidden;">
+
+    <!-- Header -->
+    <div style="background:#135274;padding:24px 36px;">
+      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;
+                letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.75);">
+        Rooted In Mindfulness
+      </p>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:36px 36px 28px;">
+      <h1 style="margin:0 0 24px;font-family:Georgia,'Times New Roman',serif;font-size:26px;
+                 font-weight:400;line-height:1.3;color:#135274;">
+        A gentle reminder
+      </h1>
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,serif;">
+        Hi ${firstName},
+      </p>
+      <p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,serif;">
+        Just a gentle note that your dana offering for <strong>${programTitle}</strong>
+        is still pending. Whenever you feel moved to, you can complete it here:
+      </p>
+
+      <!-- Dana CTA -->
+      <div style="margin:0 0 28px;padding:20px 24px;background:#ede9e5;border-radius:4px;">
+        <table role="presentation" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="border-radius:4px;background:#39607a;">
+              <a href="${registerUrl}"
+                 style="display:inline-block;padding:10px 20px;font-family:Arial,Helvetica,sans-serif;
+                        font-size:13px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:4px;">
+                Complete Your Dana Offering
+              </a>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <p style="margin:0;font-size:15px;line-height:1.75;color:#6b6059;font-family:Georgia,serif;font-style:italic;">
+        Dana is entirely optional — please only complete it if and when it feels right
+        for you. Your participation is what matters most.
+      </p>
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:20px 36px 28px;border-top:1px solid #ede9e5;">
+      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">
+        Rooted In Mindfulness &middot; Brookfield, WI<br>
+        Questions? Reply to this email or visit
+        <a href="https://rootedinmindfulness.org" style="color:#39607a;text-decoration:none;">
+          rootedinmindfulness.org
+        </a>
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>`;
+}
+
+function buildDanaReminderText({ firstName, programTitle, registerUrl }: {
+  firstName: string; programTitle: string; registerUrl: string;
+}): string {
+  return [
+    `Hi ${firstName},`,
+    "",
+    `Just a gentle note that your dana offering for ${programTitle} is still pending.`,
+    "",
+    "Whenever you feel moved to, you can complete it here:",
+    registerUrl,
+    "",
+    "Dana is entirely optional — please only complete it if and when it feels right",
+    "for you. Your participation is what matters most.",
     "",
     "—",
     "Rooted In Mindfulness · Brookfield, WI",

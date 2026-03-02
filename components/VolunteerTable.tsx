@@ -75,12 +75,15 @@ export default function VolunteerTable({
 }: Props) {
   const [registrations, setRegistrations] = useState(initialRegistrations);
   const [filter, setFilter] = useState<Filter>("ALL");
+  const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingNotes, setEditingNotes] = useState<Record<string, string>>({});
   const [savingNotes, setSavingNotes] = useState<string | null>(null);
   const [savedNotes, setSavedNotes] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [reminderSent, setReminderSent] = useState<string | null>(null);
 
   // ── Counts ──────────────────────────────────────────────────────────────────
   const counts: Record<string, number> = { ALL: registrations.length };
@@ -102,8 +105,16 @@ export default function VolunteerTable({
       : null;
 
   // ── Filtered list ───────────────────────────────────────────────────────────
-  const visible =
-    filter === "ALL" ? registrations : registrations.filter((r) => r.status === filter);
+  const visible = registrations
+    .filter((r) => filter === "ALL" || r.status === filter)
+    .filter((r) => {
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      return (
+        `${r.firstName} ${r.lastName}`.toLowerCase().includes(q) ||
+        r.email.toLowerCase().includes(q)
+      );
+    });
 
   // ── Action: promote from waitlist ────────────────────────────────────────────
   async function promoteRegistration(id: string) {
@@ -182,6 +193,41 @@ export default function VolunteerTable({
     }
   }
 
+  // ── Action: permanently delete a CANCELLED registration ───────────────────────
+  async function deleteRegistration(id: string) {
+    setActionLoading(id);
+    try {
+      const res = await fetch(`/api/registrations/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      setRegistrations((rs) => rs.filter((r) => r.id !== id));
+      setExpandedId(null);
+      setConfirmDeleteId(null);
+    } catch {
+      alert("Failed to delete. Please try again.");
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  // ── Action: send dana reminder email ──────────────────────────────────────────
+  async function sendDanaReminder(id: string) {
+    setActionLoading(id);
+    try {
+      const res = await fetch(`/api/registrations/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "sendDanaReminder" }),
+      });
+      if (!res.ok) throw new Error();
+      setReminderSent(id);
+      setTimeout(() => setReminderSent(null), 3000);
+    } catch {
+      alert("Failed to send reminder. Please try again.");
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
   // ── Notes save ──────────────────────────────────────────────────────────────
   async function saveNotes(id: string) {
     const notes = editingNotes[id] ?? "";
@@ -210,12 +256,24 @@ export default function VolunteerTable({
     if (expandedId === id) {
       setExpandedId(null);
       setConfirmCancelId(null);
+      setConfirmDeleteId(null);
     } else {
       setExpandedId(id);
       setConfirmCancelId(null);
+      setConfirmDeleteId(null);
       if (!(id in editingNotes)) {
         setEditingNotes((prev) => ({ ...prev, [id]: currentNotes ?? "" }));
       }
+    }
+  }
+
+  // ── Helper: open row and pre-trigger cancel confirm ──────────────────────────
+  function openWithCancelConfirm(id: string, currentNotes: string | null) {
+    setExpandedId(id);
+    setConfirmCancelId(id);
+    setConfirmDeleteId(null);
+    if (!(id in editingNotes)) {
+      setEditingNotes((prev) => ({ ...prev, [id]: currentNotes ?? "" }));
     }
   }
 
@@ -261,7 +319,7 @@ export default function VolunteerTable({
               />
             </div>
             <span className="vol-capacity__label">
-              {confirmedCount} of {registrationCapacity}
+              Capacity: {confirmedCount} / {registrationCapacity}
             </span>
           </div>
         )}
@@ -283,6 +341,13 @@ export default function VolunteerTable({
             </button>
           ))}
         </div>
+        <input
+          type="search"
+          className="vol-search"
+          placeholder="Search by name or email…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
         <a
           href={`/api/programs/${programSlug}/registrations?format=csv`}
           className="vol-csv-btn"
@@ -295,7 +360,9 @@ export default function VolunteerTable({
       {/* ── Table ── */}
       {visible.length === 0 ? (
         <p className="vol-empty">
-          No registrations{filter !== "ALL" ? ` with status ${STATUS_LABELS[filter]}` : ""} yet.
+          {search.trim()
+            ? `No results for "${search}".`
+            : `No registrations${filter !== "ALL" ? ` with status ${STATUS_LABELS[filter]}` : ""} yet.`}
         </p>
       ) : (
         <table className="vol-table">
@@ -334,7 +401,7 @@ export default function VolunteerTable({
                       <span className="vol-row__email">{r.email}</span>
                     </td>
 
-                    {/* Status — text label + inline promote for WAITLISTED */}
+                    {/* Status — text label + inline quick-actions */}
                     <td className="vol-row__status-cell" onClick={(e) => e.stopPropagation()}>
                       <span className={`vol-row__status-text vol-row__status-text--${r.status.toLowerCase()}`}>
                         {STATUS_LABELS[r.status]}
@@ -342,6 +409,8 @@ export default function VolunteerTable({
                           <> #{r.waitlistPosition}</>
                         )}
                       </span>
+
+                      {/* WAITLISTED → promote */}
                       {r.status === "WAITLISTED" && (
                         <button
                           className="vol-promote-inline"
@@ -349,6 +418,27 @@ export default function VolunteerTable({
                           onClick={() => promoteRegistration(r.id)}
                         >
                           {actionLoading === r.id ? "…" : "Promote"}
+                        </button>
+                      )}
+
+                      {/* REGISTERED / APPROVED → cancel (opens row + shows confirm) */}
+                      {(r.status === "REGISTERED" || r.status === "APPROVED") && (
+                        <button
+                          className="vol-cancel-inline"
+                          onClick={() => openWithCancelConfirm(r.id, r.notes)}
+                        >
+                          Cancel
+                        </button>
+                      )}
+
+                      {/* CANCELLED → restore */}
+                      {r.status === "CANCELLED" && (
+                        <button
+                          className="vol-restore-inline"
+                          disabled={actionLoading === r.id}
+                          onClick={() => restoreRegistration(r.id)}
+                        >
+                          {actionLoading === r.id ? "…" : "Restore"}
                         </button>
                       )}
                     </td>
@@ -399,6 +489,7 @@ export default function VolunteerTable({
                             </div>
                             {r.donationStatus !== "NOT_REQUIRED" && (
                               <div className="vol-detail__dana-row">
+                                <span className="vol-detail__dana-label">Dana</span>
                                 <span className={`vol-badge vol-badge--donation-${r.donationStatus.toLowerCase()}`}>
                                   {DONATION_LABELS[r.donationStatus]}
                                 </span>
@@ -475,6 +566,20 @@ export default function VolunteerTable({
                               className="vol-detail__actions-wrap"
                               onClick={(e) => e.stopPropagation()}
                             >
+                              {/* Dana reminder — shown whenever donation is pending */}
+                              {r.donationStatus === "PENDING" && (
+                                <button
+                                  className="vol-action-btn vol-action-btn--reminder"
+                                  disabled={actionLoading === r.id}
+                                  onClick={() => sendDanaReminder(r.id)}
+                                >
+                                  {reminderSent === r.id
+                                    ? "Reminder Sent ✓"
+                                    : "Send Dana Reminder"}
+                                </button>
+                              )}
+
+                              {/* Promote */}
                               {r.status === "WAITLISTED" && (
                                 <button
                                   className="vol-action-btn vol-action-btn--promote"
@@ -485,6 +590,7 @@ export default function VolunteerTable({
                                 </button>
                               )}
 
+                              {/* Cancel with inline confirm */}
                               {(r.status === "REGISTERED" || r.status === "APPROVED") && (
                                 confirmCancelId === r.id ? (
                                   <div className="vol-confirm-wrap">
@@ -520,14 +626,49 @@ export default function VolunteerTable({
                                 )
                               )}
 
+                              {/* Restore + Delete (CANCELLED rows) */}
                               {r.status === "CANCELLED" && (
-                                <button
-                                  className="vol-action-btn vol-action-btn--restore"
-                                  disabled={actionLoading === r.id}
-                                  onClick={() => restoreRegistration(r.id)}
-                                >
-                                  {actionLoading === r.id ? "Restoring…" : "Restore Registration"}
-                                </button>
+                                <>
+                                  <button
+                                    className="vol-action-btn vol-action-btn--restore"
+                                    disabled={actionLoading === r.id}
+                                    onClick={() => restoreRegistration(r.id)}
+                                  >
+                                    {actionLoading === r.id ? "Restoring…" : "Restore Registration"}
+                                  </button>
+
+                                  {confirmDeleteId === r.id ? (
+                                    <div className="vol-confirm-wrap">
+                                      <span className="vol-confirm-label">
+                                        Permanently delete this record?
+                                      </span>
+                                      <div className="vol-confirm-btns">
+                                        <button
+                                          className="vol-action-btn vol-action-btn--delete"
+                                          disabled={actionLoading === r.id}
+                                          onClick={() => deleteRegistration(r.id)}
+                                        >
+                                          {actionLoading === r.id
+                                            ? "Deleting…"
+                                            : "Yes, delete permanently"}
+                                        </button>
+                                        <button
+                                          className="vol-action-btn vol-action-btn--ghost"
+                                          onClick={() => setConfirmDeleteId(null)}
+                                        >
+                                          Never mind
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      className="vol-action-btn vol-action-btn--delete-ghost"
+                                      onClick={() => setConfirmDeleteId(r.id)}
+                                    >
+                                      Delete Record
+                                    </button>
+                                  )}
+                                </>
                               )}
                             </div>
                           </div>

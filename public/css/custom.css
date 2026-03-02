@@ -2753,6 +2753,55 @@ h1, h2, h3, h4, h5, h6 {
 .vol-confirm-label { font-size: 12px; color: var(--rim-text-muted); font-style: italic; }
 .vol-confirm-btns  { display: flex; flex-direction: column; gap: 4px; }
 
+/* Inline cancel text link (status cell — REGISTERED/APPROVED rows) */
+.vol-cancel-inline {
+  display: block; margin-top: 3px; padding: 0; background: none; border: none;
+  font-family: var(--font-sans); font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase; color: #a83232; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 2px; transition: color 0.15s;
+}
+.vol-cancel-inline:hover { color: #c06060; }
+
+/* Inline restore text link (status cell — CANCELLED rows) */
+.vol-restore-inline {
+  display: block; margin-top: 3px; padding: 0; background: none; border: none;
+  font-family: var(--font-sans); font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--rim-text-muted); cursor: pointer;
+  text-decoration: underline; text-underline-offset: 2px; transition: color 0.15s;
+}
+.vol-restore-inline:hover:not(:disabled) { color: var(--rim-mid); }
+.vol-restore-inline:disabled { opacity: 0.4; cursor: default; }
+
+/* Dana label in contact column */
+.vol-detail__dana-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--rim-text-muted);
+}
+
+/* Send Dana Reminder button */
+.vol-action-btn--reminder { background: none; border: 1px solid #9ecfbe; color: #1e6b58; }
+.vol-action-btn--reminder:hover:not(:disabled) { background: #e0f0ec; }
+
+/* Delete Record buttons */
+.vol-action-btn--delete {
+  background: none; border: 1px solid #dc7575; color: #a83232;
+}
+.vol-action-btn--delete:hover:not(:disabled) { background: #fdf0f0; border-color: #c06060; }
+
+.vol-action-btn--delete-ghost {
+  background: none; border: 1px solid var(--rim-rule); color: #bbb; font-size: 12px;
+}
+.vol-action-btn--delete-ghost:hover:not(:disabled) { border-color: #dc7575; color: #a83232; }
+
+/* Search input in toolbar */
+.vol-search {
+  padding: 6px 14px; border: 1px solid var(--rim-rule); border-radius: 20px;
+  font-family: var(--font-sans); font-size: 13px; color: var(--rim-text);
+  background: #fff; width: 220px; transition: border-color 0.15s; box-sizing: border-box;
+}
+.vol-search:focus { outline: none; border-color: var(--rim-mid); }
+.vol-search::placeholder { color: var(--rim-text-muted); }
+
 /* ── Mobile ── */
 
 @media screen and (max-width: 767px) {
@@ -2778,6 +2827,7 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .vol-filter  { flex-shrink: 0; white-space: nowrap; }
+  .vol-search  { width: 100%; }
   .vol-csv-btn { align-self: flex-start; }
 
   /* ── Table → card layout ── */
