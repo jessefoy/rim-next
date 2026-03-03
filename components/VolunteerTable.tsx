@@ -19,6 +19,7 @@ export interface SerializedRegistration {
   notes: string | null;
   donationStatus: string;
   donationAmount: number | null;
+  reminderSentAt: string | null;
   createdAt: string;
 }
 
@@ -31,6 +32,7 @@ interface Props {
   danaMode?: string | null;
   registrationCapacity?: number | null;
   registrationFields?: RegistrationField[];
+  reminderDate?: string | null;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -74,6 +76,7 @@ export default function VolunteerTable({
   danaMode,
   registrationCapacity,
   registrationFields = [],
+  reminderDate,
 }: Props) {
   const [registrations, setRegistrations] = useState(initialRegistrations);
   const [filter, setFilter] = useState<Filter>("ALL");
@@ -91,6 +94,13 @@ export default function VolunteerTable({
   const [editFieldsOpen, setEditFieldsOpen] = useState<string | null>(null);
   const [savingFields, setSavingFields] = useState<string | null>(null);
   const [savedFields, setSavedFields] = useState<string | null>(null);
+  // Program reminder email state
+  const [sendingProgReminder, setSendingProgReminder] = useState<string | null>(null);
+  const [progReminderSent, setProgReminderSent]       = useState<string | null>(null);
+  const [bulkReminderSending, setBulkReminderSending] = useState(false);
+  const [bulkReminderSent, setBulkReminderSent]       = useState<number | null>(null);
+  // Optimistic local tracking — maps reg id → ISO sent timestamp
+  const [localReminderSentAt, setLocalReminderSentAt] = useState<Record<string, string>>({});
 
   // ── Counts — APPROVED is bucketed under REGISTERED ──────────────────────────
   const counts: Record<string, number> = { ALL: registrations.length };
@@ -111,6 +121,18 @@ export default function VolunteerTable({
     registrationCapacity && confirmedCount >= 0
       ? Math.min(100, Math.round((confirmedCount / registrationCapacity) * 100))
       : null;
+
+  // ── Reminder derived counts ──────────────────────────────────────────────────
+  function getReminderSentAt(id: string): string | null {
+    return localReminderSentAt[id] ?? registrations.find((r) => r.id === id)?.reminderSentAt ?? null;
+  }
+  const totalActive = registrations.filter(
+    (r) => r.status === "REGISTERED" || r.status === "APPROVED"
+  ).length;
+  const sentCount = registrations.filter(
+    (r) => (r.status === "REGISTERED" || r.status === "APPROVED") && !!getReminderSentAt(r.id)
+  ).length;
+  const unsentCount = totalActive - sentCount;
 
   // ── Filtered list ───────────────────────────────────────────────────────────
   const visible = registrations
@@ -259,6 +281,48 @@ export default function VolunteerTable({
     }
   }
 
+  // ── Action: send program reminder email (per-row) ─────────────────────────────
+  async function sendProgReminder(id: string) {
+    setSendingProgReminder(id);
+    try {
+      const res = await fetch(`/api/registrations/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "sendReminder" }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error();
+      setLocalReminderSentAt((prev) => ({ ...prev, [id]: json.reminderSentAt ?? new Date().toISOString() }));
+      setProgReminderSent(id);
+      setTimeout(() => setProgReminderSent(null), 4000);
+    } catch {
+      alert("Failed to send reminder. Please try again.");
+    } finally {
+      setSendingProgReminder(null);
+    }
+  }
+
+  // ── Action: bulk send program reminder to all unsent active registrants ────────
+  async function sendBulkReminder() {
+    setBulkReminderSending(true);
+    try {
+      const res = await fetch(`/api/programs/${programSlug}/send-reminder`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error();
+      const now = new Date().toISOString();
+      const updates: Record<string, string> = {};
+      registrations
+        .filter((r) => (r.status === "REGISTERED" || r.status === "APPROVED") && !getReminderSentAt(r.id))
+        .forEach((r) => { updates[r.id] = now; });
+      setLocalReminderSentAt((prev) => ({ ...prev, ...updates }));
+      setBulkReminderSent(json.sent ?? 0);
+    } catch {
+      alert("Failed to send reminders. Please try again.");
+    } finally {
+      setBulkReminderSending(false);
+    }
+  }
+
   // ── Action: save inline-edited custom fields ──────────────────────────────────
   async function saveCustomFields(id: string) {
     const fields = editingFields[id];
@@ -371,6 +435,39 @@ export default function VolunteerTable({
           </div>
         )}
       </div>
+
+      {/* ── Reminder section ── */}
+      {reminderDate && (
+        <div className="vol-reminder-section">
+          <div className="vol-reminder-meta">
+            <span className="vol-reminder-label">Reminder email</span>
+            <span className="vol-reminder-date">
+              Scheduled:{" "}
+              {new Date(reminderDate).toLocaleDateString("en-US", {
+                month: "long", day: "numeric", year: "numeric",
+              })}
+            </span>
+            <span className="vol-reminder-count">
+              Sent to {sentCount} of {totalActive} registrant{totalActive !== 1 ? "s" : ""}
+            </span>
+          </div>
+          {unsentCount > 0 ? (
+            <button
+              className="vol-reminder-bulk-btn"
+              onClick={sendBulkReminder}
+              disabled={bulkReminderSending}
+            >
+              {bulkReminderSending
+                ? "Sending…"
+                : bulkReminderSent !== null
+                  ? `Sent to ${bulkReminderSent} ✓`
+                  : `Send to Remaining ${unsentCount}`}
+            </button>
+          ) : totalActive > 0 ? (
+            <span className="vol-reminder-all-sent">All sent ✓</span>
+          ) : null}
+        </div>
+      )}
 
       {/* ── Toolbar ── */}
       <div className="vol-toolbar">
@@ -642,6 +739,30 @@ export default function VolunteerTable({
                                 >
                                   {editRequestSent === r.id ? "Edit Link Sent ✓" : "Send Edit Request"}
                                 </button>
+                              )}
+
+                              {/* Send Reminder — for confirmed/approved registrants */}
+                              {(r.status === "REGISTERED" || r.status === "APPROVED") && (
+                                getReminderSentAt(r.id) ? (
+                                  <span className="vol-reminder-sent-badge">
+                                    Reminder sent{" "}
+                                    {new Date(getReminderSentAt(r.id)!).toLocaleDateString("en-US", {
+                                      month: "short", day: "numeric",
+                                    })}
+                                  </span>
+                                ) : (
+                                  <button
+                                    className="vol-action-btn vol-action-btn--prog-reminder"
+                                    disabled={sendingProgReminder === r.id}
+                                    onClick={(e) => { e.stopPropagation(); sendProgReminder(r.id); }}
+                                  >
+                                    {sendingProgReminder === r.id
+                                      ? "Sending…"
+                                      : progReminderSent === r.id
+                                        ? "Reminder Sent ✓"
+                                        : "Send Reminder"}
+                                  </button>
+                                )
                               )}
 
                               {/* Promote */}

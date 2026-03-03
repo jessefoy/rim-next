@@ -3131,3 +3131,39 @@ h1, h2, h3, h4, h5, h6 {
   .ur-wrap { margin: 36px auto; }
   .ur-title { font-size: 22px; }
 }
+
+/* ── Reminder section — program-level (VolunteerTable) ────────────────────── */
+.vol-reminder-section {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  padding: 11px 16px; background: var(--rim-bg-accent);
+  border: 1px solid var(--rim-rule); border-radius: 4px; margin-bottom: 16px;
+}
+.vol-reminder-meta  { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.vol-reminder-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--rim-text-muted);
+}
+.vol-reminder-date  { font-size: 13px; color: var(--rim-text); }
+.vol-reminder-count { font-size: 13px; color: var(--rim-text-muted); }
+.vol-reminder-all-sent { font-size: 13px; color: #2e7d52; font-weight: 600; }
+
+.vol-reminder-bulk-btn {
+  margin-left: auto; padding: 6px 14px;
+  background: none; border: 1px solid var(--rim-mid); color: var(--rim-mid);
+  border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: background 0.15s, color 0.15s; white-space: nowrap;
+}
+.vol-reminder-bulk-btn:hover:not(:disabled) { background: var(--rim-mid); color: #fff; }
+.vol-reminder-bulk-btn:disabled { opacity: 0.6; cursor: default; }
+
+/* Per-row reminder sent indicator and send button */
+.vol-reminder-sent-badge {
+  display: block; font-size: 12px; color: var(--rim-text-muted); font-style: italic;
+  margin-bottom: 6px;
+}
+.vol-action-btn--prog-reminder {
+  background: none; border: 1px solid var(--rim-rule); color: var(--rim-text-muted);
+}
+.vol-action-btn--prog-reminder:hover:not(:disabled) {
+  border-color: var(--rim-mid); color: var(--rim-mid);
+}

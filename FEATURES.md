@@ -110,7 +110,7 @@ UPDATE users SET roles = '{REGISTRAR,ADMIN}' WHERE email = 'person@example.com';
 ### 4a. Registration Form (`/programs/[slug]`)
 
 **User experience:**
-- Standard fields: First Name, Last Name, Email, Phone, Comments
+- Standard fields: First Name, Last Name, Email, Phone
 - Optional custom fields configured per-program in Sanity (short text, long text, yes/no, dropdown)
 - If the program is full: banner notice + button changes to "Join Waitlist"
 - If ≤5 spots remain: "Only X spots remaining!" warning
@@ -228,15 +228,22 @@ STRIPE_WEBHOOK_SECRET        — from Stripe dashboard, used to verify webhook s
 
 **Cancellation notification email** — sent to the registrar (`REGISTRAR_EMAIL` env var) whenever any registration is cancelled (by staff via the volunteer table, or in future by the member themselves). Includes registrant name, email, program, and a link to the registration table. `REGISTRAR_EMAIL` must be added to Vercel env vars; if not set, falls back to `EMAIL_FROM`.
 
-**Key file:** `lib/email.ts`
+**Per-program confirmation message** — an optional rich-text block in Sanity (`confirmationMessage` field, Registration tab) that appears in the body of the confirmation email for confirmed (non-waitlisted) registrants. Set per program; if blank, email sends as normal. Rendered in a warm tinted box (`background: #f6f3f0`) before the CTA button. Supports bold, italic, links, and bullet lists only (no headings or images — email-safe subset). Converted server-side at registration time; failure is logged but never blocks the registration response.
+
+**Edit request email** — sent to the registrant when a registrar clicks "Send Edit Request." Subject: "Update your responses — [Program]". Body: warm note + "Update My Responses →" button → `${BASE_URL}/update/${token}`. Mentions the link expires in 7 days.
+
+**Responses updated notification** — sent to `REGISTRAR_EMAIL` when a registrant submits the self-service edit form. Subject: "[First] [Last] updated their responses — [Program]". Includes a link to the volunteer registration table.
+
+**Key files:** `lib/email.ts`, `lib/portableTextEmail.ts`
 
 **🔧 Technical notes:**
 - Uses Resend SDK (`resend@6.9.2`). **Critical:** Resend v4+ returns `{ data, error }` instead of throwing on failure — always destructure and check `error`. A plain `try/catch` will never fire on a Resend send error.
 - `EMAIL_FROM` env var controls the sender address. Currently `onboarding@resend.dev` (Resend's shared sandbox domain). Switch to a verified RIM domain after DNS verification.
 - `NEXTAUTH_URL` env var must be set in Vercel so program links in emails resolve correctly (e.g. `https://rim-next.vercel.app`).
-- `REGISTRAR_EMAIL` env var — set in Vercel to the registrar's email address (e.g. `registrar@rootedinmindfulness.org`). Used for cancellation notifications.
+- `REGISTRAR_EMAIL` env var — set in Vercel to the registrar's email address (e.g. `registrar@rootedinmindfulness.org`). Used for cancellation notifications and responses-updated notifications.
 - Email failures are logged (`console.error`) but never throw — a failed email must never block the registration or status update.
 - All email functions are fire-and-forget (`Promise<void>`) — no return value.
+- `lib/portableTextEmail.ts` — converts Sanity Portable Text to email-safe HTML and plain text. Uses `@portabletext/to-html` with all inline styles (no `<style>` tags). `portableTextToEmailHtml()` and `portableTextToEmailText()` are the two exports. Component callbacks use `HC = { children?: string; value?: any }` type alias — the library types `children` as `string | undefined`, not `string`.
 
 ### 4e. Duplicate Prevention
 
@@ -265,14 +272,16 @@ A registration is considered a duplicate if the same `userId` + `programId` alre
   - **WAITLISTED** → **"Promote →"** button: moves to APPROVED, sets `donationStatus` to PENDING (if program has dana) or WAIVED (if no dana), sends approval email (with dana section if applicable), and sends cancellation notification to the registrar email
   - **REGISTERED / APPROVED** → **"Cancel"** button: confirms via browser dialog, moves to CANCELLED, fires cancellation notification email to registrar
   - **CANCELLED** → **"Restore"** button: moves back to REGISTERED
-- Click any row to expand it and see: custom field answers, comments, and internal notes
+  - **"Send Edit Request"** button (non-cancelled rows with custom fields only): sends registrant a secure one-time link to update their own answers (see 5c)
+- Click any row to expand it and see: custom field answers and internal notes
+- **Edit Responses** — click "Edit" next to the RESPONSES column header to edit custom field answers inline. Renders the correct input type per Sanity field definition: `yesNo` → dropdown, `select` → dropdown with program's configured options, `longText` → textarea, `shortText` → text input. Saves via PATCH without page reload; shows "Saved ✓" flash on success.
 - Write and save internal notes per registrant (not visible to the member)
 - Export all registrations as a CSV file (includes all custom fields as columns)
 
 **Mobile layout:** On small screens the table transforms into cards — each row shows name + email stacked on the left, status badge + action button on the right. Phone number and registration date appear inside the expanded panel on mobile.
 
 **Key files:**
-- `app/volunteer/programs/[slug]/page.tsx` — server component (fetches program + registrations)
+- `app/volunteer/programs/[slug]/page.tsx` — server component (fetches program + registrations + `registrationFields` from Sanity)
 - `components/VolunteerTable.tsx` — client component (all interactivity)
 
 **🔧 Technical notes:**
@@ -281,6 +290,37 @@ A registration is considered a duplicate if the same `userId` + `programId` alre
 - `colSpan={7}` on the expanded detail row must stay in sync with the number of `<th>` columns in the table header
 - Mobile card layout uses `display: grid` on `<tr>` elements after setting `display: block` on `<table>` and `<tbody>`. This breaks the table formatting context, which is required for the grid to work
 - **Known specificity gotcha:** `.vol-row td { display: none }` is (0,1,1). Override selectors must be `.vol-row .vol-row__name` (0,2,0) — NOT just `.vol-row__name` (0,1,0) which loses to the hide rule
+- `registrationFields` is fetched from Sanity in the server component and passed as a prop — inline edit mode looks up each stored answer by label to determine which input type to render
+- Edit button is inline with the RESPONSES column header (`.vol-detail__col-header` flex container) — not below the field list
+
+---
+
+### 5c. Self-Service Edit Link
+
+**What it does:** Registrar clicks "Send Edit Request" on any non-cancelled registration that has custom field answers. The registrant receives an email with a unique link that opens a pre-filled form showing their current answers. They update their responses and submit; the registrar receives a notification email. The link expires in 7 days and is invalidated immediately after use (single-use).
+
+**Flow:**
+1. Registrar clicks "Send Edit Request" → PATCH `/api/registrations/[id]` with `{ action: "sendEditRequest" }`
+2. API generates a UUID token, stores it on the Registration with a 7-day expiry
+3. Registrant receives an email with a "Update My Responses →" button linking to `/update/[token]`
+4. Registrant opens link → server component validates token + expiry, fetches program field definitions from Sanity by `programSlug`, renders pre-filled `<UpdateForm>`
+5. Registrant edits their answers and submits → POST `/api/update/[token]`
+6. API re-validates token (guards against expired links), updates `customFields`, clears `editToken` + `editTokenExpiresAt` (single-use), sends "responses updated" notification to registrar
+7. Registrant sees: "Thank you — your responses have been updated."
+8. Token is now invalidated — revisiting the link shows a "Link expired or already used" message
+
+**Key files:**
+- `app/update/[token]/page.tsx` — server component: validates token, fetches Sanity fields, renders form or expired message
+- `components/UpdateForm.tsx` — client component: pre-filled inputs with correct types, submit handler, success state
+- `app/api/update/[token]/route.ts` — POST: validates token, updates registration, clears token, notifies registrar
+- `lib/email.ts` — `sendEditRequestEmail()` (to registrant) + `sendResponsesUpdatedEmail()` (to registrar)
+
+**🔧 Technical notes:**
+- Token is `crypto.randomUUID()` stored as `editToken @unique` + `editTokenExpiresAt DateTime?` on the `Registration` model
+- Single-use: token is set to `null` immediately on the first successful POST — a second request returns `410 Gone`
+- Field types are matched by label (the stored JSON key). If a field was removed from Sanity since the original registration, its stored answer renders in a plain `<input type="text">` fallback
+- Registrar can still inline-edit custom fields after a self-service submission — no conflict; they're both just PATCHing `customFields`
+- `sendEditRequest` action in the PATCH handler is separate from status/notes/donationStatus updates — it doesn't touch any of those fields
 
 ---
 
@@ -339,7 +379,6 @@ Stores one record per person per program.
 | `email` | String | Always stored normalized (lowercase) |
 | `firstName`, `lastName` | String | |
 | `phone` | String? | Stored as entered after digit normalization |
-| `comments` | String? | Registrant's message |
 | `customFields` | Json? | `{"Question": "Answer"}` |
 | `status` | RegistrationStatus | REGISTERED / WAITLISTED / APPROVED / CANCELLED |
 | `waitlistPosition` | Int? | Set only when WAITLISTED |
@@ -347,6 +386,8 @@ Stores one record per person per program.
 | `donationStatus` | DonationStatus | NOT_REQUIRED / PENDING / COMPLETED / WAIVED |
 | `donationAmount` | Int? | Cents — set by Stripe webhook on completion |
 | `stripeSessionId` | String? | Stripe Checkout session ID — set by webhook, used for reconciliation |
+| `editToken` | String? @unique | One-time UUID token for self-service response editing |
+| `editTokenExpiresAt` | DateTime? | Token expiry — set to 7 days from generation; null after use |
 
 #### Donation (schema live — Phase 2 UI planned in Section 11)
 Unified record of every contribution to RIM regardless of source. Schema is in Prisma and pushed to DB. Stripe registration dana writes here automatically via webhook from day one. Phase 2 UI (manual entry, reporting) requires no migration.
@@ -391,11 +432,12 @@ DonationSource:     STRIPE | GIVEBUTTER | CASH | CHECK | OTHER
 
 | Method | Path | Auth | What it does |
 |---|---|---|---|
-| `POST` | `/api/registrations` | None required | Create a registration; finds/creates user by email if not logged in |
-| `PATCH` | `/api/registrations/[id]` | REGISTRAR or ADMIN | Update `status`, `notes`, or `donationStatus`; on WAITLISTED→APPROVED promotion auto-sets `donationStatus` from `danaMode`; fires approval or cancellation email |
+| `POST` | `/api/registrations` | None required | Create a registration; finds/creates user by email if not logged in; fetches Sanity `confirmationMessage` for the program and includes it in the confirmation email |
+| `PATCH` | `/api/registrations/[id]` | REGISTRAR or ADMIN | Update `status`, `notes`, `donationStatus`, or `customFields` (inline edit); `action: "sendEditRequest"` generates a token and sends the self-service edit email; on WAITLISTED→APPROVED promotion auto-sets `donationStatus` from `danaMode`; fires approval or cancellation email |
 | `GET` | `/api/programs/[slug]/registrations` | REGISTRAR or ADMIN | List registrations for a program; add `?format=csv` for CSV download |
 | `POST` | `/api/stripe/checkout` | None required | Create a Stripe Checkout session for registration dana; returns session URL |
 | `POST` | `/api/stripe/webhook` | Stripe signature | Receive `checkout.session.completed`; update registration donationStatus/amount |
+| `POST` | `/api/update/[token]` | Token (no session) | Self-service response edit: validates `editToken` + expiry, updates `customFields`, clears token, sends registrar notification |
 
 **🔧 Technical notes:**
 - All PATCH/GET admin routes call `auth()` and check `session.user.roles` — they return `401` if unauthenticated or `403` if unauthorized
@@ -410,6 +452,19 @@ DonationSource:     STRIPE | GIVEBUTTER | CASH | CHECK | OTHER
 
 The Sanity schema lives at `/Users/jessefoy/Sites/rim-website/sanity/` and is shared by both the Eleventy and Next.js projects.
 
+### Sanity Studio tab layout
+
+The `programs` schema is organized into six tabs (in order):
+
+| Tab | What's in it |
+|---|---|
+| **Content** | Tagline, program image, description, pull quote + source, special notes |
+| **Schedule & Location** | Category, teacher/facilitators, date, time, listing day+time, location + map link, Zoom link + button text |
+| **Registration** | Enabled toggle → Required/Closed flags → Capacity + Deadline → Signed-out/in instructions → Custom questions → Confirmation email message → Legacy Fillout ID |
+| **Dana & Payment** | Dana mode → amounts → dana step message → program-page dana note |
+| **Dashboard** | Special announcement, early arrival message, remove from list, day filtering |
+| **Sorting & Visibility** | Day of week, sort order, hide from public list |
+
 ### Fields added to `programs` schema (registration group)
 
 | Field | Type | Purpose |
@@ -418,6 +473,7 @@ The Sanity schema lives at `/Users/jessefoy/Sites/rim-website/sanity/` and is sh
 | `registrationCapacity` | number | Max registrations before waitlist kicks in (leave blank = unlimited) |
 | `registrationDeadline` | datetime | After this date, form shows "Registration closed" |
 | `registrationFields` | array of objects | Custom per-program questions (see below) |
+| `confirmationMessage` | restricted block array | Rich text included in the confirmation email (bold, italic, links, bullets only — email-safe). Blank = no extra message. |
 
 ### Fields added to `programs` schema (dana group)
 
@@ -564,7 +620,9 @@ The Stripe metadata structure (Section 4c) and `Donation` DB model (Section 7) a
 | 2026-03-02 | Designed full dana + Stripe integration (Section 4c) and Donation Management System (Section 11); documented dana philosophy, four dana modes, Stripe metadata for QuickBooks, Donation DB model, future TREASURER role and management UI |
 | 2026-03-02 | Implemented full Stripe dana integration: installed stripe SDK, lib/stripe.ts singleton; Sanity schema dana group (danaMode/suggestedDana/danaBaseAmount/danaFixedAmount/danaMessage replacing suggestedDonation); Prisma TREASURER role + Donation ledger model; /api/stripe/checkout + /api/stripe/webhook routes; RegistrationForm dana step UI (voluntary/base_plus_dana/fixed modes, skip for voluntary); /api/registrations danaMode handling (WAIVED status for none mode); program page ?dana=success/cancelled banners; pg-dana* CSS |
 | 2026-03-02 | Waitlist promotion + cancellation flow: PATCH endpoint auto-sets donationStatus on promotion (PENDING if dana, WAIVED if none); approval email updated with dana section (hasDana flag); new sendCancellationNotificationEmail() to registrar on any cancellation (REGISTRAR_EMAIL env var); VolunteerTable dropdown replaced with context-aware Promote/Cancel/Restore buttons; RegistrationForm shows dana step for promoted waitlist members with existingDonationStatus===PENDING; dashboard shows pending dana reminder card linking to program page; vol-action CSS and db-dana-reminder CSS added |
+| 2026-03-02 | Registrar inline edit + self-service edit link: PATCH accepts customFields; VolunteerTable inline edit mode with per-field save; editToken + editTokenExpiresAt added to Registration schema (db push); sendEditRequest action in PATCH handler; sendEditRequestEmail + sendResponsesUpdatedEmail in lib/email.ts; new /update/[token] server page + UpdateForm client component + /api/update/[token] POST route |
+| 2026-03-03 | Removed hardcoded comments field (prisma db push --accept-data-loss, 9 files); moved Edit button inline with RESPONSES column header (vol-detail__col-header flex); field-type-aware inline edit mode (yesNo→select, select→select with program options, longText→textarea; registrationFields fetched from Sanity in volunteer page + passed as prop); per-program confirmation email CMS message (confirmationMessage Sanity field, restricted block, email-safe; new lib/portableTextEmail.ts with @portabletext/to-html; warm tinted box in HTML email); Sanity programs schema reorganized into 6 logical tabs (Content / Schedule & Location / Registration / Dana & Payment / Dashboard / Sorting & Visibility); fixed TypeScript build error in portableTextEmail.ts (HC type alias — library types children as string\|undefined) |
 
 ---
 
-*Last updated: 2026-03-02 (session 5)*
+*Last updated: 2026-03-03 (session 7)*

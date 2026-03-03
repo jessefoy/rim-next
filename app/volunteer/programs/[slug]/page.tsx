@@ -7,7 +7,7 @@ import VolunteerTable, { SerializedRegistration } from "@/components/VolunteerTa
 import type { RegistrationField } from "@/components/RegistrationForm";
 
 const programForVolunteerQuery = `*[_type == "programs" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
-  _id, name, slug, tagline, registrationCapacity, danaMode,
+  _id, name, slug, tagline, registrationCapacity, danaMode, reminderDate,
   registrationFields[] { _key, label, fieldType, required, options }
 }`;
 
@@ -18,6 +18,7 @@ interface SanityProgram {
   tagline?: string;
   registrationCapacity?: number | null;
   danaMode?: string | null;
+  reminderDate?: string | null;
   registrationFields?: RegistrationField[];
 }
 
@@ -79,6 +80,7 @@ export default async function VolunteerProgramPage({
     notes: r.notes,
     donationStatus: r.donationStatus,
     donationAmount: r.donationAmount,
+    reminderSentAt: r.reminderSentAt?.toISOString() ?? null,
     createdAt: r.createdAt.toISOString(),
   }));
 
@@ -99,6 +101,7 @@ export default async function VolunteerProgramPage({
           danaMode={program.danaMode ?? null}
           registrationCapacity={program.registrationCapacity ?? null}
           registrationFields={program.registrationFields ?? []}
+          reminderDate={program.reminderDate ?? null}
         />
 
       </div>

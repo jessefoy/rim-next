@@ -182,6 +182,9 @@ model Registration {
   editToken          String?   @unique
   editTokenExpiresAt DateTime?
 
+  // Reminder email tracking — set when reminder is sent (auto or manual)
+  reminderSentAt     DateTime?
+
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 

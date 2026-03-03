@@ -185,3 +185,24 @@ export const allVolunteerPositionSlugsQuery = `*[_type == "volunteerPositions" &
 export const registrationFieldsBySlugQuery = `*[_type == "programs" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
   registrationFields[] { _key, label, fieldType, required, options }
 }`;
+
+// ─── Reminder email data (for route handler and bulk send) ────────────────────
+
+export const programReminderDataQuery = `*[_type == "programs" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
+  name,
+  dateText,
+  timeText,
+  locationText,
+  locationLink,
+  zoomLink,
+  zoomLinkText,
+  reminderMessage
+}`;
+
+// ─── Programs with reminder date in a time window (for daily cron) ────────────
+
+export const programsWithReminderInWindowQuery = `*[_type == "programs" && reminderDate >= $since && reminderDate <= $now && !(_id in path("drafts.**"))] {
+  _id, name, "slug": slug.current,
+  dateText, timeText, locationText, locationLink,
+  zoomLink, zoomLinkText, reminderMessage
+}`;

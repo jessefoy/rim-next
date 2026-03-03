@@ -7,7 +7,10 @@ import {
   sendCancellationNotificationEmail,
   sendDanaReminderEmail,
   sendEditRequestEmail,
+  sendReminderEmail,
 } from "@/lib/email";
+import { sanityClient } from "@/lib/sanity";
+import { programReminderDataQuery } from "@/lib/queries";
 
 // ─── PATCH — update status, notes, donationStatus, or send dana reminder ─────
 
@@ -44,6 +47,33 @@ export async function PATCH(
         token,
       });
       return NextResponse.json({ ok: true });
+    }
+
+    // ── Special action: send program reminder email ───────────────────────────
+    if (action === "sendReminder") {
+      const reg = await db.registration.findUnique({ where: { id } });
+      if (!reg || reg.status === "CANCELLED") {
+        return NextResponse.json({ error: "Invalid registration" }, { status: 400 });
+      }
+      const data = await sanityClient.fetch(programReminderDataQuery, { slug: reg.programSlug });
+      await sendReminderEmail({
+        to:           reg.email,
+        firstName:    reg.firstName,
+        programTitle: reg.programTitle,
+        programSlug:  reg.programSlug,
+        dateText:     data?.dateText,
+        timeText:     data?.timeText,
+        locationText: data?.locationText,
+        locationLink: data?.locationLink,
+        zoomLink:     data?.zoomLink,
+        zoomLinkText: data?.zoomLinkText,
+        reminderMessage: data?.reminderMessage,
+      });
+      const updated = await db.registration.update({
+        where: { id },
+        data: { reminderSentAt: new Date() },
+      });
+      return NextResponse.json({ ok: true, reminderSentAt: updated.reminderSentAt?.toISOString() });
     }
 
     // ── Special action: send dana reminder email ──────────────────────────────

@@ -1,4 +1,8 @@
 import { Resend } from "resend";
+import {
+  portableTextToEmailHtml,
+  portableTextToEmailText,
+} from "@/lib/portableTextEmail";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -428,6 +432,214 @@ export async function sendDanaReminderEmail(data: DanaReminderEmailData): Promis
   if (error) {
     console.error("[email] Failed to send dana reminder:", error);
   }
+}
+
+// ─── Program reminder email (to registrant) ──────────────────────────────────
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type PortableTextBlock = any;
+
+export interface ReminderEmailData {
+  to: string;
+  firstName: string;
+  programTitle: string;
+  programSlug: string;
+  dateText?: string | null;
+  timeText?: string | null;
+  locationText?: string | null;
+  locationLink?: string | null;
+  zoomLink?: string | null;
+  zoomLinkText?: string | null;
+  reminderMessage?: PortableTextBlock[] | null;
+}
+
+/**
+ * Sent to a registrant as a reminder about an upcoming program.
+ * Can be triggered automatically by a daily cron or manually by a registrar.
+ * Errors are caught and logged — must never fail the send operation.
+ */
+export async function sendReminderEmail(data: ReminderEmailData): Promise<void> {
+  const {
+    to, firstName, programTitle, programSlug,
+    dateText, timeText, locationText, locationLink,
+    zoomLink, zoomLinkText, reminderMessage,
+  } = data;
+
+  const reminderHtml = reminderMessage?.length
+    ? portableTextToEmailHtml(reminderMessage)
+    : null;
+  const reminderText = reminderMessage?.length
+    ? portableTextToEmailText(reminderMessage)
+    : null;
+
+  const { error } = await resend.emails.send({
+    from:    FROM,
+    to,
+    subject: `A reminder — ${programTitle}`,
+    html:    buildReminderHtml({
+      firstName, programTitle, programSlug,
+      dateText, timeText, locationText, locationLink,
+      zoomLink, zoomLinkText, reminderHtml,
+    }),
+    text:    buildReminderText({
+      firstName, programTitle, programSlug,
+      dateText, timeText, locationText,
+      zoomLink, zoomLinkText, reminderText,
+    }),
+  });
+  if (error) {
+    console.error("[email] Failed to send reminder:", error);
+  }
+}
+
+// ─── Reminder builders ────────────────────────────────────────────────────────
+
+function buildReminderHtml({
+  firstName, programTitle, programSlug,
+  dateText, timeText, locationText, locationLink,
+  zoomLink, zoomLinkText, reminderHtml,
+}: {
+  firstName: string; programTitle: string; programSlug: string;
+  dateText?: string | null; timeText?: string | null;
+  locationText?: string | null; locationLink?: string | null;
+  zoomLink?: string | null; zoomLinkText?: string | null;
+  reminderHtml?: string | null;
+}): string {
+  const programUrl = `${BASE_URL}/programs/${programSlug}`;
+  const ctaUrl     = zoomLink ?? programUrl;
+  const ctaLabel   = zoomLink ? (zoomLinkText ?? "Join on Zoom") : "View Program Details";
+
+  const locationRow = locationText
+    ? `<tr><td style="padding:3px 0;font-size:15px;color:#56504a;">📍&nbsp; ${
+        locationLink
+          ? `<a href="${locationLink}" style="color:#39607a;text-decoration:none;">${locationText}</a>`
+          : locationText
+      }</td></tr>`
+    : "";
+
+  const detailRows = [
+    dateText     ? `<tr><td style="padding:3px 0;font-size:15px;color:#56504a;">📅&nbsp; ${dateText}</td></tr>` : "",
+    timeText     ? `<tr><td style="padding:3px 0;font-size:15px;color:#56504a;">🕐&nbsp; ${timeText}</td></tr>` : "",
+    locationRow,
+  ].filter(Boolean).join("");
+
+  const detailsBlock = detailRows
+    ? `<table role="presentation" cellpadding="0" cellspacing="0"
+          style="margin:0 0 28px;border-left:3px solid #c8bcb2;padding-left:16px;">
+        ${detailRows}
+      </table>`
+    : "";
+
+  const customMessageBlock = reminderHtml
+    ? `<div style="margin:0 0 28px;padding:20px 24px;background:#f6f3f0;border-radius:4px;">
+         ${reminderHtml}
+       </div>`
+    : "";
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>A reminder — ${programTitle}</title>
+</head>
+<body style="margin:0;padding:24px 0;background-color:#f6f3f0;font-family:Georgia,'Times New Roman',serif;">
+  <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:6px;overflow:hidden;">
+
+    <!-- Header -->
+    <div style="background:#135274;padding:24px 36px;">
+      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;
+                letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.75);">
+        Rooted In Mindfulness
+      </p>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:36px 36px 28px;">
+      <h1 style="margin:0 0 24px;font-family:Georgia,'Times New Roman',serif;font-size:26px;
+                 font-weight:400;line-height:1.3;color:#135274;">
+        A reminder
+      </h1>
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,serif;">
+        Hi ${firstName},
+      </p>
+      <p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,serif;">
+        This is a friendly reminder about <strong>${programTitle}</strong>,
+        coming up soon. We look forward to practicing together.
+      </p>
+
+      ${detailsBlock}
+      ${customMessageBlock}
+
+      <!-- CTA -->
+      <table role="presentation" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="border-radius:4px;background:#135274;">
+            <a href="${ctaUrl}"
+               style="display:inline-block;padding:12px 24px;font-family:Arial,Helvetica,sans-serif;
+                      font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:4px;">
+              ${ctaLabel}
+            </a>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:20px 36px 28px;border-top:1px solid #ede9e5;">
+      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">
+        Rooted In Mindfulness &middot; Brookfield, WI<br>
+        Questions? Reply to this email or visit
+        <a href="https://rootedinmindfulness.org" style="color:#39607a;text-decoration:none;">
+          rootedinmindfulness.org
+        </a>
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>`;
+}
+
+function buildReminderText({
+  firstName, programTitle, programSlug,
+  dateText, timeText, locationText,
+  zoomLink, zoomLinkText, reminderText,
+}: {
+  firstName: string; programTitle: string; programSlug: string;
+  dateText?: string | null; timeText?: string | null;
+  locationText?: string | null;
+  zoomLink?: string | null; zoomLinkText?: string | null;
+  reminderText?: string | null;
+}): string {
+  const programUrl = `${BASE_URL}/programs/${programSlug}`;
+  const ctaUrl     = zoomLink ?? programUrl;
+  const ctaLabel   = zoomLink ? (zoomLinkText ?? "Join on Zoom") : "View Program Details";
+
+  const details = [
+    dateText     ? `Date: ${dateText}`         : "",
+    timeText     ? `Time: ${timeText}`         : "",
+    locationText ? `Location: ${locationText}` : "",
+  ].filter(Boolean).join("\n");
+
+  const customLines = reminderText?.trim()
+    ? ["─", reminderText.trim(), ""]
+    : [];
+
+  return [
+    `Hi ${firstName},`,
+    "",
+    `This is a friendly reminder about ${programTitle}, coming up soon.`,
+    "We look forward to practicing together.",
+    "",
+    ...(details ? [details, ""] : []),
+    ...customLines,
+    `${ctaLabel}: ${ctaUrl}`,
+    "",
+    "—",
+    "Rooted In Mindfulness · Brookfield, WI",
+    "rootedinmindfulness.org",
+  ].join("\n");
 }
 
 // ─── Internal helpers (registration confirmation / waitlist) ─────────────────
