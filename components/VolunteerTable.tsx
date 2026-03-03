@@ -745,7 +745,7 @@ export default function VolunteerTable({
                                     </span>
                                     <div className="vol-confirm-btns">
                                       <button
-                                        className="vol-action-btn vol-action-btn--edit-request"
+                                        className="vol-action-btn vol-action-btn--danger"
                                         disabled={actionLoading === r.id}
                                         onClick={() => {
                                           sendEditRequest(r.id);
@@ -789,7 +789,7 @@ export default function VolunteerTable({
                                     </span>
                                     <div className="vol-confirm-btns">
                                       <button
-                                        className="vol-action-btn vol-action-btn--prog-reminder"
+                                        className="vol-action-btn vol-action-btn--danger"
                                         disabled={sendingProgReminder === r.id}
                                         onClick={() => {
                                           sendProgReminder(r.id);
