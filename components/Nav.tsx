@@ -13,8 +13,9 @@ export default function Nav({ memberArea = false }: NavProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const isLoggedIn = !!session;
+  const isAdmin = session?.user?.roles?.includes("ADMIN") ?? false;
   // Auto-detect member area from route so layout doesn't need to pass prop
-  const isMemberArea = memberArea || (pathname?.startsWith("/account") ?? false);
+  const isMemberArea = memberArea || (pathname?.startsWith("/account") ?? false) || (pathname?.startsWith("/admin") ?? false);
 
   const current = (path: string) =>
     pathname === path || pathname.startsWith(path + "/") ? " w--current" : "";
@@ -102,6 +103,22 @@ export default function Nav({ memberArea = false }: NavProps) {
                               <div className="nav-link-details">All Community Programs</div>
                             </div>
                           </Link>
+                          {isAdmin && (
+                            <>
+                              <Link href="/admin/members" className={`dropdown-link w-inline-block${current("/admin/members")}`}>
+                                <div className="nav-content-wrap">
+                                  <div className="dropdown-title">Members ↗</div>
+                                  <div className="nav-link-details">Admin — Member Management</div>
+                                </div>
+                              </Link>
+                              <Link href="/admin/sitemap" className={`dropdown-link w-inline-block${current("/admin/sitemap")}`}>
+                                <div className="nav-content-wrap">
+                                  <div className="dropdown-title">Site Architecture ↗</div>
+                                  <div className="nav-link-details">Admin — All Pages Reference</div>
+                                </div>
+                              </Link>
+                            </>
+                          )}
                         </div>
                         <div className="pointer"></div>
                       </div>
@@ -235,6 +252,8 @@ export default function Nav({ memberArea = false }: NavProps) {
                 <Link href="/account/dashboard-member-care-agreements" className={`mobile-nav-link w-nav-link${current("/account/dashboard-member-care-agreements")}`}>Community Care Agreements</Link>
                 <Link href="/account/dashboard-my-profile" className={`mobile-nav-link w-nav-link${current("/account/dashboard-my-profile")}`}>Update My Profile</Link>
                 <Link href="/community-programs" className="mobile-nav-link w-nav-link">Programs</Link>
+                {isAdmin && <Link href="/admin/members" className={`mobile-nav-link w-nav-link${current("/admin/members")}`}>Admin — Members</Link>}
+                {isAdmin && <Link href="/admin/sitemap" className={`mobile-nav-link w-nav-link${current("/admin/sitemap")}`}>Admin — Site Architecture</Link>}
                 <button onClick={() => signOut({ callbackUrl: "/" })} className="mobile-nav-link w-nav-link" style={{ background: "none", border: "none", cursor: "pointer" }}>Sign Out</button>
                 <Link href="/donate" className="mobile-nav-link donate-nav-link w-nav-link">Donate Today</Link>
               </>
