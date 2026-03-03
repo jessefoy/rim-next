@@ -21,7 +21,9 @@ Two audiences:
 8. [API Routes](#8-api-routes)
 9. [Sanity CMS Schema Additions](#9-sanity-cms-schema-additions)
 10. [CSS Architecture](#10-css-architecture)
-11. [Donation Management System](#11-donation-management-system-phase-2--planned)
+11. [Member Management System](#11-member-management-system-adminmembers)
+12. [Course Access System](#12-course-access-system-coursesslug)
+13. [Donation Management System](#13-donation-management-system-phase-2--planned)
 
 ---
 
@@ -654,7 +656,41 @@ All custom styles: `public/css/custom.css`
 
 ---
 
-## 12. Donation Management System (Phase 2 — Planned)
+## 12. Course Access System (`/courses/[slug]`)
+
+**What it does:** Member-gated course pages that list their lessons. Two access levels determine who can view a course. Access is enforced at the page level; `/courses/*` is also protected by `proxy.ts` (login redirect).
+
+### Access levels (set on the Sanity course document)
+| Level | Who gets in |
+|---|---|
+| `members` | Any logged-in user (default) |
+| `registration_required` | Must have an active registration (REGISTERED or APPROVED) for a program linked to this course, OR an explicit admin grant in the `CourseAccess` DB table |
+
+### Route
+- `/courses/[slug]` — course page, lists all lessons as clickable cards; section-title lessons render as dividers
+
+### Linking a program to a course
+In Sanity Studio → Programs → [program] → Content tab → **Linked Course**. Once set, all members who register for that program automatically get access to the linked course (checked dynamically — no DB write at registration time).
+
+### Manual admin grants
+From `/admin/members/[id]` → Course Access section, an ADMIN can type a course slug and grant access. This creates a `CourseAccess` record in the DB.
+
+### Key files
+- `app/courses/[slug]/page.tsx` — server component; handles auth, access check, renders lessons list
+- `app/api/admin/members/[id]/course-access/route.ts` — POST (grant) / DELETE (revoke) — ADMIN only
+- `components/MemberDetail.tsx` — Course Access section (grant list, grant form, revoke buttons)
+- `lib/queries.ts` — `courseBySlugQuery` (now includes `accessLevel`); `programsLinkedToCourseQuery`
+
+**🔧 Technical notes:**
+- `accessLevel` is a new field added to the Sanity `courses` schema; it defaults to `"members"`. All existing courses without this field set are treated as `members`-level (the `?? "members"` fallback in the page).
+- Access check for `registration_required`: (1) query Sanity for program slugs with `linkedCourse->slug.current == courseSlug`, (2) query DB for a non-CANCELLED registration matching any of those slugs for this userId. This is 2 extra queries but only on `registration_required` courses.
+- `CourseAccess` model: `@@unique([userId, courseSlug])` — upsert-safe; `grantedBy` stores the admin's userId for audit trail.
+- `essential-dharma-study-resources` is set to `accessLevel: "members"` in Sanity — all logged-in members can view it. No import or per-member records needed.
+- `co-` CSS prefix for course page styles.
+
+---
+
+## 13. Donation Management System (Phase 2 — Planned)
 
 **Status:** Designed and documented. Not yet built. Stripe registration dana (Section 4c) writes to this system from day one via webhook, so no migration will be needed when Phase 2 UI is built.
 
@@ -727,7 +763,8 @@ The Stripe metadata structure (Section 4c) and `Donation` DB model (Section 7) a
 | 2026-03-03 | VolunteerTable action safety: inline confirm dialogs added to "Send Edit Request" and "Send Reminder" (matching Cancel pattern); all three confirm "Yes" buttons use vol-action-btn--danger (red); "Send Reminder" button always stays visible after sending — "Reminder sent [date]" badge renders below it (allows re-sends; reminderSentAt stores most recent timestamp) |
 | 2026-03-03 | Reminder email system: reminderDate (datetime) + reminderMessage (restricted block) added to Sanity programs Registration tab (deployed); reminderSentAt DateTime? added to Registration model (db push); sendReminderEmail() in lib/email.ts; action "sendReminder" added to PATCH /api/registrations/[id]; new bulk POST /api/programs/[slug]/send-reminder; new daily cron GET /api/cron/send-reminders (validates CRON_SECRET Bearer header, 24h lookback window); vercel.json created with cron schedule 0 14 * * *; VolunteerTable program-level reminder banner (scheduled date, sent/total count, "Send to Remaining N" button, "All sent ✓") + per-row "Send Reminder" button / "Reminder sent [date]" badge with optimistic UI (localReminderSentAt); vol-reminder-* CSS; ⚠️ CRON_SECRET env var must be added to Vercel |
 | 2026-03-03 | Member management system: /admin/members list page (search by name/email, role filter, member count); /admin/members/[id] detail page (edit profile, assign roles via checkboxes, registration history); proxy.ts adds /admin/:path* auth guard; API GET/PATCH /api/admin/members + /api/admin/members/[id] (ADMIN-only); POST /api/admin/members/import CSV upsert (Memberstack column mapping, fills blank fields only, never overwrites, returns created/updated/skipped counts); MemberImport client component (CSV parse, preview, import flow); dashboard STAFF_LINKS refactored to array-of-links per role — ADMIN now shows both Registrations + Members cards; adm- CSS prefix |
+| 2026-03-03 | Course access system: Sanity courses schema — added accessLevel field (members/registration_required, default members); Sanity programs schema — added linkedCourse reference field; Prisma CourseAccess model (userId + courseSlug unique, grantedBy, db push); proxy.ts adds /courses/:path* auth guard; new app/courses/[slug]/page.tsx (member-gated, dynamic-access-check for registration_required — queries Sanity for linked program slugs then checks DB for active registration, falls back to CourseAccess grant; co- CSS prefix); ADMIN course-access API POST/DELETE at /api/admin/members/[id]/course-access; MemberDetail Course Access section (list grants, grant-by-slug form, revoke button); lib/queries.ts — courseBySlugQuery now fetches accessLevel, new programsLinkedToCourseQuery; Sanity deployed; essential-dharma-study-resources set to accessLevel members in Sanity Studio (all logged-in members can access) |
 
 ---
 
-*Last updated: 2026-03-03 (session 10)*
+*Last updated: 2026-03-03 (session 11)*
