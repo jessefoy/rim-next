@@ -144,7 +144,7 @@ export const courseBySlugQuery = `*[_type == "courses" && slug.current == $slug 
 }`;
 
 // Returns slugs of all programs that link to a specific course (for registration-based access check)
-export const programsLinkedToCourseQuery = `*[_type == "programs" && linkedCourse->slug.current == $courseSlug && !(_id in path("drafts.**"))] {
+export const programsLinkedToCourseQuery = `*[_type == "programs" && $courseSlug in linkedCourses[]->slug.current && !(_id in path("drafts.**"))] {
   "slug": slug.current
 }`;
 
