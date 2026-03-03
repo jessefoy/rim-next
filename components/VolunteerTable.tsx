@@ -775,46 +775,49 @@ export default function VolunteerTable({
 
                               {/* Send Reminder — for confirmed/approved registrants */}
                               {(r.status === "REGISTERED" || r.status === "APPROVED") && (
-                                getReminderSentAt(r.id) ? (
-                                  <span className="vol-reminder-sent-badge">
-                                    Reminder sent{" "}
-                                    {new Date(getReminderSentAt(r.id)!).toLocaleDateString("en-US", {
-                                      month: "short", day: "numeric",
-                                    })}
-                                  </span>
-                                ) : confirmProgReminderId === r.id ? (
-                                  <div className="vol-confirm-wrap">
-                                    <span className="vol-confirm-label">
-                                      Send reminder to {r.firstName}?
-                                    </span>
-                                    <div className="vol-confirm-btns">
-                                      <button
-                                        className="vol-action-btn vol-action-btn--danger"
-                                        disabled={sendingProgReminder === r.id}
-                                        onClick={() => {
-                                          sendProgReminder(r.id);
-                                          setConfirmProgReminderId(null);
-                                        }}
-                                      >
-                                        {sendingProgReminder === r.id ? "Sending…" : "Yes, send it"}
-                                      </button>
-                                      <button
-                                        className="vol-action-btn vol-action-btn--ghost"
-                                        onClick={() => setConfirmProgReminderId(null)}
-                                      >
-                                        Never mind
-                                      </button>
+                                <>
+                                  {confirmProgReminderId === r.id ? (
+                                    <div className="vol-confirm-wrap">
+                                      <span className="vol-confirm-label">
+                                        Send reminder to {r.firstName}?
+                                      </span>
+                                      <div className="vol-confirm-btns">
+                                        <button
+                                          className="vol-action-btn vol-action-btn--danger"
+                                          disabled={sendingProgReminder === r.id}
+                                          onClick={() => {
+                                            sendProgReminder(r.id);
+                                            setConfirmProgReminderId(null);
+                                          }}
+                                        >
+                                          {sendingProgReminder === r.id ? "Sending…" : "Yes, send it"}
+                                        </button>
+                                        <button
+                                          className="vol-action-btn vol-action-btn--ghost"
+                                          onClick={() => setConfirmProgReminderId(null)}
+                                        >
+                                          Never mind
+                                        </button>
+                                      </div>
                                     </div>
-                                  </div>
-                                ) : (
-                                  <button
-                                    className="vol-action-btn vol-action-btn--prog-reminder"
-                                    disabled={sendingProgReminder === r.id}
-                                    onClick={(e) => { e.stopPropagation(); setConfirmProgReminderId(r.id); }}
-                                  >
-                                    {progReminderSent === r.id ? "Reminder Sent ✓" : "Send Reminder"}
-                                  </button>
-                                )
+                                  ) : (
+                                    <button
+                                      className="vol-action-btn vol-action-btn--prog-reminder"
+                                      disabled={sendingProgReminder === r.id}
+                                      onClick={(e) => { e.stopPropagation(); setConfirmProgReminderId(r.id); }}
+                                    >
+                                      {progReminderSent === r.id ? "Reminder Sent ✓" : "Send Reminder"}
+                                    </button>
+                                  )}
+                                  {getReminderSentAt(r.id) && (
+                                    <span className="vol-reminder-sent-badge">
+                                      Reminder sent{" "}
+                                      {new Date(getReminderSentAt(r.id)!).toLocaleDateString("en-US", {
+                                        month: "short", day: "numeric",
+                                      })}
+                                    </span>
+                                  )}
+                                </>
                               )}
 
                               {/* Promote */}
