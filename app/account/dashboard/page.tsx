@@ -44,17 +44,15 @@ function programIsToday(program: DashboardProgram, today: string): boolean {
 }
 
 // Role → human label + destination
-const STAFF_LINKS: Record<string, { label: string; href: string; description: string }> = {
-  REGISTRAR: {
-    label: "Registrations",
-    href: "/volunteer",
-    description: "View and manage program registrations",
-  },
-  ADMIN: {
-    label: "Registrations",
-    href: "/volunteer",
-    description: "View and manage program registrations",
-  },
+// Multiple roles can point to the same href — deduplicated by href before rendering
+const STAFF_LINKS: Record<string, { label: string; href: string; description: string }[]> = {
+  REGISTRAR: [
+    { label: "Registrations", href: "/volunteer", description: "View and manage program registrations" },
+  ],
+  ADMIN: [
+    { label: "Registrations", href: "/volunteer", description: "View and manage program registrations" },
+    { label: "Members", href: "/admin/members", description: "Manage members and assign permissions" },
+  ],
 };
 
 export default async function DashboardPage() {
@@ -78,12 +76,10 @@ export default async function DashboardPage() {
 
   // Collect unique staff links for this user's roles (deduplicated by href)
   const roles: string[] = session.user.roles ?? [];
+  // Collect all links from each role, flatten, then deduplicate by href
+  const allLinks = roles.flatMap((r) => STAFF_LINKS[r] ?? []);
   const staffLinks = Object.values(
-    Object.fromEntries(
-      roles
-        .filter((r) => r in STAFF_LINKS)
-        .map((r) => [STAFF_LINKS[r].href, STAFF_LINKS[r]])
-    )
+    Object.fromEntries(allLinks.map((l) => [l.href, l]))
   );
 
   return (
