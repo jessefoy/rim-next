@@ -23,12 +23,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = user.id;
         const dbUser = await db.user.findUnique({
           where: { id: user.id },
-          select: { firstName: true, roles: true },
+          select: { firstName: true, roles: true, agreedToTerms: true },
         });
         if (dbUser?.firstName) {
           session.user.name = dbUser.firstName;
         }
         session.user.roles = dbUser?.roles ?? [];
+        session.user.agreedToTerms = dbUser?.agreedToTerms ?? false;
       }
       return session;
     },

@@ -2,10 +2,18 @@ import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
 export default auth((req) => {
+  // Not logged in → redirect to login
   if (!req.auth) {
     const loginUrl = new URL("/login", req.nextUrl.origin);
     loginUrl.searchParams.set("callbackUrl", req.nextUrl.href);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Logged in but hasn't completed the community welcome step →
+  // redirect to /account/welcome (exempt the welcome page itself to avoid redirect loop)
+  const isWelcomePage = req.nextUrl.pathname === "/account/welcome";
+  if (!req.auth.user.agreedToTerms && !isWelcomePage) {
+    return NextResponse.redirect(new URL("/account/welcome", req.nextUrl.origin));
   }
 });
 

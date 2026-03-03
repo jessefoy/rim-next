@@ -3995,3 +3995,261 @@ h1, h2, h3, h4, h5, h6 {
   .co-title { font-size: 28px; }
   .co-lesson { padding: 12px 14px; }
 }
+
+
+/* ═══════════════════════════════════════════════════
+   WELCOME / COMMUNITY ONBOARDING PAGE  (wl-)
+   Route: /account/welcome
+   🟢 Design system — zero Webflow dependency
+═══════════════════════════════════════════════════ */
+
+.wl-page {
+  min-height: 100vh;
+  background-color: var(--rim-bg);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 80px 24px 80px;
+}
+
+.wl-container {
+  width: 100%;
+  max-width: 520px;
+}
+
+/* ── Header ──────────────────────────────────────── */
+.wl-header {
+  margin-bottom: 48px;
+}
+
+.wl-eyebrow {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rim-text-muted);
+  margin-bottom: 12px;
+}
+
+.wl-title {
+  font-family: var(--font-serif);
+  font-size: 36px;
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--rim-text);
+  margin-bottom: 16px;
+}
+
+.wl-subtitle {
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.7;
+  color: var(--rim-text-muted);
+}
+
+/* ── Form fields ─────────────────────────────────── */
+.wl-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.wl-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wl-label {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rim-text);
+}
+
+.wl-required { color: var(--rim-mid); }
+.wl-optional { font-weight: 400; color: var(--rim-text-muted); }
+
+.wl-input {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  color: var(--rim-text);
+  background: #fff;
+  border: 1px solid var(--rim-rule);
+  border-radius: 4px;
+  padding: 10px 12px;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.wl-input:focus {
+  outline: none;
+  border-color: var(--rim-mid);
+}
+
+/* ── Community agreements ────────────────────────── */
+.wl-agreements {
+  background-color: var(--rim-bg-accent);
+  border-radius: 6px;
+  padding: 24px;
+}
+
+.wl-agreements__text {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--rim-text-muted);
+  margin-bottom: 16px;
+}
+
+.wl-checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--rim-text);
+  cursor: pointer;
+}
+
+.wl-checkbox {
+  flex-shrink: 0;
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--rim-mid);
+}
+
+/* ── Submit ──────────────────────────────────────── */
+.wl-submit {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  background-color: var(--rim-blue);
+  border: none;
+  border-radius: 4px;
+  padding: 14px 24px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  align-self: flex-start;
+}
+
+.wl-submit:hover:not(:disabled) { background-color: var(--rim-mid); }
+.wl-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Error ───────────────────────────────────────── */
+.wl-error {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 4px;
+  padding: 10px 14px;
+}
+
+/* ── Decline ─────────────────────────────────────── */
+.wl-decline {
+  margin-top: 8px;
+  padding-top: 24px;
+  border-top: 1px solid var(--rim-rule);
+}
+
+.wl-decline__link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--rim-text-muted);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.wl-decline__link:hover { color: var(--rim-text); }
+
+.wl-decline__confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.wl-decline__confirm-text {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--rim-text-muted);
+  line-height: 1.6;
+}
+
+.wl-decline__yes {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: #b91c1c;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 16px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.wl-decline__yes:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.wl-decline__cancel {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--rim-text-muted);
+  text-decoration: underline;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+/* ── Registration form agreements (pg- context) ──── */
+.pg-form__agreements {
+  background-color: var(--rim-bg-accent);
+  border-radius: 6px;
+  padding: 20px;
+  margin-top: 8px;
+}
+
+.pg-form__agreements-text {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--rim-text-muted);
+  margin-bottom: 14px;
+}
+
+.pg-form__agreements-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--rim-text);
+  cursor: pointer;
+}
+
+.pg-form__agreements-check input[type="checkbox"] {
+  flex-shrink: 0;
+  margin-top: 2px;
+  width: 15px;
+  height: 15px;
+  accent-color: var(--rim-mid);
+}
+
+/* ── Mobile ──────────────────────────────────────── */
+@media (max-width: 767px) {
+  .wl-page { padding: 48px 20px 60px; }
+  .wl-title { font-size: 28px; }
+  .wl-agreements { padding: 18px; }
+}

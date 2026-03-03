@@ -83,6 +83,8 @@ export default function RegistrationForm({
   const [customAnswers, setCustomAnswers] = useState<Record<string, string>>({});
   const [formState, setFormState] = useState<FormState>(hasPendingDana ? "dana" : "idle");
   const [errorMessage, setErrorMessage] = useState("");
+  // Non-logged-in users must agree to community terms before registering
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   // Dana state — pre-populate registrationId for promoted waitlist members
   const [registrationId, setRegistrationId] = useState<string | null>(
@@ -333,6 +335,8 @@ export default function RegistrationForm({
           timeText: program.timeText ?? null,
           locationText: program.locationText ?? null,
           userId: sessionUserId ?? undefined,
+          // Logged-in members already agreed; guests agree via checkbox on this form
+          agreedToTerms: sessionUserId ? true : agreedToTerms,
           ...form,
           customFields: Object.keys(customFields).length > 0 ? customFields : undefined,
         }),
@@ -526,6 +530,26 @@ export default function RegistrationForm({
         </div>
       ))}
 
+      {/* ── Community agreements — shown only for non-logged-in registrants ── */}
+      {!sessionUserId && (
+        <div className="pg-form__agreements">
+          <p className="pg-form__agreements-text">
+            Rooted In Mindfulness is an intentional community held by shared values of
+            presence, care, and respect. We ask that everyone participate using their
+            real name and engage with the same care they would bring to a sitting practice.
+          </p>
+          <label className="pg-form__agreements-check">
+            <input
+              type="checkbox"
+              checked={agreedToTerms}
+              onChange={(e) => setAgreedToTerms(e.target.checked)}
+              required
+            />
+            <span>I&apos;m entering this community in a spirit of care and respect.</span>
+          </label>
+        </div>
+      )}
+
       {/* ── Error ── */}
       {formState === "error" && (
         <div className="pg-form__error">{errorMessage}</div>
@@ -539,7 +563,7 @@ export default function RegistrationForm({
       <button
         type="submit"
         className="pg-form__submit"
-        disabled={formState === "submitting"}
+        disabled={formState === "submitting" || (!sessionUserId && !agreedToTerms)}
       >
         {formState === "submitting"
           ? "Submitting…"

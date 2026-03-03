@@ -21,9 +21,10 @@ export default async function LoginPage() {
         <div className="login-box">
           <div className="w-form">
             <form action={handleSignIn} className="form-container-4">
-              <h1 className="form-header">Log in</h1>
+              <h1 className="form-header">Join or sign in</h1>
               <p style={{ marginBottom: "1.5rem", color: "#666", fontSize: "0.95rem" }}>
-                Enter your email and we&apos;ll send you a magic link to sign in instantly — no password needed.
+                Enter your email and we&apos;ll send you a link — whether you&apos;re new or
+                returning, it works the same way. No password needed.
               </p>
               <div className="text-field-wrapper">
                 <label htmlFor="email" className="input-label-2">Email</label>
@@ -40,8 +41,8 @@ export default async function LoginPage() {
               <input type="submit" className="link-block-3 w-button" value="Send Magic Link →" />
             </form>
           </div>
-          <div style={{ marginTop: "1.5rem", textAlign: "center", fontSize: "0.9rem" }}>
-            <a href="/community-membership">Don&apos;t have an account? Join RIM →</a>
+          <div style={{ marginTop: "1.5rem", textAlign: "center", fontSize: "0.9rem", color: "#666" }}>
+            New to RIM? You&apos;ll set up your name and a brief community welcome after your first sign-in.
           </div>
         </div>
       </div>

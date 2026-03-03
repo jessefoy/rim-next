@@ -60,6 +60,10 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // Community membership threshold
+  agreedToTerms Boolean   @default(false)
+  agreedAt      DateTime?
+
   // Legacy data imported from Memberstack (kept for historical reference)
   legacyMemberstackId     String?   @unique
   legacyLastLogin         DateTime?

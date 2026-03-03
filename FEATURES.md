@@ -769,6 +769,115 @@ The Stripe metadata structure (Section 4c) and `Donation` DB model (Section 7) a
 
 ---
 
+## 14. Community Onboarding & Membership Philosophy
+
+> **Manual note:** This section describes both the technical implementation and the philosophical intent behind it. Both matter equally. Future developers should read the philosophy before touching the code.
+
+### Philosophy
+
+RIM is an intentional community, not a platform. Every technical decision about how people join, log in, and access the member space should reflect that. The digital threshold should feel like walking into a Zen temple — you know you're entering something held, intentional, and cared for — without feeling institutional or bureaucratic.
+
+This shapes everything:
+- No long agreements pages. No terms-of-service walls.
+- Real names are required. Anonymity is not compatible with community.
+- The membership path flows naturally through participation, not through paperwork.
+- Every User record in the database represents a real person who has intentionally chosen to be part of this community. No ghosts, no half-formed accounts, no accidental members.
+
+### Membership paths
+
+There are two natural ways someone enters the RIM community:
+
+**Path A — Through a program (the primary path)**
+1. Person finds a program (workshop, retreat, drop-in) and registers
+2. Registration form collects first name, last name, email, phone (optional), and a brief community agreements checkbox — all on one form
+3. A User record is created or updated with their name/phone, `agreedToTerms` set to `true`
+4. Confirmation email includes a magic link to their dashboard
+5. They click it — they're in. No additional steps. Profile already populated.
+
+**Path B — Directly through the login page (returning members / direct sign-in)**
+1. Person visits `/login`, enters their email, receives magic link
+2. On first visit (or if `agreedToTerms` is false): intercepted by profile completion page `/account/welcome` before reaching dashboard
+3. Warm community-voiced page asks for name (required), phone (optional), and shows brief community agreements with checkbox
+4. On submit: profile saved, `agreedToTerms` set to `true`, redirected to dashboard
+5. Never shown again
+
+### The community agreements
+
+A brief, warm statement — 3–4 lines — reflecting RIM's values. Not a legal document. Something close to what you'd hear at the opening of a retreat. The exact wording is set by RIM staff and lives on the `/account/welcome` page and registration form. A checkbox confirms: *"I'm entering this community in a spirit of care and respect."*
+
+This is not an uncommon practice for intentional communities. It is minimal, meaningful, and done once.
+
+### Drop-in programs
+
+Weekly drop-in programs (sitting groups, classes) do not require per-session registration. Their Zoom links live on the member dashboard, always accessible once someone has crossed the membership threshold. No friction each week — just show up.
+
+For convenience, if a member is logged in and viewing a program page that has a related drop-in, a link to the Zoom can surface there as well (planned — not yet built).
+
+### Incomplete accounts — cleanup
+
+A User record is considered incomplete if `agreedToTerms` is `false`. This can happen in two ways:
+
+1. **Abandoned mid-welcome-page:** Someone clicked a magic link but closed the browser before completing their profile. A daily cleanup cron deletes User records where `agreedToTerms = false` and `createdAt < 48 hours ago`. Silent, automatic.
+
+2. **Explicit decline:** The `/account/welcome` page has a visible "I'd rather not join" link. Clicking it immediately deletes the User record (and any related records), signs them out, and redirects to the public homepage. Clean, no drama.
+
+The result: every User record in the system is an intentional community member. The admin member list reflects reality.
+
+### Login page framing
+
+The `/login` page uses "Join or sign in" as the heading — not "Log in." The copy briefly explains the magic link (no password needed, works for new and returning members alike). A note below the form says: *"New to RIM? You'll set up your name and a brief community welcome after your first sign-in."*
+
+This eliminates the common confusion where a new person sees "Log in" and assumes they need a pre-existing account.
+
+### Registration → member account connection
+
+When a non-logged-in person submits a registration form:
+- The API finds or creates their User record by email
+- First name, last name, and phone are written to the User record (blank fields only — never overwrites existing data)
+- If the community agreements checkbox was checked: `agreedToTerms = true`, `agreedAt = now()`
+- They receive a confirmation email with a magic link. Clicking it takes them directly to the dashboard (no welcome page — they already agreed)
+
+When a logged-in member registers: name/phone already on file, no agreements step, shorter form.
+
+### Memberstack migration strategy
+
+The old Memberstack list of ~1,462 members is **not bulk-imported**. Instead:
+- Real members will naturally appear when they register for a program or log in via magic link
+- This organically filters out people who signed up once and never engaged
+- The new system's member list reflects actual community participants
+- If a targeted import is ever desired, the Memberstack CSV export includes `activity count`, `last login`, and `last attendance date` — these can be used to import only genuinely active members selectively
+
+### Key files
+
+- `app/login/page.tsx` — "Join or sign in" framing, magic link explanation
+- `app/account/welcome/page.tsx` — profile completion + community agreements (required on first login)
+- `app/api/account/complete-profile/route.ts` — POST: saves name/phone/agreements; DELETE: removes account on explicit decline
+- `app/api/registrations/route.ts` — POST: writes name/phone back to User, sets agreedToTerms if checkbox checked
+- `prisma/schema.prisma` — `agreedToTerms Boolean @default(false)`, `agreedAt DateTime?` on User model
+- `auth.ts` — session callback includes `agreedToTerms` so proxy.ts can check it
+- `proxy.ts` — redirects to `/account/welcome` if session exists but `agreedToTerms` is false
+- `app/api/cron/cleanup-incomplete-accounts/route.ts` — daily cron: deletes User records older than 48h with `agreedToTerms = false`
+- `public/css/custom.css` — `wl-` prefix for welcome page styles
+
+### Database fields added to User
+
+| Field | Type | Purpose |
+|---|---|---|
+| `agreedToTerms` | `Boolean @default(false)` | Whether the member has completed the welcome/agreements step |
+| `agreedAt` | `DateTime?` | Timestamp of when they agreed — audit trail |
+
+### 🔧 Technical notes
+
+- `agreedToTerms` is read from the DB in the `auth.ts` session callback and attached to `session.user.agreedToTerms` — this lets proxy.ts check it without a DB query in the edge runtime
+- proxy.ts exempts `/account/welcome` from the `agreedToTerms` check — otherwise the redirect would loop
+- The welcome page is a server component; the form submit is a client component (`WelcomeForm`) that POSTs to the API
+- DELETE on `/api/account/complete-profile` deletes the User record with `onDelete: Cascade` — this automatically removes all related Sessions, Accounts, Registrations, CourseAccess records
+- The cleanup cron uses the same `CRON_SECRET` Bearer header pattern as the reminder cron
+- Agreements text wording is hardcoded in JSX for now — can be moved to Sanity if RIM wants to update it without a deploy
+- `wl-` CSS prefix is for the welcome page only — it is a 🟢 design system page
+
+---
+
 ## Session Log
 
 | Date | Summary |
@@ -793,4 +902,6 @@ The Stripe metadata structure (Section 4c) and `Donation` DB model (Section 7) a
 
 ---
 
-*Last updated: 2026-03-03 (session 12)*
+| 2026-03-03 | Community onboarding redesign: documented membership philosophy (Section 14); agreedToTerms + agreedAt on User model (db push); auth.ts session callback adds agreedToTerms; proxy.ts redirects to /account/welcome if agreedToTerms false; /account/welcome page (WelcomeForm client component, name required, phone optional, agreements checkbox, warm community voice, explicit decline path); /api/account/complete-profile POST (save profile + set agreedToTerms) + DELETE (delete account on decline); registration API updated (writes firstName/lastName/phone back to User, sets agreedToTerms if checkbox checked); login page reframed as "Join or sign in"; registration form adds agreements checkbox for non-logged-in users; cleanup cron /api/cron/cleanup-incomplete-accounts (48h, CRON_SECRET); wl- CSS prefix |
+
+*Last updated: 2026-03-03 (session 13)*

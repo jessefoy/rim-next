@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
       phone,
       customFields,
       danaMode,
+      agreedToTerms,
     } = body;
 
     if (!programId || !email?.trim() || !firstName?.trim() || !lastName?.trim()) {
@@ -41,10 +42,27 @@ export async function POST(request: NextRequest) {
 
     // Resolve user — use provided userId (logged-in) or find/create by email
     const normalizedEmail = email.trim().toLowerCase();
+    const now = new Date();
     let resolvedUserId: string;
+
     if (body.userId) {
+      // Logged-in member: backfill any blank profile fields from registration data
       resolvedUserId = body.userId;
+      const existing = await db.user.findUnique({
+        where: { id: body.userId },
+        select: { firstName: true, lastName: true, phone: true },
+      });
+      if (existing) {
+        const updates: Record<string, unknown> = {};
+        if (!existing.firstName && firstName?.trim()) updates.firstName = firstName.trim();
+        if (!existing.lastName && lastName?.trim()) updates.lastName = lastName.trim();
+        if (!existing.phone && phone?.trim()) updates.phone = phone.trim();
+        if (Object.keys(updates).length > 0) {
+          await db.user.update({ where: { id: body.userId }, data: updates });
+        }
+      }
     } else {
+      // Guest path: find or create User; set agreedToTerms if checkbox was checked
       let user = await db.user.findUnique({ where: { email: normalizedEmail } });
       if (!user) {
         user = await db.user.create({
@@ -53,8 +71,23 @@ export async function POST(request: NextRequest) {
             firstName: firstName.trim(),
             lastName: lastName.trim(),
             phone: phone?.trim() ?? null,
+            agreedToTerms: agreedToTerms === true,
+            agreedAt: agreedToTerms === true ? now : null,
           },
         });
+      } else {
+        // Existing partial account: fill blanks and set agreements if not already set
+        const updates: Record<string, unknown> = {};
+        if (!user.firstName && firstName?.trim()) updates.firstName = firstName.trim();
+        if (!user.lastName && lastName?.trim()) updates.lastName = lastName.trim();
+        if (!user.phone && phone?.trim()) updates.phone = phone.trim();
+        if (!user.agreedToTerms && agreedToTerms === true) {
+          updates.agreedToTerms = true;
+          updates.agreedAt = now;
+        }
+        if (Object.keys(updates).length > 0) {
+          user = await db.user.update({ where: { id: user.id }, data: updates });
+        }
       }
       resolvedUserId = user.id;
     }
