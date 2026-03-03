@@ -22,7 +22,7 @@ Two audiences:
 9. [Sanity CMS Schema Additions](#9-sanity-cms-schema-additions)
 10. [CSS Architecture](#10-css-architecture)
 11. [Member Management System](#11-member-management-system-adminmembers)
-12. [Course Access System](#12-course-access-system-coursesslug)
+12. [Course Access System](#12-course-access-system-courseslug)
 13. [Donation Management System](#13-donation-management-system-phase-2--planned)
 
 ---
@@ -622,6 +622,7 @@ All custom styles: `public/css/custom.css`
 - Profile section: edit firstName, lastName, phone (email is read-only — set by auth)
 - Roles section: checkbox per role (ADMIN, REGISTRAR, TREASURER, TEACHER, VOLUNTEER) with descriptions
 - Assigned roles appear as staff links on the member's dashboard automatically
+- **Course Access section:** searchable list of all courses in the system; each course shows status badge(s) — "All Members" (open to any logged-in user), "Via Registration: [Program Name]" (member has active registration for a linked program), "Manual Grant" (admin-granted), or "No Access". Grant/revoke controls appear inline per course with warning dialogs when a grant is redundant or when revoking still leaves other access.
 - Registration history: list of all programs registered for, with status badges + link to volunteer table
 - "Save changes" button PATCHes all changes in one call
 
@@ -640,13 +641,16 @@ All custom styles: `public/css/custom.css`
 
 ### Key files
 - `app/admin/members/page.tsx` — member list server component
-- `app/admin/members/[id]/page.tsx` — member detail server component
+- `app/admin/members/[id]/page.tsx` — member detail server component (includes `courseAccess` in Prisma query)
 - `components/MembersTable.tsx` — list client component (search, filter)
-- `components/MemberDetail.tsx` — detail client component (profile form, role checkboxes, registration history)
+- `components/MemberDetail.tsx` — detail client component (profile form, role checkboxes, registration history, renders `<CourseAccessSection>`)
 - `components/MemberImport.tsx` — CSV import client component
+- `components/CourseAccessSection.tsx` — course access client component (fetches all courses, computes statuses, grant/revoke UI with per-course state machine)
 - `app/api/admin/members/route.ts` — GET (list)
 - `app/api/admin/members/[id]/route.ts` — PATCH (update profile + roles)
+- `app/api/admin/members/[id]/course-access/route.ts` — POST (grant access) / DELETE (revoke access) — ADMIN only
 - `app/api/admin/members/import/route.ts` — POST (CSV upsert)
+- `app/api/admin/courses/route.ts` — GET (all courses enriched with linked programs) — used by `CourseAccessSection`
 
 **🔧 Technical notes:**
 - Import runs rows sequentially (N+1 queries) — acceptable for one-time migration; optimize with batch upsert if needed
@@ -656,37 +660,55 @@ All custom styles: `public/css/custom.css`
 
 ---
 
-## 12. Course Access System (`/courses/[slug]`)
+## 12. Course Access System (`/course/[slug]`)
 
-**What it does:** Member-gated course pages that list their lessons. Two access levels determine who can view a course. Access is enforced at the page level; `/courses/*` is also protected by `proxy.ts` (login redirect).
+**What it does:** Member-gated course pages that list their lessons. Two access levels determine who can view a course. Access is enforced at the page level on every request; `/course/*` is also protected by `proxy.ts` (login redirect for unauthenticated users).
 
 ### Access levels (set on the Sanity course document)
 | Level | Who gets in |
 |---|---|
 | `members` | Any logged-in user (default) |
-| `registration_required` | Must have an active registration (REGISTERED or APPROVED) for a program linked to this course, OR an explicit admin grant in the `CourseAccess` DB table |
+| `registration_required` | Must have an active registration (REGISTERED or APPROVED) for a program linked to this course, **OR** an explicit admin grant in the `CourseAccess` DB table |
 
 ### Route
-- `/courses/[slug]` — course page, lists all lessons as clickable cards; section-title lessons render as dividers
+- `/course/[slug]` — course page (singular, not `/courses/`); lists all lessons as clickable cards; `isSectionTitle` lessons render as non-linked dividers
 
-### Linking a program to a course
-In Sanity Studio → Programs → [program] → Content tab → **Linked Course**. Once set, all members who register for that program automatically get access to the linked course (checked dynamically — no DB write at registration time).
+### Linking programs to a course (multi-program support)
+In Sanity Studio → Programs → [program] → Content tab → **Linked Courses** (array). A single program can link to multiple courses; multiple programs can link to the same course. Once linked, all members with an active registration for that program automatically have access (checked dynamically at page render — no DB write at registration time).
 
-### Manual admin grants
-From `/admin/members/[id]` → Course Access section, an ADMIN can type a course slug and grant access. This creates a `CourseAccess` record in the DB.
+### The Course Access admin UI
+From `/admin/members/[id]` → Course Access section (`<CourseAccessSection>`), an ADMIN sees a **searchable list of every course in the system**. Each course displays one or more status badges showing exactly why this member does or doesn't have access:
+
+| Badge | Color | Meaning |
+|---|---|---|
+| **All Members** | green | Course `accessLevel` is `members` — any logged-in user can view it |
+| **Via Registration: [Program]** | blue | Member has an active registration for a program linked to this course |
+| **Manual Grant** | yellow/amber | An admin explicitly granted access via a `CourseAccess` DB record |
+| **No Access** | grey | None of the above apply |
+
+**Granting access:** A "Grant access" button appears on any course the member doesn't have a manual grant for. If access via another path already exists (all members or via registration), clicking the button shows an inline warning — "All logged-in members already have access" or "This member already has access via their [Program] registration" — with "Grant anyway" / Cancel.
+
+**Revoking a grant:** If a manual grant exists, a "Revoke" button is shown. Clicking shows a confirm step. If the member still has access via another path after revocation, an informational note explains this before confirming ("After revoking, this member will still have access via their [Program] registration").
+
+**Search:** A search bar filters by course name or slug client-side.
 
 ### Key files
-- `app/courses/[slug]/page.tsx` — server component; handles auth, access check, renders lessons list
-- `app/api/admin/members/[id]/course-access/route.ts` — POST (grant) / DELETE (revoke) — ADMIN only
-- `components/MemberDetail.tsx` — Course Access section (grant list, grant form, revoke buttons)
-- `lib/queries.ts` — `courseBySlugQuery` (now includes `accessLevel`); `programsLinkedToCourseQuery`
+- `app/course/[slug]/page.tsx` — server component; `force-dynamic`; checks session, fetches `accessLevel` from Sanity, runs access check, renders lessons; uses existing Webflow CSS classes from the original course page — do not replace with `co-` classes
+- `app/api/admin/courses/route.ts` — GET, ADMIN-only; fetches all courses from Sanity enriched with `linkedByPrograms` (reverse ref); powers `CourseAccessSection`
+- `app/api/admin/members/[id]/course-access/route.ts` — POST (grant, upsert) / DELETE (revoke by `?courseSlug=`) — ADMIN only
+- `components/CourseAccessSection.tsx` — client component; fetches all courses on mount via `/api/admin/courses`; uses `useMemo` to derive `activeRegSlugs` (Set) and `grantsMap` (Map); `computeStatuses()` derives per-course badge state; per-course UI state machine: `Record<slug, "idle" | "confirming_grant" | "confirming_revoke" | "busy">`
+- `lib/queries.ts` — `courseBySlugQuery` (includes `accessLevel`, `lessons`); `programsLinkedToCourseQuery` (array filter); `allCoursesWithLinkedProgramsQuery` (reverse ref enrichment)
 
 **🔧 Technical notes:**
-- `accessLevel` is a new field added to the Sanity `courses` schema; it defaults to `"members"`. All existing courses without this field set are treated as `members`-level (the `?? "members"` fallback in the page).
-- Access check for `registration_required`: (1) query Sanity for program slugs with `linkedCourse->slug.current == courseSlug`, (2) query DB for a non-CANCELLED registration matching any of those slugs for this userId. This is 2 extra queries but only on `registration_required` courses.
-- `CourseAccess` model: `@@unique([userId, courseSlug])` — upsert-safe; `grantedBy` stores the admin's userId for audit trail.
-- `essential-dharma-study-resources` is set to `accessLevel: "members"` in Sanity — all logged-in members can view it. No import or per-member records needed.
-- `co-` CSS prefix for course page styles.
+- `accessLevel` is a new field on the Sanity `courses` schema; defaults to `"members"`. All existing courses without this field treat it as `members`-level via `?? "members"` fallback in the page.
+- `linkedCourses` on programs is an **array of references** (not a single ref). The GROQ filter is `$courseSlug in linkedCourses[]->slug.current`. Early sessions used `linkedCourse` (singular) — this was corrected before any content was added, so no data migration was needed.
+- Access check for `registration_required` courses: (1) query Sanity — `*[_type == "programs" && $courseSlug in linkedCourses[]->slug.current]` to get program slugs; (2) `db.registration.findFirst` for active registration matching any of those slugs for this userId; (3) fall back to `db.courseAccess.findUnique`. 2–3 DB/Sanity queries only on `registration_required` courses; `members` courses skip all this.
+- Reverse GROQ reference in `allCoursesWithLinkedProgramsQuery`: `*[_type == "programs" && ^._id in linkedCourses[]._ref]` — `^._id` refers to the outer course document's `_id`. This finds all programs that have a reference to the current course in their `linkedCourses` array.
+- `CourseAccess` Prisma model: `@@unique([userId, courseSlug])` — upsert-safe (POST uses `upsert` to avoid duplicate errors); `grantedBy` stores the granting admin's userId for audit trail.
+- `computeStatuses()` is a pure function in `CourseAccessSection` — derives badges from: `course.accessLevel`, `activeRegSlugs` (Set of program slugs the member is actively registered for), and `grantsMap` (Map of courseSlug → grant). No extra API calls.
+- `courseUIState` uses per-slug keys so multiple courses can be in different states simultaneously (one course showing "confirming_revoke" while another is "busy").
+- The course page existed before this system — it uses Webflow CSS (`course-header`, `f-container-regular`, etc.). The `ca-` CSS prefix is for `CourseAccessSection` only. The course page itself has no custom prefix block.
+- `essential-dharma-study-resources` — `accessLevel` set to `members` in Sanity Studio; all logged-in members can view it with no grants or registrations required.
 
 ---
 
@@ -763,8 +785,12 @@ The Stripe metadata structure (Section 4c) and `Donation` DB model (Section 7) a
 | 2026-03-03 | VolunteerTable action safety: inline confirm dialogs added to "Send Edit Request" and "Send Reminder" (matching Cancel pattern); all three confirm "Yes" buttons use vol-action-btn--danger (red); "Send Reminder" button always stays visible after sending — "Reminder sent [date]" badge renders below it (allows re-sends; reminderSentAt stores most recent timestamp) |
 | 2026-03-03 | Reminder email system: reminderDate (datetime) + reminderMessage (restricted block) added to Sanity programs Registration tab (deployed); reminderSentAt DateTime? added to Registration model (db push); sendReminderEmail() in lib/email.ts; action "sendReminder" added to PATCH /api/registrations/[id]; new bulk POST /api/programs/[slug]/send-reminder; new daily cron GET /api/cron/send-reminders (validates CRON_SECRET Bearer header, 24h lookback window); vercel.json created with cron schedule 0 14 * * *; VolunteerTable program-level reminder banner (scheduled date, sent/total count, "Send to Remaining N" button, "All sent ✓") + per-row "Send Reminder" button / "Reminder sent [date]" badge with optimistic UI (localReminderSentAt); vol-reminder-* CSS; ⚠️ CRON_SECRET env var must be added to Vercel |
 | 2026-03-03 | Member management system: /admin/members list page (search by name/email, role filter, member count); /admin/members/[id] detail page (edit profile, assign roles via checkboxes, registration history); proxy.ts adds /admin/:path* auth guard; API GET/PATCH /api/admin/members + /api/admin/members/[id] (ADMIN-only); POST /api/admin/members/import CSV upsert (Memberstack column mapping, fills blank fields only, never overwrites, returns created/updated/skipped counts); MemberImport client component (CSV parse, preview, import flow); dashboard STAFF_LINKS refactored to array-of-links per role — ADMIN now shows both Registrations + Members cards; adm- CSS prefix |
-| 2026-03-03 | Course access system: Sanity courses schema — added accessLevel field (members/registration_required, default members); Sanity programs schema — added linkedCourse reference field; Prisma CourseAccess model (userId + courseSlug unique, grantedBy, db push); proxy.ts adds /courses/:path* auth guard; new app/courses/[slug]/page.tsx (member-gated, dynamic-access-check for registration_required — queries Sanity for linked program slugs then checks DB for active registration, falls back to CourseAccess grant; co- CSS prefix); ADMIN course-access API POST/DELETE at /api/admin/members/[id]/course-access; MemberDetail Course Access section (list grants, grant-by-slug form, revoke button); lib/queries.ts — courseBySlugQuery now fetches accessLevel, new programsLinkedToCourseQuery; Sanity deployed; essential-dharma-study-resources set to accessLevel members in Sanity Studio (all logged-in members can access) |
+| 2026-03-03 | Course access system: Sanity courses schema — added `accessLevel` field (members/registration_required, default members); Sanity programs schema — added `linkedCourses` **array** reference field (multiple courses per program); Prisma `CourseAccess` model (`@@unique([userId, courseSlug])`, `grantedBy`, db push); proxy.ts adds `/course/:path*` auth guard (singular — existing route); access-gating logic added to existing `app/course/[slug]/page.tsx` (force-dynamic, 2-step check: Sanity linked programs → DB registration → DB CourseAccess grant); new `app/api/admin/courses/route.ts` GET (ADMIN-only, returns all courses enriched with `linkedByPrograms` via reverse GROQ ref `^._id in linkedCourses[]._ref`); new `app/api/admin/members/[id]/course-access/route.ts` POST/DELETE; new `components/CourseAccessSection.tsx` — full searchable course list with per-course status badges (All Members / Via Registration / Manual Grant / No Access), inline grant/revoke with warning dialogs, per-course state machine; MemberDetail updated to render `<CourseAccessSection>` (replaced old slug-input form); `lib/queries.ts` — `courseBySlugQuery` adds `accessLevel`; `programsLinkedToCourseQuery` uses array filter `$courseSlug in linkedCourses[]->slug.current`; new `allCoursesWithLinkedProgramsQuery`; `ca-` CSS prefix for CourseAccessSection; Sanity deployed; `essential-dharma-study-resources` set to `accessLevel: members` in Sanity Studio |
 
 ---
 
-*Last updated: 2026-03-03 (session 11)*
+| 2026-03-03 | Course access system iteration: discovered and deleted duplicate `/courses/[slug]` page (had created wrong plural route — correct existing route is `/course/[slug]` singular); corrected proxy.ts from `/courses/:path*` to `/course/:path*`; changed `linkedCourse` (single ref) → `linkedCourses` (array of refs) in programs.js Sanity schema before any content was added; updated all GROQ filters to array syntax; replaced bare slug-input grant form with full `CourseAccessSection` component (searchable list, per-course status badges, inline warnings, per-course state machine); added `GET /api/admin/courses` endpoint; `allCoursesWithLinkedProgramsQuery` with reverse GROQ ref; FEATURES.md Section 12 fully rewritten, Section 11 updated with Course Access |
+
+---
+
+*Last updated: 2026-03-03 (session 12)*
