@@ -11,6 +11,8 @@ import { toHTML } from "@portabletext/to-html";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PortableTextBlock = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type HC = { children?: string; value?: any };
 
 const P_STYLE =
   "margin:0 0 16px;font-family:Georgia,'Times New Roman',serif;" +
@@ -27,38 +29,38 @@ export function portableTextToEmailHtml(blocks: PortableTextBlock[]): string {
   return toHTML(blocks, {
     components: {
       block: {
-        normal: ({ children }: { children: string }) =>
-          `<p style="${P_STYLE}">${children}</p>`,
+        normal: ({ children }: HC) =>
+          `<p style="${P_STYLE}">${children ?? ""}</p>`,
         // Treat any other style (h1–h6 etc.) as a normal paragraph
         // so nothing unexpected slips through from copy-paste in Sanity.
-        h1: ({ children }: { children: string }) =>
-          `<p style="${P_STYLE}"><strong>${children}</strong></p>`,
-        h2: ({ children }: { children: string }) =>
-          `<p style="${P_STYLE}"><strong>${children}</strong></p>`,
-        h3: ({ children }: { children: string }) =>
-          `<p style="${P_STYLE}"><strong>${children}</strong></p>`,
-        h4: ({ children }: { children: string }) =>
-          `<p style="${P_STYLE}"><strong>${children}</strong></p>`,
+        h1: ({ children }: HC) =>
+          `<p style="${P_STYLE}"><strong>${children ?? ""}</strong></p>`,
+        h2: ({ children }: HC) =>
+          `<p style="${P_STYLE}"><strong>${children ?? ""}</strong></p>`,
+        h3: ({ children }: HC) =>
+          `<p style="${P_STYLE}"><strong>${children ?? ""}</strong></p>`,
+        h4: ({ children }: HC) =>
+          `<p style="${P_STYLE}"><strong>${children ?? ""}</strong></p>`,
       },
       list: {
-        bullet: ({ children }: { children: string }) =>
-          `<ul style="margin:0 0 16px;padding-left:24px;">${children}</ul>`,
-        number: ({ children }: { children: string }) =>
-          `<ol style="margin:0 0 16px;padding-left:24px;">${children}</ol>`,
+        bullet: ({ children }: HC) =>
+          `<ul style="margin:0 0 16px;padding-left:24px;">${children ?? ""}</ul>`,
+        number: ({ children }: HC) =>
+          `<ol style="margin:0 0 16px;padding-left:24px;">${children ?? ""}</ol>`,
       },
       listItem: {
-        bullet: ({ children }: { children: string }) =>
-          `<li style="${LI_STYLE}">${children}</li>`,
-        number: ({ children }: { children: string }) =>
-          `<li style="${LI_STYLE}">${children}</li>`,
+        bullet: ({ children }: HC) =>
+          `<li style="${LI_STYLE}">${children ?? ""}</li>`,
+        number: ({ children }: HC) =>
+          `<li style="${LI_STYLE}">${children ?? ""}</li>`,
       },
       marks: {
-        strong: ({ children }: { children: string }) =>
-          `<strong style="font-weight:600;">${children}</strong>`,
-        em: ({ children }: { children: string }) =>
-          `<em>${children}</em>`,
-        link: ({ children, value }: { children: string; value?: { href?: string } }) =>
-          `<a href="${value?.href ?? "#"}" style="color:#39607a;">${children}</a>`,
+        strong: ({ children }: HC) =>
+          `<strong style="font-weight:600;">${children ?? ""}</strong>`,
+        em: ({ children }: HC) =>
+          `<em>${children ?? ""}</em>`,
+        link: ({ children, value }: HC) =>
+          `<a href="${value?.href ?? "#"}" style="color:#39607a;">${children ?? ""}</a>`,
       },
     },
   });
