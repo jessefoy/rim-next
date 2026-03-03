@@ -234,6 +234,8 @@ STRIPE_WEBHOOK_SECRET        — from Stripe dashboard, used to verify webhook s
 
 **Responses updated notification** — sent to `REGISTRAR_EMAIL` when a registrant submits the self-service edit form. Subject: "[First] [Last] updated their responses — [Program]". Includes a link to the volunteer registration table.
 
+**Program reminder email** — sent to registrants as a reminder about an upcoming program. Subject: "A reminder — [Program]". Body: warm greeting, program date/time/location details (if set in Sanity), optional custom `reminderMessage` (Portable Text), and a CTA button (Zoom link if set, otherwise program page). Can be sent automatically via the daily cron or manually by the registrar for individual or all-unsent registrants. `reminderSentAt` is stamped on the registration record when sent — prevents double-sending regardless of which path fires first.
+
 **Key files:** `lib/email.ts`, `lib/portableTextEmail.ts`
 
 **🔧 Technical notes:**
@@ -270,9 +272,10 @@ A registration is considered a duplicate if the same `userId` + `programId` alre
 - Filter by status: All / Registered / Waitlisted / Approved / Cancelled
 - Take context-aware actions per row:
   - **WAITLISTED** → **"Promote →"** button: moves to APPROVED, sets `donationStatus` to PENDING (if program has dana) or WAIVED (if no dana), sends approval email (with dana section if applicable), and sends cancellation notification to the registrar email
-  - **REGISTERED / APPROVED** → **"Cancel"** button: confirms via browser dialog, moves to CANCELLED, fires cancellation notification email to registrar
+  - **REGISTERED / APPROVED** → **"Cancel"** button: shows inline confirm ("Cancel this registration?" → "Yes, cancel" / "Never mind"), moves to CANCELLED, fires cancellation notification email to registrar
   - **CANCELLED** → **"Restore"** button: moves back to REGISTERED
-  - **"Send Edit Request"** button (non-cancelled rows with custom fields only): sends registrant a secure one-time link to update their own answers (see 5c)
+  - **"Send Edit Request"** button (non-cancelled rows with custom fields only): shows inline confirm ("Send edit link to [Name]?" → "Yes, send it" / "Never mind") before sending registrant a secure one-time link to update their own answers (see 5c)
+  - **"Send Reminder"** button (REGISTERED/APPROVED rows only): shows inline confirm ("Send reminder to [Name]?" → "Yes, send it" / "Never mind") before sending; button stays visible after sending so re-sends are always possible; a "Reminder sent [date]" note appears beneath it (timestamp updates to the most recent send) (see 5d)
 - Click any row to expand it and see: custom field answers and internal notes
 - **Edit Responses** — click "Edit" next to the RESPONSES column header to edit custom field answers inline. Renders the correct input type per Sanity field definition: `yesNo` → dropdown, `select` → dropdown with program's configured options, `longText` → textarea, `shortText` → text input. Saves via PATCH without page reload; shows "Saved ✓" flash on success.
 - Write and save internal notes per registrant (not visible to the member)
@@ -321,6 +324,42 @@ A registration is considered a duplicate if the same `userId` + `programId` alre
 - Field types are matched by label (the stored JSON key). If a field was removed from Sanity since the original registration, its stored answer renders in a plain `<input type="text">` fallback
 - Registrar can still inline-edit custom fields after a self-service submission — no conflict; they're both just PATCHing `customFields`
 - `sendEditRequest` action in the PATCH handler is separate from status/notes/donationStatus updates — it doesn't touch any of those fields
+
+---
+
+### 5d. Scheduled Reminder Email
+
+**What it does:** A program-specific reminder email sent to registrants a few days before the program starts. The program coordinator sets a `reminderDate` in Sanity; the system automatically sends to all active (REGISTERED/APPROVED) registrants on that date via a daily cron. Because some people register after the scheduled cron fires, registrars can also send manually — either to all unsent registrants at once (bulk) or to a single registrant from the per-row Actions panel.
+
+**Preventing double-sends:** `reminderSentAt` is stamped on the registration record at send time (cron or manual). Both paths skip registrants where this field is already set.
+
+**CMS fields (programs → Registration tab):**
+- `reminderDate` — datetime: when the cron should fire the reminder (set by program coordinator)
+- `reminderMessage` — restricted Portable Text block: optional custom message shown in the email body (bold, italic, links, bullets only). If blank, a standard reminder is sent.
+
+**Reminder section in VolunteerTable:** When `reminderDate` is set for a program, a banner appears above the table showing:
+- Scheduled date
+- "Sent to X of Y registrants" count
+- "Send to Remaining N" button (if any unsent) — uses bulk endpoint
+- "All sent ✓" when all active registrants have received the reminder
+
+**Per-row button:** REGISTERED/APPROVED rows show a "Send Reminder" button in the Actions section. Clicking stamps `reminderSentAt` and replaces the button with "Reminder sent [date]" badge.
+
+**Cron schedule:** `0 14 * * *` (daily at 14:00 UTC = 9:00 AM Central). Configured in `vercel.json`. Vercel passes `CRON_SECRET` as `Authorization: Bearer <secret>` — the route validates this header and returns 401 otherwise.
+
+**Key files:**
+- `app/api/cron/send-reminders/route.ts` — daily cron GET handler
+- `app/api/programs/[slug]/send-reminder/route.ts` — bulk POST for "Send to Remaining" button
+- `app/api/registrations/[id]/route.ts` — `action: "sendReminder"` case (per-row)
+- `lib/email.ts` — `sendReminderEmail()`
+- `lib/queries.ts` — `programReminderDataQuery` + `programsWithReminderInWindowQuery`
+- `vercel.json` — cron schedule declaration
+
+**🔧 Technical notes:**
+- `CRON_SECRET` env var must be added to Vercel. Any long random string. Vercel Cron Jobs automatically pass it as the Authorization Bearer header to the registered route.
+- Cron uses a 24-hour lookback window (`reminderDate >= now - 24h && reminderDate <= now`) — safe because `reminderSentAt` prevents double-sends if cron runs multiple times or slightly off schedule.
+- `reminderDate` in Sanity is a datetime picker. Program coordinators should set it to the specific day they want the reminder sent (time doesn't matter much since the cron fires daily at 14:00 UTC).
+- Reminder email includes location link as a hyperlink if `locationLink` is set. CTA button links to `zoomLink` (labeled with `zoomLinkText` or "Join on Zoom") if set, otherwise links to the program page.
 
 ---
 
@@ -388,6 +427,7 @@ Stores one record per person per program.
 | `stripeSessionId` | String? | Stripe Checkout session ID — set by webhook, used for reconciliation |
 | `editToken` | String? @unique | One-time UUID token for self-service response editing |
 | `editTokenExpiresAt` | DateTime? | Token expiry — set to 7 days from generation; null after use |
+| `reminderSentAt` | DateTime? | Stamped when the program reminder email is sent (auto cron or manual); prevents double-sends regardless of which path fires |
 
 #### Donation (schema live — Phase 2 UI planned in Section 11)
 Unified record of every contribution to RIM regardless of source. Schema is in Prisma and pushed to DB. Stripe registration dana writes here automatically via webhook from day one. Phase 2 UI (manual entry, reporting) requires no migration.
@@ -433,8 +473,10 @@ DonationSource:     STRIPE | GIVEBUTTER | CASH | CHECK | OTHER
 | Method | Path | Auth | What it does |
 |---|---|---|---|
 | `POST` | `/api/registrations` | None required | Create a registration; finds/creates user by email if not logged in; fetches Sanity `confirmationMessage` for the program and includes it in the confirmation email |
-| `PATCH` | `/api/registrations/[id]` | REGISTRAR or ADMIN | Update `status`, `notes`, `donationStatus`, or `customFields` (inline edit); `action: "sendEditRequest"` generates a token and sends the self-service edit email; on WAITLISTED→APPROVED promotion auto-sets `donationStatus` from `danaMode`; fires approval or cancellation email |
+| `PATCH` | `/api/registrations/[id]` | REGISTRAR or ADMIN | Update `status`, `notes`, `donationStatus`, or `customFields` (inline edit); `action: "sendEditRequest"` generates a token and sends the self-service edit email; `action: "sendReminder"` sends the program reminder email to the registrant and stamps `reminderSentAt`; on WAITLISTED→APPROVED promotion auto-sets `donationStatus` from `danaMode`; fires approval or cancellation email |
 | `GET` | `/api/programs/[slug]/registrations` | REGISTRAR or ADMIN | List registrations for a program; add `?format=csv` for CSV download |
+| `POST` | `/api/programs/[slug]/send-reminder` | REGISTRAR or ADMIN | Bulk send the program reminder email to all REGISTERED/APPROVED registrants where `reminderSentAt` is null; returns `{ sent: N }` |
+| `GET` | `/api/cron/send-reminders` | CRON_SECRET header | Daily Vercel Cron handler (14:00 UTC). Finds all programs whose `reminderDate` falls in the past 24h window, then sends the reminder email to all unsent active registrants; returns `{ ok: true, sent: N }` |
 | `POST` | `/api/stripe/checkout` | None required | Create a Stripe Checkout session for registration dana; returns session URL |
 | `POST` | `/api/stripe/webhook` | Stripe signature | Receive `checkout.session.completed`; update registration donationStatus/amount |
 | `POST` | `/api/update/[token]` | Token (no session) | Self-service response edit: validates `editToken` + expiry, updates `customFields`, clears token, sends registrar notification |
@@ -460,7 +502,7 @@ The `programs` schema is organized into six tabs (in order):
 |---|---|
 | **Content** | Tagline, program image, description, pull quote + source, special notes |
 | **Schedule & Location** | Category, teacher/facilitators, date, time, listing day+time, location + map link, Zoom link + button text |
-| **Registration** | Enabled toggle → Required/Closed flags → Capacity + Deadline → Signed-out/in instructions → Custom questions → Confirmation email message → Legacy Fillout ID |
+| **Registration** | Enabled toggle → Required/Closed flags → Capacity + Deadline → Signed-out/in instructions → Custom questions → Confirmation email message → Reminder date + reminder message → Legacy Fillout ID |
 | **Dana & Payment** | Dana mode → amounts → dana step message → program-page dana note |
 | **Dashboard** | Special announcement, early arrival message, remove from list, day filtering |
 | **Sorting & Visibility** | Day of week, sort order, hide from public list |
@@ -474,6 +516,8 @@ The `programs` schema is organized into six tabs (in order):
 | `registrationDeadline` | datetime | After this date, form shows "Registration closed" |
 | `registrationFields` | array of objects | Custom per-program questions (see below) |
 | `confirmationMessage` | restricted block array | Rich text included in the confirmation email (bold, italic, links, bullets only — email-safe). Blank = no extra message. |
+| `reminderDate` | datetime | When the cron should auto-send the reminder email to all active registrants. Program coordinator sets this in the Registration tab. If blank, no auto-send occurs. |
+| `reminderMessage` | restricted block array | Optional custom message in the reminder email body (bold, italic, links, bullets only — email-safe). If blank, a standard reminder with date/time/location details is sent. |
 
 ### Fields added to `programs` schema (dana group)
 
@@ -528,6 +572,7 @@ All custom styles: `public/css/custom.css`
 | `cr-` | Class recording pages |
 | `pg-` | Program detail pages |
 | `vol-` | Volunteer admin area |
+| `adm-` | Admin member management |
 | `db-` | Member dashboard additions |
 
 ### Design tokens (CSS custom properties)
@@ -552,7 +597,64 @@ All custom styles: `public/css/custom.css`
 
 ---
 
-## 11. Donation Management System (Phase 2 — Planned)
+## 11. Member Management System (`/admin/members`)
+
+**What it does:** An ADMIN-only area for viewing all members, editing their profiles, assigning/revoking staff roles, and importing members from Memberstack CSV export.
+
+### Routes
+- `/admin/members` — searchable member list with role filter and import tool
+- `/admin/members/[id]` — member detail: edit name/phone, assign roles, view registration history
+
+### Access control
+- Protected at proxy level (`/admin/:path*` in `proxy.ts`)
+- Server components check `session.user.roles?.some(r => r === "ADMIN")` — ADMIN-only, no REGISTRAR access
+
+### Member list (`/admin/members`)
+- Search bar (filters name + email client-side — fast, no round-trip)
+- Role filter: All / Admins / Registrars / Treasurers / No roles
+- Table: Name, Email, Roles (colored badges), Registrations count, Joined date
+- Click any row → navigates to member detail page
+- "Import from Memberstack" button → opens import panel inline
+
+### Member detail (`/admin/members/[id]`)
+- Profile section: edit firstName, lastName, phone (email is read-only — set by auth)
+- Roles section: checkbox per role (ADMIN, REGISTRAR, TREASURER, TEACHER, VOLUNTEER) with descriptions
+- Assigned roles appear as staff links on the member's dashboard automatically
+- Registration history: list of all programs registered for, with status badges + link to volunteer table
+- "Save changes" button PATCHes all changes in one call
+
+### Dashboard integration
+- `STAFF_LINKS` in `dashboard/page.tsx` refactored to `Record<string, {...}[]>` (array of links per role)
+- ADMIN role now produces two cards: Registrations (`/volunteer`) + Members (`/admin/members`)
+- Deduplication by `href` still works — no duplicate cards if a user holds both ADMIN + REGISTRAR
+
+### Memberstack CSV import
+- Client-side CSV parse — no library, handles quoted fields
+- Column mapping (case-insensitive): Email, First Name / firstName, Last Name / lastName, Phone
+- Preview: first 5 rows + total count before committing
+- Upsert by email (lowercase normalized): found → fill blank fields only (never overwrite); not found → create
+- Results: "X new · Y updated · Z skipped"
+- One-time migration path: export from Memberstack dashboard → Members → Export → upload here
+
+### Key files
+- `app/admin/members/page.tsx` — member list server component
+- `app/admin/members/[id]/page.tsx` — member detail server component
+- `components/MembersTable.tsx` — list client component (search, filter)
+- `components/MemberDetail.tsx` — detail client component (profile form, role checkboxes, registration history)
+- `components/MemberImport.tsx` — CSV import client component
+- `app/api/admin/members/route.ts` — GET (list)
+- `app/api/admin/members/[id]/route.ts` — PATCH (update profile + roles)
+- `app/api/admin/members/import/route.ts` — POST (CSV upsert)
+
+**🔧 Technical notes:**
+- Import runs rows sequentially (N+1 queries) — acceptable for one-time migration; optimize with batch upsert if needed
+- `legacyMemberstackId` field exists on the User model — can be populated during import in the future for reconciliation
+- Role validation in PATCH uses `Object.values(Role)` from `@prisma/client` — adding a new role to the Prisma enum automatically makes it valid here
+- `STAFF_LINKS` format: `Record<string, { label, href, description }[]>` — each role maps to an array of links (allows ADMIN to show multiple cards without duplicates)
+
+---
+
+## 12. Donation Management System (Phase 2 — Planned)
 
 **Status:** Designed and documented. Not yet built. Stripe registration dana (Section 4c) writes to this system from day one via webhook, so no migration will be needed when Phase 2 UI is built.
 
@@ -622,7 +724,10 @@ The Stripe metadata structure (Section 4c) and `Donation` DB model (Section 7) a
 | 2026-03-02 | Waitlist promotion + cancellation flow: PATCH endpoint auto-sets donationStatus on promotion (PENDING if dana, WAIVED if none); approval email updated with dana section (hasDana flag); new sendCancellationNotificationEmail() to registrar on any cancellation (REGISTRAR_EMAIL env var); VolunteerTable dropdown replaced with context-aware Promote/Cancel/Restore buttons; RegistrationForm shows dana step for promoted waitlist members with existingDonationStatus===PENDING; dashboard shows pending dana reminder card linking to program page; vol-action CSS and db-dana-reminder CSS added |
 | 2026-03-02 | Registrar inline edit + self-service edit link: PATCH accepts customFields; VolunteerTable inline edit mode with per-field save; editToken + editTokenExpiresAt added to Registration schema (db push); sendEditRequest action in PATCH handler; sendEditRequestEmail + sendResponsesUpdatedEmail in lib/email.ts; new /update/[token] server page + UpdateForm client component + /api/update/[token] POST route |
 | 2026-03-03 | Removed hardcoded comments field (prisma db push --accept-data-loss, 9 files); moved Edit button inline with RESPONSES column header (vol-detail__col-header flex); field-type-aware inline edit mode (yesNo→select, select→select with program options, longText→textarea; registrationFields fetched from Sanity in volunteer page + passed as prop); per-program confirmation email CMS message (confirmationMessage Sanity field, restricted block, email-safe; new lib/portableTextEmail.ts with @portabletext/to-html; warm tinted box in HTML email); Sanity programs schema reorganized into 6 logical tabs (Content / Schedule & Location / Registration / Dana & Payment / Dashboard / Sorting & Visibility); fixed TypeScript build error in portableTextEmail.ts (HC type alias — library types children as string\|undefined) |
+| 2026-03-03 | VolunteerTable action safety: inline confirm dialogs added to "Send Edit Request" and "Send Reminder" (matching Cancel pattern); all three confirm "Yes" buttons use vol-action-btn--danger (red); "Send Reminder" button always stays visible after sending — "Reminder sent [date]" badge renders below it (allows re-sends; reminderSentAt stores most recent timestamp) |
+| 2026-03-03 | Reminder email system: reminderDate (datetime) + reminderMessage (restricted block) added to Sanity programs Registration tab (deployed); reminderSentAt DateTime? added to Registration model (db push); sendReminderEmail() in lib/email.ts; action "sendReminder" added to PATCH /api/registrations/[id]; new bulk POST /api/programs/[slug]/send-reminder; new daily cron GET /api/cron/send-reminders (validates CRON_SECRET Bearer header, 24h lookback window); vercel.json created with cron schedule 0 14 * * *; VolunteerTable program-level reminder banner (scheduled date, sent/total count, "Send to Remaining N" button, "All sent ✓") + per-row "Send Reminder" button / "Reminder sent [date]" badge with optimistic UI (localReminderSentAt); vol-reminder-* CSS; ⚠️ CRON_SECRET env var must be added to Vercel |
+| 2026-03-03 | Member management system: /admin/members list page (search by name/email, role filter, member count); /admin/members/[id] detail page (edit profile, assign roles via checkboxes, registration history); proxy.ts adds /admin/:path* auth guard; API GET/PATCH /api/admin/members + /api/admin/members/[id] (ADMIN-only); POST /api/admin/members/import CSV upsert (Memberstack column mapping, fills blank fields only, never overwrites, returns created/updated/skipped counts); MemberImport client component (CSV parse, preview, import flow); dashboard STAFF_LINKS refactored to array-of-links per role — ADMIN now shows both Registrations + Members cards; adm- CSS prefix |
 
 ---
 
-*Last updated: 2026-03-03 (session 7)*
+*Last updated: 2026-03-03 (session 10)*
