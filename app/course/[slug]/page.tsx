@@ -1,10 +1,13 @@
+import { auth } from "@/auth";
+import { redirect, notFound } from "next/navigation";
+import Link from "next/link";
 import { sanityClient } from "@/lib/sanity";
-import { courseBySlugQuery, allCourseSlugsQuery } from "@/lib/queries";
+import { courseBySlugQuery, allCourseSlugsQuery, programsLinkedToCourseQuery } from "@/lib/queries";
 import { PortableText } from "@portabletext/react";
-import { notFound } from "next/navigation";
+import { db } from "@/lib/db";
 import SeriesListItem from "@/components/SeriesListItem";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 type Lesson = {
   lessonTitleDisplayed: string;
@@ -17,13 +20,14 @@ type Course = {
   _id: string;
   name: string;
   subheading?: string;
+  accessLevel?: string; // "members" | "registration_required"
   mainContentDescription?: unknown[];
   lessons?: Lesson[];
 };
 
 export async function generateStaticParams() {
-  const slugs = await sanityClient.fetch<{ slug: string }[]>(allCourseSlugsQuery);
-  return slugs.filter((s) => s.slug).map((s) => ({ slug: s.slug }));
+  // Access-gated — disable static pre-rendering
+  return [];
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
@@ -33,9 +37,72 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 export default async function CoursePage({ params }: { params: Promise<{ slug: string }> }) {
+  const session = await auth();
+  // proxy.ts handles the redirect for unauthenticated users, but guard here too
+  if (!session?.user) redirect("/login");
+
   const { slug } = await params;
   const course = await sanityClient.fetch<Course | null>(courseBySlugQuery, { slug });
   if (!course) notFound();
+
+  const accessLevel = course.accessLevel ?? "members";
+
+  // ── Access check ──────────────────────────────────────────────────────────
+  let hasAccess = accessLevel === "members"; // any logged-in user
+
+  if (!hasAccess && accessLevel === "registration_required" && session.user.id) {
+    // Check 1: active registration for any program linked to this course
+    const linkedPrograms = await sanityClient.fetch<{ slug: string }[]>(
+      programsLinkedToCourseQuery,
+      { courseSlug: slug }
+    );
+    const programSlugs = linkedPrograms.map((p) => p.slug).filter(Boolean);
+
+    if (programSlugs.length > 0) {
+      const reg = await db.registration.findFirst({
+        where: {
+          userId: session.user.id,
+          programSlug: { in: programSlugs },
+          status: { in: ["REGISTERED", "APPROVED"] },
+        },
+        select: { id: true },
+      });
+      if (reg) hasAccess = true;
+    }
+
+    // Check 2: manual admin grant
+    if (!hasAccess) {
+      const grant = await db.courseAccess.findUnique({
+        where: { userId_courseSlug: { userId: session.user.id, courseSlug: slug } },
+        select: { id: true },
+      });
+      if (grant) hasAccess = true;
+    }
+  }
+
+  if (!hasAccess) {
+    return (
+      <>
+        <div className="course-header">
+          <div className="f-container-regular">
+            <div className="f-header-wrapper-left">
+              <div className="f-margin-bottom-24">
+                <h1 className="course-title">{course.name}</h1>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="content-container" style={{ padding: "48px 24px" }}>
+          <p style={{ marginBottom: 16 }}>
+            Access to this course requires registration for the associated program.
+          </p>
+          <Link href="/community-programs" style={{ color: "var(--rim-blue)" }}>
+            View programs →
+          </Link>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
