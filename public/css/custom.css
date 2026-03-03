@@ -3677,6 +3677,56 @@ h1, h2, h3, h4, h5, h6 {
   margin: 0 0 16px;
 }
 
+/* ── Admin: course access grants ──────────────────────── */
+.adm-course-grants {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.adm-course-grant {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--rim-bg-accent);
+  border-radius: 6px;
+  padding: 8px 14px;
+}
+
+.adm-course-grant__slug {
+  font-family: monospace;
+  font-size: 14px;
+  color: var(--rim-text);
+}
+
+.adm-course-grant__revoke {
+  background: none;
+  border: 1px solid var(--rim-rule);
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-family: var(--font-sans);
+  color: var(--rim-text-muted);
+  cursor: pointer;
+}
+
+.adm-course-grant__revoke:hover {
+  color: #c0392b;
+  border-color: #c0392b;
+}
+
+.adm-course-grant-form {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.adm-course-grant-form .adm-form__input {
+  flex: 1;
+  font-family: monospace;
+}
+
 /* ── Mobile ─────────────────────────────────────────── */
 @media (max-width: 767px) {
   .adm-page { padding: 32px 16px 60px; }
@@ -3689,4 +3739,130 @@ h1, h2, h3, h4, h5, h6 {
   .adm-section { padding: 20px 20px; }
 
   .adm-import { padding: 20px; }
+}
+
+/* =========================================================
+   COURSE PAGES  (co-)
+   Member-gated course and lesson-list pages
+   ========================================================= */
+
+.co-page {
+  min-height: 60vh;
+  padding: 48px 24px 80px;
+  background: var(--rim-bg);
+}
+
+.co-content {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+/* ── Header ──────────────────────────────────────────── */
+.co-header {
+  margin-bottom: 40px;
+}
+
+.co-title {
+  font-family: var(--font-serif);
+  font-size: 36px;
+  font-weight: 400;
+  line-height: 1.25;
+  color: var(--rim-text);
+  margin: 8px 0 0;
+}
+
+.co-subheading {
+  font-size: 18px;
+  color: var(--rim-text-muted);
+  margin: 10px 0 0;
+  line-height: 1.5;
+}
+
+/* ── Lessons list ────────────────────────────────────── */
+.co-lessons {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.co-section-title {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rim-text-muted);
+  margin: 24px 0 8px;
+  padding: 0;
+}
+
+.co-section-title:first-child { margin-top: 0; }
+
+.co-lesson {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: #fff;
+  border: 1px solid var(--rim-rule);
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--rim-text);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.co-lesson:hover {
+  border-color: var(--rim-mid);
+  background: var(--rim-bg-accent);
+}
+
+.co-lesson__title {
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.co-lesson__badge {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rim-mid);
+  background: #e8f0f5;
+  border-radius: 4px;
+  padding: 3px 8px;
+  flex-shrink: 0;
+}
+
+/* ── No access ───────────────────────────────────────── */
+.co-no-access {
+  padding: 40px 0;
+}
+
+.co-no-access__text {
+  font-size: 17px;
+  color: var(--rim-text);
+  margin: 0 0 16px;
+}
+
+.co-no-access__link {
+  font-size: 15px;
+  color: var(--rim-blue);
+  text-decoration: none;
+}
+
+.co-no-access__link:hover { text-decoration: underline; }
+
+/* ── Empty state ─────────────────────────────────────── */
+.co-empty {
+  font-size: 15px;
+  color: var(--rim-text-muted);
+  font-style: italic;
+  margin: 24px 0;
+}
+
+/* ── Mobile ──────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .co-page { padding: 32px 16px 60px; }
+  .co-title { font-size: 28px; }
+  .co-lesson { padding: 12px 14px; }
 }

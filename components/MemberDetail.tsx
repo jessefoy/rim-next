@@ -12,6 +12,12 @@ interface MemberRegistration {
   createdAt: string;
 }
 
+interface CourseAccessGrant {
+  id: string;
+  courseSlug: string;
+  createdAt: string;
+}
+
 interface Member {
   id: string;
   email: string;
@@ -21,6 +27,7 @@ interface Member {
   roles: string[];
   createdAt: string;
   registrations: MemberRegistration[];
+  courseAccess: CourseAccessGrant[];
 }
 
 const ALL_ROLES = ["ADMIN", "REGISTRAR", "TREASURER", "TEACHER", "VOLUNTEER"] as const;
@@ -49,6 +56,12 @@ export default function MemberDetail({ member }: { member: Member }) {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
+  // Course access state
+  const [grants, setGrants] = useState<CourseAccessGrant[]>(member.courseAccess);
+  const [newCourseSlug, setNewCourseSlug] = useState("");
+  const [grantLoading, setGrantLoading] = useState(false);
+  const [grantError, setGrantError] = useState("");
+
   const toggleRole = (role: string) => {
     setRoles((prev) =>
       prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]
@@ -73,6 +86,49 @@ export default function MemberDetail({ member }: { member: Member }) {
       setError(err instanceof Error ? err.message : "Save failed");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleGrantAccess = async () => {
+    const slug = newCourseSlug.trim();
+    if (!slug) return;
+    setGrantLoading(true);
+    setGrantError("");
+    try {
+      const res = await fetch(`/api/admin/members/${member.id}/course-access`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseSlug: slug }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to grant access");
+      setGrants((prev) => {
+        // Upsert locally
+        const filtered = prev.filter((g) => g.courseSlug !== data.courseSlug);
+        return [...filtered, { id: data.id, courseSlug: data.courseSlug, createdAt: data.createdAt }];
+      });
+      setNewCourseSlug("");
+    } catch (err) {
+      setGrantError(err instanceof Error ? err.message : "Failed");
+    } finally {
+      setGrantLoading(false);
+    }
+  };
+
+  const handleRevokeAccess = async (courseSlug: string) => {
+    setGrantError("");
+    try {
+      const res = await fetch(
+        `/api/admin/members/${member.id}/course-access?courseSlug=${encodeURIComponent(courseSlug)}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? "Failed to revoke");
+      }
+      setGrants((prev) => prev.filter((g) => g.courseSlug !== courseSlug));
+    } catch (err) {
+      setGrantError(err instanceof Error ? err.message : "Failed");
     }
   };
 
@@ -185,6 +241,55 @@ export default function MemberDetail({ member }: { member: Member }) {
           {saving ? "Saving…" : "Save changes"}
         </button>
       </div>
+
+      {/* Course access (manual grants) */}
+      <section className="adm-section">
+        <h2 className="adm-section__title">Course Access</h2>
+        <p className="adm-section__hint">
+          Members automatically get access to courses linked to programs they&rsquo;re registered for.
+          Use this to manually grant access to a specific course.
+        </p>
+
+        {grantError && <p className="adm-save__error">{grantError}</p>}
+
+        {grants.length > 0 && (
+          <div className="adm-course-grants">
+            {grants.map((g) => (
+              <div key={g.id} className="adm-course-grant">
+                <span className="adm-course-grant__slug">{g.courseSlug}</span>
+                <button
+                  className="adm-course-grant__revoke"
+                  onClick={() => handleRevokeAccess(g.courseSlug)}
+                >
+                  Revoke
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {grants.length === 0 && (
+          <p className="adm-empty">No manual course access grants.</p>
+        )}
+
+        <div className="adm-course-grant-form">
+          <input
+            type="text"
+            className="adm-form__input"
+            placeholder="course-slug"
+            value={newCourseSlug}
+            onChange={(e) => setNewCourseSlug(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleGrantAccess(); }}
+          />
+          <button
+            className="adm-import__submit"
+            onClick={handleGrantAccess}
+            disabled={grantLoading || !newCourseSlug.trim()}
+          >
+            {grantLoading ? "Granting…" : "Grant Access"}
+          </button>
+        </div>
+      </section>
 
       {/* Registration history */}
       <section className="adm-section">

@@ -139,8 +139,13 @@ export const allLessonSlugsQuery = `*[_type == "lessons" && !(_id in path("draft
 // ─── Courses ──────────────────────────────────────────────────────────────────
 
 export const courseBySlugQuery = `*[_type == "courses" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
-  _id, name, slug, subheading, mainContentDescription,
+  _id, name, slug, subheading, accessLevel, mainContentDescription,
   lessons[]-> { lessonTitleDisplayed, slug, isSectionTitle, includesAudio }
+}`;
+
+// Returns slugs of all programs that link to a specific course (for registration-based access check)
+export const programsLinkedToCourseQuery = `*[_type == "programs" && linkedCourse->slug.current == $courseSlug && !(_id in path("drafts.**"))] {
+  "slug": slug.current
 }`;
 
 export const allCourseSlugsQuery = `*[_type == "courses" && !(_id in path("drafts.**"))] { "slug": slug.current }`;

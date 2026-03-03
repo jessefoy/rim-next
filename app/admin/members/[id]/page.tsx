@@ -39,6 +39,10 @@ export default async function AdminMemberDetailPage({
           createdAt: true,
         },
       },
+      courseAccess: {
+        orderBy: { createdAt: "asc" },
+        select: { id: true, courseSlug: true, createdAt: true },
+      },
     },
   });
 
@@ -50,6 +54,10 @@ export default async function AdminMemberDetailPage({
     registrations: user.registrations.map((r) => ({
       ...r,
       createdAt: r.createdAt.toISOString(),
+    })),
+    courseAccess: user.courseAccess.map((g) => ({
+      ...g,
+      createdAt: g.createdAt.toISOString(),
     })),
   };
 

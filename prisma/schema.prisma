@@ -73,6 +73,7 @@ model User {
   memberships   UserMembership[]
   attendance    AttendanceRecord[]
   registrations Registration[]
+  courseAccess  CourseAccess[]
 
   @@map("users")
 }
@@ -205,6 +206,22 @@ enum DonationStatus {
   PENDING       // registered or approved, donation not yet made
   COMPLETED     // donation received
   WAIVED        // volunteer marked as no donation needed
+}
+
+// ─── COURSE ACCESS (manual admin grants) ─────────────────────────────────────
+// Registration-based access is checked dynamically; this table is for admin grants only.
+
+model CourseAccess {
+  id         String   @id @default(cuid())
+  userId     String
+  courseSlug String
+  grantedBy  String?  // userId of the admin who granted access
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseSlug])
+  @@map("course_access")
 }
 
 // ─── DONATION MANAGEMENT (Phase 2) ───────────────────────────────────────────
