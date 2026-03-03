@@ -395,53 +395,6 @@ const NOT_YET_BUILT = [
   },
 ];
 
-const DECOMMISSIONED = [
-  {
-    name: "Memberstack Signup Form",
-    url: "/community-membership (old)",
-    desc: "Was the Memberstack account creation form with email + password fields. Repurposed as the community agreements reference page + 'Join or sign in →' button.",
-  },
-  {
-    name: "Webflow Auth Pages",
-    url: "/log-in, /reset-password, /update-password, /user-account",
-    desc: "Replaced by NextAuth magic link. No passwords in the new system. These routes no longer need to exist.",
-  },
-  {
-    name: "Member Dashboard — Waiting Room",
-    url: "/account/waiting-room (old Webflow)",
-    desc: "Members waited here for Zoom links to go live. Decommissioned — Zoom links now live on the dashboard directly.",
-  },
-  {
-    name: "Member Dashboard — Commenting Test",
-    url: "/account/commenting-test (old Webflow)",
-    desc: "Webflow page for a commenting experiment. Decommissioned — not relevant to the new system.",
-  },
-  {
-    name: "Webflow Ecommerce Pages",
-    url: "/checkout, /order-confirmation, /product/*, /category/*",
-    desc: "Webflow's built-in ecommerce. Never used by RIM. Not being migrated.",
-  },
-  {
-    name: "CMS Taxonomy Listing Pages",
-    url: "/class-recording-topics/*, /weekdays/*, /program-categories/*, /resources/*",
-    desc: "Auto-generated Webflow CMS collection pages for tags and categories. Not rebuilding — content is browsed through Programs and Library instead.",
-  },
-  {
-    name: "Search Page",
-    url: "/search",
-    desc: "Webflow's built-in site search. Not being migrated — no search feature planned for rim-next at this stage.",
-  },
-  {
-    name: "Work-in-Progress Pages",
-    url: "/work-in-progress/*",
-    desc: "Old staging and draft pages in Webflow. Not migrating.",
-  },
-  {
-    name: "Class Recording Template",
-    url: "/class-recording/[slug]",
-    desc: "Previously a 🟢 design-system page (cr- prefix) for audio/video recordings with teachers and topics. Removed — content will be handled differently.",
-  },
-];
 
 // ─── Badge + CSS config ───────────────────────────────────────────────────────
 
@@ -620,33 +573,13 @@ export default async function AdminSitemapPage() {
           </div>
         </div>
 
-        {/* ── Decommissioned ── */}
-        <div className="adm-sm-gap-section">
-          <div className="adm-sm-gap-section__head adm-sm-gap-section__head--done">
-            <h2 className="adm-sm-gap-section__title">✓ Intentionally Decommissioned</h2>
-            <p className="adm-sm-gap-section__desc">
-              Pages that existed in the old Webflow / Memberstack site that are deliberately not
-              being migrated. Confirms nothing important was lost.
-            </p>
-          </div>
-          <div className="adm-sm-gap-list">
-            {DECOMMISSIONED.map((item) => (
-              <div key={item.url} className="adm-sm-gap-item adm-sm-gap-item--done">
-                <div className="adm-sm-gap-item__name">{item.name}</div>
-                <code className="adm-sm-gap-item__url">{item.url}</code>
-                <p className="adm-sm-gap-item__desc">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* ── Footer ── */}
         <div className="adm-sm-footer-note">
           <strong>CSS migration goal:</strong> Migrate all 🟠 Webflow pages to 🟢 Design System, then
           remove <code>normalize.css</code>, <code>webflow.css</code>, and <code>rim.webflow.css</code>{" "}
           from <code>app/layout.tsx</code>. Currently 🟢:{" "}
-          <code>/lessons/[slug]</code> · <code>/class-recording/[slug]</code> ·{" "}
-          <code>/programs/[slug]</code> · <code>/account/welcome</code> ·{" "}
+          <code>/lessons/[slug]</code> · <code>/programs/[slug]</code> ·{" "}
+          <code>/account/welcome</code> ·{" "}
           <code>/admin/*</code> · <code>/update/[token]</code>
           <br /><br />
           <strong>Sanity CMS types:</strong>{" "}
