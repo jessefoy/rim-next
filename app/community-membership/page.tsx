@@ -1,114 +1,88 @@
-import { signIn, auth } from "@/auth";
-import { redirect } from "next/navigation";
+import Link from "next/link";
 
-export const metadata = { title: "Become a Member — Rooted In Mindfulness" };
+export const metadata = { title: "Community Care Agreements — Rooted In Mindfulness" };
 
-export default async function CommunityMembershipPage() {
-  const session = await auth();
-  if (session) redirect("/account/dashboard");
-
-  async function handleSignUp(formData: FormData) {
-    "use server";
-    await signIn("resend", {
-      email: formData.get("email") as string,
-      redirectTo: "/account/dashboard",
-    });
-  }
-
+export default function CommunityMembershipPage() {
   return (
     <div className="section background-white">
       <div className="container-7">
         <div className="container-home-page">
-          <div className="grid-halves reverse-direction">
-            <div
-              id="w-node-c2cece22-07f9-ea4a-5d10-fe76e63e8153-00e041cc"
-              className="container-image"
-            >
-              <div className="section-image join-us-page-image"></div>
-            </div>
-            <div
-              id="w-node-c2cece22-07f9-ea4a-5d10-fe76e63e8155-00e041cc"
-              className="container-content flip-pull"
-            >
+          <div className="flex-stack-center top">
+            <div className="container-10">
+
               <div className="section-content content-info">
-                <h2>Become a Member</h2>
+                <h2>Community Care Agreements</h2>
                 <p className="section-text-3">
-                  <strong>RIM is a refuge we create together</strong>—a place for learning, practice,
-                  and genuine friendship. Everyone is welcome, from all backgrounds and phases of
-                  life. <strong>Come as you are.</strong>
+                  Rooted In Mindfulness is a refuge we create together — a place for learning,
+                  practice, and genuine friendship. Everyone is welcome, from all backgrounds and
+                  phases of life. We ask everyone who joins to hold these four shared intentions.
+                  They are the foundation of the trust, care, and openness that makes this
+                  community possible.
                 </p>
               </div>
-              <div className="section-box">
-                <div className="program-details-content no-bottom-margin">
-                  <div className="rich-text-block-15 w-richtext">
-                    <h3>Community Care Agreements</h3>
-                    <p>
-                      We ask members to hold these four shared intentions, which together create a
-                      safe and supportive environment for all.
-                    </p>
-                    <ol role="list">
-                      <li>
-                        <strong>Care for Yourself</strong>
-                        <br />
-                        Take responsibility for your own path. Teachers and community offer support
-                        and friendship, but the journey is yours to walk.
-                      </li>
-                      <li>
-                        <strong>Care for Others</strong>
-                        <br />
-                        Show up for one another. Your presence and goodwill are gifts to every
-                        member of this community.
-                      </li>
-                      <li>
-                        <strong>Care for RIM</strong>
-                        <br />
-                        RIM is 100% community-funded. We ask that all members contribute
-                        financially in a way that feels right to them.
-                      </li>
-                      <li>
-                        <strong>Care for Our Shared Vision</strong>
-                        <br />
-                        We practice to cultivate wisdom and compassion—for ourselves, each other,
-                        and all beings.
-                      </li>
-                    </ol>
-                  </div>
-                </div>
 
-                <div className="sign-up-box">
-                  <div className="w-form">
-                    <form action={handleSignUp} className="login-form">
-                      <h3 className="join-us-form-header">Create Your Member Account</h3>
-                      <p className="paragraph-19">
-                        If these intentions resonate with you, we&apos;d be honored to have you join
-                        us. Enter your email to get started — no password needed.
-                      </p>
-                      <div className="text-field-wrapper">
-                        <label htmlFor="email-2" className="input-label-2">
-                          Email
-                        </label>
-                        <input
-                          className="input w-input"
-                          maxLength={256}
-                          name="email"
-                          placeholder="e.g. AliciaFernández@gmail.com"
-                          type="email"
-                          id="email-2"
-                          required
-                        />
-                      </div>
-                      <input
-                        type="submit"
-                        className="link-block-3 w-button"
-                        value="Let's go →"
-                      />
-                    </form>
-                  </div>
-                  <a href="/login" className="password-link">
-                    I already have an account
-                  </a>
+              <div className="program-details-content no-bottom-margin">
+                <div className="rich-text-block-15 w-richtext">
+                  <h5>
+                    <strong>1. Care for Yourself</strong>
+                  </h5>
+                  <p>
+                    Meditation and mindful living allow us to transform unhealthy patterns of the
+                    heart and mind, helping us realize authentic health, well-being, meaning, and
+                    happiness. While a community, teachers, and supportive friends can be powerful
+                    allies on the path of awakening, growth, and transformation, it is ultimately up
+                    to each of us to take the necessary steps along the journey.
+                  </p>
+                  <h5>
+                    <strong>2. Care for Others</strong>
+                  </h5>
+                  <p>
+                    The work of self-discovery and development can be challenging to undertake alone.
+                    Being part of a loving community where each member genuinely cares for one
+                    another&apos;s well-being offers a true refuge. Showing up and sharing an
+                    intentional space to learn and practice with friends is immeasurably beneficial
+                    for both ourselves and our shared world.
+                  </p>
+                  <h5>
+                    <strong>3. Care for RIM: Our Shared Refuge</strong>
+                  </h5>
+                  <p>
+                    RIM is co-created through the generosity, goodwill, and appreciation of its
+                    community. As a living expression of generosity, RIM is 100% community-funded
+                    and entirely dependent on donations. These donations cover all operating costs,
+                    contribute to teacher livelihoods, and maintain the building.
+                  </p>
+                  <p>
+                    RIM does not charge fixed &quot;fees.&quot; Instead, we ask that all members
+                    contribute to the financial health of our precious center with an ongoing
+                    donation amount (RIM Dana) that feels right to them. When deciding on ongoing
+                    financial support, please be mindful of what stirs in your heart, your financial
+                    ability, and the value the RIM community and teachings have in your life.
+                  </p>
+                  <h5>
+                    <strong>4. Care for Our Shared Mission and Vision</strong>
+                  </h5>
+                  <p>
+                    RIM is a community refuge that welcomes individuals while creating opportunities
+                    for mutual support and friendship. Members of RIM are dedicated to learning and
+                    practicing the dharma, meditation, and mindful living. We do this to understand
+                    ourselves, others, and the world, aiming to free ourselves from unhealthy and
+                    harmful thoughts, words, and actions in order to realize our shared vision. This
+                    vision encompasses a world where all beings live with great wisdom and great
+                    compassion.
+                  </p>
                 </div>
               </div>
+
+              <div className="sign-up-box" style={{ marginTop: "2.5rem", textAlign: "center" }}>
+                <p className="paragraph-19" style={{ marginBottom: "1rem" }}>
+                  If these intentions resonate with you, we&apos;d be honored to have you join us.
+                </p>
+                <Link href="/login" className="link-block-3 w-button">
+                  Join or sign in →
+                </Link>
+              </div>
+
             </div>
           </div>
         </div>

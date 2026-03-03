@@ -113,7 +113,10 @@ export default function WelcomeForm({
           Rooted In Mindfulness is a community held by shared values of presence, care, and
           respect. We practice together, support one another, and create a container of trust.
           We ask that everyone participate using their real name and show up with the same
-          care and attention they would bring to a sitting practice.
+          care and attention they would bring to a sitting practice.{" "}
+          <a href="/community-membership" className="wl-agreements__link" target="_blank" rel="noopener noreferrer">
+            Read our full community care agreements →
+          </a>
         </p>
         <label className="wl-checkbox-label">
           <input

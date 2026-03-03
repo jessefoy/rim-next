@@ -536,7 +536,10 @@ export default function RegistrationForm({
           <p className="pg-form__agreements-text">
             Rooted In Mindfulness is an intentional community held by shared values of
             presence, care, and respect. We ask that everyone participate using their
-            real name and engage with the same care they would bring to a sitting practice.
+            real name and engage with the same care they would bring to a sitting practice.{" "}
+            <a href="/community-membership" className="pg-form__agreements-link" target="_blank" rel="noopener noreferrer">
+              Read our community care agreements →
+            </a>
           </p>
           <label className="pg-form__agreements-check">
             <input
