@@ -94,14 +94,14 @@ UPDATE users SET roles = '{REGISTRAR,ADMIN}' WHERE email = 'person@example.com';
 - `/account/*` — member-only area (dashboard, profile, etc.)
 - `/volunteer/*` — staff-only area
 
-**Key file:** `proxy.ts` (Next.js 15 uses `proxy.ts`, not `middleware.ts`)
+**Key file:** `proxy.ts` (Next.js 16 renamed `middleware.ts` → `proxy.ts`)
 
 **Authorization levels:**
-- `/account/*` — any authenticated session
+- `/account/*` — any authenticated session; also checks `agreedToTerms` and redirects to `/account/welcome` if false
 - `/volunteer/*` — server component checks `session.user.roles` and renders an "unauthorized" message if the user lacks `REGISTRAR` or `ADMIN`; redirect happens at the route level, not in proxy
 
 **🔧 Technical notes:**
-- Next.js 16 moved from `middleware.ts` to `proxy.ts` — do not create or restore `middleware.ts`
+- **Next.js 16 renamed `middleware.ts` → `proxy.ts`** — this is a Next.js 16 breaking change. Do not create or restore `middleware.ts`. The exported function name and `config.matcher` export are unchanged.
 - The volunteer pages do a second authorization check inside the server component (beyond the proxy) because the proxy only checks for a session, not for specific roles
 - `params` in App Router dynamic routes is a `Promise<{slug}>` in Next.js 15+ — always `await params`
 
@@ -239,6 +239,8 @@ STRIPE_WEBHOOK_SECRET        — from Stripe dashboard, used to verify webhook s
 **Responses updated notification** — sent to `REGISTRAR_EMAIL` when a registrant submits the self-service edit form. Subject: "[First] [Last] updated their responses — [Program]". Includes a link to the volunteer registration table.
 
 **Program reminder email** — sent to registrants as a reminder about an upcoming program. Subject: "A reminder — [Program]". Body: warm greeting, program date/time/location details (if set in Sanity), optional custom `reminderMessage` (Portable Text), and a CTA button (Zoom link if set, otherwise program page). Can be sent automatically via the daily cron or manually by the registrar for individual or all-unsent registrants. `reminderSentAt` is stamped on the registration record when sent — prevents double-sending regardless of which path fires first.
+
+**Dana reminder email** — a gentle nudge to registrants whose `donationStatus` is `PENDING` (i.e. they skipped the dana step after registering). Subject: "A gentle reminder — your dana for [Program]". Links directly to the registration page dana step. Triggered manually by the registrar via a "Send Dana Reminder" button in the volunteer table (REGISTERED/APPROVED rows with PENDING dana only). API: `PATCH /api/registrations/[id]` with `{ action: "sendDanaReminder" }`. Returns `400` if `donationStatus` is not `PENDING`.
 
 **Key files:** `lib/email.ts`, `lib/portableTextEmail.ts`
 
@@ -390,9 +392,11 @@ A registration is considered a duplicate if the same `userId` + `programId` alre
 | Role(s) | Card Label | Destination |
 |---|---|---|
 | `ADMIN`, `REGISTRAR` | Registrations | `/volunteer` |
+| `ADMIN` only | Members | `/admin/members` |
 
 **🔧 Technical notes:**
-- Deduplication: if a user holds both `ADMIN` and `REGISTRAR` (which currently point to the same href), only one card renders. Uses `Object.fromEntries` keyed by `href` to collapse duplicates
+- `STAFF_LINKS` is `Record<string, { label, href, description }[]>` — each role key maps to an array of cards. ADMIN has two entries; REGISTRAR has one.
+- Deduplication by `href`: if a user holds multiple roles whose links overlap, duplicates are collapsed. The Members card only appears once even if the user holds multiple roles that grant it.
 - Dashboard page is still in the 🟠 Webflow CSS layer — staff panel uses `db-` prefixed classes in `custom.css` to avoid conflicts
 
 ---
@@ -456,12 +460,23 @@ Unified record of every contribution to RIM regardless of source. Schema is in P
 | `quickbooksRef` | String? | QB transaction ID (future reconciliation) |
 | `createdAt` | DateTime | When the record was created in our system |
 
+#### MembershipType, UserMembership (Phase 2 scaffolding — table exists, no UI yet)
+Schema is live in the DB but no application code reads or writes these models yet.
+- `MembershipType` — defines categories of community involvement (e.g. "General Member", "Dharma Study Group"). Fields: `id`, `name` (unique), `slug` (unique), `description?`, `isActive`, `createdAt`.
+- `UserMembership` — join table linking a User to a MembershipType. Fields: `userId`, `membershipTypeId`, `joinedAt`, `isActive`. `@@unique([userId, membershipTypeId])`.
+
+#### AttendanceRecord (Phase 2 scaffolding — table exists, no UI yet)
+Schema is live in the DB but no application code reads or writes this model yet. Intended for tracking which sessions/retreats/classes a member has attended.
+Fields: `userId`, `recordedAt`, `eventDate`, `eventName`, `eventType` (CLASS / RETREAT / STUDY_GROUP / VOLUNTEER / EVENT), `format` (IN_PERSON / ONLINE), `notes?`.
+
 #### Enums
 ```
 Role:               REGISTRAR | TREASURER | TEACHER | VOLUNTEER | ADMIN
 RegistrationStatus: REGISTERED | WAITLISTED | APPROVED | CANCELLED
 DonationStatus:     NOT_REQUIRED | PENDING | COMPLETED | WAIVED
 DonationSource:     STRIPE | GIVEBUTTER | CASH | CHECK | OTHER
+AttendanceType:     CLASS | RETREAT | STUDY_GROUP | VOLUNTEER | EVENT  (Phase 2)
+AttendanceFormat:   IN_PERSON | ONLINE  (Phase 2)
 ```
 
 **🔧 Technical notes:**
@@ -474,16 +489,53 @@ DonationSource:     STRIPE | GIVEBUTTER | CASH | CHECK | OTHER
 
 ## 8. API Routes
 
+**Registration & Programs**
+
 | Method | Path | Auth | What it does |
 |---|---|---|---|
-| `POST` | `/api/registrations` | None required | Create a registration; finds/creates user by email if not logged in; fetches Sanity `confirmationMessage` for the program and includes it in the confirmation email |
-| `PATCH` | `/api/registrations/[id]` | REGISTRAR or ADMIN | Update `status`, `notes`, `donationStatus`, or `customFields` (inline edit); `action: "sendEditRequest"` generates a token and sends the self-service edit email; `action: "sendReminder"` sends the program reminder email to the registrant and stamps `reminderSentAt`; on WAITLISTED→APPROVED promotion auto-sets `donationStatus` from `danaMode`; fires approval or cancellation email |
+| `POST` | `/api/registrations` | None required | Create a registration; finds/creates user by email if not logged in; fetches Sanity `confirmationMessage` and includes it in the confirmation email |
+| `PATCH` | `/api/registrations/[id]` | REGISTRAR or ADMIN | Update `status`, `notes`, `donationStatus`, or `customFields`; `action: "sendEditRequest"` sends self-service edit link; `action: "sendReminder"` sends program reminder; `action: "sendDanaReminder"` sends gentle dana nudge (PENDING only); on WAITLISTED→APPROVED auto-sets `donationStatus`; fires appropriate email |
 | `GET` | `/api/programs/[slug]/registrations` | REGISTRAR or ADMIN | List registrations for a program; add `?format=csv` for CSV download |
-| `POST` | `/api/programs/[slug]/send-reminder` | REGISTRAR or ADMIN | Bulk send the program reminder email to all REGISTERED/APPROVED registrants where `reminderSentAt` is null; returns `{ sent: N }` |
-| `GET` | `/api/cron/send-reminders` | CRON_SECRET header | Daily Vercel Cron handler (14:00 UTC). Finds all programs whose `reminderDate` falls in the past 24h window, then sends the reminder email to all unsent active registrants; returns `{ ok: true, sent: N }` |
+| `POST` | `/api/programs/[slug]/send-reminder` | REGISTRAR or ADMIN | Bulk send reminder to all REGISTERED/APPROVED registrants with `reminderSentAt` null; returns `{ sent: N }` |
+| `POST` | `/api/update/[token]` | Token (no session) | Self-service response edit: validates `editToken` + expiry, updates `customFields`, clears token, notifies registrar |
+
+**Member Onboarding**
+
+| Method | Path | Auth | What it does |
+|---|---|---|---|
+| `POST` | `/api/account/complete-profile` | Session required | Save firstName, lastName, phone, set `agreedToTerms = true` on first login |
+| `DELETE` | `/api/account/complete-profile` | Session required | Explicit "I'd rather not join" — deletes User record (cascades to sessions, registrations, course access), signs out |
+
+**Admin — Members**
+
+| Method | Path | Auth | What it does |
+|---|---|---|---|
+| `GET` | `/api/admin/members` | ADMIN | List all members with roles and registration counts |
+| `PATCH` | `/api/admin/members/[id]` | ADMIN | Update profile fields (firstName, lastName, phone) and/or roles array |
+| `POST` | `/api/admin/members/import` | ADMIN | CSV upsert: finds or creates Users by email; fills blank fields only; returns `{ created, updated, skipped }` |
+| `POST` | `/api/admin/members/[id]/course-access` | ADMIN | Grant manual course access (`CourseAccess` upsert) |
+| `DELETE` | `/api/admin/members/[id]/course-access?courseSlug=` | ADMIN | Revoke manual course access |
+| `GET` | `/api/admin/courses` | ADMIN | All Sanity courses enriched with `linkedByPrograms` (reverse ref) — powers CourseAccessSection |
+
+**Payments**
+
+| Method | Path | Auth | What it does |
+|---|---|---|---|
 | `POST` | `/api/stripe/checkout` | None required | Create a Stripe Checkout session for registration dana; returns session URL |
-| `POST` | `/api/stripe/webhook` | Stripe signature | Receive `checkout.session.completed`; update registration donationStatus/amount |
-| `POST` | `/api/update/[token]` | Token (no session) | Self-service response edit: validates `editToken` + expiry, updates `customFields`, clears token, sends registrar notification |
+| `POST` | `/api/stripe/webhook` | Stripe signature | Receive `checkout.session.completed`; update registration `donationStatus` + `donationAmount`; write `Donation` ledger record |
+
+**Crons**
+
+| Method | Path | Auth | What it does |
+|---|---|---|---|
+| `GET` | `/api/cron/send-reminders` | CRON_SECRET Bearer | Daily at 14:00 UTC. Sends reminder email to all unsent active registrants for programs whose `reminderDate` falls in the past 24h; returns `{ ok: true, sent: N }` |
+| `GET` | `/api/cron/cleanup-incomplete-accounts` | CRON_SECRET Bearer | Daily at 15:00 UTC. Deletes User records where `agreedToTerms = false` and `createdAt < 48h ago` — removes abandoned incomplete accounts |
+
+**Newsletter**
+
+| Method | Path | Auth | What it does |
+|---|---|---|---|
+| `POST` | `/api/subscribe` | None required | Add subscriber to Flodesk and assign to the RIM segment (`6340e5b00170f97cbdfc4b87`). Used by the newsletter form in the site footer. |
 
 **🔧 Technical notes:**
 - All PATCH/GET admin routes call `auth()` and check `session.user.roles` — they return `401` if unauthenticated or `403` if unauthorized
@@ -532,8 +584,15 @@ The `programs` schema is organized into six tabs (in order):
 | `danaBaseAmount` | number | Required base cost in dollars — for `base_plus_dana` (e.g. retreat venue/meals) and `fixed` modes only |
 | `danaFixedAmount` | number | Set price in dollars — for `fixed` mode only |
 | `danaMessage` | text | Short program-specific message (1–3 sentences) shown on the dana step. Leave blank for no message. |
+| `danaText` | text | Short dana/donation note shown on the program detail page (the public-facing program listing, not the dana step itself). |
 
-> **Note:** The old `suggestedDonation` field was replaced by the five new dana fields above. It has been removed from the Sanity schema (deployed 2026-03-02).
+> **Note:** The old `suggestedDonation` field was replaced by the five dana fields + `danaText` above. It has been removed from the Sanity schema (deployed 2026-03-02).
+
+### Fields added to `programs` schema (content group)
+
+| Field | Type | Purpose |
+|---|---|---|
+| `linkedCourses` | array of references | One or more courses linked to this program. Members with an active registration for this program automatically get access to all linked courses (checked dynamically at page render — no DB write). |
 
 **danaMode reference:**
 - `none` — No dana step shown at all. Registration is free.
@@ -876,7 +935,7 @@ The old Memberstack list of ~1,462 members is **not bulk-imported**. Instead:
 - proxy.ts exempts `/account/welcome` from the `agreedToTerms` check — otherwise the redirect would loop
 - The welcome page is a server component; the form submit is a client component (`WelcomeForm`) that POSTs to the API
 - DELETE on `/api/account/complete-profile` deletes the User record with `onDelete: Cascade` — this automatically removes all related Sessions, Accounts, Registrations, CourseAccess records
-- The cleanup cron uses the same `CRON_SECRET` Bearer header pattern as the reminder cron
+- The cleanup cron uses the same `CRON_SECRET` Bearer header pattern as the reminder cron. Schedule: `0 15 * * *` (15:00 UTC daily). Configured in `vercel.json` alongside the reminder cron.
 - Agreements text wording is hardcoded in JSX for now — can be moved to Sanity if RIM wants to update it without a deploy
 - `wl-` CSS prefix is for the welcome page only — it is a 🟢 design system page
 
