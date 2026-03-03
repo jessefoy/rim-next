@@ -24,6 +24,8 @@ Two audiences:
 11. [Member Management System](#11-member-management-system-adminmembers)
 12. [Course Access System](#12-course-access-system-courseslug)
 13. [Donation Management System](#13-donation-management-system-phase-2--planned)
+14. [Community Onboarding & Membership Philosophy](#14-community-onboarding--membership-philosophy)
+15. [Site Administration Tools](#15-site-administration-tools)
 
 ---
 
@@ -570,11 +572,13 @@ All custom styles: `public/css/custom.css`
 ### Page prefixes (🟢 design system pages)
 | Prefix | Page |
 |---|---|
-| `lp-` | Lesson pages |
-| `cr-` | Class recording pages |
+| `lp-` | Lesson pages (also shared reading-column utilities used by other 🟢 pages) |
 | `pg-` | Program detail pages |
-| `vol-` | Volunteer admin area |
-| `adm-` | Admin member management |
+| `wl-` | Community welcome / onboarding page |
+| `vol-` | Volunteer / registrar admin area |
+| `adm-` | Admin member management pages |
+| `adm-sm-` | Admin site architecture page |
+| `ca-` | CourseAccessSection component |
 | `db-` | Member dashboard additions |
 
 ### Design tokens (CSS custom properties)
@@ -878,6 +882,68 @@ The old Memberstack list of ~1,462 members is **not bulk-imported**. Instead:
 
 ---
 
+## 15. Site Administration Tools
+
+### 15a. Site Architecture Page (`/admin/sitemap`)
+
+**What it does:** A living reference page — ADMIN-only — showing every page on the site organized by function. Replaces the visual site overview that was easy to see in Webflow Designer but harder to keep in mind when working in code.
+
+**Who uses it:** Site administrators and developers who need to understand what exists, what's missing, or what the CSS migration status of any page is.
+
+**How to find it:** Log in as an admin → member nav → "Site Architecture." Direct URL: `/admin/sitemap`.
+
+**What it shows:**
+
+| Section | What's in it |
+|---|---|
+| Public Marketing | Homepage, programs listing, community agreements page, diversity, donate |
+| CMS-Powered Templates | All dynamic routes — programs, lessons, courses, magazine articles, glossary, team, volunteer positions |
+| Program Registration | The standalone `/programs/[slug]/register` focused form |
+| Authentication & Onboarding | Login, check-email, auth error, community welcome |
+| Member Area | Dashboard, My Library (stub), My Profile, Care Agreements |
+| Admin | Site Architecture (this page), Member List, Member Detail |
+| Volunteer / Registrar Area | Registrar program list, registration management table, volunteer opportunities, volunteer thank-you (orphan) |
+| Kalyana Mitta — Community Groups | Groups overview, guidelines, group application |
+| Self-Service & Utility | Edit My Registration (token-gated, no login needed) |
+| Developer / Internal | Style guide |
+
+Each page entry shows:
+- **Access badge** — Public / CMS / Member / Admin / Staff / Utility / Dev
+- **CSS layer** — 🟢 Design System (no Webflow dependency) or 🟠 Webflow
+- **Status chip** — ⚠️ Stub (exists but incomplete/hardcoded), ⚠️ Orphan (exists but unreachable), ↩ Repurposed (function changed)
+- Clickable URL (opens in new tab) or template notation for dynamic routes
+- Plain-language description
+
+**⚠️ Not Yet Built section** — Items tracked as planned-but-missing:
+- Kalyana Mitta Group Detail Form — allows group leaders to manage their group info after approval
+- Access Denied / 401 page — currently no graceful unauthorized error page
+- Volunteer Interest Form API — the form on `/volunteerism/volunteer` has no backend; submissions go nowhere
+- My Library rebuild — current page is hardcoded and links to the old Webflow site
+
+**Footer note** shows the CSS migration goal and lists all currently 🟢 pages.
+
+**Key file:** `app/admin/sitemap/page.tsx` — fully server-side (no client components). All page data is defined as TypeScript constants in the file; updating the sitemap means editing this file. CSS prefix: `adm-sm-`.
+
+**🔧 Technical notes:**
+- Access check: `session.user.roles?.some(r => r === "ADMIN")` — REGISTRAR cannot view this page
+- Page and section data lives entirely in the file as typed TypeScript constants (`SECTIONS`, `NOT_YET_BUILT`) — no database or CMS involved
+- `--section-color` CSS custom property passed as an inline style on each section card, scoped to that card's color indicator
+- The sitemap is intentionally a manually maintained reference, not auto-generated — auto-generation would miss status annotations and descriptions
+- When new pages are added to the app, update this file to keep the reference accurate
+
+### 15b. Navigation — Admin Links
+
+Admin users see two additional links in the member navigation:
+
+- **Members** → `/admin/members` (member list)
+- **Site Architecture** → `/admin/sitemap`
+
+These links are rendered conditionally — `isAdmin` check in `Nav.tsx` — and are invisible to regular members and non-admin staff.
+
+**Key file:** `components/Nav.tsx`
+
+---
+
 ## Session Log
 
 | Date | Summary |
@@ -904,4 +970,6 @@ The old Memberstack list of ~1,462 members is **not bulk-imported**. Instead:
 
 | 2026-03-03 | Community onboarding redesign: documented membership philosophy (Section 14); agreedToTerms + agreedAt on User model (db push); auth.ts session callback adds agreedToTerms; proxy.ts redirects to /account/welcome if agreedToTerms false; /account/welcome page (WelcomeForm client component, name required, phone optional, agreements checkbox, warm community voice, explicit decline path); /api/account/complete-profile POST (save profile + set agreedToTerms) + DELETE (delete account on decline); registration API updated (writes firstName/lastName/phone back to User, sets agreedToTerms if checkbox checked); login page reframed as "Join or sign in"; registration form adds agreements checkbox for non-logged-in users; cleanup cron /api/cron/cleanup-incomplete-accounts (48h, CRON_SECRET); wl- CSS prefix |
 
-*Last updated: 2026-03-03 (session 13)*
+| 2026-03-03 | Site cleanup + administration tools: repurposed `/community-membership` (removed Memberstack signup form, now shows full 4-point Community Care Agreements + "Join or sign in →" button); added "Read our full community care agreements →" link from WelcomeForm and RegistrationForm agreements blocks; audited and fixed all nav/site links that referenced the old Memberstack signup flow (Nav desktop "Join Us" sub-text, MemberGate.tsx two-button pattern, volunteer page, kalyana-mitta application page, magazine-articles gate); created `/admin/sitemap` Site Architecture page (ADMIN-only; 10 sections, access badges, CSS layer indicators, status chips — stub/orphan/repurposed, "Not Yet Built" section); added admin nav links (Members + Site Architecture) to Nav.tsx; removed class recording CMS template entirely (deleted page, queries, cr- CSS block); removed "Intentionally Decommissioned" section from sitemap (served its purpose — no ongoing value); updated Section 10 (CSS prefixes), added Section 15 (Site Administration Tools) to FEATURES.md; updated pages-inventory.md |
+
+*Last updated: 2026-03-03 (session 14)*

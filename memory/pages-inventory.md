@@ -19,7 +19,6 @@ Once ALL pages are 🟢, delete the three Webflow CSS `<link>` tags from `app/la
 | 🟠 | `/course/[slug]` | `app/course/[slug]/page.tsx` |
 | 🟠 | `/glossary/[slug]` | `app/glossary/[slug]/page.tsx` |
 | 🟢 | `/lessons/[slug]` | `app/lessons/[slug]/page.tsx` — prefix: `lp-` |
-| 🟢 | `/class-recording/[slug]` | `app/class-recording/[slug]/page.tsx` — prefix: `cr-` |
 | 🟠 | `/magazine-articles/[slug]` | `app/magazine-articles/[slug]/page.tsx` |
 | 🟠 | `/volunteer-positions/[slug]` | `app/volunteer-positions/[slug]/page.tsx` |
 | 🟠 | `/team/[slug]` | `app/team/[slug]/page.tsx` |
@@ -49,7 +48,10 @@ Once ALL pages are 🟢, delete the three Webflow CSS `<link>` tags from `app/la
 
 ---
 
-## Progress: 2 / 24 pages migrated
+## Progress: 2 / 23 pages migrated
+
+*(Class recording template removed entirely — no longer in scope.)*
+*(`/community-membership` repurposed — uses Webflow classes but content is intentionally minimal; low migration priority.)*
 
 ## Suggested Migration Order (easiest → heaviest)
 
@@ -57,7 +59,7 @@ Once ALL pages are 🟢, delete the three Webflow CSS `<link>` tags from `app/la
 2. `/login/error` — simple single-message layout
 3. `/login` — form, straightforward
 4. `/account/dashboard-my-profile` — small form
-5. `/account/dashboard-my-library` — simple list
+5. `/account/dashboard-my-library` — stub; needs rebuild before migration makes sense
 6. `/account/dashboard` — Zoom links layout
 7. `/account/dashboard-member-care-agreements` — rich text
 8. `/diversity` — mostly rich text
@@ -66,8 +68,8 @@ Once ALL pages are 🟢, delete the three Webflow CSS `<link>` tags from `app/la
 11. `/team/[slug]` — detail page
 12. `/magazine-articles/[slug]` — article layout
 13. `/kalyana-mitta/*` — 3 pages, similar patterns
-14. `/volunteerism/*` — 2 pages
-15. `/community-membership` — signup form
+14. `/volunteerism/*` — 2 pages (note: volunteer-thanks is an orphan; consider deleting)
+15. `/community-membership` — repurposed; Webflow classes but minimal content, low priority
 16. `/course/[slug]` — course detail
 17. `/programs/[slug]` — program detail
 18. `/community-programs` — listing page

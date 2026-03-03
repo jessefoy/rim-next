@@ -4,6 +4,58 @@ Each entry records what was accomplished, decisions made, and what to tackle nex
 
 ---
 
+## Session: 2026-03-03 (continuation)
+
+**Focus:** Site cleanup, link audit, admin reference tooling
+
+### Accomplished this session
+
+#### 1. Repurposed `/community-membership`
+- Removed old Memberstack signup form
+- Now displays the full 4-point Community Care Agreements with a warm intro paragraph and "Join or sign in →" button
+- Added "Read our full community care agreements →" link in WelcomeForm (welcome gate) and RegistrationForm (agreements block) so every place agreements are mentioned links to this page
+
+#### 2. Full site link audit
+Checked every link in nav (desktop + mobile) and key pages for references that were confusing after the above change:
+- **Nav.tsx** — fixed desktop "Join Us" sub-text from "Create a RIM Member Account" → "Community values & how to join"
+- **MemberGate.tsx** — collapsed two-button "Become a Member / or Login" pattern into single "Join or sign in →" button
+- **Volunteer page** — fixed inline copy that said "Create a (free) Member Account"
+- **Kalyana Mitta application** — same fix
+- **Magazine articles gate** — same two-button collapse
+
+#### 3. Admin Site Architecture page
+- Created `/admin/sitemap` — ADMIN-only page with every page on the site organized into 10 sections
+- Access badges (Public / CMS / Member / Admin / Staff / Utility / Dev)
+- CSS layer indicators (🟢 Design System / 🟠 Webflow) on every page entry
+- Status chips (⚠️ Stub, ⚠️ Orphan, ↩ Repurposed) for flagged pages
+- "Not Yet Built" section — 4 items
+- Footer with CSS migration goal and current 🟢 page list
+- Admin nav links added to Nav.tsx (Members + Site Architecture)
+- CSS prefix: `adm-sm-`
+
+#### 4. Removed class recording template
+- Deleted `app/class-recording/[slug]/page.tsx` — never got real content
+- Removed `classRecordingBySlugQuery` + `allClassRecordingSlugsQuery` from `lib/queries.ts`
+- Removed entire `cr-` CSS block from `custom.css` (~100 lines)
+- Updated TeacherList, style-guide comments, admin sitemap
+
+#### 5. Trimmed admin sitemap further
+- Removed "Intentionally Decommissioned" section — served its one-time purpose, no ongoing value
+- Kept "Not Yet Built" section — ongoing reference for real gaps
+
+### Key decisions made
+- Class recordings: never launched, no content, no reason to maintain the scaffold
+- Decommissioned page list: useful during migration planning, not useful as a permanent reference
+- Admin sitemap is manually maintained (not auto-generated) so status annotations and descriptions stay accurate
+
+### Next priorities
+1. Add `REGISTRAR_EMAIL` to Vercel env vars
+2. Member cancellation self-service (dashboard "My Registrations" + cancel endpoint)
+3. CSS migration — start with `/login/check-email` (simplest)
+4. Animated `pg-hero` botanical elements (prompt saved from earlier session)
+
+---
+
 ## Session: 2026-02-28
 
 **Overall project progress:** ~25% — foundation laid, long way to go
