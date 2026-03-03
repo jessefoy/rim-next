@@ -3,7 +3,7 @@ import Link from "next/link";
 /**
  * TeacherList — teacher-container w-inline-block rows
  *
- * variant="lesson"    → image-11 class, shows "By " prefix (lessons, class-recordings)
+ * variant="lesson"    → image-11 class, shows "By " prefix (lessons)
  * variant="program"   → facilitator class (35×35), no "By " prefix (programs, volunteer positions)
  */
 

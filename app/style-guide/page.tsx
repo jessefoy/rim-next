@@ -115,7 +115,7 @@ export default function StyleGuidePage() {
             </div>
             <p className="sg-component-desc">
               Teacher attribution rows with <code>image-11</code> photo class and "By " prefix text.
-              Used on lesson and class-recording pages inside <code>.content-container.centered</code> after the lesson body text.
+              Used on lesson pages inside <code>.content-container.centered</code> after the lesson body text.
               Photo shown when <code>bioPicture.asset.url</code> is present (mock below has no photo).
             </p>
             <div className="sg-component-preview">

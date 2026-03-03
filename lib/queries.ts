@@ -169,16 +169,6 @@ export const glossaryTermBySlugQuery = `*[_type == "glossary" && slug.current ==
 
 export const allGlossaryTermSlugsQuery = `*[_type == "glossary" && !(_id in path("drafts.**"))] { "slug": slug.current }`;
 
-// ─── Class Recordings ─────────────────────────────────────────────────────────
-
-export const classRecordingBySlugQuery = `*[_type == "classRecordings" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
-  _id, name, slug, dateRecorded, audioEmbedCode, videoLink, description,
-  teachers[]-> { name, slug },
-  topics[]-> { name, slug }
-}`;
-
-export const allClassRecordingSlugsQuery = `*[_type == "classRecordings" && !(_id in path("drafts.**"))] { "slug": slug.current }`;
-
 // ─── Magazine Articles ────────────────────────────────────────────────────────
 
 export const magazineArticleBySlugQuery = `*[_type == "magazineArticles" && slug.current == $slug && !(_id in path("drafts.**"))][0] {

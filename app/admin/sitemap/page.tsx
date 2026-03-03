@@ -102,14 +102,6 @@ const SECTIONS: SectionDef[] = [
         desc: "Audio player, video embed, rich PortableText — pull quotes, verse quotes, callout blocks, practice suggestions.",
       },
       {
-        name: "Class Recording",
-        url: "/class-recording/[slug]",
-        badge: "cms",
-        css: "green",
-        note: "🟢 cr- prefix",
-        desc: "Audio/video recording with description. Reuses all lp- reading-column utilities.",
-      },
-      {
         name: "Course Page",
         url: "/course/[slug]",
         badge: "member",
@@ -444,6 +436,11 @@ const DECOMMISSIONED = [
     url: "/work-in-progress/*",
     desc: "Old staging and draft pages in Webflow. Not migrating.",
   },
+  {
+    name: "Class Recording Template",
+    url: "/class-recording/[slug]",
+    desc: "Previously a 🟢 design-system page (cr- prefix) for audio/video recordings with teachers and topics. Removed — content will be handled differently.",
+  },
 ];
 
 // ─── Badge + CSS config ───────────────────────────────────────────────────────
@@ -653,7 +650,7 @@ export default async function AdminSitemapPage() {
           <code>/admin/*</code> · <code>/update/[token]</code>
           <br /><br />
           <strong>Sanity CMS types:</strong>{" "}
-          programs · lessons · classRecordings · courses · magazineArticles ·
+          programs · lessons · courses · magazineArticles ·
           glossaryTerms · team · volunteerPositions · programCategories ·
           richContent (shared block schema)
         </div>
