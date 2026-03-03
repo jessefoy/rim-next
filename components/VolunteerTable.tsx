@@ -88,6 +88,8 @@ export default function VolunteerTable({
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [confirmEditRequestId, setConfirmEditRequestId] = useState<string | null>(null);
+  const [confirmProgReminderId, setConfirmProgReminderId] = useState<string | null>(null);
   const [reminderSent, setReminderSent] = useState<string | null>(null);
   const [editRequestSent, setEditRequestSent] = useState<string | null>(null);
   const [editingFields, setEditingFields] = useState<Record<string, Record<string, string>>>({});
@@ -377,10 +379,14 @@ export default function VolunteerTable({
       setExpandedId(null);
       setConfirmCancelId(null);
       setConfirmDeleteId(null);
+      setConfirmEditRequestId(null);
+      setConfirmProgReminderId(null);
     } else {
       setExpandedId(id);
       setConfirmCancelId(null);
       setConfirmDeleteId(null);
+      setConfirmEditRequestId(null);
+      setConfirmProgReminderId(null);
       if (!(id in editingNotes)) {
         setEditingNotes((prev) => ({ ...prev, [id]: currentNotes ?? "" }));
       }
@@ -732,13 +738,39 @@ export default function VolunteerTable({
                               {/* Send Edit Request — only for active registrations with custom fields */}
                               {(r.status === "REGISTERED" || r.status === "APPROVED" || r.status === "WAITLISTED") &&
                                 r.customFields && Object.keys(r.customFields).length > 0 && (
-                                <button
-                                  className="vol-action-btn vol-action-btn--edit-request"
-                                  disabled={actionLoading === r.id}
-                                  onClick={() => sendEditRequest(r.id)}
-                                >
-                                  {editRequestSent === r.id ? "Edit Link Sent ✓" : "Send Edit Request"}
-                                </button>
+                                confirmEditRequestId === r.id ? (
+                                  <div className="vol-confirm-wrap">
+                                    <span className="vol-confirm-label">
+                                      Send edit link to {r.firstName}?
+                                    </span>
+                                    <div className="vol-confirm-btns">
+                                      <button
+                                        className="vol-action-btn vol-action-btn--edit-request"
+                                        disabled={actionLoading === r.id}
+                                        onClick={() => {
+                                          sendEditRequest(r.id);
+                                          setConfirmEditRequestId(null);
+                                        }}
+                                      >
+                                        {actionLoading === r.id ? "Sending…" : "Yes, send it"}
+                                      </button>
+                                      <button
+                                        className="vol-action-btn vol-action-btn--ghost"
+                                        onClick={() => setConfirmEditRequestId(null)}
+                                      >
+                                        Never mind
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <button
+                                    className="vol-action-btn vol-action-btn--edit-request"
+                                    disabled={actionLoading === r.id}
+                                    onClick={() => setConfirmEditRequestId(r.id)}
+                                  >
+                                    {editRequestSent === r.id ? "Edit Link Sent ✓" : "Send Edit Request"}
+                                  </button>
+                                )
                               )}
 
                               {/* Send Reminder — for confirmed/approved registrants */}
@@ -750,17 +782,37 @@ export default function VolunteerTable({
                                       month: "short", day: "numeric",
                                     })}
                                   </span>
+                                ) : confirmProgReminderId === r.id ? (
+                                  <div className="vol-confirm-wrap">
+                                    <span className="vol-confirm-label">
+                                      Send reminder to {r.firstName}?
+                                    </span>
+                                    <div className="vol-confirm-btns">
+                                      <button
+                                        className="vol-action-btn vol-action-btn--prog-reminder"
+                                        disabled={sendingProgReminder === r.id}
+                                        onClick={() => {
+                                          sendProgReminder(r.id);
+                                          setConfirmProgReminderId(null);
+                                        }}
+                                      >
+                                        {sendingProgReminder === r.id ? "Sending…" : "Yes, send it"}
+                                      </button>
+                                      <button
+                                        className="vol-action-btn vol-action-btn--ghost"
+                                        onClick={() => setConfirmProgReminderId(null)}
+                                      >
+                                        Never mind
+                                      </button>
+                                    </div>
+                                  </div>
                                 ) : (
                                   <button
                                     className="vol-action-btn vol-action-btn--prog-reminder"
                                     disabled={sendingProgReminder === r.id}
-                                    onClick={(e) => { e.stopPropagation(); sendProgReminder(r.id); }}
+                                    onClick={(e) => { e.stopPropagation(); setConfirmProgReminderId(r.id); }}
                                   >
-                                    {sendingProgReminder === r.id
-                                      ? "Sending…"
-                                      : progReminderSent === r.id
-                                        ? "Reminder Sent ✓"
-                                        : "Send Reminder"}
+                                    {progReminderSent === r.id ? "Reminder Sent ✓" : "Send Reminder"}
                                   </button>
                                 )
                               )}
