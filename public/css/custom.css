@@ -3677,54 +3677,183 @@ h1, h2, h3, h4, h5, h6 {
   margin: 0 0 16px;
 }
 
-/* ── Admin: course access grants ──────────────────────── */
-.adm-course-grants {
+/* ── CourseAccessSection (ca-) ─────────────────────────── */
+.ca-section { padding-top: 4px; }
+
+.ca-search {
+  width: 100%;
+  padding: 9px 14px;
+  border: 1px solid var(--rim-rule);
+  border-radius: 6px;
+  font-size: 15px;
+  font-family: var(--font-sans);
+  color: var(--rim-text);
+  background: #fff;
+  margin-bottom: 16px;
+  box-sizing: border-box;
+}
+
+.ca-search:focus { outline: none; border-color: var(--rim-mid); }
+
+.ca-loading, .ca-empty {
+  font-size: 14px;
+  color: var(--rim-text-muted);
+  font-style: italic;
+  margin: 8px 0;
+}
+
+.ca-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-bottom: 16px;
 }
 
-.adm-course-grant {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--rim-bg-accent);
-  border-radius: 6px;
-  padding: 8px 14px;
-}
-
-.adm-course-grant__slug {
-  font-family: monospace;
-  font-size: 14px;
-  color: var(--rim-text);
-}
-
-.adm-course-grant__revoke {
-  background: none;
+/* ── Single course row ─────────────────────────────────── */
+.ca-course {
+  background: #fff;
   border: 1px solid var(--rim-rule);
-  border-radius: 4px;
-  padding: 3px 10px;
-  font-size: 12px;
-  font-family: var(--font-sans);
-  color: var(--rim-text-muted);
-  cursor: pointer;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  align-items: start;
 }
 
-.adm-course-grant__revoke:hover {
-  color: #c0392b;
+.ca-course__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ca-course__name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--rim-text);
+  line-height: 1.3;
+}
+
+.ca-course__slug {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--rim-text-muted);
+}
+
+/* ── Status badges ─────────────────────────────────────── */
+.ca-course__status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: flex-start;
+  padding-top: 2px;
+}
+
+.ca-badge {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 4px;
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+
+.ca-badge--members  { background: #e3f0e8; color: #2e6b3e; }
+.ca-badge--reg      { background: #e8f0f5; color: var(--rim-mid); font-weight: 400; text-transform: none; font-size: 12px; letter-spacing: 0; }
+.ca-badge--grant    { background: #fff3cd; color: #856404; }
+.ca-badge--none     { background: var(--rim-bg-accent); color: var(--rim-text-muted); font-weight: 400; text-transform: none; font-size: 12px; letter-spacing: 0; }
+
+/* ── Action area ───────────────────────────────────────── */
+.ca-course__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  padding-top: 2px;
+  min-width: 110px;
+}
+
+.ca-btn {
+  font-size: 13px;
+  font-family: var(--font-sans);
+  border-radius: 5px;
+  padding: 5px 12px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.ca-btn--grant {
+  background: var(--rim-blue);
+  color: #fff;
+  border-color: var(--rim-blue);
+}
+.ca-btn--grant:hover { opacity: 0.88; }
+
+.ca-btn--grant-anyway {
+  background: #e07b00;
+  color: #fff;
+  border-color: #e07b00;
+}
+.ca-btn--grant-anyway:hover { opacity: 0.88; }
+
+.ca-btn--revoke {
+  background: none;
+  color: var(--rim-text-muted);
+  border-color: var(--rim-rule);
+}
+.ca-btn--revoke:hover { color: #c0392b; border-color: #c0392b; }
+
+.ca-btn--revoke-confirm {
+  background: #c0392b;
+  color: #fff;
   border-color: #c0392b;
 }
+.ca-btn--revoke-confirm:hover { opacity: 0.88; }
 
-.adm-course-grant-form {
-  display: flex;
-  gap: 10px;
-  margin-top: 12px;
+.ca-btn--cancel {
+  background: none;
+  color: var(--rim-text-muted);
+  border-color: transparent;
+  padding: 5px 6px;
+}
+.ca-btn--cancel:hover { color: var(--rim-text); }
+
+.ca-busy {
+  font-size: 13px;
+  color: var(--rim-text-muted);
+  font-style: italic;
 }
 
-.adm-course-grant-form .adm-form__input {
-  flex: 1;
-  font-family: monospace;
+/* ── Inline confirm ────────────────────────────────────── */
+.ca-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.ca-confirm__warning {
+  font-size: 12px;
+  color: #856404;
+  background: #fff3cd;
+  border-radius: 4px;
+  padding: 6px 10px;
+  line-height: 1.4;
+  max-width: 260px;
+  text-align: left;
+}
+
+.ca-confirm__warning--info {
+  color: var(--rim-mid);
+  background: #e8f0f5;
+}
+
+.ca-confirm__btns {
+  display: flex;
+  gap: 6px;
+  align-items: center;
 }
 
 /* ── Mobile ─────────────────────────────────────────── */

@@ -150,6 +150,17 @@ export const programsLinkedToCourseQuery = `*[_type == "programs" && $courseSlug
 
 export const allCourseSlugsQuery = `*[_type == "courses" && !(_id in path("drafts.**"))] { "slug": slug.current }`;
 
+// All courses enriched with which programs link back to them (for admin course access UI)
+export const allCoursesWithLinkedProgramsQuery = `*[_type == "courses" && !(_id in path("drafts.**"))] | order(name asc) {
+  "slug": slug.current,
+  name,
+  accessLevel,
+  "linkedByPrograms": *[_type == "programs" && ^._id in linkedCourses[]._ref && !(_id in path("drafts.**"))] {
+    "slug": slug.current,
+    name
+  }
+}`;
+
 // ─── Glossary ─────────────────────────────────────────────────────────────────
 
 export const glossaryTermBySlugQuery = `*[_type == "glossary" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
