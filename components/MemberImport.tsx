@@ -7,6 +7,11 @@ interface ParsedRow {
   firstName: string;
   lastName: string;
   phone: string;
+  memberstackId: string;
+  memberSince: string;   // ISO string or ""
+  lastLogin: string;     // ISO string or ""
+  lastAttendance: string; // ISO string or ""
+  activityCount: number | null;
 }
 
 interface ImportResult {
@@ -15,7 +20,7 @@ interface ImportResult {
   skipped: number;
 }
 
-// Case-insensitive column header → our field name
+// Case-insensitive column header → index
 function detectColumn(headers: string[], candidates: string[]): number {
   const lower = headers.map((h) => h.toLowerCase().trim());
   for (const c of candidates) {
@@ -25,11 +30,29 @@ function detectColumn(headers: string[], candidates: string[]): number {
   return -1;
 }
 
+// Parse M/D/YYYY or YYYY-MM-DD → ISO string, or "" if blank/invalid
+function parseDate(raw: string): string {
+  if (!raw?.trim()) return "";
+  const s = raw.trim();
+  // YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const d = new Date(s + "T00:00:00");
+    return isNaN(d.getTime()) ? "" : d.toISOString();
+  }
+  // M/D/YYYY
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
+    const [m, d, y] = s.split("/").map(Number);
+    const dt = new Date(y, m - 1, d);
+    return isNaN(dt.getTime()) ? "" : dt.toISOString();
+  }
+  return "";
+}
+
 function parseCSV(text: string): ParsedRow[] {
   const lines = text.split(/\r?\n/).filter((l) => l.trim());
   if (lines.length < 2) return [];
 
-  // Parse headers — handle quoted fields
+  // Parse a single CSV line, handling quoted fields
   const parseRow = (line: string): string[] => {
     const fields: string[] = [];
     let current = "";
@@ -51,10 +74,16 @@ function parseCSV(text: string): ParsedRow[] {
 
   const headers = parseRow(lines[0]);
 
-  const emailIdx = detectColumn(headers, ["email", "e-mail", "email address"]);
-  const firstIdx = detectColumn(headers, ["first name", "firstname", "first_name", "given name"]);
-  const lastIdx = detectColumn(headers, ["last name", "lastname", "last_name", "surname", "family name"]);
-  const phoneIdx = detectColumn(headers, ["phone", "phone number", "mobile", "cell"]);
+  // Memberstack-specific column names (confirmed from actual export)
+  const emailIdx       = detectColumn(headers, ["email"]);
+  const firstIdx       = detectColumn(headers, ["first name", "firstname", "first_name"]);
+  const lastIdx        = detectColumn(headers, ["last name", "lastname", "last_name"]);
+  const phoneIdx       = detectColumn(headers, ["phone number", "phone", "mobile", "cell"]);
+  const msIdIdx        = detectColumn(headers, ["member id", "memberid", "id"]);
+  const createdIdx     = detectColumn(headers, ["createdat", "created at", "created_at"]);
+  const lastLoginIdx   = detectColumn(headers, ["last login", "lastlogin", "last_login"]);
+  const attendanceIdx  = detectColumn(headers, ["last attendance date", "last attendance"]);
+  const activityIdx    = detectColumn(headers, ["activity count since 7/24/23", "activity count", "activitycount"]);
 
   if (emailIdx === -1) return [];
 
@@ -65,9 +94,14 @@ function parseCSV(text: string): ParsedRow[] {
     if (!email) continue;
     rows.push({
       email,
-      firstName: firstIdx !== -1 ? (cols[firstIdx]?.trim() ?? "") : "",
-      lastName: lastIdx !== -1 ? (cols[lastIdx]?.trim() ?? "") : "",
-      phone: phoneIdx !== -1 ? (cols[phoneIdx]?.trim() ?? "") : "",
+      firstName:     firstIdx       !== -1 ? (cols[firstIdx]?.trim()     ?? "") : "",
+      lastName:      lastIdx        !== -1 ? (cols[lastIdx]?.trim()      ?? "") : "",
+      phone:         phoneIdx       !== -1 ? (cols[phoneIdx]?.trim()     ?? "") : "",
+      memberstackId: msIdIdx        !== -1 ? (cols[msIdIdx]?.trim()      ?? "") : "",
+      memberSince:   createdIdx     !== -1 ? parseDate(cols[createdIdx]) : "",
+      lastLogin:     lastLoginIdx   !== -1 ? parseDate(cols[lastLoginIdx]) : "",
+      lastAttendance: attendanceIdx !== -1 ? parseDate(cols[attendanceIdx]) : "",
+      activityCount: activityIdx    !== -1 ? (parseInt(cols[activityIdx] ?? "") || null) : null,
     });
   }
   return rows;
@@ -134,6 +168,11 @@ export default function MemberImport() {
     if (inputRef.current) inputRef.current.value = "";
   };
 
+  const fmtDate = (iso: string) => {
+    if (!iso) return "—";
+    return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  };
+
   if (!open) {
     return (
       <button className="adm-import-btn" onClick={() => setOpen(true)}>
@@ -154,7 +193,7 @@ export default function MemberImport() {
       <p className="adm-import__help">
         Export your members from the{" "}
         <strong>Memberstack dashboard → Members → Export</strong>. Upload the CSV below.
-        Columns mapped: Email, First Name, Last Name, Phone.
+        Imports: name, email, phone, member ID, join date, last login, last attendance, activity count.
       </p>
 
       {result ? (
@@ -205,6 +244,8 @@ export default function MemberImport() {
                       <th>First</th>
                       <th>Last</th>
                       <th>Phone</th>
+                      <th>Member since</th>
+                      <th>Last login</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -214,6 +255,8 @@ export default function MemberImport() {
                         <td>{r.firstName || "—"}</td>
                         <td>{r.lastName || "—"}</td>
                         <td>{r.phone || "—"}</td>
+                        <td>{fmtDate(r.memberSince)}</td>
+                        <td>{fmtDate(r.lastLogin)}</td>
                       </tr>
                     ))}
                   </tbody>
