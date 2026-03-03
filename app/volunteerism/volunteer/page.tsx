@@ -211,22 +211,15 @@ export default async function VolunteerPage({
                   <div className="article w-richtext">
                     <p>
                       Wonderful! To access the Interests Form, you&apos;ll need to{" "}
-                      <Link href="/community-membership">
-                        <strong>Create a (free) Member Account</strong>
-                      </Link>
-                      . If you already have an account, simply{" "}
                       <Link href="/login">
-                        <strong>Sign-In</strong>
-                      </Link>{" "}
-                      and come back to this page.
+                        <strong>join or sign in</strong>
+                      </Link>
+                      {" "}and come back to this page.
                     </p>
                   </div>
                   <div className="become-member-buttons">
-                    <Link href="/community-membership" className="button-2 w-button">
-                      Become a Member
-                    </Link>
-                    <Link href="/login" className="already-member-link">
-                      or Login
+                    <Link href="/login" className="button-2 w-button">
+                      Join or sign in →
                     </Link>
                   </div>
                 </div>

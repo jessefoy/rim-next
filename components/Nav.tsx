@@ -188,7 +188,7 @@ export default function Nav({ memberArea = false }: NavProps) {
                               <Link href="/community-membership" className="dropdown-link w-inline-block">
                                 <div className="nav-content-wrap">
                                   <div className="dropdown-title">Join Us</div>
-                                  <div className="nav-link-details">Create a RIM Member Account</div>
+                                  <div className="nav-link-details">Community values &amp; how to join</div>
                                 </div>
                               </Link>
                             </>

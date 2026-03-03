@@ -39,11 +39,8 @@ export default async function MagazineArticlePage({ params }: { params: Promise<
           <h2>Members Only</h2>
           <p>This content is available to RIM community members.</p>
           <div className="become-member-buttons">
-            <Link href="/community-membership" className="button-2 w-button">
-              Become a Member
-            </Link>
-            <Link href="/login" className="already-member-link">
-              or Login
+            <Link href="/login" className="button-2 w-button">
+              Join or sign in →
             </Link>
           </div>
         </div>

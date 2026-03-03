@@ -100,16 +100,12 @@ export default async function KalyanaApplicationPage({
                 <h4>Oops. It looks like you are not signed-in.</h4>
                 <div className="w-richtext">
                   <p>
-                    RIM community members are welcome to create a new Kalyana Mitta Group. If you
-                    are not yet a member, please{" "}
-                    <Link href="/community-membership">
-                      <strong>Create a (free) Member Account</strong>
-                    </Link>
-                    . If you already have an account, simply{" "}
+                    RIM community members are welcome to create a new Kalyana Mitta Group.
+                    Please{" "}
                     <Link href="/login">
-                      <strong>Sign-In</strong>
-                    </Link>{" "}
-                    and return to this page to access the application form.
+                      <strong>join or sign in</strong>
+                    </Link>
+                    {" "}and return to this page to access the application form.
                   </p>
                 </div>
               </div>
