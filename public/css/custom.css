@@ -4154,6 +4154,67 @@ h1, h2, h3, h4, h5, h6 {
   line-height: 1.5;
 }
 
+/* Feature lists (implemented + planned per page) */
+
+.adm-sm-feature-block {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.adm-sm-feat {
+  font-size: 11.5px;
+  line-height: 1.4;
+  padding-left: 16px;
+  position: relative;
+}
+
+.adm-sm-feat::before {
+  position: absolute;
+  left: 0;
+  top: 1px;
+  font-size: 10px;
+}
+
+.adm-sm-feat--done {
+  color: var(--rim-text);
+}
+
+.adm-sm-feat--done::before {
+  content: "✓";
+  color: var(--rim-mid);
+  font-weight: 700;
+}
+
+.adm-sm-feat--planned {
+  color: var(--rim-text-muted);
+  font-style: italic;
+}
+
+.adm-sm-feat--planned::before {
+  content: "○";
+  color: var(--rim-rule);
+}
+
+/* Legend dots for feature key */
+
+.adm-sm-feat-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.adm-sm-feat-dot--done {
+  background: var(--rim-mid);
+}
+
+.adm-sm-feat-dot--planned {
+  background: var(--rim-rule);
+}
+
 /* Mobile */
 @media (max-width: 768px) {
   .adm-sm-grid {
