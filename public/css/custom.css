@@ -5134,7 +5134,6 @@ h1, h2, h3, h4, h5, h6 {
   top: 0;
   z-index: 100;
   background: #fff;
-  border-bottom: 1px solid var(--rim-rule);
 }
 
 .nav__inner {
@@ -5143,7 +5142,7 @@ h1, h2, h3, h4, h5, h6 {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 24px;
-  height: 68px;
+  height: 84px;
   gap: 8px;
 }
 
@@ -5156,8 +5155,9 @@ h1, h2, h3, h4, h5, h6 {
   flex-shrink: 0;
 }
 .nav__brand-name {
-  font-family: var(--font-serif);
-  font-size: 15px;
+  font-family: 'Quincycf', sans-serif;
+  font-size: 17px;
+  font-weight: 500;
   color: var(--rim-blue);
   line-height: 1.2;
 }
@@ -5173,18 +5173,19 @@ h1, h2, h3, h4, h5, h6 {
 /* Flat nav links */
 .nav__link {
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 400;
   color: var(--rim-text);
   text-decoration: none;
-  padding: 6px 12px;
+  padding: 8px 12px;
   border-radius: 4px;
   white-space: nowrap;
   background: none;
   border: none;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: color 0.15s, background 0.15s;
 }
-.nav__link:hover { background: var(--rim-bg); }
+.nav__link:hover { color: var(--rim-blue); background: var(--rim-bg); }
 .nav__link--active { color: var(--rim-blue); font-weight: 600; }
 
 /* Dropdown */
@@ -5192,20 +5193,21 @@ h1, h2, h3, h4, h5, h6 {
 
 .nav__dropdown-toggle {
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 400;
   color: var(--rim-text);
   background: none;
   border: none;
   cursor: pointer;
-  padding: 6px 12px;
+  padding: 8px 12px;
   border-radius: 4px;
   display: flex;
   align-items: center;
   gap: 5px;
   white-space: nowrap;
-  transition: background 0.15s;
+  transition: color 0.15s, background 0.15s;
 }
-.nav__dropdown-toggle:hover { background: var(--rim-bg); }
+.nav__dropdown-toggle:hover { color: var(--rim-blue); background: var(--rim-bg); }
 .nav__dropdown-caret { font-size: 10px; color: var(--rim-text-muted); }
 
 .nav__dropdown-panel {
@@ -5330,7 +5332,7 @@ h1, h2, h3, h4, h5, h6 {
   .nav__desktop { display: none; }
   .nav__donate   { display: none; }
   .nav__hamburger { display: flex; }
-  .nav__brand-name { font-size: 13px; }
+  .nav__brand-name { font-size: 15px; }
 }
 @media (min-width: 768px) {
   .nav__mobile { display: none !important; }
