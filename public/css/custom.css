@@ -5142,7 +5142,7 @@ h1, h2, h3, h4, h5, h6 {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 24px;
-  height: 84px;
+  height: 90px;
   gap: 8px;
 }
 
@@ -5220,10 +5220,9 @@ h1, h2, h3, h4, h5, h6 {
   padding-top: 6px;
   z-index: 200;
 }
-/* Inner wrapper carries the visual card style */
+/* Inner wrapper — warm background creates contrast without a border */
 .nav__dropdown-panel-inner {
-  background: #fff;
-  border: 1px solid var(--rim-rule);
+  background: var(--rim-bg);
   border-radius: 6px;
   padding: 8px;
 }
@@ -5290,7 +5289,6 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Mobile menu */
 .nav__mobile {
-  border-top: 1px solid var(--rim-rule);
   padding: 12px 0 16px;
   background: #fff;
 }
