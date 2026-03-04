@@ -5,38 +5,50 @@ import { Role } from "@prisma/client";
 
 // Revoke a member's Sanity Studio access by email.
 // Handles both accepted members and pending invitations.
-// Silently ignores failures so a missing SANITY_MANAGEMENT_TOKEN doesn't block saves.
-async function revokeSanityAccess(email: string): Promise<void> {
+// Returns a summary string for logging in the API response.
+async function revokeSanityAccess(email: string): Promise<string> {
   const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
   const token = process.env.SANITY_MANAGEMENT_TOKEN;
-  if (!projectId || !token) return;
+  if (!projectId || !token) return "skipped: no token";
 
   const headers = { Authorization: `Bearer ${token}` };
   const membersBase = `https://api.sanity.io/v2021-10-04/projects/${projectId}`;
   const invitesBase = `https://api.sanity.io/v2021-10-04/invitations/project/${projectId}`;
 
+  let result = "no match found";
+
   // Remove from project members (accepted invites)
   try {
     const res = await fetch(`${membersBase}/members`, { headers });
     if (res.ok) {
-      const members: { id: string; profile?: { email?: string } }[] = await res.json();
-      const match = members.find((m) => m.profile?.email === email);
+      // Try both profile.email and top-level email — Sanity API shape varies
+      const members: { id: string; email?: string; profile?: { email?: string } }[] = await res.json();
+      const match = members.find((m) => (m.profile?.email ?? m.email) === email);
       if (match) {
-        await fetch(`${membersBase}/members/${match.id}`, { method: "DELETE", headers });
+        const del = await fetch(`${membersBase}/members/${match.id}`, { method: "DELETE", headers });
+        result = del.ok ? "member removed" : `member delete failed: ${del.status}`;
       }
+    } else {
+      result = `members list failed: ${res.status}`;
     }
-  } catch { /* ignore */ }
+  } catch (e) {
+    result = `members error: ${String(e)}`;
+  }
 
   // Cancel pending invitations (not yet accepted)
   try {
     const res = await fetch(invitesBase, { headers });
     if (res.ok) {
-      const invites: { id: string; email: string }[] = await res.json();
+      const body = await res.json();
+      const invites: { id: string; email: string }[] = Array.isArray(body) ? body : (body.invitations ?? []);
       for (const inv of invites.filter((i) => i.email === email)) {
-        await fetch(`${invitesBase}/${inv.id}`, { method: "DELETE", headers });
+        const del = await fetch(`${invitesBase}/${inv.id}`, { method: "DELETE", headers });
+        result = del.ok ? "invite cancelled" : `invite delete failed: ${del.status}`;
       }
     }
   } catch { /* ignore */ }
+
+  return result;
 }
 
 const ALL_ROLES = Object.values(Role);
@@ -135,9 +147,10 @@ export async function PATCH(
     await db.session.deleteMany({ where: { userId: id } });
   }
 
-  // Revoke Sanity access asynchronously (non-blocking — DB is already updated)
+  // Revoke Sanity access — blocking so we can surface the result
+  let sanityRevokeResult: string | null = null;
   if (shouldRevokeSanity) {
-    void revokeSanityAccess(user.email);
+    sanityRevokeResult = await revokeSanityAccess(user.email);
   }
 
   return NextResponse.json({
@@ -150,6 +163,7 @@ export async function PATCH(
     archivedAt: updated.archivedAt?.toISOString() ?? null,
     createdAt: updated.createdAt.toISOString(),
     sanityRevoked: shouldRevokeSanity,
+    sanityRevokeResult,
   });
 }
 
