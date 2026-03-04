@@ -16,7 +16,7 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await request.json();
-  const { action, firstName, lastName, phone, roles } = body;
+  const { action, firstName, lastName, phone, email, roles } = body;
 
   // ── Special actions ──────────────────────────────────────────────────────────
 
@@ -41,10 +41,27 @@ export async function PATCH(
     }
   }
 
+  // Validate and check uniqueness of new email if provided
+  const newEmail = typeof email === "string" ? email.trim().toLowerCase() : undefined;
+  if (newEmail !== undefined) {
+    if (!newEmail.includes("@")) {
+      return NextResponse.json({ error: "Invalid email address" }, { status: 400 });
+    }
+    const conflict = await db.user.findFirst({ where: { email: newEmail, id: { not: id } } });
+    if (conflict) {
+      return NextResponse.json(
+        { error: "That email address is already used by another member." },
+        { status: 409 }
+      );
+    }
+  }
+
   const user = await db.user.findUnique({ where: { id } });
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
+
+  const emailIsChanging = newEmail !== undefined && newEmail !== user.email;
 
   const updated = await db.user.update({
     where: { id },
@@ -52,6 +69,7 @@ export async function PATCH(
       ...(firstName !== undefined && { firstName }),
       ...(lastName !== undefined && { lastName }),
       ...(phone !== undefined && { phone }),
+      ...(emailIsChanging && { email: newEmail }),
       ...(roles !== undefined && { roles }),
     },
     select: {
@@ -66,8 +84,18 @@ export async function PATCH(
     },
   });
 
+  // If email changed, kill all sessions so they must re-authenticate with the new address.
+  if (emailIsChanging) {
+    await db.session.deleteMany({ where: { userId: id } });
+  }
+
   return NextResponse.json({
-    ...updated,
+    id: updated.id,
+    email: updated.email,
+    firstName: updated.firstName,
+    lastName: updated.lastName,
+    phone: updated.phone,
+    roles: updated.roles,
     archivedAt: updated.archivedAt?.toISOString() ?? null,
     createdAt: updated.createdAt.toISOString(),
   });

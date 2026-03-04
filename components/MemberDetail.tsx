@@ -57,6 +57,10 @@ export default function MemberDetail({ member }: { member: Member }) {
   const [firstName, setFirstName] = useState(member.firstName ?? "");
   const [lastName, setLastName] = useState(member.lastName ?? "");
   const [phone, setPhone] = useState(member.phone ?? "");
+  const [email, setEmail] = useState(member.email);
+  const [originalEmail] = useState(member.email);
+  const emailChanged = email.trim() !== originalEmail;
+  const [showEmailConfirm, setShowEmailConfirm] = useState(false);
   const [roles, setRoles] = useState<string[]>(member.roles);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -76,19 +80,29 @@ export default function MemberDetail({ member }: { member: Member }) {
     setSaved(false);
   };
 
-  const handleSave = async () => {
+  const handleSave = async (bypassEmailConfirm = false) => {
+    // If email has changed, require an explicit confirmation step first.
+    if (emailChanged && !bypassEmailConfirm) {
+      setShowEmailConfirm(true);
+      return;
+    }
     setSaving(true);
     setSaved(false);
     setError("");
+    setShowEmailConfirm(false);
     try {
+      const body: Record<string, unknown> = { firstName, lastName, phone, roles };
+      if (emailChanged) body.email = email.trim();
       const res = await fetch(`/api/admin/members/${member.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ firstName, lastName, phone, roles }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Save failed");
       setSaved(true);
+      // Re-fetch server data so the header + page state reflect the new email.
+      if (emailChanged) router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
     } finally {
@@ -164,7 +178,7 @@ export default function MemberDetail({ member }: { member: Member }) {
           {displayName}
           {isArchived && <span className="adm-badge--archived">Archived</span>}
         </h1>
-        <p className="adm-header__meta">{member.email} · Joined {joinedDate}</p>
+        <p className="adm-header__meta">{email} · Joined {joinedDate}</p>
       </header>
 
       {/* Archived banner */}
@@ -209,13 +223,19 @@ export default function MemberDetail({ member }: { member: Member }) {
             />
           </div>
           <div className="adm-form__field">
-            <label className="adm-form__label">Email</label>
+            <label className="adm-form__label">Email (login address)</label>
             <input
               type="email"
-              className="adm-form__input adm-form__input--readonly"
-              value={member.email}
-              readOnly
+              className="adm-form__input"
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); setSaved(false); setShowEmailConfirm(false); }}
             />
+            {emailChanged && !showEmailConfirm && (
+              <p className="adm-form__email-warning">
+                ⚠️ Changing this email updates their login address. They will be signed out immediately
+                and must use the new address for all future sign-ins.
+              </p>
+            )}
           </div>
         </div>
       </section>
@@ -248,9 +268,37 @@ export default function MemberDetail({ member }: { member: Member }) {
       <div className="adm-save">
         {error && <p className="adm-save__error">{error}</p>}
         {saved && <p className="adm-save__success">Saved ✓</p>}
-        <button className="adm-save__btn" onClick={handleSave} disabled={saving}>
-          {saving ? "Saving…" : "Save changes"}
-        </button>
+
+        {showEmailConfirm ? (
+          <div className="adm-email-confirm">
+            <p className="adm-email-confirm__text">
+              You are changing the login email from{" "}
+              <strong>{originalEmail}</strong> to <strong>{email.trim()}</strong>.
+              This member will be signed out immediately and must use the new address to sign in.
+              Are you sure?
+            </p>
+            <div className="adm-email-confirm__actions">
+              <button
+                className="adm-save__btn"
+                onClick={() => handleSave(true)}
+                disabled={saving}
+              >
+                {saving ? "Saving…" : "Yes, change email"}
+              </button>
+              <button
+                className="adm-btn--cancel"
+                onClick={() => { setShowEmailConfirm(false); setEmail(originalEmail); }}
+                disabled={saving}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button className="adm-save__btn" onClick={() => handleSave()} disabled={saving}>
+            {saving ? "Saving…" : "Save changes"}
+          </button>
+        )}
       </div>
 
       {/* Course access */}

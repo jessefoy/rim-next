@@ -3296,12 +3296,6 @@ h1, h2, h3, h4, h5, h6 {
 
 .adm-form__input:focus { border-color: var(--rim-mid); }
 
-.adm-form__input--readonly {
-  background: var(--rim-bg);
-  color: var(--rim-text-muted);
-  cursor: default;
-}
-
 /* ── Roles checkboxes ───────────────────────────────── */
 .adm-roles { display: flex; flex-direction: column; gap: 12px; }
 
@@ -3363,6 +3357,56 @@ h1, h2, h3, h4, h5, h6 {
 
 .adm-save__success { font-size: 14px; color: #3a7a6a; font-weight: 600; }
 .adm-save__error   { font-size: 14px; color: #c0392b; }
+
+/* ── Email change warning + confirm ─────────────────── */
+.adm-form__email-warning {
+  margin-top: 6px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.55;
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 4px;
+  padding: 8px 12px;
+}
+
+.adm-email-confirm {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 6px;
+  padding: 16px 20px;
+  width: 100%;
+}
+
+.adm-email-confirm__text {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  color: #92400e;
+  margin-bottom: 14px;
+}
+
+.adm-email-confirm__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.adm-btn--cancel {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--rim-text-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.adm-btn--cancel:hover:not(:disabled) { color: var(--rim-text); }
+.adm-btn--cancel:disabled { opacity: 0.5; cursor: default; }
 
 /* ── Registration history ───────────────────────────── */
 .adm-reg-list { display: flex; flex-direction: column; gap: 10px; }
@@ -4499,16 +4543,45 @@ h1, h2, h3, h4, h5, h6 {
   margin-bottom: 16px;
 }
 
-.wl-agreements__link {
+.wl-agreements__details {
+  margin-top: 4px;
+  margin-bottom: 16px;
+}
+
+.wl-agreements__summary {
+  display: inline;
+  cursor: pointer;
   color: var(--rim-mid);
+  font-family: var(--font-sans);
+  font-size: 15px;
   text-decoration: underline;
   text-underline-offset: 2px;
-  font-size: inherit;
-  white-space: nowrap;
+  list-style: none;
+  user-select: none;
 }
-.wl-agreements__link:hover {
-  color: var(--rim-blue);
+.wl-agreements__summary::-webkit-details-marker { display: none; }
+.wl-agreements__summary::after { content: " →"; }
+details[open] > .wl-agreements__summary::after { content: " ↑"; }
+.wl-agreements__summary:hover { color: var(--rim-blue); }
+
+.wl-agreements__body {
+  margin-top: 16px;
+  padding: 16px 20px;
+  background: #fff;
+  border-radius: 4px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--rim-text-muted);
 }
+.wl-agreements__body h4 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--rim-text);
+  margin: 16px 0 4px;
+}
+.wl-agreements__body h4:first-child { margin-top: 0; }
+.wl-agreements__body p { margin: 0 0 6px; }
 
 .wl-checkbox-label {
   display: flex;
@@ -4634,16 +4707,45 @@ h1, h2, h3, h4, h5, h6 {
   margin-bottom: 14px;
 }
 
-.pg-form__agreements-link {
+.pg-form__agreements-details {
+  margin-top: 4px;
+  margin-bottom: 14px;
+}
+
+.pg-form__agreements-summary {
+  display: inline;
+  cursor: pointer;
   color: var(--rim-mid);
+  font-family: var(--font-sans);
+  font-size: 14px;
   text-decoration: underline;
   text-underline-offset: 2px;
-  font-size: inherit;
-  white-space: nowrap;
+  list-style: none;
+  user-select: none;
 }
-.pg-form__agreements-link:hover {
-  color: var(--rim-blue);
+.pg-form__agreements-summary::-webkit-details-marker { display: none; }
+.pg-form__agreements-summary::after { content: " →"; }
+details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
+.pg-form__agreements-summary:hover { color: var(--rim-blue); }
+
+.pg-form__agreements-body {
+  margin-top: 14px;
+  padding: 14px 18px;
+  background: #fff;
+  border-radius: 4px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--rim-text-muted);
 }
+.pg-form__agreements-body h4 {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--rim-text);
+  margin: 14px 0 4px;
+}
+.pg-form__agreements-body h4:first-child { margin-top: 0; }
+.pg-form__agreements-body p { margin: 0 0 6px; }
 
 .pg-form__agreements-check {
   display: flex;

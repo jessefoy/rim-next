@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import Resend from "next-auth/providers/resend";
 import { db } from "@/lib/db";
+import { sendMagicLinkEmail } from "@/lib/email";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(db),
@@ -10,6 +11,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       apiKey: process.env.RESEND_API_KEY,
       from: process.env.EMAIL_FROM,
       name: "Rooted In Mindfulness",
+      // Custom magic link email — welcoming for first-timers, simple for returning members.
+      sendVerificationRequest: async ({ identifier: email, url }) => {
+        const existing = await db.user.findUnique({
+          where: { email },
+          select: { agreedToTerms: true },
+        });
+        // New user = no account yet, OR account exists but hasn't completed onboarding.
+        const isNewUser = !existing || !existing.agreedToTerms;
+        await sendMagicLinkEmail({ to: email, url, isNewUser });
+      },
     }),
   ],
   pages: {

@@ -1063,3 +1063,149 @@ function buildResponsesUpdatedText({ registrantName, programTitle, volunteerUrl 
     "Rooted In Mindfulness · Brookfield, WI",
   ].join("\n");
 }
+
+// ─── Magic link email (authentication) ───────────────────────────────────────
+// Called from auth.ts sendVerificationRequest — replaces the default NextAuth template.
+// isNewUser = true when the account doesn't exist yet or agreedToTerms is false.
+
+export async function sendMagicLinkEmail({
+  to,
+  url,
+  isNewUser,
+}: {
+  to: string;
+  url: string;
+  isNewUser: boolean;
+}): Promise<void> {
+  const subject = isNewUser
+    ? "Welcome to Rooted In Mindfulness — your link to join"
+    : "Your sign-in link — Rooted In Mindfulness";
+
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to,
+    subject,
+    html: buildMagicLinkHtml({ url, isNewUser }),
+    text: buildMagicLinkText({ url, isNewUser }),
+  });
+
+  if (error) {
+    console.error("[email] Failed to send magic link email:", error);
+    // Rethrow so NextAuth surfaces the failure rather than silently dropping it.
+    throw new Error("Failed to send sign-in email. Please try again.");
+  }
+}
+
+function buildMagicLinkHtml({ url, isNewUser }: { url: string; isNewUser: boolean }): string {
+  const title   = isNewUser ? "You&#39;re joining the community" : "Your sign-in link";
+  const bodyHtml = isNewUser
+    ? `<p style="margin:0 0 16px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">
+         We&#39;re glad you&#39;re here.
+       </p>
+       <p style="margin:0 0 28px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">
+         Click the button below to complete your account and step into the Rooted In Mindfulness
+         community. This link is for you only and expires in 24&#160;hours.
+       </p>`
+    : `<p style="margin:0 0 28px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">
+         Click the button below to sign in to your account.
+         This link expires in 24&#160;hours.
+       </p>`;
+
+  const ctaLabel = isNewUser ? "Complete my account &#8594;" : "Sign in &#8594;";
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>${isNewUser ? "Welcome to Rooted In Mindfulness" : "Sign in to Rooted In Mindfulness"}</title>
+</head>
+<body style="margin:0;padding:24px 0;background-color:#f6f3f0;font-family:Georgia,'Times New Roman',serif;">
+  <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:6px;overflow:hidden;">
+
+    <!-- Header -->
+    <div style="background:#135274;padding:24px 36px;">
+      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;
+                letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.75);">
+        Rooted In Mindfulness
+      </p>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:36px 36px 28px;">
+      <h1 style="margin:0 0 24px;font-family:Georgia,'Times New Roman',serif;font-size:26px;
+                 font-weight:400;line-height:1.3;color:#135274;">
+        ${title}
+      </h1>
+
+      ${bodyHtml}
+
+      <!-- CTA -->
+      <table role="presentation" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="border-radius:4px;background:#135274;">
+            <a href="${url}"
+               style="display:inline-block;padding:12px 24px;font-family:Arial,Helvetica,sans-serif;
+                      font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:4px;">
+              ${ctaLabel}
+            </a>
+          </td>
+        </tr>
+      </table>
+
+      <p style="margin:28px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;
+                line-height:1.6;color:#6b6059;">
+        If you didn&#39;t request this link, you can safely ignore this email.
+      </p>
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:20px 36px 28px;border-top:1px solid #ede9e5;">
+      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">
+        Rooted In Mindfulness &middot; Brookfield, WI<br>
+        <a href="https://rootedinmindfulness.org" style="color:#39607a;text-decoration:none;">
+          rootedinmindfulness.org
+        </a>
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>`;
+}
+
+function buildMagicLinkText({ url, isNewUser }: { url: string; isNewUser: boolean }): string {
+  if (isNewUser) {
+    return [
+      "Welcome to Rooted In Mindfulness",
+      "",
+      "We're glad you're here.",
+      "",
+      "Click the link below to complete your account and join the community.",
+      "This link is for you only and expires in 24 hours.",
+      "",
+      url,
+      "",
+      "If you didn't request this link, you can safely ignore this email.",
+      "",
+      "—",
+      "Rooted In Mindfulness · Brookfield, WI",
+      "rootedinmindfulness.org",
+    ].join("\n");
+  }
+
+  return [
+    "Your sign-in link — Rooted In Mindfulness",
+    "",
+    "Click the link below to sign in to your account.",
+    "This link expires in 24 hours.",
+    "",
+    url,
+    "",
+    "If you didn't request this link, you can safely ignore this email.",
+    "",
+    "—",
+    "Rooted In Mindfulness · Brookfield, WI",
+    "rootedinmindfulness.org",
+  ].join("\n");
+}
