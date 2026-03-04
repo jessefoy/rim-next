@@ -6,6 +6,10 @@ import { sendMagicLinkEmail } from "@/lib/email";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(db),
+  session: {
+    maxAge: 90 * 24 * 60 * 60,  // 90 days — stays signed in between infrequent visits
+    updateAge: 24 * 60 * 60,    // refresh expiry at most once per day on activity
+  },
   providers: [
     Resend({
       apiKey: process.env.RESEND_API_KEY,
