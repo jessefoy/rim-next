@@ -3,6 +3,41 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { Role } from "@prisma/client";
 
+// Revoke a member's Sanity Studio access by email.
+// Handles both accepted members and pending invitations.
+// Silently ignores failures so a missing SANITY_MANAGEMENT_TOKEN doesn't block saves.
+async function revokeSanityAccess(email: string): Promise<void> {
+  const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
+  const token = process.env.SANITY_MANAGEMENT_TOKEN;
+  if (!projectId || !token) return;
+
+  const headers = { Authorization: `Bearer ${token}` };
+  const base = `https://api.sanity.io/v2021-10-04/projects/${projectId}`;
+
+  // Remove from project members (accepted invites)
+  try {
+    const res = await fetch(`${base}/members`, { headers });
+    if (res.ok) {
+      const members: { id: string; profile?: { email?: string } }[] = await res.json();
+      const match = members.find((m) => m.profile?.email === email);
+      if (match) {
+        await fetch(`${base}/members/${match.id}`, { method: "DELETE", headers });
+      }
+    }
+  } catch { /* ignore */ }
+
+  // Cancel pending invitations (not yet accepted)
+  try {
+    const res = await fetch(`${base}/invitations`, { headers });
+    if (res.ok) {
+      const invites: { id: string; email: string }[] = await res.json();
+      for (const inv of invites.filter((i) => i.email === email)) {
+        await fetch(`${base}/invitations/${inv.id}`, { method: "DELETE", headers });
+      }
+    }
+  } catch { /* ignore */ }
+}
+
 const ALL_ROLES = Object.values(Role);
 
 export async function PATCH(
@@ -63,15 +98,25 @@ export async function PATCH(
 
   const emailIsChanging = newEmail !== undefined && newEmail !== user.email;
 
+  // Detect Sanity revocation: REGISTRAR is being removed AND user had Sanity access
+  const removingRegistrar =
+    roles !== undefined &&
+    user.roles.includes("REGISTRAR") &&
+    !(roles as string[]).includes("REGISTRAR");
+  const shouldRevokeSanity = removingRegistrar && !!user.sanityInvitedAt;
+
+  const updateData: Record<string, unknown> = {
+    ...(firstName !== undefined && { firstName }),
+    ...(lastName !== undefined && { lastName }),
+    ...(phone !== undefined && { phone }),
+    ...(emailIsChanging && { email: newEmail }),
+    ...(roles !== undefined && { roles }),
+    ...(shouldRevokeSanity && { sanityInvitedAt: null }),
+  };
+
   const updated = await db.user.update({
     where: { id },
-    data: {
-      ...(firstName !== undefined && { firstName }),
-      ...(lastName !== undefined && { lastName }),
-      ...(phone !== undefined && { phone }),
-      ...(emailIsChanging && { email: newEmail }),
-      ...(roles !== undefined && { roles }),
-    },
+    data: updateData,
     select: {
       id: true,
       email: true,
@@ -89,6 +134,11 @@ export async function PATCH(
     await db.session.deleteMany({ where: { userId: id } });
   }
 
+  // Revoke Sanity access asynchronously (non-blocking — DB is already updated)
+  if (shouldRevokeSanity) {
+    void revokeSanityAccess(user.email);
+  }
+
   return NextResponse.json({
     id: updated.id,
     email: updated.email,
@@ -98,6 +148,7 @@ export async function PATCH(
     roles: updated.roles,
     archivedAt: updated.archivedAt?.toISOString() ?? null,
     createdAt: updated.createdAt.toISOString(),
+    sanityRevoked: shouldRevokeSanity,
   });
 }
 

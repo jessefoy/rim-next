@@ -80,6 +80,7 @@ export default function MemberDetail({ member }: { member: Member }) {
   const [sanityInvitedAt, setSanityInvitedAt] = useState<string | null>(member.sanityInvitedAt);
   const [sanityStatus, setSanityStatus] = useState<"idle" | "loading" | "error">("idle");
   const [sanityError, setSanityError] = useState("");
+  const [confirmingInvite, setConfirmingInvite] = useState(false);
 
   // Track which roles have actually been saved (to show invite button only after REGISTRAR is persisted)
   const [savedRoles, setSavedRoles] = useState<string[]>(member.roles);
@@ -87,6 +88,7 @@ export default function MemberDetail({ member }: { member: Member }) {
   const handleSanityInvite = async () => {
     setSanityStatus("loading");
     setSanityError("");
+    setConfirmingInvite(false);
     try {
       const res = await fetch(`/api/admin/members/${member.id}/sanity-invite`, {
         method: "POST",
@@ -161,6 +163,7 @@ export default function MemberDetail({ member }: { member: Member }) {
       if (!res.ok) throw new Error(data.error ?? "Save failed");
       setSaved(true);
       setSavedRoles(roles);
+      if (data.sanityRevoked) setSanityInvitedAt(null);
       // Re-fetch server data so the header + page state reflect the new email.
       if (emailChanged) router.refresh();
     } catch (err) {
@@ -349,19 +352,41 @@ export default function MemberDetail({ member }: { member: Member }) {
                 year: "numeric",
               })}
             </p>
+          ) : confirmingInvite ? (
+            <div className="adm-sanity__confirm">
+              <p className="adm-sanity__confirm-msg">
+                This will send an email invitation from Sanity to <strong>{member.email}</strong>.
+                They will receive Editor access and can edit site content in Sanity Studio.
+              </p>
+              {sanityError && <p className="adm-sanity__error">{sanityError}</p>}
+              <div className="adm-sanity__confirm-actions">
+                <button
+                  className="adm-sanity__btn"
+                  onClick={handleSanityInvite}
+                  disabled={sanityStatus === "loading"}
+                >
+                  {sanityStatus === "loading" ? "Sending…" : "Yes, send invite"}
+                </button>
+                <button
+                  className="adm-btn--neutral"
+                  onClick={() => { setConfirmingInvite(false); setSanityError(""); }}
+                  disabled={sanityStatus === "loading"}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           ) : (
             <>
               <p className="adm-sanity__hint">
-                Send this member an invitation to Sanity Studio as an Editor. They will receive an
-                email from Sanity to complete account setup.
+                Send this member an invitation to Sanity Studio as an Editor.
               </p>
               {sanityError && <p className="adm-sanity__error">{sanityError}</p>}
               <button
                 className="adm-sanity__btn"
-                onClick={handleSanityInvite}
-                disabled={sanityStatus === "loading"}
+                onClick={() => setConfirmingInvite(true)}
               >
-                {sanityStatus === "loading" ? "Sending invite…" : "Invite to Sanity Studio"}
+                Invite to Sanity Studio
               </button>
             </>
           )}
@@ -372,6 +397,13 @@ export default function MemberDetail({ member }: { member: Member }) {
       <div className="adm-save">
         {error && <p className="adm-save__error">{error}</p>}
         {saved && <p className="adm-save__success">Saved ✓</p>}
+        {savedRoles.includes("REGISTRAR") &&
+          !roles.includes("REGISTRAR") &&
+          !!sanityInvitedAt && (
+            <p className="adm-save__warning">
+              ⚠ Saving will also revoke this member&rsquo;s Sanity Studio access.
+            </p>
+          )}
 
         {showEmailConfirm ? (
           <div className="adm-email-confirm">

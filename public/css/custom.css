@@ -3403,6 +3403,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .adm-save__success { font-size: 14px; color: #3a7a6a; font-weight: 600; }
 .adm-save__error   { font-size: 14px; color: #c0392b; }
+.adm-save__warning { font-size: 14px; color: #8a6000; background: #fff8e6; padding: 8px 12px; border-radius: 4px; margin-bottom: 8px; }
 
 /* ── Email change warning + confirm ─────────────────── */
 .adm-form__input--error {
@@ -3740,6 +3741,18 @@ h1, h2, h3, h4, h5, h6 {
 .adm-sanity__btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.adm-sanity__confirm-msg {
+  font-size: 14px;
+  color: var(--rim-text);
+  margin: 0 0 12px;
+}
+
+.adm-sanity__confirm-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 
 .adm-danger-zone {
