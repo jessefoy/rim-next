@@ -494,7 +494,7 @@ export default function RegistrationForm({
         />
         {!sessionUserId && emailCheckStatus === "found" && foundMember && (
           <p className="pg-form__email-found">
-            This email is on file for <strong>{foundMember.firstName} {foundMember.lastName}</strong> — we&rsquo;ve updated the name fields above. Edit if needed.
+            Welcome back, <strong>{foundMember.firstName} {foundMember.lastName}</strong>! Your registration will be linked to your account.
           </p>
         )}
       </div>
