@@ -5211,14 +5211,19 @@ h1, h2, h3, h4, h5, h6 {
 .nav__dropdown-panel {
   display: none;
   position: absolute;
-  top: calc(100% + 6px);
+  top: 100%;
   right: 0;
   min-width: 230px;
+  background: transparent;
+  padding-top: 6px;
+  z-index: 200;
+}
+/* Inner wrapper carries the visual card style */
+.nav__dropdown-panel-inner {
   background: #fff;
   border: 1px solid var(--rim-rule);
   border-radius: 6px;
   padding: 8px;
-  z-index: 200;
 }
 
 .nav__dropdown:hover .nav__dropdown-panel,
@@ -5247,7 +5252,7 @@ h1, h2, h3, h4, h5, h6 {
   color: #fff;
   background: var(--rim-mid);
   padding: 7px 16px;
-  border-radius: 4px;
+  border-radius: 9999px;
   text-decoration: none;
   white-space: nowrap;
   margin-left: 8px;

@@ -74,20 +74,22 @@ export default function Nav() {
                     <span className="nav__dropdown-caret" aria-hidden="true">▾</span>
                   </button>
                   <div className="nav__dropdown-panel">
-                    <Link
-                      href="/admin/members"
-                      className="nav__dropdown-link"
-                    >
-                      <div className="nav__dropdown-title">Members</div>
-                      <div className="nav__dropdown-desc">Member management</div>
-                    </Link>
-                    <Link
-                      href="/admin/sitemap"
-                      className="nav__dropdown-link"
-                    >
-                      <div className="nav__dropdown-title">Site Architecture</div>
-                      <div className="nav__dropdown-desc">All pages reference</div>
-                    </Link>
+                    <div className="nav__dropdown-panel-inner">
+                      <Link
+                        href="/admin/members"
+                        className="nav__dropdown-link"
+                      >
+                        <div className="nav__dropdown-title">Members</div>
+                        <div className="nav__dropdown-desc">Member management</div>
+                      </Link>
+                      <Link
+                        href="/admin/sitemap"
+                        className="nav__dropdown-link"
+                      >
+                        <div className="nav__dropdown-title">Site Architecture</div>
+                        <div className="nav__dropdown-desc">All pages reference</div>
+                      </Link>
+                    </div>
                   </div>
                 </div>
               )}
@@ -116,20 +118,22 @@ export default function Nav() {
                   <span className="nav__dropdown-caret" aria-hidden="true">▾</span>
                 </button>
                 <div className="nav__dropdown-panel">
-                  <Link
-                    href="/volunteerism/volunteer"
-                    className="nav__dropdown-link"
-                  >
-                    <div className="nav__dropdown-title">Volunteer</div>
-                    <div className="nav__dropdown-desc">Help Co-Create Refuge at RIM</div>
-                  </Link>
-                  <Link
-                    href="/kalyana-mitta/community-groups-events"
-                    className="nav__dropdown-link"
-                  >
-                    <div className="nav__dropdown-title">Start a Community Group</div>
-                    <div className="nav__dropdown-desc">Create a Community Group or Event</div>
-                  </Link>
+                  <div className="nav__dropdown-panel-inner">
+                    <Link
+                      href="/volunteerism/volunteer"
+                      className="nav__dropdown-link"
+                    >
+                      <div className="nav__dropdown-title">Volunteer</div>
+                      <div className="nav__dropdown-desc">Help Co-Create Refuge at RIM</div>
+                    </Link>
+                    <Link
+                      href="/kalyana-mitta/community-groups-events"
+                      className="nav__dropdown-link"
+                    >
+                      <div className="nav__dropdown-title">Start a Community Group</div>
+                      <div className="nav__dropdown-desc">Create a Community Group or Event</div>
+                    </Link>
+                  </div>
                 </div>
               </div>
 
@@ -142,33 +146,35 @@ export default function Nav() {
                   <span className="nav__dropdown-caret" aria-hidden="true">▾</span>
                 </button>
                 <div className="nav__dropdown-panel">
-                  {isLoggedIn ? (
-                    <>
-                      <Link href="/account/dashboard" className="nav__dropdown-link">
-                        <div className="nav__dropdown-title">My Dashboard</div>
-                        <div className="nav__dropdown-desc">Today&apos;s Sessions &amp; Resources</div>
-                      </Link>
-                      <button
-                        onClick={() => signOut({ callbackUrl: "/" })}
-                        className="nav__dropdown-link"
-                        style={{ width: "100%", textAlign: "left", background: "none", border: "none", cursor: "pointer" }}
-                      >
-                        <div className="nav__dropdown-title">Sign Out</div>
-                        <div className="nav__dropdown-desc">Log out of your account</div>
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <Link href="/login" className="nav__dropdown-link">
-                        <div className="nav__dropdown-title">Login</div>
-                        <div className="nav__dropdown-desc">Access Community Resources</div>
-                      </Link>
-                      <Link href="/community-membership" className="nav__dropdown-link">
-                        <div className="nav__dropdown-title">Join Us</div>
-                        <div className="nav__dropdown-desc">Community values &amp; how to join</div>
-                      </Link>
-                    </>
-                  )}
+                  <div className="nav__dropdown-panel-inner">
+                    {isLoggedIn ? (
+                      <>
+                        <Link href="/account/dashboard" className="nav__dropdown-link">
+                          <div className="nav__dropdown-title">My Dashboard</div>
+                          <div className="nav__dropdown-desc">Today&apos;s Sessions &amp; Resources</div>
+                        </Link>
+                        <button
+                          onClick={() => signOut({ callbackUrl: "/" })}
+                          className="nav__dropdown-link"
+                          style={{ width: "100%", textAlign: "left", background: "none", border: "none", cursor: "pointer" }}
+                        >
+                          <div className="nav__dropdown-title">Sign Out</div>
+                          <div className="nav__dropdown-desc">Log out of your account</div>
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Link href="/login" className="nav__dropdown-link">
+                          <div className="nav__dropdown-title">Login</div>
+                          <div className="nav__dropdown-desc">Access Community Resources</div>
+                        </Link>
+                        <Link href="/community-membership" className="nav__dropdown-link">
+                          <div className="nav__dropdown-title">Join Us</div>
+                          <div className="nav__dropdown-desc">Community values &amp; how to join</div>
+                        </Link>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </>
