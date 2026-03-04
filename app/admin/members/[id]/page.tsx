@@ -48,16 +48,29 @@ export default async function AdminMemberDetailPage({
 
   if (!user) notFound();
 
+  // Construct serialized object explicitly — never spread the full Prisma user object,
+  // as it contains Date fields (updatedAt, emailVerified, agreedAt, legacyLastLogin, etc.)
+  // that cause RSC serialization errors when passed to Client Components.
   const serialized = {
-    ...user,
+    id: user.id,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    phone: user.phone,
+    roles: user.roles,
     archivedAt: user.archivedAt?.toISOString() ?? null,
     createdAt: user.createdAt.toISOString(),
     registrations: user.registrations.map((r) => ({
-      ...r,
+      id: r.id,
+      programTitle: r.programTitle,
+      programSlug: r.programSlug,
+      status: r.status,
+      donationStatus: r.donationStatus,
       createdAt: r.createdAt.toISOString(),
     })),
     courseAccess: user.courseAccess.map((g) => ({
-      ...g,
+      id: g.id,
+      courseSlug: g.courseSlug,
       createdAt: g.createdAt.toISOString(),
     })),
   };
