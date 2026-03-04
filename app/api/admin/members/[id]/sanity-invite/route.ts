@@ -47,7 +47,7 @@ export async function POST(
   }
 
   const sanityRes = await fetch(
-    `https://api.sanity.io/v2021-10-04/projects/${projectId}/invitations`,
+    `https://api.sanity.io/v2021-10-04/invitations/project/${projectId}`,
     {
       method: "POST",
       headers: {

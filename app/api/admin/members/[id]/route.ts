@@ -12,27 +12,28 @@ async function revokeSanityAccess(email: string): Promise<void> {
   if (!projectId || !token) return;
 
   const headers = { Authorization: `Bearer ${token}` };
-  const base = `https://api.sanity.io/v2021-10-04/projects/${projectId}`;
+  const membersBase = `https://api.sanity.io/v2021-10-04/projects/${projectId}`;
+  const invitesBase = `https://api.sanity.io/v2021-10-04/invitations/project/${projectId}`;
 
   // Remove from project members (accepted invites)
   try {
-    const res = await fetch(`${base}/members`, { headers });
+    const res = await fetch(`${membersBase}/members`, { headers });
     if (res.ok) {
       const members: { id: string; profile?: { email?: string } }[] = await res.json();
       const match = members.find((m) => m.profile?.email === email);
       if (match) {
-        await fetch(`${base}/members/${match.id}`, { method: "DELETE", headers });
+        await fetch(`${membersBase}/members/${match.id}`, { method: "DELETE", headers });
       }
     }
   } catch { /* ignore */ }
 
   // Cancel pending invitations (not yet accepted)
   try {
-    const res = await fetch(`${base}/invitations`, { headers });
+    const res = await fetch(invitesBase, { headers });
     if (res.ok) {
       const invites: { id: string; email: string }[] = await res.json();
       for (const inv of invites.filter((i) => i.email === email)) {
-        await fetch(`${base}/invitations/${inv.id}`, { method: "DELETE", headers });
+        await fetch(`${invitesBase}/${inv.id}`, { method: "DELETE", headers });
       }
     }
   } catch { /* ignore */ }
