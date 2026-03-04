@@ -1322,6 +1322,122 @@ Features that have been designed and scoped but not yet built. Listed here so in
 
 ---
 
+### 17d. Program Capacity Management ⚡ HIGH PRIORITY
+
+**Status:** Planned — not yet built. `registrationClosed` boolean exists (manual close) but no capacity number or enforcement.
+
+**What it does:** Registrar sets a maximum capacity on a program in Sanity. Registration auto-closes when full. New signups go to waitlist automatically. Cancellations optionally trigger auto-promotion.
+
+**Proposed flow:**
+1. Registrar adds `capacity` (number) to program in Sanity Studio
+2. On each registration submit: count `REGISTERED + APPROVED` for that program slug — if at or above capacity, set status to `WAITLISTED` automatically
+3. `registrationClosed` boolean continues to work as a manual override
+4. When a member cancels (17b) or registrar cancels: if waitlist exists, auto-promote next in line + send approval email
+
+**Sanity changes needed:**
+- `capacity` number field on programs schema (Registration tab, optional — no cap if blank)
+
+**Code changes needed:**
+- Registration API: count current registrations before setting status; compare to `capacity` from Sanity GROQ
+- Program page: show "X spots remaining" or "Join waitlist" based on count vs. capacity
+- On cancellation: check waitlist and auto-promote (PATCH handler)
+
+---
+
+### 17e. Add to Calendar Links ⚡ HIGH PRIORITY
+
+**Status:** Planned — not yet built.
+
+**What it does:** Members can add a program to their Google Calendar or download an `.ics` file directly from the confirmation email and program page.
+
+**Proposed implementation:**
+- Generate a Google Calendar URL: `https://calendar.google.com/calendar/render?action=TEMPLATE&text=[title]&dates=[start]/[end]&details=[description]&location=[location]`
+- Generate an `.ics` file link via a simple API route: `GET /api/programs/[slug]/ical` — returns `text/calendar` response
+- Add both links to the registration confirmation email and to the program detail page (below the details card)
+
+**New files needed:**
+- `app/api/programs/[slug]/ical/route.ts` — generates RFC 5545-compliant `.ics` response from Sanity program data
+
+**No DB changes needed** — all data comes from Sanity (title, date, location, description).
+
+---
+
+### 17f. Welcome Email / Member Nurturing ⚡ HIGH PRIORITY
+
+**Status:** Planned — not yet built.
+
+**What it does:** After a member completes onboarding (`agreedToTerms = true`), they receive a warm welcome email. This is the beginning of a nurturing sequence managed through Flodesk.
+
+**Proposed flow:**
+1. `/api/account/complete-profile` (POST) — after setting `agreedToTerms = true`, fire `sendWelcomeEmail()` and add member to Flodesk segment
+2. Welcome email (via Resend): warm, personal tone — "You're now part of the community. Here's what's available to you…" Links to dashboard, programs, courses
+3. Flodesk sequence: add to a "New Member" segment for a nurturing sequence (separate from the newsletter)
+
+**New files needed:**
+- `sendWelcomeEmail()` in `lib/email.ts`
+- Flodesk segment subscription call in `/api/account/complete-profile`
+
+**Also consider:** Members who join via registration (not direct login) also set `agreedToTerms = true` — they should also receive the welcome email. Check the registration API path too.
+
+---
+
+### 17g. Resend Confirmation Email ⚡ HIGH PRIORITY
+
+**Status:** Planned — not yet built.
+
+**What it does:** Registrar can resend a member's registration confirmation email from the volunteer table. Useful when a member reports not receiving it.
+
+**Proposed implementation:**
+- Add `action: "resendConfirmation"` case to `PATCH /api/registrations/[id]`
+- Calls existing `sendRegistrationConfirmationEmail()` with the registration data
+- Button in VolunteerTable row actions (same pattern as "Send Reminder")
+
+**No DB changes needed** — uses existing email templates and registration data.
+
+---
+
+### 17h. Printable / Exportable Attendee List ⚡ HIGH PRIORITY
+
+**Status:** Planned — not yet built.
+
+**What it does:** Registrar can export a clean attendee list for a program — useful for in-person check-in at retreats and sits.
+
+**Proposed implementation:**
+- Add an "Export" button to the volunteer table header (program-level)
+- `GET /api/programs/[slug]/export` — returns CSV with columns: Name, Email, Phone, Status, Dana Status, Custom Fields
+- Browser triggers download via `Content-Disposition: attachment` header
+- Optional: print-friendly view (CSS `@media print` on the volunteer table)
+
+**No DB changes needed.**
+
+---
+
+### 17i. Email Notification Preferences 🔵 LOW PRIORITY
+
+**Status:** Planned — not yet built.
+
+**What it does:** Members can opt out of certain transactional emails (e.g. reminder emails) from their profile page.
+
+**Proposed implementation:**
+- `emailPreferences Json?` on User model — `{ reminders: true, announcements: true }`
+- Check preference before sending in each email function
+- UI on My Profile page
+
+---
+
+### 17j. Member Data Deletion Request 🔵 LOW PRIORITY
+
+**Status:** Planned — not yet built.
+
+**What it does:** Member can request deletion of their own account and all associated data from their profile page. GDPR/CCPA consideration.
+
+**Proposed implementation:**
+- "Delete my account" button on My Profile (behind a confirmation step)
+- `DELETE /api/account/profile` — auth-gated; same zero-registration guard as admin delete (return 409 with instructions if they have registrations); otherwise deletes User + cascade
+- Members with registrations: show message directing them to contact the registrar to be manually removed
+
+---
+
 ## Session Log
 
 | Date | Summary |
