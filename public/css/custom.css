@@ -5158,7 +5158,7 @@ h1, h2, h3, h4, h5, h6 {
   font-family: 'Quincycf', sans-serif;
   font-size: 17px;
   font-weight: 500;
-  color: var(--rim-blue);
+  color: var(--rim-text);
   line-height: 1.2;
 }
 
@@ -5238,7 +5238,7 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 4px;
   text-decoration: none;
   color: var(--rim-text);
-  transition: background 0.15s;
+  transition: color 0.15s, background 0.15s;
 }
 .nav__dropdown-link:not(:last-child) {
   border-bottom: 1px solid var(--rim-bg-accent);
@@ -5247,7 +5247,7 @@ h1, h2, h3, h4, h5, h6 {
 .nav__dropdown-link:last-child { border-radius: 0 0 4px 4px; }
 .nav__dropdown-link:first-child { border-radius: 4px 4px 0 0; }
 .nav__dropdown-link:only-child { border-radius: 4px; }
-.nav__dropdown-link:hover { background: var(--rim-bg); }
+.nav__dropdown-link:hover { color: var(--rim-blue); background: var(--rim-bg); }
 .nav__dropdown-title { font-weight: 600; font-size: 14px; }
 .nav__dropdown-desc { font-size: 12px; color: var(--rim-text-muted); margin-top: 2px; }
 
@@ -5296,29 +5296,32 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Mobile menu */
 .nav__mobile {
-  padding: 12px 0 16px;
-  background: #fff;
+  padding: 8px 0 20px;
+  background: var(--rim-bg);
 }
 .nav__mobile-link {
   display: block;
   font-family: var(--font-sans);
   font-size: 15px;
+  font-weight: 500;
   color: var(--rim-text);
   text-decoration: none;
-  padding: 10px 24px;
+  padding: 13px 24px;
   background: none;
   border: none;
+  border-bottom: 1px solid var(--rim-bg-accent);
   cursor: pointer;
   width: 100%;
   text-align: left;
-  transition: background 0.15s;
+  transition: color 0.15s, background 0.15s;
 }
-.nav__mobile-link:hover { background: var(--rim-bg); }
+.nav__mobile-link:first-child { border-top: 1px solid var(--rim-bg-accent); }
+.nav__mobile-link:hover { color: var(--rim-blue); background: var(--rim-bg-accent); }
 .nav__mobile-link--active { color: var(--rim-blue); font-weight: 600; }
 .nav__mobile-donate {
   display: block;
-  margin: 8px 24px 0;
-  padding: 10px 16px;
+  margin: 16px 24px 0;
+  padding: 11px 16px;
   background: var(--rim-mid);
   color: #fff;
   font-family: var(--font-sans);
@@ -5326,7 +5329,7 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-align: center;
-  border-radius: 4px;
+  border-radius: 9999px;
   text-decoration: none;
   transition: background 0.15s;
 }
