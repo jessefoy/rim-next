@@ -43,13 +43,15 @@ function programIsToday(program: DashboardProgram, today: string): boolean {
 }
 
 // Role → human label + destination
-const STAFF_LINKS: Record<string, { label: string; href: string; description: string }[]> = {
+const STAFF_LINKS: Record<string, { label: string; href: string; description: string; external?: boolean }[]> = {
   REGISTRAR: [
     { label: "Registrations", href: "/volunteer", description: "View and manage program registrations" },
+    { label: "Sanity Studio", href: "https://rooted-in-mindfulness.sanity.studio/", description: "Edit site content and programs", external: true },
   ],
   ADMIN: [
     { label: "Registrations", href: "/volunteer", description: "View and manage program registrations" },
     { label: "Members", href: "/admin/members", description: "Manage members and assign permissions" },
+    { label: "Sanity Studio", href: "https://rooted-in-mindfulness.sanity.studio/", description: "Edit site content and programs", external: true },
   ],
 };
 
@@ -200,12 +202,25 @@ export default async function DashboardPage() {
           <div className="db-section">
             <p className="db-section__label">Staff Access</p>
             <div className="db-staff__links">
-              {staffLinks.map((link) => (
-                <Link key={link.href} href={link.href} className="db-staff__card">
-                  <span className="db-staff__card-title">{link.label}</span>
-                  <span className="db-staff__card-desc">{link.description}</span>
-                </Link>
-              ))}
+              {staffLinks.map((link) =>
+                link.external ? (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="db-staff__card"
+                  >
+                    <span className="db-staff__card-title">{link.label}</span>
+                    <span className="db-staff__card-desc">{link.description}</span>
+                  </a>
+                ) : (
+                  <Link key={link.href} href={link.href} className="db-staff__card">
+                    <span className="db-staff__card-title">{link.label}</span>
+                    <span className="db-staff__card-desc">{link.description}</span>
+                  </Link>
+                )
+              )}
             </div>
           </div>
         )}

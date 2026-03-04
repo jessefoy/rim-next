@@ -28,6 +28,7 @@ interface Member {
   phone: string | null;
   roles: string[];
   archivedAt: string | null;
+  sanityInvitedAt: string | null;
   createdAt: string;
   registrations: MemberRegistration[];
   courseAccess: CourseAccessGrant[];
@@ -74,6 +75,38 @@ export default function MemberDetail({ member }: { member: Member }) {
   const [confirmAction, setConfirmAction] = useState<DangerAction>(null);
   const [dangerBusy, setDangerBusy] = useState(false);
   const [dangerError, setDangerError] = useState("");
+
+  // Sanity Studio invite
+  const [sanityInvitedAt, setSanityInvitedAt] = useState<string | null>(member.sanityInvitedAt);
+  const [sanityStatus, setSanityStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [sanityError, setSanityError] = useState("");
+
+  // Track which roles have actually been saved (to show invite button only after REGISTRAR is persisted)
+  const [savedRoles, setSavedRoles] = useState<string[]>(member.roles);
+
+  const handleSanityInvite = async () => {
+    setSanityStatus("loading");
+    setSanityError("");
+    try {
+      const res = await fetch(`/api/admin/members/${member.id}/sanity-invite`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 409 && data.sanityInvitedAt) {
+          setSanityInvitedAt(data.sanityInvitedAt);
+        } else {
+          throw new Error(data.error ?? "Invite failed");
+        }
+      } else {
+        setSanityInvitedAt(data.sanityInvitedAt);
+      }
+      setSanityStatus("idle");
+    } catch (err) {
+      setSanityError(err instanceof Error ? err.message : "Invite failed");
+      setSanityStatus("error");
+    }
+  };
 
   const toggleRole = (role: string) => {
     setRoles((prev) =>
@@ -127,6 +160,7 @@ export default function MemberDetail({ member }: { member: Member }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Save failed");
       setSaved(true);
+      setSavedRoles(roles);
       // Re-fetch server data so the header + page state reflect the new email.
       if (emailChanged) router.refresh();
     } catch (err) {
@@ -301,6 +335,38 @@ export default function MemberDetail({ member }: { member: Member }) {
           ))}
         </div>
       </section>
+
+      {/* Sanity Studio invite — shown after REGISTRAR role is saved */}
+      {savedRoles.includes("REGISTRAR") && (
+        <div className="adm-sanity">
+          <p className="adm-sanity__label">Sanity Studio Access</p>
+          {sanityInvitedAt ? (
+            <p className="adm-sanity__status">
+              ✓ Invited on{" "}
+              {new Date(sanityInvitedAt).toLocaleDateString("en-US", {
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </p>
+          ) : (
+            <>
+              <p className="adm-sanity__hint">
+                Send this member an invitation to Sanity Studio as an Editor. They will receive an
+                email from Sanity to complete account setup.
+              </p>
+              {sanityError && <p className="adm-sanity__error">{sanityError}</p>}
+              <button
+                className="adm-sanity__btn"
+                onClick={handleSanityInvite}
+                disabled={sanityStatus === "loading"}
+              >
+                {sanityStatus === "loading" ? "Sending invite…" : "Invite to Sanity Studio"}
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Save bar */}
       <div className="adm-save">
