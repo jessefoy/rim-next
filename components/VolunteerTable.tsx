@@ -101,6 +101,10 @@ export default function VolunteerTable({
   const [progReminderSent, setProgReminderSent]       = useState<string | null>(null);
   const [bulkReminderSending, setBulkReminderSending] = useState(false);
   const [bulkReminderSent, setBulkReminderSent]       = useState<number | null>(null);
+  // Resend confirmation state
+  const [confirmResendId, setConfirmResendId]         = useState<string | null>(null);
+  const [sendingResend, setSendingResend]             = useState<string | null>(null);
+  const [resendSent, setResendSent]                   = useState<string | null>(null);
   // Optimistic local tracking — maps reg id → ISO sent timestamp
   const [localReminderSentAt, setLocalReminderSentAt] = useState<Record<string, string>>({});
 
@@ -325,6 +329,25 @@ export default function VolunteerTable({
     }
   }
 
+  // ── Action: resend registration confirmation email ────────────────────────────
+  async function resendConfirmation(id: string) {
+    setSendingResend(id);
+    try {
+      const res = await fetch(`/api/registrations/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "resendConfirmation" }),
+      });
+      if (!res.ok) throw new Error();
+      setResendSent(id);
+      setTimeout(() => setResendSent(null), 4000);
+    } catch {
+      alert("Failed to resend confirmation. Please try again.");
+    } finally {
+      setSendingResend(null);
+    }
+  }
+
   // ── Action: save inline-edited custom fields ──────────────────────────────────
   async function saveCustomFields(id: string) {
     const fields = editingFields[id];
@@ -381,12 +404,14 @@ export default function VolunteerTable({
       setConfirmDeleteId(null);
       setConfirmEditRequestId(null);
       setConfirmProgReminderId(null);
+      setConfirmResendId(null);
     } else {
       setExpandedId(id);
       setConfirmCancelId(null);
       setConfirmDeleteId(null);
       setConfirmEditRequestId(null);
       setConfirmProgReminderId(null);
+      setConfirmResendId(null);
       if (!(id in editingNotes)) {
         setEditingNotes((prev) => ({ ...prev, [id]: currentNotes ?? "" }));
       }
@@ -818,6 +843,43 @@ export default function VolunteerTable({
                                     </span>
                                   )}
                                 </>
+                              )}
+
+                              {/* Resend Confirmation — for confirmed/approved only */}
+                              {(r.status === "REGISTERED" || r.status === "APPROVED") && (
+                                confirmResendId === r.id ? (
+                                  <div className="vol-confirm-wrap">
+                                    <span className="vol-confirm-label">
+                                      Resend confirmation to {r.firstName}?
+                                    </span>
+                                    <div className="vol-confirm-btns">
+                                      <button
+                                        className="vol-action-btn vol-action-btn--danger"
+                                        disabled={sendingResend === r.id}
+                                        onClick={() => {
+                                          resendConfirmation(r.id);
+                                          setConfirmResendId(null);
+                                        }}
+                                      >
+                                        {sendingResend === r.id ? "Sending…" : "Yes, resend it"}
+                                      </button>
+                                      <button
+                                        className="vol-action-btn vol-action-btn--ghost"
+                                        onClick={() => setConfirmResendId(null)}
+                                      >
+                                        Never mind
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <button
+                                    className="vol-action-btn vol-action-btn--resend"
+                                    disabled={sendingResend === r.id}
+                                    onClick={(e) => { e.stopPropagation(); setConfirmResendId(r.id); }}
+                                  >
+                                    {resendSent === r.id ? "Confirmation Sent ✓" : "Resend Confirmation"}
+                                  </button>
+                                )
                               )}
 
                               {/* Promote */}

@@ -36,6 +36,8 @@ export const programBySlugQuery = `*[_type == "programs" && slug.current == $slu
   listingDayAndTimeText,
   dateText,
   timeText,
+  startDatetime,
+  endDatetime,
   locationText,
   locationLink,
   danaText,
@@ -194,6 +196,19 @@ export const programReminderDataQuery = `*[_type == "programs" && slug.current =
   zoomLink,
   zoomLinkText,
   reminderMessage
+}`;
+
+// ─── Confirmation email data (for initial confirmation + resend) ───────────────
+
+export const programConfirmationDataQuery = `*[_type == "programs" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
+  name,
+  dateText,
+  timeText,
+  locationText,
+  locationLink,
+  startDatetime,
+  endDatetime,
+  confirmationMessage
 }`;
 
 // ─── Programs with reminder date in a time window (for daily cron) ────────────

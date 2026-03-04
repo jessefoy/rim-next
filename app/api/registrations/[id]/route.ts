@@ -7,10 +7,13 @@ import {
   sendCancellationNotificationEmail,
   sendDanaReminderEmail,
   sendEditRequestEmail,
+  sendRegistrationEmail,
   sendReminderEmail,
 } from "@/lib/email";
+import { portableTextToEmailHtml, portableTextToEmailText } from "@/lib/portableTextEmail";
+import { buildGoogleCalendarUrl, buildIcsUrl } from "@/lib/calendarLinks";
 import { sanityClient } from "@/lib/sanity";
-import { programReminderDataQuery } from "@/lib/queries";
+import { programConfirmationDataQuery, programReminderDataQuery } from "@/lib/queries";
 
 // ─── PATCH — update status, notes, donationStatus, or send dana reminder ─────
 
@@ -94,6 +97,54 @@ export async function PATCH(
         programTitle: reg.programTitle,
         programSlug:  reg.programSlug,
       });
+      return NextResponse.json({ ok: true });
+    }
+
+    // ── Special action: resend registration confirmation email ────────────────
+    if (action === "resendConfirmation") {
+      const reg = await db.registration.findUnique({ where: { id } });
+      if (!reg || reg.status === "CANCELLED") {
+        return NextResponse.json({ error: "Invalid registration" }, { status: 400 });
+      }
+      // Fetch program data from Sanity for email content + calendar links
+      const data = await sanityClient.fetch(programConfirmationDataQuery, { slug: reg.programSlug });
+
+      const confirmationMessageHtml = data?.confirmationMessage?.length
+        ? portableTextToEmailHtml(data.confirmationMessage)
+        : undefined;
+      const confirmationMessageText = data?.confirmationMessage?.length
+        ? portableTextToEmailText(data.confirmationMessage)
+        : undefined;
+
+      let googleCalendarUrl: string | undefined;
+      let icsUrl: string | undefined;
+      if (data?.startDatetime && reg.status !== "WAITLISTED") {
+        googleCalendarUrl = buildGoogleCalendarUrl({
+          title: reg.programTitle,
+          startDatetime: data.startDatetime,
+          endDatetime: data.endDatetime,
+          location: data.locationText,
+          programSlug: reg.programSlug,
+        });
+        icsUrl = buildIcsUrl(reg.programSlug);
+      }
+
+      await sendRegistrationEmail({
+        to:            reg.email,
+        firstName:     reg.firstName,
+        programTitle:  reg.programTitle,
+        programSlug:   reg.programSlug,
+        status:        reg.status === "WAITLISTED" ? "WAITLISTED" : "REGISTERED",
+        waitlistPosition: reg.waitlistPosition,
+        dateText:      data?.dateText,
+        timeText:      data?.timeText,
+        locationText:  data?.locationText,
+        confirmationMessageHtml,
+        confirmationMessageText,
+        googleCalendarUrl,
+        icsUrl,
+      });
+
       return NextResponse.json({ ok: true });
     }
 

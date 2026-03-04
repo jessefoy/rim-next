@@ -3014,6 +3014,24 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--rim-text-muted);
 }
 
+/* Add-to-calendar links — shown below ✓ registered status */
+.pg-calendar-links {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.pg-calendar-link {
+  font: 12px / 1.4 var(--font-sans);
+  color: var(--rim-mid);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.pg-calendar-link:hover {
+  text-decoration: underline;
+  color: var(--rim-blue);
+}
+
 /* ── Register page mobile ────────────────────────────────────────────────── */
 
 @media (max-width: 767px) {
@@ -3102,6 +3120,12 @@ h1, h2, h3, h4, h5, h6 {
   background: none; border: 1px solid var(--rim-rule); color: var(--rim-text-muted);
 }
 .vol-action-btn--prog-reminder:hover:not(:disabled) {
+  border-color: var(--rim-mid); color: var(--rim-mid);
+}
+.vol-action-btn--resend {
+  background: none; border: 1px solid var(--rim-rule); color: var(--rim-text-muted);
+}
+.vol-action-btn--resend:hover:not(:disabled) {
   border-color: var(--rim-mid); color: var(--rim-mid);
 }
 

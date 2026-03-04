@@ -6,6 +6,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import TeacherList from "@/components/TeacherList";
 import { db } from "@/lib/db";
+import { buildGoogleCalendarUrl, buildIcsUrl } from "@/lib/calendarLinks";
 
 export const revalidate = 60;
 
@@ -23,6 +24,8 @@ interface Program {
   tagline?: string;
   dateText?: string;
   timeText?: string;
+  startDatetime?: string | null;
+  endDatetime?: string | null;
   locationText?: string;
   locationLink?: string;
   danaText?: string;
@@ -245,7 +248,33 @@ export default async function ProgramDetailPage({
                   ) : existingRegistration?.status === "WAITLISTED" ? (
                     <span className="pg-register-status">You&rsquo;re on the waitlist.</span>
                   ) : existingRegistration ? (
-                    <span className="pg-register-status">✓ You&rsquo;re registered.</span>
+                    <>
+                      <span className="pg-register-status">✓ You&rsquo;re registered.</span>
+                      {program.startDatetime && (
+                        <div className="pg-calendar-links">
+                          <a
+                            href={buildGoogleCalendarUrl({
+                              title: program.name,
+                              startDatetime: program.startDatetime,
+                              endDatetime: program.endDatetime,
+                              location: program.locationText,
+                              programSlug: slug,
+                            })}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="pg-calendar-link"
+                          >
+                            + Google Calendar
+                          </a>
+                          <a
+                            href={buildIcsUrl(slug)}
+                            className="pg-calendar-link"
+                          >
+                            + Apple / Outlook
+                          </a>
+                        </div>
+                      )}
+                    </>
                   ) : spotsRemaining === 0 ? (
                     <Link href={`/programs/${slug}/register`} className="pg-register-btn">
                       Join Waitlist →

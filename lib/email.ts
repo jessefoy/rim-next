@@ -33,6 +33,9 @@ export interface RegistrationEmailData {
   // Program-specific confirmation copy from Sanity (rendered from Portable Text)
   confirmationMessageHtml?: string;
   confirmationMessageText?: string;
+  // Add-to-calendar links — only included when program has startDatetime set in Sanity
+  googleCalendarUrl?: string;
+  icsUrl?: string;
 }
 
 /**
@@ -58,6 +61,8 @@ export async function sendRegistrationEmail(data: RegistrationEmailData): Promis
     dateText, timeText, locationText,
     confirmationMessageHtml: data.confirmationMessageHtml,
     confirmationMessageText: data.confirmationMessageText,
+    googleCalendarUrl: data.googleCalendarUrl,
+    icsUrl: data.icsUrl,
   };
 
   // Resend v4+ returns { data, error } instead of throwing — check both.
@@ -655,6 +660,8 @@ interface BuildParams {
   locationText?: string | null;
   confirmationMessageHtml?: string;
   confirmationMessageText?: string;
+  googleCalendarUrl?: string;
+  icsUrl?: string;
 }
 
 function buildHtml(p: BuildParams): string {
@@ -679,6 +686,25 @@ function buildHtml(p: BuildParams): string {
          </div>`
       : "";
 
+  // Add-to-calendar links — only shown on confirmed registrations when startDatetime is set
+  const calendarLinksBlock =
+    !p.isWaitlisted && p.googleCalendarUrl
+      ? `<p style="margin:0 0 8px;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;
+                  letter-spacing:0.10em;text-transform:uppercase;color:#6b6059;">
+           Add to calendar
+         </p>
+         <p style="margin:0 0 28px;">
+           <a href="${p.googleCalendarUrl}"
+              style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#39607a;text-decoration:none;">
+             Google Calendar
+           </a>
+           ${p.icsUrl ? `&nbsp;&middot;&nbsp;<a href="${p.icsUrl}"
+              style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#39607a;text-decoration:none;">
+             Apple / Outlook (.ics)
+           </a>` : ""}
+         </p>`
+      : "";
+
   const bodyHtml = p.isWaitlisted
     ? `<p style="margin:0 0 16px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,serif;">
          Hi ${p.firstName},
@@ -701,7 +727,8 @@ function buildHtml(p: BuildParams): string {
          We look forward to practicing together.
        </p>
        ${detailsBlock}
-       ${customMessageBlock}`;
+       ${customMessageBlock}
+       ${calendarLinksBlock}`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -790,6 +817,15 @@ function buildText(p: BuildParams): string {
       ? ["─", p.confirmationMessageText.trim(), ""]
       : [];
 
+  const calendarLines = p.googleCalendarUrl
+    ? [
+        "Add to calendar:",
+        `  Google Calendar: ${p.googleCalendarUrl}`,
+        ...(p.icsUrl ? [`  Apple / Outlook: ${p.icsUrl}`] : []),
+        "",
+      ]
+    : [];
+
   return [
     `Hi ${p.firstName},`,
     "",
@@ -797,6 +833,7 @@ function buildText(p: BuildParams): string {
     "",
     ...(details ? [details, ""] : []),
     ...customMessageLines,
+    ...calendarLines,
     `View program details: ${p.programUrl}`,
     "",
     "—",

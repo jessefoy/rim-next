@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { sendRegistrationEmail } from "@/lib/email";
 import { sanityClient } from "@/lib/sanity";
 import { portableTextToEmailHtml, portableTextToEmailText } from "@/lib/portableTextEmail";
+import { buildGoogleCalendarUrl, buildIcsUrl } from "@/lib/calendarLinks";
 
 export async function POST(request: NextRequest) {
   try {
@@ -153,20 +154,39 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Fetch program-specific confirmation message from Sanity (fire-and-forget on error)
+    // Fetch program-specific confirmation data from Sanity (fire-and-forget on error)
     let confirmationMessageHtml: string | undefined;
     let confirmationMessageText: string | undefined;
+    let googleCalendarUrl: string | undefined;
+    let icsUrl: string | undefined;
     try {
-      const prog = await sanityClient.fetch<{ confirmationMessage?: unknown[] } | null>(
-        `*[_type == "programs" && _id == $id && !(_id in path("drafts.**"))][0]{ confirmationMessage }`,
+      const prog = await sanityClient.fetch<{
+        confirmationMessage?: unknown[];
+        startDatetime?: string | null;
+        endDatetime?: string | null;
+      } | null>(
+        `*[_type == "programs" && _id == $id && !(_id in path("drafts.**"))][0]{
+          confirmationMessage, startDatetime, endDatetime
+        }`,
         { id: programId }
       );
       if (prog?.confirmationMessage?.length) {
         confirmationMessageHtml = portableTextToEmailHtml(prog.confirmationMessage);
         confirmationMessageText = portableTextToEmailText(prog.confirmationMessage);
       }
+      // Build calendar links only for confirmed (not waitlisted) registrations
+      if (prog?.startDatetime && registration.status !== "WAITLISTED") {
+        googleCalendarUrl = buildGoogleCalendarUrl({
+          title: programTitle,
+          startDatetime: prog.startDatetime,
+          endDatetime: prog.endDatetime,
+          location: locationText ?? null,
+          programSlug,
+        });
+        icsUrl = buildIcsUrl(programSlug);
+      }
     } catch (err) {
-      console.error("[registration] Failed to fetch confirmation message:", err);
+      console.error("[registration] Failed to fetch confirmation data:", err);
     }
 
     // Send confirmation email — fire-and-forget, never blocks the response
@@ -182,6 +202,8 @@ export async function POST(request: NextRequest) {
       locationText:    locationText ?? null,
       confirmationMessageHtml,
       confirmationMessageText,
+      googleCalendarUrl,
+      icsUrl,
     });
 
     return NextResponse.json({
