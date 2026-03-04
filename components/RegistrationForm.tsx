@@ -86,6 +86,12 @@ export default function RegistrationForm({
   // Non-logged-in users must agree to community terms before registering
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
+  // Email recognition — pre-fill returning members' info on blur
+  const [emailCheckStatus, setEmailCheckStatus] = useState<"idle" | "checking" | "found" | "not_found">("idle");
+  const [foundMember, setFoundMember] = useState<{
+    firstName: string; lastName: string; phone: string; agreedToTerms: boolean;
+  } | null>(null);
+
   // Dana state — pre-populate registrationId for promoted waitlist members
   const [registrationId, setRegistrationId] = useState<string | null>(
     hasPendingDana ? (existingRegistrationId ?? null) : null
@@ -300,6 +306,35 @@ export default function RegistrationForm({
   }
 
   // ── Handlers ────────────────────────────────────────────────────────────────
+
+  // On email blur: look up the address and pre-fill if it belongs to a known member.
+  // Non-blocking — form works normally regardless of the outcome.
+  const handleEmailBlur = async () => {
+    if (sessionUserId || !form.email.includes("@")) return;
+    setEmailCheckStatus("checking");
+    try {
+      const res = await fetch(`/api/account/check-email?email=${encodeURIComponent(form.email)}`);
+      const data = await res.json();
+      if (data.exists) {
+        setFoundMember(data);
+        // Pre-fill name and phone only if the fields are currently empty
+        setForm((prev) => ({
+          ...prev,
+          firstName: prev.firstName || data.firstName,
+          lastName: prev.lastName || data.lastName,
+          phone: prev.phone || data.phone,
+        }));
+        if (data.agreedToTerms) setAgreedToTerms(true);
+        setEmailCheckStatus("found");
+      } else {
+        setFoundMember(null);
+        setEmailCheckStatus("not_found");
+      }
+    } catch {
+      setEmailCheckStatus("idle"); // fail silently — form still works
+    }
+  };
+
   const handleField = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
@@ -443,11 +478,24 @@ export default function RegistrationForm({
           type="email"
           className="pg-form__input"
           value={form.email}
-          onChange={handleField}
+          onChange={(e) => {
+            handleField(e);
+            // Reset recognition state when email changes
+            if (emailCheckStatus !== "idle") {
+              setEmailCheckStatus("idle");
+              setFoundMember(null);
+            }
+          }}
+          onBlur={handleEmailBlur}
           required
           autoComplete="email"
           readOnly={!!sessionUserId}
         />
+        {!sessionUserId && emailCheckStatus === "found" && (
+          <p className="pg-form__email-found">
+            Welcome back{foundMember?.firstName ? `, ${foundMember.firstName}` : ""}! We&rsquo;ve pre-filled your info from your account.
+          </p>
+        )}
       </div>
 
       <div className="pg-form__field">
@@ -530,8 +578,8 @@ export default function RegistrationForm({
         </div>
       ))}
 
-      {/* ── Community agreements — shown only for non-logged-in registrants ── */}
-      {!sessionUserId && (
+      {/* ── Community agreements — shown for non-logged-in registrants who haven't agreed yet ── */}
+      {!sessionUserId && !(emailCheckStatus === "found" && foundMember?.agreedToTerms) && (
         <div className="pg-form__agreements">
           <p className="pg-form__agreements-text">
             Rooted In Mindfulness is an intentional community held by shared values of

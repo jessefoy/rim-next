@@ -1518,6 +1518,14 @@ h1, h2, h3, h4, h5, h6 {
   font-style: italic;
   margin: 8px 0 0;
 }
+.pg-form__email-found {
+  font-size: 14px;
+  color: var(--rim-mid);
+  background: color-mix(in srgb, var(--rim-mid) 8%, var(--rim-bg));
+  border-radius: 4px;
+  padding: 7px 11px;
+  margin: 6px 0 0;
+}
 
 /* ── Dana step (shown after registration success) ── */
 
