@@ -317,12 +317,13 @@ export default function RegistrationForm({
       const data = await res.json();
       if (data.exists) {
         setFoundMember(data);
-        // Pre-fill name and phone only if the fields are currently empty
+        // Account values win — corrects typos and restores the member's real name.
+        // Fall back to what they typed only if the account has no value for that field.
         setForm((prev) => ({
           ...prev,
-          firstName: prev.firstName || data.firstName,
-          lastName: prev.lastName || data.lastName,
-          phone: prev.phone || data.phone,
+          firstName: data.firstName || prev.firstName,
+          lastName: data.lastName || prev.lastName,
+          phone: data.phone || prev.phone,
         }));
         if (data.agreedToTerms) setAgreedToTerms(true);
         setEmailCheckStatus("found");
@@ -491,9 +492,9 @@ export default function RegistrationForm({
           autoComplete="email"
           readOnly={!!sessionUserId}
         />
-        {!sessionUserId && emailCheckStatus === "found" && (
+        {!sessionUserId && emailCheckStatus === "found" && foundMember && (
           <p className="pg-form__email-found">
-            Welcome back{foundMember?.firstName ? `, ${foundMember.firstName}` : ""}! We&rsquo;ve pre-filled your info from your account.
+            This email is on file for <strong>{foundMember.firstName} {foundMember.lastName}</strong> — we&rsquo;ve updated the name fields above. Edit if needed.
           </p>
         )}
       </div>
