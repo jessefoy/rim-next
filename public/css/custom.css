@@ -4364,6 +4364,149 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+/* ── Admin Manual (adm-man-) ───────────────────────────── */
+
+.adm-man-section {
+  margin-bottom: 6px;
+  border: 1px solid var(--rim-rule);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.adm-man-section--notes {
+  border-left: 3px solid var(--rim-mid);
+  border-color: var(--rim-mid);
+  margin-bottom: 16px;
+}
+
+.adm-man-summary { list-style: none; cursor: pointer; background: var(--rim-bg-accent); user-select: none; }
+.adm-man-summary::-webkit-details-marker { display: none; }
+.adm-man-summary:hover { background: color-mix(in srgb, var(--rim-mid) 6%, var(--rim-bg-accent)); }
+
+.adm-man-section--notes .adm-man-summary {
+  background: color-mix(in srgb, var(--rim-mid) 8%, var(--rim-bg));
+}
+
+.adm-man-summary__inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 18px;
+  flex-wrap: wrap;
+}
+
+.adm-man-summary__title {
+  font-size: 14.5px;
+  font-weight: 700;
+  font-family: var(--font-sans);
+  color: var(--rim-text);
+  flex: 1;
+}
+
+.adm-man-section--notes .adm-man-summary__title { color: var(--rim-mid); }
+
+.adm-man-summary__who {
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--rim-bg);
+  color: var(--rim-text-muted);
+  border-radius: 3px;
+  padding: 2px 7px;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.adm-man-summary__count { font-size: 12px; color: var(--rim-text-muted); white-space: nowrap; }
+
+.adm-man-summary__caret {
+  font-size: 11px;
+  color: var(--rim-text-muted);
+  transition: transform 0.18s;
+  flex-shrink: 0;
+}
+
+details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180deg); }
+
+.adm-man-section__body {
+  padding: 20px 22px 24px;
+  border-top: 1px solid var(--rim-rule);
+}
+
+.adm-man-intro {
+  font-size: 13.5px;
+  color: var(--rim-text-muted);
+  line-height: 1.6;
+  margin: 0 0 18px;
+}
+
+.adm-man-features { display: flex; flex-direction: column; gap: 8px; }
+
+.adm-man-feature {
+  padding: 12px 14px;
+  background: var(--rim-bg);
+  border: 1px solid var(--rim-rule);
+  border-radius: 5px;
+}
+
+.adm-man-feature__header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 5px;
+  flex-wrap: wrap;
+}
+
+.adm-man-feature__name { font-size: 13.5px; font-weight: 700; color: var(--rim-text); font-family: var(--font-sans); }
+.adm-man-feature__who { font-size: 11px; color: var(--rim-text-muted); font-style: italic; }
+
+.adm-man-feature__desc {
+  font-size: 13px;
+  color: var(--rim-text-muted);
+  line-height: 1.58;
+  margin: 0;
+}
+
+.adm-man-feature__bullets { margin: 8px 0 0 16px; padding: 0; }
+.adm-man-feature__bullets li { font-size: 12.5px; color: var(--rim-text-muted); line-height: 1.5; padding: 2px 0; }
+
+/* Notes grid */
+.adm-man-notes-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+.adm-man-notes__heading {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--rim-text-muted);
+  margin: 0 0 6px;
+  font-family: var(--font-sans);
+}
+
+.adm-man-notes__sub { font-size: 12.5px; color: var(--rim-text-muted); line-height: 1.5; margin: 0 0 14px; }
+
+.adm-man-note {
+  padding: 11px 13px;
+  border: 1px solid var(--rim-rule);
+  border-radius: 5px;
+  margin-bottom: 7px;
+  background: var(--rim-bg);
+}
+
+.adm-man-note--mind { border-left: 2px solid var(--rim-mid); }
+.adm-man-note__title { font-size: 13px; font-weight: 700; color: var(--rim-text); margin-bottom: 5px; font-family: var(--font-sans); }
+.adm-man-note__body { font-size: 12.5px; color: var(--rim-text-muted); line-height: 1.58; margin: 0; }
+
+@media (max-width: 768px) {
+  .adm-man-notes-grid { grid-template-columns: 1fr; gap: 14px; }
+  .adm-man-summary__inner { gap: 6px; padding: 11px 14px; }
+  .adm-man-section__body { padding: 16px 14px 20px; }
+}
+
 /* ── CourseAccessSection (ca-) ─────────────────────────── */
 .ca-section { padding-top: 4px; }
 

@@ -636,6 +636,9 @@ export default async function AdminSitemapPage() {
             <Link href="/admin/roadmap" className="adm-sm-ext-link">
               Roadmap →
             </Link>
+            <Link href="/admin/manual" className="adm-sm-ext-link">
+              Manual →
+            </Link>
           </div>
         </div>
 

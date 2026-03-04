@@ -96,6 +96,13 @@ export default function Nav() {
                         <div className="nav__dropdown-title">Roadmap</div>
                         <div className="nav__dropdown-desc">Planned features</div>
                       </Link>
+                      <Link
+                        href="/admin/manual"
+                        className="nav__dropdown-link"
+                      >
+                        <div className="nav__dropdown-title">Staff Manual</div>
+                        <div className="nav__dropdown-desc">Feature reference</div>
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -240,6 +247,14 @@ export default function Nav() {
                   className={`nav__mobile-link${isActive("/admin/roadmap")}`}
                 >
                   Admin — Roadmap
+                </Link>
+              )}
+              {isAdmin && (
+                <Link
+                  href="/admin/manual"
+                  className={`nav__mobile-link${isActive("/admin/manual")}`}
+                >
+                  Admin — Staff Manual
                 </Link>
               )}
               <button

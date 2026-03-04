@@ -372,7 +372,10 @@ export default async function AdminRoadmapPage() {
               GitHub ↗
             </a>
             <Link href="/admin/sitemap" className="adm-sm-ext-link">
-              Site Architecture
+              Site Architecture →
+            </Link>
+            <Link href="/admin/manual" className="adm-sm-ext-link">
+              Manual →
             </Link>
           </div>
         </div>
