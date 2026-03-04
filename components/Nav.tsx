@@ -61,75 +61,44 @@ export default function Nav({ memberArea = false }: NavProps) {
           <div className="navigation-right">
             <nav role="navigation" className="nav-menu-2 w-nav-menu">
               {isMemberArea ? (
-                /* Member area desktop nav */
+                /* Member area desktop nav — minimal: hub + programs + admin tools + sign out.
+                   Sub-sections (library, registrations, profile, agreements) live on the hub. */
                 <>
-                  <div data-hover="true" data-delay="0" className="dropdown w-dropdown">
-                    <div className="dropdown-toggle w-dropdown-toggle">
-                      <div className="icon-4 w-icon-dropdown-toggle"></div>
-                      <div className="text-block-14">
-                        <span className="text-span-24">Member Links</span>
-                      </div>
-                    </div>
-                    <nav className="navigation-dropdown w-dropdown-list">
-                      <div className="dropdown-pointer">
-                        <div className="dropdown-wrapper">
-                          <Link href="/account/dashboard" className={`dropdown-link w-inline-block${current("/account/dashboard")}`}>
-                            <div className="nav-content-wrap">
-                              <div className="dropdown-title">Today&apos;s Zoom Links</div>
-                              <div className="nav-link-details">Join Today&apos;s Sessions</div>
-                            </div>
-                          </Link>
-                          <Link href="/account/dashboard-my-library" className={`dropdown-link w-inline-block${current("/account/dashboard-my-library")}`}>
-                            <div className="nav-content-wrap">
-                              <div className="dropdown-title">My Library</div>
-                              <div className="nav-link-details">Courses, Recordings &amp; Resources</div>
-                            </div>
-                          </Link>
-                          <Link href="/account/dashboard-my-registrations" className={`dropdown-link w-inline-block${current("/account/dashboard-my-registrations")}`}>
-                            <div className="nav-content-wrap">
-                              <div className="dropdown-title">My Programs</div>
-                              <div className="nav-link-details">Your Registrations &amp; History</div>
-                            </div>
-                          </Link>
-                          <Link href="/account/dashboard-member-care-agreements" className={`dropdown-link w-inline-block${current("/account/dashboard-member-care-agreements")}`}>
-                            <div className="nav-content-wrap">
-                              <div className="dropdown-title">Member Care Agreements</div>
-                              <div className="nav-link-details">Our Community Agreements</div>
-                            </div>
-                          </Link>
-                          <Link href="/account/dashboard-my-profile" className={`dropdown-link w-inline-block${current("/account/dashboard-my-profile")}`}>
-                            <div className="nav-content-wrap">
-                              <div className="dropdown-title">Update My Profile</div>
-                              <div className="nav-link-details">Manage Your Account</div>
-                            </div>
-                          </Link>
-                          <Link href="/community-programs" className="dropdown-link w-inline-block">
-                            <div className="nav-content-wrap">
-                              <div className="dropdown-title">Programs</div>
-                              <div className="nav-link-details">All Community Programs</div>
-                            </div>
-                          </Link>
-                          {isAdmin && (
-                            <>
-                              <Link href="/admin/members" className={`dropdown-link w-inline-block${current("/admin/members")}`}>
-                                <div className="nav-content-wrap">
-                                  <div className="dropdown-title">Members ↗</div>
-                                  <div className="nav-link-details">Admin — Member Management</div>
-                                </div>
-                              </Link>
-                              <Link href="/admin/sitemap" className={`dropdown-link w-inline-block${current("/admin/sitemap")}`}>
-                                <div className="nav-content-wrap">
-                                  <div className="dropdown-title">Site Architecture ↗</div>
-                                  <div className="nav-link-details">Admin — All Pages Reference</div>
-                                </div>
-                              </Link>
-                            </>
-                          )}
+                  <Link href="/account/dashboard" className={`navigation-link w-nav-link${current("/account/dashboard")}`}>
+                    My Dashboard
+                  </Link>
+                  <Link href="/community-programs" className="navigation-link w-nav-link">
+                    Programs
+                  </Link>
+                  {isAdmin && (
+                    <div data-hover="true" data-delay="0" className="dropdown w-dropdown">
+                      <div className="dropdown-toggle w-dropdown-toggle">
+                        <div className="icon-4 w-icon-dropdown-toggle"></div>
+                        <div className="text-block-14">
+                          <span className="text-span-24">Admin</span>
                         </div>
-                        <div className="pointer"></div>
                       </div>
-                    </nav>
-                  </div>
+                      <nav className="navigation-dropdown w-dropdown-list">
+                        <div className="dropdown-pointer">
+                          <div className="dropdown-wrapper">
+                            <Link href="/admin/members" className={`dropdown-link w-inline-block${current("/admin/members")}`}>
+                              <div className="nav-content-wrap">
+                                <div className="dropdown-title">Members</div>
+                                <div className="nav-link-details">Member management</div>
+                              </div>
+                            </Link>
+                            <Link href="/admin/sitemap" className={`dropdown-link w-inline-block${current("/admin/sitemap")}`}>
+                              <div className="nav-content-wrap">
+                                <div className="dropdown-title">Site Architecture</div>
+                                <div className="nav-link-details">All pages reference</div>
+                              </div>
+                            </Link>
+                          </div>
+                          <div className="pointer"></div>
+                        </div>
+                      </nav>
+                    </div>
+                  )}
                   <button onClick={() => signOut({ callbackUrl: "/" })} className="navigation-link w-nav-link" style={{ background: "none", border: "none", cursor: "pointer" }}>
                     Sign Out
                   </button>
@@ -253,11 +222,8 @@ export default function Nav({ memberArea = false }: NavProps) {
           <nav role="navigation" className="mobile-nav w-nav-menu">
             {isMemberArea ? (
               <>
-                <Link href="/account/dashboard" className={`mobile-nav-link w-nav-link${current("/account/dashboard")}`}>Today&apos;s Zoom Links</Link>
-                <Link href="/account/dashboard-my-library" className={`mobile-nav-link w-nav-link${current("/account/dashboard-my-library")}`}>My Library</Link>
-                <Link href="/account/dashboard-my-registrations" className={`mobile-nav-link w-nav-link${current("/account/dashboard-my-registrations")}`}>My Programs</Link>
-                <Link href="/account/dashboard-member-care-agreements" className={`mobile-nav-link w-nav-link${current("/account/dashboard-member-care-agreements")}`}>Community Care Agreements</Link>
-                <Link href="/account/dashboard-my-profile" className={`mobile-nav-link w-nav-link${current("/account/dashboard-my-profile")}`}>Update My Profile</Link>
+                {/* Mobile member area — minimal: hub + programs + admin tools + sign out */}
+                <Link href="/account/dashboard" className={`mobile-nav-link w-nav-link${current("/account/dashboard")}`}>My Dashboard</Link>
                 <Link href="/community-programs" className="mobile-nav-link w-nav-link">Programs</Link>
                 {isAdmin && <Link href="/admin/members" className={`mobile-nav-link w-nav-link${current("/admin/members")}`}>Admin — Members</Link>}
                 {isAdmin && <Link href="/admin/sitemap" className={`mobile-nav-link w-nav-link${current("/admin/sitemap")}`}>Admin — Site Architecture</Link>}
