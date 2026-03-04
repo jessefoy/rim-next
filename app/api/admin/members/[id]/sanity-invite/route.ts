@@ -59,8 +59,13 @@ export async function POST(
   );
 
   if (!sanityRes.ok) {
-    const sanityData = await sanityRes.json().catch(() => ({}));
-    const message = sanityData?.message ?? sanityData?.error ?? "Sanity invite failed";
+    const rawText = await sanityRes.text().catch(() => "");
+    let sanityData: { message?: string; error?: string } = {};
+    try { sanityData = JSON.parse(rawText); } catch { /* not JSON */ }
+    const message =
+      sanityData?.message ??
+      sanityData?.error ??
+      `Sanity API returned ${sanityRes.status}${rawText ? `: ${rawText.slice(0, 300)}` : ""}`;
     return NextResponse.json({ error: message }, { status: 502 });
   }
 
