@@ -12,10 +12,10 @@ async function revokeSanityAccess(email: string): Promise<{ member: string; invi
   if (!projectId || !token) return { member: "skipped: no token", invite: "skipped", memberEmails: [] };
 
   const headers = { Authorization: `Bearer ${token}` };
-  // Try two different members endpoint paths — Sanity docs are inconsistent
+  // Try known Sanity Management API paths for listing project memberships
   const membersPaths = [
-    `https://api.sanity.io/v2021-10-04/access/projects/${projectId}/members`,
-    `https://api.sanity.io/v2021-06-07/projects/${projectId}/members`,
+    `https://api.sanity.io/v2021-06-07/access/projects/${projectId}/memberships`,
+    `https://api.sanity.io/v1/access/projects/${projectId}/memberships`,
   ];
   const invitesBase = `https://api.sanity.io/v2021-10-04/invitations/project/${projectId}`;
 
@@ -33,11 +33,33 @@ async function revokeSanityAccess(email: string): Promise<{ member: string; invi
       memberResult = `list failed: ${r.status} at ${path}`;
     }
     if (membersRes) {
-      const members: { id: string; email?: string; profile?: { email?: string } }[] = await membersRes.json();
-      for (const m of members) memberEmails.push(m.profile?.email ?? m.email ?? "(none)");
-      const match = members.find((m) => (m.profile?.email ?? m.email) === email);
-      if (match) {
-        const del = await fetch(`${workingMembersBase}/${match.id}`, { method: "DELETE", headers });
+      const raw = await membersRes.json();
+      // Shape varies: [{id, email?, profile?}] or [{userId, role}] depending on endpoint
+      const members: { id?: string; userId?: string; email?: string; profile?: { email?: string } }[] =
+        Array.isArray(raw) ? raw : (raw.memberships ?? raw.members ?? []);
+      // For memberships shape, look up user profile by userId to find email
+      let matchId: string | undefined;
+      for (const m of members) {
+        const memberId = m.id ?? m.userId ?? "";
+        const memberEmail = m.profile?.email ?? m.email;
+        if (memberEmail) {
+          memberEmails.push(memberEmail);
+          if (memberEmail === email) matchId = memberId;
+        } else if (memberId) {
+          // Fetch user profile to get email
+          try {
+            const profileRes = await fetch(`https://api.sanity.io/v2021-06-07/users/${memberId}`, { headers });
+            if (profileRes.ok) {
+              const profile: { email?: string } = await profileRes.json();
+              const profileEmail = profile.email ?? "(none)";
+              memberEmails.push(profileEmail);
+              if (profileEmail === email) matchId = memberId;
+            }
+          } catch { /* ignore */ }
+        }
+      }
+      if (matchId) {
+        const del = await fetch(`${workingMembersBase}/${matchId}`, { method: "DELETE", headers });
         memberResult = del.ok ? "removed" : `delete failed: ${del.status}`;
       }
     }
