@@ -445,11 +445,12 @@ export default function RegistrationForm({
             id="reg-firstName"
             name="firstName"
             type="text"
-            className="pg-form__input"
+            className={`pg-form__input${emailCheckStatus === "found" ? " pg-form__input--locked" : ""}`}
             value={form.firstName}
             onChange={handleField}
             required
             autoComplete="given-name"
+            readOnly={emailCheckStatus === "found"}
           />
         </div>
         <div className="pg-form__field">
@@ -460,11 +461,12 @@ export default function RegistrationForm({
             id="reg-lastName"
             name="lastName"
             type="text"
-            className="pg-form__input"
+            className={`pg-form__input${emailCheckStatus === "found" ? " pg-form__input--locked" : ""}`}
             value={form.lastName}
             onChange={handleField}
             required
             autoComplete="family-name"
+            readOnly={emailCheckStatus === "found"}
           />
         </div>
       </div>

@@ -1439,10 +1439,12 @@ h1, h2, h3, h4, h5, h6 {
   border-color: var(--rim-mid);
 }
 
-.pg-form__input[readonly] {
+.pg-form__input[readonly],
+.pg-form__input--locked {
   background: var(--rim-bg-accent);
   color: var(--rim-text-muted);
   cursor: default;
+  border-color: var(--rim-rule);
 }
 
 .pg-form__textarea {
