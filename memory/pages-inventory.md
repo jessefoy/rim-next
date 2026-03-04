@@ -42,10 +42,11 @@ Once ALL pages are 🟢, delete the three Webflow CSS `<link>` tags from `app/la
 
 | Status | Route | File |
 |---|---|---|
-| 🟠 | `/account/dashboard` | `app/account/dashboard/page.tsx` |
-| 🟠 | `/account/dashboard-my-library` | `app/account/dashboard-my-library/page.tsx` — ⚠️ stub (hardcoded, links to old Webflow site) |
-| 🟠 | `/account/dashboard-my-profile` | `app/account/dashboard-my-profile/page.tsx` |
-| 🟠 | `/account/dashboard-member-care-agreements` | `app/account/dashboard-member-care-agreements/page.tsx` |
+| 🟢 | `/account/dashboard` | `app/account/dashboard/page.tsx` — prefix: `db-` |
+| 🟢 | `/account/dashboard-my-registrations` | `app/account/dashboard-my-registrations/page.tsx` — prefix: `mr-` (new) |
+| 🟢 | `/account/dashboard-my-library` | `app/account/dashboard-my-library/page.tsx` — prefix: `ml-` |
+| 🟢 | `/account/dashboard-my-profile` | `app/account/dashboard-my-profile/page.tsx` — prefix: `mp-` |
+| 🟢 | `/account/dashboard-member-care-agreements` | `app/account/dashboard-member-care-agreements/page.tsx` — prefix: `mc-` |
 
 ## Volunteer / Registrar Area
 
@@ -70,29 +71,25 @@ Once ALL pages are 🟢, delete the three Webflow CSS `<link>` tags from `app/la
 
 ---
 
-## Progress: 9 / 30 pages migrated 🟢
+## Progress: 14 / 31 pages migrated 🟢
 
-*(Includes: `/lessons/[slug]`, `/programs/[slug]`, `/account/welcome`, `/volunteer`, `/volunteer/programs/[slug]`, `/admin/members`, `/admin/members/[id]`, `/admin/sitemap`, `/update/[token]`)*
+*(Includes: `/lessons/[slug]`, `/programs/[slug]`, `/account/welcome`, `/account/dashboard`, `/account/dashboard-my-registrations`, `/account/dashboard-my-library`, `/account/dashboard-my-profile`, `/account/dashboard-member-care-agreements`, `/volunteer`, `/volunteer/programs/[slug]`, `/admin/members`, `/admin/members/[id]`, `/admin/sitemap`, `/update/[token]`)*
 
 ## Remaining 🟠 Pages — Suggested Migration Order (easiest → heaviest)
 
 1. `/login/check-email` — simple single-message layout
 2. `/login/error` — simple single-message layout
 3. `/login` — form, straightforward
-4. `/account/dashboard-my-profile` — small form
-5. `/account/dashboard-member-care-agreements` — rich text
-6. `/account/dashboard` — Zoom links layout
-7. `/account/dashboard-my-library` — ⚠️ stub; needs rebuild before migration makes sense
-8. `/diversity` — mostly rich text
-9. `/volunteer-positions/[slug]` — detail page
-10. `/glossary/[slug]` — detail page
-11. `/team/[slug]` — detail page
-12. `/magazine-articles/[slug]` — article layout
-13. `/kalyana-mitta/*` — 3 pages, similar patterns
-14. `/volunteerism/volunteer` — public; note: interest form still has no backend
-15. `/volunteerism/volunteer-thanks-for-your-interest` — ⚠️ orphan; consider deleting instead
-16. `/community-membership` — repurposed; Webflow classes but minimal content, low priority
-17. `/course/[slug]` — course detail
-18. `/community-programs` — listing page
-19. `/donate` — GiveButter widgets
-20. `/` — home page (most complex, last)
+4. `/diversity` — mostly rich text
+5. `/volunteer-positions/[slug]` — detail page
+6. `/glossary/[slug]` — detail page
+7. `/team/[slug]` — detail page
+8. `/magazine-articles/[slug]` — article layout
+9. `/kalyana-mitta/*` — 3 pages, similar patterns
+10. `/volunteerism/volunteer` — public; note: interest form still has no backend
+11. `/volunteerism/volunteer-thanks-for-your-interest` — ⚠️ orphan; consider deleting instead
+12. `/community-membership` — repurposed; Webflow classes but minimal content, low priority
+13. `/course/[slug]` — course detail
+14. `/community-programs` — listing page
+15. `/donate` — GiveButter widgets
+16. `/` — home page (most complex, last)

@@ -3,10 +3,9 @@ import { sanityClient } from "@/lib/sanity";
 import { dashboardProgramsQuery } from "@/lib/queries";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import ListRow from "@/components/ListRow";
 import { db } from "@/lib/db";
 
-export const metadata = { title: "Dashboard — Rooted In Mindfulness" };
+export const metadata = { title: "My Dashboard — Rooted In Mindfulness" };
 
 // No caching — always show fresh program data
 export const dynamic = "force-dynamic";
@@ -44,7 +43,6 @@ function programIsToday(program: DashboardProgram, today: string): boolean {
 }
 
 // Role → human label + destination
-// Multiple roles can point to the same href — deduplicated by href before rendering
 const STAFF_LINKS: Record<string, { label: string; href: string; description: string }[]> = {
   REGISTRAR: [
     { label: "Registrations", href: "/volunteer", description: "View and manage program registrations" },
@@ -69,79 +67,138 @@ export default async function DashboardPage() {
         })
       : Promise.resolve([]),
   ]);
+
   const today = getMilwaukeeDay();
   const todaysPrograms = allPrograms.filter((p) => programIsToday(p, today));
+  const todayCount = todaysPrograms.length;
 
   const firstName = session.user?.name?.split(" ")[0] ?? session.user?.email?.split("@")[0] ?? "there";
 
-  // Collect unique staff links for this user's roles (deduplicated by href)
   const roles: string[] = session.user.roles ?? [];
-  // Collect all links from each role, flatten, then deduplicate by href
   const allLinks = roles.flatMap((r) => STAFF_LINKS[r] ?? []);
-  const staffLinks = Object.values(
-    Object.fromEntries(allLinks.map((l) => [l.href, l]))
-  );
+  const staffLinks = Object.values(Object.fromEntries(allLinks.map((l) => [l.href, l])));
 
   return (
     <div className="page-wrapper">
-      <div className="dashboard-section">
-        <div className="dashboard-content">
-          <h2 className="heading-50">Welcome {firstName}!</h2>
-          <h4 className="heading-40">Today&apos;s Zoom Session Links:</h4>
-          <div className="todays-offering">
-            <div className="programs-collection-list-wrapper w-dyn-list">
-              <div role="list" className="programs-collection-list w-dyn-items">
-                {todaysPrograms.length === 0 ? (
-                  <div className="w-dyn-empty">
-                    <div>No programs scheduled for today ({today}).</div>
-                  </div>
-                ) : (
-                  todaysPrograms.map((program) => (
-                    <ListRow
-                      key={program._id}
-                      title={program.name}
-                      subtitle={program.listingDayAndTimeText}
-                      note={program.dashboardEarlyArrivalMessage}
-                      announcement={program.dashboardSpecialAnnouncement}
-                      href={program.zoomLink}
-                      buttonLabel="Join Zoom"
-                      external
-                      disabled={!program.zoomLink}
-                    />
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
+      <div className="db-page">
+
+        {/* ── Welcome ── */}
+        <div className="db-welcome">
+          <h1 className="db-welcome__greeting">Welcome back, {firstName}.</h1>
+          <p className="db-welcome__sub">Your member area — sessions, programs, and practice resources.</p>
         </div>
 
-        {/* ── Pending dana reminder — shown when promoted from waitlist ── */}
-        {pendingDanaRegistrations.length > 0 && (
-          <div className="db-dana-reminder">
-            <p className="db-dana-reminder__label">Dana Offering Pending</p>
-            <p className="db-dana-reminder__desc">
-              A spot opened up for the following program{pendingDanaRegistrations.length > 1 ? "s" : ""}.
-              Visit the program page to complete your dana offering.
+        {/* ── Nav card grid ── */}
+        <div className="db-nav">
+          <Link href="#today" className="db-nav__card">
+            <p className="db-nav__label">
+              Member Area
+              {todayCount > 0 ? (
+                <span className="db-nav__badge">{todayCount} today</span>
+              ) : (
+                <span className="db-nav__badge db-nav__badge--empty">Nothing today</span>
+              )}
             </p>
-            <div className="db-dana-reminder__items">
-              {pendingDanaRegistrations.map((r) => (
-                <Link
-                  key={r.id}
-                  href={`/programs/${r.programSlug}/register`}
-                  className="db-dana-reminder__item"
-                >
-                  {r.programTitle}
-                  <span className="db-dana-reminder__arrow">→</span>
-                </Link>
+            <p className="db-nav__title">Today&apos;s Sessions</p>
+            <p className="db-nav__desc">Join today&apos;s drop-in Zoom programs</p>
+          </Link>
+
+          <Link href="/account/dashboard-my-registrations" className="db-nav__card">
+            <p className="db-nav__label">Member Area</p>
+            <p className="db-nav__title">My Programs</p>
+            <p className="db-nav__desc">Your registered programs and history</p>
+          </Link>
+
+          <Link href="/account/dashboard-my-library" className="db-nav__card">
+            <p className="db-nav__label">Practice Resources</p>
+            <p className="db-nav__title">My Library</p>
+            <p className="db-nav__desc">Courses, lessons, and dharma resources</p>
+          </Link>
+
+          <Link href="/account/dashboard-member-care-agreements" className="db-nav__card">
+            <p className="db-nav__label">Community</p>
+            <p className="db-nav__title">Our Agreements</p>
+            <p className="db-nav__desc">The values we practice together</p>
+          </Link>
+
+          <Link href="/account/dashboard-my-profile" className="db-nav__card">
+            <p className="db-nav__label">Account</p>
+            <p className="db-nav__title">My Profile</p>
+            <p className="db-nav__desc">Update your name and contact info</p>
+          </Link>
+        </div>
+
+        {/* ── Today's sessions ── */}
+        <div id="today" className="db-section">
+          <p className="db-section__label">Today&apos;s Sessions — {today}</p>
+          {todaysPrograms.length === 0 ? (
+            <p className="db-section__empty">
+              No programs scheduled for today. See you next time.
+            </p>
+          ) : (
+            <div className="db-staff__links">
+              {todaysPrograms.map((program) => (
+                program.zoomLink ? (
+                  <a
+                    key={program._id}
+                    href={program.zoomLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="db-staff__card"
+                  >
+                    <span className="db-staff__card-title">{program.name}</span>
+                    {program.listingDayAndTimeText && (
+                      <span className="db-staff__card-desc">{program.listingDayAndTimeText}</span>
+                    )}
+                    {program.dashboardSpecialAnnouncement && (
+                      <span className="db-staff__card-desc" style={{ color: "var(--rim-mid)", fontStyle: "italic" }}>
+                        {program.dashboardSpecialAnnouncement}
+                      </span>
+                    )}
+                  </a>
+                ) : (
+                  <div key={program._id} className="db-staff__card" style={{ opacity: 0.5 }}>
+                    <span className="db-staff__card-title">{program.name}</span>
+                    {program.listingDayAndTimeText && (
+                      <span className="db-staff__card-desc">{program.listingDayAndTimeText}</span>
+                    )}
+                    <span className="db-staff__card-desc">No Zoom link available</span>
+                  </div>
+                )
               ))}
+            </div>
+          )}
+        </div>
+
+        {/* ── Pending dana reminder ── */}
+        {pendingDanaRegistrations.length > 0 && (
+          <div className="db-section">
+            <div className="db-dana-reminder" style={{ marginTop: 0 }}>
+              <p className="db-dana-reminder__label">Dana Offering Pending</p>
+              <p className="db-dana-reminder__desc">
+                A spot opened up for the following program{pendingDanaRegistrations.length > 1 ? "s" : ""}.
+                Visit the program page to complete your dana offering.
+              </p>
+              <div className="db-dana-reminder__items">
+                {pendingDanaRegistrations.map((r) => (
+                  <Link
+                    key={r.id}
+                    href={`/programs/${r.programSlug}/register`}
+                    className="db-dana-reminder__item"
+                  >
+                    {r.programTitle}
+                    <span className="db-dana-reminder__arrow">→</span>
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
         )}
 
-        {/* ── Staff access panel (visible only if user has elevated roles) ── */}
+        {/* ── Staff access panel ── */}
         {staffLinks.length > 0 && (
-          <div className="db-staff">
-            <p className="db-staff__label">Staff Access</p>
+          <div className="db-section">
+            <p className="db-section__label">Staff Access</p>
             <div className="db-staff__links">
               {staffLinks.map((link) => (
                 <Link key={link.href} href={link.href} className="db-staff__card">

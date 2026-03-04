@@ -371,15 +371,27 @@ A registration is considered a duplicate if the same `userId` + `programId` alre
 
 ## 6. Member Dashboard
 
-**What it does:** The first page members see after login. Shows Zoom links for today's programs and, for staff, links to their admin areas.
+**What it does:** The member area home page — a visual hub showing nav cards for every member resource, plus today's Zoom session links, pending dana reminders, and staff-only access panels. Redesigned 2026-03-03 from a bare Zoom-link list into a proper discovery hub so members can find all available resources without hunting through the nav.
 
-### 6a. Today's Zoom Links
+### 6a. Dashboard Hub (`/account/dashboard`)
 
-- Queries Sanity for programs with a Zoom link, filtered to today's day of week (in Milwaukee/CT timezone)
-- Shows program name, time, and a "Join Zoom" button
-- Handles special announcements and early arrival messages per program
+Displays five nav cards in a 2-column grid (1-column on mobile):
+
+| Card | Destination | Notes |
+|---|---|---|
+| Today's Sessions | `#today` (anchor) | Shows count badge ("2 today" or "Nothing today") |
+| My Programs | `/account/dashboard-my-registrations` | Registration history |
+| My Library | `/account/dashboard-my-library` | Courses, lessons, resources |
+| Our Agreements | `/account/dashboard-member-care-agreements` | Community care agreements |
+| My Profile | `/account/dashboard-my-profile` | Name, phone, email |
+
+Below the card grid:
+- **Today's Sessions** — Sanity query filtered to today's day of week (Milwaukee/CT timezone); program cards link directly to Zoom; no-link programs shown disabled
+- **Pending Dana** — appears when any registration has `donationStatus: PENDING` (promoted from waitlist); links to `/programs/[slug]/register`
+- **Staff Access** — appears only for `REGISTRAR` and `ADMIN` roles; regular members see nothing
 
 **Key file:** `app/account/dashboard/page.tsx`
+**CSS prefix:** `db-` (in `public/css/custom.css`)
 
 ### 6b. Staff Access Panel
 
@@ -396,8 +408,47 @@ A registration is considered a duplicate if the same `userId` + `programId` alre
 
 **🔧 Technical notes:**
 - `STAFF_LINKS` is `Record<string, { label, href, description }[]>` — each role key maps to an array of cards. ADMIN has two entries; REGISTRAR has one.
-- Deduplication by `href`: if a user holds multiple roles whose links overlap, duplicates are collapsed. The Members card only appears once even if the user holds multiple roles that grant it.
-- Dashboard page is still in the 🟠 Webflow CSS layer — staff panel uses `db-` prefixed classes in `custom.css` to avoid conflicts
+- Deduplication by `href`: if a user holds multiple roles whose links overlap, duplicates are collapsed.
+- All dashboard pages are now 🟢 design system — no Webflow class names.
+
+### 6c. My Programs (`/account/dashboard-my-registrations`)
+
+Members can see all their program registrations in one place. This was a missing feature — previously members had no way to view their registration history.
+
+**User flow:**
+1. Member navigates to My Programs from dashboard card or nav dropdown
+2. Active registrations (REGISTERED, APPROVED, WAITLISTED) shown first
+3. Past/cancelled registrations shown below (section hidden if none)
+4. Empty state shown with link to community programs if no registrations at all
+
+**Each registration card shows:**
+- Program title (links to program page)
+- Date/time and location from Sanity (looked up by slug)
+- Status badge: Registered (green) / Approved (blue) / Waitlisted (amber) / Cancelled (gray)
+- Waitlist position if applicable
+- Pending dana prompt with link to complete the offering
+
+**Key files:**
+- `app/account/dashboard-my-registrations/page.tsx` — server component, direct DB + Sanity
+- `app/api/account/registrations/route.ts` — GET endpoint (also available for client use)
+- `lib/queries.ts` — `programsBySlugArrayQuery` (batch lookup by slug array)
+
+**🔧 Technical notes:**
+- `dateText`/`timeText`/`locationText` are NOT stored in the Registration DB record — only in Sanity. The page/API does a batch GROQ query by slug array to enrich DB records with Sanity data.
+- GROQ: `*[_type == "programs" && slug.current in $slugs && !(_id in path("drafts.**"))]`
+- CSS prefix: `mr-`
+
+### 6d. My Library (`/account/dashboard-my-library`)
+
+Curated list of dharma learning resources. Currently hardcoded (4 items). Clean `ml-` design system; no Webflow classes.
+
+### 6e. My Profile (`/account/dashboard-my-profile`)
+
+Form to update firstName, lastName, phone. Uses server action — data writes directly to Postgres. Email is display-only (magic link auth; contact support to change). Success state via `?saved=true` URL param, styled with `mp-success` class.
+
+### 6f. Community Care Agreements (`/account/dashboard-member-care-agreements`)
+
+Static page with the four RIM community agreements. Clean `mc-` design system; content is hardcoded in the component.
 
 ---
 
@@ -1031,4 +1082,6 @@ These links are rendered conditionally — `isAdmin` check in `Nav.tsx` — and 
 
 | 2026-03-03 | Site cleanup + administration tools: repurposed `/community-membership` (removed Memberstack signup form, now shows full 4-point Community Care Agreements + "Join or sign in →" button); added "Read our full community care agreements →" link from WelcomeForm and RegistrationForm agreements blocks; audited and fixed all nav/site links that referenced the old Memberstack signup flow (Nav desktop "Join Us" sub-text, MemberGate.tsx two-button pattern, volunteer page, kalyana-mitta application page, magazine-articles gate); created `/admin/sitemap` Site Architecture page (ADMIN-only; 10 sections, access badges, CSS layer indicators, status chips — stub/orphan/repurposed, "Not Yet Built" section); added admin nav links (Members + Site Architecture) to Nav.tsx; removed class recording CMS template entirely (deleted page, queries, cr- CSS block); removed "Intentionally Decommissioned" section from sitemap (served its purpose — no ongoing value); updated Section 10 (CSS prefixes), added Section 15 (Site Administration Tools) to FEATURES.md; updated pages-inventory.md |
 
-*Last updated: 2026-03-03 (session 14)*
+| 2026-03-03 | Member dashboard redesign (session 15): Redesigned `/account/dashboard` as a visual hub with 5 nav cards (`db-` CSS extensions); created `My Programs` page (`/account/dashboard-my-registrations`, `mr-` prefix) — new feature showing member registration history with status badges, waitlist position, and pending dana prompts; new `GET /api/account/registrations` endpoint; `programsBySlugArrayQuery` GROQ query for batch slug lookup; rebuilt `My Library` (`ml-`), `My Profile` (`mp-`), `Community Agreements` (`mc-`) with 🟢 design system (dropped all Webflow classes); added "My Programs" link to Nav.tsx (desktop dropdown + mobile flat list); updated FEATURES.md Section 6 + pages-inventory.md (14/31 🟢) |
+
+*Last updated: 2026-03-03 (session 15)*

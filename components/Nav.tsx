@@ -85,6 +85,12 @@ export default function Nav({ memberArea = false }: NavProps) {
                               <div className="nav-link-details">Courses, Recordings &amp; Resources</div>
                             </div>
                           </Link>
+                          <Link href="/account/dashboard-my-registrations" className={`dropdown-link w-inline-block${current("/account/dashboard-my-registrations")}`}>
+                            <div className="nav-content-wrap">
+                              <div className="dropdown-title">My Programs</div>
+                              <div className="nav-link-details">Your Registrations &amp; History</div>
+                            </div>
+                          </Link>
                           <Link href="/account/dashboard-member-care-agreements" className={`dropdown-link w-inline-block${current("/account/dashboard-member-care-agreements")}`}>
                             <div className="nav-content-wrap">
                               <div className="dropdown-title">Member Care Agreements</div>
@@ -249,6 +255,7 @@ export default function Nav({ memberArea = false }: NavProps) {
               <>
                 <Link href="/account/dashboard" className={`mobile-nav-link w-nav-link${current("/account/dashboard")}`}>Today&apos;s Zoom Links</Link>
                 <Link href="/account/dashboard-my-library" className={`mobile-nav-link w-nav-link${current("/account/dashboard-my-library")}`}>My Library</Link>
+                <Link href="/account/dashboard-my-registrations" className={`mobile-nav-link w-nav-link${current("/account/dashboard-my-registrations")}`}>My Programs</Link>
                 <Link href="/account/dashboard-member-care-agreements" className={`mobile-nav-link w-nav-link${current("/account/dashboard-member-care-agreements")}`}>Community Care Agreements</Link>
                 <Link href="/account/dashboard-my-profile" className={`mobile-nav-link w-nav-link${current("/account/dashboard-my-profile")}`}>Update My Profile</Link>
                 <Link href="/community-programs" className="mobile-nav-link w-nav-link">Programs</Link>

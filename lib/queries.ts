@@ -212,3 +212,15 @@ export const programsWithReminderInWindowQuery = `*[_type == "programs" && remin
   dateText, timeText, locationText, locationLink,
   zoomLink, zoomLinkText, reminderMessage
 }`;
+
+// ─── Batch lookup by slug array (for My Registrations page) ───────────────────
+
+export const programsBySlugArrayQuery = `*[_type == "programs" && slug.current in $slugs && !(_id in path("drafts.**"))] {
+  "slug": slug.current,
+  name,
+  dateText,
+  timeText,
+  locationText,
+  zoomLink,
+  zoomLinkText
+}`;
