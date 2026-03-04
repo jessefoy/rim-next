@@ -5,34 +5,37 @@ import { Role } from "@prisma/client";
 
 // Revoke a member's Sanity Studio access by email.
 // Handles both accepted members and pending invitations.
-// Returns a summary string for logging in the API response.
-async function revokeSanityAccess(email: string): Promise<string> {
+// Returns separate results for each path plus member emails found (for debugging).
+async function revokeSanityAccess(email: string): Promise<{ member: string; invite: string; memberEmails: string[] }> {
   const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
   const token = process.env.SANITY_MANAGEMENT_TOKEN;
-  if (!projectId || !token) return "skipped: no token";
+  if (!projectId || !token) return { member: "skipped: no token", invite: "skipped", memberEmails: [] };
 
   const headers = { Authorization: `Bearer ${token}` };
   const membersBase = `https://api.sanity.io/v2021-10-04/projects/${projectId}`;
   const invitesBase = `https://api.sanity.io/v2021-10-04/invitations/project/${projectId}`;
 
-  let result = "no match found";
+  let memberResult = "no match found";
+  let inviteResult = "no match found";
+  const memberEmails: string[] = [];
 
   // Remove from project members (accepted invites)
   try {
     const res = await fetch(`${membersBase}/members`, { headers });
     if (res.ok) {
-      // Try both profile.email and top-level email — Sanity API shape varies
       const members: { id: string; email?: string; profile?: { email?: string } }[] = await res.json();
+      // Collect all emails so we can debug mismatches
+      for (const m of members) memberEmails.push(m.profile?.email ?? m.email ?? "(none)");
       const match = members.find((m) => (m.profile?.email ?? m.email) === email);
       if (match) {
         const del = await fetch(`${membersBase}/members/${match.id}`, { method: "DELETE", headers });
-        result = del.ok ? "member removed" : `member delete failed: ${del.status}`;
+        memberResult = del.ok ? "removed" : `delete failed: ${del.status}`;
       }
     } else {
-      result = `members list failed: ${res.status}`;
+      memberResult = `list failed: ${res.status}`;
     }
   } catch (e) {
-    result = `members error: ${String(e)}`;
+    memberResult = `error: ${String(e)}`;
   }
 
   // Cancel pending invitations (not yet accepted)
@@ -41,14 +44,15 @@ async function revokeSanityAccess(email: string): Promise<string> {
     if (res.ok) {
       const body = await res.json();
       const invites: { id: string; email: string }[] = Array.isArray(body) ? body : (body.invitations ?? []);
-      for (const inv of invites.filter((i) => i.email === email)) {
+      const matching = invites.filter((i) => i.email === email);
+      for (const inv of matching) {
         const del = await fetch(`${invitesBase}/${inv.id}`, { method: "DELETE", headers });
-        result = del.ok ? "invite cancelled" : `invite delete failed: ${del.status}`;
+        inviteResult = del.ok ? "cancelled" : `delete failed: ${del.status}`;
       }
     }
   } catch { /* ignore */ }
 
-  return result;
+  return { member: memberResult, invite: inviteResult, memberEmails };
 }
 
 const ALL_ROLES = Object.values(Role);
@@ -148,7 +152,7 @@ export async function PATCH(
   }
 
   // Revoke Sanity access — blocking so we can surface the result
-  let sanityRevokeResult: string | null = null;
+  let sanityRevokeResult: { member: string; invite: string; memberEmails: string[] } | null = null;
   if (shouldRevokeSanity) {
     sanityRevokeResult = await revokeSanityAccess(user.email);
   }
