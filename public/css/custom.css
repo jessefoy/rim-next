@@ -114,10 +114,10 @@ h1, h2, h3, h4, h5, h6 {
 
 
 /* ═══════════════════════════════════════════════════
-   NAVIGATION DROPDOWNS
-   Webflow JS normally adds w--open on hover/click.
-   CSS hover covers desktop; nav.js handles click +
-   the mobile hamburger toggle.
+   NAVIGATION DROPDOWNS — SUPERSEDED
+   Replaced by the nav- block at the bottom of this file.
+   These rules only apply to any remaining Webflow nav
+   markup if it ever surfaces; they are otherwise unused.
 ═══════════════════════════════════════════════════ */
 
 /* Desktop (>767px): open dropdown on hover */
@@ -137,9 +137,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ═══════════════════════════════════════════════════
-   ACTIVE / CURRENT PAGE INDICATORS
-   Webflow sets w--current on matching links; these styles
-   make the active state visually clear.
+   ACTIVE / CURRENT PAGE INDICATORS — SUPERSEDED
+   Replaced by nav__link--active in nav- block below.
 ═══════════════════════════════════════════════════ */
 
 /* Top-level nav link active state */
@@ -161,7 +160,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 
-/* Mobile: when hamburger is open, show the nav menu */
+/* Mobile: when hamburger is open, show the nav menu — SUPERSEDED */
 .w-nav-menu.w--open {
   display: block !important;
   position: absolute;
@@ -5120,4 +5119,214 @@ h1, h2, h3, h4, h5, h6 {
   .mr-card__dana { flex-direction: column; align-items: flex-start; gap: 8px; }
 
   .mp-field__row { grid-template-columns: 1fr; }
+}
+
+
+/* ═══════════════════════════════════════════════════
+   NAV — 🟢 design system (nav- prefix)
+   Replaces all Webflow nav classes. Sticky header,
+   CSS-hover dropdowns on desktop, React-state hamburger
+   on mobile. nav.js no longer loaded.
+═══════════════════════════════════════════════════ */
+
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #fff;
+  border-bottom: 1px solid var(--rim-rule);
+}
+
+.nav__inner {
+  display: flex;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 68px;
+  gap: 8px;
+}
+
+/* Brand */
+.nav__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.nav__brand-name {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  color: var(--rim-blue);
+  line-height: 1.2;
+}
+
+/* Desktop nav container */
+.nav__desktop {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+/* Flat nav links */
+.nav__link {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--rim-text);
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  white-space: nowrap;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.nav__link:hover { background: var(--rim-bg); }
+.nav__link--active { color: var(--rim-blue); font-weight: 600; }
+
+/* Dropdown */
+.nav__dropdown { position: relative; }
+
+.nav__dropdown-toggle {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--rim-text);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.nav__dropdown-toggle:hover { background: var(--rim-bg); }
+.nav__dropdown-caret { font-size: 10px; color: var(--rim-text-muted); }
+
+.nav__dropdown-panel {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 230px;
+  background: #fff;
+  border: 1px solid var(--rim-rule);
+  border-radius: 6px;
+  padding: 8px;
+  z-index: 200;
+}
+
+.nav__dropdown:hover .nav__dropdown-panel,
+.nav__dropdown:focus-within .nav__dropdown-panel {
+  display: block;
+}
+
+.nav__dropdown-link {
+  display: block;
+  padding: 8px 12px;
+  border-radius: 4px;
+  text-decoration: none;
+  color: var(--rim-text);
+  transition: background 0.15s;
+}
+.nav__dropdown-link:hover { background: var(--rim-bg); }
+.nav__dropdown-title { font-weight: 600; font-size: 14px; }
+.nav__dropdown-desc { font-size: 12px; color: var(--rim-text-muted); margin-top: 2px; }
+
+/* Donate CTA pill */
+.nav__donate {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #fff;
+  background: var(--rim-mid);
+  padding: 7px 16px;
+  border-radius: 4px;
+  text-decoration: none;
+  white-space: nowrap;
+  margin-left: 8px;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.nav__donate:hover { background: var(--rim-blue); }
+
+/* Hamburger button (hidden on desktop) */
+.nav__hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.nav__hamburger span {
+  display: block;
+  width: 24px;
+  height: 2px;
+  background: var(--rim-text);
+  border-radius: 2px;
+  transition: transform 0.2s, opacity 0.2s;
+}
+.nav__hamburger--open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.nav__hamburger--open span:nth-child(2) { opacity: 0; }
+.nav__hamburger--open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* Mobile menu */
+.nav__mobile {
+  border-top: 1px solid var(--rim-rule);
+  padding: 12px 0 16px;
+  background: #fff;
+}
+.nav__mobile-link {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  color: var(--rim-text);
+  text-decoration: none;
+  padding: 10px 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: background 0.15s;
+}
+.nav__mobile-link:hover { background: var(--rim-bg); }
+.nav__mobile-link--active { color: var(--rim-blue); font-weight: 600; }
+.nav__mobile-donate {
+  display: block;
+  margin: 8px 24px 0;
+  padding: 10px 16px;
+  background: var(--rim-mid);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.nav__mobile-donate:hover { background: var(--rim-blue); }
+
+/* Responsive */
+@media (max-width: 767px) {
+  .nav__desktop { display: none; }
+  .nav__donate   { display: none; }
+  .nav__hamburger { display: flex; }
+  .nav__brand-name { font-size: 13px; }
+}
+@media (min-width: 768px) {
+  .nav__mobile { display: none !important; }
 }
