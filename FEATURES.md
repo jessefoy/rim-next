@@ -127,10 +127,19 @@ UPDATE users SET roles = '{REGISTRAR,ADMIN}' WHERE email = 'person@example.com';
 
 **Non-member handling:** If someone registers without being logged in, the system finds or creates a User record by email automatically. They don't need an account to register.
 
+**Returning member recognition:** When a non-logged-in person types their email and leaves the field, the form calls `GET /api/account/check-email`. If the email matches a known account:
+- First name, last name, and phone are pre-filled from the account (account values always win — corrects any typo the person may have typed before entering their email)
+- A warm notice appears: "Welcome back, [Name]! Your registration will be linked to your account."
+- The name and phone fields are locked (`readOnly`) — they cannot be changed in the registration form; members must use their profile page to update personal details
+- If the found account has `agreedToTerms = true`, the community agreements checkbox section is hidden
+
+**Security — one email = one identity:** Personal fields (name, phone) are locked in the form for recognized accounts and also protected in the API. The `POST /api/registrations` route resolves `resolvedFirstName`, `resolvedLastName`, `resolvedPhone` — for existing user records, the account's stored values always win regardless of what was submitted. This prevents any unauthenticated form submission from overwriting a member's stored profile data.
+
 **Key files:**
 - `components/RegistrationForm.tsx` — client component, all form logic including the dana step
 - `app/programs/[slug]/page.tsx` — server component; fetches capacity, user profile, existing registration, dana config; passes props to form
 - `app/api/registrations/route.ts` — POST endpoint
+- `app/api/account/check-email/route.ts` — GET: public endpoint, returns `{ exists, firstName, lastName, phone, agreedToTerms }` for a given email; used by the form for pre-fill on blur
 - `lib/email.ts` — Resend email utility (`sendRegistrationEmail`)
 
 **🔧 Technical notes:**
@@ -141,6 +150,8 @@ UPDATE users SET roles = '{REGISTRAR,ADMIN}' WHERE email = 'person@example.com';
 - `alreadyRegistered` is checked server-side for logged-in users only; guest duplicate prevention happens in the API by resolving the email to a userId first
 - Form states: `idle | submitting | waitlisted | dana | dana_redirecting | done | error | duplicate` — "registered" was renamed to "done"; "dana" shows the contribution step; "dana_redirecting" disables the button while the Stripe session is being created
 - `dateText`, `timeText`, `locationText` are passed in the POST body (already available on the program page from Sanity) so the API can include them in the email without an extra Sanity fetch
+- `emailCheckStatus` state: `idle | checking | found | not_found`. The check is fire-and-forget — if it fails or the user submits before blur, the form works normally. Resetting `emailCheckStatus` to `"idle"` when the email field changes unlocks the name/phone fields again.
+- API: `resolvedFirstName = user.firstName || form.firstName`; `resolvedLastName = user.lastName || form.lastName`; `resolvedPhone = user.phone || form.phone || null`. For new users (not found by email), form values are used directly. Profile fields are back-filled only when blank — existing values are never overwritten by unauthenticated form input.
 
 ### 4b. Capacity & Waitlist Logic
 
@@ -213,6 +224,8 @@ STRIPE_SECRET_KEY            — Stripe secret key (server-side only)
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY — Stripe publishable key (client-side)
 STRIPE_WEBHOOK_SECRET        — from Stripe dashboard, used to verify webhook signatures
 ```
+
+**Unconfigured amounts:** If `danaMode` is `"fixed"` but `danaFixedAmount` is blank (null/0), or `"base_plus_dana"` but `danaBaseAmount` is blank, the dana step is skipped entirely and the registration completes as `donationStatus: WAIVED`. This prevents a broken state where the checkout button is shown but disabled (Stripe minimum is $1.00). The form sends `danaMode: "none"` to the API in this case so the DB reflects the correct status. **Admin action required:** always fill in the amount field in Sanity when using Fixed or Base + Dana mode.
 
 **🔧 Technical notes:**
 - Stripe Checkout (hosted page) is used — not Stripe Elements. Simpler, PCI handled by Stripe, no card data touches our server
@@ -555,15 +568,18 @@ AttendanceFormat:   IN_PERSON | ONLINE  (Phase 2)
 
 | Method | Path | Auth | What it does |
 |---|---|---|---|
+| `GET` | `/api/account/check-email?email=X` | None required | Public lookup: returns `{ exists, firstName, lastName, phone, agreedToTerms }` for a given email. Used by the registration form to pre-fill returning members' info on email blur. |
 | `POST` | `/api/account/complete-profile` | Session required | Save firstName, lastName, phone, set `agreedToTerms = true` on first login |
 | `DELETE` | `/api/account/complete-profile` | Session required | Explicit "I'd rather not join" — deletes User record (cascades to sessions, registrations, course access), signs out |
+| `PATCH` | `/api/account/reactivate` | Session required | Self-service reactivation: clears `archivedAt` on the authenticated user's own record |
 
 **Admin — Members**
 
 | Method | Path | Auth | What it does |
 |---|---|---|---|
 | `GET` | `/api/admin/members` | ADMIN | List all members with roles and registration counts |
-| `PATCH` | `/api/admin/members/[id]` | ADMIN | Update profile fields (firstName, lastName, phone) and/or roles array |
+| `PATCH` | `/api/admin/members/[id]` | ADMIN | Update profile fields, roles, or member state: `action: "archive"` sets `archivedAt` + kills all sessions; `action: "restore"` clears `archivedAt`; default (no action) updates profile + roles |
+| `DELETE` | `/api/admin/members/[id]` | ADMIN | Hard-delete a member with zero registrations; returns `409` if registrations exist (use archive instead) |
 | `POST` | `/api/admin/members/import` | ADMIN | CSV upsert: finds or creates Users by email; fills blank fields only; returns `{ created, updated, skipped }` |
 | `POST` | `/api/admin/members/[id]/course-access` | ADMIN | Grant manual course access (`CourseAccess` upsert) |
 | `DELETE` | `/api/admin/members/[id]/course-access?courseSlug=` | ADMIN | Revoke manual course access |
@@ -610,7 +626,7 @@ The `programs` schema is organized into six tabs (in order):
 |---|---|
 | **Content** | Tagline, program image, description, pull quote + source, special notes |
 | **Schedule & Location** | Category, teacher/facilitators, date, time, listing day+time, location + map link, Zoom link + button text |
-| **Registration** | Enabled toggle → Required/Closed flags → Capacity + Deadline → Signed-out/in instructions → Custom questions → Confirmation email message → Reminder date + reminder message → Legacy Fillout ID |
+| **Registration** | Enabled toggle → Registration Closed flag → Capacity + Deadline → Custom questions → Confirmation email message → Reminder date + reminder message |
 | **Dana & Payment** | Dana mode → amounts → dana step message → program-page dana note |
 | **Dashboard** | Special announcement, early arrival message, remove from list, day filtering |
 | **Sorting & Visibility** | Day of week, sort order, hide from public list |
@@ -650,7 +666,7 @@ The `programs` schema is organized into six tabs (in order):
 - `none` — No dana step shown at all. Registration is free.
 - `voluntary` — Show `suggestedDana` as the default amount, fully editable. No minimum enforced. "Offer dana" and "I'll contribute another time" are both options.
 - `base_plus_dana` — Show `danaBaseAmount` as a fixed required line item (venue/meals/etc.), plus an editable `suggestedDana` amount for voluntary dana on top. Total = base + dana.
-- `fixed` — Show `danaBaseAmount` as a set price. No dana framing. Just a straightforward payment.
+- `fixed` — Show `danaFixedAmount` as a set price. No dana framing. Just a straightforward payment. ⚠️ `danaFixedAmount` must be set in Sanity or the dana step is skipped (see "Unconfigured amounts" note in Section 4c).
 
 ### Registration field object schema
 Each item in `registrationFields`:
@@ -661,10 +677,12 @@ Each item in `registrationFields`:
 
 **🔧 Technical notes:**
 - Sanity deploy command: `cd /Users/jessefoy/Sites/rim-website/sanity && npx sanity deploy`
-- `registrationEnabled` being `false` (or absent) falls back to the old Fillout.com form path on the program page
-- The `label` string doubles as the storage key — if a label is renamed in Sanity after registrations exist, old data will appear under the old key name in the CSV. Treat labels as permanent once in use
-- `danaMode` defaults to `none` if not set — no dana step shown unless explicitly configured
-- GROQ query for program pages must include all five dana fields: `danaMode, suggestedDana, danaBaseAmount, danaFixedAmount, danaMessage`
+- `registrationEnabled` must be `true` for the built-in registration form to appear. If false, the program's registration section is simply not shown.
+- `registrationClosed` boolean — manually closes registration even if capacity remains and the deadline hasn't passed. Checked alongside `registrationDeadline` in `app/programs/[slug]/page.tsx`: `registrationClosed = program.registrationClosed || (deadline && new Date(deadline) < new Date())`.
+- The `label` string doubles as the storage key — if a label is renamed in Sanity after registrations exist, old data will appear under the old key name in the CSV. Treat labels as permanent once in use.
+- `danaMode` defaults to `none` if not set — no dana step shown unless explicitly configured.
+- GROQ query for program pages must include all five dana fields: `danaMode, suggestedDana, danaBaseAmount, danaFixedAmount, danaMessage`.
+- `programCategory` reference field: `disableNew: true` (prevents creating categories from within a program), `filter: "hideFromProgramsPage != true"` (hides internal-use categories from the dropdown). A program without a `programCategory` will not appear on the public programs listing page.
 
 ---
 
@@ -721,19 +739,22 @@ All custom styles: `public/css/custom.css`
 
 ## 11. Member Management System (`/admin/members`)
 
-**What it does:** An ADMIN-only area for viewing all members, editing their profiles, assigning/revoking staff roles, and importing members from Memberstack CSV export.
+**What it does:** An ADMIN-only area for viewing all members, editing their profiles, assigning/revoking staff roles, importing members from CSV, and archiving or deleting members. Archived members can reactivate themselves through registration or a direct magic-link flow.
 
 ### Routes
-- `/admin/members` — searchable member list with role filter and import tool
-- `/admin/members/[id]` — member detail: edit name/phone, assign roles, view registration history
+- `/admin/members` — searchable member list with role filter, archived toggle, and import tool
+- `/admin/members/[id]` — member detail: edit name/phone, assign roles, manage course access, archive/restore/delete
+- `/account/reactivate` — self-service reactivation page for archived members (magic link → reactivate → dashboard)
 
 ### Access control
-- Protected at proxy level (`/admin/:path*` in `proxy.ts`)
+- `/admin/*` routes protected at proxy level (`proxy.ts`)
 - Server components check `session.user.roles?.some(r => r === "ADMIN")` — ADMIN-only, no REGISTRAR access
+- `/account/reactivate` is accessible to any authenticated user (archived members can reach it because `proxy.ts` redirects archived sessions there instead of the usual member area)
 
 ### Member list (`/admin/members`)
 - Search bar (filters name + email client-side — fast, no round-trip)
 - Role filter: All / Admins / Registrars / Treasurers / No roles
+- **Archived toggle:** "Show Archived (N)" button appears only when `archivedCount > 0`. Clicking it filters the table to show only archived members. Archived rows are visually muted with an "Archived" badge in the name cell.
 - Table: Name, Email, Roles (colored badges), Registrations count, Joined date
 - Click any row → navigates to member detail page
 - "Import from Memberstack" button → opens import panel inline
@@ -744,7 +765,45 @@ All custom styles: `public/css/custom.css`
 - Assigned roles appear as staff links on the member's dashboard automatically
 - **Course Access section:** searchable list of all courses in the system; each course shows status badge(s) — "All Members" (open to any logged-in user), "Via Registration: [Program Name]" (member has active registration for a linked program), "Manual Grant" (admin-granted), or "No Access". Grant/revoke controls appear inline per course with warning dialogs when a grant is redundant or when revoking still leaves other access.
 - Registration history: list of all programs registered for, with status badges + link to volunteer table
+- **Danger Zone:** archive/restore/delete actions (see below)
 - "Save changes" button PATCHes all changes in one call
+
+### Archive, restore & delete
+
+Three membership states:
+
+| State | Who it applies to | What it means |
+|---|---|---|
+| **Active** | Everyone (default) | Can log in, visible in member list |
+| **Archived** | Members with ≥ 1 registration | Cannot access member area; hidden from default list; all records preserved |
+| **Deleted** | Members with 0 registrations only | Hard delete — user + all related records gone permanently |
+
+**Archive:** Sets `archivedAt` on the User record and calls `session.deleteMany` to immediately invalidate all active sessions (member is logged out on next request). A confirmation dialog is shown: "Archive this member? They will be logged out immediately and unable to log in. Their registration history will be preserved."
+
+**Restore (admin):** Clears `archivedAt`. Member can log in again. Confirmation: "Restore this member? They will be able to log in again."
+
+**Delete:** Available only when `registrations.length === 0`. Hard-deletes the User record; cascade removes sessions, accounts, course access, donations. Confirmation: "Permanently delete this member? This cannot be undone." If a DELETE request is made on a member who has registrations, the API returns `409` — use Archive instead.
+
+**Button logic in the UI:**
+- `archivedAt` set → show **Restore Member** button only
+- `archivedAt` null + registrations ≥ 1 → show **Archive Member** button only
+- `archivedAt` null + registrations = 0 → show **Archive Member** + **Delete Member** buttons
+- Archive and delete actions → redirect to `/admin/members` after success
+- Restore → reload the detail page (clears archived banner)
+
+**Archived banner:** When viewing an archived member, a tinted banner displays "Archived [date] — this member cannot log in." at the top of the detail page.
+
+### Self-service reactivation
+
+Archiving is a "sleeping" state, not a permanent lock. Two re-entry paths exist so members can return without contacting staff:
+
+**1. Register for a program (primary path)**
+In `POST /api/registrations`, when a user record is created or upserted, `archivedAt: null` is included in the upsert data. A returning registrant is automatically restored as part of the normal registration flow — no extra step, no friction.
+
+**2. Magic link → `/account/reactivate` (direct login path)**
+When an archived member requests a magic link and clicks it, `proxy.ts` detects `session.user.archivedAt` is set and redirects them to `/account/reactivate` instead of the usual member area. The page shows a warm welcome-back message ("Your account was archived. Click below to reactivate.") with a single "Reactivate" button that calls `PATCH /api/account/reactivate` → clears `archivedAt` → redirects to `/account/dashboard`. Uses `wl-` CSS prefix (same visual language as `/account/welcome`).
+
+**Proxy loop guard:** `proxy.ts` checks `!pathname.startsWith("/account/reactivate")` before redirecting archived users — prevents an infinite redirect loop.
 
 ### Dashboard integration
 - `STAFF_LINKS` in `dashboard/page.tsx` refactored to `Record<string, {...}[]>` (array of links per role)
@@ -760,14 +819,16 @@ All custom styles: `public/css/custom.css`
 - One-time migration path: export from Memberstack dashboard → Members → Export → upload here
 
 ### Key files
-- `app/admin/members/page.tsx` — member list server component
-- `app/admin/members/[id]/page.tsx` — member detail server component (includes `courseAccess` in Prisma query)
-- `components/MembersTable.tsx` — list client component (search, filter)
-- `components/MemberDetail.tsx` — detail client component (profile form, role checkboxes, registration history, renders `<CourseAccessSection>`)
+- `app/admin/members/page.tsx` — member list server component; `showArchived` query param controls DB filter
+- `app/admin/members/[id]/page.tsx` — member detail server component; constructs `serialized` object explicitly (never spreads Prisma `include` result — see Technical notes)
+- `components/MembersTable.tsx` — list client component (search, filter, archived toggle, muted archived rows)
+- `components/MemberDetail.tsx` — detail client component (profile form, role checkboxes, registration history, archived banner, danger zone, renders `<CourseAccessSection>`)
 - `components/MemberImport.tsx` — CSV import client component
 - `components/CourseAccessSection.tsx` — course access client component (fetches all courses, computes statuses, grant/revoke UI with per-course state machine)
+- `app/account/reactivate/page.tsx` — self-service reactivation page (`wl-` CSS prefix)
+- `app/api/account/reactivate/route.ts` — PATCH: clears `archivedAt` for the authenticated user
 - `app/api/admin/members/route.ts` — GET (list)
-- `app/api/admin/members/[id]/route.ts` — PATCH (update profile + roles)
+- `app/api/admin/members/[id]/route.ts` — PATCH (update profile/roles/archive/restore) + DELETE (hard delete, zero-registration guard)
 - `app/api/admin/members/[id]/course-access/route.ts` — POST (grant access) / DELETE (revoke access) — ADMIN only
 - `app/api/admin/members/import/route.ts` — POST (CSV upsert)
 - `app/api/admin/courses/route.ts` — GET (all courses enriched with linked programs) — used by `CourseAccessSection`
@@ -777,6 +838,71 @@ All custom styles: `public/css/custom.css`
 - `legacyMemberstackId` field exists on the User model — can be populated during import in the future for reconciliation
 - Role validation in PATCH uses `Object.values(Role)` from `@prisma/client` — adding a new role to the Prisma enum automatically makes it valid here
 - `STAFF_LINKS` format: `Record<string, { label, href, description }[]>` — each role maps to an array of links (allows ADMIN to show multiple cards without duplicates)
+- ⚠️ **RSC serialization gotcha:** Never use `...user` (or any Prisma `include` result) as props for a Client Component. Prisma `include` returns ALL scalar fields on the model including Date fields (`updatedAt`, `emailVerified`, `agreedAt`, `legacyLastLogin`, etc.). Raw `Date` objects are not serializable across the Server→Client boundary in Next.js 16 + React 19 — the navigation silently fails with no visible error (no error boundary = page stays frozen). Always construct props explicitly, naming only the fields the Client Component needs, and convert all dates to ISO strings (`.toISOString()`).
+
+---
+
+## 11b. Admin Email Change + Self-Service Email Change (Planned)
+
+### What's built: Admin email change
+
+An admin can update any member's login email address from the member detail page (`/admin/members/[id]`).
+
+**Who uses it:** Staff (ADMIN role) — for correcting typos, updating email addresses on a member's behalf.
+
+**User flow:**
+1. Admin opens a member detail page
+2. The Email field (labelled "Email (login address)") is editable — type the new address
+3. An inline amber warning appears: "Changing this email updates their login. They'll be signed out immediately and must use the new address."
+4. Admin clicks "Save changes"
+5. A confirmation panel replaces the save button: shows old → new email and explains the sign-out consequence — "Yes, change email" / "Cancel"
+6. On confirm: email updates in DB, all of that member's sessions are deleted (they're logged out), page refreshes with the new email
+
+**Key files:**
+- `components/MemberDetail.tsx` — `email` state + `originalEmail` const + `emailChanged` derived; two-step confirm flow in `handleSave`
+- `app/api/admin/members/[id]/route.ts` — PATCH: validates format, checks uniqueness (409 on conflict with another account), updates `User.email`, `db.session.deleteMany` to force re-auth
+
+**🔧 Technical notes:**
+- Email uniqueness check: `db.user.findFirst({ where: { email: newEmail, id: { not: id } } })`
+- Sessions are killed with: `db.session.deleteMany({ where: { userId: id } })`
+- After the PATCH, `router.refresh()` is called in the client to sync the server component (updates the header and restores `originalEmail` to the new value)
+- The admin's own session is unaffected — only the target member's sessions are deleted
+
+**Typo recovery workflow:** If a member mistyped their email at registration (never received the magic link), staff can look them up by name in the volunteer area → copy their correct email → fix it in `/admin/members/[id]`
+
+---
+
+### What's planned: Self-service email change
+
+**What it would do:** Allow a member to update their own login email from the My Profile page. Requires email verification — the new address receives a confirmation link before any change is made.
+
+**Why it matters:** Members sometimes change email providers. Admin-only email change (above) covers typo recovery; this covers long-term account maintenance.
+
+**Proposed flow:**
+1. Member visits `/account/dashboard-my-profile`
+2. Clicks "Update email address"
+3. Enters new email and clicks "Send confirmation"
+4. `POST /api/account/request-email-change` — validates format, checks it's not already in use, generates a token, writes `pendingEmail + emailChangeToken + emailChangeExpiresAt` to User, sends verification email to the **new** address
+5. Member receives email: "Confirm your new email address — click to confirm"
+6. Member clicks link → `GET /api/account/confirm-email-change?token=` — validates token + expiry, writes new email to User, deletes token fields, kills all sessions, redirects to `/login` with a success message
+
+**DB changes needed (not yet applied):**
+- `pendingEmail String?` on User
+- `emailChangeToken String?` on User
+- `emailChangeExpiresAt DateTime?` on User
+
+**New files needed:**
+- `app/api/account/request-email-change/route.ts` — POST (initiate)
+- `app/api/account/confirm-email-change/route.ts` — GET (verify token + update)
+- `sendEmailChangeVerificationEmail()` in `lib/email.ts`
+- UI component on My Profile page
+
+**Edge cases to handle:**
+- Token already exists (another change in flight) — overwrite with new token
+- Token expired — show "link expired, request a new one"
+- New email already belongs to another account — 409 error
+- Member requests change and immediately logs out — confirmation link still works (token is on User record, not tied to session)
+- Session kill after confirmation: member must re-authenticate with the new email
 
 ---
 
@@ -1124,6 +1250,72 @@ Logo image + "Rooted In Mindfulness" in Quincycf 500 weight, `--rim-text` color.
 
 ---
 
+## 17. Planned Features
+
+Features that have been designed and scoped but not yet built. Listed here so intent and design decisions are preserved between sessions.
+
+---
+
+### 17a. Automated Dana Follow-Up Email
+
+**Status:** Planned — not yet built.
+
+**What it does:** Automatically sends a gentle follow-up email to registrants whose `donationStatus` is `PENDING` — meaning they registered, saw the dana step, and either skipped it or closed the window without completing the offering.
+
+**Why it matters:** Currently, pending donations are only visible to the registrar via the volunteer table. If the registrar doesn't manually send a follow-up, members may simply never complete their offering. An automated nudge removes the manual burden and ensures no one falls through the cracks.
+
+**Proposed flow:**
+1. Daily cron (or scheduled check) queries all `Registration` records where:
+   - `donationStatus = "PENDING"`
+   - `status IN ("REGISTERED", "APPROVED")` — active participants only
+   - `createdAt < now - 24h` — registered at least 24 hours ago (avoids emailing people who just registered and may still be completing the flow)
+   - `danaNudgeSentAt IS NULL` — not already sent
+2. For each match, send a gentle reminder email via Resend
+3. Stamp `danaNudgeSentAt = now()` on the Registration to prevent double-sends
+
+**Email:** Subject: "A gentle reminder — your dana for [Program]". Warm, low-pressure. Links directly to the program page's registration/dana URL (`/programs/[slug]/register`). Includes the program's `danaMessage` if set. No guilt — consistent with RIM's dana philosophy.
+
+**DB changes needed:**
+- `danaNudgeSentAt DateTime?` on the `Registration` model
+
+**New files needed:**
+- `app/api/cron/send-dana-nudges/route.ts` — daily cron handler (same pattern as `send-reminders`)
+- `sendDanaNudgeEmail()` in `lib/email.ts`
+- Entry in `vercel.json` cron schedule
+
+**Staff UI option (registrar can also trigger manually):**
+- Add `action: "sendDanaNudge"` case to `PATCH /api/registrations/[id]` — same pattern as `sendDanaReminder` which already exists for admin-manual use. The automated cron would use the new endpoint; manual use continues via the existing `sendDanaReminder` action.
+
+**🔧 Notes:**
+- The existing `action: "sendDanaReminder"` in `PATCH /api/registrations/[id]` is already a manual version of this. The new cron is just the automated version with a `danaNudgeSentAt` guard.
+- Send only once automatically; registrar can still manually re-send via the volunteer table button.
+- No cron run should overlap — use `danaNudgeSentAt` as the idempotency guard, same pattern as `reminderSentAt`.
+
+---
+
+### 17b. Member Cancellation Self-Service
+
+**Status:** Planned — not yet built.
+
+**What it does:** Allow members to cancel their own registration from the My Programs page (`/account/dashboard-my-registrations`).
+
+**Proposed flow:**
+1. Cancel button appears on active registration cards (`REGISTERED`, `APPROVED`, `WAITLISTED`)
+2. Clicking shows a confirmation step ("Cancel your registration for [Program]? This cannot be undone.")
+3. On confirm: `PATCH /api/account/registrations/[id]/cancel` — sets status to `CANCELLED`, fires cancellation notification email to registrar
+
+**New files needed:**
+- `app/api/account/registrations/[id]/cancel/route.ts` — PATCH (auth-gated, validates that the registration belongs to the current user)
+- Cancel button + confirm UX on `mr-card` in the My Programs page
+
+---
+
+### 17c. Self-Service Email Change
+
+**Status:** Designed — not yet built. See Section 11b for full spec.
+
+---
+
 ## Session Log
 
 | Date | Summary |
@@ -1154,5 +1346,6 @@ Logo image + "Rooted In Mindfulness" in Quincycf 500 weight, `--rim-text` color.
 
 | 2026-03-03 | Member dashboard redesign (session 15): Redesigned `/account/dashboard` as a visual hub with 5 nav cards (`db-` CSS extensions); created `My Programs` page (`/account/dashboard-my-registrations`, `mr-` prefix) — new feature showing member registration history with status badges, waitlist position, and pending dana prompts; new `GET /api/account/registrations` endpoint; `programsBySlugArrayQuery` GROQ query for batch slug lookup; rebuilt `My Library` (`ml-`), `My Profile` (`mp-`), `Community Agreements` (`mc-`) with 🟢 design system (dropped all Webflow classes); added "My Programs" link to Nav.tsx (desktop dropdown + mobile flat list); updated FEATURES.md Section 6 + pages-inventory.md (14/31 🟢) |
 | 2026-03-04 | Nav component rebuild (session 16): Complete rewrite of `components/Nav.tsx` — eliminated all Webflow structural classes (`w-nav`, `w-dropdown`, `w-nav-menu`, `w-nav-button`, etc.); deleted `public/nav.js` (Webflow JS hamburger handler); new `nav-` CSS prefix block in `custom.css`; sticky header (`position: sticky`); desktop dropdowns via CSS `hover + focus-within` (no JS); React `useState` hamburger with 3-bar → X animation; closes on route change + Escape key; `isMemberArea` flag switches between minimal member nav and full public nav; `isAdmin` controls Admin dropdown visibility. Nav polish: Quincycf 500 brand name, `--rim-text` (#333) color; Open Sans 500 links; no borders anywhere (color contrast only); nav height 90px; hover states set both `color` and `background` explicitly; mobile menu overhauled — `--rim-bg` warm background, `--rim-bg-accent` separator lines between items, pill donate button; Added Section 16 to FEATURES.md; updated Section 10 CSS prefix table; updated MEMORY.md + session-log.md |
+| 2026-03-04 | Registration form UX + security hardening (session 17): (1) Sanity program category field UX — added description, `disableNew: true`, `filter: "hideFromProgramsPage != true"` so the dropdown shows immediately; renamed `hideFromProgramPageList` title + added description; Sanity deployed. (2) Fillout legacy removal — removed `registrationRequired`, `filloutRegistrationFormId`, `signedOutInstructions`, `signedInInstructions` from programs page, GROQ queries, and Sanity schema; wired `registrationClosed` boolean into built-in form path (combines with `registrationDeadline` check); commit fa1464e. (3) Email recognition — new `GET /api/account/check-email` (public, returns name/phone/agreedToTerms for known emails); `handleEmailBlur` in RegistrationForm pre-fills from account and shows "Welcome back, [Name]!" notice; pre-fill logic uses account values first (`data.firstName || prev.firstName`); commits 08fe82d → eadb5e7 → 16aca2e. (4) Security — name + phone fields locked `readOnly` in form when recognized account found (`emailCheckStatus === "found"`); API introduces `resolvedFirstName`, `resolvedLastName`, `resolvedPhone` — account stored values always win for existing users regardless of form submission; `pg-form__input[readonly]` + `pg-form__input--locked` CSS; commits ef515d6 + 7b75eba. (5) Dana $0 bug fix — `effectiveDanaMode` sent to API is `"none"` when fixed/base amount not configured (→ `donationStatus: WAIVED`); `hasConfiguredAmount` guard skips dana step in form; commit acbdadd. (6) Documentation — FEATURES.md Sections 4a, 4c, 8, 9 updated; new Section 17 (Planned Features) added with 17a (automated dana follow-up cron), 17b (member cancellation self-service), 17c (self-service email change cross-ref). |
 
-*Last updated: 2026-03-04 (session 16)*
+*Last updated: 2026-03-04 (session 17)*

@@ -4,6 +4,148 @@ Each entry records what was accomplished, decisions made, and what to tackle nex
 
 ---
 
+## Session: 2026-03-04 (continuation — session 17)
+
+**Focus:** Registration form UX + security hardening; dana $0 bug fix; documentation
+
+### Accomplished this session
+
+#### 1. Sanity program category field improvements
+- `programCategory` reference field: added description explaining requirement for programs listing page, `disableNew: true` (can't create categories from within a program), `filter: "hideFromProgramsPage != true"` (filters out admin-only categories)
+- `hideFromProgramPageList` field: renamed title → "Hide from Programs & Events Listing Page" + added description
+- `programCategories.js`: updated `hideFromProgramsPage` field description
+- Sanity deployed
+
+#### 2. Fillout legacy code removal (commit fa1464e)
+Removed all Fillout.com form integration from the codebase:
+- `app/programs/[slug]/page.tsx`: removed `MemberGate` import; removed from interface + query: `registrationRequired`, `filloutRegistrationFormId`, `signedOutInstructions`, `signedInInstructions`; removed `isLoggedIn` variable; removed entire `{!useBuiltInForm && ...}` block (Fillout embed, signed-in/out instruction display, MemberGate)
+- `registrationClosed` variable now combines both: `program.registrationClosed` boolean AND `registrationDeadline` past — previously the boolean only affected the legacy Fillout path; now it works for the built-in form too
+- `lib/queries.ts`: removed same fields from both `programsQuery` and `programBySlugQuery`
+- `sanity/schemas/programs.js`: removed `filloutRegistrationFormId`, `registrationRequired`, `signedOutInstructions`, `signedInInstructions` fields; Sanity deployed
+
+#### 3. Email recognition for returning members (commits 08fe82d → eadb5e7 → 16aca2e)
+When a non-logged-in person enters an email on the registration form that matches a known account:
+- New `GET /api/account/check-email` endpoint (public, no auth): returns `{ exists, firstName, lastName, phone, agreedToTerms }`
+- `handleEmailBlur` in RegistrationForm calls this on email `onBlur`; pre-fills name/phone from account (account values win — corrects any typo)
+- "Welcome back, [Name]! Your registration will be linked to your account." notice shown below email field
+- Agreements section hidden if found member already has `agreedToTerms: true`
+- Pre-fill logic iteration: initial version only filled empty fields; updated to `data.firstName || prev.firstName` so the account name corrects a mistyped first name
+
+#### 4. Security — field locking + API hardening (commits ef515d6 + 7b75eba)
+- `RegistrationForm`: firstName, lastName, phone inputs are `readOnly` + `.pg-form__input--locked` class when `emailCheckStatus === "found"` — members cannot change these fields during guest registration; must use My Profile page
+- `POST /api/registrations`: introduced `resolvedFirstName`, `resolvedLastName`, `resolvedPhone` — for existing users, account's stored values always win regardless of what was submitted in the form body. New users continue to use form values.
+- CSS: combined `.pg-form__input[readonly], .pg-form__input--locked` rule with explicit `border-color`
+
+#### 5. Dana $0 bug fix (commit acbdadd)
+**Bug:** If `danaMode = "fixed"` but `danaFixedAmount` was left blank in Sanity, the dana step showed "$0.00" with the button permanently disabled (Stripe min $1.00).
+
+**Fix in form:** `effectiveDanaMode` sent to API is `"none"` when: fixed mode + no/zero fixedAmount, OR base_plus_dana mode + no/zero baseAmount. `hasConfiguredAmount` guard skips the dana step entirely when the amount isn't configured.
+
+**Fix in API:** Receiving `danaMode: "none"` → `donationStatus: WAIVED` (not PENDING). Avoids an unfulfillable pending donation in the DB.
+
+**Admin note:** Always set `danaFixedAmount` in Sanity when using Fixed mode, or `danaBaseAmount` for Base + Dana mode.
+
+#### 6. Documentation
+- FEATURES.md: Sections 4a (email recognition, field locking security), 4c (unconfigured amounts guard, danaMode fixed description corrected), 8 (check-email API), 9 (tab description updated — no more Fillout refs; registrationClosed note; programCategory notes) fully updated
+- FEATURES.md: New Section 17 — Planned Features: 17a automated dana follow-up cron (full spec), 17b member cancellation self-service, 17c self-service email change (cross-ref to §11b)
+- FEATURES.md session log entry added; "Last updated" bumped to session 17
+- session-log.md and MEMORY.md updated
+
+---
+
+### Decisions made
+- **One email = one identity** enforced at two layers: form UI (locked fields) and API (resolvedFirstName/etc.). This is the right long-term policy — profile changes belong in the authenticated member profile, not the registration form.
+- **Fillout removed cleanly** — no backward compatibility needed. The `registrationClosed` boolean was repurposed to work with the built-in form (it previously did nothing there — it only affected the legacy Fillout path).
+- **$0 dana = treat as "none"** — rather than blocking the user with a broken state, skip the step and log WAIVED. The admin is responsible for filling in amounts; the user should never see a broken UI due to a configuration omission.
+- **Automated dana follow-up is a future feature** — documented with full spec in Section 17a so it can be built in a focused session. Currently, pending donations are visible in the volunteer table and registrars can manually send nudges via the existing `sendDanaReminder` button.
+
+### Next session
+- **Test registration flow end-to-end** with a real email: email recognition → locked fields → submit → confirmation email → dana step (with a properly configured dana amount)
+- **Test community onboarding end-to-end** — delete test account, re-run: login → welcome page → complete profile → dashboard
+- **Member cancellation flow** (Section 17b) — cancel button on mr-card + `/api/account/registrations/[id]/cancel`
+- **Automated dana follow-up cron** (Section 17a) — if prioritized
+- **Continue CSS migration** — see pages-inventory.md
+
+---
+
+## Session: 2026-03-04
+
+**Focus:** Member archive/delete system + RSC serialization bug fix
+
+### Accomplished this session
+
+#### 1. Member archive/delete system (full implementation)
+
+Built a two-mode archive/delete system for the admin member detail page:
+
+**Database & Auth:**
+- `archivedAt DateTime?` added to User model in `prisma/schema.prisma`; ran `prisma db push`
+- `auth.ts` session callback now queries and exposes `archivedAt` on `session.user`
+- `types/next-auth.d.ts` declares `archivedAt: string | null` on the Session interface
+
+**Proxy redirect for archived members:**
+- `proxy.ts` detects `session.user.archivedAt` and redirects to `/account/reactivate`
+- Loop guard: only redirects if current path is NOT already `/account/reactivate`
+
+**Self-service reactivation (`/account/reactivate`):**
+- New page (`app/account/reactivate/page.tsx`, `wl-` CSS prefix) — warm welcome-back message + member's first name + single "Reactivate" button
+- New `PATCH /api/account/reactivate` route — clears `archivedAt` on the authenticated user's record → redirect to `/account/dashboard`
+- Uses same visual language as `/account/welcome` (`wl-` prefix)
+
+**Auto-restore on registration:**
+- `POST /api/registrations` upsert now includes `archivedAt: null` — a returning registrant who was archived is automatically restored as part of the normal registration flow, no extra step
+
+**Admin API (`app/api/admin/members/[id]/route.ts`):**
+- PATCH: new `action: "archive"` — sets `archivedAt`, then `session.deleteMany` to immediately kill all active sessions (member logged out on next request)
+- PATCH: new `action: "restore"` — clears `archivedAt`
+- DELETE: hard-deletes member (cascades to sessions, accounts, courseAccess, donations); returns `409 Conflict` if member has registrations (archive instead)
+
+**Admin UI (`components/MemberDetail.tsx`):**
+- Archived banner: tinted strip at top of detail page when `archivedAt` is set — "Archived [date] — this member cannot log in."
+- Danger Zone section with inline confirmation dialogs:
+  - Archived → "Restore Member" only
+  - Active + has registrations → "Archive Member" only
+  - Active + zero registrations → "Archive Member" + "Delete Member"
+- After archive/delete: redirects to `/admin/members`; after restore: reloads detail page
+
+**Member list (`components/MembersTable.tsx` + `app/admin/members/page.tsx`):**
+- `showArchived` query param (default `false`); DB query filters `archivedAt: null` unless `showArchived=1`
+- "Show Archived (N)" toggle button appears only when `archivedCount > 0`
+- Archived rows visually muted with `.adm-member-row--archived` + `.adm-badge--archived` badge in name cell
+
+**CSS additions (`public/css/custom.css` — `adm-` block):**
+`adm-archived-banner`, `adm-danger-zone`, `adm-danger-zone__title`, `adm-btn--danger` (+ hover), `adm-btn--restore`, `adm-member-row--archived`, `adm-badge--archived`
+
+---
+
+#### 2. Critical bug fix — member detail pages unclickable
+
+**Symptom:** After deploying the archive/delete feature, clicking any member row in `/admin/members` silently failed to navigate to the detail page. The list page stayed visible with no error shown.
+
+**Root cause:** `app/admin/members/[id]/page.tsx` used `...user` (spread from Prisma `include`) to build the `serialized` props object passed to `MemberDetail` (a `"use client"` component). Prisma `include` returns ALL scalar fields on the User model including multiple Date fields: `updatedAt`, `emailVerified`, `agreedAt`, `legacyLastLogin`, `legacyLastAttendance`, `legacyMemberSince`. Raw `Date` objects are not serializable across the Server→Client component boundary in Next.js 16 + React 19. The failure is **silent** — no error.tsx in the admin section = no visible error, navigation just freezes.
+
+**Why it was hard to find:** The list page uses `select` (safe) and worked fine. The detail page used `include` + `...user` spread (dangerous). No TypeScript error. No build error. No console error visible to the user.
+
+**Fix:** Replaced `...user` with explicit field construction in `serialized` — naming only the fields `MemberDetail` needs, converting all dates with `.toISOString()`. Added a comment in the file explaining the pattern.
+
+**Commit:** `91a0bea` — "Fix member detail page: explicit serialization removes Date objects from RSC props"
+
+**⚠️ Rule going forward:** Never spread a Prisma `include` result into Client Component props. Always construct explicitly. See FEATURES.md §11 Technical Notes and MEMORY.md Database/Auth section.
+
+---
+
+### Decisions made
+- **Archive is "sleeping," not permanent lock.** Two self-service re-entry paths: register for a program (auto-restore in API) or magic link → `/account/reactivate` page. Admin restore also available.
+- **Delete only for zero-registration members.** Members with any registration history must use archive — preserves data integrity. API enforces this with a 409 guard.
+- **Archived members are redirected, not blocked.** The reactivate page is warm and welcoming, not an error page — consistent with RIM's philosophy.
+
+### Next session
+- **Test community onboarding end-to-end** — need to delete `jesse@rootedinmindfulness.org` test account (zero registrations now works!) then re-run full onboarding: login → welcome page → complete profile → dashboard
+- **Member cancellation flow** — cancel button on mr-card + `/api/account/registrations/[id]/cancel`
+- **Animated pg-hero** — CSS+SVG botanical drift animation (prompt is saved)
+
+---
+
 ## Session: 2026-03-03 (continuation)
 
 **Focus:** Site cleanup, link audit, admin reference tooling
