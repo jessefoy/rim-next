@@ -12,7 +12,11 @@ async function revokeSanityAccess(email: string): Promise<{ member: string; invi
   if (!projectId || !token) return { member: "skipped: no token", invite: "skipped", memberEmails: [] };
 
   const headers = { Authorization: `Bearer ${token}` };
-  const membersBase = `https://api.sanity.io/v2021-10-04/projects/${projectId}`;
+  // Try two different members endpoint paths — Sanity docs are inconsistent
+  const membersPaths = [
+    `https://api.sanity.io/v2021-10-04/access/projects/${projectId}/members`,
+    `https://api.sanity.io/v2021-06-07/projects/${projectId}/members`,
+  ];
   const invitesBase = `https://api.sanity.io/v2021-10-04/invitations/project/${projectId}`;
 
   let memberResult = "no match found";
@@ -21,18 +25,21 @@ async function revokeSanityAccess(email: string): Promise<{ member: string; invi
 
   // Remove from project members (accepted invites)
   try {
-    const res = await fetch(`${membersBase}/members`, { headers });
-    if (res.ok) {
-      const members: { id: string; email?: string; profile?: { email?: string } }[] = await res.json();
-      // Collect all emails so we can debug mismatches
+    let membersRes: Response | null = null;
+    let workingMembersBase = "";
+    for (const path of membersPaths) {
+      const r = await fetch(path, { headers });
+      if (r.ok) { membersRes = r; workingMembersBase = path; break; }
+      memberResult = `list failed: ${r.status} at ${path}`;
+    }
+    if (membersRes) {
+      const members: { id: string; email?: string; profile?: { email?: string } }[] = await membersRes.json();
       for (const m of members) memberEmails.push(m.profile?.email ?? m.email ?? "(none)");
       const match = members.find((m) => (m.profile?.email ?? m.email) === email);
       if (match) {
-        const del = await fetch(`${membersBase}/members/${match.id}`, { method: "DELETE", headers });
+        const del = await fetch(`${workingMembersBase}/${match.id}`, { method: "DELETE", headers });
         memberResult = del.ok ? "removed" : `delete failed: ${del.status}`;
       }
-    } else {
-      memberResult = `list failed: ${res.status}`;
     }
   } catch (e) {
     memberResult = `error: ${String(e)}`;
