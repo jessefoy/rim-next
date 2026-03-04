@@ -358,6 +358,14 @@ export default function RegistrationForm({
     }
 
     try {
+      // Treat fixed/base_plus_dana as "none" if no amount is configured —
+      // avoids a PENDING donationStatus that can never be fulfilled via Stripe.
+      const effectiveDanaMode =
+        (program.danaMode === "fixed" && !(program.danaFixedAmount ?? 0)) ||
+        (program.danaMode === "base_plus_dana" && !(program.danaBaseAmount ?? 0))
+          ? "none"
+          : (program.danaMode ?? "none");
+
       const res = await fetch("/api/registrations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -366,7 +374,7 @@ export default function RegistrationForm({
           programSlug: program.slug.current,
           programTitle: program.name,
           registrationCapacity: program.registrationCapacity ?? null,
-          danaMode: program.danaMode ?? "none",
+          danaMode: effectiveDanaMode,
           dateText: program.dateText ?? null,
           timeText: program.timeText ?? null,
           locationText: program.locationText ?? null,
@@ -395,13 +403,22 @@ export default function RegistrationForm({
         return;
       }
 
-      // Registration confirmed — check if dana step is needed
+      // Registration confirmed — check if dana step is needed.
+      // Skip if: no mode, mode is "none", or fixed mode with no amount configured.
       setRegistrationId(data.registrationId ?? null);
+
+      const hasConfiguredAmount =
+        program.danaMode === "fixed"
+          ? (program.danaFixedAmount ?? 0) > 0
+          : program.danaMode === "base_plus_dana"
+          ? (program.danaBaseAmount ?? 0) > 0
+          : true; // voluntary always shows
 
       const shouldShowDana =
         data.registrationId &&
         program.danaMode &&
-        program.danaMode !== "none";
+        program.danaMode !== "none" &&
+        hasConfiguredAmount;
 
       if (shouldShowDana) {
         setDanaInput(String(program.suggestedDana ?? ""));
