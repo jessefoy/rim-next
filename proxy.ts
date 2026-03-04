@@ -15,6 +15,13 @@ export default auth((req) => {
   if (!req.auth.user.agreedToTerms && !isWelcomePage) {
     return NextResponse.redirect(new URL("/account/welcome", req.nextUrl.origin));
   }
+
+  // Archived members cannot access the member area →
+  // redirect to /account/reactivate (self-service restore page)
+  const isReactivatePage = req.nextUrl.pathname === "/account/reactivate";
+  if (req.auth.user.archivedAt && !isReactivatePage) {
+    return NextResponse.redirect(new URL("/account/reactivate", req.nextUrl.origin));
+  }
 });
 
 export const config = {

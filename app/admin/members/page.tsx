@@ -31,6 +31,7 @@ export default async function AdminMembersPage() {
       lastName: true,
       phone: true,
       roles: true,
+      archivedAt: true,
       createdAt: true,
       _count: {
         select: {
@@ -42,6 +43,7 @@ export default async function AdminMembersPage() {
 
   const members: SerializedMember[] = users.map((u) => ({
     ...u,
+    archivedAt: u.archivedAt?.toISOString() ?? null,
     createdAt: u.createdAt.toISOString(),
   }));
 

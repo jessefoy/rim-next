@@ -7,6 +7,7 @@ declare module "next-auth" {
       id: string;
       roles: Role[];
       agreedToTerms: boolean;
+      archivedAt: string | null;
     } & DefaultSession["user"];
   }
 }

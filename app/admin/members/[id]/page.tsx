@@ -50,6 +50,7 @@ export default async function AdminMemberDetailPage({
 
   const serialized = {
     ...user,
+    archivedAt: user.archivedAt?.toISOString() ?? null,
     createdAt: user.createdAt.toISOString(),
     registrations: user.registrations.map((r) => ({
       ...r,

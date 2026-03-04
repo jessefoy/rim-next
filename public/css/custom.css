@@ -3568,6 +3568,119 @@ h1, h2, h3, h4, h5, h6 {
   margin: 0 0 16px;
 }
 
+/* ── Member archive / danger zone ──────────────────────── */
+
+.adm-archived-banner {
+  background: var(--rim-bg-accent);
+  border-left: 3px solid var(--rim-text-muted);
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--rim-text-muted);
+  border-radius: 4px;
+  margin-bottom: 24px;
+}
+
+.adm-danger-zone {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid var(--rim-rule);
+}
+
+.adm-danger-zone__title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--rim-text-muted);
+  margin-bottom: 14px;
+}
+
+.adm-danger-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.adm-danger-confirm__msg {
+  font-size: 14px;
+  color: var(--rim-text);
+  margin-bottom: 14px;
+  max-width: 480px;
+}
+
+.adm-danger-confirm__actions { display: flex; gap: 10px; }
+
+.adm-btn--danger {
+  background: #c0392b;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+}
+.adm-btn--danger:hover { background: #a93226; }
+
+.adm-btn--danger.adm-btn--outline {
+  background: transparent;
+  color: #c0392b;
+  border: 1px solid #c0392b;
+}
+.adm-btn--danger.adm-btn--outline:hover { background: #fdf2f2; }
+
+.adm-btn--restore {
+  background: var(--rim-mid);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+}
+.adm-btn--restore:hover { background: var(--rim-blue); }
+
+.adm-btn--neutral {
+  background: transparent;
+  color: var(--rim-text-muted);
+  border: 1px solid var(--rim-rule);
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+}
+.adm-btn--neutral:hover { background: var(--rim-bg-accent); }
+
+/* Archived member rows in table */
+.adm-member-row--archived td { color: var(--rim-text-muted); }
+
+/* Archived badge (inline in name) */
+.adm-badge--archived {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--rim-bg-accent);
+  color: var(--rim-text-muted);
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+/* Show archived toggle button */
+.adm-toggle-btn {
+  font-size: 13px;
+  color: var(--rim-text-muted);
+  background: transparent;
+  border: 1px solid var(--rim-rule);
+  border-radius: 4px;
+  padding: 6px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: var(--font-sans);
+}
+.adm-toggle-btn:hover { background: var(--rim-bg-accent); }
+
 /* ── Admin Sitemap (adm-sm-) ───────────────────────────── */
 
 .adm-sm-content {

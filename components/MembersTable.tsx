@@ -10,6 +10,7 @@ export interface SerializedMember {
   lastName: string | null;
   phone: string | null;
   roles: string[];
+  archivedAt: string | null;
   createdAt: string;
   _count: { registrations: number };
 }
@@ -40,8 +41,13 @@ export default function MembersTable({ members }: Props) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("ALL");
+  const [showArchived, setShowArchived] = useState(false);
 
   const filtered = members.filter((m) => {
+    // Archived filter — by default only show active members
+    if (!showArchived && m.archivedAt) return false;
+    if (showArchived && !m.archivedAt) return false;
+
     if (roleFilter === "NOROLES" && m.roles.length > 0) return false;
     if (roleFilter !== "ALL" && roleFilter !== "NOROLES" && !m.roles.includes(roleFilter)) return false;
 
@@ -53,6 +59,8 @@ export default function MembersTable({ members }: Props) {
     }
     return true;
   });
+
+  const archivedCount = members.filter((m) => m.archivedAt).length;
 
   const displayName = (m: SerializedMember) => {
     if (m.firstName || m.lastName) return `${m.firstName ?? ""} ${m.lastName ?? ""}`.trim();
@@ -88,6 +96,14 @@ export default function MembersTable({ members }: Props) {
         <span className="adm-search__count">
           {filtered.length} {filtered.length === 1 ? "member" : "members"}
         </span>
+        {archivedCount > 0 && (
+          <button
+            className="adm-toggle-btn"
+            onClick={() => setShowArchived((a) => !a)}
+          >
+            {showArchived ? "Show Active" : `Show Archived (${archivedCount})`}
+          </button>
+        )}
       </div>
 
       {/* Table */}
@@ -109,13 +125,16 @@ export default function MembersTable({ members }: Props) {
               {filtered.map((m) => (
                 <tr
                   key={m.id}
-                  className="adm-table__row"
+                  className={`adm-table__row${m.archivedAt ? " adm-member-row--archived" : ""}`}
                   onClick={() => router.push(`/admin/members/${m.id}`)}
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => e.key === "Enter" && router.push(`/admin/members/${m.id}`)}
                 >
-                  <td className="adm-table__name">{displayName(m)}</td>
+                  <td className="adm-table__name">
+                    {displayName(m)}
+                    {m.archivedAt && <span className="adm-badge--archived">Archived</span>}
+                  </td>
                   <td className="adm-table__email">{m.email}</td>
                   <td className="adm-table__col--roles">
                     {m.roles.length === 0 ? (

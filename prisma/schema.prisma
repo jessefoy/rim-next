@@ -64,6 +64,9 @@ model User {
   agreedToTerms Boolean   @default(false)
   agreedAt      DateTime?
 
+  // Soft-delete: archived members cannot log in but their records are preserved
+  archivedAt    DateTime?
+
   // Legacy data imported from Memberstack (kept for historical reference)
   legacyMemberstackId     String?   @unique
   legacyLastLogin         DateTime?

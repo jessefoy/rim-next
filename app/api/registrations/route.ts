@@ -85,6 +85,10 @@ export async function POST(request: NextRequest) {
           updates.agreedToTerms = true;
           updates.agreedAt = now;
         }
+        // Auto-restore archived members who register for a new program
+        if (user.archivedAt) {
+          updates.archivedAt = null;
+        }
         if (Object.keys(updates).length > 0) {
           user = await db.user.update({ where: { id: user.id }, data: updates });
         }

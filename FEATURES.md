@@ -26,6 +26,7 @@ Two audiences:
 13. [Donation Management System](#13-donation-management-system-phase-2--planned)
 14. [Community Onboarding & Membership Philosophy](#14-community-onboarding--membership-philosophy)
 15. [Site Administration Tools](#15-site-administration-tools)
+16. [Navigation Component](#16-navigation-component)
 
 ---
 
@@ -689,7 +690,12 @@ All custom styles: `public/css/custom.css`
 | `adm-` | Admin member management pages |
 | `adm-sm-` | Admin site architecture page |
 | `ca-` | CourseAccessSection component |
-| `db-` | Member dashboard additions |
+| `db-` | Member dashboard hub |
+| `mr-` | My Registrations page |
+| `ml-` | My Library page |
+| `mp-` | My Profile page |
+| `mc-` | Community Agreements page |
+| `nav-` | Global nav component (🟢 — no Webflow dependency) |
 
 ### Design tokens (CSS custom properties)
 ```css
@@ -1054,6 +1060,70 @@ These links are rendered conditionally — `isAdmin` check in `Nav.tsx` — and 
 
 ---
 
+## 16. Navigation Component
+
+**What it does:** The global sticky navigation bar rendered on every page of the site. Handles public browsing, authenticated member access, and admin-only links — all in a single responsive component with no Webflow class dependencies.
+
+**Who uses it:** Every visitor and member on every page. Rebuilt from scratch in session 16 (2026-03-04) to eliminate all Webflow structural classes.
+
+### Layout
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  [Logo] Rooted In Mindfulness    Programs  Get Involved▾  Member Area▾  [DONATE] │  ← Desktop
+└─────────────────────────────────────────────────────────┘
+
+┌─────────────────────────┐
+│  [Logo] Rooted In Mindfulness          [☰] │  ← Mobile
+└─────────────────────────┘
+  ▼ (hamburger open)
+  Login / Programs / Volunteer / Join RIM / Donate Today
+```
+
+### Desktop nav
+
+**Public mode:** Programs · Get Involved ▾ · Member Area/Hi [Name] ▾ · Donate pill
+
+**Member area mode** (`/account/*`, `/admin/*`): My Dashboard · Programs · Admin ▾ (admin-only) · Sign Out · Donate pill
+
+Dropdowns open on CSS `hover` + `focus-within` — no JavaScript required for desktop. Each dropdown renders a white floating card with `--rim-bg-accent` separator lines between items.
+
+### Mobile nav
+
+Hamburger button (3 bars → X animation via CSS transitions) toggles the mobile menu via React `useState`. Menu is a flat list — no nested sub-menus. Background is `--rim-bg` (warm) to visually distinguish the open menu layer from page content.
+
+### Brand
+
+Logo image + "Rooted In Mindfulness" in Quincycf 500 weight, `--rim-text` color. Always the same regardless of whether the user is logged in or on a member area page.
+
+### Design decisions
+
+- **Sticky:** `position: sticky; top: 0; z-index: 100`
+- **No borders** — white nav bar sits above warm `--rim-bg` page content; color contrast separates them without a hard line
+- **Quincycf** brand name — matches the font used throughout the original site for headings
+- **Open Sans 500** for all nav links — matches body font, slightly heavier than regular for nav weight
+- **Hover state:** both `color: var(--rim-blue)` and `background: var(--rim-bg)` are set explicitly so text never blends into background
+- **Donate button:** pill shape (`border-radius: 9999px`), `--rim-mid` teal background, always visible on desktop, rendered as a bottom pill in mobile menu
+
+### Key files
+
+- `components/Nav.tsx` — full component (client component; `"use client"`)
+- `public/css/custom.css` — `nav-` CSS block near end of file
+- `public/nav.js` — **deleted** (was the Webflow JS hamburger/dropdown handler; no longer needed)
+
+### 🔧 Technical notes
+
+- `"use client"` required — uses `useSession`, `usePathname`, `useState`, `useEffect`
+- `isMemberArea` is derived from `pathname.startsWith("/account") || pathname.startsWith("/admin")` — controls whether the minimal member-area nav or full public nav renders
+- `isAdmin` checks `session.user.roles?.includes("ADMIN")` — controls visibility of Admin dropdown (desktop + mobile)
+- Mobile menu closes on route change (`useEffect` on `pathname`) and on Escape key
+- Desktop dropdowns use **CSS only** — `.nav__dropdown:hover .nav__dropdown-panel, .nav__dropdown:focus-within .nav__dropdown-panel { display: block }`. No JS hover listeners.
+- Hover gap fix: `.nav__dropdown-panel` has `top: 100%; padding-top: 6px` — the panel starts immediately below the toggle (no gap = no lost hover), and the 6px padding creates visual separation. The visible card styles live on `.nav__dropdown-panel-inner`.
+- `Sign Out` button uses `signOut({ callbackUrl: "/" })` from NextAuth — renders as a `<button>` styled to match nav links
+- Previously `nav.js` was loaded via a `useEffect` script injection in the old Nav.tsx. That injection is completely removed.
+
+---
+
 ## Session Log
 
 | Date | Summary |
@@ -1083,5 +1153,6 @@ These links are rendered conditionally — `isAdmin` check in `Nav.tsx` — and 
 | 2026-03-03 | Site cleanup + administration tools: repurposed `/community-membership` (removed Memberstack signup form, now shows full 4-point Community Care Agreements + "Join or sign in →" button); added "Read our full community care agreements →" link from WelcomeForm and RegistrationForm agreements blocks; audited and fixed all nav/site links that referenced the old Memberstack signup flow (Nav desktop "Join Us" sub-text, MemberGate.tsx two-button pattern, volunteer page, kalyana-mitta application page, magazine-articles gate); created `/admin/sitemap` Site Architecture page (ADMIN-only; 10 sections, access badges, CSS layer indicators, status chips — stub/orphan/repurposed, "Not Yet Built" section); added admin nav links (Members + Site Architecture) to Nav.tsx; removed class recording CMS template entirely (deleted page, queries, cr- CSS block); removed "Intentionally Decommissioned" section from sitemap (served its purpose — no ongoing value); updated Section 10 (CSS prefixes), added Section 15 (Site Administration Tools) to FEATURES.md; updated pages-inventory.md |
 
 | 2026-03-03 | Member dashboard redesign (session 15): Redesigned `/account/dashboard` as a visual hub with 5 nav cards (`db-` CSS extensions); created `My Programs` page (`/account/dashboard-my-registrations`, `mr-` prefix) — new feature showing member registration history with status badges, waitlist position, and pending dana prompts; new `GET /api/account/registrations` endpoint; `programsBySlugArrayQuery` GROQ query for batch slug lookup; rebuilt `My Library` (`ml-`), `My Profile` (`mp-`), `Community Agreements` (`mc-`) with 🟢 design system (dropped all Webflow classes); added "My Programs" link to Nav.tsx (desktop dropdown + mobile flat list); updated FEATURES.md Section 6 + pages-inventory.md (14/31 🟢) |
+| 2026-03-04 | Nav component rebuild (session 16): Complete rewrite of `components/Nav.tsx` — eliminated all Webflow structural classes (`w-nav`, `w-dropdown`, `w-nav-menu`, `w-nav-button`, etc.); deleted `public/nav.js` (Webflow JS hamburger handler); new `nav-` CSS prefix block in `custom.css`; sticky header (`position: sticky`); desktop dropdowns via CSS `hover + focus-within` (no JS); React `useState` hamburger with 3-bar → X animation; closes on route change + Escape key; `isMemberArea` flag switches between minimal member nav and full public nav; `isAdmin` controls Admin dropdown visibility. Nav polish: Quincycf 500 brand name, `--rim-text` (#333) color; Open Sans 500 links; no borders anywhere (color contrast only); nav height 90px; hover states set both `color` and `background` explicitly; mobile menu overhauled — `--rim-bg` warm background, `--rim-bg-accent` separator lines between items, pill donate button; Added Section 16 to FEATURES.md; updated Section 10 CSS prefix table; updated MEMORY.md + session-log.md |
 
-*Last updated: 2026-03-03 (session 15)*
+*Last updated: 2026-03-04 (session 16)*
