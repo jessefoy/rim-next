@@ -509,13 +509,14 @@ export default function RegistrationForm({
           id="reg-phone"
           name="phone"
           type="tel"
-          className="pg-form__input"
+          className={`pg-form__input${emailCheckStatus === "found" ? " pg-form__input--locked" : ""}`}
           value={form.phone}
           onChange={(e) =>
             setForm((prev) => ({ ...prev, phone: formatPhoneInput(e.target.value) }))
           }
           placeholder="(414) 555-0100"
           autoComplete="tel"
+          readOnly={emailCheckStatus === "found"}
         />
       </div>
 

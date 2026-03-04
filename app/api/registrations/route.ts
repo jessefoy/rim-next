@@ -44,10 +44,11 @@ export async function POST(request: NextRequest) {
     const normalizedEmail = email.trim().toLowerCase();
     const now = new Date();
     let resolvedUserId: string;
-    // Names used in the Registration record — always taken from the account for existing
-    // users so that the registrar always sees the real name, regardless of form input.
+    // Names and phone used in the Registration record — always taken from the account for
+    // existing users so that the registrar always sees the real values, regardless of form input.
     let resolvedFirstName = firstName.trim();
     let resolvedLastName = lastName.trim();
+    let resolvedPhone = phone?.trim() ?? null;
 
     if (body.userId) {
       // Logged-in member: backfill any blank profile fields from registration data
@@ -80,10 +81,11 @@ export async function POST(request: NextRequest) {
           },
         });
       } else {
-        // Existing account: use the account's stored name for the registration record.
-        // Never overwrite an existing name from unauthenticated form input.
+        // Existing account: use the account's stored values for the registration record.
+        // Never overwrite existing data from unauthenticated form input.
         resolvedFirstName = user.firstName || firstName.trim();
         resolvedLastName = user.lastName || lastName.trim();
+        resolvedPhone = user.phone || phone?.trim() || null;
 
         // Still fill any genuinely blank fields and handle agreements / restore
         const updates: Record<string, unknown> = {};
@@ -138,7 +140,7 @@ export async function POST(request: NextRequest) {
         email: normalizedEmail,
         firstName: resolvedFirstName,
         lastName: resolvedLastName,
-        phone: phone?.trim() ?? null,
+        phone: resolvedPhone,
         customFields: customFields ?? undefined,
         status: hasCapacity ? "REGISTERED" : "WAITLISTED",
         waitlistPosition,
