@@ -3359,6 +3359,27 @@ h1, h2, h3, h4, h5, h6 {
 .adm-save__error   { font-size: 14px; color: #c0392b; }
 
 /* ── Email change warning + confirm ─────────────────── */
+.adm-form__input--error {
+  border-color: #c0392b !important;
+  background: #fff8f8;
+}
+
+.adm-form__email-error {
+  margin-top: 6px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.55;
+  color: #c0392b;
+  font-weight: 600;
+}
+
+.adm-form__email-checking {
+  margin-top: 6px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--rim-text-muted);
+}
+
 .adm-form__email-warning {
   margin-top: 6px;
   font-family: var(--font-sans);

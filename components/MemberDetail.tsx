@@ -60,6 +60,8 @@ export default function MemberDetail({ member }: { member: Member }) {
   const [email, setEmail] = useState(member.email);
   const [originalEmail] = useState(member.email);
   const emailChanged = email.trim() !== originalEmail;
+  const [emailError, setEmailError] = useState("");
+  const [checkingEmail, setCheckingEmail] = useState(false);
   const [showEmailConfirm, setShowEmailConfirm] = useState(false);
   const [roles, setRoles] = useState<string[]>(member.roles);
   const [saving, setSaving] = useState(false);
@@ -80,7 +82,31 @@ export default function MemberDetail({ member }: { member: Member }) {
     setSaved(false);
   };
 
+  // Check for email conflicts as soon as the admin leaves the email field.
+  const handleEmailBlur = async () => {
+    const trimmed = email.trim();
+    if (!trimmed || trimmed === originalEmail) {
+      setEmailError("");
+      return;
+    }
+    setCheckingEmail(true);
+    setEmailError("");
+    try {
+      const res = await fetch(
+        `/api/admin/members/check-email?email=${encodeURIComponent(trimmed)}&excludeId=${member.id}`
+      );
+      const data = await res.json();
+      if (!data.available) setEmailError(data.error ?? "Email not available.");
+    } catch {
+      // Non-fatal — the PATCH will catch it too if they save anyway.
+    } finally {
+      setCheckingEmail(false);
+    }
+  };
+
   const handleSave = async (bypassEmailConfirm = false) => {
+    // Block save if there's a known email conflict.
+    if (emailError) return;
     // If email has changed, require an explicit confirmation step first.
     if (emailChanged && !bypassEmailConfirm) {
       setShowEmailConfirm(true);
@@ -226,11 +252,23 @@ export default function MemberDetail({ member }: { member: Member }) {
             <label className="adm-form__label">Email (login address)</label>
             <input
               type="email"
-              className="adm-form__input"
+              className={`adm-form__input${emailError ? " adm-form__input--error" : ""}`}
               value={email}
-              onChange={(e) => { setEmail(e.target.value); setSaved(false); setShowEmailConfirm(false); }}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setSaved(false);
+                setShowEmailConfirm(false);
+                setEmailError(""); // clear error while typing
+              }}
+              onBlur={handleEmailBlur}
             />
-            {emailChanged && !showEmailConfirm && (
+            {checkingEmail && (
+              <p className="adm-form__email-checking">Checking…</p>
+            )}
+            {emailError && (
+              <p className="adm-form__email-error">{emailError}</p>
+            )}
+            {emailChanged && !emailError && !checkingEmail && !showEmailConfirm && (
               <p className="adm-form__email-warning">
                 ⚠️ Changing this email updates their login address. They will be signed out immediately
                 and must use the new address for all future sign-ins.
@@ -295,7 +333,11 @@ export default function MemberDetail({ member }: { member: Member }) {
             </div>
           </div>
         ) : (
-          <button className="adm-save__btn" onClick={() => handleSave()} disabled={saving}>
+          <button
+            className="adm-save__btn"
+            onClick={() => handleSave()}
+            disabled={saving || !!emailError || checkingEmail}
+          >
             {saving ? "Saving…" : "Save changes"}
           </button>
         )}
