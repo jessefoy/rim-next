@@ -4215,6 +4215,126 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--rim-rule);
 }
 
+/* ── Admin Roadmap (adm-rm-) ───────────────────────────── */
+
+.adm-rm-section {
+  margin-bottom: 40px;
+  border-left: 3px solid var(--section-color, var(--rim-mid));
+  padding-left: 20px;
+}
+
+.adm-rm-section__head { margin-bottom: 16px; }
+
+.adm-rm-section__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--section-color, var(--rim-text));
+  margin: 0 0 6px;
+  font-family: var(--font-sans);
+  letter-spacing: 0;
+}
+
+.adm-rm-section__desc {
+  font-size: 13.5px;
+  color: var(--rim-text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.adm-rm-items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.adm-rm-item {
+  background: var(--rim-bg);
+  border: 1px solid var(--rim-rule);
+  border-radius: 6px;
+  padding: 14px 16px;
+}
+
+.adm-rm-item__top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.adm-rm-item__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--rim-text);
+  font-family: var(--font-sans);
+}
+
+.adm-rm-item__desc {
+  font-size: 13px;
+  color: var(--rim-text-muted);
+  line-height: 1.55;
+  margin: 0 0 8px;
+}
+
+.adm-rm-item__ref {
+  font-size: 11.5px;
+  color: var(--rim-text-muted);
+  margin: 0 0 6px;
+  font-style: italic;
+}
+
+.adm-rm-item__files {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.adm-rm-item__files li {
+  font-size: 11.5px;
+  color: var(--rim-text-muted);
+  padding: 2px 0;
+}
+
+.adm-rm-item__files code {
+  background: var(--rim-bg-accent);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: 11px;
+  color: var(--rim-text);
+}
+
+/* Status badges */
+.adm-rm-status {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.adm-rm-status--immediate { background: #fce8e6; color: #c0392b; }
+.adm-rm-status--designed  { background: color-mix(in srgb, var(--rim-mid) 12%, var(--rim-bg)); color: var(--rim-mid); }
+.adm-rm-status--planned   { background: var(--rim-bg-accent); color: var(--rim-text-muted); }
+.adm-rm-status--ongoing   { background: #fef3e2; color: #b06800; }
+.adm-rm-status--infra     { background: #f0f0f0; color: #4a4a4a; }
+
+/* Effort badges */
+.adm-rm-effort {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  padding: 2px 7px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.adm-rm-effort--small  { background: #eafaf1; color: #1e8449; }
+.adm-rm-effort--medium { background: #fef3e2; color: #b06800; }
+.adm-rm-effort--large  { background: #fce8e6; color: #c0392b; }
+
 /* Mobile */
 @media (max-width: 768px) {
   .adm-sm-grid {

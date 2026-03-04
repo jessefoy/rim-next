@@ -633,6 +633,9 @@ export default async function AdminSitemapPage() {
             <a href="https://rim-next.vercel.app" target="_blank" rel="noopener noreferrer" className="adm-sm-ext-link">
               Live Site ↗
             </a>
+            <Link href="/admin/roadmap" className="adm-sm-ext-link">
+              Roadmap →
+            </Link>
           </div>
         </div>
 
