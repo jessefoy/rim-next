@@ -5,7 +5,6 @@ import { auth } from "@/auth";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import TeacherList from "@/components/TeacherList";
-import MemberGate from "@/components/MemberGate";
 import { db } from "@/lib/db";
 
 export const revalidate = 60;
@@ -27,9 +26,7 @@ interface Program {
   locationText?: string;
   locationLink?: string;
   danaText?: string;
-  registrationRequired?: boolean;
   registrationClosed?: boolean;
-  filloutRegistrationFormId?: string;
   registrationEnabled?: boolean;
   registrationCapacity?: number | null;
   registrationDeadline?: string | null;
@@ -45,8 +42,6 @@ interface Program {
   quoteSource?: string;
   programDescription?: any[];
   specialNotes?: any[];
-  signedOutInstructions?: any[];
-  signedInInstructions?: any[];
   programCategory?: { name: string; slug: { current: string } };
   teacherFacilitators?: Teacher[];
   dayOfWeek?: { name: string; slug: { current: string } }[];
@@ -119,10 +114,10 @@ export default async function ProgramDetailPage({
 
   if (!program) notFound();
 
-  const isLoggedIn = !!session;
   const useBuiltInForm = !!program.registrationEnabled;
-  const deadlinePassed = !!(
-    program.registrationDeadline && new Date(program.registrationDeadline) < new Date()
+  const registrationClosed = !!(
+    program.registrationClosed ||
+    (program.registrationDeadline && new Date(program.registrationDeadline) < new Date())
   );
 
   // DB queries — only when built-in form is active
@@ -237,11 +232,11 @@ export default async function ProgramDetailPage({
               </div>
             )}
             {/* ── Registration CTA — built-in form → links to /register page ── */}
-            {useBuiltInForm ? (
+            {useBuiltInForm && (
               <div className="pg-details__row pg-details__row--cta">
                 <span className="pg-details__label"></span>
                 <div className="pg-register-cta">
-                  {deadlinePassed ? (
+                  {registrationClosed ? (
                     <span className="pg-register-status">Registration is now closed.</span>
                   ) : existingRegistration?.donationStatus === "PENDING" ? (
                     <Link href={`/programs/${slug}/register`} className="pg-register-btn pg-register-btn--secondary">
@@ -262,14 +257,7 @@ export default async function ProgramDetailPage({
                   )}
                 </div>
               </div>
-            ) : program.registrationRequired ? (
-              <div className="pg-details__row pg-details__row--cta">
-                <span className="pg-details__label"></span>
-                <a href="#registration-section" className="pg-details__reg-cta">
-                  ↓ Please Register to Attend
-                </a>
-              </div>
-            ) : null}
+            )}
           </div>
         )}
 
@@ -312,55 +300,6 @@ export default async function ProgramDetailPage({
               variant="program"
             />
           </>
-        )}
-
-        {/* ── Legacy registration section (Fillout / auth-gated) ──
-            Only shown for programs NOT using the built-in form.
-            Built-in form programs now use the dedicated /register page. */}
-        {!useBuiltInForm && (
-          <div id="registration-section" className="pg-registration">
-            {/* Logged out */}
-            {!isLoggedIn && (
-              <MemberGate signedOutInstructions={program.signedOutInstructions} />
-            )}
-
-            {/* Logged in + registration required + not closed */}
-            {isLoggedIn && program.registrationRequired && !program.registrationClosed && (
-              <div className="pg-registration__inner">
-                <p className="lp-label">Register</p>
-                {program.signedInInstructions && (
-                  <div className="lp-body">
-                    <PortableText value={program.signedInInstructions as any} />
-                  </div>
-                )}
-                {program.filloutRegistrationFormId && (
-                  <div className="pg-fillout">
-                    <div
-                      style={{ width: "100%", height: "500px" }}
-                      data-fillout-id={program.filloutRegistrationFormId}
-                      data-fillout-embed-type="standard"
-                      data-fillout-inherit-parameters=""
-                      data-fillout-dynamic-resize=""
-                    />
-                    {/* eslint-disable-next-line @next/next/no-sync-scripts */}
-                    <script src="https://server.fillout.com/embed/v1/" />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Logged in + no registration required */}
-            {isLoggedIn && !program.registrationRequired && (
-              <div className="pg-registration__inner">
-                <p className="lp-label">No Registration Required</p>
-                {program.signedInInstructions && (
-                  <div className="lp-body">
-                    <PortableText value={program.signedInInstructions as any} />
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
         )}
 
       </div>
