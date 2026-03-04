@@ -27,6 +27,8 @@ Two audiences:
 14. [Community Onboarding & Membership Philosophy](#14-community-onboarding--membership-philosophy)
 15. [Site Administration Tools](#15-site-administration-tools)
 16. [Navigation Component](#16-navigation-component)
+17. [Planned Features](#17-planned-features)
+18. [Sanity Studio Access for Staff](#18-sanity-studio-access-for-staff)
 
 ---
 
@@ -59,15 +61,17 @@ Two audiences:
 **What it does:** Users can hold one or more staff roles that unlock protected areas of the site. Regular members have an empty roles array and see nothing different.
 
 **Current roles:**
-| Role | Access |
-|---|---|
-| `ADMIN` | Everything — full site management |
-| `REGISTRAR` | Volunteer admin area — view and manage registrations |
-| `TREASURER` | Donation management area — view all donations, enter manual donations (planned, not yet active) |
-| `TEACHER` | (defined, not yet used) |
-| `VOLUNTEER` | (defined, not yet used) |
+| Role | Access | Dashboard links |
+|---|---|---|
+| `ADMIN` | Everything — full site management | Registrations, Members, Sanity Studio |
+| `REGISTRAR` | Volunteer admin area — view and manage registrations | Registrations, Sanity Studio |
+| `TREASURER` | Donation management area — view all donations, enter manual donations (planned, not yet active) | (none yet) |
+| `TEACHER` | (defined, not yet used) | (none yet) |
+| `VOLUNTEER` | (defined, not yet used) | (none yet) |
 
-**Where roles are assigned:** Directly in the database. To grant a role, run SQL on Neon:
+**Where roles are assigned:** Via the admin member detail page (`/admin/members/[id]`). Check or uncheck the role checkbox, then click "Save changes." No direct database access needed.
+
+To grant a role without the UI (e.g., bootstrapping the first ADMIN), run SQL on Neon:
 ```sql
 UPDATE users SET roles = '{ADMIN}' WHERE email = 'person@example.com';
 -- Multiple roles:
@@ -806,9 +810,11 @@ When an archived member requests a magic link and clicks it, `proxy.ts` detects 
 **Proxy loop guard:** `proxy.ts` checks `!pathname.startsWith("/account/reactivate")` before redirecting archived users — prevents an infinite redirect loop.
 
 ### Dashboard integration
-- `STAFF_LINKS` in `dashboard/page.tsx` refactored to `Record<string, {...}[]>` (array of links per role)
-- ADMIN role now produces two cards: Registrations (`/volunteer`) + Members (`/admin/members`)
-- Deduplication by `href` still works — no duplicate cards if a user holds both ADMIN + REGISTRAR
+- `STAFF_LINKS` in `dashboard/page.tsx` maps each role to an array of cards
+- REGISTRAR role produces: Registrations (`/volunteer`) + Sanity Studio (external link, new tab)
+- ADMIN role produces: Registrations + Members (`/admin/members`) + Sanity Studio
+- Deduplication by `href` — no duplicate cards if a user holds both ADMIN + REGISTRAR
+- External links (Sanity Studio) render as `<a target="_blank">` instead of Next.js `<Link>`
 
 ### Memberstack CSV import
 - Client-side CSV parse — no library, handles quoted fields
@@ -1346,6 +1352,85 @@ Features that have been designed and scoped but not yet built. Listed here so in
 
 | 2026-03-03 | Member dashboard redesign (session 15): Redesigned `/account/dashboard` as a visual hub with 5 nav cards (`db-` CSS extensions); created `My Programs` page (`/account/dashboard-my-registrations`, `mr-` prefix) — new feature showing member registration history with status badges, waitlist position, and pending dana prompts; new `GET /api/account/registrations` endpoint; `programsBySlugArrayQuery` GROQ query for batch slug lookup; rebuilt `My Library` (`ml-`), `My Profile` (`mp-`), `Community Agreements` (`mc-`) with 🟢 design system (dropped all Webflow classes); added "My Programs" link to Nav.tsx (desktop dropdown + mobile flat list); updated FEATURES.md Section 6 + pages-inventory.md (14/31 🟢) |
 | 2026-03-04 | Nav component rebuild (session 16): Complete rewrite of `components/Nav.tsx` — eliminated all Webflow structural classes (`w-nav`, `w-dropdown`, `w-nav-menu`, `w-nav-button`, etc.); deleted `public/nav.js` (Webflow JS hamburger handler); new `nav-` CSS prefix block in `custom.css`; sticky header (`position: sticky`); desktop dropdowns via CSS `hover + focus-within` (no JS); React `useState` hamburger with 3-bar → X animation; closes on route change + Escape key; `isMemberArea` flag switches between minimal member nav and full public nav; `isAdmin` controls Admin dropdown visibility. Nav polish: Quincycf 500 brand name, `--rim-text` (#333) color; Open Sans 500 links; no borders anywhere (color contrast only); nav height 90px; hover states set both `color` and `background` explicitly; mobile menu overhauled — `--rim-bg` warm background, `--rim-bg-accent` separator lines between items, pill donate button; Added Section 16 to FEATURES.md; updated Section 10 CSS prefix table; updated MEMORY.md + session-log.md |
+| 2026-03-04 | Sanity Studio access for staff (session 18): `sanityInvitedAt DateTime?` on User model (db push); new `POST /api/admin/members/[id]/sanity-invite` — ADMIN-only, calls Sanity Management API to invite member as editor, stamps invite date; PATCH route updated to auto-revoke Sanity access when REGISTRAR role is removed — calls `revokeSanityAccess()` async (removes from project members + cancels pending invitations, clears `sanityInvitedAt`), returns `sanityRevoked: true`; MemberDetail: Sanity Studio Access panel below roles (invite button with two-step confirmation showing explanation + Yes/Cancel; ✓ invited date once sent; revocation warning in save bar when REGISTRAR is being removed); dashboard `STAFF_LINKS` updated — Sanity Studio external card for REGISTRAR + ADMIN, `<a target="_blank">` for external vs `<Link>` for internal; Section 2 updated (roles table shows dashboard links, role assignment via UI documented); Section 11 dashboard integration updated; Section 18 added (full feature doc). ⚠️ Requires `SANITY_MANAGEMENT_TOKEN` in Vercel. Commits: deb0b97, 5e97804. |
 | 2026-03-04 | Registration form UX + security hardening (session 17): (1) Sanity program category field UX — added description, `disableNew: true`, `filter: "hideFromProgramsPage != true"` so the dropdown shows immediately; renamed `hideFromProgramPageList` title + added description; Sanity deployed. (2) Fillout legacy removal — removed `registrationRequired`, `filloutRegistrationFormId`, `signedOutInstructions`, `signedInInstructions` from programs page, GROQ queries, and Sanity schema; wired `registrationClosed` boolean into built-in form path (combines with `registrationDeadline` check); commit fa1464e. (3) Email recognition — new `GET /api/account/check-email` (public, returns name/phone/agreedToTerms for known emails); `handleEmailBlur` in RegistrationForm pre-fills from account and shows "Welcome back, [Name]!" notice; pre-fill logic uses account values first (`data.firstName || prev.firstName`); commits 08fe82d → eadb5e7 → 16aca2e. (4) Security — name + phone fields locked `readOnly` in form when recognized account found (`emailCheckStatus === "found"`); API introduces `resolvedFirstName`, `resolvedLastName`, `resolvedPhone` — account stored values always win for existing users regardless of form submission; `pg-form__input[readonly]` + `pg-form__input--locked` CSS; commits ef515d6 + 7b75eba. (5) Dana $0 bug fix — `effectiveDanaMode` sent to API is `"none"` when fixed/base amount not configured (→ `donationStatus: WAIVED`); `hasConfiguredAmount` guard skips dana step in form; commit acbdadd. (6) Documentation — FEATURES.md Sections 4a, 4c, 8, 9 updated; new Section 17 (Planned Features) added with 17a (automated dana follow-up cron), 17b (member cancellation self-service), 17c (self-service email change cross-ref). |
 
-*Last updated: 2026-03-04 (session 17)*
+---
+
+## 18. Sanity Studio Access for Staff
+
+**What it does:** When a member is granted the REGISTRAR (or ADMIN) role, an admin can send them an invitation to Sanity Studio — the CMS where site content, programs, and courses are managed. The invitation is sent via the Sanity Management API and gives them Editor-level access. Their member dashboard automatically shows a "Sanity Studio" link in the Staff Access panel as soon as the role is saved. Removing the REGISTRAR role automatically revokes their Sanity access.
+
+**Who uses it:**
+- **Admins** — send invitations and revoke access from the member detail page
+- **Registrars** — receive the invitation, accept it in Sanity, then find the studio link on their dashboard whenever they need it
+
+### Admin flow (granting access)
+
+1. Go to `/admin/members/[id]` for the member
+2. Check the **REGISTRAR** checkbox in the Roles section
+3. Click **Save changes** — a "Sanity Studio Access" panel appears below the roles list
+4. Click **Invite to Sanity Studio**
+5. A confirmation dialog appears: "This will send an email invitation from Sanity to [email]. They will receive Editor access and can edit site content in Sanity Studio."
+6. Click **Yes, send invite** — Sanity sends an invitation email to the member
+7. The panel updates: "✓ Invited on [date]"
+
+The invite section only appears after the REGISTRAR role has been saved — not just checked. This prevents accidentally sending an invite before confirming the role assignment.
+
+### Member flow (accepting access)
+
+1. Member receives an email from Sanity (sender: `no-reply@sanity.io`) with an invitation link
+2. They click the link and create or log in to their Sanity account
+3. They now have Editor access to the `rooted-in-mindfulness` Sanity project
+4. Their RIM dashboard shows a "Sanity Studio" card in the Staff Access panel → links to `https://rooted-in-mindfulness.sanity.studio/`
+
+### Revoking access
+
+When the REGISTRAR role is unchecked and saved for a member who was previously invited:
+
+1. The save bar shows a warning: "⚠ Saving will also revoke this member's Sanity Studio access."
+2. Admin clicks Save — the PATCH API automatically:
+   - Clears `sanityInvitedAt` from the DB (removes the invite date display)
+   - Calls Sanity Management API to remove them from project members (if they accepted)
+   - Cancels any pending invitations (if they never accepted)
+3. The Sanity Studio card disappears from their dashboard
+4. They can no longer access Sanity Studio
+
+Revocation is non-blocking: the DB is updated first, then the Sanity API call fires asynchronously. A Sanity API failure does not prevent the role change from saving.
+
+### Dashboard link
+
+The "Sanity Studio" card appears in the Staff Access panel for any user with REGISTRAR or ADMIN role. It opens `https://rooted-in-mindfulness.sanity.studio/` in a new tab. The card is always visible once the role is set — the invite step is separate from the link appearing.
+
+### Prerequisites
+
+**A Sanity Management Token is required** — different from the content API token. The content token (`SANITY_API_TOKEN`) can read/write Sanity data but cannot manage project members. Steps to create:
+
+1. Go to `https://manage.sanity.io/` → Project `xxgvfpjf` → **API** → **Tokens** → **Add API token**
+2. Name: "RIM Next Management" · Role: **Editor** (or Administrator)
+3. Add to Vercel: `SANITY_MANAGEMENT_TOKEN=<token>`
+
+Without this token, the invite button returns a 500 error with "Sanity management token not configured." The rest of the site functions normally.
+
+### Key files
+
+- `app/api/admin/members/[id]/sanity-invite/route.ts` — POST: sends Sanity invitation, stamps `sanityInvitedAt`
+- `app/api/admin/members/[id]/route.ts` — PATCH: detects REGISTRAR removal, calls `revokeSanityAccess()`, clears `sanityInvitedAt`, returns `sanityRevoked: true`
+- `components/MemberDetail.tsx` — Sanity Studio Access panel (invite button + confirmation dialog + revocation warning in save bar)
+- `app/account/dashboard/page.tsx` — `STAFF_LINKS` includes Sanity Studio for REGISTRAR + ADMIN
+- `prisma/schema.prisma` — `sanityInvitedAt DateTime?` on User model
+
+### 🔧 Technical notes
+
+- **Sanity Management API endpoint:** `POST https://api.sanity.io/v2021-10-04/projects/{projectId}/invitations` with body `{ email, role: "editor" }`. Requires `Authorization: Bearer {SANITY_MANAGEMENT_TOKEN}`.
+- **Invite vs. member:** The invite API creates a pending invitation (email sent). The member API lists accepted members. Revocation must handle both states: `DELETE /members/{id}` for accepted, `DELETE /invitations/{id}` for pending.
+- **Sanity member ID vs. RIM user ID:** Sanity assigns its own user IDs. We find a member by email in the Sanity members list — `m.profile?.email`. We do not store the Sanity user ID locally because it's only needed at revocation time.
+- **`sanityInvitedAt`:** Tracks when the invite was sent, not when it was accepted. We don't have a webhook from Sanity for acceptance. The invite date is shown as a confirmation that the invite was dispatched.
+- **Confirmation dialog:** The invite button does not fire immediately. It toggles `confirmingInvite` state to show an explanation ("This will send an email invitation from Sanity to [email]...") with Yes/Cancel before any API call is made.
+- **`savedRoles` vs. `roles`:** The Sanity section is conditionally rendered based on `savedRoles` (what's in the DB), not the local `roles` checkbox state. This prevents the invite section from appearing before the user has saved the REGISTRAR role. After a successful save, `setSavedRoles(roles)` syncs them.
+- **Revocation warning in save bar:** Computed as `savedRoles.includes("REGISTRAR") && !roles.includes("REGISTRAR") && !!sanityInvitedAt`. If all three conditions are true, a yellow warning appears above the Save button before anything is committed.
+- **Non-blocking revocation:** `revokeSanityAccess()` is called with `void` after the DB update returns. A Sanity API failure is silently ignored — the role change and DB clear still succeed.
+
+---
+
+*Last updated: 2026-03-04 (session 18)*
