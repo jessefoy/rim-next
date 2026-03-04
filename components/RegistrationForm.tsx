@@ -193,23 +193,26 @@ export default function RegistrationForm({
     const handleSkipDana = () => setFormState("done");
 
     return (
-      <div className="pg-form__success">
-        {hasPendingDana ? (
-          <>
-            <h3>Your spot is confirmed!</h3>
-            <p>
-              A spot opened up and you&rsquo;ve been confirmed for this program.
-              Complete your dana offering below when you&rsquo;re ready.
-            </p>
-          </>
-        ) : (
-          <>
-            <h3>You&rsquo;re registered!</h3>
-            <p>A confirmation will be sent to {form.email}.</p>
-          </>
-        )}
+      <>
+        <div className="pg-form__success">
+          {hasPendingDana ? (
+            <>
+              <h3>Your spot is confirmed!</h3>
+              <p>
+                A spot opened up and you&rsquo;ve been confirmed for this program.
+                Complete your dana offering below when you&rsquo;re ready.
+              </p>
+            </>
+          ) : (
+            <>
+              <h3>You&rsquo;re registered!</h3>
+              <p>A confirmation will be sent to {form.email}.</p>
+            </>
+          )}
+        </div>
 
         <div className="pg-dana">
+          <p className="pg-dana__eyebrow">Dana</p>
           {program.danaMessage && (
             <p className="pg-dana__message">{program.danaMessage}</p>
           )}
@@ -281,7 +284,7 @@ export default function RegistrationForm({
 
           <button
             type="button"
-            className="pg-form__submit"
+            className="pg-dana__btn"
             disabled={formState === "dana_redirecting" || !canSubmit}
             onClick={handleDanaCheckout}
           >
@@ -301,7 +304,7 @@ export default function RegistrationForm({
             </button>
           )}
         </div>
-      </div>
+      </>
     );
   }
 

@@ -1489,8 +1489,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .pg-form__success {
-  background: #eaf4ee;
-  border-left: 3px solid #2e7d52;
+  background: color-mix(in srgb, var(--rim-mid) 8%, var(--rim-bg));
+  border-left: 3px solid var(--rim-mid);
   padding: 24px 28px;
   border-radius: 6px;
 }
@@ -1532,9 +1532,19 @@ h1, h2, h3, h4, h5, h6 {
 /* ── Dana step (shown after registration success) ── */
 
 .pg-dana {
-  margin-top: 28px;
-  padding-top: 24px;
-  border-top: 1px solid var(--rim-rule);
+  margin-top: 16px;
+  padding: 24px 28px;
+  background: var(--rim-bg-accent);
+  border-radius: 6px;
+}
+
+.pg-dana__eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rim-text-muted);
+  margin: 0 0 16px;
 }
 
 .pg-dana__message {
@@ -1646,6 +1656,32 @@ h1, h2, h3, h4, h5, h6 {
 
 .pg-dana__skip:hover {
   color: var(--rim-text);
+}
+
+.pg-dana__btn {
+  margin-top: 20px;
+  width: 100%;
+  padding: 14px 24px;
+  background: var(--rim-mid);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.pg-dana__btn:hover:not(:disabled) {
+  background: var(--rim-blue);
+}
+
+.pg-dana__btn:disabled {
+  background: var(--rim-rule);
+  color: var(--rim-text-muted);
+  cursor: not-allowed;
 }
 
 /* Dana result banners (shown after Stripe redirects back) */
