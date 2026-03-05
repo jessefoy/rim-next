@@ -62,7 +62,7 @@
 
 ## Feature Backlog Workflow
 
-When the user says **"remember that we need [X]"**, **"add this to the backlog"**, or similar mid-session:
+When the user says **"remember that we need [X]"**, **"add this to the backlog"**, **"add this to the to-do's"**, or similar mid-session:
 
 1. Read `data/backlog.json`
 2. Add a new item with all required fields (see structure below)
@@ -101,9 +101,17 @@ When the user says **"remember that we need [X]"**, **"add this to the backlog"*
 The backlog page lives at **/admin/ideas** (ADMIN-only). You can also update status or mark items done there mid-session.
 
 ## End-of-Session Rule
-At the end of every working session, update `FEATURES.md` in the repo root.
-- Add or update any feature that was built, changed, or removed
-- Add a row to the Session Log at the bottom with the date and a one-line summary
+
+When the user says **"let's wrap up"**, **"let's close down"**, **"update everything"**, **"add this to the to-do's and update everything"**, or similar:
+
+1. Update `FEATURES.md` — add or update any feature that was built, changed, or removed; add a row to the Session Log at the bottom with the date and a one-line summary
+2. Update `memory/MEMORY.md` in the project memory if anything in the stack, key files, next steps, or session log needs updating
+3. If any new to-do items came up during the session, add them to `data/backlog.json` as well
+4. Commit and push all documentation changes together
+
+**Judgment call:** Not every session needs every file updated. Update only what actually changed. A quick bug fix may only need a session log entry; a major new feature needs `FEATURES.md`, `MEMORY.md`, and possibly the backlog updated.
+
+**Quality rules for FEATURES.md:**
 - Keep the human-readable sections plain and clear
 - Keep technical notes (🔧) accurate and specific — they exist so future Claude sessions don't repeat past mistakes
 
