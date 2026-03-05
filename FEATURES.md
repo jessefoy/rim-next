@@ -1766,6 +1766,112 @@ Once prerequisites are done:
 - **Sanity write-back** uses `SANITY_API_TOKEN` which already has write access — no new token needed.
 - **No new Sanity schema needed** — `zoomLink` + `zoomLinkText` already exist and are wired to program page + emails.
 
+### Implementation boilerplate (ready to build from)
+
+Install packages first: `npm install googleapis google-auth-library`
+
+```typescript
+import { google } from 'googleapis';
+import { JWT } from 'google-auth-library';
+
+interface MeetingResponse {
+  meetLink: string;
+  calendarEventId: string;
+  moderationEnabled: boolean;
+}
+
+async function createMeeting(
+  roomEmail: string,        // e.g. room1@rootedinmindfulness.org
+  volunteerEmail: string,   // e.g. volunteer@rootedinmindfulness.org
+  sharedCalendarId: string, // GOOGLE_CALENDAR_ID env var
+  programTitle: string,
+  startTime: string,        // ISO 8601
+  endTime: string           // ISO 8601
+): Promise<MeetingResponse> {
+
+  const auth = new JWT({
+    email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+    key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    scopes: [
+      'https://www.googleapis.com/auth/meetings.space.settings',
+      'https://www.googleapis.com/auth/calendar.events',
+    ],
+    subject: roomEmail, // DWD impersonation target
+  });
+
+  const meet = google.meet({ version: 'v2', auth });
+  const calendar = google.calendar({ version: 'v3', auth });
+
+  let spaceName = '';
+  let meetLink = '';
+  let moderationEnabled = false;
+
+  try {
+    // Step 1: Create moderated Meet space (enables COHOST role)
+    const spaceResponse = await meet.spaces.create({
+      requestBody: {
+        config: {
+          accessType: 'TRUSTED',
+          entryPointAccess: 'ALL',
+          moderation: 'ON',
+        },
+      },
+    });
+    spaceName = spaceResponse.data.name!;
+    meetLink = spaceResponse.data.meetingUri!;
+    moderationEnabled = true;
+
+    // Step 2: Assign volunteer as COHOST
+    await meet.spaces.members.create({
+      parent: spaceName,
+      requestBody: {
+        user: `users/${volunteerEmail}`,
+        role: 'COHOST',
+      },
+    });
+
+  } catch (error: any) {
+    // Graceful fallback for free tier (403 on moderation settings)
+    // Volunteer still joins without friction via Trusted access type
+    if (error.status === 403) {
+      console.warn('Moderation/COHOST not supported on this tier. Falling back to standard space.');
+      const fallbackSpace = await meet.spaces.create({});
+      spaceName = fallbackSpace.data.name!;
+      meetLink = fallbackSpace.data.meetingUri!;
+    } else {
+      throw error;
+    }
+  }
+
+  // Step 3: Create shared calendar event
+  const eventResponse = await calendar.events.insert({
+    calendarId: sharedCalendarId,
+    conferenceDataVersion: 1,
+    requestBody: {
+      summary: programTitle,
+      description: `Join on Google Meet: ${meetLink}\nVolunteer host: ${volunteerEmail}`,
+      start: { dateTime: startTime },
+      end: { dateTime: endTime },
+      attendees: [{ email: volunteerEmail }],
+      conferenceData: {
+        createRequest: {
+          requestId: `meet-${Date.now()}`,
+          conferenceSolutionKey: { type: 'hangoutsMeet' },
+        },
+      },
+    },
+  });
+
+  return {
+    meetLink,           // Use this link (from spaces.create) — not the calendar's conferenceData link
+    calendarEventId: eventResponse.data.id!,
+    moderationEnabled,  // Expose in API response so UI can show a notice if fallback was used
+  };
+}
+```
+
+⚠️ **Note:** The calendar event uses `conferenceData.createRequest` which generates its own Meet link. The link we actually use and store in Sanity is `meetLink` (from `spaces.create`), not the calendar event's embedded link. The calendar event description includes the correct link as a fallback. When building, verify this behaviour and consider omitting `conferenceData` from the calendar event entirely to avoid confusion.
+
 ### Key files (once built)
 
 - `lib/google-meet.ts` — DWD auth, room assignment, `createMeeting()` (NEW — replaces planned `lib/google-calendar.ts`)
