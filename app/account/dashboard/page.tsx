@@ -55,6 +55,7 @@ const STAFF_LINKS: Record<string, { label: string; href: string; description: st
     { label: "Members", href: "/admin/members", description: "Manage members and assign permissions" },
     { label: "Sanity Studio", href: "https://rooted-in-mindfulness.sanity.studio/", description: "Edit site content and programs", external: true },
     { label: "Staff Manual", href: "/admin/manual", description: "Step-by-step guidance for every part of the system" },
+    { label: "Feature Ideas", href: "/admin/ideas", description: "Backlog of features and improvements to build" },
   ],
 };
 

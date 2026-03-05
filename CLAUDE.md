@@ -60,6 +60,46 @@
 - Breadcrumb: `.breadcrumb-link.w-inline-block` → `.text-block-58`
 - Dashboard: `.page-wrapper` → `.dashboard-section` → `.dashboard-content`
 
+## Feature Backlog Workflow
+
+When the user says **"remember that we need [X]"**, **"add this to the backlog"**, or similar mid-session:
+
+1. Read `data/backlog.json`
+2. Add a new item with all required fields (see structure below)
+3. Write the file back
+4. `git add data/backlog.json && git commit -m "Backlog: add [title]" && git push`
+5. Confirm with the user — the page at `/admin/ideas` will show it after Vercel deploys (~1 min)
+
+**Item structure:**
+```json
+{
+  "id": "YYYY-MM-DD-NNN",
+  "title": "Short title",
+  "description": "Clear description of what needs to be built and why.",
+  "category": "One of the categories below",
+  "priority": "high | medium | low",
+  "status": "open",
+  "addedAt": "YYYY-MM-DD",
+  "notes": ""
+}
+```
+
+**Valid categories** (use exactly as written):
+- `Registration`
+- `Member Accounts`
+- `Admin Tools`
+- `Programs & Sanity`
+- `Courses & Library`
+- `Email & Notifications`
+- `Dashboard`
+- `Nav & Layout`
+- `CSS & Design`
+- `Infrastructure`
+
+**Status values:** `open` | `in-progress` | `done`
+
+The backlog page lives at **/admin/ideas** (ADMIN-only). You can also update status or mark items done there mid-session.
+
 ## End-of-Session Rule
 At the end of every working session, update `FEATURES.md` in the repo root.
 - Add or update any feature that was built, changed, or removed

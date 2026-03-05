@@ -6661,3 +6661,224 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   .man-field__name { border-right: none; border-bottom: 1px solid var(--rim-rule); }
   .man-chapter--break { margin-top: 48px; padding-top: 32px; }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Feature Ideas & Backlog (bl- prefix)
+   Admin-only page at /admin/ideas. Displays backlog.json grouped by category.
+───────────────────────────────────────────────────────────────────────────── */
+
+.bl-page {
+  background: var(--rim-bg);
+  min-height: 100vh;
+  padding: 56px 0 100px;
+}
+
+.bl-container {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 40px;
+}
+
+/* ── Header ── */
+.bl-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 32px;
+  margin-bottom: 56px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid var(--rim-rule);
+}
+
+.bl-header__title {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 400;
+  color: var(--rim-text);
+  margin: 0 0 8px;
+  line-height: 1.3;
+}
+
+.bl-header__subtitle {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--rim-text-muted);
+  margin: 0;
+  line-height: 1.6;
+}
+
+.bl-header__stats {
+  display: flex;
+  gap: 24px;
+  flex-shrink: 0;
+}
+
+.bl-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.bl-stat__num {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 400;
+  color: var(--rim-blue);
+  line-height: 1;
+}
+
+.bl-stat__num--high { color: #b05555; }
+
+.bl-stat__label {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rim-text-muted);
+  white-space: nowrap;
+}
+
+/* ── Category sections ── */
+.bl-category {
+  margin-bottom: 48px;
+}
+
+.bl-category__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.bl-category__title {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rim-text-muted);
+  margin: 0;
+}
+
+.bl-category__count {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--rim-bg);
+  background: var(--rim-mid);
+  border-radius: 10px;
+  padding: 1px 7px;
+  line-height: 1.5;
+}
+
+/* ── Cards ── */
+.bl-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bl-card {
+  background: #fff;
+  border-radius: 6px;
+  padding: 20px 24px;
+  border-left: 3px solid var(--rim-mid);
+}
+
+.bl-card--done {
+  border-left-color: var(--rim-rule);
+  opacity: 0.55;
+}
+
+.bl-card__top {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.bl-card__title {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--rim-text);
+  margin: 0 0 6px;
+  line-height: 1.4;
+}
+
+.bl-card--done .bl-card__title {
+  text-decoration: line-through;
+  color: var(--rim-text-muted);
+}
+
+.bl-card__desc {
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  color: var(--rim-text-muted);
+  line-height: 1.65;
+  margin: 0 0 12px;
+}
+
+.bl-card__notes {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--rim-mid);
+  font-style: italic;
+  margin: 0 0 12px;
+  line-height: 1.6;
+}
+
+.bl-card__meta {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.bl-card__date {
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  color: var(--rim-text-muted);
+}
+
+.bl-card__id {
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 10.5px;
+  color: var(--rim-rule);
+}
+
+/* ── Priority + status badges ── */
+.bl-badge {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 3px;
+  padding: 2px 7px;
+  line-height: 1.5;
+}
+
+.bl-badge--high     { background: #fdeaea; color: #9e3b3b; }
+.bl-badge--medium   { background: #fdf4e0; color: #8a6020; }
+.bl-badge--low      { background: var(--rim-bg-accent); color: var(--rim-text-muted); }
+.bl-badge--inprogress { background: #e3edf5; color: #1e5478; }
+.bl-badge--done     { background: #e8f2ea; color: #2e6b3e; }
+
+/* ── Empty state ── */
+.bl-empty {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  color: var(--rim-text-muted);
+  text-align: center;
+  padding: 64px 0;
+}
+
+/* ── Mobile ── */
+@media (max-width: 600px) {
+  .bl-page { padding: 32px 0 64px; }
+  .bl-container { padding: 0 20px; }
+  .bl-header { flex-direction: column; gap: 20px; }
+  .bl-header__stats { flex-direction: row; gap: 32px; }
+  .bl-card { padding: 16px 18px; }
+}

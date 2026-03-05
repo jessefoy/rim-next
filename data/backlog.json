@@ -1,0 +1,94 @@
+{
+  "items": [
+    {
+      "id": "2026-03-05-001",
+      "title": "Google Meet integration",
+      "description": "Replace Zoom. Automatically create a Google Meet link when a program is published. Requires Google Cloud project + Calendar API + service account setup first (staff action needed). Full spec in FEATURES.md §19.",
+      "category": "Programs & Sanity",
+      "priority": "high",
+      "status": "open",
+      "addedAt": "2026-03-05"
+    },
+    {
+      "id": "2026-03-05-002",
+      "title": "Community onboarding — verify end-to-end",
+      "description": "The full agreedToTerms flow is built: /account/welcome page, proxy intercept, registration form agreements checkbox, login page reframe, cleanup cron. Needs a real end-to-end test run. Delete the test account first to re-trigger the flow.",
+      "category": "Member Accounts",
+      "priority": "high",
+      "status": "open",
+      "addedAt": "2026-03-05"
+    },
+    {
+      "id": "2026-03-05-003",
+      "title": "Rotate Neon DB password before go-live",
+      "description": "Must be done before DNS cutover. After rotating in Neon console, update POSTGRES_PRISMA_URL and POSTGRES_URL_NON_POOLING in Vercel environment variables.",
+      "category": "Infrastructure",
+      "priority": "high",
+      "status": "open",
+      "addedAt": "2026-03-05"
+    },
+    {
+      "id": "2026-03-05-004",
+      "title": "DNS cutover to rim-next",
+      "description": "Point rootedinmindfulness.org to the rim-next Vercel project. Coordinate timing with Webflow handoff. Do DB password rotation first.",
+      "category": "Infrastructure",
+      "priority": "high",
+      "status": "open",
+      "addedAt": "2026-03-05"
+    },
+    {
+      "id": "2026-03-05-005",
+      "title": "Self-service email change",
+      "description": "Member can update their own login email from My Profile. Requires verification email sent to the new address, 3 new DB fields (pendingEmail, pendingEmailToken, pendingEmailExpires), 2 new API routes, email template, and My Profile UI changes.",
+      "category": "Member Accounts",
+      "priority": "medium",
+      "status": "open",
+      "addedAt": "2026-03-05"
+    },
+    {
+      "id": "2026-03-05-006",
+      "title": "Automated dana follow-up cron",
+      "description": "Daily cron sends a gentle nudge email to registrants with donationStatus=PENDING. Needs danaNudgeSentAt on Registration model, a new cron route, and an email template. Triggered by Vercel cron, protected with CRON_SECRET.",
+      "category": "Email & Notifications",
+      "priority": "medium",
+      "status": "open",
+      "addedAt": "2026-03-05"
+    },
+    {
+      "id": "2026-03-05-007",
+      "title": "Set course accessLevel in Sanity",
+      "description": "Any course that should require program registration must have Access Level set to 'registration_required' in Sanity Studio → Courses → [course]. Default value 'members' means open to all logged-in users.",
+      "category": "Courses & Library",
+      "priority": "medium",
+      "status": "open",
+      "addedAt": "2026-03-05"
+    },
+    {
+      "id": "2026-03-05-008",
+      "title": "Continue CSS migration (Webflow → design system)",
+      "description": "Continue migrating pages from raw Webflow classes to design-system prefixed classes (pg-, lp-, db-, etc.). See memory/pages-inventory.md for the full page list and migration order.",
+      "category": "CSS & Design",
+      "priority": "medium",
+      "status": "open",
+      "addedAt": "2026-03-05"
+    },
+    {
+      "id": "2026-03-05-009",
+      "title": "Decommission Memberstack",
+      "description": "After members have naturally migrated through participation. Do not bulk-import old members — organic migration is the strategy. Selective import remains possible via /admin/members import tool if ever needed.",
+      "category": "Infrastructure",
+      "priority": "medium",
+      "status": "open",
+      "addedAt": "2026-03-05"
+    },
+    {
+      "id": "2026-03-05-010",
+      "title": "Animated botanical elements in program hero",
+      "description": "CSS+SVG botanical drift animation in the pg-hero section. Must include prefers-reduced-motion support. Prompt saved — paste it in a new session to implement.",
+      "category": "CSS & Design",
+      "priority": "low",
+      "status": "open",
+      "addedAt": "2026-03-05"
+    }
+  ]
+}
