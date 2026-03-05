@@ -6209,6 +6209,17 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   gap: 1px;
 }
 
+/* Reset rim.webflow.css li defaults (margin-left: -20px, margin-bottom: 15px,
+   font-size: 18px, line-height: 32px) that would otherwise wreck sidebar layout */
+.man-sidebar__list > li,
+.man-sidebar__sub > li {
+  margin: 0;
+  padding: 0;
+  font-size: inherit;
+  font-family: inherit;
+  line-height: inherit;
+}
+
 .man-sidebar__sublink {
   display: block;
   font-family: var(--font-sans);
