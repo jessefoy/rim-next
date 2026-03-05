@@ -1872,11 +1872,13 @@ async function createMeeting(
 
 ⚠️ **Note:** The calendar event uses `conferenceData.createRequest` which generates its own Meet link. The link we actually use and store in Sanity is `meetLink` (from `spaces.create`), not the calendar event's embedded link. The calendar event description includes the correct link as a fallback. When building, verify this behaviour and consider omitting `conferenceData` from the calendar event entirely to avoid confusion.
 
-### Key files (once built)
+### Key files ✅ Built — commit ca0068e (2026-03-05)
 
-- `lib/google-meet.ts` — DWD auth, room assignment, `createMeeting()` (NEW — replaces planned `lib/google-calendar.ts`)
-- `app/api/programs/[slug]/google-meet/route.ts` — POST handler (NEW)
-- `app/volunteer/programs/[slug]/page.tsx` — "Create Google Meet" button (MODIFY)
+- `lib/google-meet.ts` — DWD auth, room availability check, `createMeeting()`: spaces.create → COHOST assign (REST fetch) → calendar event
+- `app/api/programs/[slug]/google-meet/route.ts` — POST handler (REGISTRAR/ADMIN); 409 on no room; Sanity write-back; returns `{ meetLink, roomEmail, moderationEnabled }`
+- `components/CreateMeetButton.tsx` — "use client" 4-state (idle/loading/done/replace); vol-meet- prefix
+- `app/volunteer/programs/[slug]/page.tsx` — GROQ extended with startDatetime/endDatetime/zoomLink; CreateMeetButton above VolunteerTable
+- `public/css/custom.css` — vol-meet- styles added
 
 ---
 
