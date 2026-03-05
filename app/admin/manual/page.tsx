@@ -150,6 +150,13 @@ export default async function ManualPage() {
           <p>
             Members can see all their registrations — status, dana status, and staff notes — at <strong>/account/dashboard-my-registrations</strong> (linked as &ldquo;My Programs&rdquo; in the navigation). If they have a pending dana offering, their dashboard homepage shows a reminder card with a link to complete it. The card disappears once dana is received.
           </p>
+          <h3 className="man-section__h3">Self-cancellation</h3>
+          <p>
+            Members can cancel their own spot directly from <strong>My Programs</strong> — they don&rsquo;t need to contact you. Each active registration has a small <strong>Cancel registration</strong> link at the bottom of the card. Clicking it shows a confirmation step — &ldquo;Cancel your spot? This cannot be undone.&rdquo; — so accidental taps aren&rsquo;t possible. Once cancelled, the card updates immediately to show &ldquo;✓ Registration cancelled.&rdquo;
+          </p>
+          <p>
+            When a member cancels, you receive a cancellation notification email at the registrar inbox (the same email you get when you cancel someone from the table). The member does not receive an automatic email. The waitlist does not auto-promote — you check <strong>/volunteer</strong> and promote who you choose.
+          </p>
         </section>
 
         {/* ── Your tools ── */}
@@ -164,12 +171,13 @@ export default async function ManualPage() {
           <ul className="man-list">
             <li>Program name and tagline</li>
             <li>A capacity bar — turns yellow when nearly full, red when full</li>
-            <li>An amber badge for waitlisted people waiting for a spot</li>
+            <li>A <strong>green &ldquo;↑ Spot open&rdquo; badge</strong> when the program has a confirmed spot available AND people on the waitlist — this means a cancellation has opened a gap and someone is waiting. This takes priority over the regular waitlist badge so you notice it immediately.</li>
+            <li>An amber badge for waitlisted people when the program is still at or above capacity (normal waitlist, no open gap)</li>
             <li>An amber badge for registrants with pending dana</li>
             <li>A green count if everything is in order</li>
           </ul>
           <p>
-            Cards with anything needing attention are highlighted in amber so you can spot them at a glance.
+            Cards with anything needing attention — including open spots — are highlighted in amber so you can spot them at a glance.
           </p>
 
           <h3 className="man-section__h3">The registrar table — /volunteer/programs/[slug]</h3>
@@ -189,6 +197,9 @@ export default async function ManualPage() {
           </ul>
           <p>
             If a reminder date is set on the program, a banner appears at the top of the table showing the scheduled date and a button to send reminders to anyone who hasn&rsquo;t received one yet.
+          </p>
+          <p>
+            If the program has capacity set and a confirmed spot is open while the waitlist is non-empty — meaning a cancellation has freed a gap — a warm <strong>&ldquo;A spot has opened&rdquo; alert banner</strong> appears above the table. It tells you how many people are waiting and reminds you to use the Promote button to choose who gets the spot. The banner disappears once capacity is full again.
           </p>
         </section>
 
@@ -344,22 +355,24 @@ export default async function ManualPage() {
           <div className="man-task">
             <h3 className="man-task__title">Promoting someone from the waitlist</h3>
             <ol className="man-steps">
-              <li>Go to <strong>/volunteer</strong> and open the program.</li>
-              <li>Find the waitlisted person and click <strong>Promote</strong>, then confirm.</li>
+              <li>Go to <strong>/volunteer</strong>. If a spot has opened, you&rsquo;ll see a green <strong>&ldquo;↑ Spot open&rdquo;</strong> badge on the program card — click it.</li>
+              <li>Inside the program, the <strong>&ldquo;A spot has opened&rdquo;</strong> alert tells you how many people are waiting.</li>
+              <li>Find the waitlisted person you want to promote and click <strong>Promote</strong>.</li>
               <li>Their status changes to Registered and they receive an approval email automatically.</li>
               <li>If the program has dana, the approval email includes a link for them to complete their offering — their Dana Status becomes Pending.</li>
             </ol>
-            <p className="man-task__note">The waitlist does not auto-promote when a spot opens. You do it manually.</p>
+            <p className="man-task__note">The waitlist does not auto-promote when a spot opens. You choose who gets the spot — it&rsquo;s your call whether to go in order or consider other factors.</p>
           </div>
 
           <div className="man-task">
-            <h3 className="man-task__title">Cancelling a registration</h3>
+            <h3 className="man-task__title">Cancelling a registration (as registrar)</h3>
             <ol className="man-steps">
-              <li>Find the registrant in the table and click <strong>Cancel</strong>, then confirm.</li>
+              <li>Find the registrant in the table and click <strong>Cancel Registration</strong>, then confirm.</li>
               <li>Their spot is freed. You receive a cancellation notification email.</li>
               <li>The member does not receive an automatic email — contact them directly if appropriate.</li>
               <li>To undo, find them in the table and click <strong>Restore</strong>.</li>
             </ol>
+            <p className="man-task__note">Members can also cancel themselves from their <strong>My Programs</strong> page. When they do, you receive the same notification email. Either way, you check <strong>/volunteer</strong> and decide whether to promote someone from the waitlist.</p>
           </div>
 
           <div className="man-task">
@@ -442,8 +455,8 @@ export default async function ManualPage() {
           </div>
 
           <div className="man-task">
-            <h3 className="man-task__title">Someone on the waitlist cancels</h3>
-            <p>Cancel their registration. The spot opens. Promote the next person on the waitlist manually — the system does not auto-promote.</p>
+            <h3 className="man-task__title">A member cancels their spot</h3>
+            <p>Members can cancel from their <strong>My Programs</strong> page without contacting you. When they do, you receive a cancellation notification email. If the program has capacity set and people on the waitlist, the <strong>/volunteer</strong> index card shows a green <strong>&ldquo;↑ Spot open&rdquo;</strong> badge. Open the program — the &ldquo;A spot has opened&rdquo; banner tells you how many people are waiting — then promote who you choose.</p>
           </div>
 
           <div className="man-task">
