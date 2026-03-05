@@ -61,9 +61,11 @@ export default async function ManualPage() {
             <span className="man-sidebar__link man-sidebar__link--soon">Courses &amp; Materials</span>
             <span className="man-soon-badge">Coming soon</span>
           </li>
-          <li className="man-sidebar__soon-group">
-            <span className="man-sidebar__link man-sidebar__link--soon">Staff &amp; Roles</span>
-            <span className="man-soon-badge">Coming soon</span>
+          <li>
+            <a href="#roles" className="man-sidebar__link">3. Staff &amp; Roles</a>
+            <ul className="man-sidebar__sub">
+              <li><a href="#roles-notifying" className="man-sidebar__sublink">Notifying new staff</a></li>
+            </ul>
           </li>
         </ul>
       </nav>
@@ -1051,6 +1053,35 @@ export default async function ManualPage() {
               <strong>Google Meet Integration</strong> — once built: how to generate a Google Meet link directly from Sanity Studio and have it appear in emails and on the program page automatically.
             </li>
           </ul>
+        </section>
+
+        {/* ════════════════════════════════════════
+            CHAPTER 3 — STAFF & ROLES
+            ════════════════════════════════════════ */}
+
+        <div id="roles" className="man-chapter man-chapter--break">
+          <h1 className="man-chapter__title">Staff &amp; Roles</h1>
+          <p className="man-chapter__subtitle">
+            How staff roles work — what each role unlocks, and what happens when someone is added or removed.
+            <br />
+            <strong>Who uses this chapter:</strong> Administrators managing staff access. You need an <strong>Admin</strong> role.
+          </p>
+        </div>
+
+        <section id="roles-notifying" className="man-section">
+          <h2 className="man-section__title">Notifying new staff</h2>
+          <p>
+            When you assign someone the <strong>Registrar</strong> role and save, they automatically receive a notification email from Rooted In Mindfulness. The email tells them what the role means, links them to the registrar dashboard, and points them to this manual.
+          </p>
+          <p>
+            You don&rsquo;t need to do anything extra — no need to manually forward instructions or copy a URL. The email goes out the moment you save the role change.
+          </p>
+          <div className="man-note">
+            The Sanity Studio invitation is a <em>separate</em> step. After saving the Registrar role, a &ldquo;Sanity Studio Access&rdquo; panel appears on their member detail page. Click <strong>Invite to Sanity Studio</strong> there if they also need to edit content in Sanity. That invitation comes from Sanity, not from RIM.
+          </div>
+          <p>
+            The notification email is not sent when the Admin role is assigned, and it does not re-send if you save the member record again with Registrar already checked. It fires exactly once, when Registrar is first added.
+          </p>
         </section>
 
       </main>
