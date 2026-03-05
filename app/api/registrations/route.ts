@@ -164,10 +164,14 @@ export async function POST(request: NextRequest) {
         confirmationMessage?: unknown[];
         startDatetime?: string | null;
         endDatetime?: string | null;
-        recurrencePattern?: string | null;
+        recurrenceFreq?: string | null;
+        recurrenceInterval?: number | null;
+        recurrenceDays?: string[] | null;
+        recurrenceCount?: number | null;
       } | null>(
         `*[_type == "programs" && _id == $id && !(_id in path("drafts.**"))][0]{
-          confirmationMessage, startDatetime, endDatetime, recurrencePattern
+          confirmationMessage, startDatetime, endDatetime,
+          recurrenceFreq, recurrenceInterval, recurrenceDays, recurrenceCount
         }`,
         { id: programId }
       );
@@ -183,7 +187,10 @@ export async function POST(request: NextRequest) {
           endDatetime: prog.endDatetime,
           location: locationText ?? null,
           programSlug,
-          recurrencePattern: prog.recurrencePattern,
+          recurrenceFreq: prog.recurrenceFreq,
+          recurrenceInterval: prog.recurrenceInterval,
+          recurrenceDays: prog.recurrenceDays,
+          recurrenceCount: prog.recurrenceCount,
         });
         icsUrl = buildIcsUrl(programSlug);
       }

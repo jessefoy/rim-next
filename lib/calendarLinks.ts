@@ -6,58 +6,51 @@ const BASE_URL = process.env.NEXTAUTH_URL ?? "https://rim-next.vercel.app";
 
 export interface CalendarEvent {
   title: string;
-  startDatetime: string;            // ISO 8601 UTC string, e.g. "2026-06-07T18:00:00.000Z"
-  endDatetime?: string | null;      // optional; defaults to 1 hour after start
+  startDatetime: string;             // ISO 8601 UTC string, e.g. "2026-06-07T18:00:00.000Z"
+  endDatetime?: string | null;       // optional; defaults to 1 hour after start
   location?: string | null;
   programSlug: string;
-  recurrencePattern?: string | null; // e.g. "daily_3", "weekly_4", "monthly_6" — see Sanity schema
+  // Recurrence — all optional; leave blank for single events
+  recurrenceFreq?: string | null;     // "daily" | "weekly" | "monthly"
+  recurrenceInterval?: number | null; // every N days/weeks/months — default 1
+  recurrenceDays?: string[] | null;   // BYDAY values for weekly: ["MO","WE","FR"] etc.
+  recurrenceCount?: number | null;    // total sessions including the first
 }
 
 /**
- * Parse a recurrencePattern string into an iCal RRULE line.
- * Format: "{freq}_{count}" where freq is "daily" | "weekly" | "monthly"
- * Returns null for blank / single-event programs.
+ * Build an iCal RRULE line from the event's recurrence fields.
+ * Returns null for single-event programs (no recurrence set).
  */
-function buildRRule(pattern: string | null | undefined): string | null {
-  if (!pattern) return null;
-  const [freq, countStr] = pattern.split("_");
-  const count = parseInt(countStr, 10);
-  if (!count || count < 2) return null;
-  switch (freq) {
-    case "daily":   return `RRULE:FREQ=DAILY;COUNT=${count}`;
-    case "weekly":  return `RRULE:FREQ=WEEKLY;COUNT=${count}`;
-    case "monthly": return `RRULE:FREQ=MONTHLY;COUNT=${count}`;
-    default:        return null;
-  }
+function buildRRule(ev: CalendarEvent): string | null {
+  const { recurrenceFreq: freq, recurrenceInterval: interval,
+          recurrenceDays: days, recurrenceCount: count } = ev;
+  if (!freq || !count || count < 2) return null;
+
+  const parts: string[] = [`FREQ=${freq.toUpperCase()}`];
+  if (interval && interval > 1) parts.push(`INTERVAL=${interval}`);
+  if (days && days.length > 0 && freq === "weekly") parts.push(`BYDAY=${days.join(",")}`);
+  parts.push(`COUNT=${count}`);
+
+  return `RRULE:${parts.join(";")}`;
 }
 
 /**
  * Human-readable labels for the add-to-calendar links.
  * Returns { googleLabel, icsLabel } — both empty strings for single events.
+ * Google Calendar URL only shows the first occurrence (no RRULE support in the add-event URL),
+ * so googleLabel flags this clearly. The .ics download includes the full RRULE.
  */
-export function describeRecurrence(pattern: string | null | undefined): {
-  googleLabel: string;
-  icsLabel: string;
-} {
-  if (!pattern) return { googleLabel: "", icsLabel: "" };
-  const [freq, countStr] = pattern.split("_");
-  const count = parseInt(countStr, 10);
-  if (!count || count < 2) return { googleLabel: "", icsLabel: "" };
-  switch (freq) {
-    case "daily":
-      return {
-        googleLabel: `first day only`,
-        icsLabel:    `all ${count} days`,
-      };
-    case "weekly":
-    case "monthly":
-      return {
-        googleLabel: `first session`,
-        icsLabel:    `all ${count} sessions`,
-      };
-    default:
-      return { googleLabel: "", icsLabel: "" };
-  }
+export function describeRecurrence(
+  freq?: string | null,
+  interval?: number | null,
+  days?: string[] | null,
+  count?: number | null,
+): { googleLabel: string; icsLabel: string } {
+  if (!freq || !count || count < 2) return { googleLabel: "", icsLabel: "" };
+  return {
+    googleLabel: freq === "daily" ? "first day only" : "first session",
+    icsLabel:    `all ${count} ${freq === "daily" ? "days" : "sessions"}`,
+  };
 }
 
 /**
@@ -71,6 +64,8 @@ function toCalDT(iso: string): string {
 /**
  * Build a Google Calendar "Add to Calendar" URL.
  * Opens the event creation form with all fields pre-filled.
+ * Note: Google Calendar's add-event URL does not support RRULE — it always
+ * shows a single event. For recurring programs the label makes this clear.
  */
 export function buildGoogleCalendarUrl(ev: CalendarEvent): string {
   const start = toCalDT(ev.startDatetime);
@@ -100,6 +95,7 @@ export function buildIcsUrl(programSlug: string): string {
 /**
  * Build ICS file content for a program event.
  * Returns a string suitable for a text/calendar HTTP response.
+ * Includes RRULE for multi-session programs (courses, retreats, series).
  */
 export function buildIcsContent(ev: CalendarEvent): string {
   const uid   = `${ev.programSlug}@rootedinmindfulness.org`;
@@ -114,6 +110,8 @@ export function buildIcsContent(ev: CalendarEvent): string {
   // iCal special chars: commas and semicolons must be escaped with backslash
   const esc = (s: string) => s.replace(/[,;\\]/g, (c) => "\\" + c);
 
+  const rrule = buildRRule(ev);
+
   const lines: string[] = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
@@ -125,9 +123,8 @@ export function buildIcsContent(ev: CalendarEvent): string {
     `DTSTAMP:${now}`,
     `DTSTART:${start}`,
     `DTEND:${end}`,
-    // RRULE for multi-session programs (courses, retreats, series)
-    // buildRRule() returns null for single events — spread of null filtered below
-    ...(buildRRule(ev.recurrencePattern) ? [buildRRule(ev.recurrencePattern) as string] : []),
+    // RRULE for multi-session programs — null for single events (filtered out below)
+    ...(rrule ? [rrule] : []),
     `SUMMARY:${esc(ev.title)}`,
     ...(ev.location ? [`LOCATION:${esc(ev.location)}`] : []),
     `URL:${programUrl}`,

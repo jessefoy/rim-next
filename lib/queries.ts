@@ -38,7 +38,10 @@ export const programBySlugQuery = `*[_type == "programs" && slug.current == $slu
   timeText,
   startDatetime,
   endDatetime,
-  recurrencePattern,
+  recurrenceFreq,
+  recurrenceInterval,
+  recurrenceDays,
+  recurrenceCount,
   locationText,
   locationLink,
   danaText,
@@ -209,7 +212,10 @@ export const programConfirmationDataQuery = `*[_type == "programs" && slug.curre
   locationLink,
   startDatetime,
   endDatetime,
-  recurrencePattern,
+  recurrenceFreq,
+  recurrenceInterval,
+  recurrenceDays,
+  recurrenceCount,
   confirmationMessage
 }`;
 

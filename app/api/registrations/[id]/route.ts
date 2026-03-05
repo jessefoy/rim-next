@@ -125,7 +125,10 @@ export async function PATCH(
           endDatetime: data.endDatetime,
           location: data.locationText,
           programSlug: reg.programSlug,
-          recurrencePattern: data.recurrencePattern,
+          recurrenceFreq: data.recurrenceFreq,
+          recurrenceInterval: data.recurrenceInterval,
+          recurrenceDays: data.recurrenceDays,
+          recurrenceCount: data.recurrenceCount,
         });
         icsUrl = buildIcsUrl(reg.programSlug);
       }

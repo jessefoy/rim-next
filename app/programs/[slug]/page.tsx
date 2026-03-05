@@ -26,7 +26,10 @@ interface Program {
   timeText?: string;
   startDatetime?: string | null;
   endDatetime?: string | null;
-  recurrencePattern?: string | null;
+  recurrenceFreq?: string | null;
+  recurrenceInterval?: number | null;
+  recurrenceDays?: string[] | null;
+  recurrenceCount?: number | null;
   locationText?: string;
   locationLink?: string;
   danaText?: string;
@@ -252,7 +255,12 @@ export default async function ProgramDetailPage({
                     <>
                       <span className="pg-register-status">✓ You&rsquo;re registered.</span>
                       {program.startDatetime && (() => {
-                        const rec = describeRecurrence(program.recurrencePattern);
+                        const rec = describeRecurrence(
+                          program.recurrenceFreq,
+                          program.recurrenceInterval,
+                          program.recurrenceDays,
+                          program.recurrenceCount,
+                        );
                         return (
                           <div className="pg-calendar-links">
                             <a
@@ -262,7 +270,10 @@ export default async function ProgramDetailPage({
                                 endDatetime: program.endDatetime,
                                 location: program.locationText,
                                 programSlug: slug,
-                                recurrencePattern: program.recurrencePattern,
+                                recurrenceFreq: program.recurrenceFreq,
+                                recurrenceInterval: program.recurrenceInterval,
+                                recurrenceDays: program.recurrenceDays,
+                                recurrenceCount: program.recurrenceCount,
                               })}
                               target="_blank"
                               rel="noopener noreferrer"
