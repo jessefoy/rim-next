@@ -6343,6 +6343,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 }
 
 .man-steps li {
+  margin: 0;
   font-family: var(--font-sans);
   font-size: 15px;
   color: var(--rim-text);
@@ -6359,6 +6360,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 }
 
 .man-list li {
+  margin: 0;
   font-family: var(--font-sans);
   font-size: 15px;
   color: var(--rim-text);
@@ -6489,7 +6491,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   margin-top: 8px;
   margin-bottom: 0;
 }
-.man-field__desc .man-list li { font-size: 13.5px; }
+.man-field__desc .man-list li { margin: 0; font-size: 13.5px; }
 
 /* ── Tasks ── */
 .man-task {
