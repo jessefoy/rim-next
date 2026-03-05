@@ -37,6 +37,15 @@
       "addedAt": "2026-03-05"
     },
     {
+      "id": "2026-03-05-011",
+      "title": "Welcome email after community onboarding",
+      "description": "After a member completes onboarding (agreedToTerms = true), send a warm welcome email via Resend and add them to the Flodesk 'New Member' segment. Applies to both paths: registration form (Path A) and direct login to /account/welcome (Path B). Needs sendWelcomeEmail() in lib/email.ts and Flodesk segment call. Full spec in FEATURES.md §17f.",
+      "category": "Email & Notifications",
+      "priority": "high",
+      "status": "open",
+      "addedAt": "2026-03-05"
+    },
+    {
       "id": "2026-03-05-005",
       "title": "Self-service email change",
       "description": "Member can update their own login email from My Profile. Requires verification email sent to the new address, 3 new DB fields (pendingEmail, pendingEmailToken, pendingEmailExpires), 2 new API routes, email template, and My Profile UI changes.",
@@ -66,7 +75,7 @@
     {
       "id": "2026-03-05-008",
       "title": "Continue CSS migration (Webflow → design system)",
-      "description": "Continue migrating pages from raw Webflow classes to design-system prefixed classes (pg-, lp-, db-, etc.). See memory/pages-inventory.md for the full page list and migration order.",
+      "description": "Continue migrating pages from raw Webflow classes to design-system prefixed classes (pg-, lp-, db-, etc.). See memory/pages-inventory.md for the full page list and migration order. 14/31 pages are currently 🟢.",
       "category": "CSS & Design",
       "priority": "medium",
       "status": "open",
@@ -82,10 +91,100 @@
       "addedAt": "2026-03-05"
     },
     {
+      "id": "2026-03-05-012",
+      "title": "Donation management Phase 2 UI",
+      "description": "Unified donation tracking UI: donor list (searchable, shows giving history), manual cash/check entry form, GiveButter CSV import, filterable donation history, QuickBooks export CSV. The DB schema (Donation model) and Stripe auto-write are already live — this is primarily UI work. Full spec in FEATURES.md §13.",
+      "category": "Admin Tools",
+      "priority": "medium",
+      "status": "open",
+      "addedAt": "2026-03-05"
+    },
+    {
+      "id": "2026-03-05-013",
+      "title": "Rebuild My Library page",
+      "description": "The /account/dashboard-my-library page is currently hardcoded with 4 items that link to the old Webflow site. Should dynamically pull courses available to the member based on their registrations and course access grants, displayed as cards with lesson counts and progress.",
+      "category": "Courses & Library",
+      "priority": "medium",
+      "status": "open",
+      "addedAt": "2026-03-05"
+    },
+    {
+      "id": "2026-03-05-014",
+      "title": "Volunteer interest form — add a backend",
+      "description": "The form at /volunteerism/volunteer has no backend — any submissions go nowhere. Needs an API route to receive form data and email it to staff (or store in DB). The /volunteerism/volunteer-thanks-for-your-interest page is also currently an orphan. Decide: wire up the form or remove both pages.",
+      "category": "Registration",
+      "priority": "medium",
+      "status": "open",
+      "addedAt": "2026-03-05"
+    },
+    {
+      "id": "2026-03-05-015",
+      "title": "Sanity accepted-member revocation — resolve API path",
+      "description": "When a REGISTRAR role is removed, we can cancel pending Sanity invites but cannot remove members who already accepted — all Sanity Management API paths tried return 404. Test with a real non-owner registrar account when one is onboarded. May require a Sanity support ticket. Documented in FEATURES.md §18.",
+      "category": "Admin Tools",
+      "priority": "medium",
+      "status": "open",
+      "addedAt": "2026-03-05"
+    },
+    {
+      "id": "2026-03-05-016",
+      "title": "Audit li/ul margin reset across all content pages",
+      "description": "rim.webflow.css sets li { margin-left: -20px; margin-bottom: 15px } globally. We fixed this for the manual page (man-steps li, man-list li, man-sidebar li). The same issue likely affects rich text bullet lists rendered from Sanity Portable Text on lesson pages (lp-body) and other pages. Audit all pages with lists and add targeted resets.",
+      "category": "CSS & Design",
+      "priority": "medium",
+      "status": "open",
+      "addedAt": "2026-03-05"
+    },
+    {
       "id": "2026-03-05-010",
       "title": "Animated botanical elements in program hero",
       "description": "CSS+SVG botanical drift animation in the pg-hero section. Must include prefers-reduced-motion support. Prompt saved — paste it in a new session to implement.",
       "category": "CSS & Design",
+      "priority": "low",
+      "status": "open",
+      "addedAt": "2026-03-05"
+    },
+    {
+      "id": "2026-03-05-017",
+      "title": "Write manual chapters: Member Accounts + Courses & Materials",
+      "description": "The staff manual sidebar lists 'Member Accounts' and 'Courses & Materials' as Coming soon. Member Accounts chapter: looking up members, editing profiles, granting/revoking course access, archived vs active states. Courses & Materials chapter: setting up courses in Sanity, managing access levels, linking programs to courses.",
+      "category": "Admin Tools",
+      "priority": "low",
+      "status": "open",
+      "addedAt": "2026-03-05"
+    },
+    {
+      "id": "2026-03-05-018",
+      "title": "Email notification preferences",
+      "description": "Members can opt out of certain transactional emails (e.g. reminder emails) from My Profile. Needs emailPreferences Json? on User model, preference checks before each send in lib/email.ts, and a simple UI on My Profile. Full spec in FEATURES.md §17i.",
+      "category": "Member Accounts",
+      "priority": "low",
+      "status": "open",
+      "addedAt": "2026-03-05"
+    },
+    {
+      "id": "2026-03-05-019",
+      "title": "Member self-service account deletion",
+      "description": "GDPR/CCPA consideration: a member can request deletion of their own account and all associated data from My Profile. Same zero-registration guard as admin delete — if they have registrations, show a message directing them to contact the registrar. Full spec in FEATURES.md §17j.",
+      "category": "Member Accounts",
+      "priority": "low",
+      "status": "open",
+      "addedAt": "2026-03-05"
+    },
+    {
+      "id": "2026-03-05-020",
+      "title": "Access denied / 401 page",
+      "description": "There is currently no graceful unauthorized error page. When someone accesses a protected route without permission, they see a generic error or silent redirect. Build a warm, RIM-branded 401/403 page that explains what happened and offers a path forward (log in, go home).",
+      "category": "Nav & Layout",
+      "priority": "low",
+      "status": "open",
+      "addedAt": "2026-03-05"
+    },
+    {
+      "id": "2026-03-05-021",
+      "title": "Show drop-in Zoom link on program page for logged-in members",
+      "description": "If a logged-in member is viewing a program page for a recurring drop-in program that has a Zoom link, surface the link directly on the page rather than requiring them to go to the dashboard. Reduces friction for regular attendees. Noted in FEATURES.md §14 as planned but not yet built.",
+      "category": "Programs & Sanity",
       "priority": "low",
       "status": "open",
       "addedAt": "2026-03-05"
