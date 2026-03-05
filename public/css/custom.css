@@ -6779,6 +6779,20 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   color: var(--rim-rule);
 }
 
+/* ── Section divider (Google Meet sub-section within Programs chapter) ── */
+.man-section--divider {
+  border-top: 1px solid var(--rim-rule);
+  margin-top: 72px;
+  padding-top: 64px;
+}
+
+/* ── Sidebar sub-list divider ── */
+.man-sidebar__sub-divider {
+  border-top: 1px solid var(--rim-rule);
+  margin: 8px 0 6px;
+  list-style: none;
+}
+
 /* ── Responsive ── */
 @media (max-width: 900px) {
   .man-layout { flex-direction: column; }

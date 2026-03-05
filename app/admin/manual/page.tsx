@@ -51,13 +51,8 @@ export default async function ManualPage() {
               <li><a href="#prog-dashboard" className="man-sidebar__sublink">Dashboard tab</a></li>
               <li><a href="#prog-sorting"   className="man-sidebar__sublink">Sorting &amp; Visibility tab</a></li>
               <li><a href="#prog-tasks"     className="man-sidebar__sublink">Common tasks</a></li>
-            </ul>
-          </li>
-
-          <li>
-            <a href="#google-meet" className="man-sidebar__link">Google Meet</a>
-            <ul className="man-sidebar__sub">
-              <li><a href="#meet-overview"      className="man-sidebar__sublink">Overview</a></li>
+              <li className="man-sidebar__sub-divider" />
+              <li><a href="#google-meet"        className="man-sidebar__sublink">Setting up Google Meet</a></li>
               <li><a href="#meet-how-it-works"  className="man-sidebar__sublink">How it works</a></li>
               <li><a href="#meet-before"        className="man-sidebar__sublink">Before you start</a></li>
               <li><a href="#meet-create"        className="man-sidebar__sublink">Creating a meeting</a></li>
@@ -1160,47 +1155,22 @@ export default async function ManualPage() {
           </div>
         </section>
 
-        {/* ── Future editions ── */}
-        <section className="man-future">
-          <h2 className="man-future__title">Future editions of this manual</h2>
-          <p className="man-future__intro">
-            The following chapters are planned and will be added as each area of the system matures.
-          </p>
-          <ul className="man-future__list">
-            <li>
-              <strong>Member Accounts</strong> — how members sign in (magic link, no passwords), the onboarding flow, community agreements, account management, and what to do when someone can&rsquo;t get in.
-            </li>
-            <li>
-              <strong>Courses &amp; Online Materials</strong> — the member-facing side: browsing the course library, accessing lessons and recordings, and how open courses differ from registration-required ones. (The admin side — granting and revoking access — is already covered in the <a href="#reg-course-access">Course access</a> section of this chapter.)
-            </li>
-            <li>
-              <strong>Google Meet Integration</strong> — once built: how to generate a Google Meet link directly from Sanity Studio and have it appear in emails and on the program page automatically.
-            </li>
-          </ul>
-        </section>
+        {/* ── Google Meet (integrated into Programs chapter) ── */}
 
-        {/* ════════════════════════════════════════
-            CHAPTER 3 — GOOGLE MEET
-            ════════════════════════════════════════ */}
-
-        <div id="google-meet" className="man-chapter man-chapter--break">
-          <h1 className="man-chapter__title">Google Meet</h1>
-          <p className="man-chapter__subtitle">
-            This chapter walks you through setting up Google Meet video calls for virtual programs — what to do before a session, how to create the meeting link, and what the volunteer host needs to know.
-          </p>
-        </div>
-
-        {/* ── Overview ── */}
-        <section id="meet-overview" className="man-section">
-          <h2 className="man-section__title">Overview</h2>
+        {/* ── Google Meet: overview ── */}
+        <section id="google-meet" className="man-section man-section--divider">
+          <h2 className="man-section__title">Setting up a Google Meet</h2>
           <p>
-            Google Meet is the video platform RIM uses for virtual programs — drop-in sittings, community groups, Foundations, and any other program that happens over video. It replaced Zoom, which had a 40-minute limit on the free plan and required managing separate accounts and links outside of the website.
+            If your program is virtual — meaning participants join from home over video — there is one final step after setting everything up in Sanity Studio: creating the Google Meet link. This is how the volunteer host and everyone who registers will actually get into the session.
           </p>
           <p>
-            With this system, creating a meeting link is a two-step process: you open the program in the registrar area, type the volunteer&rsquo;s email address, and click one button. That&rsquo;s it. The link is created automatically, saved to the program, and appears in all confirmation and reminder emails without you having to copy or paste anything.
+            Google Meet is the video platform RIM uses for all virtual programs — drop-in sittings, community groups, Foundations, and any other program that happens over video. It replaced Zoom, which had a 40-minute time limit on the free plan and required managing separate accounts and links outside of the website.
           </p>
           <p>
-            The volunteer host receives a Google Calendar invite. They click the link from their own Google account, join the meeting, and automatically have full host controls — they can mute participants, admit people from the waiting area, and end the session when it&rsquo;s complete. They never need to log into a shared account or do anything special.
+            With this system, creating a meeting link takes about 30 seconds. You open the program in the registrar area, type the volunteer&rsquo;s email address, and click one button. The link is created automatically, saved to the program, and from that point forward it appears in all confirmation and reminder emails — without you having to copy or paste anything.
+          </p>
+          <p>
+            The volunteer host receives a Google Calendar invite. When it&rsquo;s time, they click the link from their own Google account and join the meeting. They automatically have full host controls — no special account, no password, nothing to install.
           </p>
         </section>
 
@@ -1425,8 +1395,24 @@ export default async function ManualPage() {
           </p>
         </section>
 
+        {/* ── Future editions ── */}
+        <section className="man-future">
+          <h2 className="man-future__title">Future editions of this manual</h2>
+          <p className="man-future__intro">
+            The following chapters are planned and will be added as each area of the system matures.
+          </p>
+          <ul className="man-future__list">
+            <li>
+              <strong>Member Accounts</strong> — how members sign in (magic link, no passwords), the onboarding flow, community agreements, account management, and what to do when someone can&rsquo;t get in.
+            </li>
+            <li>
+              <strong>Courses &amp; Online Materials</strong> — the member-facing side: browsing the course library, accessing lessons and recordings, and how open courses differ from registration-required ones. (The admin side — granting and revoking access — is already covered in the <a href="#reg-course-access">Course access</a> section of Chapter 1.)
+            </li>
+          </ul>
+        </section>
+
         {/* ════════════════════════════════════════
-            CHAPTER 4 — STAFF & ROLES
+            CHAPTER 3 — STAFF & ROLES
             ════════════════════════════════════════ */}
 
         <div id="roles" className="man-chapter man-chapter--break">
