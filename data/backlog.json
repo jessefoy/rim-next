@@ -102,9 +102,9 @@
     {
       "id": "2026-03-05-013",
       "title": "Rebuild My Library page",
-      "description": "The /account/dashboard-my-library page is currently hardcoded with 4 items that link to the old Webflow site. Should dynamically pull courses available to the member based on their registrations and course access grants, displayed as cards with lesson counts and progress.",
+      "description": "The /account/dashboard-my-library page is currently hardcoded with 4 placeholder items that all link to the old live Webflow site — not to the courses on rim-next. This means members who click through land on the wrong site entirely. Needs to be rebuilt properly before go-live.\n\nTwo things to solve: (1) Dynamic data — pull courses available to this member based on their registrations and CourseAccess grants from the DB, not hardcoded content. (2) Layout and formatting — the current page design needs to be strategized and built out correctly as part of the design system (ml- prefix). Cards should show course title, lesson count, and a clear path into the course on rim-next.",
       "category": "Courses & Library",
-      "priority": "medium",
+      "priority": "high",
       "status": "open",
       "addedAt": "2026-03-05"
     },
