@@ -438,8 +438,8 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
         )}
       </div>
 
-      {/* Course access — admin only */}
-      {isAdmin && <section className="adm-section">
+      {/* Course access — registrar and admin */}
+      <section className="adm-section">
         <h2 className="adm-section__title">Course Access</h2>
         <CourseAccessSection
           memberId={member.id}
@@ -449,7 +449,7 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
           }))}
           initialGrants={member.courseAccess}
         />
-      </section>}
+      </section>
 
       {/* Registration history */}
       <section className="adm-section">

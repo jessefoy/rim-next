@@ -26,8 +26,9 @@ export default async function ManualPage() {
               <li><a href="#reg-member-exp"  className="man-sidebar__sublink">Member experience</a></li>
               <li><a href="#reg-your-tools" className="man-sidebar__sublink">Your tools</a></li>
               <li><a href="#reg-statuses"   className="man-sidebar__sublink">Status guide</a></li>
-              <li><a href="#reg-dana"       className="man-sidebar__sublink">Dana</a></li>
-              <li><a href="#reg-emails"     className="man-sidebar__sublink">Automatic emails</a></li>
+              <li><a href="#reg-dana"         className="man-sidebar__sublink">Dana</a></li>
+              <li><a href="#reg-course-access" className="man-sidebar__sublink">Course access</a></li>
+              <li><a href="#reg-emails"       className="man-sidebar__sublink">Automatic emails</a></li>
               <li><a href="#reg-calendar"   className="man-sidebar__sublink">Calendar links</a></li>
               <li><a href="#reg-tasks"      className="man-sidebar__sublink">Common tasks</a></li>
               <li><a href="#reg-edge-cases" className="man-sidebar__sublink">Edge cases</a></li>
@@ -297,6 +298,36 @@ export default async function ManualPage() {
           </p>
           <div className="man-note">
             <strong>Note:</strong> Dana is never a gate on participation. A person with Pending dana is fully registered and should be welcomed. The reminder is a gentle invitation, not a requirement.
+          </div>
+        </section>
+
+        {/* ── Course access ── */}
+        <section id="reg-course-access" className="man-section">
+          <h2 className="man-section__title">Course access</h2>
+          <p>
+            Some programs include access to online materials — audio recordings, readings, or structured courses — hosted in the Members Area. When a program is linked to a course in Sanity Studio, anyone who registers for that program automatically receives access. You don&rsquo;t need to do anything.
+          </p>
+          <p>
+            For situations where automatic access doesn&rsquo;t apply, you can grant or revoke course access manually from the member detail page (<strong>/admin/members/[id]</strong>).
+          </p>
+
+          <h3 className="man-section__h3">When to use manual grants</h3>
+          <ul className="man-list">
+            <li><strong>Historical members</strong> — someone participated before the course was linked to the program. Automatic access only applies to registrations made <em>after</em> the link was added in Sanity Studio.</li>
+            <li><strong>Exceptions</strong> — a member who couldn&rsquo;t attend but should still have access to the materials.</li>
+            <li><strong>One-off access</strong> — a course not tied to any program, granted directly to a specific person.</li>
+          </ul>
+
+          <h3 className="man-section__h3">How to grant or revoke access</h3>
+          <ol className="man-steps">
+            <li>Go to <strong>/admin/members</strong> and open the member&rsquo;s detail page.</li>
+            <li>Scroll to the <strong>Course Access</strong> section.</li>
+            <li>Each course is listed with its current status — <em>All Members</em>, <em>Via Registration</em>, <em>Manual Grant</em>, or <em>No Access</em>.</li>
+            <li>To grant access, click <strong>Grant Access</strong> on the course. A confirmation step appears — read the note about any registration-based access already in place, then confirm.</li>
+            <li>To revoke a manual grant, click <strong>Revoke Access</strong> and confirm. This only removes the manual grant — if the member has registration-based access to the same course, that remains in effect.</li>
+          </ol>
+          <div className="man-note">
+            <strong>Registration-based access is separate from manual grants.</strong> If a member registered for a program that links to a course, they have access through that registration regardless of whether a manual grant exists. Revoking a manual grant does not remove registration-based access.
           </div>
         </section>
 
@@ -1167,13 +1198,14 @@ export default async function ManualPage() {
             <li>Promote waitlisted members, cancel and restore registrations</li>
             <li>Send edit-request links and reminder emails to registrants</li>
             <li>View and edit member profiles at <strong>/admin/members</strong> — name, email, phone</li>
+            <li>Grant or revoke course access for individual members</li>
             <li>Access <strong>Sanity Studio</strong> — create and edit programs, lessons, and other site content (if invited — see below)</li>
           </ul>
           <p>What a Registrar <em>cannot</em> do:</p>
           <ul className="man-list">
             <li>Assign or remove roles</li>
             <li>Archive, restore, or delete member accounts</li>
-            <li>Grant or revoke course access, or import members from CSV</li>
+            <li>Import members from CSV</li>
           </ul>
 
           <h3 className="man-section__h3">Admin</h3>

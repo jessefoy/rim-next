@@ -12,7 +12,7 @@ export interface AdminCourse {
 
 export async function GET() {
   const session = await auth();
-  if (!session?.user?.roles?.some((r) => r === "ADMIN")) {
+  if (!session?.user?.roles?.some((r) => r === "ADMIN" || r === "REGISTRAR")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
