@@ -46,6 +46,7 @@ function programIsToday(program: DashboardProgram, today: string): boolean {
 const STAFF_LINKS: Record<string, { label: string; href: string; description: string; external?: boolean }[]> = {
   REGISTRAR: [
     { label: "Registrations", href: "/volunteer", description: "View and manage program registrations" },
+    { label: "Members", href: "/admin/members", description: "Look up and edit member profiles" },
     { label: "Sanity Studio", href: "https://rooted-in-mindfulness.sanity.studio/", description: "Edit site content and programs", external: true },
   ],
   ADMIN: [

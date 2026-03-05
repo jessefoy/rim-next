@@ -92,7 +92,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
-  if (!session?.user?.roles?.some((r) => r === "ADMIN")) {
+  const isAdmin = session?.user?.roles?.some((r) => r === "ADMIN");
+  const isRegistrar = session?.user?.roles?.some((r) => r === "REGISTRAR");
+  if (!isAdmin && !isRegistrar) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -100,7 +102,11 @@ export async function PATCH(
   const body = await request.json();
   const { action, firstName, lastName, phone, email, roles } = body;
 
-  // ── Special actions ──────────────────────────────────────────────────────────
+  // ── Special actions (Admin only) ─────────────────────────────────────────────
+
+  if (action === "archive" || action === "restore") {
+    if (!isAdmin) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
 
   if (action === "archive") {
     await db.user.update({ where: { id }, data: { archivedAt: new Date() } });
@@ -116,8 +122,9 @@ export async function PATCH(
 
   // ── Profile / roles update ────────────────────────────────────────────────────
 
-  // Validate roles if provided
+  // Validate roles if provided; role changes require Admin
   if (roles !== undefined) {
+    if (!isAdmin) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     if (!Array.isArray(roles) || roles.some((r: string) => !ALL_ROLES.includes(r as Role))) {
       return NextResponse.json({ error: "Invalid roles" }, { status: 400 });
     }

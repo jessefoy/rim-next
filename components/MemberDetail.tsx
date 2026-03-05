@@ -38,7 +38,7 @@ const ALL_ROLES = ["ADMIN", "REGISTRAR"] as const;
 
 const ROLE_DESCRIPTIONS: Record<string, string> = {
   ADMIN: "Full access — members, registrations, and all staff areas",
-  REGISTRAR: "View and manage program registrations + Sanity Studio access",
+  REGISTRAR: "View and manage registrations, member profiles, and Sanity Studio",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -50,7 +50,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 type DangerAction = "archive" | "restore" | "delete" | null;
 
-export default function MemberDetail({ member }: { member: Member }) {
+export default function MemberDetail({ member, isAdmin }: { member: Member; isAdmin: boolean }) {
   const router = useRouter();
   const [firstName, setFirstName] = useState(member.firstName ?? "");
   const [lastName, setLastName] = useState(member.lastName ?? "");
@@ -312,8 +312,8 @@ export default function MemberDetail({ member }: { member: Member }) {
         </div>
       </section>
 
-      {/* Roles section */}
-      <section className="adm-section">
+      {/* Roles section — admin only */}
+      {isAdmin && <section className="adm-section">
         <h2 className="adm-section__title">Roles &amp; Permissions</h2>
         <p className="adm-section__hint">
           When a role is assigned, the member&rsquo;s dashboard will show a link to that staff area.
@@ -334,10 +334,10 @@ export default function MemberDetail({ member }: { member: Member }) {
             </label>
           ))}
         </div>
-      </section>
+      </section>}
 
-      {/* Sanity Studio invite — shown after REGISTRAR role is saved */}
-      {savedRoles.includes("REGISTRAR") && (
+      {/* Sanity Studio invite — shown after REGISTRAR role is saved, admin only */}
+      {isAdmin && savedRoles.includes("REGISTRAR") && (
         <div className="adm-sanity">
           <p className="adm-sanity__label">Sanity Studio Access</p>
           {sanityInvitedAt ? (
@@ -394,7 +394,7 @@ export default function MemberDetail({ member }: { member: Member }) {
       <div className="adm-save">
         {error && <p className="adm-save__error">{error}</p>}
         {saved && <p className="adm-save__success">Saved ✓</p>}
-        {savedRoles.includes("REGISTRAR") &&
+        {isAdmin && savedRoles.includes("REGISTRAR") &&
           !roles.includes("REGISTRAR") &&
           !!sanityInvitedAt && (
             <p className="adm-save__warning">
@@ -438,8 +438,8 @@ export default function MemberDetail({ member }: { member: Member }) {
         )}
       </div>
 
-      {/* Course access */}
-      <section className="adm-section">
+      {/* Course access — admin only */}
+      {isAdmin && <section className="adm-section">
         <h2 className="adm-section__title">Course Access</h2>
         <CourseAccessSection
           memberId={member.id}
@@ -449,7 +449,7 @@ export default function MemberDetail({ member }: { member: Member }) {
           }))}
           initialGrants={member.courseAccess}
         />
-      </section>
+      </section>}
 
       {/* Registration history */}
       <section className="adm-section">
@@ -480,8 +480,8 @@ export default function MemberDetail({ member }: { member: Member }) {
         )}
       </section>
 
-      {/* Danger zone */}
-      <section className="adm-danger-zone">
+      {/* Danger zone — admin only */}
+      {isAdmin && <section className="adm-danger-zone">
         <p className="adm-danger-zone__title">Danger Zone</p>
 
         {dangerError && <p className="adm-save__error" style={{ marginBottom: 12 }}>{dangerError}</p>}
@@ -537,7 +537,7 @@ export default function MemberDetail({ member }: { member: Member }) {
             )}
           </div>
         )}
-      </section>
+      </section>}
     </>
   );
 }

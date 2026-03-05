@@ -1098,13 +1098,14 @@ export default async function ManualPage() {
             <li>View and manage all program registrations at <strong>/volunteer</strong></li>
             <li>Promote waitlisted members, cancel and restore registrations</li>
             <li>Send edit-request links and reminder emails to registrants</li>
+            <li>View and edit member profiles at <strong>/admin/members</strong> — name, email, phone</li>
             <li>Access <strong>Sanity Studio</strong> — create and edit programs, lessons, and other site content (if invited — see below)</li>
           </ul>
           <p>What a Registrar <em>cannot</em> do:</p>
           <ul className="man-list">
-            <li>View or edit other members&rsquo; accounts</li>
             <li>Assign or remove roles</li>
-            <li>Access the admin member list at <strong>/admin/members</strong></li>
+            <li>Archive, restore, or delete member accounts</li>
+            <li>Grant or revoke course access, or import members from CSV</li>
           </ul>
 
           <h3 className="man-section__h3">Admin</h3>
@@ -1141,13 +1142,13 @@ export default async function ManualPage() {
                 <td>✓</td>
               </tr>
               <tr>
-                <td>Sanity Studio (external)</td>
+                <td>Members <code>/admin/members</code></td>
                 <td>✓</td>
                 <td>✓</td>
               </tr>
               <tr>
-                <td>Members <code>/admin/members</code></td>
-                <td>—</td>
+                <td>Sanity Studio (external)</td>
+                <td>✓</td>
                 <td>✓</td>
               </tr>
             </tbody>

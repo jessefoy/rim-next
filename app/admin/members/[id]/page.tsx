@@ -14,7 +14,8 @@ export default async function AdminMemberDetailPage({
   if (!session) redirect("/login");
 
   const isAdmin = session.user.roles?.some((r) => r === "ADMIN");
-  if (!isAdmin) {
+  const hasAccess = isAdmin || session.user.roles?.some((r) => r === "REGISTRAR");
+  if (!hasAccess) {
     return (
       <div className="adm-page">
         <div className="adm-content">
@@ -79,7 +80,7 @@ export default async function AdminMemberDetailPage({
   return (
     <div className="adm-page">
       <div className="adm-content adm-content--narrow">
-        <MemberDetail member={serialized} />
+        <MemberDetail member={serialized} isAdmin={isAdmin} />
       </div>
     </div>
   );
