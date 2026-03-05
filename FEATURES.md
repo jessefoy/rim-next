@@ -29,6 +29,8 @@ Two audiences:
 16. [Navigation Component](#16-navigation-component)
 17. [Planned Features](#17-planned-features)
 18. [Sanity Studio Access for Staff](#18-sanity-studio-access-for-staff)
+19. [Google Meet Integration](#19-google-meet-integration--high-priority)
+20. [Staff Reference Manual](#20-staff-reference-manual)
 
 ---
 
@@ -64,10 +66,9 @@ Two audiences:
 | Role | Access | Dashboard links |
 |---|---|---|
 | `ADMIN` | Everything — full site management | Registrations, Members, Sanity Studio |
-| `REGISTRAR` | Volunteer admin area — view and manage registrations | Registrations, Sanity Studio |
-| `TREASURER` | Donation management area — view all donations, enter manual donations (planned, not yet active) | (none yet) |
-| `TEACHER` | (defined, not yet used) | (none yet) |
-| `VOLUNTEER` | (defined, not yet used) | (none yet) |
+| `REGISTRAR` | Volunteer admin area — view and manage registrations + Sanity Studio access | Registrations, Sanity Studio |
+
+New roles will be added when there is real functionality to attach to them. Avoid defining roles speculatively — it adds noise to the member detail UI and member list filter without providing value.
 
 **Where roles are assigned:** Via the admin member detail page (`/admin/members/[id]`). Check or uncheck the role checkbox, then click "Save changes." No direct database access needed.
 
@@ -718,6 +719,7 @@ All custom styles: `public/css/custom.css`
 | `mp-` | My Profile page |
 | `mc-` | Community Agreements page |
 | `nav-` | Global nav component (🟢 — no Webflow dependency) |
+| `man-` | Staff Reference Manual (`/admin/manual`) |
 
 ### Design tokens (CSS custom properties)
 ```css
@@ -757,7 +759,7 @@ All custom styles: `public/css/custom.css`
 
 ### Member list (`/admin/members`)
 - Search bar (filters name + email client-side — fast, no round-trip)
-- Role filter: All / Admins / Registrars / Treasurers / No roles
+- Role filter: All / Admins / Registrars / No roles
 - **Archived toggle:** "Show Archived (N)" button appears only when `archivedCount > 0`. Clicking it filters the table to show only archived members. Archived rows are visually muted with an "Archived" badge in the name cell.
 - Table: Name, Email, Roles (colored badges), Registrations count, Joined date
 - Click any row → navigates to member detail page
@@ -765,7 +767,7 @@ All custom styles: `public/css/custom.css`
 
 ### Member detail (`/admin/members/[id]`)
 - Profile section: edit firstName, lastName, phone (email is read-only — set by auth)
-- Roles section: checkbox per role (ADMIN, REGISTRAR, TREASURER, TEACHER, VOLUNTEER) with descriptions
+- Roles section: checkbox per role (ADMIN, REGISTRAR) with descriptions
 - Assigned roles appear as staff links on the member's dashboard automatically
 - **Course Access section:** searchable list of all courses in the system; each course shows status badge(s) — "All Members" (open to any logged-in user), "Via Registration: [Program Name]" (member has active registration for a linked program), "Manual Grant" (admin-granted), or "No Access". Grant/revoke controls appear inline per course with warning dialogs when a grant is redundant or when revoking still leaves other access.
 - Registration history: list of all programs registered for, with status badges + link to volunteer table
@@ -1691,4 +1693,86 @@ Once the prerequisites are done, these are the implementation pieces:
 
 ---
 
-*Last updated: 2026-03-05 (session 22)*
+---
+
+## 20. Staff Reference Manual
+
+**What it does:** A plain-English how-to guide for every staff role — written for people who are learning the system, not developers. Accessible at `/admin/manual`. Organized into chapters, each targeting a specific role and task, with field-by-field explanations, common workflows, and plain-language context for every decision.
+
+**Who uses it:**
+- **Registrars** — primary audience; all chapters are relevant to their daily workflow
+- **Admins** — secondary audience; useful for onboarding new registrars and as a system reference
+- No access for regular members, teachers, or volunteers
+
+**Access control:** `session.user.roles?.some(r => ["ADMIN", "REGISTRAR"].includes(r))` — redirects all others to `/login`.
+
+**URL:** `/admin/manual`
+
+### Current Chapters
+
+#### Chapter 1 — Registration Management
+**Subtitle:** How to view, manage, and communicate with program registrants.
+
+Covers the complete registrar workflow from the volunteer table:
+
+| Section | What it explains |
+|---|---|
+| The Registrar Table | How to reach it, what you see, what each column means |
+| Registration Statuses | REGISTERED, WAITLISTED, APPROVED, CANCELLED — what each means and when to use each |
+| Promoting from Waitlist | Approve button, dana re-trigger for promoted members |
+| Editing Responses | Inline edit mode — how to change a registrant's answers to custom questions |
+| Sending an Edit Link | Edit request email — when to use it, what the member sees |
+| Sending Reminders | Per-person and bulk reminders, cron automation, how to avoid double-sends |
+| Resending Confirmation | When to resend, what the resent email includes |
+| Exporting Attendees | CSV export — what columns appear, how to use for check-in |
+| Common Scenarios | "Someone says they didn't get an email", "We're over capacity", etc. |
+
+#### Chapter 2 — Setting Up Programs in Sanity Studio
+**Subtitle:** How to create and manage programs — every tab and field explained.
+
+Covers all 6 Sanity Studio program tabs with field-by-field documentation in a visual table format:
+
+| Tab | What it covers |
+|---|---|
+| Content | Name, Slug, Category, Featured Image, Pull Quote, Description, Teachers |
+| Schedule & Location | Date/Time text, Start/End datetime, Recurrence fields, Location, Meeting Link |
+| Registration | Registration Deadline, Registration Closed toggle, Custom Questions, Confirmation Message |
+| Dana & Payment | Dana Mode (none/voluntary/base_plus_dana/fixed), amounts, dana message |
+| Dashboard | Zoom links (today's sessions panel on member dashboard) |
+| Sorting & Visibility | Sort Order, Featured toggle, Hide from Listing |
+
+**Also covers:**
+- "How a program comes together" — anatomy overview with minimum-to-maximum checklist (5 tiers from page-exists to fully-configured)
+- Common tasks: creating a program, editing live content, closing registration, retiring/archiving
+- Practical notes: don't change slugs after publishing, meeting link must be set before reminder date, Central Time for all datetimes, linked courses don't grant access to existing registrants
+
+### Design
+
+**Layout:** Sidebar navigation (section links) + reading column (740px max-width, warm `--rim-bg-accent` background for sidebar). Fixed header shows the manual title and "Reference Manual" label.
+
+**CSS prefix:** `man-` (`public/css/custom.css`)
+
+**Components:**
+- `man-field-list` / `man-field` — 2-column grid (210px label + 1fr description) for field-by-field reference tables. Responsive: collapses to stacked on narrow viewports.
+- `man-note` — warm tinted callout box for important warnings and tips
+- `man-list` — clean list style for step-by-step instructions
+- `man-chapter--break` — blue top border + 80px top margin for visual chapter separation
+- `man-section__h3` — uppercase small label for sub-headings within sections
+- `man-content code` — monospace inline code style for technical values
+
+**Key file:** `app/admin/manual/page.tsx` — server component, full content inline (no CMS backing — manual updates require code edits).
+
+### 🔧 Technical notes
+
+- Server component — auth check at top: `redirect("/login")` if not ADMIN or REGISTRAR
+- All content is hardcoded in the TSX file; no database or Sanity dependency
+- Each chapter is independently self-contained so chapters can be handed to different people if roles split in the future
+- Chapter subtitles include explicit "Who uses this chapter:" callouts for role clarity
+- The sidebar uses anchor links (`#section-id`) for in-page navigation — no routing, no JavaScript required
+- Future chapters (coming soon as sidebar stubs): Member Accounts, Courses & Materials, Staff & Roles, Google Meet Integration
+
+---
+
+| 2026-03-05 (session 23) | Staff reference manual + role cleanup. **(1) Staff manual:** Complete build of `/admin/manual` — two-chapter reference guide with sidebar navigation. Chapter 1 (Registration Management): 9 sections covering the complete registrar workflow (volunteer table, statuses, promoting from waitlist, inline edits, edit request emails, reminders, resend confirmation, CSV export, common scenarios). Chapter 2 (Programs & Sanity Studio): 11 sections covering all 6 Sanity tabs with field-by-field `man-field-list` tables, a "How a program comes together" anatomy section with min-to-max checklist, and common task walkthroughs. CSS: added all missing `man-` classes that were defined in JSX but had no CSS (`man-section__h3`, `man-field-list`, `man-field`, `man-field__name`, `man-field__desc`, `man-content code`, `man-chapter--break`); responsive stacking for `man-field` on narrow viewports. Files: `app/admin/manual/page.tsx` (complete rewrite), `public/css/custom.css` (`man-` block). Commits: e6e9888, 328c1d8, b6003d4. **(2) Role simplification:** Removed TREASURER, TEACHER, VOLUNTEER from the system — they were defined speculatively with no functionality attached. Only ADMIN and REGISTRAR remain. Files: `prisma/schema.prisma` (Role enum), `components/MemberDetail.tsx` (ALL_ROLES + descriptions), `components/MembersTable.tsx` (RoleFilter type, badge map, label map, filter dropdown), `app/admin/roadmap/page.tsx` (TEACHER/VOLUNTEER wiring item removed, TREASURER desc updated), `app/admin/sitemap/page.tsx` (role lists updated). DB was already clean — no existing members had those roles; `prisma db push --accept-data-loss` confirmed no data loss. Commit: 75cad53. **(3) Docs:** FEATURES.md Section 2 (role table trimmed), Section 10 (man- CSS prefix added), Section 11 (stale role refs cleaned), Section 20 (Staff Reference Manual, new); Session Log updated; MEMORY.md updated. |
+
+*Last updated: 2026-03-05 (session 23)*
