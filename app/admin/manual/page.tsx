@@ -245,21 +245,55 @@ export default async function ManualPage() {
           <p>
             Each program has a <strong>Dana Mode</strong> set by whoever configured it in Sanity Studio:
           </p>
-          <ul className="man-list">
-            <li><strong>None</strong> — no dana step. The form skips it entirely. Most drop-in programs use this.</li>
-            <li><strong>Voluntary</strong> — a suggested amount is shown. The member can change it to any amount or skip it entirely with &ldquo;No thank you.&rdquo; No obligation.</li>
-            <li><strong>Base + Dana</strong> — a required base fee (to cover costs) plus an optional voluntary dana on top.</li>
-            <li><strong>Fixed</strong> — a set price. Used for programs with a firm cost, like a retreat with accommodation.</li>
-          </ul>
+          <table className="man-table">
+            <thead>
+              <tr><th>Mode</th><th>What it means</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>None</td>
+                <td>No dana step. The form skips it entirely. Most drop-in programs use this.</td>
+              </tr>
+              <tr>
+                <td>Voluntary</td>
+                <td>A suggested amount is shown. The member can change it to any amount or skip it entirely with &ldquo;No thank you.&rdquo; No obligation.</td>
+              </tr>
+              <tr>
+                <td>Base + Dana</td>
+                <td>A required base fee (to cover costs) plus an optional voluntary dana on top.</td>
+              </tr>
+              <tr>
+                <td>Fixed</td>
+                <td>A set price. Used for programs with a firm cost, like a retreat with accommodation.</td>
+              </tr>
+            </tbody>
+          </table>
           <p>
             The <strong>Dana Status</strong> column in your table tells you where each person stands:
           </p>
-          <ul className="man-list">
-            <li><strong>Waived</strong> — no dana was expected for this program (mode is None), or no amount was configured.</li>
-            <li><strong>Pending</strong> — dana is expected but not completed. The member can return to <code>/programs/[slug]/register</code> to complete it at any time. You can send them a dana reminder from the table.</li>
-            <li><strong>Completed</strong> — dana received via Stripe. The amount is recorded.</li>
-            <li><strong>Not Required</strong> — the person is on the waitlist. Dana is not collected until they are confirmed.</li>
-          </ul>
+          <table className="man-table">
+            <thead>
+              <tr><th>Status</th><th>What it means</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Waived</td>
+                <td>No dana was expected for this program (mode is None), or no amount was configured.</td>
+              </tr>
+              <tr>
+                <td>Pending</td>
+                <td>Dana is expected but not completed. The member can return to <code>/programs/[slug]/register</code> to complete it at any time. You can send them a dana reminder from the table.</td>
+              </tr>
+              <tr>
+                <td>Completed</td>
+                <td>Dana received via Stripe. The amount is recorded.</td>
+              </tr>
+              <tr>
+                <td>Not Required</td>
+                <td>The person is on the waitlist. Dana is not collected until they are confirmed.</td>
+              </tr>
+            </tbody>
+          </table>
           <p>
             When a member has pending dana, their dashboard shows a reminder card automatically. It links them to the program&rsquo;s register page where they can complete their offering. The card disappears once dana is received.
           </p>
@@ -327,12 +361,29 @@ export default async function ManualPage() {
           <p>
             For programs that meet more than once, a recurrence pattern can be set in Sanity Studio using four fields:
           </p>
-          <ul className="man-list">
-            <li><strong>Repeats</strong> — Daily, Weekly, or Monthly. Leave blank for a single event.</li>
-            <li><strong>Every</strong> — the interval. 1 = every week, 2 = every other week.</li>
-            <li><strong>On Days</strong> — for Weekly, which days of the week the program meets.</li>
-            <li><strong>Number of Sessions</strong> — total count including the first. An 8-week course = 8.</li>
-          </ul>
+          <table className="man-table">
+            <thead>
+              <tr><th>Field</th><th>What it controls</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Repeats</td>
+                <td>Daily, Weekly, or Monthly. Leave blank for a single event.</td>
+              </tr>
+              <tr>
+                <td>Every</td>
+                <td>The interval. 1 = every week, 2 = every other week.</td>
+              </tr>
+              <tr>
+                <td>On Days</td>
+                <td>For Weekly programs, which days of the week the program meets.</td>
+              </tr>
+              <tr>
+                <td>Number of Sessions</td>
+                <td>Total count including the first. An 8-week course = 8.</td>
+              </tr>
+            </tbody>
+          </table>
           <p>
             When recurrence is set, the <strong>.ics file</strong> includes all sessions — members download the whole course in one click. The <strong>Google Calendar link</strong> only adds the first session (a Google limitation, not ours) — it&rsquo;s labeled &ldquo;first session only&rdquo; so members understand.
           </p>
@@ -536,14 +587,37 @@ export default async function ManualPage() {
           <p>
             A program in Sanity is organized into six tabs. Each tab controls a different part of how the program functions. You don&rsquo;t need to fill in every field — a program can exist at any level of completeness.
           </p>
-          <ul className="man-list">
-            <li><strong>Content</strong> — the public-facing page: name, description, image, pull quote, and any linked online courses.</li>
-            <li><strong>Schedule &amp; Location</strong> — dates, times, teachers, location, meeting link. This tab also controls calendar links (Start Date &amp; Time) and recurrence for multi-session programs.</li>
-            <li><strong>Registration</strong> — turns the registration form on, sets capacity, custom questions, and the confirmation email message.</li>
-            <li><strong>Dana &amp; Payment</strong> — controls whether and how payments are collected during registration.</li>
-            <li><strong>Dashboard</strong> — controls how the program appears on the member dashboard, including time-sensitive announcements.</li>
-            <li><strong>Sorting &amp; Visibility</strong> — controls where the program appears in the public listings and in what order.</li>
-          </ul>
+          <table className="man-table">
+            <thead>
+              <tr><th>Tab</th><th>What it controls</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Content</td>
+                <td>The public-facing page: name, description, image, pull quote, and any linked online courses.</td>
+              </tr>
+              <tr>
+                <td>Schedule &amp; Location</td>
+                <td>Dates, times, teachers, location, meeting link, calendar links (Start Date &amp; Time), and recurrence for multi-session programs.</td>
+              </tr>
+              <tr>
+                <td>Registration</td>
+                <td>Turns the registration form on, sets capacity, custom questions, and the confirmation email message.</td>
+              </tr>
+              <tr>
+                <td>Dana &amp; Payment</td>
+                <td>Controls whether and how payments are collected during registration.</td>
+              </tr>
+              <tr>
+                <td>Dashboard</td>
+                <td>Controls how the program appears on the member dashboard, including time-sensitive announcements.</td>
+              </tr>
+              <tr>
+                <td>Sorting &amp; Visibility</td>
+                <td>Controls where the program appears in the public listings and in what order.</td>
+              </tr>
+            </tbody>
+          </table>
 
           <div className="man-note">
             <strong>Minimum to maximum:</strong><br />
@@ -1127,7 +1201,7 @@ export default async function ManualPage() {
           <p>
             When a member with a staff role logs in, a <strong>Staff Access</strong> panel appears on their dashboard. The links in that panel depend on their role:
           </p>
-          <table className="man-table">
+          <table className="man-table man-table--perms">
             <thead>
               <tr>
                 <th>Link</th>

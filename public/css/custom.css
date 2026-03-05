@@ -6325,7 +6325,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 /* ── Numbered steps ── */
 .man-steps {
   margin: 4px 0 16px;
-  padding-left: 24px;
+  padding-left: 28px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -6341,7 +6341,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 /* ── Bullet list ── */
 .man-list {
   margin: 4px 0 16px;
-  padding-left: 20px;
+  padding-left: 28px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -6558,11 +6558,12 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   letter-spacing: 0.06em;
   background: var(--rim-bg-accent);
 }
-.man-table td:first-child { color: var(--rim-text); }
-.man-table td:not(:first-child) {
-  color: var(--rim-text-muted);
-  text-align: center;
-}
+.man-table td:first-child { color: var(--rim-text); font-weight: 500; }
+.man-table td:not(:first-child) { color: var(--rim-text-muted); }
+
+/* Permission check table — centre the ✓ columns */
+.man-table--perms td:not(:first-child),
+.man-table--perms th:not(:first-child) { text-align: center; }
 
 /* ── Code / SQL block ── */
 .man-code {

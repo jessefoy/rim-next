@@ -1159,18 +1159,22 @@ function buildRoleAssignmentHtml({
               You've been added as a <strong>registrar</strong> for Rooted In Mindfulness. This means you can now view and manage program registrations — approve and cancel spots, promote people from the waitlist, send reminders, and export attendee lists.
             </p>
             <p style="margin:0 0 28px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">
-              Your registrar dashboard is waiting for you. You'll also find a staff reference manual with step-by-step guidance for every part of the process.
+              Two things to bookmark: your <strong>Registrations dashboard</strong> where you'll do your day-to-day work, and the <strong>Staff Manual</strong> — a plain-English guide to every part of the system. Start with the manual if anything is unclear.
             </p>
-            <table cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+            <table cellpadding="0" cellspacing="0" style="margin-bottom:12px;">
               <tr>
                 <td style="border-radius:3px;background:#135274;">
                   <a href="${dashboardUrl}" style="display:inline-block;padding:12px 24px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;font-family:'Open Sans',Arial,sans-serif;">Go to Registrations &#8594;</a>
                 </td>
               </tr>
             </table>
-            <p style="margin:0 0 32px;font-size:14px;line-height:1.75;color:#6b6059;font-family:'Open Sans',Arial,sans-serif;">
-              <a href="${manualUrl}" style="color:#39607a;text-decoration:underline;">Staff Reference Manual</a> &mdash; field-by-field guidance for every part of the registrar workflow.
-            </p>
+            <table cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
+              <tr>
+                <td style="border-radius:3px;border:1.5px solid #39607a;">
+                  <a href="${manualUrl}" style="display:inline-block;padding:11px 24px;font-size:15px;font-weight:600;color:#39607a;text-decoration:none;font-family:'Open Sans',Arial,sans-serif;">Read the Staff Manual &#8594;</a>
+                </td>
+              </tr>
+            </table>
             <p style="margin:0;font-size:14px;line-height:1.75;color:#6b6059;font-family:'Open Sans',Arial,sans-serif;">
               If you have any questions, reply to this email or reach out directly. Welcome to the team.
             </p>
@@ -1205,8 +1209,9 @@ function buildRoleAssignmentText({
     "",
     "This means you can now view and manage program registrations — approve and cancel spots, promote people from the waitlist, send reminders, and export attendee lists.",
     "",
-    `Registrar dashboard: ${dashboardUrl}`,
-    `Staff Reference Manual: ${manualUrl}`,
+    "Two things to bookmark:",
+    `  Registrations dashboard: ${dashboardUrl}`,
+    `  Staff Manual (start here for guidance): ${manualUrl}`,
     "",
     "If you have any questions, reply to this email or reach out directly. Welcome to the team.",
     "",
