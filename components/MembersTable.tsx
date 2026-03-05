@@ -15,22 +15,16 @@ export interface SerializedMember {
   _count: { registrations: number };
 }
 
-type RoleFilter = "ALL" | "ADMIN" | "REGISTRAR" | "TREASURER" | "NOROLES";
+type RoleFilter = "ALL" | "ADMIN" | "REGISTRAR" | "NOROLES";
 
 const ROLE_COLORS: Record<string, string> = {
   ADMIN: "adm-badge--admin",
   REGISTRAR: "adm-badge--registrar",
-  TREASURER: "adm-badge--treasurer",
-  TEACHER: "adm-badge--teacher",
-  VOLUNTEER: "adm-badge--volunteer",
 };
 
 const ROLE_LABELS: Record<string, string> = {
   ADMIN: "Admin",
   REGISTRAR: "Registrar",
-  TREASURER: "Treasurer",
-  TEACHER: "Teacher",
-  VOLUNTEER: "Volunteer",
 };
 
 interface Props {
@@ -90,7 +84,6 @@ export default function MembersTable({ members }: Props) {
           <option value="ALL">All members</option>
           <option value="ADMIN">Admins</option>
           <option value="REGISTRAR">Registrars</option>
-          <option value="TREASURER">Treasurers</option>
           <option value="NOROLES">No roles</option>
         </select>
         <span className="adm-search__count">

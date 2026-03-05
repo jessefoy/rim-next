@@ -149,21 +149,13 @@ const SECTIONS: RoadmapSection[] = [
         effort: "large",
         status: "designed",
         ref: "FEATURES.md §13",
-        desc: "TREASURER-only area for viewing all donations across all sources (Stripe, GiveButter, cash, check), entering manual donations, importing GiveButter history, and exporting to QuickBooks. The Donation DB model and Stripe webhook writing are already live — only the UI needs to be built. No migration needed.",
+        desc: "Admin area for viewing all donations across all sources (Stripe, GiveButter, cash, check), entering manual donations, importing GiveButter history, and exporting to QuickBooks. The Donation DB model and Stripe webhook writing are already live — only the UI needs to be built. No migration needed.",
         files: [
           "app/admin/donations/page.tsx — donor list + search",
           "app/admin/donations/new/page.tsx — manual entry form",
           "app/api/admin/donations/route.ts — GET (list) + POST (manual entry)",
           "app/api/admin/donations/import/route.ts — GiveButter CSV import",
         ],
-      },
-      {
-        name: "TEACHER / VOLUNTEER Role Wiring",
-        effort: "medium",
-        status: "planned",
-        ref: "FEATURES.md §2",
-        desc: "Both roles are defined in the Prisma Role enum and can be assigned via the admin Member Detail page. Neither role currently unlocks anything. TEACHER could unlock a teacher portal (lesson uploads, program links, bios). VOLUNTEER could unlock a volunteer coordination area. Needs design before build.",
-        files: ["No files yet — design required"],
       },
       {
         name: "Volunteer Interest Form — API Endpoint",

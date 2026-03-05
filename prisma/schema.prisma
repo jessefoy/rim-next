@@ -89,10 +89,7 @@ model User {
 }
 
 enum Role {
-  REGISTRAR   // manages program registrations
-  TREASURER   // views donation reports, manages donation records
-  TEACHER     // content access, profile page
-  VOLUNTEER   // general volunteer
+  REGISTRAR   // manages program registrations + Sanity Studio access
   ADMIN       // full access
 }
 

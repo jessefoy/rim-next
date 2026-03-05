@@ -34,14 +34,11 @@ interface Member {
   courseAccess: CourseAccessGrant[];
 }
 
-const ALL_ROLES = ["ADMIN", "REGISTRAR", "TREASURER", "TEACHER", "VOLUNTEER"] as const;
+const ALL_ROLES = ["ADMIN", "REGISTRAR"] as const;
 
 const ROLE_DESCRIPTIONS: Record<string, string> = {
   ADMIN: "Full access — members, registrations, and all staff areas",
-  REGISTRAR: "View and manage program registrations",
-  TREASURER: "View donation records and enter manual donations",
-  TEACHER: "Teacher area (coming soon)",
-  VOLUNTEER: "Volunteer area (coming soon)",
+  REGISTRAR: "View and manage program registrations + Sanity Studio access",
 };
 
 const STATUS_LABELS: Record<string, string> = {

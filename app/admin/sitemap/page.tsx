@@ -262,7 +262,7 @@ const SECTIONS: SectionDef[] = [
         url: "/account/dashboard",
         badge: "member",
         css: "orange",
-        desc: "Today's Zoom links for drop-in sessions. Role-based staff cards for ADMIN, REGISTRAR, TEACHER.",
+        desc: "Today's Zoom links for drop-in sessions. Role-based staff cards for ADMIN and REGISTRAR.",
         features: [
           "5 nav cards (Today's Sessions, My Programs, My Library, Our Agreements, My Profile)",
           "Today's drop-in Zoom links (Milwaukee/CT timezone-aware)",
@@ -373,7 +373,7 @@ const SECTIONS: SectionDef[] = [
         url: "/admin/members/[id]",
         badge: "admin",
         css: "new",
-        desc: "Edit profile, assign roles (ADMIN/REGISTRAR/TREASURER/TEACHER/VOLUNTEER), manage course access, view registration history.",
+        desc: "Edit profile, assign roles (ADMIN/REGISTRAR), manage course access, view registration history.",
         features: [
           "Edit name, phone; admin email change (two-step confirm, force re-auth)",
           "Assign / revoke roles via checkboxes",
@@ -541,7 +541,7 @@ const NOT_YET_BUILT = [
   {
     name: "Donation Management System",
     url: "/admin/donations (missing)",
-    desc: "TREASURER-only area for viewing all donations, entering manual cash/check donations, importing GiveButter history, and exporting to QuickBooks. The Donation DB model and Stripe webhook writing are already live — only the UI needs to be built. Full spec in FEATURES.md §13.",
+    desc: "Admin area for viewing all donations, entering manual cash/check donations, importing GiveButter history, and exporting to QuickBooks. The Donation DB model and Stripe webhook writing are already live — only the UI needs to be built. Full spec in FEATURES.md §13.",
   },
   {
     name: "Kalyana Mitta Group Detail Form",
