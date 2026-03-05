@@ -6529,6 +6529,56 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   margin: 16px 0;
 }
 
+/* man-note variant: warning (amber) */
+.man-note--warn {
+  background: color-mix(in srgb, #b45309 8%, var(--rim-bg));
+  border-left-color: #b45309;
+}
+
+/* ── Role/permission table ── */
+.man-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  margin: 16px 0;
+}
+.man-table th,
+.man-table td {
+  padding: 9px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--rim-rule);
+  line-height: 1.5;
+}
+.man-table th {
+  font-weight: 700;
+  color: var(--rim-text-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--rim-bg-accent);
+}
+.man-table td:first-child { color: var(--rim-text); }
+.man-table td:not(:first-child) {
+  color: var(--rim-text-muted);
+  text-align: center;
+}
+
+/* ── Code / SQL block ── */
+.man-code {
+  background: var(--rim-bg-accent);
+  border: 1px solid var(--rim-rule);
+  border-radius: 6px;
+  padding: 14px 18px;
+  font-family: ui-monospace, "Cascadia Code", "SF Mono", Menlo, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--rim-text);
+  overflow-x: auto;
+  margin: 16px 0;
+  white-space: pre;
+}
+
 /* ── Future editions ── */
 .man-future {
   margin-top: 64px;

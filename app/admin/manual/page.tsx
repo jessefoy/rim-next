@@ -62,9 +62,15 @@ export default async function ManualPage() {
             <span className="man-soon-badge">Coming soon</span>
           </li>
           <li>
-            <a href="#roles" className="man-sidebar__link">3. Staff &amp; Roles</a>
+            <a href="#roles" className="man-sidebar__link">Staff &amp; Roles</a>
             <ul className="man-sidebar__sub">
-              <li><a href="#roles-notifying" className="man-sidebar__sublink">Notifying new staff</a></li>
+              <li><a href="#roles-overview"   className="man-sidebar__sublink">Overview</a></li>
+              <li><a href="#roles-two-roles"  className="man-sidebar__sublink">The two roles</a></li>
+              <li><a href="#roles-assigning"  className="man-sidebar__sublink">Assigning a role</a></li>
+              <li><a href="#roles-notifying"  className="man-sidebar__sublink">Notification email</a></li>
+              <li><a href="#roles-sanity"     className="man-sidebar__sublink">Sanity Studio access</a></li>
+              <li><a href="#roles-removing"   className="man-sidebar__sublink">Removing a role</a></li>
+              <li><a href="#roles-bootstrap"  className="man-sidebar__sublink">First Admin setup</a></li>
             </ul>
           </li>
         </ul>
@@ -1047,9 +1053,6 @@ export default async function ManualPage() {
               <strong>Courses &amp; Online Materials</strong> — how course access is granted automatically via registration, how to grant or revoke access manually, and the difference between open and registration-required courses.
             </li>
             <li>
-              <strong>Staff &amp; Roles</strong> — every role explained, how to grant Registrar access, how to invite someone to Sanity Studio, and what each role can and cannot do.
-            </li>
-            <li>
               <strong>Google Meet Integration</strong> — once built: how to generate a Google Meet link directly from Sanity Studio and have it appear in emails and on the program page automatically.
             </li>
           </ul>
@@ -1062,25 +1065,218 @@ export default async function ManualPage() {
         <div id="roles" className="man-chapter man-chapter--break">
           <h1 className="man-chapter__title">Staff &amp; Roles</h1>
           <p className="man-chapter__subtitle">
-            How staff roles work — what each role unlocks, and what happens when someone is added or removed.
+            What each staff role unlocks, how to assign and remove roles, how Sanity Studio access works, and how to set up the first Admin account.
             <br />
-            <strong>Who uses this chapter:</strong> Administrators managing staff access. You need an <strong>Admin</strong> role.
+            <strong>Who uses this chapter:</strong> Administrators managing staff access. You need an <strong>Admin</strong> role to assign roles to others.
           </p>
         </div>
 
-        <section id="roles-notifying" className="man-section">
-          <h2 className="man-section__title">Notifying new staff</h2>
+        {/* ── Overview ── */}
+        <section id="roles-overview" className="man-section">
+          <h2 className="man-section__title">Overview</h2>
           <p>
-            When you assign someone the <strong>Registrar</strong> role and save, they automatically receive a notification email from Rooted In Mindfulness. The email tells them what the role means, links them to the registrar dashboard, and points them to this manual.
+            Every member of the RIM community who logs in has a basic account. By default, accounts have no special access — they can only see their own dashboard, registrations, and courses.
           </p>
           <p>
-            You don&rsquo;t need to do anything extra — no need to manually forward instructions or copy a URL. The email goes out the moment you save the role change.
+            Staff access is granted by assigning one or more <strong>roles</strong> to a member&rsquo;s account. There are currently two roles: <strong>Registrar</strong> and <strong>Admin</strong>. Roles are additive — a person with both roles gets the permissions of each combined.
+          </p>
+          <p>
+            Roles take effect immediately. As soon as you save a role change, the next page the member loads will reflect their new access. No re-login is required (though if they are logged in, they may need to reload the page).
+          </p>
+        </section>
+
+        {/* ── The two roles ── */}
+        <section id="roles-two-roles" className="man-section">
+          <h2 className="man-section__title">The two roles</h2>
+
+          <h3 className="man-section__h3">Registrar</h3>
+          <p>
+            A Registrar manages day-to-day program registrations. This role is intended for the person (or people) handling waitlists, sending reminders, promoting members, and keeping registration lists accurate.
+          </p>
+          <p>What a Registrar can do:</p>
+          <ul className="man-list">
+            <li>View and manage all program registrations at <strong>/volunteer</strong></li>
+            <li>Promote waitlisted members, cancel and restore registrations</li>
+            <li>Send edit-request links and reminder emails to registrants</li>
+            <li>Access <strong>Sanity Studio</strong> — create and edit programs, lessons, and other site content (if invited — see below)</li>
+          </ul>
+          <p>What a Registrar <em>cannot</em> do:</p>
+          <ul className="man-list">
+            <li>View or edit other members&rsquo; accounts</li>
+            <li>Assign or remove roles</li>
+            <li>Access the admin member list at <strong>/admin/members</strong></li>
+          </ul>
+
+          <h3 className="man-section__h3">Admin</h3>
+          <p>
+            An Admin has full access to the entire staff area. This role is for the person (or people) responsible for the health of the system — managing member accounts, overseeing access, and handling anything a Registrar cannot.
+          </p>
+          <p>What an Admin can do (in addition to everything a Registrar can do):</p>
+          <ul className="man-list">
+            <li>View all member accounts at <strong>/admin/members</strong></li>
+            <li>Edit member profiles — name, email, phone</li>
+            <li>Assign and remove roles</li>
+            <li>Invite members to Sanity Studio or revoke their Sanity access</li>
+            <li>Archive, restore, and delete member accounts</li>
+            <li>Grant or revoke course access manually</li>
+            <li>Import members from CSV</li>
+          </ul>
+
+          <h3 className="man-section__h3">Dashboard shortcuts per role</h3>
+          <p>
+            When a member with a staff role logs in, a <strong>Staff Access</strong> panel appears on their dashboard. The links in that panel depend on their role:
+          </p>
+          <table className="man-table">
+            <thead>
+              <tr>
+                <th>Link</th>
+                <th>Registrar</th>
+                <th>Admin</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Registrations <code>/volunteer</code></td>
+                <td>✓</td>
+                <td>✓</td>
+              </tr>
+              <tr>
+                <td>Sanity Studio (external)</td>
+                <td>✓</td>
+                <td>✓</td>
+              </tr>
+              <tr>
+                <td>Members <code>/admin/members</code></td>
+                <td>—</td>
+                <td>✓</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        {/* ── Assigning a role ── */}
+        <section id="roles-assigning" className="man-section">
+          <h2 className="man-section__title">Assigning a role</h2>
+          <p>
+            You must have the <strong>Admin</strong> role to assign roles. If you need to grant access to someone who doesn&rsquo;t yet have an account, they need to sign in at least once (via magic link) before you can assign a role to them.
+          </p>
+          <ol className="man-steps">
+            <li>Go to <strong>/admin/members</strong>.</li>
+            <li>Search for the person by name or email.</li>
+            <li>Click their name to open their member detail page.</li>
+            <li>Scroll to the <strong>Roles</strong> section. You&rsquo;ll see checkboxes for each available role.</li>
+            <li>Check the role(s) you want to assign.</li>
+            <li>Click <strong>Save changes</strong>.</li>
+          </ol>
+          <p>
+            The role takes effect immediately. If the person is currently logged in, they may need to reload the page to see their updated dashboard.
           </p>
           <div className="man-note">
-            The Sanity Studio invitation is a <em>separate</em> step. After saving the Registrar role, a &ldquo;Sanity Studio Access&rdquo; panel appears on their member detail page. Click <strong>Invite to Sanity Studio</strong> there if they also need to edit content in Sanity. That invitation comes from Sanity, not from RIM.
+            Assigning the Registrar role triggers an automatic notification email and causes a <strong>Sanity Studio Access</strong> panel to appear on their member detail page. See the sections below.
+          </div>
+        </section>
+
+        {/* ── Notification email ── */}
+        <section id="roles-notifying" className="man-section">
+          <h2 className="man-section__title">Notification email</h2>
+          <p>
+            When you assign someone the <strong>Registrar</strong> role and save, they automatically receive a notification email from Rooted In Mindfulness. The email tells them what the role means, links them to the registrar dashboard at <strong>/volunteer</strong>, and points them to this manual.
+          </p>
+          <p>
+            You don&rsquo;t need to do anything extra — no need to manually forward instructions or copy a URL. The email goes out the moment you save.
+          </p>
+          <p>
+            A few things to know:
+          </p>
+          <ul className="man-list">
+            <li>The email fires exactly once, when Registrar is <em>first</em> added. It does not re-send if you save their record again with the role already checked.</li>
+            <li>No notification is sent when the Admin role is assigned. Admins are typically people already deeply involved in the organization — a quiet system-level change is appropriate.</li>
+            <li>The email does <em>not</em> include Sanity Studio instructions — that&rsquo;s a separate step with its own invite.</li>
+          </ul>
+        </section>
+
+        {/* ── Sanity Studio access ── */}
+        <section id="roles-sanity" className="man-section">
+          <h2 className="man-section__title">Sanity Studio access</h2>
+          <p>
+            <strong>Sanity Studio</strong> is the content management system where programs, lessons, and site content are created and edited. Access to Sanity is separate from the RIM website — it requires its own invitation through Sanity&rsquo;s system.
+          </p>
+          <p>
+            Not every Registrar needs Sanity access. A Registrar whose job is managing registrations (promoting waitlisted members, sending reminders) doesn&rsquo;t need to edit site content. Sanity access is for people who <em>create and maintain programs and pages</em>.
+          </p>
+
+          <h3 className="man-section__h3">Sending a Sanity invitation</h3>
+          <ol className="man-steps">
+            <li>Make sure the person has the <strong>Registrar</strong> role saved on their account. The Sanity panel only appears after that role is persisted.</li>
+            <li>On their member detail page, scroll past the Roles section to find <strong>Sanity Studio Access</strong>.</li>
+            <li>Click <strong>Invite to Sanity Studio</strong>. A confirmation dialog will explain what access they&rsquo;ll receive.</li>
+            <li>Confirm the invite. An invitation email arrives in their inbox from <code>no-reply@sanity.io</code>.</li>
+            <li>They click the link in that email to accept and create a Sanity account (or log in with an existing one).</li>
+            <li>Once accepted, they can access <a href="https://rooted-in-mindfulness.sanity.studio/" target="_blank" rel="noopener noreferrer">rooted-in-mindfulness.sanity.studio</a> with Editor-level access.</li>
+          </ol>
+
+          <h3 className="man-section__h3">What &ldquo;Editor&rdquo; access means in Sanity</h3>
+          <p>
+            Editor access lets them create, edit, and publish all content types — programs, lessons, teacher profiles, and anything else in the Studio. They cannot change project settings, manage billing, or invite others to Sanity (only the Sanity project owner can do those things).
+          </p>
+
+          <h3 className="man-section__h3">If they don&rsquo;t receive the invite</h3>
+          <ul className="man-list">
+            <li>Ask them to check their spam folder for an email from <code>no-reply@sanity.io</code>.</li>
+            <li>If the invite has expired (they are valid for a limited time), you can send a new one from the member detail page — the button resets after a revocation/re-invite cycle.</li>
+            <li>If the email address on their RIM account doesn&rsquo;t match their preferred Sanity email, that&rsquo;s a known limitation — Sanity invites are sent to the address on file. Contact a developer if this becomes an issue.</li>
+          </ul>
+        </section>
+
+        {/* ── Removing a role ── */}
+        <section id="roles-removing" className="man-section">
+          <h2 className="man-section__title">Removing a role</h2>
+          <p>
+            To remove a role, uncheck it on their member detail page and click <strong>Save changes</strong>.
+          </p>
+
+          <h3 className="man-section__h3">When Sanity access is involved</h3>
+          <p>
+            If you uncheck <strong>Registrar</strong> for someone who was previously invited to Sanity Studio, a warning appears in the save bar before you confirm:
+          </p>
+          <div className="man-note man-note--warn">
+            ⚠ Saving will also revoke this member&rsquo;s Sanity Studio access.
           </div>
           <p>
-            The notification email is not sent when the Admin role is assigned, and it does not re-send if you save the member record again with Registrar already checked. It fires exactly once, when Registrar is first added.
+            If you save, two things happen automatically:
+          </p>
+          <ul className="man-list">
+            <li>Any <em>pending</em> Sanity invitation (not yet accepted) is cancelled.</li>
+            <li>If they already accepted and have an active Sanity account, they are removed from the project and can no longer access Sanity Studio.</li>
+          </ul>
+          <p>
+            This is immediate and cannot be undone through the website. If you need to restore their Sanity access, re-assign the Registrar role and send a new invitation.
+          </p>
+
+          <h3 className="man-section__h3">Removing Admin access</h3>
+          <p>
+            Removing the Admin role works the same way — uncheck it and save. Be careful not to remove the Admin role from every Admin account at once, as that would leave no one able to manage roles. The system does not prevent this.
+          </p>
+        </section>
+
+        {/* ── First Admin setup ── */}
+        <section id="roles-bootstrap" className="man-section">
+          <h2 className="man-section__title">First Admin setup</h2>
+          <p>
+            The Admin role cannot be assigned through the website&rsquo;s UI unless someone already has Admin. For the very first Admin — or to recover from a situation where no admins remain — you&rsquo;ll need to update the database directly.
+          </p>
+          <p>
+            This is done through the <strong>Neon console</strong> (the database provider). A developer or technically confident person with access to the Neon project can run this SQL query in the Neon SQL editor:
+          </p>
+          <pre className="man-code">{`UPDATE "User" SET roles = '{ADMIN}' WHERE email = 'person@example.com';`}</pre>
+          <p>
+            Replace <code>person@example.com</code> with the email address of the account to promote. The change takes effect immediately — the person can log in and will have full Admin access.
+          </p>
+          <div className="man-note">
+            The person must already have an account (they must have signed in at least once) for this to work. If they haven&rsquo;t signed in yet, have them use the magic link login first, then run the query.
+          </div>
+          <p>
+            After the first Admin is set up via SQL, all future role assignments can be done through the website as described above.
           </p>
         </section>
 
