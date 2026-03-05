@@ -660,20 +660,6 @@ export default async function ManualPage() {
           </div>
         </section>
 
-        {/* ── Who does this ── */}
-        <section id="prog-role" className="man-section">
-          <h2 className="man-section__title">Who does this</h2>
-          <p>
-            Creating and managing programs is a <strong>Registrar</strong> task. In the current system, the Registrar role is really a <em>program coordinator</em> role — the same person who sets up a program in Sanity also manages who registers for it through <strong>/volunteer</strong>. At RIM&rsquo;s current scale, one person handling both makes sense.
-          </p>
-          <p>
-            To access Sanity Studio, a Registrar needs an invitation email from an Admin. Once accepted, you&rsquo;ll have an editor-level account in Sanity. Your dashboard shows a <strong>Sanity Studio</strong> card once this access is set up.
-          </p>
-          <div className="man-note">
-            <strong>If roles are ever split:</strong> If RIM grows to the point where a dedicated content or communications person manages the website separately from the person handling day-to-day registration logistics, these can become two distinct roles. The system supports that — it would require a new role type and a separate Sanity access path. Until then, the Registrar role covers both.
-          </div>
-        </section>
-
         {/* ── How a program comes together ── */}
         <section id="prog-anatomy" className="man-section">
           <h2 className="man-section__title">How a program comes together</h2>
@@ -1557,7 +1543,7 @@ export default async function ManualPage() {
                 <td>✓</td>
               </tr>
               <tr>
-                <td>Staff Manual <code>/admin/manual</code></td>
+                <td>Volunteer Manual <code>/admin/manual</code></td>
                 <td>✓</td>
                 <td>✓</td>
               </tr>
