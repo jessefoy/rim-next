@@ -1744,11 +1744,23 @@ Once prerequisites are done:
 ### Technical notes
 
 - **DWD impersonation:** The service account impersonates a room account when calling the Meet API. This makes the room account the meeting "owner" in the background without any human logging in as it.
-- **Meet REST API scope:** `https://www.googleapis.com/auth/meetings.space.created` — required for `spaces.create` and `spaces.members.create`. Different from the Calendar API scope; both must be granted in DWD config.
+- **Meet REST API scope:** `https://www.googleapis.com/auth/meetings.space.settings` ⚠️ (NOT `.space.created` — that is incorrect). Required for `spaces.create` with moderation config and `spaces.members.create`. Both this and the Calendar API scope must be granted in DWD config.
+- **Step 1 — Create the space** (moderation must be ON for COHOST role to function):
+  ```
+  POST https://meet.googleapis.com/v2/spaces
+  { "config": { "accessType": "TRUSTED", "entryPointAccess": "ALL", "moderation": "ON" } }
+  ```
+  Capture `name` from response (e.g. `spaces/abc-mnop-xyz`) — needed for next call.
+- **Step 2 — Assign volunteer as COHOST** (note required `users/` prefix on email):
+  ```
+  POST https://meet.googleapis.com/v2/spaces/abc-mnop-xyz/members
+  { "user": "users/volunteer@rootedinmindfulness.org", "role": "COHOST" }
+  ```
+- **Step 3 — Create Calendar event** linking to the Meet URI from the `spaces.create` response.
 - **`google-auth-library`** handles JWT service account auth — no OAuth flow, no user login, no redirect.
 - **`GOOGLE_SERVICE_ACCOUNT_KEY`** contains newlines — store raw value in Vercel (not base64); Next.js env vars handle multiline values correctly.
-- **Room assignment logic:** Query the Google Calendar API for each room account's events at the target time slot. Pick the first room with no conflict. If all rooms are occupied, return a clear error to staff.
-- **`conferenceData` vs. Meet REST API:** Original plan used Calendar API's `conferenceData.createRequest` to auto-generate a Meet link. The updated approach creates the Meet space first via the Meet REST API (to enable co-host assignment), then links that space to the calendar event. The two APIs work together.
+- **Room recycling logic:** Still to be confirmed with Gemini — exact approach for querying room availability and recycling room accounts across time slots.
+- **`conferenceData` vs. Meet REST API:** Original plan used Calendar API's `conferenceData.createRequest`. Updated approach creates the Meet space first via Meet REST API (enables co-host assignment), then links that space to the calendar event.
 - **Sanity write-back** uses `SANITY_API_TOKEN` which already has write access — no new token needed.
 - **No new Sanity schema needed** — `zoomLink` + `zoomLinkText` already exist and are wired to program page + emails.
 
