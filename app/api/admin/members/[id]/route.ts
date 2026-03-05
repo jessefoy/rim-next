@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { Role } from "@prisma/client";
+import { sendRoleAssignmentEmail } from "@/lib/email";
 
 // Revoke a member's Sanity Studio access by email.
 // Handles both accepted members and pending invitations.
@@ -151,6 +152,12 @@ export async function PATCH(
     !(roles as string[]).includes("REGISTRAR");
   const shouldRevokeSanity = removingRegistrar && !!user.sanityInvitedAt;
 
+  // Detect new REGISTRAR: role wasn't there before, but is in the incoming list
+  const addingRegistrar =
+    roles !== undefined &&
+    !(user.roles as string[]).includes("REGISTRAR") &&
+    (roles as string[]).includes("REGISTRAR");
+
   const updateData: Record<string, unknown> = {
     ...(firstName !== undefined && { firstName }),
     ...(lastName !== undefined && { lastName }),
@@ -184,6 +191,14 @@ export async function PATCH(
   let sanityRevokeResult: { member: string; invite: string; memberEmails: string[] } | null = null;
   if (shouldRevokeSanity) {
     sanityRevokeResult = await revokeSanityAccess(user.email);
+  }
+
+  // Notify newly-promoted registrar — fire-and-forget
+  if (addingRegistrar) {
+    sendRoleAssignmentEmail({
+      to: updated.email,
+      firstName: updated.firstName,
+    }).catch(() => {});
   }
 
   return NextResponse.json({

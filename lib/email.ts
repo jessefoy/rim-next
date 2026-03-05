@@ -1101,6 +1101,121 @@ function buildResponsesUpdatedText({ registrantName, programTitle, volunteerUrl 
   ].join("\n");
 }
 
+// ─── Role assignment notification (to new registrar) ─────────────────────────
+
+export interface RoleAssignmentEmailData {
+  to: string;
+  firstName: string | null;
+}
+
+/**
+ * Sent to a member when they are granted the REGISTRAR role.
+ * Tells them what the role means, where to go, and where to find help.
+ * Fire-and-forget — errors are caught and logged.
+ */
+export async function sendRoleAssignmentEmail(data: RoleAssignmentEmailData): Promise<void> {
+  const { to, firstName } = data;
+  const dashboardUrl = `${BASE_URL}/volunteer`;
+  const manualUrl    = `${BASE_URL}/admin/manual`;
+
+  const { error } = await resend.emails.send({
+    from:    FROM,
+    to,
+    subject: "You've been added as a registrar — Rooted In Mindfulness",
+    html:    buildRoleAssignmentHtml({ firstName, dashboardUrl, manualUrl }),
+    text:    buildRoleAssignmentText({ firstName, dashboardUrl, manualUrl }),
+  });
+  if (error) {
+    console.error("[email] Failed to send role assignment notification:", error);
+  }
+}
+
+function buildRoleAssignmentHtml({
+  firstName,
+  dashboardUrl,
+  manualUrl,
+}: {
+  firstName: string | null;
+  dashboardUrl: string;
+  manualUrl: string;
+}): string {
+  const greeting = firstName ? `Hi ${firstName},` : "Hello,";
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>You're a registrar</title></head>
+<body style="margin:0;padding:0;background:#f6f3f0;font-family:'Open Sans',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f6f3f0;padding:40px 16px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:4px;overflow:hidden;">
+        <tr>
+          <td style="background:#135274;padding:28px 36px;">
+            <p style="margin:0;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:#c5d8e4;font-family:'Open Sans',Arial,sans-serif;">Rooted In Mindfulness</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:36px 36px 28px;">
+            <p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">${greeting}</p>
+            <p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">
+              You've been added as a <strong>registrar</strong> for Rooted In Mindfulness. This means you can now view and manage program registrations — approve and cancel spots, promote people from the waitlist, send reminders, and export attendee lists.
+            </p>
+            <p style="margin:0 0 28px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">
+              Your registrar dashboard is waiting for you. You'll also find a staff reference manual with step-by-step guidance for every part of the process.
+            </p>
+            <table cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+              <tr>
+                <td style="border-radius:3px;background:#135274;">
+                  <a href="${dashboardUrl}" style="display:inline-block;padding:12px 24px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;font-family:'Open Sans',Arial,sans-serif;">Go to Registrations &#8594;</a>
+                </td>
+              </tr>
+            </table>
+            <p style="margin:0 0 32px;font-size:14px;line-height:1.75;color:#6b6059;font-family:'Open Sans',Arial,sans-serif;">
+              <a href="${manualUrl}" style="color:#39607a;text-decoration:underline;">Staff Reference Manual</a> &mdash; field-by-field guidance for every part of the registrar workflow.
+            </p>
+            <p style="margin:0;font-size:14px;line-height:1.75;color:#6b6059;font-family:'Open Sans',Arial,sans-serif;">
+              If you have any questions, reply to this email or reach out directly. Welcome to the team.
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:20px 36px;border-top:1px solid #ede9e5;">
+            <p style="margin:0;font-size:12px;color:#9b8e85;font-family:'Open Sans',Arial,sans-serif;">Rooted In Mindfulness &middot; Brookfield, WI</p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+function buildRoleAssignmentText({
+  firstName,
+  dashboardUrl,
+  manualUrl,
+}: {
+  firstName: string | null;
+  dashboardUrl: string;
+  manualUrl: string;
+}): string {
+  const greeting = firstName ? `Hi ${firstName},` : "Hello,";
+  return [
+    greeting,
+    "",
+    "You've been added as a registrar for Rooted In Mindfulness.",
+    "",
+    "This means you can now view and manage program registrations — approve and cancel spots, promote people from the waitlist, send reminders, and export attendee lists.",
+    "",
+    `Registrar dashboard: ${dashboardUrl}`,
+    `Staff Reference Manual: ${manualUrl}`,
+    "",
+    "If you have any questions, reply to this email or reach out directly. Welcome to the team.",
+    "",
+    "—",
+    "Rooted In Mindfulness · Brookfield, WI",
+    "rootedinmindfulness.org",
+  ].join("\n");
+}
+
 // ─── Magic link email (authentication) ───────────────────────────────────────
 // Called from auth.ts sendVerificationRequest — replaces the default NextAuth template.
 // isNewUser = true when the account doesn't exist yet or agreedToTerms is false.
