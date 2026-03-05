@@ -54,14 +54,6 @@ export default async function ManualPage() {
             </ul>
           </li>
 
-          <li className="man-sidebar__soon-group">
-            <span className="man-sidebar__link man-sidebar__link--soon">Member Accounts</span>
-            <span className="man-soon-badge">Coming soon</span>
-          </li>
-          <li className="man-sidebar__soon-group">
-            <span className="man-sidebar__link man-sidebar__link--soon">Courses &amp; Materials</span>
-            <span className="man-soon-badge">Coming soon</span>
-          </li>
           <li>
             <a href="#google-meet" className="man-sidebar__link">Google Meet</a>
             <ul className="man-sidebar__sub">
@@ -74,6 +66,16 @@ export default async function ManualPage() {
               <li><a href="#meet-issues"        className="man-sidebar__sublink">If something goes wrong</a></li>
             </ul>
           </li>
+
+          <li className="man-sidebar__soon-group">
+            <span className="man-sidebar__link man-sidebar__link--soon">Member Accounts</span>
+            <span className="man-soon-badge">Coming soon</span>
+          </li>
+          <li className="man-sidebar__soon-group">
+            <span className="man-sidebar__link man-sidebar__link--soon">Courses &amp; Materials</span>
+            <span className="man-soon-badge">Coming soon</span>
+          </li>
+
           <li>
             <a href="#roles" className="man-sidebar__link">Staff &amp; Roles</a>
             <ul className="man-sidebar__sub">
