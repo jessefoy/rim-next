@@ -65,14 +65,14 @@ Two audiences:
 **Current roles:**
 | Role | Access | Dashboard links |
 |---|---|---|
-| `ADMIN` | Everything — full site management | Registrations, Members, Sanity Studio |
-| `REGISTRAR` | Volunteer admin area — view and manage registrations + Sanity Studio access | Registrations, Sanity Studio |
+| `ADMIN` | Everything — full site management | Registrations, Members, Sanity Studio, Staff Manual |
+| `REGISTRAR` | Registration management, member profiles, course access, Sanity Studio access | Registrations, Members, Sanity Studio, Staff Manual |
 
 New roles will be added when there is real functionality to attach to them. Avoid defining roles speculatively — it adds noise to the member detail UI and member list filter without providing value.
 
 **Where roles are assigned:** Via the admin member detail page (`/admin/members/[id]`). Check or uncheck the role checkbox, then click "Save changes." No direct database access needed.
 
-**Automatic notification:** When the REGISTRAR role is newly added and saved, `sendRoleAssignmentEmail()` fires automatically (fire-and-forget). The email tells the member what the role means and links to `/volunteer` and `/admin/manual`. Admin role assignment does not trigger a notification. Re-saving with REGISTRAR already set does not re-send.
+**Automatic notification:** When the REGISTRAR role is newly added and saved, `sendRoleAssignmentEmail()` fires automatically (fire-and-forget). The email highlights two things: a primary "Go to your dashboard" button and a prominent outline "Read the Staff Manual →" button. Intro copy reads: "Two things to bookmark: your Registrations dashboard … and the Staff Manual — a plain-English guide to every part of the system." Admin role assignment does not trigger a notification. Re-saving with REGISTRAR already set does not re-send.
 
 To grant a role without the UI (e.g., bootstrapping the first ADMIN), run SQL on Neon:
 ```sql
@@ -425,7 +425,9 @@ Below the card grid:
 | Role(s) | Card Label | Destination |
 |---|---|---|
 | `ADMIN`, `REGISTRAR` | Registrations | `/volunteer` |
-| `ADMIN` only | Members | `/admin/members` |
+| `ADMIN`, `REGISTRAR` | Members | `/admin/members` |
+| `ADMIN`, `REGISTRAR` | Sanity Studio | `rooted-in-mindfulness.sanity.studio` (external) |
+| `ADMIN`, `REGISTRAR` | Staff Manual | `/admin/manual` |
 
 **🔧 Technical notes:**
 - `STAFF_LINKS` is `Record<string, { label, href, description }[]>` — each role key maps to an array of cards. ADMIN has two entries; REGISTRAR has one.
@@ -543,7 +545,7 @@ Fields: `userId`, `recordedAt`, `eventDate`, `eventName`, `eventType` (CLASS / R
 
 #### Enums
 ```
-Role:               REGISTRAR | TREASURER | TEACHER | VOLUNTEER | ADMIN
+Role:               REGISTRAR | ADMIN
 RegistrationStatus: REGISTERED | WAITLISTED | APPROVED | CANCELLED
 DonationStatus:     NOT_REQUIRED | PENDING | COMPLETED | WAIVED
 DonationSource:     STRIPE | GIVEBUTTER | CASH | CHECK | OTHER
@@ -555,7 +557,7 @@ AttendanceFormat:   IN_PERSON | ONLINE  (Phase 2)
 - `db push` (not `migrate`) is used for schema changes — no migration history files
 - To apply schema changes: `set -a && source .env.local && set +a && npx prisma db push`
 - Roles migration from single `role` to array `roles` required raw SQL — Prisma couldn't handle the enum + column type change atomically. See session log 2026-03-01 in MEMORY.md for the exact SQL used
-- `TREASURER` is already in the `Role` enum and live in the DB — added 2026-03-02
+- `TREASURER`, `TEACHER`, `VOLUNTEER` were removed from the enum and Prisma schema in session 23 (2026-03-05) — only `REGISTRAR` and `ADMIN` remain active. Add new roles only when real functionality is attached.
 
 ---
 
@@ -588,9 +590,9 @@ AttendanceFormat:   IN_PERSON | ONLINE  (Phase 2)
 | `PATCH` | `/api/admin/members/[id]` | ADMIN | Update profile fields, roles, or member state: `action: "archive"` sets `archivedAt` + kills all sessions; `action: "restore"` clears `archivedAt`; default (no action) updates profile + roles |
 | `DELETE` | `/api/admin/members/[id]` | ADMIN | Hard-delete a member with zero registrations; returns `409` if registrations exist (use archive instead) |
 | `POST` | `/api/admin/members/import` | ADMIN | CSV upsert: finds or creates Users by email; fills blank fields only; returns `{ created, updated, skipped }` |
-| `POST` | `/api/admin/members/[id]/course-access` | ADMIN | Grant manual course access (`CourseAccess` upsert) |
-| `DELETE` | `/api/admin/members/[id]/course-access?courseSlug=` | ADMIN | Revoke manual course access |
-| `GET` | `/api/admin/courses` | ADMIN | All Sanity courses enriched with `linkedByPrograms` (reverse ref) — powers CourseAccessSection |
+| `POST` | `/api/admin/members/[id]/course-access` | ADMIN or REGISTRAR | Grant manual course access (`CourseAccess` upsert) |
+| `DELETE` | `/api/admin/members/[id]/course-access?courseSlug=` | ADMIN or REGISTRAR | Revoke manual course access |
+| `GET` | `/api/admin/courses` | ADMIN or REGISTRAR | All Sanity courses enriched with `linkedByPrograms` (reverse ref) — powers CourseAccessSection |
 
 **Payments**
 
@@ -756,7 +758,8 @@ All custom styles: `public/css/custom.css`
 
 ### Access control
 - `/admin/*` routes protected at proxy level (`proxy.ts`)
-- Server components check `session.user.roles?.some(r => r === "ADMIN")` — ADMIN-only, no REGISTRAR access
+- Member list and detail pages allow both ADMIN and REGISTRAR — `hasAccess = isAdmin || roles.includes("REGISTRAR")`
+- Destructive actions (archive, restore, delete, import, role assignment, Sanity invite) require ADMIN; REGISTRAR can view, edit profiles, and manage course access
 - `/account/reactivate` is accessible to any authenticated user (archived members can reach it because `proxy.ts` redirects archived sessions there instead of the usual member area)
 
 ### Member list (`/admin/members`)
@@ -815,8 +818,7 @@ When an archived member requests a magic link and clicks it, `proxy.ts` detects 
 
 ### Dashboard integration
 - `STAFF_LINKS` in `dashboard/page.tsx` maps each role to an array of cards
-- REGISTRAR role produces: Registrations (`/volunteer`) + Sanity Studio (external link, new tab)
-- ADMIN role produces: Registrations + Members (`/admin/members`) + Sanity Studio
+- Both REGISTRAR and ADMIN produce the same 4 cards: Registrations + Members + Sanity Studio (external) + Staff Manual
 - Deduplication by `href` — no duplicate cards if a user holds both ADMIN + REGISTRAR
 - External links (Sanity Studio) render as `<a target="_blank">` instead of Next.js `<Link>`
 
@@ -839,7 +841,7 @@ When an archived member requests a magic link and clicks it, `proxy.ts` detects 
 - `app/api/account/reactivate/route.ts` — PATCH: clears `archivedAt` for the authenticated user
 - `app/api/admin/members/route.ts` — GET (list)
 - `app/api/admin/members/[id]/route.ts` — PATCH (update profile/roles/archive/restore) + DELETE (hard delete, zero-registration guard)
-- `app/api/admin/members/[id]/course-access/route.ts` — POST (grant access) / DELETE (revoke access) — ADMIN only
+- `app/api/admin/members/[id]/course-access/route.ts` — POST (grant access) / DELETE (revoke access) — ADMIN or REGISTRAR
 - `app/api/admin/members/import/route.ts` — POST (CSV upsert)
 - `app/api/admin/courses/route.ts` — GET (all courses enriched with linked programs) — used by `CourseAccessSection`
 
@@ -1745,21 +1747,20 @@ Once the prerequisites are done, these are the implementation pieces:
 ### Current Chapters
 
 #### Chapter 1 — Registration Management
-**Subtitle:** How to view, manage, and communicate with program registrants.
-
-Covers the complete registrar workflow from the volunteer table:
+**Subtitle:** This chapter walks you through the registration system — what members see when they sign up, what you see as a registrar, and how to handle every situation that comes up.
 
 | Section | What it explains |
 |---|---|
-| The Registrar Table | How to reach it, what you see, what each column means |
-| Registration Statuses | REGISTERED, WAITLISTED, APPROVED, CANCELLED — what each means and when to use each |
-| Promoting from Waitlist | Approve button, dana re-trigger for promoted members |
-| Editing Responses | Inline edit mode — how to change a registrant's answers to custom questions |
-| Sending an Edit Link | Edit request email — when to use it, what the member sees |
-| Sending Reminders | Per-person and bulk reminders, cron automation, how to avoid double-sends |
-| Resending Confirmation | When to resend, what the resent email includes |
-| Exporting Attendees | CSV export — what columns appear, how to use for check-in |
-| Common Scenarios | "Someone says they didn't get an email", "We're over capacity", etc. |
+| Overview | What registration is, how it fits the site, the standalone /register URL |
+| Member experience | The form flow, email recognition (pre-fill + field locking), community agreements, after-registration UX, self-cancellation |
+| Your tools | Program list (/volunteer), the registrar table — every column and action |
+| Status guide | REGISTERED, WAITLISTED, APPROVED, CANCELLED — visual cards with plain-English explanations |
+| Dana | Dana modes and dana statuses — both as tables; the dana philosophy note |
+| Course access | When automatic access applies, when to use manual grants, step-by-step how-to |
+| Automatic emails | Full reference of every email the system sends or you can trigger |
+| Calendar links | Start Date & Time, recurrence fields, .ics vs Google Calendar difference |
+| Common tasks | 8 practical how-to tasks: turning on registration, promoting, cancelling, reminders, editing, notes, CSV export, closing |
+| Edge cases | 7 scenarios: wrong email, no confirmation received, locked name, adding someone past capacity, member cancels, registering on behalf, archived member re-registers, can't access account, pending dana |
 
 #### Chapter 2 — Setting Up Programs in Sanity Studio
 **Subtitle:** How to create and manage programs — every tab and field explained.
@@ -1777,8 +1778,27 @@ Covers all 6 Sanity Studio program tabs with field-by-field documentation in a v
 
 **Also covers:**
 - "How a program comes together" — anatomy overview with minimum-to-maximum checklist (5 tiers from page-exists to fully-configured)
-- Common tasks: creating a program, editing live content, closing registration, retiring/archiving
+- Common tasks: creating a program, editing live content, updating dates, special announcements, setting up recurrence, hiding/retiring a program, linking to a course
 - Practical notes: don't change slugs after publishing, meeting link must be set before reminder date, Central Time for all datetimes, linked courses don't grant access to existing registrants
+
+#### Chapter 3 — Staff & Roles
+**Subtitle:** This chapter covers staff roles — what each one unlocks, how to grant and remove access, and how to get a new staff member set up from scratch.
+
+| Section | What it explains |
+|---|---|
+| Overview | What roles are, how they work, immediate effect |
+| The two roles | Registrar vs Admin — what each can/cannot do, dashboard shortcuts table (all 4 links) |
+| Assigning a role | Step-by-step via /admin/members, who can do it |
+| Notification email | Auto-send when REGISTRAR is first added; what it contains |
+| Sanity Studio access | Why it's separate, who needs it, how to invite, Editor access, if invite doesn't arrive |
+| Removing a role | Uncheck and save; warning when Sanity access is involved; effect on pending vs accepted invites |
+| First Admin setup | Bootstrap SQL via Neon console — for when no Admin exists yet |
+
+### Discovery
+
+Staff reach the manual via two paths:
+1. **Dashboard shortcut card** — "Staff Manual" appears in `STAFF_LINKS` for both REGISTRAR and ADMIN on the `/account/dashboard` hub
+2. **Role assignment email** — newly-granted REGISTRARs receive a prominent outline button "Read the Staff Manual →" alongside the main dashboard button
 
 ### Design
 
@@ -1786,13 +1806,20 @@ Covers all 6 Sanity Studio program tabs with field-by-field documentation in a v
 
 **CSS prefix:** `man-` (`public/css/custom.css`)
 
-**Components:**
+**Two table styles:**
+- `man-table` — general content table for key/description pairs. First column is bold; second column is left-aligned `--rim-text-muted`. Used for dana modes, dana statuses, calendar fields, program tabs overview, etc.
+- `man-table man-table--perms` — modifier for permission check tables where non-first columns contain ✓ marks and should be centred (e.g., the dashboard shortcuts access table).
+
+**Other components:**
 - `man-field-list` / `man-field` — 2-column grid (210px label + 1fr description) for field-by-field reference tables. Responsive: collapses to stacked on narrow viewports.
 - `man-note` — warm tinted callout box for important warnings and tips
-- `man-list` — clean list style for step-by-step instructions
+- `man-list` — clean list style; padding-left 28px (not browser default ~40px or too-tight 20px)
+- `man-steps` — numbered step-by-step list; padding-left 28px
 - `man-chapter--break` — blue top border + 80px top margin for visual chapter separation
 - `man-section__h3` — uppercase small label for sub-headings within sections
 - `man-content code` — monospace inline code style for technical values
+
+**Consistency rule:** Prefer `man-table` over bullet lists wherever content has a key/value structure. Use bullet lists only for truly unstructured content (e.g., a list of independent points with no natural label column).
 
 **Key file:** `app/admin/manual/page.tsx` — server component, full content inline (no CMS backing — manual updates require code edits).
 
@@ -1801,9 +1828,9 @@ Covers all 6 Sanity Studio program tabs with field-by-field documentation in a v
 - Server component — auth check at top: `redirect("/login")` if not ADMIN or REGISTRAR
 - All content is hardcoded in the TSX file; no database or Sanity dependency
 - Each chapter is independently self-contained so chapters can be handed to different people if roles split in the future
-- Chapter subtitles include explicit "Who uses this chapter:" callouts for role clarity
+- Chapter subtitles speak directly to the reader in second person ("This chapter walks you through…") — no "Who uses this chapter" third-person framing
 - The sidebar uses anchor links (`#section-id`) for in-page navigation — no routing, no JavaScript required
-- Future chapters (coming soon as sidebar stubs): Member Accounts, Courses & Materials, Staff & Roles, Google Meet Integration
+- Future chapters (coming soon as sidebar stubs): Member Accounts, Courses & Materials (member-facing side — admin course access is already in Chapter 1), Google Meet Integration
 
 ---
 
@@ -1811,4 +1838,6 @@ Covers all 6 Sanity Studio program tabs with field-by-field documentation in a v
 | 2026-03-05 (session 25) | Registrar role assignment notification email. `sendRoleAssignmentEmail()` added to `lib/email.ts` — fires when REGISTRAR is newly added in the member PATCH route; links to `/volunteer` + `/admin/manual`; fire-and-forget, no re-send on subsequent saves. Minimal Chapter 3 "Staff & Roles" added to `/admin/manual` with one section ("Notifying new staff") explaining the automatic email and distinguishing it from the separate Sanity Studio invite step. Sidebar updated — "Staff & Roles" now a real link, no longer a "Coming soon" badge. FEATURES.md Section 2 updated. Commit: 4c13318 (code) + [docs commit]. |
 | 2026-03-05 (session 24) | Member self-service cancellation (17b) + spot-opened alerts + capacity notices (17d). **(17b)** New `POST /api/account/registrations/[id]/cancel` — auth check → ownership check (403 if not their registration) → status guard (400 if already CANCELLED) → `db.registration.update({ status: "CANCELLED" })` → fire-and-forget `sendCancellationNotificationEmail()`. New `components/CancelRegistrationButton.tsx` ("use client"; 4-state machine: idle/confirming/loading/done; on error → alert + revert to confirming). `app/account/dashboard-my-registrations/page.tsx` renders cancel button in `mr-card__actions` for REGISTERED/APPROVED/WAITLISTED cards. **(17d — spot-opened alerts)** `app/volunteer/page.tsx`: added `spotOpened` boolean (`!!cap && confirmedCount < cap && waitlistedCount > 0`) to `programsWithCounts`; `needsAttention` now includes `spotOpened`; green `vol-signal--spot-open` badge ("↑ Spot open · N waiting") renders before the amber waitlist badge (amber waitlist badge only shows when NOT spotOpened). `components/VolunteerTable.tsx`: derived `waitlistedCount` from `counts.WAITLISTED ?? 0`; `spotOpened` derivation (same logic); `vol-spot-opened` amber alert banner above registrations table when spot is open. **(17d — capacity notices on program page)** `app/programs/[slug]/page.tsx`: added `isFull` (`spotsRemaining === 0`) and `showLowSpots` (`spotsRemaining > 0 && spotsRemaining <= 5`) derivations; CTA section: "Join Waitlist" branch gets `pg-capacity--full` amber box notice; "Register" branch conditionally shows `pg-capacity--low` muted notice. **CSS added:** `vol-signal--spot-open` (green badge), `vol-spot-opened` (amber alert banner, left border accent in `--rim-mid`), `pg-capacity` (base notice style), `pg-capacity--full` (warm amber box), `pg-capacity--low` (plain muted text), `mr-card__actions` (border-top footer row), `mr-cancel-btn` (muted text-link), `mr-cancel-confirm` (warm red-tinted inline box), `mr-cancel-confirm__text`, `mr-cancel-confirm__actions`, `mr-cancel-btn--yes` (red danger), `mr-cancel-btn--keep` (neutral outline), `mr-cancel-done` (muted confirmation text). **Staff manual updated** (7fd8442): self-cancellation section added under "After registering"; spot-open badge documented in volunteer index; VolunteerTable spot-opened alert documented; promoting-from-waitlist task references new entry points; "Cancel as registrar" clarified vs member self-cancel. **Build note:** `npm run build` exits 1 locally (Stripe env var not in local .env — pre-existing, builds clean on Vercel); TypeScript compiled successfully. Commits: 08fb3a2 (features), 7fd8442 (manual docs). |
 
-*Last updated: 2026-03-05 (session 25)*
+| 2026-03-05 (session 26) | Manual review + accuracy fixes + memory. **(1) Course access to REGISTRAR (f902dfa):** Opened `CourseAccessSection` UI to REGISTRAR role (removed `{isAdmin &&}` gate in `MemberDetail`); `GET /api/admin/courses`, `POST` and `DELETE` `/api/admin/members/[id]/course-access` now accept REGISTRAR in addition to ADMIN. Added "Grant or revoke course access for individual members" to REGISTRAR "can do" list in Chapter 3. Added full "Course access" section to Chapter 1 (sidebar link, intro, when-to-use-manual-grants, step-by-step how-to, note about registration vs manual grants being separate). **(2) Chapter subtitles rewritten (94712dd):** All three chapter openers rewritten from third-person "Who uses this chapter:" framing to direct second-person address ("This chapter walks you through…"). **(3) Manual audit and fixes:** Dashboard shortcuts table in Chapter 3: added missing Staff Manual row. Automatic emails section: added dana reminder email entry. Future editions section: updated Courses & Online Materials to note that admin-side course access is already covered in Chapter 1. **(4) FEATURES.md accuracy fixes:** §2 REGISTRAR dashboard links corrected (Members now included); §6b STAFF_LINKS table updated (both roles get all 4 cards); §7 Role enum corrected (TREASURER/TEACHER/VOLUNTEER removed); §7 technical notes updated; §8 course-access API routes updated to ADMIN or REGISTRAR; §11 access control and dashboard integration stale text corrected; §20 Chapter 1 sections table expanded to reflect current content, Chapter 3 added, technical notes and future chapters updated. |
+
+*Last updated: 2026-03-05 (session 26)*

@@ -375,6 +375,12 @@ export default async function ManualPage() {
                 When a registrant submits changes through their edit link, you receive a notification showing their name, the program, and what they changed.
               </div>
             </div>
+            <div className="man-email-item">
+              <div className="man-email-item__trigger">When you send a dana reminder<br /><em>→ to registrant</em></div>
+              <div className="man-email-item__desc">
+                Clicking <strong>Send Dana Reminder</strong> on a row where Dana Status is Pending sends a gentle nudge with a direct link to complete their offering. This is manually triggered — it does not send automatically.
+              </div>
+            </div>
           </div>
           <p>
             You can also manually <strong>Resend Confirmation</strong> to any registrant from the table — useful when someone says they never received the original.
@@ -1151,7 +1157,7 @@ export default async function ManualPage() {
               <strong>Member Accounts</strong> — how members sign in (magic link, no passwords), the onboarding flow, community agreements, account management, and what to do when someone can&rsquo;t get in.
             </li>
             <li>
-              <strong>Courses &amp; Online Materials</strong> — how course access is granted automatically via registration, how to grant or revoke access manually, and the difference between open and registration-required courses.
+              <strong>Courses &amp; Online Materials</strong> — the member-facing side: browsing the course library, accessing lessons and recordings, and how open courses differ from registration-required ones. (The admin side — granting and revoking access — is already covered in the <a href="#reg-course-access">Course access</a> section of this chapter.)
             </li>
             <li>
               <strong>Google Meet Integration</strong> — once built: how to generate a Google Meet link directly from Sanity Studio and have it appear in emails and on the program page automatically.
@@ -1248,6 +1254,11 @@ export default async function ManualPage() {
               </tr>
               <tr>
                 <td>Sanity Studio (external)</td>
+                <td>✓</td>
+                <td>✓</td>
+              </tr>
+              <tr>
+                <td>Staff Manual <code>/admin/manual</code></td>
                 <td>✓</td>
                 <td>✓</td>
               </tr>
