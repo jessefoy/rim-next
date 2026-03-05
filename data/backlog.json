@@ -188,6 +188,51 @@
       "priority": "low",
       "status": "open",
       "addedAt": "2026-03-05"
+    },
+    {
+      "id": "2026-03-05-022",
+      "title": "Member list sorting & saved filtered lists (Planning Center style)",
+      "description": "Upgrade /admin/members with practical sort options (name, join date, last active, registration count, etc.) and a saved filtered list system similar to Planning Center Online. Staff can create and save lists based on criteria like: 'attended drop-in on a specific date', 'completed a specific course', 'joined in the last 30 days', 'has no registrations', etc. Lists are reusable and shareable between admins. Requires research into the right filter fields and UI patterns before building.",
+      "category": "Admin Tools",
+      "priority": "high",
+      "status": "open",
+      "addedAt": "2026-03-05"
+    },
+    {
+      "id": "2026-03-05-023",
+      "title": "In-person session check-in system",
+      "description": "A fast, easy check-in flow for members attending live sessions at the center. Should work on a phone (member self-check-in via QR code or link) and/or a shared iPad at the door. Needs research into the best UX — options include: QR code per session that opens a check-in page, a kiosk-style iPad app showing the day's registrants with a tap-to-check-in interface, or a hybrid. Should log attendance against the member's record and the program session.",
+      "category": "Registration",
+      "priority": "high",
+      "status": "open",
+      "addedAt": "2026-03-05"
+    },
+    {
+      "id": "2026-03-05-024",
+      "title": "Exportable PDF check-in sheet for programs",
+      "description": "From the volunteer/registrar view of a program, generate a printable PDF check-in sheet listing registered members with fields for staff to mark attendance. Also useful as a reference sheet for whoever is greeting at the door. Needs research into the right fields (name, registration status, dana status, notes?) and a clean format. Could use a server-side PDF library (e.g. @react-pdf/renderer or puppeteer) or a simple print-optimized HTML page.",
+      "category": "Admin Tools",
+      "priority": "medium",
+      "status": "open",
+      "addedAt": "2026-03-05"
+    },
+    {
+      "id": "2026-03-05-025",
+      "title": "Member participation activity tracking",
+      "description": "Track and categorize member activity over time: website logins, program registrations, session attendance (check-ins), course completions, drop-in participation. Each activity type should be stored with a timestamp and categorized (login / registration / attendance / course / drop-in). Displayed on the member detail page in admin and eventually surfaced in filtered lists and member care context. Requires a new ActivityLog model in Prisma and instrumentation at key touchpoints (login, registration, check-in, course access).",
+      "category": "Member Accounts",
+      "priority": "high",
+      "status": "open",
+      "addedAt": "2026-03-05"
+    },
+    {
+      "id": "2026-03-05-026",
+      "title": "Member care — important dates & anniversaries",
+      "description": "Staff can record important dates for individual members: birthdays, death anniversaries of loved ones, upcoming surgeries or health events, significant life milestones. Displayed on the member detail page and surfaced in a daily or weekly digest for staff. Long-term: grows into a member care system where different staff or volunteers can contribute, with notes and follow-up reminders. High human value — helps RIM show up as a genuine community, not just a program provider.",
+      "category": "Member Accounts",
+      "priority": "high",
+      "status": "open",
+      "addedAt": "2026-03-05"
     }
   ]
 }
