@@ -6,10 +6,11 @@ const BASE_URL = process.env.NEXTAUTH_URL ?? "https://rim-next.vercel.app";
 
 export interface CalendarEvent {
   title: string;
-  startDatetime: string;       // ISO 8601 UTC string, e.g. "2026-06-07T18:00:00.000Z"
-  endDatetime?: string | null; // optional; defaults to 1 hour after start
+  startDatetime: string;        // ISO 8601 UTC string, e.g. "2026-06-07T18:00:00.000Z"
+  endDatetime?: string | null;  // optional; defaults to 1 hour after start
   location?: string | null;
   programSlug: string;
+  repeatWeeks?: number | null;  // optional; if > 1, .ics includes RRULE:FREQ=WEEKLY;COUNT=N
 }
 
 /**
@@ -77,6 +78,11 @@ export function buildIcsContent(ev: CalendarEvent): string {
     `DTSTAMP:${now}`,
     `DTSTART:${start}`,
     `DTEND:${end}`,
+    // RRULE for multi-session courses: FREQ=WEEKLY;COUNT=N repeats N times total
+    // (the first DTSTART counts as session 1, so COUNT=4 = 4 weekly sessions)
+    ...(ev.repeatWeeks && ev.repeatWeeks > 1
+      ? [`RRULE:FREQ=WEEKLY;COUNT=${ev.repeatWeeks}`]
+      : []),
     `SUMMARY:${esc(ev.title)}`,
     ...(ev.location ? [`LOCATION:${esc(ev.location)}`] : []),
     `URL:${programUrl}`,

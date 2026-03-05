@@ -1574,4 +1574,119 @@ Note: The Developer token is a **server-side secret** stored only in Vercel env 
 
 ---
 
+## 19. Google Meet Integration ⚡ HIGH PRIORITY
+
+**What it does:** Replaces Zoom with Google Meet for all virtual programs. Staff create a program in Sanity Studio, then click "Create Google Meet" in the registrar dashboard — our API calls the Google Calendar API, creates a calendar event on the shared RIM Programs calendar, and writes the auto-generated Meet link back to Sanity. The link appears on the program page, in confirmation emails, and in reminder emails without any copy-pasting.
+
+**Why this matters:**
+- Eliminates Zoom costs and 40-minute limits for a nonprofit on Google Workspace
+- Solve overlapping scheduling conflicts — the shared "RIM Programs" Google Calendar becomes a live view of all upcoming virtual programs for all staff
+- Meet links auto-generate (no separate Zoom scheduling step); links never expire
+- Can implement before DNS cutover — feature is fully testable on rim-next.vercel.app
+
+**Who uses it:**
+- **Registrars/Admins** — click "Create Google Meet" button on the volunteer programs page
+- **Members** — receive Meet link in confirmation + reminder emails; see it on the program page
+- **All staff** — subscribe to the shared "RIM Programs" Google Calendar to see all sessions
+
+---
+
+### Staff workflow
+
+1. Create/publish program in Sanity Studio — fill in Start Date & Time, End Date & Time
+2. In `/volunteer/programs/[slug]`, click **"Create Google Meet"** button
+3. Google Calendar event is created automatically on the shared RIM Programs calendar
+4. Meet link appears in the program page details card and goes out in all emails
+5. Staff subscribed to the RIM Programs calendar see the event in their own Google Calendar with the Meet link already embedded
+
+---
+
+### Prerequisites — what staff need to do before we build this
+
+These steps require Google Workspace admin access. Do these first; then we build the code.
+
+#### Step 1 — Create a Google Cloud project
+
+1. Go to [console.cloud.google.com](https://console.cloud.google.com)
+2. Create a new project named **"RIM Programs"** (or use the existing Workspace project)
+3. Enable the **Google Calendar API**: APIs & Services → Library → search "Google Calendar API" → Enable
+
+#### Step 2 — Create a service account
+
+1. APIs & Services → Credentials → **Create Credentials → Service Account**
+2. Name: **"rim-programs-calendar"** · Role: **Editor** (or no role is fine — we only need calendar access, not project-wide permissions)
+3. Click the service account → **Keys** tab → **Add Key → Create new key → JSON**
+4. Download the JSON file — you'll need values from it in Step 5
+
+#### Step 3 — Create a shared "RIM Programs" Google Calendar
+
+1. In Google Calendar (your Google Workspace account), create a new calendar: **"RIM Programs"**
+2. Share it with the service account email (looks like `rim-programs-calendar@<project-id>.iam.gserviceaccount.com`):
+   - Calendar settings → **Share with specific people** → add service account email → **"Make changes to events"**
+3. Find the **Calendar ID** (looks like `abc123@group.calendar.google.com`) in Calendar settings → Integrate calendar
+
+#### Step 4 — All staff subscribe to the shared calendar
+
+Each staff member adds the "RIM Programs" calendar to their own Google Calendar so they can see all programs and avoid scheduling conflicts.
+
+#### Step 5 — Add environment variables to Vercel
+
+From the downloaded service account JSON file:
+
+| Vercel variable | Value |
+|---|---|
+| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | `client_email` field from the JSON |
+| `GOOGLE_SERVICE_ACCOUNT_KEY` | `private_key` field from the JSON (the full `-----BEGIN RSA PRIVATE KEY-----...` string) |
+| `GOOGLE_CALENDAR_ID` | Calendar ID from Step 3 (e.g. `abc123@group.calendar.google.com`) |
+
+---
+
+### What we'll build (code)
+
+Once the prerequisites are done, these are the implementation pieces:
+
+**1. `lib/google-calendar.ts`** — service account auth + meeting creation
+- Authenticate using `google-auth-library` (JWT with service account credentials)
+- `createMeeting({ title, startDatetime, endDatetime, location, programSlug })` → returns `{ meetLink, calendarEventId }`
+- Creates a Google Calendar event with `conferenceData: { createRequest: { requestId: programSlug } }` → Google auto-generates a Meet link
+- Event `description` links back to `rim-next.vercel.app/programs/[slug]`
+
+**2. `POST /api/programs/[slug]/google-meet`** — API route (REGISTRAR or ADMIN only)
+- Auth check: must have REGISTRAR or ADMIN role
+- Fetch program from Sanity by slug: get `_id`, `name`, `startDatetime`, `endDatetime`, `locationText`
+- Return 400 if `startDatetime` not set (Google Calendar event requires a date)
+- Call `createMeeting(...)` → get Meet link
+- Write Meet link back to Sanity: `sanityClient.patch(program._id).set({ zoomLink: meetLink, zoomLinkText: "Join on Google Meet" }).commit()`
+- Return `{ meetLink }` for optimistic UI update
+
+**3. Volunteer programs page UI** — "Create Google Meet" button
+- Show button when program has `startDatetime` set but no `zoomLink` yet
+- If `zoomLink` already exists: show the link + "Replace" option (with confirm dialog)
+- On click: POST to `/api/programs/[slug]/google-meet` → update displayed link optimistically
+- Show the current Meet link as a clickable URL so staff can verify
+
+**4. Meeting link display** — no new Sanity fields needed
+- The existing `zoomLink` / `zoomLinkText` fields are already wired into the program page, confirmation emails, and reminder emails
+- Field titles already renamed to "Meeting Link" / "Meeting Button Text" in Sanity Studio (done session 21)
+- Default button text will be set to "Join on Google Meet" by the API; staff can override in Sanity if needed
+
+---
+
+### Technical notes
+
+- **`google-auth-library`** npm package handles JWT service account authentication — no OAuth flow required, no user login, no redirect
+- **`conferenceData.createRequest.requestId`** must be unique per event — using `programSlug` is safe since each program has one Meet link. If a "Replace" is requested, generate `${programSlug}-${Date.now()}` to avoid the idempotency cache
+- **`GOOGLE_SERVICE_ACCOUNT_KEY`** contains newlines in the private key — store the raw value in Vercel (not base64-encoded); Next.js env vars handle multiline values correctly
+- **Sanity write-back** uses `sanityClient` from `@/lib/sanity` with `SANITY_API_TOKEN` — this token already has write access; writing back `zoomLink` triggers a Sanity document update that is immediately visible in Studio and on next page render
+- **No Sanity schema changes needed** — `zoomLink` + `zoomLinkText` fields already exist and are already wired to program page + emails
+- **Overlap prevention** — because all programs appear on the shared RIM Programs Google Calendar, staff see conflicts before creating a new meeting
+
+### Key files (once built)
+
+- `lib/google-calendar.ts` — service account auth, `createMeeting()` (NEW)
+- `app/api/programs/[slug]/google-meet/route.ts` — POST handler: creates Meet, writes to Sanity (NEW)
+- `app/volunteer/programs/[slug]/page.tsx` — "Create Google Meet" button + current link display (MODIFY)
+
+---
+
 *Last updated: 2026-03-04 (session 20)*

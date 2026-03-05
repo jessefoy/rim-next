@@ -164,9 +164,10 @@ export async function POST(request: NextRequest) {
         confirmationMessage?: unknown[];
         startDatetime?: string | null;
         endDatetime?: string | null;
+        repeatWeeks?: number | null;
       } | null>(
         `*[_type == "programs" && _id == $id && !(_id in path("drafts.**"))][0]{
-          confirmationMessage, startDatetime, endDatetime
+          confirmationMessage, startDatetime, endDatetime, repeatWeeks
         }`,
         { id: programId }
       );
@@ -182,6 +183,7 @@ export async function POST(request: NextRequest) {
           endDatetime: prog.endDatetime,
           location: locationText ?? null,
           programSlug,
+          repeatWeeks: prog.repeatWeeks,
         });
         icsUrl = buildIcsUrl(programSlug);
       }

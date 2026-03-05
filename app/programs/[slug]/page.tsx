@@ -26,6 +26,7 @@ interface Program {
   timeText?: string;
   startDatetime?: string | null;
   endDatetime?: string | null;
+  repeatWeeks?: number | null;
   locationText?: string;
   locationLink?: string;
   danaText?: string;
@@ -259,18 +260,23 @@ export default async function ProgramDetailPage({
                               endDatetime: program.endDatetime,
                               location: program.locationText,
                               programSlug: slug,
+                              repeatWeeks: program.repeatWeeks,
                             })}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="pg-calendar-link"
                           >
-                            + Google Calendar
+                            {program.repeatWeeks && program.repeatWeeks > 1
+                              ? `+ Google Calendar (first session)`
+                              : `+ Google Calendar`}
                           </a>
                           <a
                             href={buildIcsUrl(slug)}
                             className="pg-calendar-link"
                           >
-                            + Apple / Outlook
+                            {program.repeatWeeks && program.repeatWeeks > 1
+                              ? `+ Apple / Outlook (all ${program.repeatWeeks} sessions)`
+                              : `+ Apple / Outlook`}
                           </a>
                         </div>
                       )}
