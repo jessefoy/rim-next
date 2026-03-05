@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 
-export const metadata = { title: "Staff Manual — Rooted In Mindfulness" };
+export const metadata = { title: "Volunteer Manual — Rooted In Mindfulness" };
 
 export default async function ManualPage() {
   const session = await auth();
@@ -14,7 +14,7 @@ export default async function ManualPage() {
 
       {/* ── Sidebar ── */}
       <nav className="man-sidebar">
-        <p className="man-sidebar__heading">Staff Manual</p>
+        <p className="man-sidebar__heading">Volunteer Manual</p>
         <ul className="man-sidebar__list">
 
           <li>
@@ -76,7 +76,7 @@ export default async function ManualPage() {
           </li>
 
           <li>
-            <a href="#roles" className="man-sidebar__link">Staff &amp; Roles</a>
+            <a href="#roles" className="man-sidebar__link">Volunteer Roles</a>
             <ul className="man-sidebar__sub">
               <li><a href="#roles-overview"   className="man-sidebar__sublink">Overview</a></li>
               <li><a href="#roles-two-roles"  className="man-sidebar__sublink">The two roles</a></li>
@@ -100,45 +100,43 @@ export default async function ManualPage() {
         <div id="introduction" className="man-chapter">
           <h1 className="man-chapter__title">Welcome</h1>
           <p className="man-chapter__subtitle">
-            This is the staff reference manual for the Rooted In Mindfulness website. It&rsquo;s written for the people who keep programs running — not for developers. You don&rsquo;t need a technical background to use it.
+            This manual is for everyone who volunteers with Rooted In Mindfulness. Whatever your role, whatever brought you here — this is your reference. You don&rsquo;t need a technical background, and you don&rsquo;t need to read it all at once.
           </p>
         </div>
 
         <section className="man-section">
-          <h2 className="man-section__title">What this system is</h2>
+          <h2 className="man-section__title">About this manual</h2>
           <p>
-            The RIM website has three areas, each serving a different purpose.
+            The RIM website is the digital heart of our community — the place where programs are shared, where people register and connect, where members access teachings and materials, and where much of the behind-the-scenes work of holding space happens. This manual documents how all of that works.
           </p>
-          <ul className="man-list">
-            <li><strong>The public website</strong> — programs, events, teacher bios, and written content. Anyone can visit. No login needed.</li>
-            <li><strong>The member area</strong> — for people who have signed in. Includes the member dashboard, course library, registration history, and profile settings. Members reach it at <strong>/account</strong>.</li>
-            <li><strong>The staff area</strong> — where you are now. The registration table, member management, and this manual. Visible only to people with a Registrar or Admin role.</li>
-          </ul>
           <p>
-            This manual covers the staff area — what each part does, how to use it, and what to do when something unexpected comes up. It&rsquo;s also a record of how the whole system works, so that anyone stepping into a staff role, now or in the future, understands not just the steps but the reasoning behind them.
+            It&rsquo;s written in plain language, for people doing real work in the community. Each chapter explains what a feature does, why it exists, and how to use it — so that anyone in a volunteer role can understand not just the steps, but the intention behind them.
+          </p>
+          <p>
+            As RIM grows, so will the ways people contribute — as registrars, program coordinators, community group facilitators, and roles that haven&rsquo;t been defined yet. This manual is a shared reference for all of them, and it will grow alongside the community. Every volunteer has access to the whole thing, not just the sections that touch their immediate work. That&rsquo;s intentional: understanding how the whole system works — even the parts outside your own role — makes for better collaboration and a more connected community.
           </p>
         </section>
 
         <section className="man-section">
-          <h2 className="man-section__title">How to use this manual</h2>
+          <h2 className="man-section__title">How to use it</h2>
           <p>
-            You don&rsquo;t need to read this from beginning to end. Use the sidebar on the left to jump to whatever you&rsquo;re working on. Each chapter covers one part of the system. Each section inside a chapter covers one topic or task.
+            Use the sidebar on the left to navigate. Each chapter covers one area of the system. You can start anywhere — you don&rsquo;t need to begin at the beginning.
           </p>
           <p>
-            If you&rsquo;re brand new, <a href="#registration">Registration</a> is a good place to start — it covers the most common day-to-day work. If you&rsquo;re setting up a new program, go straight to <a href="#programs">Programs &amp; Sanity Studio</a>.
+            The person who invited you into your volunteer role will let you know which chapters are most directly relevant to what you&rsquo;ll be doing. But you&rsquo;re welcome — and encouraged — to explore any of it. Knowing the full picture, even parts you may never touch directly, is part of what it means to hold this work together.
           </p>
           <div className="man-note">
-            If something in this manual is unclear, confusing, or out of date — that&rsquo;s worth noting. This is a living document, not something written once and forgotten. Let whoever manages the website know what was hard to understand, and it will be improved.
+            This is a living document. It will be updated as the website grows and as new features are added. If something here is unclear, confusing, or out of date, that&rsquo;s always worth mentioning — this manual is only as good as the care that goes into maintaining it.
           </div>
         </section>
 
         <section className="man-section">
           <h2 className="man-section__title">A note on technology</h2>
           <p>
-            This system was built to be as straightforward as possible. Most things work the way you&rsquo;d expect. But if something feels confusing, that&rsquo;s not your fault — it may mean the system or the documentation can be improved.
+            This system is built to be as simple as possible for the people using it. Most things work the way you&rsquo;d expect. But technology can feel unfamiliar, and that&rsquo;s completely understandable.
           </p>
           <p>
-            You are not expected to understand how everything works under the hood. The manual is here so you don&rsquo;t have to figure things out on your own. When something goes wrong, look for the <strong>If something goes wrong</strong> or <strong>Edge cases</strong> section — they&rsquo;re written for exactly those moments.
+            If something feels confusing, please know: that&rsquo;s not a reflection on you. It may mean the system can be clearer, or that this manual needs a better explanation. You&rsquo;re not expected to figure things out alone — the manual is here for exactly those moments, and so is the rest of your community.
           </p>
         </section>
 
@@ -149,7 +147,7 @@ export default async function ManualPage() {
         <div id="registration" className="man-chapter">
           <h1 className="man-chapter__title">Registration</h1>
           <p className="man-chapter__subtitle">
-            This chapter walks you through the registration system — what members see when they sign up, what you see as a registrar, and how to handle every situation that comes up.
+            This chapter walks you through the registration system — what the experience looks like from a member&rsquo;s perspective, what the tools look like from the volunteer side, and how to handle every situation that comes up.
           </p>
         </div>
 
@@ -217,7 +215,7 @@ export default async function ManualPage() {
             Once confirmed, the program page shows <strong>✓ You&rsquo;re registered</strong> instead of a button. If calendar dates are set on the program, members also see links to add the event to Google Calendar or download an .ics file for Apple Calendar or Outlook.
           </p>
           <p>
-            Members can see all their registrations — status, dana status, and staff notes — at <strong>/account/dashboard-my-registrations</strong> (linked as &ldquo;My Programs&rdquo; in the navigation). If they have a pending dana offering, their dashboard homepage shows a reminder card with a link to complete it. The card disappears once dana is received.
+            Members can see all their registrations — status, dana status, and any notes shared with them — at <strong>/account/dashboard-my-registrations</strong> (linked as &ldquo;My Programs&rdquo; in the navigation). If they have a pending dana offering, their dashboard homepage shows a reminder card with a link to complete it. The card disappears once dana is received.
           </p>
           <h3 className="man-section__h3">Self-cancellation</h3>
           <p>
@@ -261,7 +259,7 @@ export default async function ManualPage() {
             <li>Send an individual reminder email, or bulk-send to everyone who hasn&rsquo;t received one yet</li>
             <li>Send a dana reminder to a specific registrant with pending dana</li>
             <li>Resend a confirmation email to any registrant</li>
-            <li>Add or edit a private staff note (visible only to staff — never sent to the member)</li>
+            <li>Add or edit a private note (visible only to volunteers — never sent to the member)</li>
             <li>Export the full list as a CSV file</li>
           </ul>
           <p>
@@ -284,7 +282,7 @@ export default async function ManualPage() {
             </div>
             <div className="man-status-card">
               <span className="man-status-badge man-status-badge--approved">Approved</span>
-              <p>Like Registered, but set manually by a registrar. Use this to distinguish staff-approved participants from self-registered ones — for example, programs with an application process. Both count toward capacity.</p>
+              <p>Like Registered, but set manually by a volunteer. Use this to distinguish personally approved participants from self-registered ones — for example, programs with an application or interview process. Both count toward capacity.</p>
             </div>
             <div className="man-status-card">
               <span className="man-status-badge man-status-badge--waitlisted">Waitlisted</span>
@@ -563,7 +561,7 @@ export default async function ManualPage() {
             <h3 className="man-task__title">Adding a note to a registration</h3>
             <ol className="man-steps">
               <li>Click <strong>Edit</strong> on the registrant&rsquo;s row, update the Notes field, and save.</li>
-              <li>Notes are visible only to staff — never sent to the member or shown anywhere public.</li>
+              <li>Notes are visible only to volunteers — never sent to the member or shown anywhere public.</li>
             </ol>
           </div>
 
@@ -652,7 +650,7 @@ export default async function ManualPage() {
         <section id="prog-overview" className="man-section">
           <h2 className="man-section__title">Overview</h2>
           <p>
-            All content on the website — programs, courses, teacher bios, and more — is managed through <strong>Sanity Studio</strong>, a separate content editor at <a href="https://rooted-in-mindfulness.sanity.studio/" target="_blank" rel="noopener noreferrer">rooted-in-mindfulness.sanity.studio</a>. You can also reach it from the Sanity Studio card on your staff dashboard.
+            All content on the website — programs, courses, teacher bios, and more — is managed through <strong>Sanity Studio</strong>, a separate content editor at <a href="https://rooted-in-mindfulness.sanity.studio/" target="_blank" rel="noopener noreferrer">rooted-in-mindfulness.sanity.studio</a>. You can also reach it from the Sanity Studio card on your dashboard.
           </p>
           <p>
             When you save and publish a program in Sanity, it appears on the website within seconds. There is no separate &ldquo;send to website&rdquo; step — publishing is it.
@@ -1075,7 +1073,7 @@ export default async function ManualPage() {
             <div className="man-field">
               <div className="man-field__name">Remove from Dashboard Program List</div>
               <div className="man-field__desc">
-                <p>When checked, this program does not appear in the member dashboard&rsquo;s program listing. The program&rsquo;s own page is still accessible by direct link. Use for programs that are not relevant to the general membership — for example, internal staff programs or programs managed outside of this system.</p>
+                <p>When checked, this program does not appear in the member dashboard&rsquo;s program listing. The program&rsquo;s own page is still accessible by direct link. Use for programs that are not relevant to the general membership — for example, internal or invitation-only programs not meant for the general membership.</p>
               </div>
             </div>
             <div className="man-field">
@@ -1112,7 +1110,7 @@ export default async function ManualPage() {
               <div className="man-field__name">Hide from Programs &amp; Events Listing</div>
               <div className="man-field__desc">
                 <p>When checked, this program does not appear on the public <code>/programs</code> listing page, but its own page is still reachable at its direct URL.</p>
-                <p>Use this for programs that are invitation-only, still in draft, or not meant to be discovered by browsing — for example, a private retreat or a staff-only program where you share the link directly.</p>
+                <p>Use this for programs that are invitation-only, still in draft, or not meant to be discovered by browsing — for example, a private retreat or an invitation-only program where you share the link directly.</p>
               </div>
             </div>
           </div>
@@ -1281,7 +1279,7 @@ export default async function ManualPage() {
 
           <h3 className="man-section__h3">2. The volunteer must have a @rootedinmindfulness.org email</h3>
           <p>
-            You&rsquo;ll need to know the volunteer&rsquo;s RIM email address (the one ending in <code>@rootedinmindfulness.org</code>). This is the address they use to log in to Google Workspace — it&rsquo;s their staff Google account, the same one they use for Google Calendar and Gmail at RIM.
+            You&rsquo;ll need to know the volunteer&rsquo;s RIM email address (the one ending in <code>@rootedinmindfulness.org</code>). This is the address they use to log in to Google Workspace — it&rsquo;s their RIM Google account, the same one they use for Google Calendar and Gmail at RIM.
           </p>
           <p>
             If you&rsquo;re not sure of their exact address, ask them directly. Their address follows the format <code>firstname@rootedinmindfulness.org</code> or <code>firstnamelastname@rootedinmindfulness.org</code>.
@@ -1349,7 +1347,7 @@ export default async function ManualPage() {
             <li><strong>End the meeting for everyone</strong> — click the red hang-up button and choose <em>End meeting for all</em></li>
           </ul>
           <p>
-            They don&rsquo;t need to do anything special to <em>start</em> the meeting. There is no &ldquo;host must join first&rdquo; requirement — participants can join before the host arrives and will be admitted automatically because the meeting is set to open access for RIM staff and participants.
+            They don&rsquo;t need to do anything special to <em>start</em> the meeting. There is no &ldquo;host must join first&rdquo; requirement — participants can join before the host arrives and will be admitted automatically because the meeting is set to open access for RIM volunteers and participants.
           </p>
 
           <h3 className="man-section__h3">If they don&rsquo;t see host controls</h3>
@@ -1357,7 +1355,7 @@ export default async function ManualPage() {
             Occasionally, the automatic co-host setup may not apply — for example, if the email used wasn&rsquo;t a <code>@rootedinmindfulness.org</code> address, or if there was a technical hiccup during setup. In that case, they will still be able to join and lead the session — they just won&rsquo;t have the blue shield.
           </p>
           <p>
-            For most RIM sessions, this isn&rsquo;t a problem. The meditation format doesn&rsquo;t usually require muting people or removing participants. If host controls are needed, any other RIM staff member who joins the meeting with a <code>@rootedinmindfulness.org</code> account can grant the volunteer host controls from within the meeting.
+            For most RIM sessions, this isn&rsquo;t a problem. The meditation format doesn&rsquo;t usually require muting people or removing participants. If host controls are needed, any other RIM volunteer who joins the meeting with a <code>@rootedinmindfulness.org</code> account can grant them from within the meeting.
           </p>
           <p>
             To grant host controls inside a meeting: open the <strong>People panel</strong>, hover over the person&rsquo;s name, click the three-dot menu, and select <strong>Give host controls</strong>.
@@ -1400,7 +1398,7 @@ export default async function ManualPage() {
             The button on the program page uses the label you set in Sanity Studio&rsquo;s <strong>Meeting Button Text</strong> field (under Schedule tab). When you create the link through this system, it is automatically set to <strong>&ldquo;Join on Google Meet.&rdquo;</strong> You can change the label in Sanity Studio at any time.
           </p>
           <div className="man-note">
-            The RIM Programs shared Google Calendar (which all staff can subscribe to) also receives a calendar event when the meeting is created. Staff who subscribe to that calendar will see all upcoming virtual programs with the Meet link embedded directly in their own Google Calendar.
+            The RIM Programs shared Google Calendar (which all volunteers can subscribe to) also receives a calendar event when the meeting is created. Volunteers who subscribe to that calendar will see all upcoming virtual programs with the Meet link embedded directly in their own Google Calendar.
           </div>
         </section>
 
@@ -1441,7 +1439,7 @@ export default async function ManualPage() {
             After creating a meeting, the panel may show a small notice that says co-host controls are not available on the free tier. This means the automatic host-shield assignment didn&rsquo;t apply due to a Google Workspace plan limitation. The meeting link is still valid, and the volunteer can still lead the session — they just won&rsquo;t have the blue host shield automatically.
           </p>
           <p>
-            For most RIM sessions, this doesn&rsquo;t affect anything. If host controls are needed, any staff member inside the meeting can grant them manually — see the <a href="#meet-volunteer">What the volunteer host does</a> section above.
+            For most RIM sessions, this doesn&rsquo;t affect anything. If host controls are needed, any other volunteer inside the meeting can grant them manually — see the <a href="#meet-volunteer">What the volunteer host does</a> section above.
           </p>
 
           <h3 className="man-section__h3">Something else went wrong</h3>
@@ -1467,13 +1465,13 @@ export default async function ManualPage() {
         </section>
 
         {/* ════════════════════════════════════════
-            CHAPTER 3 — STAFF & ROLES
+            CHAPTER 3 — VOLUNTEER ROLES
             ════════════════════════════════════════ */}
 
         <div id="roles" className="man-chapter man-chapter--break">
-          <h1 className="man-chapter__title">Staff &amp; Roles</h1>
+          <h1 className="man-chapter__title">Volunteer Roles</h1>
           <p className="man-chapter__subtitle">
-            This chapter covers staff roles — what each one unlocks, how to grant and remove access, and how to get a new staff member set up from scratch.
+            This chapter covers volunteer roles — what each one unlocks, how to grant and remove access, and how to get a new volunteer set up from scratch.
           </p>
         </div>
 
@@ -1484,7 +1482,7 @@ export default async function ManualPage() {
             Every member of the RIM community who logs in has a basic account. By default, accounts have no special access — they can only see their own dashboard, registrations, and courses.
           </p>
           <p>
-            Staff access is granted by assigning one or more <strong>roles</strong> to a member&rsquo;s account. There are currently two roles: <strong>Registrar</strong> and <strong>Admin</strong>. A person can hold both at once — having both gives them everything each role includes.
+            Volunteer access is granted by assigning one or more <strong>roles</strong> to a member&rsquo;s account. There are currently two roles: <strong>Registrar</strong> and <strong>Admin</strong>. A person can hold both at once — having both gives them everything each role includes.
           </p>
           <p>
             Roles take effect immediately. As soon as you save a role change, the next page the member loads will reflect their new access. No re-login is required (though if they are logged in, they may need to reload the page).
@@ -1517,7 +1515,7 @@ export default async function ManualPage() {
 
           <h3 className="man-section__h3">Admin</h3>
           <p>
-            An Admin has full access to the entire staff area. This role is for the person (or people) responsible for the health of the system — managing member accounts, overseeing access, and handling anything a Registrar cannot.
+            An Admin has full access to the entire volunteer area. This role is for the person (or people) responsible for the health of the system — managing member accounts, overseeing access, and handling anything a Registrar cannot.
           </p>
           <p>What an Admin can do (in addition to everything a Registrar can do):</p>
           <ul className="man-list">
@@ -1532,7 +1530,7 @@ export default async function ManualPage() {
 
           <h3 className="man-section__h3">Dashboard shortcuts per role</h3>
           <p>
-            When a member with a staff role logs in, a <strong>Staff Access</strong> panel appears on their dashboard. The links in that panel depend on their role:
+            When a member with a volunteer role logs in, a <strong>Volunteer Access</strong> panel appears on their dashboard. The links in that panel depend on their role:
           </p>
           <table className="man-table man-table--perms">
             <thead>
