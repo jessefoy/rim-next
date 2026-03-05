@@ -1303,18 +1303,35 @@ Features that have been designed and scoped but not yet built. Listed here so in
 
 ### 17b. Member Cancellation Self-Service
 
-**Status:** Planned — not yet built.
+**Status:** ✅ Built and deployed — 2026-03-05 (session 24).
 
-**What it does:** Allow members to cancel their own registration from the My Programs page (`/account/dashboard-my-registrations`).
+**What it does:** Members can cancel their own registration from the My Programs page (`/account/dashboard-my-registrations`). This covers active registrations (REGISTERED, APPROVED, or WAITLISTED status). Once cancelled, the registrar is automatically notified by email and can decide who to promote from the waitlist.
 
-**Proposed flow:**
-1. Cancel button appears on active registration cards (`REGISTERED`, `APPROVED`, `WAITLISTED`)
-2. Clicking shows a confirmation step ("Cancel your registration for [Program]? This cannot be undone.")
-3. On confirm: `PATCH /api/account/registrations/[id]/cancel` — sets status to `CANCELLED`, fires cancellation notification email to registrar
+**Member flow:**
+1. Visit My Programs (`/account/dashboard-my-registrations`)
+2. Click "Cancel registration" at the bottom of the active registration card
+3. Confirm in the inline dialog: "Cancel your spot in [Program]? This cannot be undone."
+4. Card shows "✓ Registration cancelled" inline — no page reload
+5. Registrar receives the standard cancellation notification email (same as registrar-initiated cancellation)
 
-**New files needed:**
-- `app/api/account/registrations/[id]/cancel/route.ts` — PATCH (auth-gated, validates that the registration belongs to the current user)
-- Cancel button + confirm UX on `mr-card` in the My Programs page
+**Key design decisions:**
+- Registrar is notified but NOT automatically prompted to promote — they choose who to promote, consistent with the existing manual workflow
+- All three active statuses are cancellable: REGISTERED, APPROVED, WAITLISTED (a member on the waitlist can remove themselves too)
+- The cancel button is subdued (small muted text-link) to avoid drawing attention away from the registration details
+- 4-state UI machine: idle → confirming → loading → done; never redirects, no page reload
+
+**Key files:**
+- `app/api/account/registrations/[id]/cancel/route.ts` (NEW) — POST: auth check → ownership check (403 if not their registration) → status guard (400 if already CANCELLED or not cancellable) → `db.registration.update({ status: "CANCELLED" })` → fire-and-forget registrar email
+- `components/CancelRegistrationButton.tsx` (NEW) — `"use client"` component; 4-state machine (idle / confirming / loading / done); `mr-cancel-` CSS prefix
+- `app/account/dashboard-my-registrations/page.tsx` (MODIFIED) — imports and renders `<CancelRegistrationButton>` in `<div className="mr-card__actions">` for REGISTERED, APPROVED, WAITLISTED cards
+- `public/css/custom.css` — `mr-card__actions`, `mr-cancel-btn`, `mr-cancel-confirm`, `mr-cancel-confirm__text`, `mr-cancel-confirm__actions`, `mr-cancel-btn--yes`, `mr-cancel-btn--keep`, `mr-cancel-done`
+
+**🔧 Technical notes:**
+- Separate endpoint from registrar cancellation: `POST /api/account/registrations/[id]/cancel` (member) vs `PATCH /api/registrations/[id]` (registrar). Keeps auth contexts clean — member endpoint only needs `session.user.id`; registrar endpoint checks for REGISTRAR/ADMIN role.
+- Ownership check: `registration.userId !== session.user.id` → 403. Prevents any authenticated member from cancelling someone else's registration.
+- Fire-and-forget email: `sendCancellationNotificationEmail(...).catch(() => {})` — email failure does not prevent the cancellation from completing.
+- The API returns `{ id, status: "CANCELLED" }` — the client uses this to transition to the "done" state.
+- On error: `alert()` + revert to "confirming" (not "idle") so the dialog stays open for retry.
 
 ---
 
@@ -1324,25 +1341,40 @@ Features that have been designed and scoped but not yet built. Listed here so in
 
 ---
 
-### 17d. Program Capacity Management ⚡ HIGH PRIORITY
+### 17d. Program Capacity Management
 
-**Status:** Planned — not yet built. `registrationClosed` boolean exists (manual close) but no capacity number or enforcement.
+**Status:** Partially built across multiple sessions. Core capacity enforcement built in an earlier session; spot-opened alerts and program-page capacity notices built in session 24 (2026-03-05). Auto-promotion on cancellation is not built (registrar manually promotes — by design).
 
-**What it does:** Registrar sets a maximum capacity on a program in Sanity. Registration auto-closes when full. New signups go to waitlist automatically. Cancellations optionally trigger auto-promotion.
+**What's built:**
 
-**Proposed flow:**
-1. Registrar adds `capacity` (number) to program in Sanity Studio
-2. On each registration submit: count `REGISTERED + APPROVED` for that program slug — if at or above capacity, set status to `WAITLISTED` automatically
-3. `registrationClosed` boolean continues to work as a manual override
-4. When a member cancels (17b) or registrar cancels: if waitlist exists, auto-promote next in line + send approval email
+**Capacity enforcement** (earlier session): `registrationCapacity` number field in Sanity (Registration tab, optional — no cap if blank). Registration API counts active registrations (`REGISTERED + APPROVED`) against capacity before setting status — if at or above capacity, new registrations are automatically `WAITLISTED`. `registrationClosed` boolean continues to work as a manual override.
 
-**Sanity changes needed:**
-- `capacity` number field on programs schema (Registration tab, optional — no cap if blank)
+**Capacity notices on program page** (session 24): The public program page shows context-aware notices near the registration CTA:
+- *At capacity:* "This program is fully booked — submitting will add you to the waitlist." (warm amber box, `pg-capacity--full`)
+- *≤5 spots remaining:* "X spots remaining." (plain muted text, `pg-capacity--low`)
+- *Plenty of spots or no capacity set:* nothing shown — no noise when the situation is fine
 
-**Code changes needed:**
-- Registration API: count current registrations before setting status; compare to `capacity` from Sanity GROQ
-- Program page: show "X spots remaining" or "Join waitlist" based on count vs. capacity
-- On cancellation: check waitlist and auto-promote (PATCH handler)
+**Spot-opened alerts** (session 24): A "spot opened" state means: `registrationCapacity` is set AND `confirmedCount < registrationCapacity` AND `waitlistedCount > 0`. This is distinct from "has a waitlist at full capacity."
+- **Volunteer index** (`/volunteer`): green "↑ Spot open · N waiting" badge on the program card — distinct from the amber "N waitlisted" badge shown when full. Program card also gets `vol-card--attention` highlighting.
+- **Per-program VolunteerTable**: amber "A spot has opened. N people are on the waitlist. Use the Promote button next to their name to confirm their spot." banner above the registrations table.
+
+**Staff manual**: Both notices and alerts are documented in `/admin/manual` — spot-open badge, VolunteerTable alert, promoting-from-waitlist workflow all updated.
+
+**What's not built:**
+- Auto-promotion on cancellation. Registrar manually decides who to promote. This is intentional — the registrar may want to contact the next person before promoting, or may choose to skip someone.
+
+**`spotOpened` derivation:**
+```ts
+const spotOpened = !!registrationCapacity
+  && confirmedCount < registrationCapacity
+  && waitlistedCount > 0;
+```
+
+**Key files:**
+- `app/volunteer/page.tsx` — `spotOpened` + updated `needsAttention`, `vol-signal--spot-open` badge, conditional waitlist badge
+- `components/VolunteerTable.tsx` — `waitlistedCount` from `counts.WAITLISTED`, `spotOpened` derivation, `vol-spot-opened` alert banner
+- `app/programs/[slug]/page.tsx` — `isFull`, `showLowSpots` derivations; `pg-capacity--full` / `pg-capacity--low` notices in CTA section
+- `public/css/custom.css` — `vol-signal--spot-open`, `vol-spot-opened`, `pg-capacity`, `pg-capacity--full`, `pg-capacity--low`
 
 ---
 
@@ -1774,5 +1806,6 @@ Covers all 6 Sanity Studio program tabs with field-by-field documentation in a v
 ---
 
 | 2026-03-05 (session 23) | Staff reference manual + role cleanup. **(1) Staff manual:** Complete build of `/admin/manual` — two-chapter reference guide with sidebar navigation. Chapter 1 (Registration Management): 9 sections covering the complete registrar workflow (volunteer table, statuses, promoting from waitlist, inline edits, edit request emails, reminders, resend confirmation, CSV export, common scenarios). Chapter 2 (Programs & Sanity Studio): 11 sections covering all 6 Sanity tabs with field-by-field `man-field-list` tables, a "How a program comes together" anatomy section with min-to-max checklist, and common task walkthroughs. CSS: added all missing `man-` classes that were defined in JSX but had no CSS (`man-section__h3`, `man-field-list`, `man-field`, `man-field__name`, `man-field__desc`, `man-content code`, `man-chapter--break`); responsive stacking for `man-field` on narrow viewports. Files: `app/admin/manual/page.tsx` (complete rewrite), `public/css/custom.css` (`man-` block). Commits: e6e9888, 328c1d8, b6003d4. **(2) Role simplification:** Removed TREASURER, TEACHER, VOLUNTEER from the system — they were defined speculatively with no functionality attached. Only ADMIN and REGISTRAR remain. Files: `prisma/schema.prisma` (Role enum), `components/MemberDetail.tsx` (ALL_ROLES + descriptions), `components/MembersTable.tsx` (RoleFilter type, badge map, label map, filter dropdown), `app/admin/roadmap/page.tsx` (TEACHER/VOLUNTEER wiring item removed, TREASURER desc updated), `app/admin/sitemap/page.tsx` (role lists updated). DB was already clean — no existing members had those roles; `prisma db push --accept-data-loss` confirmed no data loss. Commit: 75cad53. **(3) Docs:** FEATURES.md Section 2 (role table trimmed), Section 10 (man- CSS prefix added), Section 11 (stale role refs cleaned), Section 20 (Staff Reference Manual, new); Session Log updated; MEMORY.md updated. |
+| 2026-03-05 (session 24) | Member self-service cancellation (17b) + spot-opened alerts + capacity notices (17d). **(17b)** New `POST /api/account/registrations/[id]/cancel` — auth check → ownership check (403 if not their registration) → status guard (400 if already CANCELLED) → `db.registration.update({ status: "CANCELLED" })` → fire-and-forget `sendCancellationNotificationEmail()`. New `components/CancelRegistrationButton.tsx` ("use client"; 4-state machine: idle/confirming/loading/done; on error → alert + revert to confirming). `app/account/dashboard-my-registrations/page.tsx` renders cancel button in `mr-card__actions` for REGISTERED/APPROVED/WAITLISTED cards. **(17d — spot-opened alerts)** `app/volunteer/page.tsx`: added `spotOpened` boolean (`!!cap && confirmedCount < cap && waitlistedCount > 0`) to `programsWithCounts`; `needsAttention` now includes `spotOpened`; green `vol-signal--spot-open` badge ("↑ Spot open · N waiting") renders before the amber waitlist badge (amber waitlist badge only shows when NOT spotOpened). `components/VolunteerTable.tsx`: derived `waitlistedCount` from `counts.WAITLISTED ?? 0`; `spotOpened` derivation (same logic); `vol-spot-opened` amber alert banner above registrations table when spot is open. **(17d — capacity notices on program page)** `app/programs/[slug]/page.tsx`: added `isFull` (`spotsRemaining === 0`) and `showLowSpots` (`spotsRemaining > 0 && spotsRemaining <= 5`) derivations; CTA section: "Join Waitlist" branch gets `pg-capacity--full` amber box notice; "Register" branch conditionally shows `pg-capacity--low` muted notice. **CSS added:** `vol-signal--spot-open` (green badge), `vol-spot-opened` (amber alert banner, left border accent in `--rim-mid`), `pg-capacity` (base notice style), `pg-capacity--full` (warm amber box), `pg-capacity--low` (plain muted text), `mr-card__actions` (border-top footer row), `mr-cancel-btn` (muted text-link), `mr-cancel-confirm` (warm red-tinted inline box), `mr-cancel-confirm__text`, `mr-cancel-confirm__actions`, `mr-cancel-btn--yes` (red danger), `mr-cancel-btn--keep` (neutral outline), `mr-cancel-done` (muted confirmation text). **Staff manual updated** (7fd8442): self-cancellation section added under "After registering"; spot-open badge documented in volunteer index; VolunteerTable spot-opened alert documented; promoting-from-waitlist task references new entry points; "Cancel as registrar" clarified vs member self-cancel. **Build note:** `npm run build` exits 1 locally (Stripe env var not in local .env — pre-existing, builds clean on Vercel); TypeScript compiled successfully. Commits: 08fb3a2 (features), 7fd8442 (manual docs). |
 
-*Last updated: 2026-03-05 (session 23)*
+*Last updated: 2026-03-05 (session 24)*
