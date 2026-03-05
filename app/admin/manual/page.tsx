@@ -86,9 +86,7 @@ export default async function ManualPage() {
         <div id="registration" className="man-chapter">
           <h1 className="man-chapter__title">Registration</h1>
           <p className="man-chapter__subtitle">
-            How members sign up for programs, what you see as a registrar, and how to handle every situation that comes up.
-            <br />
-            <strong>Who uses this chapter:</strong> The person managing registrations day-to-day — promoting waitlisted members, sending reminders, handling changes. You need access to <strong>/volunteer</strong>.
+            This chapter walks you through the registration system — what members see when they sign up, what you see as a registrar, and how to handle every situation that comes up.
           </p>
         </div>
 
@@ -547,9 +545,7 @@ export default async function ManualPage() {
         <div id="programs" className="man-chapter man-chapter--break">
           <h1 className="man-chapter__title">Programs &amp; Sanity Studio</h1>
           <p className="man-chapter__subtitle">
-            How to create and manage programs — every tab and field explained in plain English.
-            <br />
-            <strong>Who uses this chapter:</strong> The person setting up programs in Sanity Studio — writing descriptions, configuring dates, turning registration on, and managing how programs appear on the website. You need a Sanity Studio account.
+            This chapter covers every tab and field in Sanity Studio so you can set up a program from scratch, edit a live one, or close registration when you&rsquo;re ready.
           </p>
         </div>
 
@@ -1139,9 +1135,7 @@ export default async function ManualPage() {
         <div id="roles" className="man-chapter man-chapter--break">
           <h1 className="man-chapter__title">Staff &amp; Roles</h1>
           <p className="man-chapter__subtitle">
-            What each staff role unlocks, how to assign and remove roles, how Sanity Studio access works, and how to set up the first Admin account.
-            <br />
-            <strong>Who uses this chapter:</strong> Administrators managing staff access. You need an <strong>Admin</strong> role to assign roles to others.
+            This chapter covers staff roles — what each one unlocks, how to grant and remove access, and how to get a new staff member set up from scratch.
           </p>
         </div>
 
