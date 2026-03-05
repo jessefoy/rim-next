@@ -4,10 +4,12 @@ import { sanityClient } from "@/lib/sanity";
 import { db } from "@/lib/db";
 import Link from "next/link";
 import VolunteerTable, { SerializedRegistration } from "@/components/VolunteerTable";
+import CreateMeetButton from "@/components/CreateMeetButton";
 import type { RegistrationField } from "@/components/RegistrationForm";
 
 const programForVolunteerQuery = `*[_type == "programs" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
   _id, name, slug, tagline, registrationCapacity, danaMode, reminderDate,
+  startDatetime, endDatetime, zoomLink,
   registrationFields[] { _key, label, fieldType, required, options }
 }`;
 
@@ -19,6 +21,9 @@ interface SanityProgram {
   registrationCapacity?: number | null;
   danaMode?: string | null;
   reminderDate?: string | null;
+  startDatetime?: string | null;
+  endDatetime?: string | null;
+  zoomLink?: string | null;
   registrationFields?: RegistrationField[];
 }
 
@@ -92,6 +97,14 @@ export default async function VolunteerProgramPage({
           <Link href="/volunteer" className="vol-back">← Programs</Link>
           <p className="lp-label">Volunteer Admin</p>
           <h1 className="vol-header__title">{program.name}</h1>
+        </div>
+
+        <div className="vol-meet-section">
+          <CreateMeetButton
+            programSlug={slug}
+            existingLink={program.zoomLink ?? null}
+            hasStartDatetime={!!program.startDatetime}
+          />
         </div>
 
         <VolunteerTable
