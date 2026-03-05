@@ -2,8 +2,8 @@
   "items": [
     {
       "id": "2026-03-05-001",
-      "title": "Google Meet integration",
-      "description": "Replace Zoom. Automatically create a Google Meet link when a program is published. Requires Google Cloud project + Calendar API + service account setup first (staff action needed). Full spec in FEATURES.md §19.",
+      "title": "Google Meet integration (Virtual Room + Co-Host model)",
+      "description": "Zoom is currently used for all virtual programs — it has a 40-minute limit and requires manual link creation. Google Meet on our existing Workspace nonprofit account eliminates both problems.\n\nArchitecture confirmed (via Gemini research): 'Virtual Room' model — create 3-4 dedicated room user accounts (room1@, room2@, etc.) that the app assigns programs to, enabling simultaneous meetings. Volunteers use their own Google accounts — the Meet REST API (spaces.members.create) pre-assigns them as COHOST at creation time, so they join with full host controls and never need to switch accounts or deal with 2FA.\n\nPrerequisites (staff action needed before building): (1) Create room user accounts in Google Admin Console, (2) Create Google Cloud project + enable Calendar API + Meet REST API v1, (3) Create service account + enable Domain-Wide Delegation with both API scopes, (4) Admin Console: Host Management ON, 'Host must join first' OFF, (5) Create shared 'RIM Programs' calendar, (6) Add 4 Vercel env vars. Full step-by-step in FEATURES.md §19.",
       "category": "Programs & Sanity",
       "priority": "high",
       "status": "open",
