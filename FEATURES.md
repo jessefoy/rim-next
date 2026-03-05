@@ -1698,10 +1698,11 @@ These accounts are never used by real people. They exist only as meeting owners 
 #### Step 5 — Adjust Meet safety settings
 
 In Google Admin Console → Apps → Google Workspace → Google Meet → **Meet safety settings**:
-- Turn **Host Management: ON**
-- Turn **"Host must join before anyone else": OFF**
+- **Host Management: OFF** ⚠️ (keep it off — this keeps the meeting unlocked so it doesn't lock down the moment the first person joins)
+- **"Host must join before anyone else can join": OFF** (critical — means the room account doesn't need to be present for volunteers to enter)
+- **Access Type: Trusted** — anyone with a `@rootedinmindfulness.org` account can join without knocking or waiting to be admitted
 
-This lets a volunteer enter and manage a session even before the room account has joined.
+This combination means: volunteer clicks link → enters immediately → has host controls. No waiting, no account switching.
 
 #### Step 6 — Add environment variables to Vercel
 
@@ -1759,6 +1760,7 @@ Once prerequisites are done:
 - **Step 3 — Create Calendar event** linking to the Meet URI from the `spaces.create` response.
 - **`google-auth-library`** handles JWT service account auth — no OAuth flow, no user login, no redirect.
 - **`GOOGLE_SERVICE_ACCOUNT_KEY`** contains newlines — store raw value in Vercel (not base64); Next.js env vars handle multiline values correctly.
+- **⚠️ Free tier 403 risk:** If `moderation: 'ON'` returns a `403 Forbidden`, it means automated moderation is locked behind Google Workspace Business Standard. Fallback: omit the moderation config and create the space without it. The volunteer still joins without friction (Access Type: Trusted handles entry), but they won't have the COHOST shield — they join as a regular trusted participant. For most meditation sessions this is fine. If RIM eventually needs guaranteed co-host controls, upgrade to Business Standard (~$3-3.50/user/month discounted for nonprofits).
 - **Room recycling logic:** Still to be confirmed with Gemini — exact approach for querying room availability and recycling room accounts across time slots.
 - **`conferenceData` vs. Meet REST API:** Original plan used Calendar API's `conferenceData.createRequest`. Updated approach creates the Meet space first via Meet REST API (enables co-host assignment), then links that space to the calendar event.
 - **Sanity write-back** uses `SANITY_API_TOKEN` which already has write access — no new token needed.
