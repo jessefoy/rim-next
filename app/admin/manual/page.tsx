@@ -63,6 +63,18 @@ export default async function ManualPage() {
             <span className="man-soon-badge">Coming soon</span>
           </li>
           <li>
+            <a href="#google-meet" className="man-sidebar__link">Google Meet</a>
+            <ul className="man-sidebar__sub">
+              <li><a href="#meet-overview"      className="man-sidebar__sublink">Overview</a></li>
+              <li><a href="#meet-how-it-works"  className="man-sidebar__sublink">How it works</a></li>
+              <li><a href="#meet-before"        className="man-sidebar__sublink">Before you start</a></li>
+              <li><a href="#meet-create"        className="man-sidebar__sublink">Creating a meeting</a></li>
+              <li><a href="#meet-volunteer"     className="man-sidebar__sublink">What the volunteer does</a></li>
+              <li><a href="#meet-link-appears"  className="man-sidebar__sublink">Where the link appears</a></li>
+              <li><a href="#meet-issues"        className="man-sidebar__sublink">If something goes wrong</a></li>
+            </ul>
+          </li>
+          <li>
             <a href="#roles" className="man-sidebar__link">Staff &amp; Roles</a>
             <ul className="man-sidebar__sub">
               <li><a href="#roles-overview"   className="man-sidebar__sublink">Overview</a></li>
@@ -1166,7 +1178,253 @@ export default async function ManualPage() {
         </section>
 
         {/* ════════════════════════════════════════
-            CHAPTER 3 — STAFF & ROLES
+            CHAPTER 3 — GOOGLE MEET
+            ════════════════════════════════════════ */}
+
+        <div id="google-meet" className="man-chapter man-chapter--break">
+          <h1 className="man-chapter__title">Google Meet</h1>
+          <p className="man-chapter__subtitle">
+            This chapter walks you through setting up Google Meet video calls for virtual programs — what to do before a session, how to create the meeting link, and what the volunteer host needs to know.
+          </p>
+        </div>
+
+        {/* ── Overview ── */}
+        <section id="meet-overview" className="man-section">
+          <h2 className="man-section__title">Overview</h2>
+          <p>
+            Google Meet is the video platform RIM uses for virtual programs — drop-in sittings, community groups, Foundations, and any other program that happens over video. It replaced Zoom, which had a 40-minute limit on the free plan and required managing separate accounts and links outside of the website.
+          </p>
+          <p>
+            With this system, creating a meeting link is a two-step process: you open the program in the registrar area, type the volunteer&rsquo;s email address, and click one button. That&rsquo;s it. The link is created automatically, saved to the program, and appears in all confirmation and reminder emails without you having to copy or paste anything.
+          </p>
+          <p>
+            The volunteer host receives a Google Calendar invite. They click the link from their own Google account, join the meeting, and automatically have full host controls — they can mute participants, admit people from the waiting area, and end the session when it&rsquo;s complete. They never need to log into a shared account or do anything special.
+          </p>
+        </section>
+
+        {/* ── How it works ── */}
+        <section id="meet-how-it-works" className="man-section">
+          <h2 className="man-section__title">How it works</h2>
+          <p>
+            You don&rsquo;t need to understand all of this to use the system — but it helps to have a mental picture of what&rsquo;s happening behind the scenes, especially if something goes wrong.
+          </p>
+
+          <h3 className="man-section__h3">Virtual rooms</h3>
+          <p>
+            Think of it like a building with a few named meeting rooms. We have three:
+          </p>
+          <ul className="man-list">
+            <li><strong>Core Programs Room</strong> — used for Foundations, courses, and teacher-led programs</li>
+            <li><strong>Community Group Room</strong> — used for community circles and support groups</li>
+            <li><strong>Silent Meditation Room</strong> — used for morning and evening sits and community-led drop-ins</li>
+          </ul>
+          <p>
+            Each of these rooms is a Google account in the background. When you create a meeting for a program, the system checks which room is free at that time and assigns the program to it automatically. You never see which room was chosen, and neither does anyone else — it all happens behind the scenes.
+          </p>
+          <p>
+            This means two programs can run at the same time on the same night without any conflict. Each gets its own room and its own link.
+          </p>
+
+          <h3 className="man-section__h3">The volunteer as host</h3>
+          <p>
+            When a meeting is created, the volunteer&rsquo;s email address is pre-registered as a co-host before anyone even joins. This is different from Zoom, where the host had to be present first or share a host key. With Google Meet, the volunteer joins from their own Google account and immediately sees the blue host controls shield in the corner of their screen — mute all, remove participant, end call. Nobody needs to grant them anything at the time of the session.
+          </p>
+          <div className="man-note">
+            The volunteer must have a <strong>@rootedinmindfulness.org</strong> Google account for the automatic co-host setup to work. If they use a personal Gmail address, the meeting link will still be created and they will still be able to join, but they may need to request host controls from someone inside the meeting.
+          </div>
+        </section>
+
+        {/* ── Before you start ── */}
+        <section id="meet-before" className="man-section">
+          <h2 className="man-section__title">Before you start</h2>
+          <p>
+            Before you can create a Google Meet link for a program, two things need to be in place:
+          </p>
+
+          <h3 className="man-section__h3">1. A Start Date &amp; Time must be set in Sanity Studio</h3>
+          <p>
+            The system uses the program&rsquo;s scheduled start time to check which meeting rooms are available. Without a start time, it has no way to know whether a room is free.
+          </p>
+          <p>
+            If the program doesn&rsquo;t have a Start Date &amp; Time set, the Google Meet panel in the registrar area will show a notice telling you to add one. Go to <strong>Sanity Studio → Programs → [program name] → Schedule tab</strong> and fill in the <strong>Start Date &amp; Time</strong> field. Then come back and create the meeting.
+          </p>
+          <p>
+            If the program is recurring (e.g. every Wednesday evening), the Start Date &amp; Time should be the date of the <em>next</em> session. The meeting link itself doesn&rsquo;t expire — you can reuse it across sessions.
+          </p>
+
+          <h3 className="man-section__h3">2. The volunteer must have a @rootedinmindfulness.org email</h3>
+          <p>
+            You&rsquo;ll need to know the volunteer&rsquo;s RIM email address (the one ending in <code>@rootedinmindfulness.org</code>). This is the address they use to log in to Google Workspace — it&rsquo;s their staff Google account, the same one they use for Google Calendar and Gmail at RIM.
+          </p>
+          <p>
+            If you&rsquo;re not sure of their exact address, ask them directly. Their address follows the format <code>firstname@rootedinmindfulness.org</code> or <code>firstnamelastname@rootedinmindfulness.org</code>.
+          </p>
+        </section>
+
+        {/* ── Creating a meeting ── */}
+        <section id="meet-create" className="man-section">
+          <h2 className="man-section__title">Creating a meeting</h2>
+          <p>
+            This takes about 30 seconds once the prerequisites are in place.
+          </p>
+          <ol className="man-steps">
+            <li>Go to <strong>/volunteer</strong> and click the program you want to set up.</li>
+            <li>At the top of the program page, above the registrations table, you&rsquo;ll see a <strong>Google Meet</strong> panel.</li>
+            <li>Type the volunteer&rsquo;s <code>@rootedinmindfulness.org</code> email address into the field.</li>
+            <li>Click <strong>Create Google Meet</strong>.</li>
+            <li>Wait a few seconds. When it&rsquo;s done, the panel shows the Meet link.</li>
+          </ol>
+          <p>
+            That&rsquo;s it. The link has been created and saved to the program automatically. You don&rsquo;t need to copy it anywhere — it will appear on the program page, in confirmation emails, and in reminder emails from this point forward.
+          </p>
+          <p>
+            The volunteer also receives a Google Calendar invite with the meeting details and the link embedded. They don&rsquo;t need to ask you for the link separately.
+          </p>
+
+          <h3 className="man-section__h3">Replacing an existing link</h3>
+          <p>
+            If a meeting link already exists and you need to create a new one — for example, if the original volunteer has changed or the link needs to be regenerated — the panel will show the current link with a <strong>Replace</strong> button next to it.
+          </p>
+          <p>
+            Click <strong>Replace</strong>, enter the new volunteer&rsquo;s email address, and confirm. A new link will be created and the old one will be overwritten in Sanity. Be aware that the old link stops working immediately — if you&rsquo;ve already sent it to participants via a channel outside of the website, you&rsquo;ll need to follow up with the new link manually.
+          </p>
+          <div className="man-note man-note--warn">
+            ⚠ Links sent in automatic confirmation and reminder emails already include the correct link from Sanity. If you replace a link <em>after</em> emails have already gone out, the new link will appear on the program page but the old emails are already sent and cannot be recalled. Consider whether participants need a follow-up message with the updated link.
+          </div>
+        </section>
+
+        {/* ── What the volunteer does ── */}
+        <section id="meet-volunteer" className="man-section">
+          <h2 className="man-section__title">What the volunteer host does</h2>
+          <p>
+            Once you&rsquo;ve created the meeting, the volunteer&rsquo;s side is straightforward. Share this with them if it&rsquo;s their first time leading a session on Google Meet.
+          </p>
+
+          <h3 className="man-section__h3">Before the session</h3>
+          <p>
+            They will receive a <strong>Google Calendar invite</strong> after the meeting is created. The invite includes the program name, date and time, and the Meet link. They can add it to their calendar by clicking <strong>Yes</strong> or <strong>Accept</strong> in the invite.
+          </p>
+          <p>
+            When the time comes, they open the calendar event and click the <strong>Join with Google Meet</strong> button. That&rsquo;s all they need to do — they don&rsquo;t need to sign in to a special account, find a password, or do anything technical.
+          </p>
+
+          <h3 className="man-section__h3">During the session</h3>
+          <p>
+            When they join, they will see a small <strong>blue shield icon</strong> in the bottom-right area of the screen. This is the host controls indicator — it means they have full control of the meeting.
+          </p>
+          <p>
+            As the host, they can:
+          </p>
+          <ul className="man-list">
+            <li><strong>Mute anyone</strong> — hover over a participant and click the microphone icon, or use <em>Mute all</em> from the People panel</li>
+            <li><strong>Remove a participant</strong> — hover over their name in the People panel and click the three-dot menu</li>
+            <li><strong>Control who can join</strong> — if someone is in the waiting area (knocking), they can admit or decline them</li>
+            <li><strong>End the meeting for everyone</strong> — click the red hang-up button and choose <em>End meeting for all</em></li>
+          </ul>
+          <p>
+            They don&rsquo;t need to do anything special to <em>start</em> the meeting. There is no &ldquo;host must join first&rdquo; requirement — participants can join before the host arrives and will be admitted automatically because the meeting is set to open access for RIM staff and participants.
+          </p>
+
+          <h3 className="man-section__h3">If they don&rsquo;t see host controls</h3>
+          <p>
+            Occasionally, the automatic co-host setup may not apply — for example, if the email used wasn&rsquo;t a <code>@rootedinmindfulness.org</code> address, or if there was a technical hiccup during setup. In that case, they will still be able to join and lead the session — they just won&rsquo;t have the blue shield.
+          </p>
+          <p>
+            For most RIM sessions, this isn&rsquo;t a problem. The meditation format doesn&rsquo;t usually require muting people or removing participants. If host controls are needed, any other RIM staff member who joins the meeting with a <code>@rootedinmindfulness.org</code> account can grant the volunteer host controls from within the meeting.
+          </p>
+          <p>
+            To grant host controls inside a meeting: open the <strong>People panel</strong>, hover over the person&rsquo;s name, click the three-dot menu, and select <strong>Give host controls</strong>.
+          </p>
+        </section>
+
+        {/* ── Where the link appears ── */}
+        <section id="meet-link-appears" className="man-section">
+          <h2 className="man-section__title">Where the link appears</h2>
+          <p>
+            Once a meeting link is saved to a program, it appears in three places automatically. You don&rsquo;t need to add it manually anywhere.
+          </p>
+          <table className="man-table man-table--perms">
+            <thead>
+              <tr>
+                <th>Where</th>
+                <th>Who sees it</th>
+                <th>When</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Program page <code>/programs/[slug]</code></td>
+                <td>Anyone who visits the page</td>
+                <td>Immediately, once the link is saved</td>
+              </tr>
+              <tr>
+                <td>Confirmation email</td>
+                <td>Everyone who registers</td>
+                <td>Sent at the moment of registration</td>
+              </tr>
+              <tr>
+                <td>Reminder email</td>
+                <td>Everyone registered for that program</td>
+                <td>Sent on the reminder date set in Sanity</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>
+            The button on the program page uses the label you set in Sanity Studio&rsquo;s <strong>Meeting Button Text</strong> field (under Schedule tab). When you create the link through this system, it is automatically set to <strong>&ldquo;Join on Google Meet.&rdquo;</strong> You can change the label in Sanity Studio at any time.
+          </p>
+          <div className="man-note">
+            The RIM Programs shared Google Calendar (which all staff can subscribe to) also receives a calendar event when the meeting is created. Staff who subscribe to that calendar will see all upcoming virtual programs with the Meet link embedded directly in their own Google Calendar.
+          </div>
+        </section>
+
+        {/* ── If something goes wrong ── */}
+        <section id="meet-issues" className="man-section">
+          <h2 className="man-section__title">If something goes wrong</h2>
+
+          <h3 className="man-section__h3">&ldquo;Add a Start Date &amp; Time in Sanity Studio first&rdquo;</h3>
+          <p>
+            The Google Meet panel is showing a notice instead of the input field. This means the program doesn&rsquo;t have a scheduled time set. Go to <strong>Sanity Studio → Programs → [program] → Schedule tab</strong> and fill in <strong>Start Date &amp; Time</strong>. Then come back to the registrar area and try again.
+          </p>
+
+          <h3 className="man-section__h3">&ldquo;All meeting rooms are booked at that time&rdquo;</h3>
+          <p>
+            All three virtual rooms are already in use during the requested time slot. This happens when three or more programs are scheduled at the same time. A few options:
+          </p>
+          <ul className="man-list">
+            <li>Check whether the start times can be offset slightly so they don&rsquo;t overlap exactly.</li>
+            <li>Ask an Admin to add more room accounts. Adding a fourth room is a quick setup process and can be done in a few minutes.</li>
+            <li>If two programs always overlap, an additional room account is the right long-term solution.</li>
+          </ul>
+
+          <h3 className="man-section__h3">&ldquo;Meet created but Sanity write-back failed&rdquo;</h3>
+          <p>
+            The meeting was created successfully, but saving the link to the program in Sanity encountered a temporary error. The link is shown in the panel — copy it. Then go to <strong>Sanity Studio → Programs → [program] → Schedule tab</strong>, paste it into the <strong>Meeting Link</strong> field, set the <strong>Meeting Button Text</strong> to <strong>Join on Google Meet</strong>, and publish. Contact a developer if this happens more than once.
+          </p>
+
+          <h3 className="man-section__h3">The volunteer didn&rsquo;t receive a calendar invite</h3>
+          <p>
+            Calendar invites can sometimes go to spam. Ask the volunteer to check their spam or junk folder for an invite from Google Calendar. If it&rsquo;s not there, the invite may have been sent to a different email address than the one they check. Confirm which address you used when creating the meeting and whether that matches their active calendar.
+          </p>
+          <p>
+            The volunteer can also simply use the Meet link directly — they don&rsquo;t need to accept the calendar invite to join the meeting with host controls.
+          </p>
+
+          <h3 className="man-section__h3">The link shows &ldquo;co-host controls not available&rdquo;</h3>
+          <p>
+            After creating a meeting, the panel may show a small notice that says co-host controls are not available on the free tier. This means the automatic host-shield assignment didn&rsquo;t apply due to a Google Workspace plan limitation. The meeting link is still valid, and the volunteer can still lead the session — they just won&rsquo;t have the blue host shield automatically.
+          </p>
+          <p>
+            For most RIM sessions, this doesn&rsquo;t affect anything. If host controls are needed, any staff member inside the meeting can grant them manually — see the <a href="#meet-volunteer">What the volunteer host does</a> section above.
+          </p>
+
+          <h3 className="man-section__h3">Something else went wrong</h3>
+          <p>
+            If the button shows a general error or nothing seems to happen, try refreshing the page and attempting again. If the problem persists, contact a developer and describe what the error message said.
+          </p>
+        </section>
+
+        {/* ════════════════════════════════════════
+            CHAPTER 4 — STAFF & ROLES
             ════════════════════════════════════════ */}
 
         <div id="roles" className="man-chapter man-chapter--break">
