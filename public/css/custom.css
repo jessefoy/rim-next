@@ -2221,6 +2221,7 @@ h1, h2, h3, h4, h5, h6 {
 .vol-signal--amber { background: #fef3cd; color: #856404; }
 .vol-signal--clear { background: var(--rim-bg-accent); color: var(--rim-text-muted); font-weight: 400; }
 .vol-signal--empty { color: var(--rim-text-muted); font-weight: 400; font-size: 12px; padding: 3px 0; }
+.vol-signal--spot-open { background: #d4edda; color: #155724; }
 
 /* ── Status badges ── */
 
@@ -3032,6 +3033,22 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--rim-blue);
 }
 
+/* ── Capacity notices — shown near registration CTA ─────────────────────── */
+.pg-capacity {
+  margin: 10px 0 0;
+  font: 13px / 1.5 var(--font-sans);
+  color: var(--rim-text-muted);
+}
+.pg-capacity--full {
+  padding: 10px 14px;
+  background: #fff8e1;
+  border-radius: 4px;
+  color: var(--rim-text);
+}
+.pg-capacity--low {
+  /* plain muted text — low urgency, no background */
+}
+
 /* ── Register page mobile ────────────────────────────────────────────────── */
 
 @media (max-width: 767px) {
@@ -3086,6 +3103,20 @@ h1, h2, h3, h4, h5, h6 {
   .ur-wrap { margin: 36px auto; }
   .ur-title { font-size: 22px; }
 }
+
+/* ── Spot-opened alert banner (VolunteerTable) ──────────────────────────────── */
+.vol-spot-opened {
+  padding: 14px 18px;
+  background: #fff8e1;
+  border-left: 4px solid var(--rim-mid);
+  border-radius: 0 4px 4px 0;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--rim-text);
+  margin-bottom: 16px;
+}
+.vol-spot-opened strong { font-weight: 700; }
 
 /* ── Reminder section — program-level (VolunteerTable) ────────────────────── */
 .vol-reminder-section {
@@ -5520,6 +5551,79 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   font-size: 12px;
   color: var(--rim-text-muted);
   margin: 10px 0 0;
+}
+
+/* ── Cancel registration button + confirm flow ── */
+
+.mr-card__actions {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rim-rule);
+}
+
+.mr-cancel-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: 13px / 1 var(--font-sans);
+  color: var(--rim-text-muted);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  transition: color 0.15s, text-decoration-color 0.15s;
+}
+.mr-cancel-btn:hover {
+  color: #c0392b;
+  text-decoration-color: currentColor;
+}
+
+.mr-cancel-confirm {
+  padding: 14px 16px;
+  background: #fff5f5;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+}
+.mr-cancel-confirm__text {
+  font: 14px / 1.5 var(--font-sans);
+  color: var(--rim-text);
+  margin: 0 0 12px;
+}
+.mr-cancel-confirm__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.mr-cancel-btn--yes {
+  padding: 7px 16px;
+  background: #c0392b;
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  font: 600 13px / 1 var(--font-sans);
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.mr-cancel-btn--yes:hover { opacity: 0.85; }
+
+.mr-cancel-btn--keep {
+  padding: 7px 16px;
+  background: none;
+  border: 1px solid var(--rim-rule);
+  color: var(--rim-text-muted);
+  border-radius: 3px;
+  font: 13px / 1 var(--font-sans);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.mr-cancel-btn--keep:hover {
+  border-color: var(--rim-text-muted);
+  color: var(--rim-text);
+}
+
+.mr-cancel-done {
+  font: 13px / 1 var(--font-sans);
+  color: var(--rim-text-muted);
+  margin: 0;
 }
 
 .mr-footer-note {

@@ -155,6 +155,8 @@ export default async function ProgramDetailPage({
     useBuiltInForm && program.registrationCapacity
       ? Math.max(0, program.registrationCapacity - activeCount)
       : null;
+  const isFull = spotsRemaining !== null && spotsRemaining === 0;
+  const showLowSpots = spotsRemaining !== null && spotsRemaining > 0 && spotsRemaining <= 5;
   const hasDetails = !!(program.dateText || program.timeText || program.locationText || program.danaText);
   const hasFacilitators = !!(program.teacherFacilitators && program.teacherFacilitators.length > 0);
   const hasDescription = !!(program.programDescription && program.programDescription.length > 0);
@@ -296,13 +298,25 @@ export default async function ProgramDetailPage({
                       })()}
                     </>
                   ) : spotsRemaining === 0 ? (
-                    <Link href={`/programs/${slug}/register`} className="pg-register-btn">
-                      Join Waitlist →
-                    </Link>
+                    <>
+                      <Link href={`/programs/${slug}/register`} className="pg-register-btn">
+                        Join Waitlist →
+                      </Link>
+                      <p className="pg-capacity pg-capacity--full">
+                        This program is fully booked — submitting will add you to the waitlist.
+                      </p>
+                    </>
                   ) : (
-                    <Link href={`/programs/${slug}/register`} className="pg-register-btn">
-                      Register →
-                    </Link>
+                    <>
+                      <Link href={`/programs/${slug}/register`} className="pg-register-btn">
+                        Register →
+                      </Link>
+                      {showLowSpots && (
+                        <p className="pg-capacity pg-capacity--low">
+                          {spotsRemaining} spot{spotsRemaining !== 1 ? "s" : ""} remaining.
+                        </p>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

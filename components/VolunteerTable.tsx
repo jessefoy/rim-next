@@ -123,10 +123,14 @@ export default function VolunteerTable({
     (r) => r.donationStatus === "PENDING"
   ).length;
 
+  const waitlistedCount = counts.WAITLISTED ?? 0;
   const capacityPct =
     registrationCapacity && confirmedCount >= 0
       ? Math.min(100, Math.round((confirmedCount / registrationCapacity) * 100))
       : null;
+  const spotOpened = !!registrationCapacity
+    && confirmedCount < registrationCapacity
+    && waitlistedCount > 0;
 
   // ── Reminder derived counts ──────────────────────────────────────────────────
   function getReminderSentAt(id: string): string | null {
@@ -466,6 +470,15 @@ export default function VolunteerTable({
           </div>
         )}
       </div>
+
+      {/* ── Spot-opened alert ── */}
+      {spotOpened && (
+        <div className="vol-spot-opened">
+          <strong>A spot has opened.</strong>{" "}
+          {waitlistedCount} {waitlistedCount !== 1 ? "people are" : "person is"} on the waitlist.
+          Use the Promote button next to their name to confirm their spot.
+        </div>
+      )}
 
       {/* ── Reminder section ── */}
       {reminderDate && (

@@ -4,6 +4,7 @@ import { sanityClient } from "@/lib/sanity";
 import { programsBySlugArrayQuery } from "@/lib/queries";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import CancelRegistrationButton from "@/components/CancelRegistrationButton";
 
 export const metadata = { title: "My Programs — Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
@@ -134,6 +135,10 @@ export default async function MyRegistrationsPage() {
                   <p className="mr-card__date">
                     Registered {new Date(r.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
                   </p>
+
+                  <div className="mr-card__actions">
+                    <CancelRegistrationButton id={r.id} programTitle={r.programTitle} />
+                  </div>
                 </div>
               ))}
             </div>

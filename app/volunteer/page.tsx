@@ -64,8 +64,11 @@ export default async function VolunteerPage() {
       p.registrationCapacity
         ? Math.min(100, Math.round((confirmedCount / p.registrationCapacity) * 100))
         : null;
-    const needsAttention = waitlistedCount > 0 || pendingDanaCount > 0;
-    return { ...p, byStatus, confirmedCount, waitlistedCount, pendingDanaCount, capacityPct, needsAttention };
+    const spotOpened = !!p.registrationCapacity
+      && confirmedCount < p.registrationCapacity
+      && waitlistedCount > 0;
+    const needsAttention = waitlistedCount > 0 || pendingDanaCount > 0 || spotOpened;
+    return { ...p, byStatus, confirmedCount, waitlistedCount, pendingDanaCount, capacityPct, needsAttention, spotOpened };
   });
 
   return (
@@ -117,7 +120,12 @@ export default async function VolunteerPage() {
                   )}
                 </div>
                 <div className="vol-card__signals">
-                  {p.waitlistedCount > 0 && (
+                  {p.spotOpened && (
+                    <span className="vol-signal vol-signal--spot-open">
+                      ↑ Spot open · {p.waitlistedCount} waiting
+                    </span>
+                  )}
+                  {!p.spotOpened && p.waitlistedCount > 0 && (
                     <span className="vol-signal vol-signal--amber">
                       {p.waitlistedCount} waitlisted
                     </span>
