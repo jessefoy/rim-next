@@ -1346,19 +1346,29 @@ Features that have been designed and scoped but not yet built. Listed here so in
 
 ### 17e. Add to Calendar Links ⚡ HIGH PRIORITY
 
-**Status:** Planned — not yet built.
+**Status:** ✅ Built and deployed — 2026-03-04.
 
-**What it does:** Members can add a program to their Google Calendar or download an `.ics` file directly from the confirmation email and program page.
+**What it does:** Members can add a confirmed program to their Google Calendar or download an `.ics` file for Apple Calendar / Outlook, directly from the confirmation email and the program page. Calendar links only appear when a `startDatetime` is set in Sanity (optional — recurring or open-ended programs may not set it).
 
-**Proposed implementation:**
-- Generate a Google Calendar URL: `https://calendar.google.com/calendar/render?action=TEMPLATE&text=[title]&dates=[start]/[end]&details=[description]&location=[location]`
-- Generate an `.ics` file link via a simple API route: `GET /api/programs/[slug]/ical` — returns `text/calendar` response
-- Add both links to the registration confirmation email and to the program detail page (below the details card)
+**Implementation:**
+- **Sanity schema:** Added optional `startDatetime` (datetime) and `endDatetime` (datetime) fields to the Schedule tab on programs. `endDatetime` defaults to 1 hour after start if left blank.
+- **`lib/calendarLinks.ts`** (new): `buildGoogleCalendarUrl()`, `buildIcsUrl()`, `buildIcsContent()` utilities.
+- **Google Calendar URL:** pre-fills title, dates, location, and a link to the program page.
+- **`GET /api/programs/[slug]/ical`:** returns `text/calendar` response for Apple Calendar / Outlook download. 404 if no `startDatetime` set.
+- **Confirmation email:** `googleCalendarUrl` + `icsUrl` added to `RegistrationEmailData` and `BuildParams`. A small "Add to calendar" section appears below the date/time/location block (confirmed registrations only, not waitlist).
+- **Program page:** Google Calendar + Apple/Outlook links appear below "✓ You're registered." when `startDatetime` is set.
 
-**New files needed:**
-- `app/api/programs/[slug]/ical/route.ts` — generates RFC 5545-compliant `.ics` response from Sanity program data
+**Staff workflow:** Open Sanity Studio → Programs → [program] → Schedule tab → fill in Start Date & Time (and optionally End Date & Time). Save and publish. Links will appear automatically in subsequent confirmation emails and on the program page.
 
-**No DB changes needed** — all data comes from Sanity (title, date, location, description).
+**Key files:**
+- `lib/calendarLinks.ts` (new)
+- `lib/queries.ts` — `programBySlugQuery` + `programConfirmationDataQuery`
+- `lib/email.ts` — `RegistrationEmailData`, `BuildParams`, `buildHtml`, `buildText`
+- `app/api/programs/[slug]/ical/route.ts` (new)
+- `app/api/registrations/route.ts` — builds calendar URLs when `startDatetime` is present
+- `app/api/registrations/[id]/route.ts` — `resendConfirmation` action also builds calendar URLs
+- `app/programs/[slug]/page.tsx` — calendar links in registered state
+- `public/css/custom.css` — `pg-calendar-links`, `pg-calendar-link`
 
 ---
 
@@ -1383,32 +1393,41 @@ Features that have been designed and scoped but not yet built. Listed here so in
 
 ### 17g. Resend Confirmation Email ⚡ HIGH PRIORITY
 
-**Status:** Planned — not yet built.
+**Status:** ✅ Built and deployed — 2026-03-04.
 
-**What it does:** Registrar can resend a member's registration confirmation email from the volunteer table. Useful when a member reports not receiving it.
+**What it does:** Registrar can resend a member's registration confirmation email from the volunteer table expanded row. Useful when a member reports not receiving it. The resent email is identical to the original — includes date/time/location, any program-specific confirmation message from Sanity, and calendar links if `startDatetime` is set.
 
-**Proposed implementation:**
-- Add `action: "resendConfirmation"` case to `PATCH /api/registrations/[id]`
-- Calls existing `sendRegistrationConfirmationEmail()` with the registration data
-- Button in VolunteerTable row actions (same pattern as "Send Reminder")
+**Implementation:**
+- `PATCH /api/registrations/[id]` — new `action: "resendConfirmation"` case. Fetches registration from DB, fetches program data from Sanity (`programConfirmationDataQuery`), builds calendar links, calls `sendRegistrationEmail()`.
+- **VolunteerTable:** "Resend Confirmation" button in Actions column for REGISTERED/APPROVED rows, with a two-step inline confirm dialog (matches other destructive-adjacent actions).
+- Waitlist registrations also supported — the email will correctly say "you're on the waitlist."
 
 **No DB changes needed** — uses existing email templates and registration data.
+
+**Key files:**
+- `app/api/registrations/[id]/route.ts` — `resendConfirmation` action
+- `components/VolunteerTable.tsx` — state + handler + button
+- `public/css/custom.css` — `vol-action-btn--resend`
 
 ---
 
 ### 17h. Printable / Exportable Attendee List ⚡ HIGH PRIORITY
 
-**Status:** Planned — not yet built.
+**Status:** ✅ Built and deployed (earlier session).
 
-**What it does:** Registrar can export a clean attendee list for a program — useful for in-person check-in at retreats and sits.
+**What it does:** Registrar can export a complete attendee list as a CSV — useful for in-person check-in at retreats and sits. Includes all registrations for the program: Name, Email, Phone, Status, Donation Status, custom question responses, Notes, Waitlist Position, and Registration date.
 
-**Proposed implementation:**
-- Add an "Export" button to the volunteer table header (program-level)
-- `GET /api/programs/[slug]/export` — returns CSV with columns: Name, Email, Phone, Status, Dana Status, Custom Fields
-- Browser triggers download via `Content-Disposition: attachment` header
-- Optional: print-friendly view (CSS `@media print` on the volunteer table)
+**Implementation:**
+- **"↓ Export CSV" button** in the volunteer table toolbar (`vol-csv-btn`) — a plain `<a href download>` link, no JS state needed.
+- **`GET /api/programs/[slug]/registrations?format=csv`** — auth-gated (REGISTRAR/ADMIN), returns `text/csv` with dynamic custom field columns (collects all unique keys across all registrations in the program). Also returns JSON without the `format` param.
+- CSV is downloaded directly by the browser as `[slug]-registrations.csv`.
 
 **No DB changes needed.**
+
+**Key files:**
+- `app/api/programs/[slug]/registrations/route.ts` — GET with CSV export
+- `components/VolunteerTable.tsx` — `vol-csv-btn` in toolbar
+- `public/css/custom.css` — `vol-csv-btn`
 
 ---
 
@@ -1471,6 +1490,7 @@ Features that have been designed and scoped but not yet built. Listed here so in
 | 2026-03-04 | Sanity Studio access for staff (session 18): `sanityInvitedAt DateTime?` on User model (db push); new `POST /api/admin/members/[id]/sanity-invite` — ADMIN-only, calls Sanity Management API to invite member as editor, stamps invite date; PATCH route updated to auto-revoke Sanity access when REGISTRAR role is removed — calls `revokeSanityAccess()` async (removes from project members + cancels pending invitations, clears `sanityInvitedAt`), returns `sanityRevoked: true`; MemberDetail: Sanity Studio Access panel below roles (invite button with two-step confirmation showing explanation + Yes/Cancel; ✓ invited date once sent; revocation warning in save bar when REGISTRAR is being removed); dashboard `STAFF_LINKS` updated — Sanity Studio external card for REGISTRAR + ADMIN, `<a target="_blank">` for external vs `<Link>` for internal; Section 2 updated (roles table shows dashboard links, role assignment via UI documented); Section 11 dashboard integration updated; Section 18 added (full feature doc). ⚠️ Requires `SANITY_MANAGEMENT_TOKEN` in Vercel. Commits: deb0b97, 5e97804. |
 | 2026-03-04 | Sanity Studio access debugging (session 19): Fixed invite endpoint URL — Sanity uses `/invitations/project/{id}` not `/projects/{id}/invitations` (404 → working); fixed `SANITY_MANAGEMENT_TOKEN` role — must be **Developer** (highest available), not Editor/Administrator (403 "missing required grant sanity.project.members/invite"); improved error surfacing in invite route (raw text fallback instead of silent `{}`); made `revokeSanityAccess()` blocking (was `void`), returns `{ member, invite, memberEmails }` for debugging; fixed invitation revocation response shape (array or `{invitations:[]}`); confirmed pending-invite cancellation works end-to-end; confirmed accepted-member removal endpoint path is still unresolved (all tried paths 404); documented owner limitation (project owner cannot be removed via API) and email-mismatch risk (registrar accepts invite with different Sanity account email). Section 18 prerequisites, technical notes, and last-updated updated. |
 | 2026-03-04 | Registration form UX + security hardening (session 17): (1) Sanity program category field UX — added description, `disableNew: true`, `filter: "hideFromProgramsPage != true"` so the dropdown shows immediately; renamed `hideFromProgramPageList` title + added description; Sanity deployed. (2) Fillout legacy removal — removed `registrationRequired`, `filloutRegistrationFormId`, `signedOutInstructions`, `signedInInstructions` from programs page, GROQ queries, and Sanity schema; wired `registrationClosed` boolean into built-in form path (combines with `registrationDeadline` check); commit fa1464e. (3) Email recognition — new `GET /api/account/check-email` (public, returns name/phone/agreedToTerms for known emails); `handleEmailBlur` in RegistrationForm pre-fills from account and shows "Welcome back, [Name]!" notice; pre-fill logic uses account values first (`data.firstName || prev.firstName`); commits 08fe82d → eadb5e7 → 16aca2e. (4) Security — name + phone fields locked `readOnly` in form when recognized account found (`emailCheckStatus === "found"`); API introduces `resolvedFirstName`, `resolvedLastName`, `resolvedPhone` — account stored values always win for existing users regardless of form submission; `pg-form__input[readonly]` + `pg-form__input--locked` CSS; commits ef515d6 + 7b75eba. (5) Dana $0 bug fix — `effectiveDanaMode` sent to API is `"none"` when fixed/base amount not configured (→ `donationStatus: WAIVED`); `hasConfiguredAmount` guard skips dana step in form; commit acbdadd. (6) Documentation — FEATURES.md Sections 4a, 4c, 8, 9 updated; new Section 17 (Planned Features) added with 17a (automated dana follow-up cron), 17b (member cancellation self-service), 17c (self-service email change cross-ref). |
+| 2026-03-04 (session 20) | Add-to-calendar links (17e), resend confirmation email (17g), CSV export doc (17h already built): New `lib/calendarLinks.ts` — `buildGoogleCalendarUrl`, `buildIcsUrl`, `buildIcsContent` utilities; Sanity programs schema gains `startDatetime` + `endDatetime` datetime fields in schedule group (calendar links only appear when startDatetime is set — recurring programs leave it blank); Sanity Studio deployed. New `GET /api/programs/[slug]/ical/route.ts` returns RFC 5545 `.ics` file for Apple/Outlook download. `lib/email.ts` adds `googleCalendarUrl` + `icsUrl` to `RegistrationEmailData` — calendar links block rendered in HTML email (Google Calendar + Apple/Outlook links, waitlisted registrations excluded); `lib/queries.ts` adds `startDatetime`/`endDatetime` to `programBySlugQuery` + new `programConfirmationDataQuery`. `app/api/registrations/route.ts` fetches `startDatetime`/`endDatetime` from Sanity and passes calendar links to confirmation email. `app/programs/[slug]/page.tsx` shows "+ Google Calendar" and "+ Apple / Outlook" links below "✓ You're registered." when startDatetime is set. `components/VolunteerTable.tsx` adds "Resend Confirmation" action button for REGISTERED/APPROVED rows — two-step inline confirm dialog ("Resend confirmation to [firstName]?"), calls PATCH `action: "resendConfirmation"`; `app/api/registrations/[id]/route.ts` adds resendConfirmation action (fetches Sanity program data, builds calendar links, calls `sendRegistrationEmail`). CSV export (17h) confirmed already built in earlier session — `GET /api/programs/[slug]/registrations?format=csv` with dynamic custom field columns; VolunteerTable CSV button already present. CSS: `.pg-calendar-links`, `.pg-calendar-link`, `.vol-action-btn--resend`. FEATURES.md sections 17e, 17g, 17h updated to ✅ Built. Commit: 2da2796. |
 
 ---
 
@@ -1554,4 +1574,4 @@ Note: The Developer token is a **server-side secret** stored only in Vercel env 
 
 ---
 
-*Last updated: 2026-03-04 (session 19)*
+*Last updated: 2026-03-04 (session 20)*
