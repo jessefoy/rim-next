@@ -66,7 +66,10 @@ When the user says **"remember that we need [X]"**, **"add this to the backlog"*
 
 1. Read `data/backlog.json`
 2. If the idea is vague or spans multiple concerns, ask 1–2 clarifying questions before writing — the goal is to capture the intent accurately, not just the words
-3. Interpret and articulate the idea clearly: translate in-the-moment brainstorms into precise, well-scoped descriptions that fit the project's language and architecture
+3. Interpret and articulate the idea clearly: translate in-the-moment brainstorms into precise, well-scoped descriptions that fit the project's language and architecture. Every good description answers three things in order:
+   - **What's broken or missing right now** (the current state)
+   - **Why it matters** (the consequence)
+   - **What needs to be built** (the solution)
 4. Add a new item with all required fields (see structure below)
 5. Write the file back
 6. `git add data/backlog.json && git commit -m "Backlog: add [title]" && git push`
