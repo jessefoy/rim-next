@@ -18,6 +18,10 @@ export default async function ManualPage() {
         <ul className="man-sidebar__list">
 
           <li>
+            <a href="#introduction" className="man-sidebar__link">Introduction</a>
+          </li>
+
+          <li>
             <a href="#registration" className="man-sidebar__link">
               Registration
             </a>
@@ -88,6 +92,55 @@ export default async function ManualPage() {
 
       {/* ── Main content ── */}
       <main className="man-content">
+
+        {/* ════════════════════════════════════════
+            INTRODUCTION
+            ════════════════════════════════════════ */}
+
+        <div id="introduction" className="man-chapter">
+          <h1 className="man-chapter__title">Welcome</h1>
+          <p className="man-chapter__subtitle">
+            This is the staff reference manual for the Rooted In Mindfulness website. It&rsquo;s written for the people who keep programs running — not for developers. You don&rsquo;t need a technical background to use it.
+          </p>
+        </div>
+
+        <section className="man-section">
+          <h2 className="man-section__title">What this system is</h2>
+          <p>
+            The RIM website has three areas, each serving a different purpose.
+          </p>
+          <ul className="man-list">
+            <li><strong>The public website</strong> — programs, events, teacher bios, and written content. Anyone can visit. No login needed.</li>
+            <li><strong>The member area</strong> — for people who have signed in. Includes the member dashboard, course library, registration history, and profile settings. Members reach it at <strong>/account</strong>.</li>
+            <li><strong>The staff area</strong> — where you are now. The registration table, member management, and this manual. Visible only to people with a Registrar or Admin role.</li>
+          </ul>
+          <p>
+            This manual covers the staff area — what each part does, how to use it, and what to do when something unexpected comes up. It&rsquo;s also a record of how the whole system works, so that anyone stepping into a staff role, now or in the future, understands not just the steps but the reasoning behind them.
+          </p>
+        </section>
+
+        <section className="man-section">
+          <h2 className="man-section__title">How to use this manual</h2>
+          <p>
+            You don&rsquo;t need to read this from beginning to end. Use the sidebar on the left to jump to whatever you&rsquo;re working on. Each chapter covers one part of the system. Each section inside a chapter covers one topic or task.
+          </p>
+          <p>
+            If you&rsquo;re brand new, <a href="#registration">Registration</a> is a good place to start — it covers the most common day-to-day work. If you&rsquo;re setting up a new program, go straight to <a href="#programs">Programs &amp; Sanity Studio</a>.
+          </p>
+          <div className="man-note">
+            If something in this manual is unclear, confusing, or out of date — that&rsquo;s worth noting. This is a living document, not something written once and forgotten. Let whoever manages the website know what was hard to understand, and it will be improved.
+          </div>
+        </section>
+
+        <section className="man-section">
+          <h2 className="man-section__title">A note on technology</h2>
+          <p>
+            This system was built to be as straightforward as possible. Most things work the way you&rsquo;d expect. But if something feels confusing, that&rsquo;s not your fault — it may mean the system or the documentation can be improved.
+          </p>
+          <p>
+            You are not expected to understand how everything works under the hood. The manual is here so you don&rsquo;t have to figure things out on your own. When something goes wrong, look for the <strong>If something goes wrong</strong> or <strong>Edge cases</strong> section — they&rsquo;re written for exactly those moments.
+          </p>
+        </section>
 
         {/* ════════════════════════════════════════
             CHAPTER 1 — REGISTRATION
@@ -591,7 +644,7 @@ export default async function ManualPage() {
         <div id="programs" className="man-chapter man-chapter--break">
           <h1 className="man-chapter__title">Programs &amp; Sanity Studio</h1>
           <p className="man-chapter__subtitle">
-            This chapter covers every tab and field in Sanity Studio so you can set up a program from scratch, edit a live one, or close registration when you&rsquo;re ready.
+            This chapter covers how to create and manage programs — from every tab and field in Sanity Studio, to creating the Google Meet link once a virtual program is ready.
           </p>
         </div>
 
@@ -844,7 +897,7 @@ export default async function ManualPage() {
               <div className="man-field__desc">
                 <p>The location name and/or address, shown on the program page and in reminder emails.</p>
                 <p><em>Example: RIM Meditation Hall, 16905 W. Bluemound Rd., Brookfield, WI</em></p>
-                <p>For online-only programs, you might write &ldquo;Online via Zoom&rdquo; or leave it blank.</p>
+                <p>For online-only programs, you can leave this blank — the Google Meet join button handles the online experience. Or write something like &ldquo;Online via Google Meet&rdquo; for clarity.</p>
               </div>
             </div>
             <div className="man-field">
@@ -856,7 +909,8 @@ export default async function ManualPage() {
             <div className="man-field">
               <div className="man-field__name">Meeting Link</div>
               <div className="man-field__desc">
-                <p>A Zoom or Google Meet URL for online or hybrid programs. When set, a join button appears on the program page, and <strong>the link is automatically included in reminder emails</strong>.</p>
+                <p>The video meeting URL for online or hybrid programs. When set, a join button appears on the program page, and <strong>the link is automatically included in reminder emails</strong>.</p>
+                <p>For virtual programs, this is filled in automatically when you create the Google Meet link from the registrar area — you don&rsquo;t need to paste it here manually.</p>
                 <p>Set this field before you send reminders — if it&rsquo;s blank when the reminder goes out, members won&rsquo;t receive a join link in that email.</p>
               </div>
             </div>
@@ -1080,6 +1134,7 @@ export default async function ManualPage() {
               <li><strong>Sorting &amp; Visibility tab:</strong> Set a <strong>Sort Order</strong> number so the program appears in the right position in the listing.</li>
               <li>Click <strong>Publish</strong>. The program is live on the website.</li>
             </ol>
+            <p className="man-task__note"><strong>Virtual programs:</strong> After publishing, go to <strong>/volunteer</strong>, open this program, and create the Google Meet link — see <a href="#google-meet">Setting up a Google Meet</a> in this chapter. This is what gives participants (and the volunteer host) a way into the session.</p>
           </div>
 
           <div className="man-task">
@@ -1429,7 +1484,7 @@ export default async function ManualPage() {
             Every member of the RIM community who logs in has a basic account. By default, accounts have no special access — they can only see their own dashboard, registrations, and courses.
           </p>
           <p>
-            Staff access is granted by assigning one or more <strong>roles</strong> to a member&rsquo;s account. There are currently two roles: <strong>Registrar</strong> and <strong>Admin</strong>. Roles are additive — a person with both roles gets the permissions of each combined.
+            Staff access is granted by assigning one or more <strong>roles</strong> to a member&rsquo;s account. There are currently two roles: <strong>Registrar</strong> and <strong>Admin</strong>. A person can hold both at once — having both gives them everything each role includes.
           </p>
           <p>
             Roles take effect immediately. As soon as you save a role change, the next page the member loads will reflect their new access. No re-login is required (though if they are logged in, they may need to reload the page).
