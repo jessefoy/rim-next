@@ -6,7 +6,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import TeacherList from "@/components/TeacherList";
 import { db } from "@/lib/db";
-import { buildGoogleCalendarUrl, buildIcsUrl } from "@/lib/calendarLinks";
+import { buildGoogleCalendarUrl, buildIcsUrl, describeRecurrence } from "@/lib/calendarLinks";
 
 export const revalidate = 60;
 
@@ -26,7 +26,7 @@ interface Program {
   timeText?: string;
   startDatetime?: string | null;
   endDatetime?: string | null;
-  repeatWeeks?: number | null;
+  recurrencePattern?: string | null;
   locationText?: string;
   locationLink?: string;
   danaText?: string;
@@ -251,35 +251,38 @@ export default async function ProgramDetailPage({
                   ) : existingRegistration ? (
                     <>
                       <span className="pg-register-status">✓ You&rsquo;re registered.</span>
-                      {program.startDatetime && (
-                        <div className="pg-calendar-links">
-                          <a
-                            href={buildGoogleCalendarUrl({
-                              title: program.name,
-                              startDatetime: program.startDatetime,
-                              endDatetime: program.endDatetime,
-                              location: program.locationText,
-                              programSlug: slug,
-                              repeatWeeks: program.repeatWeeks,
-                            })}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="pg-calendar-link"
-                          >
-                            {program.repeatWeeks && program.repeatWeeks > 1
-                              ? `+ Google Calendar (first session)`
-                              : `+ Google Calendar`}
-                          </a>
-                          <a
-                            href={buildIcsUrl(slug)}
-                            className="pg-calendar-link"
-                          >
-                            {program.repeatWeeks && program.repeatWeeks > 1
-                              ? `+ Apple / Outlook (all ${program.repeatWeeks} sessions)`
-                              : `+ Apple / Outlook`}
-                          </a>
-                        </div>
-                      )}
+                      {program.startDatetime && (() => {
+                        const rec = describeRecurrence(program.recurrencePattern);
+                        return (
+                          <div className="pg-calendar-links">
+                            <a
+                              href={buildGoogleCalendarUrl({
+                                title: program.name,
+                                startDatetime: program.startDatetime!,
+                                endDatetime: program.endDatetime,
+                                location: program.locationText,
+                                programSlug: slug,
+                                recurrencePattern: program.recurrencePattern,
+                              })}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="pg-calendar-link"
+                            >
+                              {rec.googleLabel
+                                ? `+ Google Calendar (${rec.googleLabel})`
+                                : `+ Google Calendar`}
+                            </a>
+                            <a
+                              href={buildIcsUrl(slug)}
+                              className="pg-calendar-link"
+                            >
+                              {rec.icsLabel
+                                ? `+ Apple / Outlook (${rec.icsLabel})`
+                                : `+ Apple / Outlook`}
+                            </a>
+                          </div>
+                        );
+                      })()}
                     </>
                   ) : spotsRemaining === 0 ? (
                     <Link href={`/programs/${slug}/register`} className="pg-register-btn">

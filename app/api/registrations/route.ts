@@ -164,10 +164,10 @@ export async function POST(request: NextRequest) {
         confirmationMessage?: unknown[];
         startDatetime?: string | null;
         endDatetime?: string | null;
-        repeatWeeks?: number | null;
+        recurrencePattern?: string | null;
       } | null>(
         `*[_type == "programs" && _id == $id && !(_id in path("drafts.**"))][0]{
-          confirmationMessage, startDatetime, endDatetime, repeatWeeks
+          confirmationMessage, startDatetime, endDatetime, recurrencePattern
         }`,
         { id: programId }
       );
@@ -183,7 +183,7 @@ export async function POST(request: NextRequest) {
           endDatetime: prog.endDatetime,
           location: locationText ?? null,
           programSlug,
-          repeatWeeks: prog.repeatWeeks,
+          recurrencePattern: prog.recurrencePattern,
         });
         icsUrl = buildIcsUrl(programSlug);
       }

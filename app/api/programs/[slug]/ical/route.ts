@@ -3,7 +3,7 @@ import { sanityClient } from "@/lib/sanity";
 import { buildIcsContent } from "@/lib/calendarLinks";
 
 const icalQuery = `*[_type == "programs" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
-  name, "slug": slug.current, startDatetime, endDatetime, locationText, repeatWeeks
+  name, "slug": slug.current, startDatetime, endDatetime, locationText, recurrencePattern
 }`;
 
 export async function GET(
@@ -18,7 +18,7 @@ export async function GET(
     startDatetime?: string | null;
     endDatetime?: string | null;
     locationText?: string | null;
-    repeatWeeks?: number | null;
+    recurrencePattern?: string | null;
   } | null>(icalQuery, { slug });
 
   if (!program?.startDatetime) {
@@ -34,7 +34,7 @@ export async function GET(
     endDatetime: program.endDatetime,
     location: program.locationText,
     programSlug: slug,
-    repeatWeeks: program.repeatWeeks,
+    recurrencePattern: program.recurrencePattern,
   });
 
   return new NextResponse(ics, {

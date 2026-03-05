@@ -6,11 +6,58 @@ const BASE_URL = process.env.NEXTAUTH_URL ?? "https://rim-next.vercel.app";
 
 export interface CalendarEvent {
   title: string;
-  startDatetime: string;        // ISO 8601 UTC string, e.g. "2026-06-07T18:00:00.000Z"
-  endDatetime?: string | null;  // optional; defaults to 1 hour after start
+  startDatetime: string;            // ISO 8601 UTC string, e.g. "2026-06-07T18:00:00.000Z"
+  endDatetime?: string | null;      // optional; defaults to 1 hour after start
   location?: string | null;
   programSlug: string;
-  repeatWeeks?: number | null;  // optional; if > 1, .ics includes RRULE:FREQ=WEEKLY;COUNT=N
+  recurrencePattern?: string | null; // e.g. "daily_3", "weekly_4", "monthly_6" — see Sanity schema
+}
+
+/**
+ * Parse a recurrencePattern string into an iCal RRULE line.
+ * Format: "{freq}_{count}" where freq is "daily" | "weekly" | "monthly"
+ * Returns null for blank / single-event programs.
+ */
+function buildRRule(pattern: string | null | undefined): string | null {
+  if (!pattern) return null;
+  const [freq, countStr] = pattern.split("_");
+  const count = parseInt(countStr, 10);
+  if (!count || count < 2) return null;
+  switch (freq) {
+    case "daily":   return `RRULE:FREQ=DAILY;COUNT=${count}`;
+    case "weekly":  return `RRULE:FREQ=WEEKLY;COUNT=${count}`;
+    case "monthly": return `RRULE:FREQ=MONTHLY;COUNT=${count}`;
+    default:        return null;
+  }
+}
+
+/**
+ * Human-readable labels for the add-to-calendar links.
+ * Returns { googleLabel, icsLabel } — both empty strings for single events.
+ */
+export function describeRecurrence(pattern: string | null | undefined): {
+  googleLabel: string;
+  icsLabel: string;
+} {
+  if (!pattern) return { googleLabel: "", icsLabel: "" };
+  const [freq, countStr] = pattern.split("_");
+  const count = parseInt(countStr, 10);
+  if (!count || count < 2) return { googleLabel: "", icsLabel: "" };
+  switch (freq) {
+    case "daily":
+      return {
+        googleLabel: `first day only`,
+        icsLabel:    `all ${count} days`,
+      };
+    case "weekly":
+    case "monthly":
+      return {
+        googleLabel: `first session`,
+        icsLabel:    `all ${count} sessions`,
+      };
+    default:
+      return { googleLabel: "", icsLabel: "" };
+  }
 }
 
 /**
@@ -78,11 +125,9 @@ export function buildIcsContent(ev: CalendarEvent): string {
     `DTSTAMP:${now}`,
     `DTSTART:${start}`,
     `DTEND:${end}`,
-    // RRULE for multi-session courses: FREQ=WEEKLY;COUNT=N repeats N times total
-    // (the first DTSTART counts as session 1, so COUNT=4 = 4 weekly sessions)
-    ...(ev.repeatWeeks && ev.repeatWeeks > 1
-      ? [`RRULE:FREQ=WEEKLY;COUNT=${ev.repeatWeeks}`]
-      : []),
+    // RRULE for multi-session programs (courses, retreats, series)
+    // buildRRule() returns null for single events — spread of null filtered below
+    ...(buildRRule(ev.recurrencePattern) ? [buildRRule(ev.recurrencePattern) as string] : []),
     `SUMMARY:${esc(ev.title)}`,
     ...(ev.location ? [`LOCATION:${esc(ev.location)}`] : []),
     `URL:${programUrl}`,
