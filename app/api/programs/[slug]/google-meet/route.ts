@@ -94,9 +94,15 @@ export async function POST(
         { status: 409 }
       );
     }
+    // Surface the actual Google API error message so it's visible in the UI
+    const detail =
+      (err as any)?.response?.data?.error?.message ??
+      (err as any)?.response?.data?.error_description ??
+      (err as Error).message ??
+      "Unknown error";
     console.error("[google-meet route] createMeeting error:", err);
     return NextResponse.json(
-      { error: "Failed to create Google Meet. Check server logs." },
+      { error: `Meet creation failed: ${detail}` },
       { status: 500 }
     );
   }

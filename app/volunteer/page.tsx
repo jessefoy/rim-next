@@ -4,7 +4,7 @@ import { sanityClient } from "@/lib/sanity";
 import { db } from "@/lib/db";
 import Link from "next/link";
 
-const volunteerProgramsQuery = `*[_type == "programs" && !(_id in path("drafts.**")) && registrationEnabled == true] | order(sortOrder asc) {
+const volunteerProgramsQuery = `*[_type == "programs" && !(_id in path("drafts.**"))] | order(sortOrder asc) {
   _id, name, slug, tagline, registrationCapacity
 }`;
 
@@ -82,7 +82,7 @@ export default async function VolunteerPage() {
 
         {programsWithCounts.length === 0 ? (
           <p className="vol-empty">
-            No programs have registration enabled yet. Enable a program in{" "}
+            No programs found. Create one in{" "}
             <a href="https://rooted-in-mindfulness.sanity.studio/" target="_blank" rel="noopener noreferrer">
               Sanity Studio
             </a>
