@@ -118,7 +118,7 @@ export async function createMeeting({
 
   // 2. Auth scoped to the chosen room
   const auth = makeAuth(roomEmail, [
-    "https://www.googleapis.com/auth/meetings.space.settings",
+    "https://www.googleapis.com/auth/meetings.space.created",
     "https://www.googleapis.com/auth/calendar.events",
   ]);
 
