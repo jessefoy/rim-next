@@ -1198,6 +1198,48 @@ These links are rendered conditionally — `isAdmin` check in `Nav.tsx` — and 
 
 **Key file:** `components/Nav.tsx`
 
+### 15c. Feature Inventory Page (`/admin/features`) ✅ Built — session 30 (2026-03-06)
+
+**What it does:** A comprehensive, ADMIN-only reference page documenting every feature in the application — organized both as a **system-level overview** and as a **feature-by-feature catalog**. Designed to serve two purposes: (1) get anyone up to speed on how the whole system works, and (2) act as a cold-start reference if project context is lost.
+
+**Who uses it:** Administrators and developers who need to understand the site holistically — how features connect, what depends on what, and what breaks if a service goes down. Also serves as a reference a non-technical manager can use to articulate the system to others.
+
+**How to find it:** Log in as an admin → member nav → Admin → "Feature Inventory." Direct URL: `/admin/features`.
+
+**What it contains:**
+
+The page has two layers separated by a divider:
+
+**Top layer — System View (4 sections):**
+
+| Section | What it shows |
+|---|---|
+| System Overview | What the app is, four core purposes, user types table (5 types: public visitor → admin), key philosophy (programs as front door, meet links dashboard-only) |
+| System Map | 12-row dependency table — each functional area: what it Needs / what it Powers / key Note |
+| Data Flows | Two end-to-end scenarios with numbered steps and area labels: "A new visitor registers for a program" (12 steps) and "A member logs in on a Tuesday morning" (7 steps) |
+| If X Breaks | 8 external dependency cards — each shows the system name (Sanity, Resend, Postgres, Stripe, Google Meet, Vercel Cron, Flodesk, Google OAuth) and what cascades as bullet points with red ✕ markers |
+
+**Bottom layer — Feature Detail:**
+
+13 functional areas, ~60 feature cards. Each card contains:
+- **Where** — URL(s) or key file(s) as monospace tags
+- **What** — plain-English description of the feature
+- **Related to** — bulleted functional relationships (→ prefix)
+
+Areas: 🔐 Auth, 🛡️ Route Protection, 📋 Registration, ✉️ Email, 💰 Dana/Stripe, 📊 Volunteer Tools, 👤 Member Experience, 📚 Course Access, 🛠️ Member Management, ⏰ Scheduling, 🎥 Google Meet, 🗂️ Sanity CMS, 🌐 Public Pages + Admin Tools + Nav.
+
+**Quick-jump nav:** Two rows — "System view" (4 anchors, highlighted in `--rim-blue`) and "Feature areas" (13 area links).
+
+**Key file:** `app/admin/features/page.tsx` — server component, ADMIN-only. All data defined as TypeScript constants (`USER_TYPES`, `SYSTEM_MAP`, `DATA_FLOWS`, `CRITICAL_DEPS`, `FEATURE_AREAS`). CSS prefix: `adm-fi-`.
+
+**🔧 Technical notes:**
+- Same data-driven TSX pattern as `/admin/sitemap` — typed constants rendered as JSX, no database or CMS involved
+- `SYSTEM_MAP` explicitly typed as `{ area: string; needs: string; powers: string; note: string }[]` to avoid implicit any
+- `DATA_FLOWS` uses an inline interface with `id`, `title`, `subtitle`, and `steps[]` (each step: `area` + `what`)
+- CSS counter used on `adm-fi-flow__step` (`counter-increment: step-counter`) for auto-numbered flow steps
+- `adm-sm-ext-link` added to `/admin/sitemap` header pointing to this page; "Feature Inventory" added to admin nav dropdown (desktop + mobile)
+- The page is intentionally manually maintained — auto-generation from the codebase would miss the functional relationships and plain-English descriptions that make it useful
+
 ---
 
 ## 16. Navigation Component
@@ -1892,4 +1934,6 @@ Staff reach the manual via two paths:
 
 | 2026-03-06 (session 29) | Google Meet debugging + `listingDayAndTimeText` removal. **(1) Google Meet full debug cycle:** DWD scope wrong (`meetings.space.settings` → `meetings.space.created`) — fixed in `lib/google-meet.ts` and updated in Google Workspace Admin Domain-Wide Delegation console. Calendar write error ("You need to have writer access to this calendar") — room accounts don't have write access to the shared `GOOGLE_CALENDAR_ID` calendar; fixed by switching both `findAvailableRoom` (reads) and `events.insert` (writes) to use each room's own `primary` calendar — no Google Calendar permission setup needed, DWD impersonation always grants access to own primary. Sanity write-back failing silently — `SANITY_API_TOKEN` in Vercel was a Viewer token; created new Editor token "RIM Next Website Write" in Sanity → API → Tokens and updated Vercel. Also fixed `GOOGLE_ROOM_EMAILS` in Vercel (removed `meet-community-group@` left over from initial setup). Full end-to-end confirmed working: Meet link created, correct room assigned (`meet1@`), saved to Sanity automatically. `GOOGLE_CALENDAR_ID` env var no longer used — can be removed from Vercel if desired. **(2) Volunteer page filter fix:** Removed `registrationEnabled == true` filter from `volunteerProgramsQuery` — drop-in programs that don't require registration should still appear in the volunteer area so registrars can create Google Meet links for them. **(3) `listingDayAndTimeText` removed:** Field eliminated from Sanity schema and all consumers. `dateText` now used everywhere — program page, listing cards, host area, member dashboard. Changes: `sanity/schemas/programs.js` (field removed), `lib/queries.ts` (4 queries), `app/community-programs/page.tsx`, `app/hosts/page.tsx`, `app/account/dashboard/page.tsx`. Sanity Studio deployed. **(4) Manual cleanup:** "Listing Day & Time" field entry removed from Schedule & Location tab docs; "Update Listing Day & Time" removed from "Updating dates or times" task; Date & Time description updated (listing cards now mentioned); two "Meeting Button Text" references removed (field was removed in session 28 — button label is hardcoded in code). |
 
-*Last updated: 2026-03-06 (session 29)*
+| 2026-03-06 (session 30) | Feature Inventory page (`/admin/features`). Created a comprehensive ADMIN-only reference page with two layers: **(1) System View** — four top-level sections: System Overview (what the app is, 5-row user types table, key philosophy), System Map (12-row dependency table: each functional area's Needs / Powers / Note), Data Flows (two complete end-to-end scenarios with numbered steps and area labels: registration flow 12 steps, login flow 7 steps), and If X Breaks (8 external dependency cards with cascading failure lists). **(2) Feature Detail** — 13 functional areas, ~60 feature cards, each with Where / What / Related to rows. Quick-jump nav updated to two rows: "System view" (4 blue-highlighted anchors) and "Feature areas" (13 area links). Data driven by TypeScript constants: `USER_TYPES`, `SYSTEM_MAP`, `DATA_FLOWS`, `CRITICAL_DEPS`, `FEATURE_AREAS`. CSS block added for all `adm-fi-` classes (counters, dep cards, flow steps, tables, jump nav). Nav.tsx updated: "Feature Inventory" added to admin dropdown (desktop + mobile). `/admin/sitemap` header updated: "Features →" external link added. **FEATURES.md §15c added** (this entry). Commits: c992c17 (Phase 1), 9f0a9dd (Phase 2). |
+
+*Last updated: 2026-03-06 (session 30)*
