@@ -34,11 +34,12 @@ interface Member {
   courseAccess: CourseAccessGrant[];
 }
 
-const ALL_ROLES = ["ADMIN", "REGISTRAR"] as const;
+const ALL_ROLES = ["HOST", "REGISTRAR", "ADMIN"] as const;
 
 const ROLE_DESCRIPTIONS: Record<string, string> = {
-  ADMIN: "Full access — members, registrations, and all staff areas",
+  HOST: "Google Meet host team — access to Host Area with session room assignments",
   REGISTRAR: "View and manage registrations, member profiles, and Sanity Studio",
+  ADMIN: "Full access — members, registrations, and all volunteer areas",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -316,7 +317,7 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
       {isAdmin && <section className="adm-section">
         <h2 className="adm-section__title">Roles &amp; Permissions</h2>
         <p className="adm-section__hint">
-          When a role is assigned, the member&rsquo;s dashboard will show a link to that staff area.
+          When a role is assigned, the member&rsquo;s dashboard will show a link to that volunteer area.
         </p>
         <div className="adm-roles">
           {ALL_ROLES.map((role) => (

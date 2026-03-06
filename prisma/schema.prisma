@@ -89,6 +89,7 @@ model User {
 }
 
 enum Role {
+  HOST        // Google Meet host team — access to host area and upcoming room assignments
   REGISTRAR   // manages program registrations + Sanity Studio access
   ADMIN       // full access
 }

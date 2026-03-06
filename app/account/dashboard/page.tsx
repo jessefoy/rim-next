@@ -44,6 +44,10 @@ function programIsToday(program: DashboardProgram, today: string): boolean {
 
 // Role → human label + destination
 const STAFF_LINKS: Record<string, { label: string; href: string; description: string; external?: boolean }[]> = {
+  HOST: [
+    { label: "Host Area", href: "/hosts", description: "Upcoming virtual programs and sign-in accounts" },
+    { label: "Volunteer Manual", href: "/admin/manual", description: "Step-by-step guidance for every part of the system" },
+  ],
   REGISTRAR: [
     { label: "Registrations", href: "/volunteer", description: "View and manage program registrations" },
     { label: "Members", href: "/admin/members", description: "Look up and edit member profiles" },

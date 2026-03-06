@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { Role } from "@prisma/client";
-import { sendRoleAssignmentEmail } from "@/lib/email";
+import { sendRoleAssignmentEmail, sendHostRoleAssignmentEmail } from "@/lib/email";
 
 // Revoke a member's Sanity Studio access by email.
 // Handles both accepted members and pending invitations.
@@ -165,6 +165,12 @@ export async function PATCH(
     !(user.roles as string[]).includes("REGISTRAR") &&
     (roles as string[]).includes("REGISTRAR");
 
+  // Detect new HOST: role wasn't there before, but is in the incoming list
+  const addingHost =
+    roles !== undefined &&
+    !(user.roles as string[]).includes("HOST") &&
+    (roles as string[]).includes("HOST");
+
   const updateData: Record<string, unknown> = {
     ...(firstName !== undefined && { firstName }),
     ...(lastName !== undefined && { lastName }),
@@ -203,6 +209,14 @@ export async function PATCH(
   // Notify newly-promoted registrar — fire-and-forget
   if (addingRegistrar) {
     sendRoleAssignmentEmail({
+      to: updated.email,
+      firstName: updated.firstName,
+    }).catch(() => {});
+  }
+
+  // Notify newly-added host — fire-and-forget
+  if (addingHost) {
+    sendHostRoleAssignmentEmail({
       to: updated.email,
       firstName: updated.firstName,
     }).catch(() => {});

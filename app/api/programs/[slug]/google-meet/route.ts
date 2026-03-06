@@ -1,17 +1,16 @@
 /**
  * POST /api/programs/[slug]/google-meet
  *
- * Creates a Google Meet space for a program and writes the link back to Sanity.
- * REGISTRAR or ADMIN only.
+ * Creates a Google Meet space for a program and writes the link + host account
+ * back to Sanity. REGISTRAR or ADMIN only.
  *
- * Request body:
- *   { volunteerEmail: string }   — @rootedinmindfulness.org address of the volunteer host
+ * No request body required — the system auto-selects an available room.
  *
  * Response:
- *   { meetLink: string, roomEmail: string, moderationEnabled: boolean }
+ *   { meetLink: string, roomEmail: string }
  *
  * Errors:
- *   400 — missing volunteerEmail, or program has no startDatetime
+ *   400 — program has no startDatetime
  *   401 — not authenticated
  *   403 — insufficient role
  *   404 — program not found in Sanity
@@ -39,7 +38,7 @@ interface SanityProgramForMeet {
 }
 
 export async function POST(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
   // Auth check
@@ -55,19 +54,6 @@ export async function POST(
   }
 
   const { slug } = await params;
-
-  // Parse body
-  let volunteerEmail: string;
-  try {
-    const body = await req.json();
-    volunteerEmail = (body.volunteerEmail ?? "").trim();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-
-  if (!volunteerEmail) {
-    return NextResponse.json({ error: "volunteerEmail is required" }, { status: 400 });
-  }
 
   // Fetch program from Sanity
   const program = await sanityClient.fetch<SanityProgramForMeet | null>(
@@ -98,14 +84,13 @@ export async function POST(
       title: program.name,
       startDatetime: program.startDatetime,
       endDatetime,
-      volunteerEmail,
       programSlug: slug,
     });
   } catch (err: unknown) {
     const msg = (err as Error).message ?? "";
     if (msg.startsWith("NO_ROOM_AVAILABLE")) {
       return NextResponse.json(
-        { error: "All meeting rooms are booked at that time. Try a different time or add more room accounts." },
+        { error: "All meeting rooms are booked at that time. Try a different time or ask an admin to add more room accounts." },
         { status: 409 }
       );
     }
@@ -116,29 +101,28 @@ export async function POST(
     );
   }
 
-  // Write the Meet link back to Sanity
+  // Write the Meet link and assigned room account back to Sanity
   try {
     await sanityClient
       .patch(program._id)
       .set({
         zoomLink: result.meetLink,
         zoomLinkText: "Join on Google Meet",
+        meetHostAccount: result.roomEmail,
       })
       .commit();
   } catch (err) {
-    // Non-fatal: return the link anyway so staff can copy it manually
+    // Non-fatal: return the result anyway so registrar can copy it manually
     console.error("[google-meet route] Sanity write-back error:", err);
     return NextResponse.json({
       meetLink: result.meetLink,
       roomEmail: result.roomEmail,
-      moderationEnabled: result.moderationEnabled,
-      warning: "Meet created but Sanity write-back failed. Copy the link and add it manually.",
+      warning: "Meet created but Sanity write-back failed. Copy the link and add it manually in Sanity Studio.",
     });
   }
 
   return NextResponse.json({
     meetLink: result.meetLink,
     roomEmail: result.roomEmail,
-    moderationEnabled: result.moderationEnabled,
   });
 }

@@ -1221,6 +1221,121 @@ function buildRoleAssignmentText({
   ].join("\n");
 }
 
+// ─── Host role assignment notification (to new Meet host) ────────────────────
+
+/**
+ * Sent to a member when they are granted the HOST role.
+ * Tells them what the role means and where to find their session assignments.
+ * Fire-and-forget — errors are caught and logged.
+ */
+export async function sendHostRoleAssignmentEmail(data: RoleAssignmentEmailData): Promise<void> {
+  const { to, firstName } = data;
+  const hostAreaUrl = `${BASE_URL}/hosts`;
+  const manualUrl   = `${BASE_URL}/admin/manual`;
+
+  const { error } = await resend.emails.send({
+    from:    FROM,
+    to,
+    subject: "You've been added as a Meet host — Rooted In Mindfulness",
+    html:    buildHostRoleAssignmentHtml({ firstName, hostAreaUrl, manualUrl }),
+    text:    buildHostRoleAssignmentText({ firstName, hostAreaUrl, manualUrl }),
+  });
+  if (error) {
+    console.error("[email] Failed to send host role assignment notification:", error);
+  }
+}
+
+function buildHostRoleAssignmentHtml({
+  firstName,
+  hostAreaUrl,
+  manualUrl,
+}: {
+  firstName: string | null;
+  hostAreaUrl: string;
+  manualUrl: string;
+}): string {
+  const greeting = firstName ? `Hi ${firstName},` : "Hello,";
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>You're a Meet host</title></head>
+<body style="margin:0;padding:0;background:#f6f3f0;font-family:'Open Sans',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f6f3f0;padding:40px 16px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:4px;overflow:hidden;">
+        <tr>
+          <td style="background:#135274;padding:28px 36px;">
+            <p style="margin:0;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:#c5d8e4;font-family:'Open Sans',Arial,sans-serif;">Rooted In Mindfulness</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:36px 36px 28px;">
+            <p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">${greeting}</p>
+            <p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">
+              You've been added as a <strong>Google Meet host</strong> for Rooted In Mindfulness. Thank you for helping hold this space for the community.
+            </p>
+            <p style="margin:0 0 28px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">
+              Your <strong>Host Area</strong> shows every virtual program and the Google account you'll need to sign into before hosting each one. Bookmark it — that's your home base before each session.
+            </p>
+            <table cellpadding="0" cellspacing="0" style="margin-bottom:12px;">
+              <tr>
+                <td style="border-radius:3px;background:#135274;">
+                  <a href="${hostAreaUrl}" style="display:inline-block;padding:12px 24px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;font-family:'Open Sans',Arial,sans-serif;">Go to Host Area &#8594;</a>
+                </td>
+              </tr>
+            </table>
+            <table cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
+              <tr>
+                <td style="border-radius:3px;border:1.5px solid #39607a;">
+                  <a href="${manualUrl}" style="display:inline-block;padding:11px 24px;font-size:15px;font-weight:600;color:#39607a;text-decoration:none;font-family:'Open Sans',Arial,sans-serif;">Read the Volunteer Manual &#8594;</a>
+                </td>
+              </tr>
+            </table>
+            <p style="margin:0;font-size:14px;line-height:1.75;color:#6b6059;font-family:'Open Sans',Arial,sans-serif;">
+              If you have any questions, reply to this email or reach out directly. Welcome to the host team.
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:20px 36px;border-top:1px solid #ede9e5;">
+            <p style="margin:0;font-size:12px;color:#9b8e85;font-family:'Open Sans',Arial,sans-serif;">Rooted In Mindfulness &middot; Brookfield, WI</p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+function buildHostRoleAssignmentText({
+  firstName,
+  hostAreaUrl,
+  manualUrl,
+}: {
+  firstName: string | null;
+  hostAreaUrl: string;
+  manualUrl: string;
+}): string {
+  const greeting = firstName ? `Hi ${firstName},` : "Hello,";
+  return [
+    greeting,
+    "",
+    "You've been added as a Google Meet host for Rooted In Mindfulness. Thank you for helping hold this space for the community.",
+    "",
+    "Your Host Area shows every virtual program and the Google account you'll need to sign into before hosting each one:",
+    `  Host Area: ${hostAreaUrl}`,
+    "",
+    "Volunteer Manual (guidance for all volunteers):",
+    `  ${manualUrl}`,
+    "",
+    "If you have any questions, reply to this email or reach out directly. Welcome to the host team.",
+    "",
+    "—",
+    "Rooted In Mindfulness · Brookfield, WI",
+    "rootedinmindfulness.org",
+  ].join("\n");
+}
+
 // ─── Magic link email (authentication) ───────────────────────────────────────
 // Called from auth.ts sendVerificationRequest — replaces the default NextAuth template.
 // isNewUser = true when the account doesn't exist yet or agreedToTerms is false.

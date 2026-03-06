@@ -238,3 +238,16 @@ export const programsBySlugArrayQuery = `*[_type == "programs" && slug.current i
   zoomLink,
   zoomLinkText
 }`;
+
+// ─── Host area — programs with Google Meet assigned (for /hosts page) ─────────
+
+export const hostProgramsQuery = `*[_type == "programs" && !(_id in path("drafts.**")) && defined(zoomLink) && zoomLink != ""] | order(coalesce(sortOrder, 999) asc) {
+  _id,
+  name,
+  "slug": slug.current,
+  listingDayAndTimeText,
+  dateText,
+  zoomLink,
+  meetHostAccount,
+  dayOfWeek[]-> { name }
+}`;

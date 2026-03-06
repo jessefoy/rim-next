@@ -5,8 +5,10 @@
  * Architecture: "Virtual Room" model.
  * - A pool of room accounts (GOOGLE_ROOM_EMAILS) each act as a meeting "owner".
  * - The service account impersonates whichever room is free at the requested time.
- * - The volunteer's email is assigned as COHOST via the Meet REST API so they
- *   join with full host controls from their own account — no account switching.
+ * - Room conflict detection uses the shared RIM Programs calendar — any program
+ *   already scheduled on a room account blocks it for that time slot.
+ * - No volunteer is pre-designated as host. The host team logs into the assigned
+ *   room account to gain host controls automatically (they own the meeting).
  *
  * Required env vars:
  *   GOOGLE_SERVICE_ACCOUNT_EMAIL  — service account client_email
@@ -22,7 +24,6 @@ export interface CreateMeetingParams {
   title: string;
   startDatetime: string; // ISO 8601, e.g. "2026-04-01T19:00:00-05:00"
   endDatetime: string;   // ISO 8601
-  volunteerEmail: string;
   programSlug: string;
 }
 
@@ -30,7 +31,6 @@ export interface CreateMeetingResult {
   meetLink: string;
   calendarEventId: string;
   roomEmail: string;
-  moderationEnabled: boolean;
 }
 
 /** Build a JWT auth client impersonating a given room account via DWD. */
@@ -89,17 +89,19 @@ async function findAvailableRoom(
 }
 
 /**
- * Create a Google Meet space, assign a volunteer as COHOST, and add a
- * Google Calendar event on the shared RIM Programs calendar.
+ * Create a Google Meet space and add a Google Calendar event on the shared
+ * RIM Programs calendar.
  *
- * Returns the Meet link (from the Meet REST API, not the calendar conferenceData)
- * and the calendar event ID for reference.
+ * The assigned room account IS the meeting host — any volunteer who logs into
+ * that account and joins will have full host controls. No pre-registration needed.
+ *
+ * Returns the Meet link and which room account was assigned (for display to the
+ * host team in /hosts and in Sanity Studio).
  */
 export async function createMeeting({
   title,
   startDatetime,
   endDatetime,
-  volunteerEmail,
   programSlug,
 }: CreateMeetingParams): Promise<CreateMeetingResult> {
   const calendarId = process.env.GOOGLE_CALENDAR_ID;
@@ -114,7 +116,7 @@ export async function createMeeting({
   // 1. Find an available room for this time slot
   const roomEmail = await findAvailableRoom(roomEmails, startDatetime, endDatetime);
 
-  // 2. Auth scoped to the chosen room (both Meet + Calendar)
+  // 2. Auth scoped to the chosen room
   const auth = makeAuth(roomEmail, [
     "https://www.googleapis.com/auth/meetings.space.settings",
     "https://www.googleapis.com/auth/calendar.events",
@@ -123,65 +125,16 @@ export async function createMeeting({
   const meet = google.meet({ version: "v2", auth });
   const calendar = google.calendar({ version: "v3", auth });
 
-  let spaceName = "";
-  let meetLink = "";
-  let moderationEnabled = false;
-
-  try {
-    // 3a. Create a moderated Meet space (required for COHOST role)
-    const spaceRes = await meet.spaces.create({
-      requestBody: {
-        config: {
-          accessType: "TRUSTED",
-          entryPointAccess: "ALL",
-          moderation: "ON",
-        },
+  // 3. Create the Meet space (TRUSTED access — org members join without knocking)
+  const spaceRes = await meet.spaces.create({
+    requestBody: {
+      config: {
+        accessType: "TRUSTED",
+        entryPointAccess: "ALL",
       },
-    });
-    spaceName = spaceRes.data.name!;
-    meetLink = spaceRes.data.meetingUri!;
-    moderationEnabled = true;
-
-    // 3b. Assign volunteer as COHOST (note required "users/" prefix).
-    // The googleapis TypeScript types for Meet v2 are incomplete — spaces.members
-    // is not typed, so we call the REST endpoint directly with an auth token.
-    const tokenRes = await auth.getAccessToken();
-    const accessToken = tokenRes.token;
-    const membersRes = await fetch(
-      `https://meet.googleapis.com/v2/${spaceName}/members`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          user: `users/${volunteerEmail}`,
-          role: "COHOST",
-        }),
-      }
-    );
-    if (!membersRes.ok) {
-      const errText = await membersRes.text();
-      console.warn(`[google-meet] spaces.members.create failed (${membersRes.status}): ${errText}`);
-      // Non-fatal: meeting is still usable without COHOST assignment
-    }
-  } catch (err: unknown) {
-    const status = (err as { status?: number }).status;
-    if (status === 403) {
-      // Free tier fallback: moderation/COHOST not available.
-      // Volunteer still enters without friction via Trusted access type.
-      console.warn(
-        "[google-meet] Moderation/COHOST returned 403 (free tier). " +
-          "Falling back to standard space. Volunteer will join as trusted participant."
-      );
-      const fallback = await meet.spaces.create({});
-      spaceName = fallback.data.name!;
-      meetLink = fallback.data.meetingUri!;
-    } else {
-      throw err;
-    }
-  }
+    },
+  });
+  const meetLink = spaceRes.data.meetingUri!;
 
   // 4. Create calendar event on the shared RIM Programs calendar.
   //    Impersonating roomEmail means it appears as the event organizer —
@@ -192,11 +145,10 @@ export async function createMeeting({
       summary: title,
       description:
         `Join on Google Meet: ${meetLink}\n` +
-        `Volunteer host: ${volunteerEmail}\n` +
-        `Program: https://rim-next.vercel.app/programs/${programSlug}`,
+        `Program: https://rim-next.vercel.app/programs/${programSlug}\n` +
+        `Host account: ${roomEmail}`,
       start: { dateTime: startDatetime },
       end: { dateTime: endDatetime },
-      attendees: [{ email: volunteerEmail }],
     },
   });
 
@@ -204,6 +156,5 @@ export async function createMeeting({
     meetLink,
     calendarEventId: eventRes.data.id!,
     roomEmail,
-    moderationEnabled,
   };
 }
