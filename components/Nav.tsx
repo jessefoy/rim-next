@@ -90,6 +90,13 @@ export default function Nav() {
                         <div className="nav__dropdown-desc">All pages reference</div>
                       </Link>
                       <Link
+                        href="/admin/features"
+                        className="nav__dropdown-link"
+                      >
+                        <div className="nav__dropdown-title">Feature Inventory</div>
+                        <div className="nav__dropdown-desc">Every feature, categorized</div>
+                      </Link>
+                      <Link
                         href="/admin/roadmap"
                         className="nav__dropdown-link"
                       >
@@ -239,6 +246,14 @@ export default function Nav() {
                   className={`nav__mobile-link${isActive("/admin/sitemap")}`}
                 >
                   Admin — Site Architecture
+                </Link>
+              )}
+              {isAdmin && (
+                <Link
+                  href="/admin/features"
+                  className={`nav__mobile-link${isActive("/admin/features")}`}
+                >
+                  Admin — Feature Inventory
                 </Link>
               )}
               {isAdmin && (
