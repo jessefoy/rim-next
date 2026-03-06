@@ -1255,7 +1255,7 @@ export default async function ManualPage() {
             <li>Wait a few seconds. When it&rsquo;s done, the panel shows the Meet link and the room account that was assigned.</li>
           </ol>
           <p>
-            That&rsquo;s it. The link has been created and saved to the program automatically. You don&rsquo;t need to copy it anywhere — it will appear on the program page, in confirmation emails, and in reminder emails from this point forward. The assigned room account is also saved so the host team can see it on the <strong>Host Area</strong> page.
+            That&rsquo;s it. The link has been created and saved to the program automatically. You don&rsquo;t need to copy it anywhere — it will appear on the member dashboard under &ldquo;Today&rsquo;s Sessions&rdquo; on the day of the program, and in the Host Area for the host team. The assigned room account is also saved so the host team can see it on the <strong>Host Area</strong> page.
           </p>
 
           <h3 className="man-section__h3">Replacing an existing link</h3>
@@ -1263,7 +1263,7 @@ export default async function ManualPage() {
             If a meeting link already exists and you need to create a new one — for example, if the link needs to be regenerated — the panel will show the current link with a <strong>Replace</strong> button next to it. Click <strong>Replace</strong> and confirm. A new link will be created and the old one will be overwritten in Sanity.
           </p>
           <div className="man-note man-note--warn">
-            ⚠ If you replace a link <em>after</em> confirmation or reminder emails have already gone out, the new link will appear on the program page but the old emails are already sent and cannot be recalled. Consider whether participants need a follow-up message with the updated link.
+            ⚠ If you replace a link, the new link takes effect on the member dashboard and Host Area immediately. The old Meet space will no longer work — if a session is in progress, anyone already in the old meeting will be unaffected, but anyone joining after the replacement will get the new link.
           </div>
         </section>
 
