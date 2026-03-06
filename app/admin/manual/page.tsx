@@ -1237,6 +1237,9 @@ export default async function ManualPage() {
           <p>
             If the program is recurring (e.g. every Wednesday evening), the Start Date &amp; Time should be the date of the <em>next</em> session. The meeting link itself doesn&rsquo;t expire — you can reuse it across sessions.
           </p>
+          <p>
+            If you don&rsquo;t have access to Sanity Studio, connect with whoever is setting up the program — the registrar or another team member with studio access can add the date. Once it&rsquo;s in, you can create the meeting link yourself from the registrar area.
+          </p>
         </section>
 
         {/* ── Creating a meeting ── */}
