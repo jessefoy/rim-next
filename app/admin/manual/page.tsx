@@ -1177,7 +1177,7 @@ export default async function ManualPage() {
             If your program is virtual — meaning participants join from home over video — there is one final step after setting everything up in Sanity Studio: creating the Google Meet link. This is how the volunteer host and everyone who registers will actually get into the session.
           </p>
           <p>
-            Google Meet is the video platform RIM uses for all virtual programs — drop-in sittings, community groups, Foundations, and any other program that happens over video. It replaced Zoom, which had a 40-minute time limit on the free plan and required managing separate accounts and links outside of the website.
+            Google Meet is the video platform RIM uses for all virtual programs — drop-in sittings, community groups, Foundations, and any other program that happens over video. It replaced Zoom — meeting RIM&rsquo;s needs on Zoom would have required ongoing subscription costs that the center wanted to avoid as good stewards of the dana the community offers, and managing separate accounts and links outside of the website made it harder for volunteers to run sessions reliably.
           </p>
           <p>
             With this system, creating a meeting link takes about 30 seconds. You open the program in the registrar area and click one button. The link is created automatically, saved to the program, and from that point forward it appears in all confirmation and reminder emails — without you having to copy or paste anything.
