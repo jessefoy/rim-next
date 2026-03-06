@@ -103,7 +103,7 @@ export default async function DashboardPage() {
               )}
             </p>
             <p className="db-nav__title">Today&apos;s Sessions</p>
-            <p className="db-nav__desc">Join today&apos;s drop-in Zoom programs</p>
+            <p className="db-nav__desc">Join today&apos;s drop-in virtual programs</p>
           </Link>
 
           <Link href="/account/dashboard-my-registrations" className="db-nav__card">
@@ -165,7 +165,7 @@ export default async function DashboardPage() {
                     {program.dateText && (
                       <span className="db-staff__card-desc">{program.dateText}</span>
                     )}
-                    <span className="db-staff__card-desc">No Zoom link available</span>
+                    <span className="db-staff__card-desc">No meeting link available</span>
                   </div>
                 )
               ))}

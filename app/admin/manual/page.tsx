@@ -1311,7 +1311,7 @@ export default async function ManualPage() {
         <section id="meet-link-appears" className="man-section">
           <h2 className="man-section__title">Where the link appears</h2>
           <p>
-            Once a meeting link is saved to a program, it appears in three places automatically. You don&rsquo;t need to add it manually anywhere.
+            Once a meeting link is saved to a program, it appears in one place for members and one place for the host team. You don&rsquo;t need to add it manually anywhere.
           </p>
           <table className="man-table man-table--perms">
             <thead>
@@ -1323,27 +1323,22 @@ export default async function ManualPage() {
             </thead>
             <tbody>
               <tr>
-                <td>Program page <code>/programs/[slug]</code></td>
-                <td>Anyone who visits the page</td>
-                <td>Immediately, once the link is saved</td>
+                <td>Member dashboard <code>/account/dashboard</code></td>
+                <td>Logged-in members only</td>
+                <td>Under &ldquo;Today&rsquo;s Sessions&rdquo; on the day of the program</td>
               </tr>
               <tr>
-                <td>Confirmation email</td>
-                <td>Everyone who registers</td>
-                <td>Sent at the moment of registration</td>
-              </tr>
-              <tr>
-                <td>Reminder email</td>
-                <td>Everyone registered for that program</td>
-                <td>Sent on the reminder date set in Sanity</td>
+                <td>Host Area <code>/hosts</code></td>
+                <td>HOST, REGISTRAR, and ADMIN roles</td>
+                <td>Always visible once the link is created</td>
               </tr>
             </tbody>
           </table>
           <p>
-            The button on the program page always reads <strong>&ldquo;Join on Google Meet.&rdquo;</strong>
+            Confirmation and reminder emails direct members to their dashboard — the link itself is not included in emails. This keeps virtual sessions private and accessible to logged-in members only.
           </p>
           <div className="man-note">
-            The <strong>Host Area</strong> at <code>/hosts</code> is a separate starting point for the host team — it shows the same link alongside the room account to sign into. Members never see the room account; they only see the public Join link.
+            The <strong>Host Area</strong> at <code>/hosts</code> shows the same link alongside the room account to sign into. Members never see the room account; they only see the Join link on their dashboard.
           </div>
         </section>
 

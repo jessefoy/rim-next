@@ -508,8 +508,8 @@ function buildReminderHtml({
   reminderHtml?: string | null;
 }): string {
   const programUrl = `${BASE_URL}/programs/${programSlug}`;
-  const ctaUrl     = zoomLink ?? programUrl;
-  const ctaLabel   = zoomLink ? "Join on Google Meet" : "View Program Details";
+  const ctaUrl     = `${BASE_URL}/account/dashboard`;
+  const ctaLabel   = "Go to my dashboard";
 
   const locationRow = locationText
     ? `<tr><td style="padding:3px 0;font-size:15px;color:#56504a;">📍&nbsp; ${
@@ -614,8 +614,8 @@ function buildReminderText({
   reminderText?: string | null;
 }): string {
   const programUrl = `${BASE_URL}/programs/${programSlug}`;
-  const ctaUrl     = zoomLink ?? programUrl;
-  const ctaLabel   = zoomLink ? "Join on Google Meet" : "View Program Details";
+  const ctaUrl     = `${BASE_URL}/account/dashboard`;
+  const ctaLabel   = "Go to my dashboard";
 
   const details = [
     dateText     ? `When: ${dateText}`         : "",
