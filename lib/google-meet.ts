@@ -5,15 +5,14 @@
  * Architecture: "Virtual Room" model.
  * - A pool of room accounts (GOOGLE_ROOM_EMAILS) each act as a meeting "owner".
  * - The service account impersonates whichever room is free at the requested time.
- * - Room conflict detection uses the shared RIM Programs calendar — any program
- *   already scheduled on a room account blocks it for that time slot.
+ * - Room conflict detection checks each room's own primary calendar — any event
+ *   in the requested time window blocks that room for that slot.
  * - No volunteer is pre-designated as host. The host team logs into the assigned
  *   room account to gain host controls automatically (they own the meeting).
  *
  * Required env vars:
  *   GOOGLE_SERVICE_ACCOUNT_EMAIL  — service account client_email
  *   GOOGLE_PRIVATE_KEY            — service account private_key (raw, with \n newlines)
- *   GOOGLE_CALENDAR_ID            — shared "RIM Programs" calendar ID
  *   GOOGLE_ROOM_EMAILS            — comma-separated room account emails
  */
 
@@ -49,43 +48,34 @@ function makeAuth(subject: string, scopes: string[]): JWT {
 
 /**
  * Find a room account that has no calendar events overlapping the requested slot.
- * Strategy: query the shared calendar for events in [startDatetime, endDatetime],
- * collect which room emails already appear as organizers, return the first free one.
+ * Strategy: check each room's own primary calendar for events in [startDatetime, endDatetime].
+ * Returns the first room with no conflicts.
  */
 async function findAvailableRoom(
   roomEmails: string[],
   startDatetime: string,
   endDatetime: string
 ): Promise<string> {
-  const calendarId = process.env.GOOGLE_CALENDAR_ID!;
+  for (const roomEmail of roomEmails) {
+    const auth = makeAuth(roomEmail, ["https://www.googleapis.com/auth/calendar.events"]);
+    const calendar = google.calendar({ version: "v3", auth });
 
-  // Use the first room to perform the read query (any room can read the shared calendar)
-  const auth = makeAuth(roomEmails[0], ["https://www.googleapis.com/auth/calendar.events"]);
-  const calendar = google.calendar({ version: "v3", auth });
+    const eventsResponse = await calendar.events.list({
+      calendarId: "primary",
+      timeMin: startDatetime,
+      timeMax: endDatetime,
+      singleEvents: true,
+      maxResults: 10,
+    });
 
-  const eventsResponse = await calendar.events.list({
-    calendarId,
-    timeMin: startDatetime,
-    timeMax: endDatetime,
-    singleEvents: true,
-    maxResults: 100,
-  });
-
-  // Collect organizer emails from existing events in this window
-  const bookedRooms = new Set<string>();
-  for (const event of eventsResponse.data.items ?? []) {
-    const org = event.organizer?.email;
-    if (org) bookedRooms.add(org.toLowerCase());
+    if ((eventsResponse.data.items ?? []).length === 0) {
+      return roomEmail;
+    }
   }
 
-  const freeRoom = roomEmails.find((r) => !bookedRooms.has(r.toLowerCase()));
-  if (!freeRoom) {
-    throw new Error(
-      `NO_ROOM_AVAILABLE: All ${roomEmails.length} room accounts are booked during ${startDatetime} – ${endDatetime}`
-    );
-  }
-
-  return freeRoom;
+  throw new Error(
+    `NO_ROOM_AVAILABLE: All ${roomEmails.length} room accounts are booked during ${startDatetime} – ${endDatetime}`
+  );
 }
 
 /**
@@ -104,13 +94,11 @@ export async function createMeeting({
   endDatetime,
   programSlug,
 }: CreateMeetingParams): Promise<CreateMeetingResult> {
-  const calendarId = process.env.GOOGLE_CALENDAR_ID;
   const roomEmails = (process.env.GOOGLE_ROOM_EMAILS ?? "")
     .split(",")
     .map((e) => e.trim())
     .filter(Boolean);
 
-  if (!calendarId) throw new Error("GOOGLE_CALENDAR_ID not configured");
   if (roomEmails.length === 0) throw new Error("GOOGLE_ROOM_EMAILS not configured");
 
   // 1. Find an available room for this time slot
@@ -136,11 +124,11 @@ export async function createMeeting({
   });
   const meetLink = spaceRes.data.meetingUri!;
 
-  // 4. Create calendar event on the shared RIM Programs calendar.
-  //    Impersonating roomEmail means it appears as the event organizer —
-  //    this is how we track room assignment for future availability checks.
+  // 4. Create calendar event on the room's own primary calendar.
+  //    Impersonating roomEmail + writing to "primary" avoids any shared-calendar
+  //    permission issues. Conflict detection also reads from "primary" per room.
   const eventRes = await calendar.events.insert({
-    calendarId,
+    calendarId: "primary",
     requestBody: {
       summary: title,
       description:
