@@ -67,6 +67,17 @@ const SECTIONS: RoadmapSection[] = [
         desc: "The current database password has been in use throughout development. Rotate it in the Neon dashboard and update POSTGRES_PRISMA_URL and POSTGRES_URL_NON_POOLING in Vercel before go-live. This is a one-time infra step.",
         files: ["Neon dashboard → reset password", "Vercel → update env vars"],
       },
+      {
+        name: "Set Up Neon Database Backups",
+        effort: "small",
+        status: "immediate",
+        ref: "MEMORY.md",
+        desc: "The Postgres database holds all member records, registrations, and course access — data that cannot be reconstructed from code or Sanity. Neon offers automated backups (point-in-time restore on paid plans). Enable backups now, before real members exist, so the habit and infrastructure are in place. Without backups, a database incident means permanent loss of all member and registration data.",
+        files: [
+          "Neon dashboard → Project → Backups → Enable",
+          "Verify restore window is adequate (7+ days recommended)",
+        ],
+      },
     ],
   },
 
@@ -76,17 +87,6 @@ const SECTIONS: RoadmapSection[] = [
     desc: "Features that members will directly experience in the member area or on program pages.",
     color: "var(--rim-mid)",
     items: [
-      {
-        name: "Cancel Registration (My Programs)",
-        effort: "medium",
-        status: "designed",
-        ref: "FEATURES.md §17b",
-        desc: "Allow members to cancel their own registration from the My Programs page. Cancel button + inline confirmation on each active mr-card. On confirm: sets status to CANCELLED and fires cancellation notification email to the registrar. Validates that the registration belongs to the current user.",
-        files: [
-          "app/api/account/registrations/[id]/cancel/route.ts — new PATCH",
-          "app/account/dashboard-my-registrations/page.tsx — cancel button on mr-card",
-        ],
-      },
       {
         name: "Self-Service Email Change",
         effort: "medium",
