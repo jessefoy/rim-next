@@ -107,7 +107,6 @@ export async function POST(
       .patch(program._id)
       .set({
         zoomLink: result.meetLink,
-        zoomLinkText: "Join on Google Meet",
         meetHostAccount: result.roomEmail,
       })
       .commit();

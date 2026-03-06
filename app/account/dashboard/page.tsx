@@ -15,7 +15,6 @@ interface DashboardProgram {
   name: string;
   sortOrder?: number;
   dayOfWeek?: { name: string }[];
-  dayFiltering?: string;
   listingDayAndTimeText?: string;
   zoomLink?: string;
   dashboardSpecialAnnouncement?: string;
@@ -30,12 +29,6 @@ function getMilwaukeeDay(): string {
 }
 
 function programIsToday(program: DashboardProgram, today: string): boolean {
-  if (program.dayFiltering) {
-    return program.dayFiltering
-      .split(",")
-      .map((d) => d.trim())
-      .includes(today);
-  }
   if (program.dayOfWeek && program.dayOfWeek.length > 0) {
     return program.dayOfWeek.some((d) => d.name === today);
   }

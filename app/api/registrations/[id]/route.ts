@@ -65,11 +65,9 @@ export async function PATCH(
         programTitle: reg.programTitle,
         programSlug:  reg.programSlug,
         dateText:     data?.dateText,
-        timeText:     data?.timeText,
         locationText: data?.locationText,
         locationLink: data?.locationLink,
         zoomLink:     data?.zoomLink,
-        zoomLinkText: data?.zoomLinkText,
         reminderMessage: data?.reminderMessage,
       });
       const updated = await db.registration.update({
@@ -141,7 +139,6 @@ export async function PATCH(
         status:        reg.status === "WAITLISTED" ? "WAITLISTED" : "REGISTERED",
         waitlistPosition: reg.waitlistPosition,
         dateText:      data?.dateText,
-        timeText:      data?.timeText,
         locationText:  data?.locationText,
         confirmationMessageHtml,
         confirmationMessageText,

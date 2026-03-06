@@ -28,7 +28,6 @@ export interface RegistrationEmailData {
   status: "REGISTERED" | "WAITLISTED";
   waitlistPosition?: number | null;
   dateText?: string | null;
-  timeText?: string | null;
   locationText?: string | null;
   // Program-specific confirmation copy from Sanity (rendered from Portable Text)
   confirmationMessageHtml?: string;
@@ -45,7 +44,7 @@ export interface RegistrationEmailData {
 export async function sendRegistrationEmail(data: RegistrationEmailData): Promise<void> {
   const {
     to, firstName, programTitle, programSlug,
-    status, waitlistPosition, dateText, timeText, locationText,
+    status, waitlistPosition, dateText, locationText,
   } = data;
 
   const isWaitlisted = status === "WAITLISTED";
@@ -58,7 +57,7 @@ export async function sendRegistrationEmail(data: RegistrationEmailData): Promis
   const params: BuildParams = {
     firstName, programTitle, programUrl,
     isWaitlisted, waitlistPosition,
-    dateText, timeText, locationText,
+    dateText, locationText,
     confirmationMessageHtml: data.confirmationMessageHtml,
     confirmationMessageText: data.confirmationMessageText,
     googleCalendarUrl: data.googleCalendarUrl,
@@ -450,11 +449,9 @@ export interface ReminderEmailData {
   programTitle: string;
   programSlug: string;
   dateText?: string | null;
-  timeText?: string | null;
   locationText?: string | null;
   locationLink?: string | null;
   zoomLink?: string | null;
-  zoomLinkText?: string | null;
   reminderMessage?: PortableTextBlock[] | null;
 }
 
@@ -466,8 +463,8 @@ export interface ReminderEmailData {
 export async function sendReminderEmail(data: ReminderEmailData): Promise<void> {
   const {
     to, firstName, programTitle, programSlug,
-    dateText, timeText, locationText, locationLink,
-    zoomLink, zoomLinkText, reminderMessage,
+    dateText, locationText, locationLink,
+    zoomLink, reminderMessage,
   } = data;
 
   const reminderHtml = reminderMessage?.length
@@ -483,13 +480,13 @@ export async function sendReminderEmail(data: ReminderEmailData): Promise<void> 
     subject: `A reminder — ${programTitle}`,
     html:    buildReminderHtml({
       firstName, programTitle, programSlug,
-      dateText, timeText, locationText, locationLink,
-      zoomLink, zoomLinkText, reminderHtml,
+      dateText, locationText, locationLink,
+      zoomLink, reminderHtml,
     }),
     text:    buildReminderText({
       firstName, programTitle, programSlug,
-      dateText, timeText, locationText,
-      zoomLink, zoomLinkText, reminderText,
+      dateText, locationText,
+      zoomLink, reminderText,
     }),
   });
   if (error) {
@@ -501,18 +498,18 @@ export async function sendReminderEmail(data: ReminderEmailData): Promise<void> 
 
 function buildReminderHtml({
   firstName, programTitle, programSlug,
-  dateText, timeText, locationText, locationLink,
-  zoomLink, zoomLinkText, reminderHtml,
+  dateText, locationText, locationLink,
+  zoomLink, reminderHtml,
 }: {
   firstName: string; programTitle: string; programSlug: string;
-  dateText?: string | null; timeText?: string | null;
+  dateText?: string | null;
   locationText?: string | null; locationLink?: string | null;
-  zoomLink?: string | null; zoomLinkText?: string | null;
+  zoomLink?: string | null;
   reminderHtml?: string | null;
 }): string {
   const programUrl = `${BASE_URL}/programs/${programSlug}`;
   const ctaUrl     = zoomLink ?? programUrl;
-  const ctaLabel   = zoomLink ? (zoomLinkText ?? "Join on Zoom") : "View Program Details";
+  const ctaLabel   = zoomLink ? "Join on Google Meet" : "View Program Details";
 
   const locationRow = locationText
     ? `<tr><td style="padding:3px 0;font-size:15px;color:#56504a;">📍&nbsp; ${
@@ -523,8 +520,7 @@ function buildReminderHtml({
     : "";
 
   const detailRows = [
-    dateText     ? `<tr><td style="padding:3px 0;font-size:15px;color:#56504a;">📅&nbsp; ${dateText}</td></tr>` : "",
-    timeText     ? `<tr><td style="padding:3px 0;font-size:15px;color:#56504a;">🕐&nbsp; ${timeText}</td></tr>` : "",
+    dateText ? `<tr><td style="padding:3px 0;font-size:15px;color:#56504a;">📅&nbsp; ${dateText}</td></tr>` : "",
     locationRow,
   ].filter(Boolean).join("");
 
@@ -608,22 +604,21 @@ function buildReminderHtml({
 
 function buildReminderText({
   firstName, programTitle, programSlug,
-  dateText, timeText, locationText,
-  zoomLink, zoomLinkText, reminderText,
+  dateText, locationText,
+  zoomLink, reminderText,
 }: {
   firstName: string; programTitle: string; programSlug: string;
-  dateText?: string | null; timeText?: string | null;
+  dateText?: string | null;
   locationText?: string | null;
-  zoomLink?: string | null; zoomLinkText?: string | null;
+  zoomLink?: string | null;
   reminderText?: string | null;
 }): string {
   const programUrl = `${BASE_URL}/programs/${programSlug}`;
   const ctaUrl     = zoomLink ?? programUrl;
-  const ctaLabel   = zoomLink ? (zoomLinkText ?? "Join on Zoom") : "View Program Details";
+  const ctaLabel   = zoomLink ? "Join on Google Meet" : "View Program Details";
 
   const details = [
-    dateText     ? `Date: ${dateText}`         : "",
-    timeText     ? `Time: ${timeText}`         : "",
+    dateText     ? `When: ${dateText}`         : "",
     locationText ? `Location: ${locationText}` : "",
   ].filter(Boolean).join("\n");
 
@@ -656,7 +651,6 @@ interface BuildParams {
   isWaitlisted: boolean;
   waitlistPosition?: number | null;
   dateText?: string | null;
-  timeText?: string | null;
   locationText?: string | null;
   confirmationMessageHtml?: string;
   confirmationMessageText?: string;
@@ -667,7 +661,6 @@ interface BuildParams {
 function buildHtml(p: BuildParams): string {
   const detailRows = [
     p.dateText     ? `<tr><td style="padding:3px 0;font-size:15px;color:#56504a;">📅&nbsp; ${p.dateText}</td></tr>` : "",
-    p.timeText     ? `<tr><td style="padding:3px 0;font-size:15px;color:#56504a;">🕐&nbsp; ${p.timeText}</td></tr>` : "",
     p.locationText ? `<tr><td style="padding:3px 0;font-size:15px;color:#56504a;">📍&nbsp; ${p.locationText}</td></tr>` : "",
   ].filter(Boolean).join("");
 
@@ -789,8 +782,7 @@ function buildHtml(p: BuildParams): string {
 
 function buildText(p: BuildParams): string {
   const details = [
-    p.dateText     ? `Date: ${p.dateText}`         : "",
-    p.timeText     ? `Time: ${p.timeText}`         : "",
+    p.dateText     ? `When: ${p.dateText}`         : "",
     p.locationText ? `Location: ${p.locationText}` : "",
   ].filter(Boolean).join("\n");
 

@@ -42,11 +42,9 @@ export async function POST(
       programTitle: reg.programTitle,
       programSlug:  reg.programSlug,
       dateText:     data?.dateText,
-      timeText:     data?.timeText,
       locationText: data?.locationText,
       locationLink: data?.locationLink,
       zoomLink:     data?.zoomLink,
-      zoomLinkText: data?.zoomLinkText,
       reminderMessage: data?.reminderMessage,
     });
     await db.registration.update({

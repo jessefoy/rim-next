@@ -34,7 +34,6 @@ interface RegisterProgram {
   danaMessage?: string | null;
   registrationFields?: RegistrationField[];
   dateText?: string | null;
-  timeText?: string | null;
   locationText?: string | null;
 }
 

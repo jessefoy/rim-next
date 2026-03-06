@@ -33,7 +33,6 @@ interface Props {
     danaMessage?: string | null;     // CMS-authored message for the dana step
     registrationFields?: RegistrationField[];
     dateText?: string | null;
-    timeText?: string | null;
     locationText?: string | null;
   };
   spotsRemaining: number | null;
@@ -379,7 +378,6 @@ export default function RegistrationForm({
           registrationCapacity: program.registrationCapacity ?? null,
           danaMode: effectiveDanaMode,
           dateText: program.dateText ?? null,
-          timeText: program.timeText ?? null,
           locationText: program.locationText ?? null,
           userId: sessionUserId ?? undefined,
           // Logged-in members already agreed; guests agree via checkbox on this form

@@ -7,14 +7,12 @@ export const programsQuery = `*[_type == "programs" && !(_id in path("drafts.**"
   tagline,
   listingDayAndTimeText,
   dateText,
-  timeText,
   locationText,
   locationLink,
   danaText,
   sortOrder,
   dashboardSpecialAnnouncement,
   zoomLink,
-  zoomLinkText,
   quote,
   quoteSource,
   programDescription,
@@ -35,7 +33,6 @@ export const programBySlugQuery = `*[_type == "programs" && slug.current == $slu
   tagline,
   listingDayAndTimeText,
   dateText,
-  timeText,
   startDatetime,
   endDatetime,
   recurrenceFreq,
@@ -58,7 +55,6 @@ export const programBySlugQuery = `*[_type == "programs" && slug.current == $slu
     _key, label, fieldType, required, options
   },
   zoomLink,
-  zoomLinkText,
   quote,
   quoteSource,
   programDescription[] {
@@ -87,7 +83,6 @@ export const dashboardProgramsQuery = `*[_type == "programs" && !(_id in path("d
   name,
   sortOrder,
   dayOfWeek[]-> { name },
-  dayFiltering,
   listingDayAndTimeText,
   zoomLink,
   dashboardSpecialAnnouncement,
@@ -194,11 +189,9 @@ export const registrationFieldsBySlugQuery = `*[_type == "programs" && slug.curr
 export const programReminderDataQuery = `*[_type == "programs" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
   name,
   dateText,
-  timeText,
   locationText,
   locationLink,
   zoomLink,
-  zoomLinkText,
   reminderMessage
 }`;
 
@@ -207,7 +200,6 @@ export const programReminderDataQuery = `*[_type == "programs" && slug.current =
 export const programConfirmationDataQuery = `*[_type == "programs" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
   name,
   dateText,
-  timeText,
   locationText,
   locationLink,
   startDatetime,
@@ -223,8 +215,8 @@ export const programConfirmationDataQuery = `*[_type == "programs" && slug.curre
 
 export const programsWithReminderInWindowQuery = `*[_type == "programs" && reminderDate >= $since && reminderDate <= $now && !(_id in path("drafts.**"))] {
   _id, name, "slug": slug.current,
-  dateText, timeText, locationText, locationLink,
-  zoomLink, zoomLinkText, reminderMessage
+  dateText, locationText, locationLink,
+  zoomLink, reminderMessage
 }`;
 
 // ─── Batch lookup by slug array (for My Registrations page) ───────────────────
@@ -233,10 +225,8 @@ export const programsBySlugArrayQuery = `*[_type == "programs" && slug.current i
   "slug": slug.current,
   name,
   dateText,
-  timeText,
   locationText,
-  zoomLink,
-  zoomLinkText
+  zoomLink
 }`;
 
 // ─── Host area — programs with Google Meet assigned (for /hosts page) ─────────

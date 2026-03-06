@@ -23,7 +23,6 @@ interface Program {
   slug: { current: string };
   tagline?: string;
   dateText?: string;
-  timeText?: string;
   startDatetime?: string | null;
   endDatetime?: string | null;
   recurrenceFreq?: string | null;
@@ -44,7 +43,6 @@ interface Program {
   danaMessage?: string | null;
   registrationFields?: any[];
   zoomLink?: string;
-  zoomLinkText?: string;
   quote?: string;
   quoteSource?: string;
   programDescription?: any[];
@@ -157,7 +155,7 @@ export default async function ProgramDetailPage({
       : null;
   const isFull = spotsRemaining !== null && spotsRemaining === 0;
   const showLowSpots = spotsRemaining !== null && spotsRemaining > 0 && spotsRemaining <= 5;
-  const hasDetails = !!(program.dateText || program.timeText || program.locationText || program.danaText);
+  const hasDetails = !!(program.dateText || program.locationText || program.danaText);
   const hasFacilitators = !!(program.teacherFacilitators && program.teacherFacilitators.length > 0);
   const hasDescription = !!(program.programDescription && program.programDescription.length > 0);
   const hasSpecialNotes = !!(program.specialNotes && program.specialNotes.length > 0);
@@ -206,14 +204,8 @@ export default async function ProgramDetailPage({
           <div className="pg-details">
             {program.dateText && (
               <div className="pg-details__row">
-                <span className="pg-details__label">Date</span>
+                <span className="pg-details__label">Schedule</span>
                 <span className="pg-details__value">{program.dateText}</span>
-              </div>
-            )}
-            {program.timeText && (
-              <div className="pg-details__row">
-                <span className="pg-details__label">Time</span>
-                <span className="pg-details__value">{program.timeText}</span>
               </div>
             )}
             {program.locationText && (

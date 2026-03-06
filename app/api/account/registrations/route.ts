@@ -7,10 +7,8 @@ interface SanityProgram {
   slug: string;
   name: string;
   dateText?: string;
-  timeText?: string;
   locationText?: string;
   zoomLink?: string;
-  zoomLinkText?: string;
 }
 
 export async function GET() {
@@ -56,10 +54,8 @@ export async function GET() {
       waitlistPosition: r.waitlistPosition,
       createdAt: r.createdAt,
       dateText: sanity?.dateText ?? null,
-      timeText: sanity?.timeText ?? null,
       locationText: sanity?.locationText ?? null,
       zoomLink: sanity?.zoomLink ?? null,
-      zoomLinkText: sanity?.zoomLinkText ?? null,
     };
   });
 

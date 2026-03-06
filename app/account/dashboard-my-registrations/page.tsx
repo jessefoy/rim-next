@@ -13,10 +13,8 @@ interface SanityProgram {
   slug: string;
   name: string;
   dateText?: string;
-  timeText?: string;
   locationText?: string;
   zoomLink?: string;
-  zoomLinkText?: string;
 }
 
 const ACTIVE_STATUSES = ["REGISTERED", "APPROVED", "WAITLISTED"];
@@ -110,10 +108,8 @@ export default async function MyRegistrationsPage() {
                     <StatusBadge status={r.status} />
                   </div>
 
-                  {(r.sanity?.dateText || r.sanity?.timeText) && (
-                    <p className="mr-card__meta">
-                      {[r.sanity?.dateText, r.sanity?.timeText].filter(Boolean).join(" · ")}
-                    </p>
+                  {r.sanity?.dateText && (
+                    <p className="mr-card__meta">{r.sanity.dateText}</p>
                   )}
                   {r.sanity?.locationText && (
                     <p className="mr-card__meta">{r.sanity.locationText}</p>

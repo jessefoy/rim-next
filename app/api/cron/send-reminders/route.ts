@@ -45,11 +45,9 @@ export async function GET(req: NextRequest) {
         programTitle: reg.programTitle,
         programSlug:  reg.programSlug,
         dateText:     program.dateText,
-        timeText:     program.timeText,
         locationText: program.locationText,
         locationLink: program.locationLink,
         zoomLink:     program.zoomLink,
-        zoomLinkText: program.zoomLinkText,
         reminderMessage: program.reminderMessage,
       });
       await db.registration.update({
