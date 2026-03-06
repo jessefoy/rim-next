@@ -1477,7 +1477,20 @@ export default async function ManualPage() {
 
         {/* ── The two roles ── */}
         <section id="roles-two-roles" className="man-section">
-          <h2 className="man-section__title">The two roles</h2>
+          <h2 className="man-section__title">Volunteer roles</h2>
+
+          <h3 className="man-section__h3">Meet Host</h3>
+          <p>
+            A Meet Host is a volunteer who helps hold virtual programs by hosting the Google Meet session. This is the host team — the people trained to care for the container of a virtual sitting, group, or program.
+          </p>
+          <p>What a Meet Host can do:</p>
+          <ul className="man-list">
+            <li>View the <strong>Host Area</strong> at <strong>/hosts</strong> — a list of all virtual programs with the room account to sign into for each session</li>
+            <li>Access the <strong>Volunteer Manual</strong></li>
+          </ul>
+          <p>
+            Meet Hosts do not have access to registration management or member data — only the host area and its information.
+          </p>
 
           <h3 className="man-section__h3">Registrar</h3>
           <p>
@@ -1522,28 +1535,39 @@ export default async function ManualPage() {
             <thead>
               <tr>
                 <th>Link</th>
+                <th>Host</th>
                 <th>Registrar</th>
                 <th>Admin</th>
               </tr>
             </thead>
             <tbody>
               <tr>
+                <td>Host Area <code>/hosts</code></td>
+                <td>✓</td>
+                <td>✓</td>
+                <td>✓</td>
+              </tr>
+              <tr>
                 <td>Registrations <code>/volunteer</code></td>
+                <td></td>
                 <td>✓</td>
                 <td>✓</td>
               </tr>
               <tr>
                 <td>Members <code>/admin/members</code></td>
+                <td></td>
                 <td>✓</td>
                 <td>✓</td>
               </tr>
               <tr>
                 <td>Sanity Studio (external)</td>
+                <td></td>
                 <td>✓</td>
                 <td>✓</td>
               </tr>
               <tr>
                 <td>Volunteer Manual <code>/admin/manual</code></td>
+                <td>✓</td>
                 <td>✓</td>
                 <td>✓</td>
               </tr>
@@ -1569,7 +1593,7 @@ export default async function ManualPage() {
             The role takes effect immediately. If the person is currently logged in, they may need to reload the page to see their updated dashboard.
           </p>
           <div className="man-note">
-            Assigning the Registrar role triggers an automatic notification email and causes a <strong>Sanity Studio Access</strong> panel to appear on their member detail page. See the sections below.
+            Assigning the <strong>Meet Host</strong> or <strong>Registrar</strong> role triggers an automatic notification email. Assigning Registrar also causes a <strong>Sanity Studio Access</strong> panel to appear on their member detail page. See the sections below.
           </div>
         </section>
 
@@ -1577,7 +1601,7 @@ export default async function ManualPage() {
         <section id="roles-notifying" className="man-section">
           <h2 className="man-section__title">Notification email</h2>
           <p>
-            When you assign someone the <strong>Registrar</strong> role and save, they automatically receive a notification email from Rooted In Mindfulness. The email tells them what the role means, links them to the registrar dashboard at <strong>/volunteer</strong>, and points them to this manual.
+            When you assign someone the <strong>Meet Host</strong> or <strong>Registrar</strong> role and save, they automatically receive a notification email from Rooted In Mindfulness. The email tells them what the role means, links them to the relevant area of the site, and points them to this manual.
           </p>
           <p>
             You don&rsquo;t need to do anything extra — no need to manually forward instructions or copy a URL. The email goes out the moment you save.
@@ -1586,9 +1610,10 @@ export default async function ManualPage() {
             A few things to know:
           </p>
           <ul className="man-list">
-            <li>The email fires exactly once, when Registrar is <em>first</em> added. It does not re-send if you save their record again with the role already checked.</li>
+            <li>Each notification fires exactly once, when the role is <em>first</em> added. It does not re-send if you save their record again with the role already checked.</li>
+            <li>The <strong>Meet Host</strong> email links to the Host Area at <strong>/hosts</strong> and to this manual.</li>
+            <li>The <strong>Registrar</strong> email links to the volunteer dashboard at <strong>/volunteer</strong> and to this manual. It does <em>not</em> include Sanity Studio instructions — that&rsquo;s a separate step with its own invite.</li>
             <li>No notification is sent when the Admin role is assigned. Admins are typically people already deeply involved in the organization — a quiet system-level change is appropriate.</li>
-            <li>The email does <em>not</em> include Sanity Studio instructions — that&rsquo;s a separate step with its own invite.</li>
           </ul>
         </section>
 
