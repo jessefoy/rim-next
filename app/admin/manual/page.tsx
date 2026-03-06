@@ -817,7 +817,7 @@ export default async function ManualPage() {
             <div className="man-field">
               <div className="man-field__name">Date &amp; Time</div>
               <div className="man-field__desc">
-                <p>The human-readable schedule shown on the program page and in listing cards. Write the date and time together exactly as you want them displayed.</p>
+                <p>The human-readable schedule shown on the program page, on listing cards, and on the member dashboard. Write the date and time together exactly as you want them displayed.</p>
                 <p><em>Examples: Every Wednesday, 7–8:30 PM CT — June 7–9, 2025 · 9 AM–5 PM — Ongoing — Fourth Sunday of each month, 10 AM</em></p>
                 <p>This field is for display only. It does not affect calendar links or any automation.</p>
               </div>
@@ -860,12 +860,6 @@ export default async function ManualPage() {
               <div className="man-field__desc">
                 <p>The total number of sessions, including the first one. An 8-week Wednesday course = 8. A 6-month monthly group = 6.</p>
                 <p>The .ics file download will include all sessions. The Google Calendar link only adds the first session (a Google limitation — labeled clearly for members).</p>
-              </div>
-            </div>
-            <div className="man-field">
-              <div className="man-field__name">Listing Day &amp; Time</div>
-              <div className="man-field__desc">
-                <p>A very short version shown on listing cards only — for example: <em>Wednesdays, 7–8:30 PM</em>. One line. Leave blank and nothing appears on listing cards.</p>
               </div>
             </div>
             <div className="man-field">
@@ -1106,8 +1100,7 @@ export default async function ManualPage() {
             <h3 className="man-task__title">Updating dates or times</h3>
             <ol className="man-steps">
               <li>Open the program → <strong>Schedule &amp; Location</strong> tab.</li>
-              <li>Update the <strong>Date &amp; Time</strong> text field (what displays on the page) and the <strong>Start Date &amp; Time</strong> field (what generates calendar links).</li>
-              <li>Update <strong>Listing Day &amp; Time</strong> if needed.</li>
+              <li>Update the <strong>Date &amp; Time</strong> text field (what displays on the page and listing cards) and the <strong>Start Date &amp; Time</strong> field (what generates calendar links).</li>
               <li>Publish.</li>
             </ol>
             <p className="man-task__note">If confirmation emails have already gone out with the old date, consider sending a reminder with the corrected date, or reach out to registered members directly.</p>
@@ -1344,7 +1337,7 @@ export default async function ManualPage() {
             </tbody>
           </table>
           <p>
-            The button on the program page uses the label you set in Sanity Studio&rsquo;s <strong>Meeting Button Text</strong> field (under Schedule tab). When you create the link through this system, it is automatically set to <strong>&ldquo;Join on Google Meet.&rdquo;</strong> You can change the label in Sanity Studio at any time.
+            The button on the program page always reads <strong>&ldquo;Join on Google Meet.&rdquo;</strong>
           </p>
           <div className="man-note">
             The <strong>Host Area</strong> at <code>/hosts</code> is a separate starting point for the host team — it shows the same link alongside the room account to sign into. Members never see the room account; they only see the public Join link.
@@ -1372,7 +1365,7 @@ export default async function ManualPage() {
 
           <h3 className="man-section__h3">&ldquo;Meet created but Sanity write-back failed&rdquo;</h3>
           <p>
-            The meeting was created successfully, but saving the link to the program in Sanity encountered a temporary error. The link is shown in the panel — copy it. Then go to <strong>Sanity Studio → Programs → [program] → Schedule tab</strong>, paste it into the <strong>Meeting Link</strong> field, set the <strong>Meeting Button Text</strong> to <strong>Join on Google Meet</strong>, and publish. Contact a developer if this happens more than once.
+            The meeting was created successfully, but saving the link to the program in Sanity encountered a temporary error. The link is shown in the panel — copy it. Then go to <strong>Sanity Studio → Programs → [program] → Schedule &amp; Location tab</strong>, paste it into the <strong>Meeting Link</strong> field, and publish. Contact a developer if this happens more than once.
           </p>
 
           <h3 className="man-section__h3">Something else went wrong</h3>
