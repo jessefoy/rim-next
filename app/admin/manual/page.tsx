@@ -5,7 +5,7 @@ export const metadata = { title: "Volunteer Manual — Rooted In Mindfulness" };
 
 export default async function ManualPage() {
   const session = await auth();
-  if (!session?.user?.roles?.some((r) => ["ADMIN", "REGISTRAR"].includes(r))) {
+  if (!session?.user?.roles?.some((r) => ["ADMIN", "REGISTRAR", "HOST"].includes(r))) {
     redirect("/login");
   }
 
@@ -79,7 +79,7 @@ export default async function ManualPage() {
             <a href="#roles" className="man-sidebar__link">Volunteer Roles</a>
             <ul className="man-sidebar__sub">
               <li><a href="#roles-overview"   className="man-sidebar__sublink">Overview</a></li>
-              <li><a href="#roles-two-roles"  className="man-sidebar__sublink">The two roles</a></li>
+              <li><a href="#roles-two-roles"  className="man-sidebar__sublink">Volunteer roles</a></li>
               <li><a href="#roles-assigning"  className="man-sidebar__sublink">Assigning a role</a></li>
               <li><a href="#roles-notifying"  className="man-sidebar__sublink">Notification email</a></li>
               <li><a href="#roles-sanity"     className="man-sidebar__sublink">Sanity Studio access</a></li>
@@ -1468,7 +1468,7 @@ export default async function ManualPage() {
             Every member of the RIM community who logs in has a basic account. By default, accounts have no special access — they can only see their own dashboard, registrations, and courses.
           </p>
           <p>
-            Volunteer access is granted by assigning one or more <strong>roles</strong> to a member&rsquo;s account. There are currently two roles: <strong>Registrar</strong> and <strong>Admin</strong>. A person can hold both at once — having both gives them everything each role includes.
+            Volunteer access is granted by assigning one or more <strong>roles</strong> to a member&rsquo;s account. There are currently three roles: <strong>Meet Host</strong>, <strong>Registrar</strong>, and <strong>Admin</strong>. A person can hold more than one — having multiple roles gives them everything each role includes.
           </p>
           <p>
             Roles take effect immediately. As soon as you save a role change, the next page the member loads will reflect their new access. No re-login is required (though if they are logged in, they may need to reload the page).

@@ -1614,273 +1614,80 @@ Note: The Developer token is a **server-side secret** stored only in Vercel env 
 
 ---
 
-## 19. Google Meet Integration ⚡ HIGH PRIORITY
+## 19. Google Meet Integration ✅ Built — commit ca0068e (2026-03-05)
 
-**What it does:** Replaces Zoom with Google Meet for all virtual programs. Staff create a program in Sanity Studio, assign a volunteer host, then click "Create Google Meet" in the registrar dashboard. The app creates a Meet space, automatically assigns the volunteer as co-host (so they join with full host controls from their own account — no account switching), creates a shared calendar event, and writes the Meet link back to Sanity. The link appears on the program page, in confirmation emails, and in reminder emails without any copy-pasting.
+**What it does:** Replaces Zoom with Google Meet for all virtual programs. Registrars/Admins click "Create Google Meet" on the volunteer programs page. The app automatically detects an available room account (checking the shared RIM Programs calendar for conflicts), creates a Meet space owned by that account, adds a calendar event, and writes the Meet link and assigned room account back to Sanity. The link appears on the program page, in confirmation emails, and in reminder emails without any copy-pasting. The **Meet Host** team logs into the assigned room account to get host controls.
 
 **Why this matters:**
 - Eliminates Zoom costs and 40-minute limits for a nonprofit on Google Workspace
 - The shared "RIM Programs" Google Calendar becomes a live view of all upcoming virtual programs for all staff — no scheduling conflicts
 - Meet links auto-generate; links never expire
-- Volunteers use their own Google accounts — zero account switching, zero 2FA friction
-- Can implement before DNS cutover — fully testable on rim-next.vercel.app
+- The rotating host team sees exactly which account to sign into — no fixed assignment needed
+- Can be tested before DNS cutover — fully functional on rim-next.vercel.app
 
 **Who uses it:**
-- **Registrars/Admins** — click "Create Google Meet" on the volunteer programs page; assign a volunteer host
-- **Volunteers** — receive a calendar invite; join from their own Google account with automatic host controls
-- **Members** — receive Meet link in confirmation + reminder emails; see it on the program page
-- **All staff** — subscribe to the shared "RIM Programs" Google Calendar
+- **Registrars/Admins** — click "Create Google Meet" on the volunteer programs page; app assigns a room and writes the link to Sanity
+- **Meet Host team (HOST role)** — check `/hosts` to see which room account is assigned to each virtual program; log in as that account before the session to get host controls
+- **Members** — receive the Meet link in confirmation + reminder emails; see it on the program page
 
 ---
 
-### Architecture: Virtual Room + Co-Host Model
+### Architecture: Virtual Room + Shared Account Model
 
 **The problem with a single account:** One Google account cannot host two simultaneous meetings. If RIM runs a 7pm drop-in and a 7pm community group on the same night, a single `programs@rootedinmindfulness.org` account cannot own both.
 
-**The solution — Virtual Rooms:** Create a small set of dedicated user accounts that act as "meeting rooms" (e.g. `room1@rootedinmindfulness.org`, `room2@`, `room3@`). The app assigns each program to an available room. These accounts are never logged into by staff — they exist only as meeting owners in the background.
+**The solution — Virtual Rooms:** A small pool of dedicated accounts that act as permanent "meeting rooms":
+- `meet-community-group@rootedinmindfulness.org`
+- `meet-core-programs@rootedinmindfulness.org`
+- `meet-community-silent-meditation@rootedinmindfulness.org`
 
-**The volunteer host problem — solved with Meet REST API:** Instead of requiring volunteers to log in as the room account (which causes 2FA headaches and account confusion), the app uses the **Google Meet REST API** (`spaces.members.create`) to pre-assign the volunteer's own `@rootedinmindfulness.org` account as a **COHOST** at meeting creation time. The volunteer receives a standard calendar invite, clicks join from their own account, and automatically sees host controls (blue shield). No account switching ever required.
+The app assigns whichever room is free for a given time slot (checking the shared calendar for conflicts). Whoever logs in as that account when the session starts automatically owns the meeting with full host controls.
 
-**Admin Console safety setting:** In Google Admin Console → Apps → Google Meet → Safety settings: turn **Host Management ON** and **"Host must join before anyone else" OFF**. This means a volunteer who joins before the room account is present can immediately start and manage the session.
+**Why not pre-assign a volunteer as co-host?** The original design used `spaces.members.create` to pre-assign a specific volunteer's email as COHOST at meeting creation time. This was removed — RIM's host team is rotating and the host for a particular session isn't decided at program setup time. The room account model is simpler: the host team sees which account to use on the `/hosts` page, logs in as that account, and has full host controls automatically. No fixed assignment needed.
 
 ---
 
 ### Staff workflow
 
 1. Create/publish program in Sanity Studio — fill in Start Date & Time, End Date & Time
-2. In `/volunteer/programs/[slug]`, assign a volunteer host (from existing volunteer field), click **"Create Google Meet"**
-3. App creates Meet space → assigns volunteer as COHOST → creates Calendar event on shared RIM Programs calendar
+2. In `/volunteer/programs/[slug]`, click **"Create Google Meet"**
+3. App finds an available room account, creates the Meet space, creates a calendar event on the shared RIM Programs calendar, and writes the Meet link + assigned room account back to Sanity
 4. Meet link appears in the program details card and goes out in all emails
-5. Staff subscribed to RIM Programs calendar see the event in their own Google Calendar with the Meet link embedded
-6. Volunteer receives a calendar invite; they click join from their own account and have full host controls
-
----
-
-### Prerequisites — what staff need to do before we build this
-
-These steps require Google Workspace admin access. Do these first; then we build the code.
-
-#### Step 1 — Create "Virtual Room" user accounts
-
-In Google Admin Console → Users → Add new user. Create 3–4 accounts:
-- `room1@rootedinmindfulness.org`
-- `room2@rootedinmindfulness.org`
-- `room3@rootedinmindfulness.org`
-
-These accounts are never used by real people. They exist only as meeting owners in the background.
-
-#### Step 2 — Create a Google Cloud project + enable APIs
-
-1. Go to [console.cloud.google.com](https://console.cloud.google.com)
-2. Create a new project named **"RIM Programs"**
-3. Enable **Google Calendar API**: APIs & Services → Library → search → Enable
-4. Enable **Google Meet REST API v1**: same path → search "Google Meet API" → Enable
-
-#### Step 3 — Create a service account + enable Domain-Wide Delegation
-
-1. APIs & Services → Credentials → **Create Credentials → Service Account**
-2. Name: **"rim-programs-bot"** · No project role needed
-3. Click the service account → **Keys** tab → **Add Key → Create new key → JSON** → download
-4. In the service account settings, enable **Domain-Wide Delegation** → note the Client ID
-5. In Google Admin Console → **Security → API Controls → Domain-wide Delegation → Add new**:
-   - Client ID: (from step 4)
-   - OAuth Scopes (add both):
-     - `https://www.googleapis.com/auth/calendar.events`
-     - `https://www.googleapis.com/auth/meetings.space.created`
-
-#### Step 4 — Create a shared "RIM Programs" Google Calendar
-
-1. In Google Calendar, create a new calendar: **"RIM Programs"**
-2. Share with the service account email → **"Make changes to events"**
-3. Find the **Calendar ID** in Calendar settings → Integrate calendar (looks like `abc123@group.calendar.google.com`)
-4. All staff add this calendar to their own Google Calendar
-
-#### Step 5 — Adjust Meet safety settings
-
-In Google Admin Console → Apps → Google Workspace → Google Meet → **Meet safety settings**:
-- **Host Management: OFF** ⚠️ (keep it off — this keeps the meeting unlocked so it doesn't lock down the moment the first person joins)
-- **"Host must join before anyone else can join": OFF** (critical — means the room account doesn't need to be present for volunteers to enter)
-- **Access Type: Trusted** — anyone with a `@rootedinmindfulness.org` account can join without knocking or waiting to be admitted
-
-This combination means: volunteer clicks link → enters immediately → has host controls. No waiting, no account switching.
-
-#### Step 6 — Add environment variables to Vercel
-
-| Vercel variable | Value |
-|---|---|
-| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | `client_email` from the JSON key file |
-| `GOOGLE_SERVICE_ACCOUNT_KEY` | `private_key` from the JSON key file (full `-----BEGIN RSA PRIVATE KEY-----...` string) |
-| `GOOGLE_CALENDAR_ID` | Calendar ID from Step 4 |
-| `GOOGLE_ROOM_EMAILS` | Comma-separated room accounts: `room1@rootedinmindfulness.org,room2@...` |
-
----
-
-### What we'll build (code)
-
-Once prerequisites are done:
-
-**1. `lib/google-meet.ts`** — service account auth + meeting creation
-- Authenticate via `google-auth-library` JWT with DWD, impersonating an available room account
-- `createMeeting({ title, startDatetime, endDatetime, volunteerEmail, programSlug })` → `{ meetLink, calendarEventId }`
-- Flow: `spaces.create` (Meet REST API) → `spaces.members.create` with `{ email: volunteerEmail, role: 'COHOST' }` → `calendar.events.insert` with `conferenceData` linking to the Meet space
-- Room assignment: pick the room account with no overlapping event at that time slot
-
-**2. `POST /api/programs/[slug]/google-meet`** — API route (REGISTRAR or ADMIN only)
-- Fetch program from Sanity: `_id`, `name`, `startDatetime`, `endDatetime`, volunteer host email
-- Return 400 if `startDatetime` not set
-- Call `createMeeting(...)` → write Meet link back to Sanity (`zoomLink`, `zoomLinkText: "Join on Google Meet"`)
-- Return `{ meetLink }` for optimistic UI update
-
-**3. Volunteer programs page UI** — "Create Google Meet" button
-- Show when program has `startDatetime` set but no `zoomLink`
-- Show existing link + "Replace" option (with confirm dialog) if link already exists
-- On click: POST → update link display optimistically
-
-**4. Meeting link display** — no new Sanity fields needed
-- `zoomLink` / `zoomLinkText` fields already wired into program page, confirmation emails, reminder emails
-- Field titles already renamed to "Meeting Link" / "Meeting Button Text" in Sanity Studio
+5. Host team checks `/hosts` to see which room account is assigned; they sign in as that account before the session starts
+6. Host controls (blue shield) appear automatically because they're logged in as the room account that owns the meeting
 
 ---
 
 ### Technical notes
 
-- **DWD impersonation:** The service account impersonates a room account when calling the Meet API. This makes the room account the meeting "owner" in the background without any human logging in as it.
-- **Meet REST API scope:** `https://www.googleapis.com/auth/meetings.space.settings` ⚠️ (NOT `.space.created` — that is incorrect). Required for `spaces.create` with moderation config and `spaces.members.create`. Both this and the Calendar API scope must be granted in DWD config.
-- **Step 1 — Create the space** (moderation must be ON for COHOST role to function):
-  ```
-  POST https://meet.googleapis.com/v2/spaces
-  { "config": { "accessType": "TRUSTED", "entryPointAccess": "ALL", "moderation": "ON" } }
-  ```
-  Capture `name` from response (e.g. `spaces/abc-mnop-xyz`) — needed for next call.
-- **Step 2 — Assign volunteer as COHOST** (note required `users/` prefix on email):
-  ```
-  POST https://meet.googleapis.com/v2/spaces/abc-mnop-xyz/members
-  { "user": "users/volunteer@rootedinmindfulness.org", "role": "COHOST" }
-  ```
-- **Step 3 — Create Calendar event** linking to the Meet URI from the `spaces.create` response.
-- **`google-auth-library`** handles JWT service account auth — no OAuth flow, no user login, no redirect.
-- **`GOOGLE_SERVICE_ACCOUNT_KEY`** contains newlines — store raw value in Vercel (not base64); Next.js env vars handle multiline values correctly.
-- **⚠️ Free tier 403 risk:** If `moderation: 'ON'` returns a `403 Forbidden`, it means automated moderation is locked behind Google Workspace Business Standard. Fallback: omit the moderation config and create the space without it. The volunteer still joins without friction (Access Type: Trusted handles entry), but they won't have the COHOST shield — they join as a regular trusted participant. For most meditation sessions this is fine. If RIM eventually needs guaranteed co-host controls, upgrade to Business Standard (~$3-3.50/user/month discounted for nonprofits).
-- **Room recycling logic:** Still to be confirmed with Gemini — exact approach for querying room availability and recycling room accounts across time slots.
-- **`conferenceData` vs. Meet REST API:** Original plan used Calendar API's `conferenceData.createRequest`. Updated approach creates the Meet space first via Meet REST API (enables co-host assignment), then links that space to the calendar event.
+- **DWD impersonation:** The service account (`rim-programs-bot@rim-programs.iam.gserviceaccount.com`) impersonates the chosen room account via JWT + Domain-Wide Delegation. This makes the room account the meeting owner without any human logging into it.
+- **Room selection:** `findAvailableRoom()` queries the shared Google Calendar for each room account's events in a ±15-minute window. Returns the first room with no conflicts; throws a 409 if all rooms are occupied.
+- **Meet REST API scope:** `https://www.googleapis.com/auth/meetings.space.settings` + `https://www.googleapis.com/auth/calendar.events` — both granted in DWD config.
+- **Meet creation:** `spaces.create` with `{ config: { accessType: "TRUSTED", entryPointAccess: "ALL" } }` — TRUSTED means anyone with a `@rootedinmindfulness.org` account can join without waiting to be admitted.
+- **Co-host pre-assignment removed:** `spaces.members.create` was removed entirely from `lib/google-meet.ts`. The room account IS the host — no volunteer email needed at meeting creation.
+- **`meetHostAccount` Sanity field:** A `readOnly` string field on the `programs` schema stores the assigned room email. Written by the API route alongside `zoomLink`. Displayed in the CreateMeetButton done state (volunteer programs page) and on the `/hosts` page (host team reference).
+- **Free tier fallback:** If `spaces.create` with moderation config returns a 403, the code falls back to a plain space. Trusted access type handles entry without friction. A notice is shown in the CreateMeetButton if the fallback triggered.
+- **`GOOGLE_PRIVATE_KEY`** contains newlines — stored as raw value in Vercel (not base64); Next.js handles multiline env vars correctly.
 - **Sanity write-back** uses `SANITY_API_TOKEN` which already has write access — no new token needed.
-- **No new Sanity schema needed** — `zoomLink` + `zoomLinkText` already exist and are wired to program page + emails.
 
-### Implementation boilerplate (ready to build from)
+### Key files ✅ Built — commit ca0068e, updated session 27 (2026-03-05)
 
-Install packages first: `npm install googleapis google-auth-library`
+- `lib/google-meet.ts` — DWD JWT auth, `findAvailableRoom()` via calendar conflict check, `createMeeting()`: spaces.create → calendar event; returns `{ meetLink, calendarEventId, roomEmail }`
+- `app/api/programs/[slug]/google-meet/route.ts` — POST (REGISTRAR/ADMIN); 409 on no room; Sanity write-back of `zoomLink`, `zoomLinkText`, `meetHostAccount`; returns `{ meetLink, roomEmail }`
+- `components/CreateMeetButton.tsx` — "use client" 4-state (idle/loading/done/replace); shows assigned room account in done state; `vol-meet-` CSS prefix
+- `app/volunteer/programs/[slug]/page.tsx` — GROQ extended with `startDatetime`, `endDatetime`, `zoomLink`, `meetHostAccount`; CreateMeetButton above VolunteerTable
+- `lib/queries.ts` — `hostProgramsQuery` (all programs with a Meet link, incl. `meetHostAccount`)
+- `app/hosts/page.tsx` — Host Area page (HOST | REGISTRAR | ADMIN access; see §21)
+- `public/css/custom.css` — `vol-meet-` styles + `hs-` host area styles
 
-```typescript
-import { google } from 'googleapis';
-import { JWT } from 'google-auth-library';
+### Environment variables (all set in Vercel)
 
-interface MeetingResponse {
-  meetLink: string;
-  calendarEventId: string;
-  moderationEnabled: boolean;
-}
-
-async function createMeeting(
-  roomEmail: string,        // e.g. room1@rootedinmindfulness.org
-  volunteerEmail: string,   // e.g. volunteer@rootedinmindfulness.org
-  sharedCalendarId: string, // GOOGLE_CALENDAR_ID env var
-  programTitle: string,
-  startTime: string,        // ISO 8601
-  endTime: string           // ISO 8601
-): Promise<MeetingResponse> {
-
-  const auth = new JWT({
-    email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-    key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    scopes: [
-      'https://www.googleapis.com/auth/meetings.space.settings',
-      'https://www.googleapis.com/auth/calendar.events',
-    ],
-    subject: roomEmail, // DWD impersonation target
-  });
-
-  const meet = google.meet({ version: 'v2', auth });
-  const calendar = google.calendar({ version: 'v3', auth });
-
-  let spaceName = '';
-  let meetLink = '';
-  let moderationEnabled = false;
-
-  try {
-    // Step 1: Create moderated Meet space (enables COHOST role)
-    const spaceResponse = await meet.spaces.create({
-      requestBody: {
-        config: {
-          accessType: 'TRUSTED',
-          entryPointAccess: 'ALL',
-          moderation: 'ON',
-        },
-      },
-    });
-    spaceName = spaceResponse.data.name!;
-    meetLink = spaceResponse.data.meetingUri!;
-    moderationEnabled = true;
-
-    // Step 2: Assign volunteer as COHOST
-    await meet.spaces.members.create({
-      parent: spaceName,
-      requestBody: {
-        user: `users/${volunteerEmail}`,
-        role: 'COHOST',
-      },
-    });
-
-  } catch (error: any) {
-    // Graceful fallback for free tier (403 on moderation settings)
-    // Volunteer still joins without friction via Trusted access type
-    if (error.status === 403) {
-      console.warn('Moderation/COHOST not supported on this tier. Falling back to standard space.');
-      const fallbackSpace = await meet.spaces.create({});
-      spaceName = fallbackSpace.data.name!;
-      meetLink = fallbackSpace.data.meetingUri!;
-    } else {
-      throw error;
-    }
-  }
-
-  // Step 3: Create shared calendar event
-  const eventResponse = await calendar.events.insert({
-    calendarId: sharedCalendarId,
-    conferenceDataVersion: 1,
-    requestBody: {
-      summary: programTitle,
-      description: `Join on Google Meet: ${meetLink}\nVolunteer host: ${volunteerEmail}`,
-      start: { dateTime: startTime },
-      end: { dateTime: endTime },
-      attendees: [{ email: volunteerEmail }],
-      conferenceData: {
-        createRequest: {
-          requestId: `meet-${Date.now()}`,
-          conferenceSolutionKey: { type: 'hangoutsMeet' },
-        },
-      },
-    },
-  });
-
-  return {
-    meetLink,           // Use this link (from spaces.create) — not the calendar's conferenceData link
-    calendarEventId: eventResponse.data.id!,
-    moderationEnabled,  // Expose in API response so UI can show a notice if fallback was used
-  };
-}
-```
-
-⚠️ **Note:** The calendar event uses `conferenceData.createRequest` which generates its own Meet link. The link we actually use and store in Sanity is `meetLink` (from `spaces.create`), not the calendar event's embedded link. The calendar event description includes the correct link as a fallback. When building, verify this behaviour and consider omitting `conferenceData` from the calendar event entirely to avoid confusion.
-
-### Key files ✅ Built — commit ca0068e (2026-03-05)
-
-- `lib/google-meet.ts` — DWD auth, room availability check, `createMeeting()`: spaces.create → COHOST assign (REST fetch) → calendar event
-- `app/api/programs/[slug]/google-meet/route.ts` — POST handler (REGISTRAR/ADMIN); 409 on no room; Sanity write-back; returns `{ meetLink, roomEmail, moderationEnabled }`
-- `components/CreateMeetButton.tsx` — "use client" 4-state (idle/loading/done/replace); vol-meet- prefix
-- `app/volunteer/programs/[slug]/page.tsx` — GROQ extended with startDatetime/endDatetime/zoomLink; CreateMeetButton above VolunteerTable
-- `public/css/custom.css` — vol-meet- styles added
-
----
+| Variable | Value |
+|---|---|
+| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | `rim-programs-bot@rim-programs.iam.gserviceaccount.com` |
+| `GOOGLE_PRIVATE_KEY` | Full RSA private key from service account JSON |
+| `GOOGLE_CALENDAR_ID` | Shared "RIM Programs" calendar ID |
+| `GOOGLE_ROOM_EMAILS` | Comma-separated room account emails |
 
 ---
 
@@ -1893,7 +1700,7 @@ async function createMeeting(
 - **Admins** — secondary audience; useful for onboarding new registrars and as a system reference
 - No access for regular members, teachers, or volunteers
 
-**Access control:** `session.user.roles?.some(r => ["ADMIN", "REGISTRAR"].includes(r))` — redirects all others to `/login`.
+**Access control:** `session.user.roles?.some(r => ["ADMIN", "REGISTRAR", "HOST"].includes(r))` — redirects all others to `/login`. HOST users are linked to the manual from their dashboard card and notification email, so all three roles have read access.
 
 **URL:** `/admin/manual`
 
@@ -1940,9 +1747,9 @@ Covers all 6 Sanity Studio program tabs with field-by-field documentation in a v
 | Section | What it explains |
 |---|---|
 | Overview | What roles are, how they work, immediate effect |
-| The two roles | Registrar vs Admin — what each can/cannot do, dashboard shortcuts table (all 4 links) |
+| Volunteer roles | Meet Host, Registrar, Admin — what each can/cannot do, dashboard shortcuts table (4 columns × all links) |
 | Assigning a role | Step-by-step via /admin/members, who can do it |
-| Notification email | Auto-send when REGISTRAR is first added; what it contains |
+| Notification email | Auto-send when MEET HOST or REGISTRAR is first added; what each email contains; Admin role is silent |
 | Sanity Studio access | Why it's separate, who needs it, how to invite, Editor access, if invite doesn't arrive |
 | Removing a role | Uncheck and save; warning when Sanity access is involved; effect on pending vs accepted invites |
 | First Admin setup | Bootstrap SQL via Neon console — for when no Admin exists yet |
@@ -1950,8 +1757,8 @@ Covers all 6 Sanity Studio program tabs with field-by-field documentation in a v
 ### Discovery
 
 Staff reach the manual via two paths:
-1. **Dashboard shortcut card** — "Staff Manual" appears in `STAFF_LINKS` for both REGISTRAR and ADMIN on the `/account/dashboard` hub
-2. **Role assignment email** — newly-granted REGISTRARs receive a prominent outline button "Read the Staff Manual →" alongside the main dashboard button
+1. **Dashboard shortcut card** — "Volunteer Manual" appears in `STAFF_LINKS` for HOST, REGISTRAR, and ADMIN on the `/account/dashboard` hub
+2. **Role assignment email** — newly-granted MEET HOSTs and REGISTRARs both receive a prominent outline button "Read the Volunteer Manual →" alongside the main dashboard button
 
 ### Design
 
@@ -1987,10 +1794,95 @@ Staff reach the manual via two paths:
 
 ---
 
+## 21. HOST Role + Host Area ✅ Built — session 27 (2026-03-05)
+
+**What it does:** A lightweight volunteer role for the Google Meet host team. Members with the HOST role get access to `/hosts` — a dedicated page showing every virtual program that has a Google Meet link assigned, along with which room account to log into for each session to get host controls. The host team uses this as their starting point before every virtual session.
+
+**Who uses it:** The rotating volunteer host team — people who facilitate RIM's virtual sessions on Google Meet. They are not registrars; they don't manage registrations or member data. Their job is to be present before the session, sign into the right account, and hold the meeting container.
+
+---
+
+### What HOST can access
+
+| Area | HOST | REGISTRAR | ADMIN |
+|---|---|---|---|
+| Host Area `/hosts` | ✓ | ✓ | ✓ |
+| Volunteer Manual `/admin/manual` | ✓ | ✓ | ✓ |
+| Volunteer dashboard `/volunteer` | | ✓ | ✓ |
+| Member management `/admin/members` | | ✓ | ✓ |
+| Sanity Studio (external) | | ✓ | ✓ |
+
+---
+
+### User flow — getting a host set up
+
+1. Admin assigns the HOST role via `/admin/members` → member detail page → Roles section → check "Meet Host" → Save changes
+2. Host receives an automatic notification email: "You've been added as a Meet host — Rooted In Mindfulness." The email links to `/hosts` and includes an outline button "Read the Volunteer Manual →"
+3. Host bookmarks `/hosts` as their starting point for every session
+
+### User flow — before each session
+
+1. Host visits `/hosts` and finds their program
+2. The page shows which room account is assigned (e.g. `meet-community-group@rootedinmindfulness.org`)
+3. Host signs into that account in their browser as a secondary account — no need to log out of their own
+4. Host clicks the **Join on Google Meet** link for the program a few minutes before the session
+5. They see the blue host shield — meaning they have full host controls (mute all, remove participant, end meeting for everyone)
+6. At session end: click the red button → **End meeting for all** → switch back to personal account
+
+---
+
+### The `/hosts` page
+
+- **Route:** `app/hosts/page.tsx` — server component
+- **Auth:** Requires session; redirects unauthenticated users to `/login`
+- **Role gate:** HOST, REGISTRAR, or ADMIN (redirects others to `/account/dashboard`)
+- **Data source:** `hostProgramsQuery` — all programs in Sanity with a `zoomLink` set, ordered by `sortOrder`
+- **What it shows:**
+  - "How to host" guidance section at the top — 4-step numbered list (sign in as account, join the link, blue shield explanation, end meeting for all)
+  - A note about what to do if the blue shield doesn't appear (another `@rootedinmindfulness.org` volunteer can grant host controls from the People panel)
+  - Program cards: name, day/time, "Sign in as [room account]" badge, "Join on Google Meet →" link
+  - Empty state if no programs have a Meet link yet
+- **CSS prefix:** `hs-`
+
+---
+
+### Notification email
+
+- **Subject:** "You've been added as a Meet host — Rooted In Mindfulness"
+- **Fires:** Once, on first HOST role assignment; does not re-send on subsequent saves
+- **Content:** What the Meet Host role means, link to `/hosts`, outline button "Read the Volunteer Manual →"
+- **Implementation:** `sendHostRoleAssignmentEmail()` in `lib/email.ts` — mirrors `sendRoleAssignmentEmail()` pattern; fire-and-forget in the PATCH route
+
+---
+
+### Key files
+
+- `prisma/schema.prisma` — `HOST` added to `Role` enum (before REGISTRAR)
+- `app/hosts/page.tsx` — Host Area server component; `hs-` prefix
+- `lib/queries.ts` — `hostProgramsQuery`
+- `lib/email.ts` — `sendHostRoleAssignmentEmail()`, `buildHostRoleAssignmentHtml()`, `buildHostRoleAssignmentText()`
+- `app/api/admin/members/[id]/route.ts` — `addingHost` detection (mirrors `addingRegistrar`) → fire-and-forget notification
+- `components/MemberDetail.tsx` — HOST first in `ALL_ROLES`; role description; role gate hint updated ("volunteer area")
+- `app/account/dashboard/page.tsx` — HOST entry in `STAFF_LINKS`: Host Area + Volunteer Manual cards
+- `proxy.ts` — `/hosts` and `/hosts/:path*` added to matcher
+- `app/admin/manual/page.tsx` — access gate updated to include HOST; overview text updated; sidebar link text updated
+
+### 🔧 Technical notes
+
+- HOST is the lightest role — two pages only (`/hosts` and `/admin/manual`)
+- Role checks happen inside the page components, not in `proxy.ts`. Proxy handles login/terms/archived redirects only; role enforcement is per-page (same pattern as REGISTRAR-gated pages)
+- REGISTRAR and ADMIN can also view `/hosts` — useful for registrars who also host, and for admins monitoring the system
+- No Sanity Studio access for HOST — unlike REGISTRAR, there is no Sanity invite panel on HOST member detail pages
+- The HOST email does NOT mention Sanity Studio (unlike REGISTRAR email which documents the separate invite step)
+- HOST members see "Volunteer Access" (not "Staff Access") in their dashboard section header — the same label used for REGISTRAR and ADMIN
+
+---
+
 | 2026-03-05 (session 23) | Staff reference manual + role cleanup. **(1) Staff manual:** Complete build of `/admin/manual` — two-chapter reference guide with sidebar navigation. Chapter 1 (Registration Management): 9 sections covering the complete registrar workflow (volunteer table, statuses, promoting from waitlist, inline edits, edit request emails, reminders, resend confirmation, CSV export, common scenarios). Chapter 2 (Programs & Sanity Studio): 11 sections covering all 6 Sanity tabs with field-by-field `man-field-list` tables, a "How a program comes together" anatomy section with min-to-max checklist, and common task walkthroughs. CSS: added all missing `man-` classes that were defined in JSX but had no CSS (`man-section__h3`, `man-field-list`, `man-field`, `man-field__name`, `man-field__desc`, `man-content code`, `man-chapter--break`); responsive stacking for `man-field` on narrow viewports. Files: `app/admin/manual/page.tsx` (complete rewrite), `public/css/custom.css` (`man-` block). Commits: e6e9888, 328c1d8, b6003d4. **(2) Role simplification:** Removed TREASURER, TEACHER, VOLUNTEER from the system — they were defined speculatively with no functionality attached. Only ADMIN and REGISTRAR remain. Files: `prisma/schema.prisma` (Role enum), `components/MemberDetail.tsx` (ALL_ROLES + descriptions), `components/MembersTable.tsx` (RoleFilter type, badge map, label map, filter dropdown), `app/admin/roadmap/page.tsx` (TEACHER/VOLUNTEER wiring item removed, TREASURER desc updated), `app/admin/sitemap/page.tsx` (role lists updated). DB was already clean — no existing members had those roles; `prisma db push --accept-data-loss` confirmed no data loss. Commit: 75cad53. **(3) Docs:** FEATURES.md Section 2 (role table trimmed), Section 10 (man- CSS prefix added), Section 11 (stale role refs cleaned), Section 20 (Staff Reference Manual, new); Session Log updated; MEMORY.md updated. |
 | 2026-03-05 (session 25) | Registrar role assignment notification email. `sendRoleAssignmentEmail()` added to `lib/email.ts` — fires when REGISTRAR is newly added in the member PATCH route; links to `/volunteer` + `/admin/manual`; fire-and-forget, no re-send on subsequent saves. Minimal Chapter 3 "Staff & Roles" added to `/admin/manual` with one section ("Notifying new staff") explaining the automatic email and distinguishing it from the separate Sanity Studio invite step. Sidebar updated — "Staff & Roles" now a real link, no longer a "Coming soon" badge. FEATURES.md Section 2 updated. Commit: 4c13318 (code) + [docs commit]. |
 | 2026-03-05 (session 24) | Member self-service cancellation (17b) + spot-opened alerts + capacity notices (17d). **(17b)** New `POST /api/account/registrations/[id]/cancel` — auth check → ownership check (403 if not their registration) → status guard (400 if already CANCELLED) → `db.registration.update({ status: "CANCELLED" })` → fire-and-forget `sendCancellationNotificationEmail()`. New `components/CancelRegistrationButton.tsx` ("use client"; 4-state machine: idle/confirming/loading/done; on error → alert + revert to confirming). `app/account/dashboard-my-registrations/page.tsx` renders cancel button in `mr-card__actions` for REGISTERED/APPROVED/WAITLISTED cards. **(17d — spot-opened alerts)** `app/volunteer/page.tsx`: added `spotOpened` boolean (`!!cap && confirmedCount < cap && waitlistedCount > 0`) to `programsWithCounts`; `needsAttention` now includes `spotOpened`; green `vol-signal--spot-open` badge ("↑ Spot open · N waiting") renders before the amber waitlist badge (amber waitlist badge only shows when NOT spotOpened). `components/VolunteerTable.tsx`: derived `waitlistedCount` from `counts.WAITLISTED ?? 0`; `spotOpened` derivation (same logic); `vol-spot-opened` amber alert banner above registrations table when spot is open. **(17d — capacity notices on program page)** `app/programs/[slug]/page.tsx`: added `isFull` (`spotsRemaining === 0`) and `showLowSpots` (`spotsRemaining > 0 && spotsRemaining <= 5`) derivations; CTA section: "Join Waitlist" branch gets `pg-capacity--full` amber box notice; "Register" branch conditionally shows `pg-capacity--low` muted notice. **CSS added:** `vol-signal--spot-open` (green badge), `vol-spot-opened` (amber alert banner, left border accent in `--rim-mid`), `pg-capacity` (base notice style), `pg-capacity--full` (warm amber box), `pg-capacity--low` (plain muted text), `mr-card__actions` (border-top footer row), `mr-cancel-btn` (muted text-link), `mr-cancel-confirm` (warm red-tinted inline box), `mr-cancel-confirm__text`, `mr-cancel-confirm__actions`, `mr-cancel-btn--yes` (red danger), `mr-cancel-btn--keep` (neutral outline), `mr-cancel-done` (muted confirmation text). **Staff manual updated** (7fd8442): self-cancellation section added under "After registering"; spot-open badge documented in volunteer index; VolunteerTable spot-opened alert documented; promoting-from-waitlist task references new entry points; "Cancel as registrar" clarified vs member self-cancel. **Build note:** `npm run build` exits 1 locally (Stripe env var not in local .env — pre-existing, builds clean on Vercel); TypeScript compiled successfully. Commits: 08fb3a2 (features), 7fd8442 (manual docs). |
 
 | 2026-03-05 (session 26) | Manual review + accuracy fixes + memory. **(1) Course access to REGISTRAR (f902dfa):** Opened `CourseAccessSection` UI to REGISTRAR role (removed `{isAdmin &&}` gate in `MemberDetail`); `GET /api/admin/courses`, `POST` and `DELETE` `/api/admin/members/[id]/course-access` now accept REGISTRAR in addition to ADMIN. Added "Grant or revoke course access for individual members" to REGISTRAR "can do" list in Chapter 3. Added full "Course access" section to Chapter 1 (sidebar link, intro, when-to-use-manual-grants, step-by-step how-to, note about registration vs manual grants being separate). **(2) Chapter subtitles rewritten (94712dd):** All three chapter openers rewritten from third-person "Who uses this chapter:" framing to direct second-person address ("This chapter walks you through…"). **(3) Manual audit and fixes:** Dashboard shortcuts table in Chapter 3: added missing Staff Manual row. Automatic emails section: added dana reminder email entry. Future editions section: updated Courses & Online Materials to note that admin-side course access is already covered in Chapter 1. **(4) FEATURES.md accuracy fixes:** §2 REGISTRAR dashboard links corrected (Members now included); §6b STAFF_LINKS table updated (both roles get all 4 cards); §7 Role enum corrected (TREASURER/TEACHER/VOLUNTEER removed); §7 technical notes updated; §8 course-access API routes updated to ADMIN or REGISTRAR; §11 access control and dashboard integration stale text corrected; §20 Chapter 1 sections table expanded to reflect current content, Chapter 3 added, technical notes and future chapters updated. |
+| 2026-03-05 (session 27) | Google Meet architecture rework + HOST role + Host Area. **(1) Google Meet rework:** Removed volunteer email / COHOST pre-assignment model entirely — RIM's host team is rotating; you can't designate who will host at program setup time. Simplified `lib/google-meet.ts`: no `spaces.members.create`, no `volunteerEmail` param, no moderation step; `createMeeting()` now just creates space + calendar event and returns `{ meetLink, calendarEventId, roomEmail }`. API route writes `meetHostAccount: result.roomEmail` to Sanity alongside `zoomLink`. `CreateMeetButton` removes email input; done state shows assigned room account. **(2) Sanity schema:** Added `meetHostAccount` readOnly string field to `programs` schema (schedule group, after zoomLinkText). Deployed to Sanity Studio. **(3) HOST role:** Added `HOST` to Prisma `Role` enum (before REGISTRAR); DB pushed. `sendHostRoleAssignmentEmail()` added to `lib/email.ts`. PATCH route detects `addingHost`, fires notification fire-and-forget. `MemberDetail` adds HOST to `ALL_ROLES` (first) with description. Dashboard `STAFF_LINKS` adds HOST entry (Host Area + Volunteer Manual). `proxy.ts` matcher updated. **(4) Host Area page:** New `app/hosts/page.tsx` — server component; HOST | REGISTRAR | ADMIN access; fetches `hostProgramsQuery`; "How to host" guidance section + program cards (name, day/time, room account badge, join link); `hs-` CSS prefix. New `hostProgramsQuery` added to `lib/queries.ts`. `hs-` CSS block added to `public/css/custom.css`. **(5) Manual updates:** Access gate updated to include HOST; overview text updated to three roles; sidebar "The two roles" → "Volunteer roles"; "Assigning a role" note updated; "Notification email" section rewritten (HOST and REGISTRAR both trigger notification; HOST email links to /hosts + manual; REGISTRAR email links to /volunteer + manual; Admin silent). Chapter 3 section table updated. Commits: 9cc2959 (manual docs) + this session's feature commits. **(6) FEATURES.md:** §19 completely rewritten (simplified architecture, removed COHOST/co-host docs, updated key files, added room account env table). §20 updated (Chapter 3 section table, Discovery, access control line). §21 new (HOST role + Host Area, full feature doc). |
 
-*Last updated: 2026-03-05 (session 26)*
+*Last updated: 2026-03-05 (session 27)*
