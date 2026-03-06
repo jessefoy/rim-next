@@ -944,6 +944,220 @@ const AREAS: FunctionalArea[] = [
   },
 ];
 
+// ─── System-level overview data ───────────────────────────────────────────────
+
+const USER_TYPES = [
+  {
+    who: "Public visitor",
+    login: "None",
+    canDo: "Browse programs, lessons (some), glossary, teacher bios. Register for programs — no account needed.",
+  },
+  {
+    who: "Registered participant",
+    login: "None yet",
+    canDo: "Has a User record in Postgres after registering. Receives confirmation and reminder emails. May never have logged in.",
+  },
+  {
+    who: "Community member",
+    login: "Magic link",
+    canDo: "Everything above, plus: dashboard, My Programs, My Library, member-gated courses and articles.",
+  },
+  {
+    who: "Registrar / HOST",
+    login: "Magic link + role",
+    canDo: "Registrar: registration management (/volunteer), Sanity Studio. HOST: Host Area (/hosts) for Google Meet coordination.",
+  },
+  {
+    who: "Admin",
+    login: "Magic link + ADMIN role",
+    canDo: "Everything, plus: member management, role assignment, all admin tools (/admin/*).",
+  },
+];
+
+const SYSTEM_MAP: { area: string; needs: string; powers: string; note: string }[] = [
+  {
+    area: "Sanity CMS",
+    needs: "Content entered by staff in Sanity Studio",
+    powers: "Every page that displays content — programs, lessons, courses, emails, dashboard, volunteer tools",
+    note: "If SANITY_API_TOKEN expires or the Studio is unreachable, content-dependent features fail silently.",
+  },
+  {
+    area: "Program Registration",
+    needs: "Sanity (program config) · Postgres (stores records) · Resend (sends email) · Stripe (takes payment)",
+    powers: "Volunteer table · Member 'My Programs' · Course access auto-grant · Donation ledger · Member onboarding path",
+    note: "The front door. Most members first appear in the DB through a registration, not a direct login.",
+  },
+  {
+    area: "Email & Notifications",
+    needs: "Resend API · Sanity (content fields: reminderMessage, confirmationMessage) · Postgres (registrant data)",
+    powers: "Triggered by: Registration · Volunteer Tools · Scheduling Crons · Member Management (role emails)",
+    note: "All email failures are logged but never block the triggering action — a failed send never breaks a registration.",
+  },
+  {
+    area: "Payment & Dana (Stripe)",
+    needs: "Stripe API · Postgres (Registration record) · Sanity (dana config: mode, amounts, message)",
+    powers: "Donation ledger record (via webhook) · Registration donationStatus updated · Thank-you state on program page",
+    note: "Stripe Checkout (hosted page) handles all card data — no card details ever touch our server.",
+  },
+  {
+    area: "Authentication & Onboarding",
+    needs: "Resend (magic link delivery) · Postgres (session + user storage) · NextAuth v5",
+    powers: "All protected areas — member experience, staff tools, admin pages. Sets up the session everything else reads.",
+    note: "If Resend is down, no one can log in — magic link is the only authentication method.",
+  },
+  {
+    area: "Route Protection",
+    needs: "Auth session (NextAuth) · Postgres (archivedAt, agreedToTerms on User)",
+    powers: "Enforces who can access /account/*, /admin/*, /volunteer/*, /course/*, /hosts/*",
+    note: "Lives in proxy.ts — the Next.js 16 rename of middleware.ts. Do not recreate middleware.ts.",
+  },
+  {
+    area: "Member Experience",
+    needs: "Auth (session) · Postgres (user + registration records) · Sanity (program and course data)",
+    powers: "Dashboard · My Programs · My Library · My Profile · Care Agreements — everything a logged-in member sees",
+    note: "Google Meet links are deliberately shown only here (not in emails) — login is required to see them.",
+  },
+  {
+    area: "Volunteer / Registrar Tools",
+    needs: "Postgres (registrations) · Sanity (field definitions, program data) · Email system (action triggers)",
+    powers: "Status updates · Bulk reminders · CSV export · Inline field editing · Self-service edit links sent",
+    note: "",
+  },
+  {
+    area: "Course Access",
+    needs: "Sanity (accessLevel, linkedCourses on programs) · Postgres (Registration status + CourseAccess grants)",
+    powers: "Gates or allows access to /course/[slug] pages for each member",
+    note: "Access is checked dynamically at page render — no DB write for registration-based access.",
+  },
+  {
+    area: "Member Management (Admin)",
+    needs: "Postgres (all user + registration data) · Sanity Management API (studio invites) · Email (role notifications)",
+    powers: "Roles (unlock staff areas) · Archive (block login + kill sessions) · Delete (hard remove) · Sanity Studio access",
+    note: "Never spread a Prisma include result into Client Component props — always construct props explicitly.",
+  },
+  {
+    area: "Scheduling & Automation",
+    needs: "Sanity (reminderDate) · Postgres (registration records, reminderSentAt) · Email · Vercel Cron (CRON_SECRET)",
+    powers: "Auto-sends reminder emails on reminderDate · Deletes incomplete accounts after 48 hours",
+    note: "Uses a 24-hour lookback window — safe even if cron runs slightly off-schedule. reminderSentAt prevents double-sends.",
+  },
+  {
+    area: "Google Meet Integration",
+    needs: "Google Workspace API (DWD) · Sanity (programs) · Google Calendar (conflict detection on room accounts)",
+    powers: "meetLink + meetHostAccount saved to Sanity · Shown on Dashboard today panel and Host Area",
+    note: "DWD must grant meetings.space.created scope in Google Admin. Room emails set via GOOGLE_ROOM_EMAILS env var.",
+  },
+];
+
+const DATA_FLOWS: {
+  id: string;
+  title: string;
+  subtitle: string;
+  steps: { area: string; what: string }[];
+}[] = [
+  {
+    id: "flow-registration",
+    title: "A new visitor registers for a program",
+    subtitle: "From first click on the site to active community member",
+    steps: [
+      { area: "Public Pages",       what: "Visitor finds the program on /community-programs or a direct link." },
+      { area: "Sanity CMS",         what: "Program page loads: title, description, date/time, capacity, custom questions, dana configuration." },
+      { area: "Registration Form",  what: "Visitor fills out the form. On email blur: check-email API runs — if the email is known, name and phone pre-fill from their account and lock (can't be overwritten)." },
+      { area: "Postgres",           what: "User record found or created by email. Registration record created: REGISTERED if capacity available, WAITLISTED if full. Status determines everything downstream." },
+      { area: "Email",              what: "Confirmation email sent immediately — registered or waitlisted variant, with add-to-calendar links if program datetimes are set in Sanity." },
+      { area: "Stripe / Dana",      what: "If REGISTERED and danaMode ≠ none: a dana invitation appears inline after the confirmation message. Visitor can offer dana or genuinely skip." },
+      { area: "Stripe Webhook",     what: "If the visitor pays: Stripe fires a webhook to our API → donationStatus → COMPLETED → a Donation record is written to Postgres." },
+      { area: "Volunteer Tools",    what: "The registration now appears in /volunteer/programs/[slug] for the registrar to see, manage, and act on." },
+      { area: "Scheduling",         what: "On the program's reminderDate: the daily cron fires and sends a reminder email to all active registrants who haven't received one yet." },
+      { area: "Auth + Onboarding",  what: "If the visitor logs in for the first time (via magic link), they land at /account/welcome to set their name and agree to community agreements." },
+      { area: "Member Experience",  what: "Member now sees their registration on My Programs, the program's Meet link on the Dashboard today panel, and any linked courses in My Library." },
+      { area: "Course Access",      what: "If the program has linkedCourses in Sanity: the member can now open those course pages at /course/[slug] — no extra grant needed." },
+    ],
+  },
+  {
+    id: "flow-login",
+    title: "A member logs in on a Tuesday morning",
+    subtitle: "From inbox to dashboard",
+    steps: [
+      { area: "Auth",               what: "Member enters email at /login → Resend sends a magic link → member clicks it → a session is created and stored in Postgres." },
+      { area: "Route Protection",   what: "Session is checked against three conditions: agreedToTerms = false → /account/welcome; archivedAt is set → /account/reactivate; otherwise → /account/dashboard." },
+      { area: "Member Experience",  what: "Dashboard loads. Today's drop-in sessions are queried from Sanity filtered by day of week (Milwaukee/CT timezone). Virtual programs show their Google Meet links." },
+      { area: "Sanity CMS",         what: "Programs scheduled for today's day of week appear in the Today's Sessions panel. The meet link is read from the meetLink field saved earlier by the Google Meet integration." },
+      { area: "Postgres",           what: "Dashboard also checks for any PENDING donationStatus registrations and shows a gentle reminder card if found." },
+      { area: "Member Experience",  what: "Member navigates to My Programs: registration history loaded from Postgres, enriched with program date and location data from Sanity." },
+      { area: "Course Access",      what: "Member opens /course/[slug]: three checks run — accessLevel = 'members'? Active registration for a linked program? Manual CourseAccess grant? If any pass, the course opens." },
+    ],
+  },
+];
+
+const CRITICAL_DEPS: { system: string; breaks: string[] }[] = [
+  {
+    system: "Sanity CMS (API token expired or Studio unreachable)",
+    breaks: [
+      "Program pages fail to load — all content comes from Sanity",
+      "Registration form has no config: capacity, custom questions, and dana mode are all missing",
+      "Dashboard 'Today' panel is empty",
+      "Volunteer table can't determine field types for inline editing",
+      "Google Meet links can't be saved back to Sanity after creation",
+    ],
+  },
+  {
+    system: "Resend (email service down or API key revoked)",
+    breaks: [
+      "Magic link login fails completely — no one can sign in",
+      "No confirmation emails after registration",
+      "No reminder, role assignment, or edit-request emails sent",
+    ],
+  },
+  {
+    system: "Postgres / Neon database (connection string broken)",
+    breaks: [
+      "No registrations accepted — can't write to the DB",
+      "No member logins — sessions are stored in Postgres",
+      "Volunteer table is empty — reads from Postgres",
+      "Member Management inaccessible",
+      "Course access grants can't be checked or written",
+    ],
+  },
+  {
+    system: "Stripe webhook secret wrong (STRIPE_WEBHOOK_SECRET rotated without updating Vercel)",
+    breaks: [
+      "Dana step appears and visitor can attempt payment — but webhook signature fails",
+      "donationStatus stays PENDING forever even after successful payment",
+      "No Donation records written to Postgres",
+    ],
+  },
+  {
+    system: "Vercel Cron (CRON_SECRET missing or wrong in Vercel env)",
+    breaks: [
+      "Reminder emails not auto-sent on reminderDate (manual send in the volunteer table still works)",
+      "Incomplete onboarding accounts accumulate and are never cleaned up",
+    ],
+  },
+  {
+    system: "AUTH_SECRET rotated in Vercel env without clearing existing sessions",
+    breaks: [
+      "All existing sessions are immediately invalidated — every logged-in member is signed out on their next request",
+      "Members must re-authenticate via magic link",
+    ],
+  },
+  {
+    system: "Google Workspace / DWD misconfigured (scope revoked or service account broken)",
+    breaks: [
+      "Can't create new Google Meet spaces from the Host Area",
+      "Host Area shows no room account assignment after creation attempt",
+      "Existing meet links already saved to Sanity still work — no impact on past programs",
+    ],
+  },
+  {
+    system: "REGISTRAR_EMAIL env var missing from Vercel",
+    breaks: [
+      "Cancellation and 'responses updated' notifications fall back to EMAIL_FROM — still sent, just to a different address",
+      "Not a hard failure, but the registrar may miss notifications",
+    ],
+  },
+];
+
 // ─── Status config ─────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<FeatureStatus, { label: string; cls: string }> = {
@@ -997,12 +1211,180 @@ export default async function AdminFeaturesPage() {
 
         {/* ── Quick-jump nav ── */}
         <nav className="adm-fi-jump">
-          {AREAS.map((area) => (
-            <a key={area.id} href={`#${area.id}`} className="adm-fi-jump__link">
-              {area.icon} {area.title}
-            </a>
-          ))}
+          <div className="adm-fi-jump__row">
+            <span className="adm-fi-jump__group-label">System view</span>
+            <a href="#overview"      className="adm-fi-jump__link adm-fi-jump__link--sys">Overview</a>
+            <a href="#system-map"    className="adm-fi-jump__link adm-fi-jump__link--sys">System Map</a>
+            <a href="#data-flows"    className="adm-fi-jump__link adm-fi-jump__link--sys">Data Flows</a>
+            <a href="#if-x-breaks"   className="adm-fi-jump__link adm-fi-jump__link--sys">If X Breaks</a>
+          </div>
+          <div className="adm-fi-jump__divider" />
+          <div className="adm-fi-jump__row">
+            <span className="adm-fi-jump__group-label">Feature areas</span>
+            {AREAS.map((area) => (
+              <a key={area.id} href={`#${area.id}`} className="adm-fi-jump__link">
+                {area.icon} {area.title}
+              </a>
+            ))}
+          </div>
         </nav>
+
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {/* ── SYSTEM OVERVIEW ── */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+
+        <section id="overview" className="adm-fi-sys-section">
+          <h2 className="adm-fi-sys-section__title">What is this system?</h2>
+
+          <div className="adm-fi-overview-prose">
+            <p>
+              <strong>RIM Next</strong> is the website and member platform for Rooted in Mindfulness —
+              a community insight meditation center in Brookfield, WI. It does four things:
+            </p>
+            <ol className="adm-fi-overview-list">
+              <li><strong>Publishes</strong> programs, teachings, and resources for anyone to browse — no account needed.</li>
+              <li><strong>Lets visitors register</strong> for programs without an account. Registration is the primary front door to community membership — most members first appear in the database this way.</li>
+              <li><strong>Gives members a personal space</strong> — a dashboard, registration history, dharma library, and access to member-gated courses.</li>
+              <li><strong>Gives staff the tools</strong> to manage registrations, members, and content — without needing direct database access.</li>
+            </ol>
+            <p>
+              The content (programs, lessons, courses, teacher bios) lives in <strong>Sanity CMS</strong> and is
+              managed by staff in Sanity Studio. Member and registration data lives in <strong>Postgres</strong>{" "}
+              (hosted on Neon). The two databases work together but are entirely separate systems.
+            </p>
+          </div>
+
+          <h3 className="adm-fi-sys-section__subtitle">Who uses this system</h3>
+          <div className="adm-fi-table-wrap">
+            <table className="adm-fi-table">
+              <thead>
+                <tr>
+                  <th>Who</th>
+                  <th>Login</th>
+                  <th>What they can do</th>
+                </tr>
+              </thead>
+              <tbody>
+                {USER_TYPES.map((u) => (
+                  <tr key={u.who}>
+                    <td><strong>{u.who}</strong></td>
+                    <td className="adm-fi-table__muted">{u.login}</td>
+                    <td>{u.canDo}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="adm-fi-overview-note">
+            <strong>Key philosophy:</strong> Registration always confirms first — payment (dana) is a
+            separate optional invitation, never a gate. Google Meet links are only visible when logged
+            in — they are not in emails or on public pages. Every User record with{" "}
+            <code>agreedToTerms = true</code> is an intentional community member.
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {/* ── SYSTEM MAP ── */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+
+        <section id="system-map" className="adm-fi-sys-section">
+          <h2 className="adm-fi-sys-section__title">How the system connects</h2>
+          <p className="adm-fi-sys-section__intro">
+            Each functional area has things it <strong>needs</strong> to work, and things it{" "}
+            <strong>powers</strong> when it works. This map shows both directions.
+            Reading it tells you: if I change area X, what else might be affected?
+          </p>
+
+          <div className="adm-fi-table-wrap">
+            <table className="adm-fi-table adm-fi-table--map">
+              <thead>
+                <tr>
+                  <th style={{ width: "16%" }}>Area</th>
+                  <th style={{ width: "33%" }}>Needs (depends on)</th>
+                  <th style={{ width: "33%" }}>Powers (enables)</th>
+                  <th style={{ width: "18%" }}>Note</th>
+                </tr>
+              </thead>
+              <tbody>
+                {SYSTEM_MAP.map((row) => (
+                  <tr key={row.area}>
+                    <td><strong>{row.area}</strong></td>
+                    <td className="adm-fi-table__small">{row.needs}</td>
+                    <td className="adm-fi-table__small">{row.powers}</td>
+                    <td className="adm-fi-table__note">{row.note}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {/* ── DATA FLOWS ── */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+
+        <section id="data-flows" className="adm-fi-sys-section">
+          <h2 className="adm-fi-sys-section__title">How data moves through the system</h2>
+          <p className="adm-fi-sys-section__intro">
+            Two complete end-to-end scenarios that touch most of the system. Each step is
+            labeled with the area responsible. Read these to understand how the parts
+            work together as a whole.
+          </p>
+
+          <div className="adm-fi-flows">
+            {DATA_FLOWS.map((flow) => (
+              <div key={flow.id} className="adm-fi-flow">
+                <div className="adm-fi-flow__head">
+                  <div className="adm-fi-flow__title">{flow.title}</div>
+                  <div className="adm-fi-flow__subtitle">{flow.subtitle}</div>
+                </div>
+                <ol className="adm-fi-flow__steps">
+                  {flow.steps.map((step, i) => (
+                    <li key={i} className="adm-fi-flow__step">
+                      <span className="adm-fi-flow__step-area">{step.area}</span>
+                      <span className="adm-fi-flow__step-text">{step.what}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════════════════════════════════ */}
+        {/* ── IF X BREAKS ── */}
+        {/* ════════════════════════════════════════════════════════════════════ */}
+
+        <section id="if-x-breaks" className="adm-fi-sys-section">
+          <h2 className="adm-fi-sys-section__title">If X breaks, what stops working?</h2>
+          <p className="adm-fi-sys-section__intro">
+            A quick-reference guide to cascading failures. Useful for diagnosing an incident
+            or understanding which env vars and external services are critical.
+          </p>
+
+          <div className="adm-fi-deps">
+            {CRITICAL_DEPS.map((dep) => (
+              <div key={dep.system} className="adm-fi-dep">
+                <div className="adm-fi-dep__system">⚠️ {dep.system}</div>
+                <ul className="adm-fi-dep__breaks">
+                  {dep.breaks.map((b) => (
+                    <li key={b} className="adm-fi-dep__break-item">{b}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Divider before feature detail ── */}
+        <div className="adm-fi-detail-header">
+          <h2 className="adm-fi-detail-header__title">Feature detail</h2>
+          <p className="adm-fi-detail-header__desc">
+            Every feature in the system, organized by area — with exact locations,
+            plain-language descriptions, and functional relationships.
+          </p>
+        </div>
 
         {/* ── Feature Areas ── */}
         <div className="adm-fi-areas">
