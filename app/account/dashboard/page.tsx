@@ -15,7 +15,7 @@ interface DashboardProgram {
   name: string;
   sortOrder?: number;
   dayOfWeek?: { name: string }[];
-  listingDayAndTimeText?: string;
+  dateText?: string;
   zoomLink?: string;
   dashboardSpecialAnnouncement?: string;
   dashboardEarlyArrivalMessage?: string;
@@ -150,8 +150,8 @@ export default async function DashboardPage() {
                     className="db-staff__card"
                   >
                     <span className="db-staff__card-title">{program.name}</span>
-                    {program.listingDayAndTimeText && (
-                      <span className="db-staff__card-desc">{program.listingDayAndTimeText}</span>
+                    {program.dateText && (
+                      <span className="db-staff__card-desc">{program.dateText}</span>
                     )}
                     {program.dashboardSpecialAnnouncement && (
                       <span className="db-staff__card-desc" style={{ color: "var(--rim-mid)", fontStyle: "italic" }}>
@@ -162,8 +162,8 @@ export default async function DashboardPage() {
                 ) : (
                   <div key={program._id} className="db-staff__card" style={{ opacity: 0.5 }}>
                     <span className="db-staff__card-title">{program.name}</span>
-                    {program.listingDayAndTimeText && (
-                      <span className="db-staff__card-desc">{program.listingDayAndTimeText}</span>
+                    {program.dateText && (
+                      <span className="db-staff__card-desc">{program.dateText}</span>
                     )}
                     <span className="db-staff__card-desc">No Zoom link available</span>
                   </div>

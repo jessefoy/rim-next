@@ -20,7 +20,6 @@ interface HostProgram {
   _id: string;
   name: string;
   slug: string;
-  listingDayAndTimeText?: string | null;
   dateText?: string | null;
   zoomLink: string;
   meetHostAccount?: string | null;
@@ -66,7 +65,7 @@ export default async function HostAreaPage() {
       ) : (
         <div className="hs-programs">
           {programs.map((program) => {
-            const dayTime = program.listingDayAndTimeText || program.dateText || "—";
+            const dayTime = program.dateText || "—";
             const hostAccount = program.meetHostAccount;
 
             return (

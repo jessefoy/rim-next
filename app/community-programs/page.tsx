@@ -13,7 +13,7 @@ interface Program {
   _id: string;
   name: string;
   slug: { current: string };
-  listingDayAndTimeText?: string;
+  dateText?: string;
   dashboardSpecialAnnouncement?: string;
   programCategory?: { name: string; slug: { current: string } };
 }
@@ -65,7 +65,7 @@ export default async function CommunityProgramsPage() {
                   <ListRow
                     key={program._id}
                     title={program.name}
-                    subtitle={program.listingDayAndTimeText}
+                    subtitle={program.dateText}
                     announcement={program.dashboardSpecialAnnouncement}
                     href={`/programs/${program.slug.current}`}
                     buttonLabel="Learn More"
