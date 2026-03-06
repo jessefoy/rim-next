@@ -1637,9 +1637,10 @@ Note: The Developer token is a **server-side secret** stored only in Vercel env 
 **The problem with a single account:** One Google account cannot host two simultaneous meetings. If RIM runs a 7pm drop-in and a 7pm community group on the same night, a single `programs@rootedinmindfulness.org` account cannot own both.
 
 **The solution — Virtual Rooms:** A small pool of dedicated accounts that act as permanent "meeting rooms":
-- `meet-community-group@rootedinmindfulness.org`
-- `meet-core-programs@rootedinmindfulness.org`
-- `meet-community-silent-meditation@rootedinmindfulness.org`
+- `meet1@rootedinmindfulness.org`
+- `meet2@rootedinmindfulness.org`
+- `meet3@rootedinmindfulness.org`
+- `meet4@rootedinmindfulness.org`
 
 The app assigns whichever room is free for a given time slot (checking the shared calendar for conflicts). Whoever logs in as that account when the session starts automatically owns the meeting with full host controls.
 
@@ -1687,7 +1688,7 @@ The app assigns whichever room is free for a given time slot (checking the share
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | `rim-programs-bot@rim-programs.iam.gserviceaccount.com` |
 | `GOOGLE_PRIVATE_KEY` | Full RSA private key from service account JSON |
 | `GOOGLE_CALENDAR_ID` | Shared "RIM Programs" calendar ID |
-| `GOOGLE_ROOM_EMAILS` | Comma-separated room account emails |
+| `GOOGLE_ROOM_EMAILS` | `meet1@rootedinmindfulness.org,meet2@rootedinmindfulness.org,meet3@rootedinmindfulness.org,meet4@rootedinmindfulness.org` |
 
 ---
 
@@ -1823,7 +1824,7 @@ Staff reach the manual via two paths:
 ### User flow — before each session
 
 1. Host visits `/hosts` and finds their program
-2. The page shows which room account is assigned (e.g. `meet-community-group@rootedinmindfulness.org`)
+2. The page shows which room account is assigned (e.g. `meet1@rootedinmindfulness.org`)
 3. Host signs into that account in their browser as a secondary account — no need to log out of their own
 4. Host clicks the **Join on Google Meet** link for the program a few minutes before the session
 5. They see the blue host shield — meaning they have full host controls (mute all, remove participant, end meeting for everyone)
