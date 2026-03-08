@@ -17,7 +17,7 @@
  *   Dataset:  production
  *   Trigger on: Create, Update, Delete
  *   Filter:   _type == "programs"
- *   Projection:
+ *   Projection: (optional — handler detects deletes via Sanity query if omitted)
  *     {
  *       "_id": _id,
  *       "_type": _type,
@@ -84,7 +84,7 @@ function verifySignature(
 interface ProgramWebhookPayload {
   _id: string;
   _type: string;
-  operation: "create" | "update" | "delete";
+  operation?: "create" | "update" | "delete"; // from delta::operation() in GROQ projection; optional — inferred from Sanity query if missing
   name?: string;
   slug?: string;
   isVirtual?: boolean;
@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { _id, _type, operation } = payload;
+  const { _id, _type } = payload;
 
   // Only handle programs documents
   if (_type !== "programs") {
@@ -137,6 +137,16 @@ export async function POST(req: NextRequest) {
     meetHostAccount,
     calendarEventId,
   } = payload;
+
+  // Resolve operation: use payload field (GROQ projection) or detect via Sanity query
+  let operation = payload.operation;
+  if (!operation) {
+    const exists = await sanityClient.fetch<{ _id: string } | null>(
+      `*[_id == $_id && !(_id in path("drafts.**"))][0] { _id }`,
+      { _id }
+    );
+    operation = exists ? "update" : "delete";
+  }
 
   console.log(`[sanity-webhook] programs ${operation} — ${slug ?? _id}`);
 
