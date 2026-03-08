@@ -682,25 +682,34 @@ const AREAS: FunctionalArea[] = [
     id: "meet",
     title: "Google Meet Integration",
     icon: "🎥",
-    desc: "Creating and assigning Google Meet spaces to virtual programs. Uses Domain-Wide Delegation to impersonate shared room accounts.",
+    desc: "Automatic creation and lifecycle management of Google Meet spaces for virtual programs via Sanity webhook. Uses Domain-Wide Delegation to impersonate shared room accounts.",
     features: [
       {
-        name: "Create Meet Button",
-        locations: ["/hosts", "Component: CreateMeetButton.tsx", "API: POST /api/programs/[slug]/google-meet", "File: lib/google-meet.ts"],
-        what: "Hosts and admins can create a persistent Google Meet space for a virtual program from the Host Area. The button assigns one of the shared room accounts (meet1@, meet2@, etc.) based on calendar availability, creates the Meet space, and saves the meetLink and meetHostAccount back to Sanity.",
+        name: "Automatic Meet Creation (Sanity Webhook)",
+        locations: ["API: POST /api/webhooks/sanity-programs", "File: lib/google-meet.ts"],
+        what: "When a program with isVirtual=true and a startDatetime is published in Sanity Studio, a webhook fires automatically. The handler assigns a free room account, creates the Meet space, adds a Google Calendar event, and writes meetLink + meetHostAccount + calendarEventId back to Sanity. If the start time changes, the calendar event updates automatically. If isVirtual is toggled off, the calendar event is deleted.",
         relatedTo: [
-          "Host Area (/hosts) — entry point",
-          "Sanity CMS — meetLink and meetHostAccount fields on programs",
+          "Sanity CMS — isVirtual, startDatetime, zoomLink, meetHostAccount, calendarEventId fields",
           "Google Workspace (Domain-Wide Delegation, room account calendars)",
-          "GOOGLE_ROOM_EMAILS env var (list of room account emails)",
+          "SANITY_WEBHOOK_SECRET env var (HMAC signature verification)",
+          "GOOGLE_ROOM_EMAILS env var (pool of room accounts)",
+        ],
+      },
+      {
+        name: "Manual Create Meet Button",
+        locations: ["/volunteer/programs/[slug]", "Component: CreateMeetButton.tsx", "API: POST /api/programs/[slug]/google-meet"],
+        what: "For existing programs or when the webhook didn't fire, registrars/admins can create or replace a Meet link from the volunteer programs page. The button only appears when the program has isVirtual=true.",
+        relatedTo: [
+          "Sanity CMS — writes zoomLink, meetHostAccount, calendarEventId",
+          "Volunteer Tools — CreateMeetButton in the program detail page",
         ],
       },
       {
         name: "Room Account Assignment",
         locations: ["File: lib/google-meet.ts"],
-        what: "The system checks each room account's primary Google Calendar for conflicts on the program's scheduled day. The first conflict-free room is assigned. The Meet space is created under that room's identity via DWD impersonation.",
+        what: "The system checks each room account's primary Google Calendar for events during the program's time window. The first conflict-free room is assigned. The Meet space is created under that room's identity via DWD impersonation. calendarEventId is stored in Sanity to enable future updates/deletions without touching the Meet link.",
         relatedTo: [
-          "Google Calendar API (conflict detection)",
+          "Google Calendar API (conflict detection + event CRUD)",
           "Google Meet API (space creation)",
           "startDatetime on programs (Sanity) drives conflict detection",
         ],
@@ -1043,9 +1052,9 @@ const SYSTEM_MAP: { area: string; needs: string; powers: string; note: string }[
   },
   {
     area: "Google Meet Integration",
-    needs: "Google Workspace API (DWD) · Sanity (programs) · Google Calendar (conflict detection on room accounts)",
-    powers: "meetLink + meetHostAccount saved to Sanity · Shown on Dashboard today panel and Host Area",
-    note: "DWD must grant meetings.space.created scope in Google Admin. Room emails set via GOOGLE_ROOM_EMAILS env var.",
+    needs: "Google Workspace API (DWD) · Sanity webhook (programs create/update/delete) · Google Calendar (conflict detection on room accounts) · SANITY_WEBHOOK_SECRET",
+    powers: "meetLink + meetHostAccount + calendarEventId saved to Sanity · Shown on Dashboard today panel and Host Area · Calendar event auto-updates when startDatetime changes",
+    note: "DWD must grant meetings.space.created + calendar.events scope in Google Admin. Webhook created via Sanity Management API (dashboard SPA routing broken for webhooks).",
   },
 ];
 

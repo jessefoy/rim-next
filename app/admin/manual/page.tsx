@@ -825,8 +825,8 @@ export default async function ManualPage() {
             <div className="man-field">
               <div className="man-field__name">Start Date &amp; Time</div>
               <div className="man-field__desc">
-                <p>The machine-readable date and time used to generate the <strong>Add-to-Calendar links</strong> in confirmation emails and on the program page. Use the date picker — enter the time as it will appear on your schedule (Central Time; Sanity handles the timezone).</p>
-                <p>Leave blank for recurring or open-ended programs that don&rsquo;t need calendar links.</p>
+                <p>The machine-readable date and time used to generate <strong>Add-to-Calendar links</strong> and — for virtual programs — to check room availability when creating the Google Meet. Use the date picker and enter time in Central Time.</p>
+                <p>For recurring programs, enter the date of the next session. Leave blank for open-ended programs that don&rsquo;t need calendar links or automatic Meet creation.</p>
               </div>
             </div>
             <div className="man-field">
@@ -877,11 +877,19 @@ export default async function ManualPage() {
               </div>
             </div>
             <div className="man-field">
+              <div className="man-field__name">Virtual Program</div>
+              <div className="man-field__desc">
+                <p>Toggle this on if participants join from home over video. When this is on, the location fields are hidden (they&rsquo;re replaced by Google Meet) and the Google Meet panel appears in the registrar area.</p>
+                <p><strong>Automatic Meet creation:</strong> When you toggle this on and publish the program, a Google Meet link is created and saved automatically — you don&rsquo;t need to go to the registrar area and click a button. The system checks which room is available at the scheduled start time and assigns it. If you later change the start time and re-publish, the calendar booking updates automatically. If you toggle this off and re-publish, the calendar booking is released.</p>
+                <p>The only time you need to visit the registrar area for the Meet is if you want to replace an existing link.</p>
+              </div>
+            </div>
+            <div className="man-field">
               <div className="man-field__name">Meeting Link</div>
               <div className="man-field__desc">
-                <p>The video meeting URL for online or hybrid programs. When set, a &ldquo;Join on Google Meet&rdquo; button appears on the program page, and <strong>the link is automatically included in reminder emails</strong>.</p>
-                <p>For virtual programs, this is filled in automatically when you create the Google Meet link from the registrar area — you don&rsquo;t need to paste it here manually.</p>
-                <p>Set this field before you send reminders — if it&rsquo;s blank when the reminder goes out, members won&rsquo;t receive a join link in that email.</p>
+                <p>The video meeting URL. When set, a &ldquo;Join on Google Meet&rdquo; button appears on the program page, and <strong>the link is automatically included in reminder emails</strong>.</p>
+                <p>For virtual programs, this is filled in automatically — either when you first publish the program with <strong>Virtual Program</strong> toggled on, or when you click <strong>Create Google Meet</strong> in the registrar area. You don&rsquo;t need to paste it here manually.</p>
+                <p>Make sure this is set before your reminder date arrives — if it&rsquo;s blank when the reminder goes out, members won&rsquo;t receive a join link in that email.</p>
               </div>
             </div>
           </div>
@@ -1093,7 +1101,7 @@ export default async function ManualPage() {
               <li><strong>Visibility tab:</strong> Set a <strong>Sort Order</strong> number so the program appears in the right position in the listing.</li>
               <li>Click <strong>Publish</strong>. The program is live on the website.</li>
             </ol>
-            <p className="man-task__note"><strong>Virtual programs:</strong> After publishing, go to <strong>/volunteer</strong>, open this program, and create the Google Meet link — see <a href="#google-meet">Setting up a Google Meet</a> in this chapter. This is what gives participants (and the volunteer host) a way into the session.</p>
+            <p className="man-task__note"><strong>Virtual programs:</strong> Toggle on <strong>Virtual Program</strong> in the Schedule tab and set a <strong>Start Date &amp; Time</strong> before publishing. When you publish, the Google Meet link is created automatically and saved to the program — no extra steps needed. See <a href="#google-meet">Setting up a Google Meet</a> for the full picture.</p>
           </div>
 
           <div className="man-task">
@@ -1174,13 +1182,10 @@ export default async function ManualPage() {
         <section id="google-meet" className="man-section man-section--divider">
           <h2 className="man-section__title">Setting up a Google Meet</h2>
           <p>
-            If your program is virtual — meaning participants join from home over video — there is one final step after setting everything up in Sanity Studio: creating the Google Meet link. This is how the volunteer host and everyone who registers will actually get into the session.
+            Google Meet is the video platform RIM uses for all virtual programs — drop-in sittings, community groups, Foundations, and any other program that happens over video. It replaced Zoom because managing separate accounts and links outside of the website made it harder for volunteers to run sessions reliably, and meeting RIM&rsquo;s needs on Zoom would have required ongoing subscription costs.
           </p>
           <p>
-            Google Meet is the video platform RIM uses for all virtual programs — drop-in sittings, community groups, Foundations, and any other program that happens over video. It replaced Zoom — meeting RIM&rsquo;s needs on Zoom would have required ongoing subscription costs that the center wanted to avoid as good stewards of the dana the community offers, and managing separate accounts and links outside of the website made it harder for volunteers to run sessions reliably.
-          </p>
-          <p>
-            With this system, creating a meeting link takes about 30 seconds. You open the program in the registrar area and click one button. The link is created automatically, saved to the program, and from that point forward it appears in all confirmation and reminder emails — without you having to copy or paste anything.
+            For most virtual programs, <strong>the Meet link is created automatically</strong> — you don&rsquo;t need to do anything extra. When you toggle on <strong>Virtual Program</strong> in Sanity Studio, set a <strong>Start Date &amp; Time</strong>, and publish the program, the system creates the Meet link, assigns a room account, and saves everything back to the program. The link appears in confirmation emails, reminder emails, and the Host Area — all without copy-pasting.
           </p>
           <p>
             The <strong>Meet Host team</strong> — the volunteers who hold the container of the session — check the <strong>Host Area</strong> at <code>/hosts</code> to find out which shared account to sign into. When they join from that account, they automatically have full host controls.
@@ -1224,46 +1229,58 @@ export default async function ManualPage() {
         <section id="meet-before" className="man-section">
           <h2 className="man-section__title">Before you start</h2>
           <p>
-            Before you can create a Google Meet link for a program, one thing needs to be in place:
+            Two things need to be set in Sanity Studio before the system can create a Meet link — automatically or manually:
           </p>
-
-          <h3 className="man-section__h3">A Start Date &amp; Time must be set in Sanity Studio</h3>
+          <ul className="man-list">
+            <li><strong>Virtual Program must be toggled on</strong> — this tells the system the program needs a Meet link.</li>
+            <li><strong>Start Date &amp; Time must be set</strong> — the system uses it to check which meeting rooms are available.</li>
+          </ul>
           <p>
-            The system uses the program&rsquo;s scheduled start time to check which meeting rooms are available. Without a start time, it has no way to know whether a room is free.
-          </p>
-          <p>
-            If the program doesn&rsquo;t have a Start Date &amp; Time set, the Google Meet panel in the registrar area will show a notice telling you to add one. Go to <strong>Sanity Studio → Programs → [program name] → Schedule tab</strong> and fill in the <strong>Start Date &amp; Time</strong> field. Then come back and create the meeting.
-          </p>
-          <p>
-            If the program is recurring (e.g. every Wednesday evening), the Start Date &amp; Time should be the date of the <em>next</em> session. The meeting link itself doesn&rsquo;t expire — you can reuse it across sessions.
+            If either is missing, the Google Meet panel in the registrar area will show a notice rather than a button. Go to <strong>Sanity Studio → Programs → [program name] → Schedule tab</strong> and fill in both fields, then publish.
           </p>
           <p>
-            If you don&rsquo;t have access to Sanity Studio, connect with whoever is setting up the program — the registrar or another team member with studio access can add the date. Once it&rsquo;s in, you can create the meeting link yourself from the registrar area.
+            For recurring programs (e.g. every Wednesday evening), set the Start Date &amp; Time to the date of the <em>next</em> upcoming session. The Meet link itself doesn&rsquo;t expire — it works for all future sessions.
           </p>
         </section>
 
         {/* ── Creating a meeting ── */}
         <section id="meet-create" className="man-section">
           <h2 className="man-section__title">Creating a meeting</h2>
+
+          <h3 className="man-section__h3">Automatic (the normal path)</h3>
           <p>
-            This takes about 30 seconds once a Start Date &amp; Time is set.
+            For new virtual programs, the Meet link is created automatically when you publish. No extra steps.
           </p>
           <ol className="man-steps">
-            <li>Go to <strong>/volunteer</strong> and click the program you want to set up.</li>
-            <li>At the top of the program page, above the registrations table, you&rsquo;ll see a <strong>Google Meet</strong> panel.</li>
-            <li>Click <strong>Create Google Meet</strong>.</li>
-            <li>Wait a few seconds. When it&rsquo;s done, the panel shows the Meet link and the room account that was assigned.</li>
+            <li>In Sanity Studio, open the program and go to the <strong>Schedule &amp; Location</strong> tab.</li>
+            <li>Toggle on <strong>Virtual Program</strong>.</li>
+            <li>Set a <strong>Start Date &amp; Time</strong> (required — the system needs it to check room availability).</li>
+            <li>Publish the program.</li>
           </ol>
           <p>
-            That&rsquo;s it. The link has been created and saved to the program automatically. You don&rsquo;t need to copy it anywhere — it will appear on the member dashboard under &ldquo;Today&rsquo;s Sessions&rdquo; on the day of the program, and in the Host Area for the host team. The assigned room account is also saved so the host team can see it on the <strong>Host Area</strong> page.
+            Within a few seconds of publishing, the system picks an available room, creates the Meet space, and saves the link and room account back to the program. The link appears in all confirmation and reminder emails from that point forward, and on the Host Area page for the host team.
           </p>
+          <p>
+            <strong>Time changes update automatically.</strong> If you change the Start Date &amp; Time and re-publish, the calendar room booking updates automatically. The Meet link itself does not change — it&rsquo;s stable for the life of the program.
+          </p>
+
+          <h3 className="man-section__h3">Manual (for existing programs or if automatic didn&rsquo;t fire)</h3>
+          <p>
+            If a program was set up before the automatic system was in place, or if something went wrong, you can create the link manually from the registrar area:
+          </p>
+          <ol className="man-steps">
+            <li>Go to <strong>/volunteer</strong> and open the program.</li>
+            <li>At the top, above the registrations table, you&rsquo;ll see the <strong>Google Meet</strong> panel.</li>
+            <li>Click <strong>Create Google Meet</strong>.</li>
+            <li>Wait a few seconds — the panel will show the Meet link and assigned room account when done.</li>
+          </ol>
 
           <h3 className="man-section__h3">Replacing an existing link</h3>
           <p>
-            If a meeting link already exists and you need to create a new one — for example, if the link needs to be regenerated — the panel will show the current link with a <strong>Replace</strong> button next to it. Click <strong>Replace</strong> and confirm. A new link will be created and the old one will be overwritten in Sanity.
+            The Google Meet panel shows the current link with a <strong>Replace</strong> button. Click it and confirm to generate a new link. The new link overwrites the old one in Sanity immediately.
           </p>
           <div className="man-note man-note--warn">
-            ⚠ If you replace a link, the new link takes effect on the member dashboard and Host Area immediately. The old Meet space will no longer work — if a session is in progress, anyone already in the old meeting will be unaffected, but anyone joining after the replacement will get the new link.
+            ⚠ The old Meet space stops working the moment you replace it. Anyone who joined before the replacement is unaffected — but anyone joining after needs the new link. If the link has been shared anywhere outside the website (e.g. a personal email), you&rsquo;ll need to follow up manually.
           </div>
         </section>
 
