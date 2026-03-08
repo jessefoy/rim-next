@@ -146,3 +146,60 @@ export async function createMeeting({
     roomEmail,
   };
 }
+
+/**
+ * Update the time (and optionally title) of an existing Google Calendar event
+ * on a room account's primary calendar. Does NOT touch the Meet space — the
+ * link remains stable. Called by the webhook when startDatetime changes.
+ */
+export async function updateCalendarEvent({
+  calendarEventId,
+  roomEmail,
+  title,
+  startDatetime,
+  endDatetime,
+}: {
+  calendarEventId: string;
+  roomEmail: string;
+  title: string;
+  startDatetime: string;
+  endDatetime: string;
+}): Promise<void> {
+  const auth = makeAuth(roomEmail, [
+    "https://www.googleapis.com/auth/calendar.events",
+  ]);
+  const calendar = google.calendar({ version: "v3", auth });
+
+  await calendar.events.patch({
+    calendarId: "primary",
+    eventId: calendarEventId,
+    requestBody: {
+      summary: title,
+      start: { dateTime: startDatetime },
+      end: { dateTime: endDatetime },
+    },
+  });
+}
+
+/**
+ * Delete a Google Calendar event from a room account's primary calendar,
+ * freeing that slot for future conflict detection. Called by the webhook when
+ * a program is deleted or switched from virtual to in-person.
+ */
+export async function deleteCalendarEvent({
+  calendarEventId,
+  roomEmail,
+}: {
+  calendarEventId: string;
+  roomEmail: string;
+}): Promise<void> {
+  const auth = makeAuth(roomEmail, [
+    "https://www.googleapis.com/auth/calendar.events",
+  ]);
+  const calendar = google.calendar({ version: "v3", auth });
+
+  await calendar.events.delete({
+    calendarId: "primary",
+    eventId: calendarEventId,
+  });
+}

@@ -37,6 +37,7 @@ export const programBySlugQuery = `*[_type == "programs" && slug.current == $slu
   recurrenceInterval,
   recurrenceDays,
   recurrenceCount,
+  isVirtual,
   locationText,
   locationLink,
   danaText,
@@ -229,11 +230,12 @@ export const programsBySlugArrayQuery = `*[_type == "programs" && slug.current i
 
 // ─── Host area — programs with Google Meet assigned (for /hosts page) ─────────
 
-export const hostProgramsQuery = `*[_type == "programs" && !(_id in path("drafts.**")) && defined(zoomLink) && zoomLink != ""] | order(coalesce(sortOrder, 999) asc) {
+export const hostProgramsQuery = `*[_type == "programs" && !(_id in path("drafts.**")) && isVirtual == true && defined(zoomLink) && zoomLink != ""] | order(coalesce(sortOrder, 999) asc) {
   _id,
   name,
   "slug": slug.current,
   dateText,
+  isVirtual,
   zoomLink,
   meetHostAccount,
   dayOfWeek[]-> { name }

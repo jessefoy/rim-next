@@ -9,7 +9,7 @@ import type { RegistrationField } from "@/components/RegistrationForm";
 
 const programForVolunteerQuery = `*[_type == "programs" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
   _id, name, slug, tagline, registrationCapacity, danaMode, reminderDate,
-  startDatetime, endDatetime, zoomLink, meetHostAccount,
+  isVirtual, startDatetime, endDatetime, zoomLink, meetHostAccount, calendarEventId,
   registrationFields[] { _key, label, fieldType, required, options }
 }`;
 
@@ -21,10 +21,12 @@ interface SanityProgram {
   registrationCapacity?: number | null;
   danaMode?: string | null;
   reminderDate?: string | null;
+  isVirtual?: boolean | null;
   startDatetime?: string | null;
   endDatetime?: string | null;
   zoomLink?: string | null;
   meetHostAccount?: string | null;
+  calendarEventId?: string | null;
   registrationFields?: RegistrationField[];
 }
 
@@ -100,14 +102,17 @@ export default async function VolunteerProgramPage({
           <h1 className="vol-header__title">{program.name}</h1>
         </div>
 
-        <div className="vol-meet-section">
-          <CreateMeetButton
-            programSlug={slug}
-            existingLink={program.zoomLink ?? null}
-            existingHostAccount={program.meetHostAccount ?? null}
-            hasStartDatetime={!!program.startDatetime}
-          />
-        </div>
+        {program.isVirtual && (
+          <div className="vol-meet-section">
+            <CreateMeetButton
+              programSlug={slug}
+              existingLink={program.zoomLink ?? null}
+              existingHostAccount={program.meetHostAccount ?? null}
+              calendarEventId={program.calendarEventId ?? null}
+              hasStartDatetime={!!program.startDatetime}
+            />
+          </div>
+        )}
 
         <VolunteerTable
           initialRegistrations={serialized}

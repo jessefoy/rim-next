@@ -18,6 +18,7 @@ interface Props {
   programSlug: string;
   existingLink?: string | null;
   existingHostAccount?: string | null;
+  calendarEventId?: string | null;
   hasStartDatetime: boolean;
 }
 
@@ -27,11 +28,13 @@ export default function CreateMeetButton({
   programSlug,
   existingLink,
   existingHostAccount,
+  calendarEventId: initialCalendarEventId,
   hasStartDatetime,
 }: Props) {
   const [state, setState] = useState<UIState>(existingLink ? "done" : "idle");
   const [meetLink, setMeetLink] = useState(existingLink ?? "");
   const [roomEmail, setRoomEmail] = useState(existingHostAccount ?? "");
+  const [calendarEventId, setCalendarEventId] = useState(initialCalendarEventId ?? "");
   const [error, setError] = useState("");
   const [warning, setWarning] = useState("");
 
@@ -63,6 +66,7 @@ export default function CreateMeetButton({
 
       setMeetLink(data.meetLink);
       setRoomEmail(data.roomEmail ?? "");
+      setCalendarEventId(data.calendarEventId ?? "");
       if (data.warning) setWarning(data.warning);
       setState("done");
     } catch {
@@ -97,6 +101,11 @@ export default function CreateMeetButton({
             Host account: <strong>{roomEmail}</strong>
           </p>
         )}
+        <p className="vol-meet__calendar-status">
+          {calendarEventId
+            ? "✓ Room booking tracked — time changes in Sanity will update automatically"
+            : "⚠ No calendar event ID — replace this link to enable automatic time sync"}
+        </p>
         {warning && <p className="vol-meet__warning">{warning}</p>}
       </div>
     );

@@ -107,13 +107,14 @@ export async function POST(
     );
   }
 
-  // Write the Meet link and assigned room account back to Sanity
+  // Write the Meet link, host account, and calendar event ID back to Sanity
   try {
     await sanityClient
       .patch(program._id)
       .set({
         zoomLink: result.meetLink,
         meetHostAccount: result.roomEmail,
+        calendarEventId: result.calendarEventId,
       })
       .commit();
   } catch (err) {
@@ -122,6 +123,7 @@ export async function POST(
     return NextResponse.json({
       meetLink: result.meetLink,
       roomEmail: result.roomEmail,
+      calendarEventId: result.calendarEventId,
       warning: "Meet created but Sanity write-back failed. Copy the link and add it manually in Sanity Studio.",
     });
   }
@@ -129,5 +131,6 @@ export async function POST(
   return NextResponse.json({
     meetLink: result.meetLink,
     roomEmail: result.roomEmail,
+    calendarEventId: result.calendarEventId,
   });
 }
