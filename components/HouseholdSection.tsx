@@ -352,7 +352,7 @@ export default function HouseholdSection({ memberId, household: initialHousehold
           <Link href={`/admin/households/${household.id}`} className="hh-link hh-household-card__name">
             {household.name ?? "Unnamed household"}
           </Link>
-          {household.isPrimary && <span className="adm-badge adm-badge--registrar">Primary contact</span>}
+          {household.isPrimary && <span className="adm-badge adm-badge--primary-contact">Primary contact</span>}
           <span className="hh-household-card__rel">
             {relationshipLabel(household.relationshipType, household.relationshipCustom)}
           </span>
@@ -370,7 +370,7 @@ export default function HouseholdSection({ memberId, household: initialHousehold
                 <span className="hh-member-row__rel">
                   {relationshipLabel(m.relationshipType, m.relationshipCustom)}
                 </span>
-                {m.isPrimary && <span className="adm-badge adm-badge--registrar">Primary</span>}
+                {m.isPrimary && <span className="adm-badge adm-badge--primary-contact">Primary</span>}
               </li>
             ))}
           </ul>
