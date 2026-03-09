@@ -3188,23 +3188,6 @@ h1, h2, h3, h4, h5, h6 {
   flex-wrap: wrap;
 }
 
-.vol-meet__input {
-  flex: 1;
-  min-width: 240px;
-  padding: 9px 12px;
-  border: 1px solid var(--rim-rule);
-  border-radius: 4px;
-  font-family: var(--font-sans);
-  font-size: 14px;
-  background: #fff;
-  color: var(--rim-text);
-}
-
-.vol-meet__input:focus {
-  outline: none;
-  border-color: var(--rim-mid);
-}
-
 .vol-meet__create-btn {
   padding: 9px 16px;
   background: var(--rim-blue);
@@ -3233,22 +3216,8 @@ h1, h2, h3, h4, h5, h6 {
 
 .vol-meet__cancel-btn:hover { border-color: var(--rim-mid); color: var(--rim-mid); }
 
-.vol-meet__replace-btn {
-  padding: 5px 12px;
-  background: none;
-  border: 1px solid var(--rim-rule);
-  border-radius: 4px;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  color: var(--rim-text-muted);
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.vol-meet__replace-btn:hover { border-color: var(--rim-mid); color: var(--rim-mid); }
-
-/* Release Meet — muted red to signal a significant/destructive action */
-.vol-meet__release-btn {
+/* Remove Meet — muted red to signal a destructive action */
+.vol-meet__remove-btn {
   padding: 5px 12px;
   background: none;
   border: 1px solid #d4a89a;
@@ -3260,10 +3229,10 @@ h1, h2, h3, h4, h5, h6 {
   white-space: nowrap;
 }
 
-.vol-meet__release-btn:hover { border-color: #9e3f2e; }
+.vol-meet__remove-btn:hover { border-color: #9e3f2e; }
 
-/* Release confirm button — same destructive palette, filled */
-.vol-meet__release-confirm-btn {
+/* Remove confirm button — same destructive palette, filled */
+.vol-meet__remove-confirm-btn {
   padding: 8px 18px;
   background: #9e3f2e;
   border: 1px solid #9e3f2e;
@@ -3274,7 +3243,7 @@ h1, h2, h3, h4, h5, h6 {
   cursor: pointer;
 }
 
-.vol-meet__release-confirm-btn:hover { background: #7d3223; border-color: #7d3223; }
+.vol-meet__remove-confirm-btn:hover { background: #7d3223; border-color: #7d3223; }
 
 .vol-meet__link-row {
   display: flex;
@@ -3303,28 +3272,10 @@ h1, h2, h3, h4, h5, h6 {
   color: #c0392b;
 }
 
-.vol-meet__warning {
-  margin: 8px 0 0;
-  font-size: 13px;
-  color: #b45309;
-}
-
-.vol-meet__calendar-status {
-  margin: 6px 0 0;
-  font-size: 12px;
-  color: var(--rim-text-muted);
-}
-
 .vol-meet__notice {
   font-size: 13px;
   color: var(--rim-text-muted);
   margin: 0;
-}
-
-.vol-meet__tier-notice {
-  margin: 10px 0 0;
-  font-size: 13px;
-  color: var(--rim-text-muted);
 }
 
 .vol-meet__confirm-text {

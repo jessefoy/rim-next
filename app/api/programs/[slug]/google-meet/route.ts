@@ -19,9 +19,8 @@
  *
  * DELETE /api/programs/[slug]/google-meet
  *
- * Releases the Google Calendar room booking and clears the Meet fields in
- * Sanity (zoomLink, meetHostAccount, calendarEventId). This unlocks the
- * isVirtual toggle in Sanity Studio. REGISTRAR or ADMIN only.
+ * Deletes the Google Calendar room booking and clears the Meet fields in
+ * Sanity (zoomLink, meetHostAccount, calendarEventId). REGISTRAR or ADMIN only.
  *
  * Response:
  *   { success: true }
@@ -215,7 +214,7 @@ export async function DELETE(
     }
   }
 
-  // Clear Meet fields in Sanity — this unlocks the isVirtual toggle in Studio
+  // Clear Meet fields in Sanity
   try {
     await sanityClient
       .patch(program._id)

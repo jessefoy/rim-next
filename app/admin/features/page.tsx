@@ -687,9 +687,9 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Automatic Meet Creation (Sanity Webhook)",
         locations: ["API: POST /api/webhooks/sanity-programs", "File: lib/google-meet.ts"],
-        what: "When a program with isVirtual=true and a startDatetime is published in Sanity Studio, a webhook fires automatically. The handler assigns a free room account, creates the Meet space, adds a Google Calendar event, and writes meetLink + meetHostAccount + calendarEventId back to Sanity. If the start time changes, the calendar event updates automatically. If isVirtual is toggled off, the calendar event is deleted.",
+        what: "When a virtual or hybrid program's start time changes in Sanity Studio, a webhook fires and updates the Google Calendar room booking automatically. If programFormat is changed to in-person, the calendar event is deleted and Meet fields are cleared. Meet links are created manually by registrars — the webhook no longer auto-creates them.",
         relatedTo: [
-          "Sanity CMS — isVirtual, startDatetime, zoomLink, meetHostAccount, calendarEventId fields",
+          "Sanity CMS — programFormat, startDatetime, zoomLink, meetHostAccount, calendarEventId fields",
           "Google Workspace (Domain-Wide Delegation, room account calendars)",
           "SANITY_WEBHOOK_SECRET env var (HMAC signature verification)",
           "GOOGLE_ROOM_EMAILS env var (pool of room accounts)",
@@ -698,7 +698,7 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Manual Create Meet Button",
         locations: ["/volunteer/programs/[slug]", "Component: CreateMeetButton.tsx", "API: POST /api/programs/[slug]/google-meet"],
-        what: "For existing programs or when the webhook didn't fire, registrars/admins can create or replace a Meet link from the volunteer programs page. The button only appears when the program has isVirtual=true.",
+        what: "Registrars create and manage Meet links manually from the registrar program detail page. The section appears when programFormat is virtual or hybrid. Create Google Meet assigns a free room account and writes the link to Sanity. Remove Meet deletes the calendar booking and clears the fields.",
         relatedTo: [
           "Sanity CMS — writes zoomLink, meetHostAccount, calendarEventId",
           "Volunteer Tools — CreateMeetButton in the program detail page",

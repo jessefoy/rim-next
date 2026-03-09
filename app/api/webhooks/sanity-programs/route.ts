@@ -4,10 +4,9 @@
  * Sanity GROQ-powered webhook. Fires whenever a "programs" document is
  * created, updated, or deleted in Sanity Studio.
  *
- * Handles three cases automatically:
- *   CREATE  — isVirtual + startDatetime + no zoomLink → create Meet, write back fields
- *   UPDATE  — isVirtual + startDatetime changed + calendarEventId → patch calendar event
- *   UPDATE  — isVirtual turned OFF + calendarEventId → delete calendar event, clear fields
+ * Handles two cases automatically:
+ *   UPDATE  — programFormat != "in-person" + startDatetime changed + calendarEventId → patch calendar event
+ *   UPDATE  — programFormat changed to "in-person" + calendarEventId → delete calendar event, clear fields
  *   DELETE  — calendarEventId in payload → delete calendar event
  *
  * ── Sanity Webhook Configuration ─────────────────────────────────────────────
@@ -24,7 +23,7 @@
  *       "operation": delta::operation(),
  *       "name": name,
  *       "slug": slug.current,
- *       "isVirtual": isVirtual,
+ *       "programFormat": programFormat,
  *       "startDatetime": startDatetime,
  *       "endDatetime": endDatetime,
  *       "zoomLink": zoomLink,
@@ -43,7 +42,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { sanityClient } from "@/lib/sanity";
-import { createMeeting, updateCalendarEvent, deleteCalendarEvent } from "@/lib/google-meet";
+import { updateCalendarEvent, deleteCalendarEvent } from "@/lib/google-meet";
 
 // ── Signature verification ────────────────────────────────────────────────────
 
@@ -87,7 +86,7 @@ interface ProgramWebhookPayload {
   operation?: "create" | "update" | "delete"; // from delta::operation() in GROQ projection; optional — inferred from Sanity query if missing
   name?: string;
   slug?: string;
-  isVirtual?: boolean;
+  programFormat?: string;
   startDatetime?: string | null;
   endDatetime?: string | null;
   zoomLink?: string | null;
@@ -130,7 +129,7 @@ export async function POST(req: NextRequest) {
   const {
     name,
     slug,
-    isVirtual,
+    programFormat,
     startDatetime,
     endDatetime,
     zoomLink,
@@ -166,8 +165,8 @@ export async function POST(req: NextRequest) {
 
   // ── CREATE / UPDATE ────────────────────────────────────────────────────────
 
-  // Case A: Virtual turned OFF — clean up existing Meet room booking
-  if (!isVirtual && calendarEventId && meetHostAccount) {
+  // Case A: Switched to in-person — clean up existing Meet room booking
+  if (programFormat === "in-person" && calendarEventId && meetHostAccount) {
     try {
       await deleteCalendarEvent({ calendarEventId, roomEmail: meetHostAccount });
       await sanityClient
@@ -176,13 +175,13 @@ export async function POST(req: NextRequest) {
         .commit();
       console.log(`[sanity-webhook] Cleared Meet fields for in-person program ${slug}`);
     } catch (err) {
-      console.error("[sanity-webhook] Cleanup on isVirtual=false failed:", err);
+      console.error("[sanity-webhook] Cleanup on programFormat=in-person failed:", err);
     }
     return NextResponse.json({ ok: true });
   }
 
-  // Skip if not virtual or no startDatetime
-  if (!isVirtual || !startDatetime) {
+  // Skip if in-person (nothing to do) or no startDatetime (can't update calendar)
+  if (programFormat === "in-person" || !startDatetime) {
     return NextResponse.json({ ok: true, skipped: true });
   }
 
@@ -194,6 +193,7 @@ export async function POST(req: NextRequest) {
   const programName = name ?? slug ?? _id;
 
   // Case B: Meet exists + calendar event tracked → update the calendar event time
+  // (Registrars create Meet links manually from the Registrar Area — no auto-create here)
   if (zoomLink && calendarEventId && meetHostAccount) {
     try {
       await updateCalendarEvent({
@@ -206,37 +206,6 @@ export async function POST(req: NextRequest) {
       console.log(`[sanity-webhook] Updated calendar event for ${slug}`);
     } catch (err) {
       console.error("[sanity-webhook] updateCalendarEvent failed:", err);
-    }
-    return NextResponse.json({ ok: true });
-  }
-
-  // Case C: No Meet yet — create one
-  if (!zoomLink) {
-    try {
-      const result = await createMeeting({
-        title: programName,
-        startDatetime,
-        endDatetime: resolvedEnd,
-        programSlug: slug ?? _id,
-      });
-
-      await sanityClient
-        .patch(_id)
-        .set({
-          zoomLink: result.meetLink,
-          meetHostAccount: result.roomEmail,
-          calendarEventId: result.calendarEventId,
-        })
-        .commit();
-
-      console.log(`[sanity-webhook] Created Meet for ${slug} — ${result.meetLink} (${result.roomEmail})`);
-    } catch (err: unknown) {
-      const msg = (err as Error).message ?? "";
-      if (msg.startsWith("NO_ROOM_AVAILABLE")) {
-        console.error(`[sanity-webhook] No room available for ${slug} at ${startDatetime}`);
-      } else {
-        console.error("[sanity-webhook] createMeeting failed:", err);
-      }
     }
     return NextResponse.json({ ok: true });
   }

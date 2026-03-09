@@ -10,7 +10,7 @@ import type { RegistrationField } from "@/components/RegistrationForm";
 
 const programForVolunteerQuery = `*[_type == "programs" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
   _id, name, slug, tagline, registrationCapacity, danaMode, reminderDate,
-  isVirtual, startDatetime, endDatetime, zoomLink, meetHostAccount, calendarEventId,
+  programFormat, startDatetime, endDatetime, zoomLink, meetHostAccount, calendarEventId,
   registrationFields[] { _key, label, fieldType, required, options }
 }`;
 
@@ -22,7 +22,7 @@ interface SanityProgram {
   registrationCapacity?: number | null;
   danaMode?: string | null;
   reminderDate?: string | null;
-  isVirtual?: boolean | null;
+  programFormat?: string | null;
   startDatetime?: string | null;
   endDatetime?: string | null;
   zoomLink?: string | null;
@@ -108,13 +108,12 @@ export default async function RegistrarProgramPage({
             <h1 className="vol-header__title">{program.name}</h1>
           </div>
 
-          {program.isVirtual && (
+          {(program.programFormat === "virtual" || program.programFormat === "hybrid") && (
             <div className="vol-meet-section">
               <CreateMeetButton
                 programSlug={slug}
                 existingLink={program.zoomLink ?? null}
                 existingHostAccount={program.meetHostAccount ?? null}
-                calendarEventId={program.calendarEventId ?? null}
                 hasStartDatetime={!!program.startDatetime}
               />
             </div>

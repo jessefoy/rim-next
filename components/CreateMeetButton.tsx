@@ -1,15 +1,14 @@
 "use client";
 
 /**
- * CreateMeetButton — volunteer programs page
+ * CreateMeetButton — registrar programs page
  *
  * States:
- *   idle      — shows "Create Google Meet" button
- *   loading   — spinner while create API call in flight
- *   done      — shows the Meet link + host account + Replace + Release Meet buttons
- *   replace   — confirm dialog for overwriting the current link
- *   release   — confirm dialog for deleting the room booking and clearing the link
- *   releasing — spinner while delete API call in flight
+ *   idle     — shows "Create Google Meet" button
+ *   loading  — spinner while create API call in flight
+ *   done     — shows the Meet link + host account + Remove button
+ *   remove   — confirm dialog before deleting the room booking
+ *   removing — spinner while delete API call in flight
  *
  * CSS prefix: vol-meet-
  */
@@ -20,25 +19,21 @@ interface Props {
   programSlug: string;
   existingLink?: string | null;
   existingHostAccount?: string | null;
-  calendarEventId?: string | null;
   hasStartDatetime: boolean;
 }
 
-type UIState = "idle" | "loading" | "done" | "replace" | "release" | "releasing";
+type UIState = "idle" | "loading" | "done" | "remove" | "removing";
 
 export default function CreateMeetButton({
   programSlug,
   existingLink,
   existingHostAccount,
-  calendarEventId: initialCalendarEventId,
   hasStartDatetime,
 }: Props) {
   const [state, setState] = useState<UIState>(existingLink ? "done" : "idle");
   const [meetLink, setMeetLink] = useState(existingLink ?? "");
   const [roomEmail, setRoomEmail] = useState(existingHostAccount ?? "");
-  const [calendarEventId, setCalendarEventId] = useState(initialCalendarEventId ?? "");
   const [error, setError] = useState("");
-  const [warning, setWarning] = useState("");
 
   if (!hasStartDatetime) {
     return (
@@ -50,7 +45,6 @@ export default function CreateMeetButton({
 
   async function handleCreate() {
     setError("");
-    setWarning("");
     setState("loading");
 
     try {
@@ -68,8 +62,6 @@ export default function CreateMeetButton({
 
       setMeetLink(data.meetLink);
       setRoomEmail(data.roomEmail ?? "");
-      setCalendarEventId(data.calendarEventId ?? "");
-      if (data.warning) setWarning(data.warning);
       setState("done");
     } catch {
       setError("Network error. Please try again.");
@@ -77,9 +69,9 @@ export default function CreateMeetButton({
     }
   }
 
-  async function handleRelease() {
+  async function handleRemove() {
     setError("");
-    setState("releasing");
+    setState("removing");
 
     try {
       const res = await fetch(`/api/programs/${programSlug}/google-meet`, {
@@ -90,21 +82,20 @@ export default function CreateMeetButton({
 
       if (!res.ok) {
         setError(data.error ?? "Something went wrong. Please try again.");
-        setState("release");
+        setState("remove");
         return;
       }
 
       setMeetLink("");
       setRoomEmail("");
-      setCalendarEventId("");
       setState("idle");
     } catch {
       setError("Network error. Please try again.");
-      setState("release");
+      setState("remove");
     }
   }
 
-  // ── Existing link — show link + host account + Replace / Release buttons ───
+  // ── Has a link ─────────────────────────────────────────────────────────────
   if (state === "done") {
     return (
       <div className="vol-meet">
@@ -119,16 +110,10 @@ export default function CreateMeetButton({
             {meetLink}
           </a>
           <button
-            className="vol-meet__replace-btn"
-            onClick={() => setState("replace")}
+            className="vol-meet__remove-btn"
+            onClick={() => { setState("remove"); setError(""); }}
           >
-            Replace
-          </button>
-          <button
-            className="vol-meet__release-btn"
-            onClick={() => { setState("release"); setError(""); }}
-          >
-            Release Meet
+            Remove Meet
           </button>
         </div>
         {roomEmail && (
@@ -136,27 +121,23 @@ export default function CreateMeetButton({
             Host account: <strong>{roomEmail}</strong>
           </p>
         )}
-        <p className="vol-meet__calendar-status">
-          {calendarEventId
-            ? "✓ Room booking tracked — time changes in Sanity will update automatically"
-            : "⚠ No calendar event ID — replace this link to enable automatic time sync"}
-        </p>
-        {warning && <p className="vol-meet__warning">{warning}</p>}
       </div>
     );
   }
 
-  // ── Release confirm dialog ─────────────────────────────────────────────────
-  if (state === "release") {
+  // ── Remove confirm ─────────────────────────────────────────────────────────
+  if (state === "remove") {
     return (
       <div className="vol-meet">
         <p className="vol-meet__label">Google Meet</p>
         <p className="vol-meet__confirm-text">
-          This will delete the Google Calendar room booking and clear the Meet link. The program will unlock so you can change the date, time, or meeting setup. Any members who already received the link will not be able to join — only do this if the program is being rescheduled or cancelled.
+          This will delete the Google Calendar room booking and clear the Meet link.
+          Only do this if the program is being rescheduled, cancelled, or switching to in-person.
+          Anyone who already has the link will not be able to join.
         </p>
         <div className="vol-meet__form-row">
-          <button className="vol-meet__release-confirm-btn" onClick={handleRelease}>
-            Yes, Release Meet
+          <button className="vol-meet__remove-confirm-btn" onClick={handleRemove}>
+            Yes, Remove Meet
           </button>
           <button
             className="vol-meet__cancel-btn"
@@ -170,36 +151,12 @@ export default function CreateMeetButton({
     );
   }
 
-  // ── Releasing ──────────────────────────────────────────────────────────────
-  if (state === "releasing") {
+  // ── Removing ───────────────────────────────────────────────────────────────
+  if (state === "removing") {
     return (
       <div className="vol-meet">
         <p className="vol-meet__label">Google Meet</p>
-        <p className="vol-meet__loading">Releasing room booking…</p>
-      </div>
-    );
-  }
-
-  // ── Replace confirm dialog ─────────────────────────────────────────────────
-  if (state === "replace") {
-    return (
-      <div className="vol-meet">
-        <p className="vol-meet__label">Google Meet</p>
-        <p className="vol-meet__confirm-text">
-          This will create a new Meet link and overwrite the current one in Sanity. The old link will stop working immediately — if it has already been shared outside the website, you will need to follow up with the new link manually.
-        </p>
-        <div className="vol-meet__form-row">
-          <button className="vol-meet__create-btn" onClick={handleCreate}>
-            Create New Link
-          </button>
-          <button
-            className="vol-meet__cancel-btn"
-            onClick={() => { setState("done"); setError(""); }}
-          >
-            Cancel
-          </button>
-        </div>
-        {error && <p className="vol-meet__error">{error}</p>}
+        <p className="vol-meet__loading">Removing Meet…</p>
       </div>
     );
   }
@@ -214,7 +171,7 @@ export default function CreateMeetButton({
     );
   }
 
-  // ── Idle — single button ───────────────────────────────────────────────────
+  // ── Idle ───────────────────────────────────────────────────────────────────
   return (
     <div className="vol-meet">
       <p className="vol-meet__label">Google Meet</p>
