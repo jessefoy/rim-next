@@ -16,12 +16,21 @@
  *   404 — program not found in Sanity
  *   409 — no room accounts available at that time slot
  *   500 — Meet/Calendar API failure
+ *
+ * DELETE /api/programs/[slug]/google-meet
+ *
+ * Releases the Google Calendar room booking and clears the Meet fields in
+ * Sanity (zoomLink, meetHostAccount, calendarEventId). This unlocks the
+ * isVirtual toggle in Sanity Studio. REGISTRAR or ADMIN only.
+ *
+ * Response:
+ *   { success: true }
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { sanityClient } from "@/lib/sanity";
-import { createMeeting } from "@/lib/google-meet";
+import { createMeeting, deleteCalendarEvent } from "@/lib/google-meet";
 
 const programForMeetQuery = `*[_type == "programs" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
   _id,
@@ -30,11 +39,23 @@ const programForMeetQuery = `*[_type == "programs" && slug.current == $slug && !
   endDatetime
 }`;
 
+const programForReleaseQuery = `*[_type == "programs" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
+  _id,
+  calendarEventId,
+  meetHostAccount
+}`;
+
 interface SanityProgramForMeet {
   _id: string;
   name: string;
   startDatetime?: string | null;
   endDatetime?: string | null;
+}
+
+interface SanityProgramForRelease {
+  _id: string;
+  calendarEventId?: string | null;
+  meetHostAccount?: string | null;
 }
 
 export async function POST(
@@ -133,4 +154,62 @@ export async function POST(
     roomEmail: result.roomEmail,
     calendarEventId: result.calendarEventId,
   });
+}
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ slug: string }> }
+) {
+  // Auth check
+  const session = await auth();
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const isAuthorized = session.user.roles?.some((r) =>
+    ["REGISTRAR", "ADMIN"].includes(r)
+  );
+  if (!isAuthorized) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { slug } = await params;
+
+  // Fetch program from Sanity
+  const program = await sanityClient.fetch<SanityProgramForRelease | null>(
+    programForReleaseQuery,
+    { slug }
+  );
+
+  if (!program) {
+    return NextResponse.json({ error: "Program not found" }, { status: 404 });
+  }
+
+  // Delete the Google Calendar event if we have the IDs
+  if (program.calendarEventId && program.meetHostAccount) {
+    try {
+      await deleteCalendarEvent({
+        calendarEventId: program.calendarEventId,
+        roomEmail: program.meetHostAccount,
+      });
+    } catch (err) {
+      // Log but continue — the event may already be gone; we still want to clear Sanity
+      console.error("[google-meet route DELETE] deleteCalendarEvent error:", err);
+    }
+  }
+
+  // Clear Meet fields in Sanity — this unlocks the isVirtual toggle in Studio
+  try {
+    await sanityClient
+      .patch(program._id)
+      .unset(["calendarEventId", "zoomLink", "meetHostAccount"])
+      .commit();
+  } catch (err) {
+    console.error("[google-meet route DELETE] Sanity clear error:", err);
+    return NextResponse.json(
+      { error: "Room booking released but Sanity could not be updated. Clear the Calendar Event ID in the Admin tab in Sanity Studio manually." },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json({ success: true });
 }

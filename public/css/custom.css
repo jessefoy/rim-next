@@ -3247,6 +3247,35 @@ h1, h2, h3, h4, h5, h6 {
 
 .vol-meet__replace-btn:hover { border-color: var(--rim-mid); color: var(--rim-mid); }
 
+/* Release Meet — muted red to signal a significant/destructive action */
+.vol-meet__release-btn {
+  padding: 5px 12px;
+  background: none;
+  border: 1px solid #d4a89a;
+  border-radius: 4px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: #9e3f2e;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.vol-meet__release-btn:hover { border-color: #9e3f2e; }
+
+/* Release confirm button — same destructive palette, filled */
+.vol-meet__release-confirm-btn {
+  padding: 8px 18px;
+  background: #9e3f2e;
+  border: 1px solid #9e3f2e;
+  border-radius: 4px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: #fff;
+  cursor: pointer;
+}
+
+.vol-meet__release-confirm-btn:hover { background: #7d3223; border-color: #7d3223; }
+
 .vol-meet__link-row {
   display: flex;
   align-items: center;

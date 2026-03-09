@@ -4,10 +4,12 @@
  * CreateMeetButton — volunteer programs page
  *
  * States:
- *   idle     — shows "Create Google Meet" button
- *   loading  — spinner while API call in flight
- *   done     — shows the generated Meet link + host account
- *   replace  — confirm dialog when a link already exists
+ *   idle      — shows "Create Google Meet" button
+ *   loading   — spinner while create API call in flight
+ *   done      — shows the Meet link + host account + Replace + Release Meet buttons
+ *   replace   — confirm dialog for overwriting the current link
+ *   release   — confirm dialog for deleting the room booking and clearing the link
+ *   releasing — spinner while delete API call in flight
  *
  * CSS prefix: vol-meet-
  */
@@ -22,7 +24,7 @@ interface Props {
   hasStartDatetime: boolean;
 }
 
-type UIState = "idle" | "loading" | "done" | "replace";
+type UIState = "idle" | "loading" | "done" | "replace" | "release" | "releasing";
 
 export default function CreateMeetButton({
   programSlug,
@@ -75,7 +77,34 @@ export default function CreateMeetButton({
     }
   }
 
-  // ── Existing link — show link + host account + Replace button ──────────────
+  async function handleRelease() {
+    setError("");
+    setState("releasing");
+
+    try {
+      const res = await fetch(`/api/programs/${programSlug}/google-meet`, {
+        method: "DELETE",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error ?? "Something went wrong. Please try again.");
+        setState("release");
+        return;
+      }
+
+      setMeetLink("");
+      setRoomEmail("");
+      setCalendarEventId("");
+      setState("idle");
+    } catch {
+      setError("Network error. Please try again.");
+      setState("release");
+    }
+  }
+
+  // ── Existing link — show link + host account + Replace / Release buttons ───
   if (state === "done") {
     return (
       <div className="vol-meet">
@@ -95,6 +124,12 @@ export default function CreateMeetButton({
           >
             Replace
           </button>
+          <button
+            className="vol-meet__release-btn"
+            onClick={() => { setState("release"); setError(""); }}
+          >
+            Release Meet
+          </button>
         </div>
         {roomEmail && (
           <p className="vol-meet__host-account">
@@ -107,6 +142,40 @@ export default function CreateMeetButton({
             : "⚠ No calendar event ID — replace this link to enable automatic time sync"}
         </p>
         {warning && <p className="vol-meet__warning">{warning}</p>}
+      </div>
+    );
+  }
+
+  // ── Release confirm dialog ─────────────────────────────────────────────────
+  if (state === "release") {
+    return (
+      <div className="vol-meet">
+        <p className="vol-meet__label">Google Meet</p>
+        <p className="vol-meet__confirm-text">
+          This will delete the Google Calendar room booking and clear the Meet link. The program will unlock so you can change the date, time, or meeting setup. Any members who already received the link will not be able to join — only do this if the program is being rescheduled or cancelled.
+        </p>
+        <div className="vol-meet__form-row">
+          <button className="vol-meet__release-confirm-btn" onClick={handleRelease}>
+            Yes, Release Meet
+          </button>
+          <button
+            className="vol-meet__cancel-btn"
+            onClick={() => { setState("done"); setError(""); }}
+          >
+            Cancel
+          </button>
+        </div>
+        {error && <p className="vol-meet__error">{error}</p>}
+      </div>
+    );
+  }
+
+  // ── Releasing ──────────────────────────────────────────────────────────────
+  if (state === "releasing") {
+    return (
+      <div className="vol-meet">
+        <p className="vol-meet__label">Google Meet</p>
+        <p className="vol-meet__loading">Releasing room booking…</p>
       </div>
     );
   }
