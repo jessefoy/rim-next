@@ -1,4 +1,5 @@
 import Link from "next/link";
+import AccountLayout from "@/components/AccountLayout";
 
 export const metadata = { title: "Community Care Agreements — Rooted In Mindfulness" };
 
@@ -23,6 +24,7 @@ const AGREEMENTS = [
 
 export default function MemberCareAgreementsPage() {
   return (
+    <AccountLayout>
     <div className="page-wrapper">
       <div className="lp-content mc-page">
         <h1 className="mc-heading">Community Care Agreements</h1>
@@ -45,5 +47,6 @@ export default function MemberCareAgreementsPage() {
         </p>
       </div>
     </div>
+    </AccountLayout>
   );
 }

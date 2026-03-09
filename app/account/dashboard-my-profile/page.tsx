@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
+import AccountLayout from "@/components/AccountLayout";
 
 export const metadata = { title: "My Profile — Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
@@ -31,6 +32,7 @@ export default async function MyProfilePage({
   }
 
   return (
+    <AccountLayout>
     <div className="page-wrapper">
       <div className="lp-content mp-page">
         <h1 className="mp-heading">My Profile</h1>
@@ -93,5 +95,6 @@ export default async function MyProfilePage({
         </section>
       </div>
     </div>
+    </AccountLayout>
   );
 }

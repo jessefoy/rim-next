@@ -76,13 +76,6 @@ export default function Nav() {
                   <div className="nav__dropdown-panel">
                     <div className="nav__dropdown-panel-inner">
                       <Link
-                        href="/admin/members"
-                        className="nav__dropdown-link"
-                      >
-                        <div className="nav__dropdown-title">Members</div>
-                        <div className="nav__dropdown-desc">Member management</div>
-                      </Link>
-                      <Link
                         href="/admin/sitemap"
                         className="nav__dropdown-link"
                       >
@@ -96,20 +89,15 @@ export default function Nav() {
                         <div className="nav__dropdown-title">Feature Inventory</div>
                         <div className="nav__dropdown-desc">Every feature, categorized</div>
                       </Link>
-                      <Link
-                        href="/admin/roadmap"
+                      <a
+                        href="https://rooted-in-mindfulness.sanity.studio/"
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="nav__dropdown-link"
                       >
-                        <div className="nav__dropdown-title">Roadmap</div>
-                        <div className="nav__dropdown-desc">Planned features</div>
-                      </Link>
-                      <Link
-                        href="/admin/manual"
-                        className="nav__dropdown-link"
-                      >
-                        <div className="nav__dropdown-title">Staff Manual</div>
-                        <div className="nav__dropdown-desc">Feature reference</div>
-                      </Link>
+                        <div className="nav__dropdown-title">Sanity Studio</div>
+                        <div className="nav__dropdown-desc">Edit site content</div>
+                      </a>
                     </div>
                   </div>
                 </div>
@@ -234,14 +222,6 @@ export default function Nav() {
               </Link>
               {isAdmin && (
                 <Link
-                  href="/admin/members"
-                  className={`nav__mobile-link${isActive("/admin/members")}`}
-                >
-                  Admin — Members
-                </Link>
-              )}
-              {isAdmin && (
-                <Link
                   href="/admin/sitemap"
                   className={`nav__mobile-link${isActive("/admin/sitemap")}`}
                 >
@@ -257,20 +237,14 @@ export default function Nav() {
                 </Link>
               )}
               {isAdmin && (
-                <Link
-                  href="/admin/roadmap"
-                  className={`nav__mobile-link${isActive("/admin/roadmap")}`}
+                <a
+                  href="https://rooted-in-mindfulness.sanity.studio/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="nav__mobile-link"
                 >
-                  Admin — Roadmap
-                </Link>
-              )}
-              {isAdmin && (
-                <Link
-                  href="/admin/manual"
-                  className={`nav__mobile-link${isActive("/admin/manual")}`}
-                >
-                  Admin — Staff Manual
-                </Link>
+                  Admin — Sanity Studio
+                </a>
               )}
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}

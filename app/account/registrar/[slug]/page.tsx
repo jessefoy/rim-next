@@ -1,0 +1,137 @@
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
+import { sanityClient } from "@/lib/sanity";
+import { db } from "@/lib/db";
+import Link from "next/link";
+import VolunteerTable, { SerializedRegistration } from "@/components/VolunteerTable";
+import CreateMeetButton from "@/components/CreateMeetButton";
+import AccountLayout from "@/components/AccountLayout";
+import type { RegistrationField } from "@/components/RegistrationForm";
+
+const programForVolunteerQuery = `*[_type == "programs" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
+  _id, name, slug, tagline, registrationCapacity, danaMode, reminderDate,
+  isVirtual, startDatetime, endDatetime, zoomLink, meetHostAccount, calendarEventId,
+  registrationFields[] { _key, label, fieldType, required, options }
+}`;
+
+interface SanityProgram {
+  _id: string;
+  name: string;
+  slug: { current: string };
+  tagline?: string;
+  registrationCapacity?: number | null;
+  danaMode?: string | null;
+  reminderDate?: string | null;
+  isVirtual?: boolean | null;
+  startDatetime?: string | null;
+  endDatetime?: string | null;
+  zoomLink?: string | null;
+  meetHostAccount?: string | null;
+  calendarEventId?: string | null;
+  registrationFields?: RegistrationField[];
+}
+
+export default async function RegistrarProgramPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const session = await auth();
+  if (!session) redirect("/login");
+
+  const isAuthorized = session.user.roles?.some((r) =>
+    ["REGISTRAR", "ADMIN"].includes(r)
+  );
+  if (!isAuthorized) {
+    return (
+      <AccountLayout>
+        <div className="vol-page">
+          <div className="vol-content">
+            <p className="vol-unauthorized">You don&rsquo;t have permission to access this area.</p>
+          </div>
+        </div>
+      </AccountLayout>
+    );
+  }
+
+  const { slug } = await params;
+
+  const [program, registrations] = await Promise.all([
+    sanityClient.fetch<SanityProgram | null>(programForVolunteerQuery, { slug }),
+    db.registration.findMany({
+      where: { programSlug: slug },
+      orderBy: { createdAt: "asc" },
+    }),
+  ]);
+
+  if (!program) {
+    return (
+      <AccountLayout>
+        <div className="vol-page">
+          <div className="vol-content">
+            <p className="vol-empty">Program not found.</p>
+          </div>
+        </div>
+      </AccountLayout>
+    );
+  }
+
+  // Serialize dates for client component
+  const serialized: SerializedRegistration[] = registrations.map((r) => ({
+    id: r.id,
+    programId: r.programId,
+    programSlug: r.programSlug,
+    programTitle: r.programTitle,
+    userId: r.userId,
+    email: r.email,
+    firstName: r.firstName,
+    lastName: r.lastName,
+    phone: r.phone,
+    customFields: r.customFields as Record<string, string> | null,
+    status: r.status,
+    waitlistPosition: r.waitlistPosition,
+    notes: r.notes,
+    donationStatus: r.donationStatus,
+    donationAmount: r.donationAmount,
+    reminderSentAt: r.reminderSentAt?.toISOString() ?? null,
+    createdAt: r.createdAt.toISOString(),
+  }));
+
+  return (
+    <AccountLayout>
+      <div className="vol-page">
+        <div className="vol-content">
+
+          <div className="vol-header">
+            <Link href="/account/registrar" className="vol-back">← Programs</Link>
+            <p className="lp-label">Volunteer Admin</p>
+            <h1 className="vol-header__title">{program.name}</h1>
+          </div>
+
+          {program.isVirtual && (
+            <div className="vol-meet-section">
+              <CreateMeetButton
+                programSlug={slug}
+                existingLink={program.zoomLink ?? null}
+                existingHostAccount={program.meetHostAccount ?? null}
+                calendarEventId={program.calendarEventId ?? null}
+                hasStartDatetime={!!program.startDatetime}
+              />
+            </div>
+          )}
+
+          <VolunteerTable
+            initialRegistrations={serialized}
+            programSlug={slug}
+            programTitle={program.name}
+            danaMode={program.danaMode ?? null}
+            registrationCapacity={program.registrationCapacity ?? null}
+            registrationFields={program.registrationFields ?? []}
+            reminderDate={program.reminderDate ?? null}
+          />
+
+        </div>
+      </div>
+    </AccountLayout>
+  );
+}

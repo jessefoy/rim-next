@@ -1,4 +1,5 @@
 import Link from "next/link";
+import AccountLayout from "@/components/AccountLayout";
 
 export const metadata = { title: "My Library — Rooted In Mindfulness" };
 
@@ -31,6 +32,7 @@ const LIBRARY_ITEMS: LibraryItem[] = [
 
 export default function MyLibraryPage() {
   return (
+    <AccountLayout>
     <div className="page-wrapper">
       <div className="lp-content ml-page">
         <h1 className="ml-heading">My Library</h1>
@@ -66,5 +68,6 @@ export default function MyLibraryPage() {
         </div>
       </div>
     </div>
+    </AccountLayout>
   );
 }

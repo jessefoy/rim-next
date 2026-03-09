@@ -3334,6 +3334,108 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ============================================================
+   ACCOUNT LAYOUT — sidebar + content shell (ac-)
+   Desktop: sticky 220px left sidebar
+   Mobile:  horizontal scrollable strip below main nav
+   ============================================================ */
+
+.ac-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.ac-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 48px 16px 48px 28px;
+  border-right: 1px solid var(--rim-rule);
+  background: var(--rim-bg);
+}
+
+.ac-sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ac-sidebar__link {
+  display: block;
+  padding: 7px 12px;
+  border-radius: 4px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--rim-text-muted);
+  text-decoration: none;
+  line-height: 1.2;
+}
+
+.ac-sidebar__link:hover {
+  background: var(--rim-bg-accent);
+  color: var(--rim-text);
+}
+
+.ac-sidebar__link--active {
+  background: var(--rim-bg-accent);
+  color: var(--rim-blue);
+  font-weight: 600;
+}
+
+.ac-sidebar__divider {
+  height: 1px;
+  background: var(--rim-rule);
+  margin: 12px 12px;
+}
+
+.ac-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Mobile: horizontal scroll strip */
+@media (max-width: 700px) {
+  .ac-layout {
+    flex-direction: column;
+  }
+
+  .ac-sidebar {
+    width: 100%;
+    height: auto;
+    position: static;
+    padding: 0;
+    border-right: none;
+    border-bottom: 1px solid var(--rim-rule);
+    overflow-y: visible;
+    overflow-x: auto;
+  }
+
+  .ac-sidebar__nav {
+    flex-direction: row;
+    gap: 0;
+    padding: 8px 16px;
+    white-space: nowrap;
+  }
+
+  .ac-sidebar__link {
+    display: inline-block;
+    font-size: 13px;
+    padding: 6px 10px;
+  }
+
+  .ac-sidebar__divider {
+    width: 1px;
+    height: 20px;
+    margin: 0 6px;
+    align-self: center;
+    flex-shrink: 0;
+  }
+}
+
+/* ============================================================
    ADMIN MEMBER MANAGEMENT (adm-)
    /admin/members — member list, import, detail, role assignment
    ============================================================ */

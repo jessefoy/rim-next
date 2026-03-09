@@ -4,6 +4,7 @@ import { dashboardProgramsQuery } from "@/lib/queries";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
+import AccountLayout from "@/components/AccountLayout";
 
 export const metadata = { title: "My Dashboard — Rooted In Mindfulness" };
 
@@ -35,26 +36,6 @@ function programIsToday(program: DashboardProgram, today: string): boolean {
   return false;
 }
 
-// Role → human label + destination
-const STAFF_LINKS: Record<string, { label: string; href: string; description: string; external?: boolean }[]> = {
-  HOST: [
-    { label: "Host Area", href: "/hosts", description: "Upcoming virtual programs and sign-in accounts" },
-    { label: "Volunteer Manual", href: "/admin/manual", description: "Step-by-step guidance for every part of the system" },
-  ],
-  REGISTRAR: [
-    { label: "Registrations", href: "/volunteer", description: "View and manage program registrations" },
-    { label: "Members", href: "/admin/members", description: "Look up and edit member profiles" },
-    { label: "Sanity Studio", href: "https://rooted-in-mindfulness.sanity.studio/", description: "Edit site content and programs", external: true },
-    { label: "Volunteer Manual", href: "/admin/manual", description: "Step-by-step guidance for every part of the system" },
-  ],
-  ADMIN: [
-    { label: "Registrations", href: "/volunteer", description: "View and manage program registrations" },
-    { label: "Members", href: "/admin/members", description: "Manage members and assign permissions" },
-    { label: "Sanity Studio", href: "https://rooted-in-mindfulness.sanity.studio/", description: "Edit site content and programs", external: true },
-    { label: "Volunteer Manual", href: "/admin/manual", description: "Step-by-step guidance for every part of the system" },
-    { label: "Feature Ideas", href: "/admin/ideas", description: "Backlog of features and improvements to build" },
-  ],
-};
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -77,11 +58,8 @@ export default async function DashboardPage() {
 
   const firstName = session.user?.name?.split(" ")[0] ?? session.user?.email?.split("@")[0] ?? "there";
 
-  const roles: string[] = session.user.roles ?? [];
-  const allLinks = roles.flatMap((r) => STAFF_LINKS[r] ?? []);
-  const staffLinks = Object.values(Object.fromEntries(allLinks.map((l) => [l.href, l])));
-
   return (
+    <AccountLayout>
     <div className="page-wrapper">
       <div className="db-page">
 
@@ -106,7 +84,7 @@ export default async function DashboardPage() {
             <p className="db-nav__desc">Join today&apos;s drop-in virtual programs</p>
           </Link>
 
-          <Link href="/account/dashboard-my-registrations" className="db-nav__card">
+          <Link href="/account/programs" className="db-nav__card">
             <p className="db-nav__label">Member Area</p>
             <p className="db-nav__title">My Programs</p>
             <p className="db-nav__desc">Your registered programs and history</p>
@@ -198,35 +176,8 @@ export default async function DashboardPage() {
           </div>
         )}
 
-        {/* ── Volunteer access panel ── */}
-        {staffLinks.length > 0 && (
-          <div className="db-section">
-            <p className="db-section__label">Volunteer Access</p>
-            <div className="db-staff__links">
-              {staffLinks.map((link) =>
-                link.external ? (
-                  <a
-                    key={link.href}
-                    href={link.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="db-staff__card"
-                  >
-                    <span className="db-staff__card-title">{link.label}</span>
-                    <span className="db-staff__card-desc">{link.description}</span>
-                  </a>
-                ) : (
-                  <Link key={link.href} href={link.href} className="db-staff__card">
-                    <span className="db-staff__card-title">{link.label}</span>
-                    <span className="db-staff__card-desc">{link.description}</span>
-                  </Link>
-                )
-              )}
-            </div>
-          </div>
-        )}
-
       </div>
     </div>
+    </AccountLayout>
   );
 }
