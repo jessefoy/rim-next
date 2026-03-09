@@ -36,7 +36,9 @@ const programForMeetQuery = `*[_type == "programs" && slug.current == $slug && !
   _id,
   name,
   startDatetime,
-  endDatetime
+  endDatetime,
+  calendarEventId,
+  meetHostAccount
 }`;
 
 const programForReleaseQuery = `*[_type == "programs" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
@@ -50,6 +52,8 @@ interface SanityProgramForMeet {
   name: string;
   startDatetime?: string | null;
   endDatetime?: string | null;
+  calendarEventId?: string | null;
+  meetHostAccount?: string | null;
 }
 
 interface SanityProgramForRelease {
@@ -97,6 +101,20 @@ export async function POST(
   const endDatetime =
     program.endDatetime ??
     new Date(new Date(program.startDatetime).getTime() + 60 * 60 * 1000).toISOString();
+
+  // If replacing an existing Meet, delete the old calendar event first so the
+  // room slot is freed and no orphaned bookings linger in Google Calendar.
+  if (program.calendarEventId && program.meetHostAccount) {
+    try {
+      await deleteCalendarEvent({
+        calendarEventId: program.calendarEventId,
+        roomEmail: program.meetHostAccount,
+      });
+    } catch (err) {
+      // Non-fatal: old event may already be gone — continue to create the new one
+      console.error("[google-meet route] deleteCalendarEvent (pre-replace) error:", err);
+    }
+  }
 
   // Create the meeting
   let result;
