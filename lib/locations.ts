@@ -13,9 +13,9 @@
  */
 
 export const RIM_NAME    = "Rooted in Mindfulness";
-export const RIM_ADDRESS = "16905 W. Bluemound Rd., Brookfield, WI 53005";
+export const RIM_ADDRESS = "4040 N. Calhoun Rd., Brookfield, WI 53005";
 export const RIM_MAPS_URL =
-  "https://maps.google.com/maps?q=Rooted+in+Mindfulness+16905+W+Bluemound+Rd+Brookfield+WI+53005";
+  "https://maps.google.com/maps?q=Rooted+in+Mindfulness+4040+N+Calhoun+Rd+Brookfield+WI+53005";
 
 /** Short display name used on the program detail page */
 export const RIM_DISPLAY_NAME = RIM_NAME;
