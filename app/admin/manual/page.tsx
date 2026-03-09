@@ -1668,7 +1668,15 @@ export default async function ManualPage() {
 
           <h3 className="man-section__h3">The primary contact</h3>
           <p>
-            Every household has a <strong>primary contact</strong> — the person to reach out to on behalf of the group. The first member added is automatically set as primary, but you can change this at any time. On the household detail page, each member row has a <strong>Set primary</strong> button. Setting a new primary contact automatically removes the designation from whoever had it before.
+            Every household has a <strong>primary contact</strong> — the person to reach out to on behalf of the group. The first member added is automatically set as primary, but you can change this at any time. On the household detail page, each member row has a <strong>Set primary</strong> button. Setting a new primary contact automatically removes the designation from whoever had it before. The current primary contact is marked with a small <strong>Primary</strong> label in their row.
+          </p>
+
+          <h3 className="man-section__h3">Changing a relationship label</h3>
+          <p>
+            If you need to correct or update the relationship label for a household member — for example, if &ldquo;Spouse&rdquo; was selected by mistake and it should be &ldquo;Parent&rdquo; — you can change it directly from the household detail page. Each member row shows a small <strong>edit</strong> link next to their relationship label. Click it, choose the new label from the dropdown, and click <strong>Save</strong>. You can also type a custom description if you choose &ldquo;Other.&rdquo;
+          </p>
+          <p>
+            This only changes the label — it doesn&rsquo;t affect their membership, access, or primary contact status.
           </p>
 
           <h3 className="man-section__h3">The household address</h3>
