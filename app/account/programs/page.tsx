@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import CancelRegistrationButton from "@/components/CancelRegistrationButton";
 import AccountLayout from "@/components/AccountLayout";
+import { buildDateLabel } from "@/lib/dateLabel";
 
 export const metadata = { title: "My Programs — Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
@@ -14,6 +15,11 @@ interface SanityProgram {
   slug: string;
   name: string;
   dateText?: string;
+  startDatetime?: string | null;
+  endDatetime?: string | null;
+  recurrenceFreq?: string | null;
+  recurrenceInterval?: number | null;
+  recurrenceDays?: string[] | null;
   locationText?: string;
   zoomLink?: string;
 }
@@ -103,8 +109,8 @@ export default async function MyProgramsPage() {
                           <StatusBadge status={r.status} />
                         </div>
 
-                        {r.sanity?.dateText && (
-                          <p className="mr-card__meta">{r.sanity.dateText}</p>
+                        {(r.sanity?.dateText || buildDateLabel(r.sanity ?? {})) && (
+                          <p className="mr-card__meta">{r.sanity?.dateText || buildDateLabel(r.sanity ?? {})}</p>
                         )}
                         {r.sanity?.locationText && (
                           <p className="mr-card__meta">{r.sanity.locationText}</p>

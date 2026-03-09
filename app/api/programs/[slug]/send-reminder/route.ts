@@ -5,6 +5,7 @@ import { sanityClient } from "@/lib/sanity";
 import { programReminderDataQuery } from "@/lib/queries";
 import { sendReminderEmail } from "@/lib/email";
 import { resolveLocation } from "@/lib/locations";
+import { buildDateLabel } from "@/lib/dateLabel";
 
 // ─── POST /api/programs/[slug]/send-reminder ──────────────────────────────────
 // Sends the program reminder email to all active registrants who haven't
@@ -43,7 +44,7 @@ export async function POST(
       firstName:    reg.firstName,
       programTitle: reg.programTitle,
       programSlug:  reg.programSlug,
-      dateText:     data?.dateText,
+      dateText:     data?.dateText || buildDateLabel(data),
       locationText: loc.emailText,
       locationLink: loc.link,
       zoomLink:     data?.zoomLink,

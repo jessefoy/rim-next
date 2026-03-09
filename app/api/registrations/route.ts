@@ -5,6 +5,7 @@ import { sanityClient } from "@/lib/sanity";
 import { portableTextToEmailHtml, portableTextToEmailText } from "@/lib/portableTextEmail";
 import { buildGoogleCalendarUrl, buildIcsUrl } from "@/lib/calendarLinks";
 import { resolveLocation } from "@/lib/locations";
+import { buildDateLabel } from "@/lib/dateLabel";
 
 export async function POST(request: NextRequest) {
   try {
@@ -160,6 +161,7 @@ export async function POST(request: NextRequest) {
     let googleCalendarUrl: string | undefined;
     let icsUrl: string | undefined;
     let resolvedLocationText: string | null = locationText ?? null;
+    let resolvedDateText: string | null = dateText ?? null;
     try {
       const prog = await sanityClient.fetch<{
         confirmationMessage?: unknown[];
@@ -188,6 +190,7 @@ export async function POST(request: NextRequest) {
       if (prog) {
         const loc = resolveLocation(prog.venue, prog.locationText, prog.locationLink);
         resolvedLocationText = loc.emailText;
+        if (!resolvedDateText) resolvedDateText = buildDateLabel(prog);
         // Build calendar links only for confirmed (not waitlisted) registrations
         if (prog.startDatetime && registration.status !== "WAITLISTED") {
           googleCalendarUrl = buildGoogleCalendarUrl({
@@ -216,7 +219,7 @@ export async function POST(request: NextRequest) {
       programSlug,
       status:          registration.status as "REGISTERED" | "WAITLISTED",
       waitlistPosition: registration.waitlistPosition,
-      dateText:        dateText ?? null,
+      dateText:        resolvedDateText,
       locationText:    resolvedLocationText,
       confirmationMessageHtml,
       confirmationMessageText,

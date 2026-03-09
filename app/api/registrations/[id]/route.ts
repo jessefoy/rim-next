@@ -15,6 +15,7 @@ import { buildGoogleCalendarUrl, buildIcsUrl } from "@/lib/calendarLinks";
 import { sanityClient } from "@/lib/sanity";
 import { programConfirmationDataQuery, programReminderDataQuery } from "@/lib/queries";
 import { resolveLocation } from "@/lib/locations";
+import { buildDateLabel } from "@/lib/dateLabel";
 
 // ─── PATCH — update status, notes, donationStatus, or send dana reminder ─────
 
@@ -66,7 +67,7 @@ export async function PATCH(
         firstName:    reg.firstName,
         programTitle: reg.programTitle,
         programSlug:  reg.programSlug,
-        dateText:     data?.dateText,
+        dateText:     data?.dateText || buildDateLabel(data) || undefined,
         locationText: loc.emailText,
         locationLink: loc.link,
         zoomLink:     data?.zoomLink,
@@ -142,7 +143,7 @@ export async function PATCH(
         programSlug:   reg.programSlug,
         status:        reg.status === "WAITLISTED" ? "WAITLISTED" : "REGISTERED",
         waitlistPosition: reg.waitlistPosition,
-        dateText:      data?.dateText,
+        dateText:      data?.dateText || buildDateLabel(data) || undefined,
         locationText:  loc.emailText,
         confirmationMessageHtml,
         confirmationMessageText,

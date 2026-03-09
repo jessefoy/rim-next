@@ -2,6 +2,7 @@ import { sanityClient } from "@/lib/sanity";
 import { programsQuery, programCategoriesQuery } from "@/lib/queries";
 import Link from "next/link";
 import ListRow from "@/components/ListRow";
+import { buildDateLabel } from "@/lib/dateLabel";
 
 export const metadata = {
   title: "Programs and Events — Rooted In Mindfulness",
@@ -14,6 +15,11 @@ interface Program {
   name: string;
   slug: { current: string };
   dateText?: string;
+  startDatetime?: string | null;
+  endDatetime?: string | null;
+  recurrenceFreq?: string | null;
+  recurrenceInterval?: number | null;
+  recurrenceDays?: string[] | null;
   dashboardSpecialAnnouncement?: string;
   programCategory?: { name: string; slug: { current: string } };
 }
@@ -65,7 +71,7 @@ export default async function CommunityProgramsPage() {
                   <ListRow
                     key={program._id}
                     title={program.name}
-                    subtitle={program.dateText}
+                    subtitle={program.dateText || buildDateLabel(program) || undefined}
                     announcement={program.dashboardSpecialAnnouncement}
                     href={`/programs/${program.slug.current}`}
                     buttonLabel="Learn More"

@@ -8,6 +8,7 @@ import TeacherList from "@/components/TeacherList";
 import { db } from "@/lib/db";
 import { buildGoogleCalendarUrl, buildIcsUrl, describeRecurrence } from "@/lib/calendarLinks";
 import { resolveLocation } from "@/lib/locations";
+import { buildDateLabel } from "@/lib/dateLabel";
 
 export const revalidate = 60;
 
@@ -162,7 +163,8 @@ export default async function ProgramDetailPage({
   // Resolve location from venue + programFormat
   const location = resolveLocation(program.venue, program.locationText, program.locationLink);
   const showWhere = program.programFormat !== "virtual" && !!location.text;
-  const hasDetails = !!(program.dateText || showWhere || program.danaText);
+  const dateLabel = program.dateText || buildDateLabel(program);
+  const hasDetails = !!(dateLabel || showWhere || program.danaText);
   const hasFacilitators = !!(program.teacherFacilitators && program.teacherFacilitators.length > 0);
   const hasDescription = !!(program.programDescription && program.programDescription.length > 0);
   const hasSpecialNotes = !!(program.specialNotes && program.specialNotes.length > 0);
@@ -209,10 +211,10 @@ export default async function ProgramDetailPage({
             feasibility before reading the full description. */}
         {hasDetails && (
           <div className="pg-details">
-            {program.dateText && (
+            {dateLabel && (
               <div className="pg-details__row">
                 <span className="pg-details__label">Schedule</span>
-                <span className="pg-details__value">{program.dateText}</span>
+                <span className="pg-details__value">{dateLabel}</span>
               </div>
             )}
             {showWhere && (

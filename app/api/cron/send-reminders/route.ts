@@ -4,6 +4,7 @@ import { sanityClient } from "@/lib/sanity";
 import { programsWithReminderInWindowQuery } from "@/lib/queries";
 import { sendReminderEmail } from "@/lib/email";
 import { resolveLocation } from "@/lib/locations";
+import { buildDateLabel } from "@/lib/dateLabel";
 
 // ─── GET /api/cron/send-reminders ─────────────────────────────────────────────
 // Daily cron job (runs at 14:00 UTC via vercel.json schedule).
@@ -47,7 +48,7 @@ export async function GET(req: NextRequest) {
         firstName:    reg.firstName,
         programTitle: reg.programTitle,
         programSlug:  reg.programSlug,
-        dateText:     program.dateText,
+        dateText:     program.dateText || buildDateLabel(program),
         locationText: loc.emailText,
         locationLink: loc.link,
         zoomLink:     program.zoomLink,

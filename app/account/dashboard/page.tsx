@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import AccountLayout from "@/components/AccountLayout";
+import { buildDateLabel } from "@/lib/dateLabel";
 
 export const metadata = { title: "My Dashboard — Rooted In Mindfulness" };
 
@@ -17,6 +18,11 @@ interface DashboardProgram {
   sortOrder?: number;
   dayOfWeek?: { name: string }[];
   dateText?: string;
+  startDatetime?: string | null;
+  endDatetime?: string | null;
+  recurrenceFreq?: string | null;
+  recurrenceInterval?: number | null;
+  recurrenceDays?: string[] | null;
   zoomLink?: string;
   dashboardSpecialAnnouncement?: string;
   dashboardEarlyArrivalMessage?: string;
@@ -128,8 +134,8 @@ export default async function DashboardPage() {
                     className="db-staff__card"
                   >
                     <span className="db-staff__card-title">{program.name}</span>
-                    {program.dateText && (
-                      <span className="db-staff__card-desc">{program.dateText}</span>
+                    {(program.dateText || buildDateLabel(program)) && (
+                      <span className="db-staff__card-desc">{program.dateText || buildDateLabel(program)}</span>
                     )}
                     {program.dashboardSpecialAnnouncement && (
                       <span className="db-staff__card-desc" style={{ color: "var(--rim-mid)", fontStyle: "italic" }}>
@@ -140,8 +146,8 @@ export default async function DashboardPage() {
                 ) : (
                   <div key={program._id} className="db-staff__card" style={{ opacity: 0.5 }}>
                     <span className="db-staff__card-title">{program.name}</span>
-                    {program.dateText && (
-                      <span className="db-staff__card-desc">{program.dateText}</span>
+                    {(program.dateText || buildDateLabel(program)) && (
+                      <span className="db-staff__card-desc">{program.dateText || buildDateLabel(program)}</span>
                     )}
                     <span className="db-staff__card-desc">No meeting link available</span>
                   </div>

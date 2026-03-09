@@ -13,6 +13,7 @@ import { redirect } from "next/navigation";
 import { sanityClient } from "@/lib/sanity";
 import { hostProgramsQuery } from "@/lib/queries";
 import AccountLayout from "@/components/AccountLayout";
+import { buildDateLabel } from "@/lib/dateLabel";
 
 export const metadata = { title: "Host Area — Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
@@ -22,6 +23,11 @@ interface HostProgram {
   name: string;
   slug: string;
   dateText?: string | null;
+  startDatetime?: string | null;
+  endDatetime?: string | null;
+  recurrenceFreq?: string | null;
+  recurrenceInterval?: number | null;
+  recurrenceDays?: string[] | null;
   zoomLink: string;
   meetHostAccount?: string | null;
   dayOfWeek?: { name: string }[];
@@ -67,7 +73,7 @@ export default async function HostAreaPage() {
         ) : (
           <div className="hs-programs">
             {programs.map((program) => {
-              const dayTime = program.dateText || "—";
+              const dayTime = program.dateText || buildDateLabel(program) || "—";
               const hostAccount = program.meetHostAccount;
 
               return (
