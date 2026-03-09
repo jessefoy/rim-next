@@ -655,13 +655,17 @@ The `programs` schema is organized into six tabs (in order):
 | Tab | What's in it |
 |---|---|
 | **Content** | Tagline, program image, description, pull quote + source, special notes, teacher/facilitators, linked courses |
-| **Schedule & Location** | Category, date & time (display text), location + map link, meeting link, calendar datetime fields (`startDatetime` / `endDatetime`), recurrence fields (`recurrenceFreq` / `recurrenceInterval` / `recurrenceDays` / `recurrenceCount`) |
+| **Schedule & Location** | Category, date & time (display text), **programFormat** (In-person / Virtual / Hybrid), **venue** (At RIM / Other location), location + map link, meeting link, calendar datetime fields (`startDatetime` / `endDatetime`), recurrence fields (`recurrenceFreq` / `recurrenceInterval` / `recurrenceDays` / `recurrenceCount`) |
 | **Registration** | Enabled toggle → Registration Closed flag → Capacity + Deadline → Custom questions → Confirmation email message → Reminder date + reminder message |
 | **Dana** | Dana mode → amounts → dana step message → program-page dana note |
 | **Dashboard** | Special announcement, early arrival message, hide from member dashboard, day of week (drives "Today" badge + public listing day grouping) |
 | **Visibility** | Sort order, hide from public list |
 
-> **Schema cleanup (session 28, 2026-03-05):** Three fields removed from the schema: `timeText` (merged into `dateText` display field, now titled "Date & Time"), `zoomLinkText` (button label hardcoded to "Join on Google Meet" in code), `dayFiltering` (legacy comma-string system; superseded by `dayOfWeek` references). Two fields moved between groups: `teacherFacilitators` Schedule → Content, `dayOfWeek` Sorting → Dashboard. Two tab renames: "Dana & Payment" → "Dana", "Sorting & Visibility" → "Visibility". One field title rename: "Remove from Dashboard Program List" → "Hide from Member Dashboard". All connected GROQ queries, email builders, components, and API routes updated to match. Sanity Studio deployed.
+> **Schema cleanup (session 28, 2026-03-05):** Three fields removed: `timeText` (merged into `dateText`, now titled "Date & Time"), `zoomLinkText` (button label hardcoded), `dayFiltering` (legacy comma-string). Two fields moved: `teacherFacilitators` Schedule → Content, `dayOfWeek` Sorting → Dashboard. Two tab renames: "Dana & Payment" → "Dana", "Sorting & Visibility" → "Visibility". One field title rename: "Remove from Dashboard Program List" → "Hide from Member Dashboard".
+>
+> **programFormat (session 33, 2026-03-09):** Added `programFormat` radio field (In-person / Virtual / Hybrid) replacing the old `isVirtual` boolean. Drives Sanity Studio field visibility (location fields hide for virtual, Meet fields hide for in-person), the registrar area Google Meet section, the host area query filter, and the Sanity webhook handler. Default: `"in-person"`.
+>
+> **venue (session 33, 2026-03-09):** Added `venue` radio field (At RIM / Other location) in the Schedule group. Defaults to `"at-rim"` — no manual address entry needed for standard RIM sessions. When set to "at-rim", `lib/locations.ts` injects the canonical RIM name, address, and Google Maps URL automatically in the program detail page, all confirmation/reminder emails, and calendar links. `locationText` and `locationLink` fields only show in Studio when venue is set to "other". Legacy records (no venue field) pass through raw `locationText`/`locationLink` unchanged.
 
 ### Fields added to `programs` schema (registration group)
 
@@ -1595,6 +1599,7 @@ const spotOpened = !!registrationCapacity
 | 2026-03-04 | Registration form UX + security hardening (session 17): (1) Sanity program category field UX — added description, `disableNew: true`, `filter: "hideFromProgramsPage != true"` so the dropdown shows immediately; renamed `hideFromProgramPageList` title + added description; Sanity deployed. (2) Fillout legacy removal — removed `registrationRequired`, `filloutRegistrationFormId`, `signedOutInstructions`, `signedInInstructions` from programs page, GROQ queries, and Sanity schema; wired `registrationClosed` boolean into built-in form path (combines with `registrationDeadline` check); commit fa1464e. (3) Email recognition — new `GET /api/account/check-email` (public, returns name/phone/agreedToTerms for known emails); `handleEmailBlur` in RegistrationForm pre-fills from account and shows "Welcome back, [Name]!" notice; pre-fill logic uses account values first (`data.firstName || prev.firstName`); commits 08fe82d → eadb5e7 → 16aca2e. (4) Security — name + phone fields locked `readOnly` in form when recognized account found (`emailCheckStatus === "found"`); API introduces `resolvedFirstName`, `resolvedLastName`, `resolvedPhone` — account stored values always win for existing users regardless of form submission; `pg-form__input[readonly]` + `pg-form__input--locked` CSS; commits ef515d6 + 7b75eba. (5) Dana $0 bug fix — `effectiveDanaMode` sent to API is `"none"` when fixed/base amount not configured (→ `donationStatus: WAIVED`); `hasConfiguredAmount` guard skips dana step in form; commit acbdadd. (6) Documentation — FEATURES.md Sections 4a, 4c, 8, 9 updated; new Section 17 (Planned Features) added with 17a (automated dana follow-up cron), 17b (member cancellation self-service), 17c (self-service email change cross-ref). |
 | 2026-03-04 (session 20) | Add-to-calendar links (17e), resend confirmation email (17g), CSV export doc (17h already built): New `lib/calendarLinks.ts` — `buildGoogleCalendarUrl`, `buildIcsUrl`, `buildIcsContent` utilities; Sanity programs schema gains `startDatetime` + `endDatetime` datetime fields in schedule group (calendar links only appear when startDatetime is set — recurring programs leave it blank); Sanity Studio deployed. New `GET /api/programs/[slug]/ical/route.ts` returns RFC 5545 `.ics` file for Apple/Outlook download. `lib/email.ts` adds `googleCalendarUrl` + `icsUrl` to `RegistrationEmailData` — calendar links block rendered in HTML email (Google Calendar + Apple/Outlook links, waitlisted registrations excluded); `lib/queries.ts` adds `startDatetime`/`endDatetime` to `programBySlugQuery` + new `programConfirmationDataQuery`. `app/api/registrations/route.ts` fetches `startDatetime`/`endDatetime` from Sanity and passes calendar links to confirmation email. `app/programs/[slug]/page.tsx` shows "+ Google Calendar" and "+ Apple / Outlook" links below "✓ You're registered." when startDatetime is set. `components/VolunteerTable.tsx` adds "Resend Confirmation" action button for REGISTERED/APPROVED rows — two-step inline confirm dialog ("Resend confirmation to [firstName]?"), calls PATCH `action: "resendConfirmation"`; `app/api/registrations/[id]/route.ts` adds resendConfirmation action (fetches Sanity program data, builds calendar links, calls `sendRegistrationEmail`). CSV export (17h) confirmed already built in earlier session — `GET /api/programs/[slug]/registrations?format=csv` with dynamic custom field columns; VolunteerTable CSV button already present. CSS: `.pg-calendar-links`, `.pg-calendar-link`, `.vol-action-btn--resend`. FEATURES.md sections 17e, 17g, 17h updated to ✅ Built. Commit: 2da2796. |
 | 2026-03-05 (session 21) | Calendar recurrence + Google Meet planning: Added `recurrencePattern` string-select field to Sanity (15 options: daily/weekly/monthly variants). `lib/calendarLinks.ts` gains `buildRRule()` + `describeRecurrence()`. Renamed Sanity `zoomLink`/`zoomLinkText` titles to "Meeting Link" / "Meeting Button Text". Added FEATURES.md Section 19 (Google Meet Integration full spec). Sanity deployed. Commits: 544ddb1, ad5e472. *Note: recurrencePattern immediately superseded in session 22 — see below.* |
+| 2026-03-09 (session 33) | **Google Meet + programFormat + venue (three related features):** **(1) Meet orphan fix:** POST `/api/programs/[slug]/google-meet` now deletes old calendar event before creating a new Meet when one already exists — prevents orphaned room bookings. Fetches `calendarEventId` + `meetHostAccount` from Sanity in the pre-create query; calls `deleteCalendarEvent()` (non-fatal if old event already gone). **(2) isVirtual → programFormat refactor:** Replaced `isVirtual` boolean with `programFormat` radio (In-person / Virtual / Hybrid) across Sanity schema, GROQ queries, webhook handler, registrar page, host area query. `programFormat === "in-person"` triggers calendar event deletion in webhook. Meet section in registrar area now shows for `virtual` or `hybrid`. `CreateMeetButton` simplified: dropped Replace + Release states; replaced with single "Remove Meet" (confirm dialog) — 5-state machine (idle/loading/done/remove/removing). **(3) Venue/location system:** New `lib/locations.ts` — `RIM_NAME`, `RIM_ADDRESS`, `RIM_MAPS_URL`, `RIM_EMAIL_LOCATION` constants + `resolveLocation(venue, locationText, locationLink)` helper → `{ text, link, emailText }`. New `venue` radio field in Sanity (At RIM / Other location, default "at-rim") — hides `locationText`/`locationLink` for "at-rim"; only shown when programFormat is not virtual. Program detail page "Where" row driven by `resolveLocation()` — hidden for virtual programs; "at-rim" shows RIM name + Google Maps link automatically. All confirmation emails, reminder emails, resend confirmation, and iCal download updated to use resolved location. Five GROQ queries updated to include `venue`. Commits: dcbeb7d (rim-next), f33c7da (rim-website Sanity). |
 | 2026-03-05 (session 22) | Zoom-style recurrence fields: Replaced the fixed 15-option `recurrencePattern` select with four structured fields that give unlimited flexibility — identical to how Zoom and Google Calendar handle recurring events. **Sanity schema** (`programs.js`): `recurrenceFreq` (radio: Daily / Weekly / Monthly; blank = single event), `recurrenceInterval` (number: "every N days/weeks/months"), `recurrenceDays` (array checkboxes: SU MO TU WE TH FR SA — hidden unless Weekly), `recurrenceCount` (number: total sessions including first). Fields show/hide conditionally so the form stays clean — `interval` and `count` hidden when no freq set, `days` hidden unless weekly. **`lib/calendarLinks.ts`**: `CalendarEvent` interface gains the 4 fields; `buildRRule()` rewritten to compose full RFC 5545 RRULE — `FREQ` + optional `INTERVAL` + optional `BYDAY` (weekly only) + `COUNT`; `describeRecurrence()` signature changed from `(pattern)` to `(freq, interval, days, count)` — returns `{ googleLabel, icsLabel }` for UI. **All consumers updated**: `lib/queries.ts` (`programBySlugQuery` + `programConfirmationDataQuery`); `app/api/programs/[slug]/ical/route.ts`; `app/api/registrations/route.ts` (inline GROQ); `app/api/registrations/[id]/route.ts` (resendConfirmation); `app/programs/[slug]/page.tsx` (Program interface + IIFE in JSX). TypeScript clean, Sanity Studio deployed, committed 85666df. **Example RRULEs**: daily/3 → `RRULE:FREQ=DAILY;COUNT=3`; weekly Wed/4 → `RRULE:FREQ=WEEKLY;BYDAY=WE;COUNT=4`; bi-weekly Sat/12 → `RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=SA;COUNT=12`. Apple/Outlook .ics includes full RRULE (all sessions); Google Calendar URL shows first session only (GCal URL format limitation) — labels differentiate clearly. |
 
 ---
@@ -1679,9 +1684,9 @@ Note: The Developer token is a **server-side secret** stored only in Vercel env 
 
 ---
 
-## 19. Google Meet Integration ✅ Built — updated session 31 (2026-03-08)
+## 19. Google Meet Integration ✅ Built — updated session 33 (2026-03-09)
 
-**What it does:** Replaces Zoom with Google Meet for all virtual programs. When a registrar toggles `isVirtual = true`, sets a Start Date & Time, and publishes in Sanity Studio, a Sanity webhook fires automatically — the system finds a free room account, creates a Meet space, adds a Google Calendar event, and writes the link + room email + calendar event ID back to Sanity. The link appears on the program page, in confirmation and reminder emails, without any manual copy-paste. **Time changes sync automatically**: republishing with a new start time patches the calendar booking. **Virtual → in-person**: toggling `isVirtual` off and republishing deletes the calendar event and clears the Meet fields. A manual "Create Google Meet" button remains in the registrar area for edge cases and replacements. The **Meet Host** team logs into the assigned room account to get host controls.
+**What it does:** Replaces Zoom with Google Meet for all virtual and hybrid programs. A registrar clicks "Create Google Meet" in the Registrar Area — the app finds a free room account, creates a Meet space, adds a Google Calendar event, and writes the link + room email + calendar event ID back to Sanity. The link appears in confirmation and reminder emails. **Time changes sync automatically:** republishing in Sanity patches the calendar booking. **Switching to in-person:** setting programFormat to "in-person" and republishing deletes the calendar event and clears all Meet fields. The **Meet Host** team logs into the assigned room account to get host controls.
 
 **Why this matters:**
 - Eliminates Zoom costs and 40-minute limits for a nonprofit on Google Workspace
@@ -1691,9 +1696,9 @@ Note: The Developer token is a **server-side secret** stored only in Vercel env 
 - Can be tested before DNS cutover — fully functional on rim-next.vercel.app
 
 **Who uses it:**
-- **Registrars/Admins** — click "Create Google Meet" on the volunteer programs page; app assigns a room and writes the link to Sanity
-- **Meet Host team (HOST role)** — check `/account/host` to see which room account is assigned to each virtual program; log in as that account before the session to get host controls
-- **Members** — receive the Meet link in confirmation + reminder emails; see it on the program page
+- **Registrars/Admins** — click "Create Google Meet" in the Registrar Area; app assigns a room and writes the link to Sanity
+- **Meet Host team (HOST role)** — check `/account/host` to see which room account is assigned to each virtual/hybrid program; log in as that account before the session
+- **Members** — receive the Meet link in confirmation + reminder emails
 
 ---
 
@@ -1709,59 +1714,58 @@ Note: The Developer token is a **server-side secret** stored only in Vercel env 
 
 The app assigns whichever room is free for a given time slot (checking the shared calendar for conflicts). Whoever logs in as that account when the session starts automatically owns the meeting with full host controls.
 
-**Why not pre-assign a volunteer as co-host?** The original design used `spaces.members.create` to pre-assign a specific volunteer's email as COHOST at meeting creation time. This was removed — RIM's host team is rotating and the host for a particular session isn't decided at program setup time. The room account model is simpler: the host team sees which account to use on the `/account/host` page, logs in as that account, and has full host controls automatically. No fixed assignment needed.
-
 ---
 
 ### Staff workflow
 
-**Normal path (automatic):**
-1. In Sanity Studio, toggle **Virtual Program** on (**2 — When & Where** tab), set **Start Date & Time**, and publish
-2. Within seconds, the Sanity webhook fires: a room account is selected, Meet space created, calendar event created, and all three IDs written back to Sanity
-3. The `isVirtual` toggle locks in Studio — prevents accidental toggling off while the room booking exists
-4. Meet link appears on the program page and goes out in all confirmation/reminder emails automatically
-5. If the time changes later, republish — the calendar room booking patches automatically; the Meet link stays the same
+**Creating a Meet (manual — the only path):**
+1. In Sanity Studio, set **Format** to Virtual or Hybrid (**2 — When & Where** tab) and set **Start Date & Time**; publish
+2. Go to `/account/registrar/[slug]`
+3. Click **"Create Google Meet"** in the Google Meet panel
+4. App finds a free room account, creates the Meet space + calendar event, writes back to Sanity
+5. "Google Meet" panel shows the link + assigned host account
 6. Host team checks `/account/host`; they sign in as the assigned room account before the session
 
-**Manual fallback (existing programs or edge cases):**
-1. Go to `/account/registrar/[slug]`
-2. Click **"Create Google Meet"** in the Google Meet panel at the top
-3. App finds a free room account, creates the Meet space + calendar event, writes back to Sanity
+**If the time changes:**
+- Update Start Date & Time in Sanity and publish — the Sanity webhook patches the existing calendar event automatically. The Meet link stays the same.
 
-**Releasing a Meet (rescheduling or cancelling):**
+**Removing a Meet (rescheduling or cancelling):**
 1. Go to `/account/registrar/[slug]`
-2. Click **"Release Meet"** in the Google Meet panel (muted red, to the right of Replace)
+2. Click **"Remove Meet"** (muted red)
 3. Confirm in the dialog — app calls `DELETE /api/programs/[slug]/google-meet`, which deletes the Google Calendar event and clears `zoomLink`, `meetHostAccount`, `calendarEventId` from Sanity
-4. The `isVirtual` toggle unlocks in Studio — registrar can now change the date/time or toggle isVirtual off
-5. To re-create: update the date in Sanity and republish (automatic webhook) or click Create Google Meet (manual)
+4. To re-create: click "Create Google Meet" again (after updating the date if needed)
+
+**Replacing a Meet (new time slot, same program):**
+- Click "Remove Meet" first, then update the Start Date & Time in Sanity and click "Create Google Meet" again.
+- Or: just click "Create Google Meet" again without removing — the POST handler detects an existing `calendarEventId` and deletes the old calendar event before creating the new one (prevents orphaned room bookings).
 
 ---
 
 ### Technical notes
 
-- **Sanity webhook:** `POST /api/webhooks/sanity-programs` — receives every programs create/update/delete. Validates HMAC-SHA256 signature (`sanity-webhook-signature` header). Operation detection: if `delta::operation()` is not in the payload (basic webhook without GROQ projection), the handler queries Sanity — document exists → update, doesn't exist → delete. Webhook created via Sanity Management API (filter: `_type == "programs"`, dataset: production, secret: `SANITY_WEBHOOK_SECRET`).
-- **isVirtual field:** Boolean on the `programs` schema (**2 — When & Where** tab). When true, location fields hide and Meet fields show. Drives the webhook trigger — only virtual programs with a start time get a Meet. Locks via `readOnly: ({ document }) => !!document?.calendarEventId` once a Meet exists; Release Meet button in the registrar area is the only unlock path.
-- **calendarEventId:** Stored in Sanity document data (not a visible Studio field — no schema entry). Written by both the webhook handler and the manual API route. Read by the webhook (time change / delete) and the Release Meet DELETE route. Enables updating or deleting the calendar booking without creating duplicates. Acts as the lock key for the `isVirtual` readOnly condition.
-- **updateCalendarEvent / deleteCalendarEvent:** Two exported functions in `lib/google-meet.ts`. `updateCalendarEvent` patches the calendar event's time/title; does NOT touch the Meet space (Meet links are permanent). `deleteCalendarEvent` removes the calendar event to free the room slot.
+- **Sanity webhook:** `POST /api/webhooks/sanity-programs` — receives every programs create/update/delete. Validates HMAC-SHA256 signature (`sanity-webhook-signature` header). Operation detection: if `delta::operation()` is not in the payload, the handler queries Sanity — document exists → update, doesn't exist → delete. Webhook created via Sanity Management API (filter: `_type == "programs"`, dataset: production, secret: `SANITY_WEBHOOK_SECRET`). No auto-create in webhook — registrars create meets manually.
+- **programFormat field:** String radio (in-person / virtual / hybrid) replacing the old `isVirtual` boolean. Drives Sanity Studio field visibility, registrar area Meet section, host area query filter, and webhook handler behavior. `in-person` → hide Meet section + delete calendar event on change; `virtual`/`hybrid` → show Meet section.
+- **Orphan prevention (session 33):** POST route now checks for existing `calendarEventId` + `meetHostAccount` before calling `createMeeting()`. If found, `deleteCalendarEvent()` is called first (non-fatal if old event already gone). Prevents orphaned room bookings when registrar clicks "Create" on a program that already has a Meet.
+- **calendarEventId:** Stored in Sanity. Written by the manual API route. Read by the webhook (time change / delete) and the Remove Meet DELETE route. Enables updating or deleting the calendar booking without duplicates.
+- **updateCalendarEvent / deleteCalendarEvent:** Two exported functions in `lib/google-meet.ts`. `updateCalendarEvent` patches time/title; does NOT touch the Meet space (Meet links are permanent). `deleteCalendarEvent` removes the calendar event to free the room slot.
 - **DWD impersonation:** The service account (`rim-programs-bot@rim-programs.iam.gserviceaccount.com`) impersonates the chosen room account via JWT + Domain-Wide Delegation. Room accounts own the meeting; no human credentials needed.
 - **Room selection:** `findAvailableRoom()` queries each room account's own `primary` calendar for events in the time window. Returns first free room; throws `NO_ROOM_AVAILABLE` (handled as 409) if all rooms are booked.
 - **Meet REST API scope:** `https://www.googleapis.com/auth/meetings.space.created` + `https://www.googleapis.com/auth/calendar.events` — both granted in DWD config.
 - **Meet creation:** `spaces.create` with `{ config: { accessType: "TRUSTED", entryPointAccess: "ALL" } }` — TRUSTED means anyone with a `@rootedinmindfulness.org` account can join without waiting to be admitted.
-- **Co-host pre-assignment removed:** `spaces.members.create` was removed entirely from `lib/google-meet.ts`. The room account IS the host — no volunteer email needed at creation.
 - **`meetHostAccount` Sanity field:** readOnly string; stores the assigned room email. Written alongside `zoomLink` and `calendarEventId`. Shown in CreateMeetButton done state and on `/account/host` page.
 - **`GOOGLE_PRIVATE_KEY`** contains newlines — stored as raw value in Vercel (not base64).
 - **Sanity write-back** uses `SANITY_API_TOKEN` (Editor role token "RIM Next Website Write") — must be Editor or higher for patch/commit.
 
-### Key files ✅ Built — commit ca0068e, updated session 32
+### Key files ✅ Built — updated session 33 (commit dcbeb7d)
 
 - `lib/google-meet.ts` — DWD JWT auth, `findAvailableRoom()` (primary calendar conflict check), `createMeeting()` (spaces.create → calendar event → `{ meetLink, calendarEventId, roomEmail }`), `updateCalendarEvent()` (patches time/title), `deleteCalendarEvent()` (frees room slot)
-- `app/api/webhooks/sanity-programs/route.ts` — Sanity webhook handler: HMAC-SHA256 sig verify, operation detection (payload or Sanity query), create/update/delete routing
-- `app/api/programs/[slug]/google-meet/route.ts` — POST: manual Meet creation, writes `zoomLink`/`meetHostAccount`/`calendarEventId` to Sanity, 409 on no room; DELETE: releases calendar event + clears Sanity fields (REGISTRAR/ADMIN)
-- `components/CreateMeetButton.tsx` — "use client" 6-state (idle/loading/done/replace/release/releasing); Replace overwrites link, Release Meet deletes calendar booking + clears fields; `vol-meet-` CSS prefix
-- `app/account/registrar/[slug]/page.tsx` — renders CreateMeetButton only when `program.isVirtual`; passes `calendarEventId`
-- `lib/queries.ts` — `hostProgramsQuery` (virtual programs with Meet link, incl. `meetHostAccount`)
+- `app/api/webhooks/sanity-programs/route.ts` — Sanity webhook handler: HMAC-SHA256 sig verify, operation detection (payload or Sanity query), update/delete routing (no auto-create)
+- `app/api/programs/[slug]/google-meet/route.ts` — POST: orphan-safe Meet creation (deletes old calendar event if exists), writes `zoomLink`/`meetHostAccount`/`calendarEventId` to Sanity, 409 on no room; DELETE: releases calendar event + clears Sanity fields (REGISTRAR/ADMIN)
+- `components/CreateMeetButton.tsx` — "use client" 5-state (idle/loading/done/remove/removing); done state shows link + host account + Remove button; remove shows confirm dialog; `vol-meet-` CSS prefix
+- `app/account/registrar/[slug]/page.tsx` — renders CreateMeetButton only when `programFormat === "virtual" || "hybrid"`
+- `lib/queries.ts` — `hostProgramsQuery` (programFormat in ["virtual","hybrid"] with Meet link, incl. `meetHostAccount`)
 - `app/account/host/page.tsx` — Host Area page (HOST | REGISTRAR | ADMIN access; see §21)
-- `public/css/custom.css` — `vol-meet-` styles (incl. `vol-meet__release-btn`, `vol-meet__release-confirm-btn`) + `hs-` host area styles
+- `public/css/custom.css` — `vol-meet-` styles (incl. `vol-meet__remove-btn`, `vol-meet__remove-confirm-btn`) + `hs-` host area styles
 
 ### Environment variables (all set in Vercel)
 

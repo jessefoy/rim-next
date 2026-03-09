@@ -274,7 +274,7 @@ const AREAS: FunctionalArea[] = [
         what: "Sent automatically (fire-and-forget) when the REGISTRAR role is newly granted to a member. Highlights two bookmarks: the Registrations dashboard and the Staff Manual. Not re-sent if REGISTRAR is already set when changes are saved.",
         relatedTo: [
           "Triggered by Role Assignment in Member Management (Admin)",
-          "Links to /volunteer and /admin/manual",
+          "Links to /account/registrar and /admin/manual",
           "HOST role assignment has a separate notification email",
         ],
       },
@@ -284,7 +284,7 @@ const AREAS: FunctionalArea[] = [
         what: "Sent once when the HOST role is first assigned to a member. Similar structure to the REGISTRAR notification.",
         relatedTo: [
           "Triggered by HOST Role Assignment in Member Management (Admin)",
-          "Links to /hosts and relevant documentation",
+          "Links to /account/host and relevant documentation",
         ],
       },
       {
@@ -377,11 +377,11 @@ const AREAS: FunctionalArea[] = [
     id: "volunteer",
     title: "Volunteer / Registrar Tools",
     icon: "📊",
-    desc: "Private staff area for managing program registrations. Accessible at /volunteer. Requires login; REGISTRAR or ADMIN role recommended.",
+    desc: "Private staff area for managing program registrations. Accessible at /account/registrar. Requires login; REGISTRAR or ADMIN role.",
     features: [
       {
         name: "Registrar Program List",
-        locations: ["/volunteer"],
+        locations: ["/account/registrar"],
         what: "Lists all programs where registrationEnabled = true (from Sanity). Shows registration counts by status (total, registered, waitlisted, approved). Each program links to its registration table.",
         relatedTo: [
           "Sanity CMS — registrationEnabled field on programs",
@@ -391,7 +391,7 @@ const AREAS: FunctionalArea[] = [
       },
       {
         name: "Registration Management Table",
-        locations: ["/volunteer/programs/[slug]", "Component: VolunteerTable.tsx", "API: GET /api/programs/[slug]/registrations"],
+        locations: ["/account/registrar/[slug]", "Component: VolunteerTable.tsx", "API: GET /api/programs/[slug]/registrations"],
         what: "Full registrant list for a program with filtering by status. Each row shows name, email, phone, status badge, donation status, and registration date. Click to expand for custom field answers and staff notes. Mobile view transforms into a card layout.",
         relatedTo: [
           "All registration actions connect to PATCH /api/registrations/[id]",
@@ -402,7 +402,7 @@ const AREAS: FunctionalArea[] = [
       },
       {
         name: "Promote / Cancel / Restore Actions",
-        locations: ["/volunteer/programs/[slug]", "Component: VolunteerTable.tsx", "API: PATCH /api/registrations/[id]"],
+        locations: ["/account/registrar/[slug]", "Component: VolunteerTable.tsx", "API: PATCH /api/registrations/[id]"],
         what: "Context-aware action buttons per row: WAITLISTED → 'Promote →' (moves to APPROVED, sets donationStatus, sends approval email); REGISTERED/APPROVED → 'Cancel' (with inline confirm, sends cancellation notification); CANCELLED → 'Restore' (moves back to REGISTERED). Optimistic UI.",
         relatedTo: [
           "Waitlist Approval Email triggered on promote",
@@ -413,7 +413,7 @@ const AREAS: FunctionalArea[] = [
       },
       {
         name: "Inline Custom Field Editing",
-        locations: ["/volunteer/programs/[slug]", "Component: VolunteerTable.tsx", "API: PATCH /api/registrations/[id]"],
+        locations: ["/account/registrar/[slug]", "Component: VolunteerTable.tsx", "API: PATCH /api/registrations/[id]"],
         what: "Registrar can edit a registrant's custom field answers inline without a page reload. Click 'Edit' next to the RESPONSES column header to enter edit mode. Input type is determined by the field definition in Sanity: yesNo → dropdown, select → dropdown with program options, longText → textarea, shortText → text input.",
         relatedTo: [
           "Field type definitions from Sanity CMS (registrationFields)",
@@ -423,7 +423,7 @@ const AREAS: FunctionalArea[] = [
       },
       {
         name: "Send Edit Request (Self-Service Edit Link)",
-        locations: ["/volunteer/programs/[slug]", "Component: VolunteerTable.tsx", "API: PATCH /api/registrations/[id] (action: sendEditRequest)", "/update/[token]"],
+        locations: ["/account/registrar/[slug]", "Component: VolunteerTable.tsx", "API: PATCH /api/registrations/[id] (action: sendEditRequest)", "/update/[token]"],
         what: "Registrar can send a non-cancelled registrant a secure one-time link to update their own custom field answers without logging in. The link expires in 7 days and is invalidated immediately after use.",
         relatedTo: [
           "Edit Request Email (to registrant)",
@@ -434,7 +434,7 @@ const AREAS: FunctionalArea[] = [
       },
       {
         name: "Send Reminder (Per-Row & Bulk)",
-        locations: ["/volunteer/programs/[slug]", "Component: VolunteerTable.tsx", "API: PATCH /api/registrations/[id] (action: sendReminder), POST /api/programs/[slug]/send-reminder"],
+        locations: ["/account/registrar/[slug]", "Component: VolunteerTable.tsx", "API: PATCH /api/registrations/[id] (action: sendReminder), POST /api/programs/[slug]/send-reminder"],
         what: "Per-row: 'Send Reminder' button on REGISTERED/APPROVED rows. Shows sent timestamp after first send; re-sends possible. Bulk: 'Send to Remaining N' button in the reminder banner above the table (shown when reminderDate is set in Sanity). reminderSentAt prevents double-sends from cron + manual.",
         relatedTo: [
           "Program Reminder Email",
@@ -444,7 +444,7 @@ const AREAS: FunctionalArea[] = [
       },
       {
         name: "Send Dana Reminder (Per-Row, Manual)",
-        locations: ["/volunteer/programs/[slug]", "Component: VolunteerTable.tsx", "API: PATCH /api/registrations/[id] (action: sendDanaReminder)"],
+        locations: ["/account/registrar/[slug]", "Component: VolunteerTable.tsx", "API: PATCH /api/registrations/[id] (action: sendDanaReminder)"],
         what: "Available for REGISTERED/APPROVED rows where donationStatus is PENDING. Sends a gentle dana nudge email. Returns 400 if donationStatus is not PENDING.",
         relatedTo: [
           "Dana Reminder Email",
@@ -463,7 +463,7 @@ const AREAS: FunctionalArea[] = [
       },
       {
         name: "Spot-Opened Alert",
-        locations: ["/volunteer/programs/[slug]", "Component: VolunteerTable.tsx"],
+        locations: ["/account/registrar/[slug]", "Component: VolunteerTable.tsx"],
         what: "When a cancellation (by staff or member) creates a vacancy, a banner appears in the volunteer table indicating a spot is now open and a waitlisted registrant could be promoted.",
         relatedTo: [
           "Triggered by Cancel action (Promote / Cancel / Restore Actions)",
@@ -473,7 +473,7 @@ const AREAS: FunctionalArea[] = [
       },
       {
         name: "Host Area",
-        locations: ["/hosts"],
+        locations: ["/account/host"],
         what: "A page for the host team (HOST, REGISTRAR, or ADMIN roles) listing virtual programs with their assigned Google Meet room and join link. Includes 'How to host' guidance.",
         relatedTo: [
           "Google Meet Integration — room accounts and meet links",
@@ -682,12 +682,12 @@ const AREAS: FunctionalArea[] = [
     id: "meet",
     title: "Google Meet Integration",
     icon: "🎥",
-    desc: "Automatic creation and lifecycle management of Google Meet spaces for virtual programs via Sanity webhook. Uses Domain-Wide Delegation to impersonate shared room accounts.",
+    desc: "Lifecycle management of Google Meet spaces for virtual and hybrid programs. Meet links are created manually by registrars. A Sanity webhook handles calendar sync and cleanup. Uses Domain-Wide Delegation to impersonate shared room accounts.",
     features: [
       {
-        name: "Automatic Meet Creation (Sanity Webhook)",
+        name: "Sanity Webhook (Calendar Sync & Cleanup)",
         locations: ["API: POST /api/webhooks/sanity-programs", "File: lib/google-meet.ts"],
-        what: "When a virtual or hybrid program's start time changes in Sanity Studio, a webhook fires and updates the Google Calendar room booking automatically. If programFormat is changed to in-person, the calendar event is deleted and Meet fields are cleared. Meet links are created manually by registrars — the webhook no longer auto-creates them.",
+        what: "A Sanity webhook fires when a program is published. If the start time changed, the Google Calendar room booking updates automatically. If programFormat is changed to in-person, the calendar event is deleted and Meet fields are cleared. Note: the webhook does NOT auto-create Meet links — that is always done manually by a registrar.",
         relatedTo: [
           "Sanity CMS — programFormat, startDatetime, zoomLink, meetHostAccount, calendarEventId fields",
           "Google Workspace (Domain-Wide Delegation, room account calendars)",
@@ -697,8 +697,8 @@ const AREAS: FunctionalArea[] = [
       },
       {
         name: "Manual Create Meet Button",
-        locations: ["/volunteer/programs/[slug]", "Component: CreateMeetButton.tsx", "API: POST /api/programs/[slug]/google-meet"],
-        what: "Registrars create and manage Meet links manually from the registrar program detail page. The section appears when programFormat is virtual or hybrid. Create Google Meet assigns a free room account and writes the link to Sanity. Remove Meet deletes the calendar booking and clears the fields.",
+        locations: ["/account/registrar/[slug]", "Component: CreateMeetButton.tsx", "API: POST /api/programs/[slug]/google-meet"],
+        what: "Registrars create Meet links manually from the registrar program detail page. The panel appears when programFormat is virtual or hybrid. 'Create Google Meet' finds a free room account, creates the space, and writes the link + room assignment to Sanity. 'Remove Meet' deletes the calendar booking and clears all Meet fields. An orphan guard (409) prevents creating a duplicate if a link already exists.",
         relatedTo: [
           "Sanity CMS — writes zoomLink, meetHostAccount, calendarEventId",
           "Volunteer Tools — CreateMeetButton in the program detail page",
@@ -716,7 +716,7 @@ const AREAS: FunctionalArea[] = [
       },
       {
         name: "Meet Link on Dashboard & Host Area",
-        locations: ["/account/dashboard", "/hosts"],
+        locations: ["/account/dashboard", "/account/host"],
         what: "Google Meet links are shown to logged-in members on the Dashboard under 'Today's Sessions.' They are also shown on the Host Area for staff reference. Links are deliberately NOT shown in confirmation emails or on public program pages — members must be logged in to access them.",
         relatedTo: [
           "Dashboard Hub (Member Experience)",
@@ -736,13 +736,14 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Programs Schema",
         locations: ["File: sanity/schemas/programs.js", "Sanity Studio: programs collection"],
-        what: "The richest schema in the system. Six tabs: Content, Schedule & Location, Registration, Dana, Dashboard, Visibility. Controls everything from program description and teacher to registration capacity, custom questions, dana mode, reminder dates, and Google Meet link.",
+        what: "The richest schema in the system. Six workflow tabs: 1 — Basics (category, tagline, image, teachers, description), 2 — When & Where (dateText, startDatetime, programFormat, venue, location fields, recurrence, Meet link), 3 — Registration (capacity, custom questions, linked courses), 4 — Emails (confirmationMessage, reminderDate, reminderMessage), 5 — Dana (danaMode, amounts), 6 — Settings (sortOrder, dayOfWeek, hideFromDashboard). Key fields: `programFormat` (in-person/virtual/hybrid, drives Where row + Meet panel visibility); `venue` (at-rim auto-fills RIM address via lib/locations.ts, or 'other' for custom location).",
         relatedTo: [
           "Drives Program Registration (all registration fields)",
           "Drives Payment & Dana (danaMode, amounts, message)",
           "Drives Email & Notifications (reminderDate, reminderMessage, confirmationMessage)",
-          "Drives Google Meet Integration (meetLink, meetHostAccount)",
+          "Drives Google Meet Integration (meetLink, meetHostAccount) — virtual/hybrid only",
           "Drives Dashboard 'Today' panel (dayOfWeek, hideFromDashboard)",
+          "lib/locations.ts resolves venue → address for emails, calendar links, program page",
           "richContent shared type for description and other rich text fields",
         ],
       },
@@ -974,7 +975,7 @@ const USER_TYPES = [
   {
     who: "Registrar / HOST",
     login: "Magic link + role",
-    canDo: "Registrar: registration management (/volunteer), Sanity Studio. HOST: Host Area (/hosts) for Google Meet coordination.",
+    canDo: "Registrar: registration management (/account/registrar), Sanity Studio. HOST: Host Area (/account/host) for Google Meet coordination.",
   },
   {
     who: "Admin",
@@ -1076,7 +1077,7 @@ const DATA_FLOWS: {
       { area: "Email",              what: "Confirmation email sent immediately — registered or waitlisted variant, with add-to-calendar links if program datetimes are set in Sanity." },
       { area: "Stripe / Dana",      what: "If REGISTERED and danaMode ≠ none: a dana invitation appears inline after the confirmation message. Visitor can offer dana or genuinely skip." },
       { area: "Stripe Webhook",     what: "If the visitor pays: Stripe fires a webhook to our API → donationStatus → COMPLETED → a Donation record is written to Postgres." },
-      { area: "Volunteer Tools",    what: "The registration now appears in /volunteer/programs/[slug] for the registrar to see, manage, and act on." },
+      { area: "Registrar Tools",    what: "The registration now appears in /account/registrar/[slug] for the registrar to see, manage, and act on." },
       { area: "Scheduling",         what: "On the program's reminderDate: the daily cron fires and sends a reminder email to all active registrants who haven't received one yet." },
       { area: "Auth + Onboarding",  what: "If the visitor logs in for the first time (via magic link), they land at /account/welcome to set their name and agree to community agreements." },
       { area: "Member Experience",  what: "Member now sees their registration on My Programs, the program's Meet link on the Dashboard today panel, and any linked courses in My Library." },
