@@ -158,7 +158,7 @@ export default async function ManualPage() {
             Registration is the process by which someone claims a spot in a program. When a program has registration enabled, a <strong>Register →</strong> button appears on the program&rsquo;s page. Members and guests fill out a short form — name, email, any custom questions the program requires — and their spot is confirmed instantly.
           </p>
           <p>
-            The registration system is built into this website. There is no third-party form tool to manage. Everything lives in one place: the registrar area at <strong>/volunteer</strong>.
+            The registration system is built into this website. There is no third-party form tool to manage. Everything lives in one place: the registrar area at <strong>/account/registrar</strong>.
           </p>
           <p>
             Registration is optional. Programs that don&rsquo;t need it — like open drop-in sittings — simply leave registration turned off. Those programs have no registration button and no list to manage.
@@ -215,14 +215,14 @@ export default async function ManualPage() {
             Once confirmed, the program page shows <strong>✓ You&rsquo;re registered</strong> instead of a button. If calendar dates are set on the program, members also see links to add the event to Google Calendar or download an .ics file for Apple Calendar or Outlook.
           </p>
           <p>
-            Members can see all their registrations — status, dana status, and any notes shared with them — at <strong>/account/dashboard-my-registrations</strong> (linked as &ldquo;My Programs&rdquo; in the navigation). If they have a pending dana offering, their dashboard homepage shows a reminder card with a link to complete it. The card disappears once dana is received.
+            Members can see all their registrations — status, dana status, and any notes shared with them — at <strong>/account/programs</strong> (linked as &ldquo;My Programs&rdquo; in the navigation). If they have a pending dana offering, their dashboard homepage shows a reminder card with a link to complete it. The card disappears once dana is received.
           </p>
           <h3 className="man-section__h3">Self-cancellation</h3>
           <p>
             Members can cancel their own spot directly from <strong>My Programs</strong> — they don&rsquo;t need to contact you. Each active registration has a small <strong>Cancel registration</strong> link at the bottom of the card. Clicking it shows a confirmation step — &ldquo;Cancel your spot? This cannot be undone.&rdquo; — so accidental taps aren&rsquo;t possible. Once cancelled, the card updates immediately to show &ldquo;✓ Registration cancelled.&rdquo;
           </p>
           <p>
-            When a member cancels, you receive a cancellation notification email at the registrar inbox (the same email you get when you cancel someone from the table). The member does not receive an automatic email. The waitlist does not auto-promote — you check <strong>/volunteer</strong> and promote who you choose.
+            When a member cancels, you receive a cancellation notification email at the registrar inbox (the same email you get when you cancel someone from the table). The member does not receive an automatic email. The waitlist does not auto-promote — you check <strong>/account/registrar</strong> and promote who you choose.
           </p>
         </section>
 
@@ -230,9 +230,9 @@ export default async function ManualPage() {
         <section id="reg-your-tools" className="man-section">
           <h2 className="man-section__title">Your tools</h2>
 
-          <h3 className="man-section__h3">The program list — /volunteer</h3>
+          <h3 className="man-section__h3">The program list — /account/registrar</h3>
           <p>
-            Your workspace starts at <strong>/volunteer</strong>. This page shows all programs that have registration enabled, in sort order.
+            Your workspace starts at <strong>/account/registrar</strong>. This page shows all programs that have registration enabled, in sort order.
           </p>
           <p>Each card shows:</p>
           <ul className="man-list">
@@ -247,7 +247,7 @@ export default async function ManualPage() {
             Cards with anything needing attention — including open spots — are highlighted in amber so you can spot them at a glance.
           </p>
 
-          <h3 className="man-section__h3">The registrar table — /volunteer/programs/[slug]</h3>
+          <h3 className="man-section__h3">The registrar table — /account/registrar/[slug]</h3>
           <p>
             Click any card to open its full registration list. From the table you can:
           </p>
@@ -509,7 +509,7 @@ export default async function ManualPage() {
           <div className="man-task">
             <h3 className="man-task__title">Promoting someone from the waitlist</h3>
             <ol className="man-steps">
-              <li>Go to <strong>/volunteer</strong>. If a spot has opened, you&rsquo;ll see a green <strong>&ldquo;↑ Spot open&rdquo;</strong> badge on the program card — click it.</li>
+              <li>Go to <strong>/account/registrar</strong>. If a spot has opened, you&rsquo;ll see a green <strong>&ldquo;↑ Spot open&rdquo;</strong> badge on the program card — click it.</li>
               <li>Inside the program, the <strong>&ldquo;A spot has opened&rdquo;</strong> alert tells you how many people are waiting.</li>
               <li>Find the waitlisted person you want to promote and click <strong>Promote</strong>.</li>
               <li>Their status changes to Registered and they receive an approval email automatically.</li>
@@ -526,13 +526,13 @@ export default async function ManualPage() {
               <li>The member does not receive an automatic email — contact them directly if appropriate.</li>
               <li>To undo, find them in the table and click <strong>Restore</strong>.</li>
             </ol>
-            <p className="man-task__note">Members can also cancel themselves from their <strong>My Programs</strong> page. When they do, you receive the same notification email. Either way, you check <strong>/volunteer</strong> and decide whether to promote someone from the waitlist.</p>
+            <p className="man-task__note">Members can also cancel themselves from their <strong>My Programs</strong> page. When they do, you receive the same notification email. Either way, you check <strong>/account/registrar</strong> and decide whether to promote someone from the waitlist.</p>
           </div>
 
           <div className="man-task">
             <h3 className="man-task__title">Sending a reminder email</h3>
             <ol className="man-steps">
-              <li>Go to <strong>/volunteer</strong> and open the program.</li>
+              <li>Go to <strong>/account/registrar</strong> and open the program.</li>
               <li>To send to everyone who hasn&rsquo;t received a reminder yet, click <strong>Send to Remaining</strong> in the banner at the top of the table.</li>
               <li>To send to one person, find them and click <strong>Send Reminder</strong>.</li>
             </ol>
@@ -568,7 +568,7 @@ export default async function ManualPage() {
           <div className="man-task">
             <h3 className="man-task__title">Exporting the registration list</h3>
             <ol className="man-steps">
-              <li>Open the program in <strong>/volunteer</strong> and click <strong>Export CSV</strong>.</li>
+              <li>Open the program in <strong>/account/registrar</strong> and click <strong>Export CSV</strong>.</li>
               <li>A spreadsheet downloads with all registrant information: name, email, phone, status, dana status, custom question responses, and notes. Open in Excel, Numbers, or Google Sheets.</li>
             </ol>
           </div>
@@ -610,7 +610,7 @@ export default async function ManualPage() {
 
           <div className="man-task">
             <h3 className="man-task__title">A member cancels their spot</h3>
-            <p>Members can cancel from their <strong>My Programs</strong> page without contacting you. When they do, you receive a cancellation notification email. If the program has capacity set and people on the waitlist, the <strong>/volunteer</strong> index card shows a green <strong>&ldquo;↑ Spot open&rdquo;</strong> badge. Open the program — the &ldquo;A spot has opened&rdquo; banner tells you how many people are waiting — then promote who you choose.</p>
+            <p>Members can cancel from their <strong>My Programs</strong> page without contacting you. When they do, you receive a cancellation notification email. If the program has capacity set and people on the waitlist, the <strong>/account/registrar</strong> index card shows a green <strong>&ldquo;↑ Spot open&rdquo;</strong> badge. Open the program — the &ldquo;A spot has opened&rdquo; banner tells you how many people are waiting — then promote who you choose.</p>
           </div>
 
           <div className="man-task">
@@ -1202,7 +1202,7 @@ export default async function ManualPage() {
             For most virtual programs, <strong>the Meet link is created automatically</strong> — you don&rsquo;t need to do anything extra. When you toggle on <strong>Virtual Program</strong> in Sanity Studio, set a <strong>Start Date &amp; Time</strong>, and publish the program, the system creates the Meet link, assigns a room account, and saves everything back to the program. The link appears in confirmation emails, reminder emails, and the Host Area — all without copy-pasting.
           </p>
           <p>
-            The <strong>Meet Host team</strong> — the volunteers who hold the container of the session — check the <strong>Host Area</strong> at <code>/hosts</code> to find out which shared account to sign into. When they join from that account, they automatically have full host controls.
+            The <strong>Meet Host team</strong> — the volunteers who hold the container of the session — check the <strong>Host Area</strong> at <code>/account/host</code> to find out which shared account to sign into. When they join from that account, they automatically have full host controls.
           </p>
         </section>
 
@@ -1232,7 +1232,7 @@ export default async function ManualPage() {
 
           <h3 className="man-section__h3">How the host gets host controls</h3>
           <p>
-            Whoever signs into the assigned room account and joins the meeting automatically becomes the meeting owner — with full host controls (blue shield, mute all, remove participant, end meeting). The host team checks the <strong>Host Area</strong> at <code>/hosts</code> before each session to find out which account is assigned to their program, signs into it as a secondary browser account, and joins from there.
+            Whoever signs into the assigned room account and joins the meeting automatically becomes the meeting owner — with full host controls (blue shield, mute all, remove participant, end meeting). The host team checks the <strong>Host Area</strong> at <code>/account/host</code> before each session to find out which account is assigned to their program, signs into it as a secondary browser account, and joins from there.
           </p>
           <p>
             This is different from the way Zoom worked. There is no host key to share and no one needs to &ldquo;grant&rdquo; anything at session time — the account itself is the host.
@@ -1283,7 +1283,7 @@ export default async function ManualPage() {
             If a program was set up before the automatic system was in place, or if something went wrong, you can create the link manually from the registrar area:
           </p>
           <ol className="man-steps">
-            <li>Go to <strong>/volunteer</strong> and open the program.</li>
+            <li>Go to <strong>/account/registrar</strong> and open the program.</li>
             <li>At the top, above the registrations table, you&rsquo;ll see the <strong>Google Meet</strong> panel.</li>
             <li>Click <strong>Create Google Meet</strong>.</li>
             <li>Wait a few seconds — the panel will show the Meet link and assigned room account when done.</li>
@@ -1318,12 +1318,12 @@ export default async function ManualPage() {
         <section id="meet-volunteer" className="man-section">
           <h2 className="man-section__title">What the host team does</h2>
           <p>
-            Once a Google Meet link exists for a program, the host team handles the rest. They don&rsquo;t need anything from you at session time — they have their own starting point at <code>/hosts</code>. But here&rsquo;s the overview in case you need to walk someone through it.
+            Once a Google Meet link exists for a program, the host team handles the rest. They don&rsquo;t need anything from you at session time — they have their own starting point at <code>/account/host</code>. But here&rsquo;s the overview in case you need to walk someone through it.
           </p>
 
           <h3 className="man-section__h3">Before the session</h3>
           <ol className="man-steps">
-            <li>Go to <strong>/hosts</strong> (the Host Area).</li>
+            <li>Go to <strong>/account/host</strong> (the Host Area).</li>
             <li>Find the program and note the <strong>host account</strong> listed — for example, <code>meet2@rootedinmindfulness.org</code>.</li>
             <li>Add that account to your browser as a secondary Google account — you don&rsquo;t need to log out of your own account. In Chrome: click your profile photo → <em>Add another account</em>.</li>
             <li>Click the <strong>Join on Google Meet</strong> link from the Host Area while signed in as that account.</li>
@@ -1375,7 +1375,7 @@ export default async function ManualPage() {
                 <td>Under &ldquo;Today&rsquo;s Sessions&rdquo; on the day of the program</td>
               </tr>
               <tr>
-                <td>Host Area <code>/hosts</code></td>
+                <td>Host Area <code>/account/host</code></td>
                 <td>HOST, REGISTRAR, and ADMIN roles</td>
                 <td>Always visible once the link is created</td>
               </tr>
@@ -1385,7 +1385,7 @@ export default async function ManualPage() {
             Confirmation and reminder emails direct members to their dashboard — the link itself is not included in emails. This keeps virtual sessions private and accessible to logged-in members only.
           </p>
           <div className="man-note">
-            The <strong>Host Area</strong> at <code>/hosts</code> shows the same link alongside the room account to sign into. Members never see the room account; they only see the Join link on their dashboard.
+            The <strong>Host Area</strong> at <code>/account/host</code> shows the same link alongside the room account to sign into. Members never see the room account; they only see the Join link on their dashboard.
           </div>
         </section>
 
@@ -1470,7 +1470,7 @@ export default async function ManualPage() {
           </p>
           <p>What a Meet Host can do:</p>
           <ul className="man-list">
-            <li>View the <strong>Host Area</strong> at <strong>/hosts</strong> — a list of all virtual programs with the room account to sign into for each session</li>
+            <li>View the <strong>Host Area</strong> at <strong>/account/host</strong> — a list of all virtual programs with the room account to sign into for each session</li>
             <li>Access the <strong>Volunteer Manual</strong></li>
           </ul>
           <p>
@@ -1483,7 +1483,7 @@ export default async function ManualPage() {
           </p>
           <p>What a Registrar can do:</p>
           <ul className="man-list">
-            <li>View and manage all program registrations at <strong>/volunteer</strong></li>
+            <li>View and manage all program registrations at <strong>/account/registrar</strong></li>
             <li>Promote waitlisted members, cancel and restore registrations</li>
             <li>Send edit-request links and reminder emails to registrants</li>
             <li>View and edit member profiles at <strong>/admin/members</strong> — name, email, phone</li>
@@ -1527,13 +1527,13 @@ export default async function ManualPage() {
             </thead>
             <tbody>
               <tr>
-                <td>Host Area <code>/hosts</code></td>
+                <td>Host Area <code>/account/host</code></td>
                 <td>✓</td>
                 <td>✓</td>
                 <td>✓</td>
               </tr>
               <tr>
-                <td>Registrations <code>/volunteer</code></td>
+                <td>Registrations <code>/account/registrar</code></td>
                 <td></td>
                 <td>✓</td>
                 <td>✓</td>
@@ -1596,8 +1596,8 @@ export default async function ManualPage() {
           </p>
           <ul className="man-list">
             <li>Each notification fires exactly once, when the role is <em>first</em> added. It does not re-send if you save their record again with the role already checked.</li>
-            <li>The <strong>Meet Host</strong> email links to the Host Area at <strong>/hosts</strong> and to this manual.</li>
-            <li>The <strong>Registrar</strong> email links to the volunteer dashboard at <strong>/volunteer</strong> and to this manual. It does <em>not</em> include Sanity Studio instructions — that&rsquo;s a separate step with its own invite.</li>
+            <li>The <strong>Meet Host</strong> email links to the Host Area at <strong>/account/host</strong> and to this manual.</li>
+            <li>The <strong>Registrar</strong> email links to the volunteer dashboard at <strong>/account/registrar</strong> and to this manual. It does <em>not</em> include Sanity Studio instructions — that&rsquo;s a separate step with its own invite.</li>
             <li>No notification is sent when the Admin role is assigned. Admins are typically people already deeply involved in the organization — a quiet system-level change is appropriate.</li>
           </ul>
         </section>

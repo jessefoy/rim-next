@@ -282,17 +282,17 @@ A registration is considered a duplicate if the same `userId` + `programId` alre
 
 ## 5. Volunteer / Registrar Admin Area
 
-**What it does:** A private area for staff to view and manage registrations for all programs. Accessible at `/volunteer`.
+**What it does:** A private area for staff to view and manage registrations for all programs. Accessible at `/account/registrar`.
 
-### 5a. Programs Landing Page (`/volunteer`)
+### 5a. Programs Landing Page (`/account/registrar`)
 
 - Lists all programs with `registrationEnabled = true` (pulled from Sanity)
 - Shows counts by status: total, registered, waitlisted, approved
 - Each program links to its detail table
 
-**Key file:** `app/volunteer/page.tsx`
+**Key file:** `app/account/registrar/page.tsx`
 
-### 5b. Registration Table (`/volunteer/programs/[slug]`)
+### 5b. Registration Table (`/account/registrar/[slug]`)
 
 **What the registrar can do:**
 - See all registrants in a table (name, email, phone, status, donation status, registration date)
@@ -311,7 +311,7 @@ A registration is considered a duplicate if the same `userId` + `programId` alre
 **Mobile layout:** On small screens the table transforms into cards — each row shows name + email stacked on the left, status badge + action button on the right. Phone number and registration date appear inside the expanded panel on mobile.
 
 **Key files:**
-- `app/volunteer/programs/[slug]/page.tsx` — server component (fetches program + registrations + `registrationFields` from Sanity)
+- `app/account/registrar/[slug]/page.tsx` — server component (fetches program + registrations + `registrationFields` from Sanity)
 - `components/VolunteerTable.tsx` — client component (all interactivity)
 
 **🔧 Technical notes:**
@@ -401,7 +401,7 @@ Displays five nav cards in a 2-column grid (1-column on mobile):
 | Card | Destination | Notes |
 |---|---|---|
 | Today's Sessions | `#today` (anchor) | Shows count badge ("2 today" or "Nothing today") |
-| My Programs | `/account/dashboard-my-registrations` | Registration history |
+| My Programs | `/account/programs` | Registration history |
 | My Library | `/account/dashboard-my-library` | Courses, lessons, resources |
 | Our Agreements | `/account/dashboard-member-care-agreements` | Community care agreements |
 | My Profile | `/account/dashboard-my-profile` | Name, phone, email |
@@ -409,32 +409,53 @@ Displays five nav cards in a 2-column grid (1-column on mobile):
 Below the card grid:
 - **Today's Sessions** — Sanity query filtered to today's day of week (Milwaukee/CT timezone); program cards link directly to Zoom; no-link programs shown disabled
 - **Pending Dana** — appears when any registration has `donationStatus: PENDING` (promoted from waitlist); links to `/programs/[slug]/register`
-- **Staff Access** — appears only for `REGISTRAR` and `ADMIN` roles; regular members see nothing
 
 **Key file:** `app/account/dashboard/page.tsx`
 **CSS prefix:** `db-` (in `public/css/custom.css`)
 
-### 6b. Staff Access Panel
+### 6b. Account Sidebar (`AccountSidebar` / `AccountLayout`)
 
-- Appears only for users with at least one role in `STAFF_LINKS` (currently `ADMIN` and `REGISTRAR`)
-- Shows a card for each distinct area they have access to
-- Regular members see nothing — the panel is not rendered at all (no hidden DOM elements)
-- To add a new staff area: add an entry to the `STAFF_LINKS` map in `dashboard/page.tsx`
+A persistent sidebar that appears on all account pages, showing navigation links appropriate to the user's roles.
 
-**Current staff links:**
-| Role(s) | Card Label | Destination |
+**Sidebar links by role:**
+| Link | Destination | Who sees it |
 |---|---|---|
-| `ADMIN`, `REGISTRAR` | Registrations | `/volunteer` |
-| `ADMIN`, `REGISTRAR` | Members | `/admin/members` |
-| `ADMIN`, `REGISTRAR` | Sanity Studio | `rooted-in-mindfulness.sanity.studio` (external) |
-| `ADMIN`, `REGISTRAR` | Staff Manual | `/admin/manual` |
+| Dashboard | `/account/dashboard` | All members |
+| My Programs | `/account/programs` | All members |
+| My Library | `/account/dashboard-my-library` | All members |
+| My Profile | `/account/dashboard-my-profile` | All members |
+| *(divider)* | — | HOST / REGISTRAR / ADMIN |
+| My Sessions | `/account/host` | HOST (+ REGISTRAR, ADMIN) |
+| Programs | `/account/registrar` | REGISTRAR / ADMIN |
+| Members | `/admin/members` | REGISTRAR / ADMIN |
+| *(divider)* | — | ADMIN only |
+| Manual | `/admin/manual` | ADMIN |
+| Roadmap | `/admin/roadmap` | ADMIN |
+
+**Architecture:**
+- `AccountLayout` — server component; calls `auth()`, extracts `roles`, renders `ac-layout` wrapper containing `AccountSidebar` + `ac-content` children
+- `AccountSidebar` — `"use client"` component; receives `roles: string[]` as prop; uses `usePathname` for active-link highlighting
+- Applied explicitly in each account page's `return` — NOT a Next.js `layout.tsx` file. This keeps `/account/welcome` and `/account/reactivate` as standalone flows without the sidebar.
+
+**Mobile:** Below 700px, the sidebar becomes a horizontal scroll strip (tabs pattern), matching GitHub profile tabs and Stripe dashboard. No hamburger drawer — avoids conflict with the main site nav.
+
+**Old URLs now redirect:**
+- `/hosts` → `/account/host`
+- `/volunteer` → `/account/registrar`
+- `/volunteer/programs/[slug]` → `/account/registrar/[slug]`
+- `/account/dashboard-my-registrations` → `/account/programs`
+
+**Key files:**
+- `components/AccountSidebar.tsx` — client component, role-based nav links, active state via pathname
+- `components/AccountLayout.tsx` — server component, auth + roles → sidebar wrapper
+- `public/css/custom.css` — `ac-` block (desktop sticky sidebar + mobile scroll strip)
 
 **🔧 Technical notes:**
-- `STAFF_LINKS` is `Record<string, { label, href, description }[]>` — each role key maps to an array of cards. ADMIN has two entries; REGISTRAR has one.
-- Deduplication by `href`: if a user holds multiple roles whose links overlap, duplicates are collapsed.
-- All dashboard pages are now 🟢 design system — no Webflow class names.
+- `auth()` is called once in `AccountLayout`, not in each page — pages receive roles as a prop via the layout
+- Active state: exact match for `/account/dashboard`; `startsWith` for all other links to handle sub-routes
+- All account pages are 🟢 design system — no Webflow class names.
 
-### 6c. My Programs (`/account/dashboard-my-registrations`)
+### 6c. My Programs (`/account/programs`)
 
 Members can see all their program registrations in one place. This was a missing feature — previously members had no way to view their registration history.
 
@@ -452,7 +473,7 @@ Members can see all their program registrations in one place. This was a missing
 - Pending dana prompt with link to complete the offering
 
 **Key files:**
-- `app/account/dashboard-my-registrations/page.tsx` — server component, direct DB + Sanity
+- `app/account/programs/page.tsx` — server component, direct DB + Sanity
 - `app/api/account/registrations/route.ts` — GET endpoint (also available for client use)
 - `lib/queries.ts` — `programsBySlugArrayQuery` (batch lookup by slug array)
 
@@ -1353,10 +1374,10 @@ Features that have been designed and scoped but not yet built. Listed here so in
 
 **Status:** ✅ Built and deployed — 2026-03-05 (session 24).
 
-**What it does:** Members can cancel their own registration from the My Programs page (`/account/dashboard-my-registrations`). This covers active registrations (REGISTERED, APPROVED, or WAITLISTED status). Once cancelled, the registrar is automatically notified by email and can decide who to promote from the waitlist.
+**What it does:** Members can cancel their own registration from the My Programs page (`/account/programs`). This covers active registrations (REGISTERED, APPROVED, or WAITLISTED status). Once cancelled, the registrar is automatically notified by email and can decide who to promote from the waitlist.
 
 **Member flow:**
-1. Visit My Programs (`/account/dashboard-my-registrations`)
+1. Visit My Programs (`/account/programs`)
 2. Click "Cancel registration" at the bottom of the active registration card
 3. Confirm in the inline dialog: "Cancel your spot in [Program]? This cannot be undone."
 4. Card shows "✓ Registration cancelled" inline — no page reload
@@ -1371,7 +1392,7 @@ Features that have been designed and scoped but not yet built. Listed here so in
 **Key files:**
 - `app/api/account/registrations/[id]/cancel/route.ts` (NEW) — POST: auth check → ownership check (403 if not their registration) → status guard (400 if already CANCELLED or not cancellable) → `db.registration.update({ status: "CANCELLED" })` → fire-and-forget registrar email
 - `components/CancelRegistrationButton.tsx` (NEW) — `"use client"` component; 4-state machine (idle / confirming / loading / done); `mr-cancel-` CSS prefix
-- `app/account/dashboard-my-registrations/page.tsx` (MODIFIED) — imports and renders `<CancelRegistrationButton>` in `<div className="mr-card__actions">` for REGISTERED, APPROVED, WAITLISTED cards
+- `app/account/programs/page.tsx` (MODIFIED) — imports and renders `<CancelRegistrationButton>` in `<div className="mr-card__actions">` for REGISTERED, APPROVED, WAITLISTED cards
 - `public/css/custom.css` — `mr-card__actions`, `mr-cancel-btn`, `mr-cancel-confirm`, `mr-cancel-confirm__text`, `mr-cancel-confirm__actions`, `mr-cancel-btn--yes`, `mr-cancel-btn--keep`, `mr-cancel-done`
 
 **🔧 Technical notes:**
@@ -1403,7 +1424,7 @@ Features that have been designed and scoped but not yet built. Listed here so in
 - *Plenty of spots or no capacity set:* nothing shown — no noise when the situation is fine
 
 **Spot-opened alerts** (session 24): A "spot opened" state means: `registrationCapacity` is set AND `confirmedCount < registrationCapacity` AND `waitlistedCount > 0`. This is distinct from "has a waitlist at full capacity."
-- **Volunteer index** (`/volunteer`): green "↑ Spot open · N waiting" badge on the program card — distinct from the amber "N waitlisted" badge shown when full. Program card also gets `vol-card--attention` highlighting.
+- **Volunteer index** (`/account/registrar`): green "↑ Spot open · N waiting" badge on the program card — distinct from the amber "N waitlisted" badge shown when full. Program card also gets `vol-card--attention` highlighting.
 - **Per-program VolunteerTable**: amber "A spot has opened. N people are on the waitlist. Use the Promote button next to their name to confirm their spot." banner above the registrations table.
 
 **Staff manual**: Both notices and alerts are documented in `/admin/manual` — spot-open badge, VolunteerTable alert, promoting-from-waitlist workflow all updated.
@@ -1419,7 +1440,7 @@ const spotOpened = !!registrationCapacity
 ```
 
 **Key files:**
-- `app/volunteer/page.tsx` — `spotOpened` + updated `needsAttention`, `vol-signal--spot-open` badge, conditional waitlist badge
+- `app/account/registrar/page.tsx` — `spotOpened` + updated `needsAttention`, `vol-signal--spot-open` badge, conditional waitlist badge
 - `components/VolunteerTable.tsx` — `waitlistedCount` from `counts.WAITLISTED`, `spotOpened` derivation, `vol-spot-opened` alert banner
 - `app/programs/[slug]/page.tsx` — `isFull`, `showLowSpots` derivations; `pg-capacity--full` / `pg-capacity--low` notices in CTA section
 - `public/css/custom.css` — `vol-signal--spot-open`, `vol-spot-opened`, `pg-capacity`, `pg-capacity--full`, `pg-capacity--low`
@@ -1567,7 +1588,7 @@ const spotOpened = !!registrationCapacity
 
 | 2026-03-03 | Site cleanup + administration tools: repurposed `/community-membership` (removed Memberstack signup form, now shows full 4-point Community Care Agreements + "Join or sign in →" button); added "Read our full community care agreements →" link from WelcomeForm and RegistrationForm agreements blocks; audited and fixed all nav/site links that referenced the old Memberstack signup flow (Nav desktop "Join Us" sub-text, MemberGate.tsx two-button pattern, volunteer page, kalyana-mitta application page, magazine-articles gate); created `/admin/sitemap` Site Architecture page (ADMIN-only; 10 sections, access badges, CSS layer indicators, status chips — stub/orphan/repurposed, "Not Yet Built" section); added admin nav links (Members + Site Architecture) to Nav.tsx; removed class recording CMS template entirely (deleted page, queries, cr- CSS block); removed "Intentionally Decommissioned" section from sitemap (served its purpose — no ongoing value); updated Section 10 (CSS prefixes), added Section 15 (Site Administration Tools) to FEATURES.md; updated pages-inventory.md |
 
-| 2026-03-03 | Member dashboard redesign (session 15): Redesigned `/account/dashboard` as a visual hub with 5 nav cards (`db-` CSS extensions); created `My Programs` page (`/account/dashboard-my-registrations`, `mr-` prefix) — new feature showing member registration history with status badges, waitlist position, and pending dana prompts; new `GET /api/account/registrations` endpoint; `programsBySlugArrayQuery` GROQ query for batch slug lookup; rebuilt `My Library` (`ml-`), `My Profile` (`mp-`), `Community Agreements` (`mc-`) with 🟢 design system (dropped all Webflow classes); added "My Programs" link to Nav.tsx (desktop dropdown + mobile flat list); updated FEATURES.md Section 6 + pages-inventory.md (14/31 🟢) |
+| 2026-03-03 | Member dashboard redesign (session 15): Redesigned `/account/dashboard` as a visual hub with 5 nav cards (`db-` CSS extensions); created `My Programs` page (`/account/programs`, `mr-` prefix) — new feature showing member registration history with status badges, waitlist position, and pending dana prompts; new `GET /api/account/registrations` endpoint; `programsBySlugArrayQuery` GROQ query for batch slug lookup; rebuilt `My Library` (`ml-`), `My Profile` (`mp-`), `Community Agreements` (`mc-`) with 🟢 design system (dropped all Webflow classes); added "My Programs" link to Nav.tsx (desktop dropdown + mobile flat list); updated FEATURES.md Section 6 + pages-inventory.md (14/31 🟢) |
 | 2026-03-04 | Nav component rebuild (session 16): Complete rewrite of `components/Nav.tsx` — eliminated all Webflow structural classes (`w-nav`, `w-dropdown`, `w-nav-menu`, `w-nav-button`, etc.); deleted `public/nav.js` (Webflow JS hamburger handler); new `nav-` CSS prefix block in `custom.css`; sticky header (`position: sticky`); desktop dropdowns via CSS `hover + focus-within` (no JS); React `useState` hamburger with 3-bar → X animation; closes on route change + Escape key; `isMemberArea` flag switches between minimal member nav and full public nav; `isAdmin` controls Admin dropdown visibility. Nav polish: Quincycf 500 brand name, `--rim-text` (#333) color; Open Sans 500 links; no borders anywhere (color contrast only); nav height 90px; hover states set both `color` and `background` explicitly; mobile menu overhauled — `--rim-bg` warm background, `--rim-bg-accent` separator lines between items, pill donate button; Added Section 16 to FEATURES.md; updated Section 10 CSS prefix table; updated MEMORY.md + session-log.md |
 | 2026-03-04 | Sanity Studio access for staff (session 18): `sanityInvitedAt DateTime?` on User model (db push); new `POST /api/admin/members/[id]/sanity-invite` — ADMIN-only, calls Sanity Management API to invite member as editor, stamps invite date; PATCH route updated to auto-revoke Sanity access when REGISTRAR role is removed — calls `revokeSanityAccess()` async (removes from project members + cancels pending invitations, clears `sanityInvitedAt`), returns `sanityRevoked: true`; MemberDetail: Sanity Studio Access panel below roles (invite button with two-step confirmation showing explanation + Yes/Cancel; ✓ invited date once sent; revocation warning in save bar when REGISTRAR is being removed); dashboard `STAFF_LINKS` updated — Sanity Studio external card for REGISTRAR + ADMIN, `<a target="_blank">` for external vs `<Link>` for internal; Section 2 updated (roles table shows dashboard links, role assignment via UI documented); Section 11 dashboard integration updated; Section 18 added (full feature doc). ⚠️ Requires `SANITY_MANAGEMENT_TOKEN` in Vercel. Commits: deb0b97, 5e97804. |
 | 2026-03-04 | Sanity Studio access debugging (session 19): Fixed invite endpoint URL — Sanity uses `/invitations/project/{id}` not `/projects/{id}/invitations` (404 → working); fixed `SANITY_MANAGEMENT_TOKEN` role — must be **Developer** (highest available), not Editor/Administrator (403 "missing required grant sanity.project.members/invite"); improved error surfacing in invite route (raw text fallback instead of silent `{}`); made `revokeSanityAccess()` blocking (was `void`), returns `{ member, invite, memberEmails }` for debugging; fixed invitation revocation response shape (array or `{invitations:[]}`); confirmed pending-invite cancellation works end-to-end; confirmed accepted-member removal endpoint path is still unresolved (all tried paths 404); documented owner limitation (project owner cannot be removed via API) and email-mismatch risk (registrar accepts invite with different Sanity account email). Section 18 prerequisites, technical notes, and last-updated updated. |
@@ -1671,7 +1692,7 @@ Note: The Developer token is a **server-side secret** stored only in Vercel env 
 
 **Who uses it:**
 - **Registrars/Admins** — click "Create Google Meet" on the volunteer programs page; app assigns a room and writes the link to Sanity
-- **Meet Host team (HOST role)** — check `/hosts` to see which room account is assigned to each virtual program; log in as that account before the session to get host controls
+- **Meet Host team (HOST role)** — check `/account/host` to see which room account is assigned to each virtual program; log in as that account before the session to get host controls
 - **Members** — receive the Meet link in confirmation + reminder emails; see it on the program page
 
 ---
@@ -1688,7 +1709,7 @@ Note: The Developer token is a **server-side secret** stored only in Vercel env 
 
 The app assigns whichever room is free for a given time slot (checking the shared calendar for conflicts). Whoever logs in as that account when the session starts automatically owns the meeting with full host controls.
 
-**Why not pre-assign a volunteer as co-host?** The original design used `spaces.members.create` to pre-assign a specific volunteer's email as COHOST at meeting creation time. This was removed — RIM's host team is rotating and the host for a particular session isn't decided at program setup time. The room account model is simpler: the host team sees which account to use on the `/hosts` page, logs in as that account, and has full host controls automatically. No fixed assignment needed.
+**Why not pre-assign a volunteer as co-host?** The original design used `spaces.members.create` to pre-assign a specific volunteer's email as COHOST at meeting creation time. This was removed — RIM's host team is rotating and the host for a particular session isn't decided at program setup time. The room account model is simpler: the host team sees which account to use on the `/account/host` page, logs in as that account, and has full host controls automatically. No fixed assignment needed.
 
 ---
 
@@ -1700,15 +1721,15 @@ The app assigns whichever room is free for a given time slot (checking the share
 3. The `isVirtual` toggle locks in Studio — prevents accidental toggling off while the room booking exists
 4. Meet link appears on the program page and goes out in all confirmation/reminder emails automatically
 5. If the time changes later, republish — the calendar room booking patches automatically; the Meet link stays the same
-6. Host team checks `/hosts`; they sign in as the assigned room account before the session
+6. Host team checks `/account/host`; they sign in as the assigned room account before the session
 
 **Manual fallback (existing programs or edge cases):**
-1. Go to `/volunteer/programs/[slug]`
+1. Go to `/account/registrar/[slug]`
 2. Click **"Create Google Meet"** in the Google Meet panel at the top
 3. App finds a free room account, creates the Meet space + calendar event, writes back to Sanity
 
 **Releasing a Meet (rescheduling or cancelling):**
-1. Go to `/volunteer/programs/[slug]`
+1. Go to `/account/registrar/[slug]`
 2. Click **"Release Meet"** in the Google Meet panel (muted red, to the right of Replace)
 3. Confirm in the dialog — app calls `DELETE /api/programs/[slug]/google-meet`, which deletes the Google Calendar event and clears `zoomLink`, `meetHostAccount`, `calendarEventId` from Sanity
 4. The `isVirtual` toggle unlocks in Studio — registrar can now change the date/time or toggle isVirtual off
@@ -1727,7 +1748,7 @@ The app assigns whichever room is free for a given time slot (checking the share
 - **Meet REST API scope:** `https://www.googleapis.com/auth/meetings.space.created` + `https://www.googleapis.com/auth/calendar.events` — both granted in DWD config.
 - **Meet creation:** `spaces.create` with `{ config: { accessType: "TRUSTED", entryPointAccess: "ALL" } }` — TRUSTED means anyone with a `@rootedinmindfulness.org` account can join without waiting to be admitted.
 - **Co-host pre-assignment removed:** `spaces.members.create` was removed entirely from `lib/google-meet.ts`. The room account IS the host — no volunteer email needed at creation.
-- **`meetHostAccount` Sanity field:** readOnly string; stores the assigned room email. Written alongside `zoomLink` and `calendarEventId`. Shown in CreateMeetButton done state and on `/hosts` page.
+- **`meetHostAccount` Sanity field:** readOnly string; stores the assigned room email. Written alongside `zoomLink` and `calendarEventId`. Shown in CreateMeetButton done state and on `/account/host` page.
 - **`GOOGLE_PRIVATE_KEY`** contains newlines — stored as raw value in Vercel (not base64).
 - **Sanity write-back** uses `SANITY_API_TOKEN` (Editor role token "RIM Next Website Write") — must be Editor or higher for patch/commit.
 
@@ -1737,9 +1758,9 @@ The app assigns whichever room is free for a given time slot (checking the share
 - `app/api/webhooks/sanity-programs/route.ts` — Sanity webhook handler: HMAC-SHA256 sig verify, operation detection (payload or Sanity query), create/update/delete routing
 - `app/api/programs/[slug]/google-meet/route.ts` — POST: manual Meet creation, writes `zoomLink`/`meetHostAccount`/`calendarEventId` to Sanity, 409 on no room; DELETE: releases calendar event + clears Sanity fields (REGISTRAR/ADMIN)
 - `components/CreateMeetButton.tsx` — "use client" 6-state (idle/loading/done/replace/release/releasing); Replace overwrites link, Release Meet deletes calendar booking + clears fields; `vol-meet-` CSS prefix
-- `app/volunteer/programs/[slug]/page.tsx` — renders CreateMeetButton only when `program.isVirtual`; passes `calendarEventId`
+- `app/account/registrar/[slug]/page.tsx` — renders CreateMeetButton only when `program.isVirtual`; passes `calendarEventId`
 - `lib/queries.ts` — `hostProgramsQuery` (virtual programs with Meet link, incl. `meetHostAccount`)
-- `app/hosts/page.tsx` — Host Area page (HOST | REGISTRAR | ADMIN access; see §21)
+- `app/account/host/page.tsx` — Host Area page (HOST | REGISTRAR | ADMIN access; see §21)
 - `public/css/custom.css` — `vol-meet-` styles (incl. `vol-meet__release-btn`, `vol-meet__release-confirm-btn`) + `hs-` host area styles
 
 ### Environment variables (all set in Vercel)
@@ -1858,7 +1879,7 @@ Staff reach the manual via two paths:
 
 ## 21. HOST Role + Host Area ✅ Built — session 27 (2026-03-05)
 
-**What it does:** A lightweight volunteer role for the Google Meet host team. Members with the HOST role get access to `/hosts` — a dedicated page showing every virtual program that has a Google Meet link assigned, along with which room account to log into for each session to get host controls. The host team uses this as their starting point before every virtual session.
+**What it does:** A lightweight volunteer role for the Google Meet host team. Members with the HOST role get access to `/account/host` — a dedicated page showing every virtual program that has a Google Meet link assigned, along with which room account to log into for each session to get host controls. The host team uses this as their starting point before every virtual session.
 
 **Who uses it:** The rotating volunteer host team — people who facilitate RIM's virtual sessions on Google Meet. They are not registrars; they don't manage registrations or member data. Their job is to be present before the session, sign into the right account, and hold the meeting container.
 
@@ -1868,9 +1889,9 @@ Staff reach the manual via two paths:
 
 | Area | HOST | REGISTRAR | ADMIN |
 |---|---|---|---|
-| Host Area `/hosts` | ✓ | ✓ | ✓ |
+| Host Area `/account/host` | ✓ | ✓ | ✓ |
 | Volunteer Manual `/admin/manual` | ✓ | ✓ | ✓ |
-| Volunteer dashboard `/volunteer` | | ✓ | ✓ |
+| Volunteer dashboard `/account/registrar` | | ✓ | ✓ |
 | Member management `/admin/members` | | ✓ | ✓ |
 | Sanity Studio (external) | | ✓ | ✓ |
 
@@ -1879,12 +1900,12 @@ Staff reach the manual via two paths:
 ### User flow — getting a host set up
 
 1. Admin assigns the HOST role via `/admin/members` → member detail page → Roles section → check "Meet Host" → Save changes
-2. Host receives an automatic notification email: "You've been added as a Meet host — Rooted In Mindfulness." The email links to `/hosts` and includes an outline button "Read the Volunteer Manual →"
-3. Host bookmarks `/hosts` as their starting point for every session
+2. Host receives an automatic notification email: "You've been added as a Meet host — Rooted In Mindfulness." The email links to `/account/host` and includes an outline button "Read the Volunteer Manual →"
+3. Host bookmarks `/account/host` as their starting point for every session
 
 ### User flow — before each session
 
-1. Host visits `/hosts` and finds their program
+1. Host visits `/account/host` and finds their program
 2. The page shows which room account is assigned (e.g. `meet1@rootedinmindfulness.org`)
 3. Host signs into that account in their browser as a secondary account — no need to log out of their own
 4. Host clicks the **Join on Google Meet** link for the program a few minutes before the session
@@ -1893,9 +1914,9 @@ Staff reach the manual via two paths:
 
 ---
 
-### The `/hosts` page
+### The `/account/host` page
 
-- **Route:** `app/hosts/page.tsx` — server component
+- **Route:** `app/account/host/page.tsx` — server component
 - **Auth:** Requires session; redirects unauthenticated users to `/login`
 - **Role gate:** HOST, REGISTRAR, or ADMIN (redirects others to `/account/dashboard`)
 - **Data source:** `hostProgramsQuery` — all programs in Sanity with a `zoomLink` set, ordered by `sortOrder`
@@ -1912,7 +1933,7 @@ Staff reach the manual via two paths:
 
 - **Subject:** "You've been added as a Meet host — Rooted In Mindfulness"
 - **Fires:** Once, on first HOST role assignment; does not re-send on subsequent saves
-- **Content:** What the Meet Host role means, link to `/hosts`, outline button "Read the Volunteer Manual →"
+- **Content:** What the Meet Host role means, link to `/account/host`, outline button "Read the Volunteer Manual →"
 - **Implementation:** `sendHostRoleAssignmentEmail()` in `lib/email.ts` — mirrors `sendRoleAssignmentEmail()` pattern; fire-and-forget in the PATCH route
 
 ---
@@ -1920,20 +1941,20 @@ Staff reach the manual via two paths:
 ### Key files
 
 - `prisma/schema.prisma` — `HOST` added to `Role` enum (before REGISTRAR)
-- `app/hosts/page.tsx` — Host Area server component; `hs-` prefix
+- `app/account/host/page.tsx` — Host Area server component; `hs-` prefix
 - `lib/queries.ts` — `hostProgramsQuery`
 - `lib/email.ts` — `sendHostRoleAssignmentEmail()`, `buildHostRoleAssignmentHtml()`, `buildHostRoleAssignmentText()`
 - `app/api/admin/members/[id]/route.ts` — `addingHost` detection (mirrors `addingRegistrar`) → fire-and-forget notification
 - `components/MemberDetail.tsx` — HOST first in `ALL_ROLES`; role description; role gate hint updated ("volunteer area")
 - `app/account/dashboard/page.tsx` — HOST entry in `STAFF_LINKS`: Host Area + Volunteer Manual cards
-- `proxy.ts` — `/hosts` and `/hosts/:path*` added to matcher
+- `proxy.ts` — `/account/host` and `/hosts/:path*` added to matcher
 - `app/admin/manual/page.tsx` — access gate updated to include HOST; overview text updated; sidebar link text updated
 
 ### 🔧 Technical notes
 
-- HOST is the lightest role — two pages only (`/hosts` and `/admin/manual`)
+- HOST is the lightest role — two pages only (`/account/host` and `/admin/manual`)
 - Role checks happen inside the page components, not in `proxy.ts`. Proxy handles login/terms/archived redirects only; role enforcement is per-page (same pattern as REGISTRAR-gated pages)
-- REGISTRAR and ADMIN can also view `/hosts` — useful for registrars who also host, and for admins monitoring the system
+- REGISTRAR and ADMIN can also view `/account/host` — useful for registrars who also host, and for admins monitoring the system
 - No Sanity Studio access for HOST — unlike REGISTRAR, there is no Sanity invite panel on HOST member detail pages
 - The HOST email does NOT mention Sanity Studio (unlike REGISTRAR email which documents the separate invite step)
 - HOST members see "Volunteer Access" (not "Staff Access") in their dashboard section header — the same label used for REGISTRAR and ADMIN
@@ -1941,18 +1962,20 @@ Staff reach the manual via two paths:
 ---
 
 | 2026-03-05 (session 23) | Staff reference manual + role cleanup. **(1) Staff manual:** Complete build of `/admin/manual` — two-chapter reference guide with sidebar navigation. Chapter 1 (Registration Management): 9 sections covering the complete registrar workflow (volunteer table, statuses, promoting from waitlist, inline edits, edit request emails, reminders, resend confirmation, CSV export, common scenarios). Chapter 2 (Programs & Sanity Studio): 11 sections covering all 6 Sanity tabs with field-by-field `man-field-list` tables, a "How a program comes together" anatomy section with min-to-max checklist, and common task walkthroughs. CSS: added all missing `man-` classes that were defined in JSX but had no CSS (`man-section__h3`, `man-field-list`, `man-field`, `man-field__name`, `man-field__desc`, `man-content code`, `man-chapter--break`); responsive stacking for `man-field` on narrow viewports. Files: `app/admin/manual/page.tsx` (complete rewrite), `public/css/custom.css` (`man-` block). Commits: e6e9888, 328c1d8, b6003d4. **(2) Role simplification:** Removed TREASURER, TEACHER, VOLUNTEER from the system — they were defined speculatively with no functionality attached. Only ADMIN and REGISTRAR remain. Files: `prisma/schema.prisma` (Role enum), `components/MemberDetail.tsx` (ALL_ROLES + descriptions), `components/MembersTable.tsx` (RoleFilter type, badge map, label map, filter dropdown), `app/admin/roadmap/page.tsx` (TEACHER/VOLUNTEER wiring item removed, TREASURER desc updated), `app/admin/sitemap/page.tsx` (role lists updated). DB was already clean — no existing members had those roles; `prisma db push --accept-data-loss` confirmed no data loss. Commit: 75cad53. **(3) Docs:** FEATURES.md Section 2 (role table trimmed), Section 10 (man- CSS prefix added), Section 11 (stale role refs cleaned), Section 20 (Staff Reference Manual, new); Session Log updated; MEMORY.md updated. |
-| 2026-03-05 (session 25) | Registrar role assignment notification email. `sendRoleAssignmentEmail()` added to `lib/email.ts` — fires when REGISTRAR is newly added in the member PATCH route; links to `/volunteer` + `/admin/manual`; fire-and-forget, no re-send on subsequent saves. Minimal Chapter 3 "Staff & Roles" added to `/admin/manual` with one section ("Notifying new staff") explaining the automatic email and distinguishing it from the separate Sanity Studio invite step. Sidebar updated — "Staff & Roles" now a real link, no longer a "Coming soon" badge. FEATURES.md Section 2 updated. Commit: 4c13318 (code) + [docs commit]. |
-| 2026-03-05 (session 24) | Member self-service cancellation (17b) + spot-opened alerts + capacity notices (17d). **(17b)** New `POST /api/account/registrations/[id]/cancel` — auth check → ownership check (403 if not their registration) → status guard (400 if already CANCELLED) → `db.registration.update({ status: "CANCELLED" })` → fire-and-forget `sendCancellationNotificationEmail()`. New `components/CancelRegistrationButton.tsx` ("use client"; 4-state machine: idle/confirming/loading/done; on error → alert + revert to confirming). `app/account/dashboard-my-registrations/page.tsx` renders cancel button in `mr-card__actions` for REGISTERED/APPROVED/WAITLISTED cards. **(17d — spot-opened alerts)** `app/volunteer/page.tsx`: added `spotOpened` boolean (`!!cap && confirmedCount < cap && waitlistedCount > 0`) to `programsWithCounts`; `needsAttention` now includes `spotOpened`; green `vol-signal--spot-open` badge ("↑ Spot open · N waiting") renders before the amber waitlist badge (amber waitlist badge only shows when NOT spotOpened). `components/VolunteerTable.tsx`: derived `waitlistedCount` from `counts.WAITLISTED ?? 0`; `spotOpened` derivation (same logic); `vol-spot-opened` amber alert banner above registrations table when spot is open. **(17d — capacity notices on program page)** `app/programs/[slug]/page.tsx`: added `isFull` (`spotsRemaining === 0`) and `showLowSpots` (`spotsRemaining > 0 && spotsRemaining <= 5`) derivations; CTA section: "Join Waitlist" branch gets `pg-capacity--full` amber box notice; "Register" branch conditionally shows `pg-capacity--low` muted notice. **CSS added:** `vol-signal--spot-open` (green badge), `vol-spot-opened` (amber alert banner, left border accent in `--rim-mid`), `pg-capacity` (base notice style), `pg-capacity--full` (warm amber box), `pg-capacity--low` (plain muted text), `mr-card__actions` (border-top footer row), `mr-cancel-btn` (muted text-link), `mr-cancel-confirm` (warm red-tinted inline box), `mr-cancel-confirm__text`, `mr-cancel-confirm__actions`, `mr-cancel-btn--yes` (red danger), `mr-cancel-btn--keep` (neutral outline), `mr-cancel-done` (muted confirmation text). **Staff manual updated** (7fd8442): self-cancellation section added under "After registering"; spot-open badge documented in volunteer index; VolunteerTable spot-opened alert documented; promoting-from-waitlist task references new entry points; "Cancel as registrar" clarified vs member self-cancel. **Build note:** `npm run build` exits 1 locally (Stripe env var not in local .env — pre-existing, builds clean on Vercel); TypeScript compiled successfully. Commits: 08fb3a2 (features), 7fd8442 (manual docs). |
+| 2026-03-05 (session 25) | Registrar role assignment notification email. `sendRoleAssignmentEmail()` added to `lib/email.ts` — fires when REGISTRAR is newly added in the member PATCH route; links to `/account/registrar` + `/admin/manual`; fire-and-forget, no re-send on subsequent saves. Minimal Chapter 3 "Staff & Roles" added to `/admin/manual` with one section ("Notifying new staff") explaining the automatic email and distinguishing it from the separate Sanity Studio invite step. Sidebar updated — "Staff & Roles" now a real link, no longer a "Coming soon" badge. FEATURES.md Section 2 updated. Commit: 4c13318 (code) + [docs commit]. |
+| 2026-03-05 (session 24) | Member self-service cancellation (17b) + spot-opened alerts + capacity notices (17d). **(17b)** New `POST /api/account/registrations/[id]/cancel` — auth check → ownership check (403 if not their registration) → status guard (400 if already CANCELLED) → `db.registration.update({ status: "CANCELLED" })` → fire-and-forget `sendCancellationNotificationEmail()`. New `components/CancelRegistrationButton.tsx` ("use client"; 4-state machine: idle/confirming/loading/done; on error → alert + revert to confirming). `app/account/programs/page.tsx` renders cancel button in `mr-card__actions` for REGISTERED/APPROVED/WAITLISTED cards. **(17d — spot-opened alerts)** `app/account/registrar/page.tsx`: added `spotOpened` boolean (`!!cap && confirmedCount < cap && waitlistedCount > 0`) to `programsWithCounts`; `needsAttention` now includes `spotOpened`; green `vol-signal--spot-open` badge ("↑ Spot open · N waiting") renders before the amber waitlist badge (amber waitlist badge only shows when NOT spotOpened). `components/VolunteerTable.tsx`: derived `waitlistedCount` from `counts.WAITLISTED ?? 0`; `spotOpened` derivation (same logic); `vol-spot-opened` amber alert banner above registrations table when spot is open. **(17d — capacity notices on program page)** `app/programs/[slug]/page.tsx`: added `isFull` (`spotsRemaining === 0`) and `showLowSpots` (`spotsRemaining > 0 && spotsRemaining <= 5`) derivations; CTA section: "Join Waitlist" branch gets `pg-capacity--full` amber box notice; "Register" branch conditionally shows `pg-capacity--low` muted notice. **CSS added:** `vol-signal--spot-open` (green badge), `vol-spot-opened` (amber alert banner, left border accent in `--rim-mid`), `pg-capacity` (base notice style), `pg-capacity--full` (warm amber box), `pg-capacity--low` (plain muted text), `mr-card__actions` (border-top footer row), `mr-cancel-btn` (muted text-link), `mr-cancel-confirm` (warm red-tinted inline box), `mr-cancel-confirm__text`, `mr-cancel-confirm__actions`, `mr-cancel-btn--yes` (red danger), `mr-cancel-btn--keep` (neutral outline), `mr-cancel-done` (muted confirmation text). **Staff manual updated** (7fd8442): self-cancellation section added under "After registering"; spot-open badge documented in volunteer index; VolunteerTable spot-opened alert documented; promoting-from-waitlist task references new entry points; "Cancel as registrar" clarified vs member self-cancel. **Build note:** `npm run build` exits 1 locally (Stripe env var not in local .env — pre-existing, builds clean on Vercel); TypeScript compiled successfully. Commits: 08fb3a2 (features), 7fd8442 (manual docs). |
 
 | 2026-03-05 (session 26) | Manual review + accuracy fixes + memory. **(1) Course access to REGISTRAR (f902dfa):** Opened `CourseAccessSection` UI to REGISTRAR role (removed `{isAdmin &&}` gate in `MemberDetail`); `GET /api/admin/courses`, `POST` and `DELETE` `/api/admin/members/[id]/course-access` now accept REGISTRAR in addition to ADMIN. Added "Grant or revoke course access for individual members" to REGISTRAR "can do" list in Chapter 3. Added full "Course access" section to Chapter 1 (sidebar link, intro, when-to-use-manual-grants, step-by-step how-to, note about registration vs manual grants being separate). **(2) Chapter subtitles rewritten (94712dd):** All three chapter openers rewritten from third-person "Who uses this chapter:" framing to direct second-person address ("This chapter walks you through…"). **(3) Manual audit and fixes:** Dashboard shortcuts table in Chapter 3: added missing Staff Manual row. Automatic emails section: added dana reminder email entry. Future editions section: updated Courses & Online Materials to note that admin-side course access is already covered in Chapter 1. **(4) FEATURES.md accuracy fixes:** §2 REGISTRAR dashboard links corrected (Members now included); §6b STAFF_LINKS table updated (both roles get all 4 cards); §7 Role enum corrected (TREASURER/TEACHER/VOLUNTEER removed); §7 technical notes updated; §8 course-access API routes updated to ADMIN or REGISTRAR; §11 access control and dashboard integration stale text corrected; §20 Chapter 1 sections table expanded to reflect current content, Chapter 3 added, technical notes and future chapters updated. |
-| 2026-03-05 (session 27) | Google Meet architecture rework + HOST role + Host Area. **(1) Google Meet rework:** Removed volunteer email / COHOST pre-assignment model entirely — RIM's host team is rotating; you can't designate who will host at program setup time. Simplified `lib/google-meet.ts`: no `spaces.members.create`, no `volunteerEmail` param, no moderation step; `createMeeting()` now just creates space + calendar event and returns `{ meetLink, calendarEventId, roomEmail }`. API route writes `meetHostAccount: result.roomEmail` to Sanity alongside `zoomLink`. `CreateMeetButton` removes email input; done state shows assigned room account. **(2) Sanity schema:** Added `meetHostAccount` readOnly string field to `programs` schema (schedule group, after zoomLinkText). Deployed to Sanity Studio. **(3) HOST role:** Added `HOST` to Prisma `Role` enum (before REGISTRAR); DB pushed. `sendHostRoleAssignmentEmail()` added to `lib/email.ts`. PATCH route detects `addingHost`, fires notification fire-and-forget. `MemberDetail` adds HOST to `ALL_ROLES` (first) with description. Dashboard `STAFF_LINKS` adds HOST entry (Host Area + Volunteer Manual). `proxy.ts` matcher updated. **(4) Host Area page:** New `app/hosts/page.tsx` — server component; HOST | REGISTRAR | ADMIN access; fetches `hostProgramsQuery`; "How to host" guidance section + program cards (name, day/time, room account badge, join link); `hs-` CSS prefix. New `hostProgramsQuery` added to `lib/queries.ts`. `hs-` CSS block added to `public/css/custom.css`. **(5) Manual updates:** Access gate updated to include HOST; overview text updated to three roles; sidebar "The two roles" → "Volunteer roles"; "Assigning a role" note updated; "Notification email" section rewritten (HOST and REGISTRAR both trigger notification; HOST email links to /hosts + manual; REGISTRAR email links to /volunteer + manual; Admin silent). Chapter 3 section table updated. Commits: 9cc2959 (manual docs) + this session's feature commits. **(6) FEATURES.md:** §19 completely rewritten (simplified architecture, removed COHOST/co-host docs, updated key files, added room account env table). §20 updated (Chapter 3 section table, Discovery, access control line). §21 new (HOST role + Host Area, full feature doc). |
+| 2026-03-05 (session 27) | Google Meet architecture rework + HOST role + Host Area. **(1) Google Meet rework:** Removed volunteer email / COHOST pre-assignment model entirely — RIM's host team is rotating; you can't designate who will host at program setup time. Simplified `lib/google-meet.ts`: no `spaces.members.create`, no `volunteerEmail` param, no moderation step; `createMeeting()` now just creates space + calendar event and returns `{ meetLink, calendarEventId, roomEmail }`. API route writes `meetHostAccount: result.roomEmail` to Sanity alongside `zoomLink`. `CreateMeetButton` removes email input; done state shows assigned room account. **(2) Sanity schema:** Added `meetHostAccount` readOnly string field to `programs` schema (schedule group, after zoomLinkText). Deployed to Sanity Studio. **(3) HOST role:** Added `HOST` to Prisma `Role` enum (before REGISTRAR); DB pushed. `sendHostRoleAssignmentEmail()` added to `lib/email.ts`. PATCH route detects `addingHost`, fires notification fire-and-forget. `MemberDetail` adds HOST to `ALL_ROLES` (first) with description. Dashboard `STAFF_LINKS` adds HOST entry (Host Area + Volunteer Manual). `proxy.ts` matcher updated. **(4) Host Area page:** New `app/account/host/page.tsx` — server component; HOST | REGISTRAR | ADMIN access; fetches `hostProgramsQuery`; "How to host" guidance section + program cards (name, day/time, room account badge, join link); `hs-` CSS prefix. New `hostProgramsQuery` added to `lib/queries.ts`. `hs-` CSS block added to `public/css/custom.css`. **(5) Manual updates:** Access gate updated to include HOST; overview text updated to three roles; sidebar "The two roles" → "Volunteer roles"; "Assigning a role" note updated; "Notification email" section rewritten (HOST and REGISTRAR both trigger notification; HOST email links to /hosts + manual; REGISTRAR email links to /volunteer + manual; Admin silent). Chapter 3 section table updated. Commits: 9cc2959 (manual docs) + this session's feature commits. **(6) FEATURES.md:** §19 completely rewritten (simplified architecture, removed COHOST/co-host docs, updated key files, added room account env table). §20 updated (Chapter 3 section table, Discovery, access control line). §21 new (HOST role + Host Area, full feature doc). |
 
-| 2026-03-05 (session 28) | Sanity programs schema audit + cleanup. **(1) Full field audit:** Read all 45 fields across 6 Sanity groups and traced each field's usage through GROQ queries, email builders, API routes, page components, and email templates. Produced a field-by-field table identifying dead fields, misplaced fields, and redundancies. **(2) Schema cleanup:** Three fields removed: `timeText` (merged date+time into `dateText` single field, titled "Date & Time" in Studio), `zoomLinkText` (button label hardcoded to "Join on Google Meet" in all email/page code), `dayFiltering` (legacy comma-string day filter, superseded by typed `dayOfWeek` references). Two fields moved: `teacherFacilitators` Schedule → Content group (it is content, not scheduling), `dayOfWeek` Sorting → Dashboard group (it drives the dashboard "Today" badge, not just sorting). Two tab renames: "Dana & Payment" → "Dana", "Sorting & Visibility" → "Visibility". One field title rename: "Remove from Dashboard Program List" → "Hide from Member Dashboard". `dateText` description updated to include time examples. Added descriptions to `dayOfWeek`, `sortOrder`, `meetHostAccount`. **(3) Code cleanup across 13 files:** `lib/queries.ts` (7 queries), `app/programs/[slug]/page.tsx`, `lib/email.ts` (RegistrationEmailData, ReminderEmailData, all HTML/text builders; email shows "When:" not "Date:" + "Time:" separately; CTA hardcoded "Join on Google Meet"), `app/api/registrations/route.ts`, `app/api/registrations/[id]/route.ts`, `app/account/dashboard/page.tsx` (removed `dayFiltering` branch from `programIsToday()`), `app/account/dashboard-my-registrations/page.tsx`, `app/programs/[slug]/register/page.tsx`, `components/RegistrationForm.tsx`, `app/api/cron/send-reminders/route.ts`, `app/api/programs/[slug]/send-reminder/route.ts`, `app/api/programs/[slug]/google-meet/route.ts` (removed stale `zoomLinkText` Sanity write-back), `app/api/account/registrations/route.ts`. **(4) Docs:** Manual Chapter 2 updated — tab renames, field moves, Date & Time merge, Meeting Button Text removed; `FEATURES.md` §9 tab table + schema cleanup note; MEMORY.md session log. Sanity Studio deployed. Both repos pushed to GitHub. |
+| 2026-03-05 (session 28) | Sanity programs schema audit + cleanup. **(1) Full field audit:** Read all 45 fields across 6 Sanity groups and traced each field's usage through GROQ queries, email builders, API routes, page components, and email templates. Produced a field-by-field table identifying dead fields, misplaced fields, and redundancies. **(2) Schema cleanup:** Three fields removed: `timeText` (merged date+time into `dateText` single field, titled "Date & Time" in Studio), `zoomLinkText` (button label hardcoded to "Join on Google Meet" in all email/page code), `dayFiltering` (legacy comma-string day filter, superseded by typed `dayOfWeek` references). Two fields moved: `teacherFacilitators` Schedule → Content group (it is content, not scheduling), `dayOfWeek` Sorting → Dashboard group (it drives the dashboard "Today" badge, not just sorting). Two tab renames: "Dana & Payment" → "Dana", "Sorting & Visibility" → "Visibility". One field title rename: "Remove from Dashboard Program List" → "Hide from Member Dashboard". `dateText` description updated to include time examples. Added descriptions to `dayOfWeek`, `sortOrder`, `meetHostAccount`. **(3) Code cleanup across 13 files:** `lib/queries.ts` (7 queries), `app/programs/[slug]/page.tsx`, `lib/email.ts` (RegistrationEmailData, ReminderEmailData, all HTML/text builders; email shows "When:" not "Date:" + "Time:" separately; CTA hardcoded "Join on Google Meet"), `app/api/registrations/route.ts`, `app/api/registrations/[id]/route.ts`, `app/account/dashboard/page.tsx` (removed `dayFiltering` branch from `programIsToday()`), `app/account/programs/page.tsx`, `app/programs/[slug]/register/page.tsx`, `components/RegistrationForm.tsx`, `app/api/cron/send-reminders/route.ts`, `app/api/programs/[slug]/send-reminder/route.ts`, `app/api/programs/[slug]/google-meet/route.ts` (removed stale `zoomLinkText` Sanity write-back), `app/api/account/registrations/route.ts`. **(4) Docs:** Manual Chapter 2 updated — tab renames, field moves, Date & Time merge, Meeting Button Text removed; `FEATURES.md` §9 tab table + schema cleanup note; MEMORY.md session log. Sanity Studio deployed. Both repos pushed to GitHub. |
 
-| 2026-03-06 (session 29) | Google Meet debugging + `listingDayAndTimeText` removal. **(1) Google Meet full debug cycle:** DWD scope wrong (`meetings.space.settings` → `meetings.space.created`) — fixed in `lib/google-meet.ts` and updated in Google Workspace Admin Domain-Wide Delegation console. Calendar write error ("You need to have writer access to this calendar") — room accounts don't have write access to the shared `GOOGLE_CALENDAR_ID` calendar; fixed by switching both `findAvailableRoom` (reads) and `events.insert` (writes) to use each room's own `primary` calendar — no Google Calendar permission setup needed, DWD impersonation always grants access to own primary. Sanity write-back failing silently — `SANITY_API_TOKEN` in Vercel was a Viewer token; created new Editor token "RIM Next Website Write" in Sanity → API → Tokens and updated Vercel. Also fixed `GOOGLE_ROOM_EMAILS` in Vercel (removed `meet-community-group@` left over from initial setup). Full end-to-end confirmed working: Meet link created, correct room assigned (`meet1@`), saved to Sanity automatically. `GOOGLE_CALENDAR_ID` env var no longer used — can be removed from Vercel if desired. **(2) Volunteer page filter fix:** Removed `registrationEnabled == true` filter from `volunteerProgramsQuery` — drop-in programs that don't require registration should still appear in the volunteer area so registrars can create Google Meet links for them. **(3) `listingDayAndTimeText` removed:** Field eliminated from Sanity schema and all consumers. `dateText` now used everywhere — program page, listing cards, host area, member dashboard. Changes: `sanity/schemas/programs.js` (field removed), `lib/queries.ts` (4 queries), `app/community-programs/page.tsx`, `app/hosts/page.tsx`, `app/account/dashboard/page.tsx`. Sanity Studio deployed. **(4) Manual cleanup:** "Listing Day & Time" field entry removed from Schedule & Location tab docs; "Update Listing Day & Time" removed from "Updating dates or times" task; Date & Time description updated (listing cards now mentioned); two "Meeting Button Text" references removed (field was removed in session 28 — button label is hardcoded in code). |
+| 2026-03-06 (session 29) | Google Meet debugging + `listingDayAndTimeText` removal. **(1) Google Meet full debug cycle:** DWD scope wrong (`meetings.space.settings` → `meetings.space.created`) — fixed in `lib/google-meet.ts` and updated in Google Workspace Admin Domain-Wide Delegation console. Calendar write error ("You need to have writer access to this calendar") — room accounts don't have write access to the shared `GOOGLE_CALENDAR_ID` calendar; fixed by switching both `findAvailableRoom` (reads) and `events.insert` (writes) to use each room's own `primary` calendar — no Google Calendar permission setup needed, DWD impersonation always grants access to own primary. Sanity write-back failing silently — `SANITY_API_TOKEN` in Vercel was a Viewer token; created new Editor token "RIM Next Website Write" in Sanity → API → Tokens and updated Vercel. Also fixed `GOOGLE_ROOM_EMAILS` in Vercel (removed `meet-community-group@` left over from initial setup). Full end-to-end confirmed working: Meet link created, correct room assigned (`meet1@`), saved to Sanity automatically. `GOOGLE_CALENDAR_ID` env var no longer used — can be removed from Vercel if desired. **(2) Volunteer page filter fix:** Removed `registrationEnabled == true` filter from `volunteerProgramsQuery` — drop-in programs that don't require registration should still appear in the volunteer area so registrars can create Google Meet links for them. **(3) `listingDayAndTimeText` removed:** Field eliminated from Sanity schema and all consumers. `dateText` now used everywhere — program page, listing cards, host area, member dashboard. Changes: `sanity/schemas/programs.js` (field removed), `lib/queries.ts` (4 queries), `app/community-programs/page.tsx`, `app/account/host/page.tsx`, `app/account/dashboard/page.tsx`. Sanity Studio deployed. **(4) Manual cleanup:** "Listing Day & Time" field entry removed from Schedule & Location tab docs; "Update Listing Day & Time" removed from "Updating dates or times" task; Date & Time description updated (listing cards now mentioned); two "Meeting Button Text" references removed (field was removed in session 28 — button label is hardcoded in code). |
 
 | 2026-03-06 (session 30) | Feature Inventory page (`/admin/features`). Created a comprehensive ADMIN-only reference page with two layers: **(1) System View** — four top-level sections: System Overview (what the app is, 5-row user types table, key philosophy), System Map (12-row dependency table: each functional area's Needs / Powers / Note), Data Flows (two complete end-to-end scenarios with numbered steps and area labels: registration flow 12 steps, login flow 7 steps), and If X Breaks (8 external dependency cards with cascading failure lists). **(2) Feature Detail** — 13 functional areas, ~60 feature cards, each with Where / What / Related to rows. Quick-jump nav updated to two rows: "System view" (4 blue-highlighted anchors) and "Feature areas" (13 area links). Data driven by TypeScript constants: `USER_TYPES`, `SYSTEM_MAP`, `DATA_FLOWS`, `CRITICAL_DEPS`, `FEATURE_AREAS`. CSS block added for all `adm-fi-` classes (counters, dep cards, flow steps, tables, jump nav). Nav.tsx updated: "Feature Inventory" added to admin dropdown (desktop + mobile). `/admin/sitemap` header updated: "Features →" external link added. **FEATURES.md §15c added** (this entry). Commits: c992c17 (Phase 1), 9f0a9dd (Phase 2). |
 
-| 2026-03-08 (session 31) | Google Meet automation via Sanity webhook + Sanity schema overhaul. **(1) Sanity programs schema restructured:** Converted 6 category-based tabs into 6 linear workflow steps — `1 — Basics`, `2 — When & Where`, `3 — Registration`, `4 — Emails`, `5 — Dana`, `6 — Settings`. Added `isVirtual` boolean field (step 2, Schedule) — toggles location field visibility and drives webhook automation. Added `calendarEventId` readOnly string field (step 2, hidden unless isVirtual). Moved `programCategory` to Basics, `linkedCourses` to Registration. Split confirmation/reminder email fields into dedicated "Emails" group. Sanity Studio deployed. **(2) Google Meet full automation:** New `POST /api/webhooks/sanity-programs/route.ts` — Sanity webhook handler. Validates HMAC-SHA256 signature. Handles four cases: (A) `isVirtual` off + calendarEventId → delete calendar event + clear Sanity fields; (B) `isVirtual` + startDatetime + existing Meet → update calendar event time; (C) `isVirtual` + startDatetime + no Meet → create Meet + write back all three fields; (D) DELETE operation → delete calendar event. Operation detection: reads `delta::operation()` from payload if present, else queries Sanity — document exists → update, missing → delete. **(3) lib/google-meet.ts extended:** Added `updateCalendarEvent()` (patches time/title without touching Meet space) and `deleteCalendarEvent()` (frees room slot for conflict detection). **(4) google-meet API route fixed:** Now writes `calendarEventId` back to Sanity alongside `zoomLink` and `meetHostAccount` (was missing before). **(5) CreateMeetButton updated:** New `calendarEventId` prop; shows "✓ Room booking tracked" or "⚠ No calendar event ID" in done state. **(6) Volunteer programs page:** CreateMeetButton only shown when `program.isVirtual`; passes `calendarEventId`. **(7) Webhook registration:** Created via Sanity Management API (Sanity dashboard SPA routing broken for webhooks); filter `_type == "programs"`; secret stored as `SANITY_WEBHOOK_SECRET` in Vercel. **(8) Manual updated:** `isVirtual` field documented in Schedule tab; "Virtual Program" toggle explained with automation notes; "Creating a meeting" section rewritten — automatic path first, manual as fallback; "Before you start" streamlined. FEATURES.md §19 rewritten. Key files: `app/api/webhooks/sanity-programs/route.ts` (new), `lib/google-meet.ts` (+2 functions), `app/api/programs/[slug]/google-meet/route.ts` (calendarEventId write-back fix), `components/CreateMeetButton.tsx`, `app/volunteer/programs/[slug]/page.tsx`, `sanity/schemas/programs.js` (new tab structure + isVirtual + calendarEventId). Commits: (in session 30 repo) + e737ad1 (webhook operation detection fix). |
+| 2026-03-08 (session 31) | Google Meet automation via Sanity webhook + Sanity schema overhaul. **(1) Sanity programs schema restructured:** Converted 6 category-based tabs into 6 linear workflow steps — `1 — Basics`, `2 — When & Where`, `3 — Registration`, `4 — Emails`, `5 — Dana`, `6 — Settings`. Added `isVirtual` boolean field (step 2, Schedule) — toggles location field visibility and drives webhook automation. Added `calendarEventId` readOnly string field (step 2, hidden unless isVirtual). Moved `programCategory` to Basics, `linkedCourses` to Registration. Split confirmation/reminder email fields into dedicated "Emails" group. Sanity Studio deployed. **(2) Google Meet full automation:** New `POST /api/webhooks/sanity-programs/route.ts` — Sanity webhook handler. Validates HMAC-SHA256 signature. Handles four cases: (A) `isVirtual` off + calendarEventId → delete calendar event + clear Sanity fields; (B) `isVirtual` + startDatetime + existing Meet → update calendar event time; (C) `isVirtual` + startDatetime + no Meet → create Meet + write back all three fields; (D) DELETE operation → delete calendar event. Operation detection: reads `delta::operation()` from payload if present, else queries Sanity — document exists → update, missing → delete. **(3) lib/google-meet.ts extended:** Added `updateCalendarEvent()` (patches time/title without touching Meet space) and `deleteCalendarEvent()` (frees room slot for conflict detection). **(4) google-meet API route fixed:** Now writes `calendarEventId` back to Sanity alongside `zoomLink` and `meetHostAccount` (was missing before). **(5) CreateMeetButton updated:** New `calendarEventId` prop; shows "✓ Room booking tracked" or "⚠ No calendar event ID" in done state. **(6) Volunteer programs page:** CreateMeetButton only shown when `program.isVirtual`; passes `calendarEventId`. **(7) Webhook registration:** Created via Sanity Management API (Sanity dashboard SPA routing broken for webhooks); filter `_type == "programs"`; secret stored as `SANITY_WEBHOOK_SECRET` in Vercel. **(8) Manual updated:** `isVirtual` field documented in Schedule tab; "Virtual Program" toggle explained with automation notes; "Creating a meeting" section rewritten — automatic path first, manual as fallback; "Before you start" streamlined. FEATURES.md §19 rewritten. Key files: `app/api/webhooks/sanity-programs/route.ts` (new), `lib/google-meet.ts` (+2 functions), `app/api/programs/[slug]/google-meet/route.ts` (calendarEventId write-back fix), `components/CreateMeetButton.tsx`, `app/account/registrar/[slug]/page.tsx`, `sanity/schemas/programs.js` (new tab structure + isVirtual + calendarEventId). Commits: (in session 30 repo) + e737ad1 (webhook operation detection fix). |
 
-*Last updated: 2026-03-08 (session 31)*
+| 2026-03-08 (session 32) | Account dashboard sidebar. New `AccountSidebar` (client, `"use client"`, `usePathname`) + `AccountLayout` (server, calls `auth()`) components; `ac-` CSS prefix. Sidebar links: all members get Dashboard/My Programs/My Library/My Profile; HOST adds "My Sessions"; REGISTRAR/ADMIN adds Programs+Members; ADMIN adds second divider+Manual+Roadmap. Mobile: horizontal scroll strip (standard tabs pattern — no hamburger drawer, avoids conflict with main nav). Applied `AccountLayout` to: `/account/dashboard`, library, profile, agreements, and all four new pages. New pages created: `/account/programs` (ported from `dashboard-my-registrations`), `/account/host` (ported from `/hosts`), `/account/registrar` (ported from `/volunteer`), `/account/registrar/[slug]` (ported from `/volunteer/programs/[slug]`). Old URLs now redirect. Dashboard: removed `STAFF_LINKS` constant + "Volunteer Access" panel (sidebar handles staff navigation). Nav admin dropdown: removed Members/Roadmap/Staff Manual; added Sanity Studio. FEATURES.md §6b rewritten (sidebar architecture). Manual: all `/volunteer` → `/account/registrar`, `/hosts` → `/account/host` URLs updated throughout. Key files: `components/AccountSidebar.tsx` (new), `components/AccountLayout.tsx` (new), `app/account/programs/page.tsx` (new), `app/account/host/page.tsx` (new), `app/account/registrar/page.tsx` (new), `app/account/registrar/[slug]/page.tsx` (new). Commit: 1a05b8c. |
+
+*Last updated: 2026-03-08 (session 32)*
