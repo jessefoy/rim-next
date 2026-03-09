@@ -8100,6 +8100,8 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 
 .hh-member-row {
   padding: 14px 0;
+  margin-left: 0;      /* override: li { margin-left: -20px } from Webflow */
+  margin-bottom: 0;    /* override: li { margin-bottom: 15px } from Webflow */
   border-bottom: 1px solid var(--rim-rule);
 }
 .hh-member-row:last-child { border-bottom: none; }
@@ -8127,7 +8129,11 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   gap: 2px;
   min-width: 0;
 }
-.hh-member-row__name { font-size: 15px; font-weight: 500; }
+.hh-member-row__name {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;    /* override: a { line-height: 32px } from Webflow */
+}
 
 /* Relationship row: label + edit + badge all inline */
 .hh-member-row__rel-area {
@@ -8137,6 +8143,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 }
 .hh-member-row__rel {
   font-size: 13px;
+  line-height: 1.4;
   color: var(--rim-text-muted);
 }
 /* Subtle "edit" link — quiet until hovered */
