@@ -85,6 +85,12 @@ export default function AccountSidebar({ roles }: Props) {
           </Link>
         )}
 
+        {hasRegistrar && (
+          <Link href="/admin/households" className={linkClass("/admin/households")}>
+            Households
+          </Link>
+        )}
+
         {/* ── Admin-only links ── */}
         {isAdmin && <div className="ac-sidebar__divider" role="separator" />}
 

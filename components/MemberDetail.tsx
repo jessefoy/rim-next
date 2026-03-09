@@ -4,6 +4,7 @@ import { useState, KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import CourseAccessSection from "@/components/CourseAccessSection";
+import HouseholdSection from "@/components/HouseholdSection";
 
 interface MemberRegistration {
   id: string;
@@ -41,6 +42,24 @@ interface Member {
   createdAt: string;
   registrations: MemberRegistration[];
   courseAccess: CourseAccessGrant[];
+  household: {
+    id: string;
+    name: string | null;
+    addressLine1: string | null;
+    addressCity: string | null;
+    addressState: string | null;
+    addressZip: string | null;
+    isPrimary: boolean;
+    relationshipType: string;
+    relationshipCustom: string | null;
+    otherMembers: {
+      userId: string;
+      isPrimary: boolean;
+      relationshipType: string;
+      relationshipCustom: string | null;
+      user: { id: string; firstName: string | null; lastName: string | null; email: string };
+    }[];
+  } | null;
 }
 
 const ALL_ROLES = ["HOST", "REGISTRAR", "ADMIN"] as const;
@@ -369,6 +388,14 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
               placeholder="123 Main St"
               onChange={(e) => { setAddressLine1(e.target.value); markDirty(); }}
             />
+            {!addressLine1 && member.household?.addressLine1 && (
+              <p className="adm-form__hint">
+                No individual address — household address will be used:{" "}
+                <span className="hh-from-household">
+                  {[member.household.addressLine1, member.household.addressCity, member.household.addressState].filter(Boolean).join(", ")}
+                </span>
+              </p>
+            )}
           </div>
           <div className="adm-form__row adm-form__row--3col">
             <div className="adm-form__field adm-form__field--city">
@@ -461,6 +488,9 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
           />
         </div>
       </section>
+
+      {/* ── Household ────────────────────────────────────────────────────────── */}
+      <HouseholdSection memberId={member.id} household={member.household} />
 
       {/* ── Admin Notes ──────────────────────────────────────────────────────── */}
       {isAdmin && (

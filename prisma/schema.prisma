@@ -95,6 +95,7 @@ model User {
   attendance    AttendanceRecord[]
   registrations Registration[]
   courseAccess  CourseAccess[]
+  household     HouseholdMember?
 
   @@map("users")
 }
@@ -111,6 +112,48 @@ enum MemberStatus {
   VISITOR
   STUDENT
   VOLUNTEER
+}
+
+enum RelationshipType {
+  SPOUSE
+  PARTNER
+  PARENT
+  CHILD
+  SIBLING
+  OTHER
+}
+
+// ─── HOUSEHOLDS ──────────────────────────────────────────────────────────────
+
+model Household {
+  id           String   @id @default(cuid())
+  name         String?  // e.g. "The Smith Family" — optional display name
+  addressLine1 String?
+  addressCity  String?
+  addressState String?
+  addressZip   String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  members HouseholdMember[]
+
+  @@map("households")
+}
+
+model HouseholdMember {
+  id                 String           @id @default(cuid())
+  householdId        String
+  userId             String           @unique  // one household per member (enforced at DB level)
+  relationshipType   RelationshipType @default(OTHER)
+  relationshipCustom String?          // only when type = OTHER; logged for future enum promotion
+  isPrimary          Boolean          @default(false)
+  createdAt          DateTime         @default(now())
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("household_members")
 }
 
 // ─── MEMBERSHIP TYPES ────────────────────────────────────────────────────────

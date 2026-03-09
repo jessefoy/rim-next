@@ -44,6 +44,35 @@ export default async function AdminMemberDetailPage({
         orderBy: { createdAt: "asc" },
         select: { id: true, courseSlug: true, createdAt: true },
       },
+      household: {
+        select: {
+          isPrimary: true,
+          relationshipType: true,
+          relationshipCustom: true,
+          household: {
+            select: {
+              id: true,
+              name: true,
+              addressLine1: true,
+              addressCity: true,
+              addressState: true,
+              addressZip: true,
+              members: {
+                orderBy: { createdAt: "asc" },
+                select: {
+                  userId: true,
+                  isPrimary: true,
+                  relationshipType: true,
+                  relationshipCustom: true,
+                  user: {
+                    select: { id: true, firstName: true, lastName: true, email: true },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
   });
 
@@ -84,6 +113,28 @@ export default async function AdminMemberDetailPage({
       courseSlug: g.courseSlug,
       createdAt: g.createdAt.toISOString(),
     })),
+    household: user.household
+      ? {
+          id: user.household.household.id,
+          name: user.household.household.name,
+          addressLine1: user.household.household.addressLine1,
+          addressCity: user.household.household.addressCity,
+          addressState: user.household.household.addressState,
+          addressZip: user.household.household.addressZip,
+          isPrimary: user.household.isPrimary,
+          relationshipType: user.household.relationshipType,
+          relationshipCustom: user.household.relationshipCustom,
+          otherMembers: user.household.household.members
+            .filter((m) => m.userId !== user.id)
+            .map((m) => ({
+              userId: m.userId,
+              isPrimary: m.isPrimary,
+              relationshipType: m.relationshipType,
+              relationshipCustom: m.relationshipCustom,
+              user: m.user,
+            })),
+        }
+      : null,
   };
 
   return (
