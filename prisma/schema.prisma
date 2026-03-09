@@ -70,6 +70,17 @@ model User {
   // Sanity Studio invite tracking
   sanityInvitedAt DateTime?
 
+  // Extended profile fields
+  preferredName   String?
+  addressLine1    String?
+  addressCity     String?
+  addressState    String?
+  addressZip      String?
+  memberStatus    MemberStatus @default(ACTIVE)
+  firstVisitDate  DateTime?
+  adminNotes      String?
+  tags            String[]     @default([])
+
   // Legacy data imported from Memberstack (kept for historical reference)
   legacyMemberstackId     String?   @unique
   legacyLastLogin         DateTime?
@@ -92,6 +103,14 @@ enum Role {
   HOST        // Google Meet host team — access to host area and upcoming room assignments
   REGISTRAR   // manages program registrations + Sanity Studio access
   ADMIN       // full access
+}
+
+enum MemberStatus {
+  ACTIVE
+  INACTIVE
+  VISITOR
+  STUDENT
+  VOLUNTEER
 }
 
 // ─── MEMBERSHIP TYPES ────────────────────────────────────────────────────────

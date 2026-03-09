@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import CourseAccessSection from "@/components/CourseAccessSection";
@@ -25,7 +25,16 @@ interface Member {
   email: string;
   firstName: string | null;
   lastName: string | null;
+  preferredName: string | null;
   phone: string | null;
+  addressLine1: string | null;
+  addressCity: string | null;
+  addressState: string | null;
+  addressZip: string | null;
+  memberStatus: string;
+  firstVisitDate: string | null;
+  adminNotes: string | null;
+  tags: string[];
   roles: string[];
   archivedAt: string | null;
   sanityInvitedAt: string | null;
@@ -49,19 +58,76 @@ const STATUS_LABELS: Record<string, string> = {
   CANCELLED: "Cancelled",
 };
 
+const MEMBER_STATUSES = [
+  { value: "ACTIVE", label: "Active" },
+  { value: "VISITOR", label: "Visitor" },
+  { value: "STUDENT", label: "Student" },
+  { value: "VOLUNTEER", label: "Volunteer" },
+  { value: "INACTIVE", label: "Inactive" },
+] as const;
+
 type DangerAction = "archive" | "restore" | "delete" | null;
 
 export default function MemberDetail({ member, isAdmin }: { member: Member; isAdmin: boolean }) {
   const router = useRouter();
+
+  // Profile fields
   const [firstName, setFirstName] = useState(member.firstName ?? "");
   const [lastName, setLastName] = useState(member.lastName ?? "");
+  const [preferredName, setPreferredName] = useState(member.preferredName ?? "");
+
+  // Contact fields
   const [phone, setPhone] = useState(member.phone ?? "");
+  const [addressLine1, setAddressLine1] = useState(member.addressLine1 ?? "");
+  const [addressCity, setAddressCity] = useState(member.addressCity ?? "");
+  const [addressState, setAddressState] = useState(member.addressState ?? "");
+  const [addressZip, setAddressZip] = useState(member.addressZip ?? "");
+
+  // Email
   const [email, setEmail] = useState(member.email);
   const [originalEmail] = useState(member.email);
   const emailChanged = email.trim() !== originalEmail;
   const [emailError, setEmailError] = useState("");
   const [checkingEmail, setCheckingEmail] = useState(false);
   const [showEmailConfirm, setShowEmailConfirm] = useState(false);
+
+  // Status & dates
+  const [memberStatus, setMemberStatus] = useState(member.memberStatus);
+  const [firstVisitDate, setFirstVisitDate] = useState(
+    member.firstVisitDate ? member.firstVisitDate.slice(0, 10) : ""
+  );
+
+  // Admin-only fields
+  const [adminNotes, setAdminNotes] = useState(member.adminNotes ?? "");
+
+  // Tags
+  const [tags, setTags] = useState<string[]>(member.tags);
+  const [tagInput, setTagInput] = useState("");
+
+  const addTag = (raw: string) => {
+    const trimmed = raw.trim().replace(/,+$/, "");
+    if (!trimmed || tags.includes(trimmed)) return;
+    setTags((prev) => [...prev, trimmed]);
+    setTagInput("");
+    setSaved(false);
+  };
+
+  const handleTagKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      addTag(tagInput);
+    } else if (e.key === "Backspace" && !tagInput && tags.length > 0) {
+      setTags((prev) => prev.slice(0, -1));
+      setSaved(false);
+    }
+  };
+
+  const removeTag = (tag: string) => {
+    setTags((prev) => prev.filter((t) => t !== tag));
+    setSaved(false);
+  };
+
+  // Roles + save state
   const [roles, setRoles] = useState<string[]>(member.roles);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -79,8 +145,6 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
   const [sanityStatus, setSanityStatus] = useState<"idle" | "loading" | "error">("idle");
   const [sanityError, setSanityError] = useState("");
   const [confirmingInvite, setConfirmingInvite] = useState(false);
-
-  // Track which roles have actually been saved (to show invite button only after REGISTRAR is persisted)
   const [savedRoles, setSavedRoles] = useState<string[]>(member.roles);
 
   const handleSanityInvite = async () => {
@@ -88,9 +152,7 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
     setSanityError("");
     setConfirmingInvite(false);
     try {
-      const res = await fetch(`/api/admin/members/${member.id}/sanity-invite`, {
-        method: "POST",
-      });
+      const res = await fetch(`/api/admin/members/${member.id}/sanity-invite`, { method: "POST" });
       const data = await res.json();
       if (!res.ok) {
         if (res.status === 409 && data.sanityInvitedAt) {
@@ -109,19 +171,13 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
   };
 
   const toggleRole = (role: string) => {
-    setRoles((prev) =>
-      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]
-    );
+    setRoles((prev) => prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]);
     setSaved(false);
   };
 
-  // Check for email conflicts as soon as the admin leaves the email field.
   const handleEmailBlur = async () => {
     const trimmed = email.trim();
-    if (!trimmed || trimmed === originalEmail) {
-      setEmailError("");
-      return;
-    }
+    if (!trimmed || trimmed === originalEmail) { setEmailError(""); return; }
     setCheckingEmail(true);
     setEmailError("");
     try {
@@ -130,28 +186,34 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
       );
       const data = await res.json();
       if (!data.available) setEmailError(data.error ?? "Email not available.");
-    } catch {
-      // Non-fatal — the PATCH will catch it too if they save anyway.
-    } finally {
+    } catch { /* non-fatal */ } finally {
       setCheckingEmail(false);
     }
   };
 
   const handleSave = async (bypassEmailConfirm = false) => {
-    // Block save if there's a known email conflict.
     if (emailError) return;
-    // If email has changed, require an explicit confirmation step first.
-    if (emailChanged && !bypassEmailConfirm) {
-      setShowEmailConfirm(true);
-      return;
-    }
+    if (emailChanged && !bypassEmailConfirm) { setShowEmailConfirm(true); return; }
     setSaving(true);
     setSaved(false);
     setError("");
     setShowEmailConfirm(false);
     try {
-      const body: Record<string, unknown> = { firstName, lastName, phone, roles };
+      const body: Record<string, unknown> = {
+        firstName, lastName, preferredName: preferredName || null,
+        phone: phone || null,
+        addressLine1: addressLine1 || null,
+        addressCity: addressCity || null,
+        addressState: addressState || null,
+        addressZip: addressZip || null,
+        memberStatus,
+        firstVisitDate: firstVisitDate || null,
+        tags,
+        roles,
+      };
       if (emailChanged) body.email = email.trim();
+      if (isAdmin) body.adminNotes = adminNotes || null;
+
       const res = await fetch(`/api/admin/members/${member.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -162,7 +224,16 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
       setSaved(true);
       setSavedRoles(roles);
       if (data.sanityRevoked) setSanityInvitedAt(null);
-      // Re-fetch server data so the header + page state reflect the new email.
+
+      // Reflect status change in archived state
+      if (memberStatus === "INACTIVE") {
+        setIsArchived(true);
+        setArchivedAt(new Date().toISOString());
+      } else if (isArchived && memberStatus !== "INACTIVE") {
+        setIsArchived(false);
+        setArchivedAt(null);
+      }
+
       if (emailChanged) router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
@@ -183,7 +254,6 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
         router.push("/admin/members");
         return;
       }
-      // archive or restore
       const res = await fetch(`/api/admin/members/${member.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -208,22 +278,18 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
   };
 
   const joinedDate = new Date(member.createdAt).toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
+    month: "long", day: "numeric", year: "numeric",
   });
 
   const regDate = (iso: string) =>
-    new Date(iso).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+    new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
   const displayName =
     member.firstName || member.lastName
       ? `${member.firstName ?? ""} ${member.lastName ?? ""}`.trim()
       : member.email;
+
+  const markDirty = () => setSaved(false);
 
   return (
     <>
@@ -245,12 +311,13 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
       {/* Archived banner */}
       {isArchived && archivedAt && (
         <div className="adm-archived-banner">
-          This member was archived on {new Date(archivedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}.
+          This member was archived on{" "}
+          {new Date(archivedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}.
           They cannot log in, but their registration history is fully preserved.
         </div>
       )}
 
-      {/* Profile section */}
+      {/* ── Profile ──────────────────────────────────────────────────────────── */}
       <section className="adm-section">
         <h2 className="adm-section__title">Profile</h2>
         <div className="adm-form">
@@ -258,29 +325,24 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
             <div className="adm-form__field">
               <label className="adm-form__label">First name</label>
               <input
-                type="text"
-                className="adm-form__input"
-                value={firstName}
-                onChange={(e) => { setFirstName(e.target.value); setSaved(false); }}
+                type="text" className="adm-form__input" value={firstName}
+                onChange={(e) => { setFirstName(e.target.value); markDirty(); }}
               />
             </div>
             <div className="adm-form__field">
               <label className="adm-form__label">Last name</label>
               <input
-                type="text"
-                className="adm-form__input"
-                value={lastName}
-                onChange={(e) => { setLastName(e.target.value); setSaved(false); }}
+                type="text" className="adm-form__input" value={lastName}
+                onChange={(e) => { setLastName(e.target.value); markDirty(); }}
               />
             </div>
           </div>
           <div className="adm-form__field">
-            <label className="adm-form__label">Phone</label>
+            <label className="adm-form__label">Preferred name / nickname</label>
             <input
-              type="text"
-              className="adm-form__input"
-              value={phone}
-              onChange={(e) => { setPhone(e.target.value); setSaved(false); }}
+              type="text" className="adm-form__input" value={preferredName}
+              placeholder="Leave blank if same as first name"
+              onChange={(e) => { setPreferredName(e.target.value); markDirty(); }}
             />
           </div>
           <div className="adm-form__field">
@@ -289,20 +351,11 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
               type="email"
               className={`adm-form__input${emailError ? " adm-form__input--error" : ""}`}
               value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                setSaved(false);
-                setShowEmailConfirm(false);
-                setEmailError(""); // clear error while typing
-              }}
+              onChange={(e) => { setEmail(e.target.value); markDirty(); setShowEmailConfirm(false); setEmailError(""); }}
               onBlur={handleEmailBlur}
             />
-            {checkingEmail && (
-              <p className="adm-form__email-checking">Checking…</p>
-            )}
-            {emailError && (
-              <p className="adm-form__email-error">{emailError}</p>
-            )}
+            {checkingEmail && <p className="adm-form__email-checking">Checking…</p>}
+            {emailError && <p className="adm-form__email-error">{emailError}</p>}
             {emailChanged && !emailError && !checkingEmail && !showEmailConfirm && (
               <p className="adm-form__email-warning">
                 ⚠️ Changing this email updates their login address. They will be signed out immediately
@@ -313,42 +366,165 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
         </div>
       </section>
 
-      {/* Roles section — admin only */}
-      {isAdmin && <section className="adm-section">
-        <h2 className="adm-section__title">Roles &amp; Permissions</h2>
-        <p className="adm-section__hint">
-          When a role is assigned, the member&rsquo;s dashboard will show a link to that volunteer area.
-        </p>
-        <div className="adm-roles">
-          {ALL_ROLES.map((role) => (
-            <label key={role} className="adm-role">
+      {/* ── Contact ──────────────────────────────────────────────────────────── */}
+      <section className="adm-section">
+        <h2 className="adm-section__title">Contact</h2>
+        <div className="adm-form">
+          <div className="adm-form__field">
+            <label className="adm-form__label">Phone</label>
+            <input
+              type="text" className="adm-form__input" value={phone}
+              onChange={(e) => { setPhone(e.target.value); markDirty(); }}
+            />
+          </div>
+          <div className="adm-form__field">
+            <label className="adm-form__label">Street address</label>
+            <input
+              type="text" className="adm-form__input" value={addressLine1}
+              placeholder="123 Main St"
+              onChange={(e) => { setAddressLine1(e.target.value); markDirty(); }}
+            />
+          </div>
+          <div className="adm-form__row adm-form__row--3col">
+            <div className="adm-form__field adm-form__field--city">
+              <label className="adm-form__label">City</label>
               <input
-                type="checkbox"
-                className="adm-role__checkbox"
-                checked={roles.includes(role)}
-                onChange={() => toggleRole(role)}
+                type="text" className="adm-form__input" value={addressCity}
+                onChange={(e) => { setAddressCity(e.target.value); markDirty(); }}
               />
-              <div className="adm-role__text">
-                <span className="adm-role__name">{role}</span>
-                <span className="adm-role__desc">{ROLE_DESCRIPTIONS[role]}</span>
-              </div>
-            </label>
-          ))}
+            </div>
+            <div className="adm-form__field adm-form__field--state">
+              <label className="adm-form__label">State</label>
+              <input
+                type="text" className="adm-form__input" value={addressState}
+                maxLength={2} placeholder="WI"
+                onChange={(e) => { setAddressState(e.target.value.toUpperCase()); markDirty(); }}
+              />
+            </div>
+            <div className="adm-form__field adm-form__field--zip">
+              <label className="adm-form__label">Zip</label>
+              <input
+                type="text" className="adm-form__input" value={addressZip}
+                placeholder="53045"
+                onChange={(e) => { setAddressZip(e.target.value); markDirty(); }}
+              />
+            </div>
+          </div>
         </div>
-      </section>}
+      </section>
 
-      {/* Sanity Studio invite — shown after REGISTRAR role is saved, admin only */}
+      {/* ── Status ───────────────────────────────────────────────────────────── */}
+      <section className="adm-section">
+        <h2 className="adm-section__title">Status</h2>
+        <div className="adm-form">
+          <div className="adm-form__row">
+            <div className="adm-form__field">
+              <label className="adm-form__label">Member status</label>
+              <select
+                className="adm-form__select"
+                value={memberStatus}
+                onChange={(e) => { setMemberStatus(e.target.value); markDirty(); }}
+              >
+                {MEMBER_STATUSES.map((s) => (
+                  <option key={s.value} value={s.value}>{s.label}</option>
+                ))}
+              </select>
+              {memberStatus === "INACTIVE" && (
+                <p className="adm-form__hint adm-form__hint--warn">
+                  Inactive members cannot log in. Saving will sign them out immediately.
+                </p>
+              )}
+            </div>
+            <div className="adm-form__field">
+              <label className="adm-form__label">First visit date</label>
+              <input
+                type="date" className="adm-form__input" value={firstVisitDate}
+                onChange={(e) => { setFirstVisitDate(e.target.value); markDirty(); }}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Tags ─────────────────────────────────────────────────────────────── */}
+      <section className="adm-section">
+        <h2 className="adm-section__title">Tags</h2>
+        <p className="adm-section__hint">
+          Free-form labels for filtering and searching. Press Enter or comma to add a tag.
+        </p>
+        <div className="adm-tags">
+          {tags.map((tag) => (
+            <span key={tag} className="adm-tag">
+              {tag}
+              <button
+                className="adm-tag__remove"
+                onClick={() => removeTag(tag)}
+                aria-label={`Remove tag ${tag}`}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+          <input
+            type="text"
+            className="adm-tags__input"
+            placeholder="Add a tag…"
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            onKeyDown={handleTagKeyDown}
+            onBlur={() => { if (tagInput.trim()) addTag(tagInput); }}
+          />
+        </div>
+      </section>
+
+      {/* ── Admin Notes ──────────────────────────────────────────────────────── */}
+      {isAdmin && (
+        <section className="adm-section">
+          <h2 className="adm-section__title">Admin Notes</h2>
+          <p className="adm-section__hint">Private — not visible to the member.</p>
+          <textarea
+            className="adm-form__textarea"
+            rows={4}
+            value={adminNotes}
+            placeholder="Internal notes about this member…"
+            onChange={(e) => { setAdminNotes(e.target.value); markDirty(); }}
+          />
+        </section>
+      )}
+
+      {/* ── Roles & Permissions ──────────────────────────────────────────────── */}
+      {isAdmin && (
+        <section className="adm-section">
+          <h2 className="adm-section__title">Roles &amp; Permissions</h2>
+          <p className="adm-section__hint">
+            When a role is assigned, the member&rsquo;s dashboard will show a link to that volunteer area.
+          </p>
+          <div className="adm-roles">
+            {ALL_ROLES.map((role) => (
+              <label key={role} className="adm-role">
+                <input
+                  type="checkbox" className="adm-role__checkbox"
+                  checked={roles.includes(role)}
+                  onChange={() => toggleRole(role)}
+                />
+                <div className="adm-role__text">
+                  <span className="adm-role__name">{role}</span>
+                  <span className="adm-role__desc">{ROLE_DESCRIPTIONS[role]}</span>
+                </div>
+              </label>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── Sanity Studio Invite ─────────────────────────────────────────────── */}
       {isAdmin && savedRoles.includes("REGISTRAR") && (
         <div className="adm-sanity">
           <p className="adm-sanity__label">Sanity Studio Access</p>
           {sanityInvitedAt ? (
             <p className="adm-sanity__status">
               ✓ Invited on{" "}
-              {new Date(sanityInvitedAt).toLocaleDateString("en-US", {
-                month: "long",
-                day: "numeric",
-                year: "numeric",
-              })}
+              {new Date(sanityInvitedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
             </p>
           ) : confirmingInvite ? (
             <div className="adm-sanity__confirm">
@@ -358,32 +534,19 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
               </p>
               {sanityError && <p className="adm-sanity__error">{sanityError}</p>}
               <div className="adm-sanity__confirm-actions">
-                <button
-                  className="adm-sanity__btn"
-                  onClick={handleSanityInvite}
-                  disabled={sanityStatus === "loading"}
-                >
+                <button className="adm-sanity__btn" onClick={handleSanityInvite} disabled={sanityStatus === "loading"}>
                   {sanityStatus === "loading" ? "Sending…" : "Yes, send invite"}
                 </button>
-                <button
-                  className="adm-btn--neutral"
-                  onClick={() => { setConfirmingInvite(false); setSanityError(""); }}
-                  disabled={sanityStatus === "loading"}
-                >
+                <button className="adm-btn--neutral" onClick={() => { setConfirmingInvite(false); setSanityError(""); }} disabled={sanityStatus === "loading"}>
                   Cancel
                 </button>
               </div>
             </div>
           ) : (
             <>
-              <p className="adm-sanity__hint">
-                Send this member an invitation to Sanity Studio as an Editor.
-              </p>
+              <p className="adm-sanity__hint">Send this member an invitation to Sanity Studio as an Editor.</p>
               {sanityError && <p className="adm-sanity__error">{sanityError}</p>}
-              <button
-                className="adm-sanity__btn"
-                onClick={() => setConfirmingInvite(true)}
-              >
+              <button className="adm-sanity__btn" onClick={() => setConfirmingInvite(true)}>
                 Invite to Sanity Studio
               </button>
             </>
@@ -391,39 +554,27 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
         </div>
       )}
 
-      {/* Save bar */}
+      {/* ── Save bar ─────────────────────────────────────────────────────────── */}
       <div className="adm-save">
         {error && <p className="adm-save__error">{error}</p>}
         {saved && <p className="adm-save__success">Saved ✓</p>}
-        {isAdmin && savedRoles.includes("REGISTRAR") &&
-          !roles.includes("REGISTRAR") &&
-          !!sanityInvitedAt && (
-            <p className="adm-save__warning">
-              ⚠ Saving will also revoke this member&rsquo;s Sanity Studio access.
-            </p>
-          )}
-
+        {isAdmin && savedRoles.includes("REGISTRAR") && !roles.includes("REGISTRAR") && !!sanityInvitedAt && (
+          <p className="adm-save__warning">
+            ⚠ Saving will also revoke this member&rsquo;s Sanity Studio access.
+          </p>
+        )}
         {showEmailConfirm ? (
           <div className="adm-email-confirm">
             <p className="adm-email-confirm__text">
               You are changing the login email from{" "}
               <strong>{originalEmail}</strong> to <strong>{email.trim()}</strong>.
-              This member will be signed out immediately and must use the new address to sign in.
-              Are you sure?
+              This member will be signed out immediately and must use the new address to sign in. Are you sure?
             </p>
             <div className="adm-email-confirm__actions">
-              <button
-                className="adm-save__btn"
-                onClick={() => handleSave(true)}
-                disabled={saving}
-              >
+              <button className="adm-save__btn" onClick={() => handleSave(true)} disabled={saving}>
                 {saving ? "Saving…" : "Yes, change email"}
               </button>
-              <button
-                className="adm-btn--cancel"
-                onClick={() => { setShowEmailConfirm(false); setEmail(originalEmail); }}
-                disabled={saving}
-              >
+              <button className="adm-btn--cancel" onClick={() => { setShowEmailConfirm(false); setEmail(originalEmail); }} disabled={saving}>
                 Cancel
               </button>
             </div>
@@ -439,20 +590,17 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
         )}
       </div>
 
-      {/* Course access — registrar and admin */}
+      {/* ── Course Access ────────────────────────────────────────────────────── */}
       <section className="adm-section">
         <h2 className="adm-section__title">Course Access</h2>
         <CourseAccessSection
           memberId={member.id}
-          memberRegistrations={member.registrations.map((r) => ({
-            programSlug: r.programSlug,
-            status: r.status,
-          }))}
+          memberRegistrations={member.registrations.map((r) => ({ programSlug: r.programSlug, status: r.status }))}
           initialGrants={member.courseAccess}
         />
       </section>
 
-      {/* Registration history */}
+      {/* ── Registration History ─────────────────────────────────────────────── */}
       <section className="adm-section">
         <h2 className="adm-section__title">Registration History</h2>
         {member.registrations.length === 0 ? (
@@ -462,10 +610,7 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
             {member.registrations.map((r) => (
               <div key={r.id} className="adm-reg">
                 <div className="adm-reg__main">
-                  <Link
-                    href={`/volunteer/programs/${r.programSlug}`}
-                    className="adm-reg__title"
-                  >
+                  <Link href={`/account/registrar/${r.programSlug}`} className="adm-reg__title">
                     {r.programTitle}
                   </Link>
                   <span className="adm-reg__date">{regDate(r.createdAt)}</span>
@@ -481,64 +626,56 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
         )}
       </section>
 
-      {/* Danger zone — admin only */}
-      {isAdmin && <section className="adm-danger-zone">
-        <p className="adm-danger-zone__title">Danger Zone</p>
-
-        {dangerError && <p className="adm-save__error" style={{ marginBottom: 12 }}>{dangerError}</p>}
-
-        {confirmAction ? (
-          <div className="adm-danger-confirm">
-            <p className="adm-danger-confirm__msg">
-              {confirmAction === "archive" && (
-                <>Archive this member? They will be logged out immediately and unable to log in.
-                Their registration history will be preserved. They can self-reactivate at any time.</>
-              )}
-              {confirmAction === "restore" && (
-                <>Restore this member? They will be able to log in again.</>
-              )}
-              {confirmAction === "delete" && (
-                <>Permanently delete this member? This cannot be undone.</>
-              )}
-            </p>
-            <div className="adm-danger-confirm__actions">
-              <button
-                className={confirmAction === "delete" ? "adm-btn--danger" : "adm-btn--restore"}
-                onClick={() => handleDangerAction(confirmAction)}
-                disabled={dangerBusy}
-              >
-                {dangerBusy ? "Working…" : `Confirm ${confirmAction.charAt(0).toUpperCase() + confirmAction.slice(1)}`}
-              </button>
-              <button
-                className="adm-btn--neutral"
-                onClick={() => { setConfirmAction(null); setDangerError(""); }}
-                disabled={dangerBusy}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="adm-danger-actions">
-            {isArchived ? (
-              <button className="adm-btn--restore" onClick={() => setConfirmAction("restore")}>
-                Restore Member
-              </button>
-            ) : (
-              <>
-                <button className="adm-btn--danger adm-btn--outline" onClick={() => setConfirmAction("archive")}>
-                  Archive Member
-                </button>
-                {member.registrations.length === 0 && (
-                  <button className="adm-btn--danger" onClick={() => setConfirmAction("delete")}>
-                    Delete Member
-                  </button>
+      {/* ── Danger Zone ──────────────────────────────────────────────────────── */}
+      {isAdmin && (
+        <section className="adm-danger-zone">
+          <p className="adm-danger-zone__title">Danger Zone</p>
+          {dangerError && <p className="adm-save__error" style={{ marginBottom: 12 }}>{dangerError}</p>}
+          {confirmAction ? (
+            <div className="adm-danger-confirm">
+              <p className="adm-danger-confirm__msg">
+                {confirmAction === "archive" && (
+                  <>Archive this member? They will be logged out immediately and unable to log in.
+                  Their registration history will be preserved. They can self-reactivate at any time.</>
                 )}
-              </>
-            )}
-          </div>
-        )}
-      </section>}
+                {confirmAction === "restore" && <>Restore this member? They will be able to log in again.</>}
+                {confirmAction === "delete" && <>Permanently delete this member? This cannot be undone.</>}
+              </p>
+              <div className="adm-danger-confirm__actions">
+                <button
+                  className={confirmAction === "delete" ? "adm-btn--danger" : "adm-btn--restore"}
+                  onClick={() => handleDangerAction(confirmAction)}
+                  disabled={dangerBusy}
+                >
+                  {dangerBusy ? "Working…" : `Confirm ${confirmAction.charAt(0).toUpperCase() + confirmAction.slice(1)}`}
+                </button>
+                <button className="adm-btn--neutral" onClick={() => { setConfirmAction(null); setDangerError(""); }} disabled={dangerBusy}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="adm-danger-actions">
+              {isArchived ? (
+                <button className="adm-btn--restore" onClick={() => setConfirmAction("restore")}>
+                  Restore Member
+                </button>
+              ) : (
+                <>
+                  <button className="adm-btn--danger adm-btn--outline" onClick={() => setConfirmAction("archive")}>
+                    Archive Member
+                  </button>
+                  {member.registrations.length === 0 && (
+                    <button className="adm-btn--danger" onClick={() => setConfirmAction("delete")}>
+                      Delete Member
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </section>
+      )}
     </>
   );
 }

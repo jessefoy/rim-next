@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { Role } from "@prisma/client";
+import { Role, MemberStatus } from "@prisma/client";
 import { sendRoleAssignmentEmail, sendHostRoleAssignmentEmail } from "@/lib/email";
 
 // Revoke a member's Sanity Studio access by email.
@@ -100,7 +100,12 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await request.json();
-  const { action, firstName, lastName, phone, email, roles } = body;
+  const {
+    action,
+    firstName, lastName, phone, email, roles,
+    preferredName, addressLine1, addressCity, addressState, addressZip,
+    memberStatus, firstVisitDate, adminNotes, tags,
+  } = body;
 
   // ── Special actions (Admin only) ─────────────────────────────────────────────
 
@@ -121,6 +126,17 @@ export async function PATCH(
   }
 
   // ── Profile / roles update ────────────────────────────────────────────────────
+
+  // Validate memberStatus if provided
+  const ALL_STATUSES = Object.values(MemberStatus);
+  if (memberStatus !== undefined && !ALL_STATUSES.includes(memberStatus as MemberStatus)) {
+    return NextResponse.json({ error: "Invalid memberStatus" }, { status: 400 });
+  }
+
+  // adminNotes requires Admin
+  if (adminNotes !== undefined && !isAdmin) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
 
   // Validate roles if provided; role changes require Admin
   if (roles !== undefined) {
@@ -171,6 +187,17 @@ export async function PATCH(
     !(user.roles as string[]).includes("HOST") &&
     (roles as string[]).includes("HOST");
 
+  // Determine archivedAt changes driven by memberStatus
+  let statusDrivenArchivedAt: Date | null | undefined;
+  if (memberStatus !== undefined) {
+    if (memberStatus === "INACTIVE") {
+      statusDrivenArchivedAt = new Date();
+    } else {
+      // Any active-ish status clears the archived flag
+      statusDrivenArchivedAt = null;
+    }
+  }
+
   const updateData: Record<string, unknown> = {
     ...(firstName !== undefined && { firstName }),
     ...(lastName !== undefined && { lastName }),
@@ -178,6 +205,19 @@ export async function PATCH(
     ...(emailIsChanging && { email: newEmail }),
     ...(roles !== undefined && { roles }),
     ...(shouldRevokeSanity && { sanityInvitedAt: null }),
+    // Extended profile
+    ...(preferredName !== undefined && { preferredName }),
+    ...(addressLine1 !== undefined && { addressLine1 }),
+    ...(addressCity !== undefined && { addressCity }),
+    ...(addressState !== undefined && { addressState }),
+    ...(addressZip !== undefined && { addressZip }),
+    ...(memberStatus !== undefined && { memberStatus }),
+    ...(firstVisitDate !== undefined && {
+      firstVisitDate: firstVisitDate ? new Date(firstVisitDate) : null,
+    }),
+    ...(adminNotes !== undefined && { adminNotes }),
+    ...(tags !== undefined && { tags }),
+    ...(statusDrivenArchivedAt !== undefined && { archivedAt: statusDrivenArchivedAt }),
   };
 
   const updated = await db.user.update({
@@ -195,8 +235,8 @@ export async function PATCH(
     },
   });
 
-  // If email changed, kill all sessions so they must re-authenticate with the new address.
-  if (emailIsChanging) {
+  // Kill sessions when email changes or member is set to Inactive
+  if (emailIsChanging || memberStatus === "INACTIVE") {
     await db.session.deleteMany({ where: { userId: id } });
   }
 
