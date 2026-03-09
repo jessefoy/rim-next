@@ -589,28 +589,41 @@ const AREAS: FunctionalArea[] = [
     id: "members-admin",
     title: "Member Management (Admin)",
     icon: "🛠️",
-    desc: "ADMIN-only tools for managing the community member database. Search, edit, assign roles, import, archive, and delete.",
+    desc: "Admin and registrar tools for managing the community member database. Search, edit profiles, assign roles, manage status, add tags, track households, and import members.",
     features: [
       {
         name: "Member List",
         locations: ["/admin/members", "Component: MembersTable.tsx", "API: GET /api/admin/members"],
-        what: "Searchable, filterable table of all community members. Client-side search (no round-trip) by name or email. Role filter: All / Admins / Registrars / No roles. Archived toggle (hidden by default — appears only when archivedCount > 0). Click any row to open member detail.",
+        what: "Searchable, sortable, filterable table of all community members. Search by name/email (client-side). Sort by any column header. Status filter dropdown (All / Active / Visitor / Student / Volunteer / Inactive). Click any row to open member detail.",
         relatedTo: [
           "Member Detail (Admin)",
           "CSV Import (opens panel inline)",
           "Roles & Permissions",
-          "Archive system (shows/hides archived rows)",
+          "Member Status (Inactive blocks login)",
         ],
       },
       {
-        name: "Member Detail",
+        name: "Member Detail — Enhanced Profile",
         locations: ["/admin/members/[id]", "Component: MemberDetail.tsx", "API: PATCH /api/admin/members/[id]"],
-        what: "Full profile view: edit name/phone, assign/revoke roles (ADMIN, REGISTRAR), manage course access, view registration history, and archive/restore/delete the member.",
+        what: "Full profile view with enhanced fields: first/last/preferred name, phone, structured address (Street/City/State/Zip), member status, first visit date, tags (freeform pills), and admin notes (hidden from members). Also: assign/revoke roles, manage course access, view registration history, and manage household membership.",
         relatedTo: [
-          "Roles assigned here cascade to Email & Notifications (role notification email)",
-          "Course Access System (CourseAccessSection component embedded here)",
+          "Member Status system (INACTIVE drives archivedAt + login block)",
+          "Tags — freeform labels, no predefined list",
+          "Admin Notes — only visible in admin view",
+          "Household section embedded here (HouseholdSection component)",
+          "Roles assigned here cascade to Email & Notifications",
+          "Course Access System (CourseAccessSection embedded here)",
           "Sanity Studio Access panel (invite/revoke from here)",
-          "Archive/restore/delete connects to Account Reactivation",
+        ],
+      },
+      {
+        name: "Member Status",
+        locations: ["/admin/members/[id]", "Component: MemberDetail.tsx", "Prisma: memberStatus enum on User"],
+        what: "Five statuses: ACTIVE (default), VISITOR (exploring), STUDENT (enrolled), VOLUNTEER (contributing), INACTIVE (blocked). INACTIVE is the only status that blocks login — it stamps archivedAt and kills the member's active sessions. Setting any other status clears archivedAt and re-enables login. Legacy archived members (archivedAt set, no memberStatus) are shown as INACTIVE in the UI and synced to DB on first save.",
+        relatedTo: [
+          "Route Protection reads archivedAt to redirect blocked members to /account/reactivate",
+          "Account Reactivation — admin can restore by changing status away from INACTIVE",
+          "effectiveStatus pattern handles legacy archived members cleanly",
         ],
       },
       {
@@ -624,17 +637,6 @@ const AREAS: FunctionalArea[] = [
         ],
       },
       {
-        name: "Archive, Restore & Delete",
-        locations: ["/admin/members/[id]", "Component: MemberDetail.tsx (Danger Zone)", "API: PATCH /api/admin/members/[id] (action: archive / restore), DELETE /api/admin/members/[id]"],
-        what: "Three membership states: Active (default), Archived (has registrations — session killed, member redirected to /account/reactivate), Deleted (zero registrations only — hard delete with cascade). Archive/delete require confirmation dialogs. Delete blocked with 409 if registrations exist.",
-        relatedTo: [
-          "Archive kills all sessions immediately (Postgres sessions table)",
-          "Route Protection redirects archived members to /account/reactivate",
-          "Account Reactivation (self-service path back to Active)",
-          "Auto-restore fires when archived member registers for a program",
-        ],
-      },
-      {
         name: "Sanity Studio Access (Invite / Revoke)",
         locations: ["/admin/members/[id]", "Component: MemberDetail.tsx (Sanity Studio Access panel)", "API: POST /api/admin/members/[id]/sanity-invite"],
         what: "Admins can invite staff members to Sanity Studio directly from the member detail page. Invite is sent via the Sanity Management API. sanityInvitedAt is stamped on the User record. When the REGISTRAR role is revoked, Sanity access is also revoked automatically (async).",
@@ -642,7 +644,44 @@ const AREAS: FunctionalArea[] = [
           "Sanity CMS (the studio at rooted-in-mindfulness.sanity.studio)",
           "REGISTRAR and ADMIN roles in Roles & Permissions",
           "SANITY_MANAGEMENT_TOKEN env var (Developer role in Sanity)",
-          "Staff dashboard card links to Sanity Studio (Member Dashboard)",
+        ],
+      },
+    ],
+  },
+
+  {
+    id: "households",
+    title: "Household / Family Grouping",
+    icon: "🏠",
+    desc: "Link members who belong to the same family or household. Shared address, primary contact, and relationship labels.",
+    features: [
+      {
+        name: "Household List",
+        locations: ["/admin/households", "API: GET /api/admin/households"],
+        what: "Lists every household with the primary contact's name, member count, and address summary. At the bottom: a custom relationship label frequency table showing every free-text 'Other' label used (e.g. 'roommate × 3') — helps identify terms to add to the enum in the future.",
+        relatedTo: [
+          "Household Detail page (link from each row)",
+          "Member Detail (HouseholdSection shows which household a member belongs to)",
+        ],
+      },
+      {
+        name: "Household Detail",
+        locations: ["/admin/households/[id]", "Component: HouseholdDetail.tsx", "API: PATCH/DELETE /api/admin/households/[id]"],
+        what: "Edit the household name, shared address, and notes. Member list shows all members with their relationship labels, a 'Set primary' action, and a 'Remove' action. Add Member search lets you find and add any member who isn't already in a household. Delete is available to admins only, when the household has one or zero members.",
+        relatedTo: [
+          "Member Detail (links to member profiles from household member rows)",
+          "Household List (breadcrumb back)",
+          "API: /api/admin/households/[id]/members for add/remove/set-primary",
+        ],
+      },
+      {
+        name: "Household Section (Member Profile)",
+        locations: ["Component: HouseholdSection.tsx", "Embedded in: MemberDetail.tsx"],
+        what: "Appears on every member profile. If the member isn't in a household: two options — 'Create new household' (makes this member the primary contact) or 'Add to existing household' (search for another member → system finds their household → set relationship and join). Once in a household: shows the household card with name, address, other members, relationship labels, and 'Remove from household' button.",
+        relatedTo: [
+          "Household Detail (household name is a link to the detail page)",
+          "API: GET /api/admin/members/[id]/household — discovers a member's household for the join flow",
+          "Address fallback: if member has no address but household does, a hint appears in the Contact section",
         ],
       },
     ],
@@ -1042,8 +1081,14 @@ const SYSTEM_MAP: { area: string; needs: string; powers: string; note: string }[
   {
     area: "Member Management (Admin)",
     needs: "Postgres (all user + registration data) · Sanity Management API (studio invites) · Email (role notifications)",
-    powers: "Roles (unlock staff areas) · Archive (block login + kill sessions) · Delete (hard remove) · Sanity Studio access",
+    powers: "Roles (unlock staff areas) · Member status (INACTIVE blocks login) · Tags + admin notes · Sanity Studio access · Household linking",
     note: "Never spread a Prisma include result into Client Component props — always construct props explicitly.",
+  },
+  {
+    area: "Household / Family Grouping",
+    needs: "Postgres (Household + HouseholdMember models) · Member Management (member search for join flow)",
+    powers: "Groups members by family — shared address, primary contact, relationship labels visible on member profiles and household detail page",
+    note: "userId @unique on HouseholdMember enforces one household per member at the DB level. 409 with human-readable error if member already belongs to a household.",
   },
   {
     area: "Scheduling & Automation",

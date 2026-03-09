@@ -66,9 +66,18 @@ export default async function ManualPage() {
             </ul>
           </li>
 
-          <li className="man-sidebar__soon-group">
-            <span className="man-sidebar__link man-sidebar__link--soon">Member Accounts</span>
-            <span className="man-soon-badge">Coming soon</span>
+          <li>
+            <a href="#members" className="man-sidebar__link">Member Accounts</a>
+            <ul className="man-sidebar__sub">
+              <li><a href="#mem-overview"   className="man-sidebar__sublink">Overview</a></li>
+              <li><a href="#mem-list"       className="man-sidebar__sublink">The member list</a></li>
+              <li><a href="#mem-profile"    className="man-sidebar__sublink">The member profile</a></li>
+              <li><a href="#mem-status"     className="man-sidebar__sublink">Member status</a></li>
+              <li><a href="#mem-tags"       className="man-sidebar__sublink">Tags</a></li>
+              <li><a href="#mem-notes"      className="man-sidebar__sublink">Admin notes</a></li>
+              <li><a href="#mem-households" className="man-sidebar__sublink">Households</a></li>
+              <li><a href="#mem-tasks"      className="man-sidebar__sublink">Common tasks</a></li>
+            </ul>
           </li>
           <li className="man-sidebar__soon-group">
             <span className="man-sidebar__link man-sidebar__link--soon">Courses &amp; Materials</span>
@@ -1430,7 +1439,315 @@ export default async function ManualPage() {
         </section>
 
         {/* ════════════════════════════════════════
-            CHAPTER 3 — VOLUNTEER ROLES
+            CHAPTER 3 — MEMBER ACCOUNTS
+            ════════════════════════════════════════ */}
+
+        <div id="members" className="man-chapter man-chapter--break">
+          <h1 className="man-chapter__title">Member Accounts</h1>
+          <p className="man-chapter__subtitle">
+            This chapter walks you through the member directory — how to find someone, what information you can see and edit, and how to keep things organized over time. You don&rsquo;t need any technical experience to use these tools.
+          </p>
+        </div>
+
+        {/* ── Overview ── */}
+        <section id="mem-overview" className="man-section">
+          <h2 className="man-section__title">Overview</h2>
+          <p>
+            Every person who has registered for a program, agreed to the community guidelines, or been added by a staff member has a member account. The member directory at <strong>/admin/members</strong> is where you can see all of them in one place, search for anyone by name or email, and open individual profiles to view or edit their information.
+          </p>
+          <p>
+            Think of it like a contact book that lives alongside the registration system. When someone registers for a program, their account is created automatically — you rarely need to create one from scratch. What this area is mostly used for is <em>maintaining</em> those records over time: updating a phone number, noting that someone&rsquo;s situation has changed, or linking family members together.
+          </p>
+          <p>
+            You need the <strong>Registrar</strong> or <strong>Admin</strong> role to access this area. Most tasks can be done by either role. A few things — like assigning volunteer roles or permanently deleting an account — require Admin.
+          </p>
+        </section>
+
+        {/* ── The member list ── */}
+        <section id="mem-list" className="man-section">
+          <h2 className="man-section__title">The member list</h2>
+          <p>
+            When you go to <strong>/admin/members</strong>, you&rsquo;ll see a table of everyone in the system — their name, email address, status, any volunteer roles they hold, the number of programs they&rsquo;ve registered for, and the date they joined. Click any row to open that person&rsquo;s profile.
+          </p>
+
+          <h3 className="man-section__h3">Searching and filtering</h3>
+          <p>
+            The search bar at the top filters the list as you type. It searches across names, email addresses, and tags — so if you&rsquo;ve tagged someone &ldquo;scholarship&rdquo; and search for that word, they&rsquo;ll appear.
+          </p>
+          <p>
+            You can also filter by:
+          </p>
+          <ul className="man-list">
+            <li><strong>Role</strong> — show only Admins, Registrars, Hosts, or people with no role at all</li>
+            <li><strong>Status</strong> — show only Active members, Visitors, Students, Volunteers, or Inactive members</li>
+          </ul>
+          <p>
+            These filters work together, so you can search for &ldquo;sarah&rdquo; and filter by Visitor status at the same time.
+          </p>
+
+          <h3 className="man-section__h3">Sorting</h3>
+          <p>
+            Click any column header — First name, Last name, Email, Joined, or Regs — to sort by that field. Click it again to reverse the order. An arrow next to the column name shows the current sort direction.
+          </p>
+
+          <h3 className="man-section__h3">Archived members</h3>
+          <p>
+            Members whose status was set to <strong>Inactive</strong> don&rsquo;t appear in the regular list — they&rsquo;re tucked away so they don&rsquo;t clutter your view. If you need to find someone who has been deactivated, look for the <strong>Archived (N)</strong> button in the upper right of the list. Clicking it switches the view to show only those members. Click <strong>Show Active</strong> to go back.
+          </p>
+          <div className="man-note">
+            The count only appears when there are archived members to show. If you don&rsquo;t see the button, nobody has been archived yet.
+          </div>
+        </section>
+
+        {/* ── The member profile ── */}
+        <section id="mem-profile" className="man-section">
+          <h2 className="man-section__title">The member profile</h2>
+          <p>
+            Opening a member&rsquo;s profile takes you to a page where you can see and edit all of their information. Everything is organized into sections. When you&rsquo;ve made changes, scroll to the <strong>Save changes</strong> button — changes are only saved when you click it, not as you type.
+          </p>
+
+          <h3 className="man-section__h3">Profile — name and email</h3>
+          <p>
+            The top section holds their first name, last name, and a <strong>Preferred name</strong> field. Preferred name is for a nickname or the name they actually go by — for example, if their legal name is Katherine but they go by Kate, put Kate in the Preferred name field. The preferred name shows up in parentheses in the member list so you can always find them either way.
+          </p>
+          <p>
+            Their email address is shown here too. Email is their login — be careful when changing it. If you update it, they&rsquo;ll be signed out immediately and will need to use the new address to log back in. A warning appears if you change this field so you don&rsquo;t do it accidentally.
+          </p>
+
+          <h3 className="man-section__h3">Contact — phone and address</h3>
+          <p>
+            This section holds their phone number and mailing address. These are optional — not every member will have them. If a member belongs to a household (see the Households section below), and they don&rsquo;t have their own address on file, a note will appear here letting you know that the household address will be used instead.
+          </p>
+
+          <h3 className="man-section__h3">Status — membership level and first visit</h3>
+          <p>
+            This is where you set their <strong>member status</strong> and, optionally, the date they first came to RIM. See the next section for a full explanation of what each status means.
+          </p>
+        </section>
+
+        {/* ── Member status ── */}
+        <section id="mem-status" className="man-section">
+          <h2 className="man-section__title">Member status</h2>
+          <p>
+            Every member has a status that reflects their relationship with the community. Status affects what they can access — specifically, whether they can log in to the member area. Here&rsquo;s what each one means:
+          </p>
+
+          <table className="man-table">
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>What it means</th>
+                <th>Can log in?</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Active</strong></td>
+                <td>A regular community member — fully part of the community, with access to the member area</td>
+                <td>✓ Yes</td>
+              </tr>
+              <tr>
+                <td><strong>Visitor</strong></td>
+                <td>Attending programs and exploring, but not yet a full community member</td>
+                <td>✓ Yes</td>
+              </tr>
+              <tr>
+                <td><strong>Student</strong></td>
+                <td>Engaged in a particular learning track or training program</td>
+                <td>✓ Yes</td>
+              </tr>
+              <tr>
+                <td><strong>Volunteer</strong></td>
+                <td>Contributing to the community in an ongoing volunteer capacity</td>
+                <td>✓ Yes</td>
+              </tr>
+              <tr>
+                <td><strong>Inactive</strong></td>
+                <td>No longer actively participating — account is preserved but access is suspended</td>
+                <td>✗ No</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p style={{ marginTop: "16px" }}>
+            The most important thing to know: <strong>Inactive is the only status that blocks login.</strong> All other statuses let the member sign in and use the member area normally. If you need to temporarily or permanently suspend someone&rsquo;s access, set them to Inactive and save. They will be signed out immediately.
+          </p>
+
+          <div className="man-note">
+            Setting someone to Inactive is reversible. If you need to restore their access, simply change their status back to Active (or whichever status fits) and save.
+          </div>
+
+          <h3 className="man-section__h3">First visit date</h3>
+          <p>
+            Next to the status field is a <strong>First visit date</strong> field. This is just a record-keeping field — it does nothing to access or permissions. It&rsquo;s useful for knowing when someone first came to RIM, especially for members who have been around for years before the digital system existed.
+          </p>
+        </section>
+
+        {/* ── Tags ── */}
+        <section id="mem-tags" className="man-section">
+          <h2 className="man-section__title">Tags</h2>
+          <p>
+            Tags are short labels you can attach to a member&rsquo;s profile. They&rsquo;re flexible — you decide what they mean. Some ideas for how to use them:
+          </p>
+          <ul className="man-list">
+            <li>Mark someone as <strong>scholarship</strong> so you can filter for that group easily</li>
+            <li>Note <strong>newsletter</strong> for people who&rsquo;ve asked to be added to a mailing list</li>
+            <li>Track <strong>dsg</strong> for Dharma Study Group participants</li>
+            <li>Flag <strong>follow-up</strong> as a reminder to check in with someone</li>
+          </ul>
+          <p>
+            Tags are searchable from the member list — type a tag word in the search bar and anyone with that tag will appear.
+          </p>
+
+          <h3 className="man-section__h3">How to add a tag</h3>
+          <ol className="man-steps">
+            <li>Open the member&rsquo;s profile.</li>
+            <li>Scroll to the <strong>Tags</strong> section.</li>
+            <li>Click in the tag input field and type a word.</li>
+            <li>Press <strong>Enter</strong> or <strong>comma</strong> to add it. It becomes a small blue-green chip.</li>
+            <li>Add as many as you like. To remove one, click the &times; on the chip or press Backspace when the input is empty.</li>
+            <li>Click <strong>Save changes</strong> when done.</li>
+          </ol>
+          <div className="man-note">
+            Tags are shared — they&rsquo;re visible to all Registrars and Admins, not just the person who added them. Keep them brief and professional.
+          </div>
+        </section>
+
+        {/* ── Admin notes ── */}
+        <section id="mem-notes" className="man-section">
+          <h2 className="man-section__title">Admin notes</h2>
+          <p>
+            The <strong>Admin notes</strong> field is a private text area for internal notes about a member. It is only visible to people with the Admin role — Registrars cannot see it, and the member themselves will never see it.
+          </p>
+          <p>
+            Use it for anything you need to remember that doesn&rsquo;t fit anywhere else: context about a sensitive situation, a note from a conversation, something to be aware of when interacting with this person. Think of it like a sticky note attached to their file.
+          </p>
+          <div className="man-note man-note--warn">
+            Admin notes are private, but they are still part of the system. Write them as you would anything in a shared organizational record — thoughtfully and professionally.
+          </div>
+        </section>
+
+        {/* ── Households ── */}
+        <section id="mem-households" className="man-section">
+          <h2 className="man-section__title">Households</h2>
+          <p>
+            Many people come to RIM as part of a family — partners, parents and children, or others who live together. The <strong>Households</strong> feature lets you group those members together so you can see their connection at a glance, share an address across the group, and note how each person relates to the others.
+          </p>
+          <p>
+            Grouping people into a household doesn&rsquo;t change what they can access or how registration works. It&rsquo;s purely organizational — a way of keeping the community picture clear as membership grows.
+          </p>
+
+          <h3 className="man-section__h3">The household section on a member&rsquo;s profile</h3>
+          <p>
+            Scroll down to the <strong>Household</strong> section on any member&rsquo;s profile. If they&rsquo;re already in a household, you&rsquo;ll see a card showing the household name, any household address on file, their relationship label, and the other members in the group. If they&rsquo;re not in one, you&rsquo;ll see two buttons: <strong>Create new household</strong> and <strong>Add to existing household</strong>.
+          </p>
+
+          <h3 className="man-section__h3">Creating a new household</h3>
+          <ol className="man-steps">
+            <li>Open the profile of any member who will be in the household.</li>
+            <li>Scroll to the <strong>Household</strong> section and click <strong>Create new household</strong>.</li>
+            <li>Give the household a name if you like — for example, &ldquo;The Garcia Family.&rdquo; This is optional.</li>
+            <li>Choose a relationship label for this person — Spouse, Partner, Parent, Child, Sibling, or Other. If you choose Other, you can type in a description (like &ldquo;guardian&rdquo;).</li>
+            <li>Click <strong>Create household</strong>. The household is created and this person is added as the primary contact.</li>
+          </ol>
+          <p>
+            Once the household exists, you can add other members to it from their own profile pages — or from the household detail page at <strong>/admin/households</strong>.
+          </p>
+
+          <h3 className="man-section__h3">Adding a member to an existing household</h3>
+          <ol className="man-steps">
+            <li>Open the profile of the person you want to add.</li>
+            <li>Scroll to the <strong>Household</strong> section and click <strong>Add to existing household</strong>.</li>
+            <li>Search for another member who is already in the household you want to join. The system will find their household for you.</li>
+            <li>Choose a relationship label for this person.</li>
+            <li>Click <strong>Join household</strong>.</li>
+          </ol>
+          <div className="man-note">
+            Each person can only belong to one household at a time. If you try to add someone who is already in a different household, the system will tell you and ask you to remove them from the first one before adding them to the new one.
+          </div>
+
+          <h3 className="man-section__h3">The primary contact</h3>
+          <p>
+            Every household has a <strong>primary contact</strong> — the person to reach out to on behalf of the group. The first member added is automatically set as primary, but you can change this at any time. On the household detail page, each member row has a <strong>Set primary</strong> button. Setting a new primary contact automatically removes the designation from whoever had it before.
+          </p>
+
+          <h3 className="man-section__h3">The household address</h3>
+          <p>
+            You can add a shared address to the household itself (rather than to each person individually) from the household detail page. If a member has no personal address on their own profile, their household&rsquo;s address will be used instead. When this is happening, a small note appears in their Contact section: &ldquo;No individual address — household address will be used.&rdquo;
+          </p>
+
+          <h3 className="man-section__h3">The household directory</h3>
+          <p>
+            You can see all households at <strong>/admin/households</strong>. Each row shows the household name, the primary contact, the total number of members, and a summary of their shared address. Click any household to open its detail page, where you can edit the name, address, notes, manage members, and (if you have Admin access) delete the household.
+          </p>
+          <p>
+            At the bottom of the households page, there&rsquo;s a small table showing any custom relationship labels that have been used (the ones typed in when &ldquo;Other&rdquo; is selected). This is just for reference — it helps identify whether any custom label is common enough to be worth adding as a standard option in the future.
+          </p>
+
+          <h3 className="man-section__h3">Removing someone from a household</h3>
+          <p>
+            On a member&rsquo;s profile, scroll to the Household card and click <strong>Remove from household</strong>. This removes just that person — it does not delete the household or affect the other members in it. Their profile will then show the &ldquo;no household&rdquo; state, and you can add them to a different household if needed.
+          </p>
+        </section>
+
+        {/* ── Common tasks ── */}
+        <section id="mem-tasks" className="man-section">
+          <h2 className="man-section__title">Common tasks</h2>
+
+          <h3 className="man-section__h3">Updating a member&rsquo;s status</h3>
+          <ol className="man-steps">
+            <li>Go to <strong>/admin/members</strong> and search for the person.</li>
+            <li>Click their name to open their profile.</li>
+            <li>Scroll to the <strong>Status</strong> section.</li>
+            <li>Use the dropdown to choose the new status.</li>
+            <li>Click <strong>Save changes</strong>.</li>
+          </ol>
+          <p>
+            If you set status to <strong>Inactive</strong>, they will be signed out immediately and will no longer be able to log in. A warning appears in the form to remind you of this before you save.
+          </p>
+
+          <h3 className="man-section__h3">Updating contact information</h3>
+          <ol className="man-steps">
+            <li>Open the member&rsquo;s profile.</li>
+            <li>Scroll to <strong>Contact</strong>.</li>
+            <li>Update the phone number or address fields as needed.</li>
+            <li>Click <strong>Save changes</strong>.</li>
+          </ol>
+
+          <h3 className="man-section__h3">Adding a tag to a member</h3>
+          <ol className="man-steps">
+            <li>Open the member&rsquo;s profile and scroll to <strong>Tags</strong>.</li>
+            <li>Click in the input field, type the tag word, and press Enter.</li>
+            <li>Click <strong>Save changes</strong>.</li>
+          </ol>
+
+          <h3 className="man-section__h3">Grouping two members into a household</h3>
+          <ol className="man-steps">
+            <li>Open the profile of one of the members.</li>
+            <li>Scroll to <strong>Household</strong> and click <strong>Create new household</strong>.</li>
+            <li>Give the household a name (optional), choose a relationship, and click <strong>Create household</strong>.</li>
+            <li>Now open the second member&rsquo;s profile.</li>
+            <li>Scroll to <strong>Household</strong> and click <strong>Add to existing household</strong>.</li>
+            <li>Search for the first member&rsquo;s name, select them, choose a relationship, and click <strong>Join household</strong>.</li>
+          </ol>
+
+          <h3 className="man-section__h3">Looking up a member&rsquo;s registration history</h3>
+          <ol className="man-steps">
+            <li>Open the member&rsquo;s profile.</li>
+            <li>Scroll to the bottom — there&rsquo;s a <strong>Registration History</strong> section showing every program they&rsquo;ve registered for, with the status of each one.</li>
+          </ol>
+
+          <h3 className="man-section__h3">Updating a member&rsquo;s preferred name</h3>
+          <ol className="man-steps">
+            <li>Open the member&rsquo;s profile.</li>
+            <li>In the <strong>Profile</strong> section, find the <strong>Preferred name</strong> field.</li>
+            <li>Enter the name they go by.</li>
+            <li>Click <strong>Save changes</strong>. It will appear in parentheses in the member list.</li>
+          </ol>
+        </section>
+
+        {/* ════════════════════════════════════════
+            CHAPTER 4 — VOLUNTEER ROLES
             ════════════════════════════════════════ */}
 
         <div id="roles" className="man-chapter man-chapter--break">

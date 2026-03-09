@@ -31,6 +31,8 @@ Two audiences:
 18. [Sanity Studio Access for Staff](#18-sanity-studio-access-for-staff)
 19. [Google Meet Integration](#19-google-meet-integration--high-priority)
 20. [Staff Reference Manual](#20-staff-reference-manual)
+21. [HOST Role & Host Area](#21-host-role--host-area)
+22. [Household / Family Grouping](#22-household--family-grouping)
 
 ---
 
@@ -776,34 +778,99 @@ All custom styles: `public/css/custom.css`
 
 ## 11. Member Management System (`/admin/members`)
 
-**What it does:** An ADMIN-only area for viewing all members, editing their profiles, assigning/revoking staff roles, importing members from CSV, and archiving or deleting members. Archived members can reactivate themselves through registration or a direct magic-link flow.
+**What it does:** An admin area (ADMIN or REGISTRAR) for viewing all members, editing their profiles, assigning/revoking staff roles, managing course access, and importing members from CSV. Includes enhanced profile fields, status-driven access control, tags, admin notes, and household grouping.
 
 ### Routes
-- `/admin/members` — searchable member list with role filter, archived toggle, and import tool
-- `/admin/members/[id]` — member detail: edit name/phone, assign roles, manage course access, archive/restore/delete
-- `/account/reactivate` — self-service reactivation page for archived members (magic link → reactivate → dashboard)
+- `/admin/members` — searchable member list with role filter, status filter, sortable columns, archived toggle, and import tool
+- `/admin/members/[id]` — member detail: full profile editing, member status, tags, household, admin notes, roles, course access, registration history, delete (admin only)
+- `/admin/households` — household directory with custom-label frequency table
+- `/admin/households/[id]` — household detail: edit name/address/notes, manage members, set primary contact
+- `/account/reactivate` — self-service reactivation page for Inactive members (magic link → reactivate → dashboard)
 
 ### Access control
 - `/admin/*` routes protected at proxy level (`proxy.ts`)
-- Member list and detail pages allow both ADMIN and REGISTRAR — `hasAccess = isAdmin || roles.includes("REGISTRAR")`
-- Destructive actions (archive, restore, delete, import, role assignment, Sanity invite) require ADMIN; REGISTRAR can view, edit profiles, and manage course access
-- `/account/reactivate` is accessible to any authenticated user (archived members can reach it because `proxy.ts` redirects archived sessions there instead of the usual member area)
+- Member list, detail, and household pages allow both ADMIN and REGISTRAR
+- Destructive actions (delete member, delete household, import, role assignment, Sanity invite) require ADMIN
+- `/account/reactivate` accessible to any authenticated user (proxy redirects Inactive sessions there)
 
 ### Member list (`/admin/members`)
-- Search bar (filters name + email client-side — fast, no round-trip)
-- Role filter: All / Admins / Registrars / No roles
-- **Archived toggle:** "Show Archived (N)" button appears only when `archivedCount > 0`. Clicking it filters the table to show only archived members. Archived rows are visually muted with an "Archived" badge in the name cell.
-- Table: Name, Email, Roles (colored badges), Registrations count, Joined date
-- Click any row → navigates to member detail page
-- "Import from Memberstack" button → opens import panel inline
+- Search bar filters name, email, and tags client-side — fast, no round-trip
+- Role filter: All / Admins / Registrars / Hosts / No roles
+- Status filter: All / Active / Visitor / Student / Volunteer / Inactive
+- Sortable columns: First name, Last name, Email, Joined date, Registrations count — click header to toggle asc/desc
+- **Archived toggle:** "Show Archived (N)" button when `archivedCount > 0` — switches view to Inactive/archived members; muted rows with "Archived" badge
+- Table: Name (with preferred name in parentheses), Last name, Email, Status badge + role badges, Regs count, Joined date
+- Click any row → navigates to member detail
+- "Import from Memberstack" button — admin only, opens import panel inline
+- API: `GET /api/admin/members` — ADMIN or REGISTRAR; supports `?q=` search and `?limit=` params
 
 ### Member detail (`/admin/members/[id]`)
-- Profile section: edit firstName, lastName, phone (email is read-only — set by auth)
-- Roles section: checkbox per role (ADMIN, REGISTRAR) with descriptions
-- Assigned roles appear as staff links on the member's dashboard automatically
-- **Course Access section:** searchable list of all courses in the system; each course shows status badge(s) — "All Members" (open to any logged-in user), "Via Registration: [Program Name]" (member has active registration for a linked program), "Manual Grant" (admin-granted), or "No Access". Grant/revoke controls appear inline per course with warning dialogs when a grant is redundant or when revoking still leaves other access.
-- Registration history: list of all programs registered for, with status badges + link to volunteer table
-- **Danger Zone:** archive/restore/delete actions (see below)
+- **Profile:** firstName, lastName, preferredName, email (with inline change-warning + confirmation dialog)
+- **Contact:** phone, addressLine1, addressCity, addressState, addressZip; shows "household address will be used" hint when member has no address but belongs to a household
+- **Status:** memberStatus dropdown (ACTIVE/VISITOR/STUDENT/VOLUNTEER/INACTIVE) + firstVisitDate; INACTIVE warning: "Saving will sign them out immediately"; status change drives archivedAt
+- **Tags:** pill input (Enter or comma to add, × or Backspace to remove); tags are searchable from member list
+- **Household:** embedded HouseholdSection — see §22
+- **Admin Notes:** private textarea — visible to ADMIN only; member never sees it
+- Roles section: checkbox per role (HOST, REGISTRAR, ADMIN) with descriptions — ADMIN only
+- Sanity Studio Access panel — ADMIN only, appears after REGISTRAR role saved
+- **Course Access section:** see §12
+- Registration history: all programs registered for with status badges
+- **Danger Zone:** Delete only (no archive/restore — status handles access). Delete requires `registrations.length === 0`
+- "Save changes" button PATCHes all fields in one call
+
+### Member status and access control
+Status drives login access. INACTIVE is the only status that blocks login:
+| Status | Login | Meaning |
+|---|---|---|
+| ACTIVE | ✓ | Full community member |
+| VISITOR | ✓ | Exploring, not yet full member |
+| STUDENT | ✓ | In a learning track |
+| VOLUNTEER | ✓ | Contributing in volunteer capacity |
+| INACTIVE | ✗ | Access suspended; records preserved |
+
+Setting status to INACTIVE: sets `archivedAt = new Date()` + `db.session.deleteMany` (immediate logout). Setting any other status: sets `archivedAt = null`. Legacy members with `archivedAt` set but `memberStatus = ACTIVE` auto-correct on profile load via `effectiveStatus` pattern — first save syncs the DB.
+
+### Delete
+Available only when `registrations.length === 0`. Hard-deletes User record; cascade removes sessions, accounts, course access. If member has registrations, use Inactive instead. API returns 409 if DELETE attempted on member with registrations.
+
+### Self-service reactivation
+Two re-entry paths for Inactive members:
+1. **Register for a program** — `POST /api/registrations` includes `archivedAt: null` in user upsert; automatic, no friction
+2. **Magic link → `/account/reactivate`** — proxy detects `archivedAt`, redirects to reactivation page; PATCH `/api/account/reactivate` clears `archivedAt` → dashboard
+
+### Dashboard integration
+AccountSidebar shows "Members" and "Households" links for REGISTRAR+. ADMIN also sees these plus Manual and Roadmap.
+
+### Memberstack CSV import
+- Client-side CSV parse — handles quoted fields; no library
+- Column mapping: Email, First Name / firstName, Last Name / lastName, Phone
+- Preview: first 5 rows + total count
+- Upsert by email (lowercase): fills blank fields only (never overwrites); not found → create
+- Results: "X new · Y updated · Z skipped"
+
+### Key files
+- `app/admin/members/page.tsx` — member list server component
+- `app/admin/members/[id]/page.tsx` — member detail server component; constructs `serialized` explicitly (never spreads Prisma `include` — see Technical notes)
+- `components/MembersTable.tsx` — list client component (search, filters, sort, archived toggle)
+- `components/MemberDetail.tsx` — detail client component (all profile sections; imports HouseholdSection + CourseAccessSection)
+- `components/MemberImport.tsx` — CSV import client component
+- `components/CourseAccessSection.tsx` — course access UI
+- `components/HouseholdSection.tsx` — household embedded panel in member detail
+- `app/account/reactivate/page.tsx` — self-service reactivation (`wl-` prefix)
+- `app/api/account/reactivate/route.ts` — PATCH: clears archivedAt
+- `app/api/admin/members/route.ts` — GET (list with search + limit params; ADMIN or REGISTRAR)
+- `app/api/admin/members/[id]/route.ts` — PATCH (profile/status/roles) + DELETE (zero-registration guard)
+- `app/api/admin/members/[id]/household/route.ts` — GET: returns member's household ID+name (used by HouseholdSection join flow)
+- `app/api/admin/members/[id]/course-access/route.ts` — POST/DELETE — ADMIN or REGISTRAR
+- `app/api/admin/members/import/route.ts` — POST (CSV upsert)
+
+**🔧 Technical notes:**
+- `effectiveStatus` pattern: `member.archivedAt && member.memberStatus !== "INACTIVE" ? "INACTIVE" : member.memberStatus` — handles legacy archived members in component state; first save syncs DB
+- `archivedAt` is now purely derived from `memberStatus` — setting INACTIVE stamps it, any other status clears it. Don't set it directly except via the INACTIVE status path
+- Role validation in PATCH uses `Object.values(Role)` from `@prisma/client`
+- ⚠️ **RSC serialization gotcha:** Never spread a Prisma `include` result into Client Component props. All Date fields must be converted to `.toISOString()`; household data must be constructed explicitly with all nested `user` fields explicitly named
+- `tags` is a `String[]` on the User model — stored as Postgres array; Prisma reads/writes it natively. No JSON encoding needed
+- `adminNotes` is only sent in the PATCH body when `isAdmin` — client guards the field; server validates admin-only via session check in PATCH route
 - "Save changes" button PATCHes all changes in one call
 
 ### Archive, restore & delete
@@ -1983,4 +2050,116 @@ Staff reach the manual via two paths:
 
 | 2026-03-08 (session 32) | Account dashboard sidebar. New `AccountSidebar` (client, `"use client"`, `usePathname`) + `AccountLayout` (server, calls `auth()`) components; `ac-` CSS prefix. Sidebar links: all members get Dashboard/My Programs/My Library/My Profile; HOST adds "My Sessions"; REGISTRAR/ADMIN adds Programs+Members; ADMIN adds second divider+Manual+Roadmap. Mobile: horizontal scroll strip (standard tabs pattern — no hamburger drawer, avoids conflict with main nav). Applied `AccountLayout` to: `/account/dashboard`, library, profile, agreements, and all four new pages. New pages created: `/account/programs` (ported from `dashboard-my-registrations`), `/account/host` (ported from `/hosts`), `/account/registrar` (ported from `/volunteer`), `/account/registrar/[slug]` (ported from `/volunteer/programs/[slug]`). Old URLs now redirect. Dashboard: removed `STAFF_LINKS` constant + "Volunteer Access" panel (sidebar handles staff navigation). Nav admin dropdown: removed Members/Roadmap/Staff Manual; added Sanity Studio. FEATURES.md §6b rewritten (sidebar architecture). Manual: all `/volunteer` → `/account/registrar`, `/hosts` → `/account/host` URLs updated throughout. Key files: `components/AccountSidebar.tsx` (new), `components/AccountLayout.tsx` (new), `app/account/programs/page.tsx` (new), `app/account/host/page.tsx` (new), `app/account/registrar/page.tsx` (new), `app/account/registrar/[slug]/page.tsx` (new). Commit: 1a05b8c. |
 
-*Last updated: 2026-03-08 (session 32)*
+---
+
+## 22. Household / Family Grouping ✅ Built — session 35 (2026-03-09)
+
+**What it does:** Lets admins and registrars link members who belong to the same family or household — so RIM can understand that "John Smith" and "Mary Smith" are from the same home, share an address, and have a primary contact for communications. A household can hold any number of members with named relationships (Spouse, Parent, Child, etc.).
+
+**Who uses it:** Admins and registrars, when enrolling families, updating household addresses, or looking up who belongs to which household. Also surfaces on individual member profiles — so when you're viewing Mary's profile you immediately see that she's part of the Smith household.
+
+---
+
+### What it does for members
+
+- Each member can belong to at most one household (enforced at the database level)
+- The household has a shared address, an optional display name (e.g. "The Smith Family"), and admin notes
+- One member is the **primary contact** — the person RIM communicates with for household-level matters
+- Every member has a **relationship label** describing their role in the household: Spouse, Partner, Parent, Child, Sibling, or Other (with free-text description logged for future reference)
+
+---
+
+### User flow — linking a member to a household
+
+**From a member profile (`/admin/members/[id]`):**
+
+1. Open the member's profile — scroll to the **Household** section
+2. If they're not in a household yet, two buttons appear:
+   - **"Create new household"** — for a new family that doesn't exist in the system yet. Enter an optional household name and the member's role, then click "Create household." They become the primary contact automatically.
+   - **"Add to existing household"** — search for another member who is already in a household. Select them, and the system shows which household they belong to. Choose the new member's relationship role and click "Join household."
+3. Once in a household, the section shows a card with the household name (links to the household detail page), the shared address (if set), this member's relationship label, a "Primary contact" badge if applicable, and the other members in the household
+
+**From a household detail page (`/admin/households/[id]`):**
+1. Edit the household's name, address, and notes — click "Save changes"
+2. Add a member using the search box — pick their relationship type — click "Add"
+3. Set a different primary contact: click "Set primary" on any member row
+4. Remove a member from the household with the "Remove" button on their row
+
+---
+
+### The households list page (`/admin/households`)
+
+- Lists every household with the primary contact's name, member count, and address
+- Quick link from each row to the household detail page
+- At the bottom: a **Custom relationship labels** frequency table — shows every free-text "Other" label that has been used (e.g. "roommate × 3, guardian × 1"). This helps identify terms to formally add to the enum in the future.
+
+---
+
+### Address fallback
+
+If a member has no individual street address (`addressLine1` is blank), but belongs to a household that does, their member profile Contact section shows:
+
+> No individual address — household address will be used: [City, State]
+
+This prevents confusion — you know their mail goes to the household address, not nowhere.
+
+---
+
+### 🔧 Technical notes
+
+**Database design:**
+- `Household` — `id`, `name?`, `addressLine1?`, `addressCity?`, `addressState?`, `addressZip?`, `notes?`, `createdAt`, `updatedAt`
+- `HouseholdMember` — joins `Household` ↔ `User`; has `isPrimary`, `relationshipType` (enum), `relationshipCustom?` (free text, only when type = OTHER), `createdAt`
+- `userId @unique` on `HouseholdMember` enforces one household per member at the database level — not just app-level validation
+- `RelationshipType` enum: `SPOUSE | PARTNER | PARENT | CHILD | SIBLING | OTHER`
+- Cascade deletes on both FK sides — deleting a Household removes all HouseholdMember records; deleting a User removes their HouseholdMember record
+
+**API routes:**
+| Route | Method | Purpose | Auth |
+|---|---|---|---|
+| `/api/admin/households` | GET | List all households; `?q=` search by name or member name | ADMIN or REGISTRAR |
+| `/api/admin/households` | POST | Create household + first member as primary | ADMIN or REGISTRAR |
+| `/api/admin/households/[id]` | GET | Household detail with members | ADMIN or REGISTRAR |
+| `/api/admin/households/[id]` | PATCH | Update name / address / notes | ADMIN or REGISTRAR |
+| `/api/admin/households/[id]` | DELETE | Delete household (max 1 member guard) | ADMIN only |
+| `/api/admin/households/[id]/members` | POST | Add a member to a household | ADMIN or REGISTRAR |
+| `/api/admin/households/[id]/members/[userId]` | PATCH | Update relationship or set primary | ADMIN or REGISTRAR |
+| `/api/admin/households/[id]/members/[userId]` | DELETE | Remove member from household | ADMIN or REGISTRAR |
+| `/api/admin/members/[id]/household` | GET | Returns `{ id, name }` for a member's household — used by the join flow | ADMIN or REGISTRAR |
+
+**409 handling:** Both "create household" (POST) and "add member" (POST) check if the member is already in a household and return a 409 with a human-readable message: "This member is already in another household. Remove them from that household first."
+
+**Set primary logic:** When `isPrimary: true` is PATCHed for a member, the route first clears `isPrimary` on all other members in that household in the same transaction — so only one primary can exist at a time.
+
+**Key files:**
+- `prisma/schema.prisma` — `Household`, `HouseholdMember` models; `RelationshipType` enum; `household HouseholdMember?` on User
+- `app/api/admin/households/route.ts` — list + create
+- `app/api/admin/households/[id]/route.ts` — detail, update, delete
+- `app/api/admin/households/[id]/members/route.ts` — add member
+- `app/api/admin/households/[id]/members/[userId]/route.ts` — patch / remove member
+- `app/api/admin/members/[id]/household/route.ts` — household lookup for join flow
+- `app/admin/households/page.tsx` — list page (server component)
+- `app/admin/households/[id]/page.tsx` — detail page (server component)
+- `components/HouseholdDetail.tsx` — "use client"; full edit UI for household detail page
+- `components/HouseholdSection.tsx` — "use client"; embedded in MemberDetail; create/join/view household from a member profile
+- `components/MemberDetail.tsx` — imports HouseholdSection; `household` added to Member interface; address fallback hint
+- `app/admin/members/[id]/page.tsx` — nested Prisma include for household + otherMembers; explicit serialization
+- `components/AccountSidebar.tsx` — "Households" link added below Members (REGISTRAR+)
+- `public/css/custom.css` — `hh-` CSS block
+
+**CSS prefix:** `hh-` — household card, member list, search results, create/join forms
+
+**Custom relationship label frequency query (for admins):**
+```sql
+SELECT relationship_custom, COUNT(*) AS n
+FROM household_members
+WHERE relationship_type = 'OTHER'
+GROUP BY relationship_custom
+ORDER BY n DESC;
+```
+
+---
+
+| 2026-03-09 (session 34–35) | Enhanced member profiles + Household / Family Grouping. **(1) Enhanced member profiles (§11 update):** Added `preferredName`, structured address (`addressLine1 / addressCity / addressState / addressZip`), `memberStatus` enum (`ACTIVE / VISITOR / STUDENT / VOLUNTEER / INACTIVE`), `firstVisitDate`, `adminNotes` (admin-only), and `tags` (freeform array, pill input) to the User model; DB pushed. Status-driven access: INACTIVE is the only status that blocks login — stamps `archivedAt = new Date()` and invalidates sessions; any other status clears `archivedAt`. `effectiveStatus` pattern handles legacy archived members (auto-corrects on profile load, syncs to DB on save). Member list: sort by multiple columns (click header); status filter dropdown replacing the old "Archived" toggle. `adm-` CSS updates for status column, sort arrows, filter dropdown, admin notes banner. **(2) Household/Family Grouping (§22 new — full feature):** New `Household` + `HouseholdMember` Prisma models; `RelationshipType` enum (SPOUSE/PARTNER/PARENT/CHILD/SIBLING/OTHER); `userId @unique` enforces one-household-per-member at DB level; migration run (`prisma db push`). 5 new API routes (households CRUD + member management). 2 new admin pages (`/admin/households` list + `/admin/households/[id]` detail). 2 new components: `HouseholdDetail` (full edit UI) + `HouseholdSection` (embedded in MemberDetail). HouseholdSection has two modes: "create new household" (makes this member primary) and "join existing household" (search for another member → GET their household → POST add current member). Address fallback: if member has no `addressLine1` but household does, show "No individual address — household address will be used: [City, State]" hint. Households list page has a custom-label frequency table at the bottom to surface Other labels for future enum promotion. 409 responses with human-readable messages. `AccountSidebar` adds "Households" link for REGISTRAR+. `hh-` CSS block. **(3) Manual:** New Chapter 3 "Member Accounts" inserted before Volunteer Roles chapter (8 sections: overview, member list, member profile, member status table with access column, tags, admin notes, households, common tasks). Written in warm companion voice — plain English, second-person, no jargon. Sidebar updated: "Member Accounts" now a real link with full navigation, "Coming soon" badge removed. |
+
+*Last updated: 2026-03-09 (session 35)*
