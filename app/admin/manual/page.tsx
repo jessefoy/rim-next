@@ -48,12 +48,12 @@ export default async function ManualPage() {
               <li><a href="#prog-role"      className="man-sidebar__sublink">Who does this</a></li>
               <li><a href="#prog-anatomy"   className="man-sidebar__sublink">How a program comes together</a></li>
               <li><a href="#prog-creating"  className="man-sidebar__sublink">Creating a program</a></li>
-              <li><a href="#prog-content"   className="man-sidebar__sublink">Content tab</a></li>
-              <li><a href="#prog-schedule"  className="man-sidebar__sublink">Schedule &amp; Location tab</a></li>
-              <li><a href="#prog-reg-tab"   className="man-sidebar__sublink">Registration tab</a></li>
-              <li><a href="#prog-dana-tab"  className="man-sidebar__sublink">Dana tab</a></li>
-              <li><a href="#prog-dashboard" className="man-sidebar__sublink">Dashboard tab</a></li>
-              <li><a href="#prog-sorting"   className="man-sidebar__sublink">Visibility tab</a></li>
+              <li><a href="#prog-content"   className="man-sidebar__sublink">1 — Basics</a></li>
+              <li><a href="#prog-schedule"  className="man-sidebar__sublink">2 — When &amp; Where</a></li>
+              <li><a href="#prog-reg-tab"   className="man-sidebar__sublink">3 — Registration</a></li>
+              <li><a href="#prog-emails"    className="man-sidebar__sublink">4 — Emails</a></li>
+              <li><a href="#prog-dana-tab"  className="man-sidebar__sublink">5 — Dana</a></li>
+              <li><a href="#prog-dashboard" className="man-sidebar__sublink">6 — Settings</a></li>
               <li><a href="#prog-tasks"     className="man-sidebar__sublink">Common tasks</a></li>
               <li className="man-sidebar__sub-divider" />
               <li><a href="#google-meet"        className="man-sidebar__sublink">Setting up Google Meet</a></li>
@@ -500,7 +500,7 @@ export default async function ManualPage() {
               <li>Optionally set a <strong>Registration Deadline</strong> — the form closes automatically at that time.</li>
               <li>Add any <strong>Custom Questions</strong> the program needs.</li>
               <li>Write a <strong>Confirmation Email Message</strong> — the warm, personal note in the confirmation email.</li>
-              <li>Go to the <strong>Schedule &amp; Location</strong> tab and set the <strong>Start Date &amp; Time</strong> so members get calendar links.</li>
+              <li>Go to the <strong>2 — When &amp; Where</strong> tab and set the <strong>Start Date &amp; Time</strong> so members get calendar links.</li>
               <li>Publish. The Register button appears on the program page immediately.</li>
             </ol>
             <p className="man-task__note">If you don&rsquo;t have Sanity Studio access, ask your program coordinator to do this step.</p>
@@ -672,28 +672,28 @@ export default async function ManualPage() {
             </thead>
             <tbody>
               <tr>
-                <td>Content</td>
-                <td>The public-facing page: name, description, image, pull quote, and any linked online courses.</td>
+                <td>1 — Basics</td>
+                <td>The public-facing page: name, URL slug, category, description, image, pull quote, teachers, and special notes.</td>
               </tr>
               <tr>
-                <td>Schedule &amp; Location</td>
-                <td>Dates, times, teachers, location, meeting link, calendar links (Start Date &amp; Time), and recurrence for multi-session programs.</td>
+                <td>2 — When &amp; Where</td>
+                <td>Dates, times, location, recurrence, and the Google Meet setup for virtual programs.</td>
               </tr>
               <tr>
-                <td>Registration</td>
-                <td>Turns the registration form on, sets capacity, custom questions, and the confirmation email message.</td>
+                <td>3 — Registration</td>
+                <td>Turns the registration form on, sets capacity and deadline, custom questions, and links to online courses.</td>
               </tr>
               <tr>
-                <td>Dana</td>
-                <td>Controls whether and how payments are collected during registration.</td>
+                <td>4 — Emails</td>
+                <td>The confirmation email message and the automated reminder — what it says and when it sends.</td>
               </tr>
               <tr>
-                <td>Dashboard</td>
-                <td>Controls how the program appears on the member dashboard, including time-sensitive announcements and which days it shows.</td>
+                <td>5 — Dana</td>
+                <td>Controls whether and how dana or payment is collected during registration.</td>
               </tr>
               <tr>
-                <td>Visibility</td>
-                <td>Controls where the program appears in the public listings and in what order.</td>
+                <td>6 — Settings</td>
+                <td>How the program appears on the member dashboard (day, announcements, early arrival note) and where it appears in public listings.</td>
               </tr>
             </tbody>
           </table>
@@ -716,9 +716,9 @@ export default async function ManualPage() {
           <ol className="man-steps">
             <li>Open Sanity Studio and click <strong>Programs</strong> in the left sidebar.</li>
             <li>Click the <strong>+</strong> button (or &ldquo;Create new document&rdquo;) to start a new program.</li>
-            <li>Enter the program <strong>Name</strong>. This is the only required field.</li>
+            <li>You start on the <strong>1 — Basics</strong> tab. Enter the program <strong>Name</strong> — this is the only required field.</li>
             <li>Click <strong>Generate</strong> next to the Slug field to create the URL from the name. The slug becomes the URL path: a program called &ldquo;Morning Sitting&rdquo; gets the URL <code>/programs/morning-sitting</code>.</li>
-            <li>Fill in the tabs one at a time. You do not need to complete everything before publishing — you can publish a minimal program and add to it over time.</li>
+            <li>Fill in the remaining tabs one at a time. You do not need to complete everything before publishing — you can publish a minimal program and add to it over time.</li>
             <li>When ready for the program to appear on the website, click <strong>Publish</strong>.</li>
           </ol>
           <div className="man-note">
@@ -726,14 +726,33 @@ export default async function ManualPage() {
           </div>
         </section>
 
-        {/* ── Content tab ── */}
+        {/* ── 1 — Basics tab ── */}
         <section id="prog-content" className="man-section">
-          <h2 className="man-section__title">Content tab</h2>
+          <h2 className="man-section__title">1 — Basics</h2>
           <p>
-            The Content tab is what members read on the program&rsquo;s page. It covers the description, image, pull quote, and whether this program grants access to any online courses.
+            Everything that defines what the program <em>is</em> — its name, URL, category, public-facing description, image, pull quote, teachers, and special notes.
           </p>
 
           <div className="man-field-list">
+            <div className="man-field">
+              <div className="man-field__name">Name</div>
+              <div className="man-field__desc">
+                <p>The program&rsquo;s full name as it appears on the website, in emails, and on registration confirmations. Use the official name — avoid abbreviations unless they are widely understood.</p>
+              </div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Slug</div>
+              <div className="man-field__desc">
+                <p>The URL path for this program — auto-generated from the name. Click <strong>Generate</strong> to create it. <strong>Do not change the slug after the program is live</strong> — existing links and bookmarks will break. If a slug change is unavoidable, contact an Admin so a redirect can be set up.</p>
+              </div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Program Category</div>
+              <div className="man-field__desc">
+                <p><strong>Required for the program to appear on the public Programs &amp; Events listing page.</strong> Click and start typing to search, or press Backspace to see all categories. Categories include things like Meditation, Retreats, Classes.</p>
+                <p>If no existing category fits, ask an Admin to create a new one in Sanity → Program Categories. If this field is left blank, the program page still exists and is accessible by direct link — it just won&rsquo;t appear in the listings.</p>
+              </div>
+            </div>
             <div className="man-field">
               <div className="man-field__name">Tagline</div>
               <div className="man-field__desc">
@@ -786,34 +805,17 @@ export default async function ManualPage() {
                 <p>Choose one or more teachers from the Team list. Their names and photos appear on the program page. If a teacher isn&rsquo;t in the list yet, ask an Admin to add them in Sanity → Team.</p>
               </div>
             </div>
-            <div className="man-field">
-              <div className="man-field__name">Linked Courses</div>
-              <div className="man-field__desc">
-                <p>If this program has an associated online course in the Members Area — audio recordings, readings, or other materials — link it here. Members who register for this program will <em>automatically</em> receive access to all linked courses without any manual action on your part.</p>
-                <p>Click the field and type to search for a course by name, or press Backspace to see all available courses. You can link more than one course.</p>
-                <div className="man-note" style={{margin: "8px 0 0"}}>
-                  <strong>Important:</strong> Access is granted automatically to people who register <em>after</em> you add the link. Members who registered before you made the change will not get automatic access — an Admin can grant it manually from the member detail page.
-                </div>
-              </div>
-            </div>
           </div>
         </section>
 
-        {/* ── Schedule & Location tab ── */}
+        {/* ── 2 — When & Where tab ── */}
         <section id="prog-schedule" className="man-section">
-          <h2 className="man-section__title">Schedule &amp; Location tab</h2>
+          <h2 className="man-section__title">2 — When &amp; Where</h2>
           <p>
-            This tab controls dates, times, location, and the meeting link. It also controls what calendar events members receive and whether the program appears in the public listing.
+            Everything about when and how the program meets — dates, times, recurrence, location, and the full Google Meet setup for virtual programs.
           </p>
 
           <div className="man-field-list">
-            <div className="man-field">
-              <div className="man-field__name">Program Category</div>
-              <div className="man-field__desc">
-                <p><strong>Required for the program to appear on the public Programs &amp; Events listing page.</strong> Click and start typing to search, or press Backspace to see all categories. Categories include things like Meditation, Retreats, Classes.</p>
-                <p>If no existing category fits, ask an Admin to create a new one in Sanity → Program Categories. If this field is left blank, the program page still exists and is accessible by direct link — it just won&rsquo;t appear in the listings.</p>
-              </div>
-            </div>
             <div className="man-field">
               <div className="man-field__name">Date &amp; Time</div>
               <div className="man-field__desc">
@@ -895,11 +897,11 @@ export default async function ManualPage() {
           </div>
         </section>
 
-        {/* ── Registration tab ── */}
+        {/* ── 3 — Registration tab ── */}
         <section id="prog-reg-tab" className="man-section">
-          <h2 className="man-section__title">Registration tab</h2>
+          <h2 className="man-section__title">3 — Registration</h2>
           <p>
-            This tab is where registration is turned on and configured. The Registration chapter of this manual covers everything in more detail — here is a complete field reference.
+            Turns registration on and configures the form — capacity, deadline, custom questions, and which online courses registrants receive access to. See the Registration chapter for a full explanation of how the form works in practice.
           </p>
 
           <div className="man-field-list">
@@ -941,6 +943,27 @@ export default async function ManualPage() {
               </div>
             </div>
             <div className="man-field">
+              <div className="man-field__name">Linked Courses (Online Materials)</div>
+              <div className="man-field__desc">
+                <p>If this program has an associated online course in the Members Area — audio recordings, readings, or other materials — link it here. Members who register for this program will <em>automatically</em> receive access to all linked courses without any manual action on your part.</p>
+                <p>Click the field and type to search for a course by name, or press Backspace to see all available courses. You can link more than one course.</p>
+                <div className="man-note" style={{margin: "8px 0 0"}}>
+                  <strong>Important:</strong> Access is granted automatically to people who register <em>after</em> you add the link. Members who registered before you made the change will not get automatic access — an Admin can grant it manually from the member detail page.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── 4 — Emails tab ── */}
+        <section id="prog-emails" className="man-section">
+          <h2 className="man-section__title">4 — Emails</h2>
+          <p>
+            Controls what registrants receive by email — a custom message in the confirmation that goes out immediately after registration, and an automated reminder that sends on a date you choose.
+          </p>
+
+          <div className="man-field-list">
+            <div className="man-field">
               <div className="man-field__name">Confirmation Email Message</div>
               <div className="man-field__desc">
                 <p>A personal note included in the confirmation email — this is often the first substantial communication a registrant receives from RIM about the program. Make it warm, practical, and welcoming.</p>
@@ -952,24 +975,24 @@ export default async function ManualPage() {
             <div className="man-field">
               <div className="man-field__name">Reminder Email Date</div>
               <div className="man-field__desc">
-                <p>On this date, the system automatically sends a reminder email to all confirmed registrants at 9:00 AM Central. Set it one or two days before the program starts. Goes to Registered and Approved only — not waitlisted members.</p>
+                <p>On this date, the system automatically sends a reminder email to all confirmed registrants at 9:00 AM Central. Set it one or two days before the program starts — Goes to Registered and Approved only, not waitlisted members.</p>
+                <p><strong>For virtual programs:</strong> make sure the Meeting Link (Step 2) is set before this date. Members are directed to their dashboard to find it — but if the field is empty when the reminder sends, there will be nothing to direct them to.</p>
               </div>
             </div>
             <div className="man-field">
               <div className="man-field__name">Reminder Email Message</div>
               <div className="man-field__desc">
-                <p>The custom message in the reminder email — directions, what to bring, the meeting link (also included automatically if set), a warm note. If left blank, the reminder still goes out with standard program details.</p>
-                <p>The meeting link from the Schedule &amp; Location tab is automatically appended — make sure that field is set before this reminder date arrives.</p>
+                <p>The custom message in the reminder email — directions, what to bring, a warm note. If left blank, the reminder still goes out with standard program details.</p>
               </div>
             </div>
           </div>
         </section>
 
-        {/* ── Dana tab ── */}
+        {/* ── 5 — Dana tab ── */}
         <section id="prog-dana-tab" className="man-section">
-          <h2 className="man-section__title">Dana tab</h2>
+          <h2 className="man-section__title">5 — Dana</h2>
           <p>
-            This tab controls whether and how dana (financial offerings) are collected during registration. See the Dana section in the Registration chapter for a full explanation of how each mode works in practice.
+            Controls whether and how dana (financial offerings) are collected during registration. See the Dana section in the Registration chapter for a full explanation of how each mode works in practice.
           </p>
 
           <div className="man-field-list">
@@ -1018,30 +1041,37 @@ export default async function ManualPage() {
           </div>
         </section>
 
-        {/* ── Dashboard tab ── */}
+        {/* ── 6 — Settings tab ── */}
         <section id="prog-dashboard" className="man-section">
-          <h2 className="man-section__title">Dashboard tab</h2>
+          <h2 className="man-section__title">6 — Settings</h2>
           <p>
-            This tab controls how the program appears on the <strong>member dashboard</strong> — the page members see when they log in. This is separate from the public program page.
+            Controls how the program appears on the <strong>member dashboard</strong> and where it shows up in public listings.
           </p>
           <p>
-            Recurring programs like weekly sittings and ongoing classes appear on the dashboard as a persistent card so members can easily access the meeting link without re-registering each session. These settings let you add timely messages to those cards.
+            Recurring programs like weekly sittings appear on the dashboard as a persistent card. These fields let you add timely messages to those cards and control where in the listing the program sits.
           </p>
 
           <div className="man-field-list">
             <div className="man-field">
+              <div className="man-field__name">Day of Week</div>
+              <div className="man-field__desc">
+                <p>Select the day(s) this program meets. The dashboard groups programs by day — this field controls which day-column the program appears under. It also drives the <strong>Today</strong> highlight for members on the day the program runs.</p>
+                <p>Leave blank for programs without a fixed recurring day — retreats, one-time events, or anything where day-grouping doesn&rsquo;t apply.</p>
+              </div>
+            </div>
+            <div className="man-field">
               <div className="man-field__name">Special Announcement</div>
               <div className="man-field__desc">
-                <p>A short message displayed in <strong>red</strong> on the program&rsquo;s dashboard card. Use this for urgent, time-sensitive changes — a room change, a guest teacher, a one-time cancellation.</p>
+                <p>A short message displayed in <strong>bold red</strong> on the program&rsquo;s dashboard card — visible to all logged-in members. Use only for urgent, time-sensitive notices: a room change, a one-time cancellation, a guest teacher.</p>
                 <p><em>Example: Tonight&rsquo;s sitting is moved to Room B due to an event in the main hall.</em></p>
-                <p><strong>Remember to clear it after the event passes</strong> — update the field to blank and republish so the announcement doesn&rsquo;t linger on the dashboard.</p>
+                <p><strong>Remember to clear it after the event passes</strong> — update the field to blank and republish so the announcement doesn&rsquo;t linger and lose its urgency.</p>
               </div>
             </div>
             <div className="man-field">
               <div className="man-field__name">Early Arrival Message</div>
               <div className="man-field__desc">
-                <p>A short message shown in muted grey below the program details on the dashboard card. Use for a persistent, calm reminder.</p>
-                <p><em>Example: Please arrive 5–10 minutes early to get settled before we begin.</em></p>
+                <p>A quiet, standing note shown in muted grey on the dashboard card. Use for stable, recurring guidance that applies week to week — not for urgent announcements (use Special Announcement for those).</p>
+                <p><em>Example: Doors open at 6:45pm. Please arrive a few minutes early to get settled before we begin.</em></p>
               </div>
             </div>
             <div className="man-field">
@@ -1051,35 +1081,17 @@ export default async function ManualPage() {
               </div>
             </div>
             <div className="man-field">
-              <div className="man-field__name">Day of Week</div>
-              <div className="man-field__desc">
-                <p>Select the day(s) this program meets. This drives the <strong>Today</strong> badge on the member dashboard — the program card is highlighted for members on the days it actually runs. It also drives the grouping on the public listing page. Select from the list (these are built-in weekday documents, not free text).</p>
-                <p>Leave blank for programs without a fixed recurring day — retreats, one-time events, or anything where day-filtering doesn&rsquo;t apply.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ── Visibility tab ── */}
-        <section id="prog-sorting" className="man-section">
-          <h2 className="man-section__title">Visibility tab</h2>
-          <p>
-            This tab controls where the program shows up in listings and whether it&rsquo;s publicly visible.
-          </p>
-
-          <div className="man-field-list">
-            <div className="man-field">
               <div className="man-field__name">Sort Order</div>
               <div className="man-field__desc">
-                <p>A number controlling the display order within a day group on the public listing and within the registrar area. Lower numbers appear first.</p>
+                <p>A number controlling the display order on the public listing and in the registrar area. Lower numbers appear first.</p>
                 <p>Use round numbers — 10, 20, 30 — so you can insert new programs between existing ones later without renumbering everything.</p>
               </div>
             </div>
             <div className="man-field">
-              <div className="man-field__name">Hide from Programs &amp; Events Listing</div>
+              <div className="man-field__name">Hide from Programs &amp; Events Page</div>
               <div className="man-field__desc">
                 <p>When checked, this program does not appear on the public <code>/programs</code> listing page, but its own page is still reachable at its direct URL.</p>
-                <p>Use this for programs that are invitation-only, still in draft, or not meant to be discovered by browsing — for example, a private retreat or an invitation-only program where you share the link directly.</p>
+                <p>Use this for programs that are invitation-only, still in draft, or not meant to be discovered by browsing — for example, a private retreat where you share the link directly.</p>
               </div>
             </div>
           </div>
@@ -1094,20 +1106,21 @@ export default async function ManualPage() {
             <ol className="man-steps">
               <li>Sanity Studio → <strong>Programs</strong> → <strong>+</strong> (Create).</li>
               <li>Enter the <strong>Name</strong> and click <strong>Generate</strong> next to the Slug field.</li>
-              <li><strong>Content tab:</strong> Add the tagline, upload an image, choose teachers, and write the description.</li>
-              <li><strong>Schedule &amp; Location tab:</strong> Select a <strong>Category</strong> (required for public listing), write the <strong>Date &amp; Time</strong>, set the Start Date &amp; Time, and add the location.</li>
-              <li><strong>Registration tab:</strong> If this program needs registration, turn on <strong>Enable Registration</strong>, set a capacity, add custom questions, and write the <strong>Confirmation Email Message</strong>.</li>
-              <li><strong>Dana tab:</strong> Set the Dana Mode if this program collects offerings.</li>
-              <li><strong>Visibility tab:</strong> Set a <strong>Sort Order</strong> number so the program appears in the right position in the listing.</li>
+              <li><strong>1 — Basics:</strong> Set the <strong>Category</strong> (required for public listing), add the tagline, upload an image, choose teachers, and write the description.</li>
+              <li><strong>2 — When &amp; Where:</strong> Write the <strong>Date &amp; Time</strong> label, set the <strong>Start Date &amp; Time</strong>, and add the location (or toggle on Virtual Program for online programs).</li>
+              <li><strong>3 — Registration:</strong> If this program needs registration, turn on <strong>Enable Registration</strong>, set a capacity, and add any custom questions.</li>
+              <li><strong>4 — Emails:</strong> Write the <strong>Confirmation Email Message</strong> and set a <strong>Reminder Email Date</strong> if you want an automated reminder to go out.</li>
+              <li><strong>5 — Dana:</strong> Set the Dana Mode if this program collects offerings.</li>
+              <li><strong>6 — Settings:</strong> Set a <strong>Sort Order</strong> number and a <strong>Day of Week</strong> so the program appears correctly on the dashboard and listing.</li>
               <li>Click <strong>Publish</strong>. The program is live on the website.</li>
             </ol>
-            <p className="man-task__note"><strong>Virtual programs:</strong> Toggle on <strong>Virtual Program</strong> in the Schedule tab and set a <strong>Start Date &amp; Time</strong> before publishing. When you publish, the Google Meet link is created automatically and saved to the program — no extra steps needed. See <a href="#google-meet">Setting up a Google Meet</a> for the full picture.</p>
+            <p className="man-task__note"><strong>Virtual programs:</strong> Toggle on <strong>Virtual Program</strong> in the <strong>2 — When &amp; Where</strong> tab and set a <strong>Start Date &amp; Time</strong> before publishing. When you publish, the Google Meet link is created automatically and saved to the program — no extra steps needed. See <a href="#google-meet">Setting up a Google Meet</a> for the full picture.</p>
           </div>
 
           <div className="man-task">
             <h3 className="man-task__title">Updating dates or times</h3>
             <ol className="man-steps">
-              <li>Open the program → <strong>Schedule &amp; Location</strong> tab.</li>
+              <li>Open the program → <strong>2 — When &amp; Where</strong> tab.</li>
               <li>Update the <strong>Date &amp; Time</strong> text field (what displays on the page and listing cards) and the <strong>Start Date &amp; Time</strong> field (what generates calendar links).</li>
               <li>Publish.</li>
             </ol>
@@ -1117,7 +1130,7 @@ export default async function ManualPage() {
           <div className="man-task">
             <h3 className="man-task__title">Adding a special announcement to the member dashboard</h3>
             <ol className="man-steps">
-              <li>Open the program → <strong>Dashboard</strong> tab.</li>
+              <li>Open the program → <strong>6 — Settings</strong> tab.</li>
               <li>Type the announcement in <strong>Special Announcement</strong>.</li>
               <li>Publish. It appears in red on the member dashboard immediately.</li>
               <li>After the event passes, clear the field and publish again to remove it.</li>
@@ -1127,7 +1140,7 @@ export default async function ManualPage() {
           <div className="man-task">
             <h3 className="man-task__title">Setting up a multi-session course with calendar recurrence</h3>
             <ol className="man-steps">
-              <li>Open the program → <strong>Schedule &amp; Location</strong> tab.</li>
+              <li>Open the program → <strong>2 — When &amp; Where</strong> tab.</li>
               <li>Set <strong>Start Date &amp; Time</strong> to the first session.</li>
               <li>Set <strong>Repeats</strong> — e.g., Weekly.</li>
               <li>Set <strong>Every</strong> to 1 (every week) or 2 (every other week).</li>
@@ -1140,7 +1153,7 @@ export default async function ManualPage() {
           <div className="man-task">
             <h3 className="man-task__title">Hiding a program from the public listing</h3>
             <ol className="man-steps">
-              <li>Open the program → <strong>Visibility</strong> tab.</li>
+              <li>Open the program → <strong>6 — Settings</strong> tab.</li>
               <li>Check <strong>Hide from Programs &amp; Events Listing</strong>.</li>
               <li>Publish. The program disappears from the listing but its page is still reachable by direct link.</li>
             </ol>
@@ -1149,7 +1162,7 @@ export default async function ManualPage() {
           <div className="man-task">
             <h3 className="man-task__title">Linking a program to an online course</h3>
             <ol className="man-steps">
-              <li>Open the program → <strong>Content</strong> tab.</li>
+              <li>Open the program → <strong>3 — Registration</strong> tab.</li>
               <li>Click the <strong>Linked Courses</strong> field and search for the course by name.</li>
               <li>Select it and publish.</li>
               <li>From this point on, new registrants will automatically receive access to that course. Members who registered before this change will need access granted manually by an Admin from the member detail page.</li>
@@ -1159,7 +1172,7 @@ export default async function ManualPage() {
           <div className="man-task">
             <h3 className="man-task__title">Changing the display order of programs</h3>
             <ol className="man-steps">
-              <li>Open each program you want to reorder → <strong>Visibility</strong> tab.</li>
+              <li>Open each program you want to reorder → <strong>6 — Settings</strong> tab.</li>
               <li>Update the <strong>Sort Order</strong> number — lower numbers appear first.</li>
               <li>Publish each one.</li>
             </ol>
@@ -1169,8 +1182,8 @@ export default async function ManualPage() {
           <div className="man-task">
             <h3 className="man-task__title">Retiring or archiving a program</h3>
             <ol className="man-steps">
-              <li>If the program should no longer be discoverable: open it → <strong>Visibility</strong> tab → check <strong>Hide from Programs &amp; Events Listing</strong> → publish. The page still exists but won&rsquo;t be found by browsing.</li>
-              <li>If registration should close: open it → <strong>Registration</strong> tab → turn on <strong>Registration Closed</strong> → publish.</li>
+              <li>If the program should no longer be discoverable: open it → <strong>6 — Settings</strong> tab → check <strong>Hide from Programs &amp; Events Page</strong> → publish. The page still exists but won&rsquo;t be found by browsing.</li>
+              <li>If registration should close: open it → <strong>3 — Registration</strong> tab → turn on <strong>Registration Closed</strong> → publish.</li>
               <li>If the program should be fully removed from the website: contact an Admin — deleting a published document in Sanity is a destructive action that should be done intentionally.</li>
             </ol>
           </div>
@@ -1236,7 +1249,7 @@ export default async function ManualPage() {
             <li><strong>Start Date &amp; Time must be set</strong> — the system uses it to check which meeting rooms are available.</li>
           </ul>
           <p>
-            If either is missing, the Google Meet panel in the registrar area will show a notice rather than a button. Go to <strong>Sanity Studio → Programs → [program name] → Schedule tab</strong> and fill in both fields, then publish.
+            If either is missing, the Google Meet panel in the registrar area will show a notice rather than a button. Go to <strong>Sanity Studio → Programs → [program name] → 2 — When &amp; Where</strong> tab and fill in both fields, then publish.
           </p>
           <p>
             For recurring programs (e.g. every Wednesday evening), set the Start Date &amp; Time to the date of the <em>next</em> upcoming session. The Meet link itself doesn&rsquo;t expire — it works for all future sessions.
@@ -1252,7 +1265,7 @@ export default async function ManualPage() {
             For new virtual programs, the Meet link is created automatically when you publish. No extra steps.
           </p>
           <ol className="man-steps">
-            <li>In Sanity Studio, open the program and go to the <strong>Schedule &amp; Location</strong> tab.</li>
+            <li>In Sanity Studio, open the program and go to the <strong>2 — When &amp; Where</strong> tab.</li>
             <li>Toggle on <strong>Virtual Program</strong>.</li>
             <li>Set a <strong>Start Date &amp; Time</strong> (required — the system needs it to check room availability).</li>
             <li>Publish the program.</li>
@@ -1365,7 +1378,7 @@ export default async function ManualPage() {
 
           <h3 className="man-section__h3">&ldquo;Add a Start Date &amp; Time in Sanity Studio first&rdquo;</h3>
           <p>
-            The Google Meet panel is showing a notice instead of the button. This means the program doesn&rsquo;t have a scheduled time set. Go to <strong>Sanity Studio → Programs → [program] → Schedule tab</strong> and fill in <strong>Start Date &amp; Time</strong>. Then come back to the registrar area and try again.
+            The Google Meet panel is showing a notice instead of the button. This means the program doesn&rsquo;t have a scheduled time set. Go to <strong>Sanity Studio → Programs → [program] → 2 — When &amp; Where</strong> and fill in <strong>Start Date &amp; Time</strong>. Then come back to the registrar area and try again.
           </p>
 
           <h3 className="man-section__h3">&ldquo;All meeting rooms are booked at that time&rdquo;</h3>
@@ -1380,7 +1393,7 @@ export default async function ManualPage() {
 
           <h3 className="man-section__h3">&ldquo;Meet created but Sanity write-back failed&rdquo;</h3>
           <p>
-            The meeting was created successfully, but saving the link to the program in Sanity encountered a temporary error. The link is shown in the panel — copy it. Then go to <strong>Sanity Studio → Programs → [program] → Schedule &amp; Location tab</strong>, paste it into the <strong>Meeting Link</strong> field, and publish. Contact a developer if this happens more than once.
+            The meeting was created successfully, but saving the link to the program in Sanity encountered a temporary error. The link is shown in the panel — copy it. Then go to <strong>Sanity Studio → Programs → [program] → 2 — When &amp; Where</strong>, paste it into the <strong>Meeting Link</strong> field, and publish. Contact a developer if this happens more than once.
           </p>
 
           <h3 className="man-section__h3">Something else went wrong</h3>
