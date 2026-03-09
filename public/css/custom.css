@@ -8079,32 +8079,66 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .hh-member-list--compact { margin: 8px 0 0; }
 
 .hh-member-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 0;
+  padding: 10px 0;
   border-bottom: 1px solid var(--rim-rule);
 }
 .hh-member-row:last-child { border-bottom: none; }
 .hh-member-row--compact { padding: 5px 0; }
+
+/* The main row: info left, actions right */
+.hh-member-row__main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Compact rows (HouseholdSection card) don't use __main wrapper */
+.hh-member-row--compact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
 
 .hh-member-row__info {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
 }
 .hh-member-row__name { font-weight: 500; }
 .hh-member-row__rel {
   font-size: 13px;
   color: var(--rim-text-muted);
 }
+.hh-member-row__edit-rel {
+  font-size: 12px;
+  color: var(--rim-mid);
+  opacity: 0.6;
+}
+.hh-member-row__edit-rel:hover { opacity: 1; }
 .hh-member-row__actions {
   display: flex;
   gap: 8px;
   flex-shrink: 0;
 }
+
+/* Inline relationship edit form */
+.hh-rel-edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: var(--rim-bg-accent);
+  border-radius: 4px;
+}
+.hh-rel-edit__select { width: auto; max-width: 180px; }
+.hh-rel-edit__input { width: auto; max-width: 160px; }
 
 /* Empty state */
 .hh-empty {
@@ -8127,6 +8161,17 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   border-radius: 6px;
   padding: 16px;
 }
+
+/* Inline form row: relationship select + optional custom + action button */
+.hh-inline-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.hh-inline-form__field { flex: 1; min-width: 130px; }
+.hh-inline-form__btn { flex-shrink: 0; margin-bottom: 1px; }
 
 /* Add member section in HouseholdDetail */
 .hh-add-member {

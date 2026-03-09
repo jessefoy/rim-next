@@ -87,6 +87,12 @@ export default function HouseholdDetail({ household: initial, isAdmin }: Props) 
   // Remove member
   const [removingId, setRemovingId] = useState<string | null>(null);
 
+  // Edit relationship inline
+  const [editingRelId, setEditingRelId] = useState<string | null>(null);
+  const [editRelType, setEditRelType] = useState("OTHER");
+  const [editRelCustom, setEditRelCustom] = useState("");
+  const [savingRelId, setSavingRelId] = useState<string | null>(null);
+
   const handleSave = async () => {
     setSaving(true);
     setSaveMsg(null);
@@ -170,6 +176,36 @@ export default function HouseholdDetail({ household: initial, isAdmin }: Props) 
     } else {
       const data = await res.json();
       setAddError(data.error ?? "Error adding member.");
+    }
+  };
+
+  const handleEditRelStart = (m: HouseholdMember) => {
+    setEditingRelId(m.userId);
+    setEditRelType(m.relationshipType);
+    setEditRelCustom(m.relationshipCustom ?? "");
+  };
+
+  const handleSaveRel = async (userId: string) => {
+    setSavingRelId(userId);
+    const res = await fetch(`/api/admin/households/${household.id}/members/${userId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        relationshipType: editRelType,
+        relationshipCustom: editRelType === "OTHER" ? editRelCustom || null : null,
+      }),
+    });
+    setSavingRelId(null);
+    if (res.ok) {
+      setHousehold((h) => ({
+        ...h,
+        members: h.members.map((m) =>
+          m.userId === userId
+            ? { ...m, relationshipType: editRelType, relationshipCustom: editRelType === "OTHER" ? editRelCustom || null : null }
+            : m
+        ),
+      }));
+      setEditingRelId(null);
     }
   };
 
@@ -258,30 +294,68 @@ export default function HouseholdDetail({ household: initial, isAdmin }: Props) 
           <ul className="hh-member-list">
             {household.members.map((m) => (
               <li key={m.id} className="hh-member-row">
-                <div className="hh-member-row__info">
-                  <Link href={`/admin/members/${m.user.id}`} className="hh-link hh-member-row__name">
-                    {memberDisplayName(m.user)}
-                  </Link>
-                  <span className="hh-member-row__rel">{relationshipLabel(m)}</span>
-                  {m.isPrimary && <span className="adm-badge adm-badge--registrar">Primary</span>}
-                </div>
-                <div className="hh-member-row__actions">
-                  {!m.isPrimary && (
+                <div className="hh-member-row__main">
+                  <div className="hh-member-row__info">
+                    <Link href={`/admin/members/${m.user.id}`} className="hh-link hh-member-row__name">
+                      {memberDisplayName(m.user)}
+                    </Link>
+                    {editingRelId !== m.userId && (
+                      <>
+                        <span className="hh-member-row__rel">{relationshipLabel(m)}</span>
+                        <button className="adm-link hh-member-row__edit-rel" onClick={() => handleEditRelStart(m)}>edit</button>
+                      </>
+                    )}
+                    {m.isPrimary && <span className="adm-badge adm-badge--registrar">Primary</span>}
+                  </div>
+                  <div className="hh-member-row__actions">
+                    {!m.isPrimary && (
+                      <button
+                        className="adm-btn adm-btn--sm adm-btn--ghost"
+                        onClick={() => handleSetPrimary(m.userId)}
+                      >
+                        Set primary
+                      </button>
+                    )}
                     <button
-                      className="adm-btn adm-btn--sm adm-btn--ghost"
-                      onClick={() => handleSetPrimary(m.userId)}
+                      className="adm-btn adm-btn--sm adm-btn--danger-ghost"
+                      onClick={() => handleRemoveMember(m.userId)}
+                      disabled={removingId === m.userId}
                     >
-                      Set primary
+                      {removingId === m.userId ? "Removing…" : "Remove"}
                     </button>
-                  )}
-                  <button
-                    className="adm-btn adm-btn--sm adm-btn--danger-ghost"
-                    onClick={() => handleRemoveMember(m.userId)}
-                    disabled={removingId === m.userId}
-                  >
-                    {removingId === m.userId ? "Removing…" : "Remove"}
-                  </button>
+                  </div>
                 </div>
+                {editingRelId === m.userId && (
+                  <div className="hh-rel-edit">
+                    <select
+                      className="adm-form__select hh-rel-edit__select"
+                      value={editRelType}
+                      onChange={(e) => setEditRelType(e.target.value)}
+                    >
+                      {Object.entries(RELATIONSHIP_LABELS).map(([v, l]) => (
+                        <option key={v} value={v}>{l}</option>
+                      ))}
+                    </select>
+                    {editRelType === "OTHER" && (
+                      <input
+                        className="adm-form__input hh-rel-edit__input"
+                        placeholder="e.g. guardian"
+                        value={editRelCustom}
+                        onChange={(e) => setEditRelCustom(e.target.value)}
+                      />
+                    )}
+                    <button
+                      className="adm-btn adm-btn--sm adm-btn--primary"
+                      onClick={() => handleSaveRel(m.userId)}
+                      disabled={savingRelId === m.userId}
+                    >
+                      {savingRelId === m.userId ? "Saving…" : "Save"}
+                    </button>
+                    <button className="adm-btn adm-btn--sm adm-btn--ghost" onClick={() => setEditingRelId(null)}>
+                      Cancel
+                    </button>
+                  </div>
+                )}
               </li>
             ))}
           </ul>
@@ -329,8 +403,8 @@ export default function HouseholdDetail({ household: initial, isAdmin }: Props) 
                 Adding: <strong>{memberDisplayName(addMember)}</strong>{" "}
                 <button className="adm-link" onClick={() => setAddMember(null)}>change</button>
               </p>
-              <div className="adm-form__row" style={{ gap: "12px", alignItems: "flex-end" }}>
-                <div className="adm-form__field" style={{ flex: 1 }}>
+              <div className="hh-inline-form">
+                <div className="adm-form__field hh-inline-form__field">
                   <label className="adm-form__label">Relationship</label>
                   <select className="adm-form__select" value={addRel} onChange={(e) => setAddRel(e.target.value)}>
                     {Object.entries(RELATIONSHIP_LABELS).map(([v, l]) => (
@@ -339,7 +413,7 @@ export default function HouseholdDetail({ household: initial, isAdmin }: Props) 
                   </select>
                 </div>
                 {addRel === "OTHER" && (
-                  <div className="adm-form__field" style={{ flex: 1 }}>
+                  <div className="adm-form__field hh-inline-form__field">
                     <label className="adm-form__label">Describe (optional)</label>
                     <input
                       className="adm-form__input"
@@ -350,7 +424,7 @@ export default function HouseholdDetail({ household: initial, isAdmin }: Props) 
                   </div>
                 )}
                 <button
-                  className="adm-btn adm-btn--primary"
+                  className="adm-btn adm-btn--primary hh-inline-form__btn"
                   onClick={handleAddMember}
                   disabled={adding}
                 >

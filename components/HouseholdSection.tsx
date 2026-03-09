@@ -304,8 +304,8 @@ export default function HouseholdSection({ memberId, household: initialHousehold
                   <strong>{joinTarget.householdName ?? "Unnamed household"}</strong>{" "}
                   <button className="adm-link" onClick={() => { setJoinTarget(null); setJoinError(null); }}>change</button>
                 </p>
-                <div className="adm-form__row" style={{ gap: "12px", alignItems: "flex-end" }}>
-                  <div className="adm-form__field" style={{ flex: 1 }}>
+                <div className="hh-inline-form">
+                  <div className="adm-form__field hh-inline-form__field">
                     <label className="adm-form__label">Relationship</label>
                     <select className="adm-form__select" value={joinRel} onChange={(e) => setJoinRel(e.target.value)}>
                       {Object.entries(RELATIONSHIP_LABELS).map(([v, l]) => (
@@ -314,7 +314,7 @@ export default function HouseholdSection({ memberId, household: initialHousehold
                     </select>
                   </div>
                   {joinRel === "OTHER" && (
-                    <div className="adm-form__field" style={{ flex: 1 }}>
+                    <div className="adm-form__field hh-inline-form__field">
                       <label className="adm-form__label">Describe (optional)</label>
                       <input
                         className="adm-form__input"
@@ -324,7 +324,7 @@ export default function HouseholdSection({ memberId, household: initialHousehold
                       />
                     </div>
                   )}
-                  <button className="adm-btn adm-btn--primary" onClick={handleJoin} disabled={joining}>
+                  <button className="adm-btn adm-btn--primary hh-inline-form__btn" onClick={handleJoin} disabled={joining}>
                     {joining ? "Adding…" : "Join household"}
                   </button>
                 </div>
