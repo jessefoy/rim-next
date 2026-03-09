@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { sanityClient } from "@/lib/sanity";
 import { programsWithReminderInWindowQuery } from "@/lib/queries";
 import { sendReminderEmail } from "@/lib/email";
+import { resolveLocation } from "@/lib/locations";
 
 // ─── GET /api/cron/send-reminders ─────────────────────────────────────────────
 // Daily cron job (runs at 14:00 UTC via vercel.json schedule).
@@ -38,6 +39,8 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    const loc = resolveLocation(program.venue, program.locationText, program.locationLink);
+
     for (const reg of registrations) {
       await sendReminderEmail({
         to:           reg.email,
@@ -45,8 +48,8 @@ export async function GET(req: NextRequest) {
         programTitle: reg.programTitle,
         programSlug:  reg.programSlug,
         dateText:     program.dateText,
-        locationText: program.locationText,
-        locationLink: program.locationLink,
+        locationText: loc.emailText,
+        locationLink: loc.link,
         zoomLink:     program.zoomLink,
         reminderMessage: program.reminderMessage,
       });

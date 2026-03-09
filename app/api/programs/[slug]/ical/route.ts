@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sanityClient } from "@/lib/sanity";
 import { buildIcsContent } from "@/lib/calendarLinks";
+import { resolveLocation } from "@/lib/locations";
 
 const icalQuery = `*[_type == "programs" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
-  name, "slug": slug.current, startDatetime, endDatetime, locationText,
+  name, "slug": slug.current, startDatetime, endDatetime,
+  venue, locationText, locationLink,
   recurrenceFreq, recurrenceInterval, recurrenceDays, recurrenceCount
 }`;
 
@@ -18,7 +20,9 @@ export async function GET(
     slug: string;
     startDatetime?: string | null;
     endDatetime?: string | null;
+    venue?: string | null;
     locationText?: string | null;
+    locationLink?: string | null;
     recurrenceFreq?: string | null;
     recurrenceInterval?: number | null;
     recurrenceDays?: string[] | null;
@@ -32,11 +36,13 @@ export async function GET(
     });
   }
 
+  const loc = resolveLocation(program.venue, program.locationText, program.locationLink);
+
   const ics = buildIcsContent({
     title: program.name,
     startDatetime: program.startDatetime,
     endDatetime: program.endDatetime,
-    location: program.locationText,
+    location: loc.emailText ?? undefined,
     programSlug: slug,
     recurrenceFreq: program.recurrenceFreq,
     recurrenceInterval: program.recurrenceInterval,

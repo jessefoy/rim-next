@@ -4,6 +4,7 @@ import { sendRegistrationEmail } from "@/lib/email";
 import { sanityClient } from "@/lib/sanity";
 import { portableTextToEmailHtml, portableTextToEmailText } from "@/lib/portableTextEmail";
 import { buildGoogleCalendarUrl, buildIcsUrl } from "@/lib/calendarLinks";
+import { resolveLocation } from "@/lib/locations";
 
 export async function POST(request: NextRequest) {
   try {
@@ -158,11 +159,15 @@ export async function POST(request: NextRequest) {
     let confirmationMessageText: string | undefined;
     let googleCalendarUrl: string | undefined;
     let icsUrl: string | undefined;
+    let resolvedLocationText: string | null = locationText ?? null;
     try {
       const prog = await sanityClient.fetch<{
         confirmationMessage?: unknown[];
         startDatetime?: string | null;
         endDatetime?: string | null;
+        venue?: string | null;
+        locationText?: string | null;
+        locationLink?: string | null;
         recurrenceFreq?: string | null;
         recurrenceInterval?: number | null;
         recurrenceDays?: string[] | null;
@@ -170,6 +175,7 @@ export async function POST(request: NextRequest) {
       } | null>(
         `*[_type == "programs" && _id == $id && !(_id in path("drafts.**"))][0]{
           confirmationMessage, startDatetime, endDatetime,
+          venue, locationText, locationLink,
           recurrenceFreq, recurrenceInterval, recurrenceDays, recurrenceCount
         }`,
         { id: programId }
@@ -178,20 +184,25 @@ export async function POST(request: NextRequest) {
         confirmationMessageHtml = portableTextToEmailHtml(prog.confirmationMessage);
         confirmationMessageText = portableTextToEmailText(prog.confirmationMessage);
       }
-      // Build calendar links only for confirmed (not waitlisted) registrations
-      if (prog?.startDatetime && registration.status !== "WAITLISTED") {
-        googleCalendarUrl = buildGoogleCalendarUrl({
-          title: programTitle,
-          startDatetime: prog.startDatetime,
-          endDatetime: prog.endDatetime,
-          location: locationText ?? null,
-          programSlug,
-          recurrenceFreq: prog.recurrenceFreq,
-          recurrenceInterval: prog.recurrenceInterval,
-          recurrenceDays: prog.recurrenceDays,
-          recurrenceCount: prog.recurrenceCount,
-        });
-        icsUrl = buildIcsUrl(programSlug);
+      // Resolve location (venue → RIM defaults, or custom text/link)
+      if (prog) {
+        const loc = resolveLocation(prog.venue, prog.locationText, prog.locationLink);
+        resolvedLocationText = loc.emailText;
+        // Build calendar links only for confirmed (not waitlisted) registrations
+        if (prog.startDatetime && registration.status !== "WAITLISTED") {
+          googleCalendarUrl = buildGoogleCalendarUrl({
+            title: programTitle,
+            startDatetime: prog.startDatetime,
+            endDatetime: prog.endDatetime,
+            location: loc.emailText ?? null,
+            programSlug,
+            recurrenceFreq: prog.recurrenceFreq,
+            recurrenceInterval: prog.recurrenceInterval,
+            recurrenceDays: prog.recurrenceDays,
+            recurrenceCount: prog.recurrenceCount,
+          });
+          icsUrl = buildIcsUrl(programSlug);
+        }
       }
     } catch (err) {
       console.error("[registration] Failed to fetch confirmation data:", err);
@@ -206,7 +217,7 @@ export async function POST(request: NextRequest) {
       status:          registration.status as "REGISTERED" | "WAITLISTED",
       waitlistPosition: registration.waitlistPosition,
       dateText:        dateText ?? null,
-      locationText:    locationText ?? null,
+      locationText:    resolvedLocationText,
       confirmationMessageHtml,
       confirmationMessageText,
       googleCalendarUrl,

@@ -38,6 +38,7 @@ export const programBySlugQuery = `*[_type == "programs" && slug.current == $slu
   recurrenceDays,
   recurrenceCount,
   programFormat,
+  venue,
   locationText,
   locationLink,
   danaText,
@@ -188,6 +189,7 @@ export const registrationFieldsBySlugQuery = `*[_type == "programs" && slug.curr
 export const programReminderDataQuery = `*[_type == "programs" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
   name,
   dateText,
+  venue,
   locationText,
   locationLink,
   zoomLink,
@@ -199,6 +201,7 @@ export const programReminderDataQuery = `*[_type == "programs" && slug.current =
 export const programConfirmationDataQuery = `*[_type == "programs" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
   name,
   dateText,
+  venue,
   locationText,
   locationLink,
   startDatetime,
@@ -214,7 +217,7 @@ export const programConfirmationDataQuery = `*[_type == "programs" && slug.curre
 
 export const programsWithReminderInWindowQuery = `*[_type == "programs" && reminderDate >= $since && reminderDate <= $now && !(_id in path("drafts.**"))] {
   _id, name, "slug": slug.current,
-  dateText, locationText, locationLink,
+  dateText, venue, locationText, locationLink,
   zoomLink, reminderMessage
 }`;
 
@@ -224,7 +227,9 @@ export const programsBySlugArrayQuery = `*[_type == "programs" && slug.current i
   "slug": slug.current,
   name,
   dateText,
+  venue,
   locationText,
+  locationLink,
   zoomLink
 }`;
 

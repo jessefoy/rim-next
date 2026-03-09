@@ -14,6 +14,7 @@ import { portableTextToEmailHtml, portableTextToEmailText } from "@/lib/portable
 import { buildGoogleCalendarUrl, buildIcsUrl } from "@/lib/calendarLinks";
 import { sanityClient } from "@/lib/sanity";
 import { programConfirmationDataQuery, programReminderDataQuery } from "@/lib/queries";
+import { resolveLocation } from "@/lib/locations";
 
 // ─── PATCH — update status, notes, donationStatus, or send dana reminder ─────
 
@@ -59,14 +60,15 @@ export async function PATCH(
         return NextResponse.json({ error: "Invalid registration" }, { status: 400 });
       }
       const data = await sanityClient.fetch(programReminderDataQuery, { slug: reg.programSlug });
+      const loc = resolveLocation(data?.venue, data?.locationText, data?.locationLink);
       await sendReminderEmail({
         to:           reg.email,
         firstName:    reg.firstName,
         programTitle: reg.programTitle,
         programSlug:  reg.programSlug,
         dateText:     data?.dateText,
-        locationText: data?.locationText,
-        locationLink: data?.locationLink,
+        locationText: loc.emailText,
+        locationLink: loc.link,
         zoomLink:     data?.zoomLink,
         reminderMessage: data?.reminderMessage,
       });
@@ -114,6 +116,8 @@ export async function PATCH(
         ? portableTextToEmailText(data.confirmationMessage)
         : undefined;
 
+      const loc = resolveLocation(data?.venue, data?.locationText, data?.locationLink);
+
       let googleCalendarUrl: string | undefined;
       let icsUrl: string | undefined;
       if (data?.startDatetime && reg.status !== "WAITLISTED") {
@@ -121,7 +125,7 @@ export async function PATCH(
           title: reg.programTitle,
           startDatetime: data.startDatetime,
           endDatetime: data.endDatetime,
-          location: data.locationText,
+          location: loc.emailText ?? undefined,
           programSlug: reg.programSlug,
           recurrenceFreq: data.recurrenceFreq,
           recurrenceInterval: data.recurrenceInterval,
@@ -139,7 +143,7 @@ export async function PATCH(
         status:        reg.status === "WAITLISTED" ? "WAITLISTED" : "REGISTERED",
         waitlistPosition: reg.waitlistPosition,
         dateText:      data?.dateText,
-        locationText:  data?.locationText,
+        locationText:  loc.emailText,
         confirmationMessageHtml,
         confirmationMessageText,
         googleCalendarUrl,

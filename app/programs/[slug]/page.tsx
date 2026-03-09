@@ -7,6 +7,7 @@ import { notFound } from "next/navigation";
 import TeacherList from "@/components/TeacherList";
 import { db } from "@/lib/db";
 import { buildGoogleCalendarUrl, buildIcsUrl, describeRecurrence } from "@/lib/calendarLinks";
+import { resolveLocation } from "@/lib/locations";
 
 export const revalidate = 60;
 
@@ -29,8 +30,10 @@ interface Program {
   recurrenceInterval?: number | null;
   recurrenceDays?: string[] | null;
   recurrenceCount?: number | null;
-  locationText?: string;
-  locationLink?: string;
+  programFormat?: string | null;
+  venue?: string | null;
+  locationText?: string | null;
+  locationLink?: string | null;
   danaText?: string;
   registrationClosed?: boolean;
   registrationEnabled?: boolean;
@@ -155,7 +158,11 @@ export default async function ProgramDetailPage({
       : null;
   const isFull = spotsRemaining !== null && spotsRemaining === 0;
   const showLowSpots = spotsRemaining !== null && spotsRemaining > 0 && spotsRemaining <= 5;
-  const hasDetails = !!(program.dateText || program.locationText || program.danaText);
+
+  // Resolve location from venue + programFormat
+  const location = resolveLocation(program.venue, program.locationText, program.locationLink);
+  const showWhere = program.programFormat !== "virtual" && !!location.text;
+  const hasDetails = !!(program.dateText || showWhere || program.danaText);
   const hasFacilitators = !!(program.teacherFacilitators && program.teacherFacilitators.length > 0);
   const hasDescription = !!(program.programDescription && program.programDescription.length > 0);
   const hasSpecialNotes = !!(program.specialNotes && program.specialNotes.length > 0);
@@ -208,14 +215,14 @@ export default async function ProgramDetailPage({
                 <span className="pg-details__value">{program.dateText}</span>
               </div>
             )}
-            {program.locationText && (
+            {showWhere && (
               <div className="pg-details__row">
                 <span className="pg-details__label">Where</span>
                 <span className="pg-details__value">
-                  {program.locationText}
-                  {program.locationLink && (
+                  {location.text}
+                  {location.link && (
                     <a
-                      href={program.locationLink}
+                      href={location.link}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="pg-details__link"
@@ -262,7 +269,7 @@ export default async function ProgramDetailPage({
                                 title: program.name,
                                 startDatetime: program.startDatetime!,
                                 endDatetime: program.endDatetime,
-                                location: program.locationText,
+                                location: location.emailText ?? undefined,
                                 programSlug: slug,
                                 recurrenceFreq: program.recurrenceFreq,
                                 recurrenceInterval: program.recurrenceInterval,

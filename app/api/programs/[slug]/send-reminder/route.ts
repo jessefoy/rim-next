@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { sanityClient } from "@/lib/sanity";
 import { programReminderDataQuery } from "@/lib/queries";
 import { sendReminderEmail } from "@/lib/email";
+import { resolveLocation } from "@/lib/locations";
 
 // ─── POST /api/programs/[slug]/send-reminder ──────────────────────────────────
 // Sends the program reminder email to all active registrants who haven't
@@ -34,6 +35,7 @@ export async function POST(
   });
 
   const now = new Date();
+  const loc = resolveLocation(data?.venue, data?.locationText, data?.locationLink);
 
   for (const reg of registrations) {
     await sendReminderEmail({
@@ -42,8 +44,8 @@ export async function POST(
       programTitle: reg.programTitle,
       programSlug:  reg.programSlug,
       dateText:     data?.dateText,
-      locationText: data?.locationText,
-      locationLink: data?.locationLink,
+      locationText: loc.emailText,
+      locationLink: loc.link,
       zoomLink:     data?.zoomLink,
       reminderMessage: data?.reminderMessage,
     });
