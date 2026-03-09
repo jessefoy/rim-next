@@ -702,7 +702,7 @@ export default async function ManualPage() {
             <strong>Minimum to maximum:</strong><br />
             <strong>Page exists (but not public):</strong> Name + Slug + Publish.<br />
             <strong>Appears in public listing:</strong> + Category (required).<br />
-            <strong>Complete public page:</strong> + Tagline, Image, Description, Teachers, Date &amp; Time text.<br />
+            <strong>Complete public page:</strong> + Tagline, Image, Description, Teachers, Start Date &amp; Time (auto-generates the schedule label).<br />
             <strong>Calendar links in emails:</strong> + Start Date &amp; Time.<br />
             <strong>Registration enabled:</strong> + Enable Registration, Confirmation Email Message.<br />
             <strong>Dana enabled:</strong> + Dana Mode + amounts.<br />
@@ -817,11 +817,10 @@ export default async function ManualPage() {
 
           <div className="man-field-list">
             <div className="man-field">
-              <div className="man-field__name">Date &amp; Time</div>
+              <div className="man-field__name">Date &amp; Time Label (override)</div>
               <div className="man-field__desc">
-                <p>The human-readable schedule shown on the program page, on listing cards, and on the member dashboard. Write the date and time together exactly as you want them displayed.</p>
-                <p><em>Examples: Every Wednesday, 7–8:30 PM CT — June 7–9, 2025 · 9 AM–5 PM — Ongoing — Fourth Sunday of each month, 10 AM</em></p>
-                <p>This field is for display only. It does not affect calendar links or any automation.</p>
+                <p><strong>Leave this blank for most programs.</strong> The website automatically generates a schedule label from the Start Date &amp; Time, End Date &amp; Time, and recurrence fields — for example, &ldquo;Thursdays · 7–9pm CT&rdquo; or &ldquo;Mondays &amp; Wednesdays · 6:30–8pm CT&rdquo;. This label appears on the program page, listing cards, member dashboard, and in confirmation and reminder emails.</p>
+                <p>Only fill this in when the auto-generated label isn&rsquo;t right for your program — for example, a retreat with a custom date range like &ldquo;June 7–9, 2025 · 9am–5pm each day&rdquo; that doesn&rsquo;t fit the structured fields. Whatever you type here overrides the auto-generated version everywhere it appears.</p>
               </div>
             </div>
             <div className="man-field">
@@ -1120,7 +1119,7 @@ export default async function ManualPage() {
               <li>Sanity Studio → <strong>Programs</strong> → <strong>+</strong> (Create).</li>
               <li>Enter the <strong>Name</strong> and click <strong>Generate</strong> next to the Slug field.</li>
               <li><strong>1 — Basics:</strong> Set the <strong>Category</strong> (required for public listing), add the tagline, upload an image, choose teachers, and write the description.</li>
-              <li><strong>2 — When &amp; Where:</strong> Write the <strong>Date &amp; Time</strong> label, set the <strong>Start Date &amp; Time</strong>, set the <strong>Format</strong> (In-person / Virtual / Hybrid), and add the location or venue.</li>
+              <li><strong>2 — When &amp; Where:</strong> Set the <strong>Start Date &amp; Time</strong> and <strong>End Date &amp; Time</strong> — the schedule label is generated automatically. Set the <strong>Format</strong> (In-person / Virtual / Hybrid), and add the location or venue. Set recurrence fields if this program meets more than once.</li>
               <li><strong>3 — Registration:</strong> If this program needs registration, turn on <strong>Enable Registration</strong>, set a capacity, and add any custom questions.</li>
               <li><strong>4 — Emails:</strong> Write the <strong>Confirmation Email Message</strong> and set a <strong>Reminder Email Date</strong> if you want an automated reminder to go out.</li>
               <li><strong>5 — Dana:</strong> Set the Dana Mode if this program collects offerings.</li>
@@ -1134,7 +1133,7 @@ export default async function ManualPage() {
             <h3 className="man-task__title">Updating dates or times</h3>
             <ol className="man-steps">
               <li>Open the program → <strong>2 — When &amp; Where</strong> tab.</li>
-              <li>Update the <strong>Date &amp; Time</strong> text field (what displays on the page and listing cards) and the <strong>Start Date &amp; Time</strong> field (what generates calendar links).</li>
+              <li>Update the <strong>Start Date &amp; Time</strong> field — the schedule label on the page, listing cards, and emails updates automatically. Also update <strong>End Date &amp; Time</strong> if needed.</li>
               <li>Publish.</li>
             </ol>
             <p className="man-task__note">If confirmation emails have already gone out with the old date, consider sending a reminder with the corrected date, or reach out to registered members directly.</p>
