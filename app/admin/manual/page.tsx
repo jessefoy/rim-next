@@ -883,7 +883,8 @@ export default async function ManualPage() {
               <div className="man-field__desc">
                 <p>Toggle this on if participants join from home over video. When this is on, the location fields are hidden (they&rsquo;re replaced by Google Meet) and the Google Meet panel appears in the registrar area.</p>
                 <p><strong>Automatic Meet creation:</strong> When you toggle this on and publish the program, a Google Meet link is created and saved automatically — you don&rsquo;t need to go to the registrar area and click a button. The system checks which room is available at the scheduled start time and assigns it. If you later change the start time and re-publish, the calendar booking updates automatically. If you toggle this off and re-publish, the calendar booking is released.</p>
-                <p>The only time you need to visit the registrar area for the Meet is if you want to replace an existing link.</p>
+                <p>Visit the registrar area for the Meet if you need to <strong>replace</strong> an existing link or <strong>release</strong> the booking to reschedule or cancel the program. The <strong>Google Meet</strong> panel at the top of the registrar page has buttons for both actions.</p>
+                <p><strong>Note:</strong> Once a Meet is created, this toggle locks in Sanity Studio to prevent accidental deletion of the room booking. Use the <strong>Release Meet</strong> button in the registrar area to unlock it — this properly removes the calendar event before clearing the fields.</p>
               </div>
             </div>
             <div className="man-field">
@@ -1294,6 +1295,22 @@ export default async function ManualPage() {
           </p>
           <div className="man-note man-note--warn">
             ⚠ The old Meet space stops working the moment you replace it. Anyone who joined before the replacement is unaffected — but anyone joining after needs the new link. If the link has been shared anywhere outside the website (e.g. a personal email), you&rsquo;ll need to follow up manually.
+          </div>
+
+          <h3 className="man-section__h3">Releasing a Meet (rescheduling or cancelling)</h3>
+          <p>
+            If a program is being rescheduled or cancelled, use the <strong>Release Meet</strong> button in the Google Meet panel. This does three things in one step:
+          </p>
+          <ol className="man-steps">
+            <li>Deletes the Google Calendar room booking, freeing the room account for other programs.</li>
+            <li>Clears the Meet link, room account, and calendar event ID from the program in Sanity.</li>
+            <li>Unlocks the Virtual Program toggle and date fields in Sanity Studio so you can change the setup.</li>
+          </ol>
+          <p>
+            After releasing, you can update the date in Sanity and either toggle Virtual Program back on to trigger automatic Meet creation, or click <strong>Create Google Meet</strong> in the registrar area for the manual path.
+          </p>
+          <div className="man-note man-note--warn">
+            ⚠ Members who already received a confirmation email will have a link that no longer works. If the program is being rescheduled (not cancelled), send an update to registrants after the new link is set up.
           </div>
         </section>
 
