@@ -206,7 +206,7 @@ export async function DELETE(
   } catch (err) {
     console.error("[google-meet route DELETE] Sanity clear error:", err);
     return NextResponse.json(
-      { error: "Room booking released but Sanity could not be updated. Clear the Calendar Event ID in the Admin tab in Sanity Studio manually." },
+      { error: "Room booking released but Sanity could not be updated. Contact a developer to clear the calendarEventId, zoomLink, and meetHostAccount fields directly via the Sanity API." },
       { status: 500 }
     );
   }

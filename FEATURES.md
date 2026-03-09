@@ -1695,25 +1695,33 @@ The app assigns whichever room is free for a given time slot (checking the share
 ### Staff workflow
 
 **Normal path (automatic):**
-1. In Sanity Studio, toggle **Virtual Program** on (Schedule tab), set **Start Date & Time**, and publish
+1. In Sanity Studio, toggle **Virtual Program** on (**2 — When & Where** tab), set **Start Date & Time**, and publish
 2. Within seconds, the Sanity webhook fires: a room account is selected, Meet space created, calendar event created, and all three IDs written back to Sanity
-3. Meet link appears on the program page and goes out in all confirmation/reminder emails automatically
-4. If the time changes later, republish — the calendar room booking patches automatically; the Meet link stays the same
-5. Host team checks `/hosts`; they sign in as the assigned room account before the session
+3. The `isVirtual` toggle locks in Studio — prevents accidental toggling off while the room booking exists
+4. Meet link appears on the program page and goes out in all confirmation/reminder emails automatically
+5. If the time changes later, republish — the calendar room booking patches automatically; the Meet link stays the same
+6. Host team checks `/hosts`; they sign in as the assigned room account before the session
 
 **Manual fallback (existing programs or edge cases):**
 1. Go to `/volunteer/programs/[slug]`
 2. Click **"Create Google Meet"** in the Google Meet panel at the top
 3. App finds a free room account, creates the Meet space + calendar event, writes back to Sanity
 
+**Releasing a Meet (rescheduling or cancelling):**
+1. Go to `/volunteer/programs/[slug]`
+2. Click **"Release Meet"** in the Google Meet panel (muted red, to the right of Replace)
+3. Confirm in the dialog — app calls `DELETE /api/programs/[slug]/google-meet`, which deletes the Google Calendar event and clears `zoomLink`, `meetHostAccount`, `calendarEventId` from Sanity
+4. The `isVirtual` toggle unlocks in Studio — registrar can now change the date/time or toggle isVirtual off
+5. To re-create: update the date in Sanity and republish (automatic webhook) or click Create Google Meet (manual)
+
 ---
 
 ### Technical notes
 
 - **Sanity webhook:** `POST /api/webhooks/sanity-programs` — receives every programs create/update/delete. Validates HMAC-SHA256 signature (`sanity-webhook-signature` header). Operation detection: if `delta::operation()` is not in the payload (basic webhook without GROQ projection), the handler queries Sanity — document exists → update, doesn't exist → delete. Webhook created via Sanity Management API (filter: `_type == "programs"`, dataset: production, secret: `SANITY_WEBHOOK_SECRET`).
-- **isVirtual field:** New boolean on the `programs` schema (Schedule tab). When true, location fields hide and Meet fields show. Drives the webhook trigger — only virtual programs with a start time get a Meet.
-- **calendarEventId:** Stored in Sanity as a readOnly string field. Written by both the webhook handler and the manual API route. Enables updating the calendar booking (time change) or deleting it (program deleted / isVirtual toggled off) without creating duplicate events.
-- **updateCalendarEvent / deleteCalendarEvent:** Two new exported functions in `lib/google-meet.ts`. `updateCalendarEvent` patches the calendar event's time/title; does NOT touch the Meet space (Meet links are permanent). `deleteCalendarEvent` removes the calendar event to free the room slot.
+- **isVirtual field:** Boolean on the `programs` schema (**2 — When & Where** tab). When true, location fields hide and Meet fields show. Drives the webhook trigger — only virtual programs with a start time get a Meet. Locks via `readOnly: ({ document }) => !!document?.calendarEventId` once a Meet exists; Release Meet button in the registrar area is the only unlock path.
+- **calendarEventId:** Stored in Sanity document data (not a visible Studio field — no schema entry). Written by both the webhook handler and the manual API route. Read by the webhook (time change / delete) and the Release Meet DELETE route. Enables updating or deleting the calendar booking without creating duplicates. Acts as the lock key for the `isVirtual` readOnly condition.
+- **updateCalendarEvent / deleteCalendarEvent:** Two exported functions in `lib/google-meet.ts`. `updateCalendarEvent` patches the calendar event's time/title; does NOT touch the Meet space (Meet links are permanent). `deleteCalendarEvent` removes the calendar event to free the room slot.
 - **DWD impersonation:** The service account (`rim-programs-bot@rim-programs.iam.gserviceaccount.com`) impersonates the chosen room account via JWT + Domain-Wide Delegation. Room accounts own the meeting; no human credentials needed.
 - **Room selection:** `findAvailableRoom()` queries each room account's own `primary` calendar for events in the time window. Returns first free room; throws `NO_ROOM_AVAILABLE` (handled as 409) if all rooms are booked.
 - **Meet REST API scope:** `https://www.googleapis.com/auth/meetings.space.created` + `https://www.googleapis.com/auth/calendar.events` — both granted in DWD config.
@@ -1723,16 +1731,16 @@ The app assigns whichever room is free for a given time slot (checking the share
 - **`GOOGLE_PRIVATE_KEY`** contains newlines — stored as raw value in Vercel (not base64).
 - **Sanity write-back** uses `SANITY_API_TOKEN` (Editor role token "RIM Next Website Write") — must be Editor or higher for patch/commit.
 
-### Key files ✅ Built — commit ca0068e, updated session 31 (2026-03-08)
+### Key files ✅ Built — commit ca0068e, updated session 32
 
 - `lib/google-meet.ts` — DWD JWT auth, `findAvailableRoom()` (primary calendar conflict check), `createMeeting()` (spaces.create → calendar event → `{ meetLink, calendarEventId, roomEmail }`), `updateCalendarEvent()` (patches time/title), `deleteCalendarEvent()` (frees room slot)
 - `app/api/webhooks/sanity-programs/route.ts` — Sanity webhook handler: HMAC-SHA256 sig verify, operation detection (payload or Sanity query), create/update/delete routing
-- `app/api/programs/[slug]/google-meet/route.ts` — POST (REGISTRAR/ADMIN); manual Meet creation; writes `zoomLink`, `meetHostAccount`, `calendarEventId` to Sanity; 409 on no room
-- `components/CreateMeetButton.tsx` — "use client" 4-state (idle/loading/done/replace); shows room account + calendar tracking status; `vol-meet-` CSS prefix
+- `app/api/programs/[slug]/google-meet/route.ts` — POST: manual Meet creation, writes `zoomLink`/`meetHostAccount`/`calendarEventId` to Sanity, 409 on no room; DELETE: releases calendar event + clears Sanity fields (REGISTRAR/ADMIN)
+- `components/CreateMeetButton.tsx` — "use client" 6-state (idle/loading/done/replace/release/releasing); Replace overwrites link, Release Meet deletes calendar booking + clears fields; `vol-meet-` CSS prefix
 - `app/volunteer/programs/[slug]/page.tsx` — renders CreateMeetButton only when `program.isVirtual`; passes `calendarEventId`
 - `lib/queries.ts` — `hostProgramsQuery` (virtual programs with Meet link, incl. `meetHostAccount`)
 - `app/hosts/page.tsx` — Host Area page (HOST | REGISTRAR | ADMIN access; see §21)
-- `public/css/custom.css` — `vol-meet-` styles + `hs-` host area styles
+- `public/css/custom.css` — `vol-meet-` styles (incl. `vol-meet__release-btn`, `vol-meet__release-confirm-btn`) + `hs-` host area styles
 
 ### Environment variables (all set in Vercel)
 
