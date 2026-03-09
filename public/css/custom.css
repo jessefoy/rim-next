@@ -8105,15 +8105,15 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .hh-member-row:last-child { border-bottom: none; }
 .hh-member-row--compact { padding: 7px 0; }
 
-/* The main row: info left, actions right */
+/* 3-column grid: [name] [relationship + edit + badge] [actions] */
 .hh-member-row__main {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(120px, 35%) 1fr auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
 }
 
-/* Compact rows (HouseholdSection card) don't use __main wrapper */
+/* Compact rows (HouseholdSection card) keep simple flex */
 .hh-member-row--compact {
   display: flex;
   align-items: center;
@@ -8121,18 +8121,18 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   gap: 10px;
 }
 
-.hh-member-row__info {
+.hh-member-row__name { font-size: 15px; font-weight: 500; min-width: 0; }
+
+/* Relationship column: label + edit button + badge */
+.hh-member-row__rel-area {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  flex: 1;
-  min-width: 0;
+  gap: 8px;
 }
-.hh-member-row__name { font-size: 15px; font-weight: 500; }
 .hh-member-row__rel {
   font-size: 13px;
   color: var(--rim-text-muted);
+  white-space: nowrap;
 }
 /* Subtle "edit" link — quiet until hovered */
 .hh-member-row__edit-rel {
