@@ -3679,6 +3679,19 @@ h1, h2, h3, h4, h5, h6 {
 
 .adm-save__success { font-size: 14px; color: #3a7a6a; font-weight: 600; }
 .adm-save__error   { font-size: 14px; color: #c0392b; }
+
+/* Save bar (household pages) */
+.adm-save-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 20px;
+}
+.adm-save-bar__msg {
+  font-size: 14px;
+  color: #3a7a6a;
+  font-weight: 600;
+}
 .adm-save__warning { font-size: 14px; color: #8a6000; background: #fff8e6; padding: 8px 12px; border-radius: 4px; margin-bottom: 8px; }
 
 /* ── Email change warning + confirm ─────────────────── */
@@ -8046,7 +8059,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .hh-household-card {
   background: var(--rim-bg-accent);
   border-radius: 6px;
-  padding: 14px 16px;
+  padding: 16px 18px;
 }
 .hh-household-card__header {
   display: flex;
@@ -8074,23 +8087,23 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .hh-member-list {
   list-style: none;
   padding: 0;
-  margin: 12px 0 0;
+  margin: 16px 0 0;
 }
-.hh-member-list--compact { margin: 8px 0 0; }
+.hh-member-list--compact { margin: 10px 0 0; }
 
 .hh-member-row {
-  padding: 10px 0;
+  padding: 14px 0;
   border-bottom: 1px solid var(--rim-rule);
 }
 .hh-member-row:last-child { border-bottom: none; }
-.hh-member-row--compact { padding: 5px 0; }
+.hh-member-row--compact { padding: 7px 0; }
 
 /* The main row: info left, actions right */
 .hh-member-row__main {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 16px;
 }
 
 /* Compact rows (HouseholdSection card) don't use __main wrapper */
@@ -8098,30 +8111,38 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
 }
 
 .hh-member-row__info {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
   flex: 1;
   min-width: 0;
 }
-.hh-member-row__name { font-weight: 500; }
+.hh-member-row__name { font-size: 15px; font-weight: 500; }
 .hh-member-row__rel {
   font-size: 13px;
   color: var(--rim-text-muted);
 }
+/* Subtle "edit" link — quiet until hovered */
 .hh-member-row__edit-rel {
   font-size: 12px;
-  color: var(--rim-mid);
-  opacity: 0.6;
+  font-weight: 400;
+  color: var(--rim-text-muted);
+  opacity: 0.55;
+  text-decoration: none;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
 }
-.hh-member-row__edit-rel:hover { opacity: 1; }
+.hh-member-row__edit-rel:hover { opacity: 1; text-decoration: underline; }
 .hh-member-row__actions {
   display: flex;
+  align-items: center;
   gap: 8px;
   flex-shrink: 0;
 }
@@ -8129,15 +8150,15 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 /* Inline relationship edit form */
 .hh-rel-edit {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 8px;
   flex-wrap: wrap;
-  margin-top: 8px;
-  padding: 8px 10px;
+  margin-top: 10px;
+  padding: 10px 12px;
   background: var(--rim-bg-accent);
   border-radius: 4px;
 }
-.hh-rel-edit__select { width: auto; max-width: 180px; }
+.hh-rel-edit__select { width: auto; max-width: 190px; }
 .hh-rel-edit__input { width: auto; max-width: 160px; }
 
 /* Empty state */
@@ -8159,33 +8180,33 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   margin-top: 16px;
   background: var(--rim-bg-accent);
   border-radius: 6px;
-  padding: 16px;
+  padding: 18px;
 }
 
 /* Inline form row: relationship select + optional custom + action button */
 .hh-inline-form {
   display: flex;
   align-items: flex-end;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
-  margin-top: 10px;
+  margin-top: 12px;
 }
-.hh-inline-form__field { flex: 1; min-width: 130px; }
-.hh-inline-form__btn { flex-shrink: 0; margin-bottom: 1px; }
+.hh-inline-form__field { flex: 1; min-width: 140px; }
+.hh-inline-form__btn { flex-shrink: 0; }
 
 /* Add member section in HouseholdDetail */
 .hh-add-member {
-  margin-top: 20px;
-  padding-top: 16px;
+  margin-top: 24px;
+  padding-top: 20px;
   border-top: 1px solid var(--rim-rule);
 }
 .hh-add-member__title {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--rim-text-muted);
-  margin: 0 0 10px;
+  margin: 0 0 12px;
 }
 
 .hh-add-form__selected {
@@ -8276,6 +8297,39 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   text-decoration: underline;
 }
 
+/* Base button reset — all adm-btn* variants inherit from this */
+.adm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-sans);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+/* Primary filled button (main actions: Save, Add, Join, Create) */
+.adm-btn--primary {
+  padding: 9px 20px;
+  background: var(--rim-blue);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+}
+.adm-btn--primary:hover:not(:disabled) { opacity: 0.88; }
+.adm-btn--primary:disabled { opacity: 0.5; cursor: default; }
+
+/* Small primary (inline edit save buttons) */
+.adm-btn--sm.adm-btn--primary {
+  padding: 4px 12px;
+  font-size: 12px;
+  background: var(--rim-blue);
+  color: #fff;
+  border: 1px solid var(--rim-blue);
+}
+.adm-btn--sm.adm-btn--primary:hover:not(:disabled) { background: var(--rim-mid); border-color: var(--rim-mid); opacity: 1; }
+
 /* Button variants used by households */
 .adm-btn--sm {
   padding: 4px 10px;
@@ -8285,16 +8339,18 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   background: none;
   cursor: pointer;
   color: var(--rim-text);
+  font-family: var(--font-sans);
 }
 .adm-btn--sm:hover { background: var(--rim-bg-accent); }
 .adm-btn--ghost {
   background: none;
   border: 1px solid var(--rim-rule);
   color: var(--rim-text);
-  padding: 8px 14px;
+  padding: 8px 16px;
   font-size: 14px;
   border-radius: 4px;
   cursor: pointer;
+  font-family: var(--font-sans);
 }
 .adm-btn--ghost:hover { background: var(--rim-bg-accent); }
 .adm-btn--danger-ghost {
@@ -8305,6 +8361,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   font-size: 12px;
   border-radius: 4px;
   cursor: pointer;
+  font-family: var(--font-sans);
 }
 .adm-btn--danger-ghost:hover { background: #fdf0f0; }
-.adm-confirm { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+.adm-confirm { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
