@@ -295,17 +295,17 @@ export default function HouseholdDetail({ household: initial, isAdmin }: Props) 
             {household.members.map((m) => (
               <li key={m.id} className="hh-member-row">
                 <div className="hh-member-row__main">
-                  <Link href={`/admin/members/${m.user.id}`} className="hh-link hh-member-row__name">
-                    {memberDisplayName(m.user)}
-                  </Link>
-                  <div className="hh-member-row__rel-area">
+                  <div className="hh-member-row__info">
+                    <Link href={`/admin/members/${m.user.id}`} className="hh-link hh-member-row__name">
+                      {memberDisplayName(m.user)}
+                    </Link>
                     {editingRelId !== m.userId && (
-                      <>
+                      <div className="hh-member-row__rel-area">
                         <span className="hh-member-row__rel">{relationshipLabel(m)}</span>
                         <button className="hh-member-row__edit-rel" onClick={() => handleEditRelStart(m)}>edit</button>
-                      </>
+                        {m.isPrimary && <span className="adm-badge adm-badge--primary-contact">Primary</span>}
+                      </div>
                     )}
-                    {m.isPrimary && <span className="adm-badge adm-badge--primary-contact">Primary</span>}
                   </div>
                   <div className="hh-member-row__actions">
                     {!m.isPrimary && (

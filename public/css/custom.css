@@ -8105,25 +8105,31 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .hh-member-row:last-child { border-bottom: none; }
 .hh-member-row--compact { padding: 7px 0; }
 
-/* 3-column grid: [name] [relationship + edit + badge] [actions] */
+/* Main row: info stacked left, actions right */
 .hh-member-row__main {
-  display: grid;
-  grid-template-columns: minmax(120px, 35%) 1fr auto;
-  align-items: center;
-  gap: 12px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
 }
 
-/* Compact rows (HouseholdSection card) keep simple flex */
+/* Compact rows (HouseholdSection card) */
 .hh-member-row--compact {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
 }
 
-.hh-member-row__name { font-size: 15px; font-weight: 500; min-width: 0; }
+/* Two-line info block: name on top, relationship row below */
+.hh-member-row__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.hh-member-row__name { font-size: 15px; font-weight: 500; }
 
-/* Relationship column: label + edit button + badge */
+/* Relationship row: label + edit + badge all inline */
 .hh-member-row__rel-area {
   display: flex;
   align-items: center;
@@ -8132,7 +8138,6 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .hh-member-row__rel {
   font-size: 13px;
   color: var(--rim-text-muted);
-  white-space: nowrap;
 }
 /* Subtle "edit" link — quiet until hovered */
 .hh-member-row__edit-rel {
