@@ -66,7 +66,7 @@ const MEMBER_STATUSES = [
   { value: "INACTIVE", label: "Inactive" },
 ] as const;
 
-type DangerAction = "archive" | "restore" | "delete" | null;
+type DangerAction = "delete" | null;
 
 export default function MemberDetail({ member, isAdmin }: { member: Member; isAdmin: boolean }) {
   const router = useRouter();
@@ -91,8 +91,11 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
   const [checkingEmail, setCheckingEmail] = useState(false);
   const [showEmailConfirm, setShowEmailConfirm] = useState(false);
 
-  // Status & dates
-  const [memberStatus, setMemberStatus] = useState(member.memberStatus);
+  // Status & dates — if archivedAt is set but memberStatus wasn't synced (legacy records),
+  // treat them as INACTIVE so the dropdown reflects reality.
+  const effectiveStatus =
+    member.archivedAt && member.memberStatus !== "INACTIVE" ? "INACTIVE" : member.memberStatus;
+  const [memberStatus, setMemberStatus] = useState(effectiveStatus);
   const [firstVisitDate, setFirstVisitDate] = useState(
     member.firstVisitDate ? member.firstVisitDate.slice(0, 10) : ""
   );
@@ -133,8 +136,8 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
-  // Danger zone state
-  const [isArchived, setIsArchived] = useState(!!member.archivedAt);
+  // isArchived tracks whether member is currently blocked from logging in
+  const [isArchived, setIsArchived] = useState(!!member.archivedAt || effectiveStatus === "INACTIVE");
   const [archivedAt, setArchivedAt] = useState<string | null>(member.archivedAt);
   const [confirmAction, setConfirmAction] = useState<DangerAction>(null);
   const [dangerBusy, setDangerBusy] = useState(false);
@@ -225,11 +228,11 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
       setSavedRoles(roles);
       if (data.sanityRevoked) setSanityInvitedAt(null);
 
-      // Reflect status change in archived state
+      // Keep isArchived in sync with memberStatus
       if (memberStatus === "INACTIVE") {
         setIsArchived(true);
-        setArchivedAt(new Date().toISOString());
-      } else if (isArchived && memberStatus !== "INACTIVE") {
+        setArchivedAt((prev) => prev ?? new Date().toISOString());
+      } else {
         setIsArchived(false);
         setArchivedAt(null);
       }
@@ -243,34 +246,16 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
   };
 
   const handleDangerAction = async (action: DangerAction) => {
-    if (!action) return;
+    if (action !== "delete") return;
     setDangerBusy(true);
     setDangerError("");
     try {
-      if (action === "delete") {
-        const res = await fetch(`/api/admin/members/${member.id}`, { method: "DELETE" });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? "Delete failed");
-        router.push("/admin/members");
-        return;
-      }
-      const res = await fetch(`/api/admin/members/${member.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
-      });
+      const res = await fetch(`/api/admin/members/${member.id}`, { method: "DELETE" });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? `${action} failed`);
-      if (action === "archive") {
-        setIsArchived(true);
-        setArchivedAt(new Date().toISOString());
-        router.push("/admin/members");
-      } else {
-        setIsArchived(false);
-        setArchivedAt(null);
-      }
+      if (!res.ok) throw new Error(data.error ?? "Delete failed");
+      router.push("/admin/members");
     } catch (err) {
-      setDangerError(err instanceof Error ? err.message : "Action failed");
+      setDangerError(err instanceof Error ? err.message : "Delete failed");
     } finally {
       setDangerBusy(false);
       setConfirmAction(null);
@@ -627,27 +612,22 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
       </section>
 
       {/* ── Danger Zone ──────────────────────────────────────────────────────── */}
-      {isAdmin && (
+      {isAdmin && member.registrations.length === 0 && (
         <section className="adm-danger-zone">
           <p className="adm-danger-zone__title">Danger Zone</p>
+          <p className="adm-section__hint" style={{ marginBottom: 14 }}>
+            To block login access, set status to Inactive above.
+            Permanent delete is only available for members with no registrations.
+          </p>
           {dangerError && <p className="adm-save__error" style={{ marginBottom: 12 }}>{dangerError}</p>}
-          {confirmAction ? (
+          {confirmAction === "delete" ? (
             <div className="adm-danger-confirm">
               <p className="adm-danger-confirm__msg">
-                {confirmAction === "archive" && (
-                  <>Archive this member? They will be logged out immediately and unable to log in.
-                  Their registration history will be preserved. They can self-reactivate at any time.</>
-                )}
-                {confirmAction === "restore" && <>Restore this member? They will be able to log in again.</>}
-                {confirmAction === "delete" && <>Permanently delete this member? This cannot be undone.</>}
+                Permanently delete this member? This cannot be undone.
               </p>
               <div className="adm-danger-confirm__actions">
-                <button
-                  className={confirmAction === "delete" ? "adm-btn--danger" : "adm-btn--restore"}
-                  onClick={() => handleDangerAction(confirmAction)}
-                  disabled={dangerBusy}
-                >
-                  {dangerBusy ? "Working…" : `Confirm ${confirmAction.charAt(0).toUpperCase() + confirmAction.slice(1)}`}
+                <button className="adm-btn--danger" onClick={() => handleDangerAction("delete")} disabled={dangerBusy}>
+                  {dangerBusy ? "Deleting…" : "Confirm Delete"}
                 </button>
                 <button className="adm-btn--neutral" onClick={() => { setConfirmAction(null); setDangerError(""); }} disabled={dangerBusy}>
                   Cancel
@@ -655,24 +635,9 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
               </div>
             </div>
           ) : (
-            <div className="adm-danger-actions">
-              {isArchived ? (
-                <button className="adm-btn--restore" onClick={() => setConfirmAction("restore")}>
-                  Restore Member
-                </button>
-              ) : (
-                <>
-                  <button className="adm-btn--danger adm-btn--outline" onClick={() => setConfirmAction("archive")}>
-                    Archive Member
-                  </button>
-                  {member.registrations.length === 0 && (
-                    <button className="adm-btn--danger" onClick={() => setConfirmAction("delete")}>
-                      Delete Member
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
+            <button className="adm-btn--danger" onClick={() => setConfirmAction("delete")}>
+              Delete Member
+            </button>
           )}
         </section>
       )}
