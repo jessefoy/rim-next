@@ -302,10 +302,10 @@ export default function HouseholdDetail({ household: initial, isAdmin }: Props) 
                     {editingRelId !== m.userId && (
                       <>
                         <span className="hh-member-row__rel">{relationshipLabel(m)}</span>
-                        <button className="adm-link hh-member-row__edit-rel" onClick={() => handleEditRelStart(m)}>edit</button>
+                        <button className="hh-member-row__edit-rel" onClick={() => handleEditRelStart(m)}>edit</button>
                       </>
                     )}
-                    {m.isPrimary && <span className="adm-badge adm-badge--registrar">Primary</span>}
+                    {m.isPrimary && <span className="adm-badge adm-badge--primary-contact">Primary</span>}
                   </div>
                   <div className="hh-member-row__actions">
                     {!m.isPrimary && (

@@ -3555,6 +3555,13 @@ h1, h2, h3, h4, h5, h6 {
 .adm-badge--volunteer { background: #5a5a7a; color: #fff; }
 .adm-badge--other     { background: var(--rim-rule); color: var(--rim-text); }
 .adm-badge--none      { color: var(--rim-rule); }
+/* Subtle outline badge for "Primary" contact label in household rows */
+.adm-badge--primary-contact {
+  background: transparent;
+  color: var(--rim-mid);
+  border: 1px solid var(--rim-mid);
+  font-weight: 600;
+}
 
 /* ── Empty state ────────────────────────────────────── */
 .adm-empty {
