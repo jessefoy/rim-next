@@ -268,6 +268,7 @@ export const allVirtualProgramsQuery = `*[_type == "programs" && !(_id in path("
   recurrenceFreq,
   recurrenceInterval,
   recurrenceDays,
+  recurrenceCount,
   programFormat,
   dayOfWeek[]-> { name }
 }`;
@@ -282,6 +283,7 @@ export const hostProgramsQuery = `*[_type == "programs" && !(_id in path("drafts
   recurrenceFreq,
   recurrenceInterval,
   recurrenceDays,
+  recurrenceCount,
   programFormat,
   zoomLink,
   meetHostAccount,
