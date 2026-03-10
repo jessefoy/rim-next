@@ -5,7 +5,7 @@ export const metadata = { title: "Volunteer Manual — Rooted In Mindfulness" };
 
 export default async function ManualPage() {
   const session = await auth();
-  if (!session?.user?.roles?.some((r) => ["ADMIN", "REGISTRAR", "HOST"].includes(r))) {
+  if (!session?.user?.roles?.some((r) => ["ADMIN", "REGISTRAR", "HOST", "HOST_MANAGER"].includes(r))) {
     redirect("/login");
   }
 
@@ -82,6 +82,18 @@ export default async function ManualPage() {
           <li className="man-sidebar__soon-group">
             <span className="man-sidebar__link man-sidebar__link--soon">Courses &amp; Materials</span>
             <span className="man-soon-badge">Coming soon</span>
+          </li>
+
+          <li>
+            <a href="#hub" className="man-sidebar__link">Host Community Hub</a>
+            <ul className="man-sidebar__sub">
+              <li><a href="#hub-overview"   className="man-sidebar__sublink">Overview</a></li>
+              <li><a href="#hub-schedule"   className="man-sidebar__sublink">Schedule tab</a></li>
+              <li><a href="#hub-subs"       className="man-sidebar__sublink">Sub Board</a></li>
+              <li><a href="#hub-threads"    className="man-sidebar__sublink">Threads</a></li>
+              <li><a href="#hub-manage"     className="man-sidebar__sublink">Manage tab</a></li>
+              <li><a href="#hub-alerts"     className="man-sidebar__sublink">Alerts</a></li>
+            </ul>
           </li>
 
           <li>
@@ -1755,7 +1767,196 @@ export default async function ManualPage() {
         </section>
 
         {/* ════════════════════════════════════════
-            CHAPTER 4 — VOLUNTEER ROLES
+            CHAPTER 4 — HOST COMMUNITY HUB
+            ════════════════════════════════════════ */}
+
+        <div id="hub" className="man-chapter man-chapter--break">
+          <h1 className="man-chapter__title">Host Community Hub</h1>
+          <p className="man-chapter__subtitle">
+            This chapter walks you through the Host Community Hub — the workspace inside the member area where the RIM host volunteer team coordinates sessions, handles sub coverage, and stays connected.
+          </p>
+        </div>
+
+        {/* ── Overview ── */}
+        <section id="hub-overview" className="man-section">
+          <h2 className="man-section__title">Overview</h2>
+          <p>
+            The Host Community Hub lives at <strong>/account/host</strong> and replaces Basecamp as the coordination center for the host team. It&rsquo;s accessible to everyone with a <strong>Meet Host</strong> or <strong>Meet Host Manager</strong> role, as well as Admins.
+          </p>
+          <p>
+            The hub has four tabs: <strong>Schedule</strong>, <strong>Sub Board</strong>, <strong>Threads</strong>, and <strong>Manage</strong> (Host Managers and Admins only). Each tab handles a different aspect of coordination.
+          </p>
+          <p>
+            The Registrar role is intentionally excluded from the hub — Registrars set up programs in Sanity Studio, but the host team coordinates internally and independently.
+          </p>
+          <table className="man-table man-table--perms">
+            <thead>
+              <tr>
+                <th>Action</th>
+                <th>Meet Host</th>
+                <th>Host Manager</th>
+                <th>Admin</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>View schedule (own assignments)</td><td>✓</td><td>✓ (all)</td><td>✓ (all)</td></tr>
+              <tr><td>Manage assignments (create / delete)</td><td></td><td>✓</td><td>✓</td></tr>
+              <tr><td>Request a sub</td><td>✓ (own)</td><td>✓ (any)</td><td>✓</td></tr>
+              <tr><td>Claim a sub request</td><td>✓</td><td>✓</td><td>✓</td></tr>
+              <tr><td>View and create threads</td><td>✓</td><td>✓</td><td>✓</td></tr>
+              <tr><td>Close or archive a thread</td><td></td><td>✓</td><td>✓</td></tr>
+              <tr><td>Receive unassigned-session alerts</td><td></td><td>✓</td><td>✓</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        {/* ── Schedule tab ── */}
+        <section id="hub-schedule" className="man-section">
+          <h2 className="man-section__title">Schedule tab</h2>
+          <p>
+            The <strong>Schedule</strong> tab at <strong>/account/host</strong> shows you which programs you&rsquo;re assigned to host.
+          </p>
+          <p>
+            If you&rsquo;re a <strong>Meet Host</strong>, you&rsquo;ll see only your own assignments — each one as a card with the program name, schedule, the room account to sign into, and a direct link to join the meeting.
+          </p>
+          <p>
+            If you&rsquo;re a <strong>Host Manager</strong> or <strong>Admin</strong>, you&rsquo;ll see all assignments across all programs, grouped by program. A <strong>Manage →</strong> button at the top takes you straight to the assignment management tab.
+          </p>
+          <p>
+            Below the schedule, Meet Hosts see the <strong>How to host</strong> guide — a four-step reminder of how to sign in as the room account and join the session.
+          </p>
+          <h3 className="man-section__h3">About assignments</h3>
+          <p>
+            Each assignment links a host to a program. Assignments can be <strong>standing</strong> (the host is responsible for all sessions of that program) or <strong>one-off</strong> (for a specific session date).
+          </p>
+          <p>
+            ⚠️ <strong>Important:</strong> Assignments are linked to programs by their Sanity slug. If a program&rsquo;s slug is ever changed in Sanity Studio after assignments have been created, those assignments will become disconnected from the program and won&rsquo;t show up correctly. Treat program slugs as permanent once they&rsquo;re published.
+          </p>
+        </section>
+
+        {/* ── Sub Board ── */}
+        <section id="hub-subs" className="man-section">
+          <h2 className="man-section__title">Sub Board</h2>
+          <p>
+            The <strong>Sub Board</strong> at <strong>/account/host/subs</strong> is where the host team covers for each other when someone can&rsquo;t make their session.
+          </p>
+          <h3 className="man-section__h3">Requesting a sub</h3>
+          <ol className="man-steps">
+            <li>Click <strong>+ Request a Sub</strong> on the Sub Board page.</li>
+            <li>Choose the program you need coverage for from the dropdown (only your own assignments appear).</li>
+            <li>Optionally pick a specific session date. Leave it blank if you need coverage for all upcoming sessions.</li>
+            <li>Add any helpful context in the message field (travel, illness, etc.) — optional but appreciated.</li>
+            <li>Click <strong>Post Request</strong>. All hub members receive an email notification and an in-app alert.</li>
+          </ol>
+          <h3 className="man-section__h3">Claiming a sub request</h3>
+          <ol className="man-steps">
+            <li>On the Sub Board, find an open request you can cover.</li>
+            <li>Click <strong>I&apos;ll take it</strong>.</li>
+            <li>Optionally add a brief note (e.g., &ldquo;Happy to cover — reach out with any questions&rdquo;).</li>
+            <li>Click <strong>Confirm — I&apos;ll take it</strong>. The request is removed from the board immediately.</li>
+            <li>The original requester receives an email and an in-app alert letting them know who&rsquo;s covering.</li>
+          </ol>
+          <p>
+            You cannot claim your own request. Once claimed, the request disappears from the board — the session is covered.
+          </p>
+        </section>
+
+        {/* ── Threads ── */}
+        <section id="hub-threads" className="man-section">
+          <h2 className="man-section__title">Threads</h2>
+          <p>
+            The <strong>Threads</strong> tab at <strong>/account/host/threads</strong> is where the host team has ongoing conversations — peer support, operational questions, and weekly contemplation prompts.
+          </p>
+          <p>Threads have two categories:</p>
+          <ul className="man-list">
+            <li><strong>Operational</strong> — practical questions, tips, and peer support. Use this for things like &ldquo;How do I handle someone who keeps their video on in a sitting?&rdquo; or &ldquo;Reminder: always do a sound check before the session starts.&rdquo;</li>
+            <li><strong>Contemplation</strong> — weekly reflections and discussion prompts posted by a teacher or the Host Manager. These invite the whole team into shared inquiry between sessions.</li>
+          </ul>
+          <h3 className="man-section__h3">Starting a thread</h3>
+          <p>Any hub member can start a thread. Click <strong>+ New Thread</strong>, choose a category, give it a title, write the body, and post. All hub members receive an email notification and an in-app alert.</p>
+          <h3 className="man-section__h3">Replying to a thread</h3>
+          <p>Open any thread and scroll to the bottom. Type your reply and click <strong>Post Reply</strong>. The thread author and everyone who has previously replied will be notified (except the person who just posted).</p>
+          <h3 className="man-section__h3">Closing and archiving threads (Host Manager / Admin)</h3>
+          <p>
+            <strong>Closing</strong> a thread prevents new replies but keeps it visible. Use this when a conversation has reached a natural end.
+          </p>
+          <p>
+            <strong>Archiving</strong> hides a thread from the main list. It&rsquo;s not deleted — it stays in the database — but it won&rsquo;t appear in the default view. Use this to clear old threads without losing the record.
+          </p>
+        </section>
+
+        {/* ── Manage tab ── */}
+        <section id="hub-manage" className="man-section">
+          <h2 className="man-section__title">Manage tab (Host Manager / Admin only)</h2>
+          <p>
+            The <strong>Manage</strong> tab at <strong>/account/host/manage</strong> is where the Host Manager assigns volunteers to programs. Regular Meet Hosts don&rsquo;t see this tab.
+          </p>
+          <h3 className="man-section__h3">Assigning a host</h3>
+          <ol className="man-steps">
+            <li>Click <strong>+ Assign Host</strong>.</li>
+            <li>Choose the program from the dropdown (all virtual and hybrid programs appear here).</li>
+            <li>Choose the volunteer to assign from the host-team dropdown.</li>
+            <li>Optionally set a specific session date if the assignment covers only one occurrence. Leave blank for a standing assignment.</li>
+            <li>Add a note if helpful (e.g., &ldquo;Backup host&rdquo; or &ldquo;Covering January only&rdquo;).</li>
+            <li>Click <strong>Save Assignment</strong>.</li>
+          </ol>
+          <p>
+            The new assignment appears under its program immediately. The assigned host will see it on their Schedule tab.
+          </p>
+          <h3 className="man-section__h3">Removing an assignment</h3>
+          <p>
+            Click the <strong>✕</strong> button on any assignment row. You&rsquo;ll be asked to confirm. Removing an assignment also cancels any open sub requests attached to it.
+          </p>
+          <h3 className="man-section__h3">Who can be assigned?</h3>
+          <p>Only members with a <strong>Meet Host</strong> or <strong>Meet Host Manager</strong> role appear in the host dropdown. If the person you want to assign isn&rsquo;t there, go to their member profile at <strong>/admin/members</strong> and add the Meet Host role first.</p>
+        </section>
+
+        {/* ── Alerts ── */}
+        <section id="hub-alerts" className="man-section">
+          <h2 className="man-section__title">Alerts</h2>
+          <p>
+            The hub sends alerts whenever something needs your attention. Alerts show up in two places: as an <strong>email notification</strong> and as a yellow strip at the top of your <strong>dashboard</strong> (<strong>/account/dashboard</strong>).
+          </p>
+          <table className="man-table">
+            <thead>
+              <tr>
+                <th>Event</th>
+                <th>Who gets notified</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Someone posts a sub request</td>
+                <td>All hub members (except the requester)</td>
+              </tr>
+              <tr>
+                <td>Your sub request is claimed</td>
+                <td>You (the original requester)</td>
+              </tr>
+              <tr>
+                <td>A new thread is started</td>
+                <td>All hub members (except the author)</td>
+              </tr>
+              <tr>
+                <td>A new reply is posted</td>
+                <td>Thread author + everyone who has previously replied (except current replier)</td>
+              </tr>
+              <tr>
+                <td>A program within 30 days has no host assigned</td>
+                <td>Host Managers and Admins only</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>
+            The dashboard alert strip shows up to 10 unread alerts. Click any alert to go to the relevant page — this marks it read. Use <strong>Mark all read</strong> to dismiss everything at once.
+          </p>
+          <p>
+            The <strong>no-host alert</strong> runs automatically once a day. If a program has a scheduled start date within the next 30 days and no standing host assignment, the system sends an alert to all Host Managers and Admins. The alert is only sent once per program per day — you won&rsquo;t get a flood of duplicates.
+          </p>
+        </section>
+
+        {/* ════════════════════════════════════════
+            CHAPTER 5 — VOLUNTEER ROLES
             ════════════════════════════════════════ */}
 
         <div id="roles" className="man-chapter man-chapter--break">
@@ -1772,7 +1973,7 @@ export default async function ManualPage() {
             Every member of the RIM community who logs in has a basic account. By default, accounts have no special access — they can only see their own dashboard, registrations, and courses.
           </p>
           <p>
-            Volunteer access is granted by assigning one or more <strong>roles</strong> to a member&rsquo;s account. There are currently three roles: <strong>Meet Host</strong>, <strong>Registrar</strong>, and <strong>Admin</strong>. A person can hold more than one — having multiple roles gives them everything each role includes.
+            Volunteer access is granted by assigning one or more <strong>roles</strong> to a member&rsquo;s account. There are currently four roles: <strong>Meet Host</strong>, <strong>Meet Host Manager</strong>, <strong>Registrar</strong>, and <strong>Admin</strong>. A person can hold more than one — having multiple roles gives them everything each role includes.
           </p>
           <p>
             Roles take effect immediately. As soon as you save a role change, the next page the member loads will reflect their new access. No re-login is required (though if they are logged in, they may need to reload the page).
@@ -1789,11 +1990,29 @@ export default async function ManualPage() {
           </p>
           <p>What a Meet Host can do:</p>
           <ul className="man-list">
-            <li>View the <strong>Host Area</strong> at <strong>/account/host</strong> — a list of all virtual programs with the room account to sign into for each session</li>
+            <li>View the <strong>Host Community Hub</strong> at <strong>/account/host</strong> — schedule, sub board, and threads</li>
+            <li>View their own assignments and the meeting link + room account for each</li>
+            <li>Post sub requests and claim open sub requests</li>
+            <li>Create and reply to threads</li>
             <li>Access the <strong>Volunteer Manual</strong></li>
           </ul>
           <p>
-            Meet Hosts do not have access to registration management or member data — only the host area and its information.
+            Meet Hosts do not have access to registration management or member data — only the host hub.
+          </p>
+
+          <h3 className="man-section__h3">Meet Host Manager</h3>
+          <p>
+            A Meet Host Manager is responsible for managing the host schedule — assigning volunteers to programs, and overseeing the hub&rsquo;s Manage tab. This role is for whoever coordinates the host team: a lead volunteer or teacher who handles rotation planning.
+          </p>
+          <p>What a Meet Host Manager can do (in addition to everything a Meet Host can do):</p>
+          <ul className="man-list">
+            <li>View all assignments across all programs on the Schedule tab</li>
+            <li>Create and delete host assignments from the <strong>Manage</strong> tab</li>
+            <li>Close and archive threads</li>
+            <li>Receive <strong>unassigned-session alerts</strong> — daily notifications when a program within 30 days has no host assigned</li>
+          </ul>
+          <p>
+            A person can hold both <strong>Meet Host</strong> and <strong>Meet Host Manager</strong> — this means they are both on rotation (as a host) and responsible for managing the schedule.
           </p>
 
           <h3 className="man-section__h3">Registrar</h3>
@@ -1831,28 +2050,38 @@ export default async function ManualPage() {
             <li>Import members from CSV</li>
           </ul>
 
-          <h3 className="man-section__h3">Dashboard shortcuts per role</h3>
+          <h3 className="man-section__h3">Sidebar links per role</h3>
           <p>
-            When a member with a volunteer role logs in, a <strong>Volunteer Access</strong> panel appears on their dashboard. The links in that panel depend on their role:
+            When a member with a volunteer role logs in, the account sidebar shows additional navigation links. The links depend on their role:
           </p>
           <table className="man-table man-table--perms">
             <thead>
               <tr>
                 <th>Link</th>
                 <th>Host</th>
+                <th>Host Mgr</th>
                 <th>Registrar</th>
                 <th>Admin</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td>Host Area <code>/account/host</code></td>
+                <td>My Sessions <code>/account/host</code></td>
                 <td>✓</td>
                 <td>✓</td>
+                <td></td>
+                <td>✓</td>
+              </tr>
+              <tr>
+                <td>Manage tab <code>/account/host/manage</code></td>
+                <td></td>
+                <td>✓</td>
+                <td></td>
                 <td>✓</td>
               </tr>
               <tr>
                 <td>Registrations <code>/account/registrar</code></td>
+                <td></td>
                 <td></td>
                 <td>✓</td>
                 <td>✓</td>
@@ -1860,17 +2089,20 @@ export default async function ManualPage() {
               <tr>
                 <td>Members <code>/admin/members</code></td>
                 <td></td>
+                <td></td>
                 <td>✓</td>
                 <td>✓</td>
               </tr>
               <tr>
                 <td>Sanity Studio (external)</td>
                 <td></td>
+                <td></td>
                 <td>✓</td>
                 <td>✓</td>
               </tr>
               <tr>
                 <td>Volunteer Manual <code>/admin/manual</code></td>
+                <td>✓</td>
                 <td>✓</td>
                 <td>✓</td>
                 <td>✓</td>

@@ -2160,6 +2160,115 @@ ORDER BY n DESC;
 
 ---
 
-| 2026-03-09 (session 34–35) | Enhanced member profiles + Household / Family Grouping. **(1) Enhanced member profiles (§11 update):** Added `preferredName`, structured address (`addressLine1 / addressCity / addressState / addressZip`), `memberStatus` enum (`ACTIVE / VISITOR / STUDENT / VOLUNTEER / INACTIVE`), `firstVisitDate`, `adminNotes` (admin-only), and `tags` (freeform array, pill input) to the User model; DB pushed. Status-driven access: INACTIVE is the only status that blocks login — stamps `archivedAt = new Date()` and invalidates sessions; any other status clears `archivedAt`. `effectiveStatus` pattern handles legacy archived members (auto-corrects on profile load, syncs to DB on save). Member list: sort by multiple columns (click header); status filter dropdown replacing the old "Archived" toggle. `adm-` CSS updates for status column, sort arrows, filter dropdown, admin notes banner. **(2) Household/Family Grouping (§22 new — full feature):** New `Household` + `HouseholdMember` Prisma models; `RelationshipType` enum (SPOUSE/PARTNER/PARENT/CHILD/SIBLING/OTHER); `userId @unique` enforces one-household-per-member at DB level; migration run (`prisma db push`). 5 new API routes (households CRUD + member management). 2 new admin pages (`/admin/households` list + `/admin/households/[id]` detail). 2 new components: `HouseholdDetail` (full edit UI) + `HouseholdSection` (embedded in MemberDetail). HouseholdSection has two modes: "create new household" (makes this member primary) and "join existing household" (search for another member → GET their household → POST add current member). Address fallback: if member has no `addressLine1` but household does, show "No individual address — household address will be used: [City, State]" hint. Households list page has a custom-label frequency table at the bottom to surface Other labels for future enum promotion. 409 responses with human-readable messages. `AccountSidebar` adds "Households" link for REGISTRAR+. `hh-` CSS block. **(3) Manual:** New Chapter 3 "Member Accounts" inserted before Volunteer Roles chapter (8 sections: overview, member list, member profile, member status table with access column, tags, admin notes, households, common tasks). Written in warm companion voice — plain English, second-person, no jargon. Sidebar updated: "Member Accounts" now a real link with full navigation, "Coming soon" badge removed. |
+## 23. Host Community Hub ✅ Built — session 36 (2026-03-09)
 
-*Last updated: 2026-03-09 (session 35)*
+### What it does
+
+A self-contained three-tab workspace inside `/account/host` that replaces Basecamp for the RIM virtual host volunteer team. It handles schedule visibility, sub coverage coordination, and community discussion — all in one place, gated to the host team.
+
+### Who uses it
+
+| Role | What they can do |
+|---|---|
+| HOST | View own assignments; request subs; claim subs; read and create threads; reply to threads |
+| HOST_MANAGER | All HOST actions + view all assignments; create/delete assignments; close/archive threads |
+| ADMIN | Same as HOST_MANAGER |
+| REGISTRAR | No access — program ops are separate from host community |
+
+### User flow
+
+**Schedule tab** (`/account/host`)
+- HOST sees their own program cards with meeting link + host account
+- HOST_MANAGER/ADMIN sees all assignments grouped by program with a "Manage →" link
+
+**Sub Board** (`/account/host/subs`)
+- Any hub member can see open requests
+- The requesting host posts a request (date picker + optional message)
+- Any other hub member clicks "I'll take it" → optional note → confirm
+- On claim: status flips to CLAIMED atomically; original requester gets an alert + email
+
+**Threads** (`/account/host/threads`)
+- Two categories: Operational (peer support, questions) and Contemplation (weekly teacher/manager post)
+- Any hub member can start a thread or reply to open threads
+- HOST_MANAGER can close (no new replies) or archive (hidden from main list)
+
+**Manage tab** (`/account/host/manage`, HOST_MANAGER/ADMIN only)
+- Filter by program; assign a host user to a program with optional session date and notes
+- Delete assignment (cancels any open sub requests)
+
+**Dashboard AlertStrip**
+- Unread alerts shown above the nav cards on `/account/dashboard`
+- Covers: sub requests, sub claims, new threads, new replies, unassigned sessions (HOST_MANAGER only)
+
+### New Prisma models
+
+| Model | Purpose |
+|---|---|
+| `HostAssignment` | Joins a User to a Sanity programSlug; `sessionDate?` null = standing host |
+| `SubRequest` | A request for coverage; status: OPEN → CLAIMED or CANCELLED |
+| `SubClaim` | Who claimed a SubRequest + optional message |
+| `HostThread` | Discussion thread; category: OPERATIONAL or CONTEMPLATION |
+| `HostReply` | A reply to a HostThread |
+| `Alert` | Site-wide unread notification (5 types: SUB_REQUEST, SUB_CLAIMED, NEW_THREAD, NEW_REPLY, UNASSIGNED_SESSION) |
+
+### Key files
+
+**API routes:**
+| Route | Methods | Purpose |
+|---|---|---|
+| `/api/host/assignments` | GET, POST | List assignments (own or all); create assignment |
+| `/api/host/assignments/[id]` | DELETE | Delete assignment |
+| `/api/host/sub-requests` | GET, POST | Open requests list; create request |
+| `/api/host/sub-requests/[id]` | PATCH | Cancel request |
+| `/api/host/sub-requests/[id]/claim` | POST | Claim request (atomic transaction) |
+| `/api/host/threads` | GET, POST | Thread list; create thread |
+| `/api/host/threads/[id]` | GET, PATCH | Thread detail; change status |
+| `/api/host/threads/[id]/replies` | POST | Add reply (bumps thread updatedAt) |
+| `/api/account/alerts` | GET, PATCH | Unread alerts; mark read / mark all read |
+| `/api/cron/check-unassigned-hosts` | GET | Daily check — alert HOST_MANAGER if program within 30 days has no host |
+
+**Pages:**
+- `app/account/host/page.tsx` — Schedule tab (rewrite)
+- `app/account/host/subs/page.tsx` — Sub board
+- `app/account/host/threads/page.tsx` — Thread list
+- `app/account/host/threads/[id]/page.tsx` — Thread detail
+- `app/account/host/manage/page.tsx` — Assignment management
+
+**Components:**
+- `components/HubTabNav.tsx` — tab strip; Manage tab gated to HOST_MANAGER/ADMIN
+- `components/SubBoard.tsx` — open requests + claim flow
+- `components/SubRequestForm.tsx` — date picker + message; POST to sub-requests
+- `components/ThreadList.tsx` — list + category filter + new thread form
+- `components/ThreadDetail.tsx` — thread + replies + reply form + close/archive
+- `components/AssignmentManager.tsx` — program list + assign/unassign
+- `components/AlertStrip.tsx` — unread count + list on dashboard
+
+**Other files changed:**
+- `lib/queries.ts` — added `allVirtualProgramsQuery` (no zoomLink filter; for assignment dropdown)
+- `lib/email.ts` — 4 new functions: `sendSubRequestEmail`, `sendSubClaimedEmail`, `sendNewThreadEmail`, `sendNewReplyEmail`
+- `prisma/schema.prisma` — HOST_MANAGER role; 6 models; 5 enums; User relations
+- `components/AccountSidebar.tsx` — `hasHost` extended to include HOST_MANAGER
+- `components/MemberDetail.tsx` — HOST_MANAGER added to ALL_ROLES with description
+- `vercel.json` — cron: `check-unassigned-hosts` at 16:00 UTC daily
+- `public/css/custom.css` — `hub-` block + `alert-strip` block
+
+### Technical notes
+
+**Slug stability:** `HostAssignment.programSlug` is the join key to Sanity. Sanity slugs must be treated as permanent — changing a program's slug after assignments exist will silently orphan those assignments. Document this in the staff manual.
+
+**Atomic claim:** `SubRequest` status flip to CLAIMED and `SubClaim` creation are wrapped in `db.$transaction([...])` — if either fails, neither is written.
+
+**Reply notification targeting:** When a reply is posted, the system notifies the thread author + all users who have previously replied (deduplicated, excluding the current replier). This uses `distinct: ["authorId"]` on prior replies.
+
+**Thread `updatedAt` bump:** Posting a reply calls `db.hostThread.update({ data: { updatedAt: new Date() } })` to float the thread to the top of the list (ordered by `updatedAt desc`).
+
+**Cron dedup:** The `check-unassigned-hosts` cron checks `db.alert.findFirst({ where: { type: "UNASSIGNED_SESSION", linkUrl, createdAt: { gte: since24h } } })` before creating — so running the cron multiple times on the same day for the same program creates at most one alert per manager.
+
+**CSS prefix:** `hub-` for all hub UI; `alert-strip` for the dashboard alert component.
+
+---
+
+| 2026-03-09 (session 34–35) | Enhanced member profiles + Household / Family Grouping. **(1) Enhanced member profiles (§11 update):** Added `preferredName`, structured address (`addressLine1 / addressCity / addressState / addressZip`), `memberStatus` enum (`ACTIVE / VISITOR / STUDENT / VOLUNTEER / INACTIVE`), `firstVisitDate`, `adminNotes` (admin-only), and `tags` (freeform array, pill input) to the User model; DB pushed. Status-driven access: INACTIVE is the only status that blocks login — stamps `archivedAt = new Date()` and invalidates sessions; any other status clears `archivedAt`. `effectiveStatus` pattern handles legacy archived members (auto-corrects on profile load, syncs to DB on save). Member list: sort by multiple columns (click header); status filter dropdown replacing the old "Archived" toggle. `adm-` CSS updates for status column, sort arrows, filter dropdown, admin notes banner. **(2) Household/Family Grouping (§22 new — full feature):** New `Household` + `HouseholdMember` Prisma models; `RelationshipType` enum (SPOUSE/PARTNER/PARENT/CHILD/SIBLING/OTHER); `userId @unique` enforces one-household-per-member at DB level; migration run (`prisma db push`). 5 new API routes (households CRUD + member management). 2 new admin pages (`/admin/households` list + `/admin/households/[id]` detail). 2 new components: `HouseholdDetail` (full edit UI) + `HouseholdSection` (embedded in MemberDetail). HouseholdSection has two modes: "create new household" (makes this member primary) and "join existing household" (search for another member → GET their household → POST add current member). Address fallback: if member has no `addressLine1` but household does, show "No individual address — household address will be used: [City, State]" hint. Households list page has a custom-label frequency table at the bottom to surface Other labels for future enum promotion. 409 responses with human-readable messages. `AccountSidebar` adds "Households" link for REGISTRAR+. `hh-` CSS block. **(3) Manual:** New Chapter 3 "Member Accounts" inserted before Volunteer Roles chapter (8 sections: overview, member list, member profile, member status table with access column, tags, admin notes, households, common tasks). Written in warm companion voice — plain English, second-person, no jargon. Sidebar updated: "Member Accounts" now a real link with full navigation, "Coming soon" badge removed. |
+| 2026-03-09 (session 36) | **Host Community Hub (§23 new):** Full replacement for Basecamp — three-tab tool inside the member area for the RIM host volunteer team. **(1) Schema:** `HOST_MANAGER` role added to Prisma enum. Six new models: `HostAssignment` (programSlug + userId + sessionDate? @@unique — Sanity slug as join key), `SubRequest` (OPEN/CLAIMED/CANCELLED), `SubClaim`, `HostThread` (OPERATIONAL/CONTEMPLATION categories; OPEN/CLOSED/ARCHIVED status), `HostReply`, `Alert` (site-wide; 5 AlertTypes). Five new enums. User relations for all new models. `prisma db push` run. **(2) Emails:** 4 new fire-and-forget functions: `sendSubRequestEmail`, `sendSubClaimedEmail`, `sendNewThreadEmail`, `sendNewReplyEmail`. **(3) Alert API + AlertStrip:** `GET/PATCH /api/account/alerts` (unread list + mark-read + mark-all-read). `AlertStrip` client component on dashboard — shows badge count, dismissible list. **(4) Hub navigation:** `HubTabNav` client component (Schedule / Sub Board / Threads / Manage tabs; Manage tab gated to HOST_MANAGER/ADMIN). `AccountSidebar` extended — `hasHost` check now includes HOST_MANAGER. **(5) API routes (12 new):** assignments GET/POST; assignment DELETE; sub-requests GET/POST; sub-request PATCH cancel; sub-request claim POST (atomic `db.$transaction`); threads GET/POST; thread GET/PATCH; replies POST. Reply notifications target author + all prior repliers (deduplicated, exclude current replier). **(6) Components (7 new):** `SubBoard` (claim flow), `SubRequestForm` (date picker), `ThreadList` (filter by category + new thread form), `ThreadDetail` (reply form + manager close/archive actions), `AssignmentManager` (program + host dropdowns, grouped display, delete). **(7) Hub pages (5):** schedule rewrite, `/account/host/subs`, `/account/host/threads`, `/account/host/threads/[id]`, `/account/host/manage`. **(8) Cron:** `check-unassigned-hosts` — daily at 16:00 UTC; fetches programs with `startDatetime` within 30 days, cross-checks assignments, creates `UNASSIGNED_SESSION` alerts for HOST_MANAGER+ADMIN; dedup prevents repeat alerts within 24h. Added to `vercel.json`. **(9) Other:** `allVirtualProgramsQuery` added to `lib/queries.ts` (no zoomLink filter — for assignment dropdown). `HOST_MANAGER` added to `MemberDetail` `ALL_ROLES` with description. `hub-` CSS block + `alert-strip` CSS. |
+
+*Last updated: 2026-03-09 (session 36)*

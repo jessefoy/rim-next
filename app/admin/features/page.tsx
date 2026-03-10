@@ -471,14 +471,79 @@ const AREAS: FunctionalArea[] = [
           "Encourages registrar to promote from Waitlist",
         ],
       },
+    ],
+  },
+
+  {
+    id: "hub",
+    title: "Host Community Hub",
+    icon: "🏠",
+    desc: "The internal collaboration space for the host volunteer team. Replaces spreadsheets and Basecamp. Accessible at /account/host. Requires HOST, HOST_MANAGER, or ADMIN role.",
+    features: [
       {
-        name: "Host Area",
-        locations: ["/account/host"],
-        what: "A page for the host team (HOST, REGISTRAR, or ADMIN roles) listing virtual programs with their assigned Google Meet room and join link. Includes 'How to host' guidance.",
+        name: "Schedule Tab",
+        locations: ["/account/host", "API: GET /api/host/assignments"],
+        what: "HOST users see only their own assigned programs with the Google Meet room account and join link, plus 'How to host' guidance. HOST_MANAGER and ADMIN users see all assignments grouped by program, with a 'Manage →' link to the assignment manager.",
         relatedTo: [
-          "Google Meet Integration — room accounts and meet links",
-          "HOST Role (Roles & Permissions)",
-          "Sanity CMS — virtual programs with meetLink and meetHostAccount fields",
+          "HostAssignment Postgres model — links userId + programSlug (+ optional sessionDate)",
+          "Sanity CMS — program names, meet links, room accounts read from hostProgramsQuery",
+          "Assignment Manager — HOST_MANAGER creates/removes assignments shown here",
+          "Google Meet Integration — meetLink and meetHostAccount fields",
+        ],
+      },
+      {
+        name: "Sub Board",
+        locations: ["/account/host/subs", "Component: SubBoard.tsx", "Component: SubRequestForm.tsx", "API: GET /api/host/sub-requests, POST /api/host/sub-requests, POST /api/host/sub-requests/[id]/claim, PATCH /api/host/sub-requests/[id] (cancel)"],
+        what: "Any HOST/HOST_MANAGER/ADMIN user can post a sub request for a session they can't cover, choosing from their own assignments and optionally specifying a date. Open requests appear on the board for any hub member to claim. Claiming flips the status to CLAIMED atomically (db.$transaction). Cannot claim your own request.",
+        relatedTo: [
+          "SubRequest + SubClaim Postgres models",
+          "Notifies all hub members on request creation (email + alert)",
+          "Notifies original requester when claimed (email + alert)",
+          "Sub request status: OPEN → CLAIMED or CANCELLED",
+        ],
+      },
+      {
+        name: "Threads",
+        locations: ["/account/host/threads", "/account/host/threads/[id]", "Component: ThreadList.tsx", "Component: ThreadDetail.tsx", "API: GET/POST /api/host/threads, GET/PATCH /api/host/threads/[id], POST /api/host/threads/[id]/replies"],
+        what: "A discussion board with two categories: OPERATIONAL (peer support, tips, questions) and CONTEMPLATION (weekly teacher/manager post for group reflection). Any hub member can create threads and reply. HOST_MANAGER/ADMIN can close (no new replies) or archive (hidden from main list) threads. Reply notification targets thread author + all prior repliers (deduplicated, excluding the current replier). Posting a reply bumps thread updatedAt so it floats to the top.",
+        relatedTo: [
+          "HostThread + HostReply Postgres models; ThreadStatus enum: OPEN / CLOSED / ARCHIVED",
+          "New thread notifies all hub members (email + alert)",
+          "New reply notifies thread author + prior repliers (email + alert)",
+          "Close/archive restricted to HOST_MANAGER and ADMIN",
+        ],
+      },
+      {
+        name: "Assignment Manager",
+        locations: ["/account/host/manage", "Component: AssignmentManager.tsx", "API: GET/POST /api/host/assignments, DELETE /api/host/assignments/[id]"],
+        what: "HOST_MANAGER and ADMIN only. Displays all virtual/hybrid programs (without zoomLink filter — so hosts can be assigned before a Meet link is created). For each program, shows current assignments with a remove button. Assigns a host by selecting from a dropdown of HOST/HOST_MANAGER/ADMIN users.",
+        relatedTo: [
+          "HostAssignment Postgres model — the join between a user and a program/session",
+          "allVirtualProgramsQuery (lib/queries.ts) — all virtual+hybrid programs without zoomLink filter",
+          "Schedule Tab reflects assignments created here",
+          "⚠️ programSlug is the Sanity join key — never change a program's slug once assignments exist",
+        ],
+      },
+      {
+        name: "Alert Strip",
+        locations: ["/account/dashboard", "Component: AlertStrip.tsx", "API: GET /api/account/alerts, PATCH /api/account/alerts (mark-read / mark-all-read)"],
+        what: "An unread alert badge and expandable strip rendered above the nav cards on the member dashboard. Shows unread count in a badge; clicking the alert icon expands the list. Each alert links to the relevant hub page. Clicking an alert marks it read; 'Mark all as read' bulk action available.",
+        relatedTo: [
+          "Alert Postgres model — type, message, linkUrl, read flag, userId",
+          "AlertType enum: SUB_REQUEST · SUB_CLAIMED · NEW_THREAD · NEW_REPLY · UNASSIGNED_SESSION",
+          "Alerts created alongside notification emails in every API route that fires notifications",
+          "Unassigned-Hosts Cron creates UNASSIGNED_SESSION alerts",
+        ],
+      },
+      {
+        name: "Unassigned-Hosts Cron",
+        locations: ["API: GET /api/cron/check-unassigned-hosts", "File: vercel.json (cron schedule: 0 16 * * *)"],
+        what: "Runs daily at 16:00 UTC. Fetches all virtual/hybrid programs from Sanity with startDatetime within the next 30 days. Cross-checks against HostAssignment records. For any program with no standing assignment, creates UNASSIGNED_SESSION alerts for all HOST_MANAGER and ADMIN users. Deduplication: checks if an alert with the same linkUrl was created in the last 24 hours — safe to run multiple times per day.",
+        relatedTo: [
+          "Alert Postgres model — UNASSIGNED_SESSION type",
+          "Sanity CMS — programs with startDatetime used for the 30-day window",
+          "HostAssignment Postgres model — checked for standing assignments (sessionDate: null)",
+          "CRON_SECRET env var — same auth pattern as send-reminders and cleanup crons",
         ],
       },
     ],
@@ -754,12 +819,12 @@ const AREAS: FunctionalArea[] = [
         ],
       },
       {
-        name: "Meet Link on Dashboard & Host Area",
+        name: "Meet Link on Dashboard & Host Hub",
         locations: ["/account/dashboard", "/account/host"],
-        what: "Google Meet links are shown to logged-in members on the Dashboard under 'Today's Sessions.' They are also shown on the Host Area for staff reference. Links are deliberately NOT shown in confirmation emails or on public program pages — members must be logged in to access them.",
+        what: "Google Meet links are shown to logged-in members on the Dashboard under 'Today's Sessions.' HOST users also see their assigned meet links on the host schedule tab. Links are deliberately NOT shown in confirmation emails or on public program pages — members must be logged in to access them.",
         relatedTo: [
           "Dashboard Hub (Member Experience)",
-          "Host Area (Volunteer / Registrar Tools)",
+          "Host Community Hub — Schedule Tab",
           "Community philosophy: Meet links require login to protect sessions for members",
         ],
       },
@@ -1012,9 +1077,9 @@ const USER_TYPES = [
     canDo: "Everything above, plus: dashboard, My Programs, My Library, member-gated courses and articles.",
   },
   {
-    who: "Registrar / HOST",
+    who: "Registrar / HOST / HOST_MANAGER",
     login: "Magic link + role",
-    canDo: "Registrar: registration management (/account/registrar), Sanity Studio. HOST: Host Area (/account/host) for Google Meet coordination.",
+    canDo: "Registrar: registration management (/account/registrar), Sanity Studio. HOST: full Host Community Hub (/account/host) — schedule, sub board, threads. HOST_MANAGER: everything HOST does, plus assignment management and thread moderation.",
   },
   {
     who: "Admin",
@@ -1057,7 +1122,7 @@ const SYSTEM_MAP: { area: string; needs: string; powers: string; note: string }[
   {
     area: "Route Protection",
     needs: "Auth session (NextAuth) · Postgres (archivedAt, agreedToTerms on User)",
-    powers: "Enforces who can access /account/*, /admin/*, /volunteer/*, /course/*, /hosts/*",
+    powers: "Enforces who can access /account/*, /admin/*, /course/* (hub sub-routes protected by server-component role check)",
     note: "Lives in proxy.ts — the Next.js 16 rename of middleware.ts. Do not recreate middleware.ts.",
   },
   {
@@ -1091,10 +1156,16 @@ const SYSTEM_MAP: { area: string; needs: string; powers: string; note: string }[
     note: "userId @unique on HouseholdMember enforces one household per member at the DB level. 409 with human-readable error if member already belongs to a household.",
   },
   {
+    area: "Host Community Hub",
+    needs: "Postgres (HostAssignment, SubRequest, SubClaim, HostThread, HostReply, Alert models) · Sanity (program names and meet links) · Email (hub notification emails) · Auth (HOST / HOST_MANAGER / ADMIN roles)",
+    powers: "Schedule tab (who covers which program) · Sub board (coverage requests) · Threads (discussion) · AlertStrip on dashboard (unread badge) · Unassigned-hosts cron alert",
+    note: "programSlug is the Sanity join key for HostAssignment — never change a program slug once assignments exist. Slug changes silently orphan assignments.",
+  },
+  {
     area: "Scheduling & Automation",
-    needs: "Sanity (reminderDate) · Postgres (registration records, reminderSentAt) · Email · Vercel Cron (CRON_SECRET)",
-    powers: "Auto-sends reminder emails on reminderDate · Deletes incomplete accounts after 48 hours",
-    note: "Uses a 24-hour lookback window — safe even if cron runs slightly off-schedule. reminderSentAt prevents double-sends.",
+    needs: "Sanity (reminderDate, startDatetime) · Postgres (registration records, reminderSentAt, Alert records) · Email · Vercel Cron (CRON_SECRET)",
+    powers: "Auto-sends reminder emails on reminderDate · Deletes incomplete accounts after 48 hours · Creates UNASSIGNED_SESSION alerts for programs within 30 days with no host assigned",
+    note: "Uses a 24-hour lookback window — safe even if cron runs slightly off-schedule. reminderSentAt and alert dedup prevent double-sends.",
   },
   {
     area: "Google Meet Integration",
@@ -1187,6 +1258,7 @@ const CRITICAL_DEPS: { system: string; breaks: string[] }[] = [
     breaks: [
       "Reminder emails not auto-sent on reminderDate (manual send in the volunteer table still works)",
       "Incomplete onboarding accounts accumulate and are never cleaned up",
+      "UNASSIGNED_SESSION alerts not created for HOST_MANAGER/ADMIN when programs approach without a host",
     ],
   },
   {
@@ -1199,9 +1271,9 @@ const CRITICAL_DEPS: { system: string; breaks: string[] }[] = [
   {
     system: "Google Workspace / DWD misconfigured (scope revoked or service account broken)",
     breaks: [
-      "Can't create new Google Meet spaces from the Host Area",
-      "Host Area shows no room account assignment after creation attempt",
-      "Existing meet links already saved to Sanity still work — no impact on past programs",
+      "Can't create new Google Meet spaces (manual creation still possible in Google Workspace admin)",
+      "meetHostAccount not written back to Sanity after creation attempt",
+      "Existing meet links already saved to Sanity still work — no impact on past programs or the host schedule tab",
     ],
   },
   {
