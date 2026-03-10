@@ -33,8 +33,8 @@ export default async function SubsPage() {
 
   const isManager = roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
 
-  // Parallel fetch: open requests + current user's assignments + Sanity program names
-  const [requests, myAssignments, sanityPrograms] = await Promise.all([
+  // Parallel fetch: open requests + Sanity program names
+  const [requests, sanityPrograms] = await Promise.all([
     db.subRequest.findMany({
       where: { status: "OPEN" },
       include: {
@@ -50,10 +50,6 @@ export default async function SubsPage() {
         },
       },
       orderBy: { createdAt: "desc" },
-    }),
-    db.hostAssignment.findMany({
-      where: { userId: session.user.id },
-      orderBy: { createdAt: "asc" },
     }),
     sanityClient.fetch<SanityProgram[]>(allVirtualProgramsQuery),
   ]);
@@ -81,14 +77,6 @@ export default async function SubsPage() {
       : null,
   }));
 
-  // Serialize user's own assignments for SubRequestForm
-  const serializedAssignments = myAssignments.map((a) => ({
-    id: a.id,
-    programSlug: a.programSlug,
-    programName: programBySlug.get(a.programSlug)?.name ?? a.programSlug,
-    sessionDate: a.sessionDate?.toISOString() ?? null,
-  }));
-
   return (
     <AccountLayout>
       <div className="hub-page">
@@ -96,7 +84,6 @@ export default async function SubsPage() {
         <div className="hub-content">
           <SubBoard
             initialRequests={serializedRequests}
-            myAssignments={serializedAssignments}
             currentUserId={session.user.id}
           />
         </div>

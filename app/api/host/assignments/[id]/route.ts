@@ -1,11 +1,9 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 
-function isManager(roles: string[]) {
-  return roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
-}
-
-// DELETE /api/host/assignments/[id] — remove an assignment (HOST_MANAGER/ADMIN)
+// DELETE /api/host/assignments/[id]
+// HOST_MANAGER/ADMIN can delete any assignment.
+// HOST can delete their own assignment.
 export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -13,9 +11,6 @@ export async function DELETE(
   const session = await auth();
   if (!session?.user?.id) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  if (!isManager(session.user.roles ?? [])) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { id } = await params;
@@ -25,7 +20,15 @@ export async function DELETE(
     return Response.json({ error: "Not found" }, { status: 404 });
   }
 
-  // If there are open sub requests on this assignment, cancel them first
+  const roles = session.user.roles ?? [];
+  const isManager = roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
+  const isOwn = assignment.userId === session.user.id;
+
+  if (!isManager && !isOwn) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Cancel open sub requests on this assignment first
   await db.subRequest.updateMany({
     where: { assignmentId: id, status: "OPEN" },
     data: { status: "CANCELLED" },

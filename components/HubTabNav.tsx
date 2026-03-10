@@ -21,7 +21,9 @@ export default function HubTabNav({ isManager }: Props) {
   const tabs = isManager ? [...TABS, MANAGE_TAB] : TABS;
 
   function isActive(href: string) {
-    if (href === "/account/host") return pathname === "/account/host";
+    if (href === "/account/host") {
+      return pathname === "/account/host" || pathname.startsWith("/account/host/programs");
+    }
     return pathname.startsWith(href);
   }
 

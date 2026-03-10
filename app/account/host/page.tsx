@@ -1,8 +1,11 @@
 /**
  * /account/host — Host Hub: Schedule tab
  *
- * HOST: sees own assignments + program join info
- * HOST_MANAGER / ADMIN: sees all assignments summary + manage link
+ * Program-card view. Each card links to /account/host/programs/[slug]
+ * where all actions live (request sub, remove self, assign hosts).
+ *
+ * HOST: sees own program cards
+ * HOST_MANAGER / ADMIN: sees all programs with assignments + host count
  *
  * CSS prefix: hub-
  */
@@ -57,25 +60,47 @@ export default async function HostSchedulePage() {
   const programs = await sanityClient.fetch<HostProgram[]>(hostProgramsQuery);
   const programBySlug = new Map(programs.map((p) => [p.slug, p]));
 
-  // Serialize for RSC boundary
-  const serializedAssignments = assignments.map((a) => {
-    const prog = programBySlug.get(a.programSlug);
+  // Group assignments by program slug (preserving order of first appearance)
+  const slugsSeen = new Set<string>();
+  const programSlugs = assignments
+    .map((a) => a.programSlug)
+    .filter((s) => {
+      if (slugsSeen.has(s)) return false;
+      slugsSeen.add(s);
+      return true;
+    });
+
+  interface ProgramCard {
+    slug: string;
+    name: string;
+    dateLabel: string | null;
+    hostCount: number;
+    hasStanding: boolean;
+    hosts: string[]; // for manager view
+    isOwn: boolean;
+  }
+
+  const programCards: ProgramCard[] = programSlugs.map((slug) => {
+    const prog = programBySlug.get(slug);
+    const group = assignments.filter((a) => a.programSlug === slug);
+    const myGroup = group.filter((a) => a.userId === session.user.id);
     return {
-      id: a.id,
-      programSlug: a.programSlug,
-      programName: prog?.name ?? a.programSlug,
-      sessionDate: a.sessionDate?.toISOString() ?? null,
-      notes: a.notes,
-      zoomLink: prog?.zoomLink ?? null,
-      meetHostAccount: prog?.meetHostAccount ?? null,
+      slug,
+      name: prog?.name ?? slug,
       dateLabel: prog ? (prog.dateText || buildDateLabel(prog)) : null,
-      userId: a.userId,
-      userName: a.user.preferredName || [a.user.firstName, a.user.lastName].filter(Boolean).join(" ") || "Unknown",
-      isOwn: a.userId === session.user.id,
+      hostCount: group.length,
+      hasStanding: group.some((a) => !a.sessionDate),
+      hosts: group.map(
+        (a) =>
+          a.user.preferredName ||
+          [a.user.firstName, a.user.lastName].filter(Boolean).join(" ") ||
+          "Unknown"
+      ),
+      isOwn: myGroup.length > 0,
     };
   });
 
-  const myAssignments = serializedAssignments.filter((a) => a.isOwn);
+  const myCards = isManager ? programCards : programCards.filter((c) => c.isOwn);
 
   return (
     <AccountLayout>
@@ -97,104 +122,35 @@ export default async function HostSchedulePage() {
             )}
           </div>
 
-          {serializedAssignments.length === 0 ? (
+          {myCards.length === 0 ? (
             <p className="hub-empty">
               {isManager
                 ? "No hosts assigned yet. Use the Manage tab to set up your rotation."
                 : "You're not assigned to any programs yet. Your host manager will set that up — check back once assignments are live."}
             </p>
           ) : (
-            <div className="hub-schedule">
-              {isManager ? (
-                // Manager view: grouped by program
-                (() => {
-                  const slugsSeen = new Set<string>();
-                  const slugOrder = serializedAssignments
-                    .map((a) => a.programSlug)
-                    .filter((s) => { if (slugsSeen.has(s)) return false; slugsSeen.add(s); return true; });
-
-                  return slugOrder.map((slug) => {
-                    const group = serializedAssignments.filter((a) => a.programSlug === slug);
-                    const prog = programBySlug.get(slug);
-                    const dateLabel = prog ? (prog.dateText || buildDateLabel(prog)) : null;
-                    return (
-                      <div key={slug} className="hub-schedule__program">
-                        <div className="hub-schedule__prog-header">
-                          <p className="hub-schedule__prog-name">{group[0].programName}</p>
-                          {dateLabel && <p className="hub-schedule__prog-date">{dateLabel}</p>}
-                        </div>
-                        {group.map((a) => (
-                          <div key={a.id} className="hub-schedule__assignment">
-                            <span className="hub-schedule__host-name">{a.userName}</span>
-                            {a.sessionDate && (
-                              <span className="hub-schedule__session-date">
-                                {new Date(a.sessionDate).toLocaleDateString("en-US", {
-                                  month: "short", day: "numeric", year: "numeric",
-                                })}
-                              </span>
-                            )}
-                            {!a.sessionDate && (
-                              <span className="hub-schedule__standing">Standing</span>
-                            )}
-                            {a.notes && <span className="hub-schedule__notes">{a.notes}</span>}
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  });
-                })()
-              ) : (
-                // HOST view: their own assignments as program cards
-                myAssignments.map((a) => (
-                  <div key={a.id} className="hub-schedule__card">
-                    <div className="hub-schedule__card-name">{a.programName}</div>
-                    {a.dateLabel && (
-                      <div className="hub-schedule__card-date">{a.dateLabel}</div>
+            <div className="hub-program-cards">
+              {myCards.map((card) => (
+                <Link
+                  key={card.slug}
+                  href={`/account/host/programs/${card.slug}`}
+                  className="hub-program-card"
+                >
+                  <div className="hub-program-card__main">
+                    <p className="hub-program-card__name">{card.name}</p>
+                    {card.dateLabel && (
+                      <p className="hub-program-card__meta">{card.dateLabel}</p>
                     )}
-                    {a.sessionDate && (
-                      <div className="hub-schedule__card-date">
-                        Your session:{" "}
-                        {new Date(a.sessionDate).toLocaleDateString("en-US", {
-                          weekday: "short", month: "short", day: "numeric",
-                        })}
-                      </div>
+                    {isManager && (
+                      <p className="hub-program-card__meta">
+                        {card.hostCount} host{card.hostCount !== 1 ? "s" : ""}
+                        {card.hasStanding ? " · standing" : ""}
+                      </p>
                     )}
-                    {a.meetHostAccount && (
-                      <div className="hub-schedule__card-account">
-                        <span className="hub-schedule__card-account-label">Sign in as</span>
-                        <span className="hub-schedule__card-account-value">{a.meetHostAccount}</span>
-                      </div>
-                    )}
-                    {a.zoomLink && (
-                      <a
-                        href={a.zoomLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hub-schedule__join-link"
-                      >
-                        Join on Google Meet →
-                      </a>
-                    )}
-                    {a.notes && <p className="hub-schedule__card-notes">{a.notes}</p>}
                   </div>
-                ))
-              )}
-            </div>
-          )}
-
-          {/* How to host — only for non-managers (or if they have HOST role) */}
-          {roles.includes("HOST") && (
-            <div className="hub-how-to">
-              <h2 className="hub-how-to__title">How to host</h2>
-              <ol className="hub-steps">
-                <li>Sign into the <strong>host account</strong> listed for your program. You can add it as a secondary account in your browser — you don&rsquo;t need to log out of your own account.</li>
-                <li>Click <strong>Join on Google Meet</strong> for your program. Join a few minutes before the session starts.</li>
-                <li>You&rsquo;ll see a small <strong>blue shield</strong> in the bottom-right corner — that means you have host controls (mute all, remove a participant, end meeting for everyone).</li>
-                <li>When the session ends, click the red button and choose <strong>End meeting for all</strong>. Then switch back to your personal account.</li>
-              </ol>
-              <p className="hub-how-to__note">
-                If you don&rsquo;t see the blue shield, any other volunteer in the meeting with a <code>@rootedinmindfulness.org</code> account can grant you host controls from the People panel.
-              </p>
+                  <span className="hub-program-card__arrow">→</span>
+                </Link>
+              ))}
             </div>
           )}
         </div>

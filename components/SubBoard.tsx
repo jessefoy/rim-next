@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import SubRequestForm from "./SubRequestForm";
 
 interface SubRequester {
   id: string;
@@ -28,16 +27,8 @@ interface SubRequestItem {
   };
 }
 
-interface Assignment {
-  id: string;
-  programSlug: string;
-  programName: string;
-  sessionDate: string | null;
-}
-
 interface Props {
   initialRequests: SubRequestItem[];
-  myAssignments: Assignment[];
   currentUserId: string;
 }
 
@@ -53,7 +44,7 @@ function formatDate(iso: string): string {
   });
 }
 
-export default function SubBoard({ initialRequests, myAssignments, currentUserId }: Props) {
+export default function SubBoard({ initialRequests, currentUserId }: Props) {
   const [requests, setRequests] = useState<SubRequestItem[]>(initialRequests);
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [claimMessage, setClaimMessage] = useState("");
@@ -85,29 +76,16 @@ export default function SubBoard({ initialRequests, myAssignments, currentUserId
     }
   }
 
-  function refreshList() {
-    // Reload open requests from API
-    fetch("/api/host/sub-requests")
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setRequests(data.map((r: SubRequestItem) => ({
-            ...r,
-            programName: r.programSlug, // no Sanity lookup in client; use slug
-          })));
-        }
-      })
-      .catch(() => {});
-  }
-
   return (
     <div className="hub-subboard">
       <div className="hub-subboard__header">
         <div>
-          <h2 className="hub-subboard__title">Open Sub Requests</h2>
-          <p className="hub-subboard__desc">If you can&rsquo;t make a session, post a request here. Anyone on the host team can claim it.</p>
+          <h2 className="hub-subboard__title">Sub Board</h2>
+          <p className="hub-subboard__desc">
+            Open sub requests from the host team. Claim one if you can cover.
+            To request a sub, go to your <strong>Schedule</strong> and open the program.
+          </p>
         </div>
-        <SubRequestForm assignments={myAssignments} onCreated={refreshList} />
       </div>
 
       {requests.length === 0 ? (

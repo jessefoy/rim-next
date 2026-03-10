@@ -8733,6 +8733,117 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 }
 .hub-assign-row__remove:hover { background: #fdf0f0; color: #c44; }
 
+/* ── Program cards (Schedule tab) ── */
+.hub-program-cards { display: flex; flex-direction: column; gap: 8px; }
+.hub-program-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  background: #fff;
+  border: 1px solid var(--rim-rule);
+  border-radius: 4px;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.hub-program-card:hover { border-color: var(--rim-mid); background: #fafaf9; }
+.hub-program-card__main { display: flex; flex-direction: column; gap: 4px; }
+.hub-program-card__name { font-size: 17px; font-weight: 400; font-family: var(--font-serif); color: var(--rim-text); margin: 0; line-height: 1.3; }
+.hub-program-card__meta { font-size: 13px; color: var(--rim-text-muted); margin: 0; }
+.hub-program-card__arrow { font-size: 16px; color: var(--rim-text-muted); flex-shrink: 0; }
+
+/* ── Program detail page ── */
+.hub-back-link { display: inline-block; font-size: 13px; color: var(--rim-text-muted); text-decoration: none; margin-bottom: 20px; }
+.hub-back-link:hover { color: var(--rim-blue); }
+.hub-program-detail { }
+.hub-program-detail__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--rim-rule);
+}
+.hub-program-detail__name { font-size: 24px; font-weight: 400; font-family: var(--font-serif); color: var(--rim-text); margin: 0 0 6px; line-height: 1.3; }
+.hub-program-detail__date { font-size: 15px; color: var(--rim-text-muted); margin: 0; }
+.hub-program-detail__account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--rim-bg-accent);
+  border-radius: 4px;
+  margin-bottom: 24px;
+  font-size: 14px;
+}
+.hub-program-detail__account-label { color: var(--rim-text-muted); }
+.hub-program-detail__account-value { font-weight: 500; color: var(--rim-text); font-family: monospace; font-size: 13px; }
+.hub-program-detail__section-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.hub-program-detail__section-title { font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--rim-text-muted); margin: 0; }
+
+/* ── Program sessions (HOST view on detail page) ── */
+.hub-program-actions { margin-top: 24px; }
+.hub-program-actions__success { font-size: 14px; color: #2d6a2d; background: #f0f7f0; border: 1px solid #c3dfc3; border-radius: 4px; padding: 10px 14px; margin-bottom: 16px; }
+.hub-program-sessions { display: flex; flex-direction: column; gap: 1px; margin-bottom: 32px; }
+.hub-program-session {
+  background: #fff;
+  border: 1px solid var(--rim-rule);
+  border-radius: 4px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.hub-program-session__info { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.hub-program-session__date { font-size: 14px; font-weight: 500; color: var(--rim-text); }
+.hub-program-session__standing { font-size: 13px; color: var(--rim-mid); background: #e4eff5; padding: 2px 10px; border-radius: 10px; }
+.hub-program-session__notes { font-size: 13px; color: var(--rim-text-muted); font-style: italic; }
+.hub-program-session__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Inline expand forms within a session */
+.hub-program-inline-form { padding: 12px 14px; background: var(--rim-bg-accent); border-radius: 4px; }
+.hub-program-inline-form--warn { background: #fff8ec; border: 1px solid #e8d9b8; }
+.hub-program-inline-form__label { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--rim-text-muted); margin: 0 0 8px; }
+.hub-program-inline-form__warn-text { font-size: 14px; color: var(--rim-text); margin: 0 0 12px; }
+
+/* Danger button variant */
+.hub-btn--danger { background: #b33; border-color: #b33; color: #fff; }
+.hub-btn--danger:hover { background: #922; border-color: #922; }
+
+/* ── Assign manager — two-stage program-first layout ── */
+.hub-assign-program-list { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
+.hub-assign-program-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #fff;
+  border: 1px solid var(--rim-rule);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.hub-assign-program-row:hover { border-color: var(--rim-mid); background: #fafaf9; }
+.hub-assign-program-row--active { border-color: var(--rim-blue); background: #f4f8fb; }
+.hub-assign-program-row__name { font-size: 15px; font-weight: 500; color: var(--rim-text); }
+.hub-assign-program-row__count { font-size: 12px; color: var(--rim-text-muted); background: var(--rim-bg-accent); padding: 2px 10px; border-radius: 10px; }
+.hub-assign-program-panel {
+  border: 1px solid var(--rim-blue);
+  border-radius: 4px;
+  padding: 20px;
+  margin-top: 4px;
+  background: #f4f8fb;
+}
+.hub-assign-program-panel__header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.hub-assign-program-panel__name { font-size: 16px; font-weight: 600; color: var(--rim-text); margin: 0; }
+.hub-assign-conflict { font-size: 13px; color: #7a4f00; background: #fff8ec; border: 1px solid #e8d9b8; border-radius: 4px; padding: 8px 12px; margin-bottom: 14px; }
+.hub-assign-conflict--inline { font-size: 13px; color: #2d6a2d; background: #f0f7f0; border: 1px solid #c3dfc3; border-radius: 4px; padding: 6px 12px; margin-bottom: 14px; }
+
 /* ── alert-strip — site-wide (used on dashboard) ── */
 .alert-strip {
   background: #fff8ec;
@@ -8792,4 +8903,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   .hub-threads__controls { flex-direction: column; align-items: flex-start; }
   .hub-assign-mgr__controls { flex-direction: column; align-items: flex-start; }
   .hub-thread-detail__title { font-size: 20px; }
+  .hub-program-detail__header { flex-direction: column; align-items: flex-start; }
+  .hub-program-detail__name { font-size: 20px; }
+  .hub-program-session__actions { flex-direction: column; align-items: flex-start; }
 }
