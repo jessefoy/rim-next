@@ -108,7 +108,7 @@ export default async function HostHomePage() {
   return (
     <AccountLayout>
       <div className="hub-page">
-        <HubTabNav isManager={isManager} />
+        <HubTabNav />
         <div className="hub-content">
           <HubHomeClient
             firstName={firstName}

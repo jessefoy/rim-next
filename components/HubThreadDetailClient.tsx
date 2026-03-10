@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 
-type ThreadCategory = "OPERATIONAL" | "CONTEMPLATION";
+type ThreadCategory = "OPERATIONAL" | "CONTEMPLATION" | "GENERAL";
 type ThreadStatus = "OPEN" | "CLOSED" | "ARCHIVED";
 
 interface Reply {
@@ -36,8 +36,9 @@ interface Props {
 }
 
 const CATEGORY_LABELS: Record<ThreadCategory, string> = {
-  OPERATIONAL: "Peer Support",
-  CONTEMPLATION: "Contemplation",
+  OPERATIONAL: "Issues & Challenges",
+  CONTEMPLATION: "Contemplations & Practice",
+  GENERAL: "General",
 };
 
 const ALLOWED_EMOJIS = ["👍", "❤️", "🙏", "💡", "😊"] as const;

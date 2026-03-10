@@ -40,7 +40,7 @@ export default async function HubConversationsPage() {
     id: t.id,
     title: t.title,
     body: t.body,
-    category: t.category as "OPERATIONAL" | "CONTEMPLATION",
+    category: t.category as "OPERATIONAL" | "CONTEMPLATION" | "GENERAL",
     status: t.status as "OPEN" | "CLOSED" | "ARCHIVED",
     authorId: t.authorId,
     authorName:
@@ -55,7 +55,7 @@ export default async function HubConversationsPage() {
   return (
     <AccountLayout>
       <div className="hub-page">
-        <HubTabNav isManager={isManager} />
+        <HubTabNav />
         <div className="hub-content">
           <HubConversationsClient
             initialThreads={serializedThreads}

@@ -69,7 +69,7 @@ export default async function ThreadDetailPage({
     id: thread.id,
     title: thread.title,
     body: thread.body,
-    category: thread.category as "OPERATIONAL" | "CONTEMPLATION",
+    category: thread.category as "OPERATIONAL" | "CONTEMPLATION" | "GENERAL",
     status: thread.status as "OPEN" | "CLOSED" | "ARCHIVED",
     authorId: thread.authorId,
     authorName:
@@ -96,7 +96,7 @@ export default async function ThreadDetailPage({
   return (
     <AccountLayout>
       <div className="hub-page">
-        <HubTabNav isManager={isManager} />
+        <HubTabNav />
         <div className="hub-content">
           <Link href="/account/host/conversations" className="hub-back-link">
             ← Conversations

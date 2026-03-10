@@ -96,7 +96,7 @@ export default async function HostSchedulePage() {
   return (
     <AccountLayout>
       <div className="hub-page">
-        <HubTabNav isManager={isManager} />
+        <HubTabNav />
         <div className="hub-content hub-content--wide">
           <HubScheduleClient
             initialSessions={sessions}

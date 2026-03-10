@@ -9251,3 +9251,599 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   .hub-multi-footer { flex-direction: column; align-items: flex-start; }
   .hub-conv-room-btn { padding: 8px 14px; font-size: 13px; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   HUB — CORRECT CLASS NAMES (matches HubScheduleClient, HubConversationsClient, etc.)
+   Added to reconcile component class names with CSS.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Button variants used by hub components ── */
+.hub-btn--primary { background: var(--rim-blue); color: #fff; border-color: var(--rim-blue); }
+.hub-btn--full { width: 100%; justify-content: center; }
+.hub-btn--secondary { background: transparent; color: var(--rim-text); border: 1.5px solid var(--rim-rule); }
+.hub-btn--secondary:hover { background: var(--rim-bg-accent); opacity: 1; }
+
+/* ── Dot status indicators ── */
+.hub-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.hub-dot--claimed    { background: #2A7B6F; }
+.hub-dot--unclaimed  { background: #C97B2E; }
+.hub-dot--sub_needed { background: #B84040; }
+
+/* ── Status pills (underscore variant for CSS class names from status values) ── */
+.hub-pill--sub_needed { background: #fdf0f0; color: #B84040; }
+
+/* ── Schedule header ── */
+.hub-schedule__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.hub-schedule__nav {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.hub-schedule__nav-btn {
+  background: none;
+  border: 1px solid var(--rim-rule);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 14px;
+  color: var(--rim-text);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  line-height: 1;
+  transition: border-color 0.15s;
+}
+.hub-schedule__nav-btn:hover { border-color: var(--rim-mid); }
+.hub-schedule__month {
+  font-size: 20px;
+  font-weight: 400;
+  font-family: var(--font-serif);
+  color: var(--rim-text);
+  margin: 0;
+  min-width: 160px;
+  text-align: center;
+}
+.hub-schedule__controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.hub-schedule__legend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+}
+.hub-schedule__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--rim-text-muted);
+}
+.hub-schedule__view-toggle {
+  display: flex;
+  border: 1px solid var(--rim-rule);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.hub-schedule__view-btn {
+  background: none;
+  border: none;
+  padding: 6px 12px;
+  font-size: 14px;
+  color: var(--rim-text-muted);
+  cursor: pointer;
+  transition: background 0.12s;
+  line-height: 1;
+}
+.hub-schedule__view-btn--active {
+  background: #1B3A5C;
+  color: #fff;
+}
+
+/* ── Planning nudge banner ── */
+.hub-schedule__nudge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #eef4fa;
+  border: 1.5px solid #90b8d8;
+  border-radius: 8px;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: var(--rim-text);
+  flex-wrap: wrap;
+}
+.hub-schedule__nudge-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.hub-schedule__nudge-dismiss {
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: var(--rim-text-muted);
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+.hub-schedule__loading {
+  color: var(--rim-text-muted);
+  font-size: 14px;
+  padding: 24px 0;
+}
+
+/* ── Calendar grid (matching HubScheduleClient class names) ── */
+.hub-cal-wrap { overflow-x: auto; }
+.hub-cal__headers {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+  margin-bottom: 3px;
+}
+.hub-cal__day-label {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--rim-text-muted);
+  padding: 4px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.hub-cal__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.hub-cal__cell {
+  min-height: 70px;
+  background: #fff;
+  border: 1px solid var(--rim-rule);
+  border-radius: 6px;
+  padding: 5px 5px 3px;
+}
+.hub-cal__cell--empty { background: #faf9f7; border-color: transparent; }
+.hub-cal__cell--today { border-color: #1B3A5C; }
+.hub-cal__day-num {
+  font-size: 11px;
+  color: var(--rim-text-muted);
+  font-weight: 400;
+  margin-bottom: 3px;
+  display: block;
+}
+.hub-cal__day-num--today {
+  color: #1B3A5C;
+  font-weight: 700;
+}
+.hub-cal__event {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  border-radius: 3px;
+  padding: 2px 4px;
+  margin-bottom: 2px;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hub-cal__event--claimed    { background: #E0F0ED; border-left-color: #2A7B6F; color: #1a5a50; }
+.hub-cal__event--unclaimed  { background: #FDF3E3; border-left-color: #C97B2E; color: #7a4f00; }
+.hub-cal__event--sub_needed { background: #F5E0E0; border-left-color: #B84040; color: #7a2020; }
+.hub-cal__event--selected   { background: #1B3A5C !important; border-left-color: #fff !important; color: #fff !important; }
+.hub-cal__check {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 9px;
+  height: 9px;
+  cursor: pointer;
+  accent-color: #1B3A5C;
+}
+.hub-cal__event-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 12px;
+}
+
+/* ── List view (matching HubScheduleClient class names) ── */
+.hub-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.hub-list__row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #fff;
+  border: 1px solid var(--rim-rule);
+  border-left: 4px solid var(--rim-rule);
+  border-radius: 8px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+.hub-list__row:hover { box-shadow: 0 2px 10px rgba(0,0,0,.07); }
+.hub-list__row--claimed    { border-left-color: #2A7B6F; }
+.hub-list__row--unclaimed  { border-left-color: #C97B2E; }
+.hub-list__row--sub_needed { border-left-color: #B84040; }
+.hub-list__date-block {
+  min-width: 38px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.hub-list__month {
+  font-size: 10px;
+  color: var(--rim-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.hub-list__day {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1B3A5C;
+  line-height: 1;
+}
+.hub-list__standing {
+  font-size: 16px;
+  color: var(--rim-text-muted);
+}
+.hub-list__info { flex: 1; min-width: 0; }
+.hub-list__name { font-size: 14px; font-weight: 600; color: var(--rim-text); margin-bottom: 2px; }
+.hub-list__host { font-size: 12px; color: var(--rim-text-muted); }
+
+/* ── Session panel (matching HubScheduleClient class names) ── */
+.hub-panel-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 98;
+}
+.hub-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.hub-panel__heading {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  color: #1B3A5C;
+  font-weight: 700;
+  margin: 0;
+}
+.hub-panel__title {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  color: #1B3A5C;
+  font-weight: 700;
+  margin: 10px 0 3px;
+}
+.hub-panel-info {
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+.hub-panel-info--teal { background: #E0F0ED; }
+.hub-panel-info--amber { background: #FDF3E3; }
+.hub-panel-info--red { background: #F5E0E0; }
+.hub-panel-info__label { font-weight: 700; color: var(--rim-text-muted); margin-bottom: 3px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+.hub-panel-info__value { color: var(--rim-text); }
+.hub-panel-info__msg { color: #7a2020; font-style: italic; margin-bottom: 10px; }
+.hub-panel__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.hub-panel__remove-link {
+  background: none;
+  border: none;
+  color: var(--rim-text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-align: center;
+  font-family: var(--font-sans);
+  padding: 0;
+}
+.hub-panel__remove-link:hover { color: var(--rim-text); }
+.hub-panel__form { margin-top: 8px; }
+.hub-panel__form-label { font-size: 12px; font-weight: 600; color: var(--rim-text); margin-bottom: 6px; }
+.hub-panel__warn {
+  background: #F5E0E0;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-top: 8px;
+}
+.hub-panel__warn-title { font-size: 13px; color: #B84040; font-weight: 700; margin-bottom: 6px; }
+.hub-panel__warn-body { font-size: 12px; color: #7a2020; margin-bottom: 12px; }
+.hub-panel__meet {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rim-rule);
+}
+.hub-panel__meet-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--rim-text-muted);
+  margin-bottom: 5px;
+}
+.hub-panel__meet-link {
+  font-size: 13px;
+  color: #2A7B6F;
+  font-weight: 600;
+  text-decoration: none;
+}
+.hub-panel__meet-link:hover { text-decoration: underline; }
+.hub-panel__meet-account {
+  font-size: 12px;
+  color: var(--rim-text-muted);
+  margin-top: 5px;
+}
+
+/* ── Multi-select footer (matching component class names) ── */
+.hub-multi-footer__claim-btn {
+  background: #2A7B6F;
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 7px 18px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  white-space: nowrap;
+}
+.hub-multi-footer__clear-btn {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.3);
+  color: rgba(255,255,255,0.8);
+  border-radius: 20px;
+  padding: 7px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--font-sans);
+  white-space: nowrap;
+}
+
+/* ── Claim confirmation modal (matching component class names) ── */
+.hub-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.hub-modal__session-list {
+  margin-bottom: 20px;
+  border-top: 1px solid var(--rim-rule);
+}
+.hub-modal__session-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rim-rule);
+}
+.hub-modal__session-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rim-text);
+}
+.hub-modal__session-date {
+  font-size: 12px;
+  color: var(--rim-text-muted);
+}
+.hub-modal__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── Empty state ── */
+.hub-empty {
+  color: var(--rim-text-muted);
+  font-size: 15px;
+  padding: 24px 0;
+}
+
+/* ── Conversations space (corrected) ── */
+.hub-conversations__title {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--rim-text);
+  margin: 0 0 5px;
+}
+.hub-conversations__sub {
+  font-size: 13px;
+  color: var(--rim-text-muted);
+  margin: 0 0 22px;
+}
+
+/* Override room tabs with filled pill style (matching mockup) */
+.hub-conv-rooms {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  border-bottom: none;
+}
+.hub-conv-room-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1.5px solid var(--rim-rule);
+  background: #fff;
+  color: var(--rim-text);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--font-sans);
+}
+.hub-conv-room-btn:hover { border-color: #1B3A5C; }
+.hub-conv-room-btn--active {
+  background: #1B3A5C;
+  color: #fff;
+  border-color: #1B3A5C;
+}
+
+.hub-conv-room-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.hub-conv-room-desc {
+  font-size: 13px;
+  color: var(--rim-text-muted);
+  margin: 0;
+  max-width: 380px;
+  line-height: 1.5;
+}
+
+/* Avatar circle */
+.hub-conv-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #E0F0ED;
+  color: #2A7B6F;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* Thread list */
+.hub-threads__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.hub-threads__list li { margin: 0; }
+
+/* Thread card */
+.hub-thread-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: #fff;
+  border: 1px solid var(--rim-rule);
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.15s;
+}
+.hub-thread-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,.07); }
+.hub-thread-card__content { flex: 1; min-width: 0; }
+.hub-thread-card__top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.hub-thread-card__title {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--rim-text);
+  text-decoration: none;
+  flex: 1;
+  min-width: 0;
+}
+.hub-thread-card__time {
+  font-size: 11px;
+  color: var(--rim-text-muted);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.hub-thread-card__preview {
+  font-size: 13px;
+  color: var(--rim-text-muted);
+  margin: 0 0 8px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.5;
+}
+.hub-thread-card__meta {
+  font-size: 12px;
+  color: var(--rim-text-muted);
+}
+.hub-thread-card__status {
+  font-size: 11px;
+  color: var(--rim-text-muted);
+  font-style: italic;
+}
+
+/* Conversations empty state */
+.hub-conv-empty-state {
+  background: #fff;
+  border: 1px solid var(--rim-rule);
+  border-radius: 10px;
+  padding: 40px 24px;
+  text-align: center;
+}
+.hub-conv-empty-state__icon { font-size: 28px; margin-bottom: 10px; }
+.hub-conv-empty-state__title {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  color: var(--rim-text);
+  margin-bottom: 6px;
+}
+.hub-conv-empty-state__body {
+  font-size: 13px;
+  color: var(--rim-text-muted);
+  max-width: 300px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+/* ── Responsive additions for new classes ── */
+@media (max-width: 640px) {
+  .hub-schedule__header { flex-direction: column; align-items: flex-start; }
+  .hub-schedule__controls { width: 100%; justify-content: space-between; }
+  .hub-schedule__legend { flex-wrap: wrap; gap: 8px; }
+  .hub-list__row { padding: 12px 12px; }
+  .hub-conv-room-btn { padding: 7px 12px; font-size: 12px; }
+  .hub-cal__cell { min-height: 54px; padding: 3px; }
+  .hub-cal__event { font-size: 8px; }
+  .hub-cal__day-label { font-size: 9px; }
+}

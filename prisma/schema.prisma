@@ -439,8 +439,9 @@ model HostReply {
 }
 
 enum ThreadCategory {
-  OPERATIONAL    // peer support, tips, difficult situations, questions
+  OPERATIONAL    // peer support, tips, difficult situations, questions (Issues & Challenges room)
   CONTEMPLATION  // weekly teacher/manager post for group discussion
+  GENERAL        // open conversation, any host can post
 }
 
 enum ThreadStatus {
