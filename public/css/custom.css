@@ -9859,3 +9859,32 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   overflow: visible;
   gap: unset;
 }
+
+/* ── Add Session Form (manager inline form on Schedule) ───────────────────── */
+.hub-add-session-form {
+  background: #fff;
+  border: 1px solid var(--rim-rule);
+  border-radius: 8px;
+  padding: 18px 20px;
+  margin-bottom: 18px;
+}
+.hub-add-session-form__title {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  color: var(--rim-text);
+  margin-bottom: 14px;
+}
+.hub-add-session-form__row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.hub-add-session-form__row .hub-form-field {
+  flex: 1;
+}
+.hub-add-session-form__fields .hub-form-actions {
+  margin-top: 14px;
+}
+@media (max-width: 600px) {
+  .hub-add-session-form__row { flex-direction: column; gap: 10px; }
+}

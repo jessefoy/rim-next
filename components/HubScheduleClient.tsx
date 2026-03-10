@@ -310,6 +310,81 @@ function MultiClaimModal({
   );
 }
 
+// ── Add Session Form (manager only) ──────────────────────────────────────────
+
+function AddSessionForm({
+  programs,
+  onAdd,
+  onCancel,
+}: {
+  programs: Program[];
+  onAdd: (programSlug: string, sessionDate: string) => Promise<void>;
+  onCancel: () => void;
+}) {
+  const [slug, setSlug] = useState(programs[0]?.slug ?? "");
+  const [date, setDate] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!slug || !date) return;
+    setSaving(true);
+    setError("");
+    try {
+      await onAdd(slug, date);
+    } catch {
+      setError("Something went wrong.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="hub-add-session-form">
+      <div className="hub-add-session-form__title">Add Session</div>
+      <form onSubmit={handleSubmit} className="hub-add-session-form__fields">
+        <div className="hub-add-session-form__row">
+          <div className="hub-form-field">
+            <label className="hub-form-label" htmlFor="add-program">Program</label>
+            <select
+              id="add-program"
+              className="hub-form-select"
+              value={slug}
+              onChange={(e) => setSlug(e.target.value)}
+              required
+            >
+              {programs.map((p) => (
+                <option key={p.slug} value={p.slug}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="hub-form-field">
+            <label className="hub-form-label" htmlFor="add-date">Date</label>
+            <input
+              id="add-date"
+              className="hub-form-input"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              required
+            />
+          </div>
+        </div>
+        {error && <p className="hub-form-error">{error}</p>}
+        <div className="hub-form-actions">
+          <button type="submit" className="hub-btn" disabled={saving || !slug || !date}>
+            {saving ? "Adding…" : "Add Session"}
+          </button>
+          <button type="button" className="hub-btn hub-btn--ghost" onClick={onCancel}>
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function HubScheduleClient({
@@ -332,6 +407,7 @@ export default function HubScheduleClient({
   const [claiming, setClaiming] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [dismissedNudge, setDismissedNudge] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -534,6 +610,43 @@ export default function HubScheduleClient({
     }
   }
 
+  // Add session (manager only)
+  async function addSession(programSlug: string, sessionDate: string): Promise<boolean> {
+    const res = await fetch("/api/host/assignments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ programSlug, sessionDate }),
+    });
+    if (!res.ok) {
+      const d = await res.json();
+      showToast(d.error ?? "Could not create session.");
+      return false;
+    }
+    const data = await res.json();
+    const prog = programs.find((p) => p.slug === programSlug);
+    const newSession: Session = {
+      id: data.id,
+      programSlug,
+      programName: prog?.name ?? programSlug,
+      sessionDate: data.sessionDate,
+      status: "unclaimed",
+      hostUserId: null,
+      hostName: null,
+      subRequestId: null,
+      subMessage: null,
+      zoomLink: prog?.zoomLink ?? null,
+      meetHostAccount: prog?.meetHostAccount ?? null,
+    };
+    // Only add to visible list if it belongs to the currently displayed month
+    if (data.sessionDate) {
+      const d = new Date(data.sessionDate);
+      if (d.getFullYear() === year && d.getMonth() === month) {
+        setSessions((prev) => [...prev, newSession]);
+      }
+    }
+    return true;
+  }
+
   // Calendar grid helpers
   const firstDayOfMonth = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -588,6 +701,14 @@ export default function HubScheduleClient({
               ☰
             </button>
           </div>
+          {isManager && (
+            <button
+              className="hub-btn hub-btn--sm"
+              onClick={() => setShowAddForm((o) => !o)}
+            >
+              {showAddForm ? "Cancel" : "+ Add Session"}
+            </button>
+          )}
         </div>
       </div>
 
@@ -613,6 +734,20 @@ export default function HubScheduleClient({
             </button>
           </div>
         </div>
+      )}
+
+      {showAddForm && isManager && (
+        <AddSessionForm
+          programs={programs}
+          onAdd={async (slug, date) => {
+            const ok = await addSession(slug, date);
+            if (ok) {
+              setShowAddForm(false);
+              showToast("✓ Session added to calendar.");
+            }
+          }}
+          onCancel={() => setShowAddForm(false)}
+        />
       )}
 
       {loading && <div className="hub-schedule__loading">Loading…</div>}
