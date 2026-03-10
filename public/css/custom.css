@@ -9847,3 +9847,15 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   .hub-cal__event { font-size: 8px; }
   .hub-cal__day-label { font-size: 9px; }
 }
+
+/* ── Fix hub-cal outer container — old CSS made it a 7-col grid,
+   but hub-cal now wraps TWO children (headers + grid) so it must be block ── */
+.hub-cal {
+  display: block;
+  min-width: 520px;
+  border: none;
+  background: none;
+  border-radius: 0;
+  overflow: visible;
+  gap: unset;
+}
