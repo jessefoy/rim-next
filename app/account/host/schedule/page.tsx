@@ -1,12 +1,8 @@
 /**
- * /account/host — Host Hub: Home
+ * /account/host/schedule — Host Hub: Schedule
  *
- * Personal dashboard for the current user:
- *   - Coordinator urgent alert banner (HOST_MANAGER / ADMIN)
- *   - All-clear state
- *   - Your Sessions This Month
- *   - Open Sub Requests
- *   - Sessions Needing a Host
+ * Calendar + list view of all sessions.
+ * Month navigation, session detail panel, multi-select claiming.
  */
 
 import { auth } from "@/auth";
@@ -16,9 +12,9 @@ import { sanityClient } from "@/lib/sanity";
 import { hostProgramsQuery } from "@/lib/queries";
 import AccountLayout from "@/components/AccountLayout";
 import HubTabNav from "@/components/HubTabNav";
-import HubHomeClient from "@/components/HubHomeClient";
+import HubScheduleClient from "@/components/HubScheduleClient";
 
-export const metadata = { title: "Home — Host Hub" };
+export const metadata = { title: "Schedule — Host Hub" };
 export const dynamic = "force-dynamic";
 
 interface HostProgram {
@@ -29,7 +25,7 @@ interface HostProgram {
   meetHostAccount?: string | null;
 }
 
-export default async function HostHomePage() {
+export default async function HostSchedulePage() {
   const session = await auth();
   if (!session) redirect("/login");
 
@@ -39,17 +35,17 @@ export default async function HostHomePage() {
 
   const isManager = roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
 
-  // Current month range
+  // Current month for initial load
   const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  const year = now.getFullYear();
+  const month = now.getMonth(); // 0-indexed
 
-  // Fetch this month's sessions + Sanity program info in parallel
+  const startOfMonth = new Date(year, month, 1);
+  const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59, 999);
+
   const [assignments, programs] = await Promise.all([
     db.hostAssignment.findMany({
-      where: {
-        sessionDate: { gte: startOfMonth, lte: endOfMonth },
-      },
+      where: { sessionDate: { gte: startOfMonth, lte: endOfMonth } },
       include: {
         user: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
         subRequests: { where: { status: "OPEN" }, select: { id: true, message: true }, take: 1 },
@@ -61,7 +57,6 @@ export default async function HostHomePage() {
 
   const programBySlug = new Map(programs.map((p) => [p.slug, p]));
 
-  // Serialize sessions with derived status
   const sessions = assignments.map((a) => {
     const openSub = a.subRequests[0] ?? null;
     const status: "unclaimed" | "claimed" | "sub_needed" = !a.userId
@@ -69,7 +64,6 @@ export default async function HostHomePage() {
       : openSub
         ? "sub_needed"
         : "claimed";
-
     const prog = programBySlug.get(a.programSlug);
 
     return {
@@ -91,31 +85,27 @@ export default async function HostHomePage() {
     };
   });
 
-  // Coordinator urgent alerts: unclaimed or sub_needed within 3 days (manager only)
-  const threeDaysFromNow = new Date();
-  threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
-  const urgentAlerts = isManager
-    ? sessions.filter(
-        (s) =>
-          (s.status === "unclaimed" || s.status === "sub_needed") &&
-          s.sessionDate &&
-          new Date(s.sessionDate) <= threeDaysFromNow
-      )
-    : [];
-
-  const firstName = session.user.name || session.user.email?.split("@")[0] || "there";
+  // Serialize programs for client (static reference)
+  const serializedPrograms = programs.map((p) => ({
+    slug: p.slug,
+    name: p.name,
+    zoomLink: p.zoomLink ?? null,
+    meetHostAccount: p.meetHostAccount ?? null,
+  }));
 
   return (
     <AccountLayout>
       <div className="hub-page">
         <HubTabNav isManager={isManager} />
-        <div className="hub-content">
-          <HubHomeClient
-            firstName={firstName}
-            sessions={sessions}
+        <div className="hub-content hub-content--wide">
+          <HubScheduleClient
+            initialSessions={sessions}
+            programs={serializedPrograms}
+            initialYear={year}
+            initialMonth={month}
             currentUserId={session.user.id}
+            currentUserName={session.user.name || session.user.email?.split("@")[0] || ""}
             isManager={isManager}
-            urgentAlerts={urgentAlerts}
           />
         </div>
       </div>

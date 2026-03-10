@@ -2,7 +2,7 @@
  * /account/host/manage — Host Hub: Assignment Management
  *
  * HOST_MANAGER / ADMIN only.
- * Assign and remove hosts for virtual programs.
+ * Seed upcoming sessions + assign hosts to virtual programs.
  */
 
 import { auth } from "@/auth";
@@ -12,9 +12,9 @@ import { sanityClient } from "@/lib/sanity";
 import { allVirtualProgramsQuery } from "@/lib/queries";
 import AccountLayout from "@/components/AccountLayout";
 import HubTabNav from "@/components/HubTabNav";
-import AssignmentManager from "@/components/AssignmentManager";
+import HubManageClient from "@/components/HubManageClient";
 
-export const metadata = { title: "Manage Schedule — Host Hub" };
+export const metadata = { title: "Manage — Host Hub" };
 export const dynamic = "force-dynamic";
 
 interface SanityProgram {
@@ -31,7 +31,7 @@ export default async function ManagePage() {
   const isManager = roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
   if (!isManager) redirect("/account/host");
 
-  // Parallel fetch: Sanity programs + all assignments + all HOST/HOST_MANAGER users
+  // Parallel fetch: Sanity programs + all assignments + all hub users
   const [sanityPrograms, assignments, hostUsers] = await Promise.all([
     sanityClient.fetch<SanityProgram[]>(allVirtualProgramsQuery),
     db.hostAssignment.findMany({
@@ -45,12 +45,17 @@ export default async function ManagePage() {
             email: true,
           },
         },
+        subRequests: {
+          where: { status: "OPEN" },
+          select: { id: true },
+          take: 1,
+        },
       },
-      orderBy: { createdAt: "asc" },
+      orderBy: [{ sessionDate: "asc" }, { createdAt: "asc" }],
     }),
     db.user.findMany({
       where: {
-        roles: { hasSome: ["HOST", "HOST_MANAGER"] },
+        roles: { hasSome: ["HOST", "HOST_MANAGER", "ADMIN"] },
         archivedAt: null,
       },
       select: {
@@ -66,18 +71,43 @@ export default async function ManagePage() {
   ]);
 
   const programBySlug = new Map(sanityPrograms.map((p) => [p.slug, p]));
-
   const programs = sanityPrograms.map((p) => ({ slug: p.slug, name: p.name }));
 
-  // Serialize assignments
-  const serializedAssignments = assignments.map((a) => ({
-    id: a.id,
-    programSlug: a.programSlug,
-    programName: programBySlug.get(a.programSlug)?.name ?? a.programSlug,
-    sessionDate: a.sessionDate?.toISOString() ?? null,
-    notes: a.notes,
-    user: a.user,
-    createdAt: a.createdAt.toISOString(),
+  // Serialize assignments — userId may be null (unclaimed session)
+  const serializedAssignments = assignments.map((a) => {
+    const openSub = a.subRequests[0] ?? null;
+    const status: "unclaimed" | "claimed" | "sub_needed" = !a.userId
+      ? "unclaimed"
+      : openSub
+        ? "sub_needed"
+        : "claimed";
+
+    return {
+      id: a.id,
+      programSlug: a.programSlug,
+      programName: programBySlug.get(a.programSlug)?.name ?? a.programSlug,
+      sessionDate: a.sessionDate?.toISOString() ?? null,
+      notes: a.notes,
+      status,
+      hostUserId: a.userId ?? null,
+      hostName: a.user
+        ? (a.user.preferredName ||
+            [a.user.firstName, a.user.lastName].filter(Boolean).join(" ") ||
+            a.user.email)
+        : null,
+      createdAt: a.createdAt.toISOString(),
+    };
+  });
+
+  // Serialize host users
+  const serializedHostUsers = hostUsers.map((u) => ({
+    id: u.id,
+    displayName:
+      u.preferredName ||
+      [u.firstName, u.lastName].filter(Boolean).join(" ") ||
+      u.email,
+    email: u.email,
+    roles: u.roles as string[],
   }));
 
   return (
@@ -86,14 +116,11 @@ export default async function ManagePage() {
         <HubTabNav isManager={true} />
         <div className="hub-content">
           <div className="hub-section-header">
-            <h1 className="hub-page__title">Manage Host Schedule</h1>
-            <p className="hub-page__subtitle">
-              Assign volunteer hosts to virtual programs. Changes take effect immediately.
-            </p>
+            <h1 className="hub-page__title">Manage Schedule</h1>
           </div>
-          <AssignmentManager
+          <HubManageClient
             programs={programs}
-            hostUsers={hostUsers}
+            hostUsers={serializedHostUsers}
             initialAssignments={serializedAssignments}
           />
         </div>

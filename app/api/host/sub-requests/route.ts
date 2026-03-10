@@ -114,8 +114,9 @@ export async function POST(request: Request) {
     },
   });
 
-  const requesterName =
-    [assignment.user.firstName].filter(Boolean).join(" ") || assignment.user.email;
+  const requesterName = assignment.user
+    ? [assignment.user.firstName].filter(Boolean).join(" ") || assignment.user.email
+    : "Someone";
   const sessionLabel = sessionDate
     ? new Date(sessionDate).toLocaleDateString("en-US", {
         weekday: "short",
@@ -131,7 +132,7 @@ export async function POST(request: Request) {
         where: {
           roles: { hasSome: ["HOST", "HOST_MANAGER", "ADMIN"] },
           archivedAt: null,
-          NOT: { id: assignment.userId },
+          ...(assignment.userId ? { NOT: { id: assignment.userId } } : {}),
         },
         select: { id: true, email: true, firstName: true },
       });
@@ -140,7 +141,7 @@ export async function POST(request: Request) {
           userId: u.id,
           type: "SUB_REQUEST" as const,
           message: `${requesterName} needs a sub${sessionLabel ? ` on ${sessionLabel}` : ""} for ${assignment.programSlug}`,
-          linkUrl: "/account/host/subs",
+          linkUrl: "/account/host/schedule",
         })),
         skipDuplicates: true,
       });

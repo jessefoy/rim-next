@@ -11,6 +11,7 @@ function hasHubAccess(roles: string[]) {
 
 // POST /api/host/sub-requests/[id]/claim — claim an open sub request
 // Body: { message? }
+// Side-effect: updates assignment.userId to claimer (so session shows new host)
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -59,7 +60,7 @@ export async function POST(
     claimer?.email ||
     "Someone";
 
-  // Create claim + flip status atomically
+  // Create claim + flip status + update assignment.userId to claimer atomically
   await db.$transaction([
     db.subClaim.create({
       data: {
@@ -71,6 +72,10 @@ export async function POST(
     db.subRequest.update({
       where: { id },
       data: { status: "CLAIMED" },
+    }),
+    db.hostAssignment.update({
+      where: { id: subRequest.assignmentId },
+      data: { userId: session.user.id },
     }),
   ]);
 
@@ -86,13 +91,14 @@ export async function POST(
   void (async () => {
     try {
       const requester = subRequest.assignment.user;
+      if (!requester) return;
 
       await db.alert.create({
         data: {
           userId: requester.id,
           type: "SUB_CLAIMED",
           message: `${claimerName} will cover your session${sessionLabel ? ` on ${sessionLabel}` : ""}`,
-          linkUrl: "/account/host/subs",
+          linkUrl: "/account/host/schedule",
         },
       });
 

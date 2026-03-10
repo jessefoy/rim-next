@@ -352,21 +352,23 @@ enum DonationSource {
 // Self-managed by HOST_MANAGER; independent of Registrar workflow.
 // ⚠️ programSlug is the join key to Sanity — never change a slug after assignment.
 
-// Who is responsible for hosting a specific program or recurring session.
-// sessionDate null = "standing" (responsible for all occurrences of a recurring program).
-// sessionDate set = one specific occurrence (date picked by HOST_MANAGER).
+// Who is responsible for hosting a specific program session.
+// userId null = unclaimed session (seeded by HOST_MANAGER; open for anyone to claim).
+// userId set + no open SubRequest = claimed.
+// userId set + open SubRequest = sub needed.
+// sessionDate null = "standing" (covers all occurrences; legacy concept — new sessions always have a date).
 model HostAssignment {
   id          String    @id @default(cuid())
   programSlug String    // Sanity slug — treated as a stable, permanent identifier
-  sessionDate DateTime? // null = standing assignment; set = specific date
-  userId      String
-  user        User      @relation("HostAssignments", fields: [userId], references: [id])
+  sessionDate DateTime? // null = standing; set = specific session date
+  userId      String?   // null = unclaimed session
+  user        User?     @relation("HostAssignments", fields: [userId], references: [id])
   assignedBy  String?   // userId of HOST_MANAGER/ADMIN who created this
   notes       String?
   subRequests SubRequest[]
   createdAt   DateTime  @default(now())
 
-  @@unique([userId, programSlug, sessionDate])
+  // No DB-level unique — app enforces (programSlug, sessionDate) uniqueness on create
   @@map("host_assignments")
 }
 
@@ -428,6 +430,9 @@ model HostReply {
   authorId  String
   author    User       @relation("HostReplies", fields: [authorId], references: [id])
   body      String     @db.Text
+  edited    Boolean    @default(false)
+  editedAt  DateTime?
+  reactions Json       @default("{}")  // { "👍": 2, "❤️": 1, ... }
   createdAt DateTime   @default(now())
 
   @@map("host_replies")

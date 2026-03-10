@@ -53,6 +53,9 @@ export async function GET(
       id: r.id,
       body: r.body,
       author: r.author,
+      edited: r.edited,
+      editedAt: r.editedAt?.toISOString() ?? null,
+      reactions: (r.reactions as Record<string, number>) ?? {},
       createdAt: r.createdAt.toISOString(),
     })),
   });

@@ -98,7 +98,7 @@ export async function POST(
           userId: u.id,
           type: "NEW_REPLY" as const,
           message: `${replierName} replied to "${thread.title}"`,
-          linkUrl: `/account/host/threads/${threadId}`,
+          linkUrl: `/account/host/conversations/${threadId}`,
         })),
         skipDuplicates: true,
       });

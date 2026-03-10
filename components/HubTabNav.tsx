@@ -8,9 +8,9 @@ interface Props {
 }
 
 const TABS = [
-  { label: "Schedule",  href: "/account/host" },
-  { label: "Sub Board", href: "/account/host/subs" },
-  { label: "Threads",   href: "/account/host/threads" },
+  { label: "Home",          href: "/account/host" },
+  { label: "Schedule",      href: "/account/host/schedule" },
+  { label: "Conversations", href: "/account/host/conversations" },
 ];
 
 const MANAGE_TAB = { label: "Manage", href: "/account/host/manage" };
@@ -22,9 +22,9 @@ export default function HubTabNav({ isManager }: Props) {
 
   function isActive(href: string) {
     if (href === "/account/host") {
-      return pathname === "/account/host" || pathname.startsWith("/account/host/programs");
+      return pathname === "/account/host";
     }
-    return pathname.startsWith(href);
+    return pathname === href || pathname.startsWith(href + "/");
   }
 
   return (

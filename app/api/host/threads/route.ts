@@ -124,7 +124,7 @@ export async function POST(request: Request) {
           userId: u.id,
           type: "NEW_THREAD" as const,
           message: `${authorName} started a new thread: "${title.trim()}"`,
-          linkUrl: `/account/host/threads/${thread.id}`,
+          linkUrl: `/account/host/conversations/${thread.id}`,
         })),
         skipDuplicates: true,
       });
