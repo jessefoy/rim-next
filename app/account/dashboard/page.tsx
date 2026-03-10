@@ -64,6 +64,8 @@ export default async function DashboardPage() {
   const todayCount = todaysPrograms.length;
 
   const firstName = session.user?.name?.split(" ")[0] ?? session.user?.email?.split("@")[0] ?? "there";
+  const roles = session.user?.roles ?? [];
+  const hasHub = roles.includes("HOST") || roles.includes("HOST_MANAGER") || roles.includes("ADMIN");
 
   return (
     <AccountLayout>
@@ -115,6 +117,14 @@ export default async function DashboardPage() {
             <p className="db-nav__title">My Profile</p>
             <p className="db-nav__desc">Update your name and contact info</p>
           </Link>
+
+          {hasHub && (
+            <Link href="/account/host" className="db-nav__card db-nav__card--staff">
+              <p className="db-nav__label">Host Team</p>
+              <p className="db-nav__title">Host Hub</p>
+              <p className="db-nav__desc">Schedule, subs, and team threads</p>
+            </Link>
+          )}
         </div>
 
         {/* ── Today's sessions ── */}

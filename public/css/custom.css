@@ -5774,6 +5774,11 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   border-color: var(--rim-mid);
 }
 
+.db-nav__card--staff {
+  border-left: 3px solid var(--rim-mid);
+  background: var(--rim-bg);
+}
+
 .db-nav__label {
   font-family: var(--font-sans);
   font-size: 11px;
