@@ -83,9 +83,12 @@ export default async function HostSchedulePage() {
         <HubTabNav isManager={isManager} />
 
         <div className="hub-content">
+          <p className="hub-intro">
+            This is your host team workspace — your schedule, sub coverage, and team threads all in one place.
+          </p>
           <div className="hub-section-header">
             <h1 className="hub-page__title">
-              {isManager ? "All Host Assignments" : "My Schedule"}
+              {isManager ? "Host Schedule" : "My Schedule"}
             </h1>
             {isManager && (
               <Link href="/account/host/manage" className="hub-btn hub-btn--sm hub-btn--outline">
@@ -97,8 +100,8 @@ export default async function HostSchedulePage() {
           {serializedAssignments.length === 0 ? (
             <p className="hub-empty">
               {isManager
-                ? "No assignments yet. Use the Manage tab to assign hosts."
-                : "You have no current assignments. A HOST_MANAGER will assign you to programs."}
+                ? "No hosts assigned yet. Use the Manage tab to set up your rotation."
+                : "You're not assigned to any programs yet. Your host manager will set that up — check back once assignments are live."}
             </p>
           ) : (
             <div className="hub-schedule">

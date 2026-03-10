@@ -117,6 +117,12 @@ export default function ThreadList({ initialThreads }: Props) {
         </button>
       </div>
 
+      {/* Category legend */}
+      <p className="hub-threads__legend">
+        <strong>Operational</strong> — day-to-day questions, tips, and peer support.{" "}
+        <strong>Contemplation</strong> — weekly reflections shared by the teacher or host manager.
+      </p>
+
       {/* Success banner */}
       {successMsg && (
         <p className="hub-success-banner">{successMsg}</p>
@@ -177,7 +183,7 @@ export default function ThreadList({ initialThreads }: Props) {
 
       {/* Thread list */}
       {filtered.length === 0 ? (
-        <p className="hub-threads__empty">No threads yet. Start the first one.</p>
+        <p className="hub-threads__empty">No threads yet. Use <strong>+ New Thread</strong> to start the first one.</p>
       ) : (
         <ul className="hub-threads__list">
           {filtered.map((thread) => (

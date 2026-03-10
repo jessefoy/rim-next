@@ -69,7 +69,7 @@ export default function AccountSidebar({ roles }: Props) {
 
         {hasHost && (
           <Link href="/account/host" className={linkClass("/account/host")}>
-            My Sessions
+            Host Hub
           </Link>
         )}
 

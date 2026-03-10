@@ -8567,8 +8567,10 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .hub-how-to__note { font-size: 13px; color: var(--rim-text-muted); line-height: 1.6; }
 
 /* ── Sub board ── */
-.hub-subboard__header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
-.hub-subboard__title { font-size: 20px; font-weight: 400; font-family: var(--font-serif); color: var(--rim-text); margin: 0; }
+.hub-intro { font-size: 15px; color: var(--rim-text-muted); margin: 0 0 28px; line-height: 1.6; }
+.hub-subboard__header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+.hub-subboard__title { font-size: 20px; font-weight: 400; font-family: var(--font-serif); color: var(--rim-text); margin: 0 0 4px; }
+.hub-subboard__desc { font-size: 14px; color: var(--rim-text-muted); margin: 0; line-height: 1.5; }
 .hub-sub-req-trigger { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
 .hub-sub-req__success { font-size: 13px; color: #2d6a2d; }
 .hub-subboard__empty { color: var(--rim-text-muted); font-size: 15px; }
@@ -8625,6 +8627,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 }
 .hub-filter-btn:hover { border-color: var(--rim-mid); color: var(--rim-text); }
 .hub-filter-btn--active { background: var(--rim-blue); border-color: var(--rim-blue); color: #fff; }
+.hub-threads__legend { font-size: 13px; color: var(--rim-text-muted); margin: 12px 0 20px; line-height: 1.6; }
 .hub-threads__empty { color: var(--rim-text-muted); font-size: 15px; }
 .hub-threads__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
 .hub-thread-card {

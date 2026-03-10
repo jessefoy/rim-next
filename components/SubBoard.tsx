@@ -103,12 +103,15 @@ export default function SubBoard({ initialRequests, myAssignments, currentUserId
   return (
     <div className="hub-subboard">
       <div className="hub-subboard__header">
-        <h2 className="hub-subboard__title">Open Sub Requests</h2>
+        <div>
+          <h2 className="hub-subboard__title">Open Sub Requests</h2>
+          <p className="hub-subboard__desc">If you can&rsquo;t make a session, post a request here. Anyone on the host team can claim it.</p>
+        </div>
         <SubRequestForm assignments={myAssignments} onCreated={refreshList} />
       </div>
 
       {requests.length === 0 ? (
-        <p className="hub-subboard__empty">No open sub requests right now.</p>
+        <p className="hub-subboard__empty">No open requests right now — all hands on deck.</p>
       ) : (
         <ul className="hub-subboard__list">
           {requests.map((req) => {
