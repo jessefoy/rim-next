@@ -41,7 +41,7 @@ const MEMBER_LINKS: NavLink[] = [
 export default function AccountSidebar({ roles }: Props) {
   const pathname = usePathname();
 
-  const hasHost       = roles.includes("HOST");
+  const hasHost       = roles.includes("HOST") || roles.includes("HOST_MANAGER");
   const hasRegistrar  = roles.includes("REGISTRAR") || roles.includes("ADMIN");
   const isAdmin       = roles.includes("ADMIN");
   const hasRoleLinks  = hasHost || hasRegistrar || isAdmin;

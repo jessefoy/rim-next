@@ -1328,6 +1328,225 @@ function buildHostRoleAssignmentText({
   ].join("\n");
 }
 
+// ─── Host Community Hub emails ───────────────────────────────────────────────
+
+export interface SubRequestEmailData {
+  to: string;
+  firstName: string | null;
+  requesterName: string;
+  programName: string;
+  sessionDate: string | null; // formatted date string, or null for standing
+  message: string | null;
+}
+
+export async function sendSubRequestEmail(data: SubRequestEmailData): Promise<void> {
+  const { to, firstName, requesterName, programName, sessionDate, message } = data;
+  const hubUrl = `${BASE_URL}/account/host/subs`;
+  const greeting = firstName ? `Hi ${firstName},` : "Hello,";
+  const sessionLabel = sessionDate ? ` on ${sessionDate}` : "";
+
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Sub needed</title></head>
+<body style="margin:0;padding:0;background:#f6f3f0;font-family:'Open Sans',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f6f3f0;padding:40px 16px;">
+<tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:4px;overflow:hidden;">
+<tr><td style="background:#135274;padding:28px 36px;"><p style="margin:0;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:#c5d8e4;font-family:'Open Sans',Arial,sans-serif;">Rooted In Mindfulness</p></td></tr>
+<tr><td style="padding:36px 36px 28px;">
+<p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">${greeting}</p>
+<p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">
+  <strong>${requesterName}</strong> needs a sub for <strong>${programName}</strong>${sessionLabel}.
+</p>
+${message ? `<p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#56504a;font-family:Georgia,'Times New Roman',serif;background:#f6f3f0;padding:16px 20px;border-radius:4px;">"${message}"</p>` : ""}
+<table cellpadding="0" cellspacing="0" style="margin-top:8px;">
+<tr><td style="background:#135274;border-radius:3px;padding:12px 24px;">
+<a href="${hubUrl}" style="font-family:'Open Sans',Arial,sans-serif;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">View Sub Board →</a>
+</td></tr></table>
+</td></tr>
+<tr><td style="padding:20px 36px 28px;border-top:1px solid #ede9e5;">
+<p style="margin:0;font-family:'Open Sans',Arial,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">Rooted In Mindfulness · Brookfield, WI</p>
+</td></tr>
+</table></td></tr></table></body></html>`;
+
+  const text = [
+    greeting,
+    "",
+    `${requesterName} needs a sub for ${programName}${sessionLabel}.`,
+    message ? `\n"${message}"\n` : "",
+    `View the sub board: ${hubUrl}`,
+    "",
+    "—",
+    "Rooted In Mindfulness · Brookfield, WI",
+  ].join("\n");
+
+  const { error } = await resend.emails.send({
+    from: FROM, to,
+    subject: `Sub needed: ${programName}${sessionLabel}`,
+    html, text,
+  });
+  if (error) console.error("[email] sendSubRequestEmail failed:", error);
+}
+
+export interface SubClaimedEmailData {
+  to: string;
+  firstName: string | null;
+  claimerName: string;
+  programName: string;
+  sessionDate: string | null;
+  message: string | null;
+}
+
+export async function sendSubClaimedEmail(data: SubClaimedEmailData): Promise<void> {
+  const { to, firstName, claimerName, programName, sessionDate, message } = data;
+  const hubUrl = `${BASE_URL}/account/host/subs`;
+  const greeting = firstName ? `Hi ${firstName},` : "Hello,";
+  const sessionLabel = sessionDate ? ` on ${sessionDate}` : "";
+
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Sub covered</title></head>
+<body style="margin:0;padding:0;background:#f6f3f0;font-family:'Open Sans',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f6f3f0;padding:40px 16px;">
+<tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:4px;overflow:hidden;">
+<tr><td style="background:#135274;padding:28px 36px;"><p style="margin:0;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:#c5d8e4;font-family:'Open Sans',Arial,sans-serif;">Rooted In Mindfulness</p></td></tr>
+<tr><td style="padding:36px 36px 28px;">
+<p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">${greeting}</p>
+<p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">
+  Your sub request for <strong>${programName}</strong>${sessionLabel} has been covered — <strong>${claimerName}</strong> will take the session.
+</p>
+${message ? `<p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#56504a;font-family:Georgia,'Times New Roman',serif;background:#f6f3f0;padding:16px 20px;border-radius:4px;">"${message}"</p>` : ""}
+<table cellpadding="0" cellspacing="0" style="margin-top:8px;">
+<tr><td style="background:#135274;border-radius:3px;padding:12px 24px;">
+<a href="${hubUrl}" style="font-family:'Open Sans',Arial,sans-serif;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">View Sub Board →</a>
+</td></tr></table>
+</td></tr>
+<tr><td style="padding:20px 36px 28px;border-top:1px solid #ede9e5;">
+<p style="margin:0;font-family:'Open Sans',Arial,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">Rooted In Mindfulness · Brookfield, WI</p>
+</td></tr>
+</table></td></tr></table></body></html>`;
+
+  const text = [
+    greeting,
+    "",
+    `Your sub request for ${programName}${sessionLabel} has been covered — ${claimerName} will take the session.`,
+    message ? `\n"${message}"\n` : "",
+    `View the sub board: ${hubUrl}`,
+    "",
+    "—",
+    "Rooted In Mindfulness · Brookfield, WI",
+  ].join("\n");
+
+  const { error } = await resend.emails.send({
+    from: FROM, to,
+    subject: `Sub covered: ${programName}${sessionLabel}`,
+    html, text,
+  });
+  if (error) console.error("[email] sendSubClaimedEmail failed:", error);
+}
+
+export interface NewThreadEmailData {
+  to: string;
+  firstName: string | null;
+  authorName: string;
+  threadTitle: string;
+  category: "OPERATIONAL" | "CONTEMPLATION";
+  threadId: string;
+}
+
+export async function sendNewThreadEmail(data: NewThreadEmailData): Promise<void> {
+  const { to, firstName, authorName, threadTitle, category, threadId } = data;
+  const threadUrl = `${BASE_URL}/account/host/threads/${threadId}`;
+  const greeting = firstName ? `Hi ${firstName},` : "Hello,";
+  const categoryLabel = category === "CONTEMPLATION" ? "Contemplation" : "Operational";
+
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>New thread</title></head>
+<body style="margin:0;padding:0;background:#f6f3f0;font-family:'Open Sans',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f6f3f0;padding:40px 16px;">
+<tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:4px;overflow:hidden;">
+<tr><td style="background:#135274;padding:28px 36px;"><p style="margin:0;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:#c5d8e4;font-family:'Open Sans',Arial,sans-serif;">Rooted In Mindfulness · Host Hub</p></td></tr>
+<tr><td style="padding:36px 36px 28px;">
+<p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">${greeting}</p>
+<p style="margin:0 0 8px;font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#6b6059;font-family:'Open Sans',Arial,sans-serif;">${categoryLabel}</p>
+<p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">
+  <strong>${authorName}</strong> started a new thread: <em>${threadTitle}</em>
+</p>
+<table cellpadding="0" cellspacing="0" style="margin-top:8px;">
+<tr><td style="background:#135274;border-radius:3px;padding:12px 24px;">
+<a href="${threadUrl}" style="font-family:'Open Sans',Arial,sans-serif;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">Read Thread →</a>
+</td></tr></table>
+</td></tr>
+<tr><td style="padding:20px 36px 28px;border-top:1px solid #ede9e5;">
+<p style="margin:0;font-family:'Open Sans',Arial,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">Rooted In Mindfulness · Brookfield, WI</p>
+</td></tr>
+</table></td></tr></table></body></html>`;
+
+  const text = [
+    greeting,
+    "",
+    `${authorName} started a new ${categoryLabel} thread: "${threadTitle}"`,
+    "",
+    `Read it here: ${threadUrl}`,
+    "",
+    "—",
+    "Rooted In Mindfulness · Brookfield, WI",
+  ].join("\n");
+
+  const { error } = await resend.emails.send({
+    from: FROM, to,
+    subject: `New thread: ${threadTitle}`,
+    html, text,
+  });
+  if (error) console.error("[email] sendNewThreadEmail failed:", error);
+}
+
+export interface NewReplyEmailData {
+  to: string;
+  firstName: string | null;
+  replierName: string;
+  threadTitle: string;
+  threadId: string;
+}
+
+export async function sendNewReplyEmail(data: NewReplyEmailData): Promise<void> {
+  const { to, firstName, replierName, threadTitle, threadId } = data;
+  const threadUrl = `${BASE_URL}/account/host/threads/${threadId}`;
+  const greeting = firstName ? `Hi ${firstName},` : "Hello,";
+
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>New reply</title></head>
+<body style="margin:0;padding:0;background:#f6f3f0;font-family:'Open Sans',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f6f3f0;padding:40px 16px;">
+<tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:4px;overflow:hidden;">
+<tr><td style="background:#135274;padding:28px 36px;"><p style="margin:0;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:#c5d8e4;font-family:'Open Sans',Arial,sans-serif;">Rooted In Mindfulness · Host Hub</p></td></tr>
+<tr><td style="padding:36px 36px 28px;">
+<p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">${greeting}</p>
+<p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">
+  <strong>${replierName}</strong> replied to <em>${threadTitle}</em>.
+</p>
+<table cellpadding="0" cellspacing="0" style="margin-top:8px;">
+<tr><td style="background:#135274;border-radius:3px;padding:12px 24px;">
+<a href="${threadUrl}" style="font-family:'Open Sans',Arial,sans-serif;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">Read Thread →</a>
+</td></tr></table>
+</td></tr>
+<tr><td style="padding:20px 36px 28px;border-top:1px solid #ede9e5;">
+<p style="margin:0;font-family:'Open Sans',Arial,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">Rooted In Mindfulness · Brookfield, WI</p>
+</td></tr>
+</table></td></tr></table></body></html>`;
+
+  const text = [
+    greeting,
+    "",
+    `${replierName} replied to "${threadTitle}".`,
+    "",
+    `Read it here: ${threadUrl}`,
+    "",
+    "—",
+    "Rooted In Mindfulness · Brookfield, WI",
+  ].join("\n");
+
+  const { error } = await resend.emails.send({
+    from: FROM, to,
+    subject: `New reply on: ${threadTitle}`,
+    html, text,
+  });
+  if (error) console.error("[email] sendNewReplyEmail failed:", error);
+}
+
 // ─── Magic link email (authentication) ───────────────────────────────────────
 // Called from auth.ts sendVerificationRequest — replaces the default NextAuth template.
 // isNewUser = true when the account doesn't exist yet or agreedToTerms is false.

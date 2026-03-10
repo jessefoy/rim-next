@@ -62,10 +62,11 @@ interface Member {
   } | null;
 }
 
-const ALL_ROLES = ["HOST", "REGISTRAR", "ADMIN"] as const;
+const ALL_ROLES = ["HOST", "HOST_MANAGER", "REGISTRAR", "ADMIN"] as const;
 
 const ROLE_DESCRIPTIONS: Record<string, string> = {
-  HOST: "Google Meet host team — access to Host Area with session room assignments",
+  HOST: "Google Meet host team — access to Host Hub (schedule, sub board, threads)",
+  HOST_MANAGER: "Manages host schedule and assignments — full Hub read/write; can also be on rotation",
   REGISTRAR: "View and manage registrations, member profiles, and Sanity Studio",
   ADMIN: "Full access — members, registrations, and all volunteer areas",
 };

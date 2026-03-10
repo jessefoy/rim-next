@@ -89,21 +89,27 @@ model User {
   legacyMemberSince       DateTime?
 
   // Relations
-  accounts      Account[]
-  sessions      Session[]
-  memberships   UserMembership[]
-  attendance    AttendanceRecord[]
-  registrations Registration[]
-  courseAccess  CourseAccess[]
-  household     HouseholdMember?
+  accounts        Account[]
+  sessions        Session[]
+  memberships     UserMembership[]
+  attendance      AttendanceRecord[]
+  registrations   Registration[]
+  courseAccess    CourseAccess[]
+  household       HouseholdMember?
+  hostAssignments HostAssignment[]   @relation("HostAssignments")
+  subClaims       SubClaim[]         @relation("SubClaims")
+  hostThreads     HostThread[]       @relation("HostThreads")
+  hostReplies     HostReply[]        @relation("HostReplies")
+  alerts          Alert[]            @relation("Alerts")
 
   @@map("users")
 }
 
 enum Role {
-  HOST        // Google Meet host team — access to host area and upcoming room assignments
-  REGISTRAR   // manages program registrations + Sanity Studio access
-  ADMIN       // full access
+  HOST          // Zoom host rotation — access to full host hub; can host sessions + claim subs
+  HOST_MANAGER  // manages host schedule and community; full hub read/write; can also be on rotation
+  REGISTRAR     // manages program registrations + Sanity Studio access (no hub access)
+  ADMIN         // full access
 }
 
 enum MemberStatus {
@@ -340,4 +346,124 @@ enum DonationSource {
   CASH          // manually entered by treasurer
   CHECK         // manually entered by treasurer
   OTHER
+}
+
+// ─── HOST COMMUNITY HUB ──────────────────────────────────────────────────────
+// Self-managed by HOST_MANAGER; independent of Registrar workflow.
+// ⚠️ programSlug is the join key to Sanity — never change a slug after assignment.
+
+// Who is responsible for hosting a specific program or recurring session.
+// sessionDate null = "standing" (responsible for all occurrences of a recurring program).
+// sessionDate set = one specific occurrence (date picked by HOST_MANAGER).
+model HostAssignment {
+  id          String    @id @default(cuid())
+  programSlug String    // Sanity slug — treated as a stable, permanent identifier
+  sessionDate DateTime? // null = standing assignment; set = specific date
+  userId      String
+  user        User      @relation("HostAssignments", fields: [userId], references: [id])
+  assignedBy  String?   // userId of HOST_MANAGER/ADMIN who created this
+  notes       String?
+  subRequests SubRequest[]
+  createdAt   DateTime  @default(now())
+
+  @@unique([userId, programSlug, sessionDate])
+  @@map("host_assignments")
+}
+
+// A host requesting coverage for one of their sessions.
+model SubRequest {
+  id           String         @id @default(cuid())
+  assignmentId String
+  assignment   HostAssignment @relation(fields: [assignmentId], references: [id])
+  programSlug  String         // denormalized for display without join
+  sessionDate  DateTime?      // specific date (for recurring programs); null = next/all
+  status       SubStatus      @default(OPEN)
+  message      String?        // context for potential claimers
+  claim        SubClaim?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@map("sub_requests")
+}
+
+// A hub member volunteering to cover a sub request.
+model SubClaim {
+  id          String     @id @default(cuid())
+  requestId   String     @unique
+  request     SubRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  claimedById String
+  claimedBy   User       @relation("SubClaims", fields: [claimedById], references: [id])
+  message     String?    // optional note to the original host
+  createdAt   DateTime   @default(now())
+
+  @@map("sub_claims")
+}
+
+enum SubStatus {
+  OPEN
+  CLAIMED
+  CANCELLED
+}
+
+// Async community thread in the host hub.
+model HostThread {
+  id        String         @id @default(cuid())
+  title     String
+  body      String         @db.Text
+  category  ThreadCategory
+  authorId  String
+  author    User           @relation("HostThreads", fields: [authorId], references: [id])
+  status    ThreadStatus   @default(OPEN)
+  replies   HostReply[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@map("host_threads")
+}
+
+model HostReply {
+  id        String     @id @default(cuid())
+  threadId  String
+  thread    HostThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User       @relation("HostReplies", fields: [authorId], references: [id])
+  body      String     @db.Text
+  createdAt DateTime   @default(now())
+
+  @@map("host_replies")
+}
+
+enum ThreadCategory {
+  OPERATIONAL    // peer support, tips, difficult situations, questions
+  CONTEMPLATION  // weekly teacher/manager post for group discussion
+}
+
+enum ThreadStatus {
+  OPEN
+  CLOSED    // no new replies allowed; visible to all
+  ARCHIVED  // hidden from main list; retained in DB
+}
+
+// ─── SITE-WIDE ALERTS ────────────────────────────────────────────────────────
+// First consumer: host hub. Other modules will add AlertType values as needed.
+
+model Alert {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation("Alerts", fields: [userId], references: [id], onDelete: Cascade)
+  type      AlertType
+  message   String
+  linkUrl   String?
+  read      Boolean   @default(false)
+  createdAt DateTime  @default(now())
+
+  @@map("alerts")
+}
+
+enum AlertType {
+  SUB_REQUEST        // all hub members: someone needs a sub
+  SUB_CLAIMED        // original requester only: your sub was claimed
+  NEW_THREAD         // all hub members: new thread posted
+  NEW_REPLY          // thread author + prior repliers: new reply on a thread you're in
+  UNASSIGNED_SESSION // HOST_MANAGER + ADMIN: program within 30 days has no host assigned
 }

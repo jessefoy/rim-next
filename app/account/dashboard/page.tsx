@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import AccountLayout from "@/components/AccountLayout";
+import AlertStrip from "@/components/AlertStrip";
 import { buildDateLabel } from "@/lib/dateLabel";
 
 export const metadata = { title: "My Dashboard — Rooted In Mindfulness" };
@@ -70,6 +71,7 @@ export default async function DashboardPage() {
       <div className="db-page">
 
         {/* ── Welcome ── */}
+        <AlertStrip />
         <div className="db-welcome">
           <h1 className="db-welcome__greeting">Welcome back, {firstName}.</h1>
           <p className="db-welcome__sub">Your member area — sessions, programs, and practice resources.</p>

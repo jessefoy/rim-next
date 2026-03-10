@@ -257,6 +257,21 @@ export const programsBySlugArrayQuery = `*[_type == "programs" && slug.current i
 
 // ─── Host area — programs with Google Meet assigned (for /hosts page) ─────────
 
+// All virtual/hybrid programs — no zoomLink filter; used by AssignmentManager dropdown
+export const allVirtualProgramsQuery = `*[_type == "programs" && !(_id in path("drafts.**")) && programFormat in ["virtual", "hybrid"]] | order(coalesce(sortOrder, 999) asc) {
+  _id,
+  name,
+  "slug": slug.current,
+  dateText,
+  startDatetime,
+  endDatetime,
+  recurrenceFreq,
+  recurrenceInterval,
+  recurrenceDays,
+  programFormat,
+  dayOfWeek[]-> { name }
+}`;
+
 export const hostProgramsQuery = `*[_type == "programs" && !(_id in path("drafts.**")) && programFormat in ["virtual", "hybrid"] && defined(zoomLink) && zoomLink != ""] | order(coalesce(sortOrder, 999) asc) {
   _id,
   name,
