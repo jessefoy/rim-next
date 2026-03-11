@@ -23,6 +23,7 @@ interface HostProgram {
   slug: string;
   zoomLink: string;
   meetHostAccount?: string | null;
+  programFormat?: string | null;
 }
 
 export default async function HostSchedulePage() {
@@ -80,6 +81,7 @@ export default async function HostSchedulePage() {
       subMessage: openSub?.message ?? null,
       zoomLink: prog?.zoomLink ?? null,
       meetHostAccount: prog?.meetHostAccount ?? null,
+      programFormat: prog?.programFormat ?? null,
     };
   });
 
@@ -89,6 +91,7 @@ export default async function HostSchedulePage() {
     name: p.name,
     zoomLink: p.zoomLink ?? null,
     meetHostAccount: p.meetHostAccount ?? null,
+    programFormat: p.programFormat ?? null,
   }));
 
   return (
