@@ -2397,10 +2397,27 @@ The host-team hub at `/account/hub/host-team` uses a shared `HubScheduleClient` 
 
 **`lastVisitedAt` tracking:** Each hub page visit updates `HubMember.lastVisitedAt`. This is used by the dashboard hub cards to show unread dots (not yet implemented — reserved for future use).
 
-**CSS prefix:** `hub-` for all hub UI; `hub-page--wide` modifier for the schedule page.
+**CSS prefix:** `hub-` for all hub UI. Key CSS classes:
+- `.hub-page` — max-width 920px, 36px side padding; constrained by `AccountLayout`'s sidebar + `ac-content`
+- `.hub-hdr` / `.hub-hdr__eyebrow` / `.hub-hdr__title` / `.hub-hdr__meta` — hub header component (title 26px serif, eyebrow 11px uppercase)
+- `.hub-tabs` / `.hub-tabs__link--active` — horizontal tab nav; active tab uses slate/steel spec colors
+- `.hub-cal` — single-card calendar (border + border-radius on outer wrapper, cells use `#eceae5` internal borders, no rounded corners on cells)
+- `.hub-cal__day-num--today` — 22px circle with `#2d3f47` background on today's date number only
+- `.hub-cal__event--mine/covered/needs` — all-border (1px solid) chips with spec colors; 11px/600 weight
+- `.hub-sched-list-outer/wrap/head/row` — 6-column grid table for list view
+- `.hub-sched-row-panel` — inline detail panel container (list view); renders directly below the clicked row
+- `.hub-detail` — session detail panel (card with 24px/28px padding, 22px serif title)
+
+**Calendar / list UI (HubScheduleClient):**
+- Filter pills (All / Mine / Needs Attention) filter both calendar and list views simultaneously
+- Calendar: single-card spec layout; today's date shown as dark circle on the number only
+- List view: clicking a row opens the `SessionDetail` panel inline, directly below that row — not at the bottom of the page
+- Calendar view: `SessionDetail` renders below the calendar grid
+- Both views: month nav arrows + calendar/list toggle in the toolbar row
 
 ---
 
 | 2026-03-11 (session 39) | **Spec compliance audit + cleanup.** Audited all §23 files against actual codebase — everything conformant. Deleted temporary `/api/debug` route (exposed session/membership data; was created to diagnose login issue in session 38). Added §24 to FEATURES.md documenting the multi-hub workspace system (`/account/hub/[slug]/*`) built in the previous context-exhausted session. Fixed `TypeScript build error in app/account/host/schedule/page.tsx — missing `programFormat` field. Updated MEMORY.md session log. |
+| 2026-03-11 (session 40) | **Hub schedule spec compliance + layout polish (§24 update).** **(1) Calendar visual redesign:** Rewrote `hub-cal` CSS block — switched from individual rounded cells with gaps to a single-card layout (`border:1px solid #e0ddd7; border-radius:10px; overflow:hidden`) with internal `#eceae5` dividers between cells. Today's date number gets a dark circle (`background:#2d3f47; border-radius:50%`) instead of a cell-level border. Event chips now use all-around `border:1px solid` (not `border-left` accent) and correct spec colors: mine (steel-lt), covered (sage-lt), needs (terra-lt). Checkboxes hidden by default, revealed on hover. Removed stale duplicate `hub-cal__event--mine` rule at end of file. **(2) List view inline panel:** Changed `SessionDetail` in list view to render directly below the clicked row (inside a `hub-sched-row-panel` wrapper div) rather than at the bottom of the page. Calendar view still renders `SessionDetail` below the calendar grid. **(3) Layout polish:** `hub-page` widened from 860→920px; side padding increased from 24→36px. Added missing `hub-hdr` CSS block (eyebrow/title/meta; was completely unstyled). `hub-tabs` vertical padding 10→13px; active tab color changed from `--rim-blue` to slate/steel to match spec. `hub-home__greeting` increased from 22→28px. `hub-detail__name` color changed from `--rim-blue` to `#2d3f47` (slate). Fixed double margin-top: `hub-content--wide` was 32px nested inside `hub-content` (also 32px), causing 64px gap on schedule page — set `hub-content--wide { margin-top: 0 }`. Commits: 51607af + earlier session commits. |
 
-*Last updated: 2026-03-11 (session 39)*
+*Last updated: 2026-03-11 (session 40)*

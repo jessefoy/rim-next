@@ -1869,7 +1869,7 @@ export default async function ManualPage() {
 
           <h3 className="man-section__h3">Opening a session</h3>
           <p>
-            Click any session — on the calendar or in the list — and a panel opens on the right with the details: which program it is, the date and time, and the current status. From there, two things are available depending on your situation:
+            Click any session to see its details. In calendar view, a panel opens below the calendar. In list view, the detail panel expands inline, directly beneath the row you clicked. Either way you&rsquo;ll see which program it is, the date and time, and the current status. From there, two things are available depending on your situation:
           </p>
           <ul className="man-list">
             <li><strong>Join the meeting</strong> — a direct link to the Google Meet room. The room is always the same for each program, so this link will work for every session of that program.</li>

@@ -482,13 +482,14 @@ const AREAS: FunctionalArea[] = [
     features: [
       {
         name: "Schedule Tab",
-        locations: ["/account/host", "API: GET /api/host/assignments"],
-        what: "HOST users see only their own assigned programs with the Google Meet room account and join link, plus 'How to host' guidance. HOST_MANAGER and ADMIN users see all assignments grouped by program, with a 'Manage →' link to the assignment manager.",
+        locations: ["/account/host/schedule", "/account/hub/host-team/schedule", "Component: HubScheduleClient.tsx", "API: GET /api/host/assignments"],
+        what: "7-column calendar + list view showing all HostAssignment records for the current month. Filter pills (All / Mine / Needs Attention) filter both views. Calendar: single-card spec layout with today-circle, color-coded event chips (mine=steel-lt, covered=sage-lt, needs=terra-lt). List view: clicking a row expands a SessionDetail panel inline, directly beneath that row. Calendar view shows SessionDetail below the calendar grid. From the panel: claim an open session, request a sub, or (HOST_MANAGER) assign a host. Shared HubScheduleClient receives apiBase prop — /api/host for both the old /account/host/schedule page and /account/hub/host-team/schedule.",
         relatedTo: [
           "HostAssignment Postgres model — links userId + programSlug (+ optional sessionDate)",
           "Sanity CMS — program names, meet links, room accounts read from hostProgramsQuery",
           "Assignment Manager — HOST_MANAGER creates/removes assignments shown here",
           "Google Meet Integration — meetLink and meetHostAccount fields",
+          "hub-cal, hub-sched-list-*, hub-detail CSS classes in public/css/custom.css",
         ],
       },
       {
