@@ -78,8 +78,9 @@ When the user says **"let's document everything"** (or similar), update ALL FOUR
 
 1. **`FEATURES.md`** — add/update relevant feature section(s) + append session log entry at bottom
 2. **`memory/MEMORY.md`** (project memory file) — prepend session log entry
-3. **`app/admin/manual/page.tsx`** — update any affected chapters (Registration, Programs, Member Accounts, Host Hub, Volunteer Roles)
-4. **`app/admin/features/page.tsx`** — update feature cards, system map, data flows, dependency cards
+3. **`RIM_Stack_Reference.md`** — update if anything changed: new service, new env var, stack version bump, role change, phase change
+4. **`app/admin/manual/page.tsx`** — update any affected chapters (Registration, Programs, Member Accounts, Host Hub, Volunteer Roles)
+5. **`app/admin/features/page.tsx`** — update feature cards, system map, data flows, dependency cards
 
 Then commit and push all documentation changes together.
 
