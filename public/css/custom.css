@@ -10217,7 +10217,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .ac-sidebar__section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--rim-text-muted); padding: 10px 12px 2px; }
 
 /* ── Dashboard v2 (db2-) ─────────────────────────────────────── */
-.db2-wrap { max-width: 680px; }
+.db2-wrap { max-width: 680px; margin: 0 auto; padding: 40px 32px 80px; }
 .db2-greeting { margin-bottom: 32px; }
 .db2-greeting__name { font-size: 24px; font-weight: 400; font-family: var(--font-serif); color: var(--rim-text); margin: 0 0 4px; }
 .db2-greeting__date { font-size: 14px; color: var(--rim-text-muted); margin: 0; }
