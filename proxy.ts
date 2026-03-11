@@ -1,12 +1,14 @@
 import NextAuth from "next-auth";
 import { authConfig } from "./auth.config";
 
-// Edge-safe middleware: uses lightweight config with no PrismaAdapter.
+// Edge-safe proxy (Next.js 16 uses proxy.ts with a default export).
+// Uses lightweight auth config with no PrismaAdapter so it runs in Edge runtime.
 // Full auth (with DB adapter + session callback) lives in auth.ts and is
 // used by pages/API routes which run in Node.js runtime.
-// The authorized() callback in authConfig redirects unauthenticated users
-// to /login. agreedToTerms + archivedAt checks are handled per-page.
-export const { auth: middleware } = NextAuth(authConfig);
+// Unauthenticated requests are redirected to /login via the authorized() callback.
+// agreedToTerms + archivedAt checks are handled per-page.
+const { auth } = NextAuth(authConfig);
+export default auth;
 
 export const config = {
   matcher: ["/account/:path*", "/account/hub/:path*", "/volunteer/:path*", "/admin/:path*", "/course/:path*", "/hosts/:path*", "/hosts"],
