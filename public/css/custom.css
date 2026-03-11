@@ -9888,3 +9888,146 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 @media (max-width: 600px) {
   .hub-add-session-form__row { flex-direction: column; gap: 10px; }
 }
+
+/* ── Hub Home redesign — missing class names (hub-home-* new BEM) ───────────
+   The component (HubHomeClient.tsx) uses these names; the old CSS above used
+   different names so none of the new classes were rendering. These are additive
+   — the old declarations are harmless dead code.                              */
+
+/* Header */
+.hub-home__title {
+  font-family: var(--font-serif);
+  font-size: 30px;
+  font-weight: 400;
+  color: var(--rim-text);
+  margin: 0 0 4px;
+  line-height: 1.2;
+}
+.hub-home__subtitle { font-size: 15px; color: var(--rim-text-muted); margin: 0; }
+
+/* Coordinator alert banner */
+.hub-home-alert {
+  background: #fef2f2;
+  border: 1.5px solid #e8c0c0;
+  border-left: 4px solid #c44;
+  border-radius: 8px;
+  padding: 14px 18px;
+}
+.hub-home-alert__label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rim-text-muted);
+  margin-bottom: 8px;
+}
+.hub-home-alert__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.hub-home-alert__summary { display: flex; align-items: center; gap: 10px; flex: 1; }
+.hub-home-alert__dot { font-size: 14px; line-height: 1; }
+.hub-home-alert__text { font-size: 15px; font-weight: 600; color: var(--rim-text); }
+.hub-home-alert__toggle {
+  font-size: 12px; color: var(--rim-text-muted); cursor: pointer;
+  white-space: nowrap; background: none; border: none; padding: 0; font-family: var(--font-sans);
+}
+.hub-home-alert__list {
+  list-style: none; margin: 12px 0 0; padding: 12px 0 0;
+  border-top: 1px solid #f0d0d0; display: flex; flex-direction: column; gap: 8px;
+}
+.hub-home-alert__item {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.hub-home-alert__item-name { font-size: 14px; font-weight: 600; color: var(--rim-text); }
+.hub-home-alert__item-date { font-size: 12px; color: var(--rim-text-muted); margin-top: 2px; }
+
+/* All-clear state */
+.hub-home-allclear {
+  display: flex; align-items: center; gap: 14px;
+  background: #f0f7f0; border: 1px solid #c3dfc3; border-radius: 8px; padding: 14px 18px;
+}
+.hub-home-allclear__icon { font-size: 22px; }
+.hub-home-allclear__title { font-size: 15px; font-weight: 600; color: #2d6a2d; margin-bottom: 2px; }
+.hub-home-allclear__sub { font-size: 13px; color: #4a8a4a; }
+
+/* Two-card row */
+.hub-home-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.hub-home-card {
+  background: #fff; border: 1px solid var(--rim-rule); border-radius: 10px;
+  display: flex; flex-direction: column;
+}
+.hub-home-card__header {
+  font-size: 15px; font-weight: 600; color: var(--rim-text);
+  padding: 16px 20px 12px; border-bottom: 1px solid var(--rim-rule);
+}
+.hub-home-card__body {
+  flex: 1; padding: 14px 20px; display: flex; flex-direction: column; gap: 10px;
+}
+.hub-home-card__row { display: flex; align-items: center; gap: 10px; }
+.hub-home-card__row-info { flex: 1; min-width: 0; }
+.hub-home-card__row-name {
+  font-size: 14px; font-weight: 600; color: var(--rim-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.hub-home-card__row-date { font-size: 12px; color: var(--rim-text-muted); margin-top: 1px; }
+.hub-home-card__sub-row { display: flex; flex-direction: column; gap: 4px; }
+.hub-home-card__sub-top { display: flex; align-items: center; gap: 8px; }
+.hub-home-card__sub-date { font-size: 12px; color: var(--rim-text-muted); margin-left: auto; }
+.hub-home-card__sub-msg {
+  font-size: 13px; color: var(--rim-text-muted); font-style: italic;
+  padding-left: 24px;
+}
+.hub-home-card__more {
+  font-size: 13px; color: var(--rim-mid); background: none; border: none;
+  padding: 4px 0 0; cursor: pointer; font-family: var(--font-sans); text-align: left;
+}
+.hub-home-card__footer { padding: 12px 20px 18px; }
+
+/* Sessions Needing a Host */
+.hub-home-open {
+  background: #fff; border: 1px solid var(--rim-rule); border-radius: 10px; padding: 18px 20px;
+}
+.hub-home-open__header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+}
+.hub-home-open__title { font-size: 15px; font-weight: 600; color: var(--rim-text); }
+.hub-home-open__badge {
+  background: #fdf0dc; color: #7a4f00; font-size: 12px; font-weight: 700;
+  padding: 3px 10px; border-radius: 20px; letter-spacing: 0.03em;
+}
+.hub-home-open__grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.hub-home-open__card {
+  background: #fdf6ee; border: 1px solid #e8d4b8; border-radius: 8px;
+  padding: 14px 16px; display: flex; flex-direction: column; gap: 6px;
+}
+.hub-home-open__card-date {
+  font-size: 13px; font-weight: 700; color: #C97B2E; letter-spacing: 0.01em;
+}
+.hub-home-open__card-name {
+  font-size: 14px; font-weight: 700; color: var(--rim-text); line-height: 1.3; flex: 1;
+}
+.hub-home-open__claim-btn {
+  background: #C97B2E; color: #fff; border: none; border-radius: 6px;
+  padding: 8px 14px; font-size: 14px; font-weight: 600; font-family: var(--font-sans);
+  cursor: pointer; width: 100%; margin-top: 4px;
+}
+.hub-home-open__claim-btn:hover { background: #a86220; }
+.hub-home-open__more {
+  background: transparent; border: 1.5px dashed var(--rim-rule); border-radius: 8px;
+  display: flex; align-items: center; justify-content: center; min-height: 110px;
+  font-size: 14px; font-weight: 500; color: var(--rim-mid); text-decoration: none;
+}
+.hub-home-open__more:hover { border-color: var(--rim-mid); color: var(--rim-blue); }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hub-home-cards { grid-template-columns: 1fr; }
+  .hub-home-open__grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .hub-home-open__grid { grid-template-columns: 1fr; }
+  .hub-home__title { font-size: 24px; }
+}
