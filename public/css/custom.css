@@ -10332,6 +10332,20 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .hub-sched-row:last-child { border-bottom: none; }
 .hub-sched-row:hover { background: #fafaf8; }
 .hub-sched-row--active { background: #f7f5f2; }
+/* Inline detail panel — appears directly below the clicked row */
+.hub-sched-row-panel {
+  border-top: 1px solid #e0ddd7;
+  border-bottom: 1px solid #e0ddd7;
+  background: #fafaf8;
+  padding: 0;
+}
+.hub-sched-row-panel .hub-detail {
+  margin-top: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: #fafaf8;
+}
 .hub-sched-row__date { font-size: 13px; font-weight: 600; color: #4a4740; }
 .hub-sched-row__title { font-family: var(--font-serif); font-size: 15px; font-weight: 400; color: #2d3f47; }
 .hub-sched-row__time { font-size: 13px; color: #8a8680; }

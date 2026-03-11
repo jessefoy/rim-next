@@ -635,55 +635,72 @@ export default function HubScheduleClient({
                   const isMineRow = s.hostUserId === currentUserId;
                   const pillClass = isMineRow ? "mine" : (s.status === "claimed" ? "covered" : "needs");
                   const pillLabel = isMineRow ? "Your session" : (s.status === "claimed" ? "Covered" : "Needs Coverage");
+                  const isExpanded = selected?.id === s.id;
                   return (
-                    <div
-                      key={s.id}
-                      className={`hub-sched-row${selected?.id === s.id ? " hub-sched-row--active" : ""}`}
-                      onClick={() => setSelected(selected?.id === s.id ? null : s)}
-                    >
-                      <div className="hub-sched-row__date">
-                        {s.sessionDate ? fmtShort(s.sessionDate) : "—"}
+                    <div key={s.id}>
+                      <div
+                        className={`hub-sched-row${isExpanded ? " hub-sched-row--active" : ""}`}
+                        onClick={() => setSelected(isExpanded ? null : s)}
+                      >
+                        <div className="hub-sched-row__date">
+                          {s.sessionDate ? fmtShort(s.sessionDate) : "—"}
+                        </div>
+                        <div className="hub-sched-row__title">{s.programName}</div>
+                        <div className="hub-sched-row__time">
+                          {s.sessionDate ? fmtTime(s.sessionDate) : "—"}
+                        </div>
+                        <div className={`hub-sched-row__host${s.status === "unclaimed" ? " hub-sched-row__host--unassigned" : isMineRow ? " hub-sched-row__host--mine" : ""}`}>
+                          {s.status === "unclaimed"
+                            ? "Unassigned"
+                            : isMineRow
+                              ? `You (${s.hostName ?? currentUserName})`
+                              : s.hostName ?? "—"}
+                        </div>
+                        <div>
+                          <span className={`hub-pill hub-pill--${pillClass}`}>{pillLabel}</span>
+                        </div>
+                        <div className="hub-sched-row__action">
+                          {s.status === "unclaimed" && (
+                            <button
+                              className="hub-btn hub-btn--claim hub-btn--sm"
+                              onClick={(e) => { e.stopPropagation(); claimSession(s.id); }}
+                            >
+                              Claim
+                            </button>
+                          )}
+                          {isMineRow && s.status === "claimed" && (
+                            <button
+                              className="hub-btn hub-btn--ghost hub-btn--sm"
+                              onClick={(e) => { e.stopPropagation(); setSelected(s); }}
+                            >
+                              Request Sub
+                            </button>
+                          )}
+                          {s.status === "sub_needed" && !isMineRow && s.subRequestId && (
+                            <button
+                              className="hub-btn hub-btn--claim hub-btn--sm"
+                              onClick={(e) => { e.stopPropagation(); claimSub(s.id, s.subRequestId!); }}
+                            >
+                              Cover
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <div className="hub-sched-row__title">{s.programName}</div>
-                      <div className="hub-sched-row__time">
-                        {s.sessionDate ? fmtTime(s.sessionDate) : "—"}
-                      </div>
-                      <div className={`hub-sched-row__host${s.status === "unclaimed" ? " hub-sched-row__host--unassigned" : isMineRow ? " hub-sched-row__host--mine" : ""}`}>
-                        {s.status === "unclaimed"
-                          ? "Unassigned"
-                          : isMineRow
-                            ? `You (${s.hostName ?? currentUserName})`
-                            : s.hostName ?? "—"}
-                      </div>
-                      <div>
-                        <span className={`hub-pill hub-pill--${pillClass}`}>{pillLabel}</span>
-                      </div>
-                      <div className="hub-sched-row__action">
-                        {s.status === "unclaimed" && (
-                          <button
-                            className="hub-btn hub-btn--claim hub-btn--sm"
-                            onClick={(e) => { e.stopPropagation(); claimSession(s.id); }}
-                          >
-                            Claim
-                          </button>
-                        )}
-                        {isMineRow && s.status === "claimed" && (
-                          <button
-                            className="hub-btn hub-btn--ghost hub-btn--sm"
-                            onClick={(e) => { e.stopPropagation(); setSelected(s); }}
-                          >
-                            Request Sub
-                          </button>
-                        )}
-                        {s.status === "sub_needed" && !isMineRow && s.subRequestId && (
-                          <button
-                            className="hub-btn hub-btn--claim hub-btn--sm"
-                            onClick={(e) => { e.stopPropagation(); claimSub(s.id, s.subRequestId!); }}
-                          >
-                            Cover
-                          </button>
-                        )}
-                      </div>
+                      {isExpanded && (
+                        <div className="hub-sched-row-panel">
+                          <SessionDetail
+                            session={s}
+                            currentUserId={currentUserId}
+                            currentUserName={currentUserName}
+                            coordinatorName={coordinatorName}
+                            onClose={() => setSelected(null)}
+                            onClaim={claimSession}
+                            onSubRequest={submitSubRequest}
+                            onUnclaim={unclaimSession}
+                            onClaimSub={claimSub}
+                          />
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -728,8 +745,8 @@ export default function HubScheduleClient({
         />
       )}
 
-      {/* ── Inline session detail — appears below legend ── */}
-      {selected && (
+      {/* ── Inline session detail — calendar view only (list view renders inline) ── */}
+      {selected && view === "calendar" && (
         <SessionDetail
           session={selected}
           currentUserId={currentUserId}
