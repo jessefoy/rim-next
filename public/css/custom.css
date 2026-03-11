@@ -9295,26 +9295,30 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 /* ── Status pills (underscore variant for CSS class names from status values) ── */
 .hub-pill--sub_needed { background: #fdf0f0; color: #B84040; }
 
-/* ── Schedule header ── */
-.hub-schedule__header {
+/* ── Schedule: Row 1 — filter pills + view toggle ── */
+.hub-schedule__filter-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 8px;
+  margin-bottom: 10px;
 }
-.hub-schedule__nav {
+
+/* ── Schedule: Row 2 — month navigation ── */
+.hub-schedule__month-nav {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 14px;
+  margin-bottom: 14px;
 }
 .hub-schedule__nav-btn {
   background: none;
   border: 1px solid var(--rim-rule);
   border-radius: 6px;
-  padding: 6px 12px;
-  font-size: 14px;
+  padding: 6px 14px;
+  font-size: 13px;
   color: var(--rim-text);
   cursor: pointer;
   font-family: var(--font-sans);
@@ -9331,17 +9335,16 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   min-width: 160px;
   text-align: center;
 }
-.hub-schedule__controls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
+
+/* ── Legend (below calendar) ── */
 .hub-schedule__legend {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   font-size: 12px;
+  margin-top: 10px;
+  margin-bottom: 4px;
+  padding: 0 2px;
 }
 .hub-schedule__legend-item {
   display: flex;
@@ -9896,8 +9899,8 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 
 /* ── Responsive additions for new classes ── */
 @media (max-width: 640px) {
-  .hub-schedule__header { flex-direction: column; align-items: flex-start; }
-  .hub-schedule__controls { width: 100%; justify-content: space-between; }
+  .hub-schedule__filter-row { flex-direction: column; align-items: flex-start; }
+  .hub-schedule__view-toggle { align-self: flex-end; }
   .hub-schedule__legend { flex-wrap: wrap; gap: 8px; }
   .hub-list__row { padding: 12px 12px; }
   .hub-conv-room-btn { padding: 7px 12px; font-size: 12px; }
@@ -10335,16 +10338,24 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   font-size: 14px;
   color: var(--rim-text);
 }
+/* Meet link row (below 3-col grid) */
+.hub-detail__meet {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
 .hub-detail__meet-link {
   color: var(--rim-mid);
   text-decoration: none;
   font-weight: 600;
+  font-size: 14px;
 }
 .hub-detail__meet-link:hover { text-decoration: underline; }
 .hub-detail__meet-account {
   font-size: 12px;
   color: var(--rim-text-muted);
-  margin-top: 3px;
 }
 .hub-detail__sub-msg {
   font-size: 13px;
@@ -10374,22 +10385,6 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .hub-legend-swatch--unclaimed { background: #f0c5a0; }
 .hub-legend-swatch--sub_needed { background: #e8b4b4; }
 .hub-legend-swatch--mine       { background: #9db8d4; }
-
-/* Move legend to its own row below controls */
-.hub-schedule__legend {
-  display: flex;
-  gap: 18px;
-  flex-wrap: wrap;
-  align-items: center;
-  margin: 6px 0 14px;
-  font-size: 12px;
-  color: var(--rim-text-muted);
-}
-.hub-schedule__legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
 
 /* Mine = blue assignment (overrides claimed green) */
 .hub-cal__event--mine { background: #dce8f5; border-left-color: #2d5f8a; color: #1B3A5C; }

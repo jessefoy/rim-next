@@ -41,6 +41,16 @@ export default async function HubSchedulePage({
   if (!member) redirect("/account/dashboard");
   if (!hub.hasSchedule) notFound();
 
+  // Build coordinator display name (for session detail panel)
+  const coordinators = hub.members
+    .filter((m) => m.isCoordinator)
+    .map((m) => {
+      const u = m.user;
+      return u.preferredName || [u.firstName, u.lastName].filter(Boolean).join(" ") || null;
+    })
+    .filter(Boolean) as string[];
+  const coordinatorName = coordinators.length > 0 ? coordinators[0] : undefined;
+
   const now = new Date();
   const year  = now.getFullYear();
   const month = now.getMonth();
@@ -108,6 +118,7 @@ export default async function HubSchedulePage({
         initialMonth={month}
         currentUserId={session.user.id}
         currentUserName={session.user.name || session.user.email?.split("@")[0] || ""}
+        coordinatorName={coordinatorName}
         apiBase="/api/host"
       />
     </div>

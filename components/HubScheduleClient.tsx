@@ -32,6 +32,7 @@ interface Props {
   initialMonth: number; // 0-indexed
   currentUserId: string;
   currentUserName: string;
+  coordinatorName?: string; // Hub coordinator (optional — shown in session detail)
   apiBase?: string;
 }
 
@@ -43,7 +44,7 @@ const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", {
-    weekday: "long", month: "long", day: "numeric", year: "numeric",
+    weekday: "long", month: "long", day: "numeric",
     timeZone: "America/Chicago",
   });
 }
@@ -87,6 +88,7 @@ function SessionDetail({
   session: s,
   currentUserId,
   currentUserName,
+  coordinatorName,
   onClose,
   onClaim,
   onSubRequest,
@@ -96,6 +98,7 @@ function SessionDetail({
   session: Session;
   currentUserId: string;
   currentUserName: string;
+  coordinatorName?: string;
   onClose: () => void;
   onClaim: (id: string) => void;
   onSubRequest: (id: string, message: string) => void;
@@ -116,20 +119,24 @@ function SessionDetail({
     ? (s.hostName ? `${s.hostName} (needs sub)` : "Needs sub")
     : s.hostName ?? "None — open for coverage";
 
+  // Subtitle: date · time CT · format
+  const subtitle = s.sessionDate
+    ? [fmtDate(s.sessionDate), fmtTime(s.sessionDate) + " CT", formatLabel(s.programFormat)].filter(Boolean).join(" · ")
+    : null;
+
+  // Status badge label
+  const statusLabel = isUnclaimed ? "Needs Coverage" : isSubNeeded ? "Sub Needed" : null;
+
   return (
     <div className="hub-detail">
       <div className="hub-detail__top">
         <div className="hub-detail__title-row">
           <div>
             <h3 className="hub-detail__name">{s.programName}</h3>
-            {s.sessionDate && (
-              <div className="hub-detail__date">{fmtDate(s.sessionDate)}</div>
-            )}
+            {subtitle && <div className="hub-detail__date">{subtitle}</div>}
           </div>
-          {s.status !== "unclaimed" && (
-            <span className={`hub-pill hub-pill--${s.status}`}>
-              {isClaimed ? "Claimed" : "Sub Needed"}
-            </span>
+          {statusLabel && (
+            <span className={`hub-pill hub-pill--${s.status}`}>{statusLabel}</span>
           )}
         </div>
 
@@ -145,24 +152,29 @@ function SessionDetail({
               <div className="hub-detail__col-value">{formatLabel(s.programFormat)}</div>
             </div>
           )}
-          {s.zoomLink && (
+          {coordinatorName && (
             <div className="hub-detail__col">
-              <div className="hub-detail__col-label">Google Meet</div>
-              <div className="hub-detail__col-value">
-                <a href={s.zoomLink} target="_blank" rel="noopener noreferrer" className="hub-detail__meet-link">
-                  Join meeting →
-                </a>
-                {s.meetHostAccount && (
-                  <div className="hub-detail__meet-account">Sign in as {s.meetHostAccount}</div>
-                )}
-              </div>
+              <div className="hub-detail__col-label">Coordinator</div>
+              <div className="hub-detail__col-value">{coordinatorName}</div>
             </div>
           )}
         </div>
 
+        {/* Meet link — shown separately below the grid when available */}
+        {s.zoomLink && (
+          <div className="hub-detail__meet">
+            <a href={s.zoomLink} target="_blank" rel="noopener noreferrer" className="hub-detail__meet-link">
+              Join Google Meet →
+            </a>
+            {s.meetHostAccount && (
+              <span className="hub-detail__meet-account">Sign in as {s.meetHostAccount}</span>
+            )}
+          </div>
+        )}
+
         {s.subMessage && (
           <div className="hub-detail__sub-msg">
-            <strong>Sub note:</strong> "{s.subMessage}"
+            <strong>Sub note:</strong> &ldquo;{s.subMessage}&rdquo;
           </div>
         )}
       </div>
@@ -312,6 +324,7 @@ export default function HubScheduleClient({
   initialMonth,
   currentUserId,
   currentUserName,
+  coordinatorName,
   apiBase = "/api/host",
 }: Props) {
   const [sessions, setSessions] = useState<Session[]>(initialSessions);
@@ -357,10 +370,10 @@ export default function HubScheduleClient({
           const prog = programBySlug.get(a.programSlug);
           return {
             ...a,
-            programName:   prog?.name ?? a.programSlug,
-            zoomLink:      prog?.zoomLink ?? null,
+            programName:     prog?.name ?? a.programSlug,
+            zoomLink:        prog?.zoomLink ?? null,
             meetHostAccount: prog?.meetHostAccount ?? null,
-            programFormat: prog?.programFormat ?? null,
+            programFormat:   prog?.programFormat ?? null,
           };
         })
       );
@@ -495,59 +508,50 @@ export default function HubScheduleClient({
 
   return (
     <div className="hub-schedule">
-      {/* Header row */}
-      <div className="hub-schedule__header">
-        <div className="hub-schedule__nav">
-          <button className="hub-schedule__nav-btn" onClick={prevMonth} aria-label="Previous month">←</button>
-          <h2 className="hub-schedule__month">{MONTHS[month]} {year}</h2>
-          <button className="hub-schedule__nav-btn" onClick={nextMonth} aria-label="Next month">→</button>
+
+      {/* ── Row 1: Filter pills + Calendar/List toggle ── */}
+      <div className="hub-schedule__filter-row">
+        <div className="hub-schedule__filters">
+          {(["all", "mine", "action"] as const).map((f) => (
+            <button
+              key={f}
+              className={`hub-schedule__filter-btn${filter === f ? " hub-schedule__filter-btn--active" : ""}`}
+              onClick={() => { setFilter(f); setMultiIds(new Set()); }}
+            >
+              {f === "all" ? "All Sessions" : f === "mine" ? "My Sessions" : "Needs Coverage"}
+            </button>
+          ))}
         </div>
-        <div className="hub-schedule__controls">
-          {/* Filter pills */}
-          <div className="hub-schedule__filters">
-            {(["all", "mine", "action"] as const).map((f) => (
-              <button
-                key={f}
-                className={`hub-schedule__filter-btn${filter === f ? " hub-schedule__filter-btn--active" : ""}`}
-                onClick={() => { setFilter(f); setMultiIds(new Set()); }}
-              >
-                {f === "all" ? "All Sessions" : f === "mine" ? "My Sessions" : "Needs Coverage"}
-              </button>
-            ))}
-          </div>
-          {/* View toggle */}
-          <div className="hub-schedule__view-toggle">
-            <button
-              className={`hub-schedule__view-btn${view === "calendar" ? " hub-schedule__view-btn--active" : ""}`}
-              onClick={() => setView("calendar")}
-              title="Calendar view"
-            >📅</button>
-            <button
-              className={`hub-schedule__view-btn${view === "list" ? " hub-schedule__view-btn--active" : ""}`}
-              onClick={() => setView("list")}
-              title="List view"
-            >☰</button>
-          </div>
+        <div className="hub-schedule__view-toggle">
+          <button
+            className={`hub-schedule__view-btn${view === "calendar" ? " hub-schedule__view-btn--active" : ""}`}
+            onClick={() => setView("calendar")}
+          >
+            Calendar
+          </button>
+          <button
+            className={`hub-schedule__view-btn${view === "list" ? " hub-schedule__view-btn--active" : ""}`}
+            onClick={() => setView("list")}
+          >
+            List
+          </button>
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="hub-schedule__legend">
-        {(["claimed", "unclaimed", "sub_needed"] as const).map((st) => (
-          <div key={st} className="hub-schedule__legend-item">
-            <span className={`hub-legend-swatch hub-legend-swatch--${st}`} />
-            <span>{st === "claimed" ? "Covered" : st === "unclaimed" ? "Needs Host" : "Sub Needed"}</span>
-          </div>
-        ))}
-        <div className="hub-schedule__legend-item">
-          <span className="hub-legend-swatch hub-legend-swatch--mine" />
-          <span>My assignment</span>
-        </div>
+      {/* ── Row 2: Month navigation ── */}
+      <div className="hub-schedule__month-nav">
+        <button className="hub-schedule__nav-btn" onClick={prevMonth} aria-label="Previous month">
+          Previous
+        </button>
+        <h2 className="hub-schedule__month">{MONTHS[month]} {year}</h2>
+        <button className="hub-schedule__nav-btn" onClick={nextMonth} aria-label="Next month">
+          Next
+        </button>
       </div>
 
       {loading && <div className="hub-schedule__loading">Loading…</div>}
 
-      {/* CALENDAR VIEW */}
+      {/* ── CALENDAR VIEW ── */}
       {view === "calendar" && !loading && (
         <div className="hub-cal-wrap">
           <div className="hub-cal">
@@ -568,7 +572,6 @@ export default function HubScheduleClient({
                       const inMulti = multiIds.has(s.id);
                       const isMine  = s.hostUserId === currentUserId;
                       const evtClass = isMine ? "mine" : s.status;
-                      // "Program · Host" label
                       const label = s.hostName
                         ? `${s.programName} · ${shortName(s.hostName)}`
                         : s.programName;
@@ -600,7 +603,7 @@ export default function HubScheduleClient({
         </div>
       )}
 
-      {/* LIST VIEW */}
+      {/* ── LIST VIEW ── */}
       {view === "list" && !loading && (
         <div className="hub-list">
           {filteredSessions.length === 0 ? (
@@ -644,6 +647,7 @@ export default function HubScheduleClient({
                         session={s}
                         currentUserId={currentUserId}
                         currentUserName={currentUserName}
+                        coordinatorName={coordinatorName}
                         onClose={() => setExpandedId(null)}
                         onClaim={claimSession}
                         onSubRequest={submitSubRequest}
@@ -658,7 +662,23 @@ export default function HubScheduleClient({
         </div>
       )}
 
-      {/* Multi-select footer */}
+      {/* ── Legend (below calendar) ── */}
+      <div className="hub-schedule__legend">
+        <div className="hub-schedule__legend-item">
+          <span className="hub-legend-swatch hub-legend-swatch--mine" />
+          <span>My assignment</span>
+        </div>
+        <div className="hub-schedule__legend-item">
+          <span className="hub-legend-swatch hub-legend-swatch--claimed" />
+          <span>Covered</span>
+        </div>
+        <div className="hub-schedule__legend-item">
+          <span className="hub-legend-swatch hub-legend-swatch--unclaimed" />
+          <span>Needs coverage</span>
+        </div>
+      </div>
+
+      {/* ── Multi-select footer ── */}
       {multiIds.size > 0 && (
         <div className="hub-multi-footer">
           <span>Selected <strong>{multiIds.size}</strong> session{multiIds.size > 1 ? "s" : ""}</span>
@@ -667,7 +687,7 @@ export default function HubScheduleClient({
         </div>
       )}
 
-      {/* Multi-claim confirmation modal */}
+      {/* ── Multi-claim confirmation modal ── */}
       {confirming && (
         <MultiClaimModal
           sessions={sessions.filter((s) => multiIds.has(s.id))}
@@ -677,12 +697,13 @@ export default function HubScheduleClient({
         />
       )}
 
-      {/* Inline session detail — appears below calendar */}
+      {/* ── Inline session detail — appears below legend ── */}
       {selected && (
         <SessionDetail
           session={selected}
           currentUserId={currentUserId}
           currentUserName={currentUserName}
+          coordinatorName={coordinatorName}
           onClose={() => setSelected(null)}
           onClaim={claimSession}
           onSubRequest={submitSubRequest}
