@@ -79,7 +79,6 @@ export default function AlertStrip() {
               <Link
                 href={alert.linkUrl}
                 className="alert-strip__message alert-strip__message--link"
-                onClick={() => markRead(alert.id)}
               >
                 {alert.message}
               </Link>

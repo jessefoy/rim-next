@@ -104,6 +104,7 @@ export default async function ThreadDetailPage({
           <HubThreadDetailClient
             thread={serialized}
             currentUserId={session.user.id}
+            currentUserName={session.user.name || session.user.email?.split("@")[0] || "You"}
             isManager={isManager}
           />
         </div>

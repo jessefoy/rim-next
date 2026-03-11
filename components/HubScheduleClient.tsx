@@ -329,6 +329,7 @@ export default function HubScheduleClient({
   const [confirming, setConfirming] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [filter, setFilter] = useState<"all" | "mine" | "action">("all");
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -538,8 +539,15 @@ export default function HubScheduleClient({
   const isToday = (day: number) =>
     today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
 
+  // Apply filter
+  const filteredSessions = sessions.filter((s) => {
+    if (filter === "mine") return s.hostUserId === currentUserId;
+    if (filter === "action") return s.status === "unclaimed" || s.status === "sub_needed";
+    return true;
+  });
+
   const sessionsForDay = (day: number) => {
-    return sessions.filter((s) => {
+    return filteredSessions.filter((s) => {
       if (!s.sessionDate) return false;
       const d = new Date(s.sessionDate);
       return d.getFullYear() === year && d.getMonth() === month && d.getDate() === day;
@@ -556,6 +564,18 @@ export default function HubScheduleClient({
           <button className="hub-schedule__nav-btn" onClick={nextMonth} aria-label="Next month">→</button>
         </div>
         <div className="hub-schedule__controls">
+          {/* Filter pills */}
+          <div className="hub-schedule__filters">
+            {(["all", "mine", "action"] as const).map((f) => (
+              <button
+                key={f}
+                className={`hub-schedule__filter-btn${filter === f ? " hub-schedule__filter-btn--active" : ""}`}
+                onClick={() => { setFilter(f); setMultiIds(new Set()); }}
+              >
+                {f === "all" ? "All" : f === "mine" ? "Mine" : "Needs Attention"}
+              </button>
+            ))}
+          </div>
           <div className="hub-schedule__legend">
             {(["claimed", "unclaimed", "sub_needed"] as const).map((st) => (
               <div key={st} className="hub-schedule__legend-item">
@@ -646,10 +666,16 @@ export default function HubScheduleClient({
       {/* LIST VIEW */}
       {view === "list" && !loading && (
         <div className="hub-list">
-          {sessions.length === 0 ? (
-            <p className="hub-empty">No sessions this month.</p>
+          {filteredSessions.length === 0 ? (
+            <p className="hub-empty">
+              {filter === "mine"
+                ? "You haven't claimed any sessions this month."
+                : filter === "action"
+                ? "No sessions need attention this month."
+                : "No sessions this month."}
+            </p>
           ) : (
-            [...sessions]
+            [...filteredSessions]
               .sort((a, b) => {
                 if (!a.sessionDate) return 1;
                 if (!b.sessionDate) return -1;

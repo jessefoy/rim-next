@@ -32,6 +32,7 @@ interface Thread {
 interface Props {
   thread: Thread;
   currentUserId: string;
+  currentUserName: string;
   isManager: boolean;
 }
 
@@ -211,7 +212,9 @@ function ReplyItem({
   return (
     <div className={`hub-reply${isOwn ? " hub-reply--own" : ""}`}>
       <p className="hub-reply__meta">
-        <strong>{isOwn ? "You" : reply.authorName}</strong> · {formatDate(reply.createdAt)}
+        <strong>{reply.authorName}</strong>
+        {isOwn && <span className="hub-thread-detail__you"> (you)</span>}
+        {" · "}{formatDate(reply.createdAt)}
         {reply.edited && (
           <span className="hub-reply__edited"> · edited</span>
         )}
@@ -283,6 +286,7 @@ function ReplyItem({
 export default function HubThreadDetailClient({
   thread: initialThread,
   currentUserId,
+  currentUserName,
   isManager,
 }: Props) {
   const [thread, setThread] = useState(initialThread);
@@ -330,7 +334,7 @@ export default function HubThreadDetailClient({
         id: data.id,
         body: replyBody.trim(),
         authorId: currentUserId,
-        authorName: "You",
+        authorName: currentUserName,
         edited: false,
         editedAt: null,
         reactions: {},
@@ -379,7 +383,11 @@ export default function HubThreadDetailClient({
         </div>
         <h1 className="hub-thread-detail__title">{thread.title}</h1>
         <p className="hub-thread-detail__meta">
-          {thread.authorId === currentUserId ? "You" : thread.authorName} ·{" "}
+          {thread.authorName}
+          {thread.authorId === currentUserId && (
+            <span className="hub-thread-detail__you"> (you)</span>
+          )}
+          {" · "}
           {formatDate(thread.createdAt)} ·{" "}
           {thread.replies.length === 0
             ? "no replies"

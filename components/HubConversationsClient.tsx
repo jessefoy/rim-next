@@ -276,7 +276,8 @@ export default function HubConversationsClient({
                       : t.replyCount === 1
                       ? "1 reply"
                       : `${t.replyCount} replies`}{" "}
-                    · {t.authorId === currentUserId ? "You" : t.authorName}
+                    · {t.authorName}
+                    {t.authorId === currentUserId && <span className="hub-thread-detail__you"> (you)</span>}
                     {t.status === "CLOSED" && (
                       <span className="hub-thread-card__status"> · Closed</span>
                     )}
