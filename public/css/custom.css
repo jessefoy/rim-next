@@ -8413,22 +8413,48 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ── Layout ── */
-.hub-page { max-width: 860px; margin: 0 auto; padding: 32px 24px 64px; }
+.hub-page { max-width: 920px; margin: 0 auto; padding: 32px 36px 72px; }
 .hub-page--wide { max-width: none; }
 .hub-content { margin-top: 32px; }
 .hub-section-header { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
 .hub-page__title { font-size: 22px; font-weight: 400; font-family: var(--font-serif); color: var(--rim-text); margin: 0; }
 .hub-page__subtitle { font-size: 14px; color: var(--rim-text-muted); margin: 4px 0 0; }
+
+/* ── Hub header (HubHeader component) ── */
+.hub-hdr {
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--rim-rule);
+}
+.hub-hdr__eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--rim-text-muted);
+  margin-bottom: 6px;
+}
+.hub-hdr__title {
+  font-family: var(--font-serif);
+  font-size: 26px;
+  font-weight: 400;
+  color: #2d3f47;
+  margin-bottom: 4px;
+  line-height: 1.2;
+}
+.hub-hdr__meta {
+  font-size: 14px;
+  color: var(--rim-text-muted);
+}
 .hub-empty { color: var(--rim-text-muted); font-size: 15px; margin-top: 16px; }
 .hub-back-link { display: inline-block; font-size: 13px; color: var(--rim-mid); text-decoration: none; margin-bottom: 24px; }
 .hub-back-link:hover { text-decoration: underline; }
 .hub-success-banner { background: #eef7ee; color: #2d6a2d; font-size: 14px; padding: 10px 14px; border-radius: 4px; margin-bottom: 20px; }
 
 /* ── Tab navigation — hub-tabs ── */
-.hub-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--rim-rule); margin-bottom: 0; }
+.hub-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--rim-rule); margin-bottom: 0; margin-top: 4px; }
 .hub-tabs__link {
   display: inline-block;
-  padding: 10px 18px;
+  padding: 13px 18px;
   font-size: 13px;
   font-weight: 600;
   font-family: var(--font-sans);
@@ -8439,7 +8465,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   transition: color 0.15s;
 }
 .hub-tabs__link:hover { color: var(--rim-text); }
-.hub-tabs__link--active { color: var(--rim-blue); border-bottom-color: var(--rim-blue); }
+.hub-tabs__link--active { color: #2d3f47; border-bottom-color: #6a8fa0; }
 
 /* ── Buttons ── */
 .hub-btn {
@@ -8920,7 +8946,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 
 /* ── Responsive ── */
 @media (max-width: 600px) {
-  .hub-page { padding: 20px 16px 48px; }
+  .hub-page { padding: 20px 20px 48px; }
   .hub-tabs__link { padding: 8px 12px; font-size: 12px; }
   .hub-form-row { flex-direction: column; }
   .hub-section-header { flex-direction: column; align-items: flex-start; }
@@ -8937,7 +8963,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 
 /* ── Home space — hub-home- ── */
 .hub-home { display: flex; flex-direction: column; gap: 24px; }
-.hub-home__greeting { font-size: 22px; font-weight: 400; font-family: var(--font-serif); color: var(--rim-text); margin: 0 0 4px; }
+.hub-home__greeting { font-size: 28px; font-weight: 400; font-family: var(--font-serif); color: #2d3f47; margin: 0 0 4px; }
 .hub-home__date { font-size: 14px; color: var(--rim-text-muted); margin: 0; }
 
 /* Alert banner */
@@ -10134,7 +10160,8 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .hub-hdr__meta { font-size: 13px; color: var(--rim-text-muted); }
 
 /* ── Hub content wrapper ─────────────────────────────────────── */
-.hub-content--wide { margin-top: 32px; }
+/* hub-content--wide is nested inside hub-content (which already has margin-top) */
+.hub-content--wide { margin-top: 0; }
 
 /* ── Announcements (ann-) ─────────────────────────────────────── */
 .ann-toolbar { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-bottom: 20px; }
@@ -10395,7 +10422,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   font-family: var(--font-serif);
   font-size: 22px;
   font-weight: 400;
-  color: var(--rim-blue);
+  color: #2d3f47;
   margin: 0 0 4px;
 }
 .hub-detail__date {
@@ -10475,5 +10502,3 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .hub-legend-swatch--covered { background: #d4e6cc; border-color: #aad0a0; }
 .hub-legend-swatch--needs   { background: #f5e0d8; border-color: #e8b0a0; }
 
-/* Mine = blue assignment (overrides claimed green) */
-.hub-cal__event--mine { background: #dce9ef; border-left-color: #c0d8e4; color: #4d7285; }
