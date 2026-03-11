@@ -9087,10 +9087,14 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .hub-list-item__host { font-size: 13px; color: var(--rim-text-muted); margin: 0; }
 
 /* Status pill */
-.hub-pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 10px; }
-.hub-pill--unclaimed { background: var(--rim-bg-accent); color: var(--rim-text-muted); }
-.hub-pill--claimed { background: #e8f5e8; color: #2d6a2d; }
-.hub-pill--sub-needed { background: #fdf0f0; color: #B84040; }
+.hub-pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+.hub-pill--mine    { background: #dce9ef; color: #4d7285; }
+.hub-pill--covered { background: #d4e6cc; color: #3a6b2a; }
+.hub-pill--needs   { background: #fdf0d4; color: #b07a18; border: 1px solid #edd899; }
+/* legacy aliases */
+.hub-pill--unclaimed { background: #fdf0d4; color: #b07a18; border: 1px solid #edd899; }
+.hub-pill--claimed { background: #d4e6cc; color: #3a6b2a; }
+.hub-pill--sub-needed { background: #fdf0d4; color: #b07a18; }
 
 /* Session panel (right slide-in) */
 .hub-panel-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 100; }
@@ -9281,7 +9285,10 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ── Button variants used by hub components ── */
-.hub-btn--primary { background: var(--rim-blue); color: #fff; border-color: var(--rim-blue); }
+.hub-btn--primary { background: #6a8fa0; color: #fff; border-color: #6a8fa0; }
+.hub-btn--primary:hover { background: #4d7285; border-color: #4d7285; opacity: 1; }
+.hub-btn--claim { background: #c0472a; color: #fff; border-color: #c0472a; }
+.hub-btn--claim:hover { background: #a83a20; border-color: #a83a20; opacity: 1; }
 .hub-btn--full { width: 100%; justify-content: center; }
 .hub-btn--secondary { background: transparent; color: var(--rim-text); border: 1.5px solid var(--rim-rule); }
 .hub-btn--secondary:hover { background: var(--rim-bg-accent); opacity: 1; }
@@ -9292,8 +9299,8 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .hub-dot--unclaimed  { background: #C97B2E; }
 .hub-dot--sub_needed { background: #B84040; }
 
-/* ── Status pills (underscore variant for CSS class names from status values) ── */
-.hub-pill--sub_needed { background: #fdf0f0; color: #B84040; }
+/* ── Status pills (underscore variant) ── */
+.hub-pill--sub_needed { background: #fdf0d4; color: #b07a18; border: 1px solid #edd899; }
 
 /* ── Schedule: Row 1 — filter pills + view toggle ── */
 .hub-schedule__filter-row {
@@ -9330,7 +9337,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   font-size: 20px;
   font-weight: 400;
   font-family: var(--font-serif);
-  color: var(--rim-text);
+  color: #2d3f47;
   margin: 0;
   min-width: 160px;
   text-align: center;
@@ -9343,34 +9350,39 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   gap: 16px;
   font-size: 12px;
   margin-top: 10px;
-  margin-bottom: 4px;
-  padding: 0 2px;
+  margin-bottom: 22px;
+  padding: 0;
 }
 .hub-schedule__legend-item {
   display: flex;
   align-items: center;
   gap: 5px;
-  color: var(--rim-text-muted);
+  font-size: 12px;
+  color: #8a8680;
 }
 .hub-schedule__view-toggle {
   display: flex;
-  border: 1px solid var(--rim-rule);
+  gap: 3px;
+  background: #eceae5;
   border-radius: 6px;
-  overflow: hidden;
+  padding: 3px;
+  border: 1px solid #e0ddd7;
 }
 .hub-schedule__view-btn {
-  background: none;
+  background: transparent;
   border: none;
-  padding: 6px 12px;
-  font-size: 14px;
-  color: var(--rim-text-muted);
+  border-radius: 4px;
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #8a8680;
   cursor: pointer;
-  transition: background 0.12s;
+  transition: background 0.1s, color 0.1s;
   line-height: 1;
 }
 .hub-schedule__view-btn--active {
-  background: #1B3A5C;
-  color: #fff;
+  background: #fff;
+  color: #1e2220;
 }
 
 /* Filter pills */
@@ -9380,25 +9392,25 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   flex-wrap: wrap;
 }
 .hub-schedule__filter-btn {
-  background: none;
-  border: 1px solid var(--rim-rule);
+  background: transparent;
+  border: 1.5px solid #e0ddd7;
   border-radius: 20px;
-  padding: 4px 12px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--rim-text-muted);
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #8a8680;
   cursor: pointer;
   font-family: var(--font-sans);
   transition: all 0.12s;
   white-space: nowrap;
 }
 .hub-schedule__filter-btn:hover {
-  border-color: var(--rim-mid);
-  color: var(--rim-text);
+  border-color: #6a8fa0;
+  color: #4a4740;
 }
 .hub-schedule__filter-btn--active {
-  background: #1B3A5C;
-  border-color: #1B3A5C;
+  background: #2d3f47;
+  border-color: #2d3f47;
   color: #fff;
 }
 
@@ -9472,7 +9484,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   padding: 6px 5px 4px;
 }
 .hub-cal__cell--empty { background: #faf9f7; border-color: transparent; }
-.hub-cal__cell--today { border-color: #1B3A5C; }
+.hub-cal__cell--today { border-color: #2d3f47; }
 .hub-cal__day-num {
   font-size: 12px;
   color: var(--rim-text-muted);
@@ -9481,7 +9493,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   display: block;
 }
 .hub-cal__day-num--today {
-  color: #1B3A5C;
+  color: #2d3f47;
   font-weight: 700;
 }
 .hub-cal__event {
@@ -9499,10 +9511,9 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   line-height: 1.35;
   overflow: hidden;
 }
-.hub-cal__event--claimed    { background: #E0F0ED; border-left-color: #2A7B6F; color: #1a5a50; }
-.hub-cal__event--unclaimed  { background: #FDF3E3; border-left-color: #C97B2E; color: #7a4f00; }
-.hub-cal__event--sub_needed { background: #F5E0E0; border-left-color: #B84040; color: #7a2020; }
-.hub-cal__event--selected   { background: #1B3A5C !important; border-left-color: #fff !important; color: #fff !important; }
+.hub-cal__event--covered  { background: #d4e6cc; border-left-color: #aad0a0; color: #3a6b2a; }
+.hub-cal__event--needs    { background: #f5e0d8; border-left-color: #e8b0a0; color: #c0472a; }
+.hub-cal__event--selected { background: #2d3f47 !important; border-left-color: #fff !important; color: #fff !important; }
 .hub-cal__check {
   position: absolute;
   top: 3px;
@@ -10265,6 +10276,50 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .today-later-hdr__label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--rim-text-muted); }
 .today-later-hdr__note { font-size: 12px; color: var(--rim-text-muted); font-style: italic; }
 
+/* ── Schedule list view — spec redesign (6-column grid table) ── */
+.hub-sched-list-outer { overflow-x: auto; }
+.hub-sched-list-wrap {
+  background: #fff;
+  border: 1px solid #e0ddd7;
+  border-radius: 10px;
+  overflow: hidden;
+  min-width: 640px;
+}
+.hub-sched-list-head {
+  display: grid;
+  grid-template-columns: 100px 1fr 90px 140px 130px 110px;
+  padding: 10px 20px;
+  background: #f7f5f2;
+  border-bottom: 1px solid #e0ddd7;
+}
+.hub-sched-list-head-cell {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #8a8680;
+}
+.hub-sched-list-head-cell--right { text-align: right; }
+.hub-sched-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 90px 140px 130px 110px;
+  padding: 13px 20px;
+  align-items: center;
+  border-bottom: 1px solid #f0ede8;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.hub-sched-row:last-child { border-bottom: none; }
+.hub-sched-row:hover { background: #fafaf8; }
+.hub-sched-row--active { background: #f7f5f2; }
+.hub-sched-row__date { font-size: 13px; font-weight: 600; color: #4a4740; }
+.hub-sched-row__title { font-family: var(--font-serif); font-size: 15px; font-weight: 400; color: #2d3f47; }
+.hub-sched-row__time { font-size: 13px; color: #8a8680; }
+.hub-sched-row__host { font-size: 13px; color: #4a4740; }
+.hub-sched-row__host--unassigned { color: #8a8680; font-style: italic; }
+.hub-sched-row__host--mine { font-weight: 600; color: #1e2220; }
+.hub-sched-row__action { text-align: right; }
+
 /* ── Inline list panel (HubScheduleClient list view) ───────── */
 .hub-list__row--expanded { background: #f5f8fa; }
 .hub-list__inline-panel { border-top: 1px solid var(--rim-rule); padding: 0; }
@@ -10304,18 +10359,18 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 }
 .hub-detail__name {
   font-family: var(--font-serif);
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 400;
   color: var(--rim-blue);
   margin: 0 0 4px;
 }
 .hub-detail__date {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--rim-text-muted);
 }
 .hub-detail__cols {
   display: flex;
-  gap: 32px;
+  gap: 36px;
   flex-wrap: wrap;
   padding: 16px 0;
   border-top: 1px solid var(--rim-rule);
@@ -10335,7 +10390,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   margin-bottom: 4px;
 }
 .hub-detail__col-value {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--rim-text);
 }
 /* Meet link row (below 3-col grid) */
@@ -10376,15 +10431,15 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 /* ── Legend swatches (square blocks, vs dots) ─────────────────── */
 .hub-legend-swatch {
   display: inline-block;
-  width: 12px;
-  height: 12px;
+  width: 13px;
+  height: 13px;
   border-radius: 3px;
+  border: 1px solid transparent;
   flex-shrink: 0;
 }
-.hub-legend-swatch--claimed   { background: #b8d4b8; }
-.hub-legend-swatch--unclaimed { background: #f0c5a0; }
-.hub-legend-swatch--sub_needed { background: #e8b4b4; }
-.hub-legend-swatch--mine       { background: #9db8d4; }
+.hub-legend-swatch--mine    { background: #dce9ef; border-color: #c0d8e4; }
+.hub-legend-swatch--covered { background: #d4e6cc; border-color: #aad0a0; }
+.hub-legend-swatch--needs   { background: #f5e0d8; border-color: #e8b0a0; }
 
 /* Mine = blue assignment (overrides claimed green) */
-.hub-cal__event--mine { background: #dce8f5; border-left-color: #2d5f8a; color: #1B3A5C; }
+.hub-cal__event--mine { background: #dce9ef; border-left-color: #c0d8e4; color: #4d7285; }
