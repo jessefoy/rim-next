@@ -93,7 +93,7 @@ export default async function HostSchedulePage() {
 
   return (
     <AccountLayout>
-      <div className="hub-page">
+      <div className="hub-page hub-page--wide">
         <HubTabNav />
         <div className="hub-content hub-content--wide">
           <HubScheduleClient
