@@ -1,79 +1,60 @@
 # RIM Next — Claude Instructions
 
 ## Workflow
-- Build locally with `npm run build` to catch TypeScript errors before pushing.
-- Push to GitHub; Vercel auto-deploys on merge to main.
+- **Never run a local dev server.** Push to GitHub; Vercel auto-deploys in ~1–2 min.
+- `npm run build` = `prisma generate && next build` — run locally to catch TypeScript errors before pushing.
 - Keep changes minimal and focused. No over-engineering or speculative improvements.
 - Prefer editing existing files over creating new ones.
+- Full stack reference: `RIM_Stack_Reference.md` in project root.
 
 ## Stack
-- Next.js 15 (App Router) + TypeScript
-- Sanity CMS via `@sanity/client` + GROQ queries
-- Auth: NextAuth v5 (`@auth/prisma-adapter`) with Resend magic-link email
-- Prisma + PostgreSQL for user/session storage
-- CSS: Webflow CSS files served from `public/css/` — do NOT use Tailwind or CSS modules for page layout
+- Next.js **16** (App Router) + TypeScript
+- Sanity v3 (project `xxgvfpjf`, dataset `production`) — content CMS at `rooted-in-mindfulness.sanity.studio`
+- NextAuth v5 — magic-link auth via Resend, no passwords. `auth()` for server components.
+- Prisma 5 + Neon Postgres — member data, registrations, roles, hub models
+- Stripe (test mode) — dana/payment collection via Checkout
+- Google Meet — virtual program hosting via service account DWD + 4 shared room accounts
+- Route protection: `proxy.ts` (not `middleware.ts` — Next.js 16)
+- `params` is `Promise<{slug}>` — must `await params` before destructuring
 
 ## CSS Rules
-- Never edit `normalize.css`, `webflow.css`, or `rim.webflow.css` in `public/css/`.
+- **Never edit** `normalize.css`, `webflow.css`, or `rim.webflow.css` in `public/css/`.
 - All custom styles go in `public/css/custom.css` only.
-- Use Webflow class names exactly as they appear — they are defined in `rim.webflow.css`.
-- Source of truth for correct CSS class names: `rim-website` Eleventy templates at `/Users/jessefoy/Sites/rim-website/src/`.
+- Per-page prefix system: `lp-` lessons, `pg-` programs, `wl-` welcome, `vol-` registrar, `adm-` admin, `db-` dashboard, `mr-` my registrations, `mp-` my profile, `nav-` nav, `man-` manual, `hs-` host area, `hub-` hub components, `hh-` households, `ac-` account layout/sidebar, `ca-` course access.
+- Design tokens in `:root`: `--rim-bg`, `--rim-text`, `--rim-mid`, `--rim-blue`, `--font-serif`, `--font-sans`, `--reading-width`.
+- No box-shadows. No borders unless functionally required.
 
 ## Key Files
-- `app/layout.tsx` — root layout, loads all CSS + fonts, wraps in `<SessionProvider>`
-- `components/Nav.tsx` — full nav (desktop + mobile), loads `nav.js` via useEffect
-- `components/Footer.tsx` — footer with Flodesk newsletter form
-- `components/ListRow.tsx` — universal list-row card (programs, dashboard, library, course lessons)
-- `components/SeriesListItem.tsx` — lesson rows inside course pages (delegates to ListRow)
-- `components/DanaSection.tsx` — generosity block at bottom of lesson pages
-- `components/TeacherList.tsx` — teacher/facilitator attribution (variant: "lesson" | "program")
-- `components/MemberGate.tsx` — auth wall shown to logged-out visitors
+- `app/layout.tsx` — root layout (CSS, Nav, Footer, SessionProvider)
+- `proxy.ts` — route protection for `/account/*`, `/admin/*`, `/course/*`
+- `auth.ts` — NextAuth config; session callback enriches `session.user` with firstName, roles, archivedAt, agreedToTerms
+- `prisma/schema.prisma` — full schema (User, Registration, CourseAccess, Donation, Household, HouseholdMember, HostAssignment, SubRequest, SubClaim, HostThread, HostReply, Alert)
 - `lib/queries.ts` — all Sanity GROQ queries
-- `lib/sanity.ts` — Sanity client config
-- `auth.ts` — NextAuth config (Resend + Prisma adapter)
-- `prisma/schema.prisma` — database schema
-- `public/css/custom.css` — all custom CSS overrides
-- `public/nav.js` — Webflow nav script (handles dropdowns + mobile hamburger)
+- `lib/email.ts` — all Resend transactional email builders
+- `lib/dateLabel.ts` — `buildDateLabel(p)` auto-generates schedule label from Sanity datetime/recurrence fields (CT timezone)
+- `lib/locations.ts` — `resolveLocation()` helper + RIM address constants
+- `public/css/custom.css` — all custom CSS
 
-## Sanity / GROQ
+## Sanity / GROQ Rules
 - Always exclude drafts: `!(_id in path("drafts.**"))`
-- `_type` values are plural (e.g. `"programs"` not `"program"`)
-- `dayOfWeek` is an array ref: `dayOfWeek[]->` not `dayOfWeek->`
+- `_type` values are **plural** (`"programs"` not `"program"`)
+- `dayOfWeek` is array ref: `dayOfWeek[]->` not `dayOfWeek->`
+- Array contains filter: `$slug in field[]->slug.current`
+- ⚠️ Slugs are join keys for `HostAssignment` records — treat as permanent once assignments exist
 
-## Auth Migration Notes
-- This project replaces Memberstack (used in `rim-website`) with NextAuth + magic-link email.
-- Member-gated content: check session server-side with `auth()` or client-side with `useSession()`.
-- `MemberGate` component renders the logged-out message. Program pages use `isLoggedIn` from `auth()`.
-- Login flow: `/login` → Resend sends magic link → `/login/check-email` → user clicks link → redirects to `/account/dashboard`.
+## RSC Serialization (critical)
+Never spread a Prisma `include` result into Client Component props. Raw Date objects cause silent navigation failure in Next.js 16 + React 19. Always construct props explicitly; convert all dates to `.toISOString()`.
 
-## CSS Class Patterns (Key Webflow Classes)
-- Page sections: `.section`, `.background-white`, `.background-grey`, `.background-light`
-- Containers: `.content-container`, `.content-container.centered`, `.content-container.left`
-- Program list rows: `.w-layout-grid.programlistblock` → `.dashboard-list-name-and-date-container` → `.event-name`
-- Lesson page: `.section.lesson-hero.background-light` → `.content-container.centered` (audio/quote only, NO title)
-- Lesson content: `.section.background-white` → `.content-container` → `h1.heading-9`, `.lesson-teachers`, `.lesson-video-block`, `.rich-text-block-19.w-richtext`, `.lesson-resources-block`
-- Lesson resources: `.lesson-resources-block` → `.resource-item` → `a.button-2.w-button` (resource name IS the link text)
-- Course page header: `.course-header` → `.f-container-regular` → `.f-header-wrapper-left` → `h5.course-type` + `h1.course-title` + `div.text-block-65.w-richtext`
-- Course lessons: `.section.background-white` → `.content-container` → `.series-list-section` → `.series-list-wrapper` → `<SeriesListItem>`
-- Headings: `.heading-9` (main), `.heading-39` (sub), `.heading-9-copy` (list page), `.course-title`
-- Buttons: `.button-2.w-button`, `.button-2-white.w-button`, `.program-list-button.w-button`, `.button-primary.w-button`
-- Breadcrumb: `.breadcrumb-link.w-inline-block` → `.text-block-58`
-- Dashboard: `.page-wrapper` → `.dashboard-section` → `.dashboard-content`
+## Feature Backlog
 
-## Feature Backlog Workflow
-
-When the user says **"remember that we need [X]"**, **"add this to the backlog"**, **"add this to the to-do's"**, or similar mid-session:
+When the user says **"remember that we need [X]"**, **"add this to the backlog"**, or similar:
 
 1. Read `data/backlog.json`
-2. If the idea is vague or spans multiple concerns, ask 1–2 clarifying questions before writing — the goal is to capture the intent accurately, not just the words
-3. Interpret and articulate the idea clearly: translate in-the-moment brainstorms into precise, well-scoped descriptions that fit the project's language and architecture. Every good description answers three things in order:
-   - **What's broken or missing right now** (the current state)
-   - **Why it matters** (the consequence)
-   - **What needs to be built** (the solution)
-4. Add a new item with all required fields (see structure below)
-5. Write the file back
-6. `git add data/backlog.json && git commit -m "Backlog: add [title]" && git push`
-7. Confirm with the user — the page at `/admin/ideas` will show it after Vercel deploys (~1 min)
+2. If vague, ask 1–2 clarifying questions — capture intent accurately
+3. Add a new item with all required fields (see below)
+4. Write the file back
+5. `git add data/backlog.json && git commit -m "Backlog: add [title]" && git push`
+6. Confirm — the page at `/admin/ideas` will show it after Vercel deploys (~1 min)
 
 **Item structure:**
 ```json
@@ -89,40 +70,24 @@ When the user says **"remember that we need [X]"**, **"add this to the backlog"*
 }
 ```
 
-**Valid categories** (use exactly as written):
-- `Registration`
-- `Member Accounts`
-- `Admin Tools`
-- `Programs & Sanity`
-- `Courses & Library`
-- `Email & Notifications`
-- `Dashboard`
-- `Nav & Layout`
-- `CSS & Design`
-- `Infrastructure`
+**Valid categories:** `Registration` | `Member Accounts` | `Admin Tools` | `Programs & Sanity` | `Courses & Library` | `Email & Notifications` | `Dashboard` | `Nav & Layout` | `CSS & Design` | `Infrastructure`
 
-**Status values:** `open` | `in-progress` | `done`
+## Closing Ritual — "let's document everything"
 
-The backlog page lives at **/admin/ideas** (ADMIN-only). You can also update status or mark items done there mid-session.
+When the user says **"let's document everything"** (or similar), update ALL FOUR before ending:
 
-## End-of-Session Rule
+1. **`FEATURES.md`** — add/update relevant feature section(s) + append session log entry at bottom
+2. **`memory/MEMORY.md`** (project memory file) — prepend session log entry
+3. **`app/admin/manual/page.tsx`** — update any affected chapters (Registration, Programs, Member Accounts, Host Hub, Volunteer Roles)
+4. **`app/admin/features/page.tsx`** — update feature cards, system map, data flows, dependency cards
 
-When the user says **"let's wrap up"**, **"let's close down"**, **"update everything"**, **"add this to the to-do's and update everything"**, or similar:
-
-1. Update `FEATURES.md` — add or update any feature that was built, changed, or removed; add a row to the Session Log at the bottom with the date and a one-line summary
-2. Update `memory/MEMORY.md` in the project memory if anything in the stack, key files, next steps, or session log needs updating
-3. If any new to-do items came up during the session, add them to `data/backlog.json` as well
-4. Commit and push all documentation changes together
-
-**Judgment call:** Not every session needs every file updated. Update only what actually changed. A quick bug fix may only need a session log entry; a major new feature needs `FEATURES.md`, `MEMORY.md`, and possibly the backlog updated.
-
-**Quality rules for FEATURES.md:**
-- Keep the human-readable sections plain and clear
-- Keep technical notes (🔧) accurate and specific — they exist so future Claude sessions don't repeat past mistakes
+Then commit and push all documentation changes together.
 
 ## Do Not
-- Add webflow.js — removed intentionally (conflicts with nav.js)
-- Create two nav menus — single `w-nav-menu` required for hamburger
-- Use inline styles for layout — put overrides in `custom.css`
+- Run a local dev server
+- Edit `normalize.css`, `webflow.css`, or `rim.webflow.css`
+- Spread Prisma `include` results into Client Component props (Date serialization failure)
+- Change a program slug after host assignments exist
+- Add Stripe live keys — keep test mode until go-live
 - Commit or expose API keys or secrets
-- Invent CSS class names — always use classes from `rim.webflow.css` or `custom.css`
+- Create new files when editing an existing one would do
