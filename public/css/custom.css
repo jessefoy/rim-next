@@ -10283,3 +10283,113 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   .today-card__header { flex-direction: column; }
   .today-row { flex-wrap: wrap; }
 }
+
+/* ── Hub Schedule — inline detail panel (spec redesign) ───────── */
+.hub-detail {
+  background: #fff;
+  border: 1.5px solid var(--rim-rule);
+  border-radius: 10px;
+  padding: 24px 28px;
+  margin-top: 20px;
+}
+.hub-detail__title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.hub-detail__name {
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--rim-blue);
+  margin: 0 0 4px;
+}
+.hub-detail__date {
+  font-size: 13px;
+  color: var(--rim-text-muted);
+}
+.hub-detail__cols {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  padding: 16px 0;
+  border-top: 1px solid var(--rim-rule);
+  border-bottom: 1px solid var(--rim-rule);
+  margin-bottom: 20px;
+}
+.hub-detail__col {
+  flex: 1;
+  min-width: 120px;
+}
+.hub-detail__col-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--rim-text-muted);
+  margin-bottom: 4px;
+}
+.hub-detail__col-value {
+  font-size: 14px;
+  color: var(--rim-text);
+}
+.hub-detail__meet-link {
+  color: var(--rim-mid);
+  text-decoration: none;
+  font-weight: 600;
+}
+.hub-detail__meet-link:hover { text-decoration: underline; }
+.hub-detail__meet-account {
+  font-size: 12px;
+  color: var(--rim-text-muted);
+  margin-top: 3px;
+}
+.hub-detail__sub-msg {
+  font-size: 13px;
+  color: #7a2020;
+  font-style: italic;
+  background: #f5e0e0;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 16px;
+}
+.hub-detail__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* ── Legend swatches (square blocks, vs dots) ─────────────────── */
+.hub-legend-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.hub-legend-swatch--claimed   { background: #b8d4b8; }
+.hub-legend-swatch--unclaimed { background: #f0c5a0; }
+.hub-legend-swatch--sub_needed { background: #e8b4b4; }
+.hub-legend-swatch--mine       { background: #9db8d4; }
+
+/* Move legend to its own row below controls */
+.hub-schedule__legend {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 6px 0 14px;
+  font-size: 12px;
+  color: var(--rim-text-muted);
+}
+.hub-schedule__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Mine = blue assignment (overrides claimed green) */
+.hub-cal__event--mine { background: #dce8f5; border-left-color: #2d5f8a; color: #1B3A5C; }

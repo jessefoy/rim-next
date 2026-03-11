@@ -18,6 +18,7 @@ interface HostProgram {
   slug: string;
   zoomLink: string;
   meetHostAccount?: string | null;
+  programFormat?: string | null;
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
@@ -86,6 +87,7 @@ export default async function HubSchedulePage({
       subMessage:      openSub?.message ?? null,
       zoomLink:        prog?.zoomLink ?? null,
       meetHostAccount: prog?.meetHostAccount ?? null,
+      programFormat:   prog?.programFormat ?? null,
     };
   });
 
@@ -94,6 +96,7 @@ export default async function HubSchedulePage({
     name:            p.name,
     zoomLink:        p.zoomLink ?? null,
     meetHostAccount: p.meetHostAccount ?? null,
+    programFormat:   p.programFormat ?? null,
   }));
 
   return (

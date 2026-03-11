@@ -14,6 +14,7 @@ interface Session {
   subMessage: string | null;
   zoomLink: string | null;
   meetHostAccount: string | null;
+  programFormat: string | null;
 }
 
 interface Program {
@@ -21,6 +22,7 @@ interface Program {
   name: string;
   zoomLink: string | null;
   meetHostAccount: string | null;
+  programFormat: string | null;
 }
 
 interface Props {
@@ -30,7 +32,6 @@ interface Props {
   initialMonth: number; // 0-indexed
   currentUserId: string;
   currentUserName: string;
-  /** API route base. Defaults to /api/host */
   apiBase?: string;
 }
 
@@ -40,20 +41,39 @@ const MONTHS = [
 ];
 const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
-function fmtDate(iso: string, opts?: Intl.DateTimeFormatOptions) {
-  return new Date(iso).toLocaleDateString("en-US", opts ?? {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-US", {
+    weekday: "long", month: "long", day: "numeric", year: "numeric",
+    timeZone: "America/Chicago",
+  });
+}
+
+function fmtTime(iso: string) {
+  return new Date(iso).toLocaleTimeString("en-US", {
+    hour: "numeric", minute: "2-digit", timeZone: "America/Chicago",
   });
 }
 
 function fmtShort(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
+    weekday: "short", month: "short", day: "numeric",
+    timeZone: "America/Chicago",
   });
+}
+
+/** "Jesse Foy" → "Jesse F." */
+function shortName(full: string) {
+  const parts = full.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1][0]}.`;
+}
+
+function formatLabel(fmt: string | null) {
+  if (!fmt) return null;
+  if (fmt === "virtual") return "Virtual (Zoom)";
+  if (fmt === "hybrid") return "Hybrid";
+  if (fmt === "in-person") return "In Person";
+  return fmt;
 }
 
 function Toast({ msg }: { msg: string | null }) {
@@ -61,9 +81,9 @@ function Toast({ msg }: { msg: string | null }) {
   return <div className="hub-toast">{msg}</div>;
 }
 
-// ── Session Panel ─────────────────────────────────────────────────────────────
+// ── Inline Session Detail Panel ───────────────────────────────────────────────
 
-function SessionPanel({
+function SessionDetail({
   session: s,
   currentUserId,
   currentUserName,
@@ -87,85 +107,91 @@ function SessionPanel({
   const [removeWarnOpen, setRemoveWarnOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const isOwn = s.hostUserId === currentUserId;
+  const isOwn      = s.hostUserId === currentUserId;
   const isUnclaimed = s.status === "unclaimed";
   const isSubNeeded = s.status === "sub_needed";
-  const isClaimed = s.status === "claimed" && !isSubNeeded;
+  const isClaimed   = s.status === "claimed";
+
+  const hostDisplay = isSubNeeded
+    ? (s.hostName ? `${s.hostName} (needs sub)` : "Needs sub")
+    : s.hostName ?? "None — open for coverage";
 
   return (
-    <div className="hub-panel">
-      <div className="hub-panel__head">
-        <span className="hub-panel__heading">Session</span>
-        <button
-          className="hub-panel__close"
-          onClick={onClose}
-          aria-label="Close panel"
-        >
-          ×
-        </button>
+    <div className="hub-detail">
+      <div className="hub-detail__top">
+        <div className="hub-detail__title-row">
+          <div>
+            <h3 className="hub-detail__name">{s.programName}</h3>
+            {s.sessionDate && (
+              <div className="hub-detail__date">{fmtDate(s.sessionDate)}</div>
+            )}
+          </div>
+          {s.status !== "unclaimed" && (
+            <span className={`hub-pill hub-pill--${s.status}`}>
+              {isClaimed ? "Claimed" : "Sub Needed"}
+            </span>
+          )}
+        </div>
+
+        {/* Three-column info grid */}
+        <div className="hub-detail__cols">
+          <div className="hub-detail__col">
+            <div className="hub-detail__col-label">Assigned Host</div>
+            <div className="hub-detail__col-value">{hostDisplay}</div>
+          </div>
+          {s.programFormat && (
+            <div className="hub-detail__col">
+              <div className="hub-detail__col-label">Format</div>
+              <div className="hub-detail__col-value">{formatLabel(s.programFormat)}</div>
+            </div>
+          )}
+          {s.zoomLink && (
+            <div className="hub-detail__col">
+              <div className="hub-detail__col-label">Google Meet</div>
+              <div className="hub-detail__col-value">
+                <a href={s.zoomLink} target="_blank" rel="noopener noreferrer" className="hub-detail__meet-link">
+                  Join meeting →
+                </a>
+                {s.meetHostAccount && (
+                  <div className="hub-detail__meet-account">Sign in as {s.meetHostAccount}</div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {s.subMessage && (
+          <div className="hub-detail__sub-msg">
+            <strong>Sub note:</strong> "{s.subMessage}"
+          </div>
+        )}
       </div>
 
-      <span className={`hub-pill hub-pill--${s.status}`}>
-        {s.status === "claimed" ? "Claimed" : s.status === "sub_needed" ? "Sub Needed" : "Needs Host"}
-      </span>
-
-      <h3 className="hub-panel__title">{s.programName}</h3>
-      {s.sessionDate && (
-        <div className="hub-panel__date">{fmtDate(s.sessionDate)}</div>
-      )}
-
-      {/* Host info card */}
-      {isSubNeeded ? (
-        <div className="hub-panel-info hub-panel-info--red">
-          <div className="hub-panel-info__label">Sub Requested</div>
-          {s.subMessage && <div className="hub-panel-info__msg">"{s.subMessage}"</div>}
-        </div>
-      ) : s.hostName ? (
-        <div className="hub-panel-info hub-panel-info--teal">
-          <div className="hub-panel-info__label">Host</div>
-          <div className="hub-panel-info__value">{s.hostName}</div>
-        </div>
-      ) : (
-        <div className="hub-panel-info hub-panel-info--amber">
-          <div className="hub-panel-info__label">No host yet</div>
-          <div className="hub-panel-info__value">This session needs someone to step up.</div>
-        </div>
-      )}
-
       {/* Actions */}
-      {isUnclaimed && (
-        <button
-          className="hub-btn hub-btn--primary hub-btn--full"
-          style={{ marginBottom: 10 }}
-          onClick={() => onClaim(s.id)}
-        >
-          Claim This Session →
-        </button>
-      )}
-
-      {isSubNeeded && s.subRequestId && !isOwn && (
-        <button
-          className="hub-btn hub-btn--danger hub-btn--full"
-          style={{ marginBottom: 10 }}
-          onClick={() => onClaimSub(s.id, s.subRequestId!)}
-        >
-          I&rsquo;ll Take This Session →
-        </button>
-      )}
-
-      {isOwn && isClaimed && !subFormOpen && !removeWarnOpen && (
-        <div className="hub-panel__actions">
-          <button
-            className="hub-btn hub-btn--ghost hub-btn--full"
-            onClick={() => setSubFormOpen(true)}
-          >
-            I Need a Sub
-          </button>
-          <button
-            className="hub-panel__remove-link"
-            onClick={() => setRemoveWarnOpen(true)}
-          >
-            Remove myself from this session
+      {!subFormOpen && !removeWarnOpen && (
+        <div className="hub-detail__actions">
+          {isUnclaimed && (
+            <button className="hub-btn hub-btn--primary" onClick={() => onClaim(s.id)}>
+              Claim as Host
+            </button>
+          )}
+          {isSubNeeded && s.subRequestId && !isOwn && (
+            <button className="hub-btn hub-btn--primary" onClick={() => onClaimSub(s.id, s.subRequestId!)}>
+              Cover This Session
+            </button>
+          )}
+          {isOwn && isClaimed && (
+            <button className="hub-btn hub-btn--ghost" onClick={() => setSubFormOpen(true)}>
+              Request Sub
+            </button>
+          )}
+          {isOwn && (
+            <button className="hub-btn hub-btn--ghost" onClick={() => setRemoveWarnOpen(true)}>
+              Remove Myself
+            </button>
+          )}
+          <button className="hub-btn hub-btn--secondary" onClick={onClose}>
+            Dismiss
           </button>
         </div>
       )}
@@ -194,10 +220,7 @@ function SessionPanel({
             >
               {submitting ? "Sending…" : "Send Sub Request"}
             </button>
-            <button
-              className="hub-btn hub-btn--secondary"
-              onClick={() => { setSubFormOpen(false); setSubMsg(""); }}
-            >
+            <button className="hub-btn hub-btn--secondary" onClick={() => { setSubFormOpen(false); setSubMsg(""); }}>
               Cancel
             </button>
           </div>
@@ -224,33 +247,10 @@ function SessionPanel({
             >
               {submitting ? "Removing…" : "Yes, remove me"}
             </button>
-            <button
-              className="hub-btn hub-btn--secondary"
-              onClick={() => setRemoveWarnOpen(false)}
-            >
+            <button className="hub-btn hub-btn--secondary" onClick={() => setRemoveWarnOpen(false)}>
               Cancel
             </button>
           </div>
-        </div>
-      )}
-
-      {/* Google Meet link */}
-      {s.zoomLink && (
-        <div className="hub-panel__meet">
-          <div className="hub-panel__meet-label">Google Meet</div>
-          <a
-            href={s.zoomLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hub-panel__meet-link"
-          >
-            Join meeting →
-          </a>
-          {s.meetHostAccount && (
-            <div className="hub-panel__meet-account">
-              Sign in as <strong>{s.meetHostAccount}</strong>
-            </div>
-          )}
         </div>
       )}
     </div>
@@ -291,18 +291,10 @@ function MultiClaimModal({
           ))}
         </div>
         <div className="hub-modal__actions">
-          <button
-            className="hub-btn hub-btn--primary hub-btn--full"
-            onClick={onConfirm}
-            disabled={submitting}
-          >
+          <button className="hub-btn hub-btn--primary hub-btn--full" onClick={onConfirm} disabled={submitting}>
             {submitting ? "Claiming…" : "Confirm — I'll host all of these →"}
           </button>
-          <button
-            className="hub-btn hub-btn--secondary hub-btn--full"
-            onClick={onBack}
-            disabled={submitting}
-          >
+          <button className="hub-btn hub-btn--secondary hub-btn--full" onClick={onBack} disabled={submitting}>
             Back
           </button>
         </div>
@@ -327,8 +319,8 @@ export default function HubScheduleClient({
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
   const [loading, setLoading] = useState(false);
-  const [selected, setSelected] = useState<Session | null>(null);  // calendar panel
-  const [expandedId, setExpandedId] = useState<string | null>(null); // list inline row
+  const [selected, setSelected] = useState<Session | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [multiIds, setMultiIds] = useState<Set<string>>(new Set());
   const [confirming, setConfirming] = useState(false);
   const [claiming, setClaiming] = useState(false);
@@ -340,7 +332,6 @@ export default function HubScheduleClient({
     setTimeout(() => setToast(null), 2800);
   };
 
-  // Load sessions for a different month
   const loadMonth = useCallback(async (y: number, m: number) => {
     setLoading(true);
     setSelected(null);
@@ -360,16 +351,16 @@ export default function HubScheduleClient({
         subMessage: string | null;
       }> = await res.json();
 
-      // Merge with static program info
       const programBySlug = new Map(programs.map((p) => [p.slug, p]));
       setSessions(
         data.map((a) => {
           const prog = programBySlug.get(a.programSlug);
           return {
             ...a,
-            programName: prog?.name ?? a.programSlug,
-            zoomLink: prog?.zoomLink ?? null,
+            programName:   prog?.name ?? a.programSlug,
+            zoomLink:      prog?.zoomLink ?? null,
             meetHostAccount: prog?.meetHostAccount ?? null,
+            programFormat: prog?.programFormat ?? null,
           };
         })
       );
@@ -383,20 +374,15 @@ export default function HubScheduleClient({
   function prevMonth() {
     const m = month === 0 ? 11 : month - 1;
     const y = month === 0 ? year - 1 : year;
-    setYear(y);
-    setMonth(m);
-    loadMonth(y, m);
+    setYear(y); setMonth(m); loadMonth(y, m);
   }
 
   function nextMonth() {
     const m = month === 11 ? 0 : month + 1;
     const y = month === 11 ? year + 1 : year;
-    setYear(y);
-    setMonth(m);
-    loadMonth(y, m);
+    setYear(y); setMonth(m); loadMonth(y, m);
   }
 
-  // Claim a single session
   async function claimSession(id: string) {
     try {
       const res = await fetch(`${apiBase}/assignments/${id}`, {
@@ -404,103 +390,64 @@ export default function HubScheduleClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "claim" }),
       });
-      if (!res.ok) {
-        const d = await res.json();
-        showToast(d.error ?? "Something went wrong.");
-        return;
-      }
-      setSessions((prev) =>
-        prev.map((s) =>
-          s.id === id
-            ? { ...s, status: "claimed", hostUserId: currentUserId, hostName: currentUserName }
-            : s
-        )
-      );
+      if (!res.ok) { const d = await res.json(); showToast(d.error ?? "Something went wrong."); return; }
+      setSessions((prev) => prev.map((s) =>
+        s.id === id ? { ...s, status: "claimed", hostUserId: currentUserId, hostName: currentUserName } : s
+      ));
       setSelected((s) =>
-        s?.id === id
-          ? { ...s, status: "claimed", hostUserId: currentUserId, hostName: currentUserName }
-          : s
+        s?.id === id ? { ...s, status: "claimed", hostUserId: currentUserId, hostName: currentUserName } : s
       );
       showToast("✓ Session claimed — team notified.");
-    } catch {
-      showToast("Network error. Please try again.");
-    }
+    } catch { showToast("Network error. Please try again."); }
   }
 
-  // Submit sub request
   async function submitSubRequest(assignmentId: string, message: string) {
     const res = await fetch(`${apiBase}/sub-requests`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ assignmentId, message: message.trim() || null }),
     });
-    if (!res.ok) {
-      const d = await res.json();
-      showToast(d.error ?? "Something went wrong.");
-      return;
-    }
-    setSessions((prev) =>
-      prev.map((s) =>
-        s.id === assignmentId
-          ? { ...s, status: "sub_needed", subMessage: message.trim() || null }
-          : s
-      )
-    );
+    if (!res.ok) { const d = await res.json(); showToast(d.error ?? "Something went wrong."); return; }
+    setSessions((prev) => prev.map((s) =>
+      s.id === assignmentId ? { ...s, status: "sub_needed", subMessage: message.trim() || null } : s
+    ));
     showToast("Sub request sent — team notified by email and dashboard alert.");
   }
 
-  // Unclaim (remove self)
   async function unclaimSession(id: string) {
     const res = await fetch(`${apiBase}/assignments/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "unclaim" }),
     });
-    if (!res.ok) {
-      const d = await res.json();
-      showToast(d.error ?? "Something went wrong.");
-      return;
-    }
-    setSessions((prev) =>
-      prev.map((s) =>
-        s.id === id
-          ? { ...s, status: "unclaimed", hostUserId: null, hostName: null, subRequestId: null, subMessage: null }
-          : s
-      )
-    );
+    if (!res.ok) { const d = await res.json(); showToast(d.error ?? "Something went wrong."); return; }
+    setSessions((prev) => prev.map((s) =>
+      s.id === id ? { ...s, status: "unclaimed", hostUserId: null, hostName: null, subRequestId: null, subMessage: null } : s
+    ));
     showToast("You've been removed. The session is now unclaimed.");
   }
 
-  // Claim sub
   async function claimSub(assignmentId: string, subRequestId: string) {
     const res = await fetch(`${apiBase}/sub-requests/${subRequestId}/claim`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({}),
     });
-    if (!res.ok) {
-      const d = await res.json();
-      showToast(d.error ?? "Something went wrong.");
-      return;
-    }
-    setSessions((prev) =>
-      prev.map((s) =>
-        s.id === assignmentId
-          ? { ...s, status: "claimed", hostUserId: currentUserId, hostName: currentUserName, subRequestId: null, subMessage: null }
-          : s
-      )
-    );
+    if (!res.ok) { const d = await res.json(); showToast(d.error ?? "Something went wrong."); return; }
+    setSessions((prev) => prev.map((s) =>
+      s.id === assignmentId
+        ? { ...s, status: "claimed", hostUserId: currentUserId, hostName: currentUserName, subRequestId: null, subMessage: null }
+        : s
+    ));
     setSelected(null);
     showToast("✓ You're covering this session — the original host has been notified.");
   }
 
-  // Multi-select
   function toggleMulti(id: string, status: string) {
-    if (status === "claimed") return; // can't select claimed sessions
+    if (status === "claimed") return;
     setMultiIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
   }
@@ -509,58 +456,46 @@ export default function HubScheduleClient({
     setClaiming(true);
     const ids = [...multiIds];
     try {
-      await Promise.all(
-        ids.map((id) =>
-          fetch(`${apiBase}/assignments/${id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "claim" }),
-          })
-        )
-      );
-      setSessions((prev) =>
-        prev.map((s) =>
-          ids.includes(s.id)
-            ? { ...s, status: "claimed", hostUserId: currentUserId, hostName: currentUserName }
-            : s
-        )
-      );
+      await Promise.all(ids.map((id) =>
+        fetch(`${apiBase}/assignments/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "claim" }),
+        })
+      ));
+      setSessions((prev) => prev.map((s) =>
+        ids.includes(s.id) ? { ...s, status: "claimed", hostUserId: currentUserId, hostName: currentUserName } : s
+      ));
       showToast(`✓ ${ids.length} session${ids.length > 1 ? "s" : ""} claimed — team notified.`);
       setMultiIds(new Set());
       setConfirming(false);
       setSelected(null);
-    } catch {
-      showToast("Network error. Please try again.");
-    } finally {
-      setClaiming(false);
-    }
+    } catch { showToast("Network error. Please try again."); }
+    finally { setClaiming(false); }
   }
 
-  // Calendar grid helpers
   const firstDayOfMonth = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const today = new Date();
   const isToday = (day: number) =>
     today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
 
-  // Apply filter
   const filteredSessions = sessions.filter((s) => {
-    if (filter === "mine") return s.hostUserId === currentUserId;
+    if (filter === "mine")   return s.hostUserId === currentUserId;
     if (filter === "action") return s.status === "unclaimed" || s.status === "sub_needed";
     return true;
   });
 
-  const sessionsForDay = (day: number) => {
-    return filteredSessions.filter((s) => {
+  const sessionsForDay = (day: number) =>
+    filteredSessions.filter((s) => {
       if (!s.sessionDate) return false;
       const d = new Date(s.sessionDate);
       return d.getFullYear() === year && d.getMonth() === month && d.getDate() === day;
     });
-  };
 
   return (
     <div className="hub-schedule">
-      {/* Header */}
+      {/* Header row */}
       <div className="hub-schedule__header">
         <div className="hub-schedule__nav">
           <button className="hub-schedule__nav-btn" onClick={prevMonth} aria-label="Previous month">←</button>
@@ -576,34 +511,37 @@ export default function HubScheduleClient({
                 className={`hub-schedule__filter-btn${filter === f ? " hub-schedule__filter-btn--active" : ""}`}
                 onClick={() => { setFilter(f); setMultiIds(new Set()); }}
               >
-                {f === "all" ? "All" : f === "mine" ? "Mine" : "Needs Attention"}
+                {f === "all" ? "All Sessions" : f === "mine" ? "My Sessions" : "Needs Coverage"}
               </button>
             ))}
           </div>
-          <div className="hub-schedule__legend">
-            {(["claimed", "unclaimed", "sub_needed"] as const).map((st) => (
-              <div key={st} className="hub-schedule__legend-item">
-                <span className={`hub-dot hub-dot--${st}`} />
-                <span>{st === "claimed" ? "Claimed" : st === "unclaimed" ? "Needs Host" : "Sub Needed"}</span>
-              </div>
-            ))}
-          </div>
+          {/* View toggle */}
           <div className="hub-schedule__view-toggle">
             <button
               className={`hub-schedule__view-btn${view === "calendar" ? " hub-schedule__view-btn--active" : ""}`}
               onClick={() => setView("calendar")}
               title="Calendar view"
-            >
-              📅
-            </button>
+            >📅</button>
             <button
               className={`hub-schedule__view-btn${view === "list" ? " hub-schedule__view-btn--active" : ""}`}
               onClick={() => setView("list")}
               title="List view"
-            >
-              ☰
-            </button>
+            >☰</button>
           </div>
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div className="hub-schedule__legend">
+        {(["claimed", "unclaimed", "sub_needed"] as const).map((st) => (
+          <div key={st} className="hub-schedule__legend-item">
+            <span className={`hub-legend-swatch hub-legend-swatch--${st}`} />
+            <span>{st === "claimed" ? "Covered" : st === "unclaimed" ? "Needs Host" : "Sub Needed"}</span>
+          </div>
+        ))}
+        <div className="hub-schedule__legend-item">
+          <span className="hub-legend-swatch hub-legend-swatch--mine" />
+          <span>My assignment</span>
         </div>
       </div>
 
@@ -613,13 +551,9 @@ export default function HubScheduleClient({
       {view === "calendar" && !loading && (
         <div className="hub-cal-wrap">
           <div className="hub-cal">
-            {/* Day headers */}
             <div className="hub-cal__headers">
-              {DAYS.map((d) => (
-                <div key={d} className="hub-cal__day-label">{d}</div>
-              ))}
+              {DAYS.map((d) => <div key={d} className="hub-cal__day-label">{d}</div>)}
             </div>
-            {/* Grid */}
             <div className="hub-cal__grid">
               {Array.from({ length: firstDayOfMonth }).map((_, i) => (
                 <div key={`empty-${i}`} className="hub-cal__cell hub-cal__cell--empty" />
@@ -628,20 +562,21 @@ export default function HubScheduleClient({
                 const daySessions = sessionsForDay(day);
                 const todayCell = isToday(day);
                 return (
-                  <div
-                    key={day}
-                    className={`hub-cal__cell${todayCell ? " hub-cal__cell--today" : ""}`}
-                  >
-                    <div className={`hub-cal__day-num${todayCell ? " hub-cal__day-num--today" : ""}`}>
-                      {day}
-                    </div>
+                  <div key={day} className={`hub-cal__cell${todayCell ? " hub-cal__cell--today" : ""}`}>
+                    <div className={`hub-cal__day-num${todayCell ? " hub-cal__day-num--today" : ""}`}>{day}</div>
                     {daySessions.map((s) => {
                       const inMulti = multiIds.has(s.id);
+                      const isMine  = s.hostUserId === currentUserId;
+                      const evtClass = isMine ? "mine" : s.status;
+                      // "Program · Host" label
+                      const label = s.hostName
+                        ? `${s.programName} · ${shortName(s.hostName)}`
+                        : s.programName;
                       return (
                         <div
                           key={s.id}
-                          className={`hub-cal__event hub-cal__event--${s.status}${inMulti ? " hub-cal__event--selected" : ""}`}
-                          onClick={() => setSelected(s)}
+                          className={`hub-cal__event hub-cal__event--${evtClass}${inMulti ? " hub-cal__event--selected" : ""}`}
+                          onClick={() => { setSelected(s); setExpandedId(null); }}
                         >
                           {s.status !== "claimed" && (
                             <input
@@ -653,9 +588,7 @@ export default function HubScheduleClient({
                               aria-label={`Select ${s.programName}`}
                             />
                           )}
-                          <span className="hub-cal__event-label">
-                            {inMulti ? "✓" : s.hostName ?? s.programName}
-                          </span>
+                          <span className="hub-cal__event-label">{inMulti ? "✓ " + s.programName : label}</span>
                         </div>
                       );
                     })}
@@ -672,10 +605,8 @@ export default function HubScheduleClient({
         <div className="hub-list">
           {filteredSessions.length === 0 ? (
             <p className="hub-empty">
-              {filter === "mine"
-                ? "You haven't claimed any sessions this month."
-                : filter === "action"
-                ? "No sessions need attention this month."
+              {filter === "mine" ? "You haven't claimed any sessions this month."
+                : filter === "action" ? "No sessions need attention this month."
                 : "No sessions this month."}
             </p>
           ) : (
@@ -694,30 +625,22 @@ export default function HubScheduleClient({
                     <div className="hub-list__date-block">
                       {s.sessionDate ? (
                         <>
-                          <div className="hub-list__month">
-                            {new Date(s.sessionDate).toLocaleDateString("en-US", { month: "short" })}
-                          </div>
-                          <div className="hub-list__day">
-                            {new Date(s.sessionDate).getDate()}
-                          </div>
+                          <div className="hub-list__month">{new Date(s.sessionDate).toLocaleDateString("en-US", { month: "short", timeZone: "America/Chicago" })}</div>
+                          <div className="hub-list__day">{new Date(s.sessionDate).getDate()}</div>
                         </>
-                      ) : (
-                        <div className="hub-list__standing">—</div>
-                      )}
+                      ) : <div className="hub-list__standing">—</div>}
                     </div>
                     <div className="hub-list__info">
                       <div className="hub-list__name">{s.programName}</div>
-                      <div className="hub-list__host">
-                        {s.hostName ? `Host: ${s.hostName}` : "No host assigned"}
-                      </div>
+                      <div className="hub-list__host">{s.hostName ? `Host: ${s.hostName}` : "No host assigned"}</div>
                     </div>
                     <span className={`hub-pill hub-pill--${s.status}`}>
-                      {s.status === "claimed" ? "Claimed" : s.status === "sub_needed" ? "Sub Needed" : "Needs Host"}
+                      {s.status === "claimed" ? "Covered" : s.status === "sub_needed" ? "Sub Needed" : "Needs Host"}
                     </span>
                   </div>
                   {expandedId === s.id && (
                     <div className="hub-list__inline-panel">
-                      <SessionPanel
+                      <SessionDetail
                         session={s}
                         currentUserId={currentUserId}
                         currentUserName={currentUserName}
@@ -739,22 +662,12 @@ export default function HubScheduleClient({
       {multiIds.size > 0 && (
         <div className="hub-multi-footer">
           <span>Selected <strong>{multiIds.size}</strong> session{multiIds.size > 1 ? "s" : ""}</span>
-          <button
-            className="hub-multi-footer__claim-btn"
-            onClick={() => setConfirming(true)}
-          >
-            Review & Claim →
-          </button>
-          <button
-            className="hub-multi-footer__clear-btn"
-            onClick={() => setMultiIds(new Set())}
-          >
-            Clear
-          </button>
+          <button className="hub-multi-footer__claim-btn" onClick={() => setConfirming(true)}>Review & Claim →</button>
+          <button className="hub-multi-footer__clear-btn" onClick={() => setMultiIds(new Set())}>Clear</button>
         </div>
       )}
 
-      {/* Multi-claim confirmation */}
+      {/* Multi-claim confirmation modal */}
       {confirming && (
         <MultiClaimModal
           sessions={sessions.filter((s) => multiIds.has(s.id))}
@@ -764,21 +677,18 @@ export default function HubScheduleClient({
         />
       )}
 
-      {/* Session detail panel */}
+      {/* Inline session detail — appears below calendar */}
       {selected && (
-        <>
-          <div className="hub-panel-backdrop" onClick={() => setSelected(null)} />
-          <SessionPanel
-            session={selected}
-            currentUserId={currentUserId}
-            currentUserName={currentUserName}
-            onClose={() => setSelected(null)}
-            onClaim={claimSession}
-            onSubRequest={submitSubRequest}
-            onUnclaim={unclaimSession}
-            onClaimSub={claimSub}
-          />
-        </>
+        <SessionDetail
+          session={selected}
+          currentUserId={currentUserId}
+          currentUserName={currentUserName}
+          onClose={() => setSelected(null)}
+          onClaim={claimSession}
+          onSubRequest={submitSubRequest}
+          onUnclaim={unclaimSession}
+          onClaimSub={claimSub}
+        />
       )}
 
       <Toast msg={toast} />
