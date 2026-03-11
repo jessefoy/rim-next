@@ -1,15 +1,12 @@
-import NextAuth from "next-auth";
-import { authConfig } from "./auth.config";
+import { NextResponse } from "next/server";
 
-// Edge-safe proxy (Next.js 16 uses proxy.ts with a default export).
-// Uses lightweight auth config with no PrismaAdapter so it runs in Edge runtime.
-// Full auth (with DB adapter + session callback) lives in auth.ts and is
-// used by pages/API routes which run in Node.js runtime.
-// Unauthenticated requests are redirected to /login via the authorized() callback.
-// agreedToTerms + archivedAt checks are handled per-page.
-const { auth } = NextAuth(authConfig);
-export default auth;
+// Route protection is handled per-page via auth() from auth.ts (Node.js runtime).
+// NextAuth v5 with a database adapter cannot verify sessions in Edge runtime,
+// so we cannot do auth-gating here without causing login loops.
+// All protected pages already call auth() and redirect to /login if unauthenticated.
+export default function proxy() {
+  return NextResponse.next();
+}
 
-export const config = {
-  matcher: ["/account/:path*", "/account/hub/:path*", "/volunteer/:path*", "/admin/:path*", "/course/:path*", "/hosts/:path*", "/hosts"],
-};
+// Empty matcher — proxy runs on no routes.
+export const config = { matcher: [] };
