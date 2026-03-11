@@ -101,15 +101,33 @@ model User {
   hostThreads     HostThread[]       @relation("HostThreads")
   hostReplies     HostReply[]        @relation("HostReplies")
   alerts          Alert[]            @relation("Alerts")
+  // Hub system
+  hubMemberships  HubMember[]
+  hubAnnouncements HubAnnouncement[]
+  hubDocuments    HubDocument[]
+  hubThreads2     HubConversationThread[]
+  hubReplies2     HubConversationReply[]
 
   @@map("users")
 }
 
 enum Role {
-  HOST          // Zoom host rotation — access to full host hub; can host sessions + claim subs
-  HOST_MANAGER  // manages host schedule and community; full hub read/write; can also be on rotation
-  REGISTRAR     // manages program registrations + Sanity Studio access (no hub access)
-  ADMIN         // full access
+  HOST                 // Zoom host rotation — access to full host hub; can host sessions + claim subs
+  HOST_MANAGER         // manages host schedule and community; full hub read/write; can also be on rotation
+  REGISTRAR            // manages program registrations + Sanity Studio access (no hub access)
+  ADMIN                // full access
+  // Volunteer team roles — organizational record; hub access driven by HubMember table
+  VOLUNTEER_COORDINATOR
+  NEWSLETTER
+  GREETER
+  AV_TEAM
+  HOUSEKEEPING
+  PLANT_CARE
+  SANGHA_CARE
+  KM_SUPPORT
+  SILENT_MEDITATION
+  BOARD
+  TEACHER_COUNCIL
 }
 
 enum MemberStatus {
@@ -472,4 +490,141 @@ enum AlertType {
   NEW_THREAD         // all hub members: new thread posted
   NEW_REPLY          // thread author + prior repliers: new reply on a thread you're in
   UNASSIGNED_SESSION // HOST_MANAGER + ADMIN: program within 30 days has no host assigned
+}
+
+// ─── MULTI-HUB SYSTEM ────────────────────────────────────────────────────────
+// Generic workspace system for any volunteer team. Each hub has tabs:
+// Announcements (default), Documents, Conversations, Members, + optional Schedule.
+// Access is driven by HubMember records, not by Role enum values.
+
+enum HubType {
+  OPERATIONAL
+  GOVERNANCE
+  COMMUNITY_GROUP
+}
+
+enum AnnouncementPriority {
+  NORMAL
+  IMPORTANT
+  URGENT
+}
+
+enum AnnouncementStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum HubDocumentFileType {
+  DOC
+  SHEET
+  SLIDE
+  FORM
+  LINK
+}
+
+model Hub {
+  id                     String        @id @default(cuid())
+  slug                   String        @unique
+  name                   String
+  type                   HubType
+  description            String?
+  hasSchedule            Boolean       @default(false)
+  documentCategories     String[]      @default([])
+  conversationCategories String[]      @default(["General"])
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  members       HubMember[]
+  announcements HubAnnouncement[]
+  documents     HubDocument[]
+  threads       HubConversationThread[]
+
+  @@map("hubs")
+}
+
+model HubMember {
+  id            String    @id @default(cuid())
+  hubId         String
+  userId        String
+  position      String?   // e.g. "Virtual Host Coordinator" — free text label
+  isCoordinator Boolean   @default(false)
+  joinedAt      DateTime  @default(now())
+  lastVisitedAt DateTime? // for unread dot tracking on dashboard hub cards
+
+  hub  Hub  @relation(fields: [hubId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([hubId, userId])
+  @@map("hub_members")
+}
+
+model HubAnnouncement {
+  id             String               @id @default(cuid())
+  hubId          String
+  authorId       String
+  title          String
+  body           String               @db.Text
+  priority       AnnouncementPriority @default(NORMAL)
+  status         AnnouncementStatus   @default(ACTIVE)
+  linkedThreadId String?
+
+  hub          Hub                    @relation(fields: [hubId], references: [id])
+  author       User                   @relation(fields: [authorId], references: [id])
+  linkedThread HubConversationThread? @relation(fields: [linkedThreadId], references: [id])
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+
+  @@map("hub_announcements")
+}
+
+model HubDocument {
+  id          String              @id @default(cuid())
+  hubId       String
+  addedById   String
+  label       String
+  url         String
+  description String?
+  fileType    HubDocumentFileType @default(LINK)
+  category    String?
+
+  hub     Hub      @relation(fields: [hubId], references: [id])
+  addedBy User     @relation(fields: [addedById], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("hub_documents")
+}
+
+model HubConversationThread {
+  id                   String    @id @default(cuid())
+  hubId                String
+  authorId             String
+  title                String
+  body                 String    @default("")
+  category             String    @default("General")
+  status               String    @default("OPEN")
+  sourceAnnouncementId String?
+
+  hub           Hub               @relation(fields: [hubId], references: [id])
+  author        User              @relation(fields: [authorId], references: [id])
+  replies       HubConversationReply[]
+  announcements HubAnnouncement[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@map("hub_conversation_threads")
+}
+
+model HubConversationReply {
+  id       String   @id @default(cuid())
+  threadId String
+  authorId String
+  body     String   @db.Text
+
+  thread    HubConversationThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  author    User                  @relation(fields: [authorId], references: [id])
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+
+  @@map("hub_conversation_replies")
 }

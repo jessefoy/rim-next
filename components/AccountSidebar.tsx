@@ -22,8 +22,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+interface HubLink {
+  slug: string;
+  name: string;
+}
+
 interface Props {
   roles: string[];
+  hubLinks?: HubLink[];
 }
 
 interface NavLink {
@@ -38,7 +44,7 @@ const MEMBER_LINKS: NavLink[] = [
   { label: "My Profile",   href: "/account/dashboard-my-profile" },
 ];
 
-export default function AccountSidebar({ roles }: Props) {
+export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
   const pathname = usePathname();
 
   const hasHost       = roles.includes("HOST") || roles.includes("HOST_MANAGER");
@@ -63,6 +69,23 @@ export default function AccountSidebar({ roles }: Props) {
             {l.label}
           </Link>
         ))}
+
+        {/* ── Your Hubs ── */}
+        {hubLinks.length > 0 && (
+          <>
+            <div className="ac-sidebar__divider" role="separator" />
+            <div className="ac-sidebar__section-label">Your Hubs</div>
+            {hubLinks.map((h) => (
+              <Link
+                key={h.slug}
+                href={`/account/hub/${h.slug}`}
+                className={linkClass(`/account/hub/${h.slug}`)}
+              >
+                {h.name}
+              </Link>
+            ))}
+          </>
+        )}
 
         {/* ── Role links ── */}
         {hasRoleLinks && <div className="ac-sidebar__divider" role="separator" />}

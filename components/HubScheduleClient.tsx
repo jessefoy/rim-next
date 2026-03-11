@@ -30,6 +30,8 @@ interface Props {
   initialMonth: number; // 0-indexed
   currentUserId: string;
   currentUserName: string;
+  /** API route base. Defaults to /api/host */
+  apiBase?: string;
 }
 
 const MONTHS = [
@@ -318,13 +320,15 @@ export default function HubScheduleClient({
   initialMonth,
   currentUserId,
   currentUserName,
+  apiBase = "/api/host",
 }: Props) {
   const [sessions, setSessions] = useState<Session[]>(initialSessions);
   const [view, setView] = useState<"calendar" | "list">("calendar");
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
   const [loading, setLoading] = useState(false);
-  const [selected, setSelected] = useState<Session | null>(null);
+  const [selected, setSelected] = useState<Session | null>(null);  // calendar panel
+  const [expandedId, setExpandedId] = useState<string | null>(null); // list inline row
   const [multiIds, setMultiIds] = useState<Set<string>>(new Set());
   const [confirming, setConfirming] = useState(false);
   const [claiming, setClaiming] = useState(false);
@@ -343,7 +347,7 @@ export default function HubScheduleClient({
     setMultiIds(new Set());
     try {
       const monthStr = `${y}-${String(m + 1).padStart(2, "0")}`;
-      const res = await fetch(`/api/host/assignments?month=${monthStr}`);
+      const res = await fetch(`${apiBase}/assignments?month=${monthStr}`);
       if (!res.ok) return;
       const data: Array<{
         id: string;
@@ -395,7 +399,7 @@ export default function HubScheduleClient({
   // Claim a single session
   async function claimSession(id: string) {
     try {
-      const res = await fetch(`/api/host/assignments/${id}`, {
+      const res = await fetch(`${apiBase}/assignments/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "claim" }),
@@ -425,7 +429,7 @@ export default function HubScheduleClient({
 
   // Submit sub request
   async function submitSubRequest(assignmentId: string, message: string) {
-    const res = await fetch("/api/host/sub-requests", {
+    const res = await fetch(`${apiBase}/sub-requests`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ assignmentId, message: message.trim() || null }),
@@ -447,7 +451,7 @@ export default function HubScheduleClient({
 
   // Unclaim (remove self)
   async function unclaimSession(id: string) {
-    const res = await fetch(`/api/host/assignments/${id}`, {
+    const res = await fetch(`${apiBase}/assignments/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "unclaim" }),
@@ -469,7 +473,7 @@ export default function HubScheduleClient({
 
   // Claim sub
   async function claimSub(assignmentId: string, subRequestId: string) {
-    const res = await fetch(`/api/host/sub-requests/${subRequestId}/claim`, {
+    const res = await fetch(`${apiBase}/sub-requests/${subRequestId}/claim`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({}),
@@ -507,7 +511,7 @@ export default function HubScheduleClient({
     try {
       await Promise.all(
         ids.map((id) =>
-          fetch(`/api/host/assignments/${id}`, {
+          fetch(`${apiBase}/assignments/${id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action: "claim" }),
@@ -682,34 +686,49 @@ export default function HubScheduleClient({
                 return new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime();
               })
               .map((s) => (
-                <div
-                  key={s.id}
-                  className={`hub-list__row hub-list__row--${s.status}`}
-                  onClick={() => setSelected(s)}
-                >
-                  <div className="hub-list__date-block">
-                    {s.sessionDate ? (
-                      <>
-                        <div className="hub-list__month">
-                          {new Date(s.sessionDate).toLocaleDateString("en-US", { month: "short" })}
-                        </div>
-                        <div className="hub-list__day">
-                          {new Date(s.sessionDate).getDate()}
-                        </div>
-                      </>
-                    ) : (
-                      <div className="hub-list__standing">—</div>
-                    )}
-                  </div>
-                  <div className="hub-list__info">
-                    <div className="hub-list__name">{s.programName}</div>
-                    <div className="hub-list__host">
-                      {s.hostName ? `Host: ${s.hostName}` : "No host assigned"}
+                <div key={s.id}>
+                  <div
+                    className={`hub-list__row hub-list__row--${s.status}${expandedId === s.id ? " hub-list__row--expanded" : ""}`}
+                    onClick={() => setExpandedId(expandedId === s.id ? null : s.id)}
+                  >
+                    <div className="hub-list__date-block">
+                      {s.sessionDate ? (
+                        <>
+                          <div className="hub-list__month">
+                            {new Date(s.sessionDate).toLocaleDateString("en-US", { month: "short" })}
+                          </div>
+                          <div className="hub-list__day">
+                            {new Date(s.sessionDate).getDate()}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="hub-list__standing">—</div>
+                      )}
                     </div>
+                    <div className="hub-list__info">
+                      <div className="hub-list__name">{s.programName}</div>
+                      <div className="hub-list__host">
+                        {s.hostName ? `Host: ${s.hostName}` : "No host assigned"}
+                      </div>
+                    </div>
+                    <span className={`hub-pill hub-pill--${s.status}`}>
+                      {s.status === "claimed" ? "Claimed" : s.status === "sub_needed" ? "Sub Needed" : "Needs Host"}
+                    </span>
                   </div>
-                  <span className={`hub-pill hub-pill--${s.status}`}>
-                    {s.status === "claimed" ? "Claimed" : s.status === "sub_needed" ? "Sub Needed" : "Needs Host"}
-                  </span>
+                  {expandedId === s.id && (
+                    <div className="hub-list__inline-panel">
+                      <SessionPanel
+                        session={s}
+                        currentUserId={currentUserId}
+                        currentUserName={currentUserName}
+                        onClose={() => setExpandedId(null)}
+                        onClaim={claimSession}
+                        onSubRequest={submitSubRequest}
+                        onUnclaim={unclaimSession}
+                        onClaimSub={claimSub}
+                      />
+                    </div>
+                  )}
                 </div>
               ))
           )}

@@ -62,13 +62,29 @@ interface Member {
   } | null;
 }
 
-const ALL_ROLES = ["HOST", "HOST_MANAGER", "REGISTRAR", "ADMIN"] as const;
+const ALL_ROLES = [
+  "HOST", "HOST_MANAGER", "REGISTRAR", "ADMIN",
+  "VOLUNTEER_COORDINATOR", "NEWSLETTER", "GREETER", "AV_TEAM",
+  "HOUSEKEEPING", "PLANT_CARE", "SANGHA_CARE", "KM_SUPPORT",
+  "SILENT_MEDITATION", "BOARD", "TEACHER_COUNCIL",
+] as const;
 
 const ROLE_DESCRIPTIONS: Record<string, string> = {
-  HOST: "Google Meet host team — access to Host Hub (schedule, sub board, threads)",
-  HOST_MANAGER: "Manages host schedule and assignments — full Hub read/write; can also be on rotation",
-  REGISTRAR: "View and manage registrations, member profiles, and Sanity Studio",
-  ADMIN: "Full access — members, registrations, and all volunteer areas",
+  HOST:                  "Google Meet host team — access to Host Hub (schedule, sub board, threads)",
+  HOST_MANAGER:          "Manages host schedule and assignments — full Hub read/write; can also be on rotation",
+  REGISTRAR:             "View and manage registrations, member profiles, and Sanity Studio",
+  ADMIN:                 "Full access — members, registrations, and all volunteer areas",
+  VOLUNTEER_COORDINATOR: "Coordinates volunteer scheduling and onboarding",
+  NEWSLETTER:            "Creates and sends the community newsletter",
+  GREETER:               "Welcomes newcomers and supports in-person arrivals",
+  AV_TEAM:               "Manages audio/visual setup for in-person and hybrid sessions",
+  HOUSEKEEPING:          "Maintains the physical space (cleaning, setup/teardown)",
+  PLANT_CARE:            "Cares for the center's plants and garden",
+  SANGHA_CARE:           "Reaches out to members who may need support",
+  KM_SUPPORT:            "Facilitates Kalyana Mitta (spiritual friendship) groups",
+  SILENT_MEDITATION:     "Supports the silent meditation program",
+  BOARD:                 "Governance board member",
+  TEACHER_COUNCIL:       "Teacher council member",
 };
 
 const STATUS_LABELS: Record<string, string> = {
