@@ -2160,7 +2160,7 @@ ORDER BY n DESC;
 
 ---
 
-## 23. Host Community Hub ✅ Built — session 36 (2026-03-09)
+## 23. Host Community Hub ✅ Built — sessions 36–38 (2026-03-09/10)
 
 ### What it does
 
@@ -2170,35 +2170,40 @@ A self-contained three-tab workspace inside `/account/host` that replaces Baseca
 
 | Role | What they can do |
 |---|---|
-| HOST | View own assignments; request subs; claim subs; read and create threads; reply to threads |
-| HOST_MANAGER | All HOST actions + view all assignments; create/delete assignments; close/archive threads |
+| HOST | View schedule (own + all); filter by "Mine" or "Needs Attention"; request subs from session detail; claim open subs; read and create conversations; reply to conversations |
+| HOST_MANAGER | All HOST actions + multi-select session claiming; create/delete assignments; close/archive conversations; receive unassigned-session alerts |
 | ADMIN | Same as HOST_MANAGER |
 | REGISTRAR | No access — program ops are separate from host community |
 
 ### User flow
 
-**Schedule tab** (`/account/host`)
-- HOST sees their own program cards with meeting link + host account
-- HOST_MANAGER/ADMIN sees all assignments grouped by program with a "Manage →" link
+**Schedule tab** (`/account/host/schedule`)
+- Monthly calendar grid showing all upcoming virtual sessions
+- Sessions are color-coded: teal = you're hosting; amber = needs host or sub; gray = covered
+- Month navigation (← Prev / Next →); calendar/list view toggle
+- Three filter pills: **All** (default), **Mine** (own assignments only), **Needs Attention** (unclaimed or sub-needed sessions)
+- Clicking a session opens a detail panel: program info, meeting link, "Request a Sub" button
+- HOST_MANAGER/ADMIN: multi-select sessions (⌘/Ctrl + click) for bulk assignment
+- Sessions are auto-generated from Sanity program data (startDatetime + recurrence) — no manual session creation needed
 
 **Sub Board** (`/account/host/subs`)
-- Any hub member can see open requests
-- The requesting host posts a request (date picker + optional message)
-- Any other hub member clicks "I'll take it" → optional note → confirm
+- Read-only status board showing open sub requests
+- Sub requests are created from the Schedule tab's session detail panel (not from the Sub Board itself)
+- Any hub member clicks "I'll take it" → optional note → confirm
 - On claim: status flips to CLAIMED atomically; original requester gets an alert + email
 
-**Threads** (`/account/host/threads`)
-- Two categories: Operational (peer support, questions) and Contemplation (weekly teacher/manager post)
-- Any hub member can start a thread or reply to open threads
+**Conversations** (`/account/host/conversations`)
+- Three rooms: **Issues & Challenges** (peer support), **Contemplations & Practice** (HOST_MANAGER/ADMIN post only), **General** (open)
+- Each conversation has a title + opening post; organized by room
+- Any hub member can start a topic in Issues or General; replies open to all
+- All posts show the author's real name; own posts annotated with `(you)` in italic
 - HOST_MANAGER can close (no new replies) or archive (hidden from main list)
-
-**Manage tab** (`/account/host/manage`, HOST_MANAGER/ADMIN only)
-- Filter by program; assign a host user to a program with optional session date and notes
-- Delete assignment (cancels any open sub requests)
 
 **Dashboard AlertStrip**
 - Unread alerts shown above the nav cards on `/account/dashboard`
-- Covers: sub requests, sub claims, new threads, new replies, unassigned sessions (HOST_MANAGER only)
+- Covers: sub requests, sub claims, new conversations, new replies, unassigned sessions (HOST_MANAGER only)
+- Each alert has a ✕ dismiss button; "Mark all read" clears all at once
+- Navigating to an alert's linked page does NOT auto-dismiss the alert
 
 ### New Prisma models
 
@@ -2207,7 +2212,7 @@ A self-contained three-tab workspace inside `/account/host` that replaces Baseca
 | `HostAssignment` | Joins a User to a Sanity programSlug; `sessionDate?` null = standing host |
 | `SubRequest` | A request for coverage; status: OPEN → CLAIMED or CANCELLED |
 | `SubClaim` | Who claimed a SubRequest + optional message |
-| `HostThread` | Discussion thread; category: OPERATIONAL or CONTEMPLATION |
+| `HostThread` | Discussion thread; category: OPERATIONAL, CONTEMPLATION, or GENERAL |
 | `HostReply` | A reply to a HostThread |
 | `Alert` | Site-wide unread notification (5 types: SUB_REQUEST, SUB_CLAIMED, NEW_THREAD, NEW_REPLY, UNASSIGNED_SESSION) |
 
@@ -2228,20 +2233,18 @@ A self-contained three-tab workspace inside `/account/host` that replaces Baseca
 | `/api/cron/check-unassigned-hosts` | GET | Daily check — alert HOST_MANAGER if program within 30 days has no host |
 
 **Pages:**
-- `app/account/host/page.tsx` — Schedule tab (rewrite)
-- `app/account/host/subs/page.tsx` — Sub board
-- `app/account/host/threads/page.tsx` — Thread list
-- `app/account/host/threads/[id]/page.tsx` — Thread detail
-- `app/account/host/manage/page.tsx` — Assignment management
+- `app/account/host/schedule/page.tsx` — Schedule tab (calendar UI)
+- `app/account/host/subs/page.tsx` — Sub Board (read-only status view)
+- `app/account/host/conversations/page.tsx` — Conversations list (three rooms)
+- `app/account/host/conversations/[id]/page.tsx` — Conversation thread detail
 
 **Components:**
-- `components/HubTabNav.tsx` — tab strip; Manage tab gated to HOST_MANAGER/ADMIN
-- `components/SubBoard.tsx` — open requests + claim flow
-- `components/SubRequestForm.tsx` — date picker + message; POST to sub-requests
-- `components/ThreadList.tsx` — list + category filter + new thread form
-- `components/ThreadDetail.tsx` — thread + replies + reply form + close/archive
-- `components/AssignmentManager.tsx` — program list + assign/unassign
-- `components/AlertStrip.tsx` — unread count + list on dashboard
+- `components/HubTabNav.tsx` — tab strip (Schedule / Sub Board / Conversations); active state matches `/account/host/schedule/*` and `/account/host/conversations/*`
+- `components/HubScheduleClient.tsx` — calendar grid, month nav, filter pills, list view, session detail panel, multi-select claiming
+- `components/SubBoard.tsx` — open requests + claim flow (status board only)
+- `components/HubConversationsClient.tsx` — three-room tab UI + new topic form
+- `components/HubThreadDetailClient.tsx` — thread detail + replies + reply form + close/archive; shows real author names with `(you)` annotation
+- `components/AlertStrip.tsx` — unread count + ✕ per-alert dismiss + mark-all-read; no auto-dismiss on link click
 
 **Other files changed:**
 - `lib/queries.ts` — added `allVirtualProgramsQuery` (no zoomLink filter; for assignment dropdown)
@@ -2250,7 +2253,7 @@ A self-contained three-tab workspace inside `/account/host` that replaces Baseca
 - `components/AccountSidebar.tsx` — `hasHost` extended to include HOST_MANAGER
 - `components/MemberDetail.tsx` — HOST_MANAGER added to ALL_ROLES with description
 - `vercel.json` — cron: `check-unassigned-hosts` at 16:00 UTC daily
-- `public/css/custom.css` — `hub-` block + `alert-strip` block
+- `public/css/custom.css` — `hub-` block + `alert-strip` block; `hub-page--wide` modifier (schedule page removes max-width cap); calendar cell sizing; `hub-schedule__filter-btn` pill styles; `hub-thread-detail__you` italic muted annotation
 
 ### Technical notes
 
@@ -2264,11 +2267,18 @@ A self-contained three-tab workspace inside `/account/host` that replaces Baseca
 
 **Cron dedup:** The `check-unassigned-hosts` cron checks `db.alert.findFirst({ where: { type: "UNASSIGNED_SESSION", linkUrl, createdAt: { gte: since24h } } })` before creating — so running the cron multiple times on the same day for the same program creates at most one alert per manager.
 
+**Author name display:** All posts and replies display the author's real name from DB. For the current user's own content, `(you)` is appended as italic muted text. Optimistic new replies use `currentUserName` passed as a prop from the server — not the static string "You".
+
+**Calendar layout:** The Schedule page uses `hub-page--wide` (removes max-width cap) so the 7-column calendar doesn't feel squeezed inside the account sidebar layout. A `min-width: 560px` floor on the calendar inner elements triggers horizontal scroll below that width rather than collapsing columns. Event labels use `-webkit-line-clamp: 2` to show two lines instead of single-line truncation.
+
+**Alert dismiss:** Clicking an alert's link navigates to the target page but does NOT call `markRead()`. Only the ✕ button and "Mark all read" button dismiss alerts. This is intentional — the user stays in control of their read state.
+
 **CSS prefix:** `hub-` for all hub UI; `alert-strip` for the dashboard alert component.
 
 ---
 
 | 2026-03-09 (session 34–35) | Enhanced member profiles + Household / Family Grouping. **(1) Enhanced member profiles (§11 update):** Added `preferredName`, structured address (`addressLine1 / addressCity / addressState / addressZip`), `memberStatus` enum (`ACTIVE / VISITOR / STUDENT / VOLUNTEER / INACTIVE`), `firstVisitDate`, `adminNotes` (admin-only), and `tags` (freeform array, pill input) to the User model; DB pushed. Status-driven access: INACTIVE is the only status that blocks login — stamps `archivedAt = new Date()` and invalidates sessions; any other status clears `archivedAt`. `effectiveStatus` pattern handles legacy archived members (auto-corrects on profile load, syncs to DB on save). Member list: sort by multiple columns (click header); status filter dropdown replacing the old "Archived" toggle. `adm-` CSS updates for status column, sort arrows, filter dropdown, admin notes banner. **(2) Household/Family Grouping (§22 new — full feature):** New `Household` + `HouseholdMember` Prisma models; `RelationshipType` enum (SPOUSE/PARTNER/PARENT/CHILD/SIBLING/OTHER); `userId @unique` enforces one-household-per-member at DB level; migration run (`prisma db push`). 5 new API routes (households CRUD + member management). 2 new admin pages (`/admin/households` list + `/admin/households/[id]` detail). 2 new components: `HouseholdDetail` (full edit UI) + `HouseholdSection` (embedded in MemberDetail). HouseholdSection has two modes: "create new household" (makes this member primary) and "join existing household" (search for another member → GET their household → POST add current member). Address fallback: if member has no `addressLine1` but household does, show "No individual address — household address will be used: [City, State]" hint. Households list page has a custom-label frequency table at the bottom to surface Other labels for future enum promotion. 409 responses with human-readable messages. `AccountSidebar` adds "Households" link for REGISTRAR+. `hh-` CSS block. **(3) Manual:** New Chapter 3 "Member Accounts" inserted before Volunteer Roles chapter (8 sections: overview, member list, member profile, member status table with access column, tags, admin notes, households, common tasks). Written in warm companion voice — plain English, second-person, no jargon. Sidebar updated: "Member Accounts" now a real link with full navigation, "Coming soon" badge removed. |
 | 2026-03-09 (session 36) | **Host Community Hub (§23 new):** Full replacement for Basecamp — three-tab tool inside the member area for the RIM host volunteer team. **(1) Schema:** `HOST_MANAGER` role added to Prisma enum. Six new models: `HostAssignment` (programSlug + userId + sessionDate? @@unique — Sanity slug as join key), `SubRequest` (OPEN/CLAIMED/CANCELLED), `SubClaim`, `HostThread` (OPERATIONAL/CONTEMPLATION categories; OPEN/CLOSED/ARCHIVED status), `HostReply`, `Alert` (site-wide; 5 AlertTypes). Five new enums. User relations for all new models. `prisma db push` run. **(2) Emails:** 4 new fire-and-forget functions: `sendSubRequestEmail`, `sendSubClaimedEmail`, `sendNewThreadEmail`, `sendNewReplyEmail`. **(3) Alert API + AlertStrip:** `GET/PATCH /api/account/alerts` (unread list + mark-read + mark-all-read). `AlertStrip` client component on dashboard — shows badge count, dismissible list. **(4) Hub navigation:** `HubTabNav` client component (Schedule / Sub Board / Threads / Manage tabs; Manage tab gated to HOST_MANAGER/ADMIN). `AccountSidebar` extended — `hasHost` check now includes HOST_MANAGER. **(5) API routes (12 new):** assignments GET/POST; assignment DELETE; sub-requests GET/POST; sub-request PATCH cancel; sub-request claim POST (atomic `db.$transaction`); threads GET/POST; thread GET/PATCH; replies POST. Reply notifications target author + all prior repliers (deduplicated, exclude current replier). **(6) Components (7 new):** `SubBoard` (claim flow), `SubRequestForm` (date picker), `ThreadList` (filter by category + new thread form), `ThreadDetail` (reply form + manager close/archive actions), `AssignmentManager` (program + host dropdowns, grouped display, delete). **(7) Hub pages (5):** schedule rewrite, `/account/host/subs`, `/account/host/threads`, `/account/host/threads/[id]`, `/account/host/manage`. **(8) Cron:** `check-unassigned-hosts` — daily at 16:00 UTC; fetches programs with `startDatetime` within 30 days, cross-checks assignments, creates `UNASSIGNED_SESSION` alerts for HOST_MANAGER+ADMIN; dedup prevents repeat alerts within 24h. Added to `vercel.json`. **(9) Other:** `allVirtualProgramsQuery` added to `lib/queries.ts` (no zoomLink filter — for assignment dropdown). `HOST_MANAGER` added to `MemberDetail` `ALL_ROLES` with description. `hub-` CSS block + `alert-strip` CSS. |
+| 2026-03-10 (sessions 37–38) | **Hub polish + UX improvements (§23 update).** **(1) Schedule tab cleanup:** Removed `AddSessionForm` component + `+ Add Session` button (sessions are auto-seeded from Sanity; manual creation was vestigial). Removed "planning nudge" banner (confusing dismiss behavior). Fixed calendar event label: unclaimed sessions now show program name instead of "—". **(2) Calendar width + readability:** Added `hub-page--wide` modifier (removes max-width cap) to schedule page so the 7-column calendar isn't squeezed inside the sidebar layout. `min-width: 560px` floor → horizontal scroll on narrow viewports instead of collapsing columns. Cell `min-height` raised to 90px; event font to 10px; event label uses `-webkit-line-clamp: 2` for 2-line wrapping. **(3) Filter pills:** Three filter states (`all` / `mine` / `action`) rendered as pill buttons above the calendar. `filteredSessions` computed array applies to both calendar and list views. Context-sensitive empty-state messages. **(4) Author names in Conversations:** Thread detail and reply rows now always show the real author name; own posts annotated with italic `(you)` in muted text. Optimistic new replies use `currentUserName` prop (passed from server page) rather than the static string "You". `HubConversationsClient` thread list updated similarly. **(5) AlertStrip:** Removed `onClick={() => markRead(alert.id)}` from link clicks — clicking to navigate no longer auto-dismisses alerts. Fixed item alignment: `display: flex; align-items: center; justify-content: space-between` with `border-left: 2px solid #e8d9b8` accent. Individual ✕ button and "Mark all read" remain as the two dismiss paths. Commits: c5bdbfb, 6928bd9, deb8336. |
 
-*Last updated: 2026-03-09 (session 36)*
+*Last updated: 2026-03-10 (sessions 37–38)*
