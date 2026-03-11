@@ -9028,13 +9028,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .hub-schedule-nav__view-btn { background: none; border: none; padding: 5px 12px; font-size: 13px; color: var(--rim-text-muted); cursor: pointer; font-family: var(--font-sans); }
 .hub-schedule-nav__view-btn--active { background: var(--rim-blue); color: #fff; }
 
-/* Calendar grid */
-.hub-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--rim-rule); border: 1px solid var(--rim-rule); border-radius: 4px; overflow: hidden; }
-.hub-cal__day-header { background: var(--rim-bg-accent); padding: 6px 4px; text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--rim-text-muted); }
-.hub-cal__cell { background: #fff; min-height: 80px; padding: 6px; }
-.hub-cal__cell--empty { background: #faf9f7; }
-.hub-cal__cell--today { background: #f4f8fb; }
-.hub-cal__date { font-size: 12px; font-weight: 600; color: var(--rim-text-muted); margin-bottom: 4px; }
+/* (superseded by hub-cal block further down in file) */
 .hub-cal__date--today { color: var(--rim-blue); font-weight: 700; }
 
 /* Calendar event pill */
@@ -9452,68 +9446,93 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 
 /* ── Calendar grid (matching HubScheduleClient class names) ── */
 
-/* Horizontal scroll kicks in when container < 560px rather than crushing cells */
+/* Calendar — single-card layout matching spec */
 .hub-cal-wrap { overflow-x: auto; }
 .hub-cal-wrap > * { min-width: 560px; }
 
+/* The card wrapper */
+.hub-cal {
+  width: 100%;
+  background: #fff;
+  border: 1px solid #e0ddd7;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+/* Day-of-week header row */
 .hub-cal__headers {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 3px;
-  margin-bottom: 3px;
+  background: #f7f5f2;
+  border-bottom: 1px solid #e0ddd7;
 }
 .hub-cal__day-label {
-  text-align: center;
+  padding: 10px 8px;
   font-size: 11px;
   font-weight: 700;
-  color: var(--rim-text-muted);
-  padding: 6px 0;
+  letter-spacing: .1em;
   text-transform: uppercase;
-  letter-spacing: 0.07em;
+  color: #8a8680;
 }
+
+/* Cell grid — no gaps; borders come from cell edges */
 .hub-cal__grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 3px;
 }
 .hub-cal__cell {
-  min-height: 90px;
+  min-height: 88px;
   background: #fff;
-  border: 1px solid var(--rim-rule);
-  border-radius: 6px;
-  padding: 6px 5px 4px;
+  border: 1px solid #eceae5;
+  border-radius: 0;
+  padding: 7px;
+  vertical-align: top;
 }
-.hub-cal__cell--empty { background: #faf9f7; border-color: transparent; }
-.hub-cal__cell--today { border-color: #2d3f47; }
+.hub-cal__cell--empty { background: #faf9f7; }
+.hub-cal__cell--today { background: #fff; }
+
+/* Day number */
 .hub-cal__day-num {
-  font-size: 12px;
-  color: var(--rim-text-muted);
-  font-weight: 400;
-  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #8a8680;
+  margin-bottom: 3px;
   display: block;
 }
+/* Today: dark circle around the number */
 .hub-cal__day-num--today {
-  color: #2d3f47;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: #2d3f47;
+  color: #fff;
+  border-radius: 50%;
+  font-size: 12px;
   font-weight: 700;
+  margin-bottom: 3px;
 }
+
+/* Event chips */
 .hub-cal__event {
   position: relative;
-  display: flex;
-  align-items: flex-start;
-  gap: 3px;
-  border-radius: 3px;
-  padding: 3px 5px 3px 5px;
+  border-radius: 4px;
+  padding: 3px 5px;
   margin-bottom: 2px;
   cursor: pointer;
-  border-left: 2px solid transparent;
-  font-size: 10px;
+  border: 1px solid transparent;
+  font-size: 11px;
   font-weight: 600;
-  line-height: 1.35;
+  line-height: 1.3;
   overflow: hidden;
 }
-.hub-cal__event--covered  { background: #d4e6cc; border-left-color: #aad0a0; color: #3a6b2a; }
-.hub-cal__event--needs    { background: #f5e0d8; border-left-color: #e8b0a0; color: #c0472a; }
-.hub-cal__event--selected { background: #2d3f47 !important; border-left-color: #fff !important; color: #fff !important; }
+.hub-cal__event--mine     { background: #dce9ef; border-color: #c0d8e4; color: #4d7285; }
+.hub-cal__event--covered  { background: #d4e6cc; border-color: #aad0a0; color: #3a6b2a; }
+.hub-cal__event--needs    { background: #f5e0d8; border-color: #e8b0a0; color: #c0472a; }
+.hub-cal__event--selected { background: #2d3f47 !important; border-color: #2d3f47 !important; color: #fff !important; }
+
+/* Checkbox: hidden by default, visible on hover */
 .hub-cal__check {
   position: absolute;
   top: 3px;
@@ -9521,12 +9540,13 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   width: 10px;
   height: 10px;
   cursor: pointer;
-  accent-color: #1B3A5C;
-  flex-shrink: 0;
+  accent-color: #2d3f47;
+  opacity: 0;
 }
+.hub-cal__event:hover .hub-cal__check { opacity: 1; }
+
+/* Event label: 2-line clamp */
 .hub-cal__event-label {
-  flex: 1;
-  /* Allow up to 2 lines before truncating */
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
