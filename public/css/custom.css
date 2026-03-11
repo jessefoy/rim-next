@@ -6991,6 +6991,22 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   border-left-color: #b45309;
 }
 
+/* man-note variant: developer / technical context (cool slate) */
+.man-note--dev {
+  background: color-mix(in srgb, #334155 11%, var(--rim-bg));
+  border-left-color: #475569;
+  color: var(--rim-text);
+}
+.man-note--dev__label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #475569;
+  margin-bottom: 6px;
+}
+
 /* ── Role/permission table ── */
 .man-table {
   width: 100%;

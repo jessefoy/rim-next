@@ -1772,7 +1772,7 @@ export default async function ManualPage() {
         <div id="hub" className="man-chapter man-chapter--break">
           <h1 className="man-chapter__title">Host Community Hub</h1>
           <p className="man-chapter__subtitle">
-            This chapter walks you through the Host Community Hub — the workspace inside the member area where the RIM host volunteer team coordinates sessions, handles sub coverage, and stays connected.
+            You stepped up to hold space for RIM&rsquo;s virtual community. This chapter walks you through the Hub — the place where the host team takes care of itself.
           </p>
         </div>
 
@@ -1780,13 +1780,13 @@ export default async function ManualPage() {
         <section id="hub-overview" className="man-section">
           <h2 className="man-section__title">Overview</h2>
           <p>
-            The Host Community Hub lives at <strong>/account/host</strong> and replaces Basecamp as the coordination center for the host team. It&rsquo;s accessible to everyone with a <strong>Meet Host</strong> or <strong>Meet Host Manager</strong> role, as well as Admins.
+            The Host Community Hub is your team&rsquo;s home base. You&rsquo;ll find it at <strong>/account/host</strong> — it&rsquo;s where the host team sees the schedule, helps each other out when someone can&rsquo;t make a session, and stays connected between meetings. Think of it as the back room that supports everything that happens in the Meet rooms.
           </p>
           <p>
-            The hub has three tabs: <strong>Schedule</strong>, <strong>Sub Board</strong>, and <strong>Conversations</strong>. Each tab handles a different aspect of coordination.
+            The hub has three areas: <strong>Schedule</strong>, <strong>Sub Board</strong>, and <strong>Conversations</strong>. They work together, and you&rsquo;ll move between them naturally as things come up.
           </p>
           <p>
-            The Registrar role is intentionally excluded from the hub — Registrars set up programs in Sanity Studio, but the host team coordinates internally and independently.
+            Everyone on the host team — whether you have the <strong>Meet Host</strong> or <strong>Meet Host Manager</strong> role — can access the hub. Admins can too. What each person can do is slightly different depending on their role. Here&rsquo;s a quick reference:
           </p>
           <table className="man-table man-table--perms">
             <thead>
@@ -1798,95 +1798,91 @@ export default async function ManualPage() {
               </tr>
             </thead>
             <tbody>
-              <tr><td>View schedule (own assignments)</td><td>✓</td><td>✓ (all)</td><td>✓ (all)</td></tr>
-              <tr><td>Manage assignments (create / delete)</td><td></td><td>✓</td><td>✓</td></tr>
-              <tr><td>Request a sub</td><td>✓ (own)</td><td>✓ (any)</td><td>✓</td></tr>
-              <tr><td>Claim a sub request</td><td>✓</td><td>✓</td><td>✓</td></tr>
-              <tr><td>View and post conversations</td><td>✓</td><td>✓</td><td>✓</td></tr>
+              <tr><td>See the full schedule</td><td>✓</td><td>✓</td><td>✓</td></tr>
+              <tr><td>Manage assignments (add / remove)</td><td></td><td>✓</td><td>✓</td></tr>
+              <tr><td>Request a sub for your own session</td><td>✓</td><td>✓</td><td>✓</td></tr>
+              <tr><td>Claim an open sub request</td><td>✓</td><td>✓</td><td>✓</td></tr>
+              <tr><td>Read and post in Conversations</td><td>✓</td><td>✓</td><td>✓</td></tr>
               <tr><td>Close or archive a conversation</td><td></td><td>✓</td><td>✓</td></tr>
-              <tr><td>Receive unassigned-session alerts</td><td></td><td>✓</td><td>✓</td></tr>
+              <tr><td>Receive alerts when a program has no host</td><td></td><td>✓</td><td>✓</td></tr>
             </tbody>
           </table>
         </section>
 
         {/* ── Schedule tab ── */}
         <section id="hub-schedule" className="man-section">
-          <h2 className="man-section__title">Schedule tab</h2>
+          <h2 className="man-section__title">Schedule</h2>
           <p>
-            The <strong>Schedule</strong> tab at <strong>/account/host/schedule</strong> is where you see all upcoming virtual sessions at a glance. It opens to a <strong>monthly calendar</strong> — a familiar grid layout where each day shows any sessions happening that day.
+            When you open the Schedule, you&rsquo;re looking at the full picture — every virtual session the team is covering this month, laid out on a calendar. It&rsquo;s a quick way to see where things stand, what you&rsquo;re on for, and where the team might need a hand.
           </p>
           <p>
-            Sessions are color-coded so you can read the board at a glance:
-          </p>
-          <ul className="man-list">
-            <li><strong>Teal</strong> — you&rsquo;re the assigned host for this session</li>
-            <li><strong>Amber</strong> — this session needs a host or a sub (you can help!)</li>
-            <li><strong>Gray/muted</strong> — another host is assigned and everything is covered</li>
-          </ul>
-          <p>
-            Use the <strong>← Prev</strong> and <strong>Next →</strong> arrows to move between months. The <strong>List</strong> button switches the calendar to a simple list of upcoming sessions — handy if the grid feels like a lot.
-          </p>
-          <h3 className="man-section__h3">Filtering sessions</h3>
-          <p>
-            Three filter pills sit above the calendar:
+            Each session on the calendar has a color, and once you know what they mean, the board becomes easy to read at a glance:
           </p>
           <ul className="man-list">
-            <li><strong>All</strong> — shows every upcoming session for every program</li>
-            <li><strong>Mine</strong> — shows only sessions where you are the assigned host</li>
-            <li><strong>Needs Attention</strong> — shows sessions that are unclaimed or need a sub. A good first stop when you log in.</li>
+            <li><strong>Teal</strong> — this is yours. You&rsquo;re the assigned host.</li>
+            <li><strong>Amber</strong> — this session needs someone. Either no host is assigned, or a host needs a sub. If you&rsquo;re free, this is where you can help.</li>
+            <li><strong>Muted / gray</strong> — someone else has it covered. All good.</li>
           </ul>
           <p>
-            Filters work in both the calendar and list views.
+            The arrows in the header let you move forward or back by month. If the grid feels like a lot, the <strong>List</strong> button switches to a simple vertical list of upcoming sessions — same information, quieter layout.
           </p>
-          <h3 className="man-section__h3">Session detail panel</h3>
+
+          <h3 className="man-section__h3">Finding what&rsquo;s relevant to you</h3>
           <p>
-            Click any session on the calendar (or in the list) to open a detail panel on the right. The panel shows the program name, session date, and current status. From here you can:
+            Above the calendar, you&rsquo;ll see three buttons that filter what&rsquo;s shown. They work the same way in both the calendar and list views:
           </p>
           <ul className="man-list">
-            <li><strong>Join the meeting</strong> — a direct link to the Google Meet room</li>
-            <li><strong>Request a sub</strong> — if you&rsquo;re the assigned host and can&rsquo;t make it, you can open a sub request right here. You don&rsquo;t need to go to the Sub Board to do this.</li>
+            <li><strong>All</strong> — the full team&rsquo;s schedule, every program, every session</li>
+            <li><strong>Mine</strong> — only your own assignments. A calm, focused view for when you just want to see what&rsquo;s coming up for you.</li>
+            <li><strong>Needs Attention</strong> — sessions that are unclaimed or where a host needs a sub. A good habit: check this when you first log in each week.</li>
           </ul>
-          <h3 className="man-section__h3">Multi-session claiming (Host Managers / Admins)</h3>
+
+          <h3 className="man-section__h3">Opening a session</h3>
           <p>
-            If you&rsquo;re a <strong>Host Manager</strong> or <strong>Admin</strong>, you can assign multiple sessions at once. Hold <strong>⌘ (Mac)</strong> or <strong>Ctrl (Windows)</strong> and click several sessions to select them, then use the bulk-action panel that appears. This is helpful for setting up a rotation for a recurring program all at once.
+            Click any session — on the calendar or in the list — and a panel opens on the right with the details: which program it is, the date and time, and the current status. From there, two things are available depending on your situation:
           </p>
-          <h3 className="man-section__h3">About assignments</h3>
+          <ul className="man-list">
+            <li><strong>Join the meeting</strong> — a direct link to the Google Meet room. The room is always the same for each program, so this link will work for every session of that program.</li>
+            <li><strong>Request a sub</strong> — if you&rsquo;re the assigned host and you can&rsquo;t make it, you can post a sub request right here, without leaving the schedule. The whole team will see it on the Sub Board and receive an alert.</li>
+          </ul>
+
+          <h3 className="man-section__h3">Assigning hosts (Host Manager / Admin)</h3>
           <p>
-            Each assignment links a host to a program. Assignments can be <strong>standing</strong> (the host covers all sessions of that program indefinitely) or <strong>one-off</strong> (for a specific session date only). Standing assignments are the most common — they mean one person is the regular host for a program, and the rest of the team can step in via the Sub Board when they need a break.
+            If you manage the schedule, you can assign hosts directly from the calendar. Click a session to open the detail panel, and you&rsquo;ll have the option to assign a team member. To set up multiple sessions at once, hold <strong>⌘</strong> on a Mac or <strong>Ctrl</strong> on Windows and click each session you want — then assign them all in one step. This is especially useful when you&rsquo;re setting up a new program or building out a rotation at the start of a season.
           </p>
           <p>
-            Sessions are auto-generated from Sanity Studio. When a program has a start date and a recurrence schedule, the system creates session records automatically — you&rsquo;ll see them on the calendar without anyone having to create them manually.
+            Assignments can be <strong>standing</strong> — meaning one person is the regular host for a program — or tied to a specific session date if something is a one-time arrangement.
           </p>
-          <p>
-            ⚠️ <strong>Important:</strong> Assignments are linked to programs by their Sanity slug. If a program&rsquo;s slug is ever changed in Sanity Studio after assignments have been created, those assignments will become disconnected from the program and won&rsquo;t show up correctly. Treat program slugs as permanent once they&rsquo;re published and in use.
-          </p>
+          <div className="man-note">
+            Sessions appear on the calendar automatically. When a program is set up in Sanity Studio with a start date and a recurring schedule, the system generates the session records — you won&rsquo;t need to create them by hand.
+          </div>
+          <div className="man-note man-note--dev">
+            <span className="man-note--dev__label">⚠️&ensp;Technical note</span>
+            Assignments are stored by Sanity program slug. If a program&rsquo;s slug is ever changed in Sanity Studio after assignments exist, those assignments will silently lose their connection to the program and won&rsquo;t appear on the calendar. Treat slugs as permanent once a program is live and in use.
+          </div>
         </section>
 
         {/* ── Sub Board ── */}
         <section id="hub-subs" className="man-section">
           <h2 className="man-section__title">Sub Board</h2>
           <p>
-            The <strong>Sub Board</strong> at <strong>/account/host/subs</strong> is where the host team covers for each other when someone can&rsquo;t make their session.
+            Life happens. The Sub Board is where the team looks out for each other — it&rsquo;s where you can let people know you need someone to cover a session, and where you can step up to cover for a teammate when you&rsquo;re free.
           </p>
+
           <h3 className="man-section__h3">Requesting a sub</h3>
-          <p>Sub requests are started from the <strong>Schedule tab</strong>, not the Sub Board itself. This keeps everything in context — you find your session, realize you can&rsquo;t make it, and request coverage right there.</p>
-          <ol className="man-steps">
-            <li>Go to the <strong>Schedule</strong> tab and find the session you need coverage for.</li>
-            <li>Click the session to open its detail panel.</li>
-            <li>Click <strong>Request a Sub</strong>.</li>
-            <li>Add any helpful context in the message field (travel, illness, etc.) — optional but appreciated.</li>
-            <li>Click <strong>Post Request</strong>. All hub members receive an email notification and an in-app alert. The request immediately appears on the Sub Board.</li>
-          </ol>
-          <h3 className="man-section__h3">Claiming a sub request</h3>
-          <ol className="man-steps">
-            <li>On the Sub Board, find an open request you can cover.</li>
-            <li>Click <strong>I&apos;ll take it</strong>.</li>
-            <li>Optionally add a brief note (e.g., &ldquo;Happy to cover — reach out with any questions&rdquo;).</li>
-            <li>Click <strong>Confirm — I&apos;ll take it</strong>. The request is removed from the board immediately.</li>
-            <li>The original requester receives an email and an in-app alert letting them know who&rsquo;s covering.</li>
-          </ol>
           <p>
-            You cannot claim your own request. Once claimed, the request disappears from the board — the session is covered.
+            If you need someone to cover one of your sessions, start from the <strong>Schedule</strong> — find the session, open the detail panel, and click <strong>Request a Sub</strong>. You&rsquo;ll have a chance to add a short note if it&rsquo;s helpful (not required — sometimes just knowing someone needs coverage is enough). Once you post it, the whole team gets an email and an in-app alert, and the request shows up on the Sub Board right away.
+          </p>
+          <div className="man-note">
+            The sub request lives on the Schedule, not on the Sub Board itself. This way you&rsquo;re always working from the session you actually need covered — nothing to look up or copy over.
+          </div>
+
+          <h3 className="man-section__h3">Covering for someone</h3>
+          <p>
+            Open the Sub Board and you&rsquo;ll see all the open requests. When you find one you can take, click <strong>I&rsquo;ll take it</strong>. You can leave a brief note if you like — something like &ldquo;Happy to cover, reach out if you have questions&rdquo; goes a long way. Then click <strong>Confirm — I&rsquo;ll take it</strong>. The request closes immediately, and the person who asked gets an email letting them know you&rsquo;ve got it.
+          </p>
+          <p>
+            One thing to know: you can&rsquo;t claim your own request. Once someone claims a session, it disappears from the board — that one&rsquo;s handled.
           </p>
         </section>
 
@@ -1894,37 +1890,39 @@ export default async function ManualPage() {
         <section id="hub-conversations" className="man-section">
           <h2 className="man-section__title">Conversations</h2>
           <p>
-            The <strong>Conversations</strong> tab at <strong>/account/host/conversations</strong> is where the host team stays connected between sessions. It&rsquo;s designed around focused, topic-based discussions rather than a continuous chat stream — each conversation has a beginning, a middle, and an end.
+            Hosting RIM&rsquo;s virtual sessions takes care, skill, and sometimes a bit of courage. The Conversations space is where the team processes that together — peer support, shared questions, and the contemplative dimension of the work itself. It&rsquo;s built around focused, topic-based threads rather than a running chat, so every conversation has a beginning and an end, and nothing gets buried.
           </p>
-          <p>Conversations are organized into three rooms, each with its own purpose:</p>
+          <p>
+            You&rsquo;ll find three rooms when you open the Conversations tab. Each has its own feel:
+          </p>
           <ul className="man-list">
             <li>
-              <strong>Issues &amp; Challenges</strong> — Peer support and collective problem-solving. A safe place to bring tricky situations you&rsquo;ve encountered, ask how others have handled something, or share a reminder that benefits the whole team. Think of it as the host team&rsquo;s kitchen table.
+              <strong>Issues &amp; Challenges</strong> — This is the team&rsquo;s kitchen table. Bring something tricky that came up in a session. Ask how others have handled a situation. Share something worth naming. You don&rsquo;t have to have a solution — sometimes just putting something into words, and hearing that others have been there too, is what&rsquo;s needed.
             </li>
             <li>
-              <strong>Contemplations &amp; Practice</strong> — Weekly prompts from Jesse or the coordinator. These invitations for shared reflection are posted by a Host Manager or Admin — regular hosts read and respond, but can&rsquo;t start new topics in this room. This keeps it intentional and signal-over-noise.
+              <strong>Contemplations &amp; Practice</strong> — Jesse or the coordinator will post here with a reflection or practice prompt, usually weekly. This room is set up so that only Host Managers and Admins can start new topics — that keeps it intentional. But everyone on the team can read and reply.
             </li>
             <li>
-              <strong>General</strong> — Open conversation, topic by topic. Anything that doesn&rsquo;t fit the other two rooms, from logistics to appreciation to ideas.
+              <strong>General</strong> — Open conversation, anything goes. Logistics, appreciation, ideas, questions that don&rsquo;t fit anywhere else. Topic by topic, no endless scrolling.
             </li>
           </ul>
-          <h3 className="man-section__h3">Starting a conversation</h3>
+
+          <h3 className="man-section__h3">Starting a topic</h3>
           <p>
-            Click the room you want to post in, then click <strong>+ New Topic</strong>. Give your topic a title (something clear and short, like &ldquo;Handling late arrivals&rdquo;) and write an opening post with whatever context or question you want to share. Click <strong>Post Topic</strong>. All hub members receive an email notification and an in-app alert.
+            Click into the room you want to post in, then click <strong>+ New Topic</strong>. Give it a short, clear title — something like &ldquo;Handling technical issues during a sitting&rdquo; or &ldquo;Gratitude for the team&rdquo; — then write whatever you want to share. Everyone on the team will get an email and an in-app alert when you post.
+          </p>
+
+          <h3 className="man-section__h3">Replying</h3>
+          <p>
+            Open any topic and you&rsquo;ll see the opening post, followed by replies in the order they were written. Your own posts are marked with a small <em>(you)</em> in the byline — easy to spot. Scroll to the bottom to add your reply and click <strong>Post Reply</strong>. The person who started the topic and anyone who&rsquo;s already replied will get a notification — but not you for your own post.
+          </p>
+
+          <h3 className="man-section__h3">Closing and archiving (Host Manager / Admin)</h3>
+          <p>
+            When a conversation has naturally come to rest — the question was answered, the moment passed — you can <strong>close</strong> it. Closing means no new replies can be added, but the conversation stays visible for anyone who wants to read it later.
           </p>
           <p>
-            Note: Only Host Managers and Admins can start new topics in the <strong>Contemplations &amp; Practice</strong> room. All hub members can reply to any open topic in any room.
-          </p>
-          <h3 className="man-section__h3">Replying to a conversation</h3>
-          <p>
-            Open any topic by clicking on it. You&rsquo;ll see the opening post followed by all replies in chronological order. Each reply shows the author&rsquo;s name — your own posts are marked with a small <em>(you)</em> so they&rsquo;re easy to spot. Scroll to the bottom and type your reply, then click <strong>Post Reply</strong>. The topic author and everyone who has replied before you will receive a notification — but you won&rsquo;t receive one for your own post.
-          </p>
-          <h3 className="man-section__h3">Closing and archiving conversations (Host Manager / Admin)</h3>
-          <p>
-            <strong>Closing</strong> a conversation prevents new replies but keeps it visible and readable. Use this when a topic has naturally run its course — the question was answered, the situation resolved.
-          </p>
-          <p>
-            <strong>Archiving</strong> removes a conversation from the main list without deleting it. It stays in the database and can be recovered if needed, but it won&rsquo;t clutter the active view. Use this for old topics that no longer need to be visible.
+            <strong>Archiving</strong> takes it a step further: the topic moves out of the main list entirely. It&rsquo;s not deleted — it&rsquo;s still there if you ever need to find it — but it won&rsquo;t be in anyone&rsquo;s way. Use this for older topics that have done their work and don&rsquo;t need to be in the foreground anymore.
           </p>
         </section>
 
@@ -1932,31 +1930,31 @@ export default async function ManualPage() {
         <section id="hub-alerts" className="man-section">
           <h2 className="man-section__title">Alerts</h2>
           <p>
-            The hub sends alerts whenever something needs your attention. Alerts show up in two places: as an <strong>email notification</strong> and as a yellow strip at the top of your <strong>dashboard</strong> (<strong>/account/dashboard</strong>).
+            When something happens in the hub that you&rsquo;d want to know about, you&rsquo;ll hear about it in two ways: an <strong>email</strong> sent to you directly, and an <strong>alert strip</strong> that appears at the top of your dashboard when you log in. You don&rsquo;t have to be watching the hub for things to reach you.
           </p>
           <table className="man-table">
             <thead>
               <tr>
-                <th>Event</th>
-                <th>Who gets notified</th>
+                <th>What happened</th>
+                <th>Who hears about it</th>
               </tr>
             </thead>
             <tbody>
               <tr>
                 <td>Someone posts a sub request</td>
-                <td>All hub members (except the requester)</td>
+                <td>Everyone on the team (except the person who posted it)</td>
               </tr>
               <tr>
                 <td>Your sub request is claimed</td>
-                <td>You (the original requester)</td>
+                <td>You — so you know someone&rsquo;s got it</td>
               </tr>
               <tr>
-                <td>A new thread is started</td>
-                <td>All hub members (except the author)</td>
+                <td>A new conversation topic is started</td>
+                <td>Everyone on the team (except the author)</td>
               </tr>
               <tr>
                 <td>A new reply is posted</td>
-                <td>Thread author + everyone who has previously replied (except current replier)</td>
+                <td>The person who started the topic, plus anyone who has already replied — but not the person who just posted</td>
               </tr>
               <tr>
                 <td>A program within 30 days has no host assigned</td>
@@ -1965,11 +1963,11 @@ export default async function ManualPage() {
             </tbody>
           </table>
           <p>
-            The dashboard alert strip shows up to 10 unread alerts. Each alert has a small <strong>✕</strong> button on the right — click it to dismiss that single alert. Use <strong>Mark all read</strong> to clear everything at once. Clicking an alert to visit the linked page does <em>not</em> automatically dismiss it — you stay in control of what you&rsquo;ve read and what you still want to keep visible.
+            In your dashboard, the alert strip shows whatever&rsquo;s unread. Each alert has a small <strong>✕</strong> on the right — click it to dismiss that one. Or click <strong>Mark all read</strong> to clear everything at once. Clicking an alert to visit the page it links to won&rsquo;t automatically dismiss it — that&rsquo;s intentional. You decide when you&rsquo;re done with an alert.
           </p>
-          <p>
-            The <strong>no-host alert</strong> runs automatically once a day. If a program has a scheduled start date within the next 30 days and no standing host assignment, the system sends an alert to all Host Managers and Admins. The alert is only sent once per program per day — you won&rsquo;t get a flood of duplicates.
-          </p>
+          <div className="man-note">
+            The &ldquo;no host assigned&rdquo; alert is automatic. Once a day, the system checks whether any program with a start date in the next 30 days has no host. If it finds one, it sends an alert to all Host Managers and Admins. You won&rsquo;t get repeated alerts for the same program on the same day — just one per program, per day.
+          </div>
         </section>
 
         {/* ════════════════════════════════════════
