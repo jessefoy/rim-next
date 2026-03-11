@@ -33,8 +33,6 @@ export default async function HostSchedulePage() {
   const hasHubAccess = roles.some((r) => ["HOST", "HOST_MANAGER", "ADMIN"].includes(r));
   if (!hasHubAccess) redirect("/account/dashboard");
 
-  const isManager = roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
-
   // Current month for initial load
   const now = new Date();
   const year = now.getFullYear();
@@ -105,7 +103,6 @@ export default async function HostSchedulePage() {
             initialMonth={month}
             currentUserId={session.user.id}
             currentUserName={session.user.name || session.user.email?.split("@")[0] || ""}
-            isManager={isManager}
           />
         </div>
       </div>
