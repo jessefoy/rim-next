@@ -24,33 +24,40 @@ const POSITION_MAP: Record<string, string> = {
 };
 
 async function main() {
-  // Look up Jesse by admin email
-  const user = await db.user.findFirst({
-    where: { email: { contains: "jesse", mode: "insensitive" } },
+  // Look up all Jesse accounts (iCloud + work email)
+  const users = await db.user.findMany({
+    where: {
+      OR: [
+        { email: { contains: "jesse", mode: "insensitive" } },
+        { email: { contains: "icloud.com", mode: "insensitive" } },
+      ],
+    },
     select: { id: true, email: true, firstName: true, lastName: true },
   });
 
-  if (!user) {
-    throw new Error("Could not find user with 'jesse' in email. Check the email address.");
+  if (!users.length) {
+    throw new Error("Could not find any Jesse user accounts.");
   }
-  console.log(`Found user: ${user.firstName} ${user.lastName} <${user.email}> (id: ${user.id})`);
 
   // Load all hubs
   const hubs = await db.hub.findMany({ select: { id: true, slug: true, name: true } });
-  console.log(`Found ${hubs.length} hubs.\n`);
+  console.log(`Found ${hubs.length} hubs, ${users.length} user account(s).\n`);
 
-  // Upsert HubMember rows
-  for (const hub of hubs) {
-    const position = POSITION_MAP[hub.slug] ?? "Hub Coordinator";
-    await db.hubMember.upsert({
-      where:  { hubId_userId: { hubId: hub.id, userId: user.id } },
-      update: { isCoordinator: true, position },
-      create: { hubId: hub.id, userId: user.id, isCoordinator: true, position },
-    });
-    console.log(`  ✓ ${hub.name} (${hub.slug}) — ${position}`);
+  // Upsert HubMember rows for ALL Jesse accounts
+  for (const user of users) {
+    console.log(`\nProcessing: ${user.firstName} ${user.lastName} <${user.email}> (id: ${user.id})`);
+    for (const hub of hubs) {
+      const position = POSITION_MAP[hub.slug] ?? "Hub Coordinator";
+      await db.hubMember.upsert({
+        where:  { hubId_userId: { hubId: hub.id, userId: user.id } },
+        update: { isCoordinator: true, position },
+        create: { hubId: hub.id, userId: user.id, isCoordinator: true, position },
+      });
+      console.log(`  ✓ ${hub.name} (${hub.slug}) — ${position}`);
+    }
   }
 
-  console.log(`\nDone. ${hubs.length} HubMember rows created/updated.`);
+  console.log(`\nDone. ${hubs.length} hubs × ${users.length} accounts seeded.`);
 }
 
 main()

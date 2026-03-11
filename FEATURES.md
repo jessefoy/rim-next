@@ -2281,4 +2281,126 @@ A self-contained three-tab workspace inside `/account/host` that replaces Baseca
 | 2026-03-09 (session 36) | **Host Community Hub (§23 new):** Full replacement for Basecamp — three-tab tool inside the member area for the RIM host volunteer team. **(1) Schema:** `HOST_MANAGER` role added to Prisma enum. Six new models: `HostAssignment` (programSlug + userId + sessionDate? @@unique — Sanity slug as join key), `SubRequest` (OPEN/CLAIMED/CANCELLED), `SubClaim`, `HostThread` (OPERATIONAL/CONTEMPLATION categories; OPEN/CLOSED/ARCHIVED status), `HostReply`, `Alert` (site-wide; 5 AlertTypes). Five new enums. User relations for all new models. `prisma db push` run. **(2) Emails:** 4 new fire-and-forget functions: `sendSubRequestEmail`, `sendSubClaimedEmail`, `sendNewThreadEmail`, `sendNewReplyEmail`. **(3) Alert API + AlertStrip:** `GET/PATCH /api/account/alerts` (unread list + mark-read + mark-all-read). `AlertStrip` client component on dashboard — shows badge count, dismissible list. **(4) Hub navigation:** `HubTabNav` client component (Schedule / Sub Board / Threads / Manage tabs; Manage tab gated to HOST_MANAGER/ADMIN). `AccountSidebar` extended — `hasHost` check now includes HOST_MANAGER. **(5) API routes (12 new):** assignments GET/POST; assignment DELETE; sub-requests GET/POST; sub-request PATCH cancel; sub-request claim POST (atomic `db.$transaction`); threads GET/POST; thread GET/PATCH; replies POST. Reply notifications target author + all prior repliers (deduplicated, exclude current replier). **(6) Components (7 new):** `SubBoard` (claim flow), `SubRequestForm` (date picker), `ThreadList` (filter by category + new thread form), `ThreadDetail` (reply form + manager close/archive actions), `AssignmentManager` (program + host dropdowns, grouped display, delete). **(7) Hub pages (5):** schedule rewrite, `/account/host/subs`, `/account/host/threads`, `/account/host/threads/[id]`, `/account/host/manage`. **(8) Cron:** `check-unassigned-hosts` — daily at 16:00 UTC; fetches programs with `startDatetime` within 30 days, cross-checks assignments, creates `UNASSIGNED_SESSION` alerts for HOST_MANAGER+ADMIN; dedup prevents repeat alerts within 24h. Added to `vercel.json`. **(9) Other:** `allVirtualProgramsQuery` added to `lib/queries.ts` (no zoomLink filter — for assignment dropdown). `HOST_MANAGER` added to `MemberDetail` `ALL_ROLES` with description. `hub-` CSS block + `alert-strip` CSS. |
 | 2026-03-10 (sessions 37–38) | **Hub polish + UX improvements (§23 update).** **(1) Schedule tab cleanup:** Removed `AddSessionForm` component + `+ Add Session` button (sessions are auto-seeded from Sanity; manual creation was vestigial). Removed "planning nudge" banner (confusing dismiss behavior). Fixed calendar event label: unclaimed sessions now show program name instead of "—". **(2) Calendar width + readability:** Added `hub-page--wide` modifier (removes max-width cap) to schedule page so the 7-column calendar isn't squeezed inside the sidebar layout. `min-width: 560px` floor → horizontal scroll on narrow viewports instead of collapsing columns. Cell `min-height` raised to 90px; event font to 10px; event label uses `-webkit-line-clamp: 2` for 2-line wrapping. **(3) Filter pills:** Three filter states (`all` / `mine` / `action`) rendered as pill buttons above the calendar. `filteredSessions` computed array applies to both calendar and list views. Context-sensitive empty-state messages. **(4) Author names in Conversations:** Thread detail and reply rows now always show the real author name; own posts annotated with italic `(you)` in muted text. Optimistic new replies use `currentUserName` prop (passed from server page) rather than the static string "You". `HubConversationsClient` thread list updated similarly. **(5) AlertStrip:** Removed `onClick={() => markRead(alert.id)}` from link clicks — clicking to navigate no longer auto-dismisses alerts. Fixed item alignment: `display: flex; align-items: center; justify-content: space-between` with `border-left: 2px solid #e8d9b8` accent. Individual ✕ button and "Mark all read" remain as the two dismiss paths. Commits: c5bdbfb, 6928bd9, deb8336. |
 
-*Last updated: 2026-03-10 (sessions 37–38)*
+---
+
+## 24. Multi-Hub Volunteer Workspace ✅ Built — session 39 (2026-03-11)
+
+### What it does
+
+A general-purpose hub system for ALL RIM volunteer teams — not just the host team. Each volunteer group (host team, people team, newsletter, greeter team, etc.) has its own hub workspace with Announcements, Documents, Conversations, Members, and (for host-team only) a Schedule tab. The workspace is accessed via "Your Hubs" in the account sidebar.
+
+### Who uses it
+
+Any authenticated member who has a `HubMember` row for a given hub. Coordinators (`isCoordinator: true`) have extra privileges (post announcements, archive conversations, manage members). ADMIN always has coordinator access to every hub.
+
+### Architecture
+
+**Two hub systems coexist:**
+- `/account/host/*` — original HOST-role-only hub for the virtual host team (Prisma models: HostAssignment, SubRequest, SubClaim, HostThread, HostReply, Alert). See §23.
+- `/account/hub/[slug]/*` — general-purpose multi-hub workspace for all volunteer teams (Prisma models: Hub, HubMember, HubAnnouncement, HubDocument, HubConversationThread, HubConversationReply). See §24.
+
+The host-team hub at `/account/hub/host-team` uses a shared `HubScheduleClient` component (same calendar UI as `/account/host/schedule`) connected to the same `HostAssignment` data via `apiBase="/api/host"`.
+
+### 13 seeded hubs
+
+| Slug | Name | Type | Schedule |
+|---|---|---|---|
+| `host-team` | Host Team | OPERATIONAL | ✅ |
+| `people-team` | People Team | OPERATIONAL | |
+| `newsletter` | Newsletter | OPERATIONAL | |
+| `greeter` | Greeter Team | OPERATIONAL | |
+| `av-team` | AV Team | OPERATIONAL | |
+| `housekeeping` | Housekeeping | OPERATIONAL | |
+| `plant-care` | Plant Care | OPERATIONAL | |
+| `sangha-care` | Sangha Care | OPERATIONAL | |
+| `km-support` | KM Support | OPERATIONAL | |
+| `silent-meditation` | Silent Meditation | OPERATIONAL | |
+| `volunteer-coordination` | Volunteer Coordination | OPERATIONAL | |
+| `board` | Board | GOVERNANCE | |
+| `teacher-council` | Teacher Council | GOVERNANCE | |
+
+### Tabs per hub
+
+| Tab | Always | Condition |
+|---|---|---|
+| Announcements | ✅ | Hub home (default) |
+| Schedule | conditional | `hub.hasSchedule = true` (host-team only) |
+| Documents | ✅ | |
+| Conversations | ✅ | |
+| Members | ✅ | |
+
+### New Prisma models
+
+| Model | Purpose |
+|---|---|
+| `Hub` | A volunteer team hub — slug, name, type (OPERATIONAL/GOVERNANCE), hasSchedule, documentCategories[], conversationCategories[] |
+| `HubMember` | User membership in a hub — position, isCoordinator, lastVisitedAt (for unread tracking) |
+| `HubAnnouncement` | Coordinator-posted announcement with priority (NORMAL/IMPORTANT/URGENT); can link to a conversation thread |
+| `HubDocument` | Link or file attached to a hub — label, url, description, fileType, category |
+| `HubConversationThread` | Discussion thread — title, body, category (string from hub.conversationCategories), status (OPEN/CLOSED/ARCHIVED) |
+| `HubConversationReply` | Reply to a thread — body, author |
+
+### Key files
+
+**Layout + auth:**
+- `app/account/hub/[slug]/layout.tsx` — auth check + membership check + HubHeader + HubNavStrip + AccountLayout wrapper
+- `lib/hubAuth.ts` — `getHubMembership(slug, userId)` helper; `requireCoordinator()` guard
+
+**Pages:**
+- `app/account/hub/[slug]/page.tsx` — Announcements (hub home)
+- `app/account/hub/[slug]/schedule/page.tsx` — Schedule (hasSchedule hubs only)
+- `app/account/hub/[slug]/documents/page.tsx` — Documents
+- `app/account/hub/[slug]/conversations/page.tsx` — Conversations list
+- `app/account/hub/[slug]/conversations/[id]/page.tsx` — Conversation thread detail
+- `app/account/hub/[slug]/members/page.tsx` — Members list
+
+**Components:**
+- `components/HubHeader.tsx` — hub name, type badge, member count + avatar strip
+- `components/HubNavStrip.tsx` — horizontal tab nav (renders only tabs that apply to this hub)
+- `components/HubAnnouncementsClient.tsx` — announcement list + post form (coordinator only)
+- `components/HubDocumentsClient.tsx` — document list + add form (coordinator only)
+- `components/HubConvClient.tsx` — conversation list + new thread form
+- `components/HubConvThreadClient.tsx` — thread detail + replies + reply form
+- `components/HubMembersClient.tsx` — member list (coordinator can remove members, change position)
+- `components/HubManageClient.tsx` — hub settings editor (coordinator only)
+- `components/HubScheduleClient.tsx` — shared with `/account/host/schedule`; receives `apiBase` prop (`"/api/host"` for hub schedule, default for host page)
+
+**API routes:**
+| Route | Methods | Purpose |
+|---|---|---|
+| `/api/hub/[slug]` | GET, PATCH | Hub details; update settings (coordinator) |
+| `/api/hub/[slug]/announcements` | GET, POST | List announcements; post new |
+| `/api/hub/[slug]/announcements/[id]` | PATCH, DELETE | Update/archive announcement |
+| `/api/hub/[slug]/announcements/[id]/thread` | POST | Create linked conversation thread from announcement |
+| `/api/hub/[slug]/conversations` | GET, POST | List threads; create thread |
+| `/api/hub/[slug]/conversations/[id]` | GET, PATCH | Thread detail; change status |
+| `/api/hub/[slug]/conversations/[id]/replies` | POST | Add reply |
+| `/api/hub/[slug]/documents` | GET, POST | List documents; add document |
+| `/api/hub/[slug]/documents/[id]` | PATCH, DELETE | Update/remove document |
+| `/api/hub/[slug]/members` | GET | List members with roles |
+
+**Seed scripts:**
+- `prisma/seed-hubs.ts` — creates all 13 Hub records (safe to re-run)
+- `prisma/seed-jesse-hubs.ts` — adds Jesse Foy (all matching accounts) as coordinator of all hubs
+
+**AccountLayout integration:**
+- `components/AccountLayout.tsx` — queries `HubMember` for the current user; passes `hubLinks` to `AccountSidebar`
+- `components/AccountSidebar.tsx` — renders "Your Hubs" section with links to each hub
+
+### Technical notes
+
+**Hub access check:** The layout queries the hub including all members, then checks if `session.user.id` is in the members array. ADMIN bypasses the member check. If not a member, a friendly "You don't have access" message is shown (not a redirect, to avoid confusion).
+
+**`hasSchedule` flag:** Only `host-team` has `hasSchedule: true`. The Schedule tab is conditionally included in `HubNavStrip`. The schedule page itself calls `notFound()` if `!hub.hasSchedule`.
+
+**Shared `HubScheduleClient`:** Used by both `/account/host/schedule` (the old host-only page) and `/account/hub/host-team/schedule`. The hub page passes `apiBase="/api/host"` to connect to the same HostAssignment API. The host page uses the default `apiBase` which is also `/api/host`.
+
+**`lastVisitedAt` tracking:** Each hub page visit updates `HubMember.lastVisitedAt`. This is used by the dashboard hub cards to show unread dots (not yet implemented — reserved for future use).
+
+**CSS prefix:** `hub-` for all hub UI; `hub-page--wide` modifier for the schedule page.
+
+---
+
+| 2026-03-11 (session 39) | **Spec compliance audit + cleanup.** Audited all §23 files against actual codebase — everything conformant. Deleted temporary `/api/debug` route (exposed session/membership data; was created to diagnose login issue in session 38). Added §24 to FEATURES.md documenting the multi-hub workspace system (`/account/hub/[slug]/*`) built in the previous context-exhausted session. Fixed `TypeScript build error in app/account/host/schedule/page.tsx — missing `programFormat` field. Updated MEMORY.md session log. |
+
+*Last updated: 2026-03-11 (session 39)*
