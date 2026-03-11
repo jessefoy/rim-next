@@ -229,6 +229,10 @@ export default async function ManualPage() {
           <p>
             Once agreed, this is recorded on their account and they will never be asked again. Members who are signed in have already passed through this threshold and see no agreements section at all.
           </p>
+          <div className="man-note man-note--dev">
+            <span className="man-note--dev__label">⚠️&ensp;Technical note</span>
+            Once someone has agreed to the community guidelines, that&rsquo;s recorded permanently on their account — there&rsquo;s no way to reset it from within the volunteer area. This is intentional: agreeing is a meaningful threshold, not something to revisit repeatedly. If you ever need to clear it for a test account, a developer can do that directly in the database.
+          </div>
 
           <h3 className="man-section__h3">After registering</h3>
           <p>
@@ -636,6 +640,10 @@ export default async function ManualPage() {
           <div className="man-task">
             <h3 className="man-task__title">You want to register someone who doesn&rsquo;t want to do it themselves</h3>
             <p>Fill out the registration form on their behalf using their email. A confirmation email goes to them automatically. If they don&rsquo;t have an account, one is created silently — they can sign in any time via magic link to that email address.</p>
+            <div className="man-note man-note--dev">
+              <span className="man-note--dev__label">⚠️&ensp;Technical note</span>
+              When you register someone using their email address, the system quietly creates a member account for them if one doesn&rsquo;t already exist. They won&rsquo;t receive a separate &ldquo;account created&rdquo; message — just the registration confirmation. They can log in any time using a magic link to that address. Their name will already be on file from the registration form.
+            </div>
           </div>
 
           <div className="man-task">
@@ -646,6 +654,10 @@ export default async function ManualPage() {
           <div className="man-task">
             <h3 className="man-task__title">A member says they can&rsquo;t access their account</h3>
             <p>All sign-in uses a <strong>magic link</strong> — no passwords. They go to <strong>/login</strong>, enter their email, and receive a one-click sign-in link. Ask them to check spam. If their email address has changed, they need to re-register with the new address and contact an admin to link their history.</p>
+            <div className="man-note man-note--dev">
+              <span className="man-note--dev__label">⚠️&ensp;Technical note</span>
+              Magic links expire after a short window — usually around 15 minutes. If someone clicks a link and it doesn&rsquo;t work, that&rsquo;s often why. The fix is simple: they go back to <strong>/login</strong>, enter their email again, and request a fresh link. Each new request replaces the previous one, so only the most recently sent link will work. Old ones are automatically invalidated.
+            </div>
           </div>
 
           <div className="man-task">
@@ -741,8 +753,9 @@ export default async function ManualPage() {
             <li>Fill in the remaining tabs one at a time. You do not need to complete everything before publishing — you can publish a minimal program and add to it over time.</li>
             <li>When ready for the program to appear on the website, click <strong>Publish</strong>.</li>
           </ol>
-          <div className="man-note">
-            <strong>Do not change the slug after publishing.</strong> The slug is the program&rsquo;s permanent URL. If you change it after people have bookmarked the page or received it in emails, those links will break. You can freely change the Name — only the slug affects URLs. If you must change a slug, contact an admin — a redirect can be set up to catch old links.
+          <div className="man-note man-note--dev">
+            <span className="man-note--dev__label">⚠️&ensp;Technical note</span>
+            <strong>Do not change the slug after publishing.</strong> The slug isn&rsquo;t just the URL — it&rsquo;s also how host assignments are stored internally. Changing it after assignments exist will silently disconnect those assignments and break the connection to the host schedule. If a slug change is ever unavoidable, contact a developer — a redirect can be set up for old links, and assignments may need to be manually reconnected.
           </div>
         </section>
 
@@ -893,6 +906,10 @@ export default async function ManualPage() {
                   <li><strong>Hybrid</strong> — some participants at the center, others join via Google Meet. Both location and Google Meet fields are shown.</li>
                 </ul>
                 <p>Defaults to <strong>In-person</strong>. Setting Format to In-person and republishing automatically removes any existing Google Calendar room booking and clears the Meet link.</p>
+                <div className="man-note man-note--dev" style={{margin: "8px 0 0"}}>
+                  <span className="man-note--dev__label">⚠️&ensp;Technical note</span>
+                  If you switch a program to In-person and then later switch it back to Virtual or Hybrid, the Meet link won&rsquo;t return on its own — it was cleared when you published the In-person change. You&rsquo;ll need to create a new one from the registrar area. Any confirmation emails that already went out will reference the old link, so it&rsquo;s worth notifying registered members if the format actually changes.
+                </div>
               </div>
             </div>
             <div className="man-field">
@@ -979,8 +996,9 @@ export default async function ManualPage() {
               <div className="man-field__desc">
                 <p>If this program has an associated online course in the Members Area — audio recordings, readings, or other materials — link it here. Members who register for this program will <em>automatically</em> receive access to all linked courses without any manual action on your part.</p>
                 <p>Click the field and type to search for a course by name, or press Backspace to see all available courses. You can link more than one course.</p>
-                <div className="man-note" style={{margin: "8px 0 0"}}>
-                  <strong>Important:</strong> Access is granted automatically to people who register <em>after</em> you add the link. Members who registered before you made the change will not get automatic access — an Admin can grant it manually from the member detail page.
+                <div className="man-note man-note--dev" style={{margin: "8px 0 0"}}>
+                  <span className="man-note--dev__label">⚠️&ensp;Technical note</span>
+                  Access is granted automatically to people who register <em>after</em> you add this link. Members who registered before you made the change will not get access automatically — the system only checks at the moment of registration, not retroactively. An Admin can grant it manually from the member detail page for anyone who missed the window.
                 </div>
               </div>
             </div>
@@ -1009,6 +1027,10 @@ export default async function ManualPage() {
               <div className="man-field__desc">
                 <p>On this date, the system automatically sends a reminder email to all confirmed registrants at 9:00 AM Central. Set it one or two days before the program starts — Goes to Registered and Approved only, not waitlisted members.</p>
                 <p><strong>For virtual programs:</strong> make sure the Meeting Link (Step 2) is set before this date. Members are directed to their dashboard to find it — but if the field is empty when the reminder sends, there will be nothing to direct them to.</p>
+                <div className="man-note man-note--dev" style={{margin: "8px 0 0"}}>
+                  <span className="man-note--dev__label">⚠️&ensp;Technical note</span>
+                  Reminder emails go out automatically at 9:00 AM Central on the date you set. The system doesn&rsquo;t check whether a Meeting Link exists before sending — it just sends. If the link isn&rsquo;t saved in Sanity by that morning, virtual program members will receive a reminder with nowhere to click. Set the Meeting Link at least a day before the reminder date to be safe.
+                </div>
               </div>
             </div>
             <div className="man-field">
@@ -1524,6 +1546,10 @@ export default async function ManualPage() {
           <p>
             Their email address is shown here too. Email is their login — be careful when changing it. If you update it, they&rsquo;ll be signed out immediately and will need to use the new address to log back in. A warning appears if you change this field so you don&rsquo;t do it accidentally.
           </p>
+          <div className="man-note man-note--dev">
+            <span className="man-note--dev__label">⚠️&ensp;Technical note</span>
+            A member&rsquo;s email address is the key their account is built on — it&rsquo;s also their username. The moment you save a change to it, any active session they have is invalidated. If they&rsquo;re using the site when you make the change, their next click will drop them to the login page. They&rsquo;ll need to use a magic link sent to the <em>new</em> address to get back in. Make sure the new address is correct before saving.
+          </div>
 
           <h3 className="man-section__h3">Contact — phone and address</h3>
           <p>
@@ -1586,6 +1612,10 @@ export default async function ManualPage() {
 
           <div className="man-note">
             Setting someone to Inactive is reversible. If you need to restore their access, simply change their status back to Active (or whichever status fits) and save.
+          </div>
+          <div className="man-note man-note--dev">
+            <span className="man-note--dev__label">⚠️&ensp;Technical note</span>
+            Setting status to Inactive doesn&rsquo;t just block future logins — it actively ends any session they currently have. If they&rsquo;re on the site at the moment you save, their next page load will redirect them away. This is immediate and cannot be softened. It&rsquo;s the right tool when access needs to stop right now, but worth being intentional about timing.
           </div>
 
           <h3 className="man-section__h3">First visit date</h3>
@@ -1993,6 +2023,10 @@ export default async function ManualPage() {
           <p>
             Roles take effect immediately. As soon as you save a role change, the next page the member loads will reflect their new access. No re-login is required (though if they are logged in, they may need to reload the page).
           </p>
+          <div className="man-note man-note--dev">
+            <span className="man-note--dev__label">⚠️&ensp;Technical note</span>
+            Role changes are reflected in the session the next time it&rsquo;s refreshed — usually on the next page load. If someone tells you &ldquo;I was just given the Registrar role but I still can&rsquo;t see the page,&rdquo; ask them to do a full browser reload (not just click a link). If they&rsquo;re still locked out after reloading, double-check that the role is actually saved by reopening their member detail page.
+          </div>
         </section>
 
         {/* ── The two roles ── */}
@@ -2212,8 +2246,9 @@ export default async function ManualPage() {
           <p>
             If you uncheck <strong>Registrar</strong> for someone who was previously invited to Sanity Studio, a warning appears in the save bar before you confirm:
           </p>
-          <div className="man-note man-note--warn">
-            ⚠ Saving will also revoke this member&rsquo;s Sanity Studio access.
+          <div className="man-note man-note--dev">
+            <span className="man-note--dev__label">⚠️&ensp;Technical note</span>
+            Saving will also revoke this member&rsquo;s Sanity Studio access — both pending invitations and active accounts are removed immediately, with no undo option from the website. If you need to restore their access later, re-assign the Registrar role and send a new invitation from their member detail page.
           </div>
           <p>
             If you save, two things happen automatically:
@@ -2230,6 +2265,10 @@ export default async function ManualPage() {
           <p>
             Removing the Admin role works the same way — uncheck it and save. Be careful not to remove the Admin role from every Admin account at once, as that would leave no one able to manage roles. The system does not prevent this.
           </p>
+          <div className="man-note man-note--dev">
+            <span className="man-note--dev__label">⚠️&ensp;Technical note</span>
+            If all Admin accounts are accidentally removed, there is no recovery path from within the website. The only way back is to update the database directly — the same process described in the <a href="#roles-bootstrap">First Admin setup</a> section below. It&rsquo;s a quick fix if you have database access, but worth avoiding by always keeping at least two people with Admin.
+          </div>
         </section>
 
         {/* ── First Admin setup ── */}
