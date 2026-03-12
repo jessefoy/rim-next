@@ -1,213 +1,116 @@
-# RIM Next — Stack Reference
+# RIM System Architecture
+**Structural decisions and the reasoning behind them**
 
-_Generated 2026-03-11. Update this file whenever a service, credential, or major structural decision changes._
+This document records the foundational architectural decisions for how RIM's member data system and volunteer hub system work together. It is not a features doc — that's FEATURES.md. It is not a design philosophy doc — that's RIM_Web_Design_Philosophy.md. It is the structural model that governs how those features are built.
 
----
-
-## What's been built
-
-Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfield, WI. This Next.js application is the future home of the entire RIM digital presence — programs, member accounts, registrations, online courses, and volunteer tooling. As of this writing, the application includes a full program registration system (with waitlisting, dana/Stripe payments, calendar links, and automated emails), a member dashboard and profile system, a registrar area for managing participants, an admin area for member management (with households, status, tags, and role assignment), a Sanity-integrated course library, a staff reference manual, a site architecture/feature inventory for admins, a Google Meet integration for virtual programs, and a Host Community Hub — a full team workspace for the volunteer host team with a calendar schedule, sub board, conversations, and alerts. The Webflow-built site at `rootedinmindfulness.org` remains live as the public-facing domain while this app is in active development at `rim-next.vercel.app`.
+**Claude Code: Read this before working on any hub, member data, role, or permission-related feature.**
 
 ---
 
-## Live URLs
+## The Two Systems
 
-| Environment | URL |
+### Member Registry (`/admin/members`)
+
+The Member Registry is the authoritative record of every person in the RIM community. It holds canonical member profiles: contact info, member status, household, tags, admin notes, registration history, course access, and role assignments.
+
+**Who has direct access:** ADMIN and REGISTRAR only. No other roles should be granted access to `/admin/members`. This is not a filtering problem to solve — it is a boundary to maintain.
+
+**What it is:** The system of record. Not a tool for volunteers to do their work. Not a filtered view for different roles.
+
+### Hubs (`/account/hub/[slug]`)
+
+Hubs are team workspaces for RIM's volunteer groups. Each hub serves one team. Members see only the hubs they belong to.
+
+**Current hubs:** Host Team, People Team, Greeter Team, AV Team, Housekeeping, Plant Care, Newsletter, Sangha Care, KM Support, Silent Meditation, Volunteer Coordination (all OPERATIONAL) + Board and Teacher Council (GOVERNANCE).
+
+**What they are:** Task-specific workspaces. Each hub currently provides Announcements, Documents, Conversations, and a Members tab. The Host Team hub also has a Schedule tab.
+
+---
+
+## The Core Architectural Principle
+
+> **Volunteers access member data through their hub — not through the Member Registry.**
+
+When a hub needs to surface member data, it does so as a **scoped projection**: only the fields relevant to that role, only the people within that role's scope, only the actions that role's work requires.
+
+The Member Registry is never given to volunteers in filtered form. A restricted Member Registry is not the answer — it creates confusion, invites permission creep, and blurs the boundary between administrative authority and volunteer work.
+
+### The right mental model
+
+| System | Purpose |
 |---|---|
-| Production (Vercel) | https://rim-next.vercel.app |
-| Webflow (public live site) | https://rootedinmindfulness.org |
-| Sanity Studio | https://rooted-in-mindfulness.sanity.studio |
-| GitHub repo | https://github.com/jessefoy/rim-next |
-| Neon (database) | https://console.neon.tech |
-| Vercel dashboard | https://vercel.com/jessefoy/rim-next |
-| Stripe (test mode) | https://dashboard.stripe.com |
-| Resend | https://resend.com |
-| Flodesk | https://app.flodesk.com |
+| Member Registry | Canonical record authority |
+| Hub member views | Task-specific projections of that data |
+
+The same person may appear in multiple places — as a participant in a Host Team roster, a follow-up item in a People Team queue, a full profile in the Registry for ADMIN/REGISTRAR. Same person, different shape, different purpose.
 
 ---
 
-## Tech Stack
+## The Permission Framework
 
-| Layer | Technology | Version / Notes |
-|---|---|---|
-| Framework | Next.js (App Router) | 16.1.6 |
-| Language | TypeScript | strict |
-| Auth | NextAuth v5 | `^5.0.0-beta.30` — magic link via Resend, no passwords |
-| Database ORM | Prisma | `^5.22.0` |
-| Database | Neon (Postgres) | project `ep-super-pine-ai6ujd7t`, db `neondb` |
-| CMS | Sanity v3 | project `xxgvfpjf`, dataset `production` |
-| Email | Resend | transactional + magic links |
-| Payments | Stripe | test mode (sk_test_* / pk_test_*) |
-| Newsletter | Flodesk | segment `6340e5b00170f97cbdfc4b87` |
-| Donations | GiveButter | account `GcnXeYilkL4lWnr3` |
-| Video | Google Meet | 4 shared room accounts via DWD + Google Calendar API |
-| Hosting | Vercel | auto-deploy on push to `main` |
-| CSS | Custom design system | `public/css/custom.css` only — never touch webflow CSS files |
+When designing member data access for any hub, answer four questions:
+
+| Dimension | Question |
+|---|---|
+| **Fields** | What data does this role actually need to see? |
+| **Scope** | Which people does that apply to? |
+| **Actions** | What can they do? (view / mark attendance / add note / message / etc.) |
+| **Purpose** | Which specific workflow is this access serving? |
+
+This is the framework for every future hub data view. If a proposed feature can't clearly answer all four, it's not scoped tightly enough.
 
 ---
 
-## Workflow
+## The Build Model
 
-- **Never run a local dev server.** Push to `main` → Vercel auto-deploys in ~1–2 min.
-- `npm run build` = `prisma generate && next build` — run locally to catch TypeScript errors before pushing.
-- To pull env vars: `npx vercel env pull .env.local`
-- To run DB migration: `set -a && source .env.local && set +a && npx prisma db push`
-- Route protection: `proxy.ts` (not `middleware.ts` — Next.js 16 naming)
-- `params` is `Promise<{slug}>` in App Router — must `await params` before destructuring.
+**One hub role at a time.** Each hub with a member data need gets its own scoped view built specifically for that role's workflow. This approach:
 
----
-
-## Environment Variables
-
-All set in Vercel. Pull locally with `npx vercel env pull .env.local`.
-
-### Auth & Session
-| Variable | Purpose |
-|---|---|
-| `AUTH_SECRET` | NextAuth session signing key |
-| `NEXTAUTH_URL` | `https://rim-next.vercel.app` |
-
-### Database (Neon)
-| Variable | Purpose |
-|---|---|
-| `POSTGRES_PRISMA_URL` | Pooled connection (Prisma default) |
-| `POSTGRES_URL_NON_POOLING` | Direct connection (migrations) |
-| `POSTGRES_URL` | Raw URL |
-| `POSTGRES_URL_NO_SSL` | SSL-disabled variant |
-| `POSTGRES_HOST` | Host string |
-| `POSTGRES_DATABASE` | `neondb` |
-| `POSTGRES_USER` | DB user |
-| `POSTGRES_PASSWORD` | ⚠️ Rotate before go-live |
-| `NEON_PROJECT_ID` | Neon project ref |
-
-### Sanity CMS
-| Variable | Purpose |
-|---|---|
-| `NEXT_PUBLIC_SANITY_PROJECT_ID` | `xxgvfpjf` |
-| `NEXT_PUBLIC_SANITY_DATASET` | `production` |
-| `SANITY_API_TOKEN` | Editor-level write token |
-| `SANITY_MANAGEMENT_TOKEN` | Invites + webhook registration |
-
-### Email (Resend)
-| Variable | Purpose |
-|---|---|
-| `RESEND_API_KEY` | All transactional emails |
-| `EMAIL_FROM` | `hello@rootedinmindfulness.org` (domain verified 2026-03-03) |
-| `REGISTRAR_EMAIL` | Receives cancellation and edit notifications |
-
-### Google Meet
-| Variable | Purpose |
-|---|---|
-| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Service account for DWD |
-| `GOOGLE_PRIVATE_KEY` | Service account private key |
-| `GOOGLE_ROOM_EMAILS` | Comma-separated list of meet1–meet4 room accounts |
-| `GOOGLE_CALENDAR_ID` | Legacy — currently unused |
-
-### Payments (Stripe — test mode)
-| Variable | Purpose |
-|---|---|
-| `STRIPE_SECRET_KEY` | `sk_test_*` |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | `pk_test_*` |
-| `STRIPE_WEBHOOK_SECRET` | Registered at `https://rim-next.vercel.app/api/stripe/webhook` (event: `checkout.session.completed`) |
-
-### Newsletter & Cron
-| Variable | Purpose |
-|---|---|
-| `FLODESK_API_KEY` | Newsletter subscriber sync |
-| `CRON_SECRET` | Vercel passes as `Authorization: Bearer <secret>` to cron routes |
+- Keeps each implementation tight and testable
+- Forces clear thinking about what each role actually needs
+- Prevents permission creep
+- Creates a reusable pattern that each subsequent hub can follow
 
 ---
 
-## Sanity Studio
+## Decision Rule for Future Roles
 
-- Source: `/Users/jessefoy/Sites/rim-website/sanity/` (shared between both projects)
-- Deploy: `cd /Users/jessefoy/Sites/rim-website/sanity && npx sanity deploy`
-- Shared schema: `schemas/richContent.js` — used by both lessons and programs
+When a new hub or role needs access to member data, ask one question:
 
-### GROQ rules
-- Always exclude drafts: `!(_id in path("drafts.**"))`
-- `_type` values are **plural** (`"programs"` not `"program"`)
-- `dayOfWeek` is array ref: `dayOfWeek[]->` not `dayOfWeek->`
-- Array contains filter: `$slug in field[]->slug.current`
-- Reverse reference: `*[_type == "programs" && ^._id in linkedCourses[]._ref]`
-- ⚠️ Slugs are database join keys for `HostAssignment` — treat as permanent once assignments exist
+**Does this role need a workflow view of people, or authority over member records?**
+
+- Workflow view → build it inside the hub as a scoped projection
+- Authority over records → grant REGISTRAR or ADMIN access to the Member Registry
+
+Most volunteers need workflow views. Almost no one outside ADMIN and REGISTRAR needs the Registry.
 
 ---
 
-## Key Directories
+## Multiple Roles
 
-```
-app/
-  account/
-    dashboard/        member home
-    programs/         my registrations
-    host/             Host Community Hub (HOST | HOST_MANAGER | ADMIN)
-    registrar/        registrar area (REGISTRAR | ADMIN)
-    welcome/          onboarding
-    reactivate/       self-service reactivation
-  admin/
-    members/          member management (ADMIN | REGISTRAR)
-    households/       household grouping (ADMIN | REGISTRAR)
-    manual/           staff reference manual
-    roadmap/          planned work tracker
-    sitemap/          site architecture
-    features/         feature inventory
-    ideas/            backlog (data/backlog.json)
-  api/
-    account/          member-facing APIs (registrations, alerts, reactivate)
-    programs/         program APIs (ical, google-meet, send-reminder)
-    registrations/    registration CRUD + email
-    host/             hub APIs (assignments, sub-requests, threads, replies)
-    stripe/           checkout + webhook
-    webhooks/         Sanity webhook handler
-    cron/             scheduled jobs (reminders, unassigned-host check)
-  programs/[slug]/    public program pages
-  course/[slug]/      member-gated course pages
-  lessons/[slug]/     lesson pages
+A person may belong to multiple hubs. Their effective permissions are the union of their hub memberships — but those permissions are still surfaced inside each hub's context, not combined into a single general-purpose people view.
 
-components/           shared UI components
-lib/                  utilities (queries, email, dateLabel, locations, etc.)
-prisma/schema.prisma  database schema
-proxy.ts              route protection (replaces middleware.ts in Next.js 16)
-public/css/custom.css all custom styles (never edit webflow CSS files)
-data/backlog.json     feature backlog (surfaced at /admin/ideas)
-```
+Someone who is both a Host Team coordinator and a Volunteer Coordination member has two workspaces. They do not get a merged view of all member data across both.
 
 ---
 
-## Active Roles
+## What's Next
 
-| Role | Access |
-|---|---|
-| `HOST` | Host Community Hub, sub board, conversations |
-| `HOST_MANAGER` | All HOST access + assignment management + unassigned alerts |
-| `REGISTRAR` | Registrations, member profiles, Sanity Studio |
-| `ADMIN` | Everything |
+The **Virtual Host Hub** is the first hub to receive a scoped member data view. It is the right starting point because:
 
-Hub access check: `roles.some(r => ["HOST","HOST_MANAGER","ADMIN"].includes(r))`
-Manager check: `roles.some(r => ["HOST_MANAGER","ADMIN"].includes(r))`
+- The host role already exists in the system
+- The hub already has a schedule
+- The scope is maximally clear: participants in the session the host is assigned to
+- The required data is minimal: name, preferred name, attendance status
 
----
-
-## Key External Integrations
-
-| Service | What it does | Notes |
-|---|---|---|
-| Resend | Magic links + all transactional email | Domain `rootedinmindfulness.org` verified |
-| Stripe | Dana/fee collection via Checkout | Test mode — switch to live before launch |
-| Sanity | All content (programs, lessons, teams) | Studio is separate from the app |
-| Google Meet | Virtual program hosting | DWD via service account; 4 room accounts |
-| Google Calendar | Room booking for Meet sessions | Conflict checking on create |
-| Flodesk | Newsletter signup | Segment ID in env vars |
-| Neon | Postgres database | ⚠️ Rotate password before go-live |
-| Vercel | Hosting + cron jobs | Auto-deploy from `main` |
+This implementation will establish the pattern for all subsequent hub data views.
 
 ---
 
-## Current Phase
+## Naming
 
-**Active development — not yet live on the real domain.**
+The system of record for member data is called the **Member Registry**. This is the preferred term in code comments, documentation, and conversation. Avoid "CRM," "CMS," "database," or "People Hub" when referring to this system.
 
-The Webflow site at `rootedinmindfulness.org` is the live public site. This app is running in parallel at `rim-next.vercel.app` with real data and real members. The goal is a full cutover once CSS migration is complete and all member-facing flows are tested. Stripe is in test mode — switch to live keys before going public.
+---
 
-**CSS migration status:** Two-layer system in progress. Pages marked 🟢 use the design system (`public/css/custom.css` with prefixed classes + CSS vars). Pages marked 🟠 still use raw Webflow classes from imported CSS files. Goal is to delete all three Webflow CSS imports from `app/layout.tsx` once all pages are migrated. See `memory/pages-inventory.md` for current status.
+*Rooted in Mindfulness · rootedinmindfulness.org*
+*Working document · March 2026*

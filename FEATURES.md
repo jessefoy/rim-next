@@ -1,6 +1,6 @@
 # RIM Next — Feature Reference
 
-> **Before working on any hub, member data, role, or permission-related feature, read `RIM_System_Architecture.md`.**
+> **Before working on any hub, member data, role, or permission-related feature, read `RIM_System_Architecture.md` and the relevant section of `RIM_Role_Design.md`.**
 
 This document is the authoritative record of every significant feature built into the app.
 **It must be updated at the end of every working session.**
