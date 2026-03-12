@@ -1232,7 +1232,7 @@ function buildRoleAssignmentText({
  */
 export async function sendHostRoleAssignmentEmail(data: RoleAssignmentEmailData): Promise<void> {
   const { to, firstName } = data;
-  const hostAreaUrl = `${BASE_URL}/hosts`;
+  const hostAreaUrl = `${BASE_URL}/account/hub/host-team`;
   const manualUrl   = `${BASE_URL}/admin/manual`;
 
   const { error } = await resend.emails.send({
@@ -1351,7 +1351,7 @@ export interface SubRequestEmailData {
 
 export async function sendSubRequestEmail(data: SubRequestEmailData): Promise<void> {
   const { to, firstName, requesterName, programName, sessionDate, message } = data;
-  const hubUrl = `${BASE_URL}/account/host/subs`;
+  const hubUrl = `${BASE_URL}/account/hub/host-team/schedule`;
   const greeting = firstName ? `Hi ${firstName},` : "Hello,";
   const sessionLabel = sessionDate ? ` on ${sessionDate}` : "";
 
@@ -1406,7 +1406,7 @@ export interface SubClaimedEmailData {
 
 export async function sendSubClaimedEmail(data: SubClaimedEmailData): Promise<void> {
   const { to, firstName, claimerName, programName, sessionDate, message } = data;
-  const hubUrl = `${BASE_URL}/account/host/subs`;
+  const hubUrl = `${BASE_URL}/account/hub/host-team/schedule`;
   const greeting = firstName ? `Hi ${firstName},` : "Hello,";
   const sessionLabel = sessionDate ? ` on ${sessionDate}` : "";
 
@@ -1461,7 +1461,7 @@ export interface NewThreadEmailData {
 
 export async function sendNewThreadEmail(data: NewThreadEmailData): Promise<void> {
   const { to, firstName, authorName, threadTitle, category, threadId } = data;
-  const threadUrl = `${BASE_URL}/account/host/threads/${threadId}`;
+  const threadUrl = `${BASE_URL}/account/hub/host-team/conversations/${threadId}`;
   const greeting = firstName ? `Hi ${firstName},` : "Hello,";
   const categoryLabel = category === "CONTEMPLATION" ? "Contemplation" : "Operational";
 
@@ -1515,7 +1515,7 @@ export interface NewReplyEmailData {
 
 export async function sendNewReplyEmail(data: NewReplyEmailData): Promise<void> {
   const { to, firstName, replierName, threadTitle, threadId } = data;
-  const threadUrl = `${BASE_URL}/account/host/threads/${threadId}`;
+  const threadUrl = `${BASE_URL}/account/hub/host-team/conversations/${threadId}`;
   const greeting = firstName ? `Hi ${firstName},` : "Hello,";
 
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>New reply</title></head>
