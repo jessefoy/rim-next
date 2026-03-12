@@ -366,7 +366,7 @@ const AREAS: FunctionalArea[] = [
         what: "After confirming registration, members see '+ Google Calendar' and '+ Apple / Outlook' links. Google Calendar link opens pre-filled. The .ics route returns an RFC 5545 file for Apple/Outlook download. Links only appear when startDatetime/endDatetime are set in Sanity. Recurrence rules (RRULE) are generated from the 4 recurrence fields in Sanity.",
         relatedTo: [
           "startDatetime/endDatetime configured in Sanity CMS (programs → Schedule & Location tab)",
-          "Recurrence fields (recurrenceFreq, recurrenceInterval, recurrenceDays, recurrenceCount) drive the RRULE",
+          "Recurrence fields (recurrenceFreq, recurrenceInterval, recurrenceDays, recurrenceCount) drive the RRULE — null recurrenceCount = no COUNT in RRULE = infinite recurrence",
           "Also included in Registration Confirmation Email",
         ],
       },
@@ -559,9 +559,9 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Dashboard Hub",
         locations: ["/account/dashboard"],
-        what: "The member area home page. Displays 5 nav cards (Today's Sessions, My Programs, My Library, Our Agreements, My Profile), today's drop-in Zoom links (Milwaukee/CT timezone-aware), pending dana reminders for waitlist-promoted members, and a staff access panel (only visible to REGISTRAR and ADMIN roles).",
+        what: "The member area home page. Displays greeting, Today's Virtual Sessions (Live Now + Later Today sections), upcoming program registrations, quick links, pending dana reminders, and hub memberships. Today's sessions use JS-side recurrence logic (isOccurrenceToday) — join button appears only in Live Now, 12 min before start.",
         relatedTo: [
-          "Today's sessions queried from Sanity by day of week",
+          "virtualDashboardProgramsQuery fetches all virtual/hybrid programs with recurrence fields; isOccurrenceToday() + shiftToToday() compute today's occurrences",
           "Pending dana prompt connects to Program Registration dana step",
           "Staff access panel connects to Volunteer/Admin areas",
           "Navigation (nav-) links to all member sub-pages",

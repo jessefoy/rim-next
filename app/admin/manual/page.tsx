@@ -499,7 +499,7 @@ export default async function ManualPage() {
               </tr>
               <tr>
                 <td>Number of Sessions</td>
-                <td>Total count including the first. An 8-week course = 8.</td>
+                <td>Total count including the first. <strong>Leave blank for ongoing programs</strong> (weekly sittings, drop-ins). Fill in for fixed-length series — an 8-week course = 8.</td>
               </tr>
             </tbody>
           </table>
@@ -892,8 +892,9 @@ export default async function ManualPage() {
             <div className="man-field">
               <div className="man-field__name">Number of Sessions</div>
               <div className="man-field__desc">
-                <p>The total number of sessions, including the first one. An 8-week Wednesday course = 8. A 6-month monthly group = 6.</p>
-                <p>The .ics file download will include all sessions. The Google Calendar link only adds the first session (a Google limitation — labeled clearly for members).</p>
+                <p><strong>Leave this blank for ongoing programs</strong> — weekly sittings, drop-in groups, or any program that repeats indefinitely until you turn it off. The session will keep appearing on the member dashboard each week (or month, or day) as long as the program is published.</p>
+                <p>Fill in a number only for fixed-length series: an 8-week course = 8, a 6-month monthly group = 6. The count includes the first session.</p>
+                <p>When a count is set, the .ics file download includes all sessions. The Google Calendar link only adds the first session (a Google limitation — labeled clearly for members). When left blank, the .ics file covers all future occurrences with no end date.</p>
               </div>
             </div>
             <div className="man-field">
@@ -1109,8 +1110,11 @@ export default async function ManualPage() {
             <div className="man-field">
               <div className="man-field__name">Day of Week</div>
               <div className="man-field__desc">
-                <p>Select the day(s) this program meets. The dashboard groups programs by day — this field controls which day-column the program appears under. It also drives the <strong>Today</strong> highlight for members on the day the program runs.</p>
+                <p>Select the day(s) this program meets. Used for day-grouping on the public listing page — this field controls which day the program appears under in the calendar listing.</p>
                 <p>Leave blank for programs without a fixed recurring day — retreats, one-time events, or anything where day-grouping doesn&rsquo;t apply.</p>
+                <div className="man-note">
+                  <strong>Note:</strong> The member dashboard&rsquo;s &ldquo;Today&rsquo;s Virtual Sessions&rdquo; section is driven by <strong>Start Date &amp; Time</strong> and the recurrence fields — not by Day of Week. Virtual programs appear there automatically on their scheduled days once those fields are filled in.
+                </div>
               </div>
             </div>
             <div className="man-field">
@@ -1192,15 +1196,16 @@ export default async function ManualPage() {
           </div>
 
           <div className="man-task">
-            <h3 className="man-task__title">Setting up a multi-session course with calendar recurrence</h3>
+            <h3 className="man-task__title">Setting up recurrence for a virtual program</h3>
             <ol className="man-steps">
               <li>Open the program → <strong>2 — When &amp; Where</strong> tab.</li>
-              <li>Set <strong>Start Date &amp; Time</strong> to the first session.</li>
+              <li>Set <strong>Start Date &amp; Time</strong> to the first (or next upcoming) session.</li>
               <li>Set <strong>Repeats</strong> — e.g., Weekly.</li>
               <li>Set <strong>Every</strong> to 1 (every week) or 2 (every other week).</li>
               <li>If Weekly, check the appropriate days under <strong>On Days</strong>.</li>
-              <li>Set <strong>Number of Sessions</strong> — total count including the first. An 8-week course = 8.</li>
-              <li>Publish. The .ics calendar download will now include all sessions.</li>
+              <li><strong>For ongoing programs</strong> (weekly sittings, drop-ins that repeat indefinitely): leave <strong>Number of Sessions</strong> blank. The program will appear on the member dashboard every scheduled week until you un-publish it.</li>
+              <li><strong>For fixed-length series</strong> (8-week course, 6-session retreat): set <strong>Number of Sessions</strong> to the total count including the first session.</li>
+              <li>Publish. The member dashboard will show the program under Today&rsquo;s Virtual Sessions each time it occurs. The .ics download includes all sessions (or all future sessions if no count is set).</li>
             </ol>
           </div>
 
@@ -1408,7 +1413,7 @@ export default async function ManualPage() {
               <tr>
                 <td>Member dashboard <code>/account/dashboard</code></td>
                 <td>Logged-in members only</td>
-                <td>Under &ldquo;Today&rsquo;s Sessions&rdquo; on the day of the program</td>
+                <td>Under &ldquo;Today&rsquo;s Sessions&rdquo; on the day of the program. The Join button appears in the <strong>Live Now</strong> section, about 12 minutes before start — the same time the host opens the room. Sessions appearing under <strong>Later Today</strong> show no button; members see a note letting them know when the link will appear.</td>
               </tr>
               <tr>
                 <td>Host Area <code>/account/host</code></td>
