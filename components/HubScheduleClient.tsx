@@ -164,22 +164,16 @@ function SessionDetail({
         </div>
 
         {/* Meet link — shown separately below the grid when available */}
-        {s.zoomLink && (
+        {s.zoomLink && s.programId && (
           <div className="hub-detail__meet">
-            {s.programId ? (
-              <MeetJoinButton
-                programId={s.programId}
-                programSlug={s.programSlug}
-                zoomLink={s.zoomLink}
-                className="hub-detail__meet-link"
-              >
-                Join Google Meet →
-              </MeetJoinButton>
-            ) : (
-              <a href={s.zoomLink} target="_blank" rel="noopener noreferrer" className="hub-detail__meet-link">
-                Join Google Meet →
-              </a>
-            )}
+            <MeetJoinButton
+              programId={s.programId}
+              programSlug={s.programSlug}
+              zoomLink={s.zoomLink}
+              className="hub-detail__meet-link"
+            >
+              Join Google Meet →
+            </MeetJoinButton>
             {s.meetHostAccount && (
               <span className="hub-detail__meet-account">Sign in as {s.meetHostAccount}</span>
             )}
