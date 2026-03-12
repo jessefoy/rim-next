@@ -541,6 +541,7 @@ model SessionReport {
   resourceNote            String?   // Brief description of the resource
   resourceRouted          Boolean   @default(false)  // Set when resource has been sent to support/registrar
   submittedAt             DateTime  @default(now())
+  sessionEndedAt          DateTime? // Set when a host clicks "Close session" — hard cutoff for join window
 
   host User @relation(fields: [hostId], references: [id])
 

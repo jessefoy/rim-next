@@ -161,8 +161,8 @@ export default async function SessionPage({
   const now = new Date();
   const { startOfDay, endOfDay } = ctDayBounds(today);
 
-  // Fetch programs + today's attendance in parallel
-  const [allPrograms, todayAttendance] = await Promise.all([
+  // Fetch programs + today's attendance + today's session reports in parallel
+  const [allPrograms, todayAttendance, todayReports] = await Promise.all([
     sanityClient.fetch<SanityProgram[]>(sessionViewProgramsQuery),
     db.sessionAttendance.findMany({
       where: { joinedAt: { gte: startOfDay, lte: endOfDay } },
@@ -177,6 +177,13 @@ export default async function SessionPage({
         },
       },
       orderBy: { joinedAt: "asc" },
+    }),
+    db.sessionReport.findMany({
+      where: {
+        sessionDate: startOfDay, // CT midnight = today's date key
+        sessionEndedAt: { not: null },
+      },
+      select: { programSlug: true, sessionEndedAt: true },
     }),
   ]);
 
@@ -204,6 +211,12 @@ export default async function SessionPage({
       const name = a.user.preferredName || a.user.firstName || "Host";
       assignmentBySlug.set(a.programSlug, { userId: a.userId, name });
     }
+  }
+
+  // Index session-ended reports by programSlug
+  const sessionEndedBySlug = new Map<string, string>(); // slug → ISO timestamp
+  for (const r of todayReports) {
+    if (r.sessionEndedAt) sessionEndedBySlug.set(r.programSlug, r.sessionEndedAt.toISOString());
   }
 
   // Group attendance by programSlug
@@ -268,6 +281,7 @@ export default async function SessionPage({
       }));
 
     const assignment = assignmentBySlug.get(p.slug) ?? null;
+    const sessionEndedAt = sessionEndedBySlug.get(p.slug) ?? null;
 
     return {
       _id: p._id,
@@ -277,6 +291,7 @@ export default async function SessionPage({
       endTimeCT:   end   ? fmtTimeCT(end)   : null,
       isRegistered: !!p.registrationEnabled,
       sessionEnded,
+      sessionEndedAt, // null or ISO string when host manually ended the session
       assignedHost: assignment ? { id: assignment.userId, name: assignment.name } : null,
       postSessionPath: `/account/hub/${slug}/session/${p.slug}/post`,
       attendees: attendees.map((a) => {
@@ -297,12 +312,15 @@ export default async function SessionPage({
   });
 
   const isManager = roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
+  // HOST, HOST_MANAGER, and ADMIN can close a session early
+  const canEndSession = roles.some((r) => ["HOST", "HOST_MANAGER", "ADMIN"].includes(r));
 
   return (
     <>
       <SessionLiveClient
         programs={programs}
         todayCT={fmtTodayFull(today)}
+        canEndSession={canEndSession}
       />
       <div className="sv-history-nav">
         <a

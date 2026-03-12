@@ -93,15 +93,24 @@ export async function POST(req: NextRequest) {
   const userId = session.user.id;
   const now = new Date();
 
-  // ── Window guard ──────────────────────────────────────────────────────────
-  // Clicks outside the session window return 200 silently — no error to member.
+  // ── Session-ended hard cutoff ──────────────────────────────────────────────
+  // If a host has manually closed this session, block new attendance regardless
+  // of the time window. Check DB first — faster than a Sanity fetch.
+  const sessionDate = ctMidnight(now);
+  const existingReport = await db.sessionReport.findUnique({
+    where: { programSlug_sessionDate: { programSlug, sessionDate } },
+    select: { sessionEndedAt: true },
+  });
+  if (existingReport?.sessionEndedAt) {
+    return NextResponse.json({ ok: true }); // silently blocked — session is closed
+  }
+
+  // ── Time window guard ──────────────────────────────────────────────────────
+  // Clicks outside the scheduled session window return 200 silently — no error to member.
   const inWindow = await isWithinSessionWindow(programSlug, now);
   if (!inWindow) {
     return NextResponse.json({ ok: true });
   }
-
-  // ── Compute CT midnight for this session date ─────────────────────────────
-  const sessionDate = ctMidnight(now);
 
   // ── Upsert: update joinedAt if record exists, create if new ──────────────
   const existing = await db.sessionAttendance.findUnique({
