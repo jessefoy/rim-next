@@ -1818,7 +1818,7 @@ export default async function ManualPage() {
             The Host Community Hub is your team&rsquo;s home base. You&rsquo;ll find it at <strong>/account/hub/host-team</strong> — it&rsquo;s where the host team sees the schedule, helps each other out when someone can&rsquo;t make a session, and stays connected between meetings. Think of it as the back room that supports everything that happens in the Meet rooms.
           </p>
           <p>
-            The hub has three areas: <strong>Schedule</strong>, <strong>Sub Board</strong>, and <strong>Conversations</strong>. They work together, and you&rsquo;ll move between them naturally as things come up.
+            The hub has five tabs: <strong>Announcements</strong>, <strong>Schedule</strong>, <strong>Documents</strong>, <strong>Conversations</strong>, and <strong>Members</strong>. Sub coverage (the Sub Board) lives inside the Schedule tab — you request and claim subs from the session detail panel without leaving the calendar.
           </p>
           <p>
             Everyone on the host team — whether you have the <strong>Meet Host</strong> or <strong>Meet Host Manager</strong> role — can access the hub. Admins can too. What each person can do is slightly different depending on their role. Here&rsquo;s a quick reference:
@@ -2127,7 +2127,7 @@ export default async function ManualPage() {
                 <td>✓</td>
               </tr>
               <tr>
-                <td>Manage tab <code>/account/hub/host-team/schedule</code></td>
+                <td>Assign hosts (from Schedule) <code>/account/hub/host-team/schedule</code></td>
                 <td></td>
                 <td>✓</td>
                 <td></td>
