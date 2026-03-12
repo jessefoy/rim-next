@@ -559,7 +559,7 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Dashboard Hub",
         locations: ["/account/dashboard"],
-        what: "The member area home page. Displays greeting, Today's Virtual Sessions (Live Now + Later Today sections), upcoming program registrations, quick links, pending dana reminders, and hub memberships. Today's sessions use JS-side recurrence logic (isOccurrenceToday) — join button appears only in Live Now, 12 min before start.",
+        what: "The member area home page. Displays greeting, Today's Virtual Sessions (Live Now + Later Today sections), upcoming program registrations, quick links, pending dana reminders, and hub memberships. Today's sessions use JS-side recurrence logic (isOccurrenceToday) — join button appears only in Live Now, 12 min before start. DashboardAutoRefresh silently calls router.refresh() at the exact moment each Later Today session enters its window — no page reload.",
         relatedTo: [
           "virtualDashboardProgramsQuery fetches all virtual/hybrid programs with recurrence fields; isOccurrenceToday() + shiftToToday() compute today's occurrences",
           "Pending dana prompt connects to Program Registration dana step",
