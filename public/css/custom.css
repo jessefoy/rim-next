@@ -10154,7 +10154,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
    ============================================================ */
 
 /* ── Hub Header ─────────────────────────────────────────────── */
-.hub-hdr { padding: 26px 0 22px; background: #fff; border-bottom: 1px solid var(--rim-rule); margin-bottom: 0; }
+.hub-hdr { padding: 32px 36px 28px; background: #fff; border-bottom: 1px solid var(--rim-rule); margin-bottom: 0; }
 .hub-hdr__eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--rim-text-muted); margin: 0 0 6px; }
 .hub-hdr__title { font-size: 26px; font-weight: 400; font-family: var(--font-serif); color: var(--rim-text); margin: 0 0 8px; }
 .hub-hdr__meta { font-size: 13px; color: var(--rim-text-muted); }
@@ -10400,17 +10400,17 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .hub-sched-row--active { background: #f7f5f2; }
 /* Inline detail panel — appears directly below the clicked row */
 .hub-sched-row-panel {
-  border-top: 1px solid #e0ddd7;
+  border-left: 3px solid #6a8fa0;
   border-bottom: 1px solid #e0ddd7;
-  background: #fafaf8;
-  padding: 0;
+  background: #fff;
+  padding: 24px 28px;
 }
 .hub-sched-row-panel .hub-detail {
   margin-top: 0;
   border: none;
   border-radius: 0;
   box-shadow: none;
-  background: #fafaf8;
+  background: #fff;
 }
 .hub-sched-row__date { font-size: 13px; font-weight: 600; color: #4a4740; }
 .hub-sched-row__title { font-family: var(--font-serif); font-size: 15px; font-weight: 400; color: #2d3f47; }
