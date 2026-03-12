@@ -547,6 +547,61 @@ const AREAS: FunctionalArea[] = [
           "CRON_SECRET env var — same auth pattern as send-reminders and cleanup crons",
         ],
       },
+      {
+        name: "Live Session View",
+        locations: ["/account/hub/host-team/session", "Component: SessionLiveClient.tsx", "File: app/account/hub/[slug]/session/page.tsx"],
+        what: "Real-time attendance view for the host team. Shows all virtual/hybrid programs running today with their attendees (from SessionAttendance records). Attendees appear as name chips with New and Welcome Back badges. Registered-but-not-joined names appear in a muted list below. Polls via router.refresh() every 60 seconds. Visible to HOST, HOST_MANAGER, REGISTRAR, and ADMIN.",
+        relatedTo: [
+          "SessionAttendance Postgres model — records written by Join button on dashboard",
+          "Session Attendance Join Route — writes attendance when member clicks Join",
+          "sessionViewProgramsQuery (Sanity) — fetches today's programs with recurrence data",
+          "isOccurrenceToday() — JS-side recurrence logic to filter today's programs",
+        ],
+      },
+      {
+        name: "Flag Attendee for Follow-Up",
+        locations: ["/account/hub/host-team/session", "API: PATCH /api/attendance/[recordId]/flag", "Component: SessionLiveClient.tsx"],
+        what: "Hosts can tap any attendee chip to toggle a flaggedByHost boolean on their SessionAttendance record. Flagged chips get a small dot. The flag is a personal note — it does not notify anyone or persist beyond the current session record. Intended as an in-session prompt for post-session follow-up.",
+        relatedTo: [
+          "SessionAttendance Postgres model — flaggedByHost field",
+          "Live Session View — flag state appears in the chip, updates on next poll",
+          "Post-Session Form — where flagged names can be written up as follow-up notes",
+        ],
+      },
+      {
+        name: "End Session Button",
+        locations: ["/account/hub/host-team/session", "API: POST /api/attendance/session/[programSlug]/end", "Component: SessionLiveClient.tsx"],
+        what: "HOST, HOST_MANAGER, and ADMIN users see a 'Close session & write notes →' button on each active program card. Clicking it POSTs to the end API, sets sessionEndedAt on the SessionReport (upsert — creates a stub if no report exists yet), then redirects to the post-session form. A 'Session closed [time] CT' badge appears on the card for all host team members on their next poll. Once sessionEndedAt is set, the Join route silently blocks new attendance for that session.",
+        relatedTo: [
+          "SessionReport Postgres model — sessionEndedAt DateTime? field",
+          "Session Attendance Join Route — checks sessionEndedAt before processing any join click",
+          "Post-Session Form — redirect destination after session is closed",
+          "Live Session View — badge and button rendering, isEnded computed from sessionEnded || !!sessionEndedAt",
+        ],
+      },
+      {
+        name: "Session Attendance Join Route",
+        locations: ["API: POST /api/attendance/join", "File: app/api/attendance/join/route.ts"],
+        what: "Called when a member clicks the Join button on their dashboard. Guards: (1) sessionEndedAt hard cutoff — if host has closed the session, silently returns ok:true without writing a record; (2) time-window guard — allows joins only within 1 hour before start to 1 hour after end (Sanity fetch). On first join, computes isNewMember (no prior records) and returningAfterAbsence (last record older than 6 weeks). Upsert: if record already exists for the day, updates joinedAt only.",
+        relatedTo: [
+          "SessionAttendance Postgres model — userId + programSlug + sessionDate unique key",
+          "SessionReport — sessionEndedAt checked before Sanity window fetch (DB-first, faster)",
+          "Dashboard Hub — Join button fires this route; DashboardAutoRefresh triggers router.refresh() on window open",
+          "Live Session View — attendance records written here appear as chips",
+        ],
+      },
+      {
+        name: "Post-Session Form",
+        locations: ["/account/hub/host-team/session/[programSlug]/post"],
+        what: "Destination after clicking 'Close session & write notes →' or the 'Complete post-session form →' link. Allows the host to record session notes, follow-up names, and how the session felt. Submitting writes or updates the SessionReport record for the day. The form link appears once a session is ended — either manually (sessionEndedAt) or time-based (scheduled end time has passed).",
+        status: "stub" as FeatureStatus,
+        note: "Phase 2 — route exists as a redirect target but form UI is not yet built.",
+        relatedTo: [
+          "SessionReport Postgres model — host notes, attendance reflections",
+          "End Session Button — creates stub SessionReport with sessionEndedAt, form fills the rest",
+          "Live Session View — post-session link appears when isEnded",
+        ],
+      },
     ],
   },
 
