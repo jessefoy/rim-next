@@ -14,7 +14,7 @@ export interface CalendarEvent {
   recurrenceFreq?: string | null;     // "daily" | "weekly" | "monthly"
   recurrenceInterval?: number | null; // every N days/weeks/months — default 1
   recurrenceDays?: string[] | null;   // BYDAY values for weekly: ["MO","WE","FR"] etc.
-  recurrenceCount?: number | null;    // total sessions including the first
+  recurrenceCount?: number | null;    // total sessions including the first; null = ongoing (no end)
 }
 
 /**
@@ -24,12 +24,13 @@ export interface CalendarEvent {
 function buildRRule(ev: CalendarEvent): string | null {
   const { recurrenceFreq: freq, recurrenceInterval: interval,
           recurrenceDays: days, recurrenceCount: count } = ev;
-  if (!freq || !count || count < 2) return null;
+  if (!freq) return null;
 
   const parts: string[] = [`FREQ=${freq.toUpperCase()}`];
   if (interval && interval > 1) parts.push(`INTERVAL=${interval}`);
   if (days && days.length > 0 && freq === "weekly") parts.push(`BYDAY=${days.join(",")}`);
-  parts.push(`COUNT=${count}`);
+  // Omit COUNT when null — RFC 5545 interprets this as infinite recurrence
+  if (count && count >= 2) parts.push(`COUNT=${count}`);
 
   return `RRULE:${parts.join(";")}`;
 }
@@ -46,10 +47,11 @@ export function describeRecurrence(
   days?: string[] | null,
   count?: number | null,
 ): { googleLabel: string; icsLabel: string } {
-  if (!freq || !count || count < 2) return { googleLabel: "", icsLabel: "" };
+  if (!freq) return { googleLabel: "", icsLabel: "" };
+  const unit = freq === "daily" ? "days" : "sessions";
   return {
     googleLabel: freq === "daily" ? "first day only" : "first session",
-    icsLabel:    `all ${count} ${freq === "daily" ? "days" : "sessions"}`,
+    icsLabel:    count && count >= 2 ? `all ${count} ${unit}` : `ongoing`,
   };
 }
 
