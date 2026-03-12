@@ -47,10 +47,9 @@ const MEMBER_LINKS: NavLink[] = [
 export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
   const pathname = usePathname();
 
-  const hasHost       = roles.includes("HOST") || roles.includes("HOST_MANAGER");
   const hasRegistrar  = roles.includes("REGISTRAR") || roles.includes("ADMIN");
   const isAdmin       = roles.includes("ADMIN");
-  const hasRoleLinks  = hasHost || hasRegistrar || isAdmin;
+  const hasRoleLinks  = hasRegistrar || isAdmin;
 
   function linkClass(href: string) {
     const active =
@@ -89,12 +88,6 @@ export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
 
         {/* ── Role links ── */}
         {hasRoleLinks && <div className="ac-sidebar__divider" role="separator" />}
-
-        {hasHost && (
-          <Link href="/account/hub/host-team" className={linkClass("/account/hub/host-team")}>
-            Host Hub
-          </Link>
-        )}
 
         {hasRegistrar && (
           <Link href="/account/registrar" className={linkClass("/account/registrar")}>
