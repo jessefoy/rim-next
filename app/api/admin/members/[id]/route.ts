@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { Role, MemberStatus } from "@prisma/client";
 import { sendRoleAssignmentEmail, sendHostRoleAssignmentEmail } from "@/lib/email";
+import { syncHubMembership } from "@/lib/syncHubMembership";
 
 // Revoke a member's Sanity Studio access by email.
 // Handles both accepted members and pending invitations.
@@ -238,6 +239,11 @@ export async function PATCH(
   // Kill sessions when email changes or member is set to Inactive
   if (emailIsChanging || memberStatus === "INACTIVE") {
     await db.session.deleteMany({ where: { userId: id } });
+  }
+
+  // Sync HubMember records whenever roles change
+  if (roles !== undefined) {
+    await syncHubMembership(id, roles as string[]);
   }
 
   // Revoke Sanity access — blocking so we can surface the result
