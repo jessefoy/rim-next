@@ -6,6 +6,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import AccountLayout from "@/components/AccountLayout";
 import AlertStrip from "@/components/AlertStrip";
+import DashboardAutoRefresh from "@/components/DashboardAutoRefresh";
 
 export const metadata = { title: "My Dashboard — Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
@@ -185,13 +186,17 @@ export default async function DashboardPage() {
         isRegistered = !!reg;
       }
 
-      return { ...p, isLive, isLaterToday, isRegistered, startTimeCT: fmtTimeCT(start.toISOString()) };
+      return { ...p, isLive, isLaterToday, isRegistered, startTimeCT: fmtTimeCT(start.toISOString()), liveStartEpoch: liveStart.getTime() };
     })
   );
 
   const liveSessions  = todaySessions.filter((s) => s.isLive);
   const laterSessions = todaySessions.filter((s) => s.isLaterToday);
   const showTodayCard = liveSessions.length > 0 || laterSessions.length > 0;
+
+  // Epoch ms values for each Later Today session's live window open time.
+  // Passed to DashboardAutoRefresh so it can fire router.refresh() at the exact moment.
+  const laterEpochs = laterSessions.map((s) => s.liveStartEpoch);
 
   const firstName =
     session.user?.name?.split(" ")[0] ??
@@ -213,6 +218,8 @@ export default async function DashboardPage() {
         {showTodayCard && (
           <div className="db-section">
             <div className="today-card">
+              {/* Auto-refreshes the page when a Later Today session enters its live window */}
+              <DashboardAutoRefresh liveStartEpochs={laterEpochs} />
               <div className="today-card__header">
                 <span className="today-card__heading">Today&apos;s Virtual Sessions</span>
                 <span className="today-card__date">{fmtTodayFull()}</span>
