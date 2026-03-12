@@ -9343,7 +9343,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .hub-schedule__nav-btn {
   background: none;
   border: 1px solid var(--rim-rule);
-  border-radius: 6px;
+  border-radius: 3px;
   padding: 6px 14px;
   font-size: 13px;
   color: var(--rim-text);
@@ -10154,7 +10154,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
    ============================================================ */
 
 /* ── Hub Header ─────────────────────────────────────────────── */
-.hub-hdr { padding: 28px 0 20px; border-bottom: 1px solid var(--rim-rule); margin-bottom: 0; }
+.hub-hdr { padding: 26px 0 22px; background: #fff; border-bottom: 1px solid var(--rim-rule); margin-bottom: 0; }
 .hub-hdr__eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--rim-text-muted); margin: 0 0 6px; }
 .hub-hdr__title { font-size: 26px; font-weight: 400; font-family: var(--font-serif); color: var(--rim-text); margin: 0 0 8px; }
 .hub-hdr__meta { font-size: 13px; color: var(--rim-text-muted); }
@@ -10162,6 +10162,34 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 /* ── Hub content wrapper ─────────────────────────────────────── */
 /* hub-content--wide is nested inside hub-content (which already has margin-top) */
 .hub-content--wide { margin-top: 0; }
+
+/* ── Generic .btn (used across hub pages where hub-btn isn't applied) ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #6a8fa0;
+  color: #fff;
+  border: 1.5px solid #6a8fa0;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  border-radius: 3px;
+  cursor: pointer;
+  text-decoration: none;
+  line-height: 1;
+  transition: opacity 0.15s;
+}
+.btn:hover { opacity: 0.88; }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.btn--sm { padding: 6px 14px; font-size: 13px; }
+.btn--ghost {
+  background: transparent;
+  color: var(--rim-text);
+  border: 1.5px solid var(--rim-rule);
+}
+.btn--ghost:hover { background: var(--rim-bg-accent); opacity: 1; }
 
 /* ── Announcements (ann-) ─────────────────────────────────────── */
 .ann-toolbar { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-bottom: 20px; }
