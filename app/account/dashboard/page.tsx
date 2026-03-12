@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { sanityClient } from "@/lib/sanity";
-import { todayVirtualSessionsQuery } from "@/lib/queries";
+import { virtualDashboardProgramsQuery } from "@/lib/queries";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
@@ -10,20 +10,99 @@ import AlertStrip from "@/components/AlertStrip";
 export const metadata = { title: "My Dashboard — Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
 
-interface VirtualSession {
+interface VirtualProgram {
   _id: string;
   name: string;
   slug: string;
-  startDatetime: string;
+  startDatetime: string | null;
   endDatetime: string | null;
+  recurrenceFreq: string | null;
+  recurrenceInterval: number | null;
+  recurrenceDays: string[] | null;
+  recurrenceCount: number | null;
   zoomLink: string | null;
 }
 
-function todayCT(): string {
-  return new Intl.DateTimeFormat("en-US", {
+// iCal BYDAY codes indexed by JS getDay() (0=Sun … 6=Sat)
+const ICAL_DAY = ["SU","MO","TU","WE","TH","FR","SA"];
+
+/** Convert a UTC ISO string to a CT date string "YYYY-MM-DD". */
+function ctDateStr(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", {
     timeZone: "America/Chicago",
     year: "numeric", month: "2-digit", day: "2-digit",
-  }).format(new Date()).replace(/(\d+)\/(\d+)\/(\d+)/, "$3-$1-$2");
+  }).replace(/(\d+)\/(\d+)\/(\d+)/, "$3-$1-$2");
+}
+
+/** Today's date string "YYYY-MM-DD" in Central Time. */
+function todayCT(): string {
+  return ctDateStr(new Date().toISOString());
+}
+
+/** iCal day code for a "YYYY-MM-DD" string (e.g. "2026-03-14" → "SA"). */
+function dateToDayCode(dateStr: string): string {
+  // Parse as noon local to avoid midnight-UTC-rollover issues
+  return ICAL_DAY[new Date(dateStr + "T12:00:00").getDay()];
+}
+
+/**
+ * Does this virtual program have an occurrence today?
+ * Handles single events, weekly (with optional interval), and falls back to
+ * exact-date match for monthly/daily (sufficient for RIM's dashboard use case).
+ */
+function isOccurrenceToday(p: VirtualProgram, today: string): boolean {
+  if (!p.startDatetime) return false;
+  const anchor = ctDateStr(p.startDatetime);
+  if (anchor > today) return false; // hasn't started yet
+
+  if (!p.recurrenceFreq) return anchor === today; // single event
+
+  if (p.recurrenceFreq === "weekly") {
+    const days = p.recurrenceDays ?? [];
+    if (days.length > 0 && !days.includes(dateToDayCode(today))) return false;
+
+    const n = p.recurrenceInterval ?? 1;
+    if (n > 1) {
+      // Is today in an "on" week? Count whole weeks since anchor.
+      const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+      const weeksDiff = Math.round(
+        (new Date(today + "T12:00:00").getTime() - new Date(anchor + "T12:00:00").getTime())
+        / msPerWeek
+      );
+      if (weeksDiff % n !== 0) return false;
+    }
+
+    // Has the series ended?
+    if (p.recurrenceCount && p.recurrenceCount >= 2) {
+      const daysPerCycle = p.recurrenceDays?.length ?? 1;
+      const cyclesNeeded = Math.ceil((p.recurrenceCount - 1) / daysPerCycle);
+      const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+      const lastMs = new Date(anchor + "T12:00:00").getTime()
+        + cyclesNeeded * (p.recurrenceInterval ?? 1) * msPerWeek;
+      if (new Date(today + "T12:00:00").getTime() > lastMs) return false;
+    }
+
+    return true;
+  }
+
+  // Monthly / daily — exact match is sufficient for RIM's current programs
+  return anchor === today;
+}
+
+/**
+ * Shift an anchor ISO datetime to the same wall-clock time on a different CT date.
+ * Used so the live/later check works on today's occurrence, not the first occurrence.
+ */
+function shiftToToday(anchorISO: string, today: string): Date {
+  const anchor = new Date(anchorISO);
+  const anchorCTDate = ctDateStr(anchorISO);
+  if (anchorCTDate === today) return anchor;
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const daysDiff = Math.round(
+    (new Date(today + "T12:00:00").getTime() - new Date(anchorCTDate + "T12:00:00").getTime())
+    / msPerDay
+  );
+  return new Date(anchor.getTime() + daysDiff * msPerDay);
 }
 
 function fmtTimeCT(iso: string) {
@@ -50,7 +129,7 @@ export default async function DashboardPage() {
 
   const [allVirtual, upcomingRegistrations, pendingDana, hubMemberships] =
     await Promise.all([
-      sanityClient.fetch<VirtualSession[]>(todayVirtualSessionsQuery),
+      sanityClient.fetch<VirtualProgram[]>(virtualDashboardProgramsQuery),
       db.registration.findMany({
         where: { userId, status: { not: "CANCELLED" } },
         select: { id: true, programTitle: true, programSlug: true },
@@ -82,23 +161,17 @@ export default async function DashboardPage() {
       }),
     ]);
 
-  // Filter to today only (CT date)
-  const todaySessionsRaw = allVirtual.filter((p) => {
-    if (!p.startDatetime) return false;
-    const ctDate = new Date(p.startDatetime).toLocaleDateString("en-US", {
-      timeZone: "America/Chicago",
-      year: "numeric", month: "2-digit", day: "2-digit",
-    }).replace(/(\d+)\/(\d+)\/(\d+)/, "$3-$1-$2");
-    return ctDate === today;
-  });
+  // Filter to programs with an occurrence today, using recurrence logic
+  const todaySessionsRaw = allVirtual.filter((p) => isOccurrenceToday(p, today));
 
   const now = new Date();
   const todaySessions = await Promise.all(
     todaySessionsRaw.map(async (p) => {
-      const start     = new Date(p.startDatetime);
+      // Shift anchor datetime to today's occurrence so live/later checks are correct
+      const start     = shiftToToday(p.startDatetime!, today);
       const liveStart = new Date(start.getTime() - 15 * 60 * 1000);
       const liveEnd   = p.endDatetime
-        ? new Date(p.endDatetime)
+        ? shiftToToday(p.endDatetime, today)
         : new Date(start.getTime() + 90 * 60 * 1000);
       const isLive       = now >= liveStart && now <= liveEnd;
       const isLaterToday = !isLive && start > now;
@@ -112,7 +185,7 @@ export default async function DashboardPage() {
         isRegistered = !!reg;
       }
 
-      return { ...p, isLive, isLaterToday, isRegistered, startTimeCT: fmtTimeCT(p.startDatetime) };
+      return { ...p, isLive, isLaterToday, isRegistered, startTimeCT: fmtTimeCT(start.toISOString()) };
     })
   );
 
