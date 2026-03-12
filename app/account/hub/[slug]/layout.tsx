@@ -54,9 +54,15 @@ export default async function HubLayout({ children, params }: Props) {
 
   // Build tab list
   const base = `/account/hub/${slug}`;
+  const roles = session.user.roles ?? [];
+  const canSeeSessionTab =
+    slug === "host-team" &&
+    roles.some((r) => ["HOST", "HOST_MANAGER", "REGISTRAR", "ADMIN"].includes(r));
+
   const tabs = [
     { label: "Announcements", href: base },
     ...(hub.hasSchedule ? [{ label: "Schedule", href: `${base}/schedule` }] : []),
+    ...(canSeeSessionTab ? [{ label: "Session", href: `${base}/session` }] : []),
     { label: "Documents",     href: `${base}/documents` },
     { label: "Conversations", href: `${base}/conversations` },
     { label: "Members",       href: `${base}/members` },

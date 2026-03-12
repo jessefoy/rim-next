@@ -101,6 +101,9 @@ model User {
   hostThreads     HostThread[]       @relation("HostThreads")
   hostReplies     HostReply[]        @relation("HostReplies")
   alerts          Alert[]            @relation("Alerts")
+  // Session attendance
+  sessionAttendances SessionAttendance[]
+  sessionReports     SessionReport[]
   // Hub system
   hubMemberships  HubMember[]
   hubAnnouncements HubAnnouncement[]
@@ -490,6 +493,63 @@ enum AlertType {
   NEW_THREAD         // all hub members: new thread posted
   NEW_REPLY          // thread author + prior repliers: new reply on a thread you're in
   UNASSIGNED_SESSION // HOST_MANAGER + ADMIN: program within 30 days has no host assigned
+}
+
+// ─── SESSION ATTENDANCE ───────────────────────────────────────────────────────
+// Records when a logged-in member clicks a Meet link from within their account session.
+// isNewMember and returningAfterAbsence are computed at record creation time.
+// Surfaced as a scoped projection in the Host Team hub — not in the Member Registry.
+// programId is a Sanity _id string — no local FK relation.
+
+model SessionAttendance {
+  id                    String            @id @default(cuid())
+  userId                String
+  programId             String            // Sanity _id (no local relation)
+  programSlug           String            // Sanity slug
+  joinedAt              DateTime          @default(now())
+  leftEarly             Boolean           @default(false)
+  isNewMember           Boolean           @default(false)
+  returningAfterAbsence Boolean           @default(false)
+  flaggedByHost         Boolean           @default(false)
+  postSessionNote       String?
+  postSessionAction     PostSessionAction @default(NONE)
+  actionRouted          Boolean           @default(false)
+  createdAt             DateTime          @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([programSlug])
+  @@index([userId])
+  @@index([programSlug, joinedAt])
+  @@map("session_attendance")
+}
+
+// One record per session per date. Created/updated on post-session form submission.
+// Holds session-level data: host reflection and optional resource for attendees.
+// sessionDate is always stored as midnight CT — normalized consistently on every write.
+
+model SessionReport {
+  id             String    @id @default(cuid())
+  programSlug    String    // Sanity slug
+  sessionDate    DateTime  // Date of session — stored as midnight CT
+  hostId         String    // FK → User (host who submitted)
+  reflection     String?   // Open session reflection text
+  resourceUrl    String?   // URL or text to share with all attendees
+  resourceNote   String?   // Brief description of the resource
+  resourceRouted Boolean   @default(false)  // Set when resource has been sent to support/registrar
+  submittedAt    DateTime  @default(now())
+
+  host User @relation(fields: [hostId], references: [id])
+
+  @@unique([programSlug, sessionDate])
+  @@map("session_reports")
+}
+
+enum PostSessionAction {
+  NONE
+  GENTLE_FOLLOWUP
+  JESSE_ONLY
+  TECHNICAL_ISSUE
 }
 
 // ─── MULTI-HUB SYSTEM ────────────────────────────────────────────────────────

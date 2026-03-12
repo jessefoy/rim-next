@@ -18,6 +18,16 @@ const FROM = `Rooted In Mindfulness <${process.env.EMAIL_FROM ?? "onboarding@res
 const REGISTRAR_EMAIL =
   process.env.REGISTRAR_EMAIL ?? process.env.EMAIL_FROM ?? "onboarding@resend.dev";
 
+// JESSE_EMAIL — set in Vercel env vars. Used for sensitive post-session flags.
+// Falls back to REGISTRAR_EMAIL if not set.
+const JESSE_EMAIL =
+  process.env.JESSE_EMAIL ?? REGISTRAR_EMAIL;
+
+// HOST_COORDINATOR_EMAIL — set in Vercel env vars. Used for technical issues + gentle follow-up routing.
+// Falls back to REGISTRAR_EMAIL if not set.
+const HOST_COORDINATOR_EMAIL =
+  process.env.HOST_COORDINATOR_EMAIL ?? REGISTRAR_EMAIL;
+
 // ─── Public interface ────────────────────────────────────────────────────────
 
 export interface RegistrationEmailData {
@@ -1691,4 +1701,220 @@ function buildMagicLinkText({ url, isNewUser }: { url: string; isNewUser: boolea
     "Rooted In Mindfulness · Brookfield, WI",
     "rootedinmindfulness.org",
   ].join("\n");
+}
+
+// ─── POST-SESSION NOTIFICATION ───────────────────────────────────────────────
+// Sent to Jesse and/or the host coordinator when a host submits the post-session form.
+// One email per recipient, consolidating all flags addressed to that person.
+// Routing logic:
+//   GENTLE_FOLLOWUP → Jesse + host coordinator
+//   JESSE_ONLY       → Jesse only (private)
+//   TECHNICAL_ISSUE  → host coordinator only
+//   NONE             → no email
+// Also sends if there's a resource to share (routes to registrar/Jesse for review).
+
+export interface PostSessionFlagItem {
+  name: string;
+  note: string | null;
+  action: string;
+}
+
+export interface PostSessionNotificationData {
+  programSlug: string;
+  sessionDate: Date;
+  hostName: string;
+  flags: PostSessionFlagItem[];
+  reflection: string | null;
+  resourceUrl: string | null;
+  resourceNote: string | null;
+}
+
+export async function sendPostSessionNotification(
+  data: PostSessionNotificationData
+): Promise<void> {
+  const { programSlug, sessionDate, hostName, flags, reflection, resourceUrl, resourceNote } = data;
+
+  const dateStr = sessionDate.toLocaleDateString("en-US", {
+    timeZone: "America/Chicago",
+    weekday: "long", month: "long", day: "numeric",
+  });
+
+  // Determine which flags go to which recipients
+  const forJesse   = flags.filter((f) => f.action === "GENTLE_FOLLOWUP" || f.action === "JESSE_ONLY");
+  const forCoord   = flags.filter((f) => f.action === "GENTLE_FOLLOWUP" || f.action === "TECHNICAL_ISSUE");
+
+  // Build recipient list (deduplicated)
+  const recipients = new Map<string, PostSessionFlagItem[]>();
+
+  if (forJesse.length > 0 || resourceUrl) {
+    recipients.set(JESSE_EMAIL, forJesse);
+  }
+  if (forCoord.length > 0) {
+    const existing = recipients.get(HOST_COORDINATOR_EMAIL) ?? [];
+    recipients.set(HOST_COORDINATOR_EMAIL, [...new Set([...existing, ...forCoord])]);
+  }
+
+  // Send one email per recipient
+  const sends = Array.from(recipients.entries()).map(async ([to, recipientFlags]) => {
+    const flagBlock = recipientFlags.length > 0
+      ? recipientFlags.map((f) => [
+          `<li><strong>${f.name}</strong>${f.note ? ` — ${f.note}` : ""} <em>(${f.action.replace(/_/g, " ").toLowerCase()})</em></li>`,
+        ]).join("")
+      : "";
+
+    const reflectionBlock = reflection
+      ? `<p><strong>Session reflection from ${hostName}:</strong><br>${reflection}</p>`
+      : "";
+
+    const resourceBlock = resourceUrl
+      ? `<p><strong>Resource to share with attendees:</strong><br>
+          ${resourceUrl}${resourceNote ? `<br><em>${resourceNote}</em>` : ""}
+          <br><small>This has not been sent yet — please review and send when ready.</small></p>`
+      : "";
+
+    const html = `
+      <h2 style="font-size:18px;font-weight:600;">Post-session report — ${programSlug}</h2>
+      <p><strong>Date:</strong> ${dateStr} &nbsp; <strong>Host:</strong> ${hostName}</p>
+      ${flagBlock ? `<p><strong>Flagged attendees:</strong></p><ul>${flagBlock}</ul>` : ""}
+      ${reflectionBlock}
+      ${resourceBlock}
+      <p style="color:#888;font-size:12px;margin-top:24px;">
+        Rooted In Mindfulness · rootedinmindfulness.org<br>
+        This notification was generated from the Host Team hub post-session form.
+      </p>
+    `;
+
+    const textParts = [
+      `Post-session report — ${programSlug}`,
+      `Date: ${dateStr}  |  Host: ${hostName}`,
+      "",
+    ];
+    if (recipientFlags.length > 0) {
+      textParts.push("Flagged attendees:");
+      recipientFlags.forEach((f) => {
+        textParts.push(`  • ${f.name}${f.note ? ` — ${f.note}` : ""} (${f.action.replace(/_/g, " ").toLowerCase()})`);
+      });
+      textParts.push("");
+    }
+    if (reflection) textParts.push(`Session reflection from ${hostName}:\n${reflection}`, "");
+    if (resourceUrl) {
+      textParts.push(`Resource to share: ${resourceUrl}`);
+      if (resourceNote) textParts.push(resourceNote);
+      textParts.push("(Not yet sent — please review and send when ready)", "");
+    }
+    textParts.push("—", "Rooted In Mindfulness · rootedinmindfulness.org");
+
+    try {
+      await resend.emails.send({
+        from: FROM,
+        to,
+        subject: `Post-session: ${programSlug} — ${dateStr}`,
+        html,
+        text: textParts.join("\n"),
+      });
+    } catch (e) {
+      console.error(`[email] sendPostSessionNotification to ${to} failed:`, e);
+    }
+  });
+
+  await Promise.all(sends);
+}
+
+// ─── ATTENDANCE AUTOMATED EMAILS ─────────────────────────────────────────────
+// ⚠️ DRAFT — DO NOT ENABLE until Jesse approves copy.
+// Controlled by ENABLE_ATTENDANCE_EMAILS=true env var (default: disabled).
+// Fire-and-forget from POST /api/attendance/join.
+
+interface AttendanceEmailData {
+  to: string;
+  firstName: string;
+}
+
+/**
+ * Email 1 — First-time attendee.
+ * Trigger: isNewMember = true on a new SessionAttendance record.
+ *
+ * ⚠️ DRAFT COPY — needs Jesse's approval before enabling.
+ */
+export async function sendFirstTimeAttendeeEmail(
+  data: AttendanceEmailData
+): Promise<void> {
+  const { to, firstName } = data;
+
+  // DRAFT subject — replace before enabling
+  const subject = `[DRAFT] Welcome to your first RIM session, ${firstName}`;
+
+  const html = `
+    <p>Dear ${firstName},</p>
+    <p><strong>[DRAFT — copy not yet approved]</strong></p>
+    <p>It was wonderful to have you with us tonight. Welcome to Rooted In Mindfulness.</p>
+    <p>We hope you felt at home. Please know you're always welcome to return.</p>
+    <p>With warmth,<br>The RIM Host Team</p>
+    <p style="color:#888;font-size:12px;">Rooted In Mindfulness · rootedinmindfulness.org</p>
+  `;
+
+  const text = [
+    `Dear ${firstName},`,
+    "",
+    "[DRAFT — copy not yet approved]",
+    "",
+    "It was wonderful to have you with us tonight. Welcome to Rooted In Mindfulness.",
+    "",
+    "We hope you felt at home. Please know you're always welcome to return.",
+    "",
+    "With warmth,",
+    "The RIM Host Team",
+    "",
+    "—",
+    "Rooted In Mindfulness · rootedinmindfulness.org",
+  ].join("\n");
+
+  try {
+    await resend.emails.send({ from: FROM, to, subject, html, text });
+  } catch (e) {
+    console.error("[email] sendFirstTimeAttendeeEmail failed:", e);
+  }
+}
+
+/**
+ * Email 2 — Returning after absence.
+ * Trigger: returningAfterAbsence = true on a new SessionAttendance record.
+ *
+ * ⚠️ DRAFT COPY — needs Jesse's approval before enabling.
+ */
+export async function sendReturningAfterAbsenceEmail(
+  data: AttendanceEmailData
+): Promise<void> {
+  const { to, firstName } = data;
+
+  // DRAFT subject — replace before enabling
+  const subject = `[DRAFT] Good to see you again, ${firstName}`;
+
+  const html = `
+    <p>Dear ${firstName},</p>
+    <p><strong>[DRAFT — copy not yet approved]</strong></p>
+    <p>It was lovely to have you back with us tonight. We're glad you're here.</p>
+    <p>With warmth,<br>The RIM Host Team</p>
+    <p style="color:#888;font-size:12px;">Rooted In Mindfulness · rootedinmindfulness.org</p>
+  `;
+
+  const text = [
+    `Dear ${firstName},`,
+    "",
+    "[DRAFT — copy not yet approved]",
+    "",
+    "It was lovely to have you back with us tonight. We're glad you're here.",
+    "",
+    "With warmth,",
+    "The RIM Host Team",
+    "",
+    "—",
+    "Rooted In Mindfulness · rootedinmindfulness.org",
+  ].join("\n");
+
+  try {
+    await resend.emails.send({ from: FROM, to, subject, html, text });
+  } catch (e) {
+    console.error("[email] sendReturningAfterAbsenceEmail failed:", e);
+  }
 }

@@ -272,6 +272,23 @@ export const virtualDashboardProgramsQuery = `*[_type == "programs" && !(_id in 
   zoomLink
 }`;
 
+// Used by the Host Team hub Session tab live view.
+// Extends virtualDashboardProgramsQuery with registrationEnabled for
+// "registered but not checked in" display.
+export const sessionViewProgramsQuery = `*[_type == "programs" && !(_id in path("drafts.**")) && programFormat in ["virtual","hybrid"] && removeFromProgramList != true] | order(coalesce(sortOrder, 999) asc) {
+  _id,
+  name,
+  "slug": slug.current,
+  startDatetime,
+  endDatetime,
+  recurrenceFreq,
+  recurrenceInterval,
+  recurrenceDays,
+  recurrenceCount,
+  zoomLink,
+  registrationEnabled
+}`;
+
 export const allVirtualProgramsQuery = `*[_type == "programs" && !(_id in path("drafts.**")) && programFormat in ["virtual", "hybrid"]] | order(coalesce(sortOrder, 999) asc) {
   _id,
   name,

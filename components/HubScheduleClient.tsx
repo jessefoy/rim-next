@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import MeetJoinButton from "@/components/MeetJoinButton";
 
 interface Session {
   id: string;
+  programId: string | null;  // Sanity _id
   programSlug: string;
   programName: string;
   sessionDate: string | null;
@@ -18,6 +20,7 @@ interface Session {
 }
 
 interface Program {
+  id: string | null;  // Sanity _id
   slug: string;
   name: string;
   zoomLink: string | null;
@@ -163,9 +166,20 @@ function SessionDetail({
         {/* Meet link — shown separately below the grid when available */}
         {s.zoomLink && (
           <div className="hub-detail__meet">
-            <a href={s.zoomLink} target="_blank" rel="noopener noreferrer" className="hub-detail__meet-link">
-              Join Google Meet →
-            </a>
+            {s.programId ? (
+              <MeetJoinButton
+                programId={s.programId}
+                programSlug={s.programSlug}
+                zoomLink={s.zoomLink}
+                className="hub-detail__meet-link"
+              >
+                Join Google Meet →
+              </MeetJoinButton>
+            ) : (
+              <a href={s.zoomLink} target="_blank" rel="noopener noreferrer" className="hub-detail__meet-link">
+                Join Google Meet →
+              </a>
+            )}
             {s.meetHostAccount && (
               <span className="hub-detail__meet-account">Sign in as {s.meetHostAccount}</span>
             )}
@@ -372,6 +386,7 @@ export default function HubScheduleClient({
           const prog = programBySlug.get(a.programSlug);
           return {
             ...a,
+            programId:       prog?.id ?? null,
             programName:     prog?.name ?? a.programSlug,
             zoomLink:        prog?.zoomLink ?? null,
             meetHostAccount: prog?.meetHostAccount ?? null,

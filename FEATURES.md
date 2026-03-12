@@ -2414,10 +2414,77 @@ The host-team hub at `/account/hub/host-team` reuses the `HubScheduleClient` com
 
 ---
 
+## 25. Virtual Host Hub — Phase 1: Attendance Tracking + Session View ✅ Built — session 43 (2026-03-12)
+
+### What it does
+Gives hosts a live view of who's in each virtual session — updated in real time — and a structured post-session form for routing flagged attendees to the right staff. Establishes the hub-based member data projection model: volunteers see member data scoped to their workflow, without accessing `/admin/members`.
+
+### Who uses it
+Hosts (HOST role), hub managers (HOST_MANAGER), registrars, and admins. The Session tab appears only in the host-team hub.
+
+### User flow
+
+**During the session:**
+1. Host joins via dashboard join button or hub schedule → `MeetJoinButton` records their attendance in the background (non-blocking)
+2. Host opens `/account/hub/host-team/session` (Session tab) — sees a card for each virtual/hybrid program running today
+3. Each attendee appears as a tappable button; tapping once flags them (`flaggedByHost = true`) with a red dot indicator
+4. Tapping again un-flags. `New` and `Welcome back` badges show on new/returning attendees
+5. Registered participants who haven't joined yet appear in a muted "Not yet joined" list
+6. The view auto-refreshes every 60 seconds; no manual reload needed
+
+**After the session:**
+1. When a session's end time has passed, a "Post-session →" link appears on the program card
+2. Host navigates to the post-session form (`/account/hub/host-team/session/[programSlug]/post`)
+3. Three sections:
+   - **Section 1 — Flagged people:** For each person tapped during the session, host adds a brief note and chooses routing: No action / Gentle follow-up (Jesse + coordinator) / Jesse only — sensitive / Technical issue (coordinator)
+   - **Section 2 — Session reflection:** Open textarea, warm framing, optional
+   - **Section 3 — Resource for the group:** Optional URL or text + description; routed to Jesse + coordinator for review before sending
+4. Submit → records saved + notification emails fired based on action routing
+5. Confirmation screen with back link
+
+### Key files
+
+| File | Role |
+|------|------|
+| `app/account/hub/[slug]/session/page.tsx` | Server page — fetches programs from Sanity + today's attendance from DB + registrations; passes to SessionLiveClient |
+| `components/SessionLiveClient.tsx` | "use client" — polls via router.refresh() every 60s; flag tap handler; New/Returning badges; post-session link |
+| `app/account/hub/[slug]/session/[programSlug]/post/page.tsx` | Server page — fetches flagged attendees + existing SessionReport for pre-fill |
+| `components/PostSessionClient.tsx` | "use client" — three-section post-session form; POST to API on submit; confirmation state |
+| `app/api/attendance/join/route.ts` | POST — records SessionAttendance; computes isNewMember + returningAfterAbsence |
+| `app/api/attendance/[id]/flag/route.ts` | PATCH — toggles flaggedByHost (HOST/HOST_MANAGER/REGISTRAR/ADMIN) |
+| `app/api/attendance/session/[programSlug]/post/route.ts` | POST — updates flagged attendance records + upserts SessionReport + sends notification emails |
+| `components/MeetJoinButton.tsx` | "use client" — opens Meet URL immediately, fire-and-forget attendance POST |
+| `lib/email.ts` | `sendPostSessionNotification()` — one email per recipient; `sendFirstTimeAttendeeEmail()` + `sendReturningAfterAbsenceEmail()` — DRAFT, disabled |
+| `lib/queries.ts` | `sessionViewProgramsQuery` — extends virtualDashboardProgramsQuery with registrationEnabled |
+| `public/css/custom.css` | `sv-` prefix (session live view) + `ps-` prefix (post-session form) |
+
+### Technical notes
+
+- **Hub-based member data projection:** Hosts see attendance scoped to their session workflow. No links to `/admin/members`. First implementation of the architectural pattern described in `RIM_System_Architecture.md`.
+- **Recurrence logic:** `isOccurrenceToday()` + `shiftToToday()` identical to `dashboard/page.tsx` — hosts and members see exactly the same programs.
+- **CT day boundaries:** `ctDayBounds(dateStr)` tests both CT offsets (-05:00 CDT, -06:00 CST) — attendance queries always span the correct UTC range regardless of DST.
+- **Non-blocking attendance:** `MeetJoinButton` opens the Meet URL first, then fires the API. Attendance recording can never interrupt the join flow.
+- **sessionDate normalization:** All attendance and report records store `sessionDate` as midnight CT. `new Date(sessionDate)` on the ISO string from the client produces the correct UTC time for Prisma's `@@unique` key.
+- **60-second polling:** `SessionLiveClient` calls `router.refresh()` on an interval. This re-runs the server page component, re-queries the DB, and diffs the React tree — no WebSocket, no custom API polling.
+- **Post-session idempotent:** The API uses `upsert` on `SessionReport` — submitting twice updates in place without creating duplicates. The form pre-fills from the existing report if one exists.
+- **Email routing:** GENTLE_FOLLOWUP → Jesse + coordinator; JESSE_ONLY → Jesse only; TECHNICAL_ISSUE → coordinator only; NONE → no email. Recipients consolidated per person (one email with all relevant flags).
+- **Automated emails (built, disabled):** `sendFirstTimeAttendeeEmail()` + `sendReturningAfterAbsenceEmail()` exist in `lib/email.ts` with DRAFT copy. Gated behind `ENABLE_ATTENDANCE_EMAILS=true` env var. Not enabled until copy is approved.
+
+### New env vars
+
+| Variable | Purpose |
+|----------|---------|
+| `JESSE_EMAIL` | Recipient for GENTLE_FOLLOWUP + JESSE_ONLY flags (falls back to `REGISTRAR_EMAIL`) |
+| `HOST_COORDINATOR_EMAIL` | Recipient for GENTLE_FOLLOWUP + TECHNICAL_ISSUE flags (falls back to `REGISTRAR_EMAIL`) |
+| `ENABLE_ATTENDANCE_EMAILS` | Set to `true` to enable automated first-time + returning-after-absence emails (default: disabled) |
+
+---
+
 | 2026-03-11 (session 39) | **Spec compliance audit + cleanup.** Audited all §23 files against actual codebase — everything conformant. Deleted temporary `/api/debug` route (exposed session/membership data; was created to diagnose login issue in session 38). Added §24 to FEATURES.md documenting the multi-hub workspace system (`/account/hub/[slug]/*`) built in the previous context-exhausted session. Fixed `TypeScript build error in app/account/host/schedule/page.tsx — missing `programFormat` field. Updated MEMORY.md session log. |
 | 2026-03-12 (session 41) | **Dashboard Today's Sessions: recurrence-aware logic + join link timing.** **(1) Infinite/ongoing recurrence fix:** `lib/calendarLinks.ts` — `buildRRule()` was guarded by `!count || count < 2`, which blocked RRULE generation for programs with no fixed end date (null `recurrenceCount`). Fixed: guard is now `if (!freq) return null`; COUNT is only appended when `count && count >= 2` — omitting it is valid RFC 5545 for infinite recurrence. `describeRecurrence()` updated with same fix; `icsLabel` now returns `"ongoing"` when count is null. Sanity `recurrenceCount` field title changed to "Number of Sessions (leave blank for ongoing)" with updated description. Sanity Studio deployed. **(2) Dashboard Today's Sessions — recurrence-aware query:** Root cause: old `todayVirtualSessionsQuery` required `programFormat in ["virtual","hybrid"] && defined(startDatetime)` — both null on all real production programs (which use `dayOfWeek[]->` refs). Fixed: replaced with `virtualDashboardProgramsQuery` — no `startDatetime` filter; fetches full recurrence fields. JS-side `isOccurrenceToday()` in `dashboard/page.tsx` handles single events, weekly (with day code + bi-weekly interval + series end), and monthly/daily fallback. `shiftToToday()` corrects the live/later window for recurring programs. `VirtualSession` interface renamed `VirtualProgram` with nullable `startDatetime` and all recurrence fields. **(3) Join link timing:** Changed from a 75-minute "joinable" window to a strict 12-minute live window. Join button now appears **only** in the Live Now section (12 min before start through session end) — completely removed from Later Today. Updated Later Today helper note: "Join link appears when the session opens, about 12 minutes before start." This prevents members from accidentally joining an open room when multiple programs are listed simultaneously. `liveStart` changed from 15 → 12 min; `joinableStart` / `isJoinable` removed entirely. Commits: session 41. **(4) DashboardAutoRefresh:** New `components/DashboardAutoRefresh.tsx` — `"use client"` component that auto-refreshes the dashboard when a Later Today session enters its Live Now window. Receives `liveStartEpochs: number[]` (epoch ms, timezone-agnostic) from the server; uses `setTimeout` to call `router.refresh()` at the exact moment the earliest session's window opens (+2s buffer). No polling, no visible page reload — `router.refresh()` re-fetches server data in the background, join button appears in place. |
 | 2026-03-11 (session 40) | **Hub schedule spec compliance + layout polish (§24 update).** **(1) Calendar visual redesign:** Rewrote `hub-cal` CSS block — switched from individual rounded cells with gaps to a single-card layout (`border:1px solid #e0ddd7; border-radius:10px; overflow:hidden`) with internal `#eceae5` dividers between cells. Today's date number gets a dark circle (`background:#2d3f47; border-radius:50%`) instead of a cell-level border. Event chips now use all-around `border:1px solid` (not `border-left` accent) and correct spec colors: mine (steel-lt), covered (sage-lt), needs (terra-lt). Checkboxes hidden by default, revealed on hover. Removed stale duplicate `hub-cal__event--mine` rule at end of file. **(2) List view inline panel:** Changed `SessionDetail` in list view to render directly below the clicked row (inside a `hub-sched-row-panel` wrapper div) rather than at the bottom of the page. Calendar view still renders `SessionDetail` below the calendar grid. **(3) Layout polish:** `hub-page` widened from 860→920px; side padding increased from 24→36px. Added missing `hub-hdr` CSS block (eyebrow/title/meta; was completely unstyled). `hub-tabs` vertical padding 10→13px; active tab color changed from `--rim-blue` to slate/steel to match spec. `hub-home__greeting` increased from 22→28px. `hub-detail__name` color changed from `--rim-blue` to `#2d3f47` (slate). Fixed double margin-top: `hub-content--wide` was 32px nested inside `hub-content` (also 32px), causing 64px gap on schedule page — set `hub-content--wide { margin-top: 0 }`. Commits: 51607af + earlier session commits. |
 
 | 2026-03-12 (session 42) | **Old host hub removed; fully migrated to `/account/hub/host-team`.** Deleted all `/account/host/*` pages (9 files), `/app/hosts/` redirect shim, and 5 orphaned components (`HubTabNav`, `HubHomeClient`, `HubConversationsClient`, `ThreadList`, `ThreadDetail`). Updated `AccountSidebar` "Host Hub" link to `/account/hub/host-team`. Updated all `/api/host/*` alert `linkUrl`s and 2 cron job links to new paths. Added `RIM_System_Architecture.md` to project root. Added architecture reminder note to `FEATURES.md`. §23 and §24 docs updated to reflect single hub system. |
+| 2026-03-12 (session 43) | **Virtual Host Hub Phase 1 — attendance tracking + session view + post-session form.** First implementation of the hub-based member data projection model (per `RIM_System_Architecture.md`). **(1) Prisma schema:** New `SessionAttendance` model (cuid, userId FK, programId Sanity _id, programSlug, joinedAt, leftEarly, isNewMember, returningAfterAbsence, flaggedByHost, postSessionNote, postSessionAction enum, actionRouted) with indexes on `[programSlug]`, `[userId]`, `[programSlug, joinedAt]`. New `SessionReport` model (programSlug, sessionDate midnight CT, hostId FK, reflection, resourceUrl, resourceNote, resourceRouted, @@unique programSlug+sessionDate). New `PostSessionAction` enum. DB pushed to Neon. **(2) API routes:** `POST /api/attendance/join` — records SessionAttendance on Meet link click; computes isNewMember + returningAfterAbsence; fires draft automated emails if ENABLE_ATTENDANCE_EMAILS=true. `PATCH /api/attendance/[id]/flag` — toggles flaggedByHost (HOST/REGISTRAR/ADMIN only). `POST /api/attendance/session/[programSlug]/post` — saves post-session form (updates flagged attendance records + upserts SessionReport + sends notification email). **(3) MeetJoinButton:** New `"use client"` component — opens Meet URL in new tab immediately (non-blocking), then fire-and-forget POST to /api/attendance/join. Wired into dashboard live sessions (replacing `<a>` tag) and hub schedule's SessionDetail panel (replacing `<a>` tag + added programId to Session/Program interfaces). **(4) Session tab:** Added to Host Team hub layout only (slug==="host-team"), visible to HOST/HOST_MANAGER/REGISTRAR/ADMIN. Tab ordering: Announcements → Schedule → Session → Documents → Conversations → Members. **(5) Live session view** (`/account/hub/host-team/session`): Server page fetches today's virtual/hybrid programs (same recurrence logic as dashboard) + today's SessionAttendance records from DB + active registrations for registered programs. Passes to `SessionLiveClient` — polls via `router.refresh()` every 60s; each person is a tappable button that calls flag API; New/Returning badges; muted "not yet joined" section for registered programs; post-session form link appears when session time has passed. **(6) Post-session form** (`/account/hub/host-team/session/[programSlug]/post`): Three sections: (1) Flagged people with note field + routing dropdown (No action / Gentle follow-up / Jesse only / Technical issue); (2) Session reflection textarea; (3) Resource for the group. One Submit button saves all records + sends notification emails routed by action type. Pre-fills from existing SessionReport if already submitted. `PostSessionClient` manages all state. **(7) Notification email:** `sendPostSessionNotification()` in `lib/email.ts` — one email per recipient (JESSE_EMAIL, HOST_COORDINATOR_EMAIL env vars), consolidates all flags for that recipient; includes reflection + resource if provided. **(8) Automated emails (built but disabled):** `sendFirstTimeAttendeeEmail()` + `sendReturningAfterAbsenceEmail()` — draft copy, clearly marked DRAFT, gated behind `ENABLE_ATTENDANCE_EMAILS=true` env var. **(9) Sanity query:** `sessionViewProgramsQuery` — extends virtualDashboardProgramsQuery with `registrationEnabled`. **(10) CSS:** `sv-` prefix (session live view) + `ps-` prefix (post-session form) added to `public/css/custom.css`. New env vars: `JESSE_EMAIL`, `HOST_COORDINATOR_EMAIL`, `ENABLE_ATTENDANCE_EMAILS`. |
 
-*Last updated: 2026-03-12 (session 42)*
+*Last updated: 2026-03-12 (session 43)*

@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import AccountLayout from "@/components/AccountLayout";
 import AlertStrip from "@/components/AlertStrip";
 import DashboardAutoRefresh from "@/components/DashboardAutoRefresh";
+import MeetJoinButton from "@/components/MeetJoinButton";
 
 export const metadata = { title: "My Dashboard — Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
@@ -233,9 +234,14 @@ export default async function DashboardPage() {
                   <div className="today-row__right">
                     {s.isRegistered && <span className="today-registered">Registered</span>}
                     {s.zoomLink && (
-                      <a href={s.zoomLink} target="_blank" rel="noopener noreferrer" className="join-btn">
+                      <MeetJoinButton
+                        programId={s._id}
+                        programSlug={s.slug}
+                        zoomLink={s.zoomLink}
+                        className="join-btn"
+                      >
                         Join
-                      </a>
+                      </MeetJoinButton>
                     )}
                   </div>
                 </div>

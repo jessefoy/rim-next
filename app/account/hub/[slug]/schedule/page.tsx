@@ -98,10 +98,12 @@ export default async function HubSchedulePage({
       zoomLink:        prog?.zoomLink ?? null,
       meetHostAccount: prog?.meetHostAccount ?? null,
       programFormat:   prog?.programFormat ?? null,
+      programId:       prog?._id ?? null,
     };
   });
 
   const serializedPrograms = programs.map((p) => ({
+    id:              p._id,
     slug:            p.slug,
     name:            p.name,
     zoomLink:        p.zoomLink ?? null,
