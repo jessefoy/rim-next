@@ -141,7 +141,7 @@ app/
   account/
     dashboard/        member home
     programs/         my registrations
-    host/             Host Community Hub (HOST | HOST_MANAGER | ADMIN)
+    hub/[slug]/       Multi-hub volunteer workspaces (host-team: HOST | HOST_MANAGER | ADMIN)
     registrar/        registrar area (REGISTRAR | ADMIN)
     welcome/          onboarding
     reactivate/       self-service reactivation

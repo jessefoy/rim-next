@@ -2166,7 +2166,7 @@ ORDER BY n DESC;
 
 ### What it does
 
-A self-contained three-tab workspace inside `/account/host` that replaces Basecamp for the RIM virtual host volunteer team. It handles schedule visibility, sub coverage coordination, and community discussion — all in one place, gated to the host team.
+A self-contained workspace inside `/account/hub/host-team` that replaces Basecamp for the RIM virtual host volunteer team. Originally built at `/account/host` (sessions 36–38); fully migrated to the multi-hub system (session 42). It handles schedule visibility, sub coverage coordination, and community discussion — all in one place, gated to the host team.
 
 ### Who uses it
 
@@ -2179,7 +2179,7 @@ A self-contained three-tab workspace inside `/account/host` that replaces Baseca
 
 ### User flow
 
-**Schedule tab** (`/account/host/schedule`)
+**Schedule tab** (`/account/hub/host-team/schedule`)
 - Monthly calendar grid showing all upcoming virtual sessions
 - Sessions are color-coded: teal = you're hosting; amber = needs host or sub; gray = covered
 - Month navigation (← Prev / Next →); calendar/list view toggle
@@ -2188,13 +2188,12 @@ A self-contained three-tab workspace inside `/account/host` that replaces Baseca
 - HOST_MANAGER/ADMIN: multi-select sessions (⌘/Ctrl + click) for bulk assignment
 - Sessions are auto-generated from Sanity program data (startDatetime + recurrence) — no manual session creation needed
 
-**Sub Board** (`/account/host/subs`)
-- Read-only status board showing open sub requests
-- Sub requests are created from the Schedule tab's session detail panel (not from the Sub Board itself)
+**Sub Board** (accessible from Schedule tab session detail panel)
+- Sub requests are created from the Schedule tab's session detail panel
 - Any hub member clicks "I'll take it" → optional note → confirm
 - On claim: status flips to CLAIMED atomically; original requester gets an alert + email
 
-**Conversations** (`/account/host/conversations`)
+**Conversations** (`/account/hub/host-team/conversations`)
 - Three rooms: **Issues & Challenges** (peer support), **Contemplations & Practice** (HOST_MANAGER/ADMIN post only), **General** (open)
 - Each conversation has a title + opening post; organized by room
 - Any hub member can start a topic in Issues or General; replies open to all
@@ -2234,18 +2233,15 @@ A self-contained three-tab workspace inside `/account/host` that replaces Baseca
 | `/api/account/alerts` | GET, PATCH | Unread alerts; mark read / mark all read |
 | `/api/cron/check-unassigned-hosts` | GET | Daily check — alert HOST_MANAGER if program within 30 days has no host |
 
-**Pages:**
-- `app/account/host/schedule/page.tsx` — Schedule tab (calendar UI)
-- `app/account/host/subs/page.tsx` — Sub Board (read-only status view)
-- `app/account/host/conversations/page.tsx` — Conversations list (three rooms)
-- `app/account/host/conversations/[id]/page.tsx` — Conversation thread detail
+**Pages** (all under `/account/hub/host-team/` — see §24 for page files):
+- Schedule — `app/account/hub/[slug]/schedule/page.tsx`
+- Conversations — `app/account/hub/[slug]/conversations/page.tsx` + `[id]/page.tsx`
 
 **Components:**
-- `components/HubTabNav.tsx` — tab strip (Schedule / Sub Board / Conversations); active state matches `/account/host/schedule/*` and `/account/host/conversations/*`
-- `components/HubScheduleClient.tsx` — calendar grid, month nav, filter pills, list view, session detail panel, multi-select claiming
+- `components/HubScheduleClient.tsx` — calendar grid, month nav, filter pills, list view, session detail panel, multi-select claiming; receives `apiBase="/api/host"`
 - `components/SubBoard.tsx` — open requests + claim flow (status board only)
-- `components/HubConversationsClient.tsx` — three-room tab UI + new topic form
-- `components/HubThreadDetailClient.tsx` — thread detail + replies + reply form + close/archive; shows real author names with `(you)` annotation
+- `components/HubConvClient.tsx` — conversations list (three-room tab UI + new topic form)
+- `components/HubConvThreadClient.tsx` — thread detail + replies + reply form + close/archive
 - `components/AlertStrip.tsx` — unread count + ✕ per-alert dismiss + mark-all-read; no auto-dismiss on link click
 
 **Other files changed:**
@@ -2297,11 +2293,10 @@ Any authenticated member who has a `HubMember` row for a given hub. Coordinators
 
 ### Architecture
 
-**Two hub systems coexist:**
-- `/account/host/*` — original HOST-role-only hub for the virtual host team (Prisma models: HostAssignment, SubRequest, SubClaim, HostThread, HostReply, Alert). See §23.
-- `/account/hub/[slug]/*` — general-purpose multi-hub workspace for all volunteer teams (Prisma models: Hub, HubMember, HubAnnouncement, HubDocument, HubConversationThread, HubConversationReply). See §24.
+**Single hub system:**
+- `/account/hub/[slug]/*` — general-purpose multi-hub workspace for all volunteer teams (Prisma models: Hub, HubMember, HubAnnouncement, HubDocument, HubConversationThread, HubConversationReply).
 
-The host-team hub at `/account/hub/host-team` uses a shared `HubScheduleClient` component (same calendar UI as `/account/host/schedule`) connected to the same `HostAssignment` data via `apiBase="/api/host"`.
+The host-team hub at `/account/hub/host-team` reuses the `HubScheduleClient` component connected to `HostAssignment` data via `apiBase="/api/host"`. The old `/account/host/*` pages were removed in session 42.
 
 ### 13 seeded hubs
 
@@ -2423,4 +2418,6 @@ The host-team hub at `/account/hub/host-team` uses a shared `HubScheduleClient` 
 | 2026-03-12 (session 41) | **Dashboard Today's Sessions: recurrence-aware logic + join link timing.** **(1) Infinite/ongoing recurrence fix:** `lib/calendarLinks.ts` — `buildRRule()` was guarded by `!count || count < 2`, which blocked RRULE generation for programs with no fixed end date (null `recurrenceCount`). Fixed: guard is now `if (!freq) return null`; COUNT is only appended when `count && count >= 2` — omitting it is valid RFC 5545 for infinite recurrence. `describeRecurrence()` updated with same fix; `icsLabel` now returns `"ongoing"` when count is null. Sanity `recurrenceCount` field title changed to "Number of Sessions (leave blank for ongoing)" with updated description. Sanity Studio deployed. **(2) Dashboard Today's Sessions — recurrence-aware query:** Root cause: old `todayVirtualSessionsQuery` required `programFormat in ["virtual","hybrid"] && defined(startDatetime)` — both null on all real production programs (which use `dayOfWeek[]->` refs). Fixed: replaced with `virtualDashboardProgramsQuery` — no `startDatetime` filter; fetches full recurrence fields. JS-side `isOccurrenceToday()` in `dashboard/page.tsx` handles single events, weekly (with day code + bi-weekly interval + series end), and monthly/daily fallback. `shiftToToday()` corrects the live/later window for recurring programs. `VirtualSession` interface renamed `VirtualProgram` with nullable `startDatetime` and all recurrence fields. **(3) Join link timing:** Changed from a 75-minute "joinable" window to a strict 12-minute live window. Join button now appears **only** in the Live Now section (12 min before start through session end) — completely removed from Later Today. Updated Later Today helper note: "Join link appears when the session opens, about 12 minutes before start." This prevents members from accidentally joining an open room when multiple programs are listed simultaneously. `liveStart` changed from 15 → 12 min; `joinableStart` / `isJoinable` removed entirely. Commits: session 41. **(4) DashboardAutoRefresh:** New `components/DashboardAutoRefresh.tsx` — `"use client"` component that auto-refreshes the dashboard when a Later Today session enters its Live Now window. Receives `liveStartEpochs: number[]` (epoch ms, timezone-agnostic) from the server; uses `setTimeout` to call `router.refresh()` at the exact moment the earliest session's window opens (+2s buffer). No polling, no visible page reload — `router.refresh()` re-fetches server data in the background, join button appears in place. |
 | 2026-03-11 (session 40) | **Hub schedule spec compliance + layout polish (§24 update).** **(1) Calendar visual redesign:** Rewrote `hub-cal` CSS block — switched from individual rounded cells with gaps to a single-card layout (`border:1px solid #e0ddd7; border-radius:10px; overflow:hidden`) with internal `#eceae5` dividers between cells. Today's date number gets a dark circle (`background:#2d3f47; border-radius:50%`) instead of a cell-level border. Event chips now use all-around `border:1px solid` (not `border-left` accent) and correct spec colors: mine (steel-lt), covered (sage-lt), needs (terra-lt). Checkboxes hidden by default, revealed on hover. Removed stale duplicate `hub-cal__event--mine` rule at end of file. **(2) List view inline panel:** Changed `SessionDetail` in list view to render directly below the clicked row (inside a `hub-sched-row-panel` wrapper div) rather than at the bottom of the page. Calendar view still renders `SessionDetail` below the calendar grid. **(3) Layout polish:** `hub-page` widened from 860→920px; side padding increased from 24→36px. Added missing `hub-hdr` CSS block (eyebrow/title/meta; was completely unstyled). `hub-tabs` vertical padding 10→13px; active tab color changed from `--rim-blue` to slate/steel to match spec. `hub-home__greeting` increased from 22→28px. `hub-detail__name` color changed from `--rim-blue` to `#2d3f47` (slate). Fixed double margin-top: `hub-content--wide` was 32px nested inside `hub-content` (also 32px), causing 64px gap on schedule page — set `hub-content--wide { margin-top: 0 }`. Commits: 51607af + earlier session commits. |
 
-*Last updated: 2026-03-12 (session 41)*
+| 2026-03-12 (session 42) | **Old host hub removed; fully migrated to `/account/hub/host-team`.** Deleted all `/account/host/*` pages (9 files), `/app/hosts/` redirect shim, and 5 orphaned components (`HubTabNav`, `HubHomeClient`, `HubConversationsClient`, `ThreadList`, `ThreadDetail`). Updated `AccountSidebar` "Host Hub" link to `/account/hub/host-team`. Updated all `/api/host/*` alert `linkUrl`s and 2 cron job links to new paths. Added `RIM_System_Architecture.md` to project root. Added architecture reminder note to `FEATURES.md`. §23 and §24 docs updated to reflect single hub system. |
+
+*Last updated: 2026-03-12 (session 42)*
