@@ -389,7 +389,7 @@ model HostAssignment {
   subRequests SubRequest[]
   createdAt   DateTime  @default(now())
 
-  // No DB-level unique — app enforces (programSlug, sessionDate) uniqueness on create
+  @@unique([programSlug, sessionDate])
   @@map("host_assignments")
 }
 
@@ -506,6 +506,7 @@ model SessionAttendance {
   userId                String
   programId             String            // Sanity _id (no local relation)
   programSlug           String            // Sanity slug
+  sessionDate           DateTime?         // CT midnight for the session date — always set by API; nullable for migration safety
   joinedAt              DateTime          @default(now())
   leftEarly             Boolean           @default(false)
   isNewMember           Boolean           @default(false)
@@ -518,6 +519,7 @@ model SessionAttendance {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, programSlug, sessionDate])
   @@index([programSlug])
   @@index([userId])
   @@index([programSlug, joinedAt])
@@ -529,15 +531,16 @@ model SessionAttendance {
 // sessionDate is always stored as midnight CT — normalized consistently on every write.
 
 model SessionReport {
-  id             String    @id @default(cuid())
-  programSlug    String    // Sanity slug
-  sessionDate    DateTime  // Date of session — stored as midnight CT
-  hostId         String    // FK → User (host who submitted)
-  reflection     String?   // Open session reflection text
-  resourceUrl    String?   // URL or text to share with all attendees
-  resourceNote   String?   // Brief description of the resource
-  resourceRouted Boolean   @default(false)  // Set when resource has been sent to support/registrar
-  submittedAt    DateTime  @default(now())
+  id                      String    @id @default(cuid())
+  programSlug             String    // Sanity slug
+  sessionDate             DateTime  // Date of session — stored as midnight CT
+  hostId                  String    // FK → User (host who submitted)
+  submittedByAssignedHost Boolean?  // null = no assignment; true = submitter matched; false = someone else submitted
+  reflection              String?   // Open session reflection text
+  resourceUrl             String?   // URL or text to share with all attendees
+  resourceNote            String?   // Brief description of the resource
+  resourceRouted          Boolean   @default(false)  // Set when resource has been sent to support/registrar
+  submittedAt             DateTime  @default(now())
 
   host User @relation(fields: [hostId], references: [id])
 

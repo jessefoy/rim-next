@@ -38,6 +38,7 @@ export interface SessionProgram {
   attendees: Attendee[];
   notYetJoined: Registrant[];  // registered but no attendance record today
   sessionEnded: boolean;
+  assignedHost: { id: string; name: string } | null;
   postSessionPath: string;
 }
 
@@ -97,6 +98,14 @@ export default function SessionLiveClient({ programs, todayCT }: Props) {
               {prog.attendees.length} in
             </span>
           </div>
+
+          {/* Assigned host — distinct from attendees, not tappable */}
+          {prog.assignedHost && (
+            <div className="sv-host-badge">
+              <span className="sv-host-label">Hosting today</span>
+              <span className="sv-host-name">{prog.assignedHost.name}</span>
+            </div>
+          )}
 
           {/* Attendees who have joined */}
           {prog.attendees.length === 0 ? (

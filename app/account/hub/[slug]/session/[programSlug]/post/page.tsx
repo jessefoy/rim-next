@@ -8,6 +8,7 @@ import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import PostSessionClient from "@/components/PostSessionClient";
+import type { AssignedHost } from "@/components/PostSessionClient";
 
 export const dynamic = "force-dynamic";
 
@@ -100,14 +101,29 @@ export default async function PostSessionPage({
   });
 
   // Check if a report already exists for today (so we can pre-fill)
-  const existingReport = await db.sessionReport.findUnique({
-    where: {
-      programSlug_sessionDate: {
+  // Also fetch the host assignment for this program + today
+  const [existingReport, todayAssignment] = await Promise.all([
+    db.sessionReport.findUnique({
+      where: { programSlug_sessionDate: { programSlug, sessionDate: sessionDateKey } },
+    }),
+    db.hostAssignment.findFirst({
+      where: {
         programSlug,
         sessionDate: sessionDateKey,
+        userId: { not: null },
       },
-    },
-  });
+      include: {
+        user: { select: { firstName: true, lastName: true, preferredName: true } },
+      },
+    }),
+  ]);
+
+  const assignedHost: AssignedHost | null = todayAssignment?.userId && todayAssignment.user
+    ? {
+        id: todayAssignment.userId,
+        name: todayAssignment.user.preferredName || todayAssignment.user.firstName || "Host",
+      }
+    : null;
 
   const flaggedAttendees = attendanceRecords
     .filter((a) => a.flaggedByHost)
@@ -145,6 +161,7 @@ export default async function PostSessionPage({
       existingResourceUrl={existingReport?.resourceUrl ?? null}
       existingResourceNote={existingReport?.resourceNote ?? null}
       alreadySubmitted={!!existingReport}
+      assignedHost={assignedHost}
       backPath={`/account/hub/${slug}/session`}
       apiPath={`/api/attendance/session/${programSlug}/post`}
     />

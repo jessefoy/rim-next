@@ -37,17 +37,19 @@ export async function POST(
   }
 
   const {
-    sessionDate,   // ISO string — midnight CT for the session date
-    flags,         // Array<{ attendanceId, note, action }>
-    reflection,    // string | null
-    resourceUrl,   // string | null
-    resourceNote,  // string | null
+    sessionDate,      // ISO string — midnight CT for the session date
+    flags,            // Array<{ attendanceId, note, action }>
+    reflection,       // string | null
+    resourceUrl,      // string | null
+    resourceNote,     // string | null
+    assignedHostId,   // string | null — userId of the HostAssignment for this session
   } = body as {
     sessionDate: string;
     flags: Array<{ attendanceId: string; note: string | null; action: string }>;
     reflection: string | null;
     resourceUrl: string | null;
     resourceNote: string | null;
+    assignedHostId: string | null;
   };
 
   const sessionDateParsed = new Date(sessionDate);
@@ -72,21 +74,26 @@ export async function POST(
 
   // ── 2. Upsert the SessionReport ──────────────────────────────────────────
   // sessionDate is always midnight CT — use as-is for the @@unique key.
+  // submittedByAssignedHost: null = no assignment, true = match, false = mismatch.
+  const submittedByAssignedHost =
+    assignedHostId == null ? null : session.user.id === assignedHostId;
+
   const reportUpsert = db.sessionReport.upsert({
     where: { programSlug_sessionDate: { programSlug, sessionDate: sessionDateParsed } },
     create: {
       programSlug,
-      sessionDate:    sessionDateParsed,
-      hostId:         session.user.id,
-      reflection:     reflection ?? null,
-      resourceUrl:    resourceUrl ?? null,
-      resourceNote:   resourceNote ?? null,
+      sessionDate:              sessionDateParsed,
+      hostId:                   session.user.id,
+      submittedByAssignedHost,
+      reflection:               reflection ?? null,
+      resourceUrl:              resourceUrl ?? null,
+      resourceNote:             resourceNote ?? null,
     },
     update: {
-      reflection:     reflection ?? null,
-      resourceUrl:    resourceUrl ?? null,
-      resourceNote:   resourceNote ?? null,
-      // hostId stays as the original submitter
+      reflection:               reflection ?? null,
+      resourceUrl:              resourceUrl ?? null,
+      resourceNote:             resourceNote ?? null,
+      // hostId and submittedByAssignedHost stay as the original submitter's values
     },
   });
 

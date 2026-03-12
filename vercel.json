@@ -15,6 +15,10 @@
     {
       "path": "/api/cron/seed-host-sessions",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/missing-reports",
+      "schedule": "0 23 * * *"
     }
   ]
 }

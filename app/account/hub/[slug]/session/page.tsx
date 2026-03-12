@@ -180,8 +180,31 @@ export default async function SessionPage({
     }),
   ]);
 
-  // Filter to today's occurrences
+  // Filter to today's occurrences early so we can scope the assignment query
   const todayPrograms = allPrograms.filter((p) => isOccurrenceToday(p, today));
+
+  // Fetch today's host assignments for programs running today
+  const todaySlugs = todayPrograms.map((p) => p.slug);
+  const todayAssignments = todaySlugs.length > 0
+    ? await db.hostAssignment.findMany({
+        where: {
+          programSlug: { in: todaySlugs },
+          sessionDate: startOfDay, // CT midnight = today's assignment date key
+          userId: { not: null },
+        },
+        include: {
+          user: { select: { firstName: true, lastName: true, preferredName: true } },
+        },
+      })
+    : [];
+
+  const assignmentBySlug = new Map<string, { userId: string; name: string }>();
+  for (const a of todayAssignments) {
+    if (a.userId && a.user) {
+      const name = a.user.preferredName || a.user.firstName || "Host";
+      assignmentBySlug.set(a.programSlug, { userId: a.userId, name });
+    }
+  }
 
   // Group attendance by programSlug
   const attendanceBySlug = new Map<string, typeof todayAttendance>();
@@ -244,6 +267,8 @@ export default async function SessionPage({
         email: r.email,
       }));
 
+    const assignment = assignmentBySlug.get(p.slug) ?? null;
+
     return {
       _id: p._id,
       slug: p.slug,
@@ -252,6 +277,7 @@ export default async function SessionPage({
       endTimeCT:   end   ? fmtTimeCT(end)   : null,
       isRegistered: !!p.registrationEnabled,
       sessionEnded,
+      assignedHost: assignment ? { id: assignment.userId, name: assignment.name } : null,
       postSessionPath: `/account/hub/${slug}/session/${p.slug}/post`,
       attendees: attendees.map((a) => {
         const u = a.user;
@@ -270,10 +296,30 @@ export default async function SessionPage({
     };
   });
 
+  const isManager = roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
+
   return (
-    <SessionLiveClient
-      programs={programs}
-      todayCT={fmtTodayFull(today)}
-    />
+    <>
+      <SessionLiveClient
+        programs={programs}
+        todayCT={fmtTodayFull(today)}
+      />
+      <div className="sv-history-nav">
+        <a
+          href={`/account/hub/${slug}/session/history/team`}
+          className="sv-history-nav__link"
+        >
+          Session journal →
+        </a>
+        {isManager && (
+          <a
+            href={`/account/hub/${slug}/session/history`}
+            className="sv-history-nav__link sv-history-nav__link--coord"
+          >
+            Coordinator history →
+          </a>
+        )}
+      </div>
+    </>
   );
 }

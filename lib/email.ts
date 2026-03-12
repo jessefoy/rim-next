@@ -1918,3 +1918,48 @@ export async function sendReturningAfterAbsenceEmail(
     console.error("[email] sendReturningAfterAbsenceEmail failed:", e);
   }
 }
+
+// ─── MISSING REPORT NOTIFICATION ─────────────────────────────────────────────
+// Sent by cron /api/cron/missing-reports at 23:00 UTC nightly.
+// One email per missing session report, to each coordinator of the host-team hub.
+
+export interface MissingReportEmailData {
+  to: string;
+  programName: string;
+  sessionDateDisplay: string; // e.g. "Thursday, March 13"
+  assignedHostName: string | null;
+  detailUrl: string; // link to coordinator history detail view
+}
+
+export async function sendMissingReportEmail(data: MissingReportEmailData): Promise<void> {
+  const { to, programName, sessionDateDisplay, assignedHostName, detailUrl } = data;
+  const subject = `No session report filed — ${programName}, ${sessionDateDisplay}`;
+
+  const hostLine = assignedHostName
+    ? `If you'd like to check in with ${assignedHostName}, their report link is below.`
+    : "If you'd like to follow up with tonight's host, their report link is below.";
+
+  const html = [
+    `<p>Just a heads up — no post-session report was submitted for <strong>${programName}</strong> tonight (${sessionDateDisplay}).</p>`,
+    `<p>If everything went smoothly and nothing needs follow-up, no action is needed. ${hostLine}</p>`,
+    `<p><a href="${detailUrl}">View session in coordinator history →</a></p>`,
+    `<p style="margin-top:32px;color:#888;font-size:13px;">Rooted In Mindfulness &middot; rootedinmindfulness.org</p>`,
+  ].join("\n");
+
+  const text = [
+    `Just a heads up — no post-session report was submitted for ${programName} tonight (${sessionDateDisplay}).`,
+    "",
+    `If everything went smoothly and nothing needs follow-up, no action is needed. ${hostLine}`,
+    "",
+    `View session: ${detailUrl}`,
+    "",
+    "—",
+    "Rooted In Mindfulness · rootedinmindfulness.org",
+  ].join("\n");
+
+  try {
+    await resend.emails.send({ from: FROM, to, subject, html, text });
+  } catch (e) {
+    console.error("[email] sendMissingReportEmail failed:", e);
+  }
+}

@@ -33,6 +33,11 @@ interface AllAttendee {
   flaggedByHost: boolean;
 }
 
+export interface AssignedHost {
+  id: string;
+  name: string;
+}
+
 interface Props {
   programSlug: string;
   sessionDate: string;           // ISO string — midnight CT
@@ -43,6 +48,7 @@ interface Props {
   existingResourceUrl: string | null;
   existingResourceNote: string | null;
   alreadySubmitted: boolean;
+  assignedHost: AssignedHost | null;
   backPath: string;
   apiPath: string;
 }
@@ -57,6 +63,7 @@ export default function PostSessionClient({
   existingResourceUrl,
   existingResourceNote,
   alreadySubmitted,
+  assignedHost,
   backPath,
   apiPath,
 }: Props) {
@@ -103,6 +110,7 @@ export default function PostSessionClient({
           reflection: reflection.trim() || null,
           resourceUrl: resourceUrl.trim() || null,
           resourceNote: resourceNote.trim() || null,
+          assignedHostId: assignedHost?.id ?? null,
         }),
       });
 
@@ -139,6 +147,11 @@ export default function PostSessionClient({
           Post-session — {programSlug.replace(/-/g, " ")}
         </h2>
         <p className="ps-form__date">{sessionDateDisplay}</p>
+        {assignedHost && (
+          <p className="ps-form__assigned-host">
+            Assigned host: <strong>{assignedHost.name}</strong>
+          </p>
+        )}
       </div>
 
       {/* ── Section 1: Flagged people ── */}
