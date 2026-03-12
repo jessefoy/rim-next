@@ -141,7 +141,7 @@ export async function POST(request: Request) {
           userId: u.id,
           type: "SUB_REQUEST" as const,
           message: `${requesterName} needs a sub${sessionLabel ? ` on ${sessionLabel}` : ""} for ${assignment.programSlug}`,
-          linkUrl: "/account/host/schedule",
+          linkUrl: "/account/hub/host-team/schedule",
         })),
         skipDuplicates: true,
       });

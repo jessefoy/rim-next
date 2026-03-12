@@ -84,7 +84,7 @@ export async function PATCH(
             userId: u.id,
             type: "SUB_REQUEST" as const, // reuse generic type — distinct message
             message: `${claimerName} claimed${sessionLabel ? ` the ${sessionLabel}` : " a"} session for ${updated.programSlug}`,
-            linkUrl: "/account/host/schedule",
+            linkUrl: "/account/hub/host-team/schedule",
           })),
           skipDuplicates: true,
         });
@@ -147,7 +147,7 @@ export async function PATCH(
           userId: u.id,
           type: "UNASSIGNED_SESSION" as const,
           message: `${requesterName} removed themselves from${sessionLabel ? ` the ${sessionLabel}` : " a"} session for ${assignment.programSlug}`,
-          linkUrl: "/account/host/schedule",
+          linkUrl: "/account/hub/host-team/schedule",
         })),
         skipDuplicates: true,
       });

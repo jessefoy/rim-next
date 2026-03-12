@@ -91,7 +91,7 @@ export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
         {hasRoleLinks && <div className="ac-sidebar__divider" role="separator" />}
 
         {hasHost && (
-          <Link href="/account/host" className={linkClass("/account/host")}>
+          <Link href="/account/hub/host-team" className={linkClass("/account/hub/host-team")}>
             Host Hub
           </Link>
         )}

@@ -1260,7 +1260,7 @@ export default async function ManualPage() {
             For most virtual programs, <strong>the Meet link is created automatically</strong> — you don&rsquo;t need to do anything extra. When you toggle on <strong>Virtual Program</strong> in Sanity Studio, set a <strong>Start Date &amp; Time</strong>, and publish the program, the system creates the Meet link, assigns a room account, and saves everything back to the program. The link appears in confirmation emails, reminder emails, and the Host Area — all without copy-pasting.
           </p>
           <p>
-            The <strong>Meet Host team</strong> — the volunteers who hold the container of the session — check the <strong>Host Area</strong> at <code>/account/host</code> to find out which shared account to sign into. When they join from that account, they automatically have full host controls.
+            The <strong>Meet Host team</strong> — the volunteers who hold the container of the session — check the <strong>Host Area</strong> at <code>/account/hub/host-team</code> to find out which shared account to sign into. When they join from that account, they automatically have full host controls.
           </p>
         </section>
 
@@ -1290,7 +1290,7 @@ export default async function ManualPage() {
 
           <h3 className="man-section__h3">How the host gets host controls</h3>
           <p>
-            Whoever signs into the assigned room account and joins the meeting automatically becomes the meeting owner — with full host controls (blue shield, mute all, remove participant, end meeting). The host team checks the <strong>Host Area</strong> at <code>/account/host</code> before each session to find out which account is assigned to their program, signs into it as a secondary browser account, and joins from there.
+            Whoever signs into the assigned room account and joins the meeting automatically becomes the meeting owner — with full host controls (blue shield, mute all, remove participant, end meeting). The host team checks the <strong>Host Area</strong> at <code>/account/hub/host-team</code> before each session to find out which account is assigned to their program, signs into it as a secondary browser account, and joins from there.
           </p>
           <p>
             This is different from the way Zoom worked. There is no host key to share and no one needs to &ldquo;grant&rdquo; anything at session time — the account itself is the host.
@@ -1359,12 +1359,12 @@ export default async function ManualPage() {
         <section id="meet-volunteer" className="man-section">
           <h2 className="man-section__title">What the host team does</h2>
           <p>
-            Once a Google Meet link exists for a program, the host team handles the rest. They don&rsquo;t need anything from you at session time — they have their own starting point at <code>/account/host</code>. But here&rsquo;s the overview in case you need to walk someone through it.
+            Once a Google Meet link exists for a program, the host team handles the rest. They don&rsquo;t need anything from you at session time — they have their own starting point at <code>/account/hub/host-team</code>. But here&rsquo;s the overview in case you need to walk someone through it.
           </p>
 
           <h3 className="man-section__h3">Before the session</h3>
           <ol className="man-steps">
-            <li>Go to <strong>/account/host</strong> (the Host Area).</li>
+            <li>Go to <strong>/account/hub/host-team</strong> (the Host Area).</li>
             <li>Find the program and note the <strong>host account</strong> listed — for example, <code>meet2@rootedinmindfulness.org</code>.</li>
             <li>Add that account to your browser as a secondary Google account — you don&rsquo;t need to log out of your own account. In Chrome: click your profile photo → <em>Add another account</em>.</li>
             <li>Click the <strong>Join on Google Meet</strong> link from the Host Area while signed in as that account.</li>
@@ -1416,7 +1416,7 @@ export default async function ManualPage() {
                 <td>Under &ldquo;Today&rsquo;s Sessions&rdquo; on the day of the program. The Join button appears in the <strong>Live Now</strong> section, about 12 minutes before start — the same time the host opens the room. Sessions appearing under <strong>Later Today</strong> show no button; members see a note letting them know when the link will appear.</td>
               </tr>
               <tr>
-                <td>Host Area <code>/account/host</code></td>
+                <td>Host Area <code>/account/hub/host-team</code></td>
                 <td>HOST, REGISTRAR, and ADMIN roles</td>
                 <td>Always visible once the link is created</td>
               </tr>
@@ -1426,7 +1426,7 @@ export default async function ManualPage() {
             Confirmation and reminder emails direct members to their dashboard — the link itself is not included in emails. This keeps virtual sessions private and accessible to logged-in members only.
           </p>
           <div className="man-note">
-            The <strong>Host Area</strong> at <code>/account/host</code> shows the same link alongside the room account to sign into. Members never see the room account; they only see the Join link on their dashboard.
+            The <strong>Host Area</strong> at <code>/account/hub/host-team</code> shows the same link alongside the room account to sign into. Members never see the room account; they only see the Join link on their dashboard.
           </div>
         </section>
 
@@ -1815,7 +1815,7 @@ export default async function ManualPage() {
         <section id="hub-overview" className="man-section">
           <h2 className="man-section__title">Overview</h2>
           <p>
-            The Host Community Hub is your team&rsquo;s home base. You&rsquo;ll find it at <strong>/account/host</strong> — it&rsquo;s where the host team sees the schedule, helps each other out when someone can&rsquo;t make a session, and stays connected between meetings. Think of it as the back room that supports everything that happens in the Meet rooms.
+            The Host Community Hub is your team&rsquo;s home base. You&rsquo;ll find it at <strong>/account/hub/host-team</strong> — it&rsquo;s where the host team sees the schedule, helps each other out when someone can&rsquo;t make a session, and stays connected between meetings. Think of it as the back room that supports everything that happens in the Meet rooms.
           </p>
           <p>
             The hub has three areas: <strong>Schedule</strong>, <strong>Sub Board</strong>, and <strong>Conversations</strong>. They work together, and you&rsquo;ll move between them naturally as things come up.
@@ -2044,7 +2044,7 @@ export default async function ManualPage() {
           </p>
           <p>What a Meet Host can do:</p>
           <ul className="man-list">
-            <li>View the <strong>Host Community Hub</strong> at <strong>/account/host</strong> — schedule, sub board, and threads</li>
+            <li>View the <strong>Host Community Hub</strong> at <strong>/account/hub/host-team</strong> — schedule, sub board, and threads</li>
             <li>View their own assignments and the meeting link + room account for each</li>
             <li>Post sub requests and claim open sub requests</li>
             <li>Create and reply to threads</li>
@@ -2120,14 +2120,14 @@ export default async function ManualPage() {
             </thead>
             <tbody>
               <tr>
-                <td>My Sessions <code>/account/host</code></td>
+                <td>My Sessions <code>/account/hub/host-team</code></td>
                 <td>✓</td>
                 <td>✓</td>
                 <td></td>
                 <td>✓</td>
               </tr>
               <tr>
-                <td>Manage tab <code>/account/host/manage</code></td>
+                <td>Manage tab <code>/account/hub/host-team/schedule</code></td>
                 <td></td>
                 <td>✓</td>
                 <td></td>
@@ -2201,7 +2201,7 @@ export default async function ManualPage() {
           </p>
           <ul className="man-list">
             <li>Each notification fires exactly once, when the role is <em>first</em> added. It does not re-send if you save their record again with the role already checked.</li>
-            <li>The <strong>Meet Host</strong> email links to the Host Area at <strong>/account/host</strong> and to this manual.</li>
+            <li>The <strong>Meet Host</strong> email links to the Host Area at <strong>/account/hub/host-team</strong> and to this manual.</li>
             <li>The <strong>Registrar</strong> email links to the volunteer dashboard at <strong>/account/registrar</strong> and to this manual. It does <em>not</em> include Sanity Studio instructions — that&rsquo;s a separate step with its own invite.</li>
             <li>No notification is sent when the Admin role is assigned. Admins are typically people already deeply involved in the organization — a quiet system-level change is appropriate.</li>
           </ul>

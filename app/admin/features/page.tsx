@@ -89,7 +89,7 @@ const AREAS: FunctionalArea[] = [
         locations: ["File: proxy.ts (Next.js 16 — replaces middleware.ts)"],
         what: "Intercepts requests to protected URL prefixes before they reach page components. Redirects unauthenticated users to /login, members who haven't agreed to terms to /account/welcome, and archived members to /account/reactivate.",
         relatedTo: [
-          "Protects /account/*, /volunteer/*, /admin/*, /course/*, /hosts/*",
+          "Protects /account/*, /volunteer/*, /admin/*, /course/*, /account/hub/*",
           "Reads session cookie set by Authentication",
           "Works with Member Archive system (checks archivedAt)",
           "Works with Community Onboarding system (checks agreedToTerms)",
@@ -97,7 +97,7 @@ const AREAS: FunctionalArea[] = [
       },
       {
         name: "Role-Based Access (Server Components)",
-        locations: ["/volunteer/*", "/admin/*", "/hosts/*"],
+        locations: ["/volunteer/*", "/admin/*", "/account/hub/*"],
         what: "Staff-only pages perform a second role check inside the server component beyond what the proxy does. If the user is authenticated but lacks the required role, an 'unauthorized' message is rendered inline (no graceful redirect yet).",
         relatedTo: [
           "Roles assigned via Member Management (Admin)",
@@ -284,7 +284,7 @@ const AREAS: FunctionalArea[] = [
         what: "Sent once when the HOST role is first assigned to a member. Similar structure to the REGISTRAR notification.",
         relatedTo: [
           "Triggered by HOST Role Assignment in Member Management (Admin)",
-          "Links to /account/host and relevant documentation",
+          "Links to /account/hub/host-team and relevant documentation",
         ],
       },
       {
@@ -478,12 +478,12 @@ const AREAS: FunctionalArea[] = [
     id: "hub",
     title: "Host Community Hub",
     icon: "🏠",
-    desc: "The internal collaboration space for the host volunteer team. Replaces spreadsheets and Basecamp. Accessible at /account/host. Requires HOST, HOST_MANAGER, or ADMIN role.",
+    desc: "The internal collaboration space for the host volunteer team. Replaces spreadsheets and Basecamp. Accessible at /account/hub/host-team. Requires HOST, HOST_MANAGER, or ADMIN role.",
     features: [
       {
         name: "Schedule Tab",
-        locations: ["/account/host/schedule", "/account/hub/host-team/schedule", "Component: HubScheduleClient.tsx", "API: GET /api/host/assignments"],
-        what: "7-column calendar + list view showing all HostAssignment records for the current month. Filter pills (All / Mine / Needs Attention) filter both views. Calendar: single-card spec layout with today-circle, color-coded event chips (mine=steel-lt, covered=sage-lt, needs=terra-lt). List view: clicking a row expands a SessionDetail panel inline, directly beneath that row. Calendar view shows SessionDetail below the calendar grid. From the panel: claim an open session, request a sub, or (HOST_MANAGER) assign a host. Shared HubScheduleClient receives apiBase prop — /api/host for both the old /account/host/schedule page and /account/hub/host-team/schedule.",
+        locations: ["/account/hub/host-team/schedule", "/account/hub/host-team/schedule", "Component: HubScheduleClient.tsx", "API: GET /api/host/assignments"],
+        what: "7-column calendar + list view showing all HostAssignment records for the current month. Filter pills (All / Mine / Needs Attention) filter both views. Calendar: single-card spec layout with today-circle, color-coded event chips (mine=steel-lt, covered=sage-lt, needs=terra-lt). List view: clicking a row expands a SessionDetail panel inline, directly beneath that row. Calendar view shows SessionDetail below the calendar grid. From the panel: claim an open session, request a sub, or (HOST_MANAGER) assign a host. Shared HubScheduleClient receives apiBase prop — /api/host for both the old /account/hub/host-team/schedule page and /account/hub/host-team/schedule.",
         relatedTo: [
           "HostAssignment Postgres model — links userId + programSlug (+ optional sessionDate)",
           "Sanity CMS — program names, meet links, room accounts read from hostProgramsQuery",
@@ -494,7 +494,7 @@ const AREAS: FunctionalArea[] = [
       },
       {
         name: "Sub Board",
-        locations: ["/account/host/subs", "Component: SubBoard.tsx", "Component: SubRequestForm.tsx", "API: GET /api/host/sub-requests, POST /api/host/sub-requests, POST /api/host/sub-requests/[id]/claim, PATCH /api/host/sub-requests/[id] (cancel)"],
+        locations: ["/account/hub/host-team/subs", "Component: SubBoard.tsx", "Component: SubRequestForm.tsx", "API: GET /api/host/sub-requests, POST /api/host/sub-requests, POST /api/host/sub-requests/[id]/claim, PATCH /api/host/sub-requests/[id] (cancel)"],
         what: "Any HOST/HOST_MANAGER/ADMIN user can post a sub request for a session they can't cover, choosing from their own assignments and optionally specifying a date. Open requests appear on the board for any hub member to claim. Claiming flips the status to CLAIMED atomically (db.$transaction). Cannot claim your own request.",
         relatedTo: [
           "SubRequest + SubClaim Postgres models",
@@ -505,7 +505,7 @@ const AREAS: FunctionalArea[] = [
       },
       {
         name: "Threads",
-        locations: ["/account/host/threads", "/account/host/threads/[id]", "Component: ThreadList.tsx", "Component: ThreadDetail.tsx", "API: GET/POST /api/host/threads, GET/PATCH /api/host/threads/[id], POST /api/host/threads/[id]/replies"],
+        locations: ["/account/hub/host-team/threads", "/account/hub/host-team/threads/[id]", "Component: ThreadList.tsx", "Component: ThreadDetail.tsx", "API: GET/POST /api/host/threads, GET/PATCH /api/host/threads/[id], POST /api/host/threads/[id]/replies"],
         what: "A discussion board with two categories: OPERATIONAL (peer support, tips, questions) and CONTEMPLATION (weekly teacher/manager post for group reflection). Any hub member can create threads and reply. HOST_MANAGER/ADMIN can close (no new replies) or archive (hidden from main list) threads. Reply notification targets thread author + all prior repliers (deduplicated, excluding the current replier). Posting a reply bumps thread updatedAt so it floats to the top.",
         relatedTo: [
           "HostThread + HostReply Postgres models; ThreadStatus enum: OPEN / CLOSED / ARCHIVED",
@@ -516,7 +516,7 @@ const AREAS: FunctionalArea[] = [
       },
       {
         name: "Assignment Manager",
-        locations: ["/account/host/manage", "Component: AssignmentManager.tsx", "API: GET/POST /api/host/assignments, DELETE /api/host/assignments/[id]"],
+        locations: ["/account/hub/host-team/schedule", "Component: AssignmentManager.tsx", "API: GET/POST /api/host/assignments, DELETE /api/host/assignments/[id]"],
         what: "HOST_MANAGER and ADMIN only. Displays all virtual/hybrid programs (without zoomLink filter — so hosts can be assigned before a Meet link is created). For each program, shows current assignments with a remove button. Assigns a host by selecting from a dropdown of HOST/HOST_MANAGER/ADMIN users.",
         relatedTo: [
           "HostAssignment Postgres model — the join between a user and a program/session",
@@ -821,7 +821,7 @@ const AREAS: FunctionalArea[] = [
       },
       {
         name: "Meet Link on Dashboard & Host Hub",
-        locations: ["/account/dashboard", "/account/host"],
+        locations: ["/account/dashboard", "/account/hub/host-team"],
         what: "Google Meet links are shown to logged-in members on the Dashboard under 'Today's Sessions.' HOST users also see their assigned meet links on the host schedule tab. Links are deliberately NOT shown in confirmation emails or on public program pages — members must be logged in to access them.",
         relatedTo: [
           "Dashboard Hub (Member Experience)",
@@ -1080,7 +1080,7 @@ const USER_TYPES = [
   {
     who: "Registrar / HOST / HOST_MANAGER",
     login: "Magic link + role",
-    canDo: "Registrar: registration management (/account/registrar), Sanity Studio. HOST: full Host Community Hub (/account/host) — schedule, sub board, threads. HOST_MANAGER: everything HOST does, plus assignment management and thread moderation.",
+    canDo: "Registrar: registration management (/account/registrar), Sanity Studio. HOST: full Host Community Hub (/account/hub/host-team) — schedule, sub board, threads. HOST_MANAGER: everything HOST does, plus assignment management and thread moderation.",
   },
   {
     who: "Admin",
