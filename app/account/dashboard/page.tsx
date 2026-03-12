@@ -169,12 +169,14 @@ export default async function DashboardPage() {
     todaySessionsRaw.map(async (p) => {
       // Shift anchor datetime to today's occurrence so live/later checks are correct
       const start     = shiftToToday(p.startDatetime!, today);
-      const liveStart = new Date(start.getTime() - 15 * 60 * 1000);
-      const liveEnd   = p.endDatetime
+      const liveStart     = new Date(start.getTime() - 15 * 60 * 1000);
+      const joinableStart = new Date(start.getTime() - 75 * 60 * 1000);
+      const liveEnd       = p.endDatetime
         ? shiftToToday(p.endDatetime, today)
         : new Date(start.getTime() + 90 * 60 * 1000);
-      const isLive       = now >= liveStart && now <= liveEnd;
+      const isLive       = now >= liveStart     && now <= liveEnd;
       const isLaterToday = !isLive && start > now;
+      const isJoinable   = now >= joinableStart && now <= liveEnd;
 
       let isRegistered = false;
       if (isLive || isLaterToday) {
@@ -185,7 +187,7 @@ export default async function DashboardPage() {
         isRegistered = !!reg;
       }
 
-      return { ...p, isLive, isLaterToday, isRegistered, startTimeCT: fmtTimeCT(start.toISOString()) };
+      return { ...p, isLive, isLaterToday, isJoinable, isRegistered, startTimeCT: fmtTimeCT(start.toISOString()) };
     })
   );
 
@@ -237,7 +239,7 @@ export default async function DashboardPage() {
                 <>
                   <div className="today-later-hdr">
                     <span className="today-later-hdr__label">Later Today</span>
-                    <span className="today-later-hdr__note">Join links appear when each session begins.</span>
+                    <span className="today-later-hdr__note">Join links appear 1 hr 15 min before each session.</span>
                   </div>
                   {laterSessions.map((s) => (
                     <div key={s._id} className="today-row today-row--later">
@@ -245,6 +247,11 @@ export default async function DashboardPage() {
                       <span className="today-row__title today-row__title--muted">{s.name}</span>
                       <div className="today-row__right">
                         {s.isRegistered && <span className="today-registered">Registered</span>}
+                        {s.isJoinable && s.zoomLink && (
+                          <a href={s.zoomLink} target="_blank" rel="noopener noreferrer" className="join-btn">
+                            Join
+                          </a>
+                        )}
                       </div>
                     </div>
                   ))}
