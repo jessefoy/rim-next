@@ -56,6 +56,19 @@ export default async function DashboardPage() {
         select: { id: true, programTitle: true, programSlug: true },
         orderBy: { createdAt: "desc" },
         take: 5,
+      }).then(async (regs) => {
+        // Enrich with start dates from Sanity
+        const slugs = regs.map((r) => r.programSlug);
+        const dates = slugs.length
+          ? await sanityClient.fetch<{ slug: string; startDatetime: string | null }[]>(
+              `*[_type == "programs" && slug.current in $slugs && !(_id in path("drafts.**"))]{
+                "slug": slug.current, startDatetime
+              }`,
+              { slugs }
+            )
+          : [];
+        const dateMap = new Map(dates.map((d) => [d.slug, d.startDatetime]));
+        return regs.map((r) => ({ ...r, startDatetime: dateMap.get(r.programSlug) ?? null }));
       }),
       db.registration.findMany({
         where: { userId, donationStatus: "PENDING" },
@@ -114,8 +127,8 @@ export default async function DashboardPage() {
 
   return (
     <AccountLayout>
+      <AlertStrip />
       <div className="db2-wrap">
-        <AlertStrip />
 
         {/* 1. Greeting */}
         <div className="db2-greeting">
@@ -180,6 +193,17 @@ export default async function DashboardPage() {
             <div className="db2-upcoming">
               {upcomingRegistrations.map((r) => (
                 <Link key={r.id} href={`/programs/${r.programSlug}`} className="db2-upcoming__item">
+                  {r.startDatetime && (() => {
+                    const d = new Date(r.startDatetime);
+                    const mon = d.toLocaleDateString("en-US", { timeZone: "America/Chicago", month: "short" }).toUpperCase();
+                    const day = d.toLocaleDateString("en-US", { timeZone: "America/Chicago", day: "numeric" });
+                    return (
+                      <span className="db2-upcoming__date-block">
+                        <span className="db2-upcoming__date-month">{mon}</span>
+                        <span className="db2-upcoming__date-day">{day}</span>
+                      </span>
+                    );
+                  })()}
                   <span className="db2-upcoming__title">{r.programTitle}</span>
                 </Link>
               ))}
