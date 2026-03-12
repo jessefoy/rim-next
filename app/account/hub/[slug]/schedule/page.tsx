@@ -36,9 +36,9 @@ export default async function HubSchedulePage({
   const session = await auth();
   if (!session) redirect("/login");
 
-  const { hub, member } = await getHubMembership(slug, session.user.id);
+  const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
   if (!hub) notFound();
-  if (!member) redirect("/account/dashboard");
+  if (!member && !isAdmin) redirect("/account/dashboard");
   if (!hub.hasSchedule) notFound();
 
   // Build coordinator display name (for session detail panel)

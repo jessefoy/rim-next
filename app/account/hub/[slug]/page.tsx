@@ -25,14 +25,16 @@ export default async function HubAnnouncementsPage({
   const session = await auth();
   if (!session) redirect("/login");
 
-  const { hub, member } = await getHubMembership(slug, session.user.id);
-  if (!hub || !member) redirect("/account/dashboard");
+  const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
+  if (!hub || (!member && !isAdmin)) redirect("/account/dashboard");
 
-  // Update lastVisitedAt
-  await db.hubMember.update({
-    where: { id: member.id },
-    data:  { lastVisitedAt: new Date() },
-  });
+  // Update lastVisitedAt (skip for admin-only access without hub membership)
+  if (member) {
+    await db.hubMember.update({
+      where: { id: member.id },
+      data:  { lastVisitedAt: new Date() },
+    });
+  }
 
   const announcements = await db.hubAnnouncement.findMany({
     where:   { hubId: hub.id, status: "ACTIVE" },
@@ -41,7 +43,7 @@ export default async function HubAnnouncementsPage({
   });
 
   const isCoordinator =
-    member.isCoordinator || (session.user.roles ?? []).includes("ADMIN");
+    member?.isCoordinator || (session.user.roles ?? []).includes("ADMIN");
 
   const serialized = announcements.map((a) => ({
     id:             a.id,

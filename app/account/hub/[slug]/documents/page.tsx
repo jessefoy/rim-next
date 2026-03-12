@@ -25,13 +25,15 @@ export default async function HubDocumentsPage({
   const session = await auth();
   if (!session) redirect("/login");
 
-  const { hub, member } = await getHubMembership(slug, session.user.id);
-  if (!hub || !member) redirect("/account/dashboard");
+  const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
+  if (!hub || (!member && !isAdmin)) redirect("/account/dashboard");
 
-  await db.hubMember.update({
-    where: { id: member.id },
-    data:  { lastVisitedAt: new Date() },
-  });
+  if (member) {
+    await db.hubMember.update({
+      where: { id: member.id },
+      data:  { lastVisitedAt: new Date() },
+    });
+  }
 
   const documents = await db.hubDocument.findMany({
     where:   { hubId: hub.id },
@@ -40,7 +42,7 @@ export default async function HubDocumentsPage({
   });
 
   const isCoordinator =
-    member.isCoordinator || (session.user.roles ?? []).includes("ADMIN");
+    member?.isCoordinator || (session.user.roles ?? []).includes("ADMIN");
 
   const serialized = documents.map((d) => ({
     id:          d.id,

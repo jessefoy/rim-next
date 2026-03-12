@@ -32,8 +32,8 @@ export default async function HubConvThreadPage({
   const session = await auth();
   if (!session) redirect("/login");
 
-  const { hub, member } = await getHubMembership(slug, session.user.id);
-  if (!hub || !member) redirect("/account/dashboard");
+  const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
+  if (!hub || (!member && !isAdmin)) redirect("/account/dashboard");
 
   const thread = await db.hubConversationThread.findUnique({
     where: { id },
@@ -51,7 +51,7 @@ export default async function HubConvThreadPage({
   if (!thread || thread.hubId !== hub.id) notFound();
 
   const isCoordinator =
-    member.isCoordinator || (session.user.roles ?? []).includes("ADMIN");
+    member?.isCoordinator || (session.user.roles ?? []).includes("ADMIN");
 
   const serialized = {
     id:       thread.id,

@@ -3,8 +3,10 @@ import { db } from "@/lib/db";
 /**
  * Fetch hub + membership for the current user. Returns null if hub doesn't
  * exist or user is not a member. Caller decides whether to 404 or 403.
+ * ADMIN users can access any hub even without a HubMember record —
+ * isAdmin is returned so callers can skip the member redirect for admins.
  */
-export async function getHubMembership(slug: string, userId: string) {
+export async function getHubMembership(slug: string, userId: string, roles: string[] = []) {
   const hub = await db.hub.findUnique({
     where: { slug },
     include: {
@@ -15,10 +17,11 @@ export async function getHubMembership(slug: string, userId: string) {
       },
     },
   });
-  if (!hub) return { hub: null, member: null };
+  if (!hub) return { hub: null, member: null, isAdmin: false };
 
   const member = hub.members.find((m) => m.userId === userId) ?? null;
-  return { hub, member };
+  const isAdmin = roles.includes("ADMIN");
+  return { hub, member, isAdmin };
 }
 
 /**

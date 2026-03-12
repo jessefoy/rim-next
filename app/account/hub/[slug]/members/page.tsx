@@ -25,8 +25,8 @@ export default async function HubMembersPage({
   const session = await auth();
   if (!session) redirect("/login");
 
-  const { hub, member } = await getHubMembership(slug, session.user.id);
-  if (!hub || !member) redirect("/account/dashboard");
+  const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
+  if (!hub || (!member && !isAdmin)) redirect("/account/dashboard");
 
   const members = await db.hubMember.findMany({
     where:   { hubId: hub.id },
