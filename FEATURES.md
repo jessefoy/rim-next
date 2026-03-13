@@ -400,22 +400,30 @@ A registration is considered a duplicate if the same `userId` + `programId` alre
 
 ### 6a. Dashboard Hub (`/account/dashboard`)
 
-Displays five nav cards in a 2-column grid (1-column on mobile):
+The member home page. A single `720px` content column (`db2-wrap`), vertical sections in reading order:
 
-| Card | Destination | Notes |
-|---|---|---|
-| Today's Sessions | `#today` (anchor) | Shows count badge ("2 today" or "Nothing today") |
-| My Programs | `/account/programs` | Registration history |
-| My Library | `/account/dashboard-my-library` | Courses, lessons, resources |
-| Our Agreements | `/account/dashboard-member-care-agreements` | Community care agreements |
-| My Profile | `/account/dashboard-my-profile` | Name, phone, email |
+1. **Greeting** — "Welcome back, [firstName]." + today's date in CT
+2. **Alerts** — amber notification card (`AlertStrip`); only shown when unread alerts exist
+3. **Today's Virtual Sessions** — live/later sessions with join button and auto-refresh
+4. **Your Upcoming Programs** — next 5 active registrations with Sanity start dates
+5. **My Account** — quick links to My Profile, My Registrations, Course Library
+6. **Pending Dana** — shown only when `donationStatus: PENDING` registrations exist
+7. **Your Hubs** — hub cards; ADMIN sees all hubs; others see only their `HubMember` records
 
-Below the card grid:
-- **Today's Virtual Sessions** — `virtualDashboardProgramsQuery` fetches all virtual/hybrid programs (no `startDatetime` filter) with full recurrence fields. JS-side `isOccurrenceToday()` determines if today is an occurrence using `recurrenceFreq` / `recurrenceDays` / `recurrenceInterval` / `recurrenceCount`. `shiftToToday()` corrects the live/later window for recurring programs (fires at the correct wall-clock time every week, not just on the first occurrence's anchor date). Sessions split into **Live Now** (join button visible; window opens 12 min before start, through session end) and **Later Today** (no join button; note tells member the link will appear about 12 min before start). Join link intentionally withheld until Live Now — prevents members from accidentally joining an open room when multiple programs are visible simultaneously. **Auto-refresh:** `DashboardAutoRefresh` (`components/DashboardAutoRefresh.tsx`) is a `"use client"` component rendered invisibly inside the today card. It receives `liveStartEpochs` (plain epoch ms, timezone-agnostic) for each Later Today session and uses a single `setTimeout` to call `router.refresh()` exactly when the earliest window opens (+ 2s buffer). `router.refresh()` re-runs the server component in the background — no page reload, no scroll reset, no UI interruption. The join button simply appears in place. Multiple sessions chain automatically as the component re-mounts with updated props after each refresh.
-- **Pending Dana** — appears when any registration has `donationStatus: PENDING` (promoted from waitlist); links to `/programs/[slug]/register`
+**Today's Virtual Sessions:** `virtualDashboardProgramsQuery` fetches all virtual/hybrid programs with full recurrence fields. JS-side `isOccurrenceToday()` handles weekly (day code + bi-weekly interval + series end), single events, and monthly/daily fallback. `shiftToToday()` corrects the live/later window for recurring programs. Sessions split into **Live Now** (join button; window opens 12 min before start, through session end) and **Later Today** (no join button; note tells member the link appears about 12 min before start). Join link withheld until Live Now — prevents members accidentally joining an open room when multiple programs are visible. **Auto-refresh:** `DashboardAutoRefresh` fires `router.refresh()` via `setTimeout` exactly when a Later Today session enters its Live Now window (epoch ms, timezone-agnostic; +2s buffer). No polling, no scroll reset — join button appears in place.
 
-**Key files:** `app/account/dashboard/page.tsx`, `components/DashboardAutoRefresh.tsx`
-**CSS prefix:** `db-` (in `public/css/custom.css`)
+**AlertStrip (`components/AlertStrip.tsx`):**
+- Amber notification card, inline within the dashboard content column (after the greeting)
+- Color tokens: `--color-alert: #C8821A`, `--color-alert-bg: #FDF6EC`, `--color-alert-border: #F0C98A`
+- Container: amber background + border + `border-radius: 10px`, `padding: 12px 16px`
+- Items: `border-left: 4px solid var(--color-alert)`, `padding-left: 20px`; hairline `border-bottom` dividers; no gap between items
+- Count badge uses `--color-alert` (not brand navy); label text "alerts" / "alert"
+- Scrollable list: `max-height: 220px; overflow-y: auto` on the `ul`
+- Scroll indicator: CSS-only pulsing downward chevron on `.alert-strip__scroll-wrap::after`; `opacity: 0.3→1→0.3` over 2s; hidden via `is-scrolled-to-bottom` class applied by `checkScroll` on mount + scroll + data change
+- Dismiss: per-item ✕ button (`PATCH /api/account/alerts { id }`); "Mark all read" clears all and sets `dismissed` state
+
+**Key files:** `app/account/dashboard/page.tsx`, `components/AlertStrip.tsx`, `components/DashboardAutoRefresh.tsx`
+**CSS prefix:** `db2-` (dashboard), `alert-strip` (AlertStrip)
 
 ### 6b. Account Sidebar (`AccountSidebar` / `AccountLayout`)
 
@@ -428,17 +436,18 @@ A persistent sidebar that appears on all account pages, showing navigation links
 | My Programs | `/account/programs` | All members |
 | My Library | `/account/dashboard-my-library` | All members |
 | My Profile | `/account/dashboard-my-profile` | All members |
-| *(divider)* | — | HOST / REGISTRAR / ADMIN |
-| My Sessions | `/account/host` | HOST (+ REGISTRAR, ADMIN) |
+| *(Your Hubs divider + links)* | `/account/hub/[slug]` | Members with `HubMember` records; ADMIN sees all hubs |
+| *(divider)* | — | REGISTRAR / ADMIN |
 | Programs | `/account/registrar` | REGISTRAR / ADMIN |
 | Members | `/admin/members` | REGISTRAR / ADMIN |
+| Households | `/admin/households` | REGISTRAR / ADMIN |
 | *(divider)* | — | ADMIN only |
 | Manual | `/admin/manual` | ADMIN |
 | Roadmap | `/admin/roadmap` | ADMIN |
 
 **Architecture:**
-- `AccountLayout` — server component; calls `auth()`, extracts `roles`, renders `ac-layout` wrapper containing `AccountSidebar` + `ac-content` children
-- `AccountSidebar` — `"use client"` component; receives `roles: string[]` as prop; uses `usePathname` for active-link highlighting
+- `AccountLayout` — server component; calls `auth()`, extracts `roles`; ADMIN users get all hubs via `db.hub.findMany()`; non-admins get only their `HubMember` records. Renders `ac-layout` wrapper with `AccountSidebar + ac-content`.
+- `AccountSidebar` — `"use client"` component; receives `roles: string[]` and `hubLinks: { slug, name }[]` as props; uses `usePathname` for active-link highlighting; renders "Your Hubs" section dynamically from `hubLinks` (never hardcoded).
 - Applied explicitly in each account page's `return` — NOT a Next.js `layout.tsx` file. This keeps `/account/welcome` and `/account/reactivate` as standalone flows without the sidebar.
 
 **Mobile:** Below 700px, the sidebar becomes a horizontal scroll strip (tabs pattern), matching GitHub profile tabs and Stripe dashboard. No hamburger drawer — avoids conflict with the main site nav.
@@ -2614,4 +2623,6 @@ Three additions in one session:
 
 | 2026-03-13 (session 46) | **System integrity audit + fixes.** Full codebase audit identified 15 issues across Prisma schema, API routes, auth, emails, dead code. **(1) onDelete policies:** Added `onDelete: Cascade` or `SetNull` to 12+ User relations across the entire Prisma schema. Registration and HostAssignment use `SetNull` (preserves records); all owned content (threads, replies, alerts, hub members, etc.) uses `Cascade`. Previously, the daily cleanup cron (`cleanup-incomplete-accounts`) and admin member deletion would FK-fail on any user with related records. **(2) Registration capacity bypass fix:** `registrationCapacity` was trusted from the client request body — users could set it to 999 in dev tools. Now fetched server-side from Sanity in the registration API route. **(3) Stripe webhook idempotency:** `db.donation.create()` changed to `upsert` on `stripePaymentIntentId`. Duplicate webhook deliveries (which Stripe warns about) now produce a no-op instead of a unique constraint error → 500 → retry loop. **(4) Stale email URLs:** 2 remaining `/volunteer/programs/` URLs in `sendCancellationNotificationEmail` and `sendResponsesUpdatedEmail` updated to `/account/registrar/`. **(5) Stripe checkout auth:** Added email verification — registration email must match `donorEmail` to prevent registrationId abuse. **(6) Registration indexes:** Added 3 indexes on Registration model (`[programSlug, status]`, `[userId]`, `[programId]`). **(7) Stripe env var guard:** Replaced `process.env.STRIPE_SECRET_KEY!` non-null assertion with explicit guard that throws a clear error message. **(8) Dead code cleanup:** Deleted 4 orphaned components (HostProgramActions, SubBoard, SubRequestForm, AssignmentManager — 1,075 lines) left from old host hub migration. **(9) Hide-from-list field clarity:** Improved Sanity schema descriptions for `removeFromProgramList` and `hideFromProgramPageList` — each now cross-references the other so staff knows they control different audiences. Grouped the two toggles together (sortOrder was between them). Sanity Studio deployed. **(10) Redirect shims to edge redirects:** Moved 3 redirect-only pages (`/volunteer`, `/volunteer/programs/:slug`, `/account/dashboard-my-registrations`) from server-rendered `redirect()` pages to `vercel.json` 301 redirects. Edge-level = faster, no function invocation. Deleted the page files and empty directories. **(11) Manual + features page updated:** Settings tab field docs updated with cross-reference notes. |
 
-*Last updated: 2026-03-13 (session 46)*
+| 2026-03-13 (session 47) | **Dashboard visual polish: ADMIN hub access fix + AlertStrip redesign.** **(1) Manual accuracy audit:** Read full staff manual (`app/admin/manual/page.tsx`), cross-referenced against codebase. Fixed 6 inaccuracies: (a) Removed "Member Accounts" from "Future editions" (chapter 3 already exists). (b) Hub tab count: "five tabs" → "six tabs" (Session tab was missing). (c) Hub access role description corrected (HOST/HOST_MANAGER, not just registrar roles). (d) HOST_MANAGER description: "Manage tab" → "Schedule tab" (Manage tab was deleted in session 37–38). (e) Hub permissions table: "Manage assignments (add / remove)" → "Manage assignments from Schedule". (f) Replaced hardcoded sidebar links table with accurate description of dynamic "Your Hubs" system. **(2) ADMIN hub access fix:** ADMIN users with no `HubMember` records were getting empty hub lists in both the sidebar and dashboard hub cards. Root cause: both `AccountLayout` and `dashboard/page.tsx` were querying hub links exclusively via `HubMember` records, with no ADMIN bypass. Fix: `AccountLayout` now checks `isAdmin` first; if true, fetches all hubs via `db.hub.findMany()`. Dashboard page now builds `dashboardHubs` via the same branch (`db.hub.findMany()` for ADMIN, `hubMemberships.map(m => m.hub)` for others). The ADMIN bypass in `lib/hubAuth.ts` already existed for page-level access checks — this fix extends it consistently to the sidebar and dashboard data layer. **(3) AlertStrip redesign:** Moved from outside `db2-wrap` (full-bleed above content) to inside it (after greeting). New amber color tokens added to `:root`: `--color-alert: #C8821A`, `--color-alert-bg: #FDF6EC`, `--color-alert-border: #F0C98A`. Container: amber card with border + `border-radius: 10px`. Items: 4px amber `border-left`, 20px padding-left (clearance from accent), hairline `border-bottom` dividers between items, no gap. Count badge uses `--color-alert` (was `--rim-blue`). Label: "alerts" (was "new updates"). Scrollable: `max-height: 220px; overflow-y: auto` on `ul`. Scroll indicator: CSS-only pulsing downward chevron (`::after` on `.alert-strip__scroll-wrap`; 10×10px rotated border trick; `opacity: 0.3→1→0.3` 2s loop); hidden via `is-scrolled-to-bottom` class set by `checkScroll` callback on mount + scroll + data change. `"use client"` component: added `useRef`, `isAtBottom` state, `checkScroll` callback. **(4) Dashboard width:** `db2-wrap` max-width 680px → 720px. Commits: `c0f48c9`, `13a69ad`, `68f2aba`, `0cd1017`. |
+
+*Last updated: 2026-03-13 (session 47)*

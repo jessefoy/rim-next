@@ -1965,7 +1965,7 @@ export default async function ManualPage() {
         <section id="hub-alerts" className="man-section">
           <h2 className="man-section__title">Alerts</h2>
           <p>
-            When something happens in the hub that you&rsquo;d want to know about, you&rsquo;ll hear about it in two ways: an <strong>email</strong> sent to you directly, and an <strong>alert strip</strong> that appears at the top of your dashboard when you log in. You don&rsquo;t have to be watching the hub for things to reach you.
+            When something happens in the hub that you&rsquo;d want to know about, you&rsquo;ll hear about it in two ways: an <strong>email</strong> sent to you directly, and an <strong>Alerts card</strong> that appears in your dashboard when you log in. You don&rsquo;t have to be watching the hub for things to reach you.
           </p>
           <table className="man-table">
             <thead>
@@ -1998,7 +1998,7 @@ export default async function ManualPage() {
             </tbody>
           </table>
           <p>
-            In your dashboard, the alert strip shows whatever&rsquo;s unread. Each alert has a small <strong>✕</strong> on the right — click it to dismiss that one. Or click <strong>Mark all read</strong> to clear everything at once. Clicking an alert to visit the page it links to won&rsquo;t automatically dismiss it — that&rsquo;s intentional. You decide when you&rsquo;re done with an alert.
+            The Alerts card in your dashboard shows whatever&rsquo;s unread. Each alert has a small <strong>✕</strong> on the right — click it to dismiss that one. Or click <strong>Mark all read</strong> to clear everything at once. Clicking an alert to visit the page it links to won&rsquo;t automatically dismiss it — that&rsquo;s intentional. You decide when you&rsquo;re done with an alert.
           </p>
           <div className="man-note">
             The &ldquo;no host assigned&rdquo; alert is automatic. Once a day, the system checks whether any program with a start date in the next 30 days has no host. If it finds one, it sends an alert to all Host Managers and Admins. You won&rsquo;t get repeated alerts for the same program on the same day — just one per program, per day.
