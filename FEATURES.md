@@ -2611,10 +2611,10 @@ Three additions in one session:
 
 ---
 
-## 26. Email Template Manager ✅ Built — session 48 (2026-03-13)
+## 26. Email Template Manager ✅ Built — sessions 48–49 (2026-03-13)
 
 ### What it does
-A database-backed system for managing all transactional email copy without code deploys. Admins can edit subject lines and body copy, toggle delivery on/off, and preview exactly what recipients will receive — all from `/admin/emails`.
+A database-backed system for managing all transactional email copy without code deploys. Admins can edit subject lines, body copy, and contextual help text; toggle delivery on/off; preview exactly what recipients will receive; and insert template variables via clickable chips — all from `/admin/emails`.
 
 ### Who uses it
 ADMIN only — the list and edit pages are gated to the ADMIN role.
@@ -2628,12 +2628,14 @@ No email copy lives in code for any managed template. The 11 retained hardcoded 
 
 ### User flow — editing a template
 
-1. Admin opens `/admin/emails` → sees table of all 7 templates with enabled/disabled badges
+1. Admin opens `/admin/emails` → templates grouped by section (Registration & Programs, Host Hub, General)
 2. Clicks "Edit →" on a row → `/admin/emails/[slug]`
-3. Edits subject line (plain text input) and/or body (RimEditor — markdown with full toolbar)
-4. Clicks "Preview" → modal opens with the email rendered exactly as it will arrive (variable tokens shown as `[firstName]`, `[programName]`, etc.)
-5. Clicks "Save changes" → DB updated, `updatedAt` + `updatedBy` recorded
-6. Toggles "Enabled" checkbox → controls whether the trigger sends the email or silently skips
+3. Reads the help text above the subject (grey paragraph + blue Sanity-origin callout if any variables come from Sanity)
+4. Edits subject line (plain text input) and/or body (RimEditor — full markdown toolbar; variable `{{tokens}}` render as amber pills in the editor)
+5. Clicks a variable chip in the reference panel → inserts `{{token}}` at the cursor
+6. Clicks "Preview" → modal opens with the email rendered exactly as it will arrive (variable tokens shown as `[firstName]`, `[programName]`, etc.)
+7. Clicks "Save changes" → DB updated, `updatedAt` + `updatedBy` recorded
+8. Toggles "Enabled" checkbox → controls whether the trigger sends the email or silently skips
 
 ### User flow — toggling delivery
 
@@ -2646,14 +2648,19 @@ No email copy lives in code for any managed template. The 11 retained hardcoded 
 |---|---|
 | `prisma/schema.prisma` | `EmailTemplate` model |
 | `prisma/seed-email-templates.js` | One-time seed for 7 templates (run once, idempotent) |
+| `prisma/seed-email-groups.ts` | One-time seed: assigns group/groupLabel to all 7 templates |
+| `prisma/seed-email-help-text.js` | One-time seed: writes helpText + sanityNote for all 7 templates |
 | `lib/email.ts` | `sendTemplatedEmail()`, `renderTemplateToHtml()`, `wrapInEmailChrome()`, `EMAIL_BASE_CSS` |
-| `app/admin/emails/page.tsx` | Template list page |
+| `lib/tiptap-variable-node.ts` | Custom Tiptap inline node — renders `{{token}}` as amber pill; serializes back |
+| `lib/portableTextEmail.ts` | `portableTextToEmailHtml`, `portableTextToEmailText`, `portableTextToMarkdown` |
+| `app/admin/emails/page.tsx` | Template list page — grouped by section |
 | `app/admin/emails/[slug]/page.tsx` | Template edit page (server component, loads `EmailTemplateEditor`) |
-| `components/EmailTemplateEditor.tsx` | "use client" editor — subject, RimEditor body, variables panel, toggle, save, preview modal |
+| `components/EmailTemplateEditor.tsx` | "use client" editor — helpText, sanityNote callout, subject, chrome bands, RimEditor body, variable chips, toggle, save, preview modal |
+| `components/RimEditor.tsx` | Shared Tiptap v3 editor — includes VariableNode, link inline popover |
 | `app/api/admin/emails/[slug]/route.ts` | PATCH: save subject/body/enabled, record updatedById |
 | `app/api/admin/emails/[slug]/preview/route.ts` | POST: render body with placeholder values, return HTML |
 | `components/AccountSidebar.tsx` | "Emails" link (ADMIN only) |
-| `public/css/custom.css` | `em-` prefix CSS block |
+| `public/css/custom.css` | `em-` prefix CSS block; `re-` prefix for RimEditor; `.ri-var-chip` |
 
 ### Technical notes
 
@@ -2665,45 +2672,64 @@ No email copy lives in code for any managed template. The 11 retained hardcoded 
 - **`variables` array:** Stored on the template record, used only for the admin variables-reference panel. `sendTemplatedEmail` substitutes whatever keys are passed in `variables: Record<string, string>` — no validation against the stored array.
 - **Enabled check:** If `enabled: false`, `sendTemplatedEmail` returns immediately after the DB fetch — no Resend call, no error thrown. Triggers during rollout / testing period are silently absorbed.
 - **`marked` import:** Dynamic `await import("marked")` avoids top-level ESM issues. `marked.parse(body)` returns a string.
+- **Group fields:** `group` (key), `groupLabel` (display), `minRole` (default "ADMIN") — used by the list page to render section headers. All 7 templates seeded with correct groups.
+- **VariableNode (tiptap-variable-node.ts):** Custom Tiptap inline atom node. Renders `{{token}}` as a styled amber pill (`.ri-var-chip`) in the editor. Serializes back to `{{token}}` via tiptap-markdown `storage.markdown.serialize`. Parses via `storage.markdown.parse.setup(markdownit)` — registers a custom markdownit inline rule with a duplicate-registration guard (tiptap-markdown v0.9 calls `setup()` on every `parse()` invocation; the guard prevents the rule being registered multiple times on the same markdownit instance). `insertVariable(name)` command available on the editor instance.
+- **Link inline popover (RimEditor):** Replaces `window.prompt`. Opens on toolbar link button; pre-fills from existing href if cursor is on a link; pressing the button on an active link removes it without opening the popover. Enter and Escape are handled. Dismisses on outside click via `useEffect` + `pointerdown`.
+- **Chrome bands (EmailTemplateEditor):** Two non-interactive `aria-hidden` divs flanking the RimEditor body — dark blue header ("Rooted In Mindfulness") and warm footer (address line). Shows the admin what the email wrapper looks like without being part of the editable body.
+- **helpText + sanityNote:** Nullable fields on `EmailTemplate`. `helpText` shows as a muted paragraph above the subject input. `sanityNote` shows as a distinct teal callout block with a "Sanity Studio" badge — used for variables that originate from program records in Sanity (programName, programTitle, dateText, locationText, zoomLink, reminderMessage). Seeded for all 7 templates.
+- **`portableTextToMarkdown()`:** New utility in `lib/portableTextEmail.ts`. Converts a Portable Text array to a markdown string (bold → `**text**`, italic → `*text*`, links → `[text](href)`, bullet → `- text`, numbered → `1. text`). Resolves `markDefs` manually to handle link marks. Use this — not `portableTextToEmailText` — when the value will be interpolated into a managed template body that's later processed by `marked`. Currently applied to `reminderMessage` in `sendReminderEmail`.
+- **`portableTextToEmailHtml/Text` vs `portableTextToMarkdown`:** `portableTextToEmailHtml` → inline-styled HTML, use for hardcoded functions that insert PT directly into the email HTML body (e.g. `confirmationMessage` in `sendRegistrationEmail`). `portableTextToEmailText` → plain text fallback, use for plain-text email variants. `portableTextToMarkdown` → markdown, use for managed template variable values.
 
-### The 7 managed templates
+### Complete email function inventory — permanent reference
 
-| Slug | Trigger |
-|---|---|
-| `first-time-attendee` | Member's first recorded session attendance |
-| `returning-after-absence` | Member attends after 6+ week gap |
-| `host-role-assigned` | HOST or HOST_MANAGER role granted |
-| `missing-report-alert` | Nightly cron: no post-session report filed |
-| `sub-request-posted` | Host posts a sub request |
-| `sub-request-claimed` | Another host claims the sub |
-| `session-reminder` | Pre-session reminder (nightly cron or manual) |
+This table documents all 18 email functions in `lib/email.ts`. Keep it current if any function is added, migrated to managed, or removed.
 
-### The 11 retained hardcoded functions (structural exceptions)
+**7 managed — `sendTemplatedEmail()` — editable in Email Template Manager**
 
-| Function | Reason retained |
-|---|---|
-| `sendRegistrationEmail` | Complex conditional logic, .ics attachment, calendar links |
-| `sendApprovalEmail` | Waitlist-specific conditional logic |
-| `sendCancellationNotificationEmail` | Registrar notification with program-specific routing |
-| `sendEditRequestEmail` | Coordinator notification |
-| `sendResponsesUpdatedEmail` | Post-edit confirmation |
-| `sendDanaReminderEmail` | Dana-specific state rendering |
-| `sendRoleAssignmentEmail` | REGISTRAR role assignment (different audience/copy) |
-| `sendNewThreadEmail` | Hub operational notification |
-| `sendNewReplyEmail` | Hub reply notification |
-| `sendMagicLinkEmail` | Auth flow — must never be disabled, no DB dependency acceptable |
-| `sendPostSessionNotification` | Coordinator-only, complex flag routing |
+| Function | Template slug | Group | Variables | Trigger |
+|---|---|---|---|---|
+| `sendFirstTimeAttendeeEmail` | `first-time-attendee` | Registration & Programs | firstName, programName, sessionDate | First recorded session attendance |
+| `sendReturningAfterAbsenceEmail` | `returning-after-absence` | Registration & Programs | firstName, programName, sessionDate | Attends after 6+ week gap |
+| `sendReminderEmail` | `session-reminder` | Registration & Programs | firstName, programTitle, dateText, locationText, zoomLink, reminderMessage, dashboardUrl | Pre-session reminder (cron or manual). `reminderMessage` → `portableTextToMarkdown()` |
+| `sendHostRoleAssignmentEmail` | `host-role-assigned` | Host Hub | firstName, hostAreaUrl, manualUrl | HOST or HOST_MANAGER role granted |
+| `sendSubRequestEmail` | `sub-request-posted` | Host Hub | firstName, requesterName, programName, sessionDate, message, hubUrl | Host posts sub request |
+| `sendSubClaimedEmail` | `sub-request-claimed` | Host Hub | firstName, claimerName, programName, sessionDate, message, hubUrl | Host claims sub request |
+| `sendMissingReportEmail` | `missing-report-alert` | Host Hub | programName, sessionDateDisplay, assignedHostName, detailUrl | Nightly cron: no post-session report |
 
-### Future migration candidates
+**9 hardcoded — migration candidates (structural blockers, see comments in code)**
 
-These functions are simple enough to template but were kept hardcoded in this pass. Migrate in a future session if staff need to edit their copy:
+| Function | Proposed slug | Variables | Reason hardcoded |
+|---|---|---|---|
+| `sendRegistrationEmail` | `registration-confirmation` | firstName, programTitle, programUrl, dateText, locationText, confirmationMessageHtml, googleCalendarUrl, icsUrl, waitlistPosition | .ics attachment; conditional Google/Apple calendar links; inline PT HTML; two divergent layouts (confirmed vs waitlisted). Needs attachment + conditional block support |
+| `sendApprovalEmail` | `waitlist-approval` | firstName, programTitle, programUrl, danaUrl (conditional) | Conditional dana section alters the email layout; needs conditional block support |
+| `sendCancellationNotificationEmail` | `registration-cancelled` | registrantName, registrantEmail, programTitle, volunteerUrl | Recipient is `REGISTRAR_EMAIL` env var (staff), not the registrant; lower priority |
+| `sendEditRequestEmail` | `edit-request` | firstName, programTitle, editUrl | editUrl contains a single-use token generated at send time. Good migration candidate — token as variable |
+| `sendResponsesUpdatedEmail` | `responses-updated` | registrantName, programTitle, volunteerUrl | Recipient is `REGISTRAR_EMAIL` env var (staff); lower priority |
+| `sendDanaReminderEmail` | `dana-reminder` | firstName, programTitle, registerUrl | Straightforward candidate; held until dana workflow is stable |
+| `sendRoleAssignmentEmail` | `registrar-role-assigned` | firstName, dashboardUrl, manualUrl | Predates template system; `sendHostRoleAssignmentEmail` (same data shape) is already managed |
+| `sendNewThreadEmail` | `hub-new-thread` | firstName, authorName, threadTitle, categoryLabel, threadUrl | Conditional categoryLabel derived from OPERATIONAL/CONTEMPLATION enum |
+| `sendNewReplyEmail` | `hub-new-reply` | firstName, replierName, threadTitle, threadUrl | Built before template system; simplest candidate for next migration |
 
-| Function | Template slug (proposed) | Notes |
+**2 hardcoded — must stay (cannot be managed)**
+
+| Function | Variables | Reason must stay |
 |---|---|---|
-| `sendDanaReminderEmail` | `dana-reminder` | Simple; one dynamic URL; no conditional branches |
-| `sendRoleAssignmentEmail` | `registrar-role-assigned` | Mirrors `host-role-assigned` pattern |
-| `sendNewThreadEmail` | `hub-new-thread` | Simple notification; category label is the only dynamic branch |
-| `sendNewReplyEmail` | `hub-new-reply` | Simplest email in the codebase; ideal template candidate |
+| `sendMagicLinkEmail` | url (NextAuth token), isNewUser | NextAuth auth contract (`sendVerificationRequest`). Token is signed + time-limited, generated by NextAuth at call time — cannot go through async template pipeline. Also rethrows on failure (unlike all other functions) so NextAuth can surface errors |
+| `sendPostSessionNotification` | programSlug, sessionDate, hostName, flags[], reflection, resourceUrl | Per-recipient routing: one call sends up to 2 separate emails to different recipients based on flag type (GENTLE_FOLLOWUP → Jesse + coordinator; JESSE_ONLY → Jesse; TECHNICAL_ISSUE → coordinator). Consolidates multiple flags per recipient. Not templateable |
+
+### Future migration candidates (priority order)
+
+| Function | Proposed slug | Blocker / Notes |
+|---|---|---|
+| `sendNewReplyEmail` | `hub-new-reply` | No blocker — simplest email in the codebase |
+| `sendDanaReminderEmail` | `dana-reminder` | No blocker — waiting on dana workflow stability |
+| `sendRoleAssignmentEmail` | `registrar-role-assigned` | No blocker — mirrors `host-role-assigned` exactly |
+| `sendNewThreadEmail` | `hub-new-thread` | Minor: categoryLabel derived from enum — could be passed as a variable |
+| `sendEditRequestEmail` | `edit-request` | No blocker — token already a variable in proposed slug |
+| `sendCancellationNotificationEmail` | `registration-cancelled` | Recipient is env var, not DB — needs a way to address staff recipients |
+| `sendResponsesUpdatedEmail` | `responses-updated` | Same staff-recipient issue as above |
+| `sendApprovalEmail` | `waitlist-approval` | Needs conditional block support in template engine |
+| `sendRegistrationEmail` | `registration-confirmation` | Needs attachment support + conditional blocks — largest migration effort |
 
 ---
 
@@ -2722,4 +2748,6 @@ These functions are simple enough to template but were kept hardcoded in this pa
 | 2026-03-13 (session 48) | **RimEditor rich-text component + Email Template Manager.** **(1) RimEditor:** New `components/RimEditor.tsx` — shared Tiptap v3 editor with markdown I/O (`tiptap-markdown` package). Toolbar with Lucide icons: Bold, Italic, Underline, H2, H3, Bullet list, Numbered list, Blockquote, Horizontal rule, Link, Clear formatting. Five groups separated by `Sep` dividers. `value`/`onChange` controlled interface (markdown strings). `rows` prop → `minHeight` formula: `Math.max(rows * 32 + 52, 120)px`. User-resizable via `resize: vertical`. Double cast `(editor.storage as unknown as any).markdown` required due to TypeScript `Storage` type conflict. `setContent(value, { emitUpdate: false })` for external sync. Applied to 8 components: `PostSessionClient`, `HubConvThreadClient`, `HubConvClient`, `HubThreadDetailClient`, `HubScheduleClient`, `HubAnnouncementsClient`, `HouseholdDetail`, `MemberDetail`. CSS: `re-` prefix block in `custom.css`. **(2) Email Template Manager:** Architectural change — all 7 managed transactional emails now live in the DB, editable without a deploy. `EmailTemplate` model added to Prisma (`slug`, `name`, `description`, `subject`, `body` @db.Text, `enabled`, `variables String[]`, `updatedAt`, `updatedById`). Seed: `prisma/seed-email-templates.js` (7 records, all `enabled: false`, idempotent). `lib/email.ts` additions: `EMAIL_BASE_CSS`, `wrapInEmailChrome()`, `renderTemplateToHtml()` (marked → wrapInEmailChrome → juice), `sendTemplatedEmail(slug, to, variables)` (DB lookup → enabled check → `{{token}}` substitution → renderTemplateToHtml → Resend send). 7 hardcoded send functions replaced: `sendFirstTimeAttendeeEmail`, `sendReturningAfterAbsenceEmail`, `sendMissingReportEmail`, `sendHostRoleAssignmentEmail`, `sendSubRequestEmail`, `sendSubClaimedEmail`, `sendReminderEmail`. 11 functions retained as hardcoded (structural reasons: attachments, conditional logic, auth flows, PortableText rendering). Dead builder functions removed. Admin UI: `/admin/emails` list page (ADMIN only) — table of all templates with enabled badge + last-saved date + Edit link. `/admin/emails/[slug]` edit page — subject input, RimEditor body, variables reference panel, enabled toggle, Save button (records `updatedById`/`updatedAt`), Preview button. Preview modal POSTs to `/api/admin/emails/[slug]/preview` — fills variables with `[placeholder]` labels → same `renderTemplateToHtml()` path → pixel-identical to actual sends → rendered in iframe. "Emails" sidebar link added to `AccountSidebar` (ADMIN only, between Members and Manual). CSS: `em-` prefix block. |
 | 2026-03-13 (session 47) | **Dashboard visual polish: ADMIN hub access fix + AlertStrip redesign.** **(1) Manual accuracy audit:** Read full staff manual (`app/admin/manual/page.tsx`), cross-referenced against codebase. Fixed 6 inaccuracies: (a) Removed "Member Accounts" from "Future editions" (chapter 3 already exists). (b) Hub tab count: "five tabs" → "six tabs" (Session tab was missing). (c) Hub access role description corrected (HOST/HOST_MANAGER, not just registrar roles). (d) HOST_MANAGER description: "Manage tab" → "Schedule tab" (Manage tab was deleted in session 37–38). (e) Hub permissions table: "Manage assignments (add / remove)" → "Manage assignments from Schedule". (f) Replaced hardcoded sidebar links table with accurate description of dynamic "Your Hubs" system. **(2) ADMIN hub access fix:** ADMIN users with no `HubMember` records were getting empty hub lists in both the sidebar and dashboard hub cards. Root cause: both `AccountLayout` and `dashboard/page.tsx` were querying hub links exclusively via `HubMember` records, with no ADMIN bypass. Fix: `AccountLayout` now checks `isAdmin` first; if true, fetches all hubs via `db.hub.findMany()`. Dashboard page now builds `dashboardHubs` via the same branch (`db.hub.findMany()` for ADMIN, `hubMemberships.map(m => m.hub)` for others). The ADMIN bypass in `lib/hubAuth.ts` already existed for page-level access checks — this fix extends it consistently to the sidebar and dashboard data layer. **(3) AlertStrip redesign:** Moved from outside `db2-wrap` (full-bleed above content) to inside it (after greeting). New amber color tokens added to `:root`: `--color-alert: #C8821A`, `--color-alert-bg: #FDF6EC`, `--color-alert-border: #F0C98A`. Container: amber card with border + `border-radius: 10px`. Items: 4px amber `border-left`, 20px padding-left (clearance from accent), hairline `border-bottom` dividers between items, no gap. Count badge uses `--color-alert` (was `--rim-blue`). Label: "alerts" (was "new updates"). Scrollable: `max-height: 220px; overflow-y: auto` on `ul`. Scroll indicator: CSS-only pulsing downward chevron (`::after` on `.alert-strip__scroll-wrap`; 10×10px rotated border trick; `opacity: 0.3→1→0.3` 2s loop); hidden via `is-scrolled-to-bottom` class set by `checkScroll` callback on mount + scroll + data change. `"use client"` component: added `useRef`, `isAtBottom` state, `checkScroll` callback. **(4) Dashboard width:** `db2-wrap` max-width 680px → 720px. Commits: `c0f48c9`, `13a69ad`, `68f2aba`, `0cd1017`. |
 
-*Last updated: 2026-03-13 (session 48)*
+| 2026-03-13 (session 49) | **Email Template Manager improvements — Steps 1–10.** **(1) Complete email inventory audit:** Read all 1,678 lines of `lib/email.ts`; produced definitive table of all 18 functions — 7 managed, 9 hardcoded-could-migrate, 2 hardcoded-must-stay. **(2) Group fields + group-based list view:** Added `group`, `groupLabel`, `minRole` fields to `EmailTemplate` Prisma model. Seeded group assignments: `first-time-attendee`, `returning-after-absence`, `session-reminder` → "Registration & Programs"; `host-role-assigned`, `sub-request-posted`, `sub-request-claimed`, `missing-report-alert` → "Host Hub". List page (`app/admin/emails/page.tsx`) rewritten to render templates in grouped sections with `em-list__group-label` headers. **(3) Clickable variable chips:** Variable reference panel chips changed from `<code>` tags to `<button>` elements. Click inserts `{{token}}` at cursor via `editorRef.current?.commands.insertVariable(name)`. Hint text "click to insert at cursor" added. **(4) VariableNode Tiptap extension:** New `lib/tiptap-variable-node.ts` — custom Tiptap v3 inline atom node. Parses `{{token}}` in markdown via markdownit inline rule (with duplicate-registration guard for tiptap-markdown v0.9 reuse pattern). Renders as amber `.ri-var-chip` pill in editor. Serializes back to `{{token}}`. `insertVariable(name)` command. `editorRef` prop on RimEditor populated via `useEffect`, used by `EmailTemplateEditor` to call commands from variable chip buttons. Commits: `b79eb56`. **(5) Link inline popover:** `RimEditor` — replaced `window.prompt` link dialog with inline popover. Pre-fills existing href; removes link without opening popover if cursor is already on a link; Enter/Escape handling; outside-click dismiss via `pointerdown`. CSS: `re-link-wrap`, `re-link-popover`, `re-link-popover__input`, `re-link-popover__apply`. **(6) Chrome bands:** Non-interactive header/footer bands (`aria-hidden`) flanking the RimEditor body in `EmailTemplateEditor` — dark blue header ("Rooted In Mindfulness") and warm footer (address line) show the email wrapper context. CSS: `em-chrome-band`, `em-chrome-band--header`, `em-chrome-band--footer`. Commits: `6e247c2`. **(7) helpText + sanityNote:** Added `helpText String?` and `sanityNote String?` nullable fields to `EmailTemplate` Prisma model; `prisma db push` + `prisma generate`. Seeded for all 7 templates (`prisma/seed-email-help-text.js`). `helpText` shown above subject as muted paragraph. `sanityNote` shown as distinct teal callout with "Sanity Studio" badge — documents which variables originate in program records (programName, programTitle, dateText, locationText, zoomLink, reminderMessage). CSS: `em-editor__help`, `em-editor__help-text`, `em-editor__sanity-callout`, `em-editor__sanity-callout-label`. Commit: `83269da`. **(8) portableTextToMarkdown + PT audit:** New `portableTextToMarkdown()` in `lib/portableTextEmail.ts` — converts PT to markdown syntax (bold/italic/links/lists), resolves `markDefs` manually for link marks. Applied to `reminderMessage` in `sendReminderEmail` (replaces `portableTextToEmailText`; formatting now survives `marked` processing). Audit of `confirmationMessage` call sites: both API routes already use `portableTextToEmailHtml/Text` correctly — no change needed. Commit: `0698911`. **(9) Comment blocks on hardcoded functions:** All 11 hardcoded email functions annotated with: HARDCODED/MUST STAY status, why it isn't managed, proposed migration slug, variable list. Commit: `bf2dc33`. **(10) FEATURES.md §26 final update:** Complete 18-function inventory table added as permanent reference. Section expanded with new subsections for VariableNode, link popover, chrome bands, helpText/sanityNote, portableTextToMarkdown. "Future migration candidates" expanded to priority-ordered table with blockers. |
+
+*Last updated: 2026-03-13 (session 49)*
