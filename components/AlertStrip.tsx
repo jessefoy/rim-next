@@ -66,7 +66,7 @@ export default function AlertStrip() {
       <div className="alert-strip__header">
         <span className="alert-strip__label">
           <span className="alert-strip__badge">{data.count}</span>
-          {data.count === 1 ? "new update" : "new updates"}
+          {data.count === 1 ? "alert" : "alerts"}
         </span>
         <button className="alert-strip__mark-all" onClick={markAllRead}>
           Mark all read
