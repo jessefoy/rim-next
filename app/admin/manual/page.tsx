@@ -1136,14 +1136,8 @@ export default async function ManualPage() {
             <div className="man-field">
               <div className="man-field__name">Hide from Member Dashboard</div>
               <div className="man-field__desc">
-                <p>When checked, this program does not appear in the member dashboard&rsquo;s program listing. The program&rsquo;s own page is still accessible by direct link. Use for internal or invitation-only programs not meant for the general membership.</p>
-              </div>
-            </div>
-            <div className="man-field">
-              <div className="man-field__name">Sort Order</div>
-              <div className="man-field__desc">
-                <p>A number controlling the display order on the public listing and in the registrar area. Lower numbers appear first.</p>
-                <p>Use round numbers — 10, 20, 30 — so you can insert new programs between existing ones later without renumbering everything.</p>
+                <p>When checked, this program does not appear in the member dashboard&rsquo;s drop-in program listing or session tracker. The program&rsquo;s own page is still accessible by direct link.</p>
+                <p><strong>Note:</strong> This does <em>not</em> affect the public Programs &amp; Events page — use the separate toggle below for that.</p>
               </div>
             </div>
             <div className="man-field">
@@ -1151,6 +1145,14 @@ export default async function ManualPage() {
               <div className="man-field__desc">
                 <p>When checked, this program does not appear on the public <code>/programs</code> listing page, but its own page is still reachable at its direct URL.</p>
                 <p>Use this for programs that are invitation-only, still in draft, or not meant to be discovered by browsing — for example, a private retreat where you share the link directly.</p>
+                <p><strong>Note:</strong> This does <em>not</em> affect the member dashboard — use the separate toggle above for that.</p>
+              </div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Sort Order</div>
+              <div className="man-field__desc">
+                <p>A number controlling the display order on the public listing and in the registrar area. Lower numbers appear first.</p>
+                <p>Use round numbers — 10, 20, 30 — so you can insert new programs between existing ones later without renumbering everything.</p>
               </div>
             </div>
           </div>
