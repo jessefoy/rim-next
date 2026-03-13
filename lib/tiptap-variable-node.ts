@@ -82,6 +82,13 @@ export const VariableNode = Node.create({
         parse: {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           setup(markdownit: any) {
+            // Guard: setup is called on every parse() call (same markdownit instance).
+            // Only register once to avoid duplicate rules.
+            const alreadyRegistered = markdownit.inline.ruler.__rules__.some(
+              (r: { name: string }) => r.name === "variable"
+            );
+            if (alreadyRegistered) return;
+
             // Register inline rule before linkify to catch {{token}} patterns
             markdownit.inline.ruler.before(
               "linkify",

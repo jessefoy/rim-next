@@ -133,6 +133,10 @@ export default function EmailTemplateEditor({ template, userId }: Props) {
           Write in markdown. Use <code>{"{{variableName}}"}</code> tokens for dynamic values.
           Bold and links are supported. H2/H3 headings render as styled headings in the email.
         </p>
+        {/* Static chrome bands — show what wraps this body in the real email */}
+        <div className="em-chrome-band em-chrome-band--header" aria-hidden="true">
+          Rooted In Mindfulness
+        </div>
         <RimEditor
           value={body}
           onChange={setBody}
@@ -140,6 +144,9 @@ export default function EmailTemplateEditor({ template, userId }: Props) {
           placeholder="Email body…"
           editorRef={editorRef}
         />
+        <div className="em-chrome-band em-chrome-band--footer" aria-hidden="true">
+          Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org
+        </div>
       </div>
 
       {/* ── Variables reference ── */}

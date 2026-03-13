@@ -7,7 +7,7 @@
  *   Text marks   — Bold, Italic, Underline
  *   Headings     — H2, H3
  *   Lists        — Bullet list, Numbered list
- *   Special      — Blockquote, Horizontal rule, Link
+ *   Special      — Blockquote, Horizontal rule, Link (inline popover)
  *   Utility      — Clear formatting
  *
  * Output: markdown string via tiptap-markdown
@@ -19,11 +19,12 @@
  *   rows      — approximate visible height (default 5); maps to min-height
  *   placeholder
  *   className — extra class on the outer wrapper
+ *   editorRef — populated with the Tiptap Editor instance once initialised
  *
  * CSS prefix: re-
  */
 
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect, useCallback, useRef, useState } from "react";
 import { useEditor, EditorContent, Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import UnderlineExt from "@tiptap/extension-underline";
@@ -96,6 +97,12 @@ export default function RimEditor({
   className = "",
   editorRef,
 }: Props) {
+  // Link popover state
+  const [linkPopoverOpen, setLinkPopoverOpen] = useState(false);
+  const [linkUrl, setLinkUrl]               = useState("");
+  const linkInputRef = useRef<HTMLInputElement>(null);
+  const popoverRef   = useRef<HTMLDivElement>(null);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -140,17 +147,46 @@ export default function RimEditor({
     }
   }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleLink = useCallback(() => {
+  // Close link popover on outside click
+  useEffect(() => {
+    if (!linkPopoverOpen) return;
+    function onPointerDown(e: PointerEvent) {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setLinkPopoverOpen(false);
+      }
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [linkPopoverOpen]);
+
+  // Open popover: pre-fill with current link href if active
+  const openLinkPopover = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
     if (!editor) return;
     if (editor.isActive("link")) {
+      // If already a link, remove it without opening the popover
       editor.chain().focus().unsetLink().run();
       return;
     }
-    const url = window.prompt("Enter URL:");
-    if (!url) return;
-    const href = url.startsWith("http") ? url : `https://${url}`;
-    editor.chain().focus().setLink({ href }).run();
+    const existing = editor.getAttributes("link").href ?? "";
+    setLinkUrl(existing);
+    setLinkPopoverOpen(true);
+    // Focus the input after render
+    setTimeout(() => linkInputRef.current?.focus(), 0);
   }, [editor]);
+
+  // Apply the link URL from the popover
+  const applyLink = useCallback(() => {
+    if (!editor) return;
+    const trimmed = linkUrl.trim();
+    if (!trimmed) {
+      editor.chain().focus().unsetLink().run();
+    } else {
+      const href = trimmed.startsWith("http") ? trimmed : `https://${trimmed}`;
+      editor.chain().focus().setLink({ href }).run();
+    }
+    setLinkPopoverOpen(false);
+  }, [editor, linkUrl]);
 
   const ICON = { size: 15, strokeWidth: 2 };
 
@@ -199,9 +235,40 @@ export default function RimEditor({
         <Btn onClick={() => editor?.chain().focus().setHorizontalRule().run()} title="Horizontal rule">
           <Minus {...ICON} />
         </Btn>
-        <Btn active={editor?.isActive("link")} onClick={handleLink} title={editor?.isActive("link") ? "Remove link" : "Insert link"}>
-          <Link {...ICON} />
-        </Btn>
+
+        {/* Link button + inline popover */}
+        <div className="re-link-wrap" ref={popoverRef}>
+          <Btn
+            active={editor?.isActive("link")}
+            onClick={openLinkPopover}
+            title={editor?.isActive("link") ? "Remove link" : "Insert link"}
+          >
+            <Link {...ICON} />
+          </Btn>
+          {linkPopoverOpen && (
+            <div className="re-link-popover" onPointerDown={(e) => e.stopPropagation()}>
+              <input
+                ref={linkInputRef}
+                className="re-link-popover__input"
+                type="url"
+                value={linkUrl}
+                onChange={(e) => setLinkUrl(e.target.value)}
+                placeholder="https://…"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") { e.preventDefault(); applyLink(); }
+                  if (e.key === "Escape") setLinkPopoverOpen(false);
+                }}
+              />
+              <button
+                type="button"
+                className="re-link-popover__apply"
+                onMouseDown={(e) => { e.preventDefault(); applyLink(); }}
+              >
+                Apply
+              </button>
+            </div>
+          )}
+        </div>
 
         <Sep />
 
