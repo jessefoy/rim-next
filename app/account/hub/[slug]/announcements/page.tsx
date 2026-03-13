@@ -1,5 +1,7 @@
 /**
- * /account/hub/[slug] — Announcements tab (hub home)
+ * /account/hub/[slug]/announcements — Dedicated announcements route
+ * Used by hubs where announcements is not the default tab (e.g., Teacher Hub).
+ * Renders the same content as the hub home page for other hubs.
  */
 
 import { auth } from "@/auth";
@@ -16,23 +18,18 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return { title: `${hub?.name ?? "Hub"} — Announcements` };
 }
 
-export default async function HubAnnouncementsPage({
+export default async function HubAnnouncementsRoute({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-
-  // Teacher hub home is the Courses tab — redirect there
-  if (slug === "teacher") redirect(`/account/hub/teacher/courses`);
-
   const session = await auth();
   if (!session) redirect("/login");
 
   const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
   if (!hub || (!member && !isAdmin)) redirect("/account/dashboard");
 
-  // Update lastVisitedAt (skip for admin-only access without hub membership)
   if (member) {
     await db.hubMember.update({
       where: { id: member.id },

@@ -24,6 +24,7 @@ const hubs = [
   { slug: "volunteer-coordination", name: "Volunteer Coordination", type: "OPERATIONAL" as const },
   { slug: "board",                  name: "Board",                  type: "GOVERNANCE"  as const },
   { slug: "teacher-council",        name: "Teacher Council",        type: "GOVERNANCE"  as const },
+  { slug: "teacher",                name: "Teacher Hub",            type: "OPERATIONAL" as const },
 ];
 
 async function main() {

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { db } from "@/lib/db";
 import { sanityClient } from "@/lib/sanity";
-import { allCoursesWithLinkedProgramsQuery } from "@/lib/queries";
 
 export interface AdminCourse {
   slug: string;
@@ -16,9 +16,34 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
-  const courses = await sanityClient.fetch<AdminCourse[]>(
-    allCoursesWithLinkedProgramsQuery
-  );
+  const courses = await db.course.findMany({
+    orderBy: { title: "asc" },
+    include: {
+      programs: { select: { programId: true } },
+    },
+  });
 
-  return NextResponse.json(courses);
+  // Collect all Sanity program IDs referenced by ProgramCourse
+  const allProgramIds = [...new Set(courses.flatMap((c) => c.programs.map((p) => p.programId)))];
+
+  // Fetch program names from Sanity (programs are still in Sanity during Phase 2)
+  let programMap = new Map<string, { slug: string; name: string }>();
+  if (allProgramIds.length > 0) {
+    const programs = await sanityClient.fetch<{ _id: string; slug: string; name: string }[]>(
+      `*[_type == "programs" && _id in $ids && !(_id in path("drafts.**"))] { _id, "slug": slug.current, name }`,
+      { ids: allProgramIds }
+    );
+    programMap = new Map(programs.map((p) => [p._id, { slug: p.slug, name: p.name }]));
+  }
+
+  const result: AdminCourse[] = courses.map((c) => ({
+    slug: c.slug,
+    name: c.title,
+    accessLevel: c.accessLevel,
+    linkedByPrograms: c.programs
+      .map((pc) => programMap.get(pc.programId))
+      .filter((p): p is { slug: string; name: string } => !!p),
+  }));
+
+  return NextResponse.json(result);
 }

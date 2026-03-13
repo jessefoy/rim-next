@@ -120,6 +120,7 @@ enum Role {
   HOST_MANAGER         // manages host schedule and community; full hub read/write; can also be on rotation
   REGISTRAR            // manages program registrations + Sanity Studio access (no hub access)
   ADMIN                // full access
+  TEACHER              // teacher hub access — manages courses and lessons
   // Volunteer team roles — organizational record; hub access driven by HubMember table
   VOLUNTEER_COORDINATOR
   NEWSLETTER
@@ -319,10 +320,94 @@ model CourseAccess {
   grantedBy  String?  // userId of the admin who granted access
   createdAt  DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course? @relation(fields: [courseSlug], references: [slug], onDelete: Cascade)
 
   @@unique([userId, courseSlug])
   @@map("course_access")
+}
+
+// ─── COURSES & LESSONS (Postgres-native) ─────────────────────────────────────
+// Replaces Sanity courses + lessons. Managed via Teacher Hub.
+// CourseAccess (manual admin grants above) still uses courseSlug — unchanged.
+
+enum CourseAccessLevel {
+  MEMBERS
+  REGISTRATION_REQUIRED
+}
+
+model Course {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  title                 String
+  slug                  String            @unique
+  subheading            String?
+  description           String?           // Markdown
+  accessLevel           CourseAccessLevel @default(MEMBERS)
+  hideFromMemberProfile Boolean           @default(false)
+  sortOrder             Int?
+  isActive              Boolean           @default(true)
+
+  lessons  CourseLesson[]
+  programs ProgramCourse[]
+  access   CourseAccess[]
+
+  @@index([slug])
+  @@map("courses")
+}
+
+model Lesson {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  titleInternal   String
+  titleDisplayed  String
+  slug            String   @unique
+
+  isSectionTitle  Boolean  @default(false)
+  body            String?  // Markdown
+
+  heroImageUrl    String?  // Vercel Blob URL
+  heroImageAlt    String?
+  audioUrl        String?  // Vercel Blob URL
+  videoUrl        String?  // YouTube or Vimeo URL
+
+  headerQuote     String?
+  quoteSource     String?
+
+  teacherNames    String[]
+  resources       Json?    // { name, url, resourceType }[]
+
+  courses  CourseLesson[]
+
+  @@index([slug])
+  @@map("lessons")
+}
+
+model CourseLesson {
+  courseId  String
+  lessonId String
+  sortOrder Int     @default(0)
+
+  course  Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lesson  Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@id([courseId, lessonId])
+  @@index([courseId, sortOrder])
+  @@map("course_lessons")
+}
+
+model ProgramCourse {
+  programId  String  // Sanity _id for now — becomes Postgres cuid in Phase 3
+  courseId   String
+
+  course  Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@id([programId, courseId])
+  @@map("program_courses")
 }
 
 // ─── DONATION MANAGEMENT (Phase 2) ───────────────────────────────────────────

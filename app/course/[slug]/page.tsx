@@ -1,29 +1,11 @@
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { sanityClient } from "@/lib/sanity";
-import { courseBySlugQuery, allCourseSlugsQuery, programsLinkedToCourseQuery } from "@/lib/queries";
-import { PortableText } from "@portabletext/react";
 import { db } from "@/lib/db";
+import ReactMarkdown from "react-markdown";
 import SeriesListItem from "@/components/SeriesListItem";
 
 export const dynamic = "force-dynamic";
-
-type Lesson = {
-  lessonTitleDisplayed: string;
-  slug: { current: string };
-  isSectionTitle?: boolean;
-  includesAudio?: boolean;
-};
-
-type Course = {
-  _id: string;
-  name: string;
-  subheading?: string;
-  accessLevel?: string; // "members" | "registration_required"
-  mainContentDescription?: unknown[];
-  lessons?: Lesson[];
-};
 
 export async function generateStaticParams() {
   // Access-gated — disable static pre-rendering
@@ -32,8 +14,8 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const course = await sanityClient.fetch<Course | null>(courseBySlugQuery, { slug });
-  return { title: `${course?.name ?? "Course"} — Rooted In Mindfulness` };
+  const course = await db.course.findUnique({ where: { slug }, select: { title: true } });
+  return { title: `${course?.title ?? "Course"} — Rooted In Mindfulness` };
 }
 
 export default async function CoursePage({ params }: { params: Promise<{ slug: string }> }) {
@@ -42,27 +24,33 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
   if (!session?.user) redirect("/login");
 
   const { slug } = await params;
-  const course = await sanityClient.fetch<Course | null>(courseBySlugQuery, { slug });
+  const course = await db.course.findUnique({
+    where: { slug, isActive: true },
+    include: {
+      lessons: {
+        include: { lesson: true },
+        orderBy: { sortOrder: "asc" },
+      },
+    },
+  });
   if (!course) notFound();
 
-  const accessLevel = course.accessLevel ?? "members";
-
   // ── Access check ──────────────────────────────────────────────────────────
-  let hasAccess = accessLevel === "members"; // any logged-in user
+  let hasAccess = course.accessLevel === "MEMBERS"; // any logged-in user
 
-  if (!hasAccess && accessLevel === "registration_required" && session.user.id) {
+  if (!hasAccess && course.accessLevel === "REGISTRATION_REQUIRED" && session.user.id) {
     // Check 1: active registration for any program linked to this course
-    const linkedPrograms = await sanityClient.fetch<{ slug: string }[]>(
-      programsLinkedToCourseQuery,
-      { courseSlug: slug }
-    );
-    const programSlugs = linkedPrograms.map((p) => p.slug).filter(Boolean);
+    const programCourses = await db.programCourse.findMany({
+      where: { courseId: course.id },
+      select: { programId: true },
+    });
+    const programIds = programCourses.map((pc) => pc.programId);
 
-    if (programSlugs.length > 0) {
+    if (programIds.length > 0) {
       const reg = await db.registration.findFirst({
         where: {
           userId: session.user.id,
-          programSlug: { in: programSlugs },
+          programId: { in: programIds },
           status: { in: ["REGISTERED", "APPROVED"] },
         },
         select: { id: true },
@@ -87,7 +75,7 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
           <div className="f-container-regular">
             <div className="f-header-wrapper-left">
               <div className="f-margin-bottom-24">
-                <h1 className="course-title">{course.name}</h1>
+                <h1 className="course-title">{course.title}</h1>
               </div>
             </div>
           </div>
@@ -104,6 +92,8 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
     );
   }
 
+  const lessons = course.lessons.map((cl) => cl.lesson);
+
   return (
     <>
       {/* ── Course header: fafafa gradient background, blue title ── */}
@@ -116,11 +106,11 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
               </div>
             )}
             <div className="f-margin-bottom-24">
-              <h1 className="course-title">{course.name}</h1>
+              <h1 className="course-title">{course.title}</h1>
             </div>
-            {course.mainContentDescription && (
+            {course.description && (
               <div className="text-block-65 w-richtext">
-                <PortableText value={course.mainContentDescription as any} />
+                <ReactMarkdown>{course.description}</ReactMarkdown>
               </div>
             )}
           </div>
@@ -128,20 +118,20 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
       </div>
 
       {/* ── Lessons section ── */}
-      {course.lessons && course.lessons.length > 0 && (
+      {lessons.length > 0 && (
         <div className="course-lessons">
           <div className="content-container">
             <div className="series-list-section">
               <div className="program-details-content no-bottom-margin">
                 <h2 className="text-center bottom-margin-30">Lessons</h2>
                 <div className="series-list-wrapper">
-                  {course.lessons.map((lesson, i) => (
+                  {lessons.map((lesson, i) => (
                     <SeriesListItem
                       key={i}
-                      title={lesson.lessonTitleDisplayed}
-                      href={lesson.isSectionTitle ? undefined : `/lessons/${lesson.slug.current}`}
+                      title={lesson.titleDisplayed}
+                      href={lesson.isSectionTitle ? undefined : `/lessons/${lesson.slug}`}
                       isSectionTitle={lesson.isSectionTitle}
-                      includesAudio={lesson.includesAudio}
+                      includesAudio={!!lesson.audioUrl}
                     />
                   ))}
                 </div>

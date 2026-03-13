@@ -1,0 +1,127 @@
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { db } from "@/lib/db";
+
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ slug: string }> }
+) {
+  const session = await auth();
+  if (!session?.user?.roles?.some((r) => ["ADMIN", "TEACHER"].includes(r))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
+  const { slug } = await params;
+  const course = await db.course.findUnique({
+    where: { slug },
+    include: {
+      lessons: {
+        include: { lesson: true },
+        orderBy: { sortOrder: "asc" },
+      },
+      programs: true,
+    },
+  });
+
+  if (!course) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  return NextResponse.json(course);
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ slug: string }> }
+) {
+  const session = await auth();
+  if (!session?.user?.roles?.some((r) => ["ADMIN", "TEACHER"].includes(r))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
+  const { slug } = await params;
+  const body = await request.json();
+
+  const course = await db.course.findUnique({ where: { slug } });
+  if (!course) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  // Handle lesson order update
+  if (body.lessonOrder && Array.isArray(body.lessonOrder)) {
+    // Delete existing and recreate with new order
+    await db.courseLesson.deleteMany({ where: { courseId: course.id } });
+    await db.courseLesson.createMany({
+      data: body.lessonOrder.map((lessonId: string, i: number) => ({
+        courseId: course.id,
+        lessonId,
+        sortOrder: i,
+      })),
+    });
+  }
+
+  // Handle field updates
+  const { lessonOrder, ...fields } = body;
+  const updateData: Record<string, unknown> = {};
+
+  if (fields.title !== undefined) updateData.title = fields.title;
+  if (fields.slug !== undefined) {
+    // Check uniqueness if slug is changing
+    if (fields.slug !== slug) {
+      const existing = await db.course.findUnique({ where: { slug: fields.slug } });
+      if (existing) {
+        return NextResponse.json({ error: "A course with this slug already exists" }, { status: 409 });
+      }
+    }
+    updateData.slug = fields.slug;
+  }
+  if (fields.subheading !== undefined) updateData.subheading = fields.subheading || null;
+  if (fields.description !== undefined) updateData.description = fields.description || null;
+  if (fields.accessLevel !== undefined) updateData.accessLevel = fields.accessLevel;
+  if (fields.hideFromMemberProfile !== undefined) updateData.hideFromMemberProfile = fields.hideFromMemberProfile;
+  if (fields.sortOrder !== undefined) updateData.sortOrder = fields.sortOrder != null ? Number(fields.sortOrder) : null;
+  if (fields.isActive !== undefined) updateData.isActive = fields.isActive;
+
+  const updated = await db.course.update({
+    where: { slug },
+    data: updateData,
+    include: {
+      lessons: {
+        include: { lesson: true },
+        orderBy: { sortOrder: "asc" },
+      },
+    },
+  });
+
+  return NextResponse.json(updated);
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ slug: string }> }
+) {
+  const session = await auth();
+  if (!session?.user?.roles?.some((r) => ["ADMIN", "TEACHER"].includes(r))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
+  const { slug } = await params;
+  const course = await db.course.findUnique({
+    where: { slug },
+    include: { _count: { select: { programs: true } } },
+  });
+
+  if (!course) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  if (course._count.programs > 0) {
+    return NextResponse.json(
+      { error: "This course is linked to one or more programs." },
+      { status: 409 }
+    );
+  }
+
+  await db.course.delete({ where: { slug } });
+  return NextResponse.json({ ok: true });
+}

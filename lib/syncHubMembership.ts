@@ -17,6 +17,7 @@ const ROLE_HUB_MAPPINGS: Record<
 > = {
   HOST:         [{ slug: "host-team", position: "Host",             isCoordinator: false }],
   HOST_MANAGER: [{ slug: "host-team", position: "Host Coordinator", isCoordinator: true  }],
+  TEACHER:      [{ slug: "teacher",   position: "Teacher",          isCoordinator: false }],
 };
 
 /**
