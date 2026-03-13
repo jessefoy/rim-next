@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 
 interface Alert {
@@ -20,6 +20,14 @@ interface AlertsResponse {
 export default function AlertStrip() {
   const [data, setData] = useState<AlertsResponse | null>(null);
   const [dismissed, setDismissed] = useState(false);
+  const listRef = useRef<HTMLUListElement>(null);
+  const [isAtBottom, setIsAtBottom] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = listRef.current;
+    if (!el) return;
+    setIsAtBottom(el.scrollTop + el.clientHeight >= el.scrollHeight - 2);
+  }, []);
 
   const fetchAlerts = useCallback(async () => {
     try {
@@ -35,6 +43,11 @@ export default function AlertStrip() {
   useEffect(() => {
     fetchAlerts();
   }, [fetchAlerts]);
+
+  // Re-check scroll position whenever alert data changes (items dismissed, etc.)
+  useEffect(() => {
+    checkScroll();
+  }, [data, checkScroll]);
 
   const markRead = async (id: string) => {
     await fetch("/api/account/alerts", {
@@ -72,29 +85,31 @@ export default function AlertStrip() {
           Mark all read
         </button>
       </div>
-      <ul className="alert-strip__list">
-        {data.alerts.map((alert) => (
-          <li key={alert.id} className="alert-strip__item">
-            {alert.linkUrl ? (
-              <Link
-                href={alert.linkUrl}
-                className="alert-strip__message alert-strip__message--link"
+      <div className={`alert-strip__scroll-wrap${isAtBottom ? " is-scrolled-to-bottom" : ""}`}>
+        <ul className="alert-strip__list" ref={listRef} onScroll={checkScroll}>
+          {data.alerts.map((alert) => (
+            <li key={alert.id} className="alert-strip__item">
+              {alert.linkUrl ? (
+                <Link
+                  href={alert.linkUrl}
+                  className="alert-strip__message alert-strip__message--link"
+                >
+                  {alert.message}
+                </Link>
+              ) : (
+                <span className="alert-strip__message">{alert.message}</span>
+              )}
+              <button
+                className="alert-strip__dismiss"
+                onClick={() => markRead(alert.id)}
+                aria-label="Dismiss"
               >
-                {alert.message}
-              </Link>
-            ) : (
-              <span className="alert-strip__message">{alert.message}</span>
-            )}
-            <button
-              className="alert-strip__dismiss"
-              onClick={() => markRead(alert.id)}
-              aria-label="Dismiss"
-            >
-              ✕
-            </button>
-          </li>
-        ))}
-      </ul>
+                ✕
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }
