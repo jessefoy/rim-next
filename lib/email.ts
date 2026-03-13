@@ -2,6 +2,7 @@ import { Resend } from "resend";
 import {
   portableTextToEmailHtml,
   portableTextToEmailText,
+  portableTextToMarkdown,
 } from "@/lib/portableTextEmail";
 import { db } from "@/lib/db";
 
@@ -582,8 +583,10 @@ export async function sendReminderEmail(data: ReminderEmailData): Promise<void> 
   const locationText = data.locationLink
     ? `[${data.locationText}](${data.locationLink})`
     : (data.locationText ?? "");
+  // Use portableTextToMarkdown so bold, italic, and links survive the
+  // markdown → HTML conversion in the template engine.
   const reminderMessage = data.reminderMessage?.length
-    ? portableTextToEmailText(data.reminderMessage)
+    ? portableTextToMarkdown(data.reminderMessage)
     : "";
   await sendTemplatedEmail("session-reminder", data.to, {
     firstName:       data.firstName,
