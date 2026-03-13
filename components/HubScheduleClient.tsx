@@ -339,7 +339,9 @@ export default function HubScheduleClient({
   apiBase = "/api/host",
 }: Props) {
   const [sessions, setSessions] = useState<Session[]>(initialSessions);
-  const [view, setView] = useState<"calendar" | "list">("calendar");
+  const [view, setView] = useState<"calendar" | "list">(() =>
+    typeof window !== "undefined" && window.innerWidth < 640 ? "list" : "calendar"
+  );
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
   const [loading, setLoading] = useState(false);

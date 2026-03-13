@@ -20,7 +20,7 @@
   --rim-mid:         #39607a;  /* mid teal-blue — links, accents */
   --rim-text:        #333333;  /* primary text */
   --rim-text-quote:  #56504a;  /* pull-quotes, secondary text — warm mid-tone between body (#333) and muted (#6b6059) */
-  --rim-text-muted:  #6b6059;  /* labels, captions, attribution — 5:1 contrast on rim-bg */
+  --rim-text-muted:  #5a5450;  /* labels, captions, attribution — 5.5:1 contrast on rim-bg */
   --rim-rule:        #c8bcb2;  /* borders, dividers, quote left-rule */
 
   /* Alert / notification */
@@ -3320,7 +3320,8 @@ h1, h2, h3, h4, h5, h6 {
 
 .ac-sidebar__link {
   display: block;
-  padding: 7px 12px;
+  padding: 10px 14px;
+  font-size: 15px;
   border-radius: 4px;
   font-family: var(--font-sans);
   font-size: 14px;
@@ -3378,8 +3379,8 @@ h1, h2, h3, h4, h5, h6 {
 
   .ac-sidebar__link {
     display: inline-block;
-    font-size: 13px;
-    padding: 6px 10px;
+    font-size: 14px;
+    padding: 10px 14px;
   }
 
   .ac-sidebar__divider {
@@ -8459,8 +8460,8 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .hub-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--rim-rule); margin-bottom: 0; margin-top: 4px; }
 .hub-tabs__link {
   display: inline-block;
-  padding: 13px 18px;
-  font-size: 13px;
+  padding: 14px 20px;
+  font-size: 15px;
   font-weight: 600;
   font-family: var(--font-sans);
   color: var(--rim-text-muted);
@@ -9004,7 +9005,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 /* ── Responsive ── */
 @media (max-width: 600px) {
   .hub-page { padding: 20px 20px 48px; }
-  .hub-tabs__link { padding: 8px 12px; font-size: 12px; }
+  .hub-tabs__link { padding: 12px 16px; font-size: 14px; }
   .hub-form-row { flex-direction: column; }
   .hub-section-header { flex-direction: column; align-items: flex-start; }
   .hub-subboard__header { flex-direction: column; align-items: flex-start; }
@@ -9473,8 +9474,8 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   background: transparent;
   border: 1.5px solid #e0ddd7;
   border-radius: 20px;
-  padding: 7px 16px;
-  font-size: 13px;
+  padding: 11px 20px;
+  font-size: 15px;
   font-weight: 600;
   color: #8a8680;
   cursor: pointer;
