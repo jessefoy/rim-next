@@ -158,6 +158,18 @@ export interface RegistrationEmailData {
 
 /**
  * Send a registration confirmation or waitlist email.
+ * HARDCODED — not in Email Template Manager.
+ *
+ * Why hardcoded: .ics calendar file attachment (Resend `attachments` field),
+ * conditional Google Calendar + Apple/Outlook links, inline Portable Text HTML
+ * for confirmationMessage, and two divergent layouts (confirmed vs. waitlisted)
+ * that would require complex template logic. Migrate only if the template engine
+ * gains first-class attachment and conditional block support.
+ *
+ * Proposed slug (if migrated): registration-confirmation
+ * Variables: firstName, programTitle, programUrl, dateText, locationText,
+ *            confirmationMessageHtml, googleCalendarUrl, icsUrl, waitlistPosition
+ *
  * Errors are caught and logged — a failed email must never fail the registration.
  */
 export async function sendRegistrationEmail(data: RegistrationEmailData): Promise<void> {
@@ -208,6 +220,15 @@ export interface ApprovalEmailData {
 
 /**
  * Sent when a registrar promotes someone from WAITLISTED → APPROVED.
+ * HARDCODED — not in Email Template Manager.
+ *
+ * Why hardcoded: conditional dana section that alters the email layout depending
+ * on whether the program has a dana mode. Straightforward candidate for migration
+ * once the template engine supports conditional blocks.
+ *
+ * Proposed slug (if migrated): waitlist-approval
+ * Variables: firstName, programTitle, programUrl, danaUrl (conditional)
+ *
  * When the program has a dana practice, includes a section with a link to complete the offering.
  * Errors are caught and logged — must never fail the status update.
  */
@@ -242,6 +263,14 @@ export interface CancellationNotificationData {
 
 /**
  * Sent to the registrar when any registration is cancelled (by staff or by the member).
+ * HARDCODED — not in Email Template Manager.
+ *
+ * Why hardcoded: recipient is REGISTRAR_EMAIL (env var), not the registrant.
+ * Staff-facing operational notification — lower priority for template migration.
+ *
+ * Proposed slug (if migrated): registration-cancelled
+ * Variables: registrantName, registrantEmail, programTitle, volunteerUrl
+ *
  * Uses REGISTRAR_EMAIL env var. Errors are caught and logged.
  */
 export async function sendCancellationNotificationEmail(
@@ -480,6 +509,15 @@ export interface EditRequestEmailData {
 
 /**
  * Sent by a registrar to invite a registrant to update their own responses.
+ * HARDCODED — not in Email Template Manager.
+ *
+ * Why hardcoded: includes a single-use token in the edit URL. The token is
+ * generated at send time and cannot be pre-stored in a template variable.
+ * Good migration candidate — token could be a variable in the template body.
+ *
+ * Proposed slug (if migrated): edit-request
+ * Variables: firstName, programTitle, editUrl (contains single-use token)
+ *
  * The token is single-use and expires after 7 days.
  * Errors are caught and logged — must never fail the request.
  */
@@ -509,6 +547,14 @@ export interface ResponsesUpdatedEmailData {
 
 /**
  * Sent to REGISTRAR_EMAIL when a registrant submits their self-service response update.
+ * HARDCODED — not in Email Template Manager.
+ *
+ * Why hardcoded: recipient is REGISTRAR_EMAIL (env var), not the registrant.
+ * Staff-facing operational notification — lower priority for template migration.
+ *
+ * Proposed slug (if migrated): responses-updated
+ * Variables: registrantName, programTitle, volunteerUrl
+ *
  * Errors are caught and logged.
  */
 export async function sendResponsesUpdatedEmail(data: ResponsesUpdatedEmailData): Promise<void> {
@@ -538,6 +584,14 @@ export interface DanaReminderEmailData {
 
 /**
  * Sent by a registrar to a member whose donationStatus is PENDING.
+ * HARDCODED — not in Email Template Manager (future candidate).
+ *
+ * Why hardcoded: currently a straightforward template — no conditional logic or
+ * attachments. Good candidate for migration once the dana workflow is stable.
+ *
+ * Proposed slug (if migrated): dana-reminder
+ * Variables: firstName, programTitle, registerUrl
+ *
  * Gentle reminder with a direct link to the /register page dana step.
  * Errors are caught and logged — must never fail the request.
  */
@@ -1059,6 +1113,15 @@ export interface RoleAssignmentEmailData {
 
 /**
  * Sent to a member when they are granted the REGISTRAR role.
+ * HARDCODED — not in Email Template Manager.
+ *
+ * Why hardcoded: predates the template system; otherwise a straightforward
+ * migration candidate. Note: sendHostRoleAssignmentEmail (same data shape) IS
+ * managed — this one was not migrated alongside it in session 36.
+ *
+ * Proposed slug (if migrated): registrar-role-assigned
+ * Variables: firstName, dashboardUrl, manualUrl
+ *
  * Tells them what the role means, where to go, and where to find help.
  * Fire-and-forget — errors are caught and logged.
  */
@@ -1248,6 +1311,17 @@ export interface NewThreadEmailData {
   threadId: string;
 }
 
+/**
+ * Sent to all hosts when a new thread is posted in the Hub Conversations area.
+ * HARDCODED — not in Email Template Manager.
+ *
+ * Why hardcoded: includes a categoryLabel derived from the OPERATIONAL/CONTEMPLATION
+ * enum — a conditional rendering step the template engine doesn't support yet.
+ * Migration candidate once conditional blocks are available.
+ *
+ * Proposed slug (if migrated): hub-new-thread
+ * Variables: firstName, authorName, threadTitle, categoryLabel, threadUrl
+ */
 export async function sendNewThreadEmail(data: NewThreadEmailData): Promise<void> {
   const { to, firstName, authorName, threadTitle, category, threadId } = data;
   const threadUrl = `${BASE_URL}/account/hub/host-team/conversations/${threadId}`;
@@ -1302,6 +1376,16 @@ export interface NewReplyEmailData {
   threadId: string;
 }
 
+/**
+ * Sent to all thread participants when a new reply is posted.
+ * HARDCODED — not in Email Template Manager.
+ *
+ * Why hardcoded: simple enough to migrate but was built before the template
+ * system. Straightforward candidate — no conditional logic.
+ *
+ * Proposed slug (if migrated): hub-new-reply
+ * Variables: firstName, replierName, threadTitle, threadUrl
+ */
 export async function sendNewReplyEmail(data: NewReplyEmailData): Promise<void> {
   const { to, firstName, replierName, threadTitle, threadId } = data;
   const threadUrl = `${BASE_URL}/account/hub/host-team/conversations/${threadId}`;
@@ -1347,9 +1431,19 @@ export async function sendNewReplyEmail(data: NewReplyEmailData): Promise<void> 
 }
 
 // ─── Magic link email (authentication) ───────────────────────────────────────
-// Called from auth.ts sendVerificationRequest — replaces the default NextAuth template.
-// isNewUser = true when the account doesn't exist yet or agreedToTerms is false.
 
+/**
+ * Sends the NextAuth magic link email for sign-in / account creation.
+ * HARDCODED — must stay. Do NOT migrate to the template system.
+ *
+ * Why must stay: called from auth.ts sendVerificationRequest as part of the
+ * NextAuth authentication contract. The URL is a signed, time-limited token
+ * generated by NextAuth — it must be injected at call time and cannot be
+ * pre-stored or sent through the async template pipeline. Also rethrows on
+ * failure (unlike all other email functions) so NextAuth can surface the error.
+ *
+ * Variables: url (NextAuth magic link), isNewUser (controls subject + body copy)
+ */
 export async function sendMagicLinkEmail({
   to,
   url,
@@ -1493,15 +1587,24 @@ function buildMagicLinkText({ url, isNewUser }: { url: string; isNewUser: boolea
 }
 
 // ─── POST-SESSION NOTIFICATION ───────────────────────────────────────────────
-// Sent to Jesse and/or the host coordinator when a host submits the post-session form.
-// One email per recipient, consolidating all flags addressed to that person.
-// Routing logic:
-//   GENTLE_FOLLOWUP → Jesse + host coordinator
-//   JESSE_ONLY       → Jesse only (private)
-//   TECHNICAL_ISSUE  → host coordinator only
-//   NONE             → no email
-// Also sends if there's a resource to share (routes to registrar/Jesse for review).
 
+/**
+ * Sent to Jesse and/or the host coordinator after a host submits the post-session form.
+ * HARDCODED — must stay (complex per-recipient routing).
+ *
+ * Why must stay: each call sends up to two separate emails to different recipients
+ * depending on flag routing rules. One email is personalized to Jesse (private),
+ * another to the host coordinator. No single template could handle the per-recipient
+ * routing, consolidation of multiple flags into one message, and the dynamic
+ * attendee action table. Not a migration candidate.
+ *
+ * Routing logic:
+ *   GENTLE_FOLLOWUP → Jesse + host coordinator
+ *   JESSE_ONLY       → Jesse only (private)
+ *   TECHNICAL_ISSUE  → host coordinator only
+ *   NONE             → no email sent for that flag
+ * Also sends if there's a resource to share (routes to registrar/Jesse for review).
+ */
 export interface PostSessionFlagItem {
   name: string;
   note: string | null;
