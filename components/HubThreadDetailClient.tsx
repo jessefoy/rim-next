@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import RimEditor from "./RimEditor";
 
 type ThreadCategory = "OPERATIONAL" | "CONTEMPLATION" | "GENERAL";
 type ThreadStatus = "OPEN" | "CLOSED" | "ARCHIVED";
@@ -222,12 +223,10 @@ function ReplyItem({
 
       {editing ? (
         <div>
-          <textarea
-            className="hub-form-textarea"
-            rows={3}
+          <RimEditor
+            rows={4}
             value={editBody}
-            onChange={(e) => setEditBody(e.target.value)}
-            style={{ marginBottom: 8 }}
+            onChange={setEditBody}
           />
           {editError && <p className="hub-form-error">{editError}</p>}
           <div className="hub-form-actions">
@@ -428,11 +427,10 @@ export default function HubThreadDetailClient({
         <div className="hub-thread-detail__reply-form">
           <p className="hub-thread-detail__reply-label">Add a reply</p>
           <form onSubmit={handleReplySubmit}>
-            <textarea
-              className="hub-form-textarea"
-              rows={4}
+            <RimEditor
+              rows={5}
               value={replyBody}
-              onChange={(e) => setReplyBody(e.target.value)}
+              onChange={setReplyBody}
               placeholder="Share your thoughts…"
             />
             {replyError && <p className="hub-form-error">{replyError}</p>}

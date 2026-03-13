@@ -11611,3 +11611,119 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   white-space: nowrap;
 }
 .sh-detail__file-link:hover { text-decoration: underline; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RimEditor — shared rich text editor (re- prefix)
+   Used everywhere a <textarea> would appear in the member area.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.re-editor {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #c8bcb2;
+  border-radius: 6px;
+  background: #fff;
+  overflow: hidden;
+  font-family: var(--font-source-sans, var(--font-sans));
+  /* Vertically resizable — drag the bottom-right corner */
+  resize: vertical;
+}
+
+.re-editor:focus-within {
+  border-color: #6a8fa0;
+  outline: 2px solid rgba(106,143,160,0.25);
+  outline-offset: 0;
+}
+
+/* ── Toolbar ── */
+.re-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 8px;
+  border-bottom: 1px solid #e8e4e0;
+  background: #faf9f7;
+  flex-shrink: 0;
+}
+
+.re-toolbar__sep {
+  width: 1px;
+  height: 18px;
+  background: #d8d2cc;
+  margin: 0 4px;
+}
+
+.re-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #5a5450;
+  font-size: 13px;
+  font-family: var(--font-source-sans, var(--font-sans));
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s;
+  line-height: 1;
+}
+
+.re-btn:hover {
+  background: #ede9e5;
+  color: #333;
+}
+
+.re-btn--active {
+  background: #e0dbd5;
+  color: #135274;
+}
+
+/* ── Editor content area ── */
+.re-content {
+  flex: 1;
+  min-height: 0;   /* allow flex child to shrink/scroll */
+  padding: 10px 14px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--rim-text, #333);
+  font-family: var(--font-source-sans, var(--font-sans));
+  cursor: text;
+  overflow-y: auto;
+}
+
+/* Tiptap renders a .tiptap div inside EditorContent */
+.re-content .tiptap {
+  outline: none;
+  min-height: inherit;
+}
+
+/* Placeholder */
+.re-content .tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: #9e9590;
+  pointer-events: none;
+  float: left;
+  height: 0;
+}
+
+/* Prose styles inside editor */
+.re-content .tiptap p { margin: 0 0 0.5em; }
+.re-content .tiptap p:last-child { margin-bottom: 0; }
+.re-content .tiptap h2 { font-size: 18px; font-weight: 700; margin: 0.8em 0 0.3em; }
+.re-content .tiptap h3 { font-size: 16px; font-weight: 700; margin: 0.6em 0 0.2em; }
+.re-content .tiptap ul,
+.re-content .tiptap ol { margin: 0.4em 0 0.4em 1.4em; padding: 0; }
+.re-content .tiptap li { margin: 0.1em 0; }
+.re-content .tiptap blockquote {
+  border-left: 3px solid #c8bcb2;
+  margin: 0.6em 0;
+  padding-left: 12px;
+  color: var(--rim-text-muted, #5a5450);
+  font-style: italic;
+}
+.re-content .tiptap strong { font-weight: 700; }
+.re-content .tiptap em { font-style: italic; }

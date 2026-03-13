@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
+import RimEditor from "./RimEditor";
 
 const RELATIONSHIP_LABELS: Record<string, string> = {
   SPOUSE: "Spouse",
@@ -269,11 +270,10 @@ export default function HouseholdDetail({ household: initial, isAdmin }: Props) 
         </div>
         <div className="adm-form__field">
           <label className="adm-form__label">Notes</label>
-          <textarea
-            className="adm-form__textarea"
-            rows={3}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+          <RimEditor
+            rows={4}
+            value={notes ?? ""}
+            onChange={setNotes}
           />
         </div>
         <div className="adm-save-bar">

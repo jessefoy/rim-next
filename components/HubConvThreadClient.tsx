@@ -7,6 +7,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import RimEditor from "./RimEditor";
 
 interface PersonName {
   firstName: string | null;
@@ -155,13 +156,11 @@ export default function HubConvThreadClient({
       {/* Reply form */}
       {!isClosed ? (
         <div className="cv-reply-form">
-          <textarea
-            className="fi"
+          <RimEditor
             rows={3}
             value={replyBody}
-            onChange={(e) => setReplyBody(e.target.value)}
+            onChange={setReplyBody}
             placeholder="Add a reply…"
-            style={{ resize: "vertical" }}
           />
           <div className="form-actions" style={{ justifyContent: "flex-end" }}>
             <button

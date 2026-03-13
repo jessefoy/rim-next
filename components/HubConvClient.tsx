@@ -11,6 +11,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import RimEditor from "./RimEditor";
 
 interface ThreadAuthor {
   firstName: string | null;
@@ -192,13 +193,11 @@ export default function HubConvClient({
           </div>
           <div className="fg">
             <label className="fl">Message</label>
-            <textarea
-              className="fi"
-              rows={4}
+            <RimEditor
+              rows={5}
               value={body}
-              onChange={(e) => setBody(e.target.value)}
+              onChange={setBody}
               placeholder="Share your thoughts…"
-              style={{ resize: "vertical" }}
             />
           </div>
           <div className="form-actions">

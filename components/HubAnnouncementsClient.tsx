@@ -7,6 +7,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import RimEditor from "./RimEditor";
 
 interface AnnAuthor {
   firstName: string | null;
@@ -169,10 +170,10 @@ export default function HubAnnouncementsClient({
           </div>
           <div className="fg">
             <label className="fl">Message</label>
-            <textarea
-              className="ft"
+            <RimEditor
+              rows={5}
               value={body}
-              onChange={(e) => setBody(e.target.value)}
+              onChange={setBody}
               placeholder="Write your message here…"
             />
           </div>

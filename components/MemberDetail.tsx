@@ -2,6 +2,7 @@
 
 import { useState, KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
+import RimEditor from "./RimEditor";
 import Link from "next/link";
 import CourseAccessSection from "@/components/CourseAccessSection";
 import HouseholdSection from "@/components/HouseholdSection";
@@ -514,12 +515,11 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
         <section className="adm-section">
           <h2 className="adm-section__title">Admin Notes</h2>
           <p className="adm-section__hint">Private — not visible to the member.</p>
-          <textarea
-            className="adm-form__textarea"
-            rows={4}
+          <RimEditor
+            rows={5}
             value={adminNotes}
+            onChange={(v) => { setAdminNotes(v); markDirty(); }}
             placeholder="Internal notes about this member…"
-            onChange={(e) => { setAdminNotes(e.target.value); markDirty(); }}
           />
         </section>
       )}

@@ -14,6 +14,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import RimEditor from "./RimEditor";
 
 const ACTION_OPTIONS = [
   { value: "NONE",             label: "No action needed" },
@@ -229,13 +230,12 @@ export default function PostSessionClient({
             {initialFlagged.map((f) => (
               <div key={f.attendanceId} className="ps-flag-item">
                 <div className="ps-flag-item__name">{f.displayName}</div>
-                <textarea
+                <RimEditor
                   className="ps-flag-item__note"
                   rows={2}
                   placeholder="Brief note — 2 or 3 sentences at most"
                   value={flagNotes[f.attendanceId] ?? ""}
-                  onChange={(e) => {
-                    const v = e.target.value;
+                  onChange={(v) => {
                     const updated = { ...flagNotes, [f.attendanceId]: v };
                     setFlagNotes(updated);
                     saveDraft({ flagNotes: updated });
@@ -278,14 +278,14 @@ export default function PostSessionClient({
           The spirit of the session, anything that came up, anything worth the team knowing.
           Optional, but this is how the team learns together over time.
         </p>
-        <textarea
+        <RimEditor
           className="ps-reflection"
           rows={5}
           placeholder="Notes for the team — whatever feels worth saying…"
           value={reflection}
-          onChange={(e) => {
-            setReflection(e.target.value);
-            saveDraft({ reflection: e.target.value });
+          onChange={(v) => {
+            setReflection(v);
+            saveDraft({ reflection: v });
           }}
         />
       </div>

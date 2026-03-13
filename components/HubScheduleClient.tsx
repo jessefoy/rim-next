@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import MeetJoinButton from "@/components/MeetJoinButton";
+import RimEditor from "./RimEditor";
 
 interface Session {
   id: string;
@@ -222,11 +223,10 @@ function SessionDetail({
       {subFormOpen && (
         <div className="hub-panel__form">
           <div className="hub-panel__form-label">Add context for your team:</div>
-          <textarea
-            className="hub-form-textarea"
-            rows={3}
+          <RimEditor
+            rows={4}
             value={subMsg}
-            onChange={(e) => setSubMsg(e.target.value)}
+            onChange={setSubMsg}
             placeholder="Why you need a sub, any handoff notes..."
           />
           <div className="hub-form-actions">
