@@ -32,11 +32,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify registration exists and belongs to this program
+    // Verify registration exists, belongs to this program, and email matches the donor
     const registration = await db.registration.findUnique({
       where: { id: registrationId },
       select: {
         id: true,
+        email: true,
         programId: true,
         programTitle: true,
         programSlug: true,
@@ -53,6 +54,11 @@ export async function POST(request: NextRequest) {
 
     if (registration.programSlug !== programSlug) {
       return NextResponse.json({ error: "Program mismatch" }, { status: 400 });
+    }
+
+    // Verify the requester owns this registration (lightweight auth for guest flow)
+    if (donorEmail && registration.email !== donorEmail.trim().toLowerCase()) {
+      return NextResponse.json({ error: "Email mismatch" }, { status: 403 });
     }
 
     if (registration.donationStatus === "COMPLETED") {

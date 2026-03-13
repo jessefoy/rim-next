@@ -14,7 +14,6 @@ export async function POST(request: NextRequest) {
       programId,
       programSlug,
       programTitle,
-      registrationCapacity,
       dateText,
       locationText,
       email,
@@ -29,6 +28,13 @@ export async function POST(request: NextRequest) {
     if (!programId || !email?.trim() || !firstName?.trim() || !lastName?.trim()) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
+
+    // Fetch registrationCapacity from Sanity (never trust the client)
+    const capacityData = await sanityClient.fetch<{ registrationCapacity?: number | null } | null>(
+      `*[_type == "programs" && _id == $id && !(_id in path("drafts.**"))][0]{ registrationCapacity }`,
+      { id: programId }
+    );
+    const registrationCapacity = capacityData?.registrationCapacity ?? null;
 
     // Count confirmed (non-cancelled, non-waitlisted) registrations
     const activeCount = await db.registration.count({

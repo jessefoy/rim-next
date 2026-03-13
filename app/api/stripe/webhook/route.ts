@@ -74,26 +74,47 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     },
   });
 
-  // Write to the Donation ledger (Phase 2 unified tracking)
-  await db.donation.create({
-    data: {
-      source: "STRIPE",
-      amountCents,
-      currency: session.currency ?? "usd",
-      donatedAt: new Date(),
-      donorName: donorName || null,
-      donorEmail: donorEmail || session.customer_email || null,
-      programId: programId || null,
-      programTitle: programTitle || null,
-      registrationId,
-      stripeCheckoutSessionId: session.id,
-      stripePaymentIntentId:
-        typeof session.payment_intent === "string"
-          ? session.payment_intent
-          : null,
-      notes: `Registration dana — ${source ?? "registration_dana"}`,
-    },
-  });
+  // Write to the Donation ledger — upsert for idempotency (Stripe can deliver webhooks twice)
+  const paymentIntentId =
+    typeof session.payment_intent === "string" ? session.payment_intent : null;
+
+  if (paymentIntentId) {
+    await db.donation.upsert({
+      where: { stripePaymentIntentId: paymentIntentId },
+      create: {
+        source: "STRIPE",
+        amountCents,
+        currency: session.currency ?? "usd",
+        donatedAt: new Date(),
+        donorName: donorName || null,
+        donorEmail: donorEmail || session.customer_email || null,
+        programId: programId || null,
+        programTitle: programTitle || null,
+        registrationId,
+        stripeCheckoutSessionId: session.id,
+        stripePaymentIntentId: paymentIntentId,
+        notes: `Registration dana — ${source ?? "registration_dana"}`,
+      },
+      update: {}, // already exists — no-op
+    });
+  } else {
+    // No payment intent (e.g. $0 session) — create without unique key
+    await db.donation.create({
+      data: {
+        source: "STRIPE",
+        amountCents,
+        currency: session.currency ?? "usd",
+        donatedAt: new Date(),
+        donorName: donorName || null,
+        donorEmail: donorEmail || session.customer_email || null,
+        programId: programId || null,
+        programTitle: programTitle || null,
+        registrationId,
+        stripeCheckoutSessionId: session.id,
+        notes: `Registration dana — ${source ?? "registration_dana"}`,
+      },
+    });
+  }
 
   console.log(
     `[stripe/webhook] Donation recorded: ${registrationId} — $${(amountCents / 100).toFixed(2)}`

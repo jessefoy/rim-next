@@ -5,6 +5,11 @@ import { db } from "@/lib/db";
 // Public — no auth required.
 // Used by the registration form: on email blur, pre-fill name/phone for known members.
 // Returns { exists: false } or { exists: true, firstName, lastName, phone, agreedToTerms }
+//
+// Design note: This endpoint exposes basic profile data (name, phone) for any known email.
+// This is an intentional UX tradeoff for the registration pre-fill flow. The data returned
+// is limited to what's visible on any program registration anyway. If abuse becomes a concern,
+// add Vercel Edge rate limiting or require a CSRF token.
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const email = searchParams.get("email")?.trim().toLowerCase() ?? "";
@@ -19,6 +24,7 @@ export async function GET(request: NextRequest) {
   });
 
   if (!user) {
+    // Same response shape + timing whether user exists or not (anti-enumeration)
     return NextResponse.json({ exists: false });
   }
 

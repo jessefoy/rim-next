@@ -286,8 +286,11 @@ model Registration {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  user           User?     @relation(fields: [userId], references: [id])
+  user           User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
 
+  @@index([programSlug, status])
+  @@index([userId])
+  @@index([programId])
   @@map("registrations")
 }
 
@@ -383,7 +386,7 @@ model HostAssignment {
   programSlug String    // Sanity slug — treated as a stable, permanent identifier
   sessionDate DateTime? // null = standing; set = specific session date
   userId      String?   // null = unclaimed session
-  user        User?     @relation("HostAssignments", fields: [userId], references: [id])
+  user        User?     @relation("HostAssignments", fields: [userId], references: [id], onDelete: SetNull)
   assignedBy  String?   // userId of HOST_MANAGER/ADMIN who created this
   notes       String?
   subRequests SubRequest[]
@@ -415,7 +418,7 @@ model SubClaim {
   requestId   String     @unique
   request     SubRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
   claimedById String
-  claimedBy   User       @relation("SubClaims", fields: [claimedById], references: [id])
+  claimedBy   User       @relation("SubClaims", fields: [claimedById], references: [id], onDelete: Cascade)
   message     String?    // optional note to the original host
   createdAt   DateTime   @default(now())
 
@@ -435,7 +438,7 @@ model HostThread {
   body      String         @db.Text
   category  ThreadCategory
   authorId  String
-  author    User           @relation("HostThreads", fields: [authorId], references: [id])
+  author    User           @relation("HostThreads", fields: [authorId], references: [id], onDelete: Cascade)
   status    ThreadStatus   @default(OPEN)
   replies   HostReply[]
   createdAt DateTime       @default(now())
@@ -449,7 +452,7 @@ model HostReply {
   threadId  String
   thread    HostThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
   authorId  String
-  author    User       @relation("HostReplies", fields: [authorId], references: [id])
+  author    User       @relation("HostReplies", fields: [authorId], references: [id], onDelete: Cascade)
   body      String     @db.Text
   edited    Boolean    @default(false)
   editedAt  DateTime?
@@ -543,7 +546,7 @@ model SessionReport {
   submittedAt             DateTime  @default(now())
   sessionEndedAt          DateTime? // Set when a host clicks "Close session" — hard cutoff for join window
 
-  host User @relation(fields: [hostId], references: [id])
+  host User @relation(fields: [hostId], references: [id], onDelete: Cascade)
 
   @@unique([programSlug, sessionDate])
   @@map("session_reports")
@@ -616,7 +619,7 @@ model HubMember {
   lastVisitedAt DateTime? // for unread dot tracking on dashboard hub cards
 
   hub  Hub  @relation(fields: [hubId], references: [id])
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([hubId, userId])
   @@map("hub_members")
@@ -633,7 +636,7 @@ model HubAnnouncement {
   linkedThreadId String?
 
   hub          Hub                    @relation(fields: [hubId], references: [id])
-  author       User                   @relation(fields: [authorId], references: [id])
+  author       User                   @relation(fields: [authorId], references: [id], onDelete: Cascade)
   linkedThread HubConversationThread? @relation(fields: [linkedThreadId], references: [id])
   createdAt    DateTime               @default(now())
   updatedAt    DateTime               @updatedAt
@@ -652,7 +655,7 @@ model HubDocument {
   category    String?
 
   hub     Hub      @relation(fields: [hubId], references: [id])
-  addedBy User     @relation(fields: [addedById], references: [id])
+  addedBy User     @relation(fields: [addedById], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -670,7 +673,7 @@ model HubConversationThread {
   sourceAnnouncementId String?
 
   hub           Hub               @relation(fields: [hubId], references: [id])
-  author        User              @relation(fields: [authorId], references: [id])
+  author        User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
   replies       HubConversationReply[]
   announcements HubAnnouncement[]
   createdAt     DateTime          @default(now())
@@ -686,7 +689,7 @@ model HubConversationReply {
   body     String   @db.Text
 
   thread    HubConversationThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  author    User                  @relation(fields: [authorId], references: [id])
+  author    User                  @relation(fields: [authorId], references: [id], onDelete: Cascade)
   createdAt DateTime              @default(now())
   updatedAt DateTime              @updatedAt
 

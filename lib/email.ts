@@ -139,7 +139,7 @@ export async function sendCancellationNotificationEmail(
   data: CancellationNotificationData
 ): Promise<void> {
   const { registrantName, registrantEmail, programTitle, programSlug } = data;
-  const volunteerUrl = `${BASE_URL}/volunteer/programs/${programSlug}`;
+  const volunteerUrl = `${BASE_URL}/account/registrar/${programSlug}`;
 
   const { error } = await resend.emails.send({
     from:    FROM,
@@ -404,7 +404,7 @@ export interface ResponsesUpdatedEmailData {
  */
 export async function sendResponsesUpdatedEmail(data: ResponsesUpdatedEmailData): Promise<void> {
   const { registrantName, programTitle, programSlug } = data;
-  const volunteerUrl = `${BASE_URL}/volunteer/programs/${programSlug}`;
+  const volunteerUrl = `${BASE_URL}/account/registrar/${programSlug}`;
 
   const { error } = await resend.emails.send({
     from:    FROM,
