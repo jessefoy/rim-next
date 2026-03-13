@@ -12131,6 +12131,12 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .th-resource-row__upload { cursor: pointer; }
 .th-resource-row .th-select { min-width: 100px; }
 
+/* Custom block insertion buttons */
+.th-block-btns { display: flex; gap: 8px; margin-bottom: 10px; }
+
+/* MDEditor overrides */
+.w-md-editor { border: 0.5px solid var(--rim-rule) !important; border-radius: 8px !important; box-shadow: none !important; }
+
 /* Responsive */
 @media (max-width: 768px) {
   .th-table { font-size: 13px; }
@@ -12139,4 +12145,23 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   .th-resource-row__url { flex-direction: column; }
   .th-media-preview { flex-direction: column; }
   .th-media-preview__img { width: 100%; max-width: 240px; }
+}
+
+/* ── Callout Block (Markdown [callout] — distinct from lp-callout practice box) ── */
+.lp-body .lp-callout-block {
+  font-family: var(--font-serif);
+  font-size: 19px;
+  font-style: italic;
+  line-height: 1.6;
+  color: var(--rim-text);
+  padding: 8px 0 8px 24px;
+  margin: 24px 0;
+  border-left: 2px solid var(--rim-rule);
+}
+.lp-body .lp-callout-block p {
+  margin: 0;
+  font-size: 19px;
+  font-family: var(--font-serif);
+  font-style: italic;
+  line-height: 1.6;
 }

@@ -8,6 +8,11 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
+import "@uiw/react-md-editor/markdown-editor.css";
+import "@uiw/react-markdown-preview/markdown.css";
+
+const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false });
 
 interface Resource {
   name: string;
@@ -91,6 +96,15 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
       setSlug(slugify(titleInternal));
     }
   }, [titleInternal, isEditing, slugTouched]);
+
+  function insertBlock(type: "verse" | "practice" | "callout") {
+    const templates: Record<string, string> = {
+      verse: "\n\n> [verse]\n> Enter quote text here\n> — Attribution (optional)\n\n",
+      practice: "\n\n> [practice]\n> Describe the practice here\n\n",
+      callout: "\n\n> [callout]\n> Enter key insight here\n\n",
+    };
+    setBody((prev) => prev + templates[type]);
+  }
 
   async function uploadFile(file: File): Promise<string | null> {
     const form = new FormData();
@@ -272,16 +286,20 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
       {/* ── Section: Content ── */}
       <div className="th-section">
         <h3 className="th-section__title">Content</h3>
-        <div className="th-form">
-          <label className="th-field">
-            <span className="th-field__label">Body (Markdown)</span>
-            <textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              className="th-textarea th-textarea--tall"
-              rows={20}
-            />
-          </label>
+        <div className="th-block-btns">
+          <button type="button" className="th-btn th-btn--small" onClick={() => insertBlock("verse")}>+ Verse Quote</button>
+          <button type="button" className="th-btn th-btn--small" onClick={() => insertBlock("practice")}>+ Practice</button>
+          <button type="button" className="th-btn th-btn--small" onClick={() => insertBlock("callout")}>+ Callout</button>
+        </div>
+        <div data-color-mode="light">
+          <MDEditor
+            value={body}
+            onChange={(val) => setBody(val ?? "")}
+            height={500}
+            preview="live"
+            hideToolbar={false}
+            visibleDragbar={false}
+          />
         </div>
       </div>
 
