@@ -23,12 +23,13 @@
  * CSS prefix: re-
  */
 
-import { useEffect, useCallback } from "react";
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEffect, useCallback, useRef } from "react";
+import { useEditor, EditorContent, Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import UnderlineExt from "@tiptap/extension-underline";
 import LinkExt from "@tiptap/extension-link";
 import { Markdown } from "tiptap-markdown";
+import { VariableNode } from "@/lib/tiptap-variable-node";
 import {
   Bold,
   Italic,
@@ -49,6 +50,8 @@ interface Props {
   placeholder?: string;
   rows?: number;
   className?: string;
+  /** Populated with the Tiptap Editor instance once initialised. */
+  editorRef?: React.MutableRefObject<Editor | null>;
 }
 
 // Approx: each "row" ≈ 32px (comfortable line height) + 52px for toolbar + padding floor
@@ -91,6 +94,7 @@ export default function RimEditor({
   placeholder,
   rows = 5,
   className = "",
+  editorRef,
 }: Props) {
   const editor = useEditor({
     extensions: [
@@ -109,6 +113,7 @@ export default function RimEditor({
         transformPastedText: true,
         transformCopiedText: false,
       }),
+      VariableNode,
     ],
     content: value,
     immediatelyRender: false,
@@ -119,6 +124,11 @@ export default function RimEditor({
       onChange(md);
     },
   });
+
+  // Expose editor instance to parent via editorRef
+  useEffect(() => {
+    if (editorRef) editorRef.current = editor;
+  }, [editor, editorRef]);
 
   // Sync external value changes (e.g. draft restore sets state → prop changes)
   useEffect(() => {

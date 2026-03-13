@@ -11738,6 +11738,8 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .em-list__hdr { margin-bottom: 32px; }
 .em-list__title { font-size: 24px; font-weight: 400; font-family: var(--font-serif); color: var(--rim-blue); margin: 0 0 8px; }
 .em-list__sub { font-size: 15px; color: var(--rim-text-muted); margin: 0; }
+.em-list__group { margin-bottom: 40px; }
+.em-list__group-label { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--rim-text-muted); margin-bottom: 10px; }
 
 .em-list__table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .em-list__table th {
@@ -11815,18 +11817,48 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   text-transform: uppercase;
   color: var(--rim-text-muted);
   margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
+.em-editor__vars-hint { font-weight: 400; letter-spacing: 0; text-transform: none; font-size: 12px; }
 .em-editor__vars-list { display: flex; flex-wrap: wrap; gap: 8px; }
-.em-editor__var-token {
+
+/* Clickable variable chip buttons in the vars reference panel */
+.em-editor__var-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 100px;
+  background: #fef3c7;
+  color: #92400e;
   font-size: 13px;
-  font-family: monospace;
-  background: #fff;
-  border: 1px solid #d8d2cc;
-  border-radius: 4px;
-  padding: 3px 8px;
-  color: var(--rim-blue);
+  font-family: var(--font-sans);
+  font-weight: 500;
+  border: 1px solid #fcd34d;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: background 0.1s;
+}
+.em-editor__var-btn:hover { background: #fde68a; }
+
+/* VariableNode pill — rendered inside Tiptap editor content */
+.ri-var-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: 100px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  border: 1px solid #fcd34d;
   cursor: default;
-  user-select: all;
+  user-select: none;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  vertical-align: baseline;
 }
 
 /* Enabled toggle */

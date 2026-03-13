@@ -2694,6 +2694,17 @@ No email copy lives in code for any managed template. The 11 retained hardcoded 
 | `sendMagicLinkEmail` | Auth flow — must never be disabled, no DB dependency acceptable |
 | `sendPostSessionNotification` | Coordinator-only, complex flag routing |
 
+### Future migration candidates
+
+These functions are simple enough to template but were kept hardcoded in this pass. Migrate in a future session if staff need to edit their copy:
+
+| Function | Template slug (proposed) | Notes |
+|---|---|---|
+| `sendDanaReminderEmail` | `dana-reminder` | Simple; one dynamic URL; no conditional branches |
+| `sendRoleAssignmentEmail` | `registrar-role-assigned` | Mirrors `host-role-assigned` pattern |
+| `sendNewThreadEmail` | `hub-new-thread` | Simple notification; category label is the only dynamic branch |
+| `sendNewReplyEmail` | `hub-new-reply` | Simplest email in the codebase; ideal template candidate |
+
 ---
 
 | 2026-03-11 (session 39) | **Spec compliance audit + cleanup.** Audited all §23 files against actual codebase — everything conformant. Deleted temporary `/api/debug` route (exposed session/membership data; was created to diagnose login issue in session 38). Added §24 to FEATURES.md documenting the multi-hub workspace system (`/account/hub/[slug]/*`) built in the previous context-exhausted session. Fixed `TypeScript build error in app/account/host/schedule/page.tsx — missing `programFormat` field. Updated MEMORY.md session log. |

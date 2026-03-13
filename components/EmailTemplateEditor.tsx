@@ -12,8 +12,9 @@
  * CSS prefix: em-
  */
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
+import { type Editor } from "@tiptap/react";
 import RimEditor from "./RimEditor";
 
 interface TemplateData {
@@ -46,10 +47,14 @@ export default function EmailTemplateEditor({ template, userId }: Props) {
     by: template.updatedBy,
   });
 
+  // Ref to the Tiptap editor instance (populated by RimEditor once ready)
+  const editorRef = useRef<Editor | null>(null);
+
   // Preview modal
   const [previewOpen,    setPreviewOpen]    = useState(false);
   const [previewHtml,    setPreviewHtml]    = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+
   async function handleSave() {
     setSaveState("saving");
     try {
@@ -85,6 +90,10 @@ export default function EmailTemplateEditor({ template, userId }: Props) {
     } finally {
       setPreviewLoading(false);
     }
+  }
+
+  function insertVariable(name: string) {
+    editorRef.current?.commands.insertVariable(name);
   }
 
   const savedDate = new Date(savedMeta.at).toLocaleDateString("en-US", {
@@ -129,16 +138,28 @@ export default function EmailTemplateEditor({ template, userId }: Props) {
           onChange={setBody}
           rows={12}
           placeholder="Email body…"
+          editorRef={editorRef}
         />
       </div>
 
       {/* ── Variables reference ── */}
       {template.variables.length > 0 && (
         <div className="em-editor__vars">
-          <div className="em-editor__vars-label">Available variables</div>
+          <div className="em-editor__vars-label">
+            Available variables
+            <span className="em-editor__vars-hint">click to insert at cursor</span>
+          </div>
           <div className="em-editor__vars-list">
             {template.variables.map((v) => (
-              <code key={v} className="em-editor__var-token">{"{{" + v + "}}"}</code>
+              <button
+                key={v}
+                type="button"
+                className="em-editor__var-btn"
+                onClick={() => insertVariable(v)}
+                title={`Insert {{${v}}}`}
+              >
+                {"{{" + v + "}}"}
+              </button>
             ))}
           </div>
         </div>

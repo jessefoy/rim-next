@@ -711,6 +711,12 @@ model EmailTemplate {
   enabled     Boolean  @default(false)
   variables   String[]
 
+  // Grouping for the admin list view
+  group       String   @default("general")
+  groupLabel  String   @default("General")
+  // Minimum role required to view/edit this template (default: ADMIN)
+  minRole     String   @default("ADMIN")
+
   updatedAt   DateTime @updatedAt
   updatedById String?
   updatedBy   User?    @relation(fields: [updatedById], references: [id], onDelete: SetNull)
