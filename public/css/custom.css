@@ -11734,7 +11734,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 /* ── Email Template Manager (em- prefix) ─────────────────────────────────── */
 
 /* List page */
-.em-list { max-width: 720px; padding: 48px 24px 80px; }
+.em-list { max-width: 720px; margin: 0 auto; padding: 48px 24px 80px; }
 .em-list__hdr { margin-bottom: 32px; }
 .em-list__title { font-size: 24px; font-weight: 400; font-family: var(--font-serif); color: var(--rim-blue); margin: 0 0 8px; }
 .em-list__sub { font-size: 15px; color: var(--rim-text-muted); margin: 0; }
@@ -11773,7 +11773,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .em-list__edit-link:hover { color: var(--rim-blue); text-decoration: underline; }
 
 /* Editor page */
-.em-editor { max-width: 720px; padding: 48px 24px 80px; }
+.em-editor { max-width: 720px; margin: 0 auto; padding: 48px 24px 80px; }
 .em-editor__hdr { margin-bottom: 36px; }
 .em-editor__back { font-size: 13px; color: var(--rim-mid); text-decoration: none; display: inline-block; margin-bottom: 12px; }
 .em-editor__back:hover { color: var(--rim-blue); text-decoration: underline; }
