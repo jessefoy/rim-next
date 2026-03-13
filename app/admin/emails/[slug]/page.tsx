@@ -32,6 +32,8 @@ export default async function EmailTemplateEditPage({ params }: Props) {
       body: true,
       enabled: true,
       variables: true,
+      helpText: true,
+      sanityNote: true,
       updatedAt: true,
       updatedBy: { select: { firstName: true, lastName: true } },
     },
@@ -45,6 +47,8 @@ export default async function EmailTemplateEditPage({ params }: Props) {
       <EmailTemplateEditor
         template={{
           ...template,
+          helpText: template.helpText ?? null,
+          sanityNote: template.sanityNote ?? null,
           updatedAt: template.updatedAt.toISOString(),
           updatedBy: template.updatedBy
             ? `${template.updatedBy.firstName ?? ""} ${template.updatedBy.lastName ?? ""}`.trim()

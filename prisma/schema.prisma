@@ -717,6 +717,11 @@ model EmailTemplate {
   // Minimum role required to view/edit this template (default: ADMIN)
   minRole     String   @default("ADMIN")
 
+  // Help text displayed above the subject line in the editor
+  helpText    String?
+  // Callout for variables that originate in Sanity Studio (rendered distinctly)
+  sanityNote  String?
+
   updatedAt   DateTime @updatedAt
   updatedById String?
   updatedBy   User?    @relation(fields: [updatedById], references: [id], onDelete: SetNull)

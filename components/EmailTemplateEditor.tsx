@@ -26,6 +26,8 @@ interface TemplateData {
   body: string;
   enabled: boolean;
   variables: string[];
+  helpText: string | null;
+  sanityNote: string | null;
   updatedAt: string;
   updatedBy: string | null;
 }
@@ -112,6 +114,21 @@ export default function EmailTemplateEditor({ template, userId }: Props) {
           {savedMeta.by ? ` by ${savedMeta.by}` : ""}
         </p>
       </div>
+
+      {/* ── Help text ── */}
+      {(template.helpText || template.sanityNote) && (
+        <div className="em-editor__help">
+          {template.helpText && (
+            <p className="em-editor__help-text">{template.helpText}</p>
+          )}
+          {template.sanityNote && (
+            <div className="em-editor__sanity-callout">
+              <span className="em-editor__sanity-callout-label">Sanity Studio</span>
+              {template.sanityNote}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Subject ── */}
       <div className="em-editor__field">

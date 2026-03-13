@@ -11862,6 +11862,44 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   border-radius: 0 0 6px 6px;
   border-top: 1px solid var(--rim-rule);
 }
+
+/* Help text + Sanity-origin callout */
+.em-editor__help {
+  margin-bottom: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.em-editor__help-text {
+  margin: 0;
+  font-size: 14px;
+  color: var(--rim-text-muted);
+  line-height: 1.6;
+}
+.em-editor__sanity-callout {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #eef4f8;
+  border-left: 3px solid var(--rim-mid);
+  border-radius: 0 6px 6px 0;
+  font-size: 13px;
+  color: var(--rim-mid);
+  line-height: 1.5;
+}
+.em-editor__sanity-callout-label {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--rim-blue);
+  background: rgba(19,82,116,0.08);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
 .em-editor__input {
   width: 100%;
   box-sizing: border-box;
