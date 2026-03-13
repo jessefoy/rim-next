@@ -216,7 +216,6 @@ export default async function DashboardPage() {
 
   return (
     <AccountLayout>
-      <AlertStrip />
       <div className="db2-wrap">
 
         {/* 1. Greeting */}
@@ -225,7 +224,10 @@ export default async function DashboardPage() {
           <p className="db2-greeting__date">{fmtTodayFull()}</p>
         </div>
 
-        {/* 2. Today's Virtual Sessions */}
+        {/* 2. Alerts */}
+        <AlertStrip />
+
+        {/* 3. Today's Virtual Sessions */}
         {showTodayCard && (
           <div className="db-section">
             <div className="today-card">
