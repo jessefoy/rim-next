@@ -1,4 +1,9 @@
 {
+  "redirects": [
+    { "source": "/volunteer/programs/:slug", "destination": "/account/registrar/:slug", "permanent": true },
+    { "source": "/volunteer", "destination": "/account/registrar", "permanent": true },
+    { "source": "/account/dashboard-my-registrations", "destination": "/account/programs", "permanent": true }
+  ],
   "crons": [
     {
       "path": "/api/cron/send-reminders",
