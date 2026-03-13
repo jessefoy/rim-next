@@ -29,8 +29,9 @@
   --color-alert-border: #F0C98A;
 
   /* Fonts */
-  --font-serif: 'Libre Baskerville', Baskerville, Georgia, serif;
-  --font-sans:  'Open Sans', sans-serif;
+  --font-serif:       'Libre Baskerville', Baskerville, Georgia, serif;
+  --font-sans:        'Open Sans', sans-serif;
+  --font-source-sans: 'Source Sans 3', 'Open Sans', sans-serif;
 
   /* Layout */
   --reading-width: 640px;
@@ -11473,4 +11474,95 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   .sh-detail__label {
     min-width: 90px;
   }
+}
+
+
+/* ═══════════════════════════════════════════════════
+   MEMBER AREA TYPOGRAPHY — Source Sans 3
+   Replaces --font-serif (Libre Baskerville) across all
+   member-area pages and components. Cascade override:
+   same specificity, declared last → wins.
+
+   Exception: .db2-greeting__name (dashboard "Welcome
+   back, [name]") intentionally keeps --font-serif.
+═══════════════════════════════════════════════════ */
+
+/* ── Weight 700 — primary headings ── */
+.co-title,
+.wl-title,
+.db-nav__title,
+.db-welcome__greeting,
+.db-heading-2, .db-heading-3,
+.mr-heading,
+.ml-heading,
+.mp-heading,
+.mc-heading, .mc-agreement__title,
+.vol-heading-2,
+.adm-header__title,
+.adm-section__title,
+.adm-import__title,
+.adm-sm-title, .adm-sm-section__title,
+.adm-fi-title, .adm-fi-area__title,
+.adm-fi-sys-section__title,
+.adm-fi-detail-header__title,
+.man-chapter__title, .man-section__title, .man-future__title,
+.bl-header__title,
+.hs-header__title, .hs-how-to__title,
+.hub-hdr__title,
+.hub-page__title,
+.hub-home__title,
+.hub-modal__title,
+.hub-how-to__title,
+.hub-thread-detail__title,
+.hub-conversations__title,
+.hub-conv-empty-state__title,
+.hub-add-session-form__title,
+.hub-home__greeting,
+.ann-compose__title,
+.add-doc-form__title,
+.cv-compose__title, .cv-thread-hdr__title,
+.ps-form__title, .ps-section__title, .ps-done__title,
+.sh-title {
+  font-family: var(--font-source-sans);
+  font-weight: 700;
+}
+
+/* ── Weight 600 — sub-headings, card titles, labels ── */
+.mr-card__title,
+.adm-fi-sys-section__subtitle,
+.adm-member-name, .adm-member-field-label,
+.adm-list-text,
+.vol-program-card__name,
+.hs-program__name,
+.hub-subboard__title,
+.hub-program-card__name, .hub-program-detail__name,
+.hub-schedule__month, .hub-schedule-nav__month,
+.hub-panel__date, .hub-panel__heading, .hub-panel__title,
+.hub-detail__name,
+.hub-thread-card__title,
+.hub-alert-item__title,
+.ann-item__title,
+.cv-item__title,
+.db2-upcoming__title,
+.db2-hub-card__name,
+.hub-sched-row__title,
+.sv-program__name,
+.sh-detail__name,
+.today-row__title,
+.bl-stat__num {
+  font-family: var(--font-source-sans);
+  font-weight: 600;
+}
+
+/* ── Weight 400 — prose/body using serif in member area ── */
+.wl-welcome-intro,
+.mc-intro, .mc-list-item, .mc-confirm-text {
+  font-family: var(--font-source-sans);
+  font-weight: 400;
+}
+
+/* db2-wrap h2 — dashboard rich-text headings */
+.db2-wrap h2 {
+  font-family: var(--font-source-sans);
+  font-weight: 700;
 }
