@@ -251,11 +251,12 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Program Reminder Email",
         locations: ["File: lib/email.ts (sendReminderEmail)", "API: GET /api/cron/send-reminders, POST /api/programs/[slug]/send-reminder, PATCH /api/registrations/[id] (action: sendReminder)"],
-        what: "Sent to active (REGISTERED/APPROVED) registrants before a program. Includes date/time/location and an optional custom reminderMessage from Sanity. Can be sent automatically by the daily cron (if reminderDate is set in Sanity), in bulk via the volunteer table banner, or per-row via the Actions panel. reminderSentAt prevents double-sends across all paths.",
+        what: "Sent to active (REGISTERED/APPROVED) registrants before a program. Managed template — body editable at /admin/emails (slug: session-reminder). Includes date/time/location and an optional custom reminderMessage from Sanity (converted to markdown via portableTextToMarkdown() before template insertion). Can be sent automatically by the daily cron (if reminderDate is set in Sanity), in bulk via the volunteer table banner, or per-row via the Actions panel. reminderSentAt prevents double-sends across all paths.",
         relatedTo: [
           "reminderDate and reminderMessage configured in Sanity CMS",
           "Shown in Volunteer / Registrar Tools (reminder banner + per-row button)",
           "Scheduled via Scheduling & Automation (Reminder Cron)",
+          "Managed via Email Template Manager (slug: session-reminder)",
         ],
       },
       {
@@ -281,10 +282,23 @@ const AREAS: FunctionalArea[] = [
       {
         name: "HOST Role Notification Email",
         locations: ["File: lib/email.ts (sendHostRoleAssignmentEmail)", "API: PATCH /api/admin/members/[id]"],
-        what: "Sent once when the HOST role is first assigned to a member. Similar structure to the REGISTRAR notification.",
+        what: "Sent once when the HOST role is first assigned to a member. Managed template — body editable at /admin/emails (slug: host-role-assigned).",
         relatedTo: [
           "Triggered by HOST Role Assignment in Member Management (Admin)",
           "Links to /account/hub/host-team and relevant documentation",
+          "Managed via Email Template Manager (slug: host-role-assigned)",
+        ],
+      },
+      {
+        name: "Email Template Manager",
+        locations: ["Page: /admin/emails", "Page: /admin/emails/[slug]", "File: components/EmailTemplateEditor.tsx", "File: components/RimEditor.tsx", "File: lib/tiptap-variable-node.ts", "API: PATCH /api/admin/emails/[slug]", "API: POST /api/admin/emails/[slug]/preview"],
+        what: "Database-backed system for editing transactional email copy without code deploys. 7 managed templates stored in the email_templates table (Postgres). Admins can edit subject lines, body copy (rich Tiptap markdown editor with variable chip insertion), enable/disable delivery, and preview rendered output. Chrome bands show the email header/footer wrapper. Contextual help text above the subject explains each template; Sanity-origin variables are called out with a distinct teal callout. 11 email functions remain hardcoded for structural reasons (attachments, conditional logic, auth flows) — documented with comment blocks in lib/email.ts.",
+        relatedTo: [
+          "Managed templates: session-reminder, first-time-attendee, returning-after-absence, host-role-assigned, sub-request-posted, sub-request-claimed, missing-report-alert",
+          "Uses RimEditor (Tiptap v3) with custom VariableNode for {{token}} pills",
+          "portableTextToMarkdown() in lib/portableTextEmail.ts for PT → template variable conversion",
+          "Render pipeline: sendTemplatedEmail → marked → wrapInEmailChrome → juice → Resend",
+          "Seed files: seed-email-templates.js, seed-email-groups.ts, seed-email-help-text.js",
         ],
       },
       {

@@ -1,12 +1,12 @@
 # RIM Next — Stack Reference
 
-_Generated 2026-03-11. Last updated 2026-03-13 (session 47). Update this file whenever a service, credential, or major structural decision changes._
+_Generated 2026-03-11. Last updated 2026-03-13 (session 49). Update this file whenever a service, credential, or major structural decision changes._
 
 ---
 
 ## What's been built
 
-Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfield, WI. This Next.js application is the future home of the entire RIM digital presence — programs, member accounts, registrations, online courses, and volunteer tooling. As of this writing, the application includes a full program registration system (with waitlisting, dana/Stripe payments, calendar links, and automated emails), a member dashboard and profile system, a registrar area for managing participants, an admin area for member management (with households, status, tags, and role assignment), a Sanity-integrated course library, a staff reference manual, a site architecture/feature inventory for admins, a Google Meet integration for virtual programs, and a Host Community Hub — a full team workspace for the volunteer host team with a calendar schedule, sub board, conversations, and alerts. The Webflow-built site at `rootedinmindfulness.org` remains live as the public-facing domain while this app is in active development at `rim-next.vercel.app`.
+Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfield, WI. This Next.js application is the future home of the entire RIM digital presence — programs, member accounts, registrations, online courses, and volunteer tooling. As of this writing, the application includes a full program registration system (with waitlisting, dana/Stripe payments, calendar links, and automated emails), a member dashboard and profile system, a registrar area for managing participants, an admin area for member management (with households, status, tags, and role assignment), a Sanity-integrated course library, a staff reference manual, a site architecture/feature inventory for admins, a Google Meet integration for virtual programs, a Host Community Hub — a full team workspace for the volunteer host team with a calendar schedule, sub board, conversations, and alerts, and an Email Template Manager — a database-backed system for editing all managed transactional email copy without code deploys. The Webflow-built site at `rootedinmindfulness.org` remains live as the public-facing domain while this app is in active development at `rim-next.vercel.app`.
 
 ---
 
@@ -43,6 +43,7 @@ Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfie
 | Video | Google Meet | 4 shared room accounts via DWD + Google Calendar API |
 | Hosting | Vercel | auto-deploy on push to `main` |
 | CSS | Custom design system | `public/css/custom.css` only — never touch webflow CSS files |
+| Rich text editor | Tiptap v3 | `@tiptap/react ^3.20.1` + `tiptap-markdown` — used in RimEditor; custom VariableNode extension for `{{token}}` pills |
 
 ---
 
@@ -94,6 +95,8 @@ All set in Vercel. Pull locally with `npx vercel env pull .env.local`.
 | `RESEND_API_KEY` | All transactional emails |
 | `EMAIL_FROM` | `hello@rootedinmindfulness.org` (domain verified 2026-03-03) |
 | `REGISTRAR_EMAIL` | Receives cancellation and edit notifications |
+
+**Email Template Manager:** 7 managed templates live in `email_templates` DB table, editable at `/admin/emails`. `EmailTemplate` model fields: `slug` (permanent), `name`, `description`, `subject`, `body` (markdown), `enabled`, `variables String[]`, `group`, `groupLabel`, `minRole`, `helpText?`, `sanityNote?`. See FEATURES.md §26 for the complete 18-function inventory and migration status of all email functions.
 
 ### Google Meet
 | Variable | Purpose |
@@ -148,6 +151,8 @@ app/
   admin/
     members/          member management (ADMIN | REGISTRAR)
     households/       household grouping (ADMIN | REGISTRAR)
+    emails/           Email Template Manager (ADMIN only)
+    emails/[slug]/    template editor
     manual/           staff reference manual
     roadmap/          planned work tracker
     sitemap/          site architecture

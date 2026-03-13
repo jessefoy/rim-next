@@ -422,6 +422,9 @@ export default async function ManualPage() {
           <p>
             These emails go out automatically — you don&rsquo;t need to trigger them.
           </p>
+          <div className="man-note">
+            Some email copy is editable without a code deploy. Admins can edit the subject line and body of the <strong>Session Reminder</strong> email (and several others) at <strong>/admin/emails</strong>. Changes take effect immediately — no deployment needed. Each template has an Enabled toggle; if a template is disabled, that email will not be sent.
+          </div>
 
           <div className="man-email-list">
             <div className="man-email-item">
@@ -2162,6 +2165,7 @@ export default async function ManualPage() {
             <li>Archive, restore, and delete member accounts</li>
             <li>Grant or revoke course access manually</li>
             <li>Import members from CSV</li>
+            <li>Edit transactional email copy via the <strong>Email Template Manager</strong> at <strong>/admin/emails</strong> — change subject lines, body copy, and toggle delivery without a code deploy</li>
           </ul>
 
           <h3 className="man-section__h3">Sidebar links per role</h3>
@@ -2191,6 +2195,10 @@ export default async function ManualPage() {
               <tr>
                 <td>Households <code>/admin/households</code></td>
                 <td>Registrar, Admin</td>
+              </tr>
+              <tr>
+                <td>Emails <code>/admin/emails</code></td>
+                <td>Admin</td>
               </tr>
               <tr>
                 <td>Manual <code>/admin/manual</code></td>
