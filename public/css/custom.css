@@ -8941,10 +8941,10 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 14px;
+  padding: 8px 12px;
   background: #fffdf9;
   border: 1px solid #e8e2da;
-  border-left: 3px solid #bba882;
+  border-left: 3px solid var(--rim-blue);
   border-radius: 6px;
 }
 .alert-strip__message { font-size: 14px; color: var(--rim-text); flex: 1; line-height: 1.45; }
@@ -10335,7 +10335,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .ac-sidebar__section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--rim-text-muted); padding: 10px 12px 2px; }
 
 /* ── Dashboard v2 (db2-) ─────────────────────────────────────── */
-.db2-wrap { max-width: 680px; margin: 0 auto; padding: 40px 32px 80px; }
+.db2-wrap { max-width: 720px; margin: 0 auto; padding: 40px 32px 80px; }
 .db2-greeting { margin-bottom: 32px; }
 .db2-greeting__name { font-size: 28px; font-weight: 400; font-family: var(--font-serif); color: #2d3f47; margin: 0 0 4px; }
 .db2-greeting__date { font-size: 13px; color: #7a7068; margin: 0; }
