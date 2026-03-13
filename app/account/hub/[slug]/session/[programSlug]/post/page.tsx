@@ -53,10 +53,13 @@ function fmtDate(date: Date): string {
 
 export default async function PostSessionPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string; programSlug: string }>;
+  searchParams: Promise<{ date?: string }>;
 }) {
   const { slug, programSlug } = await params;
+  const { date: dateParam } = await searchParams;
 
   if (slug !== "host-team") notFound();
 
@@ -76,9 +79,15 @@ export default async function PostSessionPage({
   }
 
   const today = todayCTStr();
-  const { startOfDay, endOfDay } = ctDayBounds(today);
 
-  // Midnight CT today — used as the SessionReport sessionDate key
+  // Use ?date=YYYY-MM-DD param if provided and valid (past or today only — no future dates)
+  const dateStr = (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) && dateParam <= today)
+    ? dateParam
+    : today;
+
+  const { startOfDay, endOfDay } = ctDayBounds(dateStr);
+
+  // Midnight CT for the target date — used as the SessionReport sessionDate key
   const sessionDateKey = startOfDay;
 
   // Fetch today's attendance records for this program, including flagged ones

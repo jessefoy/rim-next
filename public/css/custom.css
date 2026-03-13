@@ -11566,3 +11566,48 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   font-family: var(--font-source-sans);
   font-weight: 700;
 }
+
+/* ── Post-session draft notice ── */
+.ps-draft-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #eef4f8;
+  border: 1px solid #c8ddf0;
+  border-radius: 4px;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: #4a6080;
+  margin-bottom: 20px;
+}
+.ps-draft-notice__clear {
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: #6a8fa0;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  font-family: var(--font-sans);
+}
+
+/* ── Session history: complete report link (team view) ── */
+.sh-journal__complete-link {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #6a8fa0;
+  text-decoration: none;
+}
+.sh-journal__complete-link:hover { text-decoration: underline; }
+
+/* ── Session history: file report link (coordinator detail) ── */
+.sh-detail__file-link {
+  font-size: 14px;
+  font-weight: 600;
+  color: #6a8fa0;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.sh-detail__file-link:hover { text-decoration: underline; }

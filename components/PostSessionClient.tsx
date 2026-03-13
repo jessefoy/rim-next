@@ -6,9 +6,13 @@
  * Section 1: Flagged people — notes + routing
  * Section 2: Session reflection (open textarea, warm framing)
  * Section 3: Resource for the group (optional URL + note)
+ *
+ * Autosave: form state is persisted to localStorage on every change,
+ * keyed by programSlug + sessionDate. Draft is restored on load and
+ * cleared on successful submission.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 const ACTION_OPTIONS = [
@@ -53,6 +57,14 @@ interface Props {
   apiPath: string;
 }
 
+interface DraftState {
+  flagNotes: Record<string, string>;
+  flagActions: Record<string, ActionValue>;
+  reflection: string;
+  resourceUrl: string;
+  resourceNote: string;
+}
+
 export default function PostSessionClient({
   programSlug,
   sessionDate,
@@ -88,6 +100,42 @@ export default function PostSessionClient({
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(alreadySubmitted);
   const [error, setError] = useState<string | null>(null);
+  const [draftRestored, setDraftRestored] = useState(false);
+
+  // ── Draft autosave ────────────────────────────────────────────────────────
+  const draftKey = `psr-draft:${programSlug}:${sessionDate}`;
+
+  // Save current form state, merging in the freshly-computed value from
+  // the caller to avoid stale-closure issues with async state updates.
+  function saveDraft(update: Partial<DraftState>) {
+    try {
+      localStorage.setItem(draftKey, JSON.stringify({
+        flagNotes, flagActions, reflection, resourceUrl, resourceNote,
+        ...update,
+      }));
+    } catch { /* ignore — storage full or private browsing */ }
+  }
+
+  function clearDraft() {
+    try { localStorage.removeItem(draftKey); } catch { /* ignore */ }
+  }
+
+  // Restore draft on mount (client-side only; skip if report already filed)
+  useEffect(() => {
+    if (alreadySubmitted) return;
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (!raw) return;
+      const draft = JSON.parse(raw) as Partial<DraftState>;
+      if (draft.flagNotes)   setFlagNotes(draft.flagNotes);
+      if (draft.flagActions) setFlagActions(draft.flagActions);
+      if (typeof draft.reflection  === "string") setReflection(draft.reflection);
+      if (typeof draft.resourceUrl  === "string") setResourceUrl(draft.resourceUrl);
+      if (typeof draft.resourceNote === "string") setResourceNote(draft.resourceNote);
+      setDraftRestored(true);
+    } catch { /* ignore corrupt data */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // ── End draft autosave ────────────────────────────────────────────────────
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -121,6 +169,7 @@ export default function PostSessionClient({
       }
 
       setSubmitted(true);
+      clearDraft();
     } catch {
       setError("Network error. Please try again.");
     } finally {
@@ -142,6 +191,21 @@ export default function PostSessionClient({
 
   return (
     <form className="ps-form" onSubmit={handleSubmit}>
+
+      {/* ── Draft restored notice ── */}
+      {draftRestored && (
+        <div className="ps-draft-notice">
+          Draft restored.{" "}
+          <button
+            type="button"
+            className="ps-draft-notice__clear"
+            onClick={() => { clearDraft(); setDraftRestored(false); }}
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       <div className="ps-form__header">
         <h2 className="ps-form__title">
           Post-session — {programSlug.replace(/-/g, " ")}
@@ -170,19 +234,22 @@ export default function PostSessionClient({
                   rows={2}
                   placeholder="Brief note — 2 or 3 sentences at most"
                   value={flagNotes[f.attendanceId] ?? ""}
-                  onChange={(e) =>
-                    setFlagNotes((prev) => ({ ...prev, [f.attendanceId]: e.target.value }))
-                  }
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    const updated = { ...flagNotes, [f.attendanceId]: v };
+                    setFlagNotes(updated);
+                    saveDraft({ flagNotes: updated });
+                  }}
                 />
                 <select
                   className="ps-flag-item__action"
                   value={flagActions[f.attendanceId] ?? "NONE"}
-                  onChange={(e) =>
-                    setFlagActions((prev) => ({
-                      ...prev,
-                      [f.attendanceId]: e.target.value as ActionValue,
-                    }))
-                  }
+                  onChange={(e) => {
+                    const v = e.target.value as ActionValue;
+                    const updated = { ...flagActions, [f.attendanceId]: v };
+                    setFlagActions(updated);
+                    saveDraft({ flagActions: updated });
+                  }}
                 >
                   {ACTION_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>{o.label}</option>
@@ -216,7 +283,10 @@ export default function PostSessionClient({
           rows={5}
           placeholder="Notes for the team — whatever feels worth saying…"
           value={reflection}
-          onChange={(e) => setReflection(e.target.value)}
+          onChange={(e) => {
+            setReflection(e.target.value);
+            saveDraft({ reflection: e.target.value });
+          }}
         />
       </div>
 
@@ -232,7 +302,10 @@ export default function PostSessionClient({
           className="ps-resource-url"
           placeholder="URL or text"
           value={resourceUrl}
-          onChange={(e) => setResourceUrl(e.target.value)}
+          onChange={(e) => {
+            setResourceUrl(e.target.value);
+            saveDraft({ resourceUrl: e.target.value });
+          }}
         />
         {resourceUrl && (
           <input
@@ -240,7 +313,10 @@ export default function PostSessionClient({
             className="ps-resource-note"
             placeholder="Brief description (optional)"
             value={resourceNote}
-            onChange={(e) => setResourceNote(e.target.value)}
+            onChange={(e) => {
+              setResourceNote(e.target.value);
+              saveDraft({ resourceNote: e.target.value });
+            }}
           />
         )}
       </div>

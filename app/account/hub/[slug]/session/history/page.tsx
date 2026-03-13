@@ -421,7 +421,13 @@ export default async function SessionHistoryPage({
 
           {!detailEntry.report && (
             <div className="sh-detail__missing">
-              No post-session report was filed for this session.
+              No post-session report was filed for this session.{" "}
+              <Link
+                href={`/account/hub/${slug}/session/${detailEntry.programSlug}/post?date=${detailEntry.ctDate}`}
+                className="sh-detail__file-link"
+              >
+                File a report now →
+              </Link>
             </div>
           )}
         </div>

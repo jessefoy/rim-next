@@ -138,11 +138,14 @@ export default async function TeamHistoryPage({
       })
     : [];
 
-  const assignmentByKey = new Map<string, string>();
+  const assignmentByKey = new Map<string, { userId: string; name: string }>();
   for (const a of assignments) {
     if (a.userId && a.sessionDate && a.user) {
       const key = `${a.programSlug}||${toCTDateStr(a.sessionDate)}`;
-      assignmentByKey.set(key, a.user.preferredName || a.user.firstName || "Host");
+      assignmentByKey.set(key, {
+        userId: a.userId,
+        name: a.user.preferredName || a.user.firstName || "Host",
+      });
     }
   }
 
@@ -192,7 +195,9 @@ export default async function TeamHistoryPage({
             {pageItems.map((s) => {
               const key = `${s.programSlug}||${s.ctDate}`;
               const report = reportByKey.get(key) ?? null;
-              const hostName = assignmentByKey.get(key) ?? report?.hostName ?? null;
+              const assignment = assignmentByKey.get(key) ?? null;
+              const hostName = assignment?.name ?? report?.hostName ?? null;
+              const isMyMissingSession = !report && assignment?.userId === session.user.id;
               const programName = nameBySlug.get(s.programSlug) ?? s.programSlug.replace(/-/g, " ");
 
               // Team view only shows sessions with something worth reading
@@ -235,6 +240,15 @@ export default async function TeamHistoryPage({
 
                   {!report?.reflection && !report?.resourceUrl && (
                     <p className="sh-journal__quiet">No reflection filed.</p>
+                  )}
+
+                  {isMyMissingSession && (
+                    <Link
+                      href={`/account/hub/${slug}/session/${s.programSlug}/post?date=${s.ctDate}`}
+                      className="sh-journal__complete-link"
+                    >
+                      Complete your report →
+                    </Link>
                   )}
                 </div>
               );
