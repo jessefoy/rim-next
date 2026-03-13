@@ -199,6 +199,16 @@ export default async function DashboardPage() {
   // Passed to DashboardAutoRefresh so it can fire router.refresh() at the exact moment.
   const laterEpochs = laterSessions.map((s) => s.liveStartEpoch);
 
+  const isAdmin = (session.user.roles ?? []).includes("ADMIN");
+
+  // Admins bypass HubMember — show all hubs on the dashboard card
+  const dashboardHubs = isAdmin
+    ? await db.hub.findMany({
+        select: { id: true, slug: true, name: true, type: true },
+        orderBy: { name: "asc" },
+      })
+    : hubMemberships.map((m) => m.hub);
+
   const firstName =
     session.user?.name?.split(" ")[0] ??
     session.user?.email?.split("@")[0] ??
@@ -329,16 +339,16 @@ export default async function DashboardPage() {
         )}
 
         {/* 6. Your Hubs */}
-        {hubMemberships.length > 0 && (
+        {dashboardHubs.length > 0 && (
           <div className="db-section">
             <p className="db-section__label">Your Hubs</p>
             <div className="db2-hub-grid">
-              {hubMemberships.map((m) => (
-                <Link key={m.hub.id} href={`/account/hub/${m.hub.slug}`} className="db2-hub-card">
-                  <span className="db2-hub-card__name">{m.hub.name}</span>
+              {dashboardHubs.map((hub) => (
+                <Link key={hub.id} href={`/account/hub/${hub.slug}`} className="db2-hub-card">
+                  <span className="db2-hub-card__name">{hub.name}</span>
                   <span className="db2-hub-card__type">
-                    {m.hub.type === "OPERATIONAL" ? "Operational" :
-                     m.hub.type === "GOVERNANCE"  ? "Governance"  : "Community Group"}
+                    {hub.type === "OPERATIONAL" ? "Operational" :
+                     hub.type === "GOVERNANCE"  ? "Governance"  : "Community Group"}
                   </span>
                 </Link>
               ))}
