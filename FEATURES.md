@@ -2611,6 +2611,91 @@ Three additions in one session:
 
 ---
 
+## 26. Email Template Manager ✅ Built — session 48 (2026-03-13)
+
+### What it does
+A database-backed system for managing all transactional email copy without code deploys. Admins can edit subject lines and body copy, toggle delivery on/off, and preview exactly what recipients will receive — all from `/admin/emails`.
+
+### Who uses it
+ADMIN only — the list and edit pages are gated to the ADMIN role.
+
+### Standing rule — PERMANENT
+**All transactional emails at RIM are managed via the Email Template Manager at `/admin/emails`.** Adding a new automated email requires:
+1. A new `EmailTemplate` seed record in `prisma/seed-email-templates.js` with a unique `slug`
+2. A `sendTemplatedEmail(slug, to, variables)` call in the relevant API route or cron
+
+No email copy lives in code for any managed template. The 11 retained hardcoded functions are exceptions for structural reasons only (attachments, conditional logic, auth flows, PortableText rendering).
+
+### User flow — editing a template
+
+1. Admin opens `/admin/emails` → sees table of all 7 templates with enabled/disabled badges
+2. Clicks "Edit →" on a row → `/admin/emails/[slug]`
+3. Edits subject line (plain text input) and/or body (RimEditor — markdown with full toolbar)
+4. Clicks "Preview" → modal opens with the email rendered exactly as it will arrive (variable tokens shown as `[firstName]`, `[programName]`, etc.)
+5. Clicks "Save changes" → DB updated, `updatedAt` + `updatedBy` recorded
+6. Toggles "Enabled" checkbox → controls whether the trigger sends the email or silently skips
+
+### User flow — toggling delivery
+
+- **Disabled (default):** `sendTemplatedEmail()` fetches the template, checks `enabled: false`, returns without sending. No error, no side effect.
+- **Enabled:** Template is fetched, variables substituted, body rendered to HTML, sent via Resend.
+
+### Key files
+
+| File | Role |
+|---|---|
+| `prisma/schema.prisma` | `EmailTemplate` model |
+| `prisma/seed-email-templates.js` | One-time seed for 7 templates (run once, idempotent) |
+| `lib/email.ts` | `sendTemplatedEmail()`, `renderTemplateToHtml()`, `wrapInEmailChrome()`, `EMAIL_BASE_CSS` |
+| `app/admin/emails/page.tsx` | Template list page |
+| `app/admin/emails/[slug]/page.tsx` | Template edit page (server component, loads `EmailTemplateEditor`) |
+| `components/EmailTemplateEditor.tsx` | "use client" editor — subject, RimEditor body, variables panel, toggle, save, preview modal |
+| `app/api/admin/emails/[slug]/route.ts` | PATCH: save subject/body/enabled, record updatedById |
+| `app/api/admin/emails/[slug]/preview/route.ts` | POST: render body with placeholder values, return HTML |
+| `components/AccountSidebar.tsx` | "Emails" link (ADMIN only) |
+| `public/css/custom.css` | `em-` prefix CSS block |
+
+### Technical notes
+
+- **Render pipeline:** `sendTemplatedEmail` → `{{token}}` substitution → `marked(body)` → `wrapInEmailChrome(html)` → `juice(html, EMAIL_BASE_CSS)` → Resend. The same `renderTemplateToHtml()` function is called by both the send path and the preview API — ensures pixel-identical output.
+- **`wrapInEmailChrome()`:** Wraps markdown-rendered HTML in the standard RIM email table layout (dark blue `#135274` header, white card, 600px max-width, footer with domain).
+- **`EMAIL_BASE_CSS`:** CSS string targeting standard markdown-generated tags (`p`, `h2`, `h3`, `ul`, `ol`, `blockquote`, `a`, `hr`, `strong`, `em`) so `juice` can inline them into every element.
+- **`juice`:** CSS inlining library — takes `(html, css)` and returns HTML with all styles inlined. Required because most email clients strip `<style>` blocks. `@types/juice` doesn't exist; juice ships its own `.d.ts`.
+- **Preview modal:** Variables are replaced with `[variableName]` placeholders before rendering so the admin can see the email structure with labelled slots. The full render pipeline still runs — the preview is not a mock.
+- **`variables` array:** Stored on the template record, used only for the admin variables-reference panel. `sendTemplatedEmail` substitutes whatever keys are passed in `variables: Record<string, string>` — no validation against the stored array.
+- **Enabled check:** If `enabled: false`, `sendTemplatedEmail` returns immediately after the DB fetch — no Resend call, no error thrown. Triggers during rollout / testing period are silently absorbed.
+- **`marked` import:** Dynamic `await import("marked")` avoids top-level ESM issues. `marked.parse(body)` returns a string.
+
+### The 7 managed templates
+
+| Slug | Trigger |
+|---|---|
+| `first-time-attendee` | Member's first recorded session attendance |
+| `returning-after-absence` | Member attends after 6+ week gap |
+| `host-role-assigned` | HOST or HOST_MANAGER role granted |
+| `missing-report-alert` | Nightly cron: no post-session report filed |
+| `sub-request-posted` | Host posts a sub request |
+| `sub-request-claimed` | Another host claims the sub |
+| `session-reminder` | Pre-session reminder (nightly cron or manual) |
+
+### The 11 retained hardcoded functions (structural exceptions)
+
+| Function | Reason retained |
+|---|---|
+| `sendRegistrationEmail` | Complex conditional logic, .ics attachment, calendar links |
+| `sendApprovalEmail` | Waitlist-specific conditional logic |
+| `sendCancellationNotificationEmail` | Registrar notification with program-specific routing |
+| `sendEditRequestEmail` | Coordinator notification |
+| `sendResponsesUpdatedEmail` | Post-edit confirmation |
+| `sendDanaReminderEmail` | Dana-specific state rendering |
+| `sendRoleAssignmentEmail` | REGISTRAR role assignment (different audience/copy) |
+| `sendNewThreadEmail` | Hub operational notification |
+| `sendNewReplyEmail` | Hub reply notification |
+| `sendMagicLinkEmail` | Auth flow — must never be disabled, no DB dependency acceptable |
+| `sendPostSessionNotification` | Coordinator-only, complex flag routing |
+
+---
+
 | 2026-03-11 (session 39) | **Spec compliance audit + cleanup.** Audited all §23 files against actual codebase — everything conformant. Deleted temporary `/api/debug` route (exposed session/membership data; was created to diagnose login issue in session 38). Added §24 to FEATURES.md documenting the multi-hub workspace system (`/account/hub/[slug]/*`) built in the previous context-exhausted session. Fixed `TypeScript build error in app/account/host/schedule/page.tsx — missing `programFormat` field. Updated MEMORY.md session log. |
 | 2026-03-12 (session 41) | **Dashboard Today's Sessions: recurrence-aware logic + join link timing.** **(1) Infinite/ongoing recurrence fix:** `lib/calendarLinks.ts` — `buildRRule()` was guarded by `!count || count < 2`, which blocked RRULE generation for programs with no fixed end date (null `recurrenceCount`). Fixed: guard is now `if (!freq) return null`; COUNT is only appended when `count && count >= 2` — omitting it is valid RFC 5545 for infinite recurrence. `describeRecurrence()` updated with same fix; `icsLabel` now returns `"ongoing"` when count is null. Sanity `recurrenceCount` field title changed to "Number of Sessions (leave blank for ongoing)" with updated description. Sanity Studio deployed. **(2) Dashboard Today's Sessions — recurrence-aware query:** Root cause: old `todayVirtualSessionsQuery` required `programFormat in ["virtual","hybrid"] && defined(startDatetime)` — both null on all real production programs (which use `dayOfWeek[]->` refs). Fixed: replaced with `virtualDashboardProgramsQuery` — no `startDatetime` filter; fetches full recurrence fields. JS-side `isOccurrenceToday()` in `dashboard/page.tsx` handles single events, weekly (with day code + bi-weekly interval + series end), and monthly/daily fallback. `shiftToToday()` corrects the live/later window for recurring programs. `VirtualSession` interface renamed `VirtualProgram` with nullable `startDatetime` and all recurrence fields. **(3) Join link timing:** Changed from a 75-minute "joinable" window to a strict 12-minute live window. Join button now appears **only** in the Live Now section (12 min before start through session end) — completely removed from Later Today. Updated Later Today helper note: "Join link appears when the session opens, about 12 minutes before start." This prevents members from accidentally joining an open room when multiple programs are listed simultaneously. `liveStart` changed from 15 → 12 min; `joinableStart` / `isJoinable` removed entirely. Commits: session 41. **(4) DashboardAutoRefresh:** New `components/DashboardAutoRefresh.tsx` — `"use client"` component that auto-refreshes the dashboard when a Later Today session enters its Live Now window. Receives `liveStartEpochs: number[]` (epoch ms, timezone-agnostic) from the server; uses `setTimeout` to call `router.refresh()` at the exact moment the earliest session's window opens (+2s buffer). No polling, no visible page reload — `router.refresh()` re-fetches server data in the background, join button appears in place. |
 | 2026-03-11 (session 40) | **Hub schedule spec compliance + layout polish (§24 update).** **(1) Calendar visual redesign:** Rewrote `hub-cal` CSS block — switched from individual rounded cells with gaps to a single-card layout (`border:1px solid #e0ddd7; border-radius:10px; overflow:hidden`) with internal `#eceae5` dividers between cells. Today's date number gets a dark circle (`background:#2d3f47; border-radius:50%`) instead of a cell-level border. Event chips now use all-around `border:1px solid` (not `border-left` accent) and correct spec colors: mine (steel-lt), covered (sage-lt), needs (terra-lt). Checkboxes hidden by default, revealed on hover. Removed stale duplicate `hub-cal__event--mine` rule at end of file. **(2) List view inline panel:** Changed `SessionDetail` in list view to render directly below the clicked row (inside a `hub-sched-row-panel` wrapper div) rather than at the bottom of the page. Calendar view still renders `SessionDetail` below the calendar grid. **(3) Layout polish:** `hub-page` widened from 860→920px; side padding increased from 24→36px. Added missing `hub-hdr` CSS block (eyebrow/title/meta; was completely unstyled). `hub-tabs` vertical padding 10→13px; active tab color changed from `--rim-blue` to slate/steel to match spec. `hub-home__greeting` increased from 22→28px. `hub-detail__name` color changed from `--rim-blue` to `#2d3f47` (slate). Fixed double margin-top: `hub-content--wide` was 32px nested inside `hub-content` (also 32px), causing 64px gap on schedule page — set `hub-content--wide { margin-top: 0 }`. Commits: 51607af + earlier session commits. |
@@ -2623,6 +2708,7 @@ Three additions in one session:
 
 | 2026-03-13 (session 46) | **System integrity audit + fixes.** Full codebase audit identified 15 issues across Prisma schema, API routes, auth, emails, dead code. **(1) onDelete policies:** Added `onDelete: Cascade` or `SetNull` to 12+ User relations across the entire Prisma schema. Registration and HostAssignment use `SetNull` (preserves records); all owned content (threads, replies, alerts, hub members, etc.) uses `Cascade`. Previously, the daily cleanup cron (`cleanup-incomplete-accounts`) and admin member deletion would FK-fail on any user with related records. **(2) Registration capacity bypass fix:** `registrationCapacity` was trusted from the client request body — users could set it to 999 in dev tools. Now fetched server-side from Sanity in the registration API route. **(3) Stripe webhook idempotency:** `db.donation.create()` changed to `upsert` on `stripePaymentIntentId`. Duplicate webhook deliveries (which Stripe warns about) now produce a no-op instead of a unique constraint error → 500 → retry loop. **(4) Stale email URLs:** 2 remaining `/volunteer/programs/` URLs in `sendCancellationNotificationEmail` and `sendResponsesUpdatedEmail` updated to `/account/registrar/`. **(5) Stripe checkout auth:** Added email verification — registration email must match `donorEmail` to prevent registrationId abuse. **(6) Registration indexes:** Added 3 indexes on Registration model (`[programSlug, status]`, `[userId]`, `[programId]`). **(7) Stripe env var guard:** Replaced `process.env.STRIPE_SECRET_KEY!` non-null assertion with explicit guard that throws a clear error message. **(8) Dead code cleanup:** Deleted 4 orphaned components (HostProgramActions, SubBoard, SubRequestForm, AssignmentManager — 1,075 lines) left from old host hub migration. **(9) Hide-from-list field clarity:** Improved Sanity schema descriptions for `removeFromProgramList` and `hideFromProgramPageList` — each now cross-references the other so staff knows they control different audiences. Grouped the two toggles together (sortOrder was between them). Sanity Studio deployed. **(10) Redirect shims to edge redirects:** Moved 3 redirect-only pages (`/volunteer`, `/volunteer/programs/:slug`, `/account/dashboard-my-registrations`) from server-rendered `redirect()` pages to `vercel.json` 301 redirects. Edge-level = faster, no function invocation. Deleted the page files and empty directories. **(11) Manual + features page updated:** Settings tab field docs updated with cross-reference notes. |
 
+| 2026-03-13 (session 48) | **RimEditor rich-text component + Email Template Manager.** **(1) RimEditor:** New `components/RimEditor.tsx` — shared Tiptap v3 editor with markdown I/O (`tiptap-markdown` package). Toolbar with Lucide icons: Bold, Italic, Underline, H2, H3, Bullet list, Numbered list, Blockquote, Horizontal rule, Link, Clear formatting. Five groups separated by `Sep` dividers. `value`/`onChange` controlled interface (markdown strings). `rows` prop → `minHeight` formula: `Math.max(rows * 32 + 52, 120)px`. User-resizable via `resize: vertical`. Double cast `(editor.storage as unknown as any).markdown` required due to TypeScript `Storage` type conflict. `setContent(value, { emitUpdate: false })` for external sync. Applied to 8 components: `PostSessionClient`, `HubConvThreadClient`, `HubConvClient`, `HubThreadDetailClient`, `HubScheduleClient`, `HubAnnouncementsClient`, `HouseholdDetail`, `MemberDetail`. CSS: `re-` prefix block in `custom.css`. **(2) Email Template Manager:** Architectural change — all 7 managed transactional emails now live in the DB, editable without a deploy. `EmailTemplate` model added to Prisma (`slug`, `name`, `description`, `subject`, `body` @db.Text, `enabled`, `variables String[]`, `updatedAt`, `updatedById`). Seed: `prisma/seed-email-templates.js` (7 records, all `enabled: false`, idempotent). `lib/email.ts` additions: `EMAIL_BASE_CSS`, `wrapInEmailChrome()`, `renderTemplateToHtml()` (marked → wrapInEmailChrome → juice), `sendTemplatedEmail(slug, to, variables)` (DB lookup → enabled check → `{{token}}` substitution → renderTemplateToHtml → Resend send). 7 hardcoded send functions replaced: `sendFirstTimeAttendeeEmail`, `sendReturningAfterAbsenceEmail`, `sendMissingReportEmail`, `sendHostRoleAssignmentEmail`, `sendSubRequestEmail`, `sendSubClaimedEmail`, `sendReminderEmail`. 11 functions retained as hardcoded (structural reasons: attachments, conditional logic, auth flows, PortableText rendering). Dead builder functions removed. Admin UI: `/admin/emails` list page (ADMIN only) — table of all templates with enabled badge + last-saved date + Edit link. `/admin/emails/[slug]` edit page — subject input, RimEditor body, variables reference panel, enabled toggle, Save button (records `updatedById`/`updatedAt`), Preview button. Preview modal POSTs to `/api/admin/emails/[slug]/preview` — fills variables with `[placeholder]` labels → same `renderTemplateToHtml()` path → pixel-identical to actual sends → rendered in iframe. "Emails" sidebar link added to `AccountSidebar` (ADMIN only, between Members and Manual). CSS: `em-` prefix block. |
 | 2026-03-13 (session 47) | **Dashboard visual polish: ADMIN hub access fix + AlertStrip redesign.** **(1) Manual accuracy audit:** Read full staff manual (`app/admin/manual/page.tsx`), cross-referenced against codebase. Fixed 6 inaccuracies: (a) Removed "Member Accounts" from "Future editions" (chapter 3 already exists). (b) Hub tab count: "five tabs" → "six tabs" (Session tab was missing). (c) Hub access role description corrected (HOST/HOST_MANAGER, not just registrar roles). (d) HOST_MANAGER description: "Manage tab" → "Schedule tab" (Manage tab was deleted in session 37–38). (e) Hub permissions table: "Manage assignments (add / remove)" → "Manage assignments from Schedule". (f) Replaced hardcoded sidebar links table with accurate description of dynamic "Your Hubs" system. **(2) ADMIN hub access fix:** ADMIN users with no `HubMember` records were getting empty hub lists in both the sidebar and dashboard hub cards. Root cause: both `AccountLayout` and `dashboard/page.tsx` were querying hub links exclusively via `HubMember` records, with no ADMIN bypass. Fix: `AccountLayout` now checks `isAdmin` first; if true, fetches all hubs via `db.hub.findMany()`. Dashboard page now builds `dashboardHubs` via the same branch (`db.hub.findMany()` for ADMIN, `hubMemberships.map(m => m.hub)` for others). The ADMIN bypass in `lib/hubAuth.ts` already existed for page-level access checks — this fix extends it consistently to the sidebar and dashboard data layer. **(3) AlertStrip redesign:** Moved from outside `db2-wrap` (full-bleed above content) to inside it (after greeting). New amber color tokens added to `:root`: `--color-alert: #C8821A`, `--color-alert-bg: #FDF6EC`, `--color-alert-border: #F0C98A`. Container: amber card with border + `border-radius: 10px`. Items: 4px amber `border-left`, 20px padding-left (clearance from accent), hairline `border-bottom` dividers between items, no gap. Count badge uses `--color-alert` (was `--rim-blue`). Label: "alerts" (was "new updates"). Scrollable: `max-height: 220px; overflow-y: auto` on `ul`. Scroll indicator: CSS-only pulsing downward chevron (`::after` on `.alert-strip__scroll-wrap`; 10×10px rotated border trick; `opacity: 0.3→1→0.3` 2s loop); hidden via `is-scrolled-to-bottom` class set by `checkScroll` callback on mount + scroll + data change. `"use client"` component: added `useRef`, `isAtBottom` state, `checkScroll` callback. **(4) Dashboard width:** `db2-wrap` max-width 680px → 720px. Commits: `c0f48c9`, `13a69ad`, `68f2aba`, `0cd1017`. |
 
-*Last updated: 2026-03-13 (session 47)*
+*Last updated: 2026-03-13 (session 48)*

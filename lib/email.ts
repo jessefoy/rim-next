@@ -3,6 +3,7 @@ import {
   portableTextToEmailHtml,
   portableTextToEmailText,
 } from "@/lib/portableTextEmail";
+import { db } from "@/lib/db";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -27,6 +28,113 @@ const JESSE_EMAIL =
 // Falls back to REGISTRAR_EMAIL if not set.
 const HOST_COORDINATOR_EMAIL =
   process.env.HOST_COORDINATOR_EMAIL ?? REGISTRAR_EMAIL;
+
+// ─── Email template system ───────────────────────────────────────────────────
+
+/**
+ * Base CSS applied to every templated email via juice (CSS inlining).
+ * Targets standard HTML tags produced by marked so styles survive email clients.
+ * The same CSS is applied in the admin preview modal for pixel-identical rendering.
+ */
+export const EMAIL_BASE_CSS = `
+body { font-family: 'Open Sans', Arial, sans-serif; font-size: 16px; line-height: 1.75; color: #333333; }
+p { margin: 0 0 16px; font-size: 16px; line-height: 1.75; color: #333333; }
+h2 { font-family: Georgia, 'Times New Roman', serif; font-size: 22px; font-weight: 400; line-height: 1.3; margin: 28px 0 12px; color: #135274; }
+h3 { font-family: Georgia, 'Times New Roman', serif; font-size: 18px; font-weight: 400; line-height: 1.3; margin: 20px 0 8px; color: #135274; }
+ul, ol { margin: 0 0 16px; padding-left: 24px; }
+li { margin: 4px 0; font-size: 16px; line-height: 1.75; color: #333333; }
+blockquote { border-left: 3px solid #c8bcb2; margin: 16px 0; padding: 12px 16px; color: #56504a; }
+blockquote p { color: #56504a; margin: 0; }
+a { color: #135274; text-decoration: none; }
+a:hover { text-decoration: underline; }
+hr { border: none; border-top: 1px solid #ede9e5; margin: 24px 0; }
+strong { font-weight: 700; }
+em { font-style: italic; }
+`;
+
+/**
+ * Wrap rendered markdown body HTML in RIM's standard email chrome:
+ * dark-blue header stripe, white card, 600px max-width, footer.
+ * Used by both sendTemplatedEmail (actual send) and the admin preview modal.
+ */
+export function wrapInEmailChrome(bodyHtml: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+</head>
+<body>
+  <div style="background:#f6f3f0;padding:40px 16px;">
+    <div style="max-width:600px;margin:0 auto;">
+      <div style="background:#135274;padding:24px 36px;border-radius:4px 4px 0 0;">
+        <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.8);">Rooted In Mindfulness</p>
+      </div>
+      <div style="background:#ffffff;padding:36px 36px 28px;">
+        ${bodyHtml}
+      </div>
+      <div style="background:#ffffff;padding:16px 36px 28px;border-top:1px solid #ede9e5;border-radius:0 0 4px 4px;">
+        <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">Rooted In Mindfulness &middot; Brookfield, WI &middot; <a href="https://rootedinmindfulness.org" style="color:#39607a;text-decoration:none;">rootedinmindfulness.org</a></p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+/**
+ * Render a markdown template body to fully inlined HTML ready for email delivery.
+ * Same function used at send time AND in the admin preview modal — guarantees
+ * what Jesse sees in preview is pixel-identical to what recipients receive.
+ */
+export async function renderTemplateToHtml(markdown: string): Promise<string> {
+  const { marked } = await import("marked");
+  const juice = (await import("juice")).default;
+  const bodyHtml = await marked(markdown);
+  const wrapped = wrapInEmailChrome(bodyHtml);
+  return juice(wrapped, { extraCss: EMAIL_BASE_CSS, removeStyleTags: true });
+}
+
+/**
+ * Send a transactional email from the database template system.
+ *
+ * - Fetches the EmailTemplate record by slug from the DB.
+ * - If the template doesn't exist OR enabled = false, silently returns (no-op).
+ * - Substitutes {{variableName}} tokens in both subject and body.
+ * - Converts the markdown body to inlined HTML via marked + juice.
+ * - Sends via Resend.
+ *
+ * Errors are caught and logged — a failed templated email must never throw.
+ */
+export async function sendTemplatedEmail(
+  slug: string,
+  to: string,
+  variables: Record<string, string>
+): Promise<void> {
+  try {
+    const template = await db.emailTemplate.findUnique({ where: { slug } });
+    if (!template || !template.enabled) return;
+
+    let subject = template.subject;
+    let body    = template.body;
+    for (const [key, value] of Object.entries(variables)) {
+      subject = subject.replaceAll(`{{${key}}}`, value);
+      body    = body.replaceAll(`{{${key}}}`, value);
+    }
+
+    const html = await renderTemplateToHtml(body);
+
+    const { error } = await resend.emails.send({
+      from: FROM,
+      to,
+      subject,
+      html,
+    });
+    if (error) console.error(`[email] sendTemplatedEmail(${slug}) failed:`, error);
+  } catch (e) {
+    console.error(`[email] sendTemplatedEmail(${slug}) threw:`, e);
+  }
+}
 
 // ─── Public interface ────────────────────────────────────────────────────────
 
@@ -467,189 +575,25 @@ export interface ReminderEmailData {
 
 /**
  * Sent to a registrant as a reminder about an upcoming program.
- * Can be triggered automatically by a daily cron or manually by a registrar.
- * Errors are caught and logged — must never fail the send operation.
+ * Managed via Email Template Manager — template: "session-reminder"
+ * Fire-and-forget — errors caught inside sendTemplatedEmail.
  */
 export async function sendReminderEmail(data: ReminderEmailData): Promise<void> {
-  const {
-    to, firstName, programTitle, programSlug,
-    dateText, locationText, locationLink,
-    zoomLink, reminderMessage,
-  } = data;
-
-  const reminderHtml = reminderMessage?.length
-    ? portableTextToEmailHtml(reminderMessage)
-    : null;
-  const reminderText = reminderMessage?.length
-    ? portableTextToEmailText(reminderMessage)
-    : null;
-
-  const { error } = await resend.emails.send({
-    from:    FROM,
-    to,
-    subject: `A reminder — ${programTitle}`,
-    html:    buildReminderHtml({
-      firstName, programTitle, programSlug,
-      dateText, locationText, locationLink,
-      zoomLink, reminderHtml,
-    }),
-    text:    buildReminderText({
-      firstName, programTitle, programSlug,
-      dateText, locationText,
-      zoomLink, reminderText,
-    }),
+  const locationText = data.locationLink
+    ? `[${data.locationText}](${data.locationLink})`
+    : (data.locationText ?? "");
+  const reminderMessage = data.reminderMessage?.length
+    ? portableTextToEmailText(data.reminderMessage)
+    : "";
+  await sendTemplatedEmail("session-reminder", data.to, {
+    firstName:       data.firstName,
+    programTitle:    data.programTitle,
+    dateText:        data.dateText ?? "",
+    locationText,
+    zoomLink:        data.zoomLink ?? "",
+    reminderMessage,
+    dashboardUrl:    `${BASE_URL}/account/dashboard`,
   });
-  if (error) {
-    console.error("[email] Failed to send reminder:", error);
-  }
-}
-
-// ─── Reminder builders ────────────────────────────────────────────────────────
-
-function buildReminderHtml({
-  firstName, programTitle, programSlug,
-  dateText, locationText, locationLink,
-  zoomLink, reminderHtml,
-}: {
-  firstName: string; programTitle: string; programSlug: string;
-  dateText?: string | null;
-  locationText?: string | null; locationLink?: string | null;
-  zoomLink?: string | null;
-  reminderHtml?: string | null;
-}): string {
-  const programUrl = `${BASE_URL}/programs/${programSlug}`;
-  const ctaUrl     = `${BASE_URL}/account/dashboard`;
-  const ctaLabel   = "Go to my dashboard";
-
-  const locationRow = locationText
-    ? `<tr><td style="padding:3px 0;font-size:15px;color:#56504a;">📍&nbsp; ${
-        locationLink
-          ? `<a href="${locationLink}" style="color:#39607a;text-decoration:none;">${locationText}</a>`
-          : locationText
-      }</td></tr>`
-    : "";
-
-  const detailRows = [
-    dateText ? `<tr><td style="padding:3px 0;font-size:15px;color:#56504a;">📅&nbsp; ${dateText}</td></tr>` : "",
-    locationRow,
-  ].filter(Boolean).join("");
-
-  const detailsBlock = detailRows
-    ? `<table role="presentation" cellpadding="0" cellspacing="0"
-          style="margin:0 0 28px;border-left:3px solid #c8bcb2;padding-left:16px;">
-        ${detailRows}
-      </table>`
-    : "";
-
-  const customMessageBlock = reminderHtml
-    ? `<div style="margin:0 0 28px;padding:20px 24px;background:#f6f3f0;border-radius:4px;">
-         ${reminderHtml}
-       </div>`
-    : "";
-
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>A reminder — ${programTitle}</title>
-</head>
-<body style="margin:0;padding:24px 0;background-color:#f6f3f0;font-family:Georgia,'Times New Roman',serif;">
-  <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:6px;overflow:hidden;">
-
-    <!-- Header -->
-    <div style="background:#135274;padding:24px 36px;">
-      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;
-                letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.75);">
-        Rooted In Mindfulness
-      </p>
-    </div>
-
-    <!-- Body -->
-    <div style="padding:36px 36px 28px;">
-      <h1 style="margin:0 0 24px;font-family:Georgia,'Times New Roman',serif;font-size:26px;
-                 font-weight:400;line-height:1.3;color:#135274;">
-        A reminder
-      </h1>
-      <p style="margin:0 0 16px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,serif;">
-        Hi ${firstName},
-      </p>
-      <p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,serif;">
-        This is a friendly reminder about <strong>${programTitle}</strong>,
-        coming up soon. We look forward to practicing together.
-      </p>
-
-      ${detailsBlock}
-      ${customMessageBlock}
-
-      <!-- CTA -->
-      <table role="presentation" cellpadding="0" cellspacing="0">
-        <tr>
-          <td style="border-radius:4px;background:#135274;">
-            <a href="${ctaUrl}"
-               style="display:inline-block;padding:12px 24px;font-family:Arial,Helvetica,sans-serif;
-                      font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:4px;">
-              ${ctaLabel}
-            </a>
-          </td>
-        </tr>
-      </table>
-    </div>
-
-    <!-- Footer -->
-    <div style="padding:20px 36px 28px;border-top:1px solid #ede9e5;">
-      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">
-        Rooted In Mindfulness &middot; Brookfield, WI<br>
-        Questions? Reply to this email or visit
-        <a href="https://rootedinmindfulness.org" style="color:#39607a;text-decoration:none;">
-          rootedinmindfulness.org
-        </a>
-      </p>
-    </div>
-
-  </div>
-</body>
-</html>`;
-}
-
-function buildReminderText({
-  firstName, programTitle, programSlug,
-  dateText, locationText,
-  zoomLink, reminderText,
-}: {
-  firstName: string; programTitle: string; programSlug: string;
-  dateText?: string | null;
-  locationText?: string | null;
-  zoomLink?: string | null;
-  reminderText?: string | null;
-}): string {
-  const programUrl = `${BASE_URL}/programs/${programSlug}`;
-  const ctaUrl     = `${BASE_URL}/account/dashboard`;
-  const ctaLabel   = "Go to my dashboard";
-
-  const details = [
-    dateText     ? `When: ${dateText}`         : "",
-    locationText ? `Location: ${locationText}` : "",
-  ].filter(Boolean).join("\n");
-
-  const customLines = reminderText?.trim()
-    ? ["─", reminderText.trim(), ""]
-    : [];
-
-  return [
-    `Hi ${firstName},`,
-    "",
-    `This is a friendly reminder about ${programTitle}, coming up soon.`,
-    "We look forward to practicing together.",
-    "",
-    ...(details ? [details, ""] : []),
-    ...customLines,
-    `${ctaLabel}: ${ctaUrl}`,
-    "",
-    "—",
-    "Rooted In Mindfulness · Brookfield, WI",
-    "rootedinmindfulness.org",
-  ].join("\n");
 }
 
 // ─── Internal helpers (registration confirmation / waitlist) ─────────────────
@@ -1227,115 +1171,15 @@ function buildRoleAssignmentText({
 
 /**
  * Sent to a member when they are granted the HOST role.
- * Tells them what the role means and where to find their session assignments.
- * Fire-and-forget — errors are caught and logged.
+ * Managed via Email Template Manager — template: "host-role-assigned"
+ * Fire-and-forget — errors caught inside sendTemplatedEmail.
  */
 export async function sendHostRoleAssignmentEmail(data: RoleAssignmentEmailData): Promise<void> {
-  const { to, firstName } = data;
-  const hostAreaUrl = `${BASE_URL}/account/hub/host-team`;
-  const manualUrl   = `${BASE_URL}/admin/manual`;
-
-  const { error } = await resend.emails.send({
-    from:    FROM,
-    to,
-    subject: "You've been added as a Meet host — Rooted In Mindfulness",
-    html:    buildHostRoleAssignmentHtml({ firstName, hostAreaUrl, manualUrl }),
-    text:    buildHostRoleAssignmentText({ firstName, hostAreaUrl, manualUrl }),
+  await sendTemplatedEmail("host-role-assigned", data.to, {
+    firstName:   data.firstName ?? "there",
+    hostAreaUrl: `${BASE_URL}/account/hub/host-team`,
+    manualUrl:   `${BASE_URL}/admin/manual`,
   });
-  if (error) {
-    console.error("[email] Failed to send host role assignment notification:", error);
-  }
-}
-
-function buildHostRoleAssignmentHtml({
-  firstName,
-  hostAreaUrl,
-  manualUrl,
-}: {
-  firstName: string | null;
-  hostAreaUrl: string;
-  manualUrl: string;
-}): string {
-  const greeting = firstName ? `Hi ${firstName},` : "Hello,";
-  return `<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>You're a Meet host</title></head>
-<body style="margin:0;padding:0;background:#f6f3f0;font-family:'Open Sans',Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f6f3f0;padding:40px 16px;">
-    <tr><td align="center">
-      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:4px;overflow:hidden;">
-        <tr>
-          <td style="background:#135274;padding:28px 36px;">
-            <p style="margin:0;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:#c5d8e4;font-family:'Open Sans',Arial,sans-serif;">Rooted In Mindfulness</p>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:36px 36px 28px;">
-            <p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">${greeting}</p>
-            <p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">
-              You've been added as a <strong>Google Meet host</strong> for Rooted In Mindfulness. Thank you for helping hold this space for the community.
-            </p>
-            <p style="margin:0 0 28px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">
-              Your <strong>Host Area</strong> shows every virtual program and the Google account you'll need to sign into before hosting each one. Bookmark it — that's your home base before each session.
-            </p>
-            <table cellpadding="0" cellspacing="0" style="margin-bottom:12px;">
-              <tr>
-                <td style="border-radius:3px;background:#135274;">
-                  <a href="${hostAreaUrl}" style="display:inline-block;padding:12px 24px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;font-family:'Open Sans',Arial,sans-serif;">Go to Host Area &#8594;</a>
-                </td>
-              </tr>
-            </table>
-            <table cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
-              <tr>
-                <td style="border-radius:3px;border:1.5px solid #39607a;">
-                  <a href="${manualUrl}" style="display:inline-block;padding:11px 24px;font-size:15px;font-weight:600;color:#39607a;text-decoration:none;font-family:'Open Sans',Arial,sans-serif;">Read the Volunteer Manual &#8594;</a>
-                </td>
-              </tr>
-            </table>
-            <p style="margin:0;font-size:14px;line-height:1.75;color:#6b6059;font-family:'Open Sans',Arial,sans-serif;">
-              If you have any questions, reply to this email or reach out directly. Welcome to the host team.
-            </p>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:20px 36px;border-top:1px solid #ede9e5;">
-            <p style="margin:0;font-size:12px;color:#9b8e85;font-family:'Open Sans',Arial,sans-serif;">Rooted In Mindfulness &middot; Brookfield, WI</p>
-          </td>
-        </tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
-}
-
-function buildHostRoleAssignmentText({
-  firstName,
-  hostAreaUrl,
-  manualUrl,
-}: {
-  firstName: string | null;
-  hostAreaUrl: string;
-  manualUrl: string;
-}): string {
-  const greeting = firstName ? `Hi ${firstName},` : "Hello,";
-  return [
-    greeting,
-    "",
-    "You've been added as a Google Meet host for Rooted In Mindfulness. Thank you for helping hold this space for the community.",
-    "",
-    "Your Host Area shows every virtual program and the Google account you'll need to sign into before hosting each one:",
-    `  Host Area: ${hostAreaUrl}`,
-    "",
-    "Volunteer Manual (guidance for all volunteers):",
-    `  ${manualUrl}`,
-    "",
-    "If you have any questions, reply to this email or reach out directly. Welcome to the host team.",
-    "",
-    "—",
-    "Rooted In Mindfulness · Brookfield, WI",
-    "rootedinmindfulness.org",
-  ].join("\n");
 }
 
 // ─── Host Community Hub emails ───────────────────────────────────────────────
@@ -1349,50 +1193,21 @@ export interface SubRequestEmailData {
   message: string | null;
 }
 
+/**
+ * Sent to all hosts when a sub request is posted.
+ * Managed via Email Template Manager — template: "sub-request-posted"
+ * Fire-and-forget — errors caught inside sendTemplatedEmail.
+ */
 export async function sendSubRequestEmail(data: SubRequestEmailData): Promise<void> {
-  const { to, firstName, requesterName, programName, sessionDate, message } = data;
-  const hubUrl = `${BASE_URL}/account/hub/host-team/schedule`;
-  const greeting = firstName ? `Hi ${firstName},` : "Hello,";
-  const sessionLabel = sessionDate ? ` on ${sessionDate}` : "";
-
-  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Sub needed</title></head>
-<body style="margin:0;padding:0;background:#f6f3f0;font-family:'Open Sans',Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f6f3f0;padding:40px 16px;">
-<tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:4px;overflow:hidden;">
-<tr><td style="background:#135274;padding:28px 36px;"><p style="margin:0;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:#c5d8e4;font-family:'Open Sans',Arial,sans-serif;">Rooted In Mindfulness</p></td></tr>
-<tr><td style="padding:36px 36px 28px;">
-<p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">${greeting}</p>
-<p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">
-  <strong>${requesterName}</strong> needs a sub for <strong>${programName}</strong>${sessionLabel}.
-</p>
-${message ? `<p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#56504a;font-family:Georgia,'Times New Roman',serif;background:#f6f3f0;padding:16px 20px;border-radius:4px;">"${message}"</p>` : ""}
-<table cellpadding="0" cellspacing="0" style="margin-top:8px;">
-<tr><td style="background:#135274;border-radius:3px;padding:12px 24px;">
-<a href="${hubUrl}" style="font-family:'Open Sans',Arial,sans-serif;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">View Sub Board →</a>
-</td></tr></table>
-</td></tr>
-<tr><td style="padding:20px 36px 28px;border-top:1px solid #ede9e5;">
-<p style="margin:0;font-family:'Open Sans',Arial,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">Rooted In Mindfulness · Brookfield, WI</p>
-</td></tr>
-</table></td></tr></table></body></html>`;
-
-  const text = [
-    greeting,
-    "",
-    `${requesterName} needs a sub for ${programName}${sessionLabel}.`,
-    message ? `\n"${message}"\n` : "",
-    `View the sub board: ${hubUrl}`,
-    "",
-    "—",
-    "Rooted In Mindfulness · Brookfield, WI",
-  ].join("\n");
-
-  const { error } = await resend.emails.send({
-    from: FROM, to,
-    subject: `Sub needed: ${programName}${sessionLabel}`,
-    html, text,
+  const sessionLabel = data.sessionDate ? ` on ${data.sessionDate}` : "";
+  await sendTemplatedEmail("sub-request-posted", data.to, {
+    firstName:     data.firstName ?? "there",
+    requesterName: data.requesterName,
+    programName:   data.programName,
+    sessionDate:   sessionLabel,
+    message:       data.message ?? "",
+    hubUrl:        `${BASE_URL}/account/hub/host-team/schedule`,
   });
-  if (error) console.error("[email] sendSubRequestEmail failed:", error);
 }
 
 export interface SubClaimedEmailData {
@@ -1404,50 +1219,21 @@ export interface SubClaimedEmailData {
   message: string | null;
 }
 
+/**
+ * Sent to the requesting host when their sub request is claimed.
+ * Managed via Email Template Manager — template: "sub-request-claimed"
+ * Fire-and-forget — errors caught inside sendTemplatedEmail.
+ */
 export async function sendSubClaimedEmail(data: SubClaimedEmailData): Promise<void> {
-  const { to, firstName, claimerName, programName, sessionDate, message } = data;
-  const hubUrl = `${BASE_URL}/account/hub/host-team/schedule`;
-  const greeting = firstName ? `Hi ${firstName},` : "Hello,";
-  const sessionLabel = sessionDate ? ` on ${sessionDate}` : "";
-
-  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Sub covered</title></head>
-<body style="margin:0;padding:0;background:#f6f3f0;font-family:'Open Sans',Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f6f3f0;padding:40px 16px;">
-<tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:4px;overflow:hidden;">
-<tr><td style="background:#135274;padding:28px 36px;"><p style="margin:0;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:#c5d8e4;font-family:'Open Sans',Arial,sans-serif;">Rooted In Mindfulness</p></td></tr>
-<tr><td style="padding:36px 36px 28px;">
-<p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">${greeting}</p>
-<p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">
-  Your sub request for <strong>${programName}</strong>${sessionLabel} has been covered — <strong>${claimerName}</strong> will take the session.
-</p>
-${message ? `<p style="margin:0 0 24px;font-size:15px;line-height:1.7;color:#56504a;font-family:Georgia,'Times New Roman',serif;background:#f6f3f0;padding:16px 20px;border-radius:4px;">"${message}"</p>` : ""}
-<table cellpadding="0" cellspacing="0" style="margin-top:8px;">
-<tr><td style="background:#135274;border-radius:3px;padding:12px 24px;">
-<a href="${hubUrl}" style="font-family:'Open Sans',Arial,sans-serif;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">View Sub Board →</a>
-</td></tr></table>
-</td></tr>
-<tr><td style="padding:20px 36px 28px;border-top:1px solid #ede9e5;">
-<p style="margin:0;font-family:'Open Sans',Arial,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">Rooted In Mindfulness · Brookfield, WI</p>
-</td></tr>
-</table></td></tr></table></body></html>`;
-
-  const text = [
-    greeting,
-    "",
-    `Your sub request for ${programName}${sessionLabel} has been covered — ${claimerName} will take the session.`,
-    message ? `\n"${message}"\n` : "",
-    `View the sub board: ${hubUrl}`,
-    "",
-    "—",
-    "Rooted In Mindfulness · Brookfield, WI",
-  ].join("\n");
-
-  const { error } = await resend.emails.send({
-    from: FROM, to,
-    subject: `Sub covered: ${programName}${sessionLabel}`,
-    html, text,
+  const sessionLabel = data.sessionDate ? ` on ${data.sessionDate}` : "";
+  await sendTemplatedEmail("sub-request-claimed", data.to, {
+    firstName:   data.firstName ?? "there",
+    claimerName: data.claimerName,
+    programName: data.programName,
+    sessionDate: sessionLabel,
+    message:     data.message ?? "",
+    hubUrl:      `${BASE_URL}/account/hub/host-team/schedule`,
   });
-  if (error) console.error("[email] sendSubClaimedEmail failed:", error);
 }
 
 export interface NewThreadEmailData {
@@ -1821,105 +1607,51 @@ export async function sendPostSessionNotification(
 }
 
 // ─── ATTENDANCE AUTOMATED EMAILS ─────────────────────────────────────────────
-// ⚠️ DRAFT — DO NOT ENABLE until Jesse approves copy.
+// Managed via Email Template Manager — copy lives in DB, not here.
+// Templates: "first-time-attendee", "returning-after-absence"
 // Controlled by ENABLE_ATTENDANCE_EMAILS=true env var (default: disabled).
 // Fire-and-forget from POST /api/attendance/join.
 
-interface AttendanceEmailData {
+export interface AttendanceEmailData {
   to: string;
   firstName: string;
+  programName?: string;
+  sessionDate?: string;
 }
 
 /**
- * Email 1 — First-time attendee.
+ * First-time attendee welcome.
  * Trigger: isNewMember = true on a new SessionAttendance record.
- *
- * ⚠️ DRAFT COPY — needs Jesse's approval before enabling.
+ * Template: "first-time-attendee" (must be enabled in /admin/emails before sending)
  */
 export async function sendFirstTimeAttendeeEmail(
   data: AttendanceEmailData
 ): Promise<void> {
-  const { to, firstName } = data;
-
-  // DRAFT subject — replace before enabling
-  const subject = `[DRAFT] Welcome to your first RIM session, ${firstName}`;
-
-  const html = `
-    <p>Dear ${firstName},</p>
-    <p><strong>[DRAFT — copy not yet approved]</strong></p>
-    <p>It was wonderful to have you with us tonight. Welcome to Rooted In Mindfulness.</p>
-    <p>We hope you felt at home. Please know you're always welcome to return.</p>
-    <p>With warmth,<br>The RIM Host Team</p>
-    <p style="color:#888;font-size:12px;">Rooted In Mindfulness · rootedinmindfulness.org</p>
-  `;
-
-  const text = [
-    `Dear ${firstName},`,
-    "",
-    "[DRAFT — copy not yet approved]",
-    "",
-    "It was wonderful to have you with us tonight. Welcome to Rooted In Mindfulness.",
-    "",
-    "We hope you felt at home. Please know you're always welcome to return.",
-    "",
-    "With warmth,",
-    "The RIM Host Team",
-    "",
-    "—",
-    "Rooted In Mindfulness · rootedinmindfulness.org",
-  ].join("\n");
-
-  try {
-    await resend.emails.send({ from: FROM, to, subject, html, text });
-  } catch (e) {
-    console.error("[email] sendFirstTimeAttendeeEmail failed:", e);
-  }
+  await sendTemplatedEmail("first-time-attendee", data.to, {
+    firstName:   data.firstName,
+    programName: data.programName ?? "",
+    sessionDate: data.sessionDate ?? "",
+  });
 }
 
 /**
- * Email 2 — Returning after absence.
+ * Returning after absence.
  * Trigger: returningAfterAbsence = true on a new SessionAttendance record.
- *
- * ⚠️ DRAFT COPY — needs Jesse's approval before enabling.
+ * Template: "returning-after-absence" (must be enabled in /admin/emails before sending)
  */
 export async function sendReturningAfterAbsenceEmail(
   data: AttendanceEmailData
 ): Promise<void> {
-  const { to, firstName } = data;
-
-  // DRAFT subject — replace before enabling
-  const subject = `[DRAFT] Good to see you again, ${firstName}`;
-
-  const html = `
-    <p>Dear ${firstName},</p>
-    <p><strong>[DRAFT — copy not yet approved]</strong></p>
-    <p>It was lovely to have you back with us tonight. We're glad you're here.</p>
-    <p>With warmth,<br>The RIM Host Team</p>
-    <p style="color:#888;font-size:12px;">Rooted In Mindfulness · rootedinmindfulness.org</p>
-  `;
-
-  const text = [
-    `Dear ${firstName},`,
-    "",
-    "[DRAFT — copy not yet approved]",
-    "",
-    "It was lovely to have you back with us tonight. We're glad you're here.",
-    "",
-    "With warmth,",
-    "The RIM Host Team",
-    "",
-    "—",
-    "Rooted In Mindfulness · rootedinmindfulness.org",
-  ].join("\n");
-
-  try {
-    await resend.emails.send({ from: FROM, to, subject, html, text });
-  } catch (e) {
-    console.error("[email] sendReturningAfterAbsenceEmail failed:", e);
-  }
+  await sendTemplatedEmail("returning-after-absence", data.to, {
+    firstName:   data.firstName,
+    programName: data.programName ?? "",
+    sessionDate: data.sessionDate ?? "",
+  });
 }
 
 // ─── MISSING REPORT NOTIFICATION ─────────────────────────────────────────────
+// Managed via Email Template Manager — copy lives in DB, not here.
+// Template: "missing-report-alert"
 // Sent by cron /api/cron/missing-reports at 23:00 UTC nightly.
 // One email per missing session report, to each coordinator of the host-team hub.
 
@@ -1933,33 +1665,11 @@ export interface MissingReportEmailData {
 
 export async function sendMissingReportEmail(data: MissingReportEmailData): Promise<void> {
   const { to, programName, sessionDateDisplay, assignedHostName, detailUrl } = data;
-  const subject = `No session report filed — ${programName}, ${sessionDateDisplay}`;
-
-  const hostLine = assignedHostName
-    ? `If you'd like to check in with ${assignedHostName}, their report link is below.`
-    : "If you'd like to follow up with tonight's host, their report link is below.";
-
-  const html = [
-    `<p>Just a heads up — no post-session report was submitted for <strong>${programName}</strong> tonight (${sessionDateDisplay}).</p>`,
-    `<p>If everything went smoothly and nothing needs follow-up, no action is needed. ${hostLine}</p>`,
-    `<p><a href="${detailUrl}">View session in coordinator history →</a></p>`,
-    `<p style="margin-top:32px;color:#888;font-size:13px;">Rooted In Mindfulness &middot; rootedinmindfulness.org</p>`,
-  ].join("\n");
-
-  const text = [
-    `Just a heads up — no post-session report was submitted for ${programName} tonight (${sessionDateDisplay}).`,
-    "",
-    `If everything went smoothly and nothing needs follow-up, no action is needed. ${hostLine}`,
-    "",
-    `View session: ${detailUrl}`,
-    "",
-    "—",
-    "Rooted In Mindfulness · rootedinmindfulness.org",
-  ].join("\n");
-
-  try {
-    await resend.emails.send({ from: FROM, to, subject, html, text });
-  } catch (e) {
-    console.error("[email] sendMissingReportEmail failed:", e);
-  }
+  await sendTemplatedEmail("missing-report-alert", to, {
+    programName,
+    sessionDateDisplay,
+    assignedHostName: assignedHostName ?? "tonight's host",
+    detailUrl,
+  });
+  // Note: subject line in the template uses {{programName}} and {{sessionDateDisplay}}.
 }

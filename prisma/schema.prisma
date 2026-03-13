@@ -110,6 +110,7 @@ model User {
   hubDocuments    HubDocument[]
   hubThreads2     HubConversationThread[]
   hubReplies2     HubConversationReply[]
+  emailTemplates  EmailTemplate[]
 
   @@map("users")
 }
@@ -694,4 +695,25 @@ model HubConversationReply {
   updatedAt DateTime              @updatedAt
 
   @@map("hub_conversation_replies")
+}
+
+// ─── EMAIL TEMPLATE MANAGER ───────────────────────────────────────────────────
+// Slugs are permanent system identifiers — never delete, never rename.
+// Enabled = false means sendTemplatedEmail() silently no-ops for that slug.
+
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String
+  subject     String
+  body        String   @db.Text
+  enabled     Boolean  @default(false)
+  variables   String[]
+
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+  updatedBy   User?    @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@map("email_templates")
 }
