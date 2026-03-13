@@ -1420,7 +1420,7 @@ export default async function ManualPage() {
               </tr>
               <tr>
                 <td>Host Area <code>/account/hub/host-team</code></td>
-                <td>HOST, REGISTRAR, and ADMIN roles</td>
+                <td>Host team members (anyone added to the hub) and Admins</td>
                 <td>Always visible once the link is created</td>
               </tr>
             </tbody>
@@ -1467,12 +1467,9 @@ export default async function ManualPage() {
         <section className="man-future">
           <h2 className="man-future__title">Future editions of this manual</h2>
           <p className="man-future__intro">
-            The following chapters are planned and will be added as each area of the system matures.
+            The following chapter is planned and will be added as this area of the system matures.
           </p>
           <ul className="man-future__list">
-            <li>
-              <strong>Member Accounts</strong> — how members sign in (magic link, no passwords), the onboarding flow, community agreements, account management, and what to do when someone can&rsquo;t get in.
-            </li>
             <li>
               <strong>Courses &amp; Online Materials</strong> — the member-facing side: browsing the course library, accessing lessons and recordings, and how open courses differ from registration-required ones. (The admin side — granting and revoking access — is already covered in the <a href="#reg-course-access">Course access</a> section of Chapter 1.)
             </li>
@@ -1821,7 +1818,7 @@ export default async function ManualPage() {
             The Host Community Hub is your team&rsquo;s home base. You&rsquo;ll find it at <strong>/account/hub/host-team</strong> — it&rsquo;s where the host team sees the schedule, helps each other out when someone can&rsquo;t make a session, and stays connected between meetings. Think of it as the back room that supports everything that happens in the Meet rooms.
           </p>
           <p>
-            The hub has five tabs: <strong>Announcements</strong>, <strong>Schedule</strong>, <strong>Documents</strong>, <strong>Conversations</strong>, and <strong>Members</strong>. Sub coverage (the Sub Board) lives inside the Schedule tab — you request and claim subs from the session detail panel without leaving the calendar.
+            The hub has six tabs: <strong>Announcements</strong>, <strong>Schedule</strong>, <strong>Session</strong>, <strong>Documents</strong>, <strong>Conversations</strong>, and <strong>Members</strong>. The Session tab is a live attendance view during virtual programs (see <a href="#hub-session">Session Tab</a> below). Sub coverage (the Sub Board) lives inside the Schedule tab — you request and claim subs from the session detail panel without leaving the calendar.
           </p>
           <p>
             Everyone on the host team — whether you have the <strong>Meet Host</strong> or <strong>Meet Host Manager</strong> role — can access the hub. Admins can too. What each person can do is slightly different depending on their role. Here&rsquo;s a quick reference:
@@ -1837,7 +1834,7 @@ export default async function ManualPage() {
             </thead>
             <tbody>
               <tr><td>See the full schedule</td><td>✓</td><td>✓</td><td>✓</td></tr>
-              <tr><td>Manage assignments (add / remove)</td><td></td><td>✓</td><td>✓</td></tr>
+              <tr><td>Manage assignments from Schedule</td><td></td><td>✓</td><td>✓</td></tr>
               <tr><td>Request a sub for your own session</td><td>✓</td><td>✓</td><td>✓</td></tr>
               <tr><td>Claim an open sub request</td><td>✓</td><td>✓</td><td>✓</td></tr>
               <tr><td>Read and post in Conversations</td><td>✓</td><td>✓</td><td>✓</td></tr>
@@ -2119,12 +2116,12 @@ export default async function ManualPage() {
 
           <h3 className="man-section__h3">Meet Host Manager</h3>
           <p>
-            A Meet Host Manager is responsible for managing the host schedule — assigning volunteers to programs, and overseeing the hub&rsquo;s Manage tab. This role is for whoever coordinates the host team: a lead volunteer or teacher who handles rotation planning.
+            A Meet Host Manager is responsible for managing the host schedule — assigning volunteers to programs and overseeing the team rotation. This role is for whoever coordinates the host team: a lead volunteer or teacher who handles rotation planning.
           </p>
           <p>What a Meet Host Manager can do (in addition to everything a Meet Host can do):</p>
           <ul className="man-list">
             <li>View all assignments across all programs on the Schedule tab</li>
-            <li>Create and delete host assignments from the <strong>Manage</strong> tab</li>
+            <li>Create and delete host assignments directly from the <strong>Schedule</strong> tab</li>
             <li>Close and archive threads</li>
             <li>Receive <strong>unassigned-session alerts</strong> — daily notifications when a program within 30 days has no host assigned</li>
           </ul>
@@ -2169,63 +2166,45 @@ export default async function ManualPage() {
 
           <h3 className="man-section__h3">Sidebar links per role</h3>
           <p>
-            When a member with a volunteer role logs in, the account sidebar shows additional navigation links. The links depend on their role:
+            When a member with a volunteer role logs in, the account sidebar shows additional navigation links. The links depend on their role and hub memberships:
           </p>
           <table className="man-table man-table--perms">
             <thead>
               <tr>
                 <th>Link</th>
-                <th>Host</th>
-                <th>Host Mgr</th>
-                <th>Registrar</th>
-                <th>Admin</th>
+                <th>Who sees it</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td>My Sessions <code>/account/hub/host-team</code></td>
-                <td>✓</td>
-                <td>✓</td>
-                <td></td>
-                <td>✓</td>
+                <td>Your Hubs (e.g. Host Team) <code>/account/hub/[slug]</code></td>
+                <td>Anyone added to a hub — the sidebar dynamically shows links to each hub the member belongs to</td>
               </tr>
               <tr>
-                <td>Assign hosts (from Schedule) <code>/account/hub/host-team/schedule</code></td>
-                <td></td>
-                <td>✓</td>
-                <td></td>
-                <td>✓</td>
-              </tr>
-              <tr>
-                <td>Registrations <code>/account/registrar</code></td>
-                <td></td>
-                <td></td>
-                <td>✓</td>
-                <td>✓</td>
+                <td>Programs <code>/account/registrar</code></td>
+                <td>Registrar, Admin</td>
               </tr>
               <tr>
                 <td>Members <code>/admin/members</code></td>
-                <td></td>
-                <td></td>
-                <td>✓</td>
-                <td>✓</td>
+                <td>Registrar, Admin</td>
               </tr>
               <tr>
-                <td>Sanity Studio (external)</td>
-                <td></td>
-                <td></td>
-                <td>✓</td>
-                <td>✓</td>
+                <td>Households <code>/admin/households</code></td>
+                <td>Registrar, Admin</td>
               </tr>
               <tr>
-                <td>Volunteer Manual <code>/admin/manual</code></td>
-                <td>✓</td>
-                <td>✓</td>
-                <td>✓</td>
-                <td>✓</td>
+                <td>Manual <code>/admin/manual</code></td>
+                <td>Admin</td>
+              </tr>
+              <tr>
+                <td>Roadmap <code>/admin/roadmap</code></td>
+                <td>Admin</td>
               </tr>
             </tbody>
           </table>
+          <div className="man-note">
+            Hub links in the sidebar are not based on role — they are based on hub membership. When someone is added to the Host Team hub (or any other hub), a link appears automatically in their sidebar. Admins see all hub links regardless of hub membership.
+          </div>
         </section>
 
         {/* ── Assigning a role ── */}
