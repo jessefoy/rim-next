@@ -249,8 +249,8 @@ export default async function SessionHistoryPage({
   const roles = session.user.roles ?? [];
   const { member } = await getHubMembership(slug, session.user.id, roles);
 
-  const isCoordinator = member?.isCoordinator ?? false;
   const isAdmin = roles.includes("ADMIN");
+  const isCoordinator = (member?.isCoordinator ?? false) || isAdmin;
 
   if (!isCoordinator && !isAdmin) {
     return (

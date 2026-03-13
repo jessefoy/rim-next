@@ -14,9 +14,10 @@ export async function PATCH(
   const { slug, id } = await params;
   const { hub, member } = await getHubMembership(slug, session.user.id);
   if (!hub) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const isAdminPatch = (session.user.roles ?? []).includes("ADMIN");
+  if (!member && !isAdminPatch) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  try { requireCoordinator(member.isCoordinator, session.user.roles ?? []); }
+  try { requireCoordinator(member?.isCoordinator ?? false, session.user.roles ?? []); }
   catch { return NextResponse.json({ error: "Coordinators only" }, { status: 403 }); }
 
   const doc = await db.hubDocument.findFirst({ where: { id, hubId: hub.id } });
@@ -49,9 +50,10 @@ export async function DELETE(
   const { slug, id } = await params;
   const { hub, member } = await getHubMembership(slug, session.user.id);
   if (!hub) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const isAdminDelete = (session.user.roles ?? []).includes("ADMIN");
+  if (!member && !isAdminDelete) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  try { requireCoordinator(member.isCoordinator, session.user.roles ?? []); }
+  try { requireCoordinator(member?.isCoordinator ?? false, session.user.roles ?? []); }
   catch { return NextResponse.json({ error: "Coordinators only" }, { status: 403 }); }
 
   const doc = await db.hubDocument.findFirst({ where: { id, hubId: hub.id } });

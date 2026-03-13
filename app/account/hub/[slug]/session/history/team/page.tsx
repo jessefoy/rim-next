@@ -163,7 +163,7 @@ export default async function TeamHistoryPage({
   const totalPages = Math.max(1, Math.ceil(allSessions.length / PAGE_SIZE));
   const pageItems = allSessions.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const isCoordinator = member?.isCoordinator ?? false;
+  const isCoordinator = (member?.isCoordinator ?? false) || isAdmin;
   const baseHref = `/account/hub/${slug}/session/history`;
   const teamHref = `/account/hub/${slug}/session/history/team`;
 
