@@ -1009,14 +1009,15 @@ const AREAS: FunctionalArea[] = [
         ],
       },
       {
-        name: "Lesson Editor with Markdown",
+        name: "Lesson Editor (ContentEditor)",
         locations: ["/account/hub/teacher/lessons/new", "/account/hub/teacher/lessons/[lessonSlug]", "Component: LessonEditor.tsx", "API: POST /api/lessons, PATCH /api/lessons/[slug], DELETE /api/lessons/[slug]"],
-        what: "Create and edit lessons with a rich Markdown editor (@uiw/react-md-editor, live preview). Custom block insertion buttons insert pre-formatted blockquotes for [verse], [practice], and [callout]. Media section: image and audio upload via Vercel Blob, video URL input. Also: header quote, teacher names, and an inline resource list builder.",
+        what: "Create and edit lessons with ContentEditor (Tiptap WYSIWYG). Toolbar: Bold, Italic, H2, H3, UL, OL, Link, plus custom block buttons: + Verse, + Practice, + Callout. Content stored as Tiptap JSON. Media section: image and audio upload via Vercel Blob, video URL. Also: header quote, teacher names, and an inline resource list builder.",
         relatedTo: [
-          "Lesson model in Postgres",
+          "Lesson model in Postgres (body: Json?)",
           "File uploads via /api/upload (Vercel Blob)",
-          "Custom block rendering on /lessons/[slug] (blockquote interceptor)",
+          "Custom block rendering on /lessons/[slug] (renderContentBody from lib/renderRichContent.ts)",
           "CourseLesson join table (lessons grouped into courses)",
+          "Editor Standard (§28 in FEATURES.md)",
         ],
       },
       {

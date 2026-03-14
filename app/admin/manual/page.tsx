@@ -1857,7 +1857,7 @@ export default async function ManualPage() {
             <li><strong>Lessons</strong> &mdash; create and edit individual lessons with a rich text editor, upload images and audio files, add video links and downloadable resources</li>
           </ul>
           <p>
-            The lesson editor includes a live-preview Markdown editor with special block buttons for inserting formatted content: pull quotes (verse), practice suggestions, and highlighted callouts.
+            The lesson editor includes a WYSIWYG text editor with a formatting toolbar (bold, italic, headings, lists, links) plus three special content blocks: Verse Quote, Practice Suggestion, and Callout. Click the block buttons in the toolbar to insert them. The course editor has the same formatting toolbar but without the special blocks.
             File uploads (images and audio) are saved automatically &mdash; you don&rsquo;t need to click Save after uploading a file. Audio files up to 500 MB are supported.
           </p>
           <p>

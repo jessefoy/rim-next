@@ -40,6 +40,7 @@ Two audiences:
 25. [Virtual Host Hub — Attendance & Session Tracking](#25-virtual-host-hub--attendance--session-tracking)
 26. [Email Template Manager](#26-email-template-manager)
 27. [Teacher Hub & Content Management](#27-teacher-hub--content-management)
+28. [Editor Standard](#28-editor-standard)
 
 ---
 
@@ -2839,16 +2840,70 @@ When the TEACHER role is granted via admin member detail, `syncHubMembership()` 
 - `prisma/seed-hubs.ts` — teacher hub seed record
 
 **🔧 Technical notes:**
-- MDEditor imported via `dynamic(() => import("@uiw/react-md-editor"), { ssr: false })` — client-only, prevents SSR errors
-- CSS imports: `@uiw/react-md-editor/markdown-editor.css` and `@uiw/react-markdown-preview/markdown.css`
-- `.w-md-editor` override in `custom.css`: removes box-shadow, sets border + border-radius to match design system
+- Content stored as Tiptap JSON (`Json?` Prisma type). Editors use `editor.getJSON()` for output, accept JSON or null as input.
+- `ContentEditor` uses `@tiptap/react` with StarterKit, Link, Placeholder, Markdown (tiptap-markdown), plus three custom extensions (VerseQuote, PracticeSuggestion, Callout) from `lib/tiptap-extensions.ts`
+- `FormattedEditor` uses the same base extensions minus the three custom blocks
+- Rendering: `renderContentBody()` and `renderFormattedText()` in `lib/renderRichContent.ts` use `@tiptap/html` `generateHTML()` server-side
+- Custom block class mapping: PracticeSuggestion → `lp-callout` (shared with Sanity PortableText on program pages), Callout → `lp-callout-block`, VerseQuote → `lp-verse-quote`
+- `rte-` CSS prefix for all editor styles in `custom.css`. Toolbar is flex-wrap with `rte-divider` separators. Block insert buttons use `rte-btn--block` modifier.
 - `th-` CSS prefix for all Teacher Hub styles (~150 lines): tables, badges, buttons, form fields, editor sections, lesson manager, media preview, resource rows
 - `useRef` in React 19 requires initial argument: `useRef<T | null>(null)` not `useRef<T>()`
-- `extractText()` uses double-cast pattern `(node as unknown as Record<string, unknown>)` for React 19 `ReactNode` type compatibility
 - ProgramCourse during Phase 2: `programId` stores Sanity `_id`. Admin courses API does hybrid Postgres + Sanity lookup for program names. Phase 3 will convert to Postgres cuid when programs migrate.
 - Header quote on lesson page: shown only when `hasQuote && !hasAudio` (audio player takes precedence)
 - File upload uses `upload()` from `@vercel/blob/client` (client-side upload) — NOT `put()` (server-side). The `/api/upload` route only handles token generation and completion callback via `handleUpload`. Auth check MUST be inside `onBeforeGenerateToken`, not at the route level, because the completion callback comes from Vercel's servers (no user session).
 - `autoSaveField()` uses the URL from the upload response directly (not React state) to avoid stale closure issues in async handlers
+
+---
+
+## 28. Editor Standard
+
+**What it does:** Establishes a system-wide rich text editing standard. Every formatted text field in the application uses one of two shared Tiptap editor components. No plain textareas for multi-line formatted content.
+
+### Two editors
+| Component | Purpose | Custom blocks | Used for |
+|---|---|---|---|
+| `ContentEditor` | Full editorial editor | ✓ Verse Quote, Practice Suggestion, Callout | Dharma content written by Jesse or a teacher for members to read |
+| `FormattedEditor` | Standard formatted editor | — | Functional formatted text: communications, descriptions, admin-facing content |
+
+Both are built on Tiptap v3. ContentEditor extends FormattedEditor's base extensions with three custom Tiptap nodes defined in `lib/tiptap-extensions.ts`. They share the same visual design (`rte-` CSS prefix) — only the toolbar differs (ContentEditor adds + Verse, + Practice, + Callout buttons).
+
+### The rule for future development
+- **Multi-line formatted text** → `FormattedEditor` (bold, italic, headings, lists, links)
+- **Dharma content for members** → `ContentEditor` (prose + custom blocks)
+- **Plain `<textarea>`** → only for single-purpose short text: slugs, names, phone numbers, URLs, numeric values, labels, pull quotes, dana messages
+- When in doubt: use `FormattedEditor`. Never use a plain textarea for multi-line content.
+
+### Where each editor is used
+| Location | Field | Component |
+|---|---|---|
+| LessonEditor | body | ContentEditor |
+| CourseEditor | description | FormattedEditor |
+| MemberDetail (admin) | adminNotes | FormattedEditor |
+
+**Phase 3 (when programs move to Postgres):** description → ContentEditor, confirmationMessage → FormattedEditor, reminderMessage → FormattedEditor, specialNotes → FormattedEditor.
+
+### Data format
+All editor fields store **Tiptap JSON** (Prisma `Json?` type). No serialization or parsing needed — Prisma handles JSON natively. Editors accept JSON or null as their `value` prop and emit JSON via `onChange`.
+
+### Rendering
+`lib/renderRichContent.ts` provides two server-side functions:
+- `renderContentBody(json)` → HTML string (includes custom blocks)
+- `renderFormattedText(json)` → HTML string (prose only)
+
+Both use `@tiptap/html` `generateHTML()`. Output is used with `dangerouslySetInnerHTML` on rendered pages.
+
+### Key files
+- `components/ContentEditor.tsx` — full editorial editor with custom blocks
+- `components/FormattedEditor.tsx` — standard formatted editor
+- `lib/tiptap-extensions.ts` — VerseQuote, PracticeSuggestion, Callout Tiptap nodes
+- `lib/renderRichContent.ts` — server-side JSON → HTML rendering
+- `components/RimEditor.tsx` — legacy markdown-based Tiptap editor (still used by 8 hub components and EmailTemplateEditor; outputs/accepts markdown strings, not JSON)
+
+**🔧 Technical notes:**
+- Custom block CSS classes: PracticeSuggestion → `lp-callout` (shared with Sanity PortableText `practiceCallout` on program pages), Callout → `lp-callout-block`, VerseQuote → `lp-verse-quote`
+- Markdown extension (`tiptap-markdown`) configured with `transformPastedText: true` — pasting Markdown from other editors (Bear, etc.) auto-converts to formatted content
+- `rte-` prefix for all editor CSS. Custom block previews inside the editor use `[data-type]` attribute selectors.
+- RimEditor remains for hub conversations, announcements, schedule notes, email templates — these fields use markdown strings (`String?`) and don't need Tiptap JSON. RimEditor and FormattedEditor coexist but serve different storage patterns.
 
 ---
 
@@ -2871,4 +2926,6 @@ When the TEACHER role is granted via admin member detail, `syncHubMembership()` 
 
 | 2026-03-13 (session 50) | **Sanity → Postgres migration: Courses & Lessons + Teacher Hub + Markdown Editor.** **(1) Prisma schema:** Added TEACHER to Role enum; 4 new models (Course, Lesson, CourseLesson, ProgramCourse); CourseAccessLevel enum (MEMBERS, REGISTRATION_REQUIRED); CourseAccess→Course optional FK. `prisma db push`. **(2) Teacher Hub:** Seeded "teacher" hub in `prisma/seed-hubs.ts`; TEACHER mapping added to `lib/syncHubMembership.ts`. Hub layout modified: teacher hub gets Courses+Lessons as primary tabs; root redirects to `/account/hub/teacher/courses`; Announcements moved to `/announcements` sub-route. **(3) Course CRUD:** 6 new pages (list, new, edit for courses and lessons) + 6 new API routes (`/api/courses`, `/api/courses/[slug]`, `/api/lessons`, `/api/lessons/[slug]`, `/api/lessons/search`, `/api/upload`). `CourseEditor` component: form fields + lesson manager with search-to-add and reordering. `LessonListClient` component: table with search filter. **(4) Lesson Editor + Markdown:** `LessonEditor` with `@uiw/react-md-editor` (dynamic import, SSR false, `data-color-mode="light"`); custom block insertion buttons for [verse], [practice], [callout]; media uploads via Vercel Blob (`@vercel/blob`); resource inline list builder. **(5) Postgres cutover — course page:** `app/course/[slug]/page.tsx` rewritten to read from `db.course.findUnique`; access check uses ProgramCourse table instead of Sanity reverse ref; description renders via ReactMarkdown; Webflow CSS classes preserved. **(6) Postgres cutover — lesson page:** `app/lessons/[slug]/page.tsx` rewritten to read from `db.lesson.findUnique`; custom blockquote interceptor: `extractText()` detects `[verse]`→`lp-verse-quote`, `[practice]`→`lp-callout`, `[callout]`→`lp-callout-block` (new CSS class); header quote shown only when `hasQuote && !hasAudio`. **(7) Admin courses API:** `app/api/admin/courses/route.ts` updated from Sanity to Postgres with hybrid Sanity lookup for program names. TEACHER added to `MemberDetail` ALL_ROLES. **(8) CSS:** `th-` prefix block (~150 lines); `.th-block-btns` for block buttons; `.w-md-editor` override; `.lp-callout-block` + `.lp-body .lp-callout-block p`. **(9) New §27 added to FEATURES.md. **(10) Auto-save for file uploads:** `autoSaveField()` in LessonEditor immediately PATCHes DB after upload/remove — uses upload response URL directly (not React state) to avoid closure issues. **(11) View page links:** "View lesson page →" and "View course page →" links added to editor headers (edit mode only, opens in new tab). **(12) Client-side Vercel Blob upload migration:** Rewrote `/api/upload` from server-side `put()` to `handleUpload` from `@vercel/blob/client`; `LessonEditor.uploadFile()` now uses `upload()` from `@vercel/blob/client` — browser uploads directly to Blob storage, bypassing the 4.5 MB serverless function body limit. Max file size 500 MB. Auth check moved inside `onBeforeGenerateToken` (completion callback from Vercel's servers doesn't carry user session). |
 
-*Last updated: 2026-03-13 (session 50)*
+| 2026-03-14 (session 51) | **Editor standard: ContentEditor + FormattedEditor (Tiptap).** Replaced `@uiw/react-md-editor` and `react-markdown` with two shared Tiptap editor components as the system-wide rich text standard. **(1) New components:** `ContentEditor` (prose + 3 custom blocks: VerseQuote, PracticeSuggestion, Callout) and `FormattedEditor` (prose formatting only). Both built on Tiptap v3 with StarterKit, Link, Placeholder, and tiptap-markdown extensions. **(2) Custom Tiptap extensions:** `lib/tiptap-extensions.ts` — three block-level Node extensions with `parseHTML`/`renderHTML`, mapped to existing CSS classes (`lp-verse-quote`, `lp-callout`, `lp-callout-block`). **(3) Server-side rendering:** `lib/renderRichContent.ts` — `renderContentBody()` and `renderFormattedText()` using `@tiptap/html` `generateHTML()`. **(4) Schema changes:** `Course.description`, `Lesson.body`, `User.adminNotes` changed from `String?` to `Json?` (Tiptap JSON). Existing string data cleared before type conversion. `prisma db push`. **(5) Component updates:** `LessonEditor` — replaced MDEditor with ContentEditor; `CourseEditor` — replaced textarea with FormattedEditor; `MemberDetail` — replaced RimEditor with FormattedEditor for adminNotes. **(6) Page updates:** `app/lessons/[slug]/page.tsx` — replaced ReactMarkdown + blockquote interceptor with `renderContentBody()` + `dangerouslySetInnerHTML`; `app/course/[slug]/page.tsx` — replaced ReactMarkdown with `renderFormattedText()`. **(7) CSS:** `rte-` prefix block (~100 lines) for editor shell, toolbar, buttons, dividers, placeholder, custom block previews inside editor. Removed old `.th-block-btns` and `.w-md-editor` override. **(8) Removed:** `@uiw/react-md-editor`, `react-markdown` packages uninstalled. **(9) §28 added to FEATURES.md (Editor Standard). |
+
+*Last updated: 2026-03-14 (session 51)*

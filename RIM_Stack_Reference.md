@@ -43,8 +43,7 @@ Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfie
 | Video | Google Meet | 4 shared room accounts via DWD + Google Calendar API |
 | Hosting | Vercel | auto-deploy on push to `main` |
 | CSS | Custom design system | `public/css/custom.css` only — never touch webflow CSS files |
-| Rich text editor | Tiptap v3 | `@tiptap/react ^3.20.1` + `tiptap-markdown` — used in RimEditor; custom VariableNode extension for `{{token}}` pills |
-| Markdown editor | @uiw/react-md-editor | Used in LessonEditor for lesson body content; dynamic import with `ssr: false` |
+| Rich text editor | Tiptap v3 | `@tiptap/react ^3.20.1` + `tiptap-markdown` + `@tiptap/html` — three editor components: ContentEditor (prose + custom blocks), FormattedEditor (prose only), RimEditor (legacy markdown I/O); custom VariableNode extension for `{{token}}` pills |
 | File storage | Vercel Blob | `@vercel/blob` + `@vercel/blob/client` — client-side upload pattern (browser → Blob direct, bypasses 4.5 MB serverless limit); max 500 MB; `BLOB_READ_WRITE_TOKEN` env var |
 
 ---
