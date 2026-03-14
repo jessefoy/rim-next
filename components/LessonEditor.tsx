@@ -119,13 +119,31 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
     }
   }
 
+  // Auto-save a single field to DB (only when editing an existing lesson)
+  async function autoSaveField(field: string, value: string | null) {
+    if (!isEditing || !initialData?.slug) return;
+    try {
+      await fetch(`/api/lessons/${initialData.slug}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: value }),
+      });
+    } catch {
+      // Silent — full save will catch any issues
+    }
+  }
+
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadingImage(true);
     const url = await uploadFile(file);
-    if (url) setHeroImageUrl(url);
-    else setError("Image upload failed");
+    if (url) {
+      setHeroImageUrl(url);
+      await autoSaveField("heroImageUrl", url);
+    } else {
+      setError("Image upload failed");
+    }
     setUploadingImage(false);
   }
 
@@ -134,8 +152,12 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
     if (!file) return;
     setUploadingAudio(true);
     const url = await uploadFile(file);
-    if (url) setAudioUrl(url);
-    else setError("Audio upload failed");
+    if (url) {
+      setAudioUrl(url);
+      await autoSaveField("audioUrl", url);
+    } else {
+      setError("Audio upload failed");
+    }
     setUploadingAudio(false);
   }
 
@@ -228,7 +250,14 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
 
   return (
     <div className="th-editor">
-      <h2 className="th-editor__title">{isEditing ? "Edit Lesson" : "New Lesson"}</h2>
+      <div className="th-editor__header">
+        <h2 className="th-editor__title">{isEditing ? "Edit Lesson" : "New Lesson"}</h2>
+        {isEditing && slug && (
+          <a href={`/lessons/${slug}`} target="_blank" rel="noopener noreferrer" className="th-link th-link--view">
+            View lesson page →
+          </a>
+        )}
+      </div>
 
       {error && <div className="th-msg th-msg--error">{error}</div>}
       {success && <div className="th-msg th-msg--success">Saved successfully</div>}
@@ -325,7 +354,7 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
                   <button
                     type="button"
                     className="th-btn th-btn--danger th-btn--small"
-                    onClick={() => { setHeroImageUrl(""); setHeroImageAlt(""); }}
+                    onClick={() => { setHeroImageUrl(""); setHeroImageAlt(""); autoSaveField("heroImageUrl", null); }}
                   >
                     Remove
                   </button>
@@ -353,7 +382,7 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
                 <button
                   type="button"
                   className="th-btn th-btn--danger th-btn--small"
-                  onClick={() => setAudioUrl("")}
+                  onClick={() => { setAudioUrl(""); autoSaveField("audioUrl", null); }}
                 >
                   Remove
                 </button>

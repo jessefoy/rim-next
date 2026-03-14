@@ -188,7 +188,14 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
 
   return (
     <div className="th-editor">
-      <h2 className="th-editor__title">{isEditing ? "Edit Course" : "New Course"}</h2>
+      <div className="th-editor__header">
+        <h2 className="th-editor__title">{isEditing ? "Edit Course" : "New Course"}</h2>
+        {isEditing && slug && (
+          <a href={`/course/${slug}`} target="_blank" rel="noopener noreferrer" className="th-link th-link--view">
+            View course page →
+          </a>
+        )}
+      </div>
 
       {error && <div className="th-msg th-msg--error">{error}</div>}
       {success && <div className="th-msg th-msg--success">Saved successfully</div>}
