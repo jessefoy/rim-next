@@ -519,8 +519,8 @@ const AREAS: FunctionalArea[] = [
       },
       {
         name: "Threads",
-        locations: ["/account/hub/host-team/threads", "/account/hub/host-team/threads/[id]", "Component: ThreadList.tsx", "Component: ThreadDetail.tsx", "API: GET/POST /api/host/threads, GET/PATCH /api/host/threads/[id], POST /api/host/threads/[id]/replies"],
-        what: "A discussion board with two categories: OPERATIONAL (peer support, tips, questions) and CONTEMPLATION (weekly teacher/manager post for group reflection). Any hub member can create threads and reply. HOST_MANAGER/ADMIN can close (no new replies) or archive (hidden from main list) threads. Reply notification targets thread author + all prior repliers (deduplicated, excluding the current replier). Posting a reply bumps thread updatedAt so it floats to the top.",
+        locations: ["/account/hub/host-team/threads", "/account/hub/host-team/threads/[id]", "Component: HubThreadDetailClient.tsx", "API: GET/POST /api/host/threads, GET/PATCH /api/host/threads/[id], POST /api/host/threads/[id]/replies"],
+        what: "A discussion board with two categories: OPERATIONAL (peer support, tips, questions) and CONTEMPLATION (weekly teacher/manager post for group reflection). Any hub member can create threads and reply using FormattedEditor (rich text with underline, alignment, word count). Thread and reply bodies stored as Tiptap JSON, rendered via renderFormattedText(). HOST_MANAGER/ADMIN can close (no new replies) or archive (hidden from main list) threads. Reply notification targets thread author + all prior repliers (deduplicated, excluding the current replier). Posting a reply bumps thread updatedAt so it floats to the top.",
         relatedTo: [
           "HostThread + HostReply Postgres models; ThreadStatus enum: OPEN / CLOSED / ARCHIVED",
           "New thread notifies all hub members (email + alert)",
@@ -985,7 +985,7 @@ const AREAS: FunctionalArea[] = [
     id: "teacher-hub",
     title: "Teacher Hub & Content Management",
     icon: "🎓",
-    desc: "Full CRUD for courses and lessons, accessible to TEACHER and ADMIN roles via the Teacher Hub. Content stored in Postgres. Rich Markdown editor with custom block support and file uploads.",
+    desc: "Full CRUD for courses and lessons, accessible to TEACHER and ADMIN roles via the Teacher Hub. Content stored in Postgres. Tiptap WYSIWYG editors with underline, text alignment, typography, character count, tables, and custom block support.",
     features: [
       {
         name: "Teacher Hub Workspace",
@@ -1000,7 +1000,7 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Course Editor",
         locations: ["/account/hub/teacher/courses/new", "/account/hub/teacher/courses/[courseSlug]", "Component: CourseEditor.tsx", "API: POST /api/courses, PATCH /api/courses/[slug], DELETE /api/courses/[slug]"],
-        what: "Create and edit courses: title, slug, subheading, Markdown description, access level (MEMBERS / REGISTRATION_REQUIRED), active toggle, sort order. Edit mode includes a lesson manager with search-to-add (debounced API search), drag-and-drop reordering, and remove. Delete is guarded — returns 409 if ProgramCourse records exist.",
+        what: "Create and edit courses: title, slug, subheading, FormattedEditor description (with underline, text alignment, word count), access level (MEMBERS / REGISTRATION_REQUIRED), active toggle, sort order. Edit mode includes a lesson manager with search-to-add (debounced API search), drag-and-drop reordering, and remove. Delete is guarded — returns 409 if ProgramCourse records exist.",
         relatedTo: [
           "Course model in Postgres",
           "Lesson search API (/api/lessons/search)",
@@ -1011,7 +1011,7 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Lesson Editor (ContentEditor)",
         locations: ["/account/hub/teacher/lessons/new", "/account/hub/teacher/lessons/[lessonSlug]", "Component: LessonEditor.tsx", "API: POST /api/lessons, PATCH /api/lessons/[slug], DELETE /api/lessons/[slug]"],
-        what: "Create and edit lessons with ContentEditor (Tiptap WYSIWYG). Toolbar: Bold, Italic, H2, H3, UL, OL, Link, plus custom block buttons: + Verse, + Practice, + Callout. Content stored as Tiptap JSON. Media section: image and audio upload via Vercel Blob, video URL. Also: header quote, teacher names, and an inline resource list builder.",
+        what: "Create and edit lessons with ContentEditor (Tiptap WYSIWYG). Toolbar: Bold, Italic, Underline, H2, H3, UL, OL, Link, Align L/C/R, Insert Table, plus custom block buttons: + Verse, + Practice, + Callout. Table context toolbar: +Row, +Col, −Row, −Col, Delete Table. Typography extension auto-converts smart quotes, em dashes, ellipsis. Character count footer shows word count. Content stored as Tiptap JSON. Media section: image and audio upload via Vercel Blob, video URL. Also: header quote, teacher names, and an inline resource list builder.",
         relatedTo: [
           "Lesson model in Postgres (body: Json?)",
           "File uploads via /api/upload (Vercel Blob)",

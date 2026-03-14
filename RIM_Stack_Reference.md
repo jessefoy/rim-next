@@ -1,6 +1,6 @@
 # RIM Next — Stack Reference
 
-_Generated 2026-03-11. Last updated 2026-03-13 (session 50). Update this file whenever a service, credential, or major structural decision changes._
+_Generated 2026-03-11. Last updated 2026-03-14 (session 52). Update this file whenever a service, credential, or major structural decision changes._
 
 ---
 
@@ -43,7 +43,7 @@ Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfie
 | Video | Google Meet | 4 shared room accounts via DWD + Google Calendar API |
 | Hosting | Vercel | auto-deploy on push to `main` |
 | CSS | Custom design system | `public/css/custom.css` only — never touch webflow CSS files |
-| Rich text editor | Tiptap v3 | `@tiptap/react ^3.20.1` + `tiptap-markdown` + `@tiptap/html` — three editor components: ContentEditor (prose + custom blocks), FormattedEditor (prose only), RimEditor (legacy markdown I/O); custom VariableNode extension for `{{token}}` pills |
+| Rich text editor | Tiptap v3 | `@tiptap/react ^3.20.1` + `tiptap-markdown` + `@tiptap/html` — three editor components: ContentEditor (prose + custom blocks + tables), FormattedEditor (prose only), RimEditor (legacy markdown I/O); extensions: Underline, TextAlign, Typography (input-only), CharacterCount, Table/TableRow/TableHeader/TableCell; custom VerseQuote/PracticeSuggestion/Callout + VariableNode for `{{token}}` pills |
 | File storage | Vercel Blob | `@vercel/blob` + `@vercel/blob/client` — client-side upload pattern (browser → Blob direct, bypasses 4.5 MB serverless limit); max 500 MB; `BLOB_READ_WRITE_TOKEN` env var |
 
 ---
@@ -72,7 +72,7 @@ All set in Vercel. Pull locally with `npx vercel env pull .env.local`.
 ### Database (Neon)
 | Variable | Purpose |
 |---|---|
-| `POSTGRES_PRISMA_URL` | Pooled connection (Prisma default) |
+| `POSTGRES_PRISMA_URL` | Pooled connection (Prisma default); includes `pgbouncer=true` to prevent cached-plan invalidation after schema changes |
 | `POSTGRES_URL_NON_POOLING` | Direct connection (migrations) |
 | `POSTGRES_URL` | Raw URL |
 | `POSTGRES_URL_NO_SSL` | SSL-disabled variant |

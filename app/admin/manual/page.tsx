@@ -1857,7 +1857,7 @@ export default async function ManualPage() {
             <li><strong>Lessons</strong> &mdash; create and edit individual lessons with a rich text editor, upload images and audio files, add video links and downloadable resources</li>
           </ul>
           <p>
-            The lesson editor includes a WYSIWYG text editor with a formatting toolbar (bold, italic, headings, lists, links) plus three special content blocks: Verse Quote, Practice Suggestion, and Callout. Click the block buttons in the toolbar to insert them. The course editor has the same formatting toolbar but without the special blocks.
+            The lesson editor includes a WYSIWYG text editor with a formatting toolbar (bold, italic, underline, headings, lists, links, text alignment) plus three special content blocks: Verse Quote, Practice Suggestion, and Callout. Click the block buttons in the toolbar to insert them. You can also insert tables for comparison grids and study materials &mdash; when your cursor is inside a table, additional controls appear for adding/removing rows and columns. The course editor has the same formatting toolbar (including underline and text alignment) but without the special blocks or tables. Both editors show a word count at the bottom. Smart quotes, em dashes, and ellipsis are applied automatically as you type.
             File uploads (images and audio) are saved automatically &mdash; you don&rsquo;t need to click Save after uploading a file. Audio files up to 500 MB are supported.
           </p>
           <p>
@@ -2022,7 +2022,7 @@ export default async function ManualPage() {
 
           <h3 className="man-section__h3">Starting a topic</h3>
           <p>
-            Click into the room you want to post in, then click <strong>+ New Topic</strong>. Give it a short, clear title — something like &ldquo;Handling technical issues during a sitting&rdquo; or &ldquo;Gratitude for the team&rdquo; — then write whatever you want to share. Everyone on the team will get an email and an in-app alert when you post.
+            Click into the room you want to post in, then click <strong>+ New Topic</strong>. Give it a short, clear title — something like &ldquo;Handling technical issues during a sitting&rdquo; or &ldquo;Gratitude for the team&rdquo; — then write whatever you want to share. The message composer includes formatting tools (bold, italic, underline, headings, lists, links, text alignment) so you can write clearly. Everyone on the team will get an email and an in-app alert when you post.
           </p>
 
           <h3 className="man-section__h3">Replying</h3>
