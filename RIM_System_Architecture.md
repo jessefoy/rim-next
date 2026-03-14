@@ -21,7 +21,7 @@ The Member Registry is the authoritative record of every person in the RIM commu
 
 Hubs are team workspaces for RIM's volunteer groups. Each hub serves one team. Members see only the hubs they belong to.
 
-**Current hubs:** Host Team, People Team, Greeter Team, AV Team, Housekeeping, Plant Care, Newsletter, Sangha Care, KM Support, Silent Meditation, Volunteer Coordination (all OPERATIONAL) + Board and Teacher Council (GOVERNANCE).
+**Current hubs:** Host Team, Teacher Hub, People Team, Greeter Team, AV Team, Housekeeping, Plant Care, Newsletter, Sangha Care, KM Support, Silent Meditation, Volunteer Coordination (all OPERATIONAL) + Board and Teacher Council (GOVERNANCE).
 
 **What they are:** Task-specific workspaces. Each hub currently provides Announcements, Documents, Conversations, and a Members tab. The Host Team hub also has a Schedule tab.
 
@@ -95,20 +95,25 @@ Someone who is both a Host Team coordinator and a Volunteer Coordination member 
 
 ## What's Next
 
-The **Virtual Host Hub** is the first hub to receive a scoped member data view. It is the right starting point because:
+The **Virtual Host Hub** was the first hub to receive a scoped member data view — built in sessions 41–45. It established the pattern for all subsequent hub data views.
 
-- The host role already exists in the system
-- The hub already has a schedule
-- The scope is maximally clear: participants in the session the host is assigned to
-- The required data is minimal: name, preferred name, attendance status
+The **Registrar Hub** is next. It is more complex than the Host Hub because:
 
-This implementation will establish the pattern for all subsequent hub data views.
+- The registrar holds both administrative authority (Member Registry access) and a pastoral/relational workflow dimension
+- The hub will contain program management — creating and editing programs is moving from Sanity to Postgres (Phase 3 migration), and that UI lives in the Registrar Hub
+- The existing registrar area at `/account/registrar` predates the hub system and will be migrated into `/account/hub/registrar/`
+
+The Registrar Hub role design must be written before any code is built. That design document follows the same structure as the Virtual Host role in `RIM_Role_Design.md`.
 
 ---
 
 ## Naming
 
 The system of record for member data is called the **Member Registry**. This is the preferred term in code comments, documentation, and conversation. Avoid "CRM," "CMS," "database," or "People Hub" when referring to this system.
+
+## Closing Ritual
+
+This file is part of the closing ritual for any Claude Code session that touches hubs, roles, or member data architecture. Regenerate it alongside FEATURES.md and RIM_Stack_Reference.md after any such session.
 
 ---
 
