@@ -12508,8 +12508,10 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 /* Actions bar */
 .pe-actions { display: flex; gap: 10px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--rim-rule); }
 
-/* Edit link on program cards */
+/* Program card wrapper + edit link */
+.vol-card-wrap { position: relative; }
 .vol-card__edit-link {
+  position: absolute; top: 12px; right: 12px;
   font-size: 12px;
   color: var(--rim-mid);
   text-decoration: none;
@@ -12517,6 +12519,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   border: 1px solid var(--rim-rule);
   border-radius: 3px;
   white-space: nowrap;
+  z-index: 1;
 }
 .vol-card__edit-link:hover { background: var(--rim-bg-accent); color: var(--rim-blue); }
 

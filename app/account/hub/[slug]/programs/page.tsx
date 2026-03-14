@@ -106,68 +106,65 @@ export default async function RegistrarProgramsPage({
             {programsWithCounts.map((p) =>
               isRegistrar ? (
                 /* ── Full registrar view — linked cards with all signals ── */
-                <Link
-                  key={p._id}
-                  href={`${base}/programs/${p.slug.current}`}
-                  className={`vol-card${p.needsAttention ? " vol-card--attention" : ""}`}
-                >
-                  <div className="vol-card__main">
-                    <h2 className="vol-card__title">{p.name}</h2>
-                    {p.tagline && <p className="vol-card__tagline">{p.tagline}</p>}
-                    {p.registrationCapacity && p.capacityPct !== null && (
-                      <div className="vol-capacity">
-                        <div className="vol-capacity__bar">
-                          <div
-                            className={`vol-capacity__fill${
-                              p.capacityPct >= 100
-                                ? " vol-capacity__fill--full"
-                                : p.capacityPct >= 80
-                                ? " vol-capacity__fill--near"
-                                : ""
-                            }`}
-                            style={{ width: `${p.capacityPct}%` }}
-                          />
+                <div key={p._id} className="vol-card-wrap">
+                  <Link
+                    href={`${base}/programs/${p.slug.current}`}
+                    className={`vol-card${p.needsAttention ? " vol-card--attention" : ""}`}
+                  >
+                    <div className="vol-card__main">
+                      <h2 className="vol-card__title">{p.name}</h2>
+                      {p.tagline && <p className="vol-card__tagline">{p.tagline}</p>}
+                      {p.registrationCapacity && p.capacityPct !== null && (
+                        <div className="vol-capacity">
+                          <div className="vol-capacity__bar">
+                            <div
+                              className={`vol-capacity__fill${
+                                p.capacityPct >= 100
+                                  ? " vol-capacity__fill--full"
+                                  : p.capacityPct >= 80
+                                  ? " vol-capacity__fill--near"
+                                  : ""
+                              }`}
+                              style={{ width: `${p.capacityPct}%` }}
+                            />
+                          </div>
+                          <span className="vol-capacity__label">
+                            {p.confirmedCount} / {p.registrationCapacity}
+                          </span>
                         </div>
-                        <span className="vol-capacity__label">
-                          {p.confirmedCount} / {p.registrationCapacity}
+                      )}
+                    </div>
+                    <div className="vol-card__signals">
+                      {p.spotOpened && (
+                        <span className="vol-signal vol-signal--spot-open">
+                          &uarr; Spot open &middot; {p.waitlistedCount} waiting
                         </span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="vol-card__signals">
-                    {p.spotOpened && (
-                      <span className="vol-signal vol-signal--spot-open">
-                        &uarr; Spot open &middot; {p.waitlistedCount} waiting
-                      </span>
-                    )}
-                    {!p.spotOpened && p.waitlistedCount > 0 && (
-                      <span className="vol-signal vol-signal--amber">
-                        {p.waitlistedCount} waitlisted
-                      </span>
-                    )}
-                    {p.pendingDanaCount > 0 && (
-                      <span className="vol-signal vol-signal--amber">
-                        {p.pendingDanaCount} dana pending
-                      </span>
-                    )}
-                    {!p.needsAttention && p.confirmedCount > 0 && (
-                      <span className="vol-signal vol-signal--clear">
-                        {p.confirmedCount} confirmed
-                      </span>
-                    )}
-                    {!p.needsAttention && p.confirmedCount === 0 && (
-                      <span className="vol-signal vol-signal--empty">No registrations</span>
-                    )}
-                    <Link
-                      href={`${base}/programs/${p.slug.current}/edit`}
-                      className="vol-card__edit-link"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      Edit
-                    </Link>
-                    <span className="vol-card__arrow">&rarr;</span>
-                  </div>
-                </Link>
+                      )}
+                      {!p.spotOpened && p.waitlistedCount > 0 && (
+                        <span className="vol-signal vol-signal--amber">
+                          {p.waitlistedCount} waitlisted
+                        </span>
+                      )}
+                      {p.pendingDanaCount > 0 && (
+                        <span className="vol-signal vol-signal--amber">
+                          {p.pendingDanaCount} dana pending
+                        </span>
+                      )}
+                      {!p.needsAttention && p.confirmedCount > 0 && (
+                        <span className="vol-signal vol-signal--clear">
+                          {p.confirmedCount} confirmed
+                        </span>
+                      )}
+                      {!p.needsAttention && p.confirmedCount === 0 && (
+                        <span className="vol-signal vol-signal--empty">No registrations</span>
+                      )}
+                      <span className="vol-card__arrow">&rarr;</span>
+                    </div>
+                  </Link>
+                  <Link href={`${base}/programs/${p.slug.current}/edit`} className="vol-card__edit-link">
+                    Edit
+                  </Link>
+                </div>
               ) : (
                 /* ── Stakeholder view — read-only, no links, no PII ── */
                 <div key={p._id} className="vol-card">
