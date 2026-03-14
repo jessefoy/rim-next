@@ -244,14 +244,99 @@ enum AttendanceFormat {
   ONLINE
 }
 
+// ─── PROGRAMS (migrated from Sanity) ──────────────────────────────────────────
+
+model ProgramCategory {
+  id                   String    @id @default(cuid())
+  slug                 String    @unique
+  name                 String
+  hideFromProgramsPage Boolean   @default(false)
+  programs             Program[]
+
+  @@map("program_categories")
+}
+
+model Program {
+  id    String @id @default(cuid())
+  slug  String @unique
+  name  String
+
+  // ── Content ────────────────────────────────────────────
+  tagline             String?
+  programImage        String?          // URL (Vercel Blob or external)
+  description         Json?            // ContentEditor (Tiptap JSON)
+  pullQuote           String?
+  pullQuoteSource     String?
+  specialNotes        Json?            // FormattedEditor (Tiptap JSON)
+  teacherFacilitators String[]         // plain text names
+
+  // ── Schedule & Location ────────────────────────────────
+  categoryId          String?
+  category            ProgramCategory? @relation(fields: [categoryId], references: [id])
+  dateText            String?          // override display label; blank = auto-generated
+  programFormat       String           @default("in-person") // "in-person" | "virtual" | "hybrid"
+  venue               String           @default("at-rim")    // "at-rim" | "other"
+  locationText        String?
+  locationLink        String?
+  zoomLink            String?
+  meetHostAccount     String?
+  calendarEventId     String?
+  startDatetime       DateTime?
+  endDatetime         DateTime?
+  recurrenceFreq      String?          // "DAILY" | "WEEKLY" | "MONTHLY"
+  recurrenceInterval  Int?
+  recurrenceDays      String[]         // ["MO","WE","SA"] etc
+  recurrenceCount     Int?
+
+  // ── Registration ───────────────────────────────────────
+  registrationEnabled  Boolean   @default(false)
+  registrationClosed   Boolean   @default(false)
+  registrationCapacity Int?
+  registrationDeadline DateTime?
+  registrationFields   Json?     // [{label, fieldType, required, options[]}]
+  confirmationMessage  Json?     // FormattedEditor (Tiptap JSON)
+  reminderDate         DateTime?
+  reminderMessage      Json?     // FormattedEditor (Tiptap JSON)
+
+  // ── Dana ───────────────────────────────────────────────
+  danaMode        String  @default("none") // "none"|"voluntary"|"base_plus_dana"|"fixed"
+  suggestedDana   Float?
+  danaBaseAmount  Float?
+  danaFixedAmount Float?
+  danaMessage     String?
+  danaText        String?
+
+  // ── Dashboard ──────────────────────────────────────────
+  specialAnnouncement  String?
+  earlyArrivalMessage  String?
+  hideFromDashboard    Boolean  @default(false)
+  dayOfWeek            String[] // ["MO","TH"] — drives "Today" badge + listing day group
+
+  // ── Visibility ─────────────────────────────────────────
+  sortOrder              Int?
+  removeFromProgramList  Boolean @default(false)
+  hideFromProgramPageList Boolean @default(false)
+
+  // ── Relations ──────────────────────────────────────────
+  registrations      Registration[]
+  programCourses     ProgramCourse[]
+  sessionAttendances SessionAttendance[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("programs")
+}
+
 // ─── PROGRAM REGISTRATIONS ────────────────────────────────────────────────────
 
 model Registration {
   id             String             @id @default(cuid())
 
-  // Program (sourced from Sanity)
-  programId      String             // Sanity _id
-  programSlug    String             // for URL routing
+  // Program — FK to Postgres Program table (migrated from Sanity)
+  programId      String?
+  program        Program?           @relation(fields: [programId], references: [id])
+  programSlug    String             // for URL routing + HostAssignment join key
   programTitle   String             // snapshot at registration time
 
   // User — nullable (non-members get an account created on submit)
@@ -401,9 +486,10 @@ model CourseLesson {
 }
 
 model ProgramCourse {
-  programId  String  // Sanity _id for now — becomes Postgres cuid in Phase 3
+  programId  String
   courseId   String
 
+  program Program @relation(fields: [programId], references: [id], onDelete: Cascade)
   course  Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@id([programId, courseId])
@@ -593,8 +679,9 @@ enum AlertType {
 model SessionAttendance {
   id                    String            @id @default(cuid())
   userId                String
-  programId             String            // Sanity _id (no local relation)
-  programSlug           String            // Sanity slug
+  programId             String?           // Postgres Program.id (migrated from Sanity _id)
+  program               Program?          @relation(fields: [programId], references: [id])
+  programSlug           String            // stable slug — kept as denormalized join key
   sessionDate           DateTime?         // CT midnight for the session date — always set by API; nullable for migration safety
   joinedAt              DateTime          @default(now())
   leftEarly             Boolean           @default(false)

@@ -38,7 +38,7 @@ export default function CreateMeetButton({
   if (!hasStartDatetime) {
     return (
       <p className="vol-meet__notice">
-        Add a <strong>Start Date &amp; Time</strong> in Sanity Studio to enable Google Meet creation.
+        Add a <strong>Start Date &amp; Time</strong> on the Schedule tab to enable Google Meet creation.
       </p>
     );
   }
@@ -48,7 +48,7 @@ export default function CreateMeetButton({
     setState("loading");
 
     try {
-      const res = await fetch(`/api/programs/${programSlug}/google-meet`, {
+      const res = await fetch(`/api/programs-pg/${programSlug}/google-meet`, {
         method: "POST",
       });
 
@@ -74,7 +74,7 @@ export default function CreateMeetButton({
     setState("removing");
 
     try {
-      const res = await fetch(`/api/programs/${programSlug}/google-meet`, {
+      const res = await fetch(`/api/programs-pg/${programSlug}/google-meet`, {
         method: "DELETE",
       });
 

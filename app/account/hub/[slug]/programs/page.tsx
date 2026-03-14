@@ -91,14 +91,16 @@ export default async function RegistrarProgramsPage({
     <div className="vol-page">
       <div className="vol-content">
 
+        {isRegistrar && (
+          <div className="vol-header" style={{ marginBottom: "16px" }}>
+            <Link href={`${base}/programs/new`} className="pe-btn pe-btn--primary">
+              + Add Program
+            </Link>
+          </div>
+        )}
+
         {programsWithCounts.length === 0 ? (
-          <p className="vol-empty">
-            No programs found. Create one in{" "}
-            <a href="https://rooted-in-mindfulness.sanity.studio/" target="_blank" rel="noopener noreferrer">
-              Sanity Studio
-            </a>
-            .
-          </p>
+          <p className="vol-empty">No programs found.</p>
         ) : (
           <div className="vol-programs">
             {programsWithCounts.map((p) =>
@@ -156,6 +158,13 @@ export default async function RegistrarProgramsPage({
                     {!p.needsAttention && p.confirmedCount === 0 && (
                       <span className="vol-signal vol-signal--empty">No registrations</span>
                     )}
+                    <Link
+                      href={`${base}/programs/${p.slug.current}/edit`}
+                      className="vol-card__edit-link"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Edit
+                    </Link>
                     <span className="vol-card__arrow">&rarr;</span>
                   </div>
                 </Link>

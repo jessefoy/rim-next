@@ -5,7 +5,7 @@ import type { RegistrationField } from "@/components/RegistrationForm";
 
 export interface SerializedRegistration {
   id: string;
-  programId: string;
+  programId: string | null;
   programSlug: string;
   programTitle: string;
   userId: string | null;

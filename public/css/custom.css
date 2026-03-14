@@ -12367,3 +12367,164 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   font-style: italic;
   line-height: 1.6;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   pe- — Program Editor (Registrar Hub)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.pe-editor { max-width: 720px; }
+.pe-editor__header { display: flex; align-items: baseline; gap: 16px; margin-bottom: 16px; }
+.pe-editor__title { font-size: 24px; font-family: var(--font-serif); font-weight: 400; margin: 0; }
+.pe-link--view { font-size: 14px; color: var(--rim-mid); }
+.pe-link--view:hover { color: var(--rim-blue); }
+
+/* Messages */
+.pe-msg { padding: 10px 14px; border-radius: 4px; margin-bottom: 16px; font-size: 14px; }
+.pe-msg--error { background: #fef2f2; color: #991b1b; }
+.pe-msg--success { background: #f0fdf4; color: #166534; }
+
+/* Tabs */
+.pe-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--rim-rule); margin-bottom: 24px; overflow-x: auto; }
+.pe-tabs__tab {
+  padding: 8px 16px;
+  background: none; border: none;
+  font-size: 14px; font-family: var(--font-sans);
+  color: var(--rim-text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+.pe-tabs__tab:hover { color: var(--rim-text); }
+.pe-tabs__tab--active { color: var(--rim-blue); border-bottom-color: var(--rim-blue); font-weight: 600; }
+
+/* Form */
+.pe-form { display: flex; flex-direction: column; gap: 20px; }
+
+/* Fields */
+.pe-field { display: flex; flex-direction: column; gap: 4px; }
+.pe-field__label { font-size: 13px; font-weight: 600; color: var(--rim-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.pe-field__help { font-size: 13px; color: var(--rim-text-muted); line-height: 1.4; }
+.pe-field__help--warn { color: #b45309; }
+
+/* Inputs */
+.pe-input {
+  padding: 8px 10px;
+  border: 1px solid var(--rim-rule);
+  border-radius: 4px;
+  font-size: 15px; font-family: var(--font-sans);
+  background: #fff;
+  width: 100%;
+  box-sizing: border-box;
+}
+.pe-input:focus { outline: none; border-color: var(--rim-mid); }
+.pe-input:disabled { background: var(--rim-bg-accent); color: var(--rim-text-muted); }
+.pe-input--narrow { max-width: 160px; }
+
+.pe-textarea {
+  padding: 8px 10px;
+  border: 1px solid var(--rim-rule);
+  border-radius: 4px;
+  font-size: 15px; font-family: var(--font-sans);
+  background: #fff;
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+}
+.pe-textarea:focus { outline: none; border-color: var(--rim-mid); }
+
+.pe-select {
+  padding: 8px 10px;
+  border: 1px solid var(--rim-rule);
+  border-radius: 4px;
+  font-size: 15px; font-family: var(--font-sans);
+  background: #fff;
+  max-width: 320px;
+}
+.pe-select--narrow { max-width: 160px; }
+
+.pe-file-input { font-size: 14px; margin-top: 4px; }
+.pe-muted { font-size: 13px; color: var(--rim-text-muted); }
+
+/* Slug row */
+.pe-slug-row { display: flex; gap: 8px; align-items: center; }
+.pe-slug-row .pe-input { flex: 1; }
+
+/* Radio + checkbox */
+.pe-radio-group { display: flex; gap: 16px; flex-wrap: wrap; }
+.pe-radio { display: flex; align-items: center; gap: 6px; font-size: 15px; cursor: pointer; }
+.pe-checkbox { display: flex; align-items: center; gap: 8px; font-size: 15px; cursor: pointer; }
+.pe-checkbox--inline { font-size: 13px; }
+
+/* Day grid */
+.pe-day-grid { display: flex; gap: 4px; flex-wrap: wrap; }
+.pe-day-toggle {
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--rim-rule);
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* Inline row */
+.pe-inline-row { display: flex; align-items: center; gap: 8px; }
+
+/* Image preview */
+.pe-image-preview { margin-bottom: 8px; }
+.pe-image-preview__img { max-width: 240px; max-height: 160px; border-radius: 4px; display: block; margin-bottom: 6px; }
+
+/* Registration field builder */
+.pe-reg-field {
+  padding: 12px;
+  background: var(--rim-bg-accent);
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+.pe-reg-field__row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+.pe-reg-field__row .pe-input { flex: 1; }
+.pe-reg-field__actions { display: flex; gap: 6px; margin-top: 6px; }
+
+/* Meet section */
+.pe-meet-section { margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--rim-rule); }
+
+/* Buttons */
+.pe-btn {
+  padding: 8px 16px;
+  border: 1px solid var(--rim-rule);
+  border-radius: 4px;
+  font-size: 14px; font-family: var(--font-sans);
+  background: #fff;
+  cursor: pointer;
+  color: var(--rim-text);
+}
+.pe-btn:hover { background: var(--rim-bg-accent); }
+.pe-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.pe-btn--primary { background: var(--rim-blue); color: #fff; border-color: var(--rim-blue); }
+.pe-btn--primary:hover { background: var(--rim-mid); border-color: var(--rim-mid); }
+.pe-btn--danger { color: #991b1b; border-color: #fca5a5; }
+.pe-btn--danger:hover { background: #fef2f2; }
+.pe-btn--small { padding: 4px 10px; font-size: 12px; }
+
+/* Actions bar */
+.pe-actions { display: flex; gap: 10px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--rim-rule); }
+
+/* Edit link on program cards */
+.vol-card__edit-link {
+  font-size: 12px;
+  color: var(--rim-mid);
+  text-decoration: none;
+  padding: 2px 8px;
+  border: 1px solid var(--rim-rule);
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.vol-card__edit-link:hover { background: var(--rim-bg-accent); color: var(--rim-blue); }
+
+/* ── pe- responsive ── */
+@media (max-width: 640px) {
+  .pe-tabs { gap: 0; }
+  .pe-tabs__tab { padding: 8px 10px; font-size: 13px; }
+  .pe-radio-group { flex-direction: column; gap: 8px; }
+  .pe-reg-field__row { flex-direction: column; }
+  .pe-reg-field__row .pe-select { max-width: 100%; }
+}
