@@ -9,6 +9,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import { upload } from "@vercel/blob/client";
 import "@uiw/react-md-editor/markdown-editor.css";
 import "@uiw/react-markdown-preview/markdown.css";
 
@@ -107,14 +108,14 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
   }
 
   async function uploadFile(file: File): Promise<string | null> {
-    const form = new FormData();
-    form.append("file", file);
     try {
-      const res = await fetch("/api/upload", { method: "POST", body: form });
-      if (!res.ok) return null;
-      const data = await res.json();
-      return data.url;
-    } catch {
+      const blob = await upload(file.name, file, {
+        access: "public",
+        handleUploadUrl: "/api/upload",
+      });
+      return blob.url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
       return null;
     }
   }
