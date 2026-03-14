@@ -11,7 +11,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import RimEditor from "./RimEditor";
+import FormattedEditor from "./FormattedEditor";
+import { renderFormattedText } from "@/lib/renderRichContent";
 
 interface ThreadAuthor {
   firstName: string | null;
@@ -22,7 +23,7 @@ interface ThreadAuthor {
 interface Thread {
   id: string;
   title: string;
-  body: string;
+  body: any; // Tiptap JSON
   status: string;
   authorId: string;
   author: ThreadAuthor;
@@ -47,6 +48,22 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+/** Extract plain text from Tiptap JSON for excerpts */
+function extractText(json: any): string {
+  if (!json) return "";
+  if (typeof json === "string") return json;
+  if (json.text) return json.text;
+  if (json.content) return json.content.map(extractText).join(" ");
+  return "";
+}
+
+/** Check if Tiptap JSON has meaningful content */
+function hasContent(json: any): boolean {
+  if (!json) return false;
+  const text = extractText(json).trim();
+  return text.length > 0;
+}
+
 export default function HubConvClient({
   hubSlug,
   initialThreads,
@@ -60,7 +77,7 @@ export default function HubConvClient({
   const [threads, setThreads] = useState<Thread[]>(initialThreads);
   const [showCompose, setShowCompose] = useState(!!newTopicParam);
   const [title, setTitle] = useState(newTopicParam);
-  const [body, setBody] = useState("");
+  const [body, setBody] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [view, setView] = useState<"open" | "closed">("open");
   const [loadingClosed, setLoadingClosed] = useState(false);
@@ -92,12 +109,12 @@ export default function HubConvClient({
   }
 
   async function postThread() {
-    if (!title.trim() || !body.trim()) return;
+    if (!title.trim() || !hasContent(body)) return;
     setSaving(true);
     const res = await fetch(`/api/hub/${hubSlug}/conversations`, {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ title: title.trim(), body: body.trim() }),
+      body:    JSON.stringify({ title: title.trim(), body }),
     });
     if (res.ok) {
       const t = await res.json();
@@ -117,7 +134,7 @@ export default function HubConvClient({
         updatedAt:  t.updatedAt,
       };
       setThreads((prev) => [thread, ...prev]);
-      setTitle(""); setBody(""); setShowCompose(false);
+      setTitle(""); setBody(null); setShowCompose(false);
     }
     setSaving(false);
   }
@@ -130,7 +147,6 @@ export default function HubConvClient({
     });
     if (res.ok) {
       if (status === "OPEN") {
-        // Move back to open list
         const updated = await res.json();
         const thread: Thread = {
           id:         updated.id,
@@ -146,9 +162,8 @@ export default function HubConvClient({
         setThreads((prev) => [thread, ...prev]);
         setClosedThreads((prev) => prev ? prev.filter((t) => t.id !== id) : null);
       } else {
-        // Remove from open list
         setThreads((prev) => prev.filter((t) => t.id !== id));
-        setClosedThreads(null); // invalidate closed cache
+        setClosedThreads(null);
       }
     }
   }
@@ -193,21 +208,21 @@ export default function HubConvClient({
           </div>
           <div className="fg">
             <label className="fl">Message</label>
-            <RimEditor
-              rows={5}
+            <FormattedEditor
               value={body}
               onChange={setBody}
               placeholder="Share your thoughts…"
+              minHeight={160}
             />
           </div>
           <div className="form-actions">
-            <button className="btn--ghost" onClick={() => { setShowCompose(false); setTitle(""); setBody(""); }}>
+            <button className="btn--ghost" onClick={() => { setShowCompose(false); setTitle(""); setBody(null); }}>
               Cancel
             </button>
             <button
               className="btn"
               onClick={postThread}
-              disabled={saving || !title.trim() || !body.trim()}
+              disabled={saving || !title.trim() || !hasContent(body)}
             >
               {saving ? "Posting…" : "Post"}
             </button>
@@ -226,35 +241,38 @@ export default function HubConvClient({
         </p>
       ) : (
         <div className="cv-list">
-          {displayed.map((thread) => (
-            <div key={thread.id} className="cv-item">
-              <div className="cv-item__main">
-                <Link href={`/account/hub/${hubSlug}/conversations/${thread.id}`} className="cv-item__title">
-                  {thread.title}
-                </Link>
-                <div className="cv-item__excerpt">{thread.body.slice(0, 120)}{thread.body.length > 120 ? "…" : ""}</div>
-                <div className="cv-item__meta">
-                  {fmtDate(thread.createdAt)} · {displayName(thread.author)}
-                  {thread.replyCount > 0 && (
-                    <span className="cv-item__replies"> · {thread.replyCount} {thread.replyCount === 1 ? "reply" : "replies"}</span>
-                  )}
+          {displayed.map((thread) => {
+            const excerpt = extractText(thread.body);
+            return (
+              <div key={thread.id} className="cv-item">
+                <div className="cv-item__main">
+                  <Link href={`/account/hub/${hubSlug}/conversations/${thread.id}`} className="cv-item__title">
+                    {thread.title}
+                  </Link>
+                  <div className="cv-item__excerpt">{excerpt.slice(0, 120)}{excerpt.length > 120 ? "…" : ""}</div>
+                  <div className="cv-item__meta">
+                    {fmtDate(thread.createdAt)} · {displayName(thread.author)}
+                    {thread.replyCount > 0 && (
+                      <span className="cv-item__replies"> · {thread.replyCount} {thread.replyCount === 1 ? "reply" : "replies"}</span>
+                    )}
+                  </div>
                 </div>
+                {isCoordinator && (
+                  <div className="cv-item__actions">
+                    {thread.status === "OPEN" ? (
+                      <button className="ann-btn" onClick={() => setStatus(thread.id, "CLOSED")}>
+                        Close
+                      </button>
+                    ) : (
+                      <button className="ann-btn" onClick={() => setStatus(thread.id, "OPEN")}>
+                        Reopen
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
-              {isCoordinator && (
-                <div className="cv-item__actions">
-                  {thread.status === "OPEN" ? (
-                    <button className="ann-btn" onClick={() => setStatus(thread.id, "CLOSED")}>
-                      Close
-                    </button>
-                  ) : (
-                    <button className="ann-btn" onClick={() => setStatus(thread.id, "OPEN")}>
-                      Reopen
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

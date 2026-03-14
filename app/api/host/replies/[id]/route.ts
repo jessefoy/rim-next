@@ -20,10 +20,10 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const body = await request.json().catch(() => null);
-  const { body: newBody } = (body ?? {}) as { body?: string };
+  const reqBody = await request.json().catch(() => null);
+  const { body: newBody } = (reqBody ?? {}) as { body?: any };
 
-  if (!newBody?.trim()) {
+  if (!newBody) {
     return Response.json({ error: "Reply body is required" }, { status: 400 });
   }
 
@@ -37,7 +37,7 @@ export async function PATCH(
 
   await db.hostReply.update({
     where: { id },
-    data: { body: newBody.trim(), edited: true, editedAt: new Date() },
+    data: { body: newBody, edited: true, editedAt: new Date() },
   });
 
   return Response.json({ ok: true });

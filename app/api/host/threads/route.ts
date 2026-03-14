@@ -75,14 +75,14 @@ export async function POST(request: Request) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const body = await request.json().catch(() => null);
-  const { title, body: threadBody, category } = (body ?? {}) as {
+  const reqBody = await request.json().catch(() => null);
+  const { title, body: threadBody, category } = (reqBody ?? {}) as {
     title?: string;
-    body?: string;
+    body?: any;
     category?: string;
   };
 
-  if (!title?.trim() || !threadBody?.trim()) {
+  if (!title?.trim() || !threadBody) {
     return Response.json({ error: "Title and body are required" }, { status: 400 });
   }
   if (category !== "OPERATIONAL" && category !== "CONTEMPLATION") {
@@ -92,7 +92,7 @@ export async function POST(request: Request) {
   const thread = await db.hostThread.create({
     data: {
       title: title.trim(),
-      body: threadBody.trim(),
+      body: threadBody,
       category,
       authorId: session.user.id,
     },

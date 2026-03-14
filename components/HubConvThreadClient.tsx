@@ -7,7 +7,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import RimEditor from "./RimEditor";
+import FormattedEditor from "./FormattedEditor";
+import { renderFormattedText } from "@/lib/renderRichContent";
 
 interface PersonName {
   firstName: string | null;
@@ -17,7 +18,7 @@ interface PersonName {
 
 interface Reply {
   id: string;
-  body: string;
+  body: any; // Tiptap JSON
   authorId: string;
   author: PersonName;
   createdAt: string;
@@ -26,7 +27,7 @@ interface Reply {
 interface Thread {
   id: string;
   title: string;
-  body: string;
+  body: any; // Tiptap JSON
   status: string;
   authorId: string;
   author: PersonName;
@@ -50,6 +51,20 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+/** Check if Tiptap JSON has meaningful content */
+function hasContent(json: any): boolean {
+  if (!json) return false;
+  return extractText(json).trim().length > 0;
+}
+
+function extractText(json: any): string {
+  if (!json) return "";
+  if (typeof json === "string") return json;
+  if (json.text) return json.text;
+  if (json.content) return json.content.map(extractText).join(" ");
+  return "";
+}
+
 export default function HubConvThreadClient({
   hubSlug,
   initialThread,
@@ -58,20 +73,20 @@ export default function HubConvThreadClient({
   currentUserName,
 }: Props) {
   const [thread, setThread] = useState<Thread>(initialThread);
-  const [replyBody, setReplyBody] = useState("");
+  const [replyBody, setReplyBody] = useState<any>(null);
   const [saving, setSaving] = useState(false);
 
   const isClosed = thread.status !== "OPEN";
 
   async function postReply() {
-    if (!replyBody.trim()) return;
+    if (!hasContent(replyBody)) return;
     setSaving(true);
     const res = await fetch(
       `/api/hub/${hubSlug}/conversations/${thread.id}/replies`,
       {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ body: replyBody.trim() }),
+        body:    JSON.stringify({ body: replyBody }),
       }
     );
     if (res.ok) {
@@ -88,7 +103,7 @@ export default function HubConvThreadClient({
         createdAt: reply.createdAt,
       };
       setThread((prev) => ({ ...prev, replies: [...prev.replies, newReply] }));
-      setReplyBody("");
+      setReplyBody(null);
     }
     setSaving(false);
   }
@@ -134,7 +149,10 @@ export default function HubConvThreadClient({
 
       {/* Original post body */}
       <div className="cv-post cv-post--op">
-        <div className="cv-post__body">{thread.body}</div>
+        <div
+          className="cv-post__body"
+          dangerouslySetInnerHTML={{ __html: renderFormattedText(thread.body) }}
+        />
       </div>
 
       {/* Replies */}
@@ -146,7 +164,10 @@ export default function HubConvThreadClient({
                 {displayName(r.author)}
                 {r.authorId === currentUserId && <em className="cv-post__you"> (you)</em>}
               </div>
-              <div className="cv-post__body">{r.body}</div>
+              <div
+                className="cv-post__body"
+                dangerouslySetInnerHTML={{ __html: renderFormattedText(r.body) }}
+              />
               <div className="cv-post__date">{fmtDate(r.createdAt)}</div>
             </div>
           ))}
@@ -156,17 +177,17 @@ export default function HubConvThreadClient({
       {/* Reply form */}
       {!isClosed ? (
         <div className="cv-reply-form">
-          <RimEditor
-            rows={3}
+          <FormattedEditor
             value={replyBody}
             onChange={setReplyBody}
             placeholder="Add a reply…"
+            minHeight={120}
           />
           <div className="form-actions" style={{ justifyContent: "flex-end" }}>
             <button
               className="btn"
               onClick={postReply}
-              disabled={saving || !replyBody.trim()}
+              disabled={saving || !hasContent(replyBody)}
             >
               {saving ? "Posting…" : "Reply"}
             </button>

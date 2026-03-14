@@ -24,10 +24,10 @@ export async function POST(
   }
 
   const { id: threadId } = await params;
-  const body = await request.json().catch(() => null);
-  const { body: replyBody } = (body ?? {}) as { body?: string };
+  const reqBody = await request.json().catch(() => null);
+  const { body: replyBody } = (reqBody ?? {}) as { body?: any };
 
-  if (!replyBody?.trim()) {
+  if (!replyBody) {
     return Response.json({ error: "Reply body is required" }, { status: 400 });
   }
 
@@ -46,7 +46,7 @@ export async function POST(
     data: {
       threadId,
       authorId: session.user.id,
-      body: replyBody.trim(),
+      body: replyBody,
     },
   });
 

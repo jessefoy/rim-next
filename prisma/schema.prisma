@@ -521,7 +521,7 @@ enum SubStatus {
 model HostThread {
   id        String         @id @default(cuid())
   title     String
-  body      String         @db.Text
+  body      Json?
   category  ThreadCategory
   authorId  String
   author    User           @relation("HostThreads", fields: [authorId], references: [id], onDelete: Cascade)
@@ -539,7 +539,7 @@ model HostReply {
   thread    HostThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
   authorId  String
   author    User       @relation("HostReplies", fields: [authorId], references: [id], onDelete: Cascade)
-  body      String     @db.Text
+  body      Json?
   edited    Boolean    @default(false)
   editedAt  DateTime?
   reactions Json       @default("{}")  // { "👍": 2, "❤️": 1, ... }
@@ -753,7 +753,7 @@ model HubConversationThread {
   hubId                String
   authorId             String
   title                String
-  body                 String    @default("")
+  body                 Json?
   category             String    @default("General")
   status               String    @default("OPEN")
   sourceAnnouncementId String?
@@ -772,7 +772,7 @@ model HubConversationReply {
   id       String   @id @default(cuid())
   threadId String
   authorId String
-  body     String   @db.Text
+  body     Json?
 
   thread    HubConversationThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
   author    User                  @relation(fields: [authorId], references: [id], onDelete: Cascade)

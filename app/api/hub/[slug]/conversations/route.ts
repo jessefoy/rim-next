@@ -47,7 +47,7 @@ export async function POST(
   if (!member && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { title, body, sourceAnnouncementId } = await req.json();
-  if (!title?.trim() || !body?.trim()) {
+  if (!title?.trim() || !body) {
     return NextResponse.json({ error: "Title and body required" }, { status: 400 });
   }
 
@@ -64,7 +64,7 @@ export async function POST(
       hubId:                hub.id,
       authorId:             session.user.id,
       title:                title.trim(),
-      body:                 body.trim(),
+      body,
       status:               "OPEN",
       sourceAnnouncementId: sourceAnnouncementId ?? null,
     },

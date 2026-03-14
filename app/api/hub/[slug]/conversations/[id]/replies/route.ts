@@ -26,7 +26,7 @@ export async function POST(
   }
 
   const { body } = await req.json();
-  if (!body?.trim()) {
+  if (!body) {
     return NextResponse.json({ error: "Body required" }, { status: 400 });
   }
 
@@ -34,7 +34,7 @@ export async function POST(
     data: {
       threadId: id,
       authorId: session.user.id,
-      body:     body.trim(),
+      body,
     },
     include: {
       author: { select: { firstName: true, lastName: true, preferredName: true } },

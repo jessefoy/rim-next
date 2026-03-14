@@ -977,6 +977,38 @@ h1, h2, h3, h4, h5, h6 {
   padding: 0;
 }
 
+/* ── Tables in content ── */
+
+.lp-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 28px 0;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.lp-body table th {
+  background: var(--rim-bg-accent);
+  color: var(--rim-text);
+  font-weight: 600;
+  text-align: left;
+  padding: 10px 14px;
+  border: 1px solid var(--rim-rule);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+
+.lp-body table td {
+  padding: 10px 14px;
+  border: 1px solid var(--rim-rule);
+  color: var(--rim-text);
+  vertical-align: top;
+}
+
+.lp-body table tr:nth-child(even) td {
+  background: var(--rim-bg);
+}
+
 /* ── Section Divider ── */
 
 .lp-divider {
@@ -12235,6 +12267,76 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   margin: 16px 0;
   border-left: 3px solid var(--rim-rule);
   background: var(--rim-bg);
+}
+
+/* Editor footer (character/word count) */
+.rte-editor__footer {
+  padding: 6px 16px 8px;
+  border-top: 1px solid var(--rim-rule);
+  background: var(--rim-bg);
+}
+
+.rte-char-count {
+  font-size: 12px;
+  color: var(--rim-text-muted);
+}
+
+.rte-char-count--warning {
+  color: #b05a00;
+}
+
+/* Table toolbar button — slightly wider */
+.rte-btn[title="Insert table"] {
+  padding: 4px 12px;
+}
+
+.rte-btn--table {
+  font-size: 11px;
+}
+
+.rte-btn--danger {
+  color: #a03030;
+  border-color: #c8a0a0;
+}
+
+.rte-btn--danger:hover {
+  background: #fdf0f0;
+}
+
+/* Table styles inside editor */
+.rte-editor__content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 15px;
+}
+
+.rte-editor__content table th {
+  background: var(--rim-bg-accent);
+  font-weight: 600;
+  text-align: left;
+  padding: 8px 12px;
+  border: 1px solid var(--rim-rule);
+  font-size: 13px;
+}
+
+.rte-editor__content table td {
+  padding: 8px 12px;
+  border: 1px solid var(--rim-rule);
+  vertical-align: top;
+}
+
+.rte-editor__content .selectedCell:after {
+  background: rgba(19, 82, 116, 0.08);
+  content: "";
+  left: 0; right: 0; top: 0; bottom: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+}
+
+.rte-editor__content .column-resize-handle {
+  display: none;
 }
 
 /* Responsive */

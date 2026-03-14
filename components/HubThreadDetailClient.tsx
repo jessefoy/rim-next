@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import RimEditor from "./RimEditor";
+import FormattedEditor from "./FormattedEditor";
+import { renderFormattedText } from "@/lib/renderRichContent";
 
 type ThreadCategory = "OPERATIONAL" | "CONTEMPLATION" | "GENERAL";
 type ThreadStatus = "OPEN" | "CLOSED" | "ARCHIVED";
 
 interface Reply {
   id: string;
-  body: string;
+  body: any; // Tiptap JSON
   authorId: string;
   authorName: string;
   edited: boolean;
@@ -20,7 +21,7 @@ interface Reply {
 interface Thread {
   id: string;
   title: string;
-  body: string;
+  body: any; // Tiptap JSON
   category: ThreadCategory;
   status: ThreadStatus;
   authorId: string;
@@ -43,7 +44,7 @@ const CATEGORY_LABELS: Record<ThreadCategory, string> = {
   GENERAL: "General",
 };
 
-const ALLOWED_EMOJIS = ["👍", "❤️", "🙏", "💡", "😊"] as const;
+const ALLOWED_EMOJIS = ["\ud83d\udc4d", "\u2764\ufe0f", "\ud83d\ude4f", "\ud83d\udca1", "\ud83d\ude0a"] as const;
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -65,6 +66,20 @@ function formatDate(iso: string) {
     day: "numeric",
     year: d.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
   });
+}
+
+/** Check if Tiptap JSON has meaningful content */
+function hasContent(json: any): boolean {
+  if (!json) return false;
+  return extractText(json).trim().length > 0;
+}
+
+function extractText(json: any): string {
+  if (!json) return "";
+  if (typeof json === "string") return json;
+  if (json.text) return json.text;
+  if (json.content) return json.content.map(extractText).join(" ");
+  return "";
 }
 
 // ── EmojiReactions ──────────────────────────────────────────────────
@@ -139,7 +154,7 @@ function EmojiReactions({ replyId, reactions, onUpdate, disabled }: EmojiReactio
             title="Add reaction"
             disabled={!!loading}
           >
-            {loading ? "…" : "☺"}
+            {loading ? "\u2026" : "\u263a"}
           </button>
           {pickerOpen && (
             <div className="hub-reply-reactions__picker">
@@ -167,7 +182,7 @@ interface ReplyItemProps {
   currentUserId: string;
   threadOpen: boolean;
   onReactionUpdate: (replyId: string, reactions: Record<string, number>) => void;
-  onReplyEdited: (replyId: string, newBody: string) => void;
+  onReplyEdited: (replyId: string, newBody: any) => void;
 }
 
 function ReplyItem({
@@ -179,12 +194,12 @@ function ReplyItem({
 }: ReplyItemProps) {
   const isOwn = reply.authorId === currentUserId;
   const [editing, setEditing] = useState(false);
-  const [editBody, setEditBody] = useState(reply.body);
+  const [editBody, setEditBody] = useState<any>(reply.body);
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState("");
 
   async function handleSaveEdit() {
-    if (!editBody.trim() || editBody.trim() === reply.body) {
+    if (!hasContent(editBody)) {
       setEditing(false);
       return;
     }
@@ -194,10 +209,10 @@ function ReplyItem({
       const res = await fetch(`/api/host/replies/${reply.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: editBody.trim() }),
+        body: JSON.stringify({ body: editBody }),
       });
       if (res.ok) {
-        onReplyEdited(reply.id, editBody.trim());
+        onReplyEdited(reply.id, editBody);
         setEditing(false);
       } else {
         const data = await res.json().catch(() => ({}));
@@ -215,27 +230,27 @@ function ReplyItem({
       <p className="hub-reply__meta">
         <strong>{reply.authorName}</strong>
         {isOwn && <span className="hub-thread-detail__you"> (you)</span>}
-        {" · "}{formatDate(reply.createdAt)}
+        {" \u00b7 "}{formatDate(reply.createdAt)}
         {reply.edited && (
-          <span className="hub-reply__edited"> · edited</span>
+          <span className="hub-reply__edited"> \u00b7 edited</span>
         )}
       </p>
 
       {editing ? (
         <div>
-          <RimEditor
-            rows={4}
+          <FormattedEditor
             value={editBody}
             onChange={setEditBody}
+            minHeight={120}
           />
           {editError && <p className="hub-form-error">{editError}</p>}
           <div className="hub-form-actions">
             <button
               className="hub-btn hub-btn--sm"
               onClick={handleSaveEdit}
-              disabled={saving || !editBody.trim()}
+              disabled={saving || !hasContent(editBody)}
             >
-              {saving ? "Saving…" : "Save"}
+              {saving ? "Saving\u2026" : "Save"}
             </button>
             <button
               className="hub-btn hub-btn--ghost hub-btn--sm"
@@ -250,11 +265,10 @@ function ReplyItem({
           </div>
         </div>
       ) : (
-        <div className="hub-reply__body">
-          {reply.body.split("\n\n").map((para, i) => (
-            <p key={i}>{para}</p>
-          ))}
-        </div>
+        <div
+          className="hub-reply__body"
+          dangerouslySetInnerHTML={{ __html: renderFormattedText(reply.body) }}
+        />
       )}
 
       <div className="hub-reply__footer">
@@ -289,7 +303,7 @@ export default function HubThreadDetailClient({
   isManager,
 }: Props) {
   const [thread, setThread] = useState(initialThread);
-  const [replyBody, setReplyBody] = useState("");
+  const [replyBody, setReplyBody] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
   const [replyError, setReplyError] = useState("");
   const [statusChanging, setStatusChanging] = useState(false);
@@ -303,7 +317,7 @@ export default function HubThreadDetailClient({
     }));
   }
 
-  function handleReplyEdited(replyId: string, newBody: string) {
+  function handleReplyEdited(replyId: string, newBody: any) {
     setThread((t) => ({
       ...t,
       replies: t.replies.map((r) =>
@@ -314,14 +328,14 @@ export default function HubThreadDetailClient({
 
   async function handleReplySubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!replyBody.trim()) return;
+    if (!hasContent(replyBody)) return;
     setSubmitting(true);
     setReplyError("");
     try {
       const res = await fetch(`/api/host/threads/${thread.id}/replies`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: replyBody.trim() }),
+        body: JSON.stringify({ body: replyBody }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -331,7 +345,7 @@ export default function HubThreadDetailClient({
       const data = await res.json();
       const newReply: Reply = {
         id: data.id,
-        body: replyBody.trim(),
+        body: replyBody,
         authorId: currentUserId,
         authorName: currentUserName,
         edited: false,
@@ -340,9 +354,9 @@ export default function HubThreadDetailClient({
         createdAt: new Date().toISOString(),
       };
       setThread((t) => ({ ...t, replies: [...t.replies, newReply] }));
-      setReplyBody("");
+      setReplyBody(null);
     } catch {
-      setReplyError("Network error — please try again");
+      setReplyError("Network error \u2014 please try again");
     } finally {
       setSubmitting(false);
     }
@@ -386,8 +400,8 @@ export default function HubThreadDetailClient({
           {thread.authorId === currentUserId && (
             <span className="hub-thread-detail__you"> (you)</span>
           )}
-          {" · "}
-          {formatDate(thread.createdAt)} ·{" "}
+          {" \u00b7 "}
+          {formatDate(thread.createdAt)} \u00b7{" "}
           {thread.replies.length === 0
             ? "no replies"
             : thread.replies.length === 1
@@ -397,11 +411,10 @@ export default function HubThreadDetailClient({
       </div>
 
       {/* Opening post body */}
-      <div className="hub-thread-detail__body">
-        {thread.body.split("\n\n").map((para, i) => (
-          <p key={i}>{para}</p>
-        ))}
-      </div>
+      <div
+        className="hub-thread-detail__body"
+        dangerouslySetInnerHTML={{ __html: renderFormattedText(thread.body) }}
+      />
 
       {/* Replies */}
       {thread.replies.length > 0 && (
@@ -427,27 +440,27 @@ export default function HubThreadDetailClient({
         <div className="hub-thread-detail__reply-form">
           <p className="hub-thread-detail__reply-label">Add a reply</p>
           <form onSubmit={handleReplySubmit}>
-            <RimEditor
-              rows={5}
+            <FormattedEditor
               value={replyBody}
               onChange={setReplyBody}
-              placeholder="Share your thoughts…"
+              placeholder="Share your thoughts\u2026"
+              minHeight={160}
             />
             {replyError && <p className="hub-form-error">{replyError}</p>}
             <div className="hub-form-actions" style={{ marginTop: 10 }}>
               <button
                 type="submit"
                 className="hub-btn"
-                disabled={submitting || !replyBody.trim()}
+                disabled={submitting || !hasContent(replyBody)}
               >
-                {submitting ? "Posting…" : "Post Reply"}
+                {submitting ? "Posting\u2026" : "Post Reply"}
               </button>
             </div>
           </form>
         </div>
       ) : (
         <p className="hub-thread-detail__closed-note">
-          This thread is closed — no new replies can be added.
+          This thread is closed \u2014 no new replies can be added.
         </p>
       )}
 
@@ -462,7 +475,7 @@ export default function HubThreadDetailClient({
                 onClick={() => handleStatusChange("CLOSED")}
                 disabled={statusChanging}
               >
-                {statusChanging ? "…" : "Close Thread"}
+                {statusChanging ? "\u2026" : "Close Thread"}
               </button>
             )}
             {thread.status === "CLOSED" && (
@@ -472,14 +485,14 @@ export default function HubThreadDetailClient({
                   onClick={() => handleStatusChange("OPEN")}
                   disabled={statusChanging}
                 >
-                  {statusChanging ? "…" : "Reopen Thread"}
+                  {statusChanging ? "\u2026" : "Reopen Thread"}
                 </button>
                 <button
                   className="hub-btn hub-btn--ghost hub-btn--sm"
                   onClick={() => handleStatusChange("ARCHIVED")}
                   disabled={statusChanging}
                 >
-                  {statusChanging ? "…" : "Archive Thread"}
+                  {statusChanging ? "\u2026" : "Archive Thread"}
                 </button>
               </>
             )}
