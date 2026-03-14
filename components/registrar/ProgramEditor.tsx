@@ -334,7 +334,7 @@ export default function ProgramEditor({ hubSlug, initialData, isEditing, categor
       <div className="pe-editor__header">
         <h2 className="pe-editor__title">{isEditing ? "Edit Program" : "New Program"}</h2>
         {isEditing && slug && (
-          <a href={`/community-programs/${slug}`} target="_blank" rel="noopener noreferrer" className="pe-link pe-link--view">
+          <a href={`/programs/${slug}`} target="_blank" rel="noopener noreferrer" className="pe-link pe-link--view">
             View program page →
           </a>
         )}
