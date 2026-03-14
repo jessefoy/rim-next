@@ -1,9 +1,18 @@
+/**
+ * /account/hub/registrar/programs — Program list with registration counts.
+ *
+ * Full view (REGISTRAR | ADMIN): all counts, status signals, links to detail.
+ * Stakeholder view (other hub members): headcount + capacity only, no links, no PII.
+ */
+
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { sanityClient } from "@/lib/sanity";
 import { db } from "@/lib/db";
+import { getHubMembership } from "@/lib/hubAuth";
 import Link from "next/link";
-import AccountLayout from "@/components/AccountLayout";
+
+export const dynamic = "force-dynamic";
 
 const volunteerProgramsQuery = `*[_type == "programs" && !(_id in path("drafts.**"))] | order(sortOrder asc) {
   _id, name, slug, tagline, registrationCapacity
@@ -17,26 +26,28 @@ interface SanityProgram {
   registrationCapacity?: number | null;
 }
 
-export default async function RegistrarPage() {
+export default async function RegistrarProgramsPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
   const session = await auth();
   if (!session) redirect("/login");
 
-  const isAuthorized = session.user.roles?.some((r) =>
-    ["REGISTRAR", "ADMIN"].includes(r)
-  );
-  if (!isAuthorized) {
-    return (
-      <AccountLayout>
-        <div className="vol-page">
-          <div className="vol-content">
-            <p className="vol-unauthorized">
-              You don&rsquo;t have permission to access this area.
-            </p>
-          </div>
-        </div>
-      </AccountLayout>
-    );
+  const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
+  if (!hub || (!member && !isAdmin)) redirect("/account/dashboard");
+
+  // Update lastVisitedAt
+  if (member) {
+    await db.hubMember.update({
+      where: { id: member.id },
+      data: { lastVisitedAt: new Date() },
+    });
   }
+
+  const roles = session.user.roles ?? [];
+  const isRegistrar = roles.includes("REGISTRAR") || roles.includes("ADMIN");
 
   const programs = await sanityClient.fetch<SanityProgram[]>(volunteerProgramsQuery);
 
@@ -74,30 +85,28 @@ export default async function RegistrarPage() {
     return { ...p, byStatus, confirmedCount, waitlistedCount, pendingDanaCount, capacityPct, needsAttention, spotOpened };
   });
 
+  const base = `/account/hub/${slug}`;
+
   return (
-    <AccountLayout>
-      <div className="vol-page">
-        <div className="vol-content">
+    <div className="vol-page">
+      <div className="vol-content">
 
-          <header className="vol-header">
-            <p className="lp-label">Volunteer Admin</p>
-            <h1 className="vol-header__title">Registrations</h1>
-          </header>
-
-          {programsWithCounts.length === 0 ? (
-            <p className="vol-empty">
-              No programs found. Create one in{" "}
-              <a href="https://rooted-in-mindfulness.sanity.studio/" target="_blank" rel="noopener noreferrer">
-                Sanity Studio
-              </a>
-              .
-            </p>
-          ) : (
-            <div className="vol-programs">
-              {programsWithCounts.map((p) => (
+        {programsWithCounts.length === 0 ? (
+          <p className="vol-empty">
+            No programs found. Create one in{" "}
+            <a href="https://rooted-in-mindfulness.sanity.studio/" target="_blank" rel="noopener noreferrer">
+              Sanity Studio
+            </a>
+            .
+          </p>
+        ) : (
+          <div className="vol-programs">
+            {programsWithCounts.map((p) =>
+              isRegistrar ? (
+                /* ── Full registrar view — linked cards with all signals ── */
                 <Link
                   key={p._id}
-                  href={`/account/registrar/${p.slug.current}`}
+                  href={`${base}/programs/${p.slug.current}`}
                   className={`vol-card${p.needsAttention ? " vol-card--attention" : ""}`}
                 >
                   <div className="vol-card__main">
@@ -126,7 +135,7 @@ export default async function RegistrarPage() {
                   <div className="vol-card__signals">
                     {p.spotOpened && (
                       <span className="vol-signal vol-signal--spot-open">
-                        ↑ Spot open · {p.waitlistedCount} waiting
+                        &uarr; Spot open &middot; {p.waitlistedCount} waiting
                       </span>
                     )}
                     {!p.spotOpened && p.waitlistedCount > 0 && (
@@ -147,15 +156,57 @@ export default async function RegistrarPage() {
                     {!p.needsAttention && p.confirmedCount === 0 && (
                       <span className="vol-signal vol-signal--empty">No registrations</span>
                     )}
-                    <span className="vol-card__arrow">→</span>
+                    <span className="vol-card__arrow">&rarr;</span>
                   </div>
                 </Link>
-              ))}
-            </div>
-          )}
+              ) : (
+                /* ── Stakeholder view — read-only, no links, no PII ── */
+                <div key={p._id} className="vol-card">
+                  <div className="vol-card__main">
+                    <h2 className="vol-card__title">{p.name}</h2>
+                    {p.tagline && <p className="vol-card__tagline">{p.tagline}</p>}
+                    {p.registrationCapacity && p.capacityPct !== null && (
+                      <div className="vol-capacity">
+                        <div className="vol-capacity__bar">
+                          <div
+                            className={`vol-capacity__fill${
+                              p.capacityPct >= 100
+                                ? " vol-capacity__fill--full"
+                                : p.capacityPct >= 80
+                                ? " vol-capacity__fill--near"
+                                : ""
+                            }`}
+                            style={{ width: `${p.capacityPct}%` }}
+                          />
+                        </div>
+                        <span className="vol-capacity__label">
+                          {p.confirmedCount} / {p.registrationCapacity}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="vol-card__signals">
+                    {p.waitlistedCount > 0 && (
+                      <span className="vol-signal vol-signal--amber">
+                        {p.waitlistedCount} waitlisted
+                      </span>
+                    )}
+                    {p.confirmedCount > 0 && (
+                      <span className="vol-signal vol-signal--clear">
+                        {p.confirmedCount} confirmed
+                      </span>
+                    )}
+                    {p.confirmedCount === 0 && p.waitlistedCount === 0 && (
+                      <span className="vol-signal vol-signal--empty">No registrations</span>
+                    )}
+                  </div>
+                </div>
+              )
+            )}
+          </div>
+        )}
 
-        </div>
       </div>
-    </AccountLayout>
+    </div>
   );
 }

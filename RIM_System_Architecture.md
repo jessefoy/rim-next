@@ -21,7 +21,7 @@ The Member Registry is the authoritative record of every person in the RIM commu
 
 Hubs are team workspaces for RIM's volunteer groups. Each hub serves one team. Members see only the hubs they belong to.
 
-**Current hubs:** Host Team, Teacher Hub, People Team, Greeter Team, AV Team, Housekeeping, Plant Care, Newsletter, Sangha Care, KM Support, Silent Meditation, Volunteer Coordination (all OPERATIONAL) + Board and Teacher Council (GOVERNANCE).
+**Current hubs:** Host Team, Teacher Hub, Registrar Hub, People Team, Greeter Team, AV Team, Housekeeping, Plant Care, Newsletter, Sangha Care, KM Support, Silent Meditation, Volunteer Coordination (all OPERATIONAL) + Board and Teacher Council (GOVERNANCE).
 
 **What they are:** Task-specific workspaces. Each hub currently provides Announcements, Documents, Conversations, and a Members tab. The Host Team hub also has a Schedule tab.
 
@@ -97,13 +97,14 @@ Someone who is both a Host Team coordinator and a Volunteer Coordination member 
 
 The **Virtual Host Hub** was the first hub to receive a scoped member data view — built in sessions 41–45. It established the pattern for all subsequent hub data views.
 
-The **Registrar Hub** is next. It is more complex than the Host Hub because:
+The **Registrar Hub** (Phase 1) was migrated into the hub system in session 53. The standalone `/account/registrar` area was retired and all registrar functionality now lives at `/account/hub/registrar/programs`. Phase 1 also introduced **stakeholder visibility** — non-registrar hub members see headcount and capacity only, no PII, no detail page access. The role design document is in `RIM_Role_Design.md`.
 
-- The registrar holds both administrative authority (Member Registry access) and a pastoral/relational workflow dimension
-- The hub will contain program management — creating and editing programs is moving from Sanity to Postgres (Phase 3 migration), and that UI lives in the Registrar Hub
-- The existing registrar area at `/account/registrar` predates the hub system and will be migrated into `/account/hub/registrar/`
+**What remains for the Registrar Hub:**
 
-The Registrar Hub role design must be written before any code is built. That design document follows the same structure as the Virtual Host role in `RIM_Role_Design.md`.
+- **Phase 3 — Program management in Postgres:** Create and edit programs from within the hub (currently in Sanity Studio). This is the largest remaining migration.
+- **Support Inbox:** Gmail API integration surfacing support@rootedinmindfulness.org inside the hub with member context, claiming, and routing. Separate spec required.
+- **Check-in tools:** Digital check-in per program (phone-first), PDF export, future member self-check-in.
+- **Stakeholder names visibility:** Whether certain stakeholders should see participant names (not just headcount) is a privacy question deferred until a real use case requires it.
 
 ---
 
@@ -118,4 +119,4 @@ This file is part of the closing ritual for any Claude Code session that touches
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org*
-*Working document · March 2026*
+*Working document · March 2026 (updated session 53)*

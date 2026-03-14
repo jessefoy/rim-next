@@ -1,12 +1,12 @@
 # RIM Next — Stack Reference
 
-_Generated 2026-03-11. Last updated 2026-03-14 (session 52). Update this file whenever a service, credential, or major structural decision changes._
+_Generated 2026-03-11. Last updated 2026-03-14 (session 53). Update this file whenever a service, credential, or major structural decision changes._
 
 ---
 
 ## What's been built
 
-Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfield, WI. This Next.js application is the future home of the entire RIM digital presence — programs, member accounts, registrations, online courses, and volunteer tooling. As of this writing, the application includes a full program registration system (with waitlisting, dana/Stripe payments, calendar links, and automated emails), a member dashboard and profile system, a registrar area for managing participants, an admin area for member management (with households, status, tags, and role assignment), a Postgres-backed course and lesson library (migrated from Sanity, managed via Teacher Hub with a rich Markdown editor), a staff reference manual, a site architecture/feature inventory for admins, a Google Meet integration for virtual programs, a Host Community Hub — a full team workspace for the volunteer host team with a calendar schedule, sub board, conversations, and alerts, and an Email Template Manager — a database-backed system for editing all managed transactional email copy without code deploys. The Webflow-built site at `rootedinmindfulness.org` remains live as the public-facing domain while this app is in active development at `rim-next.vercel.app`.
+Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfield, WI. This Next.js application is the future home of the entire RIM digital presence — programs, member accounts, registrations, online courses, and volunteer tooling. As of this writing, the application includes a full program registration system (with waitlisting, dana/Stripe payments, calendar links, and automated emails), a member dashboard and profile system, a Registrar Hub for managing participants (migrated into the multi-hub system with stakeholder visibility), an admin area for member management (with households, status, tags, and role assignment), a Postgres-backed course and lesson library (migrated from Sanity, managed via Teacher Hub with a rich Markdown editor), a staff reference manual, a site architecture/feature inventory for admins, a Google Meet integration for virtual programs, a Host Community Hub — a full team workspace for the volunteer host team with a calendar schedule, sub board, conversations, and alerts, and an Email Template Manager — a database-backed system for editing all managed transactional email copy without code deploys. The Webflow-built site at `rootedinmindfulness.org` remains live as the public-facing domain while this app is in active development at `rim-next.vercel.app`.
 
 ---
 
@@ -151,8 +151,8 @@ app/
   account/
     dashboard/        member home
     programs/         my registrations
-    hub/[slug]/       Multi-hub volunteer workspaces (host-team: HOST | HOST_MANAGER | ADMIN)
-    registrar/        registrar area (REGISTRAR | ADMIN)
+    hub/[slug]/       Multi-hub volunteer workspaces (host-team, teacher, registrar, etc.)
+    hub/[slug]/programs/  Registrar Hub programs tab (REGISTRAR | ADMIN + stakeholder view)
     welcome/          onboarding
     reactivate/       self-service reactivation
   admin/
@@ -197,12 +197,13 @@ data/backlog.json     feature backlog (surfaced at /admin/ideas)
 | `HOST` | Host Community Hub, sub board, conversations |
 | `HOST_MANAGER` | All HOST access + assignment management + unassigned alerts |
 | `TEACHER` | Teacher Hub — course and lesson management |
-| `REGISTRAR` | Registrations, member profiles, Sanity Studio |
+| `REGISTRAR` | Registrar Hub (auto-synced, coordinator), registrations, member profiles, Sanity Studio |
 | `ADMIN` | Everything |
 
 Hub access check: `roles.some(r => ["HOST","HOST_MANAGER","ADMIN"].includes(r))`
 Manager check: `roles.some(r => ["HOST_MANAGER","ADMIN"].includes(r))`
 Teacher check: `roles.some(r => ["TEACHER","ADMIN"].includes(r))`
+Registrar check: `roles.some(r => ["REGISTRAR","ADMIN"].includes(r))`
 
 ---
 

@@ -59,7 +59,8 @@ export default async function HubLayout({ children, params }: Props) {
     slug === "host-team" &&
     roles.some((r) => ["HOST", "HOST_MANAGER", "REGISTRAR", "ADMIN"].includes(r));
 
-  const isTeacherHub = slug === "teacher";
+  const isTeacherHub    = slug === "teacher";
+  const isRegistrarHub  = slug === "registrar";
 
   const tabs = [
     ...(isTeacherHub
@@ -68,7 +69,10 @@ export default async function HubLayout({ children, params }: Props) {
           { label: "Lessons",  href: `${base}/lessons` },
         ]
       : []),
-    { label: "Announcements", href: isTeacherHub ? `${base}/announcements` : base },
+    ...(isRegistrarHub
+      ? [{ label: "Programs", href: `${base}/programs` }]
+      : []),
+    { label: "Announcements", href: (isTeacherHub || isRegistrarHub) ? `${base}/announcements` : base },
     ...(hub.hasSchedule ? [{ label: "Schedule", href: `${base}/schedule` }] : []),
     ...(canSeeSessionTab ? [{ label: "Session", href: `${base}/session` }] : []),
     { label: "Documents",     href: `${base}/documents` },

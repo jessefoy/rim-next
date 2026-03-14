@@ -25,6 +25,7 @@ const hubs = [
   { slug: "board",                  name: "Board",                  type: "GOVERNANCE"  as const },
   { slug: "teacher-council",        name: "Teacher Council",        type: "GOVERNANCE"  as const },
   { slug: "teacher",                name: "Teacher Hub",            type: "OPERATIONAL" as const },
+  { slug: "registrar",              name: "Registrar Hub",          type: "OPERATIONAL" as const, description: "Program registration management and participant support." },
 ];
 
 async function main() {
@@ -32,8 +33,8 @@ async function main() {
   for (const hub of hubs) {
     await db.hub.upsert({
       where:  { slug: hub.slug },
-      update: { name: hub.name, type: hub.type, hasSchedule: hub.hasSchedule ?? false },
-      create: { slug: hub.slug, name: hub.name, type: hub.type, hasSchedule: hub.hasSchedule ?? false },
+      update: { name: hub.name, type: hub.type, hasSchedule: hub.hasSchedule ?? false, ...(hub.description ? { description: hub.description } : {}) },
+      create: { slug: hub.slug, name: hub.name, type: hub.type, hasSchedule: hub.hasSchedule ?? false, ...(hub.description ? { description: hub.description } : {}) },
     });
     console.log(`  ✓ ${hub.name}`);
   }

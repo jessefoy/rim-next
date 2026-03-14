@@ -643,7 +643,7 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
             {member.registrations.map((r) => (
               <div key={r.id} className="adm-reg">
                 <div className="adm-reg__main">
-                  <Link href={`/account/registrar/${r.programSlug}`} className="adm-reg__title">
+                  <Link href={`/account/hub/registrar/programs/${r.programSlug}`} className="adm-reg__title">
                     {r.programTitle}
                   </Link>
                   <span className="adm-reg__date">{regDate(r.createdAt)}</span>

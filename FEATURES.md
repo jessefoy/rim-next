@@ -293,19 +293,22 @@ A registration is considered a duplicate if the same `userId` + `programId` alre
 
 ---
 
-## 5. Volunteer / Registrar Admin Area
+## 5. Registrar Hub — Registration Management
 
-**What it does:** A private area for staff to view and manage registrations for all programs. Accessible at `/account/registrar`.
+**What it does:** A hub-based workspace for staff to view and manage registrations for all programs. Lives inside the multi-hub system at `/account/hub/registrar/programs`. REGISTRAR users are auto-synced to the hub via `syncHubMembership`. The hub also supports **stakeholder visibility** — non-registrar hub members (teachers, coordinators) see headcount and capacity only, no PII, no links to detail pages.
 
-### 5a. Programs Landing Page (`/account/registrar`)
+### 5a. Programs Tab (`/account/hub/registrar/programs`)
 
-- Lists all programs with `registrationEnabled = true` (pulled from Sanity)
-- Shows counts by status: total, registered, waitlisted, approved
-- Each program links to its detail table
+- Lists all programs (pulled from Sanity, sorted by `sortOrder`)
+- Shows counts by status: confirmed, waitlisted, pending dana
+- Capacity bar with color states (normal / near / full)
+- Status signals: spot-open (green), waitlisted (amber), dana pending (amber)
+- Each program card links to its detail page (registrar view only)
+- **Stakeholder view** (non-REGISTRAR hub members): same cards but shows only confirmed count + capacity bar + waitlist count. No links, no pending dana, no spot-open/needs-attention signals.
 
-**Key file:** `app/account/registrar/page.tsx`
+**Key file:** `app/account/hub/[slug]/programs/page.tsx`
 
-### 5b. Registration Table (`/account/registrar/[slug]`)
+### 5b. Registration Table (`/account/hub/registrar/programs/[slug]`)
 
 **What the registrar can do:**
 - See all registrants in a table (name, email, phone, status, donation status, registration date)
@@ -324,8 +327,9 @@ A registration is considered a duplicate if the same `userId` + `programId` alre
 **Mobile layout:** On small screens the table transforms into cards — each row shows name + email stacked on the left, status badge + action button on the right. Phone number and registration date appear inside the expanded panel on mobile.
 
 **Key files:**
-- `app/account/registrar/[slug]/page.tsx` — server component (fetches program + registrations + `registrationFields` from Sanity)
-- `components/VolunteerTable.tsx` — client component (all interactivity)
+- `app/account/hub/[slug]/programs/[programSlug]/page.tsx` — server component (fetches program + registrations + `registrationFields` from Sanity)
+- `components/registrar/VolunteerTable.tsx` — client component (all interactivity)
+- `components/registrar/CreateMeetButton.tsx` — Google Meet creation (virtual/hybrid programs only)
 
 **🔧 Technical notes:**
 - Status updates use optimistic UI — the UI updates immediately and reverts if the API call fails
@@ -445,9 +449,8 @@ A persistent sidebar that appears on all account pages, showing navigation links
 | My Programs | `/account/programs` | All members |
 | My Library | `/account/dashboard-my-library` | All members |
 | My Profile | `/account/dashboard-my-profile` | All members |
-| *(Your Hubs divider + links)* | `/account/hub/[slug]` | Members with `HubMember` records; ADMIN sees all hubs |
+| *(Your Hubs divider + links)* | `/account/hub/[slug]` | Members with `HubMember` records; ADMIN sees all hubs; REGISTRAR auto-synced to Registrar Hub |
 | *(divider)* | — | REGISTRAR / ADMIN |
-| Programs | `/account/registrar` | REGISTRAR / ADMIN |
 | Members | `/admin/members` | REGISTRAR / ADMIN |
 | Households | `/admin/households` | REGISTRAR / ADMIN |
 | *(divider)* | — | ADMIN only |
@@ -463,8 +466,10 @@ A persistent sidebar that appears on all account pages, showing navigation links
 
 **Old URLs now redirect:**
 - `/hosts` → `/account/host`
-- `/volunteer` → `/account/registrar`
-- `/volunteer/programs/[slug]` → `/account/registrar/[slug]`
+- `/volunteer` → `/account/hub/registrar/programs`
+- `/volunteer/programs/[slug]` → `/account/hub/registrar/programs/[slug]`
+- `/account/registrar` → `/account/hub/registrar/programs`
+- `/account/registrar/[slug]` → `/account/hub/registrar/programs/[slug]`
 - `/account/dashboard-my-registrations` → `/account/programs`
 
 **Key files:**
@@ -2930,4 +2935,6 @@ Both use `@tiptap/html` `generateHTML()`. Output is used with `dangerouslySetInn
 
 | 2026-03-14 (session 52) | **Editor extensions + hub conversations migration.** **(1) Auth fix:** Diagnosed `"cached plan must not change result type"` Postgres error in Vercel logs — caused by Neon PgBouncer caching stale prepared statements after session 51's `prisma db push` (adminNotes String→Json). Added `pgbouncer=true` to `POSTGRES_PRISMA_URL` in Vercel env vars; redeployed. Prevents future recurrence on schema changes. **(2) Editor extensions — both editors:** Underline (`@tiptap/extension-underline`, toolbar button + Cmd+U), TextAlign (`@tiptap/extension-text-align`, L/C/R toolbar buttons), Typography (`@tiptap/extension-typography`, auto smart quotes/em dashes/ellipsis), CharacterCount (`@tiptap/extension-character-count`, word count footer + optional `maxChars` prop). **(3) Table extension — ContentEditor only:** `@tiptap/extension-table` + TableRow/TableHeader/TableCell. "Insert table" toolbar button (3×3 with header row). Context toolbar when cursor in table: +Row, +Col, −Row, −Col, Delete Table. **(4) renderRichContent.ts:** Added Underline, TextAlign, Table, TableRow, TableHeader, TableCell to both extension sets for server-side HTML rendering. **(5) Hub conversations → FormattedEditor:** Replaced `RimEditor` (markdown output) with `FormattedEditor` (Tiptap JSON output) in all 3 conversation components: `HubConvClient`, `HubConvThreadClient`, `HubThreadDetailClient`. Thread/reply body rendering changed from `body.split("\\n\\n")` to `dangerouslySetInnerHTML={{ __html: renderFormattedText(body) }}`. Excerpt extraction via `extractText()` helper (recursive Tiptap JSON → plain text). **(6) Prisma schema:** 4 body fields changed from `String` to `Json?`: `HostThread.body`, `HostReply.body`, `HubConversationThread.body`, `HubConversationReply.body`. Existing test data deleted (2 hub threads, 1 host thread + replies). `prisma db push`. **(7) API routes:** 6 conversation routes updated — removed `.trim()` on body, changed validation from `!body?.trim()` to `!body`, store JSON directly. **(8) CSS:** `rte-editor__footer` (char/word count), `rte-char-count`/`--warning`, `rte-btn--table`/`--danger`, editor table preview styles (`.rte-editor__content table`), `.selectedCell` highlight, lesson page table styles (`.lp-body table` with alternating rows). **(9) All 5 docs updated.** |
 
-*Last updated: 2026-03-14 (session 52)*
+| 2026-03-14 (session 53) | **Registrar Hub — Phase 1 migration into hub system.** Migrated the standalone registrar area at `/account/registrar` into the multi-hub workspace system at `/account/hub/registrar/`. **(1) Hub registration:** Added registrar hub to `prisma/seed-hubs.ts` (slug: `registrar`, OPERATIONAL). Added `REGISTRAR` → registrar hub mapping in `lib/syncHubMembership.ts` (isCoordinator: true). Seeded hub + synced existing REGISTRAR user (LoriLee). **(2) Hub layout integration:** `app/account/hub/[slug]/layout.tsx` — added "Programs" tab when `slug === "registrar"`; Announcements uses explicit `/announcements` path (same pattern as teacher hub). Root page redirects to `/programs`. **(3) Programs list page** (`app/account/hub/[slug]/programs/page.tsx`): Migrated from `app/account/registrar/page.tsx`. Same Sanity query + registration groupBy logic. Added **stakeholder visibility**: non-REGISTRAR hub members see simplified cards (confirmed count + capacity bar + waitlist count only; no links to detail, no pending dana, no spot-open/needs-attention signals). Role check: `isRegistrar = roles.includes("REGISTRAR") \|\| roles.includes("ADMIN")`. **(4) Program detail page** (`app/account/hub/[slug]/programs/[programSlug]/page.tsx`): Migrated from `app/account/registrar/[slug]/page.tsx`. Param renamed from `slug` to `programSlug` (hub slug occupies `[slug]`). Stakeholders redirected to list page. VolunteerTable and CreateMeetButton render identically. **(5) Component moves:** `VolunteerTable.tsx` and `CreateMeetButton.tsx` moved to `components/registrar/` directory. No internal changes. **(6) Sidebar update:** Removed standalone "Programs" link from `AccountSidebar` — registrar hub appears in "Your Hubs" section automatically via hub membership. **(7) Redirects:** `vercel.json` updated — `/volunteer` and `/volunteer/programs/:slug` now redirect to hub paths; new redirects added for `/account/registrar` and `/account/registrar/:slug`. **(8) Internal link updates:** `lib/email.ts` (2 volunteer URLs), `components/MemberDetail.tsx` (1 registration link) updated to new hub paths. **(9) Cleanup:** Deleted `app/account/registrar/` directory and original component files. **(10) Standard hub tabs:** Announcements, Documents, Conversations, Members all available via the shared `[slug]` layout — no registrar-specific implementation needed. |
+
+*Last updated: 2026-03-14 (session 53)*

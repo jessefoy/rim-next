@@ -26,6 +26,9 @@ export default async function HubAnnouncementsPage({
   // Teacher hub home is the Courses tab — redirect there
   if (slug === "teacher") redirect(`/account/hub/teacher/courses`);
 
+  // Registrar hub home is the Programs tab — redirect there
+  if (slug === "registrar") redirect(`/account/hub/registrar/programs`);
+
   const session = await auth();
   if (!session) redirect("/login");
 

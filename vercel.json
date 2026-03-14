@@ -1,7 +1,9 @@
 {
   "redirects": [
-    { "source": "/volunteer/programs/:slug", "destination": "/account/registrar/:slug", "permanent": true },
-    { "source": "/volunteer", "destination": "/account/registrar", "permanent": true },
+    { "source": "/volunteer/programs/:slug", "destination": "/account/hub/registrar/programs/:slug", "permanent": true },
+    { "source": "/volunteer", "destination": "/account/hub/registrar/programs", "permanent": true },
+    { "source": "/account/registrar/:slug", "destination": "/account/hub/registrar/programs/:slug", "permanent": true },
+    { "source": "/account/registrar", "destination": "/account/hub/registrar/programs", "permanent": true },
     { "source": "/account/dashboard-my-registrations", "destination": "/account/programs", "permanent": true }
   ],
   "crons": [
