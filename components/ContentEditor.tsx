@@ -60,7 +60,7 @@ export default function ContentEditor({
   if (!editor) return null
 
   const insertBlock = (type: "verseQuote" | "practiceSuggestion" | "callout") => {
-    editor.chain().focus().insertContent({ type, content: [] }).run()
+    editor.chain().focus().insertContent({ type, content: [{ type: "paragraph" }] }).run()
   }
 
   return (
