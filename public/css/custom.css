@@ -12133,11 +12133,109 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .th-resource-row__upload { cursor: pointer; }
 .th-resource-row .th-select { min-width: 100px; }
 
-/* Custom block insertion buttons */
-.th-block-btns { display: flex; gap: 8px; margin-bottom: 10px; }
+/* ─── Rich Text Editor (rte-) ──────────────────────────────────── */
 
-/* MDEditor overrides */
-.w-md-editor { border: 0.5px solid var(--rim-rule) !important; border-radius: 8px !important; box-shadow: none !important; }
+.rte-editor {
+  border: 1px solid var(--rim-rule);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.rte-editor__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--rim-rule);
+  background: var(--rim-bg);
+  flex-wrap: wrap;
+}
+
+.rte-btn {
+  padding: 4px 10px;
+  font-size: 13px;
+  border: 1px solid var(--rim-rule);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--rim-text);
+  cursor: pointer;
+  line-height: 1.5;
+  transition: background 0.1s;
+}
+
+.rte-btn:hover {
+  background: var(--rim-bg-accent);
+}
+
+.rte-btn--active {
+  background: var(--rim-bg-accent);
+  border-color: var(--rim-mid);
+  color: var(--rim-blue);
+}
+
+.rte-btn--block {
+  font-size: 11px;
+  color: var(--rim-mid);
+  border-color: var(--rim-mid);
+}
+
+.rte-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--rim-rule);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+.rte-editor__content {
+  padding: 20px 24px;
+  font-size: 16px;
+  line-height: 1.8;
+  color: var(--rim-text);
+}
+
+.rte-editor__content .ProseMirror {
+  outline: none;
+}
+
+.rte-editor__content .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--rim-text-muted);
+  pointer-events: none;
+  height: 0;
+}
+
+/* Custom block previews inside editor */
+.rte-editor__content [data-type="verse-quote"] {
+  text-align: center;
+  padding: 20px 32px;
+  margin: 16px 0;
+  border-top: 1px solid var(--rim-rule);
+  border-bottom: 1px solid var(--rim-rule);
+  font-style: italic;
+  font-family: var(--font-serif);
+}
+
+.rte-editor__content [data-type="practice-suggestion"] {
+  background: var(--rim-bg-accent);
+  border-left: 3px solid var(--rim-mid);
+  border-radius: 4px;
+  padding: 14px 18px;
+  margin: 16px 0;
+  font-size: 15px;
+}
+
+.rte-editor__content [data-type="callout"] {
+  font-size: 18px;
+  line-height: 1.6;
+  font-style: italic;
+  padding: 8px 0 8px 20px;
+  margin: 16px 0;
+  border-left: 3px solid var(--rim-rule);
+  background: var(--rim-bg);
+}
 
 /* Responsive */
 @media (max-width: 768px) {

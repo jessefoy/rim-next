@@ -55,7 +55,7 @@ export default async function EditCoursePage({
     title: course.title,
     slug: course.slug,
     subheading: course.subheading ?? "",
-    description: course.description ?? "",
+    description: course.description ?? null,
     accessLevel: course.accessLevel as "MEMBERS" | "REGISTRATION_REQUIRED",
     hideFromMemberProfile: course.hideFromMemberProfile,
     sortOrder: course.sortOrder != null ? String(course.sortOrder) : "",

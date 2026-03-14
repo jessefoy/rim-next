@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
-import ReactMarkdown from "react-markdown";
+import { renderFormattedText } from "@/lib/renderRichContent";
 import SeriesListItem from "@/components/SeriesListItem";
 
 export const dynamic = "force-dynamic";
@@ -109,9 +109,9 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
               <h1 className="course-title">{course.title}</h1>
             </div>
             {course.description && (
-              <div className="text-block-65 w-richtext">
-                <ReactMarkdown>{course.description}</ReactMarkdown>
-              </div>
+              <div className="text-block-65 w-richtext"
+                dangerouslySetInnerHTML={{ __html: renderFormattedText(course.description) }}
+              />
             )}
           </div>
         </div>

@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import FormattedEditor from "@/components/FormattedEditor";
 
 interface Lesson {
   id: string;
@@ -26,7 +27,7 @@ interface CourseData {
   title: string;
   slug: string;
   subheading: string;
-  description: string;
+  description: any; // Tiptap JSON
   accessLevel: "MEMBERS" | "REGISTRATION_REQUIRED";
   hideFromMemberProfile: boolean;
   sortOrder: string;
@@ -57,7 +58,7 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
   const [title, setTitle] = useState(initialData?.title ?? "");
   const [slug, setSlug] = useState(initialData?.slug ?? "");
   const [subheading, setSubheading] = useState(initialData?.subheading ?? "");
-  const [description, setDescription] = useState(initialData?.description ?? "");
+  const [description, setDescription] = useState<any>(initialData?.description ?? null);
   const [accessLevel, setAccessLevel] = useState<"MEMBERS" | "REGISTRATION_REQUIRED">(
     initialData?.accessLevel ?? "MEMBERS"
   );
@@ -233,15 +234,15 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
           />
         </label>
 
-        <label className="th-field">
+        <div className="th-field">
           <span className="th-field__label">Description</span>
-          <textarea
+          <FormattedEditor
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="th-textarea"
-            rows={6}
+            onChange={setDescription}
+            placeholder="A brief description of this course…"
+            minHeight={200}
           />
-        </label>
+        </div>
 
         <fieldset className="th-field">
           <legend className="th-field__label">Access Level</legend>

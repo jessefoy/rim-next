@@ -5,7 +5,7 @@ export const metadata = { title: "Volunteer Manual — Rooted In Mindfulness" };
 
 export default async function ManualPage() {
   const session = await auth();
-  if (!session?.user?.roles?.some((r) => ["ADMIN", "REGISTRAR", "HOST", "HOST_MANAGER"].includes(r))) {
+  if (!session?.user?.roles?.some((r) => ["ADMIN", "REGISTRAR", "HOST", "HOST_MANAGER", "TEACHER"].includes(r))) {
     redirect("/login");
   }
 
@@ -79,9 +79,14 @@ export default async function ManualPage() {
               <li><a href="#mem-tasks"      className="man-sidebar__sublink">Common tasks</a></li>
             </ul>
           </li>
-          <li className="man-sidebar__soon-group">
-            <span className="man-sidebar__link man-sidebar__link--soon">Courses &amp; Materials</span>
-            <span className="man-soon-badge">Coming soon</span>
+          <li>
+            <a href="#courses" className="man-sidebar__link">Courses &amp; Lessons</a>
+            <ul className="man-sidebar__sub">
+              <li><a href="#courses-overview"   className="man-sidebar__sublink">Overview</a></li>
+              <li><a href="#courses-access"     className="man-sidebar__sublink">Access levels</a></li>
+              <li><a href="#courses-teacher-hub" className="man-sidebar__sublink">Teacher Hub</a></li>
+              <li><a href="#courses-linking"    className="man-sidebar__sublink">Linking courses to programs</a></li>
+            </ul>
           </li>
 
           <li>
@@ -390,7 +395,7 @@ export default async function ManualPage() {
         <section id="reg-course-access" className="man-section">
           <h2 className="man-section__title">Course access</h2>
           <p>
-            Some programs include access to online materials — audio recordings, readings, or structured courses — hosted in the Members Area. When a program is linked to a course in Sanity Studio, anyone who registers for that program automatically receives access. You don&rsquo;t need to do anything.
+            Some programs include access to online materials — audio recordings, readings, or structured courses — hosted in the Members Area. When a program is linked to a course (via the Teacher Hub course editor), anyone who registers for that program automatically receives access. You don&rsquo;t need to do anything.
           </p>
           <p>
             For situations where automatic access doesn&rsquo;t apply, you can grant or revoke course access manually from the member detail page (<strong>/admin/members/[id]</strong>).
@@ -398,7 +403,7 @@ export default async function ManualPage() {
 
           <h3 className="man-section__h3">When to use manual grants</h3>
           <ul className="man-list">
-            <li><strong>Historical members</strong> — someone participated before the course was linked to the program. Automatic access only applies to registrations made <em>after</em> the link was added in Sanity Studio.</li>
+            <li><strong>Historical members</strong> — someone participated before the course was linked to the program. Automatic access only applies to registrations made <em>after</em> the link was added in the Teacher Hub.</li>
             <li><strong>Exceptions</strong> — a member who couldn&rsquo;t attend but should still have access to the materials.</li>
             <li><strong>One-off access</strong> — a course not tied to any program, granted directly to a specific person.</li>
           </ul>
@@ -686,7 +691,7 @@ export default async function ManualPage() {
         <section id="prog-overview" className="man-section">
           <h2 className="man-section__title">Overview</h2>
           <p>
-            All content on the website — programs, courses, teacher bios, and more — is managed through <strong>Sanity Studio</strong>, a separate content editor at <a href="https://rooted-in-mindfulness.sanity.studio/" target="_blank" rel="noopener noreferrer">rooted-in-mindfulness.sanity.studio</a>. You can also reach it from the Sanity Studio card on your dashboard.
+            Programs, teacher bios, and other public content are managed through <strong>Sanity Studio</strong>, a separate content editor at <a href="https://rooted-in-mindfulness.sanity.studio/" target="_blank" rel="noopener noreferrer">rooted-in-mindfulness.sanity.studio</a>. You can also reach it from the Sanity Studio card on your dashboard. (Note: courses and lessons have moved to the <a href="#courses-teacher-hub">Teacher Hub</a> and are no longer managed in Sanity.)
           </p>
           <p>
             When you save and publish a program in Sanity, it appears on the website within seconds. There is no separate &ldquo;send to website&rdquo; step — publishing is it.
@@ -1804,6 +1809,76 @@ export default async function ManualPage() {
         </section>
 
         {/* ════════════════════════════════════════
+            CHAPTER 3B — COURSES & LESSONS
+            ════════════════════════════════════════ */}
+
+        <div id="courses" className="man-chapter man-chapter--break">
+          <h1 className="man-chapter__title">Courses &amp; Lessons</h1>
+          <p className="man-chapter__subtitle">
+            How teaching materials are organized and delivered to community members. Courses and lessons live in our database and are managed through the Teacher Hub.
+          </p>
+        </div>
+
+        <section id="courses-overview" className="man-section">
+          <h2 className="man-section__title">Overview</h2>
+          <p>
+            Courses and lessons are the structured teaching materials available to RIM community members. A <strong>course</strong> is a container that groups related lessons together. A <strong>lesson</strong> is a single piece of content &mdash; it might include text, an audio recording, a video, or downloadable resources.
+          </p>
+          <p>
+            Members access courses at <code>/course/[slug]</code> and individual lessons at <code>/lessons/[slug]</code>. Some courses are open to all logged-in members; others require registration for a specific program.
+          </p>
+        </section>
+
+        <section id="courses-access" className="man-section">
+          <h2 className="man-section__title">Access levels</h2>
+          <p>Each course has one of two access levels:</p>
+          <table className="man-table">
+            <thead><tr><th>Level</th><th>Who can view</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Members</strong></td><td>Any logged-in community member</td></tr>
+              <tr><td><strong>Registration Required</strong></td><td>Only members with an active registration for a program linked to this course, or members who have been manually granted access by an admin</td></tr>
+            </tbody>
+          </table>
+          <p>
+            Access is checked every time someone opens a course page &mdash; there&rsquo;s no separate &ldquo;enrollment&rdquo; step. If a member registers for a program that&rsquo;s linked to a course, they automatically get access.
+          </p>
+        </section>
+
+        <section id="courses-teacher-hub" className="man-section">
+          <h2 className="man-section__title">Teacher Hub</h2>
+          <p>
+            Courses and lessons are managed in the <strong>Teacher Hub</strong> at <code>/account/hub/teacher</code>. This is a workspace available to anyone with the TEACHER or ADMIN role.
+          </p>
+          <p>
+            The Teacher Hub has two main sections:
+          </p>
+          <ul className="man-list">
+            <li><strong>Courses</strong> &mdash; create and edit courses, set access levels, add or reorder lessons within a course</li>
+            <li><strong>Lessons</strong> &mdash; create and edit individual lessons with a rich text editor, upload images and audio files, add video links and downloadable resources</li>
+          </ul>
+          <p>
+            The lesson editor includes a live-preview Markdown editor with special block buttons for inserting formatted content: pull quotes (verse), practice suggestions, and highlighted callouts.
+            File uploads (images and audio) are saved automatically &mdash; you don&rsquo;t need to click Save after uploading a file. Audio files up to 500 MB are supported.
+          </p>
+          <p>
+            When editing a course or lesson, use the &ldquo;View course page &rarr;&rdquo; or &ldquo;View lesson page &rarr;&rdquo; link at the top of the editor to preview how it looks on the public site.
+          </p>
+        </section>
+
+        <section id="courses-linking" className="man-section">
+          <h2 className="man-section__title">Linking courses to programs</h2>
+          <p>
+            To make a course available to registrants of a specific program, link them in the course editor. A single program can be linked to multiple courses, and a single course can be linked to multiple programs.
+          </p>
+          <p>
+            During the current migration phase, program links reference Sanity program IDs. This means programs are still managed in Sanity Studio, but the course-to-program relationship is managed in the Teacher Hub.
+          </p>
+          <p>
+            You can also grant individual members access to any course from the <strong>Course Access</strong> section on their member profile page (Admin &rarr; Members &rarr; [member name]).
+          </p>
+        </section>
+
+        {/* ════════════════════════════════════════
             CHAPTER 4 — HOST COMMUNITY HUB
             ════════════════════════════════════════ */}
 
@@ -2130,6 +2205,22 @@ export default async function ManualPage() {
           </ul>
           <p>
             A person can hold both <strong>Meet Host</strong> and <strong>Meet Host Manager</strong> — this means they are both on rotation (as a host) and responsible for managing the schedule.
+          </p>
+
+          <h3 className="man-section__h3">Teacher</h3>
+          <p>
+            A Teacher manages courses and lessons through the <strong>Teacher Hub</strong> at <strong>/account/hub/teacher</strong>. This role is for dharma teachers and content authors who create and maintain the teaching materials available to community members.
+          </p>
+          <p>What a Teacher can do:</p>
+          <ul className="man-list">
+            <li>Create, edit, and organize <strong>courses</strong> and <strong>lessons</strong> in the Teacher Hub</li>
+            <li>Upload images and audio files for lessons</li>
+            <li>Set course access levels (all members vs. registration required)</li>
+            <li>Link courses to programs</li>
+            <li>Access the <strong>Volunteer Manual</strong></li>
+          </ul>
+          <p>
+            Teachers do not have access to registration management, member data, or the host hub — only the teacher hub.
           </p>
 
           <h3 className="man-section__h3">Registrar</h3>

@@ -682,29 +682,40 @@ const AREAS: FunctionalArea[] = [
 
   {
     id: "courses",
-    title: "Course Access",
+    title: "Course Access & Content",
     icon: "📚",
-    desc: "Member-gated course pages. Access can be open to all members, granted via program registration, or manually granted by an admin.",
+    desc: "Member-gated course and lesson pages. Courses and lessons live in Postgres (migrated from Sanity). Access can be open to all members, granted via program registration, or manually granted by an admin. Content managed via Teacher Hub.",
     features: [
       {
         name: "Course Page Gating",
         locations: ["/course/[slug]"],
-        what: "Each course has an accessLevel in Sanity: 'members' (any logged-in member) or 'registration_required' (must have an active registration for a linked program, or have a manual CourseAccess grant). Non-members see a 'Join or sign in →' wall.",
+        what: "Each course has an accessLevel in Postgres (MEMBERS or REGISTRATION_REQUIRED). MEMBERS = any logged-in user. REGISTRATION_REQUIRED = must have an active registration for a program linked via ProgramCourse table, or a manual CourseAccess grant. Non-members see a registration prompt.",
         relatedTo: [
-          "accessLevel set in Sanity Studio (Courses)",
-          "Auto-access via Program Registration (linkedCourses on programs schema)",
+          "accessLevel set on Course model in Postgres (managed via Teacher Hub)",
+          "Auto-access via ProgramCourse join table (replaces Sanity linkedCourses)",
           "Manual grants managed in Member Management (CourseAccessSection)",
           "Lessons listed as clickable cards; section titles as non-linked dividers",
         ],
       },
       {
-        name: "Auto-Access via Registration",
-        locations: ["/course/[slug]", "File: lib/queries.ts (allCoursesWithLinkedProgramsQuery)"],
-        what: "If a course has linkedCourses in Sanity pointing to a program, any member with an active (REGISTERED or APPROVED) registration for that program automatically gets access. Checked dynamically at page render — no DB write needed.",
+        name: "Lesson Pages",
+        locations: ["/lessons/[slug]"],
+        what: "Individual lesson pages rendered from Postgres. Markdown body with custom block rendering: [verse] (pull quote), [practice] (teal practice box), [callout] (highlighted insight). Also supports audio player, video embed, hero image, header quote, teacher attribution, and downloadable resources.",
         relatedTo: [
-          "linkedCourses field on programs schema (Sanity CMS)",
-          "Reverse reference GROQ query: *[_type == 'programs' && ^._id in linkedCourses[]._ref]",
+          "Lesson model in Postgres (managed via Teacher Hub)",
+          "Custom blockquote interceptor in react-markdown for [verse], [practice], [callout]",
+          "lp- prefix CSS (design system)",
+          "Course pages link to lessons via CourseLesson join table",
+        ],
+      },
+      {
+        name: "Auto-Access via Registration",
+        locations: ["/course/[slug]"],
+        what: "If a course is linked to a program via the ProgramCourse table, any member with an active (REGISTERED or APPROVED) registration for that program automatically gets access. Checked dynamically at page render — no DB write needed. Pure Postgres query.",
+        relatedTo: [
+          "ProgramCourse join table (programId stores Sanity _id during Phase 2)",
           "Registration status (Postgres) checked at page render time",
+          "Program-course links managed from Teacher Hub course editor",
         ],
       },
       {
@@ -712,7 +723,7 @@ const AREAS: FunctionalArea[] = [
         locations: ["/admin/members/[id]", "Component: CourseAccessSection.tsx", "API: POST /api/admin/members/[id]/course-access, DELETE /api/admin/members/[id]/course-access"],
         what: "Admins and registrars can grant or revoke access to any course for any member from the member detail page. Inline UI shows all courses with status badges (All Members / Via Registration / Manual Grant / No Access) and grant/revoke controls with warning dialogs.",
         relatedTo: [
-          "CourseAccess model in Postgres (userId + courseSlug unique)",
+          "CourseAccess model in Postgres (userId + courseSlug unique, optional FK to Course)",
           "Course Page Gating (supplements auto-access)",
           "Accessible from Member Management (Admin) — member detail page",
         ],
@@ -922,24 +933,28 @@ const AREAS: FunctionalArea[] = [
         ],
       },
       {
-        name: "Lessons Schema",
+        name: "Lessons Schema (Legacy — migrated to Postgres)",
         locations: ["File: sanity/schemas/lessons.js", "Sanity Studio: lessons collection"],
-        what: "Schema for individual dharma lessons. Supports audio files, video embeds, and rich PortableText content (pull quotes, verse quotes, callout blocks, practice suggestions) via the shared richContent type.",
+        what: "Original Sanity schema for lessons. Lessons have been migrated to Postgres and are now managed via the Teacher Hub. This schema remains in Sanity for reference but is no longer the source of truth.",
         relatedTo: [
-          "Lesson page (/lessons/[slug])",
-          "richContent shared block schema (shared with programs description)",
-          "Course schema (lessons are grouped into courses)",
+          "Lesson page (/lessons/[slug]) — now reads from Postgres",
+          "Teacher Hub — CRUD management of lessons",
+          "Lesson model in Postgres (prisma/schema.prisma)",
         ],
+        status: "partial",
+        note: "Migrated to Postgres — Sanity schema retained for reference",
       },
       {
-        name: "Courses Schema",
+        name: "Courses Schema (Legacy — migrated to Postgres)",
         locations: ["File: sanity/schemas/courses.js", "Sanity Studio: courses collection"],
-        what: "Groups lessons into a course. Has an accessLevel field (members / registration_required) that drives Course Access gating. Programs can link to courses via linkedCourses, granting access to registered members.",
+        what: "Original Sanity schema for courses. Courses have been migrated to Postgres and are now managed via the Teacher Hub. Access levels, lesson groupings, and program links all live in Postgres now.",
         relatedTo: [
-          "Course Access System (/course/[slug])",
-          "Programs schema (linkedCourses references)",
-          "Lessons schema",
+          "Course Access System (/course/[slug]) — now reads from Postgres",
+          "Teacher Hub — CRUD management of courses",
+          "Course model + ProgramCourse join table in Postgres",
         ],
+        status: "partial",
+        note: "Migrated to Postgres — Sanity schema retained for reference",
       },
       {
         name: "richContent Shared Schema",
@@ -961,6 +976,57 @@ const AREAS: FunctionalArea[] = [
           "/team/[slug]",
           "/volunteer-positions/[slug]",
           "/community-programs (programs grouped by programCategory)",
+        ],
+      },
+    ],
+  },
+
+  {
+    id: "teacher-hub",
+    title: "Teacher Hub & Content Management",
+    icon: "🎓",
+    desc: "Full CRUD for courses and lessons, accessible to TEACHER and ADMIN roles via the Teacher Hub. Content stored in Postgres. Rich Markdown editor with custom block support and file uploads.",
+    features: [
+      {
+        name: "Teacher Hub Workspace",
+        locations: ["/account/hub/teacher", "/account/hub/teacher/courses", "/account/hub/teacher/lessons"],
+        what: "A hub workspace for TEACHER and ADMIN roles. Reuses the multi-hub system. Primary tabs are Courses and Lessons (instead of the default Announcements). Hub root redirects to /account/hub/teacher/courses. Also includes Announcements, Documents, Conversations, and Members tabs.",
+        relatedTo: [
+          "Multi-Hub Workspace System (/account/hub/[slug])",
+          "TEACHER role assignment (syncHubMembership auto-creates HubMember)",
+          "Course Access & Content (course/lesson data managed here)",
+        ],
+      },
+      {
+        name: "Course Editor",
+        locations: ["/account/hub/teacher/courses/new", "/account/hub/teacher/courses/[courseSlug]", "Component: CourseEditor.tsx", "API: POST /api/courses, PATCH /api/courses/[slug], DELETE /api/courses/[slug]"],
+        what: "Create and edit courses: title, slug, subheading, Markdown description, access level (MEMBERS / REGISTRATION_REQUIRED), active toggle, sort order. Edit mode includes a lesson manager with search-to-add (debounced API search), drag-and-drop reordering, and remove. Delete is guarded — returns 409 if ProgramCourse records exist.",
+        relatedTo: [
+          "Course model in Postgres",
+          "Lesson search API (/api/lessons/search)",
+          "ProgramCourse join table (links Sanity programs to Postgres courses)",
+          "Course Access & Content (access levels enforced at /course/[slug])",
+        ],
+      },
+      {
+        name: "Lesson Editor with Markdown",
+        locations: ["/account/hub/teacher/lessons/new", "/account/hub/teacher/lessons/[lessonSlug]", "Component: LessonEditor.tsx", "API: POST /api/lessons, PATCH /api/lessons/[slug], DELETE /api/lessons/[slug]"],
+        what: "Create and edit lessons with a rich Markdown editor (@uiw/react-md-editor, live preview). Custom block insertion buttons insert pre-formatted blockquotes for [verse], [practice], and [callout]. Media section: image and audio upload via Vercel Blob, video URL input. Also: header quote, teacher names, and an inline resource list builder.",
+        relatedTo: [
+          "Lesson model in Postgres",
+          "File uploads via /api/upload (Vercel Blob)",
+          "Custom block rendering on /lessons/[slug] (blockquote interceptor)",
+          "CourseLesson join table (lessons grouped into courses)",
+        ],
+      },
+      {
+        name: "File Upload (Vercel Blob)",
+        locations: ["API: POST /api/upload"],
+        what: "Client-side upload endpoint for TEACHER and ADMIN roles. Uses Vercel Blob client-side upload pattern — browser uploads directly to Blob storage (bypasses 4.5 MB serverless body limit). Max file size 500 MB. Auth checked during token generation only. Auto-saves to DB immediately after upload. Requires BLOB_READ_WRITE_TOKEN env var.",
+        relatedTo: [
+          "Lesson Editor — image and audio upload fields",
+          "Vercel Blob service (external)",
+          "BLOB_READ_WRITE_TOKEN environment variable",
         ],
       },
     ],
@@ -1011,10 +1077,11 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Dharma Lessons",
         locations: ["/lessons/[slug]"],
-        what: "Audio player, video embed, rich PortableText — pull quotes, verse quotes, callout blocks, practice suggestions.",
+        what: "Audio player, video embed, Markdown body with custom block rendering — [verse] pull quotes, [practice] suggestion boxes, [callout] highlighted insights. Data reads from Postgres (migrated from Sanity).",
         relatedTo: [
-          "Sanity CMS — lessons schema and richContent shared type",
+          "Postgres — Lesson model (managed via Teacher Hub)",
           "Course pages (/course/[slug]) — lessons grouped into courses",
+          "react-markdown with custom blockquote interceptor for block types",
         ],
         status: "active",
         note: "🟢 Design system (lp- prefix)",
@@ -1197,7 +1264,7 @@ const SYSTEM_MAP: { area: string; needs: string; powers: string; note: string }[
   },
   {
     area: "Member Experience",
-    needs: "Auth (session) · Postgres (user + registration records) · Sanity (program and course data)",
+    needs: "Auth (session) · Postgres (user + registration + course + lesson records) · Sanity (program data)",
     powers: "Dashboard · My Programs · My Library · My Profile · Care Agreements — everything a logged-in member sees",
     note: "Google Meet links are deliberately shown only here (not in emails) — login is required to see them.",
   },
@@ -1208,10 +1275,10 @@ const SYSTEM_MAP: { area: string; needs: string; powers: string; note: string }[
     note: "",
   },
   {
-    area: "Course Access",
-    needs: "Sanity (accessLevel, linkedCourses on programs) · Postgres (Registration status + CourseAccess grants)",
-    powers: "Gates or allows access to /course/[slug] pages for each member",
-    note: "Access is checked dynamically at page render — no DB write for registration-based access.",
+    area: "Course Access & Content",
+    needs: "Postgres (Course, Lesson, ProgramCourse, CourseAccess, Registration status) · Sanity (program names for ProgramCourse display during Phase 2)",
+    powers: "Gates or allows access to /course/[slug] and /lessons/[slug] pages for each member · Teacher Hub manages all content",
+    note: "Courses and lessons migrated from Sanity to Postgres (session 50). Access checked dynamically at page render.",
   },
   {
     area: "Member Management (Admin)",

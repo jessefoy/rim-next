@@ -8,12 +8,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import dynamic from "next/dynamic";
 import { upload } from "@vercel/blob/client";
-import "@uiw/react-md-editor/markdown-editor.css";
-import "@uiw/react-markdown-preview/markdown.css";
-
-const MDEditor = dynamic(() => import("@uiw/react-md-editor"), { ssr: false });
+import ContentEditor from "@/components/ContentEditor";
 
 interface Resource {
   name: string;
@@ -27,7 +23,7 @@ interface LessonData {
   titleDisplayed: string;
   slug: string;
   isSectionTitle: boolean;
-  body: string;
+  body: any; // Tiptap JSON
   heroImageUrl: string;
   heroImageAlt: string;
   audioUrl: string;
@@ -66,8 +62,8 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
   const [slug, setSlug] = useState(initialData?.slug ?? "");
   const [isSectionTitle, setIsSectionTitle] = useState(initialData?.isSectionTitle ?? false);
 
-  // Content
-  const [body, setBody] = useState(initialData?.body ?? "");
+  // Content — Tiptap JSON
+  const [body, setBody] = useState<any>(initialData?.body ?? null);
 
   // Media
   const [heroImageUrl, setHeroImageUrl] = useState(initialData?.heroImageUrl ?? "");
@@ -97,15 +93,6 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
       setSlug(slugify(titleInternal));
     }
   }, [titleInternal, isEditing, slugTouched]);
-
-  function insertBlock(type: "verse" | "practice" | "callout") {
-    const templates: Record<string, string> = {
-      verse: "\n\n> [verse]\n> Enter quote text here\n> — Attribution (optional)\n\n",
-      practice: "\n\n> [practice]\n> Describe the practice here\n\n",
-      callout: "\n\n> [callout]\n> Enter key insight here\n\n",
-    };
-    setBody((prev) => prev + templates[type]);
-  }
 
   async function uploadFile(file: File): Promise<string | null> {
     try {
@@ -316,21 +303,12 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
       {/* ── Section: Content ── */}
       <div className="th-section">
         <h3 className="th-section__title">Content</h3>
-        <div className="th-block-btns">
-          <button type="button" className="th-btn th-btn--small" onClick={() => insertBlock("verse")}>+ Verse Quote</button>
-          <button type="button" className="th-btn th-btn--small" onClick={() => insertBlock("practice")}>+ Practice</button>
-          <button type="button" className="th-btn th-btn--small" onClick={() => insertBlock("callout")}>+ Callout</button>
-        </div>
-        <div data-color-mode="light">
-          <MDEditor
-            value={body}
-            onChange={(val) => setBody(val ?? "")}
-            height={500}
-            preview="live"
-            hideToolbar={false}
-            visibleDragbar={false}
-          />
-        </div>
+        <ContentEditor
+          value={body}
+          onChange={setBody}
+          placeholder="Begin writing your lesson here…"
+          minHeight={500}
+        />
       </div>
 
       {/* ── Section: Media ── */}

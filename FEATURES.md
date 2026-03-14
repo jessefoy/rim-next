@@ -35,6 +35,11 @@ Two audiences:
 20. [Staff Reference Manual](#20-staff-reference-manual)
 21. [HOST Role & Host Area](#21-host-role--host-area)
 22. [Household / Family Grouping](#22-household--family-grouping)
+23. [Host Community Hub](#23-host-community-hub)
+24. [Multi-Hub Workspace System](#24-multi-hub-workspace-system)
+25. [Virtual Host Hub — Attendance & Session Tracking](#25-virtual-host-hub--attendance--session-tracking)
+26. [Email Template Manager](#26-email-template-manager)
+27. [Teacher Hub & Content Management](#27-teacher-hub--content-management)
 
 ---
 
@@ -71,8 +76,11 @@ Two audiences:
 |---|---|---|
 | `ADMIN` | Everything — full site management | Registrations, Members, Sanity Studio, Staff Manual |
 | `REGISTRAR` | Registration management, member profiles, course access, Sanity Studio access | Registrations, Members, Sanity Studio, Staff Manual |
+| `HOST` | Host Community Hub — schedule, sub board, conversations, session tracking | Host Hub |
+| `HOST_MANAGER` | All HOST access + assignment management + unassigned alerts | Host Hub |
+| `TEACHER` | Teacher Hub — manages courses and lessons in Postgres | Teacher Hub |
 
-New roles will be added when there is real functionality to attach to them. Avoid defining roles speculatively — it adds noise to the member detail UI and member list filter without providing value.
+New roles are added only when there is real functionality to attach to them.
 
 **Where roles are assigned:** Via the admin member detail page (`/admin/members/[id]`). Check or uncheck the role checkbox, then click "Save changes." No direct database access needed.
 
@@ -577,9 +585,19 @@ Schema is live in the DB but no application code reads or writes these models ye
 Schema is live in the DB but no application code reads or writes this model yet. Intended for tracking which sessions/retreats/classes a member has attended.
 Fields: `userId`, `recordedAt`, `eventDate`, `eventName`, `eventType` (CLASS / RETREAT / STUDY_GROUP / VOLUNTEER / EVENT), `format` (IN_PERSON / ONLINE), `notes?`.
 
+#### Course, Lesson, CourseLesson, ProgramCourse (Phase 1 — Sanity → Postgres migration)
+Courses and lessons have been migrated from Sanity to Postgres. These models power the Teacher Hub and the member-facing `/course/[slug]` and `/lessons/[slug]` pages.
+
+- `Course` — `id`, `title`, `slug` (unique), `subheading?`, `description?` (Markdown), `accessLevel` (CourseAccessLevel enum), `hideFromMemberProfile`, `sortOrder?`, `isActive`, `createdAt`, `updatedAt`. Relations: `lessons CourseLesson[]`, `programs ProgramCourse[]`, `access CourseAccess[]`.
+- `Lesson` — `id`, `titleInternal`, `titleDisplayed`, `slug` (unique), `isSectionTitle`, `body?` (Markdown), `heroImageUrl?`, `heroImageAlt?`, `audioUrl?`, `videoUrl?`, `headerQuote?`, `quoteSource?`, `teacherNames String[]`, `resources Json?`, `createdAt`, `updatedAt`.
+- `CourseLesson` — join table: `courseId`, `lessonId`, `sortOrder`. `@@id([courseId, lessonId])`. `onDelete: Cascade` on both FKs.
+- `ProgramCourse` — join table: `programId` (Sanity `_id` during Phase 2; becomes Postgres cuid in Phase 3), `courseId`. `@@id([programId, courseId])`. `onDelete: Cascade` on courseId FK.
+- `CourseAccess` — existing model, now has optional FK: `course Course? @relation(fields: [courseSlug], references: [slug], onDelete: Cascade)`.
+
 #### Enums
 ```
-Role:               REGISTRAR | ADMIN
+Role:               HOST | HOST_MANAGER | REGISTRAR | ADMIN | TEACHER
+CourseAccessLevel:  MEMBERS | REGISTRATION_REQUIRED
 RegistrationStatus: REGISTERED | WAITLISTED | APPROVED | CANCELLED
 DonationStatus:     NOT_REQUIRED | PENDING | COMPLETED | WAIVED
 DonationSource:     STRIPE | GIVEBUTTER | CASH | CHECK | OTHER
@@ -591,7 +609,7 @@ AttendanceFormat:   IN_PERSON | ONLINE  (Phase 2)
 - `db push` (not `migrate`) is used for schema changes — no migration history files
 - To apply schema changes: `set -a && source .env.local && set +a && npx prisma db push`
 - Roles migration from single `role` to array `roles` required raw SQL — Prisma couldn't handle the enum + column type change atomically. See session log 2026-03-01 in MEMORY.md for the exact SQL used
-- `TREASURER`, `TEACHER`, `VOLUNTEER` were removed from the enum and Prisma schema in session 23 (2026-03-05) — only `REGISTRAR` and `ADMIN` remain active. Add new roles only when real functionality is attached.
+- Active roles: HOST, HOST_MANAGER, REGISTRAR, ADMIN, TEACHER. TREASURER and VOLUNTEER were removed previously. Add new roles only when real functionality is attached.
 
 ---
 
@@ -626,7 +644,24 @@ AttendanceFormat:   IN_PERSON | ONLINE  (Phase 2)
 | `POST` | `/api/admin/members/import` | ADMIN | CSV upsert: finds or creates Users by email; fills blank fields only; returns `{ created, updated, skipped }` |
 | `POST` | `/api/admin/members/[id]/course-access` | ADMIN or REGISTRAR | Grant manual course access (`CourseAccess` upsert) |
 | `DELETE` | `/api/admin/members/[id]/course-access?courseSlug=` | ADMIN or REGISTRAR | Revoke manual course access |
-| `GET` | `/api/admin/courses` | ADMIN or REGISTRAR | All Sanity courses enriched with `linkedByPrograms` (reverse ref) — powers CourseAccessSection |
+| `GET` | `/api/admin/courses` | ADMIN or REGISTRAR | All Postgres courses enriched with `linkedByPrograms` (Sanity program names via hybrid lookup) — powers CourseAccessSection |
+
+**Courses & Lessons (Teacher Hub)**
+
+| Method | Path | Auth | What it does |
+|---|---|---|---|
+| `GET` | `/api/courses` | TEACHER or ADMIN | List all courses with lesson count, ordered by sortOrder then title |
+| `POST` | `/api/courses` | TEACHER or ADMIN | Create a course; validates slug uniqueness |
+| `GET` | `/api/courses/[slug]` | TEACHER or ADMIN | Fetch course with ordered lessons and program links |
+| `PATCH` | `/api/courses/[slug]` | TEACHER or ADMIN | Update fields + handle `lessonOrder: string[]` (deletes all CourseLesson records, recreates with new order) |
+| `DELETE` | `/api/courses/[slug]` | TEACHER or ADMIN | Delete course; returns 409 if ProgramCourse records exist |
+| `GET` | `/api/lessons` | TEACHER or ADMIN | List all lessons with course membership |
+| `POST` | `/api/lessons` | TEACHER or ADMIN | Create a lesson; validates slug uniqueness |
+| `GET` | `/api/lessons/[slug]` | TEACHER or ADMIN | Fetch lesson with full fields |
+| `PATCH` | `/api/lessons/[slug]` | TEACHER or ADMIN | Update lesson fields |
+| `DELETE` | `/api/lessons/[slug]` | TEACHER or ADMIN | Delete lesson; returns 409 if lesson belongs to any courses |
+| `GET` | `/api/lessons/search?q=` | TEACHER or ADMIN | Search lessons by titleInternal (case-insensitive, min 2 chars, limit 20) |
+| `POST` | `/api/upload` | TEACHER or ADMIN | Universal file upload via Vercel Blob; returns `{ url }` |
 
 **Payments**
 
@@ -1025,26 +1060,27 @@ An admin can update any member's login email address from the member detail page
 
 ## 12. Course Access System (`/course/[slug]`)
 
-**What it does:** Member-gated course pages that list their lessons. Two access levels determine who can view a course. Access is enforced at the page level on every request; `/course/*` is also protected by `proxy.ts` (login redirect for unauthenticated users).
+**What it does:** Member-gated course pages that list their lessons. Courses and lessons now live in **Postgres** (migrated from Sanity in session 50). Two access levels determine who can view a course. Access is enforced at the page level on every request; `/course/*` is also protected by `proxy.ts` (login redirect for unauthenticated users).
 
-### Access levels (set on the Sanity course document)
+### Access levels (set on the Course record in Postgres)
 | Level | Who gets in |
 |---|---|
-| `members` | Any logged-in user (default) |
-| `registration_required` | Must have an active registration (REGISTERED or APPROVED) for a program linked to this course, **OR** an explicit admin grant in the `CourseAccess` DB table |
+| `MEMBERS` | Any logged-in user (default) |
+| `REGISTRATION_REQUIRED` | Must have an active registration (REGISTERED or APPROVED) for a program linked to this course via `ProgramCourse`, **OR** an explicit admin grant in the `CourseAccess` DB table |
 
 ### Route
 - `/course/[slug]` — course page (singular, not `/courses/`); lists all lessons as clickable cards; `isSectionTitle` lessons render as non-linked dividers
+- `/lessons/[slug]` — individual lesson page; renders Markdown body with custom block support (see §27)
 
 ### Linking programs to a course (multi-program support)
-In Sanity Studio → Programs → [program] → Content tab → **Linked Courses** (array). A single program can link to multiple courses; multiple programs can link to the same course. Once linked, all members with an active registration for that program automatically have access (checked dynamically at page render — no DB write at registration time).
+The `ProgramCourse` join table links Sanity programs to Postgres courses. During Phase 2, `programId` stores the Sanity `_id`. A single program can link to multiple courses; multiple programs can link to the same course. Once linked, all members with an active registration for that program automatically have access (checked dynamically at page render — no DB write at registration time). Program-course links are managed from the Teacher Hub course editor.
 
 ### The Course Access admin UI
 From `/admin/members/[id]` → Course Access section (`<CourseAccessSection>`), an ADMIN sees a **searchable list of every course in the system**. Each course displays one or more status badges showing exactly why this member does or doesn't have access:
 
 | Badge | Color | Meaning |
 |---|---|---|
-| **All Members** | green | Course `accessLevel` is `members` — any logged-in user can view it |
+| **All Members** | green | Course `accessLevel` is `MEMBERS` — any logged-in user can view it |
 | **Via Registration: [Program]** | blue | Member has an active registration for a program linked to this course |
 | **Manual Grant** | yellow/amber | An admin explicitly granted access via a `CourseAccess` DB record |
 | **No Access** | grey | None of the above apply |
@@ -1056,22 +1092,20 @@ From `/admin/members/[id]` → Course Access section (`<CourseAccessSection>`), 
 **Search:** A search bar filters by course name or slug client-side.
 
 ### Key files
-- `app/course/[slug]/page.tsx` — server component; `force-dynamic`; checks session, fetches `accessLevel` from Sanity, runs access check, renders lessons; uses existing Webflow CSS classes from the original course page — do not replace with `co-` classes
-- `app/api/admin/courses/route.ts` — GET, ADMIN-only; fetches all courses from Sanity enriched with `linkedByPrograms` (reverse ref); powers `CourseAccessSection`
+- `app/course/[slug]/page.tsx` — server component; `force-dynamic`; checks session, fetches course from Postgres (`db.course.findUnique`), runs access check via `ProgramCourse` table, renders lessons via ReactMarkdown; uses existing Webflow CSS classes from the original course page — do not replace with `co-` classes
+- `app/lessons/[slug]/page.tsx` — server component; reads from `db.lesson.findUnique`; renders Markdown body with custom block components (verse, practice, callout); `lp-` prefix CSS
+- `app/api/admin/courses/route.ts` — GET, ADMIN or REGISTRAR; fetches all Postgres courses enriched with `linkedByPrograms` (hybrid Postgres + Sanity lookup for program names during Phase 2); powers `CourseAccessSection`
 - `app/api/admin/members/[id]/course-access/route.ts` — POST (grant, upsert) / DELETE (revoke by `?courseSlug=`) — ADMIN only
 - `components/CourseAccessSection.tsx` — client component; fetches all courses on mount via `/api/admin/courses`; uses `useMemo` to derive `activeRegSlugs` (Set) and `grantsMap` (Map); `computeStatuses()` derives per-course badge state; per-course UI state machine: `Record<slug, "idle" | "confirming_grant" | "confirming_revoke" | "busy">`
-- `lib/queries.ts` — `courseBySlugQuery` (includes `accessLevel`, `lessons`); `programsLinkedToCourseQuery` (array filter); `allCoursesWithLinkedProgramsQuery` (reverse ref enrichment)
 
 **🔧 Technical notes:**
-- `accessLevel` is a new field on the Sanity `courses` schema; defaults to `"members"`. All existing courses without this field treat it as `members`-level via `?? "members"` fallback in the page.
-- `linkedCourses` on programs is an **array of references** (not a single ref). The GROQ filter is `$courseSlug in linkedCourses[]->slug.current`. Early sessions used `linkedCourse` (singular) — this was corrected before any content was added, so no data migration was needed.
-- Access check for `registration_required` courses: (1) query Sanity — `*[_type == "programs" && $courseSlug in linkedCourses[]->slug.current]` to get program slugs; (2) `db.registration.findFirst` for active registration matching any of those slugs for this userId; (3) fall back to `db.courseAccess.findUnique`. 2–3 DB/Sanity queries only on `registration_required` courses; `members` courses skip all this.
-- Reverse GROQ reference in `allCoursesWithLinkedProgramsQuery`: `*[_type == "programs" && ^._id in linkedCourses[]._ref]` — `^._id` refers to the outer course document's `_id`. This finds all programs that have a reference to the current course in their `linkedCourses` array.
-- `CourseAccess` Prisma model: `@@unique([userId, courseSlug])` — upsert-safe (POST uses `upsert` to avoid duplicate errors); `grantedBy` stores the granting admin's userId for audit trail.
+- Courses and lessons migrated from Sanity to Postgres in session 50. Course `accessLevel` is now a Prisma enum (`CourseAccessLevel`): `MEMBERS` or `REGISTRATION_REQUIRED`.
+- `ProgramCourse` join table replaces Sanity `linkedCourses` references. During Phase 2, `programId` stores the Sanity `_id`; becomes Postgres cuid in Phase 3 when programs migrate.
+- Access check for `REGISTRATION_REQUIRED` courses: (1) query `ProgramCourse` for all programIds linked to this course; (2) `db.registration.findFirst` for active registration matching any of those programIds for this userId; (3) fall back to `db.courseAccess.findUnique`. Pure Postgres — no Sanity queries needed.
+- `CourseAccess` Prisma model: `@@unique([userId, courseSlug])` — upsert-safe (POST uses `upsert` to avoid duplicate errors); `grantedBy` stores the granting admin's userId for audit trail. Now has optional FK to Course model (`onDelete: Cascade`).
 - `computeStatuses()` is a pure function in `CourseAccessSection` — derives badges from: `course.accessLevel`, `activeRegSlugs` (Set of program slugs the member is actively registered for), and `grantsMap` (Map of courseSlug → grant). No extra API calls.
-- `courseUIState` uses per-slug keys so multiple courses can be in different states simultaneously (one course showing "confirming_revoke" while another is "busy").
-- The course page existed before this system — it uses Webflow CSS (`course-header`, `f-container-regular`, etc.). The `ca-` CSS prefix is for `CourseAccessSection` only. The course page itself has no custom prefix block.
-- `essential-dharma-study-resources` — `accessLevel` set to `members` in Sanity Studio; all logged-in members can view it with no grants or registrations required.
+- The course page uses Webflow CSS (`course-header`, `f-container-regular`, etc.). The `ca-` CSS prefix is for `CourseAccessSection` only. Description renders via ReactMarkdown (was PortableText when in Sanity).
+- Lesson pages use `lp-` prefix CSS and render Markdown with a custom `blockquote` interceptor for `[verse]`, `[practice]`, and `[callout]` blocks (see §27).
 
 ---
 
@@ -2733,6 +2767,91 @@ This table documents all 18 email functions in `lib/email.ts`. Keep it current i
 
 ---
 
+## 27. Teacher Hub & Content Management
+
+**What it does:** A full content management system for courses and lessons, accessible to TEACHER and ADMIN roles via the Teacher Hub at `/account/hub/teacher`. Courses and lessons are stored in Postgres (migrated from Sanity). The Teacher Hub provides CRUD interfaces for creating, editing, and organizing courses and lessons, including a rich Markdown editor with custom block support and file uploads via Vercel Blob.
+
+### Who uses it
+| Role | Access |
+|---|---|
+| `TEACHER` | Full CRUD for courses and lessons |
+| `ADMIN` | Same as TEACHER (bypasses hub membership check) |
+
+### Teacher Hub layout
+The Teacher Hub reuses the multi-hub workspace system (`/account/hub/[slug]`). When `slug === "teacher"`, the hub root redirects to `/account/hub/teacher/courses` and the tab bar shows Courses and Lessons as the primary tabs (before Announcements, Documents, Conversations, Members).
+
+### Course Editor
+- Create/edit courses with title, auto-generated slug, subheading, description (Markdown), access level (MEMBERS / REGISTRATION_REQUIRED), active toggle, sort order
+- Lesson manager (edit mode only): search-to-add lessons with debounced API call to `/api/lessons/search`, drag-and-drop reordering, remove button
+- Delete protection: returns 409 if ProgramCourse records exist
+
+### Lesson Editor
+- Create/edit lessons with internal title, displayed title, auto-generated slug, section title toggle
+- **Rich Markdown editor** (`@uiw/react-md-editor`): live preview, toolbar, `height={500}`, wrapped in `<div data-color-mode="light">`
+- **Custom block insertion buttons** — three buttons above the editor insert pre-formatted Markdown blockquotes: `[verse]` (pull quote with attribution), `[practice]` (practice suggestion box), `[callout]` (key insight highlight)
+- Media section: image upload (Vercel Blob), audio upload (Vercel Blob), video URL input
+- Header quote and quote source fields
+- Teachers field (comma-separated names)
+- Resources: inline list builder with name, URL, and resource type per row
+
+### Custom block rendering (lesson pages)
+The `/lessons/[slug]` page uses `react-markdown` with a custom `blockquote` component that intercepts Markdown blockquotes beginning with `[verse]`, `[practice]`, or `[callout]`:
+
+| Prefix | Renders as | CSS class | Visual |
+|---|---|---|---|
+| `[verse]` | `lp-verse-quote` | Existing | Centered italic serif, `~` decoration via `::before`/`::after` |
+| `[practice]` | `lp-callout` | Existing | Teal "Practice Suggestion" box with title + content |
+| `[callout]` | `lp-callout-block` | New | Italic serif, 3px left border accent, warm background |
+
+The `extractText()` helper recursively extracts plain text from React children nodes to detect the prefix tag. Standard blockquotes (without a recognized prefix) render normally.
+
+### File uploads
+`POST /api/upload` — universal file upload endpoint using Vercel Blob **client-side upload** pattern. Auth-gated to TEACHER or ADMIN (checked inside `onBeforeGenerateToken`). Max file size: 500 MB. Requires `BLOB_READ_WRITE_TOKEN` env var in Vercel.
+
+**How it works:** The browser calls `upload()` from `@vercel/blob/client`, which makes two requests to `/api/upload`: (1) `blob.generate-client-token` — server validates auth, returns a signed token; (2) browser uploads directly to Vercel Blob (bypasses the 4.5 MB serverless function body limit); (3) `blob.upload-completed` — Vercel calls back to confirm. This replaced the original server-side `put()` approach which failed on audio files larger than 4.5 MB.
+
+**Auto-save:** After a successful upload (or file removal), `autoSaveField()` immediately PATCHes just the changed field to the DB — no need to click Save. This uses the URL directly from the upload response (not React state) to avoid closure issues.
+
+### Editor UX
+Both `CourseEditor` and `LessonEditor` show a "View course/lesson page →" link in the editor header (edit mode only) that opens the public page in a new tab.
+
+### Hub membership sync
+When the TEACHER role is granted via admin member detail, `syncHubMembership()` auto-creates a `HubMember` record for the teacher hub. Removing the role clears the record.
+
+### Key files
+- `app/account/hub/[slug]/courses/page.tsx` — course list (server component)
+- `app/account/hub/[slug]/courses/new/page.tsx` — new course page
+- `app/account/hub/[slug]/courses/[courseSlug]/page.tsx` — edit course page (loads + serializes for client)
+- `app/account/hub/[slug]/lessons/page.tsx` — lesson list (server component)
+- `app/account/hub/[slug]/lessons/new/page.tsx` — new lesson page
+- `app/account/hub/[slug]/lessons/[lessonSlug]/page.tsx` — edit lesson page (loads + serializes for client)
+- `app/account/hub/[slug]/announcements/page.tsx` — dedicated announcements route (moved from hub root for teacher hub)
+- `components/CourseEditor.tsx` — client component: course form + lesson manager with search and reorder
+- `components/LessonEditor.tsx` — client component: MDEditor, custom block buttons, file uploads, resource builder
+- `components/LessonListClient.tsx` — client component: lesson table with search filter
+- `app/api/courses/route.ts` — GET (list) / POST (create)
+- `app/api/courses/[slug]/route.ts` — GET / PATCH / DELETE
+- `app/api/lessons/route.ts` — GET (list) / POST (create)
+- `app/api/lessons/[slug]/route.ts` — GET / PATCH / DELETE
+- `app/api/lessons/search/route.ts` — GET `?q=` search
+- `app/api/upload/route.ts` — POST file upload via Vercel Blob
+- `lib/syncHubMembership.ts` — TEACHER → teacher hub mapping
+- `prisma/seed-hubs.ts` — teacher hub seed record
+
+**🔧 Technical notes:**
+- MDEditor imported via `dynamic(() => import("@uiw/react-md-editor"), { ssr: false })` — client-only, prevents SSR errors
+- CSS imports: `@uiw/react-md-editor/markdown-editor.css` and `@uiw/react-markdown-preview/markdown.css`
+- `.w-md-editor` override in `custom.css`: removes box-shadow, sets border + border-radius to match design system
+- `th-` CSS prefix for all Teacher Hub styles (~150 lines): tables, badges, buttons, form fields, editor sections, lesson manager, media preview, resource rows
+- `useRef` in React 19 requires initial argument: `useRef<T | null>(null)` not `useRef<T>()`
+- `extractText()` uses double-cast pattern `(node as unknown as Record<string, unknown>)` for React 19 `ReactNode` type compatibility
+- ProgramCourse during Phase 2: `programId` stores Sanity `_id`. Admin courses API does hybrid Postgres + Sanity lookup for program names. Phase 3 will convert to Postgres cuid when programs migrate.
+- Header quote on lesson page: shown only when `hasQuote && !hasAudio` (audio player takes precedence)
+- File upload uses `upload()` from `@vercel/blob/client` (client-side upload) — NOT `put()` (server-side). The `/api/upload` route only handles token generation and completion callback via `handleUpload`. Auth check MUST be inside `onBeforeGenerateToken`, not at the route level, because the completion callback comes from Vercel's servers (no user session).
+- `autoSaveField()` uses the URL from the upload response directly (not React state) to avoid stale closure issues in async handlers
+
+---
+
 | 2026-03-11 (session 39) | **Spec compliance audit + cleanup.** Audited all §23 files against actual codebase — everything conformant. Deleted temporary `/api/debug` route (exposed session/membership data; was created to diagnose login issue in session 38). Added §24 to FEATURES.md documenting the multi-hub workspace system (`/account/hub/[slug]/*`) built in the previous context-exhausted session. Fixed `TypeScript build error in app/account/host/schedule/page.tsx — missing `programFormat` field. Updated MEMORY.md session log. |
 | 2026-03-12 (session 41) | **Dashboard Today's Sessions: recurrence-aware logic + join link timing.** **(1) Infinite/ongoing recurrence fix:** `lib/calendarLinks.ts` — `buildRRule()` was guarded by `!count || count < 2`, which blocked RRULE generation for programs with no fixed end date (null `recurrenceCount`). Fixed: guard is now `if (!freq) return null`; COUNT is only appended when `count && count >= 2` — omitting it is valid RFC 5545 for infinite recurrence. `describeRecurrence()` updated with same fix; `icsLabel` now returns `"ongoing"` when count is null. Sanity `recurrenceCount` field title changed to "Number of Sessions (leave blank for ongoing)" with updated description. Sanity Studio deployed. **(2) Dashboard Today's Sessions — recurrence-aware query:** Root cause: old `todayVirtualSessionsQuery` required `programFormat in ["virtual","hybrid"] && defined(startDatetime)` — both null on all real production programs (which use `dayOfWeek[]->` refs). Fixed: replaced with `virtualDashboardProgramsQuery` — no `startDatetime` filter; fetches full recurrence fields. JS-side `isOccurrenceToday()` in `dashboard/page.tsx` handles single events, weekly (with day code + bi-weekly interval + series end), and monthly/daily fallback. `shiftToToday()` corrects the live/later window for recurring programs. `VirtualSession` interface renamed `VirtualProgram` with nullable `startDatetime` and all recurrence fields. **(3) Join link timing:** Changed from a 75-minute "joinable" window to a strict 12-minute live window. Join button now appears **only** in the Live Now section (12 min before start through session end) — completely removed from Later Today. Updated Later Today helper note: "Join link appears when the session opens, about 12 minutes before start." This prevents members from accidentally joining an open room when multiple programs are listed simultaneously. `liveStart` changed from 15 → 12 min; `joinableStart` / `isJoinable` removed entirely. Commits: session 41. **(4) DashboardAutoRefresh:** New `components/DashboardAutoRefresh.tsx` — `"use client"` component that auto-refreshes the dashboard when a Later Today session enters its Live Now window. Receives `liveStartEpochs: number[]` (epoch ms, timezone-agnostic) from the server; uses `setTimeout` to call `router.refresh()` at the exact moment the earliest session's window opens (+2s buffer). No polling, no visible page reload — `router.refresh()` re-fetches server data in the background, join button appears in place. |
 | 2026-03-11 (session 40) | **Hub schedule spec compliance + layout polish (§24 update).** **(1) Calendar visual redesign:** Rewrote `hub-cal` CSS block — switched from individual rounded cells with gaps to a single-card layout (`border:1px solid #e0ddd7; border-radius:10px; overflow:hidden`) with internal `#eceae5` dividers between cells. Today's date number gets a dark circle (`background:#2d3f47; border-radius:50%`) instead of a cell-level border. Event chips now use all-around `border:1px solid` (not `border-left` accent) and correct spec colors: mine (steel-lt), covered (sage-lt), needs (terra-lt). Checkboxes hidden by default, revealed on hover. Removed stale duplicate `hub-cal__event--mine` rule at end of file. **(2) List view inline panel:** Changed `SessionDetail` in list view to render directly below the clicked row (inside a `hub-sched-row-panel` wrapper div) rather than at the bottom of the page. Calendar view still renders `SessionDetail` below the calendar grid. **(3) Layout polish:** `hub-page` widened from 860→920px; side padding increased from 24→36px. Added missing `hub-hdr` CSS block (eyebrow/title/meta; was completely unstyled). `hub-tabs` vertical padding 10→13px; active tab color changed from `--rim-blue` to slate/steel to match spec. `hub-home__greeting` increased from 22→28px. `hub-detail__name` color changed from `--rim-blue` to `#2d3f47` (slate). Fixed double margin-top: `hub-content--wide` was 32px nested inside `hub-content` (also 32px), causing 64px gap on schedule page — set `hub-content--wide { margin-top: 0 }`. Commits: 51607af + earlier session commits. |
@@ -2750,4 +2869,6 @@ This table documents all 18 email functions in `lib/email.ts`. Keep it current i
 
 | 2026-03-13 (session 49) | **Email Template Manager improvements — Steps 1–10.** **(1) Complete email inventory audit:** Read all 1,678 lines of `lib/email.ts`; produced definitive table of all 18 functions — 7 managed, 9 hardcoded-could-migrate, 2 hardcoded-must-stay. **(2) Group fields + group-based list view:** Added `group`, `groupLabel`, `minRole` fields to `EmailTemplate` Prisma model. Seeded group assignments: `first-time-attendee`, `returning-after-absence`, `session-reminder` → "Registration & Programs"; `host-role-assigned`, `sub-request-posted`, `sub-request-claimed`, `missing-report-alert` → "Host Hub". List page (`app/admin/emails/page.tsx`) rewritten to render templates in grouped sections with `em-list__group-label` headers. **(3) Clickable variable chips:** Variable reference panel chips changed from `<code>` tags to `<button>` elements. Click inserts `{{token}}` at cursor via `editorRef.current?.commands.insertVariable(name)`. Hint text "click to insert at cursor" added. **(4) VariableNode Tiptap extension:** New `lib/tiptap-variable-node.ts` — custom Tiptap v3 inline atom node. Parses `{{token}}` in markdown via markdownit inline rule (with duplicate-registration guard for tiptap-markdown v0.9 reuse pattern). Renders as amber `.ri-var-chip` pill in editor. Serializes back to `{{token}}`. `insertVariable(name)` command. `editorRef` prop on RimEditor populated via `useEffect`, used by `EmailTemplateEditor` to call commands from variable chip buttons. Commits: `b79eb56`. **(5) Link inline popover:** `RimEditor` — replaced `window.prompt` link dialog with inline popover. Pre-fills existing href; removes link without opening popover if cursor is already on a link; Enter/Escape handling; outside-click dismiss via `pointerdown`. CSS: `re-link-wrap`, `re-link-popover`, `re-link-popover__input`, `re-link-popover__apply`. **(6) Chrome bands:** Non-interactive header/footer bands (`aria-hidden`) flanking the RimEditor body in `EmailTemplateEditor` — dark blue header ("Rooted In Mindfulness") and warm footer (address line) show the email wrapper context. CSS: `em-chrome-band`, `em-chrome-band--header`, `em-chrome-band--footer`. Commits: `6e247c2`. **(7) helpText + sanityNote:** Added `helpText String?` and `sanityNote String?` nullable fields to `EmailTemplate` Prisma model; `prisma db push` + `prisma generate`. Seeded for all 7 templates (`prisma/seed-email-help-text.js`). `helpText` shown above subject as muted paragraph. `sanityNote` shown as distinct teal callout with "Sanity Studio" badge — documents which variables originate in program records (programName, programTitle, dateText, locationText, zoomLink, reminderMessage). CSS: `em-editor__help`, `em-editor__help-text`, `em-editor__sanity-callout`, `em-editor__sanity-callout-label`. Commit: `83269da`. **(8) portableTextToMarkdown + PT audit:** New `portableTextToMarkdown()` in `lib/portableTextEmail.ts` — converts PT to markdown syntax (bold/italic/links/lists), resolves `markDefs` manually for link marks. Applied to `reminderMessage` in `sendReminderEmail` (replaces `portableTextToEmailText`; formatting now survives `marked` processing). Audit of `confirmationMessage` call sites: both API routes already use `portableTextToEmailHtml/Text` correctly — no change needed. Commit: `0698911`. **(9) Comment blocks on hardcoded functions:** All 11 hardcoded email functions annotated with: HARDCODED/MUST STAY status, why it isn't managed, proposed migration slug, variable list. Commit: `bf2dc33`. **(10) FEATURES.md §26 final update:** Complete 18-function inventory table added as permanent reference. Section expanded with new subsections for VariableNode, link popover, chrome bands, helpText/sanityNote, portableTextToMarkdown. "Future migration candidates" expanded to priority-ordered table with blockers. |
 
-*Last updated: 2026-03-13 (session 49)*
+| 2026-03-13 (session 50) | **Sanity → Postgres migration: Courses & Lessons + Teacher Hub + Markdown Editor.** **(1) Prisma schema:** Added TEACHER to Role enum; 4 new models (Course, Lesson, CourseLesson, ProgramCourse); CourseAccessLevel enum (MEMBERS, REGISTRATION_REQUIRED); CourseAccess→Course optional FK. `prisma db push`. **(2) Teacher Hub:** Seeded "teacher" hub in `prisma/seed-hubs.ts`; TEACHER mapping added to `lib/syncHubMembership.ts`. Hub layout modified: teacher hub gets Courses+Lessons as primary tabs; root redirects to `/account/hub/teacher/courses`; Announcements moved to `/announcements` sub-route. **(3) Course CRUD:** 6 new pages (list, new, edit for courses and lessons) + 6 new API routes (`/api/courses`, `/api/courses/[slug]`, `/api/lessons`, `/api/lessons/[slug]`, `/api/lessons/search`, `/api/upload`). `CourseEditor` component: form fields + lesson manager with search-to-add and reordering. `LessonListClient` component: table with search filter. **(4) Lesson Editor + Markdown:** `LessonEditor` with `@uiw/react-md-editor` (dynamic import, SSR false, `data-color-mode="light"`); custom block insertion buttons for [verse], [practice], [callout]; media uploads via Vercel Blob (`@vercel/blob`); resource inline list builder. **(5) Postgres cutover — course page:** `app/course/[slug]/page.tsx` rewritten to read from `db.course.findUnique`; access check uses ProgramCourse table instead of Sanity reverse ref; description renders via ReactMarkdown; Webflow CSS classes preserved. **(6) Postgres cutover — lesson page:** `app/lessons/[slug]/page.tsx` rewritten to read from `db.lesson.findUnique`; custom blockquote interceptor: `extractText()` detects `[verse]`→`lp-verse-quote`, `[practice]`→`lp-callout`, `[callout]`→`lp-callout-block` (new CSS class); header quote shown only when `hasQuote && !hasAudio`. **(7) Admin courses API:** `app/api/admin/courses/route.ts` updated from Sanity to Postgres with hybrid Sanity lookup for program names. TEACHER added to `MemberDetail` ALL_ROLES. **(8) CSS:** `th-` prefix block (~150 lines); `.th-block-btns` for block buttons; `.w-md-editor` override; `.lp-callout-block` + `.lp-body .lp-callout-block p`. **(9) New §27 added to FEATURES.md. **(10) Auto-save for file uploads:** `autoSaveField()` in LessonEditor immediately PATCHes DB after upload/remove — uses upload response URL directly (not React state) to avoid closure issues. **(11) View page links:** "View lesson page →" and "View course page →" links added to editor headers (edit mode only, opens in new tab). **(12) Client-side Vercel Blob upload migration:** Rewrote `/api/upload` from server-side `put()` to `handleUpload` from `@vercel/blob/client`; `LessonEditor.uploadFile()` now uses `upload()` from `@vercel/blob/client` — browser uploads directly to Blob storage, bypassing the 4.5 MB serverless function body limit. Max file size 500 MB. Auth check moved inside `onBeforeGenerateToken` (completion callback from Vercel's servers doesn't carry user session). |
+
+*Last updated: 2026-03-13 (session 50)*

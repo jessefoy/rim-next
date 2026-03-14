@@ -1,12 +1,12 @@
 # RIM Next — Stack Reference
 
-_Generated 2026-03-11. Last updated 2026-03-13 (session 49). Update this file whenever a service, credential, or major structural decision changes._
+_Generated 2026-03-11. Last updated 2026-03-13 (session 50). Update this file whenever a service, credential, or major structural decision changes._
 
 ---
 
 ## What's been built
 
-Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfield, WI. This Next.js application is the future home of the entire RIM digital presence — programs, member accounts, registrations, online courses, and volunteer tooling. As of this writing, the application includes a full program registration system (with waitlisting, dana/Stripe payments, calendar links, and automated emails), a member dashboard and profile system, a registrar area for managing participants, an admin area for member management (with households, status, tags, and role assignment), a Sanity-integrated course library, a staff reference manual, a site architecture/feature inventory for admins, a Google Meet integration for virtual programs, a Host Community Hub — a full team workspace for the volunteer host team with a calendar schedule, sub board, conversations, and alerts, and an Email Template Manager — a database-backed system for editing all managed transactional email copy without code deploys. The Webflow-built site at `rootedinmindfulness.org` remains live as the public-facing domain while this app is in active development at `rim-next.vercel.app`.
+Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfield, WI. This Next.js application is the future home of the entire RIM digital presence — programs, member accounts, registrations, online courses, and volunteer tooling. As of this writing, the application includes a full program registration system (with waitlisting, dana/Stripe payments, calendar links, and automated emails), a member dashboard and profile system, a registrar area for managing participants, an admin area for member management (with households, status, tags, and role assignment), a Postgres-backed course and lesson library (migrated from Sanity, managed via Teacher Hub with a rich Markdown editor), a staff reference manual, a site architecture/feature inventory for admins, a Google Meet integration for virtual programs, a Host Community Hub — a full team workspace for the volunteer host team with a calendar schedule, sub board, conversations, and alerts, and an Email Template Manager — a database-backed system for editing all managed transactional email copy without code deploys. The Webflow-built site at `rootedinmindfulness.org` remains live as the public-facing domain while this app is in active development at `rim-next.vercel.app`.
 
 ---
 
@@ -44,6 +44,8 @@ Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfie
 | Hosting | Vercel | auto-deploy on push to `main` |
 | CSS | Custom design system | `public/css/custom.css` only — never touch webflow CSS files |
 | Rich text editor | Tiptap v3 | `@tiptap/react ^3.20.1` + `tiptap-markdown` — used in RimEditor; custom VariableNode extension for `{{token}}` pills |
+| Markdown editor | @uiw/react-md-editor | Used in LessonEditor for lesson body content; dynamic import with `ssr: false` |
+| File storage | Vercel Blob | `@vercel/blob` + `@vercel/blob/client` — client-side upload pattern (browser → Blob direct, bypasses 4.5 MB serverless limit); max 500 MB; `BLOB_READ_WRITE_TOKEN` env var |
 
 ---
 
@@ -113,6 +115,11 @@ All set in Vercel. Pull locally with `npx vercel env pull .env.local`.
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | `pk_test_*` |
 | `STRIPE_WEBHOOK_SECRET` | Registered at `https://rim-next.vercel.app/api/stripe/webhook` (event: `checkout.session.completed`) |
 
+### File Storage (Vercel Blob)
+| Variable | Purpose |
+|---|---|
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob upload/read token — used by `/api/upload` for image and audio files |
+
 ### Newsletter & Cron
 | Variable | Purpose |
 |---|---|
@@ -125,7 +132,8 @@ All set in Vercel. Pull locally with `npx vercel env pull .env.local`.
 
 - Source: `/Users/jessefoy/Sites/rim-website/sanity/` (shared between both projects)
 - Deploy: `cd /Users/jessefoy/Sites/rim-website/sanity && npx sanity deploy`
-- Shared schema: `schemas/richContent.js` — used by both lessons and programs
+- Shared schema: `schemas/richContent.js` — used by programs description (lessons migrated to Postgres)
+- ⚠️ Courses and lessons have been migrated to Postgres (session 50). Sanity course/lesson schemas remain but are no longer the source of truth for the Next.js app.
 
 ### GROQ rules
 - Always exclude drafts: `!(_id in path("drafts.**"))`
@@ -160,6 +168,9 @@ app/
     ideas/            backlog (data/backlog.json)
   api/
     account/          member-facing APIs (registrations, alerts, reactivate)
+    courses/          course CRUD (TEACHER/ADMIN)
+    lessons/          lesson CRUD + search (TEACHER/ADMIN)
+    upload/           file upload via Vercel Blob (TEACHER/ADMIN)
     programs/         program APIs (ical, google-meet, send-reminder)
     registrations/    registration CRUD + email
     host/             hub APIs (assignments, sub-requests, threads, replies)
@@ -186,11 +197,13 @@ data/backlog.json     feature backlog (surfaced at /admin/ideas)
 |---|---|
 | `HOST` | Host Community Hub, sub board, conversations |
 | `HOST_MANAGER` | All HOST access + assignment management + unassigned alerts |
+| `TEACHER` | Teacher Hub — course and lesson management |
 | `REGISTRAR` | Registrations, member profiles, Sanity Studio |
 | `ADMIN` | Everything |
 
 Hub access check: `roles.some(r => ["HOST","HOST_MANAGER","ADMIN"].includes(r))`
 Manager check: `roles.some(r => ["HOST_MANAGER","ADMIN"].includes(r))`
+Teacher check: `roles.some(r => ["TEACHER","ADMIN"].includes(r))`
 
 ---
 

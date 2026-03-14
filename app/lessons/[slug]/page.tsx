@@ -1,63 +1,8 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import ReactMarkdown from "react-markdown";
+import { renderContentBody } from "@/lib/renderRichContent";
 import DanaSection from "@/components/DanaSection";
 import AudioPlayer from "@/components/AudioPlayer";
-
-function extractText(node: React.ReactNode): string {
-  if (typeof node === "string") return node;
-  if (typeof node === "number") return String(node);
-  if (!node) return "";
-  if (Array.isArray(node)) return node.map(extractText).join("\n");
-  if (typeof node === "object" && "props" in (node as unknown as Record<string, unknown>)) {
-    const el = node as unknown as { props: { children?: React.ReactNode } };
-    return extractText(el.props.children);
-  }
-  return "";
-}
-
-const markdownComponents = {
-  blockquote: ({ children }: { children?: React.ReactNode }) => {
-    const text = extractText(children);
-
-    if (text.startsWith("[verse]")) {
-      const lines = text.replace("[verse]", "").trim().split("\n");
-      const attribution = lines.find((l) => l.startsWith("—"));
-      const quote = lines.filter((l) => !l.startsWith("—")).join("\n").trim();
-      return (
-        <div className="lp-verse-quote">
-          <p>{quote}</p>
-          {attribution && (
-            <cite className="lp-verse-quote__cite">{attribution}</cite>
-          )}
-        </div>
-      );
-    }
-
-    if (text.startsWith("[practice]")) {
-      const content = text.replace("[practice]", "").trim();
-      return (
-        <div className="lp-callout">
-          <p className="lp-callout__title">Practice Suggestion</p>
-          <div className="lp-callout__content">
-            <p>{content}</p>
-          </div>
-        </div>
-      );
-    }
-
-    if (text.startsWith("[callout]")) {
-      const content = text.replace("[callout]", "").trim();
-      return (
-        <div className="lp-callout-block">
-          <p>{content}</p>
-        </div>
-      );
-    }
-
-    return <blockquote>{children}</blockquote>;
-  },
-};
 
 export const revalidate = 60;
 
@@ -82,6 +27,9 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
   const resources = (lesson.resources as { name: string; url: string; resourceType: string }[]) ?? [];
   const hasResources = resources.length > 0;
   const hasTeachers = lesson.teacherNames.length > 0;
+
+  // Render Tiptap JSON to HTML
+  const bodyHtml = renderContentBody(lesson.body);
 
   return (
     <div className="lp-page">
@@ -138,11 +86,9 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
           </div>
         )}
 
-        {/* Body content (Markdown) */}
-        {lesson.body && (
-          <div className="lp-body">
-            <ReactMarkdown components={markdownComponents}>{lesson.body}</ReactMarkdown>
-          </div>
+        {/* Body content (Tiptap JSON → HTML) */}
+        {bodyHtml && (
+          <div className="lp-body" dangerouslySetInnerHTML={{ __html: bodyHtml }} />
         )}
 
         {(hasResources || hasTeachers) && <hr className="lp-divider" />}

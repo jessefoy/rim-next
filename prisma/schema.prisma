@@ -78,7 +78,7 @@ model User {
   addressZip      String?
   memberStatus    MemberStatus @default(ACTIVE)
   firstVisitDate  DateTime?
-  adminNotes      String?
+  adminNotes      Json?             // Tiptap JSON (FormattedEditor)
   tags            String[]     @default([])
 
   // Legacy data imported from Memberstack (kept for historical reference)
@@ -344,7 +344,7 @@ model Course {
   title                 String
   slug                  String            @unique
   subheading            String?
-  description           String?           // Markdown
+  description           Json?             // Tiptap JSON
   accessLevel           CourseAccessLevel @default(MEMBERS)
   hideFromMemberProfile Boolean           @default(false)
   sortOrder             Int?
@@ -368,7 +368,7 @@ model Lesson {
   slug            String   @unique
 
   isSectionTitle  Boolean  @default(false)
-  body            String?  // Markdown
+  body            Json?    // Tiptap JSON
 
   heroImageUrl    String?  // Vercel Blob URL
   heroImageAlt    String?

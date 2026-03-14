@@ -2,7 +2,7 @@
 
 import { useState, KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
-import RimEditor from "./RimEditor";
+import FormattedEditor from "@/components/FormattedEditor";
 import Link from "next/link";
 import CourseAccessSection from "@/components/CourseAccessSection";
 import HouseholdSection from "@/components/HouseholdSection";
@@ -35,7 +35,7 @@ interface Member {
   addressZip: string | null;
   memberStatus: string;
   firstVisitDate: string | null;
-  adminNotes: string | null;
+  adminNotes: any; // Tiptap JSON or null
   tags: string[];
   roles: string[];
   archivedAt: string | null;
@@ -139,7 +139,7 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
   );
 
   // Admin-only fields
-  const [adminNotes, setAdminNotes] = useState(member.adminNotes ?? "");
+  const [adminNotes, setAdminNotes] = useState<any>(member.adminNotes ?? null);
 
   // Tags
   const [tags, setTags] = useState<string[]>(member.tags);
@@ -516,11 +516,11 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
         <section className="adm-section">
           <h2 className="adm-section__title">Admin Notes</h2>
           <p className="adm-section__hint">Private — not visible to the member.</p>
-          <RimEditor
-            rows={5}
+          <FormattedEditor
             value={adminNotes}
-            onChange={(v) => { setAdminNotes(v); markDirty(); }}
+            onChange={(v: any) => { setAdminNotes(v); markDirty(); }}
             placeholder="Internal notes about this member…"
+            minHeight={160}
           />
         </section>
       )}

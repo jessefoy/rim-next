@@ -43,7 +43,7 @@ export default async function EditLessonPage({
     titleDisplayed: lesson.titleDisplayed,
     slug: lesson.slug,
     isSectionTitle: lesson.isSectionTitle,
-    body: lesson.body ?? "",
+    body: lesson.body ?? null,
     heroImageUrl: lesson.heroImageUrl ?? "",
     heroImageAlt: lesson.heroImageAlt ?? "",
     audioUrl: lesson.audioUrl ?? "",
