@@ -1,6 +1,6 @@
 # RIM Next — Stack Reference
 
-_Generated 2026-03-11. Last updated 2026-03-14 (session 53). Update this file whenever a service, credential, or major structural decision changes._
+_Generated 2026-03-11. Last updated 2026-03-15 (session 54). Update this file whenever a service, credential, or major structural decision changes._
 
 ---
 
@@ -87,8 +87,7 @@ All set in Vercel. Pull locally with `npx vercel env pull .env.local`.
 |---|---|
 | `NEXT_PUBLIC_SANITY_PROJECT_ID` | `xxgvfpjf` |
 | `NEXT_PUBLIC_SANITY_DATASET` | `production` |
-| `SANITY_API_TOKEN` | Editor-level write token |
-| `SANITY_MANAGEMENT_TOKEN` | Invites + webhook registration |
+| `SANITY_API_TOKEN` | Editor-level read token (non-program content: teams, glossary, etc.) |
 
 ### Email (Resend)
 | Variable | Purpose |
@@ -131,16 +130,12 @@ All set in Vercel. Pull locally with `npx vercel env pull .env.local`.
 
 - Source: `/Users/jessefoy/Sites/rim-website/sanity/` (shared between both projects)
 - Deploy: `cd /Users/jessefoy/Sites/rim-website/sanity && npx sanity deploy`
-- Shared schema: `schemas/richContent.js` — used by programs description (lessons migrated to Postgres)
-- ⚠️ Courses and lessons have been migrated to Postgres (session 50). Sanity course/lesson schemas remain but are no longer the source of truth for the Next.js app.
+- ⚠️ **Programs, courses, and lessons have all been migrated to Postgres.** Sanity schemas for these types remain but are no longer the source of truth. Sanity is still used for: teams, glossary, magazine articles, volunteer positions, and `richContent` shared schema type.
 
-### GROQ rules
+### GROQ rules (for remaining Sanity content types)
 - Always exclude drafts: `!(_id in path("drafts.**"))`
-- `_type` values are **plural** (`"programs"` not `"program"`)
-- `dayOfWeek` is array ref: `dayOfWeek[]->` not `dayOfWeek->`
-- Array contains filter: `$slug in field[]->slug.current`
-- Reverse reference: `*[_type == "programs" && ^._id in linkedCourses[]._ref]`
-- ⚠️ Slugs are database join keys for `HostAssignment` — treat as permanent once assignments exist
+- `_type` values are **plural** (`"teams"` not `"team"`)
+- ⚠️ Program slugs are database join keys for `HostAssignment` — treat as permanent once assignments exist
 
 ---
 
@@ -170,11 +165,11 @@ app/
     courses/          course CRUD (TEACHER/ADMIN)
     lessons/          lesson CRUD + search (TEACHER/ADMIN)
     upload/           file upload via Vercel Blob (TEACHER/ADMIN)
-    programs/         program APIs (ical, google-meet, send-reminder)
+    programs-pg/      program CRUD + google-meet + send-reminder
+    programs/         legacy (ical only)
     registrations/    registration CRUD + email
     host/             hub APIs (assignments, sub-requests, threads, replies)
     stripe/           checkout + webhook
-    webhooks/         Sanity webhook handler
     cron/             scheduled jobs (reminders, unassigned-host check)
   programs/[slug]/    public program pages
   course/[slug]/      member-gated course pages
@@ -197,7 +192,7 @@ data/backlog.json     feature backlog (surfaced at /admin/ideas)
 | `HOST` | Host Community Hub, sub board, conversations |
 | `HOST_MANAGER` | All HOST access + assignment management + unassigned alerts |
 | `TEACHER` | Teacher Hub — course and lesson management |
-| `REGISTRAR` | Registrar Hub (auto-synced, coordinator), registrations, member profiles, Sanity Studio |
+| `REGISTRAR` | Registrar Hub (auto-synced, coordinator), registrations, member profiles, Program Editor |
 | `ADMIN` | Everything |
 
 Hub access check: `roles.some(r => ["HOST","HOST_MANAGER","ADMIN"].includes(r))`
@@ -213,7 +208,7 @@ Registrar check: `roles.some(r => ["REGISTRAR","ADMIN"].includes(r))`
 |---|---|---|
 | Resend | Magic links + all transactional email | Domain `rootedinmindfulness.org` verified |
 | Stripe | Dana/fee collection via Checkout | Test mode — switch to live before launch |
-| Sanity | All content (programs, lessons, teams) | Studio is separate from the app |
+| Sanity | Non-program content (teams, glossary, magazine, volunteers) | Programs, courses, lessons migrated to Postgres |
 | Google Meet | Virtual program hosting | DWD via service account; 4 room accounts |
 | Google Calendar | Room booking for Meet sessions | Conflict checking on create |
 | Flodesk | Newsletter signup | Segment ID in env vars |

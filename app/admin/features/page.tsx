@@ -117,9 +117,9 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Registration Form (inline on program page)",
         locations: ["/programs/[slug]", "Component: RegistrationForm.tsx", "API: POST /api/registrations"],
-        what: "Displayed on the program detail page when registrationEnabled = true in Sanity. Collects name, email, phone, custom per-program questions, and (for non-logged-in users) the community agreements checkbox. Handles capacity limits, waitlisting, closed registration, and duplicate prevention.",
+        what: "Displayed on the program detail page when registrationEnabled = true in Postgres. Collects name, email, phone, custom per-program questions, and (for non-logged-in users) the community agreements checkbox. Handles capacity limits, waitlisting, closed registration, and duplicate prevention.",
         relatedTo: [
-          "Connects to Sanity CMS for program configuration (custom fields, capacity, deadline)",
+          "Connects to Postgres (Program model) for program configuration (custom fields, capacity, deadline)",
           "Triggers Confirmation Email on success",
           "Leads into Dana / Stripe Payment step post-registration",
           "Email Recognition system pre-fills known members",
@@ -143,16 +143,16 @@ const AREAS: FunctionalArea[] = [
         what: "When a non-logged-in person types their email and blurs the field, the form calls /api/account/check-email. If the email matches a known account, name and phone are pre-filled from the account record and locked (readOnly). Account values always win — they cannot be overwritten by form submission.",
         relatedTo: [
           "Protects member profile data integrity (Member Management)",
-          "Connects account data (Postgres) to registration form (Sanity/public page)",
+          "Connects account data (Postgres) to registration form (public page)",
           "Works on both inline (/programs/[slug]) and standalone (/programs/[slug]/register)",
         ],
       },
       {
         name: "Capacity Limits & Waitlist",
         locations: ["/programs/[slug]", "API: POST /api/registrations"],
-        what: "Each program can have a registrationCapacity set in Sanity. When capacity is reached, new registrants are placed on the waitlist and assigned a position number. Waitlisted registrants do not see the dana step — their donationStatus is NOT_REQUIRED until promoted.",
+        what: "Each program can have a registrationCapacity set in Postgres. When capacity is reached, new registrants are placed on the waitlist and assigned a position number. Waitlisted registrants do not see the dana step — their donationStatus is NOT_REQUIRED until promoted.",
         relatedTo: [
-          "Capacity and deadline configured in Sanity CMS (programs schema)",
+          "Capacity and deadline configured in the Program model (programs schema)",
           "Waitlist promotion handled in Volunteer / Registrar Tools",
           "Spot-opened alert shown in volunteer table when a cancellation creates a vacancy",
           "Member self-cancel also triggers spot-opened alert",
@@ -160,10 +160,10 @@ const AREAS: FunctionalArea[] = [
       },
       {
         name: "Custom Per-Program Questions",
-        locations: ["Sanity Studio (programs → Registration tab)", "Component: RegistrationForm.tsx", "API: POST /api/registrations"],
-        what: "Program coordinators can define custom questions for each program in Sanity (short text, long text, yes/no, dropdown). Answers are stored as a JSON object on the Registration record and shown to registrars in the volunteer table.",
+        locations: ["Program Editor (programs → Registration tab)", "Component: RegistrationForm.tsx", "API: POST /api/registrations"],
+        what: "Program coordinators can define custom questions for each program in Postgres (short text, long text, yes/no, dropdown). Answers are stored as a JSON object on the Registration record and shown to registrars in the volunteer table.",
         relatedTo: [
-          "Configured in Sanity CMS (registrationFields array on programs schema)",
+          "Configured in the Program model (registrationFields array on programs schema)",
           "Displayed and editable inline in Volunteer / Registrar Tools",
           "Included as columns in CSV Export",
           "Can be updated by registrant via Self-Service Edit Link",
@@ -200,11 +200,11 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Registration Confirmation Email",
         locations: ["File: lib/email.ts (sendRegistrationEmail)", "API: POST /api/registrations"],
-        what: "Sent immediately after a successful registration. Two variants: REGISTERED (subject: 'You're registered — [Program]', with add-to-calendar links) and WAITLISTED (subject: 'You're on the waitlist — [Program]', with waitlist position). Includes the per-program confirmationMessage rich text if set in Sanity.",
+        what: "Sent immediately after a successful registration. Two variants: REGISTERED (subject: 'You're registered — [Program]', with add-to-calendar links) and WAITLISTED (subject: 'You're on the waitlist — [Program]', with waitlist position). Includes the per-program confirmationMessage rich text if set in Postgres.",
         relatedTo: [
           "Triggered by Program Registration",
-          "Includes calendar links if startDatetime/endDatetime set in Sanity",
-          "confirmationMessage block configured in Sanity CMS",
+          "Includes calendar links if startDatetime/endDatetime set in Postgres",
+          "confirmationMessage block configured in the Program model",
           "Converted by lib/portableTextEmail.ts for email-safe rendering",
         ],
       },
@@ -214,7 +214,7 @@ const AREAS: FunctionalArea[] = [
         what: "Sent when a registrar promotes a registrant from WAITLISTED to APPROVED or REGISTERED. Includes the program date/time/location and, if the program has a dana practice, a 'Complete Dana Offering' button linking to the program page.",
         relatedTo: [
           "Triggered by Waitlist Promotion action in Volunteer / Registrar Tools",
-          "Dana section conditional on program's danaMode (Sanity CMS)",
+          "Dana section conditional on program's danaMode (Postgres (Program model))",
           "When approved, donationStatus flips from NOT_REQUIRED to PENDING",
         ],
       },
@@ -251,9 +251,9 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Program Reminder Email",
         locations: ["File: lib/email.ts (sendReminderEmail)", "API: GET /api/cron/send-reminders, POST /api/programs/[slug]/send-reminder, PATCH /api/registrations/[id] (action: sendReminder)"],
-        what: "Sent to active (REGISTERED/APPROVED) registrants before a program. Managed template — body editable at /admin/emails (slug: session-reminder). Includes date/time/location and an optional custom reminderMessage from Sanity (converted to markdown via portableTextToMarkdown() before template insertion). Can be sent automatically by the daily cron (if reminderDate is set in Sanity), in bulk via the volunteer table banner, or per-row via the Actions panel. reminderSentAt prevents double-sends across all paths.",
+        what: "Sent to active (REGISTERED/APPROVED) registrants before a program. Managed template — body editable at /admin/emails (slug: session-reminder). Includes date/time/location and an optional custom reminderMessage from Postgres (converted to markdown via portableTextToMarkdown() before template insertion). Can be sent automatically by the daily cron (if reminderDate is set in Postgres), in bulk via the volunteer table banner, or per-row via the Actions panel. reminderSentAt prevents double-sends across all paths.",
         relatedTo: [
-          "reminderDate and reminderMessage configured in Sanity CMS",
+          "reminderDate and reminderMessage configured in the Program model",
           "Shown in Volunteer / Registrar Tools (reminder banner + per-row button)",
           "Scheduled via Scheduling & Automation (Reminder Cron)",
           "Managed via Email Template Manager (slug: session-reminder)",
@@ -292,7 +292,7 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Email Template Manager",
         locations: ["Page: /admin/emails", "Page: /admin/emails/[slug]", "File: components/EmailTemplateEditor.tsx", "File: components/RimEditor.tsx", "File: lib/tiptap-variable-node.ts", "API: PATCH /api/admin/emails/[slug]", "API: POST /api/admin/emails/[slug]/preview"],
-        what: "Database-backed system for editing transactional email copy without code deploys. 7 managed templates stored in the email_templates table (Postgres). Admins can edit subject lines, body copy (rich Tiptap markdown editor with variable chip insertion), enable/disable delivery, and preview rendered output. Chrome bands show the email header/footer wrapper. Contextual help text above the subject explains each template; Sanity-origin variables are called out with a distinct teal callout. 11 email functions remain hardcoded for structural reasons (attachments, conditional logic, auth flows) — documented with comment blocks in lib/email.ts.",
+        what: "Database-backed system for editing transactional email copy without code deploys. 7 managed templates stored in the email_templates table (Postgres). Admins can edit subject lines, body copy (rich Tiptap markdown editor with variable chip insertion), enable/disable delivery, and preview rendered output. Chrome bands show the email header/footer wrapper. Contextual help text above the subject explains each template; Program-origin variables are called out with a distinct teal callout. 11 email functions remain hardcoded for structural reasons (attachments, conditional logic, auth flows) — documented with comment blocks in lib/email.ts.",
         relatedTo: [
           "Managed templates: session-reminder, first-time-attendee, returning-after-absence, host-role-assigned, sub-request-posted, sub-request-claimed, missing-report-alert",
           "Uses RimEditor (Tiptap v3) with custom VariableNode for {{token}} pills",
@@ -324,15 +324,15 @@ const AREAS: FunctionalArea[] = [
         locations: ["/programs/[slug]", "/programs/[slug]/register", "Component: RegistrationForm.tsx"],
         what: "After confirming registration, REGISTERED (not WAITLISTED) participants see an inline dana invitation. Shows program-specific message, a pre-filled editable amount, and two choices: 'Offer dana →' (opens Stripe Checkout) or 'I'll contribute another time' (genuinely optional — leaves donationStatus: PENDING). The dana step is skipped entirely for danaMode: none.",
         relatedTo: [
-          "Dana mode and amounts configured in Sanity CMS (programs → Dana tab)",
+          "Dana mode and amounts configured in the Program model (programs → Dana tab)",
           "Stripe Checkout Session Creation (API)",
           "donationStatus on Registration record (Postgres DB)",
           "Add-to-Calendar Links (appear post-registration, before dana step for REGISTERED)",
         ],
       },
       {
-        name: "Dana Modes (Sanity)",
-        locations: ["Sanity Studio (programs → Dana tab)", "File: sanity/schemas/programs.js"],
+        name: "Dana Modes",
+        locations: ["Program Editor (programs → Dana tab)", "File: sanity/schemas/programs.js"],
         what: "Four modes configurable per program: none (free, no step), voluntary (suggested editable amount), base_plus_dana (fixed required base cost + editable dana on top), fixed (set price, no dana framing). If required amount fields are blank, the step is skipped and donationStatus set to WAIVED.",
         relatedTo: [
           "Drives behavior of Dana Step UI",
@@ -377,9 +377,9 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Add-to-Calendar Links",
         locations: ["/programs/[slug] (post-registration)", "API: GET /api/programs/[slug]/ical", "File: lib/calendarLinks.ts"],
-        what: "After confirming registration, members see '+ Google Calendar' and '+ Apple / Outlook' links. Google Calendar link opens pre-filled. The .ics route returns an RFC 5545 file for Apple/Outlook download. Links only appear when startDatetime/endDatetime are set in Sanity. Recurrence rules (RRULE) are generated from the 4 recurrence fields in Sanity.",
+        what: "After confirming registration, members see '+ Google Calendar' and '+ Apple / Outlook' links. Google Calendar link opens pre-filled. The .ics route returns an RFC 5545 file for Apple/Outlook download. Links only appear when startDatetime/endDatetime are set in Postgres. Recurrence rules (RRULE) are generated from the 4 recurrence fields in Postgres.",
         relatedTo: [
-          "startDatetime/endDatetime configured in Sanity CMS (programs → Schedule & Location tab)",
+          "startDatetime/endDatetime configured in the Program model (programs → Schedule & Location tab)",
           "Recurrence fields (recurrenceFreq, recurrenceInterval, recurrenceDays, recurrenceCount) drive the RRULE — null recurrenceCount = no COUNT in RRULE = infinite recurrence",
           "Also included in Registration Confirmation Email",
         ],
@@ -396,9 +396,9 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Registrar Program List",
         locations: ["/account/registrar"],
-        what: "Lists all programs where registrationEnabled = true (from Sanity). Shows registration counts by status (total, registered, waitlisted, approved). Each program links to its registration table.",
+        what: "Lists all programs where registrationEnabled = true (from Postgres). Shows registration counts by status (total, registered, waitlisted, approved). Each program links to its registration table.",
         relatedTo: [
-          "Sanity CMS — registrationEnabled field on programs",
+          "Postgres — registrationEnabled field on programs",
           "Registration counts from Postgres DB",
           "Entry point to Registration Management Table",
         ],
@@ -409,7 +409,7 @@ const AREAS: FunctionalArea[] = [
         what: "Full registrant list for a program with filtering by status. Each row shows name, email, phone, status badge, donation status, and registration date. Click to expand for custom field answers and staff notes. Mobile view transforms into a card layout.",
         relatedTo: [
           "All registration actions connect to PATCH /api/registrations/[id]",
-          "Custom fields come from both Registration DB and Sanity (field type definitions)",
+          "Custom fields come from both Registration DB and Program model (field type definitions)",
           "All email actions connect to Email & Notifications",
           "CSV Export (API: GET /api/programs/[slug]/registrations?format=csv)",
         ],
@@ -428,9 +428,9 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Inline Custom Field Editing",
         locations: ["/account/registrar/[slug]", "Component: VolunteerTable.tsx", "API: PATCH /api/registrations/[id]"],
-        what: "Registrar can edit a registrant's custom field answers inline without a page reload. Click 'Edit' next to the RESPONSES column header to enter edit mode. Input type is determined by the field definition in Sanity: yesNo → dropdown, select → dropdown with program options, longText → textarea, shortText → text input.",
+        what: "Registrar can edit a registrant's custom field answers inline without a page reload. Click 'Edit' next to the RESPONSES column header to enter edit mode. Input type is determined by the field definition in Postgres: yesNo → dropdown, select → dropdown with program options, longText → textarea, shortText → text input.",
         relatedTo: [
-          "Field type definitions from Sanity CMS (registrationFields)",
+          "Field type definitions from Postgres (Program model) (registrationFields)",
           "Stores answers as JSON in Registration.customFields",
           "Also editable by the registrant via Self-Service Edit Link",
         ],
@@ -449,10 +449,10 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Send Reminder (Per-Row & Bulk)",
         locations: ["/account/registrar/[slug]", "Component: VolunteerTable.tsx", "API: PATCH /api/registrations/[id] (action: sendReminder), POST /api/programs/[slug]/send-reminder"],
-        what: "Per-row: 'Send Reminder' button on REGISTERED/APPROVED rows. Shows sent timestamp after first send; re-sends possible. Bulk: 'Send to Remaining N' button in the reminder banner above the table (shown when reminderDate is set in Sanity). reminderSentAt prevents double-sends from cron + manual.",
+        what: "Per-row: 'Send Reminder' button on REGISTERED/APPROVED rows. Shows sent timestamp after first send; re-sends possible. Bulk: 'Send to Remaining N' button in the reminder banner above the table (shown when reminderDate is set in Postgres). reminderSentAt prevents double-sends from cron + manual.",
         relatedTo: [
           "Program Reminder Email",
-          "reminderDate set in Sanity CMS (programs → Registration tab)",
+          "reminderDate set in the Program model (programs → Registration tab)",
           "Reminder Cron also fires from the same reminderDate",
         ],
       },
@@ -500,7 +500,7 @@ const AREAS: FunctionalArea[] = [
         what: "7-column calendar + list view showing all HostAssignment records for the current month. Filter pills (All / Mine / Needs Attention) filter both views. Calendar: single-card spec layout with today-circle, color-coded event chips (mine=steel-lt, covered=sage-lt, needs=terra-lt). List view: clicking a row expands a SessionDetail panel inline, directly beneath that row. Calendar view shows SessionDetail below the calendar grid. From the panel: claim an open session, request a sub, or (HOST_MANAGER) assign a host. Shared HubScheduleClient receives apiBase prop — /api/host for both the old /account/hub/host-team/schedule page and /account/hub/host-team/schedule.",
         relatedTo: [
           "HostAssignment Postgres model — links userId + programSlug (+ optional sessionDate)",
-          "Sanity CMS — program names, meet links, room accounts read from hostProgramsQuery",
+          "Postgres — program names, meet links, room accounts read from hostProgramsQuery",
           "Assignment Manager — HOST_MANAGER creates/removes assignments shown here",
           "Google Meet Integration — meetLink and meetHostAccount fields",
           "hub-cal, hub-sched-list-*, hub-detail CSS classes in public/css/custom.css",
@@ -536,7 +536,7 @@ const AREAS: FunctionalArea[] = [
           "HostAssignment Postgres model — the join between a user and a program/session",
           "allVirtualProgramsQuery (lib/queries.ts) — all virtual+hybrid programs without zoomLink filter",
           "Schedule Tab reflects assignments created here",
-          "⚠️ programSlug is the Sanity join key — never change a program's slug once assignments exist",
+          "⚠️ programSlug is the join key — never change a program's slug once assignments exist",
         ],
       },
       {
@@ -553,10 +553,10 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Unassigned-Hosts Cron",
         locations: ["API: GET /api/cron/check-unassigned-hosts", "File: vercel.json (cron schedule: 0 16 * * *)"],
-        what: "Runs daily at 16:00 UTC. Fetches all virtual/hybrid programs from Sanity with startDatetime within the next 30 days. Cross-checks against HostAssignment records. For any program with no standing assignment, creates UNASSIGNED_SESSION alerts for all HOST_MANAGER and ADMIN users. Deduplication: checks if an alert with the same linkUrl was created in the last 24 hours — safe to run multiple times per day.",
+        what: "Runs daily at 16:00 UTC. Fetches all virtual/hybrid programs from Postgres with startDatetime within the next 30 days. Cross-checks against HostAssignment records. For any program with no standing assignment, creates UNASSIGNED_SESSION alerts for all HOST_MANAGER and ADMIN users. Deduplication: checks if an alert with the same linkUrl was created in the last 24 hours — safe to run multiple times per day.",
         relatedTo: [
           "Alert Postgres model — UNASSIGNED_SESSION type",
-          "Sanity CMS — programs with startDatetime used for the 30-day window",
+          "Postgres — programs with startDatetime used for the 30-day window",
           "HostAssignment Postgres model — checked for standing assignments (sessionDate: null)",
           "CRON_SECRET env var — same auth pattern as send-reminders and cleanup crons",
         ],
@@ -568,7 +568,7 @@ const AREAS: FunctionalArea[] = [
         relatedTo: [
           "SessionAttendance Postgres model — records written by Join button on dashboard",
           "Session Attendance Join Route — writes attendance when member clicks Join",
-          "sessionViewProgramsQuery (Sanity) — fetches today's programs with recurrence data",
+          "Postgres query — fetches today's programs with recurrence data",
           "isOccurrenceToday() — JS-side recurrence logic to filter today's programs",
         ],
       },
@@ -596,10 +596,10 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Session Attendance Join Route",
         locations: ["API: POST /api/attendance/join", "File: app/api/attendance/join/route.ts"],
-        what: "Called when a member clicks the Join button on their dashboard. Guards: (1) sessionEndedAt hard cutoff — if host has closed the session, silently returns ok:true without writing a record; (2) time-window guard — allows joins only within 1 hour before start to 1 hour after end (Sanity fetch). On first join, computes isNewMember (no prior records) and returningAfterAbsence (last record older than 6 weeks). Upsert: if record already exists for the day, updates joinedAt only.",
+        what: "Called when a member clicks the Join button on their dashboard. Guards: (1) sessionEndedAt hard cutoff — if host has closed the session, silently returns ok:true without writing a record; (2) time-window guard — allows joins only within 1 hour before start to 1 hour after end (DB fetch). On first join, computes isNewMember (no prior records) and returningAfterAbsence (last record older than 6 weeks). Upsert: if record already exists for the day, updates joinedAt only.",
         relatedTo: [
           "SessionAttendance Postgres model — userId + programSlug + sessionDate unique key",
-          "SessionReport — sessionEndedAt checked before Sanity window fetch (DB-first, faster)",
+          "SessionReport — sessionEndedAt checked before DB window fetch (DB-first, faster)",
           "Dashboard Hub — Join button fires this route; DashboardAutoRefresh triggers router.refresh() on window open",
           "Live Session View — attendance records written here appear as chips",
         ],
@@ -639,9 +639,9 @@ const AREAS: FunctionalArea[] = [
       {
         name: "My Programs (Registration History)",
         locations: ["/account/dashboard-my-registrations", "Component: CancelRegistrationButton.tsx", "API: GET /api/account/registrations"],
-        what: "Shows the member's complete registration history — active first, then past/cancelled. Each card shows program title, date/time/location (enriched from Sanity), status badge, waitlist position, and pending dana prompt. Active registrations have a cancel button.",
+        what: "Shows the member's complete registration history — active first, then past/cancelled. Each card shows program title, date/time/location (enriched from Postgres), status badge, waitlist position, and pending dana prompt. Active registrations have a cancel button.",
         relatedTo: [
-          "Registration records from Postgres DB, enriched with Sanity program data",
+          "Registration records from Postgres DB, enriched with program data from Postgres",
           "Member Self-Cancel Registration (Program Registration)",
           "Dana prompt links to Payment & Dana step",
         ],
@@ -651,11 +651,11 @@ const AREAS: FunctionalArea[] = [
         locations: ["/account/dashboard-my-library"],
         what: "Curated list of dharma learning resources. Currently hardcoded with 4 items (one link goes to the old Webflow site). Has 'work in progress' copy. A proper dynamic rebuild is planned.",
         relatedTo: [
-          "Planned: pull member-accessible courses and resources from Sanity based on access level and registration history",
+          "Planned: pull member-accessible courses and resources from Postgres based on access level and registration history",
           "Course Access System — would show courses the member can access",
         ],
         status: "stub",
-        note: "Content hardcoded; planned: dynamic Sanity-driven version",
+        note: "Content hardcoded; planned: dynamic version",
       },
       {
         name: "My Profile",
@@ -684,7 +684,7 @@ const AREAS: FunctionalArea[] = [
     id: "courses",
     title: "Course Access & Content",
     icon: "📚",
-    desc: "Member-gated course and lesson pages. Courses and lessons live in Postgres (migrated from Sanity). Access can be open to all members, granted via program registration, or manually granted by an admin. Content managed via Teacher Hub.",
+    desc: "Member-gated course and lesson pages. Courses and lessons live in Postgres (migrated from Postgres). Access can be open to all members, granted via program registration, or manually granted by an admin. Content managed via Teacher Hub.",
     features: [
       {
         name: "Course Page Gating",
@@ -692,7 +692,7 @@ const AREAS: FunctionalArea[] = [
         what: "Each course has an accessLevel in Postgres (MEMBERS or REGISTRATION_REQUIRED). MEMBERS = any logged-in user. REGISTRATION_REQUIRED = must have an active registration for a program linked via ProgramCourse table, or a manual CourseAccess grant. Non-members see a registration prompt.",
         relatedTo: [
           "accessLevel set on Course model in Postgres (managed via Teacher Hub)",
-          "Auto-access via ProgramCourse join table (replaces Sanity linkedCourses)",
+          "Auto-access via ProgramCourse join table (replaces old Sanity linkedCourses)",
           "Manual grants managed in Member Management (CourseAccessSection)",
           "Lessons listed as clickable cards; section titles as non-linked dividers",
         ],
@@ -713,7 +713,7 @@ const AREAS: FunctionalArea[] = [
         locations: ["/course/[slug]"],
         what: "If a course is linked to a program via the ProgramCourse table, any member with an active (REGISTERED or APPROVED) registration for that program automatically gets access. Checked dynamically at page render — no DB write needed. Pure Postgres query.",
         relatedTo: [
-          "ProgramCourse join table (programId stores Sanity _id during Phase 2)",
+          "ProgramCourse join table (programId references Program.id)",
           "Registration status (Postgres) checked at page render time",
           "Program-course links managed from Teacher Hub course editor",
         ],
@@ -759,7 +759,7 @@ const AREAS: FunctionalArea[] = [
           "Household section embedded here (HouseholdSection component)",
           "Roles assigned here cascade to Email & Notifications",
           "Course Access System (CourseAccessSection embedded here)",
-          "Sanity Studio Access panel (invite/revoke from here)",
+          "Program Editor Access panel (invite/revoke from here)",
         ],
       },
       {
@@ -783,14 +783,11 @@ const AREAS: FunctionalArea[] = [
         ],
       },
       {
-        name: "Sanity Studio Access (Invite / Revoke)",
-        locations: ["/admin/members/[id]", "Component: MemberDetail.tsx (Sanity Studio Access panel)", "API: POST /api/admin/members/[id]/sanity-invite"],
-        what: "Admins can invite staff members to Sanity Studio directly from the member detail page. Invite is sent via the Sanity Management API. sanityInvitedAt is stamped on the User record. When the REGISTRAR role is revoked, Sanity access is also revoked automatically (async).",
-        relatedTo: [
-          "Sanity CMS (the studio at rooted-in-mindfulness.sanity.studio)",
-          "REGISTRAR and ADMIN roles in Roles & Permissions",
-          "SANITY_MANAGEMENT_TOKEN env var (Developer role in Sanity)",
-        ],
+        name: "Sanity Studio Access — REMOVED (session 54)",
+        locations: ["/admin/members/[id]"],
+        what: "REMOVED in session 54. The Sanity invitation system was deleted when programs migrated to Postgres. The sanity-invite API route, revokeSanityAccess(), sanityInvitedAt field, and all related UI were removed.",
+        relatedTo: [],
+        note: "Removed — programs now managed via Program Editor in Registrar Hub",
       },
     ],
   },
@@ -842,10 +839,10 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Reminder Cron",
         locations: ["API: GET /api/cron/send-reminders", "File: vercel.json (cron: 0 14 * * *)"],
-        what: "Runs daily at 14:00 UTC (9:00 AM Central). Queries Sanity for programs whose reminderDate falls within the past 24 hours, then sends the reminder email to all REGISTERED/APPROVED registrants who haven't received it yet (reminderSentAt is null).",
+        what: "Runs daily at 14:00 UTC (9:00 AM Central). Queries Postgres for programs whose reminderDate falls within the past 24 hours, then sends the reminder email to all REGISTERED/APPROVED registrants who haven't received it yet (reminderSentAt is null).",
         relatedTo: [
           "Program Reminder Email",
-          "reminderDate configured in Sanity CMS (programs → Registration tab)",
+          "reminderDate configured in the Program model (programs → Registration tab)",
           "reminderSentAt on Registration record prevents double-sends with manual path",
           "CRON_SECRET Bearer token for authentication",
         ],
@@ -867,36 +864,35 @@ const AREAS: FunctionalArea[] = [
     id: "meet",
     title: "Google Meet Integration",
     icon: "🎥",
-    desc: "Lifecycle management of Google Meet spaces for virtual and hybrid programs. Meet links are created manually by registrars. A Sanity webhook handles calendar sync and cleanup. Uses Domain-Wide Delegation to impersonate shared room accounts.",
+    desc: "Lifecycle management of Google Meet spaces for virtual and hybrid programs. Meet links are created manually by registrars. Calendar sync happens inline when programs are saved. Uses Domain-Wide Delegation to impersonate shared room accounts.",
     features: [
       {
-        name: "Sanity Webhook (Calendar Sync & Cleanup)",
-        locations: ["API: POST /api/webhooks/sanity-programs", "File: lib/google-meet.ts"],
-        what: "A Sanity webhook fires when a program is published. If the start time changed, the Google Calendar room booking updates automatically. If programFormat is changed to in-person, the calendar event is deleted and Meet fields are cleared. Note: the webhook does NOT auto-create Meet links — that is always done manually by a registrar.",
+        name: "Calendar Sync on Save (replaced webhook in session 54)",
+        locations: ["API: PUT /api/programs-pg/[slug]", "File: lib/google-meet.ts"],
+        what: "When a program is saved via the PUT handler, if the start time or name changed, the Google Calendar room booking updates automatically. If programFormat is changed to in-person, the calendar event is deleted and Meet fields are cleared. A confirmation dialog warns before this destructive action. The old Sanity webhook was deleted.",
         relatedTo: [
-          "Sanity CMS — programFormat, startDatetime, zoomLink, meetHostAccount, calendarEventId fields",
+          "Postgres — programFormat, startDatetime, zoomLink, meetHostAccount, calendarEventId fields",
           "Google Workspace (Domain-Wide Delegation, room account calendars)",
-          "SANITY_WEBHOOK_SECRET env var (HMAC signature verification)",
           "GOOGLE_ROOM_EMAILS env var (pool of room accounts)",
         ],
       },
       {
         name: "Manual Create Meet Button",
         locations: ["/account/registrar/[slug]", "Component: CreateMeetButton.tsx", "API: POST /api/programs/[slug]/google-meet"],
-        what: "Registrars create Meet links manually from the registrar program detail page. The panel appears when programFormat is virtual or hybrid. 'Create Google Meet' finds a free room account, creates the space, and writes the link + room assignment to Sanity. 'Remove Meet' deletes the calendar booking and clears all Meet fields. An orphan guard (409) prevents creating a duplicate if a link already exists.",
+        what: "Registrars create Meet links manually from the registrar program detail page. The panel appears when programFormat is virtual or hybrid. 'Create Google Meet' finds a free room account, creates the space, and writes the link + room assignment to the program record. 'Remove Meet' deletes the calendar booking and clears all Meet fields. An orphan guard (409) prevents creating a duplicate if a link already exists.",
         relatedTo: [
-          "Sanity CMS — writes zoomLink, meetHostAccount, calendarEventId",
+          "Postgres — writes zoomLink, meetHostAccount, calendarEventId",
           "Volunteer Tools — CreateMeetButton in the program detail page",
         ],
       },
       {
         name: "Room Account Assignment",
         locations: ["File: lib/google-meet.ts"],
-        what: "The system checks each room account's primary Google Calendar for events during the program's time window. The first conflict-free room is assigned. The Meet space is created under that room's identity via DWD impersonation. calendarEventId is stored in Sanity to enable future updates/deletions without touching the Meet link.",
+        what: "The system checks each room account's primary Google Calendar for events during the program's time window. The first conflict-free room is assigned. The Meet space is created under that room's identity via DWD impersonation. calendarEventId is stored in Postgres to enable future updates/deletions without touching the Meet link.",
         relatedTo: [
           "Google Calendar API (conflict detection + event CRUD)",
           "Google Meet API (space creation)",
-          "startDatetime on programs (Sanity) drives conflict detection",
+          "startDatetime on programs (Postgres) drives conflict detection",
         ],
       },
       {
@@ -914,14 +910,14 @@ const AREAS: FunctionalArea[] = [
 
   {
     id: "sanity",
-    title: "Sanity CMS",
+    title: "Postgres (Program model)",
     icon: "🗂️",
     desc: "The content management system powering all dynamic content. Schema lives at /Users/jessefoy/Sites/rim-website/sanity/ — shared between rim-next and the Eleventy site.",
     features: [
       {
         name: "Programs Schema",
-        locations: ["File: sanity/schemas/programs.js", "Sanity Studio: programs collection"],
-        what: "The richest schema in the system. Six workflow tabs: 1 — Basics (category, tagline, image, teachers, description), 2 — When & Where (dateText, startDatetime, programFormat, venue, location fields, recurrence, Meet link), 3 — Registration (capacity, custom questions, linked courses), 4 — Emails (confirmationMessage, reminderDate, reminderMessage), 5 — Dana (danaMode, amounts), 6 — Settings (two separate hide toggles: 'Hide from Member Dashboard' controls dashboard/session tracker, 'Hide from Programs & Events Page' controls public listing — both fields cross-reference each other in Sanity; sortOrder, dayOfWeek). Key fields: `programFormat` (in-person/virtual/hybrid, drives Where row + Meet panel visibility); `venue` (at-rim auto-fills RIM address via lib/locations.ts, or 'other' for custom location).",
+        locations: ["File: sanity/schemas/programs.js", "Program Editor: programs collection"],
+        what: "The richest schema in the system. Six workflow tabs: 1 — Basics (category, tagline, image, teachers, description), 2 — When & Where (dateText, startDatetime, programFormat, venue, location fields, recurrence, Meet link), 3 — Registration (capacity, custom questions, linked courses), 4 — Emails (confirmationMessage, reminderDate, reminderMessage), 5 — Dana (danaMode, amounts), 6 — Settings (two separate hide toggles: 'Hide from Member Dashboard' controls dashboard/session tracker, 'Hide from Programs & Events Page' controls public listing — both fields cross-reference each other in Postgres; sortOrder, dayOfWeek). Key fields: `programFormat` (in-person/virtual/hybrid, drives Where row + Meet panel visibility); `venue` (at-rim auto-fills RIM address via lib/locations.ts, or 'other' for custom location).",
         relatedTo: [
           "Drives Program Registration (all registration fields)",
           "Drives Payment & Dana (danaMode, amounts, message)",
@@ -934,8 +930,8 @@ const AREAS: FunctionalArea[] = [
       },
       {
         name: "Lessons Schema (Legacy — migrated to Postgres)",
-        locations: ["File: sanity/schemas/lessons.js", "Sanity Studio: lessons collection"],
-        what: "Original Sanity schema for lessons. Lessons have been migrated to Postgres and are now managed via the Teacher Hub. This schema remains in Sanity for reference but is no longer the source of truth.",
+        locations: ["File: sanity/schemas/lessons.js", "Program Editor: lessons collection"],
+        what: "Original Sanity schema for lessons. Lessons have been migrated to Postgres and are now managed via the Teacher Hub. This schema remains in Postgres for reference but is no longer the source of truth.",
         relatedTo: [
           "Lesson page (/lessons/[slug]) — now reads from Postgres",
           "Teacher Hub — CRUD management of lessons",
@@ -946,7 +942,7 @@ const AREAS: FunctionalArea[] = [
       },
       {
         name: "Courses Schema (Legacy — migrated to Postgres)",
-        locations: ["File: sanity/schemas/courses.js", "Sanity Studio: courses collection"],
+        locations: ["File: sanity/schemas/courses.js", "Program Editor: courses collection"],
         what: "Original Sanity schema for courses. Courses have been migrated to Postgres and are now managed via the Teacher Hub. Access levels, lesson groupings, and program links all live in Postgres now.",
         relatedTo: [
           "Course Access System (/course/[slug]) — now reads from Postgres",
@@ -968,7 +964,7 @@ const AREAS: FunctionalArea[] = [
       },
       {
         name: "Other CMS Content Types",
-        locations: ["Sanity Studio: magazineArticles, glossaryTerms, team, volunteerPositions, programCategories"],
+        locations: ["Program Editor: magazineArticles, glossaryTerms, team, volunteerPositions, programCategories"],
         what: "Additional content types: Magazine Articles (member-gated long-form content), Glossary Terms (Dharma definitions with Pali/Sanskrit), Team (teacher and staff bios), Volunteer Positions (open roles with descriptions), Program Categories (groups programs on the listing page).",
         relatedTo: [
           "/magazine-articles/[slug] (member gate)",
@@ -1004,7 +1000,7 @@ const AREAS: FunctionalArea[] = [
         relatedTo: [
           "Course model in Postgres",
           "Lesson search API (/api/lessons/search)",
-          "ProgramCourse join table (links Sanity programs to Postgres courses)",
+          "ProgramCourse join table (links programs to courses in Postgres)",
           "Course Access & Content (access levels enforced at /course/[slug])",
         ],
       },
@@ -1054,9 +1050,9 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Programs Listing",
         locations: ["/community-programs"],
-        what: "All programs grouped by programCategory from Sanity. Drop-ins and registration-based programs. Each program links to its detail page.",
+        what: "All programs grouped by programCategory from Postgres. Drop-ins and registration-based programs. Each program links to its detail page.",
         relatedTo: [
-          "Sanity CMS — programs and programCategories schemas",
+          "Postgres — programs and programCategories schemas",
           "Program Detail pages (/programs/[slug])",
         ],
         status: "active",
@@ -1069,7 +1065,7 @@ const AREAS: FunctionalArea[] = [
         relatedTo: [
           "Program Registration (full system)",
           "Payment & Dana (Stripe)",
-          "Sanity CMS — programs schema",
+          "Postgres — programs schema",
           "Google Meet Integration (Zoom link shown to members)",
         ],
         status: "active",
@@ -1078,7 +1074,7 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Dharma Lessons",
         locations: ["/lessons/[slug]"],
-        what: "Audio player, video embed, Markdown body with custom block rendering — [verse] pull quotes, [practice] suggestion boxes, [callout] highlighted insights. Data reads from Postgres (migrated from Sanity).",
+        what: "Audio player, video embed, Markdown body with custom block rendering — [verse] pull quotes, [practice] suggestion boxes, [callout] highlighted insights. Data reads from Postgres (migrated from Postgres).",
         relatedTo: [
           "Postgres — Lesson model (managed via Teacher Hub)",
           "Course pages (/course/[slug]) — lessons grouped into courses",
@@ -1114,7 +1110,7 @@ const AREAS: FunctionalArea[] = [
         locations: ["/diversity", "/glossary/[slug]", "/team/[slug]", "/volunteer-positions/[slug]", "/kalyana-mitta/*", "/magazine-articles/[slug]"],
         what: "Diversity statement, glossary term definitions, teacher/staff bios, volunteer position descriptions, Kalyana Mitta community group pages, and member-gated magazine articles (login wall for logged-out visitors).",
         relatedTo: [
-          "Sanity CMS — glossaryTerms, team, volunteerPositions, magazineArticles schemas",
+          "Postgres — glossaryTerms, team, volunteerPositions, magazineArticles schemas",
           "Kalyana Mitta: group application requires login (/kalyana-mitta/kalyana-mitta-group-application)",
           "Volunteer positions: interest form has no backend endpoint (planned)",
         ],
@@ -1150,10 +1146,10 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Staff Reference Manual",
         locations: ["/admin/manual"],
-        what: "Two-chapter plain-English guide for REGISTRAR and ADMIN staff. Chapter 1: Registration Management (9 sections covering all registrar workflows). Chapter 2: Programs in Sanity Studio (11 sections with field-by-field documentation). Organized as expandable accordion sections.",
+        what: "Two-chapter plain-English guide for REGISTRAR and ADMIN staff. Chapter 1: Registration Management (9 sections covering all registrar workflows). Chapter 2: Programs (field-by-field documentation for the Program Editor). Organized as expandable accordion sections.",
         relatedTo: [
           "Volunteer / Registrar Tools (Chapter 1 subject matter)",
-          "Sanity CMS (Chapter 2 subject matter)",
+          "Postgres (Program model) (Chapter 2 subject matter)",
           "Linked from the role notification email sent to new registrars",
           "Dashboard staff access panel links here",
         ],
@@ -1217,7 +1213,7 @@ const USER_TYPES = [
   {
     who: "Registrar / HOST / HOST_MANAGER",
     login: "Magic link + role",
-    canDo: "Registrar: registration management (/account/registrar), Sanity Studio. HOST: full Host Community Hub (/account/hub/host-team) — schedule, sub board, threads. HOST_MANAGER: everything HOST does, plus assignment management and thread moderation.",
+    canDo: "Registrar: registration management (/account/registrar), Program Editor. HOST: full Host Community Hub (/account/hub/host-team) — schedule, sub board, threads. HOST_MANAGER: everything HOST does, plus assignment management and thread moderation.",
   },
   {
     who: "Admin",
@@ -1228,26 +1224,26 @@ const USER_TYPES = [
 
 const SYSTEM_MAP: { area: string; needs: string; powers: string; note: string }[] = [
   {
-    area: "Sanity CMS",
-    needs: "Content entered by staff in Sanity Studio",
+    area: "Content (Postgres + Sanity)",
+    needs: "Programs/courses/lessons in Postgres; teams/glossary/magazine in Sanity CMS",
     powers: "Every page that displays content — programs, lessons, courses, emails, dashboard, volunteer tools",
-    note: "If SANITY_API_TOKEN expires or the Studio is unreachable, content-dependent features fail silently.",
+    note: "Programs fully in Postgres since session 54. Non-program Sanity content still depends on SANITY_API_TOKEN.",
   },
   {
     area: "Program Registration",
-    needs: "Sanity (program config) · Postgres (stores records) · Resend (sends email) · Stripe (takes payment)",
+    needs: "Postgres (program config) · Postgres (stores records) · Resend (sends email) · Stripe (takes payment)",
     powers: "Volunteer table · Member 'My Programs' · Course access auto-grant · Donation ledger · Member onboarding path",
     note: "The front door. Most members first appear in the DB through a registration, not a direct login.",
   },
   {
     area: "Email & Notifications",
-    needs: "Resend API · Sanity (content fields: reminderMessage, confirmationMessage) · Postgres (registrant data)",
+    needs: "Resend API · Postgres (content fields: reminderMessage, confirmationMessage) · Postgres (registrant data)",
     powers: "Triggered by: Registration · Volunteer Tools · Scheduling Crons · Member Management (role emails)",
     note: "All email failures are logged but never block the triggering action — a failed send never breaks a registration.",
   },
   {
     area: "Payment & Dana (Stripe)",
-    needs: "Stripe API · Postgres (Registration record) · Sanity (dana config: mode, amounts, message)",
+    needs: "Stripe API · Postgres (Registration record) · Postgres (dana config: mode, amounts, message)",
     powers: "Donation ledger record (via webhook) · Registration donationStatus updated · Thank-you state on program page",
     note: "Stripe Checkout (hosted page) handles all card data — no card details ever touch our server.",
   },
@@ -1265,26 +1261,26 @@ const SYSTEM_MAP: { area: string; needs: string; powers: string; note: string }[
   },
   {
     area: "Member Experience",
-    needs: "Auth (session) · Postgres (user + registration + course + lesson records) · Sanity (program data)",
+    needs: "Auth (session) · Postgres (user + registration + course + lesson records) · Postgres (program data)",
     powers: "Dashboard · My Programs · My Library · My Profile · Care Agreements — everything a logged-in member sees",
     note: "Google Meet links are deliberately shown only here (not in emails) — login is required to see them.",
   },
   {
     area: "Volunteer / Registrar Tools",
-    needs: "Postgres (registrations) · Sanity (field definitions, program data) · Email system (action triggers)",
+    needs: "Postgres (registrations) · Postgres (field definitions, program data) · Email system (action triggers)",
     powers: "Status updates · Bulk reminders · CSV export · Inline field editing · Self-service edit links sent",
     note: "",
   },
   {
     area: "Course Access & Content",
-    needs: "Postgres (Course, Lesson, ProgramCourse, CourseAccess, Registration status) · Sanity (program names for ProgramCourse display during Phase 2)",
+    needs: "Postgres (Course, Lesson, ProgramCourse, CourseAccess, Registration status) · Postgres (program names for ProgramCourse display during Phase 2)",
     powers: "Gates or allows access to /course/[slug] and /lessons/[slug] pages for each member · Teacher Hub manages all content",
-    note: "Courses and lessons migrated from Sanity to Postgres (session 50). Access checked dynamically at page render.",
+    note: "Courses and lessons migrated from Postgres to Postgres (session 50). Access checked dynamically at page render.",
   },
   {
     area: "Member Management (Admin)",
-    needs: "Postgres (all user + registration data) · Sanity Management API (studio invites) · Email (role notifications)",
-    powers: "Roles (unlock staff areas) · Member status (INACTIVE blocks login) · Tags + admin notes · Sanity Studio access · Household linking",
+    needs: "Postgres (all user + registration data) · Email (role notifications) · Email (role notifications)",
+    powers: "Roles (unlock staff areas) · Member status (INACTIVE blocks login) · Tags + admin notes · Program Editor access · Household linking",
     note: "Never spread a Prisma include result into Client Component props — always construct props explicitly.",
   },
   {
@@ -1295,21 +1291,21 @@ const SYSTEM_MAP: { area: string; needs: string; powers: string; note: string }[
   },
   {
     area: "Host Community Hub",
-    needs: "Postgres (HostAssignment, SubRequest, SubClaim, HostThread, HostReply, Alert models) · Sanity (program names and meet links) · Email (hub notification emails) · Auth (HOST / HOST_MANAGER / ADMIN roles)",
+    needs: "Postgres (HostAssignment, SubRequest, SubClaim, HostThread, HostReply, Alert models) · Postgres (program names and meet links) · Email (hub notification emails) · Auth (HOST / HOST_MANAGER / ADMIN roles)",
     powers: "Schedule tab (who covers which program) · Sub board (coverage requests) · Threads (discussion) · AlertStrip on dashboard (unread badge) · Unassigned-hosts cron alert",
-    note: "programSlug is the Sanity join key for HostAssignment — never change a program slug once assignments exist. Slug changes silently orphan assignments.",
+    note: "programSlug is the join key for HostAssignment — never change a program slug once assignments exist. Slug changes silently orphan assignments.",
   },
   {
     area: "Scheduling & Automation",
-    needs: "Sanity (reminderDate, startDatetime) · Postgres (registration records, reminderSentAt, Alert records) · Email · Vercel Cron (CRON_SECRET)",
+    needs: "Postgres (reminderDate, startDatetime) · Postgres (registration records, reminderSentAt, Alert records) · Email · Vercel Cron (CRON_SECRET)",
     powers: "Auto-sends reminder emails on reminderDate · Deletes incomplete accounts after 48 hours · Creates UNASSIGNED_SESSION alerts for programs within 30 days with no host assigned",
     note: "Uses a 24-hour lookback window — safe even if cron runs slightly off-schedule. reminderSentAt and alert dedup prevent double-sends.",
   },
   {
     area: "Google Meet Integration",
-    needs: "Google Workspace API (DWD) · Sanity webhook (programs create/update/delete) · Google Calendar (conflict detection on room accounts) · SANITY_WEBHOOK_SECRET",
-    powers: "meetLink + meetHostAccount + calendarEventId saved to Sanity · Shown on Dashboard today panel and Host Area · Calendar event auto-updates when startDatetime changes",
-    note: "DWD must grant meetings.space.created + calendar.events scope in Google Admin. Webhook created via Sanity Management API (dashboard SPA routing broken for webhooks).",
+    needs: "Google Workspace API (DWD) · Postgres (Program model) · Google Calendar (conflict detection on room accounts)",
+    powers: "meetLink + meetHostAccount + calendarEventId saved to the program record · Shown on Dashboard today panel and Host Area · Calendar event auto-updates when startDatetime changes",
+    note: "DWD must grant meetings.space.created + calendar.events scope in Google Admin. Calendar sync is inline in the PUT handler (no webhook needed).",
   },
 ];
 
@@ -1325,17 +1321,17 @@ const DATA_FLOWS: {
     subtitle: "From first click on the site to active community member",
     steps: [
       { area: "Public Pages",       what: "Visitor finds the program on /community-programs or a direct link." },
-      { area: "Sanity CMS",         what: "Program page loads: title, description, date/time, capacity, custom questions, dana configuration." },
+      { area: "Postgres (Program model)",         what: "Program page loads: title, description, date/time, capacity, custom questions, dana configuration." },
       { area: "Registration Form",  what: "Visitor fills out the form. On email blur: check-email API runs — if the email is known, name and phone pre-fill from their account and lock (can't be overwritten)." },
       { area: "Postgres",           what: "User record found or created by email. Registration record created: REGISTERED if capacity available, WAITLISTED if full. Status determines everything downstream." },
-      { area: "Email",              what: "Confirmation email sent immediately — registered or waitlisted variant, with add-to-calendar links if program datetimes are set in Sanity." },
+      { area: "Email",              what: "Confirmation email sent immediately — registered or waitlisted variant, with add-to-calendar links if program datetimes are set in Postgres." },
       { area: "Stripe / Dana",      what: "If REGISTERED and danaMode ≠ none: a dana invitation appears inline after the confirmation message. Visitor can offer dana or genuinely skip." },
       { area: "Stripe Webhook",     what: "If the visitor pays: Stripe fires a webhook to our API → donationStatus → COMPLETED → a Donation record is written to Postgres." },
       { area: "Registrar Tools",    what: "The registration now appears in /account/registrar/[slug] for the registrar to see, manage, and act on." },
       { area: "Scheduling",         what: "On the program's reminderDate: the daily cron fires and sends a reminder email to all active registrants who haven't received one yet." },
       { area: "Auth + Onboarding",  what: "If the visitor logs in for the first time (via magic link), they land at /account/welcome to set their name and agree to community agreements." },
       { area: "Member Experience",  what: "Member now sees their registration on My Programs, the program's Meet link on the Dashboard today panel, and any linked courses in My Library." },
-      { area: "Course Access",      what: "If the program has linkedCourses in Sanity: the member can now open those course pages at /course/[slug] — no extra grant needed." },
+      { area: "Course Access",      what: "If the program has linkedCourses in Postgres: the member can now open those course pages at /course/[slug] — no extra grant needed." },
     ],
   },
   {
@@ -1345,10 +1341,10 @@ const DATA_FLOWS: {
     steps: [
       { area: "Auth",               what: "Member enters email at /login → Resend sends a magic link → member clicks it → a session is created and stored in Postgres." },
       { area: "Route Protection",   what: "Session is checked against three conditions: agreedToTerms = false → /account/welcome; archivedAt is set → /account/reactivate; otherwise → /account/dashboard." },
-      { area: "Member Experience",  what: "Dashboard loads. Today's drop-in sessions are queried from Sanity filtered by day of week (Milwaukee/CT timezone). Virtual programs show their Google Meet links." },
-      { area: "Sanity CMS",         what: "Programs scheduled for today's day of week appear in the Today's Sessions panel. The meet link is read from the meetLink field saved earlier by the Google Meet integration." },
+      { area: "Member Experience",  what: "Dashboard loads. Today's drop-in sessions are queried from Postgres filtered by day of week (Milwaukee/CT timezone). Virtual programs show their Google Meet links." },
+      { area: "Postgres (Program model)",         what: "Programs scheduled for today's day of week appear in the Today's Sessions panel. The meet link is read from the meetLink field saved earlier by the Google Meet integration." },
       { area: "Postgres",           what: "Dashboard also checks for any PENDING donationStatus registrations and shows a gentle reminder card if found." },
-      { area: "Member Experience",  what: "Member navigates to My Programs: registration history loaded from Postgres, enriched with program date and location data from Sanity." },
+      { area: "Member Experience",  what: "Member navigates to My Programs: registration history loaded from Postgres, enriched with program date and location data from Postgres." },
       { area: "Course Access",      what: "Member opens /course/[slug]: three checks run — accessLevel = 'members'? Active registration for a linked program? Manual CourseAccess grant? If any pass, the course opens." },
     ],
   },
@@ -1356,13 +1352,13 @@ const DATA_FLOWS: {
 
 const CRITICAL_DEPS: { system: string; breaks: string[] }[] = [
   {
-    system: "Sanity CMS (API token expired or Studio unreachable)",
+    system: "Postgres (Program model) (API token expired or Studio unreachable)",
     breaks: [
-      "Program pages fail to load — all content comes from Sanity",
+      "Program pages fail to load — all content comes from Postgres",
       "Registration form has no config: capacity, custom questions, and dana mode are all missing",
       "Dashboard 'Today' panel is empty",
       "Volunteer table can't determine field types for inline editing",
-      "Google Meet links can't be saved back to Sanity after creation",
+      "Google Meet links can't be saved back to the program record after creation",
     ],
   },
   {
@@ -1410,8 +1406,8 @@ const CRITICAL_DEPS: { system: string; breaks: string[] }[] = [
     system: "Google Workspace / DWD misconfigured (scope revoked or service account broken)",
     breaks: [
       "Can't create new Google Meet spaces (manual creation still possible in Google Workspace admin)",
-      "meetHostAccount not written back to Sanity after creation attempt",
-      "Existing meet links already saved to Sanity still work — no impact on past programs or the host schedule tab",
+      "meetHostAccount not written back to the program record after creation attempt",
+      "Existing meet links already saved to the program record still work — no impact on past programs or the host schedule tab",
     ],
   },
   {
@@ -1513,9 +1509,7 @@ export default async function AdminFeaturesPage() {
               <li><strong>Gives staff the tools</strong> to manage registrations, members, and content — without needing direct database access.</li>
             </ol>
             <p>
-              The content (programs, lessons, courses, teacher bios) lives in <strong>Sanity CMS</strong> and is
-              managed by staff in Sanity Studio. Member and registration data lives in <strong>Postgres</strong>{" "}
-              (hosted on Neon). The two databases work together but are entirely separate systems.
+              Programs, courses, lessons, and member data all live in <strong>Postgres</strong> (hosted on Neon), managed by staff via the Program Editor, Teacher Hub, and admin tools. Some non-program content (teams, glossary, magazine articles) still lives in <strong>Sanity CMS</strong>.
             </p>
           </div>
 

@@ -99,9 +99,10 @@ The **Virtual Host Hub** was the first hub to receive a scoped member data view 
 
 The **Registrar Hub** (Phase 1) was migrated into the hub system in session 53. The standalone `/account/registrar` area was retired and all registrar functionality now lives at `/account/hub/registrar/programs`. Phase 1 also introduced **stakeholder visibility** — non-registrar hub members see headcount and capacity only, no PII, no detail page access. The role design document is in `RIM_Role_Design.md`.
 
+**Phase 3 complete (session 54):** Programs are now fully managed in Postgres via the Program Editor in the Registrar Hub. All Sanity program dependencies removed. Google Meet sync happens on save (no webhook needed). The Sanity invitation system was removed entirely.
+
 **What remains for the Registrar Hub:**
 
-- **Phase 3 — Program management in Postgres:** Create and edit programs from within the hub (currently in Sanity Studio). This is the largest remaining migration.
 - **Support Inbox:** Gmail API integration surfacing support@rootedinmindfulness.org inside the hub with member context, claiming, and routing. Separate spec required.
 - **Check-in tools:** Digital check-in per program (phone-first), PDF export, future member self-check-in.
 - **Stakeholder names visibility:** Whether certain stakeholders should see participant names (not just headcount) is a privacy question deferred until a real use case requires it.
@@ -119,4 +120,4 @@ This file is part of the closing ritual for any Claude Code session that touches
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org*
-*Working document · March 2026 (updated session 53)*
+*Working document · March 2026 (updated session 54)*

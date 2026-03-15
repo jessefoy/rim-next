@@ -30,7 +30,7 @@ Two audiences:
 15. [Site Administration Tools](#15-site-administration-tools)
 16. [Navigation Component](#16-navigation-component)
 17. [Planned Features](#17-planned-features)
-18. [Sanity Studio Access for Staff](#18-sanity-studio-access-for-staff)
+18. [~~Sanity Studio Access for Staff~~ (removed session 54)](#18-sanity-studio-access-for-staff-removed)
 19. [Google Meet Integration](#19-google-meet-integration--high-priority)
 20. [Staff Reference Manual](#20-staff-reference-manual)
 21. [HOST Role & Host Area](#21-host-role--host-area)
@@ -75,8 +75,8 @@ Two audiences:
 **Current roles:**
 | Role | Access | Dashboard links |
 |---|---|---|
-| `ADMIN` | Everything — full site management | Registrations, Members, Sanity Studio, Staff Manual |
-| `REGISTRAR` | Registration management, member profiles, course access, Sanity Studio access | Registrations, Members, Sanity Studio, Staff Manual |
+| `ADMIN` | Everything — full site management | Registrations, Members, Staff Manual |
+| `REGISTRAR` | Registration management, member profiles, course access, Program Editor | Registrations, Members, Staff Manual |
 | `HOST` | Host Community Hub — schedule, sub board, conversations, session tracking | Host Hub |
 | `HOST_MANAGER` | All HOST access + assignment management + unassigned alerts | Host Hub |
 | `TEACHER` | Teacher Hub — manages courses and lessons in Postgres | Teacher Hub |
@@ -700,6 +700,8 @@ AttendanceFormat:   IN_PERSON | ONLINE  (Phase 2)
 
 ## 9. Sanity CMS Schema Additions
 
+> **Note (session 54):** Programs have been fully migrated to Postgres. The Sanity `programs` schema remains for reference but is no longer the source of truth. All program fields documented below now live in the `Program` Prisma model and are edited via the Program Editor in the Registrar Hub. Sanity is still used for teams, glossary, magazine articles, volunteer positions, and the shared `richContent` type.
+
 The Sanity schema lives at `/Users/jessefoy/Sites/rim-website/sanity/` and is shared by both the Eleventy and Next.js projects.
 
 ### Sanity Studio tab layout
@@ -842,7 +844,7 @@ All custom styles: `public/css/custom.css`
 ### Access control
 - `/admin/*` routes protected at proxy level (`proxy.ts`)
 - Member list, detail, and household pages allow both ADMIN and REGISTRAR
-- Destructive actions (delete member, delete household, import, role assignment, Sanity invite) require ADMIN
+- Destructive actions (delete member, delete household, import, role assignment) require ADMIN
 - `/account/reactivate` accessible to any authenticated user (proxy redirects Inactive sessions there)
 
 ### Member list (`/admin/members`)
@@ -864,7 +866,6 @@ All custom styles: `public/css/custom.css`
 - **Household:** embedded HouseholdSection — see §22
 - **Admin Notes:** private textarea — visible to ADMIN only; member never sees it
 - Roles section: checkbox per role (HOST, REGISTRAR, ADMIN) with descriptions — ADMIN only
-- Sanity Studio Access panel — ADMIN only, appears after REGISTRAR role saved
 - **Course Access section:** see §12
 - Registration history: all programs registered for with status badges
 - **Danger Zone:** Delete only (no archive/restore — status handles access). Delete requires `registrations.length === 0`
@@ -964,9 +965,8 @@ When an archived member requests a magic link and clicks it, `proxy.ts` detects 
 
 ### Dashboard integration
 - `STAFF_LINKS` in `dashboard/page.tsx` maps each role to an array of cards
-- Both REGISTRAR and ADMIN produce the same 4 cards: Registrations + Members + Sanity Studio (external) + Staff Manual
+- Both REGISTRAR and ADMIN produce cards for their hub links + Staff Manual
 - Deduplication by `href` — no duplicate cards if a user holds both ADMIN + REGISTRAR
-- External links (Sanity Studio) render as `<a target="_blank">` instead of Next.js `<Link>`
 
 ### Memberstack CSV import
 - Client-side CSV parse — no library, handles quoted fields
@@ -1583,7 +1583,7 @@ const spotOpened = !!registrationCapacity
 - **Confirmation email:** `googleCalendarUrl` + `icsUrl` added to `RegistrationEmailData` and `BuildParams`. A small "Add to calendar" section appears below the date/time/location block (confirmed registrations only, not waitlist).
 - **Program page:** Google Calendar + Apple/Outlook links appear below "✓ You're registered." when `startDatetime` is set.
 
-**Staff workflow:** Open Sanity Studio → Programs → [program] → Schedule tab → fill in Start Date & Time (and optionally End Date & Time). Save and publish. Links will appear automatically in subsequent confirmation emails and on the program page.
+**Staff workflow:** Open the Program Editor → [program] → fill in Start Date & Time (and optionally End Date & Time) → Save. Calendar links will appear automatically in subsequent confirmation emails and on the program page.
 
 **Key files:**
 - `lib/calendarLinks.ts` (new)
@@ -1723,89 +1723,15 @@ const spotOpened = !!registrationCapacity
 
 ---
 
-## 18. Sanity Studio Access for Staff
+## 18. ~~Sanity Studio Access for Staff~~ (removed)
 
-**What it does:** When a member is granted the REGISTRAR (or ADMIN) role, an admin can send them an invitation to Sanity Studio — the CMS where site content, programs, and courses are managed. The invitation is sent via the Sanity Management API and gives them Editor-level access. Their member dashboard automatically shows a "Sanity Studio" link in the Staff Access panel as soon as the role is saved. Removing the REGISTRAR role automatically revokes their Sanity access.
-
-**Who uses it:**
-- **Admins** — send invitations and revoke access from the member detail page
-- **Registrars** — receive the invitation, accept it in Sanity, then find the studio link on their dashboard whenever they need it
-
-### Admin flow (granting access)
-
-1. Go to `/admin/members/[id]` for the member
-2. Check the **REGISTRAR** checkbox in the Roles section
-3. Click **Save changes** — a "Sanity Studio Access" panel appears below the roles list
-4. Click **Invite to Sanity Studio**
-5. A confirmation dialog appears: "This will send an email invitation from Sanity to [email]. They will receive Editor access and can edit site content in Sanity Studio."
-6. Click **Yes, send invite** — Sanity sends an invitation email to the member
-7. The panel updates: "✓ Invited on [date]"
-
-The invite section only appears after the REGISTRAR role has been saved — not just checked. This prevents accidentally sending an invite before confirming the role assignment.
-
-### Member flow (accepting access)
-
-1. Member receives an email from Sanity (sender: `no-reply@sanity.io`) with an invitation link
-2. They click the link and create or log in to their Sanity account
-3. They now have Editor access to the `rooted-in-mindfulness` Sanity project
-4. Their RIM dashboard shows a "Sanity Studio" card in the Staff Access panel → links to `https://rooted-in-mindfulness.sanity.studio/`
-
-### Revoking access
-
-When the REGISTRAR role is unchecked and saved for a member who was previously invited:
-
-1. The save bar shows a warning: "⚠ Saving will also revoke this member's Sanity Studio access."
-2. Admin clicks Save — the PATCH API automatically:
-   - Clears `sanityInvitedAt` from the DB (removes the invite date display)
-   - Calls Sanity Management API to remove them from project members (if they accepted)
-   - Cancels any pending invitations (if they never accepted)
-3. The Sanity Studio card disappears from their dashboard
-4. They can no longer access Sanity Studio
-
-Revocation is non-blocking: the DB is updated first, then the Sanity API call fires asynchronously. A Sanity API failure does not prevent the role change from saving.
-
-### Dashboard link
-
-The "Sanity Studio" card appears in the Staff Access panel for any user with REGISTRAR or ADMIN role. It opens `https://rooted-in-mindfulness.sanity.studio/` in a new tab. The card is always visible once the role is set — the invite step is separate from the link appearing.
-
-### Prerequisites
-
-**A Sanity Management Token is required** — different from the content API token. The content token (`SANITY_API_TOKEN`) can read/write Sanity data but cannot manage project members. Steps to create:
-
-1. Go to `https://manage.sanity.io/` → Project `xxgvfpjf` → **API** → **Tokens** → **Add API token**
-2. Name: "RIM Next Management" · Role: **Developer** (highest available; required for the `sanity.project.members/invite` grant)
-3. Add to Vercel: `SANITY_MANAGEMENT_TOKEN=<token>` ✅ Done 2026-03-04
-
-Without this token, the invite button returns a 500 error with "Sanity management token not configured." The rest of the site functions normally.
-
-Note: The Developer token is a **server-side secret** stored only in Vercel env vars — it is never exposed to the client. Invited users receive **Editor** role in Sanity (can edit and publish content; cannot manage project settings or invite others). The Developer token is only used by our API route to send invitations.
-
-### Key files
-
-- `app/api/admin/members/[id]/sanity-invite/route.ts` — POST: sends Sanity invitation, stamps `sanityInvitedAt`
-- `app/api/admin/members/[id]/route.ts` — PATCH: detects REGISTRAR removal, calls `revokeSanityAccess()`, clears `sanityInvitedAt`, returns `sanityRevoked + sanityRevokeResult`
-- `components/MemberDetail.tsx` — Sanity Studio Access panel (invite button + confirmation dialog + revocation warning in save bar)
-- `app/account/dashboard/page.tsx` — `STAFF_LINKS` includes Sanity Studio for REGISTRAR + ADMIN
-- `prisma/schema.prisma` — `sanityInvitedAt DateTime?` on User model
-
-### 🔧 Technical notes
-
-- **Invite API endpoint:** `POST https://api.sanity.io/v2021-10-04/invitations/project/{projectId}` with body `{ email, role: "editor" }`. Note: invitations use `/invitations/project/{id}` not `/projects/{id}/invitations`.
-- **Invite vs. member:** The invite API creates a pending invitation (email sent). Revocation handles both states: cancel pending invitation via `DELETE /invitations/project/{projectId}/{inviteId}`, or remove accepted member (see note below).
-- **⚠️ Members API path unresolved:** The Sanity Management API endpoint for listing/removing accepted project members has not been confirmed. Paths tried and returning 404: `/v2021-10-04/projects/{id}/members`, `/v2021-06-07/projects/{id}/members`, `/v2021-10-04/access/projects/{id}/members`, `/v2021-06-07/access/projects/{id}/memberships`, `/v1/access/projects/{id}/memberships`. Pending-invite cancellation (confirmed working) covers the most common revocation scenario. Member removal revocation should be tested with a non-owner account when a real registrar is onboarded.
-- **Project owner limitation:** The project owner's Sanity account cannot be removed via the Management API regardless. Testing revocation against the project owner's account will always fail.
-- **Email mismatch risk:** The invite is sent to the registrar's RIM email. If they accept using a pre-existing Sanity account with a different email (e.g. a personal iCloud address), the member lookup by email will fail to find them. This is an edge case for registrars who already have Sanity accounts.
-- **`sanityInvitedAt`:** Tracks when the invite was sent, not when it was accepted. We don't have a webhook from Sanity for acceptance. The invite date is shown as a confirmation that the invite was dispatched.
-- **Confirmation dialog:** The invite button does not fire immediately. It toggles `confirmingInvite` state to show an explanation ("This will send an email invitation from Sanity to [email]...") with Yes/Cancel before any API call is made.
-- **`savedRoles` vs. `roles`:** The Sanity section is conditionally rendered based on `savedRoles` (what's in the DB), not the local `roles` checkbox state. This prevents the invite section from appearing before the user has saved the REGISTRAR role. After a successful save, `setSavedRoles(roles)` syncs them.
-- **Revocation warning in save bar:** Computed as `savedRoles.includes("REGISTRAR") && !roles.includes("REGISTRAR") && !!sanityInvitedAt`. If all three conditions are true, a yellow warning appears above the Save button before anything is committed.
-- **Blocking revocation:** `revokeSanityAccess()` is awaited before the response is returned. The result is included in the response as `sanityRevokeResult: { member, invite, memberEmails }` for debugging. The DB role change succeeds regardless of Sanity API outcome.
+> **Removed in session 54 (2026-03-15).** Programs migrated to Postgres; the Sanity invitation system was deleted. The API route (`sanity-invite/route.ts`), the `revokeSanityAccess()` function, the `sanityInvitedAt` field on User, the Sanity Management Token usage, and all related UI (invite button, revocation warning, dashboard link) were removed. Registrars now access the Program Editor in the Registrar Hub — no Sanity Studio access is needed for program management.
 
 ---
 
 ## 19. Google Meet Integration ✅ Built — updated session 33 (2026-03-09)
 
-**What it does:** Replaces Zoom with Google Meet for all virtual and hybrid programs. A registrar clicks "Create Google Meet" in the Registrar Area — the app finds a free room account, creates a Meet space, adds a Google Calendar event, and writes the link + room email + calendar event ID back to Sanity. The link appears in confirmation and reminder emails. **Time changes sync automatically:** republishing in Sanity patches the calendar booking. **Switching to in-person:** setting programFormat to "in-person" and republishing deletes the calendar event and clears all Meet fields. The **Meet Host** team logs into the assigned room account to get host controls.
+**What it does:** Replaces Zoom with Google Meet for all virtual and hybrid programs. A registrar clicks "Create Google Meet" in the Program Editor — the app finds a free room account, creates a Meet space, adds a Google Calendar event, and saves the link + room email + calendar event ID to the program record. The link appears in confirmation and reminder emails. **Time changes sync automatically:** saving date/time changes in the Program Editor patches the calendar booking. **Switching to in-person:** changing programFormat to "in-person" and saving deletes the calendar event and clears all Meet fields. A confirmation dialog warns before this destructive action. The **Meet Host** team logs into the assigned room account to get host controls.
 
 **Why this matters:**
 - Eliminates Zoom costs and 40-minute limits for a nonprofit on Google Workspace
@@ -1815,8 +1741,8 @@ Note: The Developer token is a **server-side secret** stored only in Vercel env 
 - Can be tested before DNS cutover — fully functional on rim-next.vercel.app
 
 **Who uses it:**
-- **Registrars/Admins** — click "Create Google Meet" in the Registrar Area; app assigns a room and writes the link to Sanity
-- **Meet Host team (HOST role)** — check `/account/host` to see which room account is assigned to each virtual/hybrid program; log in as that account before the session
+- **Registrars/Admins** — click "Create Google Meet" in the Program Editor; app assigns a room and saves the link to the program record
+- **Meet Host team (HOST role)** — check the Host Hub to see which room account is assigned to each virtual/hybrid program; log in as that account before the session
 - **Members** — receive the Meet link in confirmation + reminder emails
 
 ---
@@ -1838,40 +1764,42 @@ The app assigns whichever room is free for a given time slot (checking the share
 ### Staff workflow
 
 **Creating a Meet (manual — the only path):**
-1. In Sanity Studio, set **Format** to Virtual or Hybrid (**2 — When & Where** tab) and set **Start Date & Time**; publish
-2. Go to `/account/registrar/[slug]`
+1. In the Program Editor, set **Format** to Virtual or Hybrid and set **Start Date & Time**; save
+2. Go to the program detail page in the Registrar Hub
 3. Click **"Create Google Meet"** in the Google Meet panel
-4. App finds a free room account, creates the Meet space + calendar event, writes back to Sanity
+4. App finds a free room account, creates the Meet space + calendar event, saves the link + room email + calendar event ID to the program record
 5. "Google Meet" panel shows the link + assigned host account
-6. Host team checks `/account/host`; they sign in as the assigned room account before the session
+6. Host team checks the Host Hub; they sign in as the assigned room account before the session
 
 **If the time changes:**
-- Update Start Date & Time in Sanity and publish — the Sanity webhook patches the existing calendar event automatically. The Meet link stays the same.
+- Update Start Date & Time in the Program Editor and save — the PUT handler patches the existing calendar event automatically. The Meet link stays the same.
 
 **Removing a Meet (rescheduling or cancelling):**
-1. Go to `/account/registrar/[slug]`
+1. Go to the program detail page in the Registrar Hub
 2. Click **"Remove Meet"** (muted red)
-3. Confirm in the dialog — app calls `DELETE /api/programs/[slug]/google-meet`, which deletes the Google Calendar event and clears `zoomLink`, `meetHostAccount`, `calendarEventId` from Sanity
+3. Confirm in the dialog — app calls `DELETE /api/programs-pg/[slug]/google-meet`, which deletes the Google Calendar event and clears `zoomLink`, `meetHostAccount`, `calendarEventId` from the program record
 4. To re-create: click "Create Google Meet" again (after updating the date if needed)
 
+**Switching away from virtual:** When the program format is changed from virtual/hybrid to in-person and saved, a confirmation dialog warns that the Meet link will be deleted. On confirm, the PUT handler automatically deletes the calendar event and clears all Meet fields.
+
 **Replacing a Meet (new time slot, same program):**
-- Click "Remove Meet" first, then update the Start Date & Time in Sanity and click "Create Google Meet" again.
+- Click "Remove Meet" first, then update the Start Date & Time and click "Create Google Meet" again.
 - Or: just click "Create Google Meet" again without removing — the POST handler detects an existing `calendarEventId` and deletes the old calendar event before creating the new one (prevents orphaned room bookings).
 
 ---
 
 ### Technical notes
 
-- **Sanity webhook:** `POST /api/webhooks/sanity-programs` — receives every programs create/update/delete. Validates HMAC-SHA256 signature (`sanity-webhook-signature` header). Operation detection: if `delta::operation()` is not in the payload, the handler queries Sanity — document exists → update, doesn't exist → delete. Webhook created via Sanity Management API (filter: `_type == "programs"`, dataset: production, secret: `SANITY_WEBHOOK_SECRET`). No auto-create in webhook — registrars create meets manually.
-- **programFormat field:** String radio (in-person / virtual / hybrid) replacing the old `isVirtual` boolean. Drives Sanity Studio field visibility, registrar area Meet section, host area query filter, and webhook handler behavior. `in-person` → hide Meet section + delete calendar event on change; `virtual`/`hybrid` → show Meet section.
+- **Calendar sync on save (session 54):** The PUT handler in `/api/programs-pg/[slug]/route.ts` detects date/name changes and calls `updateCalendarEvent()` if a `calendarEventId` exists. Detects format switch away from virtual and calls `deleteCalendarEvent()` + clears Meet fields. No webhook needed — sync is inline with the save.
+- **programFormat field:** String radio (in-person / virtual / hybrid). `in-person` → hide Meet section + delete calendar event on format change; `virtual`/`hybrid` → show Meet section.
 - **Orphan prevention (session 33):** POST route now checks for existing `calendarEventId` + `meetHostAccount` before calling `createMeeting()`. If found, `deleteCalendarEvent()` is called first (non-fatal if old event already gone). Prevents orphaned room bookings when registrar clicks "Create" on a program that already has a Meet.
-- **calendarEventId:** Stored in Sanity. Written by the manual API route. Read by the webhook (time change / delete) and the Remove Meet DELETE route. Enables updating or deleting the calendar booking without duplicates.
+- **calendarEventId:** Stored in the Program model. Written by the manual API route. Read by the PUT handler (time change / format switch) and the Remove Meet DELETE route. Enables updating or deleting the calendar booking without duplicates.
 - **updateCalendarEvent / deleteCalendarEvent:** Two exported functions in `lib/google-meet.ts`. `updateCalendarEvent` patches time/title; does NOT touch the Meet space (Meet links are permanent). `deleteCalendarEvent` removes the calendar event to free the room slot.
 - **DWD impersonation:** The service account (`rim-programs-bot@rim-programs.iam.gserviceaccount.com`) impersonates the chosen room account via JWT + Domain-Wide Delegation. Room accounts own the meeting; no human credentials needed.
 - **Room selection:** `findAvailableRoom()` queries each room account's own `primary` calendar for events in the time window. Returns first free room; throws `NO_ROOM_AVAILABLE` (handled as 409) if all rooms are booked.
 - **Meet REST API scope:** `https://www.googleapis.com/auth/meetings.space.created` + `https://www.googleapis.com/auth/calendar.events` — both granted in DWD config.
 - **Meet creation:** `spaces.create` with `{ config: { accessType: "TRUSTED", entryPointAccess: "ALL" } }` — TRUSTED means anyone with a `@rootedinmindfulness.org` account can join without waiting to be admitted.
-- **`meetHostAccount` Sanity field:** readOnly string; stores the assigned room email. Written alongside `zoomLink` and `calendarEventId`. Shown in CreateMeetButton done state and on `/account/host` page.
+- **`meetHostAccount` field:** readOnly string on Program model; stores the assigned room email. Written alongside `zoomLink` and `calendarEventId`. Shown in CreateMeetButton done state and in the Host Hub.
 - **`GOOGLE_PRIVATE_KEY`** contains newlines — stored as raw value in Vercel (not base64).
 - **Sanity write-back** uses `SANITY_API_TOKEN` (Editor role token "RIM Next Website Write") — must be Editor or higher for patch/commit.
 
@@ -1928,10 +1856,10 @@ The app assigns whichever room is free for a given time slot (checking the share
 | Common tasks | 8 practical how-to tasks: turning on registration, promoting, cancelling, reminders, editing, notes, CSV export, closing |
 | Edge cases | 7 scenarios: wrong email, no confirmation received, locked name, adding someone past capacity, member cancels, registering on behalf, archived member re-registers, can't access account, pending dana |
 
-#### Chapter 2 — Setting Up Programs in Sanity Studio
-**Subtitle:** How to create and manage programs — every tab and field explained.
+#### Chapter 2 — Programs
+**Subtitle:** How to create and manage programs — every field explained.
 
-Covers all 6 Sanity Studio program tabs with field-by-field documentation in a visual table format:
+Covers all program fields with field-by-field documentation in a visual table format (organized by the same 6 sections as the Program Editor):
 
 | Tab | What it covers |
 |---|---|
@@ -1956,8 +1884,7 @@ Covers all 6 Sanity Studio program tabs with field-by-field documentation in a v
 | Volunteer roles | Meet Host, Registrar, Admin — what each can/cannot do, dashboard shortcuts table (4 columns × all links) |
 | Assigning a role | Step-by-step via /admin/members, who can do it |
 | Notification email | Auto-send when MEET HOST or REGISTRAR is first added; what each email contains; Admin role is silent |
-| Sanity Studio access | Why it's separate, who needs it, how to invite, Editor access, if invite doesn't arrive |
-| Removing a role | Uncheck and save; warning when Sanity access is involved; effect on pending vs accepted invites |
+| Removing a role | Uncheck and save; effect is immediate |
 | First Admin setup | Bootstrap SQL via Neon console — for when no Admin exists yet |
 
 ### Discovery
@@ -2016,7 +1943,7 @@ Staff reach the manual via two paths:
 | Volunteer Manual `/admin/manual` | ✓ | ✓ | ✓ |
 | Volunteer dashboard `/account/registrar` | | ✓ | ✓ |
 | Member management `/admin/members` | | ✓ | ✓ |
-| Sanity Studio (external) | | ✓ | ✓ |
+| Program Editor (Registrar Hub) | | ✓ | ✓ |
 
 ---
 
@@ -2078,8 +2005,7 @@ Staff reach the manual via two paths:
 - HOST is the lightest role — two pages only (`/account/host` and `/admin/manual`)
 - Role checks happen inside the page components, not in `proxy.ts`. Proxy handles login/terms/archived redirects only; role enforcement is per-page (same pattern as REGISTRAR-gated pages)
 - REGISTRAR and ADMIN can also view `/account/host` — useful for registrars who also host, and for admins monitoring the system
-- No Sanity Studio access for HOST — unlike REGISTRAR, there is no Sanity invite panel on HOST member detail pages
-- The HOST email does NOT mention Sanity Studio (unlike REGISTRAR email which documents the separate invite step)
+- No Program Editor access for HOST — the HOST role grants Host Hub access only, not Registrar Hub
 - HOST members see "Volunteer Access" (not "Staff Access") in their dashboard section header — the same label used for REGISTRAR and ADMIN
 
 ---
@@ -2716,9 +2642,8 @@ No email copy lives in code for any managed template. The 11 retained hardcoded 
 - **VariableNode (tiptap-variable-node.ts):** Custom Tiptap inline atom node. Renders `{{token}}` as a styled amber pill (`.ri-var-chip`) in the editor. Serializes back to `{{token}}` via tiptap-markdown `storage.markdown.serialize`. Parses via `storage.markdown.parse.setup(markdownit)` — registers a custom markdownit inline rule with a duplicate-registration guard (tiptap-markdown v0.9 calls `setup()` on every `parse()` invocation; the guard prevents the rule being registered multiple times on the same markdownit instance). `insertVariable(name)` command available on the editor instance.
 - **Link inline popover (RimEditor):** Replaces `window.prompt`. Opens on toolbar link button; pre-fills from existing href if cursor is on a link; pressing the button on an active link removes it without opening the popover. Enter and Escape are handled. Dismisses on outside click via `useEffect` + `pointerdown`.
 - **Chrome bands (EmailTemplateEditor):** Two non-interactive `aria-hidden` divs flanking the RimEditor body — dark blue header ("Rooted In Mindfulness") and warm footer (address line). Shows the admin what the email wrapper looks like without being part of the editable body.
-- **helpText + sanityNote:** Nullable fields on `EmailTemplate`. `helpText` shows as a muted paragraph above the subject input. `sanityNote` shows as a distinct teal callout block with a "Sanity Studio" badge — used for variables that originate from program records in Sanity (programName, programTitle, dateText, locationText, zoomLink, reminderMessage). Seeded for all 7 templates.
-- **`portableTextToMarkdown()`:** New utility in `lib/portableTextEmail.ts`. Converts a Portable Text array to a markdown string (bold → `**text**`, italic → `*text*`, links → `[text](href)`, bullet → `- text`, numbered → `1. text`). Resolves `markDefs` manually to handle link marks. Use this — not `portableTextToEmailText` — when the value will be interpolated into a managed template body that's later processed by `marked`. Currently applied to `reminderMessage` in `sendReminderEmail`.
-- **`portableTextToEmailHtml/Text` vs `portableTextToMarkdown`:** `portableTextToEmailHtml` → inline-styled HTML, use for hardcoded functions that insert PT directly into the email HTML body (e.g. `confirmationMessage` in `sendRegistrationEmail`). `portableTextToEmailText` → plain text fallback, use for plain-text email variants. `portableTextToMarkdown` → markdown, use for managed template variable values.
+- **helpText + sanityNote:** Nullable fields on `EmailTemplate`. `helpText` shows as a muted paragraph above the subject input. `sanityNote` shows as a distinct teal callout block — used for variables that originate from program records (programName, programTitle, dateText, locationText, zoomLink, reminderMessage). Updated in session 54: notes now reference "the program record" instead of "Sanity Studio". Seeded for all 7 templates.
+- **`portableTextToMarkdown()`:** Utility in `lib/portableTextEmail.ts`. Converts a Portable Text array to a markdown string (bold → `**text**`, italic → `*text*`, links → `[text](href)`, bullet → `- text`, numbered → `1. text`). Resolves `markDefs` manually to handle link marks. Used for legacy Portable Text `reminderMessage` in `sendReminderEmail`. `portableTextToEmailHtml` and `portableTextToEmailText` were removed in session 54 (no longer needed — programs use Tiptap JSON now).
 
 ### Complete email function inventory — permanent reference
 
@@ -2885,7 +2810,7 @@ Both are built on Tiptap v3. ContentEditor extends FormattedEditor's base extens
 | CourseEditor | description | FormattedEditor |
 | MemberDetail (admin) | adminNotes | FormattedEditor |
 
-**Phase 3 (when programs move to Postgres):** description → ContentEditor, confirmationMessage → FormattedEditor, reminderMessage → FormattedEditor, specialNotes → FormattedEditor.
+**Program fields (Phase 3 complete — session 54):** Programs now live in Postgres. Program description, confirmationMessage, reminderMessage, and specialNotes are stored as Tiptap JSON in the Program model. The Program Editor uses FormattedEditor for these fields.
 
 ### Data format
 All editor fields store **Tiptap JSON** (Prisma `Json?` type). No serialization or parsing needed — Prisma handles JSON natively. Editors accept JSON or null as their `value` prop and emit JSON via `onChange`.
@@ -2937,4 +2862,6 @@ Both use `@tiptap/html` `generateHTML()`. Output is used with `dangerouslySetInn
 
 | 2026-03-14 (session 53) | **Registrar Hub — Phase 1 migration into hub system.** Migrated the standalone registrar area at `/account/registrar` into the multi-hub workspace system at `/account/hub/registrar/`. **(1) Hub registration:** Added registrar hub to `prisma/seed-hubs.ts` (slug: `registrar`, OPERATIONAL). Added `REGISTRAR` → registrar hub mapping in `lib/syncHubMembership.ts` (isCoordinator: true). Seeded hub + synced existing REGISTRAR user (LoriLee). **(2) Hub layout integration:** `app/account/hub/[slug]/layout.tsx` — added "Programs" tab when `slug === "registrar"`; Announcements uses explicit `/announcements` path (same pattern as teacher hub). Root page redirects to `/programs`. **(3) Programs list page** (`app/account/hub/[slug]/programs/page.tsx`): Migrated from `app/account/registrar/page.tsx`. Same Sanity query + registration groupBy logic. Added **stakeholder visibility**: non-REGISTRAR hub members see simplified cards (confirmed count + capacity bar + waitlist count only; no links to detail, no pending dana, no spot-open/needs-attention signals). Role check: `isRegistrar = roles.includes("REGISTRAR") \|\| roles.includes("ADMIN")`. **(4) Program detail page** (`app/account/hub/[slug]/programs/[programSlug]/page.tsx`): Migrated from `app/account/registrar/[slug]/page.tsx`. Param renamed from `slug` to `programSlug` (hub slug occupies `[slug]`). Stakeholders redirected to list page. VolunteerTable and CreateMeetButton render identically. **(5) Component moves:** `VolunteerTable.tsx` and `CreateMeetButton.tsx` moved to `components/registrar/` directory. No internal changes. **(6) Sidebar update:** Removed standalone "Programs" link from `AccountSidebar` — registrar hub appears in "Your Hubs" section automatically via hub membership. **(7) Redirects:** `vercel.json` updated — `/volunteer` and `/volunteer/programs/:slug` now redirect to hub paths; new redirects added for `/account/registrar` and `/account/registrar/:slug`. **(8) Internal link updates:** `lib/email.ts` (2 volunteer URLs), `components/MemberDetail.tsx` (1 registration link) updated to new hub paths. **(9) Cleanup:** Deleted `app/account/registrar/` directory and original component files. **(10) Standard hub tabs:** Announcements, Documents, Conversations, Members all available via the shared `[slug]` layout — no registrar-specific implementation needed. |
 
-*Last updated: 2026-03-14 (session 53)*
+| 2026-03-15 (session 54) | **Phase 3c/3d complete — Programs fully migrated from Sanity to Postgres.** **(1) Phase 3c cutover:** Last file `app/account/hub/[slug]/programs/[programSlug]/page.tsx` cut over from `sanityClient.fetch` to `db.program.findUnique`. `community-programs/page.tsx` fixed for Prisma Date→string conversion. **(2) Timezone fix:** Created `lib/timezone.ts` with `toCentralDatetime()` (UTC Date → CT datetime-local) and `centralToUtc()` (CT string → UTC Date) using `Intl.DateTimeFormat`. All 4 datetime fields in PUT/POST routes and edit page converted. Root cause: `toLocalDatetime()` used `getHours()` which returns UTC on Vercel. **(3) Google Meet sync on save:** PUT handler now calls `updateCalendarEvent()` when dates/name change, and `deleteCalendarEvent()` + clears Meet fields when switching away from virtual. **(4) Meet warning dialog:** `ProgramEditor.tsx` — confirmation dialog before saving when switching from virtual/hybrid to in-person with active Meet link. **(5) Phase 3d cleanup:** Removed 15 deprecated program GROQ queries from `lib/queries.ts`. Deleted `portableTextToEmailHtml/Text` from `lib/portableTextEmail.ts` (kept `portableTextToMarkdown` for legacy PT). Deleted `app/api/webhooks/sanity-programs/route.ts` (215 lines — calendar sync now in PUT handler). Deleted `app/api/programs/[slug]/google-meet/route.ts` (replaced by `/api/programs-pg/[slug]/google-meet`). **(6) Sanity invitation system removed:** Deleted `app/api/admin/members/[id]/sanity-invite/route.ts`. Removed `revokeSanityAccess()` (~80 lines) + Sanity revocation logic from member PATCH route. Removed all Sanity invite UI from `MemberDetail.tsx` (state vars, handler, JSX section, save bar warning). Removed `sanityInvitedAt` from member detail page serialization. Dropped `sanityInvitedAt DateTime?` from User model (`prisma db push --accept-data-loss`). **(7) Email template sanityNote updates:** Updated `sanityNote` field on email templates — notes now reference "the program record" instead of "Sanity Studio". **(8) §18 deprecated, §19 updated, §28 Phase 3 note updated, §2/§11 Sanity refs cleaned. All 6 closing ritual docs updated. |
+
+*Last updated: 2026-03-15 (session 54)*

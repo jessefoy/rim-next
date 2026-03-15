@@ -41,7 +41,7 @@ export default async function ManualPage() {
 
           <li>
             <a href="#programs" className="man-sidebar__link">
-              Programs &amp; Sanity Studio
+              Programs
             </a>
             <ul className="man-sidebar__sub">
               <li><a href="#prog-overview"  className="man-sidebar__sublink">Overview</a></li>
@@ -108,7 +108,6 @@ export default async function ManualPage() {
               <li><a href="#roles-two-roles"  className="man-sidebar__sublink">Volunteer roles</a></li>
               <li><a href="#roles-assigning"  className="man-sidebar__sublink">Assigning a role</a></li>
               <li><a href="#roles-notifying"  className="man-sidebar__sublink">Notification email</a></li>
-              <li><a href="#roles-sanity"     className="man-sidebar__sublink">Sanity Studio access</a></li>
               <li><a href="#roles-removing"   className="man-sidebar__sublink">Removing a role</a></li>
               <li><a href="#roles-bootstrap"  className="man-sidebar__sublink">First Admin setup</a></li>
             </ul>
@@ -184,7 +183,7 @@ export default async function ManualPage() {
             Registration is the process by which someone claims a spot in a program. When a program has registration enabled, a <strong>Register →</strong> button appears on the program&rsquo;s page. Members and guests fill out a short form — name, email, any custom questions the program requires — and their spot is confirmed instantly.
           </p>
           <p>
-            The registration system is built into this website. There is no third-party form tool to manage. Everything lives in one place: the registrar area at <strong>/account/registrar</strong>.
+            The registration system is built into this website. There is no third-party form tool to manage. Everything lives in one place: the registrar area at <strong>/account/hub/registrar/programs</strong>.
           </p>
           <p>
             Registration is optional. Programs that don&rsquo;t need it — like open drop-in sittings — simply leave registration turned off. Those programs have no registration button and no list to manage.
@@ -252,7 +251,7 @@ export default async function ManualPage() {
             Members can cancel their own spot directly from <strong>My Programs</strong> — they don&rsquo;t need to contact you. Each active registration has a small <strong>Cancel registration</strong> link at the bottom of the card. Clicking it shows a confirmation step — &ldquo;Cancel your spot? This cannot be undone.&rdquo; — so accidental taps aren&rsquo;t possible. Once cancelled, the card updates immediately to show &ldquo;✓ Registration cancelled.&rdquo;
           </p>
           <p>
-            When a member cancels, you receive a cancellation notification email at the registrar inbox (the same email you get when you cancel someone from the table). The member does not receive an automatic email. The waitlist does not auto-promote — you check <strong>/account/registrar</strong> and promote who you choose.
+            When a member cancels, you receive a cancellation notification email at the registrar inbox (the same email you get when you cancel someone from the table). The member does not receive an automatic email. The waitlist does not auto-promote — you check <strong>/account/hub/registrar/programs</strong> and promote who you choose.
           </p>
         </section>
 
@@ -260,9 +259,9 @@ export default async function ManualPage() {
         <section id="reg-your-tools" className="man-section">
           <h2 className="man-section__title">Your tools</h2>
 
-          <h3 className="man-section__h3">The program list — /account/registrar</h3>
+          <h3 className="man-section__h3">The program list — /account/hub/registrar/programs</h3>
           <p>
-            Your workspace starts at <strong>/account/registrar</strong>. This page shows all programs that have registration enabled, in sort order.
+            Your workspace starts at <strong>/account/hub/registrar/programs</strong>. This page shows all programs that have registration enabled, in sort order.
           </p>
           <p>Each card shows:</p>
           <ul className="man-list">
@@ -277,7 +276,7 @@ export default async function ManualPage() {
             Cards with anything needing attention — including open spots — are highlighted in amber so you can spot them at a glance.
           </p>
 
-          <h3 className="man-section__h3">The registrar table — /account/registrar/[slug]</h3>
+          <h3 className="man-section__h3">The registrar table — /account/hub/registrar/programs/[slug]</h3>
           <p>
             Click any card to open its full registration list. From the table you can:
           </p>
@@ -332,7 +331,7 @@ export default async function ManualPage() {
             Dana is the traditional practice of giving — offering what you can, freely and without obligation, in support of the teachings and the center. For programs that use dana, the registration form includes a payment step via Stripe (credit or debit card).
           </p>
           <p>
-            Each program has a <strong>Dana Mode</strong> set by whoever configured it in Sanity Studio:
+            Each program has a <strong>Dana Mode</strong> set by whoever configured the program:
           </p>
           <table className="man-table">
             <thead>
@@ -487,7 +486,7 @@ export default async function ManualPage() {
             When a program has a <strong>Start Date &amp; Time</strong> set, registered members see two calendar links on the program page: one for Google Calendar and one for Apple Calendar / Outlook (downloaded as a .ics file). These links also appear in the confirmation email.
           </p>
           <p>
-            For programs that meet more than once, a recurrence pattern can be set in Sanity Studio using four fields:
+            For programs that meet more than once, a recurrence pattern can be set in the Program Editor using four fields:
           </p>
           <table className="man-table">
             <thead>
@@ -527,22 +526,22 @@ export default async function ManualPage() {
           <div className="man-task">
             <h3 className="man-task__title">Turning on registration for a program</h3>
             <ol className="man-steps">
-              <li>Open the program in Sanity Studio → <strong>Registration</strong> tab.</li>
+              <li>Open the program in the Program Editor → <strong>Registration</strong> tab.</li>
               <li>Turn on <strong>Enable Registration</strong>.</li>
               <li>Set a <strong>Capacity</strong> if the program has a maximum size. Leave blank for unlimited.</li>
               <li>Optionally set a <strong>Registration Deadline</strong> — the form closes automatically at that time.</li>
               <li>Add any <strong>Custom Questions</strong> the program needs.</li>
               <li>Write a <strong>Confirmation Email Message</strong> — the warm, personal note in the confirmation email.</li>
               <li>Go to the <strong>2 — When &amp; Where</strong> tab and set the <strong>Start Date &amp; Time</strong> so members get calendar links.</li>
-              <li>Publish. The Register button appears on the program page immediately.</li>
+              <li>Save. The Register button appears on the program page immediately.</li>
             </ol>
-            <p className="man-task__note">If you don&rsquo;t have Sanity Studio access, ask your program coordinator to do this step.</p>
+            <p className="man-task__note">If you don&rsquo;t have the Program Editor access, ask your program coordinator to do this step.</p>
           </div>
 
           <div className="man-task">
             <h3 className="man-task__title">Promoting someone from the waitlist</h3>
             <ol className="man-steps">
-              <li>Go to <strong>/account/registrar</strong>. If a spot has opened, you&rsquo;ll see a green <strong>&ldquo;↑ Spot open&rdquo;</strong> badge on the program card — click it.</li>
+              <li>Go to <strong>/account/hub/registrar/programs</strong>. If a spot has opened, you&rsquo;ll see a green <strong>&ldquo;↑ Spot open&rdquo;</strong> badge on the program card — click it.</li>
               <li>Inside the program, the <strong>&ldquo;A spot has opened&rdquo;</strong> alert tells you how many people are waiting.</li>
               <li>Find the waitlisted person you want to promote and click <strong>Promote</strong>.</li>
               <li>Their status changes to Registered and they receive an approval email automatically.</li>
@@ -559,13 +558,13 @@ export default async function ManualPage() {
               <li>The member does not receive an automatic email — contact them directly if appropriate.</li>
               <li>To undo, find them in the table and click <strong>Restore</strong>.</li>
             </ol>
-            <p className="man-task__note">Members can also cancel themselves from their <strong>My Programs</strong> page. When they do, you receive the same notification email. Either way, you check <strong>/account/registrar</strong> and decide whether to promote someone from the waitlist.</p>
+            <p className="man-task__note">Members can also cancel themselves from their <strong>My Programs</strong> page. When they do, you receive the same notification email. Either way, you check <strong>/account/hub/registrar/programs</strong> and decide whether to promote someone from the waitlist.</p>
           </div>
 
           <div className="man-task">
             <h3 className="man-task__title">Sending a reminder email</h3>
             <ol className="man-steps">
-              <li>Go to <strong>/account/registrar</strong> and open the program.</li>
+              <li>Go to <strong>/account/hub/registrar/programs</strong> and open the program.</li>
               <li>To send to everyone who hasn&rsquo;t received a reminder yet, click <strong>Send to Remaining</strong> in the banner at the top of the table.</li>
               <li>To send to one person, find them and click <strong>Send Reminder</strong>.</li>
             </ol>
@@ -601,7 +600,7 @@ export default async function ManualPage() {
           <div className="man-task">
             <h3 className="man-task__title">Exporting the registration list</h3>
             <ol className="man-steps">
-              <li>Open the program in <strong>/account/registrar</strong> and click <strong>Export CSV</strong>.</li>
+              <li>Open the program in <strong>/account/hub/registrar/programs</strong> and click <strong>Export CSV</strong>.</li>
               <li>A spreadsheet downloads with all registrant information: name, email, phone, status, dana status, custom question responses, and notes. Open in Excel, Numbers, or Google Sheets.</li>
             </ol>
           </div>
@@ -609,8 +608,8 @@ export default async function ManualPage() {
           <div className="man-task">
             <h3 className="man-task__title">Closing registration early</h3>
             <ol className="man-steps">
-              <li>Open the program in Sanity Studio → <strong>Registration</strong> tab.</li>
-              <li>Turn on <strong>Registration Closed</strong> and publish.</li>
+              <li>Open the program in the Program Editor → <strong>Registration</strong> tab.</li>
+              <li>Turn on <strong>Registration Closed</strong> and save.</li>
               <li>The Register button disappears from the program page immediately.</li>
             </ol>
             <p className="man-task__note">You can also set a <strong>Registration Deadline</strong> to close automatically at a specific date and time — no need to remember to do it manually.</p>
@@ -643,7 +642,7 @@ export default async function ManualPage() {
 
           <div className="man-task">
             <h3 className="man-task__title">A member cancels their spot</h3>
-            <p>Members can cancel from their <strong>My Programs</strong> page without contacting you. When they do, you receive a cancellation notification email. If the program has capacity set and people on the waitlist, the <strong>/account/registrar</strong> index card shows a green <strong>&ldquo;↑ Spot open&rdquo;</strong> badge. Open the program — the &ldquo;A spot has opened&rdquo; banner tells you how many people are waiting — then promote who you choose.</p>
+            <p>Members can cancel from their <strong>My Programs</strong> page without contacting you. When they do, you receive a cancellation notification email. If the program has capacity set and people on the waitlist, the <strong>/account/hub/registrar/programs</strong> index card shows a green <strong>&ldquo;↑ Spot open&rdquo;</strong> badge. Open the program — the &ldquo;A spot has opened&rdquo; banner tells you how many people are waiting — then promote who you choose.</p>
           </div>
 
           <div className="man-task">
@@ -677,13 +676,13 @@ export default async function ManualPage() {
 
 
         {/* ════════════════════════════════════════
-            CHAPTER 2 — PROGRAMS & SANITY STUDIO
+            CHAPTER 2 — PROGRAMS
             ════════════════════════════════════════ */}
 
         <div id="programs" className="man-chapter man-chapter--break">
-          <h1 className="man-chapter__title">Programs &amp; Sanity Studio</h1>
+          <h1 className="man-chapter__title">Programs</h1>
           <p className="man-chapter__subtitle">
-            This chapter covers how to create and manage programs — from every tab and field in Sanity Studio, to creating the Google Meet link once a virtual program is ready.
+            This chapter covers how to create and manage programs — every field explained, plus creating the Google Meet link once a virtual program is ready.
           </p>
         </div>
 
@@ -691,21 +690,18 @@ export default async function ManualPage() {
         <section id="prog-overview" className="man-section">
           <h2 className="man-section__title">Overview</h2>
           <p>
-            Programs, teacher bios, and other public content are managed through <strong>Sanity Studio</strong>, a separate content editor at <a href="https://rooted-in-mindfulness.sanity.studio/" target="_blank" rel="noopener noreferrer">rooted-in-mindfulness.sanity.studio</a>. You can also reach it from the Sanity Studio card on your dashboard. (Note: courses and lessons have moved to the <a href="#courses-teacher-hub">Teacher Hub</a> and are no longer managed in Sanity.)
+            Programs are managed through the <strong>Program Editor</strong> in the Registrar Hub. Go to your hub → Programs tab → click any program to edit it. (Note: courses and lessons are managed separately in the <a href="#courses-teacher-hub">Teacher Hub</a>.)
           </p>
           <p>
-            When you save and publish a program in Sanity, it appears on the website within seconds. There is no separate &ldquo;send to website&rdquo; step — publishing is it.
+            When you save a program, changes appear on the website within seconds. There is no separate &ldquo;publish&rdquo; step — saving is it.
           </p>
-          <div className="man-note">
-            <strong>Drafts vs. published:</strong> Every document in Sanity starts as a draft. Drafts are only visible to you inside Sanity — they do not appear on the website. Click <strong>Publish</strong> to make it live. If you edit a published document, your changes are saved as a draft until you publish again. You can work on a draft for as long as you need before publishing. There is no risk of showing a half-finished program to members while you are working on it.
-          </div>
         </section>
 
         {/* ── How a program comes together ── */}
         <section id="prog-anatomy" className="man-section">
           <h2 className="man-section__title">How a program comes together</h2>
           <p>
-            A program in Sanity is organized into six tabs. Each tab controls a different part of how the program functions. You don&rsquo;t need to fill in every field — a program can exist at any level of completeness.
+            The Program Editor is organized into six sections. Each section controls a different part of how the program functions. You don&rsquo;t need to fill in every field — a program can exist at any level of completeness.
           </p>
           <table className="man-table">
             <thead>
@@ -741,7 +737,7 @@ export default async function ManualPage() {
 
           <div className="man-note">
             <strong>Minimum to maximum:</strong><br />
-            <strong>Page exists (but not public):</strong> Name + Slug + Publish.<br />
+            <strong>Page exists (but not public):</strong> Name + Slug + Save.<br />
             <strong>Appears in public listing:</strong> + Category (required).<br />
             <strong>Complete public page:</strong> + Tagline, Image, Description, Teachers, Start Date &amp; Time (auto-generates the schedule label).<br />
             <strong>Calendar links in emails:</strong> + Start Date &amp; Time.<br />
@@ -755,16 +751,14 @@ export default async function ManualPage() {
         <section id="prog-creating" className="man-section">
           <h2 className="man-section__title">Creating a program</h2>
           <ol className="man-steps">
-            <li>Open Sanity Studio and click <strong>Programs</strong> in the left sidebar.</li>
-            <li>Click the <strong>+</strong> button (or &ldquo;Create new document&rdquo;) to start a new program.</li>
-            <li>You start on the <strong>1 — Basics</strong> tab. Enter the program <strong>Name</strong> — this is the only required field.</li>
-            <li>Click <strong>Generate</strong> next to the Slug field to create the URL from the name. The slug becomes the URL path: a program called &ldquo;Morning Sitting&rdquo; gets the URL <code>/programs/morning-sitting</code>.</li>
-            <li>Fill in the remaining tabs one at a time. You do not need to complete everything before publishing — you can publish a minimal program and add to it over time.</li>
-            <li>When ready for the program to appear on the website, click <strong>Publish</strong>.</li>
+            <li>Go to the Registrar Hub → Programs tab → click <strong>New Program</strong>.</li>
+            <li>Enter the program <strong>Name</strong> and <strong>Slug</strong> — the name is the only required field. The slug becomes the URL path: a program called &ldquo;Morning Sitting&rdquo; gets the URL <code>/programs/morning-sitting</code>.</li>
+            <li>Fill in the remaining sections. You do not need to complete everything before saving — you can save a minimal program and add to it over time.</li>
+            <li>Click <strong>Save</strong>. The program appears on the website immediately.</li>
           </ol>
           <div className="man-note man-note--dev">
             <span className="man-note--dev__label">⚠️&ensp;Technical note</span>
-            <strong>Do not change the slug after publishing.</strong> The slug isn&rsquo;t just the URL — it&rsquo;s also how host assignments are stored internally. Changing it after assignments exist will silently disconnect those assignments and break the connection to the host schedule. If a slug change is ever unavoidable, contact a developer — a redirect can be set up for old links, and assignments may need to be manually reconnected.
+            <strong>Do not change the slug after saving.</strong> The slug isn&rsquo;t just the URL — it&rsquo;s also how host assignments and registrations are stored internally. Changing it after assignments exist will silently disconnect those assignments and break the connection to the host schedule. If a slug change is ever unavoidable, contact a developer — a redirect can be set up for old links, and assignments may need to be manually reconnected.
           </div>
         </section>
 
@@ -792,7 +786,7 @@ export default async function ManualPage() {
               <div className="man-field__name">Program Category</div>
               <div className="man-field__desc">
                 <p><strong>Required for the program to appear on the public Programs &amp; Events listing page.</strong> Click and start typing to search, or press Backspace to see all categories. Categories include things like Meditation, Retreats, Classes.</p>
-                <p>If no existing category fits, ask an Admin to create a new one in Sanity → Program Categories. If this field is left blank, the program page still exists and is accessible by direct link — it just won&rsquo;t appear in the listings.</p>
+                <p>If no existing category fits, ask an Admin to create a new one (categories are managed in the database). If this field is left blank, the program page still exists and is accessible by direct link — it just won&rsquo;t appear in the listings.</p>
               </div>
             </div>
             <div className="man-field">
@@ -844,7 +838,7 @@ export default async function ManualPage() {
             <div className="man-field">
               <div className="man-field__name">Teacher / Facilitator(s)</div>
               <div className="man-field__desc">
-                <p>Choose one or more teachers from the Team list. Their names and photos appear on the program page. If a teacher isn&rsquo;t in the list yet, ask an Admin to add them in Sanity → Team.</p>
+                <p>Choose one or more teachers from the Team list. Their names and photos appear on the program page. If a teacher isn&rsquo;t in the list yet, ask an Admin to add them (teachers are managed in Sanity Studio → Team).</p>
               </div>
             </div>
           </div>
@@ -901,7 +895,7 @@ export default async function ManualPage() {
             <div className="man-field">
               <div className="man-field__name">Number of Sessions</div>
               <div className="man-field__desc">
-                <p><strong>Leave this blank for ongoing programs</strong> — weekly sittings, drop-in groups, or any program that repeats indefinitely until you turn it off. The session will keep appearing on the member dashboard each week (or month, or day) as long as the program is published.</p>
+                <p><strong>Leave this blank for ongoing programs</strong> — weekly sittings, drop-in groups, or any program that repeats indefinitely until you turn it off. The session will keep appearing on the member dashboard each week (or month, or day) as long as the program is active.</p>
                 <p>Fill in a number only for fixed-length series: an 8-week course = 8, a 6-month monthly group = 6. The count includes the first session.</p>
                 <p>When a count is set, the .ics file download includes all sessions. The Google Calendar link only adds the first session (a Google limitation — labeled clearly for members). When left blank, the .ics file covers all future occurrences with no end date.</p>
               </div>
@@ -915,10 +909,10 @@ export default async function ManualPage() {
                   <li><strong>Virtual</strong> — online only. Location fields are hidden; Google Meet panel appears in the registrar area.</li>
                   <li><strong>Hybrid</strong> — some participants at the center, others join via Google Meet. Both location and Google Meet fields are shown.</li>
                 </ul>
-                <p>Defaults to <strong>In-person</strong>. Setting Format to In-person and republishing automatically removes any existing Google Calendar room booking and clears the Meet link.</p>
+                <p>Defaults to <strong>In-person</strong>. Setting Format to In-person and saveing automatically removes any existing Google Calendar room booking and clears the Meet link.</p>
                 <div className="man-note man-note--dev" style={{margin: "8px 0 0"}}>
                   <span className="man-note--dev__label">⚠️&ensp;Technical note</span>
-                  If you switch a program to In-person and then later switch it back to Virtual or Hybrid, the Meet link won&rsquo;t return on its own — it was cleared when you published the In-person change. You&rsquo;ll need to create a new one from the registrar area. Any confirmation emails that already went out will reference the old link, so it&rsquo;s worth notifying registered members if the format actually changes.
+                  If you switch a program to In-person and then later switch it back to Virtual or Hybrid, the Meet link won&rsquo;t return on its own — it was cleared when you saved the In-person change. You&rsquo;ll need to create a new one from the registrar area. Any confirmation emails that already went out will reference the old link, so it&rsquo;s worth notifying registered members if the format actually changes.
                 </div>
               </div>
             </div>
@@ -1039,7 +1033,7 @@ export default async function ManualPage() {
                 <p><strong>For virtual programs:</strong> make sure the Meeting Link (Step 2) is set before this date. Members are directed to their dashboard to find it — but if the field is empty when the reminder sends, there will be nothing to direct them to.</p>
                 <div className="man-note man-note--dev" style={{margin: "8px 0 0"}}>
                   <span className="man-note--dev__label">⚠️&ensp;Technical note</span>
-                  Reminder emails go out automatically at 9:00 AM Central on the date you set. The system doesn&rsquo;t check whether a Meeting Link exists before sending — it just sends. If the link isn&rsquo;t saved in Sanity by that morning, virtual program members will receive a reminder with nowhere to click. Set the Meeting Link at least a day before the reminder date to be safe.
+                  Reminder emails go out automatically at 9:00 AM Central on the date you set. The system doesn&rsquo;t check whether a Meeting Link exists before sending — it just sends. If the link isn&rsquo;t saved on the program by that morning, virtual program members will receive a reminder with nowhere to click. Set the Meeting Link at least a day before the reminder date to be safe.
                 </div>
               </div>
             </div>
@@ -1131,7 +1125,7 @@ export default async function ManualPage() {
               <div className="man-field__desc">
                 <p>A short message displayed in <strong>bold red</strong> on the program&rsquo;s dashboard card — visible to all logged-in members. Use only for urgent, time-sensitive notices: a room change, a one-time cancellation, a guest teacher.</p>
                 <p><em>Example: Tonight&rsquo;s sitting is moved to Room B due to an event in the main hall.</em></p>
-                <p><strong>Remember to clear it after the event passes</strong> — update the field to blank and republish so the announcement doesn&rsquo;t linger and lose its urgency.</p>
+                <p><strong>Remember to clear it after the event passes</strong> — update the field to blank and save so the announcement doesn&rsquo;t linger and lose its urgency.</p>
               </div>
             </div>
             <div className="man-field">
@@ -1173,7 +1167,7 @@ export default async function ManualPage() {
           <div className="man-task">
             <h3 className="man-task__title">Creating a new program from scratch</h3>
             <ol className="man-steps">
-              <li>Sanity Studio → <strong>Programs</strong> → <strong>+</strong> (Create).</li>
+              <li>the Program Editor → <strong>Programs</strong> → <strong>+</strong> (Create).</li>
               <li>Enter the <strong>Name</strong> and click <strong>Generate</strong> next to the Slug field.</li>
               <li><strong>1 — Basics:</strong> Set the <strong>Category</strong> (required for public listing), add the tagline, upload an image, choose teachers, and write the description.</li>
               <li><strong>2 — When &amp; Where:</strong> Set the <strong>Start Date &amp; Time</strong> and <strong>End Date &amp; Time</strong> — the schedule label is generated automatically. Set the <strong>Format</strong> (In-person / Virtual / Hybrid), and add the location or venue. Set recurrence fields if this program meets more than once.</li>
@@ -1181,9 +1175,9 @@ export default async function ManualPage() {
               <li><strong>4 — Emails:</strong> Write the <strong>Confirmation Email Message</strong> and set a <strong>Reminder Email Date</strong> if you want an automated reminder to go out.</li>
               <li><strong>5 — Dana:</strong> Set the Dana Mode if this program collects offerings.</li>
               <li><strong>6 — Settings:</strong> Set a <strong>Sort Order</strong> number and a <strong>Day of Week</strong> so the program appears correctly on the dashboard and listing.</li>
-              <li>Click <strong>Publish</strong>. The program is live on the website.</li>
+              <li>Click <strong>Save</strong>. The program is live on the website.</li>
             </ol>
-            <p className="man-task__note"><strong>Virtual programs:</strong> Set <strong>Format</strong> to <strong>Virtual</strong> or <strong>Hybrid</strong> in the <strong>2 — When &amp; Where</strong> tab and set a <strong>Start Date &amp; Time</strong> before publishing. After publishing, open the program in <strong>/account/registrar</strong> and click <strong>Create Google Meet</strong> to generate the link. See <a href="#google-meet">Setting up a Google Meet</a> for the full picture.</p>
+            <p className="man-task__note"><strong>Virtual programs:</strong> Set <strong>Format</strong> to <strong>Virtual</strong> or <strong>Hybrid</strong> in the <strong>2 — When &amp; Where</strong> tab and set a <strong>Start Date &amp; Time</strong> before publishing. After publishing, open the program in <strong>/account/hub/registrar/programs</strong> and click <strong>Create Google Meet</strong> to generate the link. See <a href="#google-meet">Setting up a Google Meet</a> for the full picture.</p>
           </div>
 
           <div className="man-task">
@@ -1191,7 +1185,7 @@ export default async function ManualPage() {
             <ol className="man-steps">
               <li>Open the program → <strong>2 — When &amp; Where</strong> tab.</li>
               <li>Update the <strong>Start Date &amp; Time</strong> field — the schedule label on the page, listing cards, and emails updates automatically. Also update <strong>End Date &amp; Time</strong> if needed.</li>
-              <li>Publish.</li>
+              <li>Save.</li>
             </ol>
             <p className="man-task__note">If confirmation emails have already gone out with the old date, consider sending a reminder with the corrected date, or reach out to registered members directly.</p>
           </div>
@@ -1201,8 +1195,8 @@ export default async function ManualPage() {
             <ol className="man-steps">
               <li>Open the program → <strong>6 — Settings</strong> tab.</li>
               <li>Type the announcement in <strong>Special Announcement</strong>.</li>
-              <li>Publish. It appears in red on the member dashboard immediately.</li>
-              <li>After the event passes, clear the field and publish again to remove it.</li>
+              <li>Save. It appears in red on the member dashboard immediately.</li>
+              <li>After the event passes, clear the field and save again to remove it.</li>
             </ol>
           </div>
 
@@ -1214,9 +1208,9 @@ export default async function ManualPage() {
               <li>Set <strong>Repeats</strong> — e.g., Weekly.</li>
               <li>Set <strong>Every</strong> to 1 (every week) or 2 (every other week).</li>
               <li>If Weekly, check the appropriate days under <strong>On Days</strong>.</li>
-              <li><strong>For ongoing programs</strong> (weekly sittings, drop-ins that repeat indefinitely): leave <strong>Number of Sessions</strong> blank. The program will appear on the member dashboard every scheduled week until you un-publish it.</li>
+              <li><strong>For ongoing programs</strong> (weekly sittings, drop-ins that repeat indefinitely): leave <strong>Number of Sessions</strong> blank. The program will appear on the member dashboard every scheduled week until you hide or remove it.</li>
               <li><strong>For fixed-length series</strong> (8-week course, 6-session retreat): set <strong>Number of Sessions</strong> to the total count including the first session.</li>
-              <li>Publish. The member dashboard will show the program under Today&rsquo;s Virtual Sessions each time it occurs. The .ics download includes all sessions (or all future sessions if no count is set).</li>
+              <li>Save. The member dashboard will show the program under Today&rsquo;s Virtual Sessions each time it occurs. The .ics download includes all sessions (or all future sessions if no count is set).</li>
             </ol>
           </div>
 
@@ -1225,7 +1219,7 @@ export default async function ManualPage() {
             <ol className="man-steps">
               <li>Open the program → <strong>6 — Settings</strong> tab.</li>
               <li>Check <strong>Hide from Programs &amp; Events Listing</strong>.</li>
-              <li>Publish. The program disappears from the listing but its page is still reachable by direct link.</li>
+              <li>Save. The program disappears from the listing but its page is still reachable by direct link.</li>
             </ol>
           </div>
 
@@ -1234,7 +1228,7 @@ export default async function ManualPage() {
             <ol className="man-steps">
               <li>Open the program → <strong>3 — Registration</strong> tab.</li>
               <li>Click the <strong>Linked Courses</strong> field and search for the course by name.</li>
-              <li>Select it and publish.</li>
+              <li>Select it and save.</li>
               <li>From this point on, new registrants will automatically receive access to that course. Members who registered before this change will need access granted manually by an Admin from the member detail page.</li>
             </ol>
           </div>
@@ -1244,7 +1238,7 @@ export default async function ManualPage() {
             <ol className="man-steps">
               <li>Open each program you want to reorder → <strong>6 — Settings</strong> tab.</li>
               <li>Update the <strong>Sort Order</strong> number — lower numbers appear first.</li>
-              <li>Publish each one.</li>
+              <li>Save each one.</li>
             </ol>
             <p className="man-task__note">Use round numbers (10, 20, 30) so you can insert a new program between two existing ones without renumbering.</p>
           </div>
@@ -1252,9 +1246,9 @@ export default async function ManualPage() {
           <div className="man-task">
             <h3 className="man-task__title">Retiring or archiving a program</h3>
             <ol className="man-steps">
-              <li>If the program should no longer be discoverable: open it → <strong>6 — Settings</strong> tab → check <strong>Hide from Programs &amp; Events Page</strong> → publish. The page still exists but won&rsquo;t be found by browsing.</li>
-              <li>If registration should close: open it → <strong>3 — Registration</strong> tab → turn on <strong>Registration Closed</strong> → publish.</li>
-              <li>If the program should be fully removed from the website: contact an Admin — deleting a published document in Sanity is a destructive action that should be done intentionally.</li>
+              <li>If the program should no longer be discoverable: open it → <strong>6 — Settings</strong> tab → check <strong>Hide from Programs &amp; Events Page</strong> → save. The page still exists but won&rsquo;t be found by browsing.</li>
+              <li>If registration should close: open it → <strong>3 — Registration</strong> tab → turn on <strong>Registration Closed</strong> → save.</li>
+              <li>If the program should be fully removed from the website: contact an Admin — deleting a program is a destructive action that should be done intentionally.</li>
             </ol>
           </div>
         </section>
@@ -1268,7 +1262,7 @@ export default async function ManualPage() {
             Google Meet is the video platform RIM uses for all virtual programs — drop-in sittings, community groups, Foundations, and any other program that happens over video. It replaced Zoom because managing separate accounts and links outside of the website made it harder for volunteers to run sessions reliably, and meeting RIM&rsquo;s needs on Zoom would have required ongoing subscription costs.
           </p>
           <p>
-            For most virtual programs, <strong>the Meet link is created automatically</strong> — you don&rsquo;t need to do anything extra. When you toggle on <strong>Virtual Program</strong> in Sanity Studio, set a <strong>Start Date &amp; Time</strong>, and publish the program, the system creates the Meet link, assigns a room account, and saves everything back to the program. The link appears in confirmation emails, reminder emails, and the Host Area — all without copy-pasting.
+            For most virtual programs, <strong>the Meet link is created automatically</strong> — you don&rsquo;t need to do anything extra. When you toggle on <strong>Virtual Program</strong> in the Program Editor, set a <strong>Start Date &amp; Time</strong>, and save the program, the system creates the Meet link, assigns a room account, and saves everything back to the program. The link appears in confirmation emails, reminder emails, and the Host Area — all without copy-pasting.
           </p>
           <p>
             The <strong>Meet Host team</strong> — the volunteers who hold the container of the session — check the <strong>Host Area</strong> at <code>/account/hub/host-team</code> to find out which shared account to sign into. When they join from that account, they automatically have full host controls.
@@ -1312,14 +1306,14 @@ export default async function ManualPage() {
         <section id="meet-before" className="man-section">
           <h2 className="man-section__title">Before you start</h2>
           <p>
-            Two things need to be set in Sanity Studio before you can create a Meet link:
+            Two things need to be set in the Program Editor before you can create a Meet link:
           </p>
           <ul className="man-list">
             <li><strong>Format must be set to Virtual or Hybrid</strong> — this tells the system the program needs a Meet link.</li>
             <li><strong>Start Date &amp; Time must be set</strong> — the system uses it to check which meeting rooms are available.</li>
           </ul>
           <p>
-            If either is missing, the Google Meet panel in the registrar area will show a notice rather than a button. Go to <strong>Sanity Studio → Programs → [program name] → 2 — When &amp; Where</strong> tab and fill in both fields, then publish.
+            If either is missing, the Google Meet panel in the registrar area will show a notice rather than a button. Go to <strong>the Program Editor → Programs → [program name] → 2 — When &amp; Where</strong> tab and fill in both fields, then save.
           </p>
           <p>
             For recurring programs (e.g. every Wednesday evening), set the Start Date &amp; Time to the date of the <em>next</em> upcoming session. The Meet link itself doesn&rsquo;t expire — it works for all future sessions.
@@ -1334,20 +1328,20 @@ export default async function ManualPage() {
             Meet links are created manually from the registrar area — there is no automatic creation. Once a link is set, it&rsquo;s stable for the life of the program.
           </p>
           <ol className="man-steps">
-            <li>In Sanity Studio, open the program and go to the <strong>2 — When &amp; Where</strong> tab.</li>
+            <li>In the Program Editor, open the program and go to the <strong>2 — When &amp; Where</strong> tab.</li>
             <li>Set <strong>Format</strong> to <strong>Virtual</strong> or <strong>Hybrid</strong>.</li>
             <li>Set a <strong>Start Date &amp; Time</strong> (required — the system needs it to check room availability).</li>
-            <li>Publish the program.</li>
-            <li>Go to <strong>/account/registrar</strong> and open the program.</li>
+            <li>Save the program.</li>
+            <li>Go to the program detail page in the Registrar Hub and open the program.</li>
             <li>At the top, above the registrations table, you&rsquo;ll see the <strong>Google Meet</strong> panel.</li>
             <li>Click <strong>Create Google Meet</strong>.</li>
             <li>Wait a few seconds — the panel will show the Meet link and assigned room account when done.</li>
           </ol>
           <p>
-            The link and assigned room account are saved to Sanity automatically. From that point forward, the link appears in reminder emails and on the Host Area page.
+            The link and assigned room account are saved to the program record automatically. From that point forward, the link appears in reminder emails and on the Host Area page.
           </p>
           <p>
-            <strong>Time changes:</strong> If you update the Start Date &amp; Time and republish, the calendar room booking updates automatically. The Meet link itself does not change.
+            <strong>Time changes:</strong> If you update the Start Date &amp; Time and save, the calendar room booking updates automatically. The Meet link itself does not change.
           </p>
 
           <h3 className="man-section__h3">Removing a Meet (rescheduling or cancelling)</h3>
@@ -1356,10 +1350,10 @@ export default async function ManualPage() {
           </p>
           <ol className="man-steps">
             <li>Deletes the Google Calendar room booking, freeing the room account for other programs.</li>
-            <li>Clears the Meet link, room account, and calendar event ID from the program in Sanity.</li>
+            <li>Clears the Meet link, room account, and calendar event ID from the program.</li>
           </ol>
           <p>
-            After removing, update the date in Sanity and click <strong>Create Google Meet</strong> again when the new date is confirmed.
+            After removing, update the date in the Program Editor and click <strong>Create Google Meet</strong> again when the new date is confirmed.
           </p>
           <div className="man-note man-note--warn">
             ⚠ Members who already received a confirmation email will have a link that no longer works. If the program is being rescheduled (not cancelled), send an update to registrants after the new link is set up.
@@ -1445,9 +1439,9 @@ export default async function ManualPage() {
         <section id="meet-issues" className="man-section">
           <h2 className="man-section__title">If something goes wrong</h2>
 
-          <h3 className="man-section__h3">&ldquo;Add a Start Date &amp; Time in Sanity Studio first&rdquo;</h3>
+          <h3 className="man-section__h3">&ldquo;Add a Start Date &amp; Time in the Program Editor first&rdquo;</h3>
           <p>
-            The Google Meet panel is showing a notice instead of the button. This means the program doesn&rsquo;t have a scheduled time set. Go to <strong>Sanity Studio → Programs → [program] → 2 — When &amp; Where</strong> and fill in <strong>Start Date &amp; Time</strong>. Then come back to the registrar area and try again.
+            The Google Meet panel is showing a notice instead of the button. This means the program doesn&rsquo;t have a scheduled time set. Go to <strong>the Program Editor → Programs → [program] → 2 — When &amp; Where</strong> and fill in <strong>Start Date &amp; Time</strong>. Then come back to the registrar area and try again.
           </p>
 
           <h3 className="man-section__h3">&ldquo;All meeting rooms are booked at that time&rdquo;</h3>
@@ -1460,9 +1454,9 @@ export default async function ManualPage() {
             <li>If the conflict is permanent (programs always overlap), adding a room is the right long-term solution.</li>
           </ul>
 
-          <h3 className="man-section__h3">&ldquo;Meet created but Sanity write-back failed&rdquo;</h3>
+          <h3 className="man-section__h3">&ldquo;Meet created but save failed&rdquo;</h3>
           <p>
-            The meeting was created successfully, but saving the link to the program in Sanity encountered a temporary error. The link is shown in the panel — copy it. Then go to <strong>Sanity Studio → Programs → [program] → 2 — When &amp; Where</strong>, paste it into the <strong>Meeting Link</strong> field, and publish. Contact a developer if this happens more than once.
+            The meeting was created successfully, but saving the link to the program record encountered a temporary error. The link is shown in the panel — copy it, then paste it into the <strong>Meeting Link</strong> field in the Program Editor and save. Contact a developer if this happens more than once.
           </p>
 
           <h3 className="man-section__h3">Something else went wrong</h3>
@@ -1871,7 +1865,7 @@ export default async function ManualPage() {
             To make a course available to registrants of a specific program, link them in the course editor. A single program can be linked to multiple courses, and a single course can be linked to multiple programs.
           </p>
           <p>
-            During the current migration phase, program links reference Sanity program IDs. This means programs are still managed in Sanity Studio, but the course-to-program relationship is managed in the Teacher Hub.
+            Programs are linked to courses via the ProgramCourse join table. Programs are managed in the Program Editor (Registrar Hub), while the course-to-program relationship is managed in the Teacher Hub.
           </p>
           <p>
             You can also grant individual members access to any course from the <strong>Course Access</strong> section on their member profile page (Admin &rarr; Members &rarr; [member name]).
@@ -1967,11 +1961,11 @@ export default async function ManualPage() {
             Assignments can be <strong>standing</strong> — meaning one person is the regular host for a program — or tied to a specific session date if something is a one-time arrangement.
           </p>
           <div className="man-note">
-            Sessions appear on the calendar automatically. When a program is set up in Sanity Studio with a start date and a recurring schedule, the system generates the session records — you won&rsquo;t need to create them by hand.
+            Sessions appear on the calendar automatically. When a program is set up in the Program Editor with a start date and a recurring schedule, the system generates the session records — you won&rsquo;t need to create them by hand.
           </div>
           <div className="man-note man-note--dev">
             <span className="man-note--dev__label">⚠️&ensp;Technical note</span>
-            Assignments are stored by Sanity program slug. If a program&rsquo;s slug is ever changed in Sanity Studio after assignments exist, those assignments will silently lose their connection to the program and won&rsquo;t appear on the calendar. Treat slugs as permanent once a program is live and in use.
+            Assignments are stored by program slug. If a program&rsquo;s slug is ever changed in the Program Editor after assignments exist, those assignments will silently lose their connection to the program and won&rsquo;t appear on the calendar. Treat slugs as permanent once a program is live and in use.
           </div>
         </section>
 
@@ -2139,7 +2133,7 @@ export default async function ManualPage() {
             Completing the form is part of the host&rsquo;s closing practice — it creates a record of what happened and helps the team learn over time.
           </p>
           <div className="man-note">
-            The Session tab only shows programs scheduled for today. If a program is set up in Sanity with today as an occurrence (single event or recurring), it will appear. Programs with no date configured in Sanity do not appear.
+            The Session tab only shows programs scheduled for today. If a program is set up with today as an occurrence (single event or recurring), it will appear. Programs with no date configured do not appear.
           </div>
         </section>
 
@@ -2229,12 +2223,12 @@ export default async function ManualPage() {
           </p>
           <p>What a Registrar can do:</p>
           <ul className="man-list">
-            <li>View and manage all program registrations at <strong>/account/registrar</strong></li>
+            <li>View and manage all program registrations at <strong>/account/hub/registrar/programs</strong></li>
             <li>Promote waitlisted members, cancel and restore registrations</li>
             <li>Send edit-request links and reminder emails to registrants</li>
             <li>View and edit member profiles at <strong>/admin/members</strong> — name, email, phone</li>
             <li>Grant or revoke course access for individual members</li>
-            <li>Access <strong>Sanity Studio</strong> — create and edit programs, lessons, and other site content (if invited — see below)</li>
+            <li>Access the <strong>Program Editor</strong> — create and edit programs via the Registrar Hub</li>
           </ul>
           <p>What a Registrar <em>cannot</em> do:</p>
           <ul className="man-list">
@@ -2252,7 +2246,7 @@ export default async function ManualPage() {
             <li>View all member accounts at <strong>/admin/members</strong></li>
             <li>Edit member profiles — name, email, phone</li>
             <li>Assign and remove roles</li>
-            <li>Invite members to Sanity Studio or revoke their Sanity access</li>
+            <li>Manage all hub memberships and coordinator assignments</li>
             <li>Archive, restore, and delete member accounts</li>
             <li>Grant or revoke course access manually</li>
             <li>Import members from CSV</li>
@@ -2276,7 +2270,7 @@ export default async function ManualPage() {
                 <td>Anyone added to a hub — the sidebar dynamically shows links to each hub the member belongs to</td>
               </tr>
               <tr>
-                <td>Programs <code>/account/registrar</code></td>
+                <td>Programs <code>/account/hub/registrar/programs</code></td>
                 <td>Registrar, Admin</td>
               </tr>
               <tr>
@@ -2324,7 +2318,7 @@ export default async function ManualPage() {
             The role takes effect immediately. If the person is currently logged in, they may need to reload the page to see their updated dashboard.
           </p>
           <div className="man-note">
-            Assigning the <strong>Meet Host</strong> or <strong>Registrar</strong> role triggers an automatic notification email. Assigning Registrar also causes a <strong>Sanity Studio Access</strong> panel to appear on their member detail page. See the sections below.
+            Assigning the <strong>Meet Host</strong> or <strong>Registrar</strong> role triggers an automatic notification email. Assigning Registrar also causes a <strong>the Program Editor Access</strong> panel to appear on their member detail page. See the sections below.
           </div>
         </section>
 
@@ -2343,41 +2337,8 @@ export default async function ManualPage() {
           <ul className="man-list">
             <li>Each notification fires exactly once, when the role is <em>first</em> added. It does not re-send if you save their record again with the role already checked.</li>
             <li>The <strong>Meet Host</strong> email links to the Host Area at <strong>/account/hub/host-team</strong> and to this manual.</li>
-            <li>The <strong>Registrar</strong> email links to the volunteer dashboard at <strong>/account/registrar</strong> and to this manual. It does <em>not</em> include Sanity Studio instructions — that&rsquo;s a separate step with its own invite.</li>
+            <li>The <strong>Registrar</strong> email links to the Registrar Hub and to this manual.</li>
             <li>No notification is sent when the Admin role is assigned. Admins are typically people already deeply involved in the organization — a quiet system-level change is appropriate.</li>
-          </ul>
-        </section>
-
-        {/* ── Sanity Studio access ── */}
-        <section id="roles-sanity" className="man-section">
-          <h2 className="man-section__title">Sanity Studio access</h2>
-          <p>
-            <strong>Sanity Studio</strong> is the content management system where programs, lessons, and site content are created and edited. Access to Sanity is separate from the RIM website — it requires its own invitation through Sanity&rsquo;s system.
-          </p>
-          <p>
-            Not every Registrar needs Sanity access. A Registrar whose job is managing registrations (promoting waitlisted members, sending reminders) doesn&rsquo;t need to edit site content. Sanity access is for people who <em>create and maintain programs and pages</em>.
-          </p>
-
-          <h3 className="man-section__h3">Sending a Sanity invitation</h3>
-          <ol className="man-steps">
-            <li>Make sure the person has the <strong>Registrar</strong> role saved on their account. The Sanity panel only appears after that role is persisted.</li>
-            <li>On their member detail page, scroll past the Roles section to find <strong>Sanity Studio Access</strong>.</li>
-            <li>Click <strong>Invite to Sanity Studio</strong>. A confirmation dialog will explain what access they&rsquo;ll receive.</li>
-            <li>Confirm the invite. An invitation email arrives in their inbox from <code>no-reply@sanity.io</code>.</li>
-            <li>They click the link in that email to accept and create a Sanity account (or log in with an existing one).</li>
-            <li>Once accepted, they can access <a href="https://rooted-in-mindfulness.sanity.studio/" target="_blank" rel="noopener noreferrer">rooted-in-mindfulness.sanity.studio</a> with Editor-level access.</li>
-          </ol>
-
-          <h3 className="man-section__h3">What &ldquo;Editor&rdquo; access means in Sanity</h3>
-          <p>
-            Editor access lets them create, edit, and publish all content types — programs, lessons, teacher profiles, and anything else in the Studio. They cannot change project settings, manage billing, or invite others to Sanity (only the Sanity project owner can do those things).
-          </p>
-
-          <h3 className="man-section__h3">If they don&rsquo;t receive the invite</h3>
-          <ul className="man-list">
-            <li>Ask them to check their spam folder for an email from <code>no-reply@sanity.io</code>.</li>
-            <li>If the invite has expired (they are valid for a limited time), you can send a new one from the member detail page — the button resets after a revocation/re-invite cycle.</li>
-            <li>If the email address on their RIM account doesn&rsquo;t match their preferred Sanity email, that&rsquo;s a known limitation — Sanity invites are sent to the address on file. Contact a developer if this becomes an issue.</li>
           </ul>
         </section>
 
@@ -2385,26 +2346,7 @@ export default async function ManualPage() {
         <section id="roles-removing" className="man-section">
           <h2 className="man-section__title">Removing a role</h2>
           <p>
-            To remove a role, uncheck it on their member detail page and click <strong>Save changes</strong>.
-          </p>
-
-          <h3 className="man-section__h3">When Sanity access is involved</h3>
-          <p>
-            If you uncheck <strong>Registrar</strong> for someone who was previously invited to Sanity Studio, a warning appears in the save bar before you confirm:
-          </p>
-          <div className="man-note man-note--dev">
-            <span className="man-note--dev__label">⚠️&ensp;Technical note</span>
-            Saving will also revoke this member&rsquo;s Sanity Studio access — both pending invitations and active accounts are removed immediately, with no undo option from the website. If you need to restore their access later, re-assign the Registrar role and send a new invitation from their member detail page.
-          </div>
-          <p>
-            If you save, two things happen automatically:
-          </p>
-          <ul className="man-list">
-            <li>Any <em>pending</em> Sanity invitation (not yet accepted) is cancelled.</li>
-            <li>If they already accepted and have an active Sanity account, they are removed from the project and can no longer access Sanity Studio.</li>
-          </ul>
-          <p>
-            This is immediate and cannot be undone through the website. If you need to restore their Sanity access, re-assign the Registrar role and send a new invitation.
+            To remove a role, uncheck it on their member detail page and click <strong>Save changes</strong>. The change takes effect immediately — they lose access to the associated hub and tools on their next page load.
           </p>
 
           <h3 className="man-section__h3">Removing Admin access</h3>
