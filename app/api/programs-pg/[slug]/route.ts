@@ -7,6 +7,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { centralToUtc } from "@/lib/timezone";
+import { updateCalendarEvent, deleteCalendarEvent } from "@/lib/google-meet";
 
 export async function GET(
   _req: NextRequest,
@@ -76,8 +78,8 @@ export async function PUT(
   if (body.zoomLink !== undefined) data.zoomLink = body.zoomLink || null;
   if (body.meetHostAccount !== undefined) data.meetHostAccount = body.meetHostAccount || null;
   if (body.calendarEventId !== undefined) data.calendarEventId = body.calendarEventId || null;
-  if (body.startDatetime !== undefined) data.startDatetime = body.startDatetime ? new Date(body.startDatetime) : null;
-  if (body.endDatetime !== undefined) data.endDatetime = body.endDatetime ? new Date(body.endDatetime) : null;
+  if (body.startDatetime !== undefined) data.startDatetime = centralToUtc(body.startDatetime);
+  if (body.endDatetime !== undefined) data.endDatetime = centralToUtc(body.endDatetime);
   if (body.recurrenceFreq !== undefined) data.recurrenceFreq = body.recurrenceFreq || null;
   if (body.recurrenceInterval !== undefined) data.recurrenceInterval = body.recurrenceInterval != null ? Number(body.recurrenceInterval) : null;
   if (body.recurrenceDays !== undefined) data.recurrenceDays = body.recurrenceDays;
@@ -85,10 +87,10 @@ export async function PUT(
   if (body.registrationEnabled !== undefined) data.registrationEnabled = body.registrationEnabled;
   if (body.registrationClosed !== undefined) data.registrationClosed = body.registrationClosed;
   if (body.registrationCapacity !== undefined) data.registrationCapacity = body.registrationCapacity != null ? Number(body.registrationCapacity) : null;
-  if (body.registrationDeadline !== undefined) data.registrationDeadline = body.registrationDeadline ? new Date(body.registrationDeadline) : null;
+  if (body.registrationDeadline !== undefined) data.registrationDeadline = centralToUtc(body.registrationDeadline);
   if (body.registrationFields !== undefined) data.registrationFields = body.registrationFields || undefined;
   if (body.confirmationMessage !== undefined) data.confirmationMessage = body.confirmationMessage || undefined;
-  if (body.reminderDate !== undefined) data.reminderDate = body.reminderDate ? new Date(body.reminderDate) : null;
+  if (body.reminderDate !== undefined) data.reminderDate = centralToUtc(body.reminderDate);
   if (body.reminderMessage !== undefined) data.reminderMessage = body.reminderMessage || undefined;
   if (body.danaMode !== undefined) data.danaMode = body.danaMode;
   if (body.suggestedDana !== undefined) data.suggestedDana = body.suggestedDana != null ? Number(body.suggestedDana) : null;
@@ -104,10 +106,53 @@ export async function PUT(
   if (body.removeFromProgramList !== undefined) data.removeFromProgramList = body.removeFromProgramList;
   if (body.hideFromProgramPageList !== undefined) data.hideFromProgramPageList = body.hideFromProgramPageList;
 
+  // Check if we need to sync Google Calendar or clean up Meet link
+  const dateChanged =
+    (body.startDatetime !== undefined && body.startDatetime !== (existing.startDatetime?.toISOString() ?? null)) ||
+    (body.endDatetime !== undefined && body.endDatetime !== (existing.endDatetime?.toISOString() ?? null)) ||
+    (body.name !== undefined && body.name !== existing.name);
+
+  const switchedAwayFromVirtual =
+    body.programFormat !== undefined &&
+    body.programFormat !== "virtual" &&
+    body.programFormat !== "hybrid" &&
+    (existing.programFormat === "virtual" || existing.programFormat === "hybrid");
+
+  // If switching away from virtual, clean up Meet link
+  if (switchedAwayFromVirtual && existing.calendarEventId && existing.meetHostAccount) {
+    try {
+      await deleteCalendarEvent({
+        calendarEventId: existing.calendarEventId,
+        roomEmail: existing.meetHostAccount,
+      });
+    } catch (err) {
+      console.error("[programs-pg PUT] deleteCalendarEvent (format switch) error:", err);
+    }
+    data.zoomLink = null;
+    data.meetHostAccount = null;
+    data.calendarEventId = null;
+  }
+
   const updated = await db.program.update({
     where: { slug },
     data,
   });
+
+  // If dates or name changed and a calendar event exists, sync it
+  if (dateChanged && updated.calendarEventId && updated.meetHostAccount && updated.startDatetime) {
+    try {
+      const endDt = updated.endDatetime ?? new Date(updated.startDatetime.getTime() + 60 * 60 * 1000);
+      await updateCalendarEvent({
+        calendarEventId: updated.calendarEventId,
+        roomEmail: updated.meetHostAccount,
+        title: updated.name,
+        startDatetime: updated.startDatetime.toISOString(),
+        endDatetime: endDt.toISOString(),
+      });
+    } catch (err) {
+      console.error("[programs-pg PUT] updateCalendarEvent error:", err);
+    }
+  }
 
   return NextResponse.json(updated);
 }

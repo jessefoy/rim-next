@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { centralToUtc } from "@/lib/timezone";
 
 export async function GET() {
   const session = await auth();
@@ -59,8 +60,8 @@ export async function POST(request: NextRequest) {
       zoomLink: body.zoomLink || null,
       meetHostAccount: body.meetHostAccount || null,
       calendarEventId: body.calendarEventId || null,
-      startDatetime: body.startDatetime ? new Date(body.startDatetime) : null,
-      endDatetime: body.endDatetime ? new Date(body.endDatetime) : null,
+      startDatetime: centralToUtc(body.startDatetime),
+      endDatetime: centralToUtc(body.endDatetime),
       recurrenceFreq: body.recurrenceFreq || null,
       recurrenceInterval: body.recurrenceInterval != null ? Number(body.recurrenceInterval) : null,
       recurrenceDays: body.recurrenceDays ?? [],
@@ -68,10 +69,10 @@ export async function POST(request: NextRequest) {
       registrationEnabled: body.registrationEnabled ?? false,
       registrationClosed: body.registrationClosed ?? false,
       registrationCapacity: body.registrationCapacity != null ? Number(body.registrationCapacity) : null,
-      registrationDeadline: body.registrationDeadline ? new Date(body.registrationDeadline) : null,
+      registrationDeadline: centralToUtc(body.registrationDeadline),
       registrationFields: body.registrationFields || undefined,
       confirmationMessage: body.confirmationMessage || undefined,
-      reminderDate: body.reminderDate ? new Date(body.reminderDate) : null,
+      reminderDate: centralToUtc(body.reminderDate),
       reminderMessage: body.reminderMessage || undefined,
       danaMode: body.danaMode || "none",
       suggestedDana: body.suggestedDana != null ? Number(body.suggestedDana) : null,

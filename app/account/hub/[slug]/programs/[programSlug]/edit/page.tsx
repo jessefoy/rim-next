@@ -10,14 +10,9 @@ import { getHubMembership } from "@/lib/hubAuth";
 import Link from "next/link";
 import ProgramEditor from "@/components/registrar/ProgramEditor";
 import type { ProgramData } from "@/components/registrar/ProgramEditor";
+import { toCentralDatetime } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
-
-function toLocalDatetime(d: Date | null | undefined): string {
-  if (!d) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
 
 export default async function EditProgramPage({
   params,
@@ -71,8 +66,8 @@ export default async function EditProgramPage({
     zoomLink: program.zoomLink ?? "",
     meetHostAccount: program.meetHostAccount ?? "",
     calendarEventId: program.calendarEventId ?? "",
-    startDatetime: toLocalDatetime(program.startDatetime),
-    endDatetime: toLocalDatetime(program.endDatetime),
+    startDatetime: toCentralDatetime(program.startDatetime),
+    endDatetime: toCentralDatetime(program.endDatetime),
     recurrenceFreq: program.recurrenceFreq ?? "",
     recurrenceInterval: program.recurrenceInterval?.toString() ?? "",
     recurrenceDays: program.recurrenceDays,
@@ -80,10 +75,10 @@ export default async function EditProgramPage({
     registrationEnabled: program.registrationEnabled,
     registrationClosed: program.registrationClosed,
     registrationCapacity: program.registrationCapacity?.toString() ?? "",
-    registrationDeadline: toLocalDatetime(program.registrationDeadline),
+    registrationDeadline: toCentralDatetime(program.registrationDeadline),
     registrationFields: (program.registrationFields as any[]) ?? [],
     confirmationMessage: program.confirmationMessage,
-    reminderDate: toLocalDatetime(program.reminderDate),
+    reminderDate: toCentralDatetime(program.reminderDate),
     reminderMessage: program.reminderMessage,
     danaMode: program.danaMode,
     suggestedDana: program.suggestedDana?.toString() ?? "",
