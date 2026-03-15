@@ -162,12 +162,15 @@ export default function SupportInboxClient({
   // Sidebar
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // Composer — separate state for reply and note bodies
-  const [composerOpen, setComposerOpen] = useState(false);
-  const [replyMode, setReplyMode] = useState<"reply" | "note">("reply");
+  // Reply composer (anchored to bottom of main panel)
+  const [replyOpen, setReplyOpen] = useState(false);
   const [replyDraft, setReplyDraft] = useState<any>(null);
+  const [replySending, setReplySending] = useState(false);
+
+  // Note panel (appears above timeline, separate from reply)
+  const [noteOpen, setNoteOpen] = useState(false);
   const [noteDraft, setNoteDraft] = useState<any>(null);
-  const [sending, setSending] = useState(false);
+  const [noteSending, setNoteSending] = useState(false);
 
   const timelineRef = useRef<HTMLDivElement>(null);
 
@@ -209,10 +212,10 @@ export default function SupportInboxClient({
 
   const selectThread = (id: string) => {
     setSelectedId(id);
-    setComposerOpen(false);
+    setReplyOpen(false);
     setReplyDraft(null);
+    setNoteOpen(false);
     setNoteDraft(null);
-    setReplyMode("reply");
   };
 
   useEffect(() => {
@@ -258,52 +261,54 @@ export default function SupportInboxClient({
     }
   };
 
-  // ─── Send reply ───────────────────────────────────────────────────────
-
-  const currentDraft = replyMode === "reply" ? replyDraft : noteDraft;
+  // ─── Send reply (bottom composer) ────────────────────────────────────
 
   const handleSendReply = async () => {
-    if (!selectedId || !currentDraft) return;
-    setSending(true);
-
-    if (replyMode === "reply") {
-      const html = renderFormattedText(replyDraft);
-      const res = await fetch(`/api/support/threads/${selectedId}/reply`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bodyHtml: html }),
-      });
-      if (res.ok) {
-        setReplyDraft(null);
-        setComposerOpen(false);
-        fetchDetail(selectedId);
-        fetchThreads();
-      }
-    } else {
-      const res = await fetch(`/api/support/threads/${selectedId}/note`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: noteDraft }),
-      });
-      if (res.ok) {
-        setNoteDraft(null);
-        setComposerOpen(false);
-        fetchDetail(selectedId);
-      }
+    if (!selectedId || !replyDraft) return;
+    setReplySending(true);
+    const html = renderFormattedText(replyDraft);
+    const res = await fetch(`/api/support/threads/${selectedId}/reply`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bodyHtml: html }),
+    });
+    if (res.ok) {
+      setReplyDraft(null);
+      setReplyOpen(false);
+      fetchDetail(selectedId);
+      fetchThreads();
     }
-
-    setSending(false);
+    setReplySending(false);
   };
 
-  const handleCancelComposer = () => {
-    const hasDraft = replyDraft || noteDraft;
-    if (hasDraft) {
-      if (!window.confirm("Discard reply?")) return;
-    }
+  const handleCancelReply = () => {
+    if (replyDraft && !window.confirm("Discard reply?")) return;
     setReplyDraft(null);
+    setReplyOpen(false);
+  };
+
+  // ─── Save note (separate panel) ────────────────────────────────────
+
+  const handleSaveNote = async () => {
+    if (!selectedId || !noteDraft) return;
+    setNoteSending(true);
+    const res = await fetch(`/api/support/threads/${selectedId}/note`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ body: noteDraft }),
+    });
+    if (res.ok) {
+      setNoteDraft(null);
+      setNoteOpen(false);
+      fetchDetail(selectedId);
+    }
+    setNoteSending(false);
+  };
+
+  const handleCancelNote = () => {
+    if (noteDraft && !window.confirm("Discard note?")) return;
     setNoteDraft(null);
-    setComposerOpen(false);
-    setReplyMode("reply");
+    setNoteOpen(false);
   };
 
   const claimThread = (id: string) => {
@@ -439,6 +444,48 @@ export default function SupportInboxClient({
               </button>
             </div>
 
+            {/* Note composer — appears above timeline, completely separate from reply */}
+            {noteOpen && (
+              <div className="si-note-composer">
+                <div className="si-note-composer__header">
+                  <span className="si-note-composer__label">
+                    🔒 Internal Note — not sent to the member
+                  </span>
+                  <button
+                    className="si-note-composer__close"
+                    onClick={handleCancelNote}
+                    title="Cancel"
+                  >
+                    ×
+                  </button>
+                </div>
+                <div className="si-note-composer__editor">
+                  <FormattedEditor
+                    key="note-editor"
+                    value={noteDraft}
+                    onChange={setNoteDraft}
+                    placeholder="Write an internal note…"
+                    minHeight={80}
+                  />
+                </div>
+                <div className="si-note-composer__footer">
+                  <button
+                    className="si-btn"
+                    onClick={handleCancelNote}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="si-btn si-btn--note"
+                    onClick={handleSaveNote}
+                    disabled={noteSending || !noteDraft}
+                  >
+                    {noteSending ? "Saving…" : "Save Note"}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Timeline — scrolls independently */}
             <div className="si-timeline" ref={timelineRef}>
               {detail.timeline.map((entry) => {
@@ -491,75 +538,40 @@ export default function SupportInboxClient({
               })}
             </div>
 
-            {/* Composer — anchored to bottom */}
+            {/* Reply composer — anchored to bottom, only for outbound replies */}
             {detail.status !== "CLOSED" && (
-              <div
-                className={`si-composer${replyMode === "note" && composerOpen ? " si-composer--note-mode" : ""}`}
-              >
-                {!composerOpen ? (
+              <div className="si-composer">
+                {!replyOpen ? (
                   <button
                     className="si-composer__prompt"
-                    onClick={() => setComposerOpen(true)}
+                    onClick={() => setReplyOpen(true)}
                   >
                     Reply…
                   </button>
                 ) : (
                   <>
-                    <div className="si-composer__tabs">
-                      <button
-                        className={`si-composer__tab${replyMode === "reply" ? " si-composer__tab--active" : ""}`}
-                        onClick={() => setReplyMode("reply")}
-                      >
-                        Reply
-                      </button>
-                      <button
-                        className={`si-composer__tab si-composer__tab--note${replyMode === "note" ? " si-composer__tab--note-active" : ""}`}
-                        onClick={() => setReplyMode("note")}
-                      >
-                        Internal Note
-                      </button>
-                    </div>
-                    {replyMode === "note" && (
-                      <div className="si-composer__note-banner">
-                        🔒 Internal only — not sent to the member.
-                      </div>
-                    )}
                     <div className="si-composer__editor">
-                      {replyMode === "reply" ? (
-                        <FormattedEditor
-                          key="reply-editor"
-                          value={replyDraft}
-                          onChange={setReplyDraft}
-                          placeholder="Type your reply…"
-                          minHeight={100}
-                        />
-                      ) : (
-                        <FormattedEditor
-                          key="note-editor"
-                          value={noteDraft}
-                          onChange={setNoteDraft}
-                          placeholder="Add an internal note…"
-                          minHeight={100}
-                        />
-                      )}
+                      <FormattedEditor
+                        key="reply-editor"
+                        value={replyDraft}
+                        onChange={setReplyDraft}
+                        placeholder="Type your reply…"
+                        minHeight={100}
+                      />
                     </div>
                     <div className="si-composer__footer">
                       <button
                         className="si-btn"
-                        onClick={handleCancelComposer}
+                        onClick={handleCancelReply}
                       >
                         Cancel
                       </button>
                       <button
-                        className={`si-btn ${replyMode === "reply" ? "si-btn--send" : "si-btn--note"}`}
+                        className="si-btn si-btn--send"
                         onClick={handleSendReply}
-                        disabled={sending || !currentDraft}
+                        disabled={replySending || !replyDraft}
                       >
-                        {sending
-                          ? "Sending…"
-                          : replyMode === "reply"
-                            ? "Send Reply"
-                            : "Save Note"}
+                        {replySending ? "Sending…" : "Send Reply"}
                       </button>
                     </div>
                   </>
@@ -613,6 +625,18 @@ export default function SupportInboxClient({
               )}
             </div>
           </div>
+
+          {/* Add Note — separate from Reply */}
+          {detail.status !== "CLOSED" && (
+            <div className="si-sidebar__section">
+              <button
+                className={`si-btn si-btn--add-note${noteOpen ? " si-btn--add-note-active" : ""}`}
+                onClick={() => setNoteOpen(!noteOpen)}
+              >
+                {noteOpen ? "Writing note…" : "＋ Add Note"}
+              </button>
+            </div>
+          )}
 
           {/* Assignment */}
           <div className="si-sidebar__section">

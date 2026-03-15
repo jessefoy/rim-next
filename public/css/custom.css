@@ -13615,43 +13615,7 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 }
 .si-composer__prompt:hover { background: var(--rim-bg-accent); }
 
-/* Expanded composer */
-.si-composer__tabs {
-  display: flex;
-  align-items: center;
-  border-bottom: 1px solid var(--rim-rule);
-}
-.si-composer__tab {
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 600;
-  padding: 8px 16px;
-  border: none;
-  background: transparent;
-  color: var(--rim-text-muted);
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: all 0.15s;
-}
-.si-composer__tab:hover { color: var(--rim-text); }
-.si-composer__tab--active {
-  color: var(--rim-mid);
-  border-bottom-color: var(--rim-mid);
-}
-/* Internal Note tab — amber when active */
-.si-composer__tab--note-active {
-  color: #8b6914;
-  border-bottom-color: #c89220;
-}
-.si-composer__note-banner {
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 600;
-  color: #7a5a10;
-  background: #fdf3d7;
-  padding: 8px 16px;
-  border-bottom: 1px solid #e8d48b;
-}
+/* Expanded reply composer */
 .si-composer__editor { padding: 8px 14px; }
 .si-composer__footer {
   display: flex;
@@ -13660,23 +13624,68 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   padding: 0 14px 8px;
 }
 
-/* ── Note mode: entire composer turns amber ── */
-.si-composer--note-mode {
+/* ── Note composer — appears above timeline, amber throughout ── */
+.si-note-composer {
+  flex-shrink: 0;
   background: #fef9eb;
-  border-top: 2px solid #c89220;
+  border-bottom: 2px solid #c89220;
 }
-.si-composer--note-mode .si-composer__tabs {
-  border-bottom-color: #e8d48b;
+.si-note-composer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-bottom: 1px solid #e8d48b;
 }
-.si-composer--note-mode .si-composer__editor {
-  background: #fef9eb;
+.si-note-composer__label {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: #7a5a10;
 }
-/* Override Tiptap editor background inside note mode */
-.si-composer--note-mode .ProseMirror {
+.si-note-composer__close {
+  font-size: 18px;
+  line-height: 1;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #7a5a10;
+  cursor: pointer;
+}
+.si-note-composer__close:hover { background: #f5e6b8; }
+.si-note-composer__editor {
+  padding: 8px 14px;
+}
+.si-note-composer__editor .ProseMirror {
   background: #fffdf5;
 }
-.si-composer--note-mode .si-composer__footer {
+.si-note-composer__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 14px 8px;
+}
+
+/* Add Note button in sidebar */
+.si-btn--add-note {
+  width: 100%;
+  padding: 6px 12px;
+  border: 1px dashed #c89220;
+  color: #8b6914;
   background: #fef9eb;
+  font-size: 12px;
+  text-align: center;
+}
+.si-btn--add-note:hover { background: #fdf3d7; }
+.si-btn--add-note-active {
+  border-style: solid;
+  background: #fdf3d7;
+  color: #7a5a10;
 }
 
 /* Buttons */
