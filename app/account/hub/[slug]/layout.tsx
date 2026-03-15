@@ -82,7 +82,7 @@ export default async function HubLayout({ children, params }: Props) {
     { label: "Documents",     href: `${base}/documents` },
     { label: "Conversations", href: `${base}/conversations` },
     { label: "Members",       href: `${base}/members` },
-    ...(isSupportHub && isAdmin
+    ...(isSupportHub
       ? [{ label: "Settings", href: `${base}/settings` }]
       : []),
   ];
