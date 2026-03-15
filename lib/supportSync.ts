@@ -74,6 +74,38 @@ function extractBody(payload: gmail_v1.Schema$MessagePart | undefined): {
   return { html: "", text: "" };
 }
 
+/**
+ * Extract CID-referenced inline attachments from message parts.
+ * Returns an array of { cid, attachmentId, mimeType, filename }.
+ */
+function extractAttachments(
+  parts: gmail_v1.Schema$MessagePart[] | undefined
+): { cid: string; attachmentId: string; mimeType: string; filename: string }[] {
+  if (!parts) return [];
+  const results: { cid: string; attachmentId: string; mimeType: string; filename: string }[] = [];
+  for (const part of parts) {
+    // CID attachment: has a Content-ID header and an attachmentId
+    const contentId = part.headers?.find(
+      (h) => h.name?.toLowerCase() === "content-id"
+    )?.value;
+    if (contentId && part.body?.attachmentId) {
+      // Strip angle brackets from Content-ID: <image001.png@...> → image001.png@...
+      const cid = contentId.replace(/^<|>$/g, "");
+      results.push({
+        cid,
+        attachmentId: part.body.attachmentId,
+        mimeType: part.mimeType || "application/octet-stream",
+        filename: part.filename || "",
+      });
+    }
+    // Recurse into nested parts
+    if (part.parts) {
+      results.push(...extractAttachments(part.parts));
+    }
+  }
+  return results;
+}
+
 /** Determine if a message is outbound (sent by support@). */
 function isOutbound(fromEmail: string, supportEmail: string): boolean {
   return fromEmail.toLowerCase() === supportEmail.toLowerCase();
@@ -227,6 +259,7 @@ export async function syncGmailInbox(): Promise<SyncResult> {
 
       const { html, text } = extractBody(msg.payload);
       const outbound = isOutbound(fromEmail, supportEmail);
+      const attachments = extractAttachments(msg.payload?.parts);
 
       await db.supportMessage.create({
         data: {
@@ -236,6 +269,7 @@ export async function syncGmailInbox(): Promise<SyncResult> {
           fromName,
           bodyHtml: html || `<pre>${text}</pre>`,
           bodyText: text || html.replace(/<[^>]+>/g, ""),
+          attachments: attachments.length > 0 ? attachments : undefined,
           sentAt,
           isOutbound: outbound,
         },

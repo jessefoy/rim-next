@@ -65,6 +65,26 @@ export async function GET(
 
   if (!thread) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  // Rewrite CID references in HTML to use our proxy route
+  function rewriteCidRefs(
+    html: string,
+    gmailMessageId: string,
+    attachments: any
+  ): string {
+    if (!attachments || !Array.isArray(attachments)) return html;
+    let result = html;
+    for (const att of attachments) {
+      if (!att.cid || !att.attachmentId) continue;
+      const proxyUrl = `/api/support/attachment/${gmailMessageId}/${att.attachmentId}?ct=${encodeURIComponent(att.mimeType || "image/png")}`;
+      // Replace cid:xxx references (with or without quotes)
+      result = result.replace(
+        new RegExp(`(src=["'])cid:${att.cid.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(["'])`, "gi"),
+        `$1${proxyUrl}$2`
+      );
+    }
+    return result;
+  }
+
   // Interleave messages and notes by timestamp for timeline view
   const timeline = [
     ...thread.messages.map((m) => ({
@@ -72,7 +92,7 @@ export async function GET(
       id: m.id,
       fromEmail: m.fromEmail,
       fromName: m.fromName,
-      bodyHtml: m.bodyHtml,
+      bodyHtml: rewriteCidRefs(m.bodyHtml, m.gmailMessageId, m.attachments),
       bodyText: m.bodyText,
       sentAt: m.sentAt.toISOString(),
       isOutbound: m.isOutbound,

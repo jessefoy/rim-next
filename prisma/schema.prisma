@@ -967,6 +967,7 @@ model SupportMessage {
   fromName       String?
   bodyHtml       String        @db.Text
   bodyText       String        @db.Text
+  attachments    Json?         // CID map: [{ cid, attachmentId, mimeType, filename }]
   sentAt         DateTime
   isOutbound     Boolean       @default(false)
   sentById       String?
