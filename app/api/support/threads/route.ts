@@ -26,11 +26,16 @@ export async function GET(req: NextRequest) {
 
   const where: Prisma.SupportThreadWhereInput = {};
 
-  // Status filter
+  // Status filter (supports comma-separated: "OPEN,CLAIMED,WAITING")
   if (status) {
-    where.status = status as "OPEN" | "CLAIMED" | "WAITING" | "RESOLVED";
+    const statuses = status.split(",").map((s) => s.trim());
+    if (statuses.length === 1) {
+      where.status = statuses[0] as any;
+    } else {
+      where.status = { in: statuses as any[] };
+    }
   } else {
-    // Default: show OPEN + CLAIMED + WAITING (not RESOLVED)
+    // Default: show OPEN + CLAIMED + WAITING (not CLOSED)
     where.status = { in: ["OPEN", "CLAIMED", "WAITING"] };
   }
 
@@ -70,6 +75,14 @@ export async function GET(req: NextRequest) {
       ? lastMessage.bodyText.substring(0, 120).replace(/\n/g, " ")
       : "";
 
+    const assigneeName = t.assignedTo
+      ? t.assignedTo.preferredName || [t.assignedTo.firstName, t.assignedTo.lastName].filter(Boolean).join(" ") || "Unknown"
+      : null;
+
+    const memberName = t.member
+      ? [t.member.firstName, t.member.lastName].filter(Boolean).join(" ") || "Unknown"
+      : null;
+
     return {
       id: t.id,
       gmailThreadId: t.gmailThreadId,
@@ -77,16 +90,11 @@ export async function GET(req: NextRequest) {
       status: t.status,
       senderEmail: t.senderEmail,
       senderName: t.senderName,
-      assignedTo: t.assignedTo
-        ? {
-            id: t.assignedTo.id,
-            firstName: t.assignedTo.firstName,
-            lastName: t.assignedTo.lastName,
-            preferredName: t.assignedTo.preferredName,
-          }
+      assignee: t.assignedTo
+        ? { id: t.assignedTo.id, name: assigneeName! }
         : null,
       member: t.member
-        ? { id: t.member.id, firstName: t.member.firstName, lastName: t.member.lastName }
+        ? { id: t.member.id, name: memberName! }
         : null,
       messageCount: t._count.messages,
       snippet,
@@ -96,5 +104,5 @@ export async function GET(req: NextRequest) {
     };
   });
 
-  return NextResponse.json(serialized);
+  return NextResponse.json({ threads: serialized });
 }

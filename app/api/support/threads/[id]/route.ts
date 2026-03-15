@@ -78,10 +78,7 @@ export async function GET(
       isOutbound: m.isOutbound,
       sentBy: m.sentBy
         ? {
-            id: m.sentBy.id,
-            firstName: m.sentBy.firstName,
-            lastName: m.sentBy.lastName,
-            preferredName: m.sentBy.preferredName,
+            name: m.sentBy.preferredName || [m.sentBy.firstName, m.sentBy.lastName].filter(Boolean).join(" ") || "Support",
           }
         : null,
     })),
@@ -91,10 +88,7 @@ export async function GET(
       body: n.body,
       createdAt: n.createdAt.toISOString(),
       author: {
-        id: n.author.id,
-        firstName: n.author.firstName,
-        lastName: n.author.lastName,
-        preferredName: n.author.preferredName,
+        name: n.author.preferredName || [n.author.firstName, n.author.lastName].filter(Boolean).join(" ") || "Unknown",
       },
     })),
   ].sort((a, b) => {
@@ -110,19 +104,16 @@ export async function GET(
     status: thread.status,
     senderEmail: thread.senderEmail,
     senderName: thread.senderName,
-    assignedTo: thread.assignedTo
+    assignee: thread.assignedTo
       ? {
           id: thread.assignedTo.id,
-          firstName: thread.assignedTo.firstName,
-          lastName: thread.assignedTo.lastName,
-          preferredName: thread.assignedTo.preferredName,
+          name: thread.assignedTo.preferredName || [thread.assignedTo.firstName, thread.assignedTo.lastName].filter(Boolean).join(" ") || "Unknown",
         }
       : null,
     member: thread.member
       ? {
           id: thread.member.id,
-          firstName: thread.member.firstName,
-          lastName: thread.member.lastName,
+          name: [thread.member.firstName, thread.member.lastName].filter(Boolean).join(" ") || "Unknown",
           email: thread.member.email,
           memberSince: thread.member.createdAt.toISOString(),
           memberStatus: thread.member.memberStatus,
