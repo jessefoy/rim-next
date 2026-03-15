@@ -78,6 +78,9 @@ model User {
   adminNotes      Json?             // Tiptap JSON (FormattedEditor)
   tags            String[]     @default([])
 
+  // Support inbox notification preference
+  supportEmailNotifications Boolean @default(true)
+
   // Legacy data imported from Memberstack (kept for historical reference)
   legacyMemberstackId     String?   @unique
   legacyLastLogin         DateTime?
@@ -108,6 +111,12 @@ model User {
   hubThreads2     HubConversationThread[]
   hubReplies2     HubConversationReply[]
   emailTemplates  EmailTemplate[]
+  // Support inbox
+  assignedThreads    SupportThread[]   @relation("ThreadAssignee")
+  memberThreads      SupportThread[]   @relation("ThreadMember")
+  sentMessages       SupportMessage[]  @relation("MessageSender")
+  supportNotes       SupportNote[]     @relation("NoteAuthor")
+  supportSignature   SupportSignature?
 
   @@map("users")
 }
@@ -118,6 +127,7 @@ enum Role {
   REGISTRAR            // manages program registrations + Sanity Studio access (no hub access)
   ADMIN                // full access
   TEACHER              // teacher hub access — manages courses and lessons
+  SUPPORT              // support inbox — reads/replies to support@rootedinmindfulness.org
   // Volunteer team roles — organizational record; hub access driven by HubMember table
   VOLUNTEER_COORDINATOR
   NEWSLETTER
@@ -666,6 +676,9 @@ enum AlertType {
   NEW_THREAD         // all hub members: new thread posted
   NEW_REPLY          // thread author + prior repliers: new reply on a thread you're in
   UNASSIGNED_SESSION // HOST_MANAGER + ADMIN: program within 30 days has no host assigned
+  SUPPORT_ASSIGNED   // support team: thread assigned to you
+  SUPPORT_NEW_REPLY  // support team: new reply on your assigned thread
+  SUPPORT_NEW_NOTE   // support team: internal note added to your assigned thread
 }
 
 // ─── SESSION ATTENDANCE ───────────────────────────────────────────────────────
@@ -897,4 +910,92 @@ model EmailTemplate {
   updatedBy   User?    @relation(fields: [updatedById], references: [id], onDelete: SetNull)
 
   @@map("email_templates")
+}
+
+// ─── SUPPORT INBOX ──────────────────────────────────────────────────────────
+// Gmail integration for support@rootedinmindfulness.org.
+// Threads and messages are synced from Gmail; notes are internal-only.
+
+enum SupportStatus {
+  OPEN
+  CLAIMED
+  WAITING
+  RESOLVED
+}
+
+model GmailCredential {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  accessToken  String   @db.Text
+  refreshToken String   @db.Text
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("gmail_credentials")
+}
+
+model SupportThread {
+  id            String        @id @default(cuid())
+  gmailThreadId String        @unique
+  subject       String
+  status        SupportStatus @default(OPEN)
+  assignedToId  String?
+  assignedTo    User?         @relation("ThreadAssignee", fields: [assignedToId], references: [id])
+  memberId      String?
+  member        User?         @relation("ThreadMember", fields: [memberId], references: [id])
+  senderEmail   String
+  senderName    String?
+  messages      SupportMessage[]
+  notes         SupportNote[]
+  lastMessageAt DateTime
+  lastSyncedAt  DateTime      @default(now())
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([status])
+  @@index([assignedToId])
+  @@map("support_threads")
+}
+
+model SupportMessage {
+  id             String        @id @default(cuid())
+  gmailMessageId String        @unique
+  threadId       String
+  thread         SupportThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  fromEmail      String
+  fromName       String?
+  bodyHtml       String        @db.Text
+  bodyText       String        @db.Text
+  sentAt         DateTime
+  isOutbound     Boolean       @default(false)
+  sentById       String?
+  sentBy         User?         @relation("MessageSender", fields: [sentById], references: [id])
+
+  @@index([threadId])
+  @@map("support_messages")
+}
+
+model SupportNote {
+  id        String        @id @default(cuid())
+  threadId  String
+  thread    SupportThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User          @relation("NoteAuthor", fields: [authorId], references: [id])
+  body      Json
+  createdAt DateTime      @default(now())
+
+  @@index([threadId])
+  @@map("support_notes")
+}
+
+model SupportSignature {
+  id      String  @id @default(cuid())
+  userId  String  @unique
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name    String
+  tagline String  @default("RIM Support")
+  role    String?
+
+  @@map("support_signatures")
 }

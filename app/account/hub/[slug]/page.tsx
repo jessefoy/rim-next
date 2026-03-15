@@ -29,6 +29,9 @@ export default async function HubAnnouncementsPage({
   // Registrar hub home is the Programs tab — redirect there
   if (slug === "registrar") redirect(`/account/hub/registrar/programs`);
 
+  // Support hub home is the Inbox tab — redirect there
+  if (slug === "support") redirect(`/account/hub/support/inbox`);
+
   const session = await auth();
   if (!session) redirect("/login");
 

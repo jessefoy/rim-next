@@ -26,6 +26,7 @@ const hubs = [
   { slug: "teacher-council",        name: "Teacher Council",        type: "GOVERNANCE"  as const },
   { slug: "teacher",                name: "Teacher Hub",            type: "OPERATIONAL" as const },
   { slug: "registrar",              name: "Registrar Hub",          type: "OPERATIONAL" as const, description: "Program registration management and participant support." },
+  { slug: "support",                name: "Support Inbox",          type: "OPERATIONAL" as const, description: "Shared inbox for support@rootedinmindfulness.org." },
 ];
 
 async function main() {
