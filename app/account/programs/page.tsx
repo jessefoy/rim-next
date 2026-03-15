@@ -1,7 +1,5 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { sanityClient } from "@/lib/sanity";
-import { programsBySlugArrayQuery } from "@/lib/queries";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import CancelRegistrationButton from "@/components/CancelRegistrationButton";
@@ -10,19 +8,6 @@ import { buildDateLabel } from "@/lib/dateLabel";
 
 export const metadata = { title: "My Programs — Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
-
-interface SanityProgram {
-  slug: string;
-  name: string;
-  dateText?: string;
-  startDatetime?: string | null;
-  endDatetime?: string | null;
-  recurrenceFreq?: string | null;
-  recurrenceInterval?: number | null;
-  recurrenceDays?: string[] | null;
-  locationText?: string;
-  zoomLink?: string;
-}
 
 const ACTIVE_STATUSES = ["REGISTERED", "APPROVED", "WAITLISTED"];
 
@@ -65,19 +50,38 @@ export default async function MyProgramsPage() {
     },
   });
 
-  let sanityMap: Record<string, SanityProgram> = {};
+  // Look up program metadata from Postgres
+  let programMap: Record<string, {
+    dateText: string | null;
+    startDatetime: Date | null;
+    endDatetime: Date | null;
+    recurrenceFreq: string | null;
+    recurrenceInterval: number | null;
+    recurrenceDays: string[];
+    locationText: string | null;
+  }> = {};
+
   if (registrations.length > 0) {
     const slugs = [...new Set(registrations.map((r) => r.programSlug).filter(Boolean))];
-    const sanityPrograms = await sanityClient.fetch<SanityProgram[]>(
-      programsBySlugArrayQuery,
-      { slugs }
-    );
-    sanityMap = Object.fromEntries(sanityPrograms.map((p) => [p.slug, p]));
+    const pgPrograms = await db.program.findMany({
+      where: { slug: { in: slugs } },
+      select: {
+        slug: true,
+        dateText: true,
+        startDatetime: true,
+        endDatetime: true,
+        recurrenceFreq: true,
+        recurrenceInterval: true,
+        recurrenceDays: true,
+        locationText: true,
+      },
+    });
+    programMap = Object.fromEntries(pgPrograms.map((p) => [p.slug, p]));
   }
 
   const enriched = registrations.map((r) => ({
     ...r,
-    sanity: r.programSlug ? sanityMap[r.programSlug] : null,
+    pgProgram: r.programSlug ? programMap[r.programSlug] ?? null : null,
   }));
 
   const active = enriched.filter((r) => ACTIVE_STATUSES.includes(r.status));
@@ -100,44 +104,54 @@ export default async function MyProgramsPage() {
                 <section className="mr-section">
                   <p className="mr-section__label">Active Registrations</p>
                   <div className="mr-cards">
-                    {active.map((r) => (
-                      <div key={r.id} className="mr-card">
-                        <div className="mr-card__header">
-                          <Link href={`/programs/${r.programSlug}`} className="mr-card__title">
-                            {r.programTitle}
-                          </Link>
-                          <StatusBadge status={r.status} />
-                        </div>
-
-                        {(r.sanity?.dateText || buildDateLabel(r.sanity ?? {})) && (
-                          <p className="mr-card__meta">{r.sanity?.dateText || buildDateLabel(r.sanity ?? {})}</p>
-                        )}
-                        {r.sanity?.locationText && (
-                          <p className="mr-card__meta">{r.sanity.locationText}</p>
-                        )}
-
-                        {r.status === "WAITLISTED" && r.waitlistPosition != null && (
-                          <p className="mr-card__waitlist">Position #{r.waitlistPosition} on waitlist</p>
-                        )}
-
-                        {r.donationStatus === "PENDING" && (
-                          <div className="mr-card__dana">
-                            <span>A spot opened up — please complete your dana offering.</span>
-                            <Link href={`/programs/${r.programSlug}/register`} className="mr-card__dana-link">
-                              Complete dana offering →
+                    {active.map((r) => {
+                      const pgProg = r.pgProgram;
+                      const dateStr = pgProg?.dateText || buildDateLabel({
+                        startDatetime: pgProg?.startDatetime?.toISOString() ?? null,
+                        endDatetime: pgProg?.endDatetime?.toISOString() ?? null,
+                        recurrenceFreq: pgProg?.recurrenceFreq ?? null,
+                        recurrenceInterval: pgProg?.recurrenceInterval ?? null,
+                        recurrenceDays: pgProg?.recurrenceDays ?? null,
+                      });
+                      return (
+                        <div key={r.id} className="mr-card">
+                          <div className="mr-card__header">
+                            <Link href={`/programs/${r.programSlug}`} className="mr-card__title">
+                              {r.programTitle}
                             </Link>
+                            <StatusBadge status={r.status} />
                           </div>
-                        )}
 
-                        <p className="mr-card__date">
-                          Registered {new Date(r.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-                        </p>
+                          {dateStr && (
+                            <p className="mr-card__meta">{dateStr}</p>
+                          )}
+                          {pgProg?.locationText && (
+                            <p className="mr-card__meta">{pgProg.locationText}</p>
+                          )}
 
-                        <div className="mr-card__actions">
-                          <CancelRegistrationButton id={r.id} programTitle={r.programTitle} />
+                          {r.status === "WAITLISTED" && r.waitlistPosition != null && (
+                            <p className="mr-card__waitlist">Position #{r.waitlistPosition} on waitlist</p>
+                          )}
+
+                          {r.donationStatus === "PENDING" && (
+                            <div className="mr-card__dana">
+                              <span>A spot opened up — please complete your dana offering.</span>
+                              <Link href={`/programs/${r.programSlug}/register`} className="mr-card__dana-link">
+                                Complete dana offering →
+                              </Link>
+                            </div>
+                          )}
+
+                          <p className="mr-card__date">
+                            Registered {new Date(r.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                          </p>
+
+                          <div className="mr-card__actions">
+                            <CancelRegistrationButton id={r.id} programTitle={r.programTitle} />
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </section>
               )}

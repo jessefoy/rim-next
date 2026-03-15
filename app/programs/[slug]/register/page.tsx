@@ -1,5 +1,3 @@
-import { sanityClient } from "@/lib/sanity";
-import { programBySlugQuery } from "@/lib/queries";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -11,30 +9,10 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const p = await sanityClient.fetch<{ name: string } | null>(
-    `*[_type == "programs" && slug.current == $slug && !(_id in path("drafts.**"))][0] { name }`,
-    { slug }
-  );
+  const p = await db.program.findUnique({ where: { slug }, select: { name: true } });
   return {
     title: p ? `Register — ${p.name} — Rooted In Mindfulness` : "Register",
   };
-}
-
-interface RegisterProgram {
-  _id: string;
-  name: string;
-  slug: { current: string };
-  registrationEnabled?: boolean;
-  registrationCapacity?: number | null;
-  registrationDeadline?: string | null;
-  danaMode?: string | null;
-  suggestedDana?: number | null;
-  danaBaseAmount?: number | null;
-  danaFixedAmount?: number | null;
-  danaMessage?: string | null;
-  registrationFields?: RegistrationField[];
-  dateText?: string | null;
-  locationText?: string | null;
 }
 
 export default async function RegisterPage({
@@ -44,16 +22,33 @@ export default async function RegisterPage({
 }) {
   const { slug } = await params;
 
-  const [program, session] = await Promise.all([
-    sanityClient.fetch<RegisterProgram | null>(programBySlugQuery, { slug }),
+  const [pgProgram, session] = await Promise.all([
+    db.program.findUnique({ where: { slug } }),
     auth(),
   ]);
 
   // Guard: unknown program
-  if (!program) redirect("/programs");
+  if (!pgProgram) redirect("/programs");
 
   // Guard: registration not enabled on this program — send to program page
-  if (!program.registrationEnabled) redirect(`/programs/${slug}`);
+  if (!pgProgram.registrationEnabled) redirect(`/programs/${slug}`);
+
+  // Adapt Postgres shape to the RegistrationForm's expected `program` prop
+  const program = {
+    _id: pgProgram.id,
+    slug: { current: pgProgram.slug },
+    name: pgProgram.name,
+    registrationCapacity: pgProgram.registrationCapacity,
+    registrationDeadline: pgProgram.registrationDeadline?.toISOString() ?? null,
+    danaMode: pgProgram.danaMode,
+    suggestedDana: pgProgram.suggestedDana,
+    danaBaseAmount: pgProgram.danaBaseAmount,
+    danaFixedAmount: pgProgram.danaFixedAmount,
+    danaMessage: pgProgram.danaMessage,
+    registrationFields: (pgProgram.registrationFields as RegistrationField[] | null) ?? undefined,
+    dateText: pgProgram.dateText,
+    locationText: pgProgram.locationText,
+  };
 
   // Fetch user-specific data in parallel
   const [activeCount, userProfile, existingRegistration] = await Promise.all([

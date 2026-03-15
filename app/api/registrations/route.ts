@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sendRegistrationEmail } from "@/lib/email";
-import { sanityClient } from "@/lib/sanity";
-import { portableTextToEmailHtml, portableTextToEmailText } from "@/lib/portableTextEmail";
+import { renderFormattedText } from "@/lib/renderRichContent";
 import { buildGoogleCalendarUrl, buildIcsUrl } from "@/lib/calendarLinks";
 import { resolveLocation } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
@@ -29,12 +28,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // Fetch registrationCapacity from Sanity (never trust the client)
-    const capacityData = await sanityClient.fetch<{ registrationCapacity?: number | null } | null>(
-      `*[_type == "programs" && _id == $id && !(_id in path("drafts.**"))][0]{ registrationCapacity }`,
-      { id: programId }
-    );
-    const registrationCapacity = capacityData?.registrationCapacity ?? null;
+    // Fetch program from Postgres (never trust the client for capacity)
+    const pgProgram = await db.program.findUnique({
+      where: { id: programId },
+      select: {
+        registrationCapacity: true,
+        registrationEnabled: true,
+        registrationClosed: true,
+        registrationDeadline: true,
+        confirmationMessage: true,
+        startDatetime: true,
+        endDatetime: true,
+        venue: true,
+        locationText: true,
+        locationLink: true,
+        recurrenceFreq: true,
+        recurrenceInterval: true,
+        recurrenceDays: true,
+        recurrenceCount: true,
+      },
+    });
+    const registrationCapacity = pgProgram?.registrationCapacity ?? null;
 
     // Count confirmed (non-cancelled, non-waitlisted) registrations
     const activeCount = await db.registration.count({
@@ -161,7 +175,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Fetch program-specific confirmation data from Sanity (fire-and-forget on error)
+    // Build confirmation email data from Postgres program
     let confirmationMessageHtml: string | undefined;
     let confirmationMessageText: string | undefined;
     let googleCalendarUrl: string | undefined;
@@ -169,52 +183,46 @@ export async function POST(request: NextRequest) {
     let resolvedLocationText: string | null = locationText ?? null;
     let resolvedDateText: string | null = dateText ?? null;
     try {
-      const prog = await sanityClient.fetch<{
-        confirmationMessage?: unknown[];
-        startDatetime?: string | null;
-        endDatetime?: string | null;
-        venue?: string | null;
-        locationText?: string | null;
-        locationLink?: string | null;
-        recurrenceFreq?: string | null;
-        recurrenceInterval?: number | null;
-        recurrenceDays?: string[] | null;
-        recurrenceCount?: number | null;
-      } | null>(
-        `*[_type == "programs" && _id == $id && !(_id in path("drafts.**"))][0]{
-          confirmationMessage, startDatetime, endDatetime,
-          venue, locationText, locationLink,
-          recurrenceFreq, recurrenceInterval, recurrenceDays, recurrenceCount
-        }`,
-        { id: programId }
-      );
-      if (prog?.confirmationMessage?.length) {
-        confirmationMessageHtml = portableTextToEmailHtml(prog.confirmationMessage);
-        confirmationMessageText = portableTextToEmailText(prog.confirmationMessage);
-      }
-      // Resolve location (venue → RIM defaults, or custom text/link)
-      if (prog) {
-        const loc = resolveLocation(prog.venue, prog.locationText, prog.locationLink);
+      if (pgProgram) {
+        // Render Tiptap JSON confirmation message to HTML for email
+        if (pgProgram.confirmationMessage) {
+          const html = renderFormattedText(pgProgram.confirmationMessage);
+          if (html) {
+            confirmationMessageHtml = html;
+            // Strip HTML for plain text fallback
+            confirmationMessageText = html.replace(/<[^>]+>/g, "");
+          }
+        }
+        // Resolve location (venue → RIM defaults, or custom text/link)
+        const loc = resolveLocation(pgProgram.venue, pgProgram.locationText, pgProgram.locationLink);
         resolvedLocationText = loc.emailText;
-        if (!resolvedDateText) resolvedDateText = buildDateLabel(prog);
+        if (!resolvedDateText) {
+          resolvedDateText = buildDateLabel({
+            startDatetime: pgProgram.startDatetime?.toISOString() ?? null,
+            endDatetime: pgProgram.endDatetime?.toISOString() ?? null,
+            recurrenceFreq: pgProgram.recurrenceFreq,
+            recurrenceInterval: pgProgram.recurrenceInterval,
+            recurrenceDays: pgProgram.recurrenceDays,
+          });
+        }
         // Build calendar links only for confirmed (not waitlisted) registrations
-        if (prog.startDatetime && registration.status !== "WAITLISTED") {
+        if (pgProgram.startDatetime && registration.status !== "WAITLISTED") {
           googleCalendarUrl = buildGoogleCalendarUrl({
             title: programTitle,
-            startDatetime: prog.startDatetime,
-            endDatetime: prog.endDatetime,
+            startDatetime: pgProgram.startDatetime.toISOString(),
+            endDatetime: pgProgram.endDatetime?.toISOString() ?? null,
             location: loc.emailText ?? null,
             programSlug,
-            recurrenceFreq: prog.recurrenceFreq,
-            recurrenceInterval: prog.recurrenceInterval,
-            recurrenceDays: prog.recurrenceDays,
-            recurrenceCount: prog.recurrenceCount,
+            recurrenceFreq: pgProgram.recurrenceFreq,
+            recurrenceInterval: pgProgram.recurrenceInterval,
+            recurrenceDays: pgProgram.recurrenceDays,
+            recurrenceCount: pgProgram.recurrenceCount,
           });
           icsUrl = buildIcsUrl(programSlug);
         }
       }
     } catch (err) {
-      console.error("[registration] Failed to fetch confirmation data:", err);
+      console.error("[registration] Failed to build confirmation data:", err);
     }
 
     // Send confirmation email — fire-and-forget, never blocks the response

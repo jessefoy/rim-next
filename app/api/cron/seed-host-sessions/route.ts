@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { sanityClient } from "@/lib/sanity";
-import { allVirtualProgramsQuery } from "@/lib/queries";
 
 /**
  * GET /api/cron/seed-host-sessions
  *
- * Daily cron (2:00 AM UTC) — reads all virtual/hybrid programs from Sanity,
+ * Daily cron (2:00 AM UTC) — reads all virtual/hybrid programs from Postgres,
  * generates session dates within the next 60 days, and creates unclaimed
  * HostAssignment records (userId = null) for any dates not already in the DB.
  *
@@ -28,15 +26,15 @@ import { allVirtualProgramsQuery } from "@/lib/queries";
  * Vercel passes CRON_SECRET automatically as: Authorization: Bearer <secret>
  */
 
-interface SanityProgram {
-  _id: string;
+interface PgProgram {
+  id: string;
   name: string;
   slug: string;
-  startDatetime?: string | null;
-  recurrenceFreq?: string | null;
-  recurrenceInterval?: number | null;
-  recurrenceDays?: string[] | null;
-  recurrenceCount?: number | null;
+  startDatetime: Date | null;
+  recurrenceFreq: string | null;
+  recurrenceInterval: number | null;
+  recurrenceDays: string[];
+  recurrenceCount: number | null;
 }
 
 const DAY_CODES: Record<string, number> = {
@@ -77,18 +75,18 @@ function monthKey(d: Date): string {
  * Does NOT apply recurrenceCount capping — caller handles that.
  */
 function generateCandidates(
-  program: SanityProgram,
+  program: PgProgram,
   windowStart: Date,
   windowEnd: Date,
 ): Date[] {
   if (!program.startDatetime) return [];
 
-  const wc = parseWallClock(program.startDatetime);
+  const wc = parseWallClock(program.startDatetime.toISOString());
   if (!wc) return [];
 
   // Build the first occurrence as a wall-clock date (UTC on Vercel = correct calendar day)
   const startWall = new Date(wc.year, wc.month, wc.date, wc.hours, wc.minutes, 0, 0);
-  const freq = program.recurrenceFreq ?? null;
+  const freq = program.recurrenceFreq?.toLowerCase() ?? null;
 
   // ── Single event (no recurrence freq) ──────────────────────────────────────
   if (!freq) {
@@ -183,8 +181,24 @@ export async function GET(req: NextRequest) {
     if (a.sessionDate) existingSessionMonths.add(monthKey(a.sessionDate));
   }
 
-  // ── Fetch all virtual/hybrid programs from Sanity ───────────────────────────
-  const programs = await sanityClient.fetch<SanityProgram[]>(allVirtualProgramsQuery);
+  // ── Fetch all virtual/hybrid programs from Postgres ─────────────────────────
+  const programs = await db.program.findMany({
+    where: {
+      programFormat: { in: ["virtual", "hybrid"] },
+      startDatetime: { not: null },
+    },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      startDatetime: true,
+      recurrenceFreq: true,
+      recurrenceInterval: true,
+      recurrenceDays: true,
+      recurrenceCount: true,
+    },
+    orderBy: { sortOrder: "asc" },
+  });
 
   let sessionsCreated = 0;
   const newlySeededMonths = new Set<string>(); // months that got any new sessions this run

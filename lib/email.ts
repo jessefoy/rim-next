@@ -4,6 +4,7 @@ import {
   portableTextToEmailText,
   portableTextToMarkdown,
 } from "@/lib/portableTextEmail";
+import { renderFormattedText } from "@/lib/renderRichContent";
 import { db } from "@/lib/db";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -625,7 +626,10 @@ export interface ReminderEmailData {
   locationText?: string | null;
   locationLink?: string | null;
   zoomLink?: string | null;
-  reminderMessage?: PortableTextBlock[] | null;
+  // Accepts either Tiptap JSON (from Postgres) or Portable Text array (legacy).
+  // Tiptap JSON has { type: "doc", content: [...] }. Portable Text is an array of blocks.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  reminderMessage?: any;
 }
 
 /**
@@ -637,11 +641,20 @@ export async function sendReminderEmail(data: ReminderEmailData): Promise<void> 
   const locationText = data.locationLink
     ? `[${data.locationText}](${data.locationLink})`
     : (data.locationText ?? "");
-  // Use portableTextToMarkdown so bold, italic, and links survive the
-  // markdown → HTML conversion in the template engine.
-  const reminderMessage = data.reminderMessage?.length
-    ? portableTextToMarkdown(data.reminderMessage)
-    : "";
+
+  // Render reminder message — detect Tiptap JSON vs Portable Text
+  let reminderMessage = "";
+  if (data.reminderMessage) {
+    if (data.reminderMessage?.type === "doc" && Array.isArray(data.reminderMessage?.content)) {
+      // Tiptap JSON — render to HTML, then strip tags for markdown template
+      const html = renderFormattedText(data.reminderMessage);
+      reminderMessage = html.replace(/<[^>]+>/g, "").trim();
+    } else if (Array.isArray(data.reminderMessage) && data.reminderMessage.length > 0) {
+      // Legacy Portable Text array
+      reminderMessage = portableTextToMarkdown(data.reminderMessage);
+    }
+  }
+
   await sendTemplatedEmail("session-reminder", data.to, {
     firstName:       data.firstName,
     programTitle:    data.programTitle,

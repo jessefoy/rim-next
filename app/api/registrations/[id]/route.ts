@@ -10,10 +10,8 @@ import {
   sendRegistrationEmail,
   sendReminderEmail,
 } from "@/lib/email";
-import { portableTextToEmailHtml, portableTextToEmailText } from "@/lib/portableTextEmail";
+import { renderFormattedText } from "@/lib/renderRichContent";
 import { buildGoogleCalendarUrl, buildIcsUrl } from "@/lib/calendarLinks";
-import { sanityClient } from "@/lib/sanity";
-import { programConfirmationDataQuery, programReminderDataQuery } from "@/lib/queries";
 import { resolveLocation } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
 
@@ -60,18 +58,26 @@ export async function PATCH(
       if (!reg || reg.status === "CANCELLED") {
         return NextResponse.json({ error: "Invalid registration" }, { status: 400 });
       }
-      const data = await sanityClient.fetch(programReminderDataQuery, { slug: reg.programSlug });
-      const loc = resolveLocation(data?.venue, data?.locationText, data?.locationLink);
+      const pgProgram = await db.program.findUnique({ where: { slug: reg.programSlug } });
+      const loc = resolveLocation(pgProgram?.venue, pgProgram?.locationText, pgProgram?.locationLink);
+      const startIso = pgProgram?.startDatetime?.toISOString() ?? null;
+      const endIso = pgProgram?.endDatetime?.toISOString() ?? null;
       await sendReminderEmail({
         to:           reg.email,
         firstName:    reg.firstName,
         programTitle: reg.programTitle,
         programSlug:  reg.programSlug,
-        dateText:     data?.dateText || buildDateLabel(data) || undefined,
+        dateText:     pgProgram?.dateText || buildDateLabel({
+          startDatetime: startIso,
+          endDatetime: endIso,
+          recurrenceFreq: pgProgram?.recurrenceFreq ?? null,
+          recurrenceInterval: pgProgram?.recurrenceInterval ?? null,
+          recurrenceDays: pgProgram?.recurrenceDays ?? null,
+        }) || undefined,
         locationText: loc.emailText,
         locationLink: loc.link,
-        zoomLink:     data?.zoomLink,
-        reminderMessage: data?.reminderMessage,
+        zoomLink:     pgProgram?.zoomLink,
+        reminderMessage: pgProgram?.reminderMessage,
       });
       const updated = await db.registration.update({
         where: { id },
@@ -107,31 +113,36 @@ export async function PATCH(
       if (!reg || reg.status === "CANCELLED") {
         return NextResponse.json({ error: "Invalid registration" }, { status: 400 });
       }
-      // Fetch program data from Sanity for email content + calendar links
-      const data = await sanityClient.fetch(programConfirmationDataQuery, { slug: reg.programSlug });
+      // Fetch program data from Postgres for email content + calendar links
+      const pgProgram = await db.program.findUnique({ where: { slug: reg.programSlug } });
 
-      const confirmationMessageHtml = data?.confirmationMessage?.length
-        ? portableTextToEmailHtml(data.confirmationMessage)
-        : undefined;
-      const confirmationMessageText = data?.confirmationMessage?.length
-        ? portableTextToEmailText(data.confirmationMessage)
-        : undefined;
+      let confirmationMessageHtml: string | undefined;
+      let confirmationMessageText: string | undefined;
+      if (pgProgram?.confirmationMessage) {
+        const html = renderFormattedText(pgProgram.confirmationMessage);
+        if (html) {
+          confirmationMessageHtml = html;
+          confirmationMessageText = html.replace(/<[^>]+>/g, "");
+        }
+      }
 
-      const loc = resolveLocation(data?.venue, data?.locationText, data?.locationLink);
+      const loc = resolveLocation(pgProgram?.venue, pgProgram?.locationText, pgProgram?.locationLink);
+      const startIso = pgProgram?.startDatetime?.toISOString() ?? null;
+      const endIso = pgProgram?.endDatetime?.toISOString() ?? null;
 
       let googleCalendarUrl: string | undefined;
       let icsUrl: string | undefined;
-      if (data?.startDatetime && reg.status !== "WAITLISTED") {
+      if (startIso && reg.status !== "WAITLISTED") {
         googleCalendarUrl = buildGoogleCalendarUrl({
           title: reg.programTitle,
-          startDatetime: data.startDatetime,
-          endDatetime: data.endDatetime,
+          startDatetime: startIso,
+          endDatetime: endIso,
           location: loc.emailText ?? undefined,
           programSlug: reg.programSlug,
-          recurrenceFreq: data.recurrenceFreq,
-          recurrenceInterval: data.recurrenceInterval,
-          recurrenceDays: data.recurrenceDays,
-          recurrenceCount: data.recurrenceCount,
+          recurrenceFreq: pgProgram?.recurrenceFreq ?? null,
+          recurrenceInterval: pgProgram?.recurrenceInterval ?? null,
+          recurrenceDays: pgProgram?.recurrenceDays ?? null,
+          recurrenceCount: pgProgram?.recurrenceCount ?? null,
         });
         icsUrl = buildIcsUrl(reg.programSlug);
       }
@@ -143,7 +154,13 @@ export async function PATCH(
         programSlug:   reg.programSlug,
         status:        reg.status === "WAITLISTED" ? "WAITLISTED" : "REGISTERED",
         waitlistPosition: reg.waitlistPosition,
-        dateText:      data?.dateText || buildDateLabel(data) || undefined,
+        dateText:      pgProgram?.dateText || buildDateLabel({
+          startDatetime: startIso,
+          endDatetime: endIso,
+          recurrenceFreq: pgProgram?.recurrenceFreq ?? null,
+          recurrenceInterval: pgProgram?.recurrenceInterval ?? null,
+          recurrenceDays: pgProgram?.recurrenceDays ?? null,
+        }) || undefined,
         locationText:  loc.emailText,
         confirmationMessageHtml,
         confirmationMessageText,

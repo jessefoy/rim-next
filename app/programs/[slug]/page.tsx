@@ -1,107 +1,17 @@
-import { sanityClient } from "@/lib/sanity";
-import { programBySlugQuery, allProgramSlugsQuery } from "@/lib/queries";
-import { PortableText } from "@portabletext/react";
+import { db } from "@/lib/db";
 import { auth } from "@/auth";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import TeacherList from "@/components/TeacherList";
-import { db } from "@/lib/db";
 import { buildGoogleCalendarUrl, buildIcsUrl, describeRecurrence } from "@/lib/calendarLinks";
 import { resolveLocation } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
+import { renderContentBody, renderFormattedText } from "@/lib/renderRichContent";
 
-export const revalidate = 60;
-
-interface Teacher {
-  name: string;
-  slug: { current: string };
-  title?: string;
-  bioPicture?: { asset: { url: string } };
-}
-
-interface Program {
-  _id: string;
-  name: string;
-  slug: { current: string };
-  tagline?: string;
-  dateText?: string;
-  startDatetime?: string | null;
-  endDatetime?: string | null;
-  recurrenceFreq?: string | null;
-  recurrenceInterval?: number | null;
-  recurrenceDays?: string[] | null;
-  recurrenceCount?: number | null;
-  programFormat?: string | null;
-  venue?: string | null;
-  locationText?: string | null;
-  locationLink?: string | null;
-  danaText?: string;
-  registrationClosed?: boolean;
-  registrationEnabled?: boolean;
-  registrationCapacity?: number | null;
-  registrationDeadline?: string | null;
-  danaMode?: string | null;
-  suggestedDana?: number | null;
-  danaBaseAmount?: number | null;
-  danaFixedAmount?: number | null;
-  danaMessage?: string | null;
-  registrationFields?: any[];
-  zoomLink?: string;
-  quote?: string;
-  quoteSource?: string;
-  programDescription?: any[];
-  specialNotes?: any[];
-  programCategory?: { name: string; slug: { current: string } };
-  teacherFacilitators?: Teacher[];
-  dayOfWeek?: { name: string; slug: { current: string } }[];
-  largeProgramImage?: { asset: { url: string } };
-}
-
-/* Shared PortableText component map — same custom blocks as lesson page */
-const portableTextComponents = {
-  types: {
-    practiceCallout: ({ value }: any) => (
-      <div className="lp-callout">
-        <p className="lp-callout__title">{value.title || "Practice Suggestion"}</p>
-        {value.content && (
-          <div className="lp-callout__content">
-            <PortableText value={value.content} />
-          </div>
-        )}
-      </div>
-    ),
-    bodyQuote: ({ value }: any) => (
-      /* <div> not <blockquote> — avoids Webflow's blockquote element styles */
-      <div className="lp-body-quote">
-        <p className="lp-body-quote__text">{value.quote}</p>
-        {value.attribution && (
-          <cite className="lp-body-quote__cite">— {value.attribution}</cite>
-        )}
-      </div>
-    ),
-    verseQuote: ({ value }: any) => (
-      /* <div> not <blockquote> — avoids Webflow's blockquote element styles */
-      <div className="lp-verse-quote">
-        <p className="lp-verse-quote__text">{value.quote}</p>
-        {value.attribution && (
-          <cite className="lp-verse-quote__cite">— {value.attribution}</cite>
-        )}
-      </div>
-    ),
-    calloutText: ({ value }: any) => (
-      <p className="lp-callout-text">{value.text}</p>
-    ),
-  },
-};
-
-export async function generateStaticParams() {
-  const slugs = await sanityClient.fetch<{ slug: string }[]>(allProgramSlugsQuery);
-  return slugs.map((s) => ({ slug: s.slug }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const program = await sanityClient.fetch<Program | null>(programBySlugQuery, { slug });
+  const program = await db.program.findUnique({ where: { slug }, select: { name: true } });
   return {
     title: program ? `${program.name} — Rooted In Mindfulness` : "Program Not Found",
   };
@@ -117,7 +27,10 @@ export default async function ProgramDetailPage({
   const { slug } = await params;
   const resolvedSearch = searchParams ? await searchParams : {};
   const [program, session] = await Promise.all([
-    sanityClient.fetch<Program | null>(programBySlugQuery, { slug }),
+    db.program.findUnique({
+      where: { slug },
+      include: { category: true },
+    }),
     auth(),
   ]);
 
@@ -133,7 +46,7 @@ export default async function ProgramDetailPage({
   const [activeCount, userProfile, existingRegistration] = await Promise.all([
     useBuiltInForm && program.registrationCapacity
       ? db.registration.count({
-          where: { programId: program._id, status: { in: ["REGISTERED", "APPROVED"] } },
+          where: { programId: program.id, status: { in: ["REGISTERED", "APPROVED"] } },
         })
       : Promise.resolve(0),
     useBuiltInForm && session?.user?.id
@@ -145,7 +58,7 @@ export default async function ProgramDetailPage({
     useBuiltInForm && session?.user?.id
       ? db.registration.findFirst({
           where: {
-            programId: program._id,
+            programId: program.id,
             userId: session.user.id,
             status: { not: "CANCELLED" },
           },
@@ -157,30 +70,38 @@ export default async function ProgramDetailPage({
     useBuiltInForm && program.registrationCapacity
       ? Math.max(0, program.registrationCapacity - activeCount)
       : null;
-  const isFull = spotsRemaining !== null && spotsRemaining === 0;
   const showLowSpots = spotsRemaining !== null && spotsRemaining > 0 && spotsRemaining <= 5;
 
   // Resolve location from venue + programFormat
   const location = resolveLocation(program.venue, program.locationText, program.locationLink);
   const showWhere = program.programFormat !== "virtual" && !!location.text;
-  const dateLabel = program.dateText || buildDateLabel(program);
+  const startIso = program.startDatetime?.toISOString() ?? null;
+  const endIso = program.endDatetime?.toISOString() ?? null;
+  const dateLabel = program.dateText || buildDateLabel({
+    startDatetime: startIso,
+    endDatetime: endIso,
+    recurrenceFreq: program.recurrenceFreq,
+    recurrenceInterval: program.recurrenceInterval,
+    recurrenceDays: program.recurrenceDays,
+  });
   const hasDetails = !!(dateLabel || showWhere || program.danaText);
-  const hasFacilitators = !!(program.teacherFacilitators && program.teacherFacilitators.length > 0);
-  const hasDescription = !!(program.programDescription && program.programDescription.length > 0);
-  const hasSpecialNotes = !!(program.specialNotes && program.specialNotes.length > 0);
+  const hasFacilitators = program.teacherFacilitators.length > 0;
+  const hasDescription = !!program.description;
+  const hasSpecialNotes = !!program.specialNotes;
+
+  // Render Tiptap JSON to HTML
+  const descriptionHtml = hasDescription ? renderContentBody(program.description) : "";
+  const specialNotesHtml = hasSpecialNotes ? renderFormattedText(program.specialNotes) : "";
 
   return (
     <div className="pg-page">
 
-      {/* ── Hero header — placeholder for future design refinement ──
-          Currently: solid --rim-blue band with category, title, tagline.
-          TODO: Explore a more distinctive treatment (texture, image, etc.)
-          once the rest of the design system is settled. */}
+      {/* ── Hero header ── */}
       <header className="pg-hero">
         <div className="pg-hero__inner">
-          {program.programCategory && (
+          {program.category && (
             <Link href="/community-programs" className="pg-hero__category">
-              {program.programCategory.name}
+              {program.category.name}
             </Link>
           )}
           <h1 className="pg-hero__title">{program.name}</h1>
@@ -205,10 +126,7 @@ export default async function ProgramDetailPage({
           </div>
         )}
 
-        {/* Details card — floats up into the hero header (~1/3 overlap).
-            Date / time / location / dana / registration CTA.
-            Placed first so visitors can quickly assess attendance
-            feasibility before reading the full description. */}
+        {/* Details card */}
         {hasDetails && (
           <div className="pg-details">
             {dateLabel && (
@@ -241,7 +159,7 @@ export default async function ProgramDetailPage({
                 <span className="pg-details__value">{program.danaText}</span>
               </div>
             )}
-            {/* ── Registration CTA — built-in form → links to /register page ── */}
+            {/* ── Registration CTA ── */}
             {useBuiltInForm && (
               <div className="pg-details__row pg-details__row--cta">
                 <span className="pg-details__label"></span>
@@ -257,7 +175,7 @@ export default async function ProgramDetailPage({
                   ) : existingRegistration ? (
                     <>
                       <span className="pg-register-status">✓ You&rsquo;re registered.</span>
-                      {program.startDatetime && (() => {
+                      {startIso && (() => {
                         const rec = describeRecurrence(
                           program.recurrenceFreq,
                           program.recurrenceInterval,
@@ -269,8 +187,8 @@ export default async function ProgramDetailPage({
                             <a
                               href={buildGoogleCalendarUrl({
                                 title: program.name,
-                                startDatetime: program.startDatetime!,
-                                endDatetime: program.endDatetime,
+                                startDatetime: startIso,
+                                endDatetime: endIso,
                                 location: location.emailText ?? undefined,
                                 programSlug: slug,
                                 recurrenceFreq: program.recurrenceFreq,
@@ -325,44 +243,38 @@ export default async function ProgramDetailPage({
           </div>
         )}
 
-        {/* Pull quote — editorial style, no box. Sits below the details card. */}
-        {program.quote && (
+        {/* Pull quote */}
+        {program.pullQuote && (
           <figure className="lp-pullquote">
-            {program.quote}
-            {program.quoteSource && (
-              <cite className="lp-pullquote__cite">— {program.quoteSource}</cite>
+            {program.pullQuote}
+            {program.pullQuoteSource && (
+              <cite className="lp-pullquote__cite">— {program.pullQuoteSource}</cite>
             )}
           </figure>
         )}
 
-        {/* Program description — PortableText with full custom block support */}
+        {/* Program description — Tiptap JSON rendered to HTML */}
         {hasDescription && (
-          <div className="lp-body">
-            <PortableText
-              value={program.programDescription as any}
-              components={portableTextComponents}
-            />
-          </div>
+          <div className="lp-body" dangerouslySetInnerHTML={{ __html: descriptionHtml }} />
         )}
 
-        {/* Special notes — additional context (location details, schedule, etc.) */}
+        {/* Special notes */}
         {hasSpecialNotes && (
           <div className="pg-notes">
-            <div className="lp-body">
-              <PortableText value={program.specialNotes as any} />
-            </div>
+            <div className="lp-body" dangerouslySetInnerHTML={{ __html: specialNotesHtml }} />
           </div>
         )}
 
-        {/* Facilitators */}
+        {/* Facilitators — plain text names from Postgres */}
         {hasFacilitators && (
           <>
             <hr className="lp-divider" />
             <p className="lp-label">Facilitators</p>
-            <TeacherList
-              teachers={program.teacherFacilitators!}
-              variant="program"
-            />
+            <div className="pg-facilitators">
+              {program.teacherFacilitators.map((name, i) => (
+                <span key={i} className="pg-facilitator">{name}</span>
+              ))}
+            </div>
           </>
         )}
 

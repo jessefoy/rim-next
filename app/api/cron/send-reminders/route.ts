@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { sanityClient } from "@/lib/sanity";
-import { programsWithReminderInWindowQuery } from "@/lib/queries";
 import { sendReminderEmail } from "@/lib/email";
 import { resolveLocation } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
@@ -23,14 +21,19 @@ export async function GET(req: NextRequest) {
   const since = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
   // Find all programs with a reminderDate in the past 24-hour window
-  const programs = await sanityClient.fetch(programsWithReminderInWindowQuery, {
-    since: since.toISOString(),
-    now:   now.toISOString(),
+  const programs = await db.program.findMany({
+    where: {
+      reminderDate: {
+        gte: since,
+        lte: now,
+      },
+      registrationEnabled: true,
+    },
   });
 
   let totalSent = 0;
 
-  for (const program of (programs ?? [])) {
+  for (const program of programs) {
     // Find registrants for this program who haven't yet received the reminder
     const registrations = await db.registration.findMany({
       where: {
@@ -41,6 +44,8 @@ export async function GET(req: NextRequest) {
     });
 
     const loc = resolveLocation(program.venue, program.locationText, program.locationLink);
+    const startIso = program.startDatetime?.toISOString() ?? null;
+    const endIso = program.endDatetime?.toISOString() ?? null;
 
     for (const reg of registrations) {
       await sendReminderEmail({
@@ -48,7 +53,13 @@ export async function GET(req: NextRequest) {
         firstName:    reg.firstName,
         programTitle: reg.programTitle,
         programSlug:  reg.programSlug,
-        dateText:     program.dateText || buildDateLabel(program),
+        dateText:     program.dateText || buildDateLabel({
+          startDatetime: startIso,
+          endDatetime: endIso,
+          recurrenceFreq: program.recurrenceFreq,
+          recurrenceInterval: program.recurrenceInterval,
+          recurrenceDays: program.recurrenceDays,
+        }),
         locationText: loc.emailText,
         locationLink: loc.link,
         zoomLink:     program.zoomLink,
@@ -62,6 +73,6 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  console.log(`[cron] send-reminders: sent ${totalSent} emails for ${(programs ?? []).length} program(s)`);
+  console.log(`[cron] send-reminders: sent ${totalSent} emails for ${programs.length} program(s)`);
   return NextResponse.json({ ok: true, sent: totalSent });
 }

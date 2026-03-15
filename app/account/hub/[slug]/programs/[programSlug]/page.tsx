@@ -6,7 +6,6 @@
 
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { sanityClient } from "@/lib/sanity";
 import { db } from "@/lib/db";
 import { getHubMembership } from "@/lib/hubAuth";
 import Link from "next/link";
@@ -15,29 +14,6 @@ import CreateMeetButton from "@/components/registrar/CreateMeetButton";
 import type { RegistrationField } from "@/components/RegistrationForm";
 
 export const dynamic = "force-dynamic";
-
-const programForVolunteerQuery = `*[_type == "programs" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
-  _id, name, slug, tagline, registrationCapacity, danaMode, reminderDate,
-  programFormat, startDatetime, endDatetime, zoomLink, meetHostAccount, calendarEventId,
-  registrationFields[] { _key, label, fieldType, required, options }
-}`;
-
-interface SanityProgram {
-  _id: string;
-  name: string;
-  slug: { current: string };
-  tagline?: string;
-  registrationCapacity?: number | null;
-  danaMode?: string | null;
-  reminderDate?: string | null;
-  programFormat?: string | null;
-  startDatetime?: string | null;
-  endDatetime?: string | null;
-  zoomLink?: string | null;
-  meetHostAccount?: string | null;
-  calendarEventId?: string | null;
-  registrationFields?: RegistrationField[];
-}
 
 export default async function RegistrarProgramDetailPage({
   params,
@@ -57,7 +33,25 @@ export default async function RegistrarProgramDetailPage({
   if (!isRegistrar) redirect(`/account/hub/${slug}/programs`);
 
   const [program, registrations] = await Promise.all([
-    sanityClient.fetch<SanityProgram | null>(programForVolunteerQuery, { slug: programSlug }),
+    db.program.findUnique({
+      where: { slug: programSlug },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        tagline: true,
+        registrationCapacity: true,
+        danaMode: true,
+        reminderDate: true,
+        programFormat: true,
+        startDatetime: true,
+        endDatetime: true,
+        zoomLink: true,
+        meetHostAccount: true,
+        calendarEventId: true,
+        registrationFields: true,
+      },
+    }),
     db.registration.findMany({
       where: { programSlug },
       orderBy: { createdAt: "asc" },
@@ -123,8 +117,8 @@ export default async function RegistrarProgramDetailPage({
           programTitle={program.name}
           danaMode={program.danaMode ?? null}
           registrationCapacity={program.registrationCapacity ?? null}
-          registrationFields={program.registrationFields ?? []}
-          reminderDate={program.reminderDate ?? null}
+          registrationFields={(program.registrationFields as RegistrationField[] | null) ?? []}
+          reminderDate={program.reminderDate?.toISOString() ?? null}
         />
 
       </div>

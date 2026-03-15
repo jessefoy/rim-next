@@ -10,7 +10,6 @@
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { sanityClient } from "@/lib/sanity";
 import { getHubMembership } from "@/lib/hubAuth";
 import Link from "next/link";
 
@@ -149,18 +148,16 @@ export default async function TeamHistoryPage({
     }
   }
 
-  // ── Fetch Sanity program names ─────────────────────────────────────────────
+  // ── Fetch program names from Postgres ─────────────────────────────────────
   const uniqueSlugs = [...new Set(allSessions.map((s) => s.programSlug))];
-  const sanityPrograms = uniqueSlugs.length > 0
-    ? await sanityClient.fetch<Array<{ slug: string; name: string }>>(
-        `*[_type == "programs" && slug.current in $slugs && !(_id in path("drafts.**"))]{
-          "slug": slug.current, name
-        }`,
-        { slugs: uniqueSlugs }
-      )
+  const pgPrograms = uniqueSlugs.length > 0
+    ? await db.program.findMany({
+        where: { slug: { in: uniqueSlugs } },
+        select: { slug: true, name: true },
+      })
     : [];
 
-  const nameBySlug = new Map(sanityPrograms.map((p) => [p.slug, p.name]));
+  const nameBySlug = new Map(pgPrograms.map((p) => [p.slug, p.name]));
 
   // ── Paginate ──────────────────────────────────────────────────────────────
   const totalPages = Math.max(1, Math.ceil(allSessions.length / PAGE_SIZE));

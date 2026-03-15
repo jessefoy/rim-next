@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { sanityClient } from "@/lib/sanity";
-import { programReminderDataQuery } from "@/lib/queries";
 import { sendReminderEmail } from "@/lib/email";
 import { resolveLocation } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
@@ -23,8 +21,8 @@ export async function POST(
 
   const { slug } = await params;
 
-  // Fetch program details from Sanity (reminder message + schedule info)
-  const data = await sanityClient.fetch(programReminderDataQuery, { slug });
+  // Fetch program details from Postgres
+  const pgProgram = await db.program.findUnique({ where: { slug } });
 
   // Find all active registrants who haven't received the reminder yet
   const registrations = await db.registration.findMany({
@@ -36,7 +34,9 @@ export async function POST(
   });
 
   const now = new Date();
-  const loc = resolveLocation(data?.venue, data?.locationText, data?.locationLink);
+  const loc = resolveLocation(pgProgram?.venue, pgProgram?.locationText, pgProgram?.locationLink);
+  const startIso = pgProgram?.startDatetime?.toISOString() ?? null;
+  const endIso = pgProgram?.endDatetime?.toISOString() ?? null;
 
   for (const reg of registrations) {
     await sendReminderEmail({
@@ -44,11 +44,17 @@ export async function POST(
       firstName:    reg.firstName,
       programTitle: reg.programTitle,
       programSlug:  reg.programSlug,
-      dateText:     data?.dateText || buildDateLabel(data),
+      dateText:     pgProgram?.dateText || buildDateLabel({
+        startDatetime: startIso,
+        endDatetime: endIso,
+        recurrenceFreq: pgProgram?.recurrenceFreq ?? null,
+        recurrenceInterval: pgProgram?.recurrenceInterval ?? null,
+        recurrenceDays: pgProgram?.recurrenceDays ?? null,
+      }),
       locationText: loc.emailText,
       locationLink: loc.link,
-      zoomLink:     data?.zoomLink,
-      reminderMessage: data?.reminderMessage,
+      zoomLink:     pgProgram?.zoomLink,
+      reminderMessage: pgProgram?.reminderMessage,
     });
     await db.registration.update({
       where: { id: reg.id },

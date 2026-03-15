@@ -5,21 +5,10 @@
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { sanityClient } from "@/lib/sanity";
-import { hostProgramsQuery } from "@/lib/queries";
 import { getHubMembership } from "@/lib/hubAuth";
 import HubScheduleClient from "@/components/HubScheduleClient";
 
 export const dynamic = "force-dynamic";
-
-interface HostProgram {
-  _id: string;
-  name: string;
-  slug: string;
-  zoomLink: string;
-  meetHostAccount?: string | null;
-  programFormat?: string | null;
-}
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -58,7 +47,8 @@ export default async function HubSchedulePage({
   const startOfMonth = new Date(year, month, 1);
   const endOfMonth   = new Date(year, month + 1, 0, 23, 59, 59, 999);
 
-  const [assignments, programs] = await Promise.all([
+  // Fetch assignments and virtual/hybrid programs with zoomLink from Postgres
+  const [assignments, pgPrograms] = await Promise.all([
     db.hostAssignment.findMany({
       where: { sessionDate: { gte: startOfMonth, lte: endOfMonth } },
       include: {
@@ -67,10 +57,24 @@ export default async function HubSchedulePage({
       },
       orderBy: { sessionDate: "asc" },
     }),
-    sanityClient.fetch<HostProgram[]>(hostProgramsQuery),
+    db.program.findMany({
+      where: {
+        programFormat: { in: ["virtual", "hybrid"] },
+        zoomLink: { not: "" },
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        zoomLink: true,
+        meetHostAccount: true,
+        programFormat: true,
+      },
+      orderBy: { sortOrder: "asc" },
+    }),
   ]);
 
-  const programBySlug = new Map(programs.map((p) => [p.slug, p]));
+  const programBySlug = new Map(pgPrograms.map((p) => [p.slug, p]));
 
   const sessions = assignments.map((a) => {
     const openSub = a.subRequests[0] ?? null;
@@ -98,12 +102,12 @@ export default async function HubSchedulePage({
       zoomLink:        prog?.zoomLink ?? null,
       meetHostAccount: prog?.meetHostAccount ?? null,
       programFormat:   prog?.programFormat ?? null,
-      programId:       prog?._id ?? null,
+      programId:       prog?.id ?? null,
     };
   });
 
-  const serializedPrograms = programs.map((p) => ({
-    id:              p._id,
+  const serializedPrograms = pgPrograms.map((p) => ({
+    id:              p.id,
     slug:            p.slug,
     name:            p.name,
     zoomLink:        p.zoomLink ?? null,

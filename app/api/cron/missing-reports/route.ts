@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { sanityClient } from "@/lib/sanity";
 import { sendMissingReportEmail } from "@/lib/email";
 
 // ─── GET /api/cron/missing-reports ────────────────────────────────────────────
@@ -97,13 +96,11 @@ export async function GET(req: NextRequest) {
   // ── Fetch program names and assigned hosts for missing sessions ───────────
   const uniqueMissingSlugs = [...new Set(missingSessions.map((s) => s.programSlug))];
 
-  const [sanityPrograms, assignments] = await Promise.all([
-    sanityClient.fetch<Array<{ slug: string; name: string }>>(
-      `*[_type == "programs" && slug.current in $slugs && !(_id in path("drafts.**"))]{
-        "slug": slug.current, name
-      }`,
-      { slugs: uniqueMissingSlugs }
-    ),
+  const [pgPrograms, assignments] = await Promise.all([
+    db.program.findMany({
+      where: { slug: { in: uniqueMissingSlugs } },
+      select: { slug: true, name: true },
+    }),
     db.hostAssignment.findMany({
       where: {
         programSlug: { in: uniqueMissingSlugs },
@@ -116,7 +113,7 @@ export async function GET(req: NextRequest) {
     }),
   ]);
 
-  const nameBySlug = new Map(sanityPrograms.map((p) => [p.slug, p.name]));
+  const nameBySlug = new Map(pgPrograms.map((p) => [p.slug, p.name]));
   const hostBySlug = new Map(
     assignments
       .filter((a) => a.userId && a.user)

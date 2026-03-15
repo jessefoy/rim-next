@@ -1,6 +1,4 @@
 import { auth } from "@/auth";
-import { sanityClient } from "@/lib/sanity";
-import { virtualDashboardProgramsQuery } from "@/lib/queries";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
@@ -13,14 +11,14 @@ export const metadata = { title: "My Dashboard — Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
 
 interface VirtualProgram {
-  _id: string;
+  id: string;
   name: string;
   slug: string;
-  startDatetime: string | null;
-  endDatetime: string | null;
+  startDatetime: Date | null;
+  endDatetime: Date | null;
   recurrenceFreq: string | null;
   recurrenceInterval: number | null;
-  recurrenceDays: string[] | null;
+  recurrenceDays: string[];
   recurrenceCount: number | null;
   zoomLink: string | null;
 }
@@ -54,12 +52,13 @@ function dateToDayCode(dateStr: string): string {
  */
 function isOccurrenceToday(p: VirtualProgram, today: string): boolean {
   if (!p.startDatetime) return false;
-  const anchor = ctDateStr(p.startDatetime);
+  const anchor = ctDateStr(p.startDatetime.toISOString());
   if (anchor > today) return false; // hasn't started yet
 
   if (!p.recurrenceFreq) return anchor === today; // single event
 
-  if (p.recurrenceFreq === "weekly") {
+  const freq = p.recurrenceFreq.toLowerCase();
+  if (freq === "weekly") {
     const days = p.recurrenceDays ?? [];
     if (days.length > 0 && !days.includes(dateToDayCode(today))) return false;
 
@@ -131,25 +130,35 @@ export default async function DashboardPage() {
 
   const [allVirtual, upcomingRegistrations, pendingDana, hubMemberships] =
     await Promise.all([
-      sanityClient.fetch<VirtualProgram[]>(virtualDashboardProgramsQuery),
+      db.program.findMany({
+        where: {
+          programFormat: { in: ["virtual", "hybrid"] },
+          removeFromProgramList: false,
+        },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          startDatetime: true,
+          endDatetime: true,
+          recurrenceFreq: true,
+          recurrenceInterval: true,
+          recurrenceDays: true,
+          recurrenceCount: true,
+          zoomLink: true,
+        },
+        orderBy: { sortOrder: "asc" },
+      }),
       db.registration.findMany({
         where: { userId, status: { not: "CANCELLED" } },
-        select: { id: true, programTitle: true, programSlug: true },
+        select: {
+          id: true,
+          programTitle: true,
+          programSlug: true,
+          program: { select: { startDatetime: true } },
+        },
         orderBy: { createdAt: "desc" },
         take: 5,
-      }).then(async (regs) => {
-        // Enrich with start dates from Sanity
-        const slugs = regs.map((r) => r.programSlug);
-        const dates = slugs.length
-          ? await sanityClient.fetch<{ slug: string; startDatetime: string | null }[]>(
-              `*[_type == "programs" && slug.current in $slugs && !(_id in path("drafts.**"))]{
-                "slug": slug.current, startDatetime
-              }`,
-              { slugs }
-            )
-          : [];
-        const dateMap = new Map(dates.map((d) => [d.slug, d.startDatetime]));
-        return regs.map((r) => ({ ...r, startDatetime: dateMap.get(r.programSlug) ?? null }));
       }),
       db.registration.findMany({
         where: { userId, donationStatus: "PENDING" },
@@ -169,11 +178,13 @@ export default async function DashboardPage() {
   const now = new Date();
   const todaySessions = await Promise.all(
     todaySessionsRaw.map(async (p) => {
+      const startIso = p.startDatetime!.toISOString();
       // Shift anchor datetime to today's occurrence so live/later checks are correct
-      const start     = shiftToToday(p.startDatetime!, today);
+      const start     = shiftToToday(startIso, today);
       const liveStart = new Date(start.getTime() - 12 * 60 * 1000);
-      const liveEnd   = p.endDatetime
-        ? shiftToToday(p.endDatetime, today)
+      const endIso    = p.endDatetime?.toISOString() ?? null;
+      const liveEnd   = endIso
+        ? shiftToToday(endIso, today)
         : new Date(start.getTime() + 90 * 60 * 1000);
       const isLive       = now >= liveStart && now <= liveEnd;
       const isLaterToday = !isLive && start > now;
@@ -187,7 +198,7 @@ export default async function DashboardPage() {
         isRegistered = !!reg;
       }
 
-      return { ...p, isLive, isLaterToday, isRegistered, startTimeCT: fmtTimeCT(start.toISOString()), liveStartEpoch: liveStart.getTime() };
+      return { ...p, _id: p.id, isLive, isLaterToday, isRegistered, startTimeCT: fmtTimeCT(start.toISOString()), liveStartEpoch: liveStart.getTime() };
     })
   );
 
@@ -289,22 +300,25 @@ export default async function DashboardPage() {
             </div>
           ) : (
             <div className="db2-upcoming">
-              {upcomingRegistrations.map((r) => (
-                <Link key={r.id} href={`/programs/${r.programSlug}`} className="db2-upcoming__item">
-                  {r.startDatetime && (() => {
-                    const d = new Date(r.startDatetime);
-                    const mon = d.toLocaleDateString("en-US", { timeZone: "America/Chicago", month: "short" }).toUpperCase();
-                    const day = d.toLocaleDateString("en-US", { timeZone: "America/Chicago", day: "numeric" });
-                    return (
-                      <span className="db2-upcoming__date-block">
-                        <span className="db2-upcoming__date-month">{mon}</span>
-                        <span className="db2-upcoming__date-day">{day}</span>
-                      </span>
-                    );
-                  })()}
-                  <span className="db2-upcoming__title">{r.programTitle}</span>
-                </Link>
-              ))}
+              {upcomingRegistrations.map((r) => {
+                const startDt = r.program?.startDatetime;
+                return (
+                  <Link key={r.id} href={`/programs/${r.programSlug}`} className="db2-upcoming__item">
+                    {startDt && (() => {
+                      const d = new Date(startDt);
+                      const mon = d.toLocaleDateString("en-US", { timeZone: "America/Chicago", month: "short" }).toUpperCase();
+                      const day = d.toLocaleDateString("en-US", { timeZone: "America/Chicago", day: "numeric" });
+                      return (
+                        <span className="db2-upcoming__date-block">
+                          <span className="db2-upcoming__date-month">{mon}</span>
+                          <span className="db2-upcoming__date-day">{day}</span>
+                        </span>
+                      );
+                    })()}
+                    <span className="db2-upcoming__title">{r.programTitle}</span>
+                  </Link>
+                );
+              })}
             </div>
           )}
         </div>

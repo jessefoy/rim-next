@@ -1,15 +1,5 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { sanityClient } from "@/lib/sanity";
-import { programsBySlugArrayQuery } from "@/lib/queries";
-
-interface SanityProgram {
-  slug: string;
-  name: string;
-  dateText?: string;
-  locationText?: string;
-  zoomLink?: string;
-}
 
 export async function GET() {
   const session = await auth();
@@ -35,16 +25,16 @@ export async function GET() {
     return Response.json([]);
   }
 
+  // Look up program metadata from Postgres
   const slugs = [...new Set(registrations.map((r) => r.programSlug).filter(Boolean))];
-  const sanityPrograms = await sanityClient.fetch<SanityProgram[]>(
-    programsBySlugArrayQuery,
-    { slugs }
-  );
-
-  const sanityMap = Object.fromEntries(sanityPrograms.map((p) => [p.slug, p]));
+  const pgPrograms = await db.program.findMany({
+    where: { slug: { in: slugs } },
+    select: { slug: true, dateText: true, locationText: true, zoomLink: true },
+  });
+  const pgMap = Object.fromEntries(pgPrograms.map((p) => [p.slug, p]));
 
   const merged = registrations.map((r) => {
-    const sanity = r.programSlug ? sanityMap[r.programSlug] : null;
+    const pg = r.programSlug ? pgMap[r.programSlug] : null;
     return {
       id: r.id,
       programSlug: r.programSlug,
@@ -53,9 +43,9 @@ export async function GET() {
       donationStatus: r.donationStatus,
       waitlistPosition: r.waitlistPosition,
       createdAt: r.createdAt,
-      dateText: sanity?.dateText ?? null,
-      locationText: sanity?.locationText ?? null,
-      zoomLink: sanity?.zoomLink ?? null,
+      dateText: pg?.dateText ?? null,
+      locationText: pg?.locationText ?? null,
+      zoomLink: pg?.zoomLink ?? null,
     };
   });
 

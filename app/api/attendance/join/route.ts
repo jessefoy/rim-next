@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { sanityClient } from "@/lib/sanity";
 import {
   sendFirstTimeAttendeeEmail,
   sendReturningAfterAbsenceEmail,
@@ -49,21 +48,16 @@ function shiftToTodayDate(anchorISO: string, today: Date): Date {
  * Returns true if the program has no startDatetime — missing data never blocks attendance.
  */
 async function isWithinSessionWindow(slug: string, now: Date): Promise<boolean> {
-  const program = await sanityClient.fetch<{
-    startDatetime: string | null;
-    endDatetime: string | null;
-  } | null>(
-    `*[_type == "programs" && slug.current == $slug && !(_id in path("drafts.**"))][0]{
-      startDatetime, endDatetime
-    }`,
-    { slug }
-  );
+  const program = await db.program.findUnique({
+    where: { slug },
+    select: { startDatetime: true, endDatetime: true },
+  });
 
   if (!program?.startDatetime) return true; // no data → allow
 
-  const startToday = shiftToTodayDate(program.startDatetime, now);
+  const startToday = shiftToTodayDate(program.startDatetime.toISOString(), now);
   const endToday = program.endDatetime
-    ? shiftToTodayDate(program.endDatetime, now)
+    ? shiftToTodayDate(program.endDatetime.toISOString(), now)
     : new Date(startToday.getTime() + 3 * 60 * 60_000); // default 3-hour duration
 
   const windowStart = new Date(startToday.getTime() - 60 * 60_000); // 1h before

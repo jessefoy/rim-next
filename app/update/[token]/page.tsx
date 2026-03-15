@@ -1,6 +1,4 @@
 import { db } from "@/lib/db";
-import { sanityClient } from "@/lib/sanity";
-import { registrationFieldsBySlugQuery } from "@/lib/queries";
 import UpdateForm from "@/components/UpdateForm";
 
 interface PageProps {
@@ -9,7 +7,7 @@ interface PageProps {
 
 export const metadata = { title: "Update Your Responses — Rooted In Mindfulness" };
 
-// ─── Field definition from Sanity ────────────────────────────────────────────
+// ─── Field definition ────────────────────────────────────────────────────────
 
 export interface RegistrationField {
   _key: string;
@@ -39,12 +37,12 @@ export default async function UpdateResponsesPage({ params }: PageProps) {
     return <ErrorPage message="This link has expired. Please ask your registrar to send a new one." />;
   }
 
-  // Fetch program's field definitions from Sanity
-  const programData = await sanityClient.fetch<{ registrationFields?: RegistrationField[] } | null>(
-    registrationFieldsBySlugQuery,
-    { slug: registration.programSlug }
-  );
-  const fields: RegistrationField[] = programData?.registrationFields ?? [];
+  // Fetch program's field definitions from Postgres
+  const pgProgram = await db.program.findUnique({
+    where: { slug: registration.programSlug },
+    select: { registrationFields: true },
+  });
+  const fields: RegistrationField[] = (pgProgram?.registrationFields as RegistrationField[] | null) ?? [];
 
   return (
     <main>

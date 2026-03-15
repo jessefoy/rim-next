@@ -1,5 +1,4 @@
-import { sanityClient } from "@/lib/sanity";
-import { programsQuery, programCategoriesQuery } from "@/lib/queries";
+import { db } from "@/lib/db";
 import Link from "next/link";
 import ListRow from "@/components/ListRow";
 import { buildDateLabel } from "@/lib/dateLabel";
@@ -8,33 +7,19 @@ export const metadata = {
   title: "Programs and Events — Rooted In Mindfulness",
 };
 
-export const revalidate = 60;
-
-interface Program {
-  _id: string;
-  name: string;
-  slug: { current: string };
-  dateText?: string;
-  startDatetime?: string | null;
-  endDatetime?: string | null;
-  recurrenceFreq?: string | null;
-  recurrenceInterval?: number | null;
-  recurrenceDays?: string[] | null;
-  dashboardSpecialAnnouncement?: string;
-  programCategory?: { name: string; slug: { current: string } };
-}
-
-interface ProgramCategory {
-  _id: string;
-  name: string;
-  slug: { current: string };
-  description?: string;
-}
+export const dynamic = "force-dynamic";
 
 export default async function CommunityProgramsPage() {
-  const [programs, programCategories] = await Promise.all([
-    sanityClient.fetch<Program[]>(programsQuery),
-    sanityClient.fetch<ProgramCategory[]>(programCategoriesQuery),
+  const [programs, categories] = await Promise.all([
+    db.program.findMany({
+      where: { hideFromProgramPageList: false },
+      include: { category: true },
+      orderBy: { sortOrder: "asc" },
+    }),
+    db.programCategory.findMany({
+      where: { hideFromProgramsPage: false },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   return (
@@ -56,24 +41,30 @@ export default async function CommunityProgramsPage() {
 
       <div className="program-listing-section background-grey">
         <div className="content-container">
-          {programCategories.map((category) => {
+          {categories.map((category) => {
             const categoryPrograms = programs.filter(
-              (p) => p.programCategory?.name === category.name
+              (p) => p.category?.name === category.name
             );
             if (categoryPrograms.length === 0) return null;
 
             return (
-              <div key={category._id} className="program_category_container">
+              <div key={category.id} className="program_category_container">
                 <div className="program-list-header">
                   <h1 className="program-category-header">{category.name}</h1>
                 </div>
                 {categoryPrograms.map((program) => (
                   <ListRow
-                    key={program._id}
+                    key={program.id}
                     title={program.name}
-                    subtitle={program.dateText || buildDateLabel(program) || undefined}
-                    announcement={program.dashboardSpecialAnnouncement}
-                    href={`/programs/${program.slug.current}`}
+                    subtitle={program.dateText || buildDateLabel({
+                      startDatetime: program.startDatetime?.toISOString() ?? null,
+                      endDatetime: program.endDatetime?.toISOString() ?? null,
+                      recurrenceFreq: program.recurrenceFreq,
+                      recurrenceInterval: program.recurrenceInterval,
+                      recurrenceDays: program.recurrenceDays,
+                    }) || undefined}
+                    announcement={program.specialAnnouncement ?? undefined}
+                    href={`/programs/${program.slug}`}
                     buttonLabel="Learn More"
                   />
                 ))}

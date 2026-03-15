@@ -7,8 +7,6 @@
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { sanityClient } from "@/lib/sanity";
-import { sessionViewProgramsQuery } from "@/lib/queries";
 import SessionLiveClient, { type SessionProgram } from "@/components/SessionLiveClient";
 
 export const dynamic = "force-dynamic";
@@ -81,29 +79,29 @@ function fmtTodayFull(dateStr: string): string {
   });
 }
 
-// ── Sanity type ───────────────────────────────────────────────────────────────
+// ── Postgres program type ────────────────────────────────────────────────────
 
-interface SanityProgram {
-  _id: string;
+interface PgProgram {
+  id: string;
   name: string;
   slug: string;
-  startDatetime: string | null;
-  endDatetime: string | null;
+  startDatetime: Date | null;
+  endDatetime: Date | null;
   recurrenceFreq: string | null;
   recurrenceInterval: number | null;
-  recurrenceDays: string[] | null;
+  recurrenceDays: string[];
   recurrenceCount: number | null;
   zoomLink: string | null;
-  registrationEnabled: boolean | null;
+  registrationEnabled: boolean;
 }
 
-function isOccurrenceToday(p: SanityProgram, today: string): boolean {
+function isOccurrenceToday(p: PgProgram, today: string): boolean {
   if (!p.startDatetime) return false;
-  const anchor = ctDateStr(p.startDatetime);
+  const anchor = ctDateStr(p.startDatetime.toISOString());
   if (anchor > today) return false;
   if (!p.recurrenceFreq) return anchor === today;
 
-  if (p.recurrenceFreq === "weekly") {
+  if (p.recurrenceFreq === "weekly" || p.recurrenceFreq === "WEEKLY") {
     const days = p.recurrenceDays ?? [];
     if (days.length > 0 && !days.includes(dateToDayCode(today))) return false;
     const n = p.recurrenceInterval ?? 1;
@@ -163,7 +161,26 @@ export default async function SessionPage({
 
   // Fetch programs + today's attendance + today's session reports in parallel
   const [allPrograms, todayAttendance, todayReports] = await Promise.all([
-    sanityClient.fetch<SanityProgram[]>(sessionViewProgramsQuery),
+    db.program.findMany({
+      where: {
+        programFormat: { in: ["virtual", "hybrid"] },
+        removeFromProgramList: false,
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        startDatetime: true,
+        endDatetime: true,
+        recurrenceFreq: true,
+        recurrenceInterval: true,
+        recurrenceDays: true,
+        recurrenceCount: true,
+        zoomLink: true,
+        registrationEnabled: true,
+      },
+      orderBy: { sortOrder: "asc" },
+    }),
     db.sessionAttendance.findMany({
       where: { joinedAt: { gte: startOfDay, lte: endOfDay } },
       include: {
@@ -263,8 +280,10 @@ export default async function SessionPage({
     const attendees = attendanceBySlug.get(p.slug) ?? [];
     const attendeeUserIds = new Set(attendees.map((a) => a.userId));
 
-    const start = p.startDatetime ? shiftToToday(p.startDatetime, today) : null;
-    const end   = p.endDatetime   ? shiftToToday(p.endDatetime,   today) : null;
+    const startIso = p.startDatetime?.toISOString() ?? null;
+    const endIso = p.endDatetime?.toISOString() ?? null;
+    const start = startIso ? shiftToToday(startIso, today) : null;
+    const end   = endIso   ? shiftToToday(endIso,   today) : null;
 
     // Session ended if end time (or start + 90min) has passed
     const sessionEnd = end ?? (start ? new Date(start.getTime() + 90 * 60_000) : null);
@@ -284,7 +303,7 @@ export default async function SessionPage({
     const sessionEndedAt = sessionEndedBySlug.get(p.slug) ?? null;
 
     return {
-      _id: p._id,
+      _id: p.id,
       slug: p.slug,
       name: p.name,
       startTimeCT: start ? fmtTimeCT(start) : null,

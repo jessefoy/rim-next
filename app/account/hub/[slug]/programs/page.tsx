@@ -7,24 +7,11 @@
 
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { sanityClient } from "@/lib/sanity";
 import { db } from "@/lib/db";
 import { getHubMembership } from "@/lib/hubAuth";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
-
-const volunteerProgramsQuery = `*[_type == "programs" && !(_id in path("drafts.**"))] | order(sortOrder asc) {
-  _id, name, slug, tagline, registrationCapacity
-}`;
-
-interface SanityProgram {
-  _id: string;
-  name: string;
-  slug: { current: string };
-  tagline?: string;
-  registrationCapacity?: number | null;
-}
 
 export default async function RegistrarProgramsPage({
   params,
@@ -49,7 +36,18 @@ export default async function RegistrarProgramsPage({
   const roles = session.user.roles ?? [];
   const isRegistrar = roles.includes("REGISTRAR") || roles.includes("ADMIN");
 
-  const programs = await sanityClient.fetch<SanityProgram[]>(volunteerProgramsQuery);
+  const pgPrograms = await db.program.findMany({
+    orderBy: { sortOrder: "asc" },
+    select: { id: true, name: true, slug: true, tagline: true, registrationCapacity: true },
+  });
+  // Map to the shape used by the rest of the page
+  const programs = pgPrograms.map((p) => ({
+    _id: p.id,
+    name: p.name,
+    slug: { current: p.slug },
+    tagline: p.tagline,
+    registrationCapacity: p.registrationCapacity,
+  }));
 
   // Get registration counts grouped by program + status, and pending dana counts — in parallel
   const [counts, pendingDanaRows] = await Promise.all([

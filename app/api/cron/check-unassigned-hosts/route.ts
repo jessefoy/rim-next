@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { sanityClient } from "@/lib/sanity";
-import { allVirtualProgramsQuery } from "@/lib/queries";
 
 // GET /api/cron/check-unassigned-hosts
 // Daily cron — finds virtual programs with a startDatetime within 30 days that
@@ -11,13 +9,6 @@ import { allVirtualProgramsQuery } from "@/lib/queries";
 // created in the past 24 hours (prevents re-alerting on consecutive cron runs).
 //
 // Vercel passes CRON_SECRET automatically as: Authorization: Bearer <secret>
-
-interface SanityProgram {
-  _id: string;
-  name: string;
-  slug: string;
-  startDatetime?: string | null;
-}
 
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
@@ -29,14 +20,25 @@ export async function GET(req: NextRequest) {
   const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
   const since24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-  // Fetch all virtual/hybrid programs from Sanity
-  const programs = await sanityClient.fetch<SanityProgram[]>(allVirtualProgramsQuery);
+  // Fetch all virtual/hybrid programs from Postgres
+  const programs = await db.program.findMany({
+    where: {
+      programFormat: { in: ["virtual", "hybrid"] },
+      startDatetime: { not: null },
+    },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      startDatetime: true,
+    },
+    orderBy: { sortOrder: "asc" },
+  });
 
   // Filter to programs with startDatetime within the next 30 days
   const upcoming = programs.filter((p) => {
     if (!p.startDatetime) return false;
-    const dt = new Date(p.startDatetime);
-    return dt >= now && dt <= in30Days;
+    return p.startDatetime >= now && p.startDatetime <= in30Days;
   });
 
   if (upcoming.length === 0) {

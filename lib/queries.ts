@@ -1,5 +1,10 @@
 // All Sanity GROQ queries for RIM Next
+//
+// ⚠️ DEPRECATED (Phase 3c): All program-related queries below are no longer used.
+// Programs now read from Postgres. These constants are kept temporarily for reference
+// and will be removed in Phase 3d cleanup.
 
+/** @deprecated — Programs now read from Postgres (Phase 3c) */
 export const programsQuery = `*[_type == "programs" && !(_id in path("drafts.**")) && hideFromProgramPageList != true] | order(sortOrder asc) {
   _id,
   name,
@@ -30,6 +35,7 @@ export const programsQuery = `*[_type == "programs" && !(_id in path("drafts.**"
   largeProgramImage { asset-> { url } }
 }`;
 
+/** @deprecated — Programs now read from Postgres (Phase 3c) */
 export const programBySlugQuery = `*[_type == "programs" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
   _id,
   name,
@@ -79,10 +85,12 @@ export const programBySlugQuery = `*[_type == "programs" && slug.current == $slu
   largeProgramImage { asset-> { url } }
 }`;
 
+/** @deprecated — Programs now read from Postgres (Phase 3c) */
 export const programCategoriesQuery = `*[_type == "programCategories" && !(_id in path("drafts.**")) && hideFromProgramsPage != true] {
   _id, name, slug, description
 }`;
 
+/** @deprecated — Programs now read from Postgres (Phase 3c) */
 export const dashboardProgramsQuery = `*[_type == "programs" && !(_id in path("drafts.**")) && removeFromProgramList != true] | order(sortOrder asc) {
   _id,
   name,
@@ -99,6 +107,7 @@ export const dashboardProgramsQuery = `*[_type == "programs" && !(_id in path("d
   dashboardEarlyArrivalMessage
 }`;
 
+/** @deprecated — Programs now read from Postgres (Phase 3c) */
 export const allProgramSlugsQuery = `*[_type == "programs" && !(_id in path("drafts.**"))] { "slug": slug.current }`;
 
 export const teamsQuery = `*[_type == "teams" && !(_id in path("drafts.**"))] | order(sortOrder asc) {
@@ -190,12 +199,14 @@ export const allVolunteerPositionSlugsQuery = `*[_type == "volunteerPositions" &
 
 // ─── Registration field definitions (for self-service edit form) ──────────────
 
+/** @deprecated — Programs now read from Postgres (Phase 3c) */
 export const registrationFieldsBySlugQuery = `*[_type == "programs" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
   registrationFields[] { _key, label, fieldType, required, options }
 }`;
 
 // ─── Reminder email data (for route handler and bulk send) ────────────────────
 
+/** @deprecated — Programs now read from Postgres (Phase 3c) */
 export const programReminderDataQuery = `*[_type == "programs" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
   name,
   dateText,
@@ -213,6 +224,7 @@ export const programReminderDataQuery = `*[_type == "programs" && slug.current =
 
 // ─── Confirmation email data (for initial confirmation + resend) ───────────────
 
+/** @deprecated — Programs now read from Postgres (Phase 3c) */
 export const programConfirmationDataQuery = `*[_type == "programs" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
   name,
   dateText,
@@ -230,6 +242,7 @@ export const programConfirmationDataQuery = `*[_type == "programs" && slug.curre
 
 // ─── Programs with reminder date in a time window (for daily cron) ────────────
 
+/** @deprecated — Programs now read from Postgres (Phase 3c) */
 export const programsWithReminderInWindowQuery = `*[_type == "programs" && reminderDate >= $since && reminderDate <= $now && !(_id in path("drafts.**"))] {
   _id, name, "slug": slug.current,
   dateText, startDatetime, endDatetime,
@@ -240,6 +253,7 @@ export const programsWithReminderInWindowQuery = `*[_type == "programs" && remin
 
 // ─── Batch lookup by slug array (for My Registrations page) ───────────────────
 
+/** @deprecated — Programs now read from Postgres (Phase 3c) */
 export const programsBySlugArrayQuery = `*[_type == "programs" && slug.current in $slugs && !(_id in path("drafts.**"))] {
   "slug": slug.current,
   name,
@@ -259,6 +273,7 @@ export const programsBySlugArrayQuery = `*[_type == "programs" && slug.current i
 
 // All virtual/hybrid programs — no zoomLink filter; used by AssignmentManager dropdown
 // Dashboard today's sessions — recurrence fields included; JS filters to today's occurrences
+/** @deprecated — Programs now read from Postgres (Phase 3c) */
 export const virtualDashboardProgramsQuery = `*[_type == "programs" && !(_id in path("drafts.**")) && programFormat in ["virtual","hybrid"] && removeFromProgramList != true] | order(coalesce(sortOrder, 999) asc) {
   _id,
   name,
@@ -275,6 +290,7 @@ export const virtualDashboardProgramsQuery = `*[_type == "programs" && !(_id in 
 // Used by the Host Team hub Session tab live view.
 // Extends virtualDashboardProgramsQuery with registrationEnabled for
 // "registered but not checked in" display.
+/** @deprecated — Programs now read from Postgres (Phase 3c) */
 export const sessionViewProgramsQuery = `*[_type == "programs" && !(_id in path("drafts.**")) && programFormat in ["virtual","hybrid"] && removeFromProgramList != true] | order(coalesce(sortOrder, 999) asc) {
   _id,
   name,
@@ -289,6 +305,7 @@ export const sessionViewProgramsQuery = `*[_type == "programs" && !(_id in path(
   registrationEnabled
 }`;
 
+/** @deprecated — Programs now read from Postgres (Phase 3c) */
 export const allVirtualProgramsQuery = `*[_type == "programs" && !(_id in path("drafts.**")) && programFormat in ["virtual", "hybrid"]] | order(coalesce(sortOrder, 999) asc) {
   _id,
   name,
@@ -304,6 +321,7 @@ export const allVirtualProgramsQuery = `*[_type == "programs" && !(_id in path("
   dayOfWeek[]-> { name }
 }`;
 
+/** @deprecated — Programs now read from Postgres (Phase 3c) */
 export const hostProgramsQuery = `*[_type == "programs" && !(_id in path("drafts.**")) && programFormat in ["virtual", "hybrid"] && defined(zoomLink) && zoomLink != ""] | order(coalesce(sortOrder, 999) asc) {
   _id,
   name,

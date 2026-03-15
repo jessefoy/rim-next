@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sanityClient } from "@/lib/sanity";
+import { db } from "@/lib/db";
 import { buildIcsContent } from "@/lib/calendarLinks";
 import { resolveLocation } from "@/lib/locations";
-
-const icalQuery = `*[_type == "programs" && slug.current == $slug && !(_id in path("drafts.**"))][0] {
-  name, "slug": slug.current, startDatetime, endDatetime,
-  venue, locationText, locationLink,
-  recurrenceFreq, recurrenceInterval, recurrenceDays, recurrenceCount
-}`;
 
 export async function GET(
   _request: NextRequest,
@@ -15,19 +9,22 @@ export async function GET(
 ) {
   const { slug } = await params;
 
-  const program = await sanityClient.fetch<{
-    name: string;
-    slug: string;
-    startDatetime?: string | null;
-    endDatetime?: string | null;
-    venue?: string | null;
-    locationText?: string | null;
-    locationLink?: string | null;
-    recurrenceFreq?: string | null;
-    recurrenceInterval?: number | null;
-    recurrenceDays?: string[] | null;
-    recurrenceCount?: number | null;
-  } | null>(icalQuery, { slug });
+  const program = await db.program.findUnique({
+    where: { slug },
+    select: {
+      name: true,
+      slug: true,
+      startDatetime: true,
+      endDatetime: true,
+      venue: true,
+      locationText: true,
+      locationLink: true,
+      recurrenceFreq: true,
+      recurrenceInterval: true,
+      recurrenceDays: true,
+      recurrenceCount: true,
+    },
+  });
 
   if (!program?.startDatetime) {
     return new NextResponse("No calendar date configured for this program.", {
@@ -40,8 +37,8 @@ export async function GET(
 
   const ics = buildIcsContent({
     title: program.name,
-    startDatetime: program.startDatetime,
-    endDatetime: program.endDatetime,
+    startDatetime: program.startDatetime.toISOString(),
+    endDatetime: program.endDatetime?.toISOString() ?? null,
     location: loc.emailText ?? undefined,
     programSlug: slug,
     recurrenceFreq: program.recurrenceFreq,
