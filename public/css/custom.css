@@ -13053,20 +13053,164 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 }
 .vol-confirm-btn--danger:hover { background: #8b2929; }
 
+/* ── Programs table + ProgramEditor — tablet (768px) ── */
 @media (max-width: 768px) {
+  /* Programs list toolbar */
   .vol-table-toolbar { flex-direction: column; align-items: stretch; }
   .vol-table-right { width: 100%; }
   .vol-table-search { flex: 1; width: auto; }
+
+  /* Programs list table: compact */
   .vol-table { font-size: 12px; }
   .vol-table__th, .vol-table__td { padding: 8px 6px; }
   .vol-cap__bar { width: 40px; }
-}
 
-/* ── pe- responsive ── */
-@media (max-width: 640px) {
-  .pe-tabs { gap: 0; }
-  .pe-tabs__tab { padding: 8px 10px; font-size: 13px; }
+  /* ProgramEditor */
+  .pe-tabs { gap: 0; -webkit-overflow-scrolling: touch; }
+  .pe-tabs__tab { padding: 8px 10px; font-size: 13px; white-space: nowrap; flex-shrink: 0; }
   .pe-radio-group { flex-direction: column; gap: 8px; }
   .pe-reg-field__row { flex-direction: column; }
   .pe-reg-field__row .pe-select { max-width: 100%; }
+  .pe-inline-row { flex-wrap: wrap; }
+  .pe-slug-row { flex-wrap: wrap; }
+  .pe-slug-row .pe-input { min-width: 0; }
+  .pe-input--narrow { max-width: 100%; }
+  .pe-select { max-width: 100%; }
+  .pe-select--narrow { max-width: 100%; }
+
+  /* VolunteerTable — stat bar flex-wrap at tablet */
+  .vol-stat-bar { flex-wrap: wrap; }
+  .vol-reminder-section { flex-direction: column; align-items: flex-start; gap: 10px; }
+}
+
+/* ── Programs table — phone card layout (430px) ── */
+@media (max-width: 430px) {
+  /* ── ProgramsTableClient: table → cards ── */
+  .vol-table,
+  .vol-table thead,
+  .vol-table tbody,
+  .vol-table tr,
+  .vol-table th,
+  .vol-table td { display: block; }
+  .vol-table thead { display: none; }
+
+  .vol-table__row {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--rim-rule);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .vol-table__row--archived { opacity: 0.55; }
+
+  .vol-table__td { padding: 0; border: none; vertical-align: unset; }
+  .vol-table__td--right { text-align: left; }
+
+  /* Program name + tagline stacked */
+  .vol-table__name { font-size: 15px; }
+  .vol-table__tag { display: block; margin-top: 2px; }
+
+  /* Badges + capacity inline row */
+  .vol-table__row .vol-badge { font-size: 11px; }
+  .vol-cap { gap: 6px; }
+  .vol-cap__bar { width: 50px; }
+
+  /* Flags: wrap */
+  .vol-flag { font-size: 11px; }
+
+  /* Actions: inline, 44px touch targets */
+  .vol-table__actions { gap: 4px; }
+  .vol-table__action {
+    padding: 10px 14px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    font-size: 14px;
+    box-sizing: border-box;
+  }
+
+  /* Filter pills: horizontal scroll */
+  .vol-table-pills {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+  }
+  .vol-pill {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 10px 14px;
+    min-height: 44px;
+    font-size: 13px;
+    box-sizing: border-box;
+  }
+
+  /* Search + Add: full-width stacked */
+  .vol-table-right { flex-direction: column; }
+  .vol-table-search { width: 100%; font-size: 16px; padding: 12px 14px; }
+  .vol-add-btn { width: 100%; text-align: center; padding: 12px 14px !important; min-height: 44px; box-sizing: border-box; }
+
+  /* Confirmation dialog */
+  .vol-dialog { padding: 20px; }
+  .vol-dialog__actions { flex-direction: column; }
+  .vol-confirm-btn { width: 100%; min-height: 44px; text-align: center; }
+
+  /* ── VolunteerTable — phone enhancements ── */
+  /* Action buttons: 44px min */
+  .vol-action-btn { padding: 12px 16px; min-height: 44px; font-size: 14px; }
+  .vol-save-btn { padding: 12px 16px; min-height: 44px; font-size: 14px; }
+  .vol-csv-btn { padding: 12px 16px; min-height: 44px; font-size: 14px; }
+
+  /* Filter pills: 44px */
+  .vol-filter { padding: 10px 14px; min-height: 44px; font-size: 13px; }
+
+  /* Promote inline: bigger touch target */
+  .vol-promote-inline { padding: 8px 12px; min-height: 36px; font-size: 13px; }
+
+  /* Inputs: 16px for iOS zoom prevention */
+  .vol-notes { font-size: 16px; }
+  .vol-search { font-size: 16px; padding: 12px 14px; }
+  .vol-field-edit__input,
+  .vol-field-edit__select { font-size: 16px; padding: 8px 10px; }
+  .vol-field-edit__textarea { font-size: 16px; }
+
+  /* Stat bar: wrap + reduce */
+  .vol-stat-bar { gap: 12px; flex-wrap: wrap; }
+  .vol-stat-bar__item { min-width: 60px; }
+  .vol-stat-bar__capacity { width: 100%; margin-left: 0; }
+
+  /* Reminder section: stack */
+  .vol-reminder-section { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .vol-reminder-bulk-btn { min-height: 44px; padding: 10px 16px; }
+  .vol-reminder-meta { gap: 8px; }
+
+  /* Spot opened alert */
+  .vol-spot-opened { padding: 12px 14px; font-size: 14px; }
+
+  /* ── ProgramEditor — phone ── */
+  .pe-editor { padding: 0 4px; }
+  .pe-editor__header { flex-direction: column; gap: 6px; }
+  .pe-editor__title { font-size: 20px; }
+
+  /* Inputs: 16px for iOS */
+  .pe-input { font-size: 16px; }
+  .pe-textarea { font-size: 16px; }
+  .pe-select { font-size: 16px; max-width: 100%; }
+
+  /* Buttons: full-width, 48px */
+  .pe-actions { flex-direction: column; }
+  .pe-actions .pe-btn { width: 100%; min-height: 48px; justify-content: center; text-align: center; font-size: 15px; }
+  .pe-btn { min-height: 44px; }
+
+  /* Day toggles: bigger touch targets */
+  .pe-day-toggle { padding: 8px 10px; min-height: 44px; min-width: 44px; }
+
+  /* Dialog */
+  .pe-dialog { padding: 20px; }
+  .pe-dialog__actions { flex-direction: column; }
+  .pe-dialog__actions .pe-btn { width: 100%; text-align: center; justify-content: center; }
+
+  /* Tiptap editor toolbar: horizontal scroll on narrow viewports */
+  .rte-editor__toolbar { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
+  .rte-editor__toolbar button { flex-shrink: 0; }
 }
