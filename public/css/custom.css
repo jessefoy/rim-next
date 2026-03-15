@@ -6386,7 +6386,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 }
 
 /* ── Mobile  (shared breakpoint for all new db-/mr-/ml-/mp-/mc- blocks) ── */
-@media (max-width: 767px) {
+@media (max-width: 768px) {
   .db-page { padding: 32px 20px 60px; }
   .db-welcome__greeting { font-size: 26px; }
   .db-nav { grid-template-columns: 1fr; gap: 12px; }
@@ -6399,6 +6399,79 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   .mr-card__dana { flex-direction: column; align-items: flex-start; gap: 8px; }
 
   .mp-field__row { grid-template-columns: 1fr; }
+
+  /* Dashboard */
+  .db2-wrap { padding: 32px 20px 60px; }
+  .db2-greeting__name { font-size: 24px; }
+  .db-section { margin-top: 28px; padding-top: 24px; }
+}
+
+@media (max-width: 430px) {
+  /* ── Dashboard (db2-) ── */
+  .db2-wrap { padding: 24px 16px 48px; }
+  .db2-greeting__name { font-size: 22px; }
+  .db2-empty-card { padding: 16px; }
+
+  /* Today's sessions: reduce padding, enlarge touch targets */
+  .today-card__header { padding: 10px 14px 8px; }
+  .today-row { padding: 12px 14px; gap: 8px; }
+  .today-row--live { flex-wrap: wrap; }
+  .today-row__left { flex-wrap: wrap; gap: 6px; }
+  .today-row__title { font-size: 15px; }
+  .today-later-hdr { padding: 8px 14px; }
+  .join-btn { padding: 12px 20px; font-size: 14px; min-height: 44px; box-sizing: border-box; }
+
+  /* Upcoming programs */
+  .db2-upcoming__title { padding: 12px 14px; font-size: 14px; }
+  .db2-upcoming__date-block { width: 52px; }
+
+  /* Quick links: stack, full-width, 44px touch targets */
+  .db2-quicklinks { flex-direction: column; }
+  .db2-quicklink { padding: 12px 18px; font-size: 14px; min-height: 44px; box-sizing: border-box; text-align: center; }
+
+  /* Hub grid: single column, 44px rows */
+  .db2-hub-grid { grid-template-columns: 1fr; }
+  .db2-hub-card { padding: 14px 16px; min-height: 44px; }
+  .db2-hub-card__name { font-size: 15px; }
+
+  /* Dana reminder */
+  .db-dana-reminder__item { padding: 10px 12px; min-height: 44px; display: flex; align-items: center; }
+
+  /* ── My Registrations (mr-) ── */
+  .mr-page { padding: 24px 16px 48px; }
+  .mr-heading { font-size: 24px; margin-bottom: 28px; }
+  .mr-section { margin-bottom: 32px; }
+  .mr-card__title { font-size: 16px; }
+
+  /* Cancel button: enlarge touch targets */
+  .mr-cancel-btn { padding: 10px 0; min-height: 44px; display: inline-flex; align-items: center; font-size: 14px; }
+  .mr-cancel-btn--yes,
+  .mr-cancel-btn--keep { padding: 12px 20px; min-height: 44px; font-size: 14px; box-sizing: border-box; }
+  .mr-cancel-confirm__actions { gap: 8px; }
+  .mr-card__dana-link { display: inline-block; padding: 8px 0; min-height: 44px; line-height: 28px; }
+
+  /* ── My Library (ml-) ── */
+  .ml-page { padding: 24px 16px 48px; }
+  .ml-heading { font-size: 24px; }
+  .ml-intro { margin-bottom: 24px; }
+  .ml-item { padding: 14px 0; min-height: 44px; gap: 12px; }
+  .ml-item__title { font-size: 15px; }
+
+  /* ── My Profile (mp-) ── */
+  .mp-page { padding: 24px 16px 48px; }
+  .mp-heading { font-size: 24px; margin-bottom: 24px; }
+  /* iOS auto-zoom prevention: inputs must be ≥16px */
+  .mp-input { font-size: 16px; }
+  .mp-submit {
+    align-self: stretch;
+    width: 100%;
+    padding: 14px 24px;
+    font-size: 16px;
+    min-height: 48px;
+    box-sizing: border-box;
+    text-align: center;
+  }
+  .mp-section { margin-bottom: 28px; }
 }
 
 
