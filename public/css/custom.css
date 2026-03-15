@@ -13233,6 +13233,28 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   background: #fff;
 }
 
+/* ── Expanded state: detail takes full width ── */
+.si-layout--expanded .si-list-panel { display: none; }
+.si-layout--expanded .si-detail-panel { flex: 1; }
+
+/* Back button (visible in expanded mode) */
+.si-back-btn {
+  display: none; /* hidden in split mode */
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border: 1px solid var(--rim-rule);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--rim-mid);
+  cursor: pointer;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.si-back-btn:hover { background: var(--rim-bg-accent); }
+.si-layout--expanded .si-back-btn { display: inline-flex; }
+
 /* ── Left panel: thread list ── */
 .si-list-panel {
   width: 380px;

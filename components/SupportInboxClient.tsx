@@ -6,6 +6,7 @@
  *
  * Left panel: thread list with filter pills + search + sync button.
  * Right panel: thread detail with messages, notes, reply composer.
+ * Expand mode: detail takes full width, list hidden, "Back" to return.
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -121,13 +122,14 @@ export default function SupportInboxClient({
   const [threads, setThreads] = useState<ThreadSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [filter, setFilter] = useState<string>("active"); // active | mine | closed | all
+  const [filter, setFilter] = useState<string>("active");
   const [search, setSearch] = useState("");
 
   // Thread detail state
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<ThreadDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   // Reply state
   const [replyMode, setReplyMode] = useState<"reply" | "note">("reply");
@@ -146,7 +148,6 @@ export default function SupportInboxClient({
       params.set("status", "OPEN,CLAIMED,WAITING");
       params.set("assignedTo", "me");
     } else if (filter === "closed") params.set("status", "CLOSED");
-    // "all" = no status filter
     if (search) params.set("search", search);
 
     const res = await fetch(`/api/support/threads?${params}`);
@@ -172,6 +173,15 @@ export default function SupportInboxClient({
     }
     setDetailLoading(false);
   }, []);
+
+  const selectThread = (id: string) => {
+    setSelectedId(id);
+    setExpanded(true);
+  };
+
+  const goBack = () => {
+    setExpanded(false);
+  };
 
   useEffect(() => {
     if (selectedId) {
@@ -228,7 +238,6 @@ export default function SupportInboxClient({
     setSending(true);
 
     if (replyMode === "reply") {
-      // Convert Tiptap JSON to HTML for email
       const html = renderFormattedText(replyBody);
       const res = await fetch(`/api/support/threads/${selectedId}/reply`, {
         method: "POST",
@@ -241,7 +250,6 @@ export default function SupportInboxClient({
         fetchThreads();
       }
     } else {
-      // Internal note
       const res = await fetch(`/api/support/threads/${selectedId}/note`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -265,7 +273,7 @@ export default function SupportInboxClient({
   // ─── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="si-layout">
+    <div className={`si-layout${expanded ? " si-layout--expanded" : ""}`}>
       {/* ── Left panel: thread list ── */}
       <div className="si-list-panel">
         <div className="si-toolbar">
@@ -310,9 +318,7 @@ export default function SupportInboxClient({
         </div>
 
         <div className="si-thread-list">
-          {loading && (
-            <div className="si-loading">Loading…</div>
-          )}
+          {loading && <div className="si-loading">Loading…</div>}
           {!loading && threads.length === 0 && (
             <div className="si-empty-list">
               {filter === "mine"
@@ -325,7 +331,7 @@ export default function SupportInboxClient({
               <button
                 key={t.id}
                 className={`si-thread-item${selectedId === t.id ? " si-thread-item--selected" : ""}`}
-                onClick={() => setSelectedId(t.id)}
+                onClick={() => selectThread(t.id)}
               >
                 <div className="si-thread-item__top">
                   <span className="si-thread-item__sender">
@@ -371,6 +377,9 @@ export default function SupportInboxClient({
             {/* Header */}
             <div className="si-detail-header">
               <div className="si-detail-header__top">
+                <button className="si-back-btn" onClick={goBack} title="Back to inbox">
+                  &larr;
+                </button>
                 <h2 className="si-detail-header__subject">
                   {detail.subject}
                 </h2>
