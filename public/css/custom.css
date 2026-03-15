@@ -13225,7 +13225,8 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .si-layout {
   display: flex;
   gap: 0;
-  min-height: 600px;
+  min-height: 500px;
+  height: calc(100vh - 280px); /* fill viewport below hub header/tabs */
   border: 1px solid var(--rim-rule);
   border-radius: 8px;
   overflow: hidden;
