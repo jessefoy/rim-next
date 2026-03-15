@@ -67,9 +67,6 @@ model User {
   // Soft-delete: archived members cannot log in but their records are preserved
   archivedAt    DateTime?
 
-  // Sanity Studio invite tracking
-  sanityInvitedAt DateTime?
-
   // Extended profile fields
   preferredName   String?
   addressLine1    String?

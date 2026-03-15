@@ -98,7 +98,6 @@ export default async function AdminMemberDetailPage({
     tags: user.tags,
     roles: user.roles,
     archivedAt: user.archivedAt?.toISOString() ?? null,
-    sanityInvitedAt: user.sanityInvitedAt?.toISOString() ?? null,
     createdAt: user.createdAt.toISOString(),
     registrations: user.registrations.map((r) => ({
       id: r.id,

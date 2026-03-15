@@ -5,87 +5,6 @@ import { Role, MemberStatus } from "@prisma/client";
 import { sendRoleAssignmentEmail, sendHostRoleAssignmentEmail } from "@/lib/email";
 import { syncHubMembership } from "@/lib/syncHubMembership";
 
-// Revoke a member's Sanity Studio access by email.
-// Handles both accepted members and pending invitations.
-// Returns separate results for each path plus member emails found (for debugging).
-async function revokeSanityAccess(email: string): Promise<{ member: string; invite: string; memberEmails: string[] }> {
-  const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
-  const token = process.env.SANITY_MANAGEMENT_TOKEN;
-  if (!projectId || !token) return { member: "skipped: no token", invite: "skipped", memberEmails: [] };
-
-  const headers = { Authorization: `Bearer ${token}` };
-  // Try known Sanity Management API paths for listing project memberships
-  const membersPaths = [
-    `https://api.sanity.io/v2021-06-07/access/projects/${projectId}/memberships`,
-    `https://api.sanity.io/v1/access/projects/${projectId}/memberships`,
-  ];
-  const invitesBase = `https://api.sanity.io/v2021-10-04/invitations/project/${projectId}`;
-
-  let memberResult = "no match found";
-  let inviteResult = "no match found";
-  const memberEmails: string[] = [];
-
-  // Remove from project members (accepted invites)
-  try {
-    let membersRes: Response | null = null;
-    let workingMembersBase = "";
-    for (const path of membersPaths) {
-      const r = await fetch(path, { headers });
-      if (r.ok) { membersRes = r; workingMembersBase = path; break; }
-      memberResult = `list failed: ${r.status} at ${path}`;
-    }
-    if (membersRes) {
-      const raw = await membersRes.json();
-      // Shape varies: [{id, email?, profile?}] or [{userId, role}] depending on endpoint
-      const members: { id?: string; userId?: string; email?: string; profile?: { email?: string } }[] =
-        Array.isArray(raw) ? raw : (raw.memberships ?? raw.members ?? []);
-      // For memberships shape, look up user profile by userId to find email
-      let matchId: string | undefined;
-      for (const m of members) {
-        const memberId = m.id ?? m.userId ?? "";
-        const memberEmail = m.profile?.email ?? m.email;
-        if (memberEmail) {
-          memberEmails.push(memberEmail);
-          if (memberEmail === email) matchId = memberId;
-        } else if (memberId) {
-          // Fetch user profile to get email
-          try {
-            const profileRes = await fetch(`https://api.sanity.io/v2021-06-07/users/${memberId}`, { headers });
-            if (profileRes.ok) {
-              const profile: { email?: string } = await profileRes.json();
-              const profileEmail = profile.email ?? "(none)";
-              memberEmails.push(profileEmail);
-              if (profileEmail === email) matchId = memberId;
-            }
-          } catch { /* ignore */ }
-        }
-      }
-      if (matchId) {
-        const del = await fetch(`${workingMembersBase}/${matchId}`, { method: "DELETE", headers });
-        memberResult = del.ok ? "removed" : `delete failed: ${del.status}`;
-      }
-    }
-  } catch (e) {
-    memberResult = `error: ${String(e)}`;
-  }
-
-  // Cancel pending invitations (not yet accepted)
-  try {
-    const res = await fetch(invitesBase, { headers });
-    if (res.ok) {
-      const body = await res.json();
-      const invites: { id: string; email: string }[] = Array.isArray(body) ? body : (body.invitations ?? []);
-      const matching = invites.filter((i) => i.email === email);
-      for (const inv of matching) {
-        const del = await fetch(`${invitesBase}/${inv.id}`, { method: "DELETE", headers });
-        inviteResult = del.ok ? "cancelled" : `delete failed: ${del.status}`;
-      }
-    }
-  } catch { /* ignore */ }
-
-  return { member: memberResult, invite: inviteResult, memberEmails };
-}
-
 const ALL_ROLES = Object.values(Role);
 
 export async function PATCH(
@@ -169,13 +88,6 @@ export async function PATCH(
 
   const emailIsChanging = newEmail !== undefined && newEmail !== user.email;
 
-  // Detect Sanity revocation: REGISTRAR is being removed AND user had Sanity access
-  const removingRegistrar =
-    roles !== undefined &&
-    user.roles.includes("REGISTRAR") &&
-    !(roles as string[]).includes("REGISTRAR");
-  const shouldRevokeSanity = removingRegistrar && !!user.sanityInvitedAt;
-
   // Detect new REGISTRAR: role wasn't there before, but is in the incoming list
   const addingRegistrar =
     roles !== undefined &&
@@ -205,7 +117,6 @@ export async function PATCH(
     ...(phone !== undefined && { phone }),
     ...(emailIsChanging && { email: newEmail }),
     ...(roles !== undefined && { roles }),
-    ...(shouldRevokeSanity && { sanityInvitedAt: null }),
     // Extended profile
     ...(preferredName !== undefined && { preferredName }),
     ...(addressLine1 !== undefined && { addressLine1 }),
@@ -246,12 +157,6 @@ export async function PATCH(
     await syncHubMembership(id, roles as string[]);
   }
 
-  // Revoke Sanity access — blocking so we can surface the result
-  let sanityRevokeResult: { member: string; invite: string; memberEmails: string[] } | null = null;
-  if (shouldRevokeSanity) {
-    sanityRevokeResult = await revokeSanityAccess(user.email);
-  }
-
   // Notify newly-promoted registrar — fire-and-forget
   if (addingRegistrar) {
     sendRoleAssignmentEmail({
@@ -277,8 +182,6 @@ export async function PATCH(
     roles: updated.roles,
     archivedAt: updated.archivedAt?.toISOString() ?? null,
     createdAt: updated.createdAt.toISOString(),
-    sanityRevoked: shouldRevokeSanity,
-    sanityRevokeResult,
   });
 }
 

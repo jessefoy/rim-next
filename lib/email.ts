@@ -1,9 +1,5 @@
 import { Resend } from "resend";
-import {
-  portableTextToEmailHtml,
-  portableTextToEmailText,
-  portableTextToMarkdown,
-} from "@/lib/portableTextEmail";
+import { portableTextToMarkdown } from "@/lib/portableTextEmail";
 import { renderFormattedText } from "@/lib/renderRichContent";
 import { db } from "@/lib/db";
 

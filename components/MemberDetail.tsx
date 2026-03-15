@@ -39,7 +39,6 @@ interface Member {
   tags: string[];
   roles: string[];
   archivedAt: string | null;
-  sanityInvitedAt: string | null;
   createdAt: string;
   registrations: MemberRegistration[];
   courseAccess: CourseAccessGrant[];
@@ -73,7 +72,7 @@ const ALL_ROLES = [
 const ROLE_DESCRIPTIONS: Record<string, string> = {
   HOST:                  "Google Meet host team — access to Host Hub (schedule, sub board, threads)",
   HOST_MANAGER:          "Manages host schedule and assignments — full Hub read/write; can also be on rotation",
-  REGISTRAR:             "View and manage registrations, member profiles, and Sanity Studio",
+  REGISTRAR:             "View and manage registrations, programs, and member profiles",
   ADMIN:                 "Full access — members, registrations, and all volunteer areas",
   TEACHER:               "Teacher Hub access — manages courses and lessons",
   VOLUNTEER_COORDINATOR: "Coordinates volunteer scheduling and onboarding",
@@ -181,35 +180,7 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
   const [dangerBusy, setDangerBusy] = useState(false);
   const [dangerError, setDangerError] = useState("");
 
-  // Sanity Studio invite
-  const [sanityInvitedAt, setSanityInvitedAt] = useState<string | null>(member.sanityInvitedAt);
-  const [sanityStatus, setSanityStatus] = useState<"idle" | "loading" | "error">("idle");
-  const [sanityError, setSanityError] = useState("");
-  const [confirmingInvite, setConfirmingInvite] = useState(false);
   const [savedRoles, setSavedRoles] = useState<string[]>(member.roles);
-
-  const handleSanityInvite = async () => {
-    setSanityStatus("loading");
-    setSanityError("");
-    setConfirmingInvite(false);
-    try {
-      const res = await fetch(`/api/admin/members/${member.id}/sanity-invite`, { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) {
-        if (res.status === 409 && data.sanityInvitedAt) {
-          setSanityInvitedAt(data.sanityInvitedAt);
-        } else {
-          throw new Error(data.error ?? "Invite failed");
-        }
-      } else {
-        setSanityInvitedAt(data.sanityInvitedAt);
-      }
-      setSanityStatus("idle");
-    } catch (err) {
-      setSanityError(err instanceof Error ? err.message : "Invite failed");
-      setSanityStatus("error");
-    }
-  };
 
   const toggleRole = (role: string) => {
     setRoles((prev) => prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]);
@@ -264,7 +235,6 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
       if (!res.ok) throw new Error(data.error ?? "Save failed");
       setSaved(true);
       setSavedRoles(roles);
-      if (data.sanityRevoked) setSanityInvitedAt(null);
 
       // Keep isArchived in sync with memberStatus
       if (memberStatus === "INACTIVE") {
@@ -550,52 +520,10 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
         </section>
       )}
 
-      {/* ── Sanity Studio Invite ─────────────────────────────────────────────── */}
-      {isAdmin && savedRoles.includes("REGISTRAR") && (
-        <div className="adm-sanity">
-          <p className="adm-sanity__label">Sanity Studio Access</p>
-          {sanityInvitedAt ? (
-            <p className="adm-sanity__status">
-              ✓ Invited on{" "}
-              {new Date(sanityInvitedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-            </p>
-          ) : confirmingInvite ? (
-            <div className="adm-sanity__confirm">
-              <p className="adm-sanity__confirm-msg">
-                This will send an email invitation from Sanity to <strong>{member.email}</strong>.
-                They will receive Editor access and can edit site content in Sanity Studio.
-              </p>
-              {sanityError && <p className="adm-sanity__error">{sanityError}</p>}
-              <div className="adm-sanity__confirm-actions">
-                <button className="adm-sanity__btn" onClick={handleSanityInvite} disabled={sanityStatus === "loading"}>
-                  {sanityStatus === "loading" ? "Sending…" : "Yes, send invite"}
-                </button>
-                <button className="adm-btn--neutral" onClick={() => { setConfirmingInvite(false); setSanityError(""); }} disabled={sanityStatus === "loading"}>
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <p className="adm-sanity__hint">Send this member an invitation to Sanity Studio as an Editor.</p>
-              {sanityError && <p className="adm-sanity__error">{sanityError}</p>}
-              <button className="adm-sanity__btn" onClick={() => setConfirmingInvite(true)}>
-                Invite to Sanity Studio
-              </button>
-            </>
-          )}
-        </div>
-      )}
-
       {/* ── Save bar ─────────────────────────────────────────────────────────── */}
       <div className="adm-save">
         {error && <p className="adm-save__error">{error}</p>}
         {saved && <p className="adm-save__success">Saved ✓</p>}
-        {isAdmin && savedRoles.includes("REGISTRAR") && !roles.includes("REGISTRAR") && !!sanityInvitedAt && (
-          <p className="adm-save__warning">
-            ⚠ Saving will also revoke this member&rsquo;s Sanity Studio access.
-          </p>
-        )}
         {showEmailConfirm ? (
           <div className="adm-email-confirm">
             <p className="adm-email-confirm__text">
