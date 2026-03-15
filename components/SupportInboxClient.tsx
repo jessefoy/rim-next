@@ -162,10 +162,11 @@ export default function SupportInboxClient({
   // Sidebar
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // Composer
+  // Composer — separate state for reply and note bodies
   const [composerOpen, setComposerOpen] = useState(false);
   const [replyMode, setReplyMode] = useState<"reply" | "note">("reply");
-  const [replyBody, setReplyBody] = useState<any>(null);
+  const [replyDraft, setReplyDraft] = useState<any>(null);
+  const [noteDraft, setNoteDraft] = useState<any>(null);
   const [sending, setSending] = useState(false);
 
   const timelineRef = useRef<HTMLDivElement>(null);
@@ -209,7 +210,8 @@ export default function SupportInboxClient({
   const selectThread = (id: string) => {
     setSelectedId(id);
     setComposerOpen(false);
-    setReplyBody(null);
+    setReplyDraft(null);
+    setNoteDraft(null);
     setReplyMode("reply");
   };
 
@@ -258,19 +260,21 @@ export default function SupportInboxClient({
 
   // ─── Send reply ───────────────────────────────────────────────────────
 
+  const currentDraft = replyMode === "reply" ? replyDraft : noteDraft;
+
   const handleSendReply = async () => {
-    if (!selectedId || !replyBody) return;
+    if (!selectedId || !currentDraft) return;
     setSending(true);
 
     if (replyMode === "reply") {
-      const html = renderFormattedText(replyBody);
+      const html = renderFormattedText(replyDraft);
       const res = await fetch(`/api/support/threads/${selectedId}/reply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ bodyHtml: html }),
       });
       if (res.ok) {
-        setReplyBody(null);
+        setReplyDraft(null);
         setComposerOpen(false);
         fetchDetail(selectedId);
         fetchThreads();
@@ -279,16 +283,27 @@ export default function SupportInboxClient({
       const res = await fetch(`/api/support/threads/${selectedId}/note`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: replyBody }),
+        body: JSON.stringify({ body: noteDraft }),
       });
       if (res.ok) {
-        setReplyBody(null);
+        setNoteDraft(null);
         setComposerOpen(false);
         fetchDetail(selectedId);
       }
     }
 
     setSending(false);
+  };
+
+  const handleCancelComposer = () => {
+    const hasDraft = replyDraft || noteDraft;
+    if (hasDraft) {
+      if (!window.confirm("Discard reply?")) return;
+    }
+    setReplyDraft(null);
+    setNoteDraft(null);
+    setComposerOpen(false);
+    setReplyMode("reply");
   };
 
   const claimThread = (id: string) => {
@@ -501,13 +516,6 @@ export default function SupportInboxClient({
                       >
                         Internal Note
                       </button>
-                      <button
-                        className="si-composer__collapse"
-                        onClick={() => setComposerOpen(false)}
-                        title="Collapse"
-                      >
-                        ▾
-                      </button>
                     </div>
                     {replyMode === "note" && (
                       <div className="si-composer__note-banner">
@@ -515,22 +523,35 @@ export default function SupportInboxClient({
                       </div>
                     )}
                     <div className="si-composer__editor">
-                      <FormattedEditor
-                        value={replyBody}
-                        onChange={setReplyBody}
-                        placeholder={
-                          replyMode === "reply"
-                            ? "Type your reply…"
-                            : "Add an internal note…"
-                        }
-                        minHeight={100}
-                      />
+                      {replyMode === "reply" ? (
+                        <FormattedEditor
+                          key="reply-editor"
+                          value={replyDraft}
+                          onChange={setReplyDraft}
+                          placeholder="Type your reply…"
+                          minHeight={100}
+                        />
+                      ) : (
+                        <FormattedEditor
+                          key="note-editor"
+                          value={noteDraft}
+                          onChange={setNoteDraft}
+                          placeholder="Add an internal note…"
+                          minHeight={100}
+                        />
+                      )}
                     </div>
                     <div className="si-composer__footer">
                       <button
+                        className="si-btn"
+                        onClick={handleCancelComposer}
+                      >
+                        Cancel
+                      </button>
+                      <button
                         className={`si-btn ${replyMode === "reply" ? "si-btn--send" : "si-btn--note"}`}
                         onClick={handleSendReply}
-                        disabled={sending || !replyBody}
+                        disabled={sending || !currentDraft}
                       >
                         {sending
                           ? "Sending…"

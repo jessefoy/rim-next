@@ -13638,22 +13638,6 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   color: var(--rim-mid);
   border-bottom-color: var(--rim-mid);
 }
-.si-composer__collapse {
-  margin-left: auto;
-  font-size: 14px;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--rim-rule);
-  border-radius: 4px;
-  background: transparent;
-  color: var(--rim-text-muted);
-  cursor: pointer;
-  margin-right: 8px;
-}
-.si-composer__collapse:hover { background: var(--rim-bg-accent); }
 .si-composer__note-banner {
   font-family: var(--font-sans);
   font-size: 12px;
@@ -13666,6 +13650,7 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .si-composer__footer {
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
   padding: 0 14px 8px;
 }
 
