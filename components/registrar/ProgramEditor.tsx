@@ -123,6 +123,7 @@ export default function ProgramEditor({ hubSlug, initialData, isEditing, categor
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [showMeetWarning, setShowMeetWarning] = useState(false);
   const [slugTouched, setSlugTouched] = useState(false);
   const [slugLocked, setSlugLocked] = useState(isEditing);
   const [uploading, setUploading] = useState(false);
@@ -241,6 +242,17 @@ export default function ProgramEditor({ hubSlug, initialData, isEditing, categor
 
   // ── Save ─────────────────────────────────────────────────────────────────
   async function handleSave() {
+    // Guard: warn if switching away from virtual/hybrid with an active Meet
+    const wasVirtual = initialData?.programFormat === "virtual" || initialData?.programFormat === "hybrid";
+    const nowInPerson = programFormat === "in-person";
+    if (wasVirtual && nowInPerson && initialData?.zoomLink) {
+      setShowMeetWarning(true);
+      return;
+    }
+    await doSave();
+  }
+
+  async function doSave() {
     setError("");
     setSuccess(false);
     setSaving(true);
@@ -954,6 +966,38 @@ export default function ProgramEditor({ hubSlug, initialData, isEditing, categor
           Cancel
         </button>
       </div>
+
+      {/* ── Meet removal confirmation dialog ── */}
+      {showMeetWarning && (
+        <div className="pe-overlay">
+          <div className="pe-dialog">
+            <p className="pe-dialog__text">
+              This program has an active Google Meet link. Switching to In-person will delete
+              the Meet and remove the join link. Any registrants who received the join link
+              will no longer be able to use it. Continue?
+            </p>
+            <div className="pe-dialog__actions">
+              <button
+                type="button"
+                className="pe-btn"
+                onClick={() => setShowMeetWarning(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="pe-btn pe-btn--danger"
+                onClick={() => {
+                  setShowMeetWarning(false);
+                  doSave();
+                }}
+              >
+                Yes, switch to In-person
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

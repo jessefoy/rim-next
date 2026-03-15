@@ -12507,6 +12507,10 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 
 /* Actions bar */
 .pe-actions { display: flex; gap: 10px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--rim-rule); }
+.pe-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.pe-dialog { background: #fff; border-radius: 8px; padding: 28px 32px; max-width: 440px; width: 90%; }
+.pe-dialog__text { font-size: 15px; line-height: 1.6; margin: 0 0 20px; color: var(--rim-text); }
+.pe-dialog__actions { display: flex; gap: 10px; justify-content: flex-end; }
 
 /* Program card wrapper + edit link */
 .vol-card-wrap { position: relative; }
