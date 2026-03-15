@@ -32,6 +32,38 @@ export async function GET(
   return NextResponse.json(program);
 }
 
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ slug: string }> }
+) {
+  const session = await auth();
+  if (!session?.user?.roles?.some((r) => ["REGISTRAR", "ADMIN"].includes(r))) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { slug } = await params;
+  const body = await request.json();
+
+  // ── Archive / Restore actions ──
+  if (body.action === "archive") {
+    const updated = await db.program.update({
+      where: { slug },
+      data: { archivedAt: new Date() },
+    });
+    return NextResponse.json(updated);
+  }
+
+  if (body.action === "restore") {
+    const updated = await db.program.update({
+      where: { slug },
+      data: { archivedAt: null },
+    });
+    return NextResponse.json(updated);
+  }
+
+  return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
@@ -169,18 +201,29 @@ export async function DELETE(
   const { slug } = await params;
   const program = await db.program.findUnique({
     where: { slug },
-    include: { _count: { select: { registrations: true } } },
+    select: { id: true, archivedAt: true },
   });
 
   if (!program) {
     return NextResponse.json({ error: "Program not found" }, { status: 404 });
   }
 
-  // Safety check: cannot delete if active registrations exist
-  if (program._count.registrations > 0) {
+  // Safety: must be archived first
+  if (!program.archivedAt) {
     return NextResponse.json(
-      { error: `Cannot delete — ${program._count.registrations} registration(s) exist. Cancel or remove them first.` },
-      { status: 409 }
+      { error: "Cannot delete — archive the program first." },
+      { status: 400 }
+    );
+  }
+
+  // Safety: cannot delete if active registrations exist
+  const activeRegs = await db.registration.count({
+    where: { programId: program.id, status: { in: ["REGISTERED", "APPROVED", "WAITLISTED"] } },
+  });
+  if (activeRegs > 0) {
+    return NextResponse.json(
+      { error: `Cannot delete — ${activeRegs} active registration(s) exist. Cancel all registrations first.` },
+      { status: 400 }
     );
   }
 

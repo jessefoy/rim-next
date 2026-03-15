@@ -34,7 +34,7 @@ export default async function ProgramDetailPage({
     auth(),
   ]);
 
-  if (!program) notFound();
+  if (!program || program.archivedAt) notFound();
 
   const useBuiltInForm = !!program.registrationEnabled;
   const registrationClosed = !!(

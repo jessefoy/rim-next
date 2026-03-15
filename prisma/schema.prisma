@@ -313,6 +313,7 @@ model Program {
   sortOrder              Int?
   removeFromProgramList  Boolean @default(false)
   hideFromProgramPageList Boolean @default(false)
+  archivedAt             DateTime?
 
   // ── Relations ──────────────────────────────────────────
   registrations      Registration[]

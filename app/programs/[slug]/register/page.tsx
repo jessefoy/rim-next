@@ -27,8 +27,8 @@ export default async function RegisterPage({
     auth(),
   ]);
 
-  // Guard: unknown program
-  if (!pgProgram) redirect("/programs");
+  // Guard: unknown or archived program
+  if (!pgProgram || pgProgram.archivedAt) redirect("/programs");
 
   // Guard: registration not enabled on this program — send to program page
   if (!pgProgram.registrationEnabled) redirect(`/programs/${slug}`);

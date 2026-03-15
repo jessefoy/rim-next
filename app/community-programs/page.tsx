@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export default async function CommunityProgramsPage() {
   const [programs, categories] = await Promise.all([
     db.program.findMany({
-      where: { hideFromProgramPageList: false },
+      where: { hideFromProgramPageList: false, archivedAt: null },
       include: { category: true },
       orderBy: { sortOrder: "asc" },
     }),
