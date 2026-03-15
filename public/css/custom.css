@@ -13638,13 +13638,19 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   color: var(--rim-mid);
   border-bottom-color: var(--rim-mid);
 }
+/* Internal Note tab — amber when active */
+.si-composer__tab--note-active {
+  color: #8b6914;
+  border-bottom-color: #c89220;
+}
 .si-composer__note-banner {
   font-family: var(--font-sans);
   font-size: 12px;
-  color: var(--color-alert);
-  background: var(--color-alert-bg);
-  padding: 6px 16px;
-  border-bottom: 1px solid var(--color-alert-border);
+  font-weight: 600;
+  color: #7a5a10;
+  background: #fdf3d7;
+  padding: 8px 16px;
+  border-bottom: 1px solid #e8d48b;
 }
 .si-composer__editor { padding: 8px 14px; }
 .si-composer__footer {
@@ -13652,6 +13658,25 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   justify-content: flex-end;
   gap: 8px;
   padding: 0 14px 8px;
+}
+
+/* ── Note mode: entire composer turns amber ── */
+.si-composer--note-mode {
+  background: #fef9eb;
+  border-top: 2px solid #c89220;
+}
+.si-composer--note-mode .si-composer__tabs {
+  border-bottom-color: #e8d48b;
+}
+.si-composer--note-mode .si-composer__editor {
+  background: #fef9eb;
+}
+/* Override Tiptap editor background inside note mode */
+.si-composer--note-mode .ProseMirror {
+  background: #fffdf5;
+}
+.si-composer--note-mode .si-composer__footer {
+  background: #fef9eb;
 }
 
 /* Buttons */

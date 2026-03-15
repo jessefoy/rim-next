@@ -493,7 +493,9 @@ export default function SupportInboxClient({
 
             {/* Composer — anchored to bottom */}
             {detail.status !== "CLOSED" && (
-              <div className="si-composer">
+              <div
+                className={`si-composer${replyMode === "note" && composerOpen ? " si-composer--note-mode" : ""}`}
+              >
                 {!composerOpen ? (
                   <button
                     className="si-composer__prompt"
@@ -511,7 +513,7 @@ export default function SupportInboxClient({
                         Reply
                       </button>
                       <button
-                        className={`si-composer__tab${replyMode === "note" ? " si-composer__tab--active" : ""}`}
+                        className={`si-composer__tab si-composer__tab--note${replyMode === "note" ? " si-composer__tab--note-active" : ""}`}
                         onClick={() => setReplyMode("note")}
                       >
                         Internal Note
@@ -519,7 +521,7 @@ export default function SupportInboxClient({
                     </div>
                     {replyMode === "note" && (
                       <div className="si-composer__note-banner">
-                        This note is only visible to the support team.
+                        🔒 Internal only — not sent to the member.
                       </div>
                     )}
                     <div className="si-composer__editor">
@@ -557,7 +559,7 @@ export default function SupportInboxClient({
                           ? "Sending…"
                           : replyMode === "reply"
                             ? "Send Reply"
-                            : "Add Note"}
+                            : "Save Note"}
                       </button>
                     </div>
                   </>
