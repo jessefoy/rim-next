@@ -12602,8 +12602,6 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 }
 .vol-table__row:hover { background: var(--rim-bg-accent); }
 .vol-table__row--archived { opacity: 0.55; }
-.vol-table__row--attention { background: #fffdf5; }
-.vol-table__row--attention:hover { background: #fef8e8; }
 .vol-table__td {
   padding: 10px 12px;
   border-bottom: 1px solid var(--rim-bg-accent);

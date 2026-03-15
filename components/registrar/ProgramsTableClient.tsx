@@ -328,7 +328,7 @@ export default function ProgramsTableClient({
                 key={p.id}
                 className={`vol-table__row${
                   p.archivedAt ? " vol-table__row--archived" : ""
-                }${p.needsAttention && !p.archivedAt ? " vol-table__row--attention" : ""}`}
+                }`}
               >
                 {/* Program */}
                 <td className="vol-table__td">
