@@ -6,6 +6,7 @@
 import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { notifyAssigned } from "@/lib/supportNotify";
 
 function hasSupport(roles: string[]) {
   return roles.some((r) => ["SUPPORT", "ADMIN"].includes(r));
@@ -170,11 +171,25 @@ export async function PATCH(
   if (status) data.status = status;
   if (assignedToId !== undefined) data.assignedToId = assignedToId || null;
 
+  // Get current thread to detect assignment changes
+  const current = await db.supportThread.findUnique({
+    where: { id },
+    select: { assignedToId: true, subject: true },
+  });
+
   const updated = await db.supportThread.update({
     where: { id },
     data,
-    select: { id: true, status: true, assignedToId: true },
+    select: { id: true, status: true, assignedToId: true, subject: true },
   });
+
+  // Notify new assignee if assignment changed (fire-and-forget)
+  if (
+    assignedToId &&
+    assignedToId !== current?.assignedToId
+  ) {
+    notifyAssigned(id, updated.subject, assignedToId, session.user.id).catch(() => {});
+  }
 
   return NextResponse.json(updated);
 }

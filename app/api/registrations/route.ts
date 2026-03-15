@@ -5,6 +5,7 @@ import { renderFormattedText } from "@/lib/renderRichContent";
 import { buildGoogleCalendarUrl, buildIcsUrl } from "@/lib/calendarLinks";
 import { resolveLocation } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
+import { rematchUnlinkedThreads } from "@/lib/supportSync";
 
 export async function POST(request: NextRequest) {
   try {
@@ -102,6 +103,8 @@ export async function POST(request: NextRequest) {
             agreedAt: agreedToTerms === true ? now : null,
           },
         });
+        // Fire-and-forget: match any existing support threads to this new member
+        rematchUnlinkedThreads().catch(() => {});
       } else {
         // Existing account: use the account's stored values for the registration record.
         // Never overwrite existing data from unauthenticated form input.

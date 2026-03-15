@@ -9,6 +9,7 @@
 import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { notifyNewNote } from "@/lib/supportNotify";
 
 function hasSupport(roles: string[]) {
   return roles.some((r) => ["SUPPORT", "ADMIN"].includes(r));
@@ -31,10 +32,10 @@ export async function POST(
     return NextResponse.json({ error: "Body is required" }, { status: 400 });
   }
 
-  // Verify thread exists
+  // Verify thread exists + get assignee info
   const thread = await db.supportThread.findUnique({
     where: { id },
-    select: { id: true },
+    select: { id: true, subject: true, assignedToId: true },
   });
 
   if (!thread) return NextResponse.json({ error: "Thread not found" }, { status: 404 });
@@ -46,6 +47,15 @@ export async function POST(
       body,
     },
   });
+
+  // Notify assigned user about the note (fire-and-forget)
+  notifyNewNote(
+    id,
+    thread.subject,
+    session.user.name || "Someone",
+    thread.assignedToId,
+    session.user.id
+  ).catch(() => {});
 
   return NextResponse.json({
     id: note.id,

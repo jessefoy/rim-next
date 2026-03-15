@@ -100,6 +100,12 @@ export async function PATCH(
     !(user.roles as string[]).includes("HOST") &&
     (roles as string[]).includes("HOST");
 
+  // Detect SUPPORT role removal
+  const removingSupport =
+    roles !== undefined &&
+    (user.roles as string[]).includes("SUPPORT") &&
+    !(roles as string[]).includes("SUPPORT");
+
   // Determine archivedAt changes driven by memberStatus
   let statusDrivenArchivedAt: Date | null | undefined;
   if (memberStatus !== undefined) {
@@ -155,6 +161,29 @@ export async function PATCH(
   // Sync HubMember records whenever roles change
   if (roles !== undefined) {
     await syncHubMembership(id, roles as string[]);
+  }
+
+  // SUPPORT role revoked: reassign their active threads
+  if (removingSupport) {
+    // Check for a default assignee
+    const defaultSetting = await db.appSetting.findUnique({
+      where: { key: "support.defaultAssigneeId" },
+    });
+    const fallbackId = defaultSetting?.value ?? null;
+
+    // Only reassign if fallback isn't the user being removed
+    const reassignTo = fallbackId && fallbackId !== id ? fallbackId : null;
+
+    await db.supportThread.updateMany({
+      where: {
+        assignedToId: id,
+        status: { in: ["OPEN", "CLAIMED", "WAITING"] },
+      },
+      data: {
+        assignedToId: reassignTo,
+        status: reassignTo ? "CLAIMED" : "OPEN",
+      },
+    });
   }
 
   // Notify newly-promoted registrar — fire-and-forget

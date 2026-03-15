@@ -12,6 +12,7 @@
 
 import { getGmailClient } from "@/lib/gmail";
 import { db } from "@/lib/db";
+import { notifyAssigned, notifyNewReply } from "@/lib/supportNotify";
 import type { gmail_v1 } from "googleapis";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -142,6 +143,12 @@ export async function syncGmailInbox(): Promise<SyncResult> {
   let newMessages = 0;
   let updatedThreads = 0;
 
+  // Check for default assignee setting
+  const defaultAssigneeSetting = await db.appSetting.findUnique({
+    where: { key: "support.defaultAssigneeId" },
+  });
+  const defaultAssigneeId = defaultAssigneeSetting?.value ?? null;
+
   // Fetch threads from INBOX — last 90 days
   const ninetyDaysAgo = new Date();
   ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
@@ -195,7 +202,7 @@ export async function syncGmailInbox(): Promise<SyncResult> {
     // Check if thread already exists
     const existingThread = await db.supportThread.findUnique({
       where: { gmailThreadId },
-      select: { id: true, lastMessageAt: true },
+      select: { id: true, lastMessageAt: true, assignedToId: true, subject: true },
     });
 
     let threadId: string;
@@ -231,12 +238,19 @@ export async function syncGmailInbox(): Promise<SyncResult> {
           senderEmail: isOutbound(senderEmail, supportEmail) ? extractEmail(getHeader(firstHeaders, "To") ?? "") : senderEmail,
           senderName: isOutbound(senderEmail, supportEmail) ? extractName(getHeader(firstHeaders, "To") ?? "") : senderName,
           memberId: member?.id ?? null,
+          assignedToId: defaultAssigneeId,
+          status: defaultAssigneeId ? "CLAIMED" : "OPEN",
           lastMessageAt: lastDate,
           lastSyncedAt: new Date(),
         },
       });
       threadId = thread.id;
       newThreads++;
+
+      // Notify default assignee about new thread (fire-and-forget)
+      if (defaultAssigneeId) {
+        notifyAssigned(thread.id, subject, defaultAssigneeId).catch(() => {});
+      }
     }
 
     // Upsert messages
@@ -275,8 +289,48 @@ export async function syncGmailInbox(): Promise<SyncResult> {
         },
       });
       newMessages++;
+
+      // Notify assignee about inbound reply on existing thread (fire-and-forget)
+      if (!outbound && existingThread?.assignedToId) {
+        notifyNewReply(
+          threadId,
+          existingThread.subject,
+          fromName || fromEmail,
+          existingThread.assignedToId
+        ).catch(() => {});
+      }
     }
   }
 
   return { newThreads, newMessages, updatedThreads };
+}
+
+// ─── Retroactive Member Matching ──────────────────────────────────────────────
+
+/**
+ * Re-match unlinked threads: find SupportThread records where memberId is null,
+ * look up User by senderEmail, update memberId where found.
+ */
+export async function rematchUnlinkedThreads(): Promise<number> {
+  const unlinked = await db.supportThread.findMany({
+    where: { memberId: null },
+    select: { id: true, senderEmail: true },
+  });
+
+  let matched = 0;
+  for (const thread of unlinked) {
+    const user = await db.user.findUnique({
+      where: { email: thread.senderEmail },
+      select: { id: true },
+    });
+    if (user) {
+      await db.supportThread.update({
+        where: { id: thread.id },
+        data: { memberId: user.id },
+      });
+      matched++;
+    }
+  }
+
+  return matched;
 }

@@ -1,7 +1,12 @@
 /**
  * /account/hub/support/settings — Support Hub Settings
  *
- * Gmail connection (ADMIN only) + My Signature (all support members).
+ * Sections:
+ * 1. Gmail connection (ADMIN only)
+ * 2. Default assignee (ADMIN only)
+ * 3. Re-match member threads (ADMIN only)
+ * 4. My Signature (all support members)
+ * 5. Email notifications toggle (all support members)
  */
 
 import { auth } from "@/auth";
@@ -41,6 +46,39 @@ export default async function SupportSettingsPage({
     where: { userId: session.user.id },
   });
 
+  // Get current user's notification preference
+  const currentUser = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { supportEmailNotifications: true },
+  });
+
+  // For ADMIN: get default assignee setting + support team members
+  let defaultAssigneeId: string | null = null;
+  let supportTeam: { id: string; name: string }[] = [];
+
+  if (isAdmin) {
+    const setting = await db.appSetting.findUnique({
+      where: { key: "support.defaultAssigneeId" },
+    });
+    defaultAssigneeId = setting?.value ?? null;
+
+    const supportMembers = await db.hubMember.findMany({
+      where: { hub: { slug: "support" } },
+      include: {
+        user: {
+          select: { id: true, firstName: true, lastName: true, preferredName: true },
+        },
+      },
+    });
+    supportTeam = supportMembers.map((m) => ({
+      id: m.user.id,
+      name:
+        m.user.preferredName ||
+        [m.user.firstName, m.user.lastName].filter(Boolean).join(" ") ||
+        "Unknown",
+    }));
+  }
+
   return (
     <SupportSettingsClient
       isAdmin={isAdmin}
@@ -52,6 +90,9 @@ export default async function SupportSettingsPage({
         role: signature?.role ?? "",
         tagline: signature?.tagline ?? "",
       }}
+      emailNotifications={currentUser?.supportEmailNotifications ?? true}
+      defaultAssigneeId={defaultAssigneeId}
+      supportTeam={supportTeam}
     />
   );
 }

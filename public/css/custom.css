@@ -13930,3 +13930,18 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   color: #2e7d32;
   font-weight: 600;
 }
+.si-settings__toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  color: var(--rim-text);
+  cursor: pointer;
+}
+.si-settings__toggle-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--rim-mid);
+  cursor: pointer;
+}
