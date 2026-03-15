@@ -191,11 +191,11 @@ export default function SupportInboxClient({
     }
   }, [selectedId, fetchDetail]);
 
-  // Scroll to bottom of timeline when detail loads
+  // Scroll timeline to top when detail loads
   useEffect(() => {
     if (detail && detailRef.current) {
       const timeline = detailRef.current.querySelector(".si-timeline");
-      if (timeline) timeline.scrollTop = timeline.scrollHeight;
+      if (timeline) timeline.scrollTop = 0;
     }
   }, [detail]);
 

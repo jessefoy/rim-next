@@ -13451,6 +13451,7 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .si-detail-header {
   padding: 16px 24px;
   border-bottom: 1px solid var(--rim-rule);
+  flex-shrink: 0;
 }
 .si-detail-header__top {
   display: flex;
@@ -13551,7 +13552,8 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 
 /* ── Timeline ── */
 .si-timeline {
-  flex: 1;
+  flex: 1 1 0;
+  min-height: 200px;
   overflow-y: auto;
   padding: 16px 24px;
   display: flex;
@@ -13564,6 +13566,7 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   border: 1px solid var(--rim-rule);
   border-radius: 8px;
   overflow: hidden;
+  flex-shrink: 0; /* prevent flex column from collapsing message bodies */
 }
 .si-message--outbound {
   border-color: rgba(19, 82, 116, 0.25);
@@ -13615,6 +13618,7 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   border-radius: 8px;
   background: var(--color-alert-bg);
   overflow: hidden;
+  flex-shrink: 0;
 }
 .si-note__header {
   display: flex;
@@ -13655,6 +13659,9 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .si-composer {
   border-top: 1px solid var(--rim-rule);
   background: var(--rim-bg);
+  flex-shrink: 0;
+  max-height: 280px;
+  overflow-y: auto;
 }
 .si-composer__tabs {
   display: flex;
