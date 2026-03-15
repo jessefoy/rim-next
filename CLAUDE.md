@@ -23,6 +23,7 @@
 - Per-page prefix system: `lp-` lessons, `pg-` programs, `wl-` welcome, `vol-` registrar, `adm-` admin, `db-` dashboard, `mr-` my registrations, `mp-` my profile, `nav-` nav, `man-` manual, `hs-` host area, `hub-` hub components, `hh-` households, `ac-` account layout/sidebar, `ca-` course access.
 - Design tokens in `:root`: `--rim-bg`, `--rim-text`, `--rim-mid`, `--rim-blue`, `--font-serif`, `--font-sans`, `--reading-width`.
 - No box-shadows. No borders unless functionally required.
+- **Mobile-first responsive:** All new UI must work at 360px minimum (primary target 390px). Breakpoints: `@media (max-width: 430px)` for phones, `@media (max-width: 768px)` for tablets. Minimum 44px touch targets on all interactive elements. Minimum 16px font on all inputs/selects (prevents iOS auto-zoom).
 
 ## Key Files
 - `app/layout.tsx` — root layout (CSS, Nav, Footer, SessionProvider)

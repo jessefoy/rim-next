@@ -4,6 +4,56 @@ Each entry records what was accomplished, decisions made, and what to tackle nex
 
 ---
 
+## Session: 2026-03-15 (session 55)
+
+**Focus:** Mobile responsiveness audit and fix across member account pages, Registrar Hub, shared hub tabs, and Host Hub session pages.
+
+### Accomplished this session
+
+#### 1. Member account pages — mobile responsive (commit f1cacbc)
+Phone (430px) and tablet (768px) fixes for dashboard, my registrations, my library, and my profile:
+- Dashboard (`db2-`): reduced wrap padding, greeting font-size, enlarged Join button/quicklinks/hub cards to 44px+ touch targets, tighter today-card layout on narrow viewports
+- My Registrations (`mr-`): 44px cancel buttons (was padding: 0), larger card titles, tappable dana link
+- My Profile (`mp-`): inputs bumped from 15px to 16px (iOS auto-zoom prevention), full-width submit button on mobile
+- My Library (`ml-`): 44px min-height on list items
+
+#### 2. ProgramsTableClient — flagged row highlight removed
+Removed amber/yellow row background highlight for programs with flags (dana pending, needs attention). Flag badges in the Flags column communicate status on their own.
+
+#### 3. Registrar Hub pages — mobile responsive (commit 8858501)
+Phone (430px) and tablet (768px) fixes for ProgramsTableClient, VolunteerTable, ProgramEditor:
+- **ProgramsTableClient:** Table collapses to card layout at 430px (display: block, thead hidden). Filter pills horizontal scroll. Search/Add button full-width. All action buttons enlarged to 44px+ touch targets. Confirmation dialog buttons stack vertically.
+- **VolunteerTable:** Action buttons enlarged to 44px min-height. All inputs (.vol-notes, .vol-search, .vol-field-edit__*) bumped to 16px font. Stat bar flex-wrap. Reminder section stacks vertically. CSV export enlarged.
+- **ProgramEditor:** Tab bar flex-shrink + white-space: nowrap. All inputs/textareas/selects 16px font. Save/cancel actions stack vertically full-width 48px. Day toggles 44px touch targets. Tiptap editor toolbar horizontal scroll on narrow viewports.
+
+#### 4. Host Hub session tab — mobile responsive
+Phone-first fixes for session live view and post-session form:
+- Session live view: person rows 52px min-height for tapping. Program sections stack cleanly. End Session button full-width 48px.
+- Post-session form: single-column layout. Full-width inputs/textareas at 16px font. Submit button full-width 48px. Flagged person notes full-width. Routing dropdown 16px font.
+
+#### 5. Shared hub tab pages — mobile responsive
+Phone (430px) and tablet (768px) fixes for announcements, conversations, documents, members:
+- Announcements: new post form inputs 16px. Action buttons 44px. Announcement cards reduce padding.
+- Conversations: thread list rows 52px min-height. New thread form stacks vertically. Reply textarea full-width 16px. Thread detail buttons 44px.
+- Documents: file list items 48px min-height. Upload controls full-width.
+- Members: member list rows 48px min-height. Role badges wrap. Actions 44px.
+
+#### 6. CLAUDE.md — mobile-responsive design standard added
+New CSS rule in project instructions: "All new UI must work at 360px minimum (primary target 390px). Breakpoints: `@media (max-width: 430px)` for phones, `@media (max-width: 768px)` for tablets. Minimum 44px touch targets. Minimum 16px font on all inputs."
+
+### Decisions made
+- Breakpoints standardized: 430px phone, 768px tablet (not 375px/600px/640px/767px which were inconsistently used before)
+- Minimum viewport: 360px (most common Android), primary target 390px (modern iPhone)
+- iOS auto-zoom prevention: all inputs and selects must be ≥16px font-size on mobile
+- ProgramsTableClient card layout: at 430px, the table completely transforms to stacked cards (thead hidden, rows become flex columns)
+- Existing breakpoint blocks at 600px and 767px left in place — they still work correctly, the new 430px/768px blocks layer on top
+
+### Next session
+- Audit remaining pages for mobile responsiveness (welcome page, community agreements, login, programs listing, program detail, registration form)
+- Consider adding a mobile preview tool or checklist to the closing ritual
+
+---
+
 ## Session: 2026-03-04 (continuation — session 17)
 
 **Focus:** Registration form UX + security hardening; dana $0 bug fix; documentation
