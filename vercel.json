@@ -29,7 +29,7 @@
     },
     {
       "path": "/api/cron/support-sync",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 */1 * * *"
     }
   ]
 }
