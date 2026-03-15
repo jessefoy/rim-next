@@ -10399,6 +10399,17 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .ann-archived-section { margin-top: 32px; }
 .ann-archived-section__header { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--rim-text-muted); margin-bottom: 12px; }
 .ann-item--archived .ann-item__title { opacity: 0.6; }
+.ann-item__title-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+.ann-item__disc-link { font-size: 13px; color: var(--rim-mid); text-decoration: none; }
+.ann-item__disc-link:hover { text-decoration: underline; }
+.ann-item__disc-prompt { font-size: 13px; color: var(--rim-text-muted); font-style: italic; text-decoration: none; }
+.ann-item__disc-prompt:hover { text-decoration: underline; color: var(--rim-mid); }
+.ann-coord { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ann-archive-link { font-size: 13px; color: var(--rim-text-muted); margin-top: 20px; cursor: pointer; }
+.ann-archive-link:hover { color: var(--rim-mid); text-decoration: underline; }
+.pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.pill--important { background: #fdf3de; color: #7a5210; }
+.pill--urgent { background: #fdeae7; color: #7a2a1a; }
 
 /* ── Documents (doc-) ─────────────────────────────────────────── */
 .doc-toolbar { display: flex; justify-content: flex-end; margin-bottom: 20px; }
@@ -10473,6 +10484,88 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .mem-item__role { font-size: 13px; color: var(--rim-text-muted); margin-top: 2px; }
 .mem-item__join { font-size: 12px; color: var(--rim-text-muted); flex-shrink: 0; }
 .coord-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; background: #edf3f7; color: var(--rim-mid); }
+
+/* ── Hub tabs — tablet responsive ──────────────────────────── */
+@media (max-width: 768px) {
+  .ann-compose, .cv-compose, .doc-add-form { padding: 20px; }
+  .ann-item { padding: 16px 18px; }
+  .cv-item { padding: 14px 16px; }
+  .cv-post { padding: 14px 16px; }
+  .doc-item { padding: 12px 14px; }
+  .mem-item { padding: 12px 14px; gap: 10px; }
+  .hub-reply { padding: 12px 14px; }
+  .hub-thread-detail__title { font-size: 20px; }
+}
+
+/* ── Hub tabs — phone responsive ───────────────────────────── */
+@media (max-width: 430px) {
+  /* Shared form fields: prevent iOS auto-zoom */
+  .fi, .ft, .fs { font-size: 16px; }
+
+  /* Shared buttons: 44px minimum touch targets */
+  .btn { padding: 12px 18px; min-height: 44px; font-size: 14px; box-sizing: border-box; }
+  .btn--sm { padding: 10px 14px; font-size: 13px; min-height: 44px; }
+  .btn--ghost { padding: 12px 18px; min-height: 44px; }
+  .ann-btn { padding: 10px 14px; min-height: 44px; font-size: 14px; box-sizing: border-box; }
+
+  /* Compose forms: tighter padding on narrow viewports */
+  .ann-compose, .cv-compose, .doc-add-form { padding: 16px; }
+  .ann-compose__title, .cv-compose__title, .add-doc-form__title { font-size: 16px; }
+
+  /* Form actions: stack on phone */
+  .form-actions { flex-direction: column; align-items: stretch; }
+  .form-actions .btn,
+  .form-actions .btn--ghost { width: 100%; justify-content: center; text-align: center; }
+
+  /* Priority buttons: taller */
+  .priority-btn { padding: 12px 14px; min-height: 44px; font-size: 14px; }
+  .cv-pill { padding: 12px 16px; min-height: 44px; font-size: 14px; }
+
+  /* Announcements */
+  .ann-item { padding: 16px 14px; }
+  .ann-item__footer { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .ann-coord { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ann-item__title { font-size: 15px; }
+  .ann-archive-link { padding: 12px 0; min-height: 44px; display: flex; align-items: center; }
+
+  /* Conversations — toolbar */
+  .cv-toolbar { flex-wrap: wrap; gap: 10px; }
+
+  /* Conversations — thread list */
+  .cv-item { flex-direction: column; gap: 8px; padding: 14px; }
+  .cv-item__actions { align-self: flex-end; }
+  .cv-item__title { font-size: 15px; }
+
+  /* Conversations — thread detail */
+  .cv-thread-hdr__title { font-size: 18px; }
+  .cv-post { padding: 14px; }
+  .cv-back__link { padding: 8px 0; min-height: 44px; display: inline-flex; align-items: center; }
+
+  /* Documents */
+  .doc-item { flex-wrap: wrap; gap: 8px; padding: 14px; }
+  .doc-item__title { white-space: normal; }
+  .doc-item__meta { display: none; }
+  .doc-item__text { min-width: 0; flex-basis: calc(100% - 52px); }
+
+  /* Members */
+  .mem-item { padding: 12px 14px; gap: 10px; min-height: 44px; }
+  .mem-item__join { display: none; }
+  .mem-av { width: 36px; height: 36px; font-size: 13px; }
+  .mem-item__name { font-size: 14px; }
+
+  /* Host team thread detail */
+  .hub-thread-detail__title { font-size: 18px; }
+  .hub-thread-detail__header { padding-bottom: 16px; }
+  .hub-reply { padding: 12px; }
+  .hub-reply__edit-btn { padding: 8px 0; min-height: 44px; display: inline-flex; align-items: center; }
+  .hub-reply-reaction-pill { padding: 6px 10px; min-height: 36px; }
+  .hub-reply-reactions__add-btn { padding: 6px 10px; min-height: 36px; }
+  .hub-reply-reactions__picker-btn { padding: 8px; font-size: 22px; min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; }
+  .hub-reply-reactions__picker { gap: 2px; padding: 6px; }
+
+  /* Hub page container */
+  .hub-page { padding: 16px 14px 48px; }
+}
 
 /* ── AccountSidebar section label ──────────────────────────── */
 .ac-sidebar__section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--rim-text-muted); padding: 10px 12px 2px; }
