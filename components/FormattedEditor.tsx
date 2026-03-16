@@ -1,6 +1,6 @@
 "use client"
-import { useRef } from "react"
-import { useEditor, EditorContent } from "@tiptap/react"
+import { useRef, useEffect } from "react"
+import { useEditor, EditorContent, type Editor } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import Link from "@tiptap/extension-link"
 import Placeholder from "@tiptap/extension-placeholder"
@@ -19,6 +19,7 @@ interface Props {
   minHeight?: number
   maxChars?: number
   context?: string     // "support-reply" enables image insert button
+  editorRef?: React.MutableRefObject<Editor | null>
 }
 
 export default function FormattedEditor({
@@ -28,6 +29,7 @@ export default function FormattedEditor({
   minHeight = 200,
   maxChars,
   context,
+  editorRef,
 }: Props) {
   const imageInputRef = useRef<HTMLInputElement>(null)
   const showImageButton = context === "support-reply"
@@ -55,6 +57,13 @@ export default function FormattedEditor({
       onChange(editor.getJSON())
     },
   })
+
+  // Expose editor instance to parent via ref
+  useEffect(() => {
+    if (editorRef && editor) {
+      editorRef.current = editor
+    }
+  }, [editor, editorRef])
 
   const handleImageInsert = async (files: FileList | null) => {
     if (!files || !files[0] || !editor) return

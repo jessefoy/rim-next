@@ -11,6 +11,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { upload } from "@vercel/blob/client";
+import type { Editor } from "@tiptap/react";
 import FormattedEditor from "./FormattedEditor";
 import { renderFormattedText } from "@/lib/renderRichContent";
 
@@ -227,6 +228,8 @@ export default function SupportInboxClient({
   const [replyTplOpen, setReplyTplOpen] = useState(false);
   const [composeTplOpen, setComposeTplOpen] = useState(false);
 
+  const replyEditorRef = useRef<Editor | null>(null);
+  const composeEditorRef = useRef<Editor | null>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
 
   // ─── Fetch threads ──────────────────────────────────────────────────────
@@ -314,12 +317,18 @@ export default function SupportInboxClient({
   }, [tplLoaded]);
 
   const applyReplyTemplate = (t: TemplateOption) => {
+    if (replyEditorRef.current && t.body) {
+      replyEditorRef.current.commands.setContent(t.body);
+    }
     setReplyDraft(t.body);
     setReplyTplOpen(false);
   };
 
   const applyComposeTemplate = (t: TemplateOption) => {
     if (t.subject && !composeSubject) setComposeSubject(t.subject);
+    if (composeEditorRef.current && t.body) {
+      composeEditorRef.current.commands.setContent(t.body);
+    }
     setComposeDraft(t.body);
     setComposeTplOpen(false);
   };
@@ -854,6 +863,7 @@ export default function SupportInboxClient({
                         placeholder="Type your reply…"
                         minHeight={100}
                         context="support-reply"
+                        editorRef={replyEditorRef}
                       />
                     </div>
                     {/* Staged attachments */}
@@ -1173,6 +1183,7 @@ export default function SupportInboxClient({
                   placeholder="Write your message…"
                   minHeight={200}
                   context="support-reply"
+                  editorRef={composeEditorRef}
                 />
               </div>
 
