@@ -365,37 +365,15 @@ export default function HubScheduleClient({
       const monthStr = `${y}-${String(m + 1).padStart(2, "0")}`;
       const res = await fetch(`${apiBase}/assignments?month=${monthStr}`);
       if (!res.ok) return;
-      const data: Array<{
-        id: string;
-        programSlug: string;
-        sessionDate: string | null;
-        status: "unclaimed" | "claimed" | "sub_needed";
-        hostUserId: string | null;
-        hostName: string | null;
-        subRequestId: string | null;
-        subMessage: string | null;
-      }> = await res.json();
-
-      const programBySlug = new Map(programs.map((p) => [p.slug, p]));
-      setSessions(
-        data.map((a) => {
-          const prog = programBySlug.get(a.programSlug);
-          return {
-            ...a,
-            programId:       prog?.id ?? null,
-            programName:     prog?.name ?? a.programSlug,
-            zoomLink:        prog?.zoomLink ?? null,
-            meetHostAccount: prog?.meetHostAccount ?? null,
-            programFormat:   prog?.programFormat ?? null,
-          };
-        })
-      );
+      // API now returns fully merged sessions (program occurrences + assignments)
+      const data: Session[] = await res.json();
+      setSessions(data);
     } catch {
       showToast("Failed to load sessions.");
     } finally {
       setLoading(false);
     }
-  }, [programs]);
+  }, [apiBase]);
 
   function prevMonth() {
     const m = month === 0 ? 11 : month - 1;
@@ -409,22 +387,49 @@ export default function HubScheduleClient({
     setYear(y); setMonth(m); loadMonth(y, m);
   }
 
+  // claimOne handles both real assignment ids and synthetic "unassigned::slug::date" ids.
+  // For synthetic ids, POSTs to create+claim the assignment in one shot and returns the real id.
+  async function claimOne(id: string): Promise<{ ok: boolean; newId: string }> {
+    if (id.startsWith("unassigned::")) {
+      const s = sessions.find((s) => s.id === id);
+      const [, programSlug] = id.split("::");
+      const res = await fetch(`${apiBase}/assignments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          programSlug,
+          sessionDate: s?.sessionDate ?? null,
+          action: "claim",
+        }),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? "Something went wrong."); }
+      const data = await res.json();
+      return { ok: true, newId: data.id };
+    }
+    const res = await fetch(`${apiBase}/assignments/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "claim" }),
+    });
+    if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? "Something went wrong."); }
+    return { ok: true, newId: id };
+  }
+
   async function claimSession(id: string) {
     try {
-      const res = await fetch(`${apiBase}/assignments/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "claim" }),
-      });
-      if (!res.ok) { const d = await res.json(); showToast(d.error ?? "Something went wrong."); return; }
+      const { newId } = await claimOne(id);
       setSessions((prev) => prev.map((s) =>
-        s.id === id ? { ...s, status: "claimed", hostUserId: currentUserId, hostName: currentUserName } : s
+        s.id === id
+          ? { ...s, id: newId, status: "claimed", hostUserId: currentUserId, hostName: currentUserName }
+          : s
       ));
       setSelected((s) =>
-        s?.id === id ? { ...s, status: "claimed", hostUserId: currentUserId, hostName: currentUserName } : s
+        s?.id === id
+          ? { ...s, id: newId, status: "claimed", hostUserId: currentUserId, hostName: currentUserName }
+          : s
       );
       showToast("✓ Session claimed — team notified.");
-    } catch { showToast("Network error. Please try again."); }
+    } catch (e) { showToast(e instanceof Error ? e.message : "Network error. Please try again."); }
   }
 
   async function submitSubRequest(assignmentId: string, message: string) {
@@ -482,21 +487,19 @@ export default function HubScheduleClient({
     setClaiming(true);
     const ids = [...multiIds];
     try {
-      await Promise.all(ids.map((id) =>
-        fetch(`${apiBase}/assignments/${id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "claim" }),
-        })
-      ));
-      setSessions((prev) => prev.map((s) =>
-        ids.includes(s.id) ? { ...s, status: "claimed", hostUserId: currentUserId, hostName: currentUserName } : s
-      ));
+      const results = await Promise.all(ids.map((id) => claimOne(id)));
+      // Build a map from old id -> new id (same for real assignments, new cuid for synthetic)
+      const idMap = new Map(ids.map((oldId, i) => [oldId, results[i].newId]));
+      setSessions((prev) => prev.map((s) => {
+        const newId = idMap.get(s.id);
+        if (!newId) return s;
+        return { ...s, id: newId, status: "claimed", hostUserId: currentUserId, hostName: currentUserName };
+      }));
       showToast(`✓ ${ids.length} session${ids.length > 1 ? "s" : ""} claimed — team notified.`);
       setMultiIds(new Set());
       setConfirming(false);
       setSelected(null);
-    } catch { showToast("Network error. Please try again."); }
+    } catch (e) { showToast(e instanceof Error ? e.message : "Network error. Please try again."); }
     finally { setClaiming(false); }
   }
 

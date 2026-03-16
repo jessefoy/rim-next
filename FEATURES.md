@@ -2387,6 +2387,14 @@ The host-team hub at `/account/hub/host-team` reuses the `HubScheduleClient` com
 - Calendar view: `SessionDetail` renders below the calendar grid
 - Both views: month nav arrows + calendar/list toggle in the toolbar row
 
+**Schedule data model (updated session 58 — 2026-03-16):**
+- Programs drive the schedule — not HostAssignment records. Every virtual/hybrid program with an occurrence in the current month appears on the calendar, whether or not a host has been assigned.
+- `isOccurrenceOnDate()` logic (same as dashboard + session tab) determines which programs appear on each calendar day — handling one-time events, weekly recurrence (with interval + day filters + end count), and monthly/daily.
+- Sessions without a HostAssignment get a synthetic id (`unassigned::${slug}::YYYY-MM-DD`) and display as "Needs Coverage."
+- Claiming a synthetic session POSTs to `POST /api/host/assignments` with `action: "claim"` — creates the HostAssignment and claims it in one shot. Any HOST (not just managers) can self-claim.
+- Real assignment ids use the existing `PATCH /api/host/assignments/[id]` flow unchanged.
+- Month navigation (`GET /api/host/assignments?month=YYYY-MM`) now returns the full merged view — program occurrences + joined assignments — so unassigned sessions appear when navigating to other months too.
+
 ---
 
 ## 25. Virtual Host Hub — Phase 1: Attendance Tracking + Session View ✅ Built — session 43 (2026-03-12)
