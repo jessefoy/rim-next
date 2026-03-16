@@ -1,6 +1,6 @@
 # RIM Next — Stack Reference
 
-_Generated 2026-03-11. Last updated 2026-03-15 (session 54). Update this file whenever a service, credential, or major structural decision changes._
+_Generated 2026-03-11. Last updated 2026-03-16 (session 57). Update this file whenever a service, credential, or major structural decision changes._
 
 ---
 
@@ -112,6 +112,8 @@ All set in Vercel. Pull locally with `npx vercel env pull .env.local`.
 | `GMAIL_CLIENT_ID` | OAuth2 client ID for Gmail API |
 | `GMAIL_CLIENT_SECRET` | OAuth2 client secret |
 | `GMAIL_REDIRECT_URI` | OAuth2 callback URL (`https://rim-next.vercel.app/api/support/auth/callback`) |
+
+**Support Inbox security posture (hardened 2026-03-16):** SSRF guard on attachment fetch (Vercel Blob domain only), attachment proxy ownership check, soft-delete bypass fix in sync engine, deleted-thread 404 on reply/note, 30s rate limit on manual sync, status enum validation, HTML escaping on signature fields, 100-char max on signature fields, audit log on hard delete, `NEXTAUTH_URL` in notification emails.
 
 ### Payments (Stripe — test mode)
 | Variable | Purpose |
