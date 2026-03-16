@@ -28,9 +28,18 @@ interface ThreadSummary {
   member: { id: string; name: string } | null;
 }
 
+interface FileAttachment {
+  id: string;
+  gmailAttachmentId: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+}
+
 interface TimelineEntry {
   type: "message" | "note";
   id: string;
+  gmailMessageId?: string;
   fromEmail?: string;
   fromName?: string;
   bodyHtml?: string;
@@ -41,6 +50,7 @@ interface TimelineEntry {
   author?: { name: string };
   sentAt?: string;
   createdAt?: string;
+  fileAttachments?: FileAttachment[];
 }
 
 interface MemberContext {
@@ -116,6 +126,12 @@ function fmtDateShort(iso: string) {
     day: "numeric",
     year: "numeric",
   });
+}
+
+function fmtFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -533,6 +549,24 @@ export default function SupportInboxClient({
                           entry.bodyHtml || `<pre>${entry.bodyText}</pre>`,
                       }}
                     />
+                    {entry.fileAttachments && entry.fileAttachments.length > 0 && (
+                      <div className="si-attachments">
+                        {entry.fileAttachments.map((att) => (
+                          <a
+                            key={att.id}
+                            className="si-attachment-chip"
+                            href={`/api/support/attachment/${entry.gmailMessageId}/${att.gmailAttachmentId}?ct=${encodeURIComponent(att.mimeType)}&dl=${encodeURIComponent(att.filename)}`}
+                            download={att.filename}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <span className="si-attachment-chip__icon">📎</span>
+                            <span className="si-attachment-chip__name">{att.filename}</span>
+                            <span className="si-attachment-chip__size">{fmtFileSize(att.size)}</span>
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}

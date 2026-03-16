@@ -978,6 +978,7 @@ model SupportMessage {
   bodyHtml       String        @db.Text
   bodyText       String        @db.Text
   attachments    Json?         // CID map: [{ cid, attachmentId, mimeType, filename }]
+  fileAttachments SupportAttachment[]
   sentAt         DateTime
   isOutbound     Boolean       @default(false)
   sentById       String?
@@ -985,6 +986,19 @@ model SupportMessage {
 
   @@index([threadId])
   @@map("support_messages")
+}
+
+model SupportAttachment {
+  id                String         @id @default(cuid())
+  messageId         String
+  message           SupportMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  gmailAttachmentId String
+  filename          String
+  mimeType          String
+  size              Int
+
+  @@index([messageId])
+  @@map("support_attachments")
 }
 
 model SupportNote {

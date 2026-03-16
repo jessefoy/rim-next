@@ -45,17 +45,21 @@ export async function GET(
     // Gmail returns base64url-encoded data
     const buffer = Buffer.from(data, "base64url");
 
-    // Infer content type from the data (or default to octet-stream)
-    // We'll accept a query param for content type since Gmail doesn't return it here
-    const contentType =
-      new URL(_req.url).searchParams.get("ct") || "application/octet-stream";
+    const url = new URL(_req.url);
+    const contentType = url.searchParams.get("ct") || "application/octet-stream";
+    const downloadName = url.searchParams.get("dl");
 
-    return new NextResponse(buffer, {
-      headers: {
-        "Content-Type": contentType,
-        "Cache-Control": "private, max-age=86400", // cache 24h
-      },
-    });
+    const headers: Record<string, string> = {
+      "Content-Type": contentType,
+      "Cache-Control": "private, max-age=86400",
+    };
+
+    // If a download filename is provided, set Content-Disposition for download
+    if (downloadName) {
+      headers["Content-Disposition"] = `attachment; filename="${downloadName}"`;
+    }
+
+    return new NextResponse(buffer, { headers });
   } catch (err: any) {
     console.error("Attachment proxy error:", err.message);
     return NextResponse.json(

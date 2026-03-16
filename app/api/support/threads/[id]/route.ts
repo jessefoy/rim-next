@@ -53,6 +53,9 @@ export async function GET(
         orderBy: { sentAt: "asc" },
         include: {
           sentBy: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
+          fileAttachments: {
+            select: { id: true, gmailAttachmentId: true, filename: true, mimeType: true, size: true },
+          },
         },
       },
       notes: {
@@ -91,6 +94,7 @@ export async function GET(
     ...thread.messages.map((m) => ({
       type: "message" as const,
       id: m.id,
+      gmailMessageId: m.gmailMessageId,
       fromEmail: m.fromEmail,
       fromName: m.fromName,
       bodyHtml: rewriteCidRefs(m.bodyHtml, m.gmailMessageId, m.attachments),
@@ -102,6 +106,13 @@ export async function GET(
             name: m.sentBy.preferredName || [m.sentBy.firstName, m.sentBy.lastName].filter(Boolean).join(" ") || "Support",
           }
         : null,
+      fileAttachments: m.fileAttachments.map((a) => ({
+        id: a.id,
+        gmailAttachmentId: a.gmailAttachmentId,
+        filename: a.filename,
+        mimeType: a.mimeType,
+        size: a.size,
+      })),
     })),
     ...thread.notes.map((n) => ({
       type: "note" as const,

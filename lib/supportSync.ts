@@ -107,6 +107,36 @@ function extractAttachments(
   return results;
 }
 
+/**
+ * Extract file attachments (non-inline) from message parts.
+ * These are parts with a filename and attachmentId that are NOT CID-referenced.
+ */
+function extractFileAttachments(
+  parts: gmail_v1.Schema$MessagePart[] | undefined
+): { attachmentId: string; filename: string; mimeType: string; size: number }[] {
+  if (!parts) return [];
+  const results: { attachmentId: string; filename: string; mimeType: string; size: number }[] = [];
+  for (const part of parts) {
+    const hasCid = part.headers?.some(
+      (h) => h.name?.toLowerCase() === "content-id"
+    );
+    // File attachment: has a filename and attachmentId, but is NOT a CID inline image
+    if (part.filename && part.body?.attachmentId && !hasCid) {
+      results.push({
+        attachmentId: part.body.attachmentId,
+        filename: part.filename,
+        mimeType: part.mimeType || "application/octet-stream",
+        size: part.body.size || 0,
+      });
+    }
+    // Recurse into nested parts
+    if (part.parts) {
+      results.push(...extractFileAttachments(part.parts));
+    }
+  }
+  return results;
+}
+
 /** Determine if a message is outbound (sent by support@). */
 function isOutbound(fromEmail: string, supportEmail: string): boolean {
   return fromEmail.toLowerCase() === supportEmail.toLowerCase();
@@ -273,9 +303,10 @@ export async function syncGmailInbox(): Promise<SyncResult> {
 
       const { html, text } = extractBody(msg.payload);
       const outbound = isOutbound(fromEmail, supportEmail);
-      const attachments = extractAttachments(msg.payload?.parts);
+      const cidAttachments = extractAttachments(msg.payload?.parts);
+      const fileAtts = extractFileAttachments(msg.payload?.parts);
 
-      await db.supportMessage.create({
+      const message = await db.supportMessage.create({
         data: {
           gmailMessageId: msg.id,
           threadId,
@@ -283,11 +314,25 @@ export async function syncGmailInbox(): Promise<SyncResult> {
           fromName,
           bodyHtml: html || `<pre>${text}</pre>`,
           bodyText: text || html.replace(/<[^>]+>/g, ""),
-          attachments: attachments.length > 0 ? attachments : undefined,
+          attachments: cidAttachments.length > 0 ? cidAttachments : undefined,
           sentAt,
           isOutbound: outbound,
         },
       });
+
+      // Store file attachments as SupportAttachment records
+      if (fileAtts.length > 0) {
+        await db.supportAttachment.createMany({
+          data: fileAtts.map((a) => ({
+            messageId: message.id,
+            gmailAttachmentId: a.attachmentId,
+            filename: a.filename,
+            mimeType: a.mimeType,
+            size: a.size,
+          })),
+        });
+      }
+
       newMessages++;
 
       // Notify assignee about inbound reply on existing thread (fire-and-forget)
