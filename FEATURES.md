@@ -2837,6 +2837,121 @@ Both use `@tiptap/html` `generateHTML()`. Output is used with `dangerouslySetInn
 
 ---
 
+## §29 — Support Inbox
+
+The Support Inbox is a full shared email client for `support@rootedinmindfulness.org`, built natively into the hub system at `/account/hub/support/inbox`. It syncs Gmail threads via the Gmail API, matches senders to community members, and provides a three-column email client for the support team to manage correspondence.
+
+### Who uses it
+- **SUPPORT role** — full inbox access: read threads, reply, add internal notes, assign threads, use templates
+- **ADMIN role** — all SUPPORT access + Gmail connection management, default assignee, template CRUD, re-match, hard delete
+
+### What it does
+
+**Gmail integration:**
+- OAuth2 connection flow (Settings tab, ADMIN only) — connects `support@rootedinmindfulness.org` via Google OAuth
+- Incremental sync engine (`lib/supportSync.ts`) — fetches threads from Gmail API; 90-day initial sync, then incremental via `historyId`
+- Cron job (`/api/cron/support-sync`) runs every 5 minutes (Vercel Pro plan) to auto-sync new messages
+- Manual sync button in the inbox toolbar for immediate refresh
+- Attachment proxy (`/api/support/attachment/[messageId]/[attachmentId]`) streams files from Gmail API
+
+**Thread management:**
+- Four statuses: OPEN → CLAIMED → WAITING → RESOLVED
+- Thread assignment to support team members (dropdown in sidebar)
+- Default assignee setting (ADMIN configurable) auto-assigns new threads
+- Member matching: sender email matched to User records; sidebar shows member context (name, email, roles, registration history)
+- Contact history: other threads from the same sender/member shown in sidebar
+- Soft delete (trash): `deletedAt` timestamp; Trash filter to view/restore/permanently delete
+- Hard delete (ADMIN only): permanently removes thread + all messages, notes, attachments
+
+**Composing & replying:**
+- Reply composer (bottom of main panel) with FormattedEditor (Tiptap rich text)
+- Compose new email modal with To/Subject fields + FormattedEditor body
+- File attachments on replies and composed emails (Vercel Blob upload, 25 MB total limit)
+- Email signatures: per-user name + role + tagline, appended to all outbound messages
+- Email templates: reusable response templates with Tiptap JSON body; template picker dropdown in both reply and compose composers; ADMIN manages templates in Settings
+
+**Notifications:**
+- In-app alerts (Alert model) for: thread assigned, new reply on assigned thread, new internal note
+- Optional email notifications (per-user toggle in Settings)
+- Deduplication: same alert type + thread won't fire within 5-minute window
+- Fire-and-forget pattern (never blocks the main action)
+
+**Internal notes:**
+- Private notes visible only to support team (never sent to customer)
+- Tiptap JSON body, rendered in amber-themed cards in the timeline
+- Note authors tracked; timestamps shown
+
+### User flow
+1. ADMIN connects Gmail in Settings tab (one-time OAuth2 flow)
+2. Cron syncs threads every 5 minutes; manual sync available
+3. Support team member opens Inbox tab → sees thread list (Active filter by default)
+4. Click thread → center panel shows message timeline + sidebar shows sender context
+5. Claim thread (or auto-assigned) → status moves to CLAIMED
+6. Reply via composer (with optional template + attachments) → email sent via Gmail API
+7. Add internal notes for team coordination
+8. When resolved, change status to RESOLVED → thread moves to Closed filter
+9. Unwanted threads can be soft-deleted to Trash; restored or permanently deleted later
+
+### Layout
+Three-column split-pane email client:
+- **Left:** Thread list — `clamp(320px, 25vw, 400px)` fluid width. New Email button (full-width, above search). Filter pills (Active, Mine, Closed, All, Trash) with horizontal scroll. Search field.
+- **Center:** Message timeline (scrolls independently) + bottom-anchored reply composer. Subject bar with status badge and sidebar toggle.
+- **Right:** Sidebar (280px fixed, auto-collapses below 1100px). Sections: Status & assignment, member context (with registration history), contact history, actions (Add Note, Delete Thread).
+
+**Responsive behavior:**
+- Below 1100px: sidebar auto-collapses (toggle to show)
+- Below 768px (tablet): single-column list↔detail toggle with "← Back to threads" button
+- Below 430px (phone): 44px touch targets, 16px input fonts to prevent iOS zoom
+
+### Key files
+- `app/account/hub/[slug]/inbox/page.tsx` — server component; auth + Gmail check + initial data fetch
+- `app/account/hub/[slug]/settings/page.tsx` — server component; fetches settings, signatures, templates, team members
+- `components/SupportInboxClient.tsx` — "use client"; full inbox UI (~1400 lines); si- CSS prefix
+- `components/SupportSettingsClient.tsx` — "use client"; settings UI; si-settings- CSS prefix
+- `lib/gmail.ts` — OAuth2 client factory, token refresh, authenticated Gmail client
+- `lib/supportSync.ts` — sync engine: Gmail API → parse → upsert threads/messages → match members → notify
+- `lib/supportNotify.ts` — in-app alerts + email notifications for support events
+- `app/api/support/threads/route.ts` — GET thread list with filtering (status, assigned, search, trash)
+- `app/api/support/threads/[id]/route.ts` — GET detail (messages + notes + contact history), PATCH (status/assign/delete), DELETE (hard delete)
+- `app/api/support/threads/[id]/reply/route.ts` — POST reply via Gmail API (with signature + attachments)
+- `app/api/support/threads/[id]/note/route.ts` — POST internal note
+- `app/api/support/compose/route.ts` — POST new outbound email
+- `app/api/support/signature/route.ts` — GET/PUT per-user signature
+- `app/api/support/templates/route.ts` — GET list / POST create (ADMIN)
+- `app/api/support/templates/[id]/route.ts` — PUT update / DELETE (ADMIN)
+- `app/api/support/contacts/route.ts` — GET member search for compose
+- `app/api/support/rematch/route.ts` — POST re-match unlinked threads to members (ADMIN)
+- `app/api/support/settings/route.ts` — GET/PUT app settings (support.* prefix)
+- `app/api/support/settings/notifications/route.ts` — PUT email notification toggle
+- `app/api/support/sync/route.ts` — POST manual sync trigger
+- `app/api/support/attachment/[messageId]/[attachmentId]/route.ts` — GET proxy Gmail attachment
+- `app/api/support/auth/route.ts` — GET OAuth2 authorization URL
+- `app/api/support/auth/callback/route.ts` — GET OAuth2 callback, stores tokens
+- `app/api/cron/support-sync/route.ts` — cron: sync Gmail every 5 minutes
+
+### Database models
+- `GmailCredential` — OAuth2 tokens for the connected Gmail account (email, accessToken, refreshToken, expiresAt)
+- `SupportThread` — synced Gmail threads (gmailThreadId unique, subject, status enum, assignedToId, memberId, senderEmail/Name, deletedAt for soft delete)
+- `SupportMessage` — individual emails in a thread (gmailMessageId unique, from/to, bodyHtml/bodyText, isOutbound, sentById, attachments Json)
+- `SupportAttachment` — file attachments on messages (gmailAttachmentId, filename, mimeType, size)
+- `SupportNote` — internal notes (body Json/Tiptap, authorId, threadId)
+- `SupportSignature` — per-user signature (name, role, tagline; userId unique)
+- `SupportTemplate` — reusable response templates (name, subject, body Json/Tiptap, createdById)
+- `AppSetting` — key-value store for app settings (support.defaultAssignee, etc.)
+
+### 🔧 Technical notes
+- Gmail sync uses `historyId` for incremental sync after initial 90-day fetch. History ID stored in AppSetting (`support.historyId`).
+- Token refresh is automatic: `refreshAccessTokenIfNeeded()` checks if token expires within 5 minutes and refreshes proactively.
+- Member matching: `syncGmailInbox()` looks up sender email in User table; sets `memberId` FK on thread. `rematchUnlinkedThreads()` retries matching for threads where memberId is null.
+- Soft delete: `deletedAt DateTime?` on SupportThread. All list queries filter `deletedAt: null` except trash view. Sync engine intentionally does NOT filter by deletedAt — if a deleted thread gets new Gmail messages, the sync still updates it (user can restore later).
+- Notifications use fire-and-forget pattern with 5-minute deduplication window per alert type + thread.
+- FormattedEditor `editorRef` pattern: expose Tiptap Editor instance via `React.MutableRefObject<Editor | null>` so parent component can imperatively set content (e.g., when applying a template).
+- Outbound replies include the user's SupportSignature (if configured) appended as plain text below the message body.
+- Vercel Pro plan required for 5-minute cron interval (free plan minimum is 1 hour).
+- `User.title` field (added this session) is displayed in the assign dropdown as "Name — Title" and pre-fills signature role field.
+
+---
+
 | 2026-03-11 (session 39) | **Spec compliance audit + cleanup.** Audited all §23 files against actual codebase — everything conformant. Deleted temporary `/api/debug` route (exposed session/membership data; was created to diagnose login issue in session 38). Added §24 to FEATURES.md documenting the multi-hub workspace system (`/account/hub/[slug]/*`) built in the previous context-exhausted session. Fixed `TypeScript build error in app/account/host/schedule/page.tsx — missing `programFormat` field. Updated MEMORY.md session log. |
 | 2026-03-12 (session 41) | **Dashboard Today's Sessions: recurrence-aware logic + join link timing.** **(1) Infinite/ongoing recurrence fix:** `lib/calendarLinks.ts` — `buildRRule()` was guarded by `!count || count < 2`, which blocked RRULE generation for programs with no fixed end date (null `recurrenceCount`). Fixed: guard is now `if (!freq) return null`; COUNT is only appended when `count && count >= 2` — omitting it is valid RFC 5545 for infinite recurrence. `describeRecurrence()` updated with same fix; `icsLabel` now returns `"ongoing"` when count is null. Sanity `recurrenceCount` field title changed to "Number of Sessions (leave blank for ongoing)" with updated description. Sanity Studio deployed. **(2) Dashboard Today's Sessions — recurrence-aware query:** Root cause: old `todayVirtualSessionsQuery` required `programFormat in ["virtual","hybrid"] && defined(startDatetime)` — both null on all real production programs (which use `dayOfWeek[]->` refs). Fixed: replaced with `virtualDashboardProgramsQuery` — no `startDatetime` filter; fetches full recurrence fields. JS-side `isOccurrenceToday()` in `dashboard/page.tsx` handles single events, weekly (with day code + bi-weekly interval + series end), and monthly/daily fallback. `shiftToToday()` corrects the live/later window for recurring programs. `VirtualSession` interface renamed `VirtualProgram` with nullable `startDatetime` and all recurrence fields. **(3) Join link timing:** Changed from a 75-minute "joinable" window to a strict 12-minute live window. Join button now appears **only** in the Live Now section (12 min before start through session end) — completely removed from Later Today. Updated Later Today helper note: "Join link appears when the session opens, about 12 minutes before start." This prevents members from accidentally joining an open room when multiple programs are listed simultaneously. `liveStart` changed from 15 → 12 min; `joinableStart` / `isJoinable` removed entirely. Commits: session 41. **(4) DashboardAutoRefresh:** New `components/DashboardAutoRefresh.tsx` — `"use client"` component that auto-refreshes the dashboard when a Later Today session enters its Live Now window. Receives `liveStartEpochs: number[]` (epoch ms, timezone-agnostic) from the server; uses `setTimeout` to call `router.refresh()` at the exact moment the earliest session's window opens (+2s buffer). No polling, no visible page reload — `router.refresh()` re-fetches server data in the background, join button appears in place. |
 | 2026-03-11 (session 40) | **Hub schedule spec compliance + layout polish (§24 update).** **(1) Calendar visual redesign:** Rewrote `hub-cal` CSS block — switched from individual rounded cells with gaps to a single-card layout (`border:1px solid #e0ddd7; border-radius:10px; overflow:hidden`) with internal `#eceae5` dividers between cells. Today's date number gets a dark circle (`background:#2d3f47; border-radius:50%`) instead of a cell-level border. Event chips now use all-around `border:1px solid` (not `border-left` accent) and correct spec colors: mine (steel-lt), covered (sage-lt), needs (terra-lt). Checkboxes hidden by default, revealed on hover. Removed stale duplicate `hub-cal__event--mine` rule at end of file. **(2) List view inline panel:** Changed `SessionDetail` in list view to render directly below the clicked row (inside a `hub-sched-row-panel` wrapper div) rather than at the bottom of the page. Calendar view still renders `SessionDetail` below the calendar grid. **(3) Layout polish:** `hub-page` widened from 860→920px; side padding increased from 24→36px. Added missing `hub-hdr` CSS block (eyebrow/title/meta; was completely unstyled). `hub-tabs` vertical padding 10→13px; active tab color changed from `--rim-blue` to slate/steel to match spec. `hub-home__greeting` increased from 22→28px. `hub-detail__name` color changed from `--rim-blue` to `#2d3f47` (slate). Fixed double margin-top: `hub-content--wide` was 32px nested inside `hub-content` (also 32px), causing 64px gap on schedule page — set `hub-content--wide { margin-top: 0 }`. Commits: 51607af + earlier session commits. |
@@ -2866,4 +2981,6 @@ Both use `@tiptap/html` `generateHTML()`. Output is used with `dangerouslySetInn
 
 | 2026-03-15 (session 55) | **Mobile responsiveness audit — full pass across member account pages, Registrar Hub, shared hub tabs, and Host Hub session pages.** **(1) Member account pages:** Dashboard (`db2-`): wrap padding reduced, Join/quicklink/hub touch targets enlarged to 44px+, today-card layout tightened. My Registrations (`mr-`): cancel buttons enlarged from padding:0 to 44px min-height. My Profile (`mp-`): inputs 15→16px (iOS zoom). My Library (`ml-`): list items 44px min. **(2) ProgramsTableClient flagged row highlight removed** — amber row background for dana pending/needs attention removed; flag badges in Flags column are sufficient. **(3) Registrar Hub:** ProgramsTableClient collapses to card layout at 430px (thead hidden, stacked flex columns); filter pills horizontal scroll; search/add full-width; actions 44px. VolunteerTable: action buttons 44px; inputs 16px; stat bar flex-wrap; reminder section stacks. ProgramEditor: tabs non-wrapping; inputs/selects/textareas 16px; save/cancel stack full-width 48px; day toggles 44px; Tiptap toolbar overflow-x:auto. **(4) Host Hub session tab:** Person rows 52px min-height. End Session and Submit buttons full-width 48px. Post-session form single-column, inputs/textareas 16px. **(5) Shared hub tabs:** Announcements, Conversations, Documents, Members — inputs 16px, touch targets 44px+, forms stack on mobile. **(6) CLAUDE.md updated:** Mobile-responsive design standard added to project instructions — 360px min viewport, 430px/768px breakpoints, 44px touch targets, 16px input fonts. |
 
-*Last updated: 2026-03-15 (session 55)*
+| 2026-03-15 (session 56) | **Support Inbox — full shared email client for support@rootedinmindfulness.org.** Built across chunks 1–6 in a single extended session. **(1) Gmail OAuth + sync engine:** `lib/gmail.ts` (OAuth2 client factory + token refresh), `lib/supportSync.ts` (incremental sync via historyId, message parsing, member matching, notification dispatch). 8 Prisma models: GmailCredential, SupportThread, SupportMessage, SupportAttachment, SupportNote, SupportSignature, SupportTemplate, AppSetting. **(2) Inbox UI:** Three-column email client (`SupportInboxClient.tsx`, ~1400 lines, si- prefix). Thread list with 5 filter pills + search + manual sync. Message timeline with reply composer (FormattedEditor + file attachments). Collapsible sidebar with status/assignment controls, member context, registration history, contact history. **(3) Reply + compose:** Gmail API send via threads.messages.send; per-user email signatures (name/role/tagline); file attachments via Vercel Blob (25 MB limit); compose new email modal with contact search. **(4) Email templates:** SupportTemplate model (Tiptap JSON body); CRUD API (ADMIN); template picker dropdown in both reply and compose composers; FormattedEditor editorRef pattern for imperative content insertion. **(5) Soft delete + contact history:** deletedAt on SupportThread; Trash filter with restore + permanent delete (ADMIN); contact history sidebar section (other threads from same sender/member). **(6) User title field:** `title String?` on User model; editable in My Profile and Admin member detail; displayed in inbox assign dropdown and signature pre-fill. **(7) Notifications:** `lib/supportNotify.ts` — in-app Alert records + optional email via Resend; 3 alert types (SUPPORT_ASSIGNED, SUPPORT_NEW_REPLY, SUPPORT_NEW_NOTE); per-user email toggle; 5-minute deduplication. **(8) Cron sync:** `/api/cron/support-sync` every 5 minutes (Vercel Pro). **(9) Settings page:** Gmail connection, default assignee, re-match unlinked threads, signature editor, email notifications toggle, template management. **(10) SUPPORT role:** Added to MemberDetail.tsx assignable roles; syncHubMembership maps SUPPORT→support hub; RIM_Stack_Reference.md updated. **(11) Responsive layout:** Thread list clamp(320px, 25vw, 400px); sidebar auto-collapses below 1100px; mobile single-column list↔detail with back button (768px); 44px touch targets (430px). **(12) Closing ritual:** All docs updated — §29 in FEATURES.md, RIM_Stack_Reference.md (Gmail env vars, models, directories, Vercel Pro), admin/manual (Support Inbox chapter), admin/features (Support Inbox functional area). |
+
+*Last updated: 2026-03-15 (session 56)*

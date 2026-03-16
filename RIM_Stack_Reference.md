@@ -6,7 +6,7 @@ _Generated 2026-03-11. Last updated 2026-03-15 (session 54). Update this file wh
 
 ## What's been built
 
-Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfield, WI. This Next.js application is the future home of the entire RIM digital presence — programs, member accounts, registrations, online courses, and volunteer tooling. As of this writing, the application includes a full program registration system (with waitlisting, dana/Stripe payments, calendar links, and automated emails), a member dashboard and profile system, a Registrar Hub for managing participants (migrated into the multi-hub system with stakeholder visibility), an admin area for member management (with households, status, tags, and role assignment), a Postgres-backed course and lesson library (migrated from Sanity, managed via Teacher Hub with a rich Markdown editor), a staff reference manual, a site architecture/feature inventory for admins, a Google Meet integration for virtual programs, a Host Community Hub — a full team workspace for the volunteer host team with a calendar schedule, sub board, conversations, and alerts, and an Email Template Manager — a database-backed system for editing all managed transactional email copy without code deploys. The Webflow-built site at `rootedinmindfulness.org` remains live as the public-facing domain while this app is in active development at `rim-next.vercel.app`.
+Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfield, WI. This Next.js application is the future home of the entire RIM digital presence — programs, member accounts, registrations, online courses, and volunteer tooling. As of this writing, the application includes a full program registration system (with waitlisting, dana/Stripe payments, calendar links, and automated emails), a member dashboard and profile system, a Registrar Hub for managing participants (migrated into the multi-hub system with stakeholder visibility), an admin area for member management (with households, status, tags, and role assignment), a Postgres-backed course and lesson library (migrated from Sanity, managed via Teacher Hub with a rich Markdown editor), a staff reference manual, a site architecture/feature inventory for admins, a Google Meet integration for virtual programs, a Host Community Hub — a full team workspace for the volunteer host team with a calendar schedule, sub board, conversations, and alerts, a Support Inbox — a Gmail-integrated shared email client for the support team with thread management, reply composer, internal notes, templates, and member matching, and an Email Template Manager — a database-backed system for editing all managed transactional email copy without code deploys. The Webflow-built site at `rootedinmindfulness.org` remains live as the public-facing domain while this app is in active development at `rim-next.vercel.app`.
 
 ---
 
@@ -106,6 +106,13 @@ All set in Vercel. Pull locally with `npx vercel env pull .env.local`.
 | `GOOGLE_ROOM_EMAILS` | Comma-separated list of meet1–meet4 room accounts |
 | `GOOGLE_CALENDAR_ID` | Legacy — currently unused |
 
+### Gmail (Support Inbox)
+| Variable | Purpose |
+|---|---|
+| `GMAIL_CLIENT_ID` | OAuth2 client ID for Gmail API |
+| `GMAIL_CLIENT_SECRET` | OAuth2 client secret |
+| `GMAIL_REDIRECT_URI` | OAuth2 callback URL (`https://rim-next.vercel.app/api/support/auth/callback`) |
+
 ### Payments (Stripe — test mode)
 | Variable | Purpose |
 |---|---|
@@ -169,8 +176,9 @@ app/
     programs/         legacy (ical only)
     registrations/    registration CRUD + email
     host/             hub APIs (assignments, sub-requests, threads, replies)
+    support/          support inbox APIs (threads, compose, reply, notes, templates, settings, sync, auth)
     stripe/           checkout + webhook
-    cron/             scheduled jobs (reminders, unassigned-host check)
+    cron/             scheduled jobs (reminders, unassigned-host check, support-sync)
   programs/[slug]/    public program pages
   course/[slug]/      member-gated course pages
   lessons/[slug]/     lesson pages
@@ -213,9 +221,10 @@ Registrar check: `roles.some(r => ["REGISTRAR","ADMIN"].includes(r))`
 | Sanity | Non-program content (teams, glossary, magazine, volunteers) | Programs, courses, lessons migrated to Postgres |
 | Google Meet | Virtual program hosting | DWD via service account; 4 room accounts |
 | Google Calendar | Room booking for Meet sessions | Conflict checking on create |
+| Gmail API | Support Inbox — sync threads, send replies | OAuth2 via GmailCredential; support@rootedinmindfulness.org |
 | Flodesk | Newsletter signup | Segment ID in env vars |
 | Neon | Postgres database | ⚠️ Rotate password before go-live |
-| Vercel | Hosting + cron jobs | Auto-deploy from `main` |
+| Vercel (Pro) | Hosting + cron jobs | Auto-deploy from `main`; Pro plan for 5-min cron interval |
 
 ---
 

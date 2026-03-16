@@ -1190,6 +1190,62 @@ const AREAS: FunctionalArea[] = [
       },
     ],
   },
+  {
+    id: "support-inbox",
+    title: "Support Inbox",
+    icon: "📧",
+    desc: "Gmail-integrated shared inbox for support@rootedinmindfulness.org. Three-column email client with thread management, reply composer, internal notes, templates, and member matching.",
+    features: [
+      {
+        name: "Gmail Sync Engine",
+        locations: ["File: lib/gmail.ts", "File: lib/supportSync.ts", "API: /api/cron/support-sync", "API: /api/support/sync"],
+        what: "OAuth2 connection to Gmail. Incremental sync via historyId — 90-day initial fetch, then deltas every 5 minutes via Vercel cron. Parses messages, extracts attachments, matches senders to User records.",
+        relatedTo: ["Support Inbox UI", "Member Management", "Notifications"],
+      },
+      {
+        name: "Inbox UI (three-column client)",
+        locations: ["Page: /account/hub/support/inbox", "Component: SupportInboxClient.tsx"],
+        what: "Thread list (fluid 320–400px) with 5 filter pills + search. Message timeline with inline notes. Reply composer with FormattedEditor + file attachments. Collapsible sidebar with status, assignment, member context, contact history. Responsive: single-column on mobile with back button.",
+        relatedTo: ["Gmail Sync Engine", "Thread Management", "Templates", "Notifications"],
+      },
+      {
+        name: "Thread Management",
+        locations: ["API: /api/support/threads", "API: /api/support/threads/[id]"],
+        what: "CRUD for support threads. Four statuses (OPEN/CLAIMED/WAITING/RESOLVED). Assignment to team members. Soft delete (trash) with restore. Hard delete (ADMIN only). Contact history query for sidebar.",
+        relatedTo: ["Inbox UI", "Notifications", "Member Management"],
+      },
+      {
+        name: "Reply & Compose",
+        locations: ["API: /api/support/threads/[id]/reply", "API: /api/support/compose"],
+        what: "Send replies via Gmail API (threaded). Compose new outbound emails. Per-user email signatures appended to all outbound messages. File attachments via Vercel Blob (25 MB limit).",
+        relatedTo: ["Inbox UI", "Templates", "Gmail Sync Engine"],
+      },
+      {
+        name: "Internal Notes",
+        locations: ["API: /api/support/threads/[id]/note"],
+        what: "Private notes on threads, visible only to support team. Tiptap JSON body. Rendered in amber-themed cards in the timeline. Triggers notification to assigned member.",
+        relatedTo: ["Inbox UI", "Notifications"],
+      },
+      {
+        name: "Email Templates",
+        locations: ["API: /api/support/templates", "API: /api/support/templates/[id]"],
+        what: "Reusable response templates with Tiptap JSON body and optional subject line. ADMIN manages CRUD. All support members can use templates via picker dropdown in reply and compose forms.",
+        relatedTo: ["Reply & Compose", "Inbox UI"],
+      },
+      {
+        name: "Support Settings",
+        locations: ["Page: /account/hub/support/settings", "Component: SupportSettingsClient.tsx", "API: /api/support/settings", "API: /api/support/signature"],
+        what: "Gmail connection (ADMIN), default assignee (ADMIN), template management (ADMIN), re-match members (ADMIN), per-user signature, email notification toggle. Signature pre-fills from User.title.",
+        relatedTo: ["Gmail Sync Engine", "Templates", "Notifications"],
+      },
+      {
+        name: "Support Notifications",
+        locations: ["File: lib/supportNotify.ts"],
+        what: "In-app Alert records + optional email notifications via Resend. Three alert types: SUPPORT_ASSIGNED, SUPPORT_NEW_REPLY, SUPPORT_NEW_NOTE. 5-minute deduplication. Fire-and-forget pattern.",
+        relatedTo: ["Thread Management", "Internal Notes", "Reply & Compose"],
+      },
+    ],
+  },
 ];
 
 // ─── System-level overview data ───────────────────────────────────────────────
@@ -1211,9 +1267,9 @@ const USER_TYPES = [
     canDo: "Everything above, plus: dashboard, My Programs, My Library, member-gated courses and articles.",
   },
   {
-    who: "Registrar / HOST / HOST_MANAGER",
+    who: "Registrar / HOST / HOST_MANAGER / SUPPORT",
     login: "Magic link + role",
-    canDo: "Registrar: registration management (/account/registrar), Program Editor. HOST: full Host Community Hub (/account/hub/host-team) — schedule, sub board, threads. HOST_MANAGER: everything HOST does, plus assignment management and thread moderation.",
+    canDo: "Registrar: registration management, Program Editor. HOST: Host Community Hub — schedule, sub board, threads. HOST_MANAGER: everything HOST plus assignment management. SUPPORT: Support Inbox — shared email client, thread management, reply, notes, templates.",
   },
   {
     who: "Admin",
@@ -1408,6 +1464,15 @@ const CRITICAL_DEPS: { system: string; breaks: string[] }[] = [
       "Can't create new Google Meet spaces (manual creation still possible in Google Workspace admin)",
       "meetHostAccount not written back to the program record after creation attempt",
       "Existing meet links already saved to the program record still work — no impact on past programs or the host schedule tab",
+    ],
+  },
+  {
+    system: "Gmail OAuth token expired or revoked (GmailCredential invalid)",
+    breaks: [
+      "Support Inbox stops syncing new threads — cron fails silently every 5 minutes",
+      "Replies and composed emails cannot be sent via Gmail API",
+      "Existing thread data in Postgres is unaffected — just no new messages or sending capability",
+      "Fix: Admin reconnects Gmail from Support Hub Settings tab (new OAuth2 flow)",
     ],
   },
   {

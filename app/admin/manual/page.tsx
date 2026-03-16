@@ -102,6 +102,18 @@ export default async function ManualPage() {
           </li>
 
           <li>
+            <a href="#support" className="man-sidebar__link">Support Inbox</a>
+            <ul className="man-sidebar__sub">
+              <li><a href="#support-overview"    className="man-sidebar__sublink">Overview</a></li>
+              <li><a href="#support-inbox"        className="man-sidebar__sublink">Using the inbox</a></li>
+              <li><a href="#support-replying"      className="man-sidebar__sublink">Replying &amp; composing</a></li>
+              <li><a href="#support-notes"         className="man-sidebar__sublink">Internal notes</a></li>
+              <li><a href="#support-templates"     className="man-sidebar__sublink">Templates</a></li>
+              <li><a href="#support-settings"      className="man-sidebar__sublink">Settings</a></li>
+            </ul>
+          </li>
+
+          <li>
             <a href="#roles" className="man-sidebar__link">Volunteer Roles</a>
             <ul className="man-sidebar__sub">
               <li><a href="#roles-overview"   className="man-sidebar__sublink">Overview</a></li>
@@ -2134,6 +2146,131 @@ export default async function ManualPage() {
           </p>
           <div className="man-note">
             The Session tab only shows programs scheduled for today. If a program is set up with today as an occurrence (single event or recurring), it will appear. Programs with no date configured do not appear.
+          </div>
+        </section>
+
+        {/* ════════════════════════════════════════
+            SUPPORT INBOX
+            ════════════════════════════════════════ */}
+
+        <div id="support" className="man-chapter">
+          <h1 className="man-chapter__title">Support Inbox</h1>
+          <p className="man-chapter__subtitle">
+            A shared email client for <code>support@rootedinmindfulness.org</code>, built into the hub system. The support team can read incoming messages, reply, add internal notes, assign threads to team members, and use templates — all without leaving the website.
+          </p>
+        </div>
+
+        {/* ── Overview ── */}
+        <section id="support-overview" className="man-section">
+          <h2 className="man-section__title">Overview</h2>
+          <p>
+            The Support Inbox lives at <strong>Your Hubs → Support → Inbox</strong>. It syncs with Gmail automatically every 5 minutes, pulling in new messages and matching senders to community members when possible.
+          </p>
+          <p>
+            Two roles can access the inbox:
+          </p>
+          <ul className="man-list">
+            <li><strong>SUPPORT</strong> — can read threads, reply, add notes, assign threads, and manage their own signature and notification preferences.</li>
+            <li><strong>ADMIN</strong> — everything SUPPORT can do, plus: connect/disconnect Gmail, set the default assignee, manage email templates, re-match unlinked threads, and permanently delete threads.</li>
+          </ul>
+          <p>
+            Every thread has a <strong>status</strong> that tracks where it is in the workflow:
+          </p>
+          <ul className="man-list">
+            <li><strong>Open</strong> — new or unhandled thread.</li>
+            <li><strong>Claimed</strong> — a team member has taken ownership.</li>
+            <li><strong>Waiting</strong> — waiting for a response from the sender.</li>
+            <li><strong>Resolved</strong> — conversation complete.</li>
+          </ul>
+        </section>
+
+        {/* ── Using the inbox ── */}
+        <section id="support-inbox" className="man-section">
+          <h2 className="man-section__title">Using the inbox</h2>
+          <p>
+            The inbox is a three-column layout: thread list on the left, message timeline in the center, and a context sidebar on the right.
+          </p>
+          <table className="man-table">
+            <thead><tr><th>Column</th><th>What it shows</th></tr></thead>
+            <tbody>
+              <tr><td>Thread list (left)</td><td>All threads, filterable by Active, Mine, Closed, All, or Trash. Includes search and a manual Sync button.</td></tr>
+              <tr><td>Message timeline (center)</td><td>All messages and notes in the selected thread, in chronological order. Reply composer anchored at the bottom.</td></tr>
+              <tr><td>Sidebar (right)</td><td>Thread status, assignment, member context (if matched), registration history, contact history (other threads from the same person), and action buttons.</td></tr>
+            </tbody>
+          </table>
+          <p>
+            <strong>Filters:</strong> Use the pill buttons above the thread list to filter. &ldquo;Active&rdquo; shows Open + Claimed + Waiting. &ldquo;Mine&rdquo; shows threads assigned to you. &ldquo;Trash&rdquo; shows soft-deleted threads.
+          </p>
+          <p>
+            <strong>Member matching:</strong> When a thread arrives, the system automatically checks if the sender&rsquo;s email matches a community member. If it does, the sidebar shows their name, roles, and recent registrations. If the match is wrong or missing, an Admin can re-match threads from the Settings page.
+          </p>
+        </section>
+
+        {/* ── Replying & composing ── */}
+        <section id="support-replying" className="man-section">
+          <h2 className="man-section__title">Replying &amp; composing</h2>
+          <p>
+            Click the reply prompt at the bottom of the message timeline to open the reply composer. Type your response using the rich text editor, optionally attach files (up to 25 MB total), and click <strong>Send Reply</strong>.
+          </p>
+          <p>
+            Your <strong>email signature</strong> (configured in Settings) is automatically appended to every outbound reply. It includes your name, role, and a tagline.
+          </p>
+          <p>
+            To compose a brand-new email (not a reply to an existing thread), click the <strong>New Email</strong> button above the search field. Enter a recipient email or search for a member, add a subject, and compose the message.
+          </p>
+          <p>
+            Both the reply and compose forms include a <strong>Use Template</strong> button that lets you quickly insert a pre-written response.
+          </p>
+        </section>
+
+        {/* ── Internal notes ── */}
+        <section id="support-notes" className="man-section">
+          <h2 className="man-section__title">Internal notes</h2>
+          <p>
+            Internal notes are private messages visible only to the support team — they are <strong>never sent to the customer</strong>. Use them to coordinate with teammates, document decisions, or flag things for follow-up.
+          </p>
+          <p>
+            Click <strong>Add Note</strong> in the sidebar to open the note composer (appears above the timeline in an amber-highlighted area). Type your note and click <strong>Save Note</strong>. Notes appear in the timeline alongside messages, styled distinctly with an amber border so they&rsquo;re easy to spot.
+          </p>
+          <p>
+            When you add a note to a thread that&rsquo;s assigned to someone else, they&rsquo;ll receive a notification (if they have email notifications enabled).
+          </p>
+        </section>
+
+        {/* ── Templates ── */}
+        <section id="support-templates" className="man-section">
+          <h2 className="man-section__title">Templates</h2>
+          <p>
+            Email templates are reusable response snippets that support team members can insert into replies or new emails. Only Admins can create and manage templates; all support team members can use them.
+          </p>
+          <p>
+            To manage templates, go to <strong>Settings → Email Templates</strong> (Admin only). Each template has a name, an optional subject line (used when composing new emails), and a rich text body.
+          </p>
+          <p>
+            To use a template, click <strong>Use Template</strong> in the reply or compose footer, then select from the dropdown. The template body replaces the current editor content. If the template has a subject line and you&rsquo;re composing a new email, it pre-fills the subject field too.
+          </p>
+        </section>
+
+        {/* ── Settings ── */}
+        <section id="support-settings" className="man-section">
+          <h2 className="man-section__title">Settings</h2>
+          <p>
+            The Settings tab has sections for both personal preferences and admin-level configuration.
+          </p>
+          <table className="man-table">
+            <thead><tr><th>Setting</th><th>Who can change it</th><th>What it does</th></tr></thead>
+            <tbody>
+              <tr><td>Gmail Connection</td><td>Admin</td><td>Connect or disconnect the Gmail account. Required before the inbox can sync.</td></tr>
+              <tr><td>Default Assignee</td><td>Admin</td><td>New threads are automatically assigned to this person. Can be set to &ldquo;Unassigned&rdquo; for manual triage.</td></tr>
+              <tr><td>Email Templates</td><td>Admin</td><td>Create, edit, and delete reusable response templates.</td></tr>
+              <tr><td>Re-match Members</td><td>Admin</td><td>Manually re-runs member matching on threads with no linked member. Useful after importing new members or correcting email addresses.</td></tr>
+              <tr><td>My Signature</td><td>Everyone</td><td>Your name, role, and tagline appended to outbound replies.</td></tr>
+              <tr><td>Email Notifications</td><td>Everyone</td><td>Toggle whether you receive email alerts when threads are assigned to you or when notes are added to your threads.</td></tr>
+            </tbody>
+          </table>
+          <div className="man-note man-note--dev">
+            <span className="man-note--dev__label">⚠️&ensp;Technical note</span>
+            Gmail sync runs via a Vercel cron job every 5 minutes (requires Vercel Pro plan). If Gmail is disconnected or the OAuth token expires without auto-refresh succeeding, the cron will fail silently — reconnect from Settings to restore sync.
           </div>
         </section>
 
