@@ -3,6 +3,7 @@ import StarterKit from "@tiptap/starter-kit"
 import Link from "@tiptap/extension-link"
 import Underline from "@tiptap/extension-underline"
 import TextAlign from "@tiptap/extension-text-align"
+import Image from "@tiptap/extension-image"
 import { Table } from "@tiptap/extension-table"
 import TableRow from "@tiptap/extension-table-row"
 import TableHeader from "@tiptap/extension-table-header"
@@ -28,6 +29,7 @@ const formattedExtensions = [
   Link,
   Underline,
   TextAlign.configure({ types: ['heading', 'paragraph'] }),
+  Image,
 ]
 
 export function renderContentBody(json: any): string {

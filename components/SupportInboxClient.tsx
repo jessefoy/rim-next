@@ -675,6 +675,7 @@ export default function SupportInboxClient({
                         onChange={setReplyDraft}
                         placeholder="Type your reply…"
                         minHeight={100}
+                        context="support-reply"
                       />
                     </div>
                     {/* Staged attachments */}

@@ -1,4 +1,5 @@
 "use client"
+import { useRef } from "react"
 import { useEditor, EditorContent } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import Link from "@tiptap/extension-link"
@@ -7,7 +8,9 @@ import Underline from "@tiptap/extension-underline"
 import TextAlign from "@tiptap/extension-text-align"
 import Typography from "@tiptap/extension-typography"
 import CharacterCount from "@tiptap/extension-character-count"
+import Image from "@tiptap/extension-image"
 import { Markdown } from "tiptap-markdown"
+import { upload } from "@vercel/blob/client"
 
 interface Props {
   value: any           // Tiptap JSON or null
@@ -15,6 +18,7 @@ interface Props {
   placeholder?: string
   minHeight?: number
   maxChars?: number
+  context?: string     // "support-reply" enables image insert button
 }
 
 export default function FormattedEditor({
@@ -23,27 +27,50 @@ export default function FormattedEditor({
   placeholder = "Write here…",
   minHeight = 200,
   maxChars,
+  context,
 }: Props) {
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const showImageButton = context === "support-reply"
+
+  const extensions = [
+    StarterKit,
+    Link.configure({ openOnClick: false }),
+    Placeholder.configure({ placeholder }),
+    Markdown.configure({
+      html: false,
+      transformPastedText: true,
+      transformCopiedText: true,
+    }),
+    Underline,
+    TextAlign.configure({ types: ['heading', 'paragraph'] }),
+    Typography,
+    CharacterCount.configure({ limit: maxChars ?? undefined }),
+    ...(showImageButton ? [Image.configure({ inline: false })] : []),
+  ]
+
   const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Link.configure({ openOnClick: false }),
-      Placeholder.configure({ placeholder }),
-      Markdown.configure({
-        html: false,
-        transformPastedText: true,
-        transformCopiedText: true,
-      }),
-      Underline,
-      TextAlign.configure({ types: ['heading', 'paragraph'] }),
-      Typography,
-      CharacterCount.configure({ limit: maxChars ?? undefined }),
-    ],
+    extensions,
     content: value ?? "",
     onUpdate({ editor }) {
       onChange(editor.getJSON())
     },
   })
+
+  const handleImageInsert = async (files: FileList | null) => {
+    if (!files || !files[0] || !editor) return
+    const file = files[0]
+    if (!file.type.startsWith("image/")) return
+    try {
+      const blob = await upload(file.name, file, {
+        access: "public",
+        handleUploadUrl: "/api/upload",
+      })
+      editor.chain().focus().setImage({ src: blob.url, alt: file.name }).run()
+    } catch {
+      // silently fail — user can try again
+    }
+    if (imageInputRef.current) imageInputRef.current.value = ""
+  }
 
   if (!editor) return null
 
@@ -115,6 +142,24 @@ export default function FormattedEditor({
           className={editor.isActive({ textAlign: "right" }) ? "rte-btn rte-btn--active" : "rte-btn"}
           title="Align right"
         >R</button>
+
+        {showImageButton && (
+          <>
+            <div className="rte-divider" />
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={(e) => handleImageInsert(e.target.files)}
+            />
+            <button type="button"
+              onClick={() => imageInputRef.current?.click()}
+              className="rte-btn"
+              title="Insert image"
+            >🖼</button>
+          </>
+        )}
       </div>
 
       <EditorContent
