@@ -2193,7 +2193,7 @@ export default async function ManualPage() {
           <table className="man-table">
             <thead><tr><th>Column</th><th>What it shows</th></tr></thead>
             <tbody>
-              <tr><td>Thread list (left)</td><td>All threads, filterable by Active, Mine, Closed, All, or Trash. Includes search and a manual Sync button.</td></tr>
+              <tr><td>Thread list (left)</td><td>All threads, filterable by Active, Mine, Closed, All, or Trash. Includes search and a manual Sync button (30-second cooldown between uses).</td></tr>
               <tr><td>Message timeline (center)</td><td>All messages and notes in the selected thread, in chronological order. Reply composer anchored at the bottom.</td></tr>
               <tr><td>Sidebar (right)</td><td>Thread status, assignment, member context (if matched), registration history, contact history (other threads from the same person), and action buttons.</td></tr>
             </tbody>

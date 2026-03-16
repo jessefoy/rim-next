@@ -101,9 +101,10 @@ The **Registrar Hub** (Phase 1) was migrated into the hub system in session 53. 
 
 **Phase 3 complete (session 54):** Programs are now fully managed in Postgres via the Program Editor in the Registrar Hub. All Sanity program dependencies removed. Google Meet sync happens on save (no webhook needed). The Sanity invitation system was removed entirely.
 
+**Support Inbox — complete (sessions 56–57):** A standalone hub (`/account/hub/support/`) was built for the SUPPORT role. It provides a full Gmail-integrated shared email client for `support@rootedinmindfulness.org`: OAuth2 sync engine, three-column inbox UI, thread management (OPEN/CLAIMED/WAITING/RESOLVED), reply and compose via Gmail API, internal notes, email templates, per-user signatures, member matching, soft delete, notifications, and cron-based auto-sync (5 min, Vercel Pro). Security hardening completed in session 57 (SSRF guard, attachment ownership check, soft-delete bypass fix in sync, 404 on deleted threads, rate limiting on manual sync, enum validation, signature HTML escaping, audit trail on hard delete).
+
 **What remains for the Registrar Hub:**
 
-- **Support Inbox:** Gmail API integration surfacing support@rootedinmindfulness.org inside the hub with member context, claiming, and routing. Separate spec required.
 - **Check-in tools:** Digital check-in per program (phone-first), PDF export, future member self-check-in.
 - **Stakeholder names visibility:** Whether certain stakeholders should see participant names (not just headcount) is a privacy question deferred until a real use case requires it.
 
@@ -120,4 +121,4 @@ This file is part of the closing ritual for any Claude Code session that touches
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org*
-*Working document · March 2026 (updated session 54)*
+*Working document · March 2026 (updated session 57)*
