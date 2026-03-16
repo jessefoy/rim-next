@@ -201,6 +201,19 @@ export default function SupportInboxClient({
   const [noteDraft, setNoteDraft] = useState<any>(null);
   const [noteSending, setNoteSending] = useState(false);
 
+  // Compose new email modal
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [composeTo, setComposeTo] = useState("");
+  const [composeSubject, setComposeSubject] = useState("");
+  const [composeDraft, setComposeDraft] = useState<any>(null);
+  const [composeSending, setComposeSending] = useState(false);
+  const [composeFiles, setComposeFiles] = useState<StagedFile[]>([]);
+  const [composeFileError, setComposeFileError] = useState<string | null>(null);
+  const composeFileRef = useRef<HTMLInputElement>(null);
+  const [contactResults, setContactResults] = useState<{ id: string; name: string; email: string }[]>([]);
+  const [contactsOpen, setContactsOpen] = useState(false);
+  const contactSearchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const timelineRef = useRef<HTMLDivElement>(null);
 
   // ─── Fetch threads ──────────────────────────────────────────────────────
@@ -415,6 +428,127 @@ export default function SupportInboxClient({
     updateThread(id, { status: "CLAIMED", assignedToId: currentUserId });
   };
 
+  // ─── Compose new email ──────────────────────────────────────────────
+
+  const searchContacts = (query: string) => {
+    setComposeTo(query);
+    setContactsOpen(false);
+    if (contactSearchTimeout.current) clearTimeout(contactSearchTimeout.current);
+    if (query.length < 2) {
+      setContactResults([]);
+      return;
+    }
+    contactSearchTimeout.current = setTimeout(async () => {
+      const res = await fetch(`/api/support/contacts?q=${encodeURIComponent(query)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setContactResults(data.contacts ?? []);
+        setContactsOpen(true);
+      }
+    }, 250);
+  };
+
+  const selectContact = (email: string) => {
+    setComposeTo(email);
+    setContactResults([]);
+    setContactsOpen(false);
+  };
+
+  const handleComposeAddFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setComposeFileError(null);
+    const newFiles = Array.from(files);
+    const currentSize = composeFiles.reduce((s, f) => s + f.file.size, 0);
+    const addedSize = newFiles.reduce((s, f) => s + f.size, 0);
+    if (currentSize + addedSize > MAX_TOTAL_SIZE) {
+      setComposeFileError("Total attachments exceed 25 MB limit.");
+      return;
+    }
+    const staged: StagedFile[] = newFiles.map((f) => ({ file: f, uploading: true }));
+    setComposeFiles((prev) => [...prev, ...staged]);
+    for (let i = 0; i < staged.length; i++) {
+      try {
+        const blob = await upload(staged[i].file.name, staged[i].file, {
+          access: "public",
+          handleUploadUrl: "/api/upload",
+        });
+        setComposeFiles((prev) =>
+          prev.map((f) =>
+            f.file === staged[i].file ? { ...f, url: blob.url, uploading: false } : f
+          )
+        );
+      } catch {
+        setComposeFiles((prev) =>
+          prev.map((f) =>
+            f.file === staged[i].file ? { ...f, error: "Upload failed", uploading: false } : f
+          )
+        );
+      }
+    }
+    if (composeFileRef.current) composeFileRef.current.value = "";
+  };
+
+  const removeComposeFile = (idx: number) => {
+    setComposeFiles((prev) => prev.filter((_, i) => i !== idx));
+    setComposeFileError(null);
+  };
+
+  const handleSendCompose = async () => {
+    if (!composeTo || !composeSubject || !composeDraft) return;
+    if (composeFiles.some((f) => f.uploading)) return;
+    if (composeFiles.some((f) => f.error)) {
+      setComposeFileError("Remove failed uploads before sending.");
+      return;
+    }
+
+    setComposeSending(true);
+    const html = renderFormattedText(composeDraft);
+    const attachments = composeFiles
+      .filter((f) => f.url)
+      .map((f) => ({
+        url: f.url!,
+        filename: f.file.name,
+        mimeType: f.file.type || "application/octet-stream",
+        size: f.file.size,
+      }));
+
+    const res = await fetch("/api/support/compose", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to: composeTo,
+        subject: composeSubject,
+        bodyHtml: html,
+        attachments: attachments.length > 0 ? attachments : undefined,
+      }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      // Reset compose state
+      setComposeOpen(false);
+      setComposeTo("");
+      setComposeSubject("");
+      setComposeDraft(null);
+      setComposeFiles([]);
+      setComposeFileError(null);
+      // Navigate to new thread
+      fetchThreads();
+      setSelectedId(data.threadId);
+    }
+    setComposeSending(false);
+  };
+
+  const handleCancelCompose = () => {
+    if ((composeTo || composeSubject || composeDraft) && !window.confirm("Discard this email?")) return;
+    setComposeOpen(false);
+    setComposeTo("");
+    setComposeSubject("");
+    setComposeDraft(null);
+    setComposeFiles([]);
+    setComposeFileError(null);
+  };
+
   // ─── Render ───────────────────────────────────────────────────────────
 
   const layoutCls = [
@@ -446,6 +580,12 @@ export default function SupportInboxClient({
               </button>
             ))}
           </div>
+          <button
+            className="si-btn si-btn--compose"
+            onClick={() => setComposeOpen(true)}
+          >
+            New Email
+          </button>
           <button
             className="si-sync-btn"
             onClick={handleSync}
@@ -891,6 +1031,137 @@ export default function SupportInboxClient({
               <div className="si-sidebar__meta">Not a member</div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── Compose new email modal ── */}
+      {composeOpen && (
+        <div className="si-modal-overlay" onClick={handleCancelCompose}>
+          <div className="si-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="si-modal__header">
+              <h3 className="si-modal__title">New Email</h3>
+              <button className="si-modal__close" onClick={handleCancelCompose}>×</button>
+            </div>
+
+            <div className="si-modal__body">
+              {/* From */}
+              <div className="si-modal__field">
+                <label className="si-modal__label">From</label>
+                <div className="si-modal__static">{connectedEmail}</div>
+              </div>
+
+              {/* To — with typeahead */}
+              <div className="si-modal__field">
+                <label className="si-modal__label">To</label>
+                <div className="si-modal__to-wrap">
+                  <input
+                    type="text"
+                    className="si-modal__input"
+                    value={composeTo}
+                    onChange={(e) => searchContacts(e.target.value)}
+                    onBlur={() => setTimeout(() => setContactsOpen(false), 200)}
+                    placeholder="Name or email address"
+                    autoFocus
+                  />
+                  {contactsOpen && contactResults.length > 0 && (
+                    <div className="si-modal__dropdown">
+                      {contactResults.map((c) => (
+                        <button
+                          key={c.id}
+                          className="si-modal__dropdown-item"
+                          onMouseDown={() => selectContact(c.email)}
+                        >
+                          <span className="si-modal__dropdown-name">{c.name}</span>
+                          <span className="si-modal__dropdown-email">{c.email}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Subject */}
+              <div className="si-modal__field">
+                <label className="si-modal__label">Subject</label>
+                <input
+                  type="text"
+                  className="si-modal__input"
+                  value={composeSubject}
+                  onChange={(e) => setComposeSubject(e.target.value)}
+                  placeholder="Subject"
+                />
+              </div>
+
+              {/* Body */}
+              <div className="si-modal__field si-modal__field--editor">
+                <FormattedEditor
+                  key="compose-editor"
+                  value={composeDraft}
+                  onChange={setComposeDraft}
+                  placeholder="Write your message…"
+                  minHeight={200}
+                  context="support-reply"
+                />
+              </div>
+
+              {/* Staged attachments */}
+              {composeFiles.length > 0 && (
+                <div className="si-staged-files">
+                  {composeFiles.map((sf, idx) => (
+                    <div key={idx} className={`si-staged-file${sf.error ? " si-staged-file--error" : ""}`}>
+                      <span className="si-staged-file__icon">📎</span>
+                      <span className="si-staged-file__name">{sf.file.name}</span>
+                      <span className="si-staged-file__size">{fmtFileSize(sf.file.size)}</span>
+                      {sf.uploading && <span className="si-staged-file__status">Uploading…</span>}
+                      {sf.error && <span className="si-staged-file__status si-staged-file__status--error">{sf.error}</span>}
+                      <button
+                        className="si-staged-file__remove"
+                        onClick={() => removeComposeFile(idx)}
+                        title="Remove"
+                      >×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {composeFileError && (
+                <div className="si-composer__error">{composeFileError}</div>
+              )}
+            </div>
+
+            <div className="si-modal__footer">
+              <div className="si-composer__actions-left">
+                <input
+                  ref={composeFileRef}
+                  type="file"
+                  multiple
+                  style={{ display: "none" }}
+                  onChange={(e) => handleComposeAddFiles(e.target.files)}
+                />
+                <button
+                  className="si-btn si-btn--attach"
+                  onClick={() => composeFileRef.current?.click()}
+                  title="Attach file"
+                  type="button"
+                >📎</button>
+                <button
+                  className="si-btn si-btn--template"
+                  onClick={() => alert("Coming soon")}
+                  type="button"
+                  title="Use Template"
+                >Use Template</button>
+              </div>
+              <div className="si-composer__actions-right">
+                <button className="si-btn" onClick={handleCancelCompose}>Cancel</button>
+                <button
+                  className="si-btn si-btn--send"
+                  onClick={handleSendCompose}
+                  disabled={composeSending || !composeTo || !composeSubject || !composeDraft || composeFiles.some((f) => f.uploading)}
+                >
+                  {composeSending ? "Sending…" : "Send"}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
