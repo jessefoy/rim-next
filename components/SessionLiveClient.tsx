@@ -91,7 +91,7 @@ function computeState(prog: SessionProgram): SessionState {
 
   const manuallyEnded = !!prog.sessionEndedAt;
   const timeEnded = effectiveEndMs !== null && now > effectiveEndMs;
-  const isEnded = manuallyEnded || timeEnded || prog.sessionEnded;
+  const isEnded = manuallyEnded || timeEnded;
 
   if (isEnded) {
     if (prog.currentUserIsAssignedHost) {
