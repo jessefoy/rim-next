@@ -700,10 +700,10 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Lesson Pages",
         locations: ["/lessons/[slug]"],
-        what: "Individual lesson pages rendered from Postgres. Markdown body with custom block rendering: [verse] (pull quote), [practice] (teal practice box), [callout] (highlighted insight). Also supports audio player, video embed, hero image, header quote, teacher attribution, and downloadable resources.",
+        what: "Individual lesson pages rendered from Postgres. Body is Tiptap JSON, rendered via renderContentBody() from lib/renderRichContent.ts. Supports custom blocks: verseQuote (pull quote), practiceCallout (teal practice box), calloutText (highlighted insight). Also supports audio player, video embed, hero image, header quote, teacher attribution, and downloadable resources.",
         relatedTo: [
           "Lesson model in Postgres (managed via Teacher Hub)",
-          "Custom blockquote interceptor in react-markdown for [verse], [practice], [callout]",
+          "lib/renderRichContent.ts — renderContentBody() for Tiptap JSON rendering",
           "lp- prefix CSS (design system)",
           "Course pages link to lessons via CourseLesson join table",
         ],
@@ -955,11 +955,11 @@ const AREAS: FunctionalArea[] = [
       {
         name: "richContent Shared Schema",
         locations: ["File: sanity/schemas/richContent.js"],
-        what: "A named array type used by both lessonContent (lessons) and programDescription (programs). Contains standard text blocks plus custom types: practiceCallout, bodyQuote, verseQuote, calloutText. Adding a new block type here automatically makes it available in both content types.",
+        what: "A named array type used by lessonContent in Sanity. Both lessons and programs have migrated to Postgres (Tiptap JSON) as of sessions 50–54. This schema remains in Sanity for reference and any remaining Sanity-managed content, but is no longer the primary content source for lessons or programs.",
         relatedTo: [
-          "Lesson pages (lp- prefix) — full rendering",
-          "Program detail pages (pg- prefix) — programDescription",
-          "portableTextComponents map in JSX for rendering",
+          "Lesson pages (lp- prefix) — now Tiptap/Postgres via renderContentBody()",
+          "Program detail pages (pg- prefix) — now Tiptap/Postgres via renderContentBody()",
+          "lib/renderRichContent.ts — Tiptap rendering for both",
         ],
       },
       {
@@ -1074,11 +1074,11 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Dharma Lessons",
         locations: ["/lessons/[slug]"],
-        what: "Audio player, video embed, Markdown body with custom block rendering — [verse] pull quotes, [practice] suggestion boxes, [callout] highlighted insights. Data reads from Postgres (migrated from Postgres).",
+        what: "Audio player, video embed, Tiptap JSON body rendered via renderContentBody() — verseQuote pull quotes, practiceCallout suggestion boxes, calloutText highlighted insights. Data reads from Postgres (migrated from Sanity, session 50).",
         relatedTo: [
           "Postgres — Lesson model (managed via Teacher Hub)",
           "Course pages (/course/[slug]) — lessons grouped into courses",
-          "react-markdown with custom blockquote interceptor for block types",
+          "lib/renderRichContent.ts — renderContentBody() for Tiptap JSON rendering",
         ],
         status: "active",
         note: "🟢 Design system (lp- prefix)",
