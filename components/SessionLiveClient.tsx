@@ -455,42 +455,77 @@ export default function SessionLiveClient({
         // ── State 5: Session ended, report not filed ─────────────────────────
         if (state === "post-session") {
           const isReporter = prog.currentUserIsAssignedHost || prog.currentUserIsCoHost;
+          const showAttendees = isReporter || isCoordinator;
           return (
             <div key={prog._id} className="sv-state-wrap sv-state-wrap--5">
-              <h2 className="sv-state-header">Session ended. Take a few minutes for your report.</h2>
-              <p className="sv-state-body">
-                This is part of the role — it only takes a few minutes and it helps the whole team.
-              </p>
+              <div className="sv-live-header">
+                <h2 className="sv-live-title">{prog.name} — ended</h2>
+                <span className="sv-live-count">{prog.attendees.length} in the room</span>
+              </div>
+
+              {/* Attendee list — visible to assigned host, co-host, and coordinators */}
+              {showAttendees && (
+                prog.attendees.length === 0 ? (
+                  <p className="sv-no-attendees">No attendance recorded.</p>
+                ) : (
+                  <div className="sv-attendees">
+                    {prog.attendees.map((a) => (
+                      <button
+                        key={a.recordId}
+                        type="button"
+                        className={`sv-person${a.flaggedByHost ? " sv-person--flagged" : ""}${flagging === a.recordId ? " sv-person--toggling" : ""}`}
+                        onClick={() => toggleFlag(a.recordId)}
+                        title={a.flaggedByHost ? "Flagged — tap to unflag" : "Tap to flag for follow-up"}
+                      >
+                        <span className="sv-person__name">{a.displayName}</span>
+                        {a.isNewMember && (
+                          <span className="sv-live-badge sv-live-badge--new" aria-label="New member" title="New member">★</span>
+                        )}
+                        {a.returningAfterAbsence && !a.isNewMember && (
+                          <span className="sv-live-badge sv-live-badge--returning" aria-label="Returning after absence" title="Returning after absence">↩</span>
+                        )}
+                        {a.flaggedByHost && (
+                          <span className="sv-flag-dot" aria-label="Flagged" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )
+              )}
+
               {isReporter ? (
-                <PostSessionClient
-                  programSlug={prog.slug}
-                  sessionDate={prog.sessionDateISO}
-                  sessionDateDisplay={todayCT}
-                  flaggedAttendees={prog.attendees
-                    .filter((a) => a.flaggedByHost)
-                    .map((a) => ({ attendanceId: a.recordId, displayName: a.displayName, note: null, action: "NONE" }))}
-                  allAttendees={prog.attendees.map((a) => ({
-                    attendanceId: a.recordId,
-                    displayName: a.displayName,
-                    flaggedByHost: a.flaggedByHost,
-                  }))}
-                  existingReflection={null}
-                  existingResourceUrl={null}
-                  existingResourceNote={null}
-                  alreadySubmitted={false}
-                  assignedHost={prog.assignedHost}
-                  apiPath={
-                    prog.currentUserIsCoHost && !prog.currentUserIsAssignedHost
-                      ? `/api/attendance/session/${prog.slug}/cohost-report`
-                      : `/api/attendance/session/${prog.slug}/post`
-                  }
-                  isCoHost={prog.currentUserIsCoHost && !prog.currentUserIsAssignedHost}
-                  onSuccess={() => router.refresh()}
-                />
+                <>
+                  <p className="sv-state-body sv-state-body--report-prompt">
+                    Take a few minutes for your report — it only takes a few minutes and it helps the whole team.
+                  </p>
+                  <PostSessionClient
+                    programSlug={prog.slug}
+                    sessionDate={prog.sessionDateISO}
+                    sessionDateDisplay={todayCT}
+                    flaggedAttendees={prog.attendees
+                      .filter((a) => a.flaggedByHost)
+                      .map((a) => ({ attendanceId: a.recordId, displayName: a.displayName, note: null, action: "NONE" }))}
+                    allAttendees={prog.attendees.map((a) => ({
+                      attendanceId: a.recordId,
+                      displayName: a.displayName,
+                      flaggedByHost: a.flaggedByHost,
+                    }))}
+                    existingReflection={null}
+                    existingResourceUrl={null}
+                    existingResourceNote={null}
+                    alreadySubmitted={false}
+                    assignedHost={prog.assignedHost}
+                    apiPath={
+                      prog.currentUserIsCoHost && !prog.currentUserIsAssignedHost
+                        ? `/api/attendance/session/${prog.slug}/cohost-report`
+                        : `/api/attendance/session/${prog.slug}/post`
+                    }
+                    isCoHost={prog.currentUserIsCoHost && !prog.currentUserIsAssignedHost}
+                    onSuccess={() => router.refresh()}
+                  />
+                </>
               ) : (
                 <p className="sv-state-quiet">
-                  {prog.name} has ended.
-                  {" "}
                   <a href={`/account/hub/${hubSlug}/session/history/team`} className="sv-quiet-link">
                     See the team journal →
                   </a>

@@ -11320,6 +11320,9 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   line-height: 1.7;
   margin: 0 0 20px;
 }
+.sv-state-body--report-prompt {
+  margin-top: 24px;
+}
 
 /* Program name + time in states 2 and 3 */
 .sv-state-program {
