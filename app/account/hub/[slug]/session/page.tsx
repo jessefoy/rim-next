@@ -1,13 +1,23 @@
 /**
- * /account/hub/[slug]/session — Live session view for Host Team hub.
+ * /account/hub/[slug]/session — Time-aware live session view for Host Team hub.
  * Access: HOST, HOST_MANAGER, REGISTRAR, ADMIN only.
- * Shows today's virtual/hybrid programs with real-time attendance.
+ *
+ * Six states, computed server-side and refreshed every 60s by SessionLiveClient:
+ *   1 — No session today
+ *   2 — Session later today (>90 min out)
+ *   3 — Getting ready (≤90 min to start)
+ *   4 — Session is live
+ *   5 — Session ended, report not yet filed
+ *   6 — Report submitted (done)
  */
 
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import SessionLiveClient, { type SessionProgram } from "@/components/SessionLiveClient";
+import SessionLiveClient, {
+  type SessionProgram,
+  type NextSession,
+} from "@/components/SessionLiveClient";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Live Session — Host Team Hub" };
@@ -31,10 +41,6 @@ function dateToDayCode(dateStr: string): string {
   return ICAL_DAY[new Date(dateStr + "T12:00:00").getDay()];
 }
 
-/**
- * Returns UTC Date boundaries for a CT calendar date "YYYY-MM-DD".
- * Handles both CDT (-05:00) and CST (-06:00) automatically.
- */
 function ctDayBounds(dateStr: string): { startOfDay: Date; endOfDay: Date } {
   for (const offset of ["-05:00", "-06:00"]) {
     const noon = new Date(`${dateStr}T12:00:00${offset}`);
@@ -46,20 +52,19 @@ function ctDayBounds(dateStr: string): { startOfDay: Date; endOfDay: Date } {
       };
     }
   }
-  // Fallback: CST
   return {
     startOfDay: new Date(`${dateStr}T00:00:00-06:00`),
     endOfDay:   new Date(`${dateStr}T23:59:59-06:00`),
   };
 }
 
-function shiftToToday(anchorISO: string, today: string): Date {
+function shiftToDate(anchorISO: string, targetDate: string): Date {
   const anchor = new Date(anchorISO);
   const anchorCTDate = ctDateStr(anchorISO);
-  if (anchorCTDate === today) return anchor;
+  if (anchorCTDate === targetDate) return anchor;
   const msPerDay = 24 * 60 * 60 * 1000;
   const daysDiff = Math.round(
-    (new Date(today + "T12:00:00").getTime() - new Date(anchorCTDate + "T12:00:00").getTime())
+    (new Date(targetDate + "T12:00:00").getTime() - new Date(anchorCTDate + "T12:00:00").getTime())
     / msPerDay
   );
   return new Date(anchor.getTime() + daysDiff * msPerDay);
@@ -95,20 +100,20 @@ interface PgProgram {
   registrationEnabled: boolean;
 }
 
-function isOccurrenceToday(p: PgProgram, today: string): boolean {
+function isOccurrenceOnDate(p: PgProgram, dateStr: string): boolean {
   if (!p.startDatetime) return false;
   const anchor = ctDateStr(p.startDatetime.toISOString());
-  if (anchor > today) return false;
-  if (!p.recurrenceFreq) return anchor === today;
+  if (anchor > dateStr) return false;
+  if (!p.recurrenceFreq) return anchor === dateStr;
 
   if (p.recurrenceFreq === "weekly" || p.recurrenceFreq === "WEEKLY") {
     const days = p.recurrenceDays ?? [];
-    if (days.length > 0 && !days.includes(dateToDayCode(today))) return false;
+    if (days.length > 0 && !days.includes(dateToDayCode(dateStr))) return false;
     const n = p.recurrenceInterval ?? 1;
     if (n > 1) {
       const msPerWeek = 7 * 24 * 60 * 60 * 1000;
       const weeksDiff = Math.round(
-        (new Date(today + "T12:00:00").getTime() - new Date(anchor + "T12:00:00").getTime())
+        (new Date(dateStr + "T12:00:00").getTime() - new Date(anchor + "T12:00:00").getTime())
         / msPerWeek
       );
       if (weeksDiff % n !== 0) return false;
@@ -119,12 +124,39 @@ function isOccurrenceToday(p: PgProgram, today: string): boolean {
       const msPerWeek = 7 * 24 * 60 * 60 * 1000;
       const lastMs = new Date(anchor + "T12:00:00").getTime()
         + cyclesNeeded * (p.recurrenceInterval ?? 1) * msPerWeek;
-      if (new Date(today + "T12:00:00").getTime() > lastMs) return false;
+      if (new Date(dateStr + "T12:00:00").getTime() > lastMs) return false;
     }
     return true;
   }
 
-  return anchor === today;
+  return anchor === dateStr;
+}
+
+/** Find the next occurrence of any program within the next 21 days. */
+function findNextSession(programs: PgProgram[], afterDate: string): NextSession | null {
+  for (let i = 1; i <= 21; i++) {
+    const d = new Date(afterDate + "T12:00:00");
+    d.setDate(d.getDate() + i);
+    const dateStr = ctDateStr(d.toISOString());
+
+    for (const p of programs) {
+      if (isOccurrenceOnDate(p, dateStr)) {
+        const startIso = p.startDatetime?.toISOString() ?? null;
+        const start = startIso ? shiftToDate(startIso, dateStr) : null;
+        const dayLabel = new Date(dateStr + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" });
+        const dateLabel = new Date(dateStr + "T12:00:00").toLocaleDateString("en-US", {
+          month: "long", day: "numeric",
+        });
+        return {
+          name: p.name,
+          dayLabel,
+          dateLabel,
+          timeCT: start ? fmtTimeCT(start) : null,
+        };
+      }
+    }
+  }
+  return null;
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -136,13 +168,12 @@ export default async function SessionPage({
 }) {
   const { slug } = await params;
 
-  // This tab only exists on host-team hub
   if (slug !== "host-team") notFound();
 
   const session = await auth();
   if (!session) redirect("/login");
 
-  // Role check — HOST, HOST_MANAGER, REGISTRAR, ADMIN only
+  const userId = session.user.id;
   const roles = session.user.roles ?? [];
   const canView = roles.some((r) =>
     ["HOST", "HOST_MANAGER", "REGISTRAR", "ADMIN"].includes(r)
@@ -159,69 +190,89 @@ export default async function SessionPage({
   const now = new Date();
   const { startOfDay, endOfDay } = ctDayBounds(today);
 
-  // Fetch programs + today's attendance + today's session reports in parallel
-  const [allPrograms, todayAttendance, todayReports] = await Promise.all([
-    db.program.findMany({
-      where: {
-        programFormat: { in: ["virtual", "hybrid"] },
-        removeFromProgramList: false,
-      },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        startDatetime: true,
-        endDatetime: true,
-        recurrenceFreq: true,
-        recurrenceInterval: true,
-        recurrenceDays: true,
-        recurrenceCount: true,
-        zoomLink: true,
-        registrationEnabled: true,
-      },
-      orderBy: { sortOrder: "asc" },
-    }),
+  // Fetch all virtual/hybrid programs (needed for today filter + next-session lookup)
+  const allPrograms = await db.program.findMany({
+    where: {
+      programFormat: { in: ["virtual", "hybrid"] },
+      removeFromProgramList: false,
+    },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      startDatetime: true,
+      endDatetime: true,
+      recurrenceFreq: true,
+      recurrenceInterval: true,
+      recurrenceDays: true,
+      recurrenceCount: true,
+      zoomLink: true,
+      registrationEnabled: true,
+    },
+    orderBy: { sortOrder: "asc" },
+  });
+
+  const todayPrograms = allPrograms.filter((p) => isOccurrenceOnDate(p, today));
+  const todaySlugs = todayPrograms.map((p) => p.slug);
+
+  // All data fetched in parallel
+  const [
+    todayAttendance,
+    todayReports,
+    todayAssignments,
+    todayCoHosts,
+    mySubmittedReports,
+    myCoHostReports,
+  ] = await Promise.all([
     db.sessionAttendance.findMany({
       where: { joinedAt: { gte: startOfDay, lte: endOfDay } },
       include: {
         user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            preferredName: true,
-          },
+          select: { id: true, firstName: true, lastName: true, preferredName: true },
         },
       },
       orderBy: { joinedAt: "asc" },
     }),
     db.sessionReport.findMany({
       where: {
-        sessionDate: startOfDay, // CT midnight = today's date key
+        sessionDate: startOfDay,
         sessionEndedAt: { not: null },
       },
       select: { programSlug: true, sessionEndedAt: true },
     }),
+    todaySlugs.length > 0
+      ? db.hostAssignment.findMany({
+          where: {
+            programSlug: { in: todaySlugs },
+            sessionDate: startOfDay,
+            userId: { not: null },
+          },
+          include: {
+            user: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
+          },
+        })
+      : Promise.resolve([]),
+    todaySlugs.length > 0
+      ? db.sessionCoHost.findMany({
+          where: { programSlug: { in: todaySlugs }, sessionDate: startOfDay },
+          include: {
+            user: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
+          },
+        })
+      : Promise.resolve([]),
+    // Has current user submitted the primary SessionReport for any program today?
+    db.sessionReport.findMany({
+      where: { sessionDate: startOfDay, hostId: userId },
+      select: { programSlug: true },
+    }),
+    // Has current user submitted a co-host reflection for any program today?
+    db.sessionCoHostReport.findMany({
+      where: { sessionDate: startOfDay, userId },
+      select: { programSlug: true },
+    }),
   ]);
 
-  // Filter to today's occurrences early so we can scope the assignment query
-  const todayPrograms = allPrograms.filter((p) => isOccurrenceToday(p, today));
-
-  // Fetch today's host assignments for programs running today
-  const todaySlugs = todayPrograms.map((p) => p.slug);
-  const todayAssignments = todaySlugs.length > 0
-    ? await db.hostAssignment.findMany({
-        where: {
-          programSlug: { in: todaySlugs },
-          sessionDate: startOfDay, // CT midnight = today's assignment date key
-          userId: { not: null },
-        },
-        include: {
-          user: { select: { firstName: true, lastName: true, preferredName: true } },
-        },
-      })
-    : [];
-
+  // Build lookup maps
   const assignmentBySlug = new Map<string, { userId: string; name: string }>();
   for (const a of todayAssignments) {
     if (a.userId && a.user) {
@@ -230,13 +281,22 @@ export default async function SessionPage({
     }
   }
 
-  // Index session-ended reports by programSlug
-  const sessionEndedBySlug = new Map<string, string>(); // slug → ISO timestamp
+  const coHostsBySlug = new Map<string, Array<{ id: string; name: string }>>();
+  for (const ch of todayCoHosts) {
+    const name = ch.user.preferredName || ch.user.firstName || "Host";
+    const list = coHostsBySlug.get(ch.programSlug) ?? [];
+    list.push({ id: ch.userId, name });
+    coHostsBySlug.set(ch.programSlug, list);
+  }
+
+  const sessionEndedBySlug = new Map<string, string>();
   for (const r of todayReports) {
     if (r.sessionEndedAt) sessionEndedBySlug.set(r.programSlug, r.sessionEndedAt.toISOString());
   }
 
-  // Group attendance by programSlug
+  const myReportSlugs = new Set(mySubmittedReports.map((r) => r.programSlug));
+  const myCoHostReportSlugs = new Set(myCoHostReports.map((r) => r.programSlug));
+
   const attendanceBySlug = new Map<string, typeof todayAttendance>();
   for (const record of todayAttendance) {
     const list = attendanceBySlug.get(record.programSlug) ?? [];
@@ -244,11 +304,8 @@ export default async function SessionPage({
     attendanceBySlug.set(record.programSlug, list);
   }
 
-  // Fetch registrations for registered programs
-  const registeredSlugs = todayPrograms
-    .filter((p) => p.registrationEnabled)
-    .map((p) => p.slug);
-
+  // Registrations for registered programs
+  const registeredSlugs = todayPrograms.filter((p) => p.registrationEnabled).map((p) => p.slug);
   const registrationMap = new Map<
     string,
     Array<{ userId: string | null; firstName: string; lastName: string; email: string }>
@@ -256,17 +313,8 @@ export default async function SessionPage({
 
   if (registeredSlugs.length > 0) {
     const regs = await db.registration.findMany({
-      where: {
-        programSlug: { in: registeredSlugs },
-        status: { not: "CANCELLED" },
-      },
-      select: {
-        userId: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        programSlug: true,
-      },
+      where: { programSlug: { in: registeredSlugs }, status: { not: "CANCELLED" } },
+      select: { userId: true, firstName: true, lastName: true, email: true, programSlug: true },
     });
     for (const r of regs) {
       const list = registrationMap.get(r.programSlug) ?? [];
@@ -275,21 +323,19 @@ export default async function SessionPage({
     }
   }
 
-  // Build serialized data for client component
+  // Build serialized program data
   const programs: SessionProgram[] = todayPrograms.map((p) => {
     const attendees = attendanceBySlug.get(p.slug) ?? [];
     const attendeeUserIds = new Set(attendees.map((a) => a.userId));
 
     const startIso = p.startDatetime?.toISOString() ?? null;
     const endIso = p.endDatetime?.toISOString() ?? null;
-    const start = startIso ? shiftToToday(startIso, today) : null;
-    const end   = endIso   ? shiftToToday(endIso,   today) : null;
+    const start = startIso ? shiftToDate(startIso, today) : null;
+    const end   = endIso   ? shiftToDate(endIso,   today) : null;
 
-    // Session ended if end time (or start + 90min) has passed
     const sessionEnd = end ?? (start ? new Date(start.getTime() + 90 * 60_000) : null);
     const sessionEnded = sessionEnd ? now > sessionEnd : false;
 
-    // Registered but not yet joined (by userId; fall back to always shown if no userId)
     const programRegs = registrationMap.get(p.slug) ?? [];
     const notYetJoined = programRegs
       .filter((r) => !r.userId || !attendeeUserIds.has(r.userId))
@@ -300,6 +346,7 @@ export default async function SessionPage({
       }));
 
     const assignment = assignmentBySlug.get(p.slug) ?? null;
+    const coHosts = coHostsBySlug.get(p.slug) ?? [];
     const sessionEndedAt = sessionEndedBySlug.get(p.slug) ?? null;
 
     return {
@@ -308,10 +355,18 @@ export default async function SessionPage({
       name: p.name,
       startTimeCT: start ? fmtTimeCT(start) : null,
       endTimeCT:   end   ? fmtTimeCT(end)   : null,
+      startDatetimeISO: start ? start.toISOString() : null,
+      endDatetimeISO:   end   ? end.toISOString()   : null,
+      zoomLink: p.zoomLink ?? null,
       isRegistered: !!p.registrationEnabled,
       sessionEnded,
-      sessionEndedAt, // null or ISO string when host manually ended the session
+      sessionEndedAt,
       assignedHost: assignment ? { id: assignment.userId, name: assignment.name } : null,
+      coHosts,
+      currentUserIsAssignedHost: assignment ? assignment.userId === userId : false,
+      currentUserIsCoHost: coHosts.some((ch) => ch.id === userId),
+      reportSubmitted: myReportSlugs.has(p.slug),
+      coHostReportSubmitted: myCoHostReportSlugs.has(p.slug),
       postSessionPath: `/account/hub/${slug}/session/${p.slug}/post`,
       attendees: attendees.map((a) => {
         const u = a.user;
@@ -331,8 +386,12 @@ export default async function SessionPage({
   });
 
   const isManager = roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
-  // HOST, HOST_MANAGER, and ADMIN can close a session early
   const canEndSession = roles.some((r) => ["HOST", "HOST_MANAGER", "ADMIN"].includes(r));
+
+  // For State 1: find the next scheduled session
+  const nextSession = todayPrograms.length === 0
+    ? findNextSession(allPrograms, today)
+    : null;
 
   return (
     <>
@@ -340,6 +399,8 @@ export default async function SessionPage({
         programs={programs}
         todayCT={fmtTodayFull(today)}
         canEndSession={canEndSession}
+        hubSlug={slug}
+        nextSession={nextSession}
       />
       <div className="sv-history-nav">
         <a

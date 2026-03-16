@@ -119,6 +119,9 @@ model User {
   supportNotes       SupportNote[]     @relation("NoteAuthor")
   supportSignature   SupportSignature?
   supportTemplates   SupportTemplate[] @relation("TemplateCreator")
+  // Session co-hosting
+  sessionCoHosts       SessionCoHost[]       @relation("SessionCoHosts")
+  sessionCoHostReports SessionCoHostReport[] @relation("SessionCoHostReports")
 
   @@map("users")
 }
@@ -753,6 +756,38 @@ enum PostSessionAction {
   GENTLE_FOLLOWUP
   JESSE_ONLY
   TECHNICAL_ISSUE
+}
+
+// Self-marked co-hosts for a session.
+// Any Host Team member can tap "I'm also hosting this" in States 2 or 3.
+// Records them for the live view and queues a reflection prompt after the session.
+model SessionCoHost {
+  id          String   @id @default(cuid())
+  programSlug String
+  sessionDate DateTime // CT midnight for the session date
+  userId      String
+  user        User     @relation("SessionCoHosts", fields: [userId], references: [id], onDelete: Cascade)
+  isPrimary   Boolean  @default(false) // true when no HostAssignment existed at time of self-mark
+  createdAt   DateTime @default(now())
+
+  @@unique([programSlug, sessionDate, userId])
+  @@map("session_cohosts")
+}
+
+// Reflection submitted by a co-host after a session.
+// Separate from SessionReport (which is the primary host's full report).
+// Both appear in the team journal.
+model SessionCoHostReport {
+  id          String   @id @default(cuid())
+  programSlug String
+  sessionDate DateTime // CT midnight for the session date
+  userId      String
+  user        User     @relation("SessionCoHostReports", fields: [userId], references: [id], onDelete: Cascade)
+  reflection  String?
+  submittedAt DateTime @default(now())
+
+  @@unique([programSlug, sessionDate, userId])
+  @@map("session_cohost_reports")
 }
 
 // ─── MULTI-HUB SYSTEM ────────────────────────────────────────────────────────

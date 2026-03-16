@@ -56,6 +56,7 @@ interface Props {
   assignedHost: AssignedHost | null;
   backPath: string;
   apiPath: string;
+  isCoHost?: boolean;  // Co-host sees reflection-only form
 }
 
 interface DraftState {
@@ -79,6 +80,7 @@ export default function PostSessionClient({
   assignedHost,
   backPath,
   apiPath,
+  isCoHost = false,
 }: Props) {
   const router = useRouter();
 
@@ -143,24 +145,27 @@ export default function PostSessionClient({
     setSubmitting(true);
     setError(null);
 
-    const flags = initialFlagged.map((f) => ({
-      attendanceId: f.attendanceId,
-      note:   flagNotes[f.attendanceId]?.trim() || null,
-      action: flagActions[f.attendanceId] ?? "NONE",
-    }));
-
     try {
+      // Co-host: reflection only → cohost-report API
+      const payload = isCoHost
+        ? { sessionDate, reflection: reflection.trim() || null }
+        : {
+            sessionDate,
+            flags: initialFlagged.map((f) => ({
+              attendanceId: f.attendanceId,
+              note:   flagNotes[f.attendanceId]?.trim() || null,
+              action: flagActions[f.attendanceId] ?? "NONE",
+            })),
+            reflection: reflection.trim() || null,
+            resourceUrl: resourceUrl.trim() || null,
+            resourceNote: resourceNote.trim() || null,
+            assignedHostId: assignedHost?.id ?? null,
+          };
+
       const res = await fetch(apiPath, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionDate,
-          flags,
-          reflection: reflection.trim() || null,
-          resourceUrl: resourceUrl.trim() || null,
-          resourceNote: resourceNote.trim() || null,
-          assignedHostId: assignedHost?.id ?? null,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -181,15 +186,69 @@ export default function PostSessionClient({
   if (submitted) {
     return (
       <div className="ps-done">
-        <h2 className="ps-done__title">Thank you.</h2>
+        <h2 className="ps-done__title">{isCoHost ? "You're done." : "Thank you."}</h2>
         <p className="ps-done__body">
-          Your post-session notes have been saved. The right people have been notified.
+          {isCoHost
+            ? "Your reflection has been added to the team journal."
+            : "Your post-session notes have been saved. The right people have been notified."}
         </p>
         <a href={backPath} className="ps-done__back">← Back to today&rsquo;s sessions</a>
       </div>
     );
   }
 
+  // ── Co-host view: reflection only ─────────────────────────────────────────
+  if (isCoHost) {
+    return (
+      <form className="ps-form" onSubmit={handleSubmit}>
+        <div className="ps-form__header">
+          <h2 className="ps-state-header">Session ended. Take a few minutes for your reflection.</h2>
+          <p className="ps-form__date">{sessionDateDisplay} — {programSlug.replace(/-/g, " ")}</p>
+        </div>
+
+        {draftRestored && (
+          <div className="ps-draft-notice">
+            Draft restored.{" "}
+            <button
+              type="button"
+              className="ps-draft-notice__clear"
+              onClick={() => { clearDraft(); setDraftRestored(false); }}
+            >
+              Clear
+            </button>
+          </div>
+        )}
+
+        <div className="ps-section">
+          <h3 className="ps-section__title">How was the session?</h3>
+          <p className="ps-section__desc">
+            Optional — but encouraged. How did the session feel? Anything worth the team knowing?
+          </p>
+          <RimEditor
+            className="ps-reflection"
+            rows={5}
+            placeholder="Notes for the team — whatever feels worth saying…"
+            value={reflection}
+            onChange={(v) => {
+              setReflection(v);
+              saveDraft({ reflection: v });
+            }}
+          />
+        </div>
+
+        {error && <p className="ps-error">{error}</p>}
+
+        <div className="ps-form__footer">
+          <button type="submit" className="ps-submit" disabled={submitting}>
+            {submitting ? "Saving…" : "Submit My Reflection"}
+          </button>
+          <a href={backPath} className="ps-cancel">Back</a>
+        </div>
+      </form>
+    );
+  }
+
+  // ── Primary host view: full form ──────────────────────────────────────────
   return (
     <form className="ps-form" onSubmit={handleSubmit}>
 
@@ -325,7 +384,7 @@ export default function PostSessionClient({
 
       <div className="ps-form__footer">
         <button type="submit" className="ps-submit" disabled={submitting}>
-          {submitting ? "Saving…" : "Submit"}
+          {submitting ? "Saving…" : "Submit Report"}
         </button>
         <a href={backPath} className="ps-cancel">Back</a>
       </div>

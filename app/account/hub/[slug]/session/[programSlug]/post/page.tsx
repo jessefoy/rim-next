@@ -109,9 +109,11 @@ export default async function PostSessionPage({
     orderBy: { joinedAt: "asc" },
   });
 
+  const userId = session.user.id;
+
   // Check if a report already exists for today (so we can pre-fill)
-  // Also fetch the host assignment for this program + today
-  const [existingReport, todayAssignment] = await Promise.all([
+  // Also fetch the host assignment and co-host status for this program + today
+  const [existingReport, todayAssignment, coHostRecord] = await Promise.all([
     db.sessionReport.findUnique({
       where: { programSlug_sessionDate: { programSlug, sessionDate: sessionDateKey } },
     }),
@@ -125,6 +127,10 @@ export default async function PostSessionPage({
         user: { select: { firstName: true, lastName: true, preferredName: true } },
       },
     }),
+    db.sessionCoHost.findUnique({
+      where: { programSlug_sessionDate_userId: { programSlug, sessionDate: sessionDateKey, userId } },
+      select: { id: true },
+    }),
   ]);
 
   const assignedHost: AssignedHost | null = todayAssignment?.userId && todayAssignment.user
@@ -133,6 +139,9 @@ export default async function PostSessionPage({
         name: todayAssignment.user.preferredName || todayAssignment.user.firstName || "Host",
       }
     : null;
+
+  // isCoHost = user has a co-host record AND is not the assigned host
+  const isCoHost = !!coHostRecord && assignedHost?.id !== userId;
 
   const flaggedAttendees = attendanceRecords
     .filter((a) => a.flaggedByHost)
@@ -159,6 +168,14 @@ export default async function PostSessionPage({
     };
   });
 
+  // For co-host: check if they already submitted their reflection
+  const coHostReportExists = isCoHost
+    ? await db.sessionCoHostReport.findUnique({
+        where: { programSlug_sessionDate_userId: { programSlug, sessionDate: sessionDateKey, userId } },
+        select: { id: true, reflection: true },
+      })
+    : null;
+
   return (
     <PostSessionClient
       programSlug={programSlug}
@@ -166,13 +183,22 @@ export default async function PostSessionPage({
       sessionDateDisplay={fmtDate(sessionDateKey)}
       flaggedAttendees={flaggedAttendees}
       allAttendees={allAttendees}
-      existingReflection={existingReport?.reflection ?? null}
-      existingResourceUrl={existingReport?.resourceUrl ?? null}
-      existingResourceNote={existingReport?.resourceNote ?? null}
-      alreadySubmitted={!!existingReport}
+      existingReflection={
+        isCoHost
+          ? (coHostReportExists?.reflection ?? null)
+          : (existingReport?.reflection ?? null)
+      }
+      existingResourceUrl={isCoHost ? null : (existingReport?.resourceUrl ?? null)}
+      existingResourceNote={isCoHost ? null : (existingReport?.resourceNote ?? null)}
+      alreadySubmitted={isCoHost ? !!coHostReportExists : !!existingReport}
       assignedHost={assignedHost}
       backPath={`/account/hub/${slug}/session`}
-      apiPath={`/api/attendance/session/${programSlug}/post`}
+      apiPath={
+        isCoHost
+          ? `/api/attendance/session/${programSlug}/cohost-report`
+          : `/api/attendance/session/${programSlug}/post`
+      }
+      isCoHost={isCoHost}
     />
   );
 }

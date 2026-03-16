@@ -1,19 +1,24 @@
 "use client";
 
 /**
- * SessionLiveClient — live view of who has clicked in to today's sessions.
- * Used by the Host Team hub Session tab.
+ * SessionLiveClient — time-aware, context-driven session view.
  *
- * - Polls (router.refresh) every 60 seconds for updated attendance.
- * - Single tap on a name toggles flaggedByHost.
- * - "Close session & write notes →" button for HOST/HOST_MANAGER/ADMIN:
- *   sets sessionEndedAt on the SessionReport, then redirects to post-session form.
- * - Design principle: glanced at during a session, not worked.
- *   Names and subtle badges only. Process the whole view in 3 seconds.
+ * Six states computed from schedule data + report status:
+ *   1 — No session today
+ *   2 — Session later today (>90 min out)
+ *   3 — Getting ready (≤90 min to start)
+ *   4 — Session is live  ← glanceable, minimal
+ *   5 — Session ended, report not yet filed
+ *   6 — Done (report submitted)
+ *
+ * Design principle: designed for the moment of panic, not the moment of calm.
+ * Every state shows only what's needed right now.
  */
 
 import { useEffect, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface Attendee {
   recordId: string;
@@ -30,43 +35,172 @@ export interface Registrant {
   email: string;
 }
 
+export interface NextSession {
+  name: string;
+  dayLabel: string;
+  dateLabel: string;
+  timeCT: string | null;
+}
+
 export interface SessionProgram {
   _id: string;
   slug: string;
   name: string;
   startTimeCT: string | null;
   endTimeCT: string | null;
-  isRegistered: boolean;  // has registration enabled
+  startDatetimeISO: string | null;   // actual shifted ISO for this occurrence
+  endDatetimeISO: string | null;
+  zoomLink: string | null;
+  isRegistered: boolean;
   attendees: Attendee[];
-  notYetJoined: Registrant[];  // registered but no attendance record today
-  sessionEnded: boolean;       // time-based: scheduled end time has passed
-  sessionEndedAt: string | null; // ISO string when host manually ended session
+  notYetJoined: Registrant[];
+  sessionEnded: boolean;             // server-computed time-based flag
+  sessionEndedAt: string | null;     // ISO — manually ended by host
   assignedHost: { id: string; name: string } | null;
+  coHosts: Array<{ id: string; name: string }>;
+  currentUserIsAssignedHost: boolean;
+  currentUserIsCoHost: boolean;
+  reportSubmitted: boolean;          // current user submitted the primary report
+  coHostReportSubmitted: boolean;    // current user submitted a co-host reflection
   postSessionPath: string;
 }
 
 interface Props {
   programs: SessionProgram[];
   todayCT: string;
-  canEndSession: boolean; // true for HOST, HOST_MANAGER, ADMIN
+  canEndSession: boolean;
+  hubSlug: string;
+  nextSession: NextSession | null;
 }
 
-function fmtEndedTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString("en-US", {
-    timeZone: "America/Chicago",
-    hour: "numeric",
-    minute: "2-digit",
-  }) + " CT";
+// ── State computation ─────────────────────────────────────────────────────────
+
+type SessionState =
+  | "later-today"    // State 2
+  | "getting-ready"  // State 3
+  | "live"           // State 4
+  | "post-session"   // State 5
+  | "done";          // State 6
+
+function computeState(prog: SessionProgram): SessionState {
+  const now = Date.now();
+  const startMs = prog.startDatetimeISO ? new Date(prog.startDatetimeISO).getTime() : null;
+  const endMs   = prog.endDatetimeISO   ? new Date(prog.endDatetimeISO).getTime()   : null;
+  const fallbackEndMs = startMs ? startMs + 90 * 60_000 : null;
+  const effectiveEndMs = endMs ?? fallbackEndMs;
+
+  const manuallyEnded = !!prog.sessionEndedAt;
+  const timeEnded = effectiveEndMs !== null && now > effectiveEndMs;
+  const isEnded = manuallyEnded || timeEnded || prog.sessionEnded;
+
+  if (isEnded) {
+    if (prog.currentUserIsAssignedHost) {
+      return prog.reportSubmitted ? "done" : "post-session";
+    }
+    if (prog.currentUserIsCoHost) {
+      return prog.coHostReportSubmitted ? "done" : "post-session";
+    }
+    // Neither — session is over, nothing to file
+    return "post-session";
+  }
+
+  if (startMs === null) return "live"; // No schedule data → always show live view
+
+  if (now >= startMs) return "live";
+
+  const minutesToStart = (startMs - now) / 60_000;
+  if (minutesToStart <= 90) return "getting-ready";
+
+  return "later-today";
 }
 
-export default function SessionLiveClient({ programs, todayCT, canEndSession }: Props) {
+function minutesUntil(isoString: string): number {
+  return Math.ceil((new Date(isoString).getTime() - Date.now()) / 60_000);
+}
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function Roster({ notYetJoined, attendees }: { notYetJoined: Registrant[]; attendees: Attendee[] }) {
+  if (notYetJoined.length === 0 && attendees.length === 0) return null;
+  const allNames = [
+    ...attendees.map((a) => ({ name: a.displayName, joined: true })),
+    ...notYetJoined.map((r) => ({ name: r.displayName, joined: false })),
+  ];
+  return (
+    <div className="sv-roster">
+      <p className="sv-roster__label">{allNames.length} registered</p>
+      <div className="sv-roster__names">
+        {allNames.map((item, i) => (
+          <span key={i} className={`sv-roster__name${item.joined ? " sv-roster__name--in" : ""}`}>
+            {item.name}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CoHostButton({
+  slug,
+  isCoHost,
+  isAssignedHost,
+  coHosts,
+  onMark,
+  marking,
+}: {
+  slug: string;
+  isCoHost: boolean;
+  isAssignedHost: boolean;
+  coHosts: Array<{ id: string; name: string }>;
+  onMark: (slug: string) => void;
+  marking: boolean;
+}) {
+  if (isAssignedHost) return null;
+  if (isCoHost) {
+    return (
+      <p className="sv-cohost-confirmed">
+        You&rsquo;re set as co-host.{" "}
+        {coHosts.length > 1 && (
+          <span>Also hosting: {coHosts.filter((ch) => ch.id !== undefined).map((ch) => ch.name).join(", ")}</span>
+        )}
+      </p>
+    );
+  }
+  return (
+    <button
+      type="button"
+      className="sv-cohost-btn"
+      disabled={marking}
+      onClick={() => onMark(slug)}
+    >
+      {marking ? "Marking…" : "I'm also hosting this"}
+    </button>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+
+export default function SessionLiveClient({
+  programs,
+  todayCT,
+  canEndSession,
+  hubSlug,
+  nextSession,
+}: Props) {
   const router = useRouter();
-  const [flagging, setFlagging] = useState<string | null>(null); // attendee recordId currently toggling
-  const [endingSession, setEndingSession] = useState<string | null>(null); // program slug currently ending
 
-  // Poll every 60 seconds
+  const [flagging, setFlagging] = useState<string | null>(null);
+  const [confirmEndSlug, setConfirmEndSlug] = useState<string | null>(null);
+  const [endingSession, setEndingSession] = useState<string | null>(null);
+  const [markingCoHost, setMarkingCoHost] = useState<string | null>(null);
+  const [, forceUpdate] = useState(0); // triggers re-render for live state transitions
+
+  // Poll every 60 seconds for new attendance + refresh state
   useEffect(() => {
-    const interval = setInterval(() => router.refresh(), 60_000);
+    const interval = setInterval(() => {
+      router.refresh();
+      forceUpdate((n) => n + 1);
+    }, 60_000);
     return () => clearInterval(interval);
   }, [router]);
 
@@ -76,29 +210,47 @@ export default function SessionLiveClient({ programs, todayCT, canEndSession }: 
     try {
       await fetch(`/api/attendance/${recordId}/flag`, { method: "PATCH" });
       router.refresh();
-    } catch {
-      // Silently ignore — flag state will sync on next poll
-    } finally {
-      setFlagging(null);
-    }
+    } catch { /* Silently ignore — flag state syncs on next poll */ }
+    finally { setFlagging(null); }
   }, [flagging, router]);
 
   const endSession = useCallback(async (prog: SessionProgram) => {
     if (endingSession) return;
     setEndingSession(prog.slug);
+    setConfirmEndSlug(null);
     try {
       await fetch(`/api/attendance/session/${prog.slug}/end`, { method: "POST" });
       router.push(prog.postSessionPath);
     } catch {
-      setEndingSession(null); // Reset on error so button is usable again
+      setEndingSession(null);
     }
   }, [endingSession, router]);
 
+  const markCoHost = useCallback(async (slug: string) => {
+    if (markingCoHost) return;
+    setMarkingCoHost(slug);
+    try {
+      await fetch(`/api/attendance/session/${slug}/cohost`, { method: "POST" });
+      router.refresh();
+    } catch { /* Silently ignore — co-host status syncs on next poll */ }
+    finally { setMarkingCoHost(null); }
+  }, [markingCoHost, router]);
+
+  // ── State 1: No session today ──────────────────────────────────────────────
   if (programs.length === 0) {
     return (
-      <div className="sv-empty">
-        <p className="sv-empty__text">No virtual or hybrid sessions scheduled for today.</p>
-        <p className="sv-empty__sub">{todayCT}</p>
+      <div className="sv-state-wrap sv-state-wrap--1">
+        <p className="sv-state-date">{todayCT}</p>
+        <h2 className="sv-state-header">You don&rsquo;t have a session today.</h2>
+        {nextSession ? (
+          <p className="sv-state-body">
+            Your next session is {nextSession.dayLabel}, {nextSession.dateLabel}
+            {nextSession.timeCT ? ` at ${nextSession.timeCT}` : ""}
+            {" — "}{nextSession.name}.
+          </p>
+        ) : (
+          <p className="sv-state-body">No sessions scheduled in the next three weeks.</p>
+        )}
       </div>
     );
   }
@@ -108,106 +260,222 @@ export default function SessionLiveClient({ programs, todayCT, canEndSession }: 
       <p className="sv-date">{todayCT}</p>
 
       {programs.map((prog) => {
-        const isEnded = prog.sessionEnded || !!prog.sessionEndedAt;
-        const showPostLink = isEnded;
+        const state = computeState(prog);
         const isEndingThis = endingSession === prog.slug;
+        const isMarkingThis = markingCoHost === prog.slug;
 
-        return (
-          <div key={prog._id} className="sv-program">
-            <div className="sv-program__header">
-              <h2 className="sv-program__name">{prog.name}</h2>
-              {(prog.startTimeCT || prog.endTimeCT) && (
-                <span className="sv-program__time">
-                  {prog.startTimeCT}
-                  {prog.endTimeCT ? ` – ${prog.endTimeCT}` : ""}
-                  {" CT"}
-                </span>
+        // ── State 2: Session later today ────────────────────────────────────
+        if (state === "later-today") {
+          return (
+            <div key={prog._id} className="sv-state-wrap sv-state-wrap--2">
+              <h2 className="sv-state-header">You have a session later today.</h2>
+              <div className="sv-state-program">
+                <span className="sv-state-program__name">{prog.name}</span>
+                {(prog.startTimeCT || prog.endTimeCT) && (
+                  <span className="sv-state-program__time">
+                    {prog.startTimeCT}{prog.endTimeCT ? ` – ${prog.endTimeCT}` : ""}{" CT"}
+                  </span>
+                )}
+              </div>
+
+              {prog.zoomLink && (
+                <div className="sv-meet-secondary">
+                  <span className="sv-meet-label">Google Meet room</span>
+                  <a href={prog.zoomLink} className="sv-meet-link" target="_blank" rel="noopener noreferrer">
+                    {prog.zoomLink}
+                  </a>
+                </div>
               )}
-              <span className="sv-program__count">
-                {prog.attendees.length} in
-              </span>
+
+              {prog.isRegistered && (
+                <Roster notYetJoined={prog.notYetJoined} attendees={prog.attendees} />
+              )}
+
+              <CoHostButton
+                slug={prog.slug}
+                isCoHost={prog.currentUserIsCoHost}
+                isAssignedHost={prog.currentUserIsAssignedHost}
+                coHosts={prog.coHosts}
+                onMark={markCoHost}
+                marking={isMarkingThis}
+              />
             </div>
+          );
+        }
 
-            {/* Manually ended badge — shows to everyone (so second host knows) */}
-            {prog.sessionEndedAt && (
-              <div className="sv-ended">
-                <span className="sv-ended__label">Session closed</span>
-                <span className="sv-ended__time">{fmtEndedTime(prog.sessionEndedAt)}</span>
+        // ── State 3: Getting ready ───────────────────────────────────────────
+        if (state === "getting-ready") {
+          const mins = prog.startDatetimeISO ? minutesUntil(prog.startDatetimeISO) : null;
+          return (
+            <div key={prog._id} className="sv-state-wrap sv-state-wrap--3">
+              <h2 className="sv-state-header">
+                {mins !== null ? `Your session starts in ${mins} minute${mins === 1 ? "" : "s"}.` : "Your session is starting soon."}
+              </h2>
+
+              {prog.zoomLink && (
+                <a
+                  href={prog.zoomLink}
+                  className="sv-meet-primary-btn"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Join Google Meet →
+                </a>
+              )}
+
+              <p className="sv-reminder">
+                Open the room a few minutes early. Welcome each person by name as they arrive.
+                The first 12 minutes are yours — guided arrival, brief opening, setting the space.
+              </p>
+
+              {prog.isRegistered && (
+                <Roster notYetJoined={prog.notYetJoined} attendees={prog.attendees} />
+              )}
+
+              <CoHostButton
+                slug={prog.slug}
+                isCoHost={prog.currentUserIsCoHost}
+                isAssignedHost={prog.currentUserIsAssignedHost}
+                coHosts={prog.coHosts}
+                onMark={markCoHost}
+                marking={isMarkingThis}
+              />
+            </div>
+          );
+        }
+
+        // ── State 4: Session is live ─────────────────────────────────────────
+        if (state === "live") {
+          return (
+            <div key={prog._id} className="sv-state-wrap sv-state-wrap--4">
+              <div className="sv-live-header">
+                <h2 className="sv-live-title">Session is live — {prog.name}</h2>
+                <span className="sv-live-count">{prog.attendees.length} in the room</span>
               </div>
-            )}
 
-            {/* Assigned host — distinct from attendees, not tappable */}
-            {prog.assignedHost && (
-              <div className="sv-host-badge">
-                <span className="sv-host-label">Hosting today</span>
-                <span className="sv-host-name">{prog.assignedHost.name}</span>
-              </div>
-            )}
-
-            {/* Attendees who have joined */}
-            {prog.attendees.length === 0 ? (
-              <p className="sv-no-attendees">No one has joined yet.</p>
-            ) : (
-              <div className="sv-attendees">
-                {prog.attendees.map((a) => (
-                  <button
-                    key={a.recordId}
-                    type="button"
-                    className={`sv-person${a.flaggedByHost ? " sv-person--flagged" : ""}${flagging === a.recordId ? " sv-person--toggling" : ""}`}
-                    onClick={() => toggleFlag(a.recordId)}
-                    title={a.flaggedByHost ? "Flagged — tap to unflag" : "Tap to flag for follow-up"}
-                  >
-                    <span className="sv-person__name">{a.displayName}</span>
-                    {a.isNewMember && (
-                      <span className="sv-badge sv-badge--new">New</span>
-                    )}
-                    {a.returningAfterAbsence && !a.isNewMember && (
-                      <span className="sv-badge sv-badge--returning">Welcome back</span>
-                    )}
-                    {a.flaggedByHost && (
-                      <span className="sv-flag-dot" aria-label="Flagged" />
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Registered but not yet joined — muted, below attendees */}
-            {prog.notYetJoined.length > 0 && (
-              <div className="sv-not-joined">
-                <p className="sv-not-joined__label">Registered, not yet in</p>
-                <div className="sv-not-joined__names">
-                  {prog.notYetJoined.map((r, i) => (
-                    <span key={r.userId ?? r.email ?? i} className="sv-not-joined__name">
-                      {r.displayName}
-                    </span>
+              {prog.attendees.length === 0 ? (
+                <p className="sv-no-attendees">No one has joined yet.</p>
+              ) : (
+                <div className="sv-attendees">
+                  {prog.attendees.map((a) => (
+                    <button
+                      key={a.recordId}
+                      type="button"
+                      className={`sv-person${a.flaggedByHost ? " sv-person--flagged" : ""}${flagging === a.recordId ? " sv-person--toggling" : ""}`}
+                      onClick={() => toggleFlag(a.recordId)}
+                      title={a.flaggedByHost ? "Flagged — tap to unflag" : "Tap to flag for follow-up"}
+                    >
+                      <span className="sv-person__name">{a.displayName}</span>
+                      {a.isNewMember && (
+                        <span className="sv-live-badge sv-live-badge--new" aria-label="New member" title="New member">★</span>
+                      )}
+                      {a.returningAfterAbsence && !a.isNewMember && (
+                        <span className="sv-live-badge sv-live-badge--returning" aria-label="Returning after absence" title="Returning after absence">↩</span>
+                      )}
+                      {a.flaggedByHost && (
+                        <span className="sv-flag-dot" aria-label="Flagged" />
+                      )}
+                    </button>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Close session button — HOST/HOST_MANAGER/ADMIN, only while session is active */}
-            {canEndSession && !isEnded && (
-              <div className="sv-end-wrap">
-                <button
-                  type="button"
-                  className="sv-end-btn"
-                  disabled={!!isEndingThis}
-                  onClick={() => endSession(prog)}
-                >
-                  {isEndingThis ? "Closing…" : "Close session & write notes →"}
-                </button>
-              </div>
-            )}
+              {prog.notYetJoined.length > 0 && (
+                <div className="sv-not-joined">
+                  <p className="sv-not-joined__label">Registered, not yet in</p>
+                  <div className="sv-not-joined__names">
+                    {prog.notYetJoined.map((r, i) => (
+                      <span key={r.userId ?? r.email ?? i} className="sv-not-joined__name">
+                        {r.displayName}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-            {/* Post-session link — appears after session ends (time-based or manual) */}
-            {showPostLink && (
-              <div className="sv-post-link">
-                <a href={prog.postSessionPath} className="sv-post-link__btn">
-                  Complete post-session form →
+              {/* End Session — ghost style, at the bottom */}
+              {canEndSession && (
+                <div className="sv-end-wrap">
+                  <button
+                    type="button"
+                    className="sv-end-btn sv-end-btn--ghost"
+                    disabled={!!isEndingThis}
+                    onClick={() => setConfirmEndSlug(prog.slug)}
+                  >
+                    {isEndingThis ? "Ending…" : "End Session"}
+                  </button>
+                </div>
+              )}
+
+              {/* Confirmation dialog */}
+              {confirmEndSlug === prog.slug && (
+                <div className="sv-confirm-overlay" onClick={() => setConfirmEndSlug(null)}>
+                  <div className="sv-confirm-dialog" onClick={(e) => e.stopPropagation()}>
+                    <p className="sv-confirm-msg">
+                      End {prog.name} and go to your post-session report?
+                    </p>
+                    <div className="sv-confirm-actions">
+                      <button
+                        type="button"
+                        className="sv-confirm-yes"
+                        onClick={() => endSession(prog)}
+                      >
+                        End Session
+                      </button>
+                      <button
+                        type="button"
+                        className="sv-confirm-no"
+                        onClick={() => setConfirmEndSlug(null)}
+                      >
+                        Not yet
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        // ── State 5: Session ended, report not filed ─────────────────────────
+        if (state === "post-session") {
+          const isReporter = prog.currentUserIsAssignedHost || prog.currentUserIsCoHost;
+          return (
+            <div key={prog._id} className="sv-state-wrap sv-state-wrap--5">
+              <h2 className="sv-state-header">Session ended. Take a few minutes for your report.</h2>
+              <p className="sv-state-body">
+                This is part of the role — it only takes a few minutes and it helps the whole team.
+              </p>
+              {isReporter ? (
+                <a href={prog.postSessionPath} className="sv-post-primary-btn">
+                  {prog.currentUserIsCoHost && !prog.currentUserIsAssignedHost
+                    ? "Write your reflection →"
+                    : "Write your report →"}
                 </a>
-              </div>
-            )}
+              ) : (
+                <p className="sv-state-quiet">
+                  {prog.name} has ended.
+                  {" "}
+                  <a href={`/account/hub/${hubSlug}/session/history/team`} className="sv-quiet-link">
+                    See the team journal →
+                  </a>
+                </p>
+              )}
+            </div>
+          );
+        }
+
+        // ── State 6: Done ────────────────────────────────────────────────────
+        return (
+          <div key={prog._id} className="sv-state-wrap sv-state-wrap--6">
+            <h2 className="sv-state-header">You&rsquo;re done.</h2>
+            <p className="sv-state-body">Your reflection has been added to the team journal.</p>
+            <a
+              href={`/account/hub/${hubSlug}/session/history/team`}
+              className="sv-journal-link"
+            >
+              See the team journal →
+            </a>
           </div>
         );
       })}
