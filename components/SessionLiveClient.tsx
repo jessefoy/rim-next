@@ -91,11 +91,11 @@ function computeState(prog: SessionProgram): SessionState {
   const now = Date.now();
   const startMs = prog.startDatetimeISO ? new Date(prog.startDatetimeISO).getTime() : null;
   const endMs   = prog.endDatetimeISO   ? new Date(prog.endDatetimeISO).getTime()   : null;
-  const fallbackEndMs = startMs ? startMs + 90 * 60_000 : null;
-  const effectiveEndMs = endMs ?? fallbackEndMs;
+  // No fallback end time — if endDatetime is not set, only a manual End Session
+  // can transition out of State 4. Sessions should not auto-expire.
 
   const manuallyEnded = !!prog.sessionEndedAt;
-  const timeEnded = effectiveEndMs !== null && now > effectiveEndMs;
+  const timeEnded = endMs !== null && now > endMs;
   const isEnded = manuallyEnded || timeEnded;
 
   if (isEnded) {
