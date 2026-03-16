@@ -12,6 +12,7 @@
 import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { getGmailClient } from "@/lib/gmail";
+import { db } from "@/lib/db";
 
 export async function GET(
   _req: NextRequest,
@@ -26,6 +27,15 @@ export async function GET(
   }
 
   const { messageId, attachmentId } = await params;
+
+  // Ownership check: verify this messageId belongs to a tracked SupportMessage
+  const knownMessage = await db.supportMessage.findUnique({
+    where: { gmailMessageId: messageId },
+    select: { id: true },
+  });
+  if (!knownMessage) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
 
   try {
     const gmail = await getGmailClient();

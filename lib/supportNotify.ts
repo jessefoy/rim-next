@@ -35,7 +35,9 @@ export async function notifySupport(opts: NotifyOpts): Promise<void> {
     // Don't notify the actor about their own action
     if (actorId && recipientId === actorId) return;
 
-    // Dedup: check for same type + thread in past 5 minutes
+    // Dedup: suppress duplicate alerts for the same thread+type within 5 minutes.
+    // Note: in high-volume scenarios (many emails arriving rapidly) some alerts
+    // may be suppressed — acceptable trade-off to prevent notification spam.
     const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
     const existing = await db.alert.findFirst({
       where: {
@@ -77,7 +79,7 @@ export async function notifySupport(opts: NotifyOpts): Promise<void> {
         "",
         message,
         "",
-        `View this thread: https://rim-next.vercel.app${linkUrl}`,
+        `View this thread: ${process.env.NEXTAUTH_URL ?? "https://rim-next.vercel.app"}${linkUrl}`,
         "",
         "— Rooted in Mindfulness Support",
       ].join("\n"),

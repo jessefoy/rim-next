@@ -229,15 +229,18 @@ export async function syncGmailInbox(): Promise<SyncResult> {
       ? new Date(parseInt(lastMsg.internalDate))
       : new Date();
 
-    // Check if thread already exists
+    // Check if thread already exists (include deletedAt to detect soft-deleted threads)
     const existingThread = await db.supportThread.findUnique({
       where: { gmailThreadId },
-      select: { id: true, lastMessageAt: true, assignedToId: true, subject: true },
+      select: { id: true, lastMessageAt: true, assignedToId: true, subject: true, deletedAt: true },
     });
 
     let threadId: string;
 
     if (existingThread) {
+      // Skip soft-deleted threads — do not resurrect them
+      if (existingThread.deletedAt) continue;
+
       // Update lastMessageAt if newer messages arrived
       if (lastDate > existingThread.lastMessageAt) {
         await db.supportThread.update({

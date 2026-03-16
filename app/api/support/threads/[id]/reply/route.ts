@@ -16,6 +16,31 @@ function hasSupport(roles: string[]) {
   return roles.some((r) => ["SUPPORT", "ADMIN"].includes(r));
 }
 
+/** Escape user-controlled strings before interpolating into email HTML. */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/** Validate that a URL is a legitimate Vercel Blob URL (prevents SSRF). */
+function isSafeBlobUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return (
+      parsed.protocol === "https:" &&
+      parsed.hostname.endsWith(".public.blob.vercel-storage.com")
+    );
+  } catch {
+    return false;
+  }
+}
+
+const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024; // 20 MB per attachment
+
 interface AttachmentInput {
   url: string;
   filename: string;
@@ -47,7 +72,14 @@ export async function POST(
   // Get thread + last message for threading headers
   const thread = await db.supportThread.findUnique({
     where: { id },
-    include: {
+    select: {
+      id: true,
+      subject: true,
+      status: true,
+      senderEmail: true,
+      gmailThreadId: true,
+      assignedToId: true,
+      deletedAt: true,
       messages: {
         orderBy: { sentAt: "desc" },
         take: 1,
@@ -57,21 +89,25 @@ export async function POST(
   });
 
   if (!thread) return NextResponse.json({ error: "Thread not found" }, { status: 404 });
+  if (thread.deletedAt) return NextResponse.json({ error: "Thread not found" }, { status: 404 });
 
   // Get sender's signature
   const signature = await db.supportSignature.findUnique({
     where: { userId: session.user.id },
   });
 
-  // Build signature HTML
+  // Build signature HTML — escape fields to prevent XSS via stored signature content
   let signatureHtml = "";
   if (signature) {
+    const safeName = escapeHtml(signature.name);
+    const safeRole = signature.role ? escapeHtml(signature.role) : "";
+    const safeTagline = escapeHtml(signature.tagline);
     signatureHtml = `
       <br><br>
       <div style="color:#666;font-size:14px;border-top:1px solid #ddd;padding-top:12px;margin-top:12px;">
-        <strong>${signature.name}</strong><br>
-        ${signature.role ? `${signature.role}<br>` : ""}
-        ${signature.tagline}<br>
+        <strong>${safeName}</strong><br>
+        ${safeRole ? `${safeRole}<br>` : ""}
+        ${safeTagline}<br>
         Rooted in Mindfulness · rootedinmindfulness.org
       </div>
     `;
@@ -124,8 +160,13 @@ export async function POST(
 
     // Download and attach each file from Vercel Blob
     for (const att of attachments) {
+      // SSRF guard: only fetch from known Vercel Blob domain
+      if (!isSafeBlobUrl(att.url)) continue;
       const fileRes = await fetch(att.url);
       if (!fileRes.ok) continue;
+      // Size guard: reject oversized files before buffering
+      const contentLength = fileRes.headers.get("content-length");
+      if (contentLength && parseInt(contentLength, 10) > MAX_ATTACHMENT_BYTES) continue;
       const buf = Buffer.from(await fileRes.arrayBuffer());
       parts.push(
         `--${boundary}`,

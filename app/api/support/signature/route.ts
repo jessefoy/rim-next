@@ -51,6 +51,13 @@ export async function PUT(req: NextRequest) {
     );
   }
 
+  if (name.length > 100 || (role && role.length > 100) || tagline.length > 100) {
+    return NextResponse.json(
+      { error: "Name, role, and tagline must each be 100 characters or fewer" },
+      { status: 400 }
+    );
+  }
+
   const signature = await db.supportSignature.upsert({
     where: { userId: session.user.id },
     create: {

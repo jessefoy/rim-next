@@ -212,6 +212,12 @@ export async function PATCH(
   const body = await req.json();
   const { status, assignedToId, deletedAt } = body;
 
+  // Validate status against enum
+  const VALID_STATUSES = ["OPEN", "CLAIMED", "WAITING", "RESOLVED"];
+  if (status && !VALID_STATUSES.includes(status)) {
+    return NextResponse.json({ error: "Invalid status value" }, { status: 400 });
+  }
+
   const data: Record<string, unknown> = {};
   if (status) data.status = status;
   if (assignedToId !== undefined) data.assignedToId = assignedToId || null;
@@ -262,12 +268,17 @@ export async function DELETE(
 
   const thread = await db.supportThread.findUnique({
     where: { id },
-    select: { id: true },
+    select: { id: true, subject: true },
   });
   if (!thread) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   // Hard delete — cascades to messages, notes, attachments
   await db.supportThread.delete({ where: { id } });
+
+  // Audit trail: log to Vercel logs for compliance
+  console.log(
+    `[SUPPORT AUDIT] Hard delete — admin: ${session.user.id} | thread: ${id} | subject: "${thread.subject}" | at: ${new Date().toISOString()}`
+  );
 
   return NextResponse.json({ ok: true });
 }

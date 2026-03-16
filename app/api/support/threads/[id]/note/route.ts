@@ -35,10 +35,11 @@ export async function POST(
   // Verify thread exists + get assignee info
   const thread = await db.supportThread.findUnique({
     where: { id },
-    select: { id: true, subject: true, assignedToId: true },
+    select: { id: true, subject: true, assignedToId: true, deletedAt: true },
   });
 
   if (!thread) return NextResponse.json({ error: "Thread not found" }, { status: 404 });
+  if (thread.deletedAt) return NextResponse.json({ error: "Thread not found" }, { status: 404 });
 
   const note = await db.supportNote.create({
     data: {
