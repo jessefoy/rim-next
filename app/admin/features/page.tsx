@@ -1241,8 +1241,15 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Support Notifications",
         locations: ["File: lib/supportNotify.ts"],
-        what: "In-app Alert records + optional email notifications via Resend. Three alert types: SUPPORT_ASSIGNED, SUPPORT_NEW_REPLY, SUPPORT_NEW_NOTE. 5-minute deduplication. Fire-and-forget pattern.",
+        what: "In-app Alert records + optional email notifications via Resend. Three alert types: SUPPORT_ASSIGNED, SUPPORT_NEW_REPLY, SUPPORT_NEW_NOTE. 5-minute deduplication. Fire-and-forget pattern. Notification emails use NEXTAUTH_URL env var (not hardcoded domain).",
         relatedTo: ["Thread Management", "Internal Notes", "Reply & Compose"],
+      },
+      {
+        name: "Security Hardening (session 57)",
+        locations: ["File: lib/supportSync.ts", "API: /api/support/threads/[id]/reply", "API: /api/support/threads/[id]/note", "API: /api/support/threads/[id]", "API: /api/support/sync", "API: /api/support/signature", "API: /api/support/attachment/[messageId]/[attachmentId]"],
+        what: "12 security fixes applied after independent audit: (1) Soft-delete bypass fix — sync skips deleted threads entirely, no resurrection. (2) Reply/note on deleted threads return 404. (3) SSRF guard on attachment fetch — only Vercel Blob domain allowed (isSafeBlobUrl()). (4) Attachment proxy ownership check — messageId verified in DB before proxying. (5) 20 MB cap on attachment buffering before arrayBuffer(). (6) 30s rate limit on manual sync per user (AppSetting). (7) Status PATCH enum validation — unknown values return 400. (8) Signature field HTML escaping on outbound emails. (9) 100-char max on signature name/role/tagline. (10) Audit log on hard delete (Vercel logs). (11) NEXTAUTH_URL in notification emails. (12) Dedup comment in supportNotify.ts.",
+        relatedTo: ["Gmail Sync Engine", "Reply & Compose", "Thread Management", "Support Settings", "Support Notifications"],
+        note: "All 12 fixes committed in 43676d3 (2026-03-16).",
       },
     ],
   },
