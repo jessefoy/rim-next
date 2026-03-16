@@ -54,9 +54,10 @@ interface Props {
   existingResourceNote: string | null;
   alreadySubmitted: boolean;
   assignedHost: AssignedHost | null;
-  backPath: string;
+  backPath?: string;
   apiPath: string;
   isCoHost?: boolean;  // Co-host sees reflection-only form
+  onSuccess?: () => void;
 }
 
 interface DraftState {
@@ -78,9 +79,10 @@ export default function PostSessionClient({
   existingResourceNote,
   alreadySubmitted,
   assignedHost,
-  backPath,
+  backPath = "",
   apiPath,
   isCoHost = false,
+  onSuccess,
 }: Props) {
   const router = useRouter();
 
@@ -176,6 +178,7 @@ export default function PostSessionClient({
 
       setSubmitted(true);
       clearDraft();
+      onSuccess?.();
     } catch {
       setError("Network error. Please try again.");
     } finally {
@@ -192,7 +195,9 @@ export default function PostSessionClient({
             ? "Your reflection has been added to the team journal."
             : "Your post-session notes have been saved. The right people have been notified."}
         </p>
-        <a href={backPath} className="ps-done__back">← Back to today&rsquo;s sessions</a>
+        {backPath && (
+          <a href={backPath} className="ps-done__back">← Back to today&rsquo;s sessions</a>
+        )}
       </div>
     );
   }
@@ -242,7 +247,7 @@ export default function PostSessionClient({
           <button type="submit" className="ps-submit" disabled={submitting}>
             {submitting ? "Saving…" : "Submit My Reflection"}
           </button>
-          <a href={backPath} className="ps-cancel">Back</a>
+          {backPath && <a href={backPath} className="ps-cancel">Back</a>}
         </div>
       </form>
     );
@@ -386,7 +391,7 @@ export default function PostSessionClient({
         <button type="submit" className="ps-submit" disabled={submitting}>
           {submitting ? "Saving…" : "Submit Report"}
         </button>
-        <a href={backPath} className="ps-cancel">Back</a>
+        {backPath && <a href={backPath} className="ps-cancel">Back</a>}
       </div>
     </form>
   );

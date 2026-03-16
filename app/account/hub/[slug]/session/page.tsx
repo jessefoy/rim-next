@@ -97,6 +97,7 @@ interface PgProgram {
   recurrenceDays: string[];
   recurrenceCount: number | null;
   zoomLink: string | null;
+  meetHostAccount: string | null;
   registrationEnabled: boolean;
 }
 
@@ -207,6 +208,7 @@ export default async function SessionPage({
       recurrenceDays: true,
       recurrenceCount: true,
       zoomLink: true,
+      meetHostAccount: true,
       registrationEnabled: true,
     },
     orderBy: { sortOrder: "asc" },
@@ -357,7 +359,9 @@ export default async function SessionPage({
       endTimeCT:   end   ? fmtTimeCT(end)   : null,
       startDatetimeISO: start ? start.toISOString() : null,
       endDatetimeISO:   end   ? end.toISOString()   : null,
+      sessionDateISO: startOfDay.toISOString(),
       zoomLink: p.zoomLink ?? null,
+      meetHostAccount: p.meetHostAccount ?? null,
       isRegistered: !!p.registrationEnabled,
       sessionEnded,
       sessionEndedAt,
@@ -386,7 +390,9 @@ export default async function SessionPage({
   });
 
   const isManager = roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
+  const isCoordinator = roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
   const canEndSession = roles.some((r) => ["HOST", "HOST_MANAGER", "ADMIN"].includes(r));
+  const programsWithReportsToday = todayReports.map((r) => r.programSlug);
 
   // For State 1: find the next scheduled session
   const nextSession = todayPrograms.length === 0
@@ -401,6 +407,8 @@ export default async function SessionPage({
         canEndSession={canEndSession}
         hubSlug={slug}
         nextSession={nextSession}
+        isCoordinator={isCoordinator}
+        programsWithReportsToday={programsWithReportsToday}
       />
       <div className="sv-history-nav">
         <a

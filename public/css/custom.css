@@ -14843,3 +14843,52 @@ a.vol-table__name:hover { color: var(--rim-mid); }
     border-radius: 0;
   }
 }
+
+/* Coordinator section — sv-coordinator-section */
+.sv-coordinator-section {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid #ddd;
+}
+.sv-coordinator-section__title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rim-text-muted);
+  margin: 0 0 12px;
+}
+.sv-missing-reports {
+  margin-bottom: 12px;
+}
+.sv-missing-reports__label {
+  font-size: 14px;
+  color: var(--rim-text-muted);
+  margin: 0 0 6px;
+}
+.sv-missing-reports__item {
+  display: inline-block;
+  font-size: 14px;
+  background: #fff3cd;
+  color: #856404;
+  border-radius: 4px;
+  padding: 2px 8px;
+  margin: 0 4px 4px 0;
+}
+.sv-coordinator-link {
+  font-size: 14px;
+  color: var(--rim-mid);
+  text-decoration: none;
+}
+.sv-coordinator-link:hover { text-decoration: underline; }
+.sv-meet-account {
+  font-size: 13px;
+  color: var(--rim-text-muted);
+  margin: 6px 0 0;
+}
+.sv-meet-account-label {
+  display: block;
+  font-size: 13px;
+  color: var(--rim-text-muted);
+  margin: 4px 0;
+}

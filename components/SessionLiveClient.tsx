@@ -17,6 +17,7 @@
 
 import { useEffect, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
+import PostSessionClient from "@/components/PostSessionClient";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -50,7 +51,9 @@ export interface SessionProgram {
   endTimeCT: string | null;
   startDatetimeISO: string | null;   // actual shifted ISO for this occurrence
   endDatetimeISO: string | null;
+  sessionDateISO: string;            // midnight CT ISO for this occurrence
   zoomLink: string | null;
+  meetHostAccount: string | null;
   isRegistered: boolean;
   attendees: Attendee[];
   notYetJoined: Registrant[];
@@ -71,6 +74,8 @@ interface Props {
   canEndSession: boolean;
   hubSlug: string;
   nextSession: NextSession | null;
+  isCoordinator: boolean;
+  programsWithReportsToday: string[];
 }
 
 // ── State computation ─────────────────────────────────────────────────────────
@@ -186,6 +191,8 @@ export default function SessionLiveClient({
   canEndSession,
   hubSlug,
   nextSession,
+  isCoordinator,
+  programsWithReportsToday,
 }: Props) {
   const router = useRouter();
 
@@ -220,8 +227,10 @@ export default function SessionLiveClient({
     setConfirmEndSlug(null);
     try {
       await fetch(`/api/attendance/session/${prog.slug}/end`, { method: "POST" });
-      router.push(prog.postSessionPath);
+      router.refresh();
     } catch {
+      // Silently ignore — state will transition naturally when session time passes
+    } finally {
       setEndingSession(null);
     }
   }, [endingSession, router]);
@@ -281,6 +290,9 @@ export default function SessionLiveClient({
               {prog.zoomLink && (
                 <div className="sv-meet-secondary">
                   <span className="sv-meet-label">Google Meet room</span>
+                  {prog.meetHostAccount && (
+                    <span className="sv-meet-account-label">Room account: {prog.meetHostAccount}</span>
+                  )}
                   <a href={prog.zoomLink} className="sv-meet-link" target="_blank" rel="noopener noreferrer">
                     {prog.zoomLink}
                   </a>
@@ -321,6 +333,9 @@ export default function SessionLiveClient({
                 >
                   Join Google Meet →
                 </a>
+              )}
+              {prog.meetHostAccount && (
+                <p className="sv-meet-account">Room: {prog.meetHostAccount}</p>
               )}
 
               <p className="sv-reminder">
@@ -447,11 +462,31 @@ export default function SessionLiveClient({
                 This is part of the role — it only takes a few minutes and it helps the whole team.
               </p>
               {isReporter ? (
-                <a href={prog.postSessionPath} className="sv-post-primary-btn">
-                  {prog.currentUserIsCoHost && !prog.currentUserIsAssignedHost
-                    ? "Write your reflection →"
-                    : "Write your report →"}
-                </a>
+                <PostSessionClient
+                  programSlug={prog.slug}
+                  sessionDate={prog.sessionDateISO}
+                  sessionDateDisplay={todayCT}
+                  flaggedAttendees={prog.attendees
+                    .filter((a) => a.flaggedByHost)
+                    .map((a) => ({ attendanceId: a.recordId, displayName: a.displayName, note: null, action: "NONE" }))}
+                  allAttendees={prog.attendees.map((a) => ({
+                    attendanceId: a.recordId,
+                    displayName: a.displayName,
+                    flaggedByHost: a.flaggedByHost,
+                  }))}
+                  existingReflection={null}
+                  existingResourceUrl={null}
+                  existingResourceNote={null}
+                  alreadySubmitted={false}
+                  assignedHost={prog.assignedHost}
+                  apiPath={
+                    prog.currentUserIsCoHost && !prog.currentUserIsAssignedHost
+                      ? `/api/attendance/session/${prog.slug}/cohost-report`
+                      : `/api/attendance/session/${prog.slug}/post`
+                  }
+                  isCoHost={prog.currentUserIsCoHost && !prog.currentUserIsAssignedHost}
+                  onSuccess={() => router.refresh()}
+                />
               ) : (
                 <p className="sv-state-quiet">
                   {prog.name} has ended.
@@ -479,6 +514,25 @@ export default function SessionLiveClient({
           </div>
         );
       })}
+
+      {isCoordinator && programs.length > 0 && (
+        <div className="sv-coordinator-section">
+          <h3 className="sv-coordinator-section__title">Coordinator</h3>
+          {programs.filter(p => !programsWithReportsToday.includes(p.slug)).length > 0 && (
+            <div className="sv-missing-reports">
+              <p className="sv-missing-reports__label">No report filed yet:</p>
+              {programs
+                .filter(p => !programsWithReportsToday.includes(p.slug))
+                .map(p => (
+                  <span key={p.slug} className="sv-missing-reports__item">{p.name}</span>
+                ))}
+            </div>
+          )}
+          <a href={`/account/hub/${hubSlug}/session/history/team`} className="sv-coordinator-link">
+            View team journal →
+          </a>
+        </div>
+      )}
     </div>
   );
 }
