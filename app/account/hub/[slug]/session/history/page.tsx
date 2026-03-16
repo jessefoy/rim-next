@@ -72,8 +72,7 @@ interface AttendanceRow {
 // ── Data fetching ─────────────────────────────────────────────────────────────
 
 async function fetchSessionList(todayCT: string): Promise<SessionEntry[]> {
-  // ── Source 1: Sessions with attendance records ─────────────────────────────
-  // Group SessionAttendance by (programSlug, CT date), past sessions only.
+  // ── Source 1: Sessions with attendance records (including today) ───────────
   type AttSess = { programSlug: string; ct_date: string; attendance_count: number };
   const attendanceSessions = await db.$queryRaw<AttSess[]>`
     SELECT
@@ -81,15 +80,15 @@ async function fetchSessionList(todayCT: string): Promise<SessionEntry[]> {
       DATE("joinedAt" AT TIME ZONE 'America/Chicago')::text AS ct_date,
       COUNT(*)::int                                          AS attendance_count
     FROM session_attendance
-    WHERE DATE("joinedAt" AT TIME ZONE 'America/Chicago') < ${todayCT}::date
+    WHERE DATE("joinedAt" AT TIME ZONE 'America/Chicago') <= ${todayCT}::date
     GROUP BY "programSlug", ct_date
     ORDER BY ct_date DESC
   `;
 
-  // ── Source 2: All past SessionReports ─────────────────────────────────────
+  // ── Source 2: SessionReports (including today) ────────────────────────────
   const todayMidnight = ctMidnight(todayCT);
   const reports = await db.sessionReport.findMany({
-    where: { sessionDate: { lt: todayMidnight } },
+    where: { sessionDate: { lte: todayMidnight } },
     include: { host: { select: { firstName: true, lastName: true, preferredName: true } } },
     orderBy: { sessionDate: "desc" },
   });
