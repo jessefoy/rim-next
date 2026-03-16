@@ -69,6 +69,7 @@ model User {
 
   // Extended profile fields
   preferredName   String?
+  title           String?     // Display title: "Guiding Teacher", "Program Registrar", etc.
   addressLine1    String?
   addressCity     String?
   addressState    String?

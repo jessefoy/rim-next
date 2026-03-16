@@ -12,6 +12,7 @@ interface MemberUser {
   firstName: string | null;
   lastName: string | null;
   preferredName: string | null;
+  title: string | null;
 }
 
 interface HubMemberRow {
@@ -58,7 +59,9 @@ export default function HubMembersClient({ members }: Props) {
             {displayName(m.user)}
             {m.isCoordinator && <span className="coord-badge">Coordinator</span>}
           </div>
-          {m.position && <div className="mem-item__role">{m.position}</div>}
+          {(m.user.title || m.position) && (
+            <div className="mem-item__role">{m.user.title || m.position}</div>
+          )}
         </div>
         <div className="mem-item__join">Joined {fmtJoin(m.createdAt)}</div>
       </div>

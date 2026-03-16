@@ -24,9 +24,10 @@ export default async function MyProfilePage({
     const firstName = (formData.get("firstName") as string)?.trim() ?? "";
     const lastName = (formData.get("lastName") as string)?.trim() ?? "";
     const phone = (formData.get("phone") as string)?.trim() ?? "";
+    const title = (formData.get("title") as string)?.trim() || null;
     await db.user.update({
       where: { id: sess.user.id },
-      data: { firstName, lastName, phone },
+      data: { firstName, lastName, phone, title },
     });
     redirect("/account/dashboard-my-profile?saved=true");
   }
@@ -77,6 +78,18 @@ export default async function MyProfilePage({
                 id="phone"
                 maxLength={256}
                 defaultValue={user?.phone ?? ""}
+              />
+            </div>
+            <div className="mp-field">
+              <label htmlFor="title" className="mp-label">Title</label>
+              <input
+                className="mp-input"
+                name="title"
+                type="text"
+                id="title"
+                maxLength={256}
+                placeholder="e.g. Guiding Teacher, Program Registrar"
+                defaultValue={user?.title ?? ""}
               />
             </div>
             <input type="submit" className="mp-submit" value="Save Profile" />

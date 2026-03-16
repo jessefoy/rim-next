@@ -28,6 +28,7 @@ interface Member {
   firstName: string | null;
   lastName: string | null;
   preferredName: string | null;
+  title: string | null;
   phone: string | null;
   addressLine1: string | null;
   addressCity: string | null;
@@ -112,6 +113,7 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
   const [firstName, setFirstName] = useState(member.firstName ?? "");
   const [lastName, setLastName] = useState(member.lastName ?? "");
   const [preferredName, setPreferredName] = useState(member.preferredName ?? "");
+  const [title, setTitle] = useState(member.title ?? "");
 
   // Contact fields
   const [phone, setPhone] = useState(member.phone ?? "");
@@ -213,6 +215,7 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
     try {
       const body: Record<string, unknown> = {
         firstName, lastName, preferredName: preferredName || null,
+        title: title || null,
         phone: phone || null,
         addressLine1: addressLine1 || null,
         addressCity: addressCity || null,
@@ -336,6 +339,14 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
               type="text" className="adm-form__input" value={preferredName}
               placeholder="Leave blank if same as first name"
               onChange={(e) => { setPreferredName(e.target.value); markDirty(); }}
+            />
+          </div>
+          <div className="adm-form__field">
+            <label className="adm-form__label">Title</label>
+            <input
+              type="text" className="adm-form__input" value={title}
+              placeholder="e.g. Guiding Teacher, Program Registrar"
+              onChange={(e) => { setTitle(e.target.value); markDirty(); }}
             />
           </div>
           <div className="adm-form__field">

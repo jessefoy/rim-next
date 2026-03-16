@@ -23,7 +23,7 @@ export async function PATCH(
   const {
     action,
     firstName, lastName, phone, email, roles,
-    preferredName, addressLine1, addressCity, addressState, addressZip,
+    preferredName, title, addressLine1, addressCity, addressState, addressZip,
     memberStatus, firstVisitDate, adminNotes, tags,
   } = body;
 
@@ -125,6 +125,7 @@ export async function PATCH(
     ...(roles !== undefined && { roles }),
     // Extended profile
     ...(preferredName !== undefined && { preferredName }),
+    ...(title !== undefined && { title }),
     ...(addressLine1 !== undefined && { addressLine1 }),
     ...(addressCity !== undefined && { addressCity }),
     ...(addressState !== undefined && { addressState }),

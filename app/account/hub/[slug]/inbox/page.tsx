@@ -67,18 +67,22 @@ export default async function SupportInboxPage({
           firstName: true,
           lastName: true,
           preferredName: true,
+          title: true,
         },
       },
     },
   });
 
-  const teamMembers = supportMembers.map((m) => ({
-    id: m.user.id,
-    name:
+  const teamMembers = supportMembers.map((m) => {
+    const name =
       m.user.preferredName ||
       [m.user.firstName, m.user.lastName].filter(Boolean).join(" ") ||
-      "Unknown",
-  }));
+      "Unknown";
+    return {
+      id: m.user.id,
+      name: m.user.title ? `${name} — ${m.user.title}` : name,
+    };
+  });
 
   // Always include current user if admin (may not be a hub member)
   const isAdmin = roles.includes("ADMIN");

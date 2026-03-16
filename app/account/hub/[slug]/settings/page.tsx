@@ -46,10 +46,10 @@ export default async function SupportSettingsPage({
     where: { userId: session.user.id },
   });
 
-  // Get current user's notification preference
+  // Get current user's notification preference + title for signature pre-fill
   const currentUser = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { supportEmailNotifications: true },
+    select: { supportEmailNotifications: true, title: true },
   });
 
   // For ADMIN: get default assignee setting + support team members
@@ -111,7 +111,7 @@ export default async function SupportSettingsPage({
       credentialExpires={credential?.expiresAt.toISOString() ?? null}
       initialSignature={{
         name: signature?.name ?? "",
-        role: signature?.role ?? "",
+        role: signature?.role ?? (signature ? "" : currentUser?.title ?? ""),
         tagline: signature?.tagline ?? "",
       }}
       emailNotifications={currentUser?.supportEmailNotifications ?? true}

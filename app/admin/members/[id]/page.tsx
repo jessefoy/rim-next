@@ -87,6 +87,7 @@ export default async function AdminMemberDetailPage({
     firstName: user.firstName,
     lastName: user.lastName,
     preferredName: user.preferredName,
+    title: user.title,
     phone: user.phone,
     addressLine1: user.addressLine1,
     addressCity: user.addressCity,

@@ -30,7 +30,7 @@ export default async function HubMembersPage({
 
   const members = await db.hubMember.findMany({
     where:   { hubId: hub.id },
-    include: { user: { select: { firstName: true, lastName: true, preferredName: true } } },
+    include: { user: { select: { firstName: true, lastName: true, preferredName: true, title: true } } },
     orderBy: [{ isCoordinator: "desc" }, { joinedAt: "asc" }],
   });
 
@@ -44,6 +44,7 @@ export default async function HubMembersPage({
       firstName:     m.user.firstName,
       lastName:      m.user.lastName,
       preferredName: m.user.preferredName,
+      title:         m.user.title,
     },
   }));
 
