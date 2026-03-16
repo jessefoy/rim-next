@@ -17,12 +17,15 @@ export async function POST(request: NextRequest) {
         // Auth check here — only runs for token generation requests from the browser,
         // not for the completion callback from Vercel's servers
         const session = await auth();
-        if (!session?.user?.roles?.some((r) => ["ADMIN", "TEACHER"].includes(r))) {
+        if (!session?.user?.roles?.some((r) => ["ADMIN", "TEACHER", "SUPPORT"].includes(r))) {
           throw new Error("Unauthorized");
         }
+        // Support uploads: any content type, 25 MB limit
+        // Teacher/Admin uploads: media types, 500 MB limit
+        const isSupport = session.user.roles?.includes("SUPPORT") && !session.user.roles?.some((r) => ["ADMIN", "TEACHER"].includes(r));
         return {
-          allowedContentTypes: ["image/*", "audio/*", "application/pdf"],
-          maximumSizeInBytes: 500 * 1024 * 1024, // 500 MB
+          allowedContentTypes: isSupport ? undefined : ["image/*", "audio/*", "application/pdf"],
+          maximumSizeInBytes: isSupport ? 25 * 1024 * 1024 : 500 * 1024 * 1024,
         };
       },
       onUploadCompleted: async () => {

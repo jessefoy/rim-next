@@ -4,6 +4,7 @@
  * Send a reply via Gmail and record it as a SupportMessage.
  * From: support@rootedinmindfulness.org (the connected OAuth account).
  * Signature is appended from SupportSignature if the user has one.
+ * Supports file attachments via Vercel Blob URLs.
  */
 
 import { auth } from "@/auth";
@@ -13,6 +14,13 @@ import { getGmailClient } from "@/lib/gmail";
 
 function hasSupport(roles: string[]) {
   return roles.some((r) => ["SUPPORT", "ADMIN"].includes(r));
+}
+
+interface AttachmentInput {
+  url: string;
+  filename: string;
+  mimeType: string;
+  size: number;
 }
 
 export async function POST(
@@ -26,7 +34,11 @@ export async function POST(
   }
 
   const { id } = await params;
-  const { bodyHtml, bodyText } = await req.json();
+  const { bodyHtml, bodyText, attachments } = await req.json() as {
+    bodyHtml?: string;
+    bodyText?: string;
+    attachments?: AttachmentInput[];
+  };
 
   if (!bodyHtml && !bodyText) {
     return NextResponse.json({ error: "Body is required" }, { status: 400 });
@@ -77,28 +89,76 @@ export async function POST(
     return NextResponse.json({ error: "Gmail not connected" }, { status: 500 });
   }
 
-  // Build email with threading headers
+  // Build email
   const lastMessageId = thread.messages[0]?.gmailMessageId;
   const subject = thread.subject.startsWith("Re:") ? thread.subject : `Re: ${thread.subject}`;
+  const hasAttachments = attachments && attachments.length > 0;
+  const boundary = `----RIM_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 
-  const emailLines = [
-    `From: ${credential.email}`,
-    `To: ${thread.senderEmail}`,
-    `Subject: ${subject}`,
-    `Content-Type: text/html; charset=utf-8`,
-  ];
+  let rawEmail: string;
 
-  // Thread the reply using In-Reply-To and References
-  if (lastMessageId) {
-    // Gmail message IDs need to be wrapped in angle brackets for email headers
-    const msgRef = `<${lastMessageId}@mail.gmail.com>`;
-    emailLines.push(`In-Reply-To: ${msgRef}`);
-    emailLines.push(`References: ${msgRef}`);
+  if (hasAttachments) {
+    // Multipart MIME with attachments
+    const headerLines = [
+      `From: ${credential.email}`,
+      `To: ${thread.senderEmail}`,
+      `Subject: ${subject}`,
+      `MIME-Version: 1.0`,
+      `Content-Type: multipart/mixed; boundary="${boundary}"`,
+    ];
+
+    if (lastMessageId) {
+      const msgRef = `<${lastMessageId}@mail.gmail.com>`;
+      headerLines.push(`In-Reply-To: ${msgRef}`);
+      headerLines.push(`References: ${msgRef}`);
+    }
+
+    // Body part
+    const parts = [
+      `--${boundary}`,
+      `Content-Type: text/html; charset=utf-8`,
+      `Content-Transfer-Encoding: base64`,
+      ``,
+      Buffer.from(fullHtml).toString("base64"),
+    ];
+
+    // Download and attach each file from Vercel Blob
+    for (const att of attachments) {
+      const fileRes = await fetch(att.url);
+      if (!fileRes.ok) continue;
+      const buf = Buffer.from(await fileRes.arrayBuffer());
+      parts.push(
+        `--${boundary}`,
+        `Content-Type: ${att.mimeType}; name="${att.filename}"`,
+        `Content-Disposition: attachment; filename="${att.filename}"`,
+        `Content-Transfer-Encoding: base64`,
+        ``,
+        buf.toString("base64"),
+      );
+    }
+
+    parts.push(`--${boundary}--`);
+
+    rawEmail = headerLines.join("\r\n") + "\r\n\r\n" + parts.join("\r\n");
+  } else {
+    // Simple email without attachments
+    const emailLines = [
+      `From: ${credential.email}`,
+      `To: ${thread.senderEmail}`,
+      `Subject: ${subject}`,
+      `Content-Type: text/html; charset=utf-8`,
+    ];
+
+    if (lastMessageId) {
+      const msgRef = `<${lastMessageId}@mail.gmail.com>`;
+      emailLines.push(`In-Reply-To: ${msgRef}`);
+      emailLines.push(`References: ${msgRef}`);
+    }
+
+    emailLines.push("", fullHtml);
+    rawEmail = emailLines.join("\r\n");
   }
 
-  emailLines.push("", fullHtml);
-
-  const rawEmail = emailLines.join("\r\n");
   const encodedEmail = Buffer.from(rawEmail).toString("base64url");
 
   // Send via Gmail API
@@ -131,6 +191,19 @@ export async function POST(
       sentById: session.user.id,
     },
   });
+
+  // Store outbound file attachments as SupportAttachment records
+  if (hasAttachments) {
+    await db.supportAttachment.createMany({
+      data: attachments.map((a) => ({
+        messageId: message.id,
+        gmailAttachmentId: `blob:${a.url}`, // Track Blob URL as reference
+        filename: a.filename,
+        mimeType: a.mimeType,
+        size: a.size,
+      })),
+    });
+  }
 
   // Update thread: lastMessageAt + auto-set WAITING if currently CLAIMED
   const updateData: Record<string, unknown> = { lastMessageAt: now };

@@ -10,8 +10,18 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { upload } from "@vercel/blob/client";
 import FormattedEditor from "./FormattedEditor";
 import { renderFormattedText } from "@/lib/renderRichContent";
+
+interface StagedFile {
+  file: File;
+  url?: string; // Blob URL after upload
+  uploading?: boolean;
+  error?: string;
+}
+
+const MAX_TOTAL_SIZE = 25 * 1024 * 1024; // 25 MB
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -182,6 +192,9 @@ export default function SupportInboxClient({
   const [replyOpen, setReplyOpen] = useState(false);
   const [replyDraft, setReplyDraft] = useState<any>(null);
   const [replySending, setReplySending] = useState(false);
+  const [replyFiles, setReplyFiles] = useState<StagedFile[]>([]);
+  const [replyFileError, setReplyFileError] = useState<string | null>(null);
+  const replyFileRef = useRef<HTMLInputElement>(null);
 
   // Note panel (appears above timeline, separate from reply)
   const [noteOpen, setNoteOpen] = useState(false);
@@ -230,6 +243,8 @@ export default function SupportInboxClient({
     setSelectedId(id);
     setReplyOpen(false);
     setReplyDraft(null);
+    setReplyFiles([]);
+    setReplyFileError(null);
     setNoteOpen(false);
     setNoteDraft(null);
   };
@@ -277,20 +292,87 @@ export default function SupportInboxClient({
     }
   };
 
+  // ─── Reply file attachments ─────────────────────────────────────────
+
+  const handleAddFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setReplyFileError(null);
+
+    const newFiles = Array.from(files);
+    const currentSize = replyFiles.reduce((s, f) => s + f.file.size, 0);
+    const addedSize = newFiles.reduce((s, f) => s + f.size, 0);
+
+    if (currentSize + addedSize > MAX_TOTAL_SIZE) {
+      setReplyFileError(`Total attachments exceed 25 MB limit.`);
+      return;
+    }
+
+    // Add files as staged (not yet uploaded)
+    const staged: StagedFile[] = newFiles.map((f) => ({ file: f, uploading: true }));
+    setReplyFiles((prev) => [...prev, ...staged]);
+
+    // Upload each file via Vercel Blob
+    for (let i = 0; i < staged.length; i++) {
+      try {
+        const blob = await upload(staged[i].file.name, staged[i].file, {
+          access: "public",
+          handleUploadUrl: "/api/upload",
+        });
+        setReplyFiles((prev) =>
+          prev.map((f) =>
+            f.file === staged[i].file ? { ...f, url: blob.url, uploading: false } : f
+          )
+        );
+      } catch {
+        setReplyFiles((prev) =>
+          prev.map((f) =>
+            f.file === staged[i].file ? { ...f, error: "Upload failed", uploading: false } : f
+          )
+        );
+      }
+    }
+
+    // Reset input so the same file can be re-selected
+    if (replyFileRef.current) replyFileRef.current.value = "";
+  };
+
+  const removeReplyFile = (idx: number) => {
+    setReplyFiles((prev) => prev.filter((_, i) => i !== idx));
+    setReplyFileError(null);
+  };
+
   // ─── Send reply (bottom composer) ────────────────────────────────────
 
   const handleSendReply = async () => {
     if (!selectedId || !replyDraft) return;
+    // Check all files uploaded
+    if (replyFiles.some((f) => f.uploading)) return;
+    if (replyFiles.some((f) => f.error)) {
+      setReplyFileError("Remove failed uploads before sending.");
+      return;
+    }
+
     setReplySending(true);
     const html = renderFormattedText(replyDraft);
+    const attachments = replyFiles
+      .filter((f) => f.url)
+      .map((f) => ({
+        url: f.url!,
+        filename: f.file.name,
+        mimeType: f.file.type || "application/octet-stream",
+        size: f.file.size,
+      }));
+
     const res = await fetch(`/api/support/threads/${selectedId}/reply`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ bodyHtml: html }),
+      body: JSON.stringify({ bodyHtml: html, attachments }),
     });
     if (res.ok) {
       setReplyDraft(null);
       setReplyOpen(false);
+      setReplyFiles([]);
+      setReplyFileError(null);
       fetchDetail(selectedId);
       fetchThreads();
     }
@@ -298,9 +380,11 @@ export default function SupportInboxClient({
   };
 
   const handleCancelReply = () => {
-    if (replyDraft && !window.confirm("Discard reply?")) return;
+    if ((replyDraft || replyFiles.length > 0) && !window.confirm("Discard reply?")) return;
     setReplyDraft(null);
     setReplyOpen(false);
+    setReplyFiles([]);
+    setReplyFileError(null);
   };
 
   // ─── Save note (separate panel) ────────────────────────────────────
@@ -593,20 +677,61 @@ export default function SupportInboxClient({
                         minHeight={100}
                       />
                     </div>
+                    {/* Staged attachments */}
+                    {replyFiles.length > 0 && (
+                      <div className="si-staged-files">
+                        {replyFiles.map((sf, idx) => (
+                          <div key={idx} className={`si-staged-file${sf.error ? " si-staged-file--error" : ""}`}>
+                            <span className="si-staged-file__icon">📎</span>
+                            <span className="si-staged-file__name">{sf.file.name}</span>
+                            <span className="si-staged-file__size">{fmtFileSize(sf.file.size)}</span>
+                            {sf.uploading && <span className="si-staged-file__status">Uploading…</span>}
+                            {sf.error && <span className="si-staged-file__status si-staged-file__status--error">{sf.error}</span>}
+                            <button
+                              className="si-staged-file__remove"
+                              onClick={() => removeReplyFile(idx)}
+                              title="Remove"
+                            >×</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {replyFileError && (
+                      <div className="si-composer__error">{replyFileError}</div>
+                    )}
                     <div className="si-composer__footer">
-                      <button
-                        className="si-btn"
-                        onClick={handleCancelReply}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        className="si-btn si-btn--send"
-                        onClick={handleSendReply}
-                        disabled={replySending || !replyDraft}
-                      >
-                        {replySending ? "Sending…" : "Send Reply"}
-                      </button>
+                      <div className="si-composer__actions-left">
+                        <input
+                          ref={replyFileRef}
+                          type="file"
+                          multiple
+                          style={{ display: "none" }}
+                          onChange={(e) => handleAddFiles(e.target.files)}
+                        />
+                        <button
+                          className="si-btn si-btn--attach"
+                          onClick={() => replyFileRef.current?.click()}
+                          title="Attach file"
+                          type="button"
+                        >
+                          📎
+                        </button>
+                      </div>
+                      <div className="si-composer__actions-right">
+                        <button
+                          className="si-btn"
+                          onClick={handleCancelReply}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          className="si-btn si-btn--send"
+                          onClick={handleSendReply}
+                          disabled={replySending || !replyDraft || replyFiles.some((f) => f.uploading)}
+                        >
+                          {replySending ? "Sending…" : "Send Reply"}
+                        </button>
+                      </div>
                     </div>
                   </>
                 )}
