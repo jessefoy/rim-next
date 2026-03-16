@@ -13238,26 +13238,44 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   background: #fff;
 }
 
-/* ── Left: thread list (300px) ── */
+/* ── Left: thread list (fluid 320–400px) ── */
 .si-list {
-  width: 300px;
-  min-width: 300px;
+  width: clamp(320px, 25vw, 400px);
+  min-width: 320px;
   border-right: 1px solid var(--rim-rule);
   display: flex;
   flex-direction: column;
   background: var(--rim-bg);
 }
 
+/* New Email button — full-width above search */
+.si-compose-row {
+  padding: 10px 12px 0;
+}
+.si-compose-row .si-btn--compose {
+  width: 100%;
+  padding: 7px 12px;
+  font-size: 13px;
+}
+
 .si-toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--rim-rule);
   gap: 6px;
 }
 
-.si-filters { display: flex; gap: 3px; }
+.si-filters {
+  display: flex;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.si-filters::-webkit-scrollbar { display: none; }
 
 .si-pill {
   font-family: var(--font-sans);
@@ -13408,6 +13426,11 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   flex-direction: column;
   min-width: 0;
   background: #fff;
+}
+
+/* Auto-collapse sidebar when viewport < 1100px */
+@media (max-width: 1100px) {
+  .si-layout:not(.si-layout--sidebar-open) .si-sidebar { display: none; }
 }
 
 .si-main__empty {
@@ -13820,7 +13843,7 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .si-sidebar__reg-status[data-status="WAITLISTED"] { color: var(--color-alert); }
 .si-sidebar__reg-status[data-status="PENDING"] { color: var(--rim-mid); }
 
-/* ── Mobile ── */
+/* ── Tablet: single-column list↔detail toggle ── */
 @media (max-width: 768px) {
   .si-layout { flex-direction: column; height: auto; min-height: 100vh; }
   .si-list {
@@ -13828,19 +13851,45 @@ a.vol-table__name:hover { color: var(--rim-mid); }
     min-width: 0;
     border-right: none;
     border-bottom: 1px solid var(--rim-rule);
-    max-height: 40vh;
   }
-  .si-sidebar { display: none; } /* sidebar hidden on mobile */
-  .si-main { min-height: 60vh; }
+  .si-sidebar { display: none; }
   .si-subject-bar { padding: 10px 14px; }
   .si-timeline { padding: 12px 14px; }
+
+  /* Mobile back button */
+  .si-back-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--rim-mid);
+    background: transparent;
+    border: none;
+    padding: 10px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--rim-rule);
+  }
+  .si-back-btn:hover { background: var(--rim-bg-accent); }
+
+  /* When a thread is selected, hide list and show detail */
+  .si-layout--detail-open .si-list { display: none; }
+  .si-layout--detail-open .si-main { min-height: 100vh; }
+
+  /* When no thread is selected, hide the main panel */
+  .si-layout:not(.si-layout--detail-open) .si-main { display: none; }
+}
+
+/* Hide back button on desktop */
+@media (min-width: 769px) {
+  .si-back-btn { display: none; }
 }
 
 @media (max-width: 430px) {
-  .si-toolbar { flex-wrap: wrap; }
   .si-search__input { font-size: 16px; }
   .si-select { font-size: 16px; }
   .si-btn { min-height: 44px; }
+  .si-pill { min-height: 36px; display: flex; align-items: center; }
   .si-composer__tab { padding: 10px 14px; }
   .si-settings__input { font-size: 16px; }
 }

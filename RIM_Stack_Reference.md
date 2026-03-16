@@ -192,12 +192,14 @@ data/backlog.json     feature backlog (surfaced at /admin/ideas)
 | `HOST` | Host Community Hub, sub board, conversations |
 | `HOST_MANAGER` | All HOST access + assignment management + unassigned alerts |
 | `TEACHER` | Teacher Hub — course and lesson management |
+| `SUPPORT` | Support Inbox — shared inbox, thread assignment, reply, internal notes |
 | `REGISTRAR` | Registrar Hub (auto-synced, coordinator), registrations, member profiles, Program Editor |
 | `ADMIN` | Everything |
 
 Hub access check: `roles.some(r => ["HOST","HOST_MANAGER","ADMIN"].includes(r))`
 Manager check: `roles.some(r => ["HOST_MANAGER","ADMIN"].includes(r))`
 Teacher check: `roles.some(r => ["TEACHER","ADMIN"].includes(r))`
+Support check: `roles.some(r => ["SUPPORT","ADMIN"].includes(r))`
 Registrar check: `roles.some(r => ["REGISTRAR","ADMIN"].includes(r))`
 
 ---

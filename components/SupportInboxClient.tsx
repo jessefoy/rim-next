@@ -657,6 +657,8 @@ export default function SupportInboxClient({
   const layoutCls = [
     "si-layout",
     !sidebarOpen && "si-layout--sidebar-closed",
+    sidebarOpen && "si-layout--sidebar-open",
+    selectedId && "si-layout--detail-open",
   ]
     .filter(Boolean)
     .join(" ");
@@ -665,6 +667,15 @@ export default function SupportInboxClient({
     <div className={layoutCls}>
       {/* ── Left: thread list ── */}
       <div className="si-list">
+        <div className="si-compose-row">
+          <button
+            className="si-btn si-btn--compose"
+            onClick={() => setComposeOpen(true)}
+          >
+            New Email
+          </button>
+        </div>
+
         <div className="si-toolbar">
           <div className="si-filters">
             {(["active", "mine", "closed", "all", "trash"] as const).map((f) => (
@@ -685,12 +696,6 @@ export default function SupportInboxClient({
               </button>
             ))}
           </div>
-          <button
-            className="si-btn si-btn--compose"
-            onClick={() => setComposeOpen(true)}
-          >
-            New Email
-          </button>
           <button
             className="si-sync-btn"
             onClick={handleSync}
@@ -759,6 +764,16 @@ export default function SupportInboxClient({
 
       {/* ── Center: messages + composer ── */}
       <div className="si-main">
+        {/* Mobile back button */}
+        {selectedId && (
+          <button
+            className="si-back-btn"
+            onClick={() => { setSelectedId(null); setDetail(null); }}
+          >
+            ← Back to threads
+          </button>
+        )}
+
         {!selectedId && (
           <div className="si-main__empty">
             <p>Select a thread to view</p>

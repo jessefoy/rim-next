@@ -64,7 +64,7 @@ interface Member {
 }
 
 const ALL_ROLES = [
-  "HOST", "HOST_MANAGER", "REGISTRAR", "ADMIN", "TEACHER",
+  "HOST", "HOST_MANAGER", "REGISTRAR", "ADMIN", "TEACHER", "SUPPORT",
   "VOLUNTEER_COORDINATOR", "NEWSLETTER", "GREETER", "AV_TEAM",
   "HOUSEKEEPING", "PLANT_CARE", "SANGHA_CARE", "KM_SUPPORT",
   "SILENT_MEDITATION", "BOARD", "TEACHER_COUNCIL",
@@ -76,6 +76,7 @@ const ROLE_DESCRIPTIONS: Record<string, string> = {
   REGISTRAR:             "View and manage registrations, programs, and member profiles",
   ADMIN:                 "Full access — members, registrations, and all volunteer areas",
   TEACHER:               "Teacher Hub access — manages courses and lessons",
+  SUPPORT:               "Support Inbox — shared inbox, thread assignment, reply, internal notes",
   VOLUNTEER_COORDINATOR: "Coordinates volunteer scheduling and onboarding",
   NEWSLETTER:            "Creates and sends the community newsletter",
   GREETER:               "Welcomes newcomers and supports in-person arrivals",
