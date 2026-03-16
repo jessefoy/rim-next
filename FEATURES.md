@@ -2943,12 +2943,53 @@ Three-column split-pane email client:
 - Gmail sync uses `historyId` for incremental sync after initial 90-day fetch. History ID stored in AppSetting (`support.historyId`).
 - Token refresh is automatic: `refreshAccessTokenIfNeeded()` checks if token expires within 5 minutes and refreshes proactively.
 - Member matching: `syncGmailInbox()` looks up sender email in User table; sets `memberId` FK on thread. `rematchUnlinkedThreads()` retries matching for threads where memberId is null.
-- Soft delete: `deletedAt DateTime?` on SupportThread. All list queries filter `deletedAt: null` except trash view. Sync engine intentionally does NOT filter by deletedAt — if a deleted thread gets new Gmail messages, the sync still updates it (user can restore later).
+- Soft delete: `deletedAt DateTime?` on SupportThread. All list queries filter `deletedAt: null` except trash view. **Sync engine skips deleted threads entirely** (session 57 fix) — new Gmail messages on a soft-deleted thread are ignored, preventing resurrection of intentionally deleted conversations.
 - Notifications use fire-and-forget pattern with 5-minute deduplication window per alert type + thread.
 - FormattedEditor `editorRef` pattern: expose Tiptap Editor instance via `React.MutableRefObject<Editor | null>` so parent component can imperatively set content (e.g., when applying a template).
 - Outbound replies include the user's SupportSignature (if configured) appended as plain text below the message body.
 - Vercel Pro plan required for 5-minute cron interval (free plan minimum is 1 hour).
 - `User.title` field (added this session) is displayed in the assign dropdown as "Name — Title" and pre-fills signature role field.
+
+---
+
+## §30 — Support Inbox Security Hardening
+
+**Session 57 (2026-03-16).** An independent security audit of the Support Inbox identified 12 issues across four severity tiers. All fixed in a single commit (`43676d3`).
+
+### What was fixed
+
+**Critical (data integrity / SSRF):**
+- **Soft-delete bypass in sync** — `lib/supportSync.ts` now checks `deletedAt` before processing; deleted threads are skipped entirely (no resurrection, no new messages added)
+- **Reply/note on deleted threads** — `reply/route.ts` and `note/route.ts` return 404 if `thread.deletedAt` is set
+- **SSRF on attachment fetch** — Added `isSafeBlobUrl()` validator in reply and compose routes; any attachment URL that doesn't match `*.public.blob.vercel-storage.com` is silently skipped
+- **Attachment proxy ownership check** — `attachment/[messageId]/[attachmentId]/route.ts` now verifies `messageId` exists in `SupportMessage` before proxying; unknown IDs return 404
+
+**Moderate (resource / input validation):**
+- **20 MB cap on attachment buffering** — both reply and compose check `Content-Length` before calling `.arrayBuffer()`; files over 20 MB skipped
+- **30s rate limit on manual sync** — `sync/route.ts` stores last-sync timestamp per user in AppSetting; returns 429 with seconds-remaining if called within 30 seconds
+- **Status PATCH enum validation** — explicit check against `["OPEN","CLAIMED","WAITING","RESOLVED"]` before Prisma write; returns 400 for unknown values
+- **Signature HTML escaping** — `escapeHtml()` helper added; name/role/tagline escaped before interpolation into outbound email HTML
+
+**Minor (hygiene / auditability):**
+- **Notification domain** — `lib/supportNotify.ts` uses `process.env.NEXTAUTH_URL` instead of hardcoded `https://rim-next.vercel.app`
+- **Audit trail on hard delete** — `console.log` with admin ID, thread ID, subject, and ISO timestamp (appears in Vercel logs)
+- **100-char max on signature fields** — `signature/route.ts` validates name, role, tagline; returns 400 if exceeded
+- **Dedup comment** — added comment in `supportNotify.ts` explaining the 5-minute window as intentional spam-prevention trade-off
+
+### Key files changed
+- `lib/supportSync.ts` — soft-delete bypass fix
+- `lib/supportNotify.ts` — NEXTAUTH_URL, dedup comment
+- `app/api/support/threads/[id]/reply/route.ts` — deleted-thread 404, SSRF guard, size cap, HTML escaping
+- `app/api/support/threads/[id]/note/route.ts` — deleted-thread 404
+- `app/api/support/threads/[id]/route.ts` — status enum validation, hard-delete audit log
+- `app/api/support/compose/route.ts` — SSRF guard, size cap, HTML escaping
+- `app/api/support/sync/route.ts` — 30s rate limit
+- `app/api/support/signature/route.ts` — 100-char max
+- `app/api/support/attachment/[messageId]/[attachmentId]/route.ts` — ownership check
+
+### Items intentionally not fixed
+- Auto-assignment race in reply handler — fire-and-forget is intentional (last writer wins, acceptable trade-off)
+- Weak email regex in compose — low risk; `@` and `/` blocking is sufficient for this internal tool
 
 ---
 
