@@ -178,6 +178,7 @@ export async function PATCH(
       where: {
         assignedToId: id,
         status: { in: ["OPEN", "CLAIMED", "WAITING"] },
+        deletedAt: null,
       },
       data: {
         assignedToId: reassignTo,

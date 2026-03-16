@@ -14365,6 +14365,45 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   color: var(--rim-text-muted);
 }
 
+/* ── Trash pill ── */
+.si-pill--trash { margin-left: auto; }
+
+/* ── Contact history (sidebar) ── */
+.si-contact-history {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.si-contact-history__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  background: none;
+  border: 1px solid var(--rim-rule);
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-sans);
+  transition: background 0.1s;
+}
+.si-contact-history__item:hover { background: var(--rim-bg-accent); }
+.si-contact-history__subject {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rim-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.si-contact-history__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--rim-text-muted);
+}
+
 /* Mobile: full-screen modal */
 @media (max-width: 600px) {
   .si-modal-overlay { padding: 0; }

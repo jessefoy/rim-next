@@ -961,6 +961,7 @@ model SupportThread {
   notes         SupportNote[]
   lastMessageAt DateTime
   lastSyncedAt  DateTime      @default(now())
+  deletedAt     DateTime?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 

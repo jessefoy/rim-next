@@ -93,6 +93,7 @@ export default async function SupportInboxPage({
     <SupportInboxClient
       currentUserId={session.user.id}
       currentUserName={session.user.name || "You"}
+      isAdmin={isAdmin}
       teamMembers={teamMembers}
       connectedEmail={credential.email}
     />

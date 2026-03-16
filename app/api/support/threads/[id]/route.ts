@@ -1,6 +1,7 @@
 /**
- * GET  /api/support/threads/[id] — full thread detail
- * PATCH /api/support/threads/[id] — update status, assignedToId
+ * GET    /api/support/threads/[id] — full thread detail
+ * PATCH  /api/support/threads/[id] — update status, assignedToId, deletedAt
+ * DELETE /api/support/threads/[id] — hard delete (ADMIN only)
  */
 
 import { auth } from "@/auth";
@@ -129,6 +130,32 @@ export async function GET(
     return new Date(aTime).getTime() - new Date(bTime).getTime();
   });
 
+  // Contact history: other threads from same sender
+  const contactWhere: any = {
+    id: { not: id },
+    deletedAt: null,
+  };
+  if (thread.memberId) {
+    contactWhere.OR = [
+      { senderEmail: thread.senderEmail },
+      { memberId: thread.memberId },
+    ];
+  } else {
+    contactWhere.senderEmail = thread.senderEmail;
+  }
+
+  const contactThreads = await db.supportThread.findMany({
+    where: contactWhere,
+    select: {
+      id: true,
+      subject: true,
+      status: true,
+      lastMessageAt: true,
+    },
+    orderBy: { lastMessageAt: "desc" },
+    take: 20,
+  });
+
   return NextResponse.json({
     id: thread.id,
     gmailThreadId: thread.gmailThreadId,
@@ -136,6 +163,7 @@ export async function GET(
     status: thread.status,
     senderEmail: thread.senderEmail,
     senderName: thread.senderName,
+    deletedAt: thread.deletedAt?.toISOString() ?? null,
     assignee: thread.assignedTo
       ? {
           id: thread.assignedTo.id,
@@ -159,6 +187,12 @@ export async function GET(
         }
       : null,
     timeline,
+    contactHistory: contactThreads.map((ct) => ({
+      id: ct.id,
+      subject: ct.subject,
+      status: ct.status,
+      lastMessageAt: ct.lastMessageAt.toISOString(),
+    })),
     lastMessageAt: thread.lastMessageAt.toISOString(),
     createdAt: thread.createdAt.toISOString(),
   });
@@ -176,11 +210,20 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await req.json();
-  const { status, assignedToId } = body;
+  const { status, assignedToId, deletedAt } = body;
 
   const data: Record<string, unknown> = {};
   if (status) data.status = status;
   if (assignedToId !== undefined) data.assignedToId = assignedToId || null;
+
+  // Soft delete / restore
+  if (deletedAt === "now") {
+    data.deletedAt = new Date();
+  } else if (deletedAt === null) {
+    data.deletedAt = null;
+    // Restore sets status to OPEN
+    data.status = "OPEN";
+  }
 
   // Get current thread to detect assignment changes
   const current = await db.supportThread.findUnique({
@@ -191,7 +234,7 @@ export async function PATCH(
   const updated = await db.supportThread.update({
     where: { id },
     data,
-    select: { id: true, status: true, assignedToId: true, subject: true },
+    select: { id: true, status: true, assignedToId: true, subject: true, deletedAt: true },
   });
 
   // Notify new assignee if assignment changed (fire-and-forget)
@@ -203,4 +246,28 @@ export async function PATCH(
   }
 
   return NextResponse.json(updated);
+}
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session.user.roles?.includes("ADMIN")) {
+    return NextResponse.json({ error: "Admin only" }, { status: 403 });
+  }
+
+  const { id } = await params;
+
+  const thread = await db.supportThread.findUnique({
+    where: { id },
+    select: { id: true },
+  });
+  if (!thread) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // Hard delete — cascades to messages, notes, attachments
+  await db.supportThread.delete({ where: { id } });
+
+  return NextResponse.json({ ok: true });
 }

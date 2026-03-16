@@ -2,7 +2,7 @@
  * GET /api/support/threads
  *
  * List support threads with filtering.
- * Query params: status, assignedTo=me, search, resolved (boolean)
+ * Query params: status, assignedTo=me, search, trash (boolean)
  */
 
 import { auth } from "@/auth";
@@ -23,28 +23,37 @@ export async function GET(req: NextRequest) {
   const status = searchParams.get("status");
   const assignedTo = searchParams.get("assignedTo");
   const search = searchParams.get("search");
+  const trash = searchParams.get("trash") === "true";
 
   const where: Prisma.SupportThreadWhereInput = {};
 
-  // Status filter (supports comma-separated: "OPEN,CLAIMED,WAITING")
-  if (status) {
-    const statuses = status.split(",").map((s) => s.trim());
-    if (statuses.length === 1) {
-      where.status = statuses[0] as any;
-    } else {
-      where.status = { in: statuses as any[] };
-    }
+  if (trash) {
+    // Trash view: only show soft-deleted threads
+    where.deletedAt = { not: null };
   } else {
-    // Default: show OPEN + CLAIMED + WAITING (not CLOSED)
-    where.status = { in: ["OPEN", "CLAIMED", "WAITING"] };
+    // Normal views: exclude soft-deleted threads
+    where.deletedAt = null;
+
+    // Status filter (supports comma-separated: "OPEN,CLAIMED,WAITING")
+    if (status) {
+      const statuses = status.split(",").map((s) => s.trim());
+      if (statuses.length === 1) {
+        where.status = statuses[0] as any;
+      } else {
+        where.status = { in: statuses as any[] };
+      }
+    } else {
+      // Default: show OPEN + CLAIMED + WAITING (not CLOSED)
+      where.status = { in: ["OPEN", "CLAIMED", "WAITING"] };
+    }
+
+    // Assigned to me
+    if (assignedTo === "me") {
+      where.assignedToId = session.user.id;
+    }
   }
 
-  // Assigned to me
-  if (assignedTo === "me") {
-    where.assignedToId = session.user.id;
-  }
-
-  // Search by subject or sender
+  // Search by subject or sender (works in both normal and trash views)
   if (search) {
     where.OR = [
       { subject: { contains: search, mode: "insensitive" } },
@@ -101,6 +110,7 @@ export async function GET(req: NextRequest) {
       lastMessageAt: t.lastMessageAt.toISOString(),
       lastOutbound: lastMessage?.isOutbound ?? false,
       createdAt: t.createdAt.toISOString(),
+      deletedAt: t.deletedAt?.toISOString() ?? null,
     };
   });
 

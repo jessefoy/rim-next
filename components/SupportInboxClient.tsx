@@ -79,15 +79,24 @@ interface MemberContext {
   }[];
 }
 
+interface ContactHistoryItem {
+  id: string;
+  subject: string;
+  status: string;
+  lastMessageAt: string;
+}
+
 interface ThreadDetail {
   id: string;
   subject: string;
   senderEmail: string;
   senderName: string | null;
   status: string;
+  deletedAt: string | null;
   assignee: { id: string; name: string } | null;
   member: MemberContext | null;
   timeline: TimelineEntry[];
+  contactHistory: ContactHistoryItem[];
   lastMessageAt: string;
   createdAt: string;
 }
@@ -107,6 +116,7 @@ interface TemplateOption {
 interface Props {
   currentUserId: string;
   currentUserName: string;
+  isAdmin: boolean;
   teamMembers: TeamMember[];
   connectedEmail: string;
 }
@@ -178,6 +188,7 @@ const REG_STATUS_LABELS: Record<string, string> = {
 export default function SupportInboxClient({
   currentUserId,
   currentUserName,
+  isAdmin,
   teamMembers,
   connectedEmail,
 }: Props) {
@@ -237,11 +248,16 @@ export default function SupportInboxClient({
   const fetchThreads = useCallback(async () => {
     setLoading(true);
     const params = new URLSearchParams();
-    if (filter === "active") params.set("status", "OPEN,CLAIMED,WAITING");
-    else if (filter === "mine") {
+    if (filter === "trash") {
+      params.set("trash", "true");
+    } else if (filter === "active") {
+      params.set("status", "OPEN,CLAIMED,WAITING");
+    } else if (filter === "mine") {
       params.set("status", "OPEN,CLAIMED,WAITING");
       params.set("assignedTo", "me");
-    } else if (filter === "closed") params.set("status", "CLOSED");
+    } else if (filter === "closed") {
+      params.set("status", "CLOSED");
+    }
     if (search) params.set("search", search);
 
     const res = await fetch(`/api/support/threads?${params}`);
@@ -474,6 +490,46 @@ export default function SupportInboxClient({
     updateThread(id, { status: "CLAIMED", assignedToId: currentUserId });
   };
 
+  // ─── Soft delete / restore / permanent delete ─────────────────────
+
+  const handleSoftDelete = async (id: string) => {
+    const res = await fetch(`/api/support/threads/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ deletedAt: "now" }),
+    });
+    if (res.ok) {
+      setSelectedId(null);
+      setDetail(null);
+      fetchThreads();
+    }
+  };
+
+  const handleRestore = async (id: string) => {
+    const res = await fetch(`/api/support/threads/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ deletedAt: null }),
+    });
+    if (res.ok) {
+      setSelectedId(null);
+      setDetail(null);
+      fetchThreads();
+    }
+  };
+
+  const handlePermanentDelete = async (id: string) => {
+    if (!window.confirm("This cannot be undone. Delete permanently?")) return;
+    const res = await fetch(`/api/support/threads/${id}`, {
+      method: "DELETE",
+    });
+    if (res.ok) {
+      setSelectedId(null);
+      setDetail(null);
+      fetchThreads();
+    }
+  };
+
   // ─── Compose new email ──────────────────────────────────────────────
 
   const searchContacts = (query: string) => {
@@ -611,10 +667,10 @@ export default function SupportInboxClient({
       <div className="si-list">
         <div className="si-toolbar">
           <div className="si-filters">
-            {(["active", "mine", "closed", "all"] as const).map((f) => (
+            {(["active", "mine", "closed", "all", "trash"] as const).map((f) => (
               <button
                 key={f}
-                className={`si-pill${filter === f ? " si-pill--active" : ""}`}
+                className={`si-pill${filter === f ? " si-pill--active" : ""}${f === "trash" ? " si-pill--trash" : ""}`}
                 onClick={() => setFilter(f)}
               >
                 {f === "active"
@@ -623,7 +679,9 @@ export default function SupportInboxClient({
                     ? "Mine"
                     : f === "closed"
                       ? "Closed"
-                      : "All"}
+                      : f === "trash"
+                        ? "Trash"
+                        : "All"}
               </button>
             ))}
           </div>
@@ -662,7 +720,9 @@ export default function SupportInboxClient({
             <div className="si-empty-list">
               {filter === "mine"
                 ? "No threads assigned to you."
-                : "No threads found."}
+                : filter === "trash"
+                  ? "Trash is empty."
+                  : "No threads found."}
             </div>
           )}
           {!loading &&
@@ -844,7 +904,7 @@ export default function SupportInboxClient({
             </div>
 
             {/* Reply composer — anchored to bottom, only for outbound replies */}
-            {detail.status !== "CLOSED" && (
+            {detail.status !== "CLOSED" && !detail.deletedAt && (
               <div className="si-composer">
                 {!replyOpen ? (
                   <button
@@ -973,11 +1033,11 @@ export default function SupportInboxClient({
             <div className="si-sidebar__row">
               <span
                 className="si-status-badge"
-                style={{ background: STATUS_COLORS[detail.status] }}
+                style={{ background: detail.deletedAt ? "#95a5a6" : STATUS_COLORS[detail.status] }}
               >
-                {STATUS_LABELS[detail.status]}
+                {detail.deletedAt ? "Deleted" : STATUS_LABELS[detail.status]}
               </span>
-              {detail.status === "OPEN" && (
+              {!detail.deletedAt && detail.status === "OPEN" && (
                 <button
                   className="si-btn si-btn--claim"
                   onClick={() => claimThread(detail.id)}
@@ -985,7 +1045,7 @@ export default function SupportInboxClient({
                   Claim
                 </button>
               )}
-              {["OPEN", "CLAIMED", "WAITING"].includes(detail.status) && (
+              {!detail.deletedAt && ["OPEN", "CLAIMED", "WAITING"].includes(detail.status) && (
                 <button
                   className="si-btn si-btn--close"
                   onClick={() =>
@@ -995,7 +1055,7 @@ export default function SupportInboxClient({
                   Close
                 </button>
               )}
-              {detail.status === "CLOSED" && (
+              {!detail.deletedAt && detail.status === "CLOSED" && (
                 <button
                   className="si-btn si-btn--reopen"
                   onClick={() =>
@@ -1006,10 +1066,42 @@ export default function SupportInboxClient({
                 </button>
               )}
             </div>
+
+            {/* Trash actions */}
+            {detail.deletedAt && (
+              <div className="si-sidebar__row" style={{ marginTop: 8 }}>
+                <button
+                  className="si-btn si-btn--reopen"
+                  onClick={() => handleRestore(detail.id)}
+                >
+                  Restore
+                </button>
+                {isAdmin && (
+                  <button
+                    className="si-btn si-btn--danger"
+                    onClick={() => handlePermanentDelete(detail.id)}
+                  >
+                    Delete Permanently
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Soft delete button — visible when not already deleted */}
+            {!detail.deletedAt && (
+              <div style={{ marginTop: 8 }}>
+                <button
+                  className="si-btn si-btn--small si-btn--danger"
+                  onClick={() => handleSoftDelete(detail.id)}
+                >
+                  Delete Thread
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Add Note — separate from Reply */}
-          {detail.status !== "CLOSED" && (
+          {detail.status !== "CLOSED" && !detail.deletedAt && (
             <div className="si-sidebar__section">
               <button
                 className={`si-btn si-btn--add-note${noteOpen ? " si-btn--add-note-active" : ""}`}
@@ -1111,6 +1203,38 @@ export default function SupportInboxClient({
             <div className="si-sidebar__section">
               <div className="si-sidebar__label">Member</div>
               <div className="si-sidebar__meta">Not a member</div>
+            </div>
+          )}
+
+          {/* Contact History */}
+          {detail.contactHistory && detail.contactHistory.length > 0 && (
+            <div className="si-sidebar__section">
+              <div className="si-sidebar__label">
+                Conversation History
+              </div>
+              <div className="si-sidebar__meta" style={{ marginBottom: 8 }}>
+                {detail.contactHistory.length} other thread{detail.contactHistory.length === 1 ? "" : "s"} with{" "}
+                {detail.senderName || detail.senderEmail}
+              </div>
+              <div className="si-contact-history">
+                {detail.contactHistory.map((ct) => (
+                  <button
+                    key={ct.id}
+                    className="si-contact-history__item"
+                    onClick={() => selectThread(ct.id)}
+                  >
+                    <span className="si-contact-history__subject">{ct.subject}</span>
+                    <span className="si-contact-history__meta">
+                      <span
+                        className="si-status-dot"
+                        style={{ background: STATUS_COLORS[ct.status] }}
+                        title={STATUS_LABELS[ct.status]}
+                      />
+                      {fmtDate(ct.lastMessageAt)}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>

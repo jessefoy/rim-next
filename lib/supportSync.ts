@@ -358,7 +358,7 @@ export async function syncGmailInbox(): Promise<SyncResult> {
  */
 export async function rematchUnlinkedThreads(): Promise<number> {
   const unlinked = await db.supportThread.findMany({
-    where: { memberId: null },
+    where: { memberId: null, deletedAt: null },
     select: { id: true, senderEmail: true },
   });
 
