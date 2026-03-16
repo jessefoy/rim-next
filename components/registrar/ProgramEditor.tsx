@@ -161,6 +161,8 @@ export default function ProgramEditor({ hubSlug, initialData, isEditing, categor
   const [registrationFields, setRegistrationFields] = useState<RegistrationField[]>(
     initialData?.registrationFields ?? []
   );
+  // Raw string drafts for select option inputs — avoids split/join on every keystroke
+  const [optionsDraft, setOptionsDraft] = useState<Record<number, string>>({});
   const [confirmationMessage, setConfirmationMessage] = useState<any>(initialData?.confirmationMessage ?? null);
   const [reminderDate, setReminderDate] = useState(initialData?.reminderDate ?? "");
   const [reminderMessage, setReminderMessage] = useState<any>(initialData?.reminderMessage ?? null);
@@ -689,7 +691,10 @@ export default function ProgramEditor({ hubSlug, initialData, isEditing, categor
                     />
                     <select
                       value={field.fieldType}
-                      onChange={(e) => updateField(idx, { fieldType: e.target.value as RegistrationField["fieldType"] })}
+                      onChange={(e) => {
+                        updateField(idx, { fieldType: e.target.value as RegistrationField["fieldType"] });
+                        setOptionsDraft((prev) => { const next = { ...prev }; delete next[idx]; return next; });
+                      }}
                       className="pe-select pe-select--narrow"
                     >
                       <option value="shortText">Short text</option>
@@ -709,10 +714,19 @@ export default function ProgramEditor({ hubSlug, initialData, isEditing, categor
                   {field.fieldType === "select" && (
                     <input
                       type="text"
-                      value={field.options.join(", ")}
+                      value={optionsDraft[idx] ?? field.options.join(", ")}
                       onChange={(e) =>
-                        updateField(idx, { options: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })
+                        setOptionsDraft((prev) => ({ ...prev, [idx]: e.target.value }))
                       }
+                      onBlur={(e) => {
+                        const parsed = e.target.value.split(",").map((s) => s.trim()).filter(Boolean);
+                        updateField(idx, { options: parsed });
+                        setOptionsDraft((prev) => {
+                          const next = { ...prev };
+                          delete next[idx];
+                          return next;
+                        });
+                      }}
                       className="pe-input"
                       placeholder="Option 1, Option 2, Option 3"
                     />
