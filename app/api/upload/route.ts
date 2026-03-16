@@ -20,12 +20,12 @@ export async function POST(request: NextRequest) {
         if (!session?.user?.roles?.some((r) => ["ADMIN", "TEACHER", "SUPPORT"].includes(r))) {
           throw new Error("Unauthorized");
         }
-        // Support uploads: any content type, 25 MB limit
-        // Teacher/Admin uploads: media types, 500 MB limit
-        const isSupport = session.user.roles?.includes("SUPPORT") && !session.user.roles?.some((r) => ["ADMIN", "TEACHER"].includes(r));
+        // ADMIN and SUPPORT: any content type (support inbox needs arbitrary files)
+        // TEACHER-only: media types only (lessons)
+        const hasSupport = session.user.roles?.some((r) => ["SUPPORT", "ADMIN"].includes(r));
         return {
-          allowedContentTypes: isSupport ? undefined : ["image/*", "audio/*", "application/pdf"],
-          maximumSizeInBytes: isSupport ? 25 * 1024 * 1024 : 500 * 1024 * 1024,
+          allowedContentTypes: hasSupport ? undefined : ["image/*", "audio/*", "application/pdf"],
+          maximumSizeInBytes: 500 * 1024 * 1024, // 500 MB
         };
       },
       onUploadCompleted: async () => {
