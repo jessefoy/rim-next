@@ -79,6 +79,30 @@ export default async function SupportSettingsPage({
     }));
   }
 
+  // Fetch templates for ADMIN
+  let templates: { id: string; name: string; subject: string; body: any; createdBy: string; updatedAt: string }[] = [];
+  if (isAdmin) {
+    const tpls = await db.supportTemplate.findMany({
+      orderBy: { name: "asc" },
+      include: {
+        createdBy: {
+          select: { firstName: true, lastName: true, preferredName: true },
+        },
+      },
+    });
+    templates = tpls.map((t) => ({
+      id: t.id,
+      name: t.name,
+      subject: t.subject,
+      body: t.body,
+      createdBy:
+        t.createdBy.preferredName ||
+        [t.createdBy.firstName, t.createdBy.lastName].filter(Boolean).join(" ") ||
+        "Unknown",
+      updatedAt: t.updatedAt.toISOString(),
+    }));
+  }
+
   return (
     <SupportSettingsClient
       isAdmin={isAdmin}
@@ -93,6 +117,7 @@ export default async function SupportSettingsPage({
       emailNotifications={currentUser?.supportEmailNotifications ?? true}
       defaultAssigneeId={defaultAssigneeId}
       supportTeam={supportTeam}
+      initialTemplates={templates}
     />
   );
 }

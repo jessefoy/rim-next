@@ -117,6 +117,7 @@ model User {
   sentMessages       SupportMessage[]  @relation("MessageSender")
   supportNotes       SupportNote[]     @relation("NoteAuthor")
   supportSignature   SupportSignature?
+  supportTemplates   SupportTemplate[] @relation("TemplateCreator")
 
   @@map("users")
 }
@@ -1023,4 +1024,17 @@ model SupportSignature {
   role    String?
 
   @@map("support_signatures")
+}
+
+model SupportTemplate {
+  id        String   @id @default(cuid())
+  name      String
+  subject   String   @default("")
+  body      Json?
+  createdById String
+  createdBy User     @relation("TemplateCreator", fields: [createdById], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("support_templates")
 }

@@ -96,6 +96,13 @@ interface TeamMember {
   name: string;
 }
 
+interface TemplateOption {
+  id: string;
+  name: string;
+  subject: string;
+  body: any;
+}
+
 interface Props {
   currentUserId: string;
   currentUserName: string;
@@ -214,6 +221,12 @@ export default function SupportInboxClient({
   const [contactsOpen, setContactsOpen] = useState(false);
   const contactSearchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Templates
+  const [tplList, setTplList] = useState<TemplateOption[]>([]);
+  const [tplLoaded, setTplLoaded] = useState(false);
+  const [replyTplOpen, setReplyTplOpen] = useState(false);
+  const [composeTplOpen, setComposeTplOpen] = useState(false);
+
   const timelineRef = useRef<HTMLDivElement>(null);
 
   // ─── Fetch threads ──────────────────────────────────────────────────────
@@ -286,6 +299,29 @@ export default function SupportInboxClient({
     } finally {
       setSyncing(false);
     }
+  };
+
+  // ─── Templates ───────────────────────────────────────────────────────
+
+  const fetchTemplates = useCallback(async () => {
+    if (tplLoaded) return;
+    const res = await fetch("/api/support/templates");
+    if (res.ok) {
+      const data = await res.json();
+      setTplList(data.templates ?? []);
+    }
+    setTplLoaded(true);
+  }, [tplLoaded]);
+
+  const applyReplyTemplate = (t: TemplateOption) => {
+    setReplyDraft(t.body);
+    setReplyTplOpen(false);
+  };
+
+  const applyComposeTemplate = (t: TemplateOption) => {
+    if (t.subject && !composeSubject) setComposeSubject(t.subject);
+    setComposeDraft(t.body);
+    setComposeTplOpen(false);
   };
 
   // ─── Status / Assignment ──────────────────────────────────────────────
@@ -398,6 +434,7 @@ export default function SupportInboxClient({
     setReplyOpen(false);
     setReplyFiles([]);
     setReplyFileError(null);
+    setReplyTplOpen(false);
   };
 
   // ─── Save note (separate panel) ────────────────────────────────────
@@ -547,6 +584,7 @@ export default function SupportInboxClient({
     setComposeDraft(null);
     setComposeFiles([]);
     setComposeFileError(null);
+    setComposeTplOpen(false);
   };
 
   // ─── Render ───────────────────────────────────────────────────────────
@@ -857,6 +895,40 @@ export default function SupportInboxClient({
                         >
                           📎
                         </button>
+                        <div className="si-tpl-picker">
+                          <button
+                            className="si-btn si-btn--template"
+                            onClick={() => {
+                              fetchTemplates();
+                              setReplyTplOpen(!replyTplOpen);
+                            }}
+                            type="button"
+                          >
+                            Use Template
+                          </button>
+                          {replyTplOpen && (
+                            <div className="si-tpl-picker__dropdown">
+                              {tplList.length === 0 ? (
+                                <div className="si-tpl-picker__empty">
+                                  {tplLoaded ? "No templates yet" : "Loading…"}
+                                </div>
+                              ) : (
+                                tplList.map((t) => (
+                                  <button
+                                    key={t.id}
+                                    className="si-tpl-picker__item"
+                                    onMouseDown={() => applyReplyTemplate(t)}
+                                  >
+                                    <span className="si-tpl-picker__name">{t.name}</span>
+                                    {t.subject && (
+                                      <span className="si-tpl-picker__subject">{t.subject}</span>
+                                    )}
+                                  </button>
+                                ))
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div className="si-composer__actions-right">
                         <button
@@ -1143,12 +1215,40 @@ export default function SupportInboxClient({
                   title="Attach file"
                   type="button"
                 >📎</button>
-                <button
-                  className="si-btn si-btn--template"
-                  onClick={() => alert("Coming soon")}
-                  type="button"
-                  title="Use Template"
-                >Use Template</button>
+                <div className="si-tpl-picker">
+                  <button
+                    className="si-btn si-btn--template"
+                    onClick={() => {
+                      fetchTemplates();
+                      setComposeTplOpen(!composeTplOpen);
+                    }}
+                    type="button"
+                  >
+                    Use Template
+                  </button>
+                  {composeTplOpen && (
+                    <div className="si-tpl-picker__dropdown si-tpl-picker__dropdown--up">
+                      {tplList.length === 0 ? (
+                        <div className="si-tpl-picker__empty">
+                          {tplLoaded ? "No templates yet" : "Loading…"}
+                        </div>
+                      ) : (
+                        tplList.map((t) => (
+                          <button
+                            key={t.id}
+                            className="si-tpl-picker__item"
+                            onMouseDown={() => applyComposeTemplate(t)}
+                          >
+                            <span className="si-tpl-picker__name">{t.name}</span>
+                            {t.subject && (
+                              <span className="si-tpl-picker__subject">{t.subject}</span>
+                            )}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="si-composer__actions-right">
                 <button className="si-btn" onClick={handleCancelCompose}>Cancel</button>
