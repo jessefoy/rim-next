@@ -738,7 +738,7 @@ model SessionReport {
   sessionDate             DateTime  // Date of session — stored as midnight CT
   hostId                  String    // FK → User (host who submitted)
   submittedByAssignedHost Boolean?  // null = no assignment; true = submitter matched; false = someone else submitted
-  reflection              String?   // Open session reflection text
+  reflection              Json?     // Tiptap JSON (FormattedEditor)
   resourceUrl             String?   // URL or text to share with all attendees
   resourceNote            String?   // Brief description of the resource
   resourceRouted          Boolean   @default(false)  // Set when resource has been sent to support/registrar
@@ -783,7 +783,7 @@ model SessionCoHostReport {
   sessionDate DateTime // CT midnight for the session date
   userId      String
   user        User     @relation("SessionCoHostReports", fields: [userId], references: [id], onDelete: Cascade)
-  reflection  String?
+  reflection  Json?    // Tiptap JSON (FormattedEditor)
   submittedAt DateTime @default(now())
 
   @@unique([programSlug, sessionDate, userId])

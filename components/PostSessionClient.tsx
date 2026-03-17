@@ -17,6 +17,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import FormattedEditor from "./FormattedEditor";
 
 const ACTION_OPTIONS = [
   { value: "NONE",             label: "No action needed" },
@@ -52,21 +53,20 @@ interface Props {
   sessionDateDisplay: string;    // e.g. "Monday, March 16"
   flaggedAttendees: FlaggedAttendee[];
   allAttendees: AllAttendee[];
-  existingReflection: string | null;
+  existingReflection: object | null;
   existingResourceUrl: string | null;
   existingResourceNote: string | null;
   alreadySubmitted: boolean;
   assignedHost: AssignedHost | null;
   backPath?: string;
   apiPath: string;
-  isCoHost?: boolean;
   onSuccess?: () => void;
 }
 
 interface DraftState {
   flagNotes: Record<string, string>;
   flagActions: Record<string, ActionValue>;
-  reflection: string;
+  reflection: object | null;
   resourceUrl: string;
   resourceNote: string;
 }
@@ -85,7 +85,6 @@ export default function PostSessionClient({
   assignedHost,
   backPath = "",
   apiPath,
-  isCoHost = false,
   onSuccess,
 }: Props) {
   const router = useRouter();
@@ -102,7 +101,7 @@ export default function PostSessionClient({
     )
   );
 
-  const [reflection, setReflection] = useState(existingReflection ?? "");
+  const [reflection, setReflection] = useState<object | null>(existingReflection ?? null);
   const [resourceUrl, setResourceUrl] = useState(existingResourceUrl ?? "");
   const [resourceNote, setResourceNote] = useState(existingResourceNote ?? "");
   const [submitting, setSubmitting] = useState(false);
@@ -148,20 +147,18 @@ export default function PostSessionClient({
     setError(null);
 
     try {
-      const payload = isCoHost
-        ? { sessionDate, reflection: reflection.trim() || null }
-        : {
-            sessionDate,
-            flags: initialFlagged.map((f) => ({
-              attendanceId: f.attendanceId,
-              note:   flagNotes[f.attendanceId]?.trim() || null,
-              action: flagActions[f.attendanceId] ?? "NONE",
-            })),
-            reflection: reflection.trim() || null,
-            resourceUrl: resourceUrl.trim() || null,
-            resourceNote: resourceNote.trim() || null,
-            assignedHostId: assignedHost?.id ?? null,
-          };
+      const payload = {
+        sessionDate,
+        flags: initialFlagged.map((f) => ({
+          attendanceId: f.attendanceId,
+          note:   flagNotes[f.attendanceId]?.trim() || null,
+          action: flagActions[f.attendanceId] ?? "NONE",
+        })),
+        reflection: reflection ?? null,
+        resourceUrl: resourceUrl.trim() || null,
+        resourceNote: resourceNote.trim() || null,
+        assignedHostId: assignedHost?.id ?? null,
+      };
 
       const res = await fetch(apiPath, {
         method: "POST",
@@ -189,11 +186,9 @@ export default function PostSessionClient({
   if (submitted) {
     return (
       <div className="ps-done">
-        <h2 className="ps-done__title">{isCoHost ? "You&rsquo;re done." : "Thank you."}</h2>
+        <h2 className="ps-done__title">Thank you.</h2>
         <p className="ps-done__body">
-          {isCoHost
-            ? "Your reflection has been added to the team journal."
-            : "Your post-session notes have been saved. The right people have been notified."}
+          Your post-session notes have been saved. The right people have been notified.
         </p>
         {backPath && (
           <a href={backPath} className="ps-done__back">← Back to today&rsquo;s sessions</a>
@@ -231,8 +226,8 @@ export default function PostSessionClient({
         </div>
       )}
 
-      {/* ── Section 1: Flagged people — primary host only, only when flags exist ── */}
-      {!isCoHost && initialFlagged.length > 0 && (
+      {/* ── Section 1: Flagged people — shown to all hosts when flags exist ── */}
+      {initialFlagged.length > 0 && (
         <div className="ps-section">
           <p className="ps-section-label">People you noted during the session</p>
           <p className="ps-section__desc">Add a note if helpful, then choose what happens next.</p>
@@ -279,20 +274,21 @@ export default function PostSessionClient({
       <div className="ps-section">
         <p className="ps-section-label">Session reflection</p>
         <p className="ps-section__desc">Optional — but encouraged.</p>
-        <textarea
-          className="ps-reflection"
-          rows={5}
-          placeholder="How did the session feel? Anything worth the team knowing?"
-          value={reflection}
-          onChange={(e) => {
-            setReflection(e.target.value);
-            saveDraft({ reflection: e.target.value });
-          }}
-        />
+        <div className="ps-reflection-wrap">
+          <FormattedEditor
+            placeholder="How did the session feel? Anything worth the team knowing?"
+            value={reflection}
+            minHeight={120}
+            onChange={(v) => {
+              setReflection(v);
+              saveDraft({ reflection: v });
+            }}
+          />
+        </div>
       </div>
 
-      {/* ── Section 3: Resource to share — primary host only ── */}
-      {!isCoHost && (
+      {/* ── Section 3: Resource to share ── */}
+      {(
         <div className="ps-section">
           <p className="ps-section-label">Something to share with attendees?</p>
           <p className="ps-section__desc">
@@ -328,7 +324,7 @@ export default function PostSessionClient({
 
       <div className="ps-form__footer">
         <button type="submit" className="ps-submit" disabled={submitting}>
-          {submitting ? "Saving…" : isCoHost ? "Submit My Reflection" : "Submit Report"}
+          {submitting ? "Saving…" : "Submit Report"}
         </button>
       </div>
     </form>

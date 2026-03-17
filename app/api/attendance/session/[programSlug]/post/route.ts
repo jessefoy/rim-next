@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { sendPostSessionNotification } from "@/lib/email";
+import { extractText } from "@/lib/renderRichContent";
 
 /**
  * POST /api/attendance/session/[programSlug]/post
@@ -39,14 +41,14 @@ export async function POST(
   const {
     sessionDate,      // ISO string — midnight CT for the session date
     flags,            // Array<{ attendanceId, note, action }>
-    reflection,       // string | null
+    reflection,       // Tiptap JSON or null
     resourceUrl,      // string | null
     resourceNote,     // string | null
     assignedHostId,   // string | null — userId of the HostAssignment for this session
   } = body as {
     sessionDate: string;
     flags: Array<{ attendanceId: string; note: string | null; action: string }>;
-    reflection: string | null;
+    reflection: object | null;
     resourceUrl: string | null;
     resourceNote: string | null;
     assignedHostId: string | null;
@@ -85,12 +87,12 @@ export async function POST(
       sessionDate:              sessionDateParsed,
       hostId:                   session.user.id,
       submittedByAssignedHost,
-      reflection:               reflection ?? null,
+      reflection:               reflection ?? Prisma.JsonNull,
       resourceUrl:              resourceUrl ?? null,
       resourceNote:             resourceNote ?? null,
     },
     update: {
-      reflection:               reflection ?? null,
+      reflection:               reflection ?? Prisma.JsonNull,
       resourceUrl:              resourceUrl ?? null,
       resourceNote:             resourceNote ?? null,
       // hostId and submittedByAssignedHost stay as the original submitter's values
@@ -135,7 +137,7 @@ export async function POST(
       sessionDate: sessionDateParsed,
       hostName,
       flags: flagItems,
-      reflection: reflection ?? null,
+      reflection: reflection ? extractText(reflection) : null,
       resourceUrl: resourceUrl ?? null,
       resourceNote: resourceNote ?? null,
     }).catch((e) => {

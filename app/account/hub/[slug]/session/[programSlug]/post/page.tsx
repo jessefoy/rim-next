@@ -191,22 +191,13 @@ export default async function PostSessionPage({
       sessionDateDisplay={fmtDate(sessionDateKey)}
       flaggedAttendees={flaggedAttendees}
       allAttendees={allAttendees}
-      existingReflection={
-        isCoHost
-          ? (coHostReportExists?.reflection ?? null)
-          : (existingReport?.reflection ?? null)
-      }
-      existingResourceUrl={isCoHost ? null : (existingReport?.resourceUrl ?? null)}
-      existingResourceNote={isCoHost ? null : (existingReport?.resourceNote ?? null)}
-      alreadySubmitted={isCoHost ? !!coHostReportExists : !!existingReport}
+      existingReflection={(existingReport?.reflection as object | null) ?? null}
+      existingResourceUrl={existingReport?.resourceUrl ?? null}
+      existingResourceNote={existingReport?.resourceNote ?? null}
+      alreadySubmitted={!!existingReport}
       assignedHost={assignedHost}
       backPath={`/account/hub/${slug}/session`}
-      apiPath={
-        isCoHost
-          ? `/api/attendance/session/${programSlug}/cohost-report`
-          : `/api/attendance/session/${programSlug}/post`
-      }
-      isCoHost={isCoHost}
+      apiPath={`/api/attendance/session/${programSlug}/post`}
     />
   );
 }

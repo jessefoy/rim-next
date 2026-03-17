@@ -559,12 +559,7 @@ export default function SessionLiveClient({
                   existingResourceNote={null}
                   alreadySubmitted={false}
                   assignedHost={prog.assignedHost}
-                  apiPath={
-                    prog.currentUserIsCoHost && !prog.currentUserIsAssignedHost
-                      ? `/api/attendance/session/${prog.slug}/cohost-report`
-                      : `/api/attendance/session/${prog.slug}/post`
-                  }
-                  isCoHost={prog.currentUserIsCoHost && !prog.currentUserIsAssignedHost}
+                  apiPath={`/api/attendance/session/${prog.slug}/post`}
                   onSuccess={() => router.refresh()}
                 />
               </div>

@@ -49,3 +49,14 @@ export function renderFormattedText(json: any): string {
     return ""
   }
 }
+
+/** Strip HTML tags from rendered content — useful for plain-text emails. */
+export function extractText(json: any): string {
+  if (!json) return ""
+  try {
+    const html = generateHTML(json, formattedExtensions)
+    return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
+  } catch {
+    return ""
+  }
+}

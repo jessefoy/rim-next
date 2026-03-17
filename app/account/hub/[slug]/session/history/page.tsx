@@ -11,6 +11,7 @@ import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { getHubMembership } from "@/lib/hubAuth";
 import Link from "next/link";
+import { renderFormattedText } from "@/lib/renderRichContent";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Session History — Host Team Hub" };
@@ -49,7 +50,7 @@ interface SessionEntry {
     hostId: string;
     hostName: string;
     submittedByAssignedHost: boolean | null;
-    reflection: string | null;
+    reflection: object | null;
     resourceUrl: string | null;
     resourceNote: string | null;
     submittedAt: Date;
@@ -175,7 +176,7 @@ async function fetchSessionList(todayCT: string): Promise<SessionEntry[]> {
             hostId: report.hostId,
             hostName: report.hostName,
             submittedByAssignedHost: report.submittedByAssignedHost,
-            reflection: report.reflection,
+            reflection: report.reflection as object | null,
             resourceUrl: report.resourceUrl,
             resourceNote: report.resourceNote,
             submittedAt: report.submittedAt,
@@ -349,7 +350,10 @@ export default async function SessionHistoryPage({
           {detailEntry.report?.reflection && (
             <div className="sh-detail__section">
               <h4 className="sh-detail__section-title">Reflection</h4>
-              <p className="sh-detail__text">{detailEntry.report.reflection}</p>
+              <div
+                className="sh-detail__text"
+                dangerouslySetInnerHTML={{ __html: renderFormattedText(detailEntry.report.reflection) }}
+              />
             </div>
           )}
 

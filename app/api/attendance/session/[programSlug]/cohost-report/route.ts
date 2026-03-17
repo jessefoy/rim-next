@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 
 /**
  * POST /api/attendance/session/[programSlug]/cohost-report
@@ -34,7 +35,7 @@ export async function POST(
 
   const { sessionDate, reflection } = body as {
     sessionDate: string;
-    reflection: string | null;
+    reflection: object | null;
   };
 
   const sessionDateParsed = new Date(sessionDate);
@@ -54,10 +55,10 @@ export async function POST(
       programSlug,
       sessionDate: sessionDateParsed,
       userId: session.user.id,
-      reflection: reflection ?? null,
+      reflection: reflection ?? Prisma.JsonNull,
     },
     update: {
-      reflection: reflection ?? null,
+      reflection: reflection ?? Prisma.JsonNull,
     },
   });
 

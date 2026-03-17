@@ -12,6 +12,7 @@ import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { getHubMembership } from "@/lib/hubAuth";
 import Link from "next/link";
+import { renderFormattedText } from "@/lib/renderRichContent";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Session Journal — Host Team Hub" };
@@ -214,7 +215,10 @@ export default async function TeamHistoryPage({
                   </div>
 
                   {report?.reflection && (
-                    <p className="sh-journal__reflection">{report.reflection}</p>
+                    <div
+                      className="sh-journal__reflection"
+                      dangerouslySetInnerHTML={{ __html: renderFormattedText(report.reflection) }}
+                    />
                   )}
 
                   {report?.resourceUrl && (
