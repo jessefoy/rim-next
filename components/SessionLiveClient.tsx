@@ -455,6 +455,25 @@ export default function SessionLiveClient({
                 </div>
               )}
 
+              {/* Co-host mark — low-weight link; removed from pre-session placement here
+                  but kept so a host joining late can still register themselves */}
+              {!prog.currentUserIsAssignedHost && (
+                prog.currentUserIsCoHost ? (
+                  <p className="sv-cohost-confirmed sv-cohost-confirmed--live">
+                    You&rsquo;re set as co-host.
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    className="sv-cohost-inline-btn"
+                    disabled={isMarkingThis}
+                    onClick={() => markCoHost(prog.slug)}
+                  >
+                    {isMarkingThis ? "Marking…" : "I'm also hosting this"}
+                  </button>
+                )
+              )}
+
               {/* End Session — ghost, full-width on mobile, below attendees */}
               {canEndSession && (
                 <div className="sv-end-wrap">
