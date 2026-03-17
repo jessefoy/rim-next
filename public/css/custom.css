@@ -11171,9 +11171,18 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   cursor: pointer;
 }
 .ps-radio__label {
+  display: flex;
+  flex-direction: column;
   font-size: 16px;
   color: var(--rim-text);
   line-height: 1.4;
+}
+.ps-radio__desc {
+  font-size: 13px;
+  color: var(--rim-text-muted);
+  line-height: 1.5;
+  margin-top: 2px;
+  font-weight: 400;
 }
 
 /* Reflection — plain textarea, 17px, 1.8 line height */

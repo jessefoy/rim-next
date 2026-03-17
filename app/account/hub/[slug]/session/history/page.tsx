@@ -66,7 +66,7 @@ interface AttendanceRow {
   isNewMember: boolean;
   returningAfterAbsence: boolean;
   flaggedByHost: boolean;
-  postSessionNote: string | null;
+  postSessionNote: object | null;
   postSessionAction: string;
 }
 
@@ -209,7 +209,7 @@ async function fetchSessionDetail(programSlug: string, ctDate: string): Promise<
       isNewMember: a.isNewMember,
       returningAfterAbsence: a.returningAfterAbsence,
       flaggedByHost: a.flaggedByHost,
-      postSessionNote: a.postSessionNote,
+      postSessionNote: (a.postSessionNote as object | null) ?? null,
       postSessionAction: a.postSessionAction,
     };
   });
@@ -392,7 +392,10 @@ export default async function SessionHistoryPage({
                     </div>
                   )}
                   {a.postSessionNote && (
-                    <p className="sh-flagged-item__note">{a.postSessionNote}</p>
+                    <div
+                      className="sh-flagged-item__note"
+                      dangerouslySetInnerHTML={{ __html: renderFormattedText(a.postSessionNote) }}
+                    />
                   )}
                 </div>
               ))}

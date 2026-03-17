@@ -20,10 +20,10 @@ import { useRouter } from "next/navigation";
 import FormattedEditor from "./FormattedEditor";
 
 const ACTION_OPTIONS = [
-  { value: "NONE",             label: "No action needed" },
-  { value: "GENTLE_FOLLOWUP", label: "Gentle follow-up" },
-  { value: "JESSE_ONLY",      label: "Jesse only — sensitive" },
-  { value: "TECHNICAL_ISSUE", label: "Technical issue" },
+  { value: "NONE",             label: "No action needed",        desc: "The tap was precautionary — nothing needs to happen." },
+  { value: "GENTLE_FOLLOWUP", label: "Gentle follow-up",        desc: "Someone who might appreciate a brief reach-out from Jesse or the coordinator." },
+  { value: "JESSE_ONLY",      label: "Jesse only — sensitive",  desc: "Something private that needs Jesse's direct attention, not shared with the broader team." },
+  { value: "TECHNICAL_ISSUE", label: "Technical issue",         desc: "Something went wrong with the room, audio, or tech — route to the coordinator." },
 ] as const;
 
 type ActionValue = typeof ACTION_OPTIONS[number]["value"];
@@ -31,7 +31,7 @@ type ActionValue = typeof ACTION_OPTIONS[number]["value"];
 interface FlaggedAttendee {
   attendanceId: string;
   displayName: string;
-  note: string | null;
+  note: object | null;
   action: string;
 }
 
@@ -64,7 +64,7 @@ interface Props {
 }
 
 interface DraftState {
-  flagNotes: Record<string, string>;
+  flagNotes: Record<string, object | null>;
   flagActions: Record<string, ActionValue>;
   reflection: object | null;
   resourceUrl: string;
@@ -89,8 +89,8 @@ export default function PostSessionClient({
 }: Props) {
   const router = useRouter();
 
-  const [flagNotes, setFlagNotes] = useState<Record<string, string>>(
-    Object.fromEntries(initialFlagged.map((f) => [f.attendanceId, f.note ?? ""]))
+  const [flagNotes, setFlagNotes] = useState<Record<string, object | null>>(
+    Object.fromEntries(initialFlagged.map((f) => [f.attendanceId, f.note as object | null ?? null]))
   );
   const [flagActions, setFlagActions] = useState<Record<string, ActionValue>>(
     Object.fromEntries(
@@ -151,7 +151,7 @@ export default function PostSessionClient({
         sessionDate,
         flags: initialFlagged.map((f) => ({
           attendanceId: f.attendanceId,
-          note:   flagNotes[f.attendanceId]?.trim() || null,
+          note:   flagNotes[f.attendanceId] ?? null,
           action: flagActions[f.attendanceId] ?? "NONE",
         })),
         reflection: reflection ?? null,
@@ -235,17 +235,18 @@ export default function PostSessionClient({
             {initialFlagged.map((f) => (
               <div key={f.attendanceId} className="ps-flag-item">
                 <p className="ps-flag-item__name">{f.displayName}</p>
-                <textarea
-                  className="ps-flag-item__note"
-                  rows={3}
-                  placeholder="What did you notice? (optional)"
-                  value={flagNotes[f.attendanceId] ?? ""}
-                  onChange={(e) => {
-                    const updated = { ...flagNotes, [f.attendanceId]: e.target.value };
-                    setFlagNotes(updated);
-                    saveDraft({ flagNotes: updated });
-                  }}
-                />
+                <div className="ps-flag-item__note-wrap">
+                  <FormattedEditor
+                    placeholder="What did you notice? (optional)"
+                    value={flagNotes[f.attendanceId] ?? null}
+                    minHeight={80}
+                    onChange={(v) => {
+                      const updated = { ...flagNotes, [f.attendanceId]: v };
+                      setFlagNotes(updated);
+                      saveDraft({ flagNotes: updated });
+                    }}
+                  />
+                </div>
                 <div className="ps-radio-group">
                   {ACTION_OPTIONS.map((o) => (
                     <label key={o.value} className="ps-radio">
@@ -260,7 +261,10 @@ export default function PostSessionClient({
                           saveDraft({ flagActions: updated });
                         }}
                       />
-                      <span className="ps-radio__label">{o.label}</span>
+                      <span className="ps-radio__label">
+                        {o.label}
+                        <span className="ps-radio__desc">{o.desc}</span>
+                      </span>
                     </label>
                   ))}
                 </div>

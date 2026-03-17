@@ -159,7 +159,7 @@ export default async function PostSessionPage({
       return {
         attendanceId: a.id,
         displayName: [first, last].filter(Boolean).join(" ") || "Unknown",
-        note:   a.postSessionNote ?? null,
+        note:   (a.postSessionNote as object | null) ?? null,
         action: a.postSessionAction,
       };
     });

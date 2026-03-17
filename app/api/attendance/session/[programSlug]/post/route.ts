@@ -47,7 +47,7 @@ export async function POST(
     assignedHostId,   // string | null — userId of the HostAssignment for this session
   } = body as {
     sessionDate: string;
-    flags: Array<{ attendanceId: string; note: string | null; action: string }>;
+    flags: Array<{ attendanceId: string; note: object | null; action: string }>;
     reflection: object | null;
     resourceUrl: string | null;
     resourceNote: string | null;
@@ -68,7 +68,7 @@ export async function POST(
     return db.sessionAttendance.update({
       where: { id: f.attendanceId },
       data: {
-        postSessionNote:   f.note ?? null,
+        postSessionNote:   f.note ?? Prisma.JsonNull,
         postSessionAction: action as "NONE" | "GENTLE_FOLLOWUP" | "JESSE_ONLY" | "TECHNICAL_ISSUE",
       },
     });
@@ -126,7 +126,7 @@ export async function POST(
       name: u
         ? (u.preferredName || u.firstName || "") + " " + (u.lastName || "")
         : "Unknown",
-      note:   f.note ?? null,
+      note:   f.note ? extractText(f.note) : null,
       action: f.action,
     };
   }).filter((f) => f.action !== "NONE");
