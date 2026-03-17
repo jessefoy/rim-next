@@ -7,7 +7,6 @@ import { renderFormattedText } from "@/lib/renderRichContent";
 export const dynamic = "force-dynamic";
 
 export async function generateStaticParams() {
-  // Access-gated — disable static pre-rendering
   return [];
 }
 
@@ -16,6 +15,39 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const course = await db.course.findUnique({ where: { slug }, select: { title: true } });
   return { title: `${course?.title ?? "Series"} — Rooted In Mindfulness` };
 }
+
+// ── Media-type icons ──────────────────────────────────────────────────────────
+
+function AudioIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+      <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z" />
+      <path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+    </svg>
+  );
+}
+
+function VideoIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <polygon points="10,8 16,12 10,16" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function TextIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="4" y1="7" x2="20" y2="7" />
+      <line x1="4" y1="12" x2="20" y2="12" />
+      <line x1="4" y1="17" x2="14" y2="17" />
+    </svg>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default async function CoursePage({ params }: { params: Promise<{ slug: string }> }) {
   const session = await auth();
@@ -86,12 +118,12 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
     );
   }
 
-  const lessonItems = course.lessons; // CourseLesson[] with .lesson + .groupLabel
+  const lessonItems = course.lessons;
 
   return (
     <div className="crs-page">
 
-      {/* ── Header — mirrors lp-header style ── */}
+      {/* ── Header ── */}
       <header className="crs-header">
         <div className="crs-header__inner">
           <p className="crs-label">
@@ -109,30 +141,33 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
 
       <hr className="crs-rule" />
 
-      {/* ── Lesson table of contents ── */}
+      {/* ── Lesson list ── */}
       {lessonItems.length > 0 ? (
         <div className="crs-lessons">
           <div className="crs-toc">
-            {lessonItems.map((cl, i) => (
-              <div key={cl.lessonId}>
-                {cl.groupLabel && (
-                  <div className="crs-toc__section">{cl.groupLabel}</div>
-                )}
-                <Link
-                  href={`/lessons/${cl.lesson.slug}?course=${course.slug}`}
-                  className="crs-toc__item"
-                >
-                  <span className="crs-toc__num">{i + 1}</span>
-                  <span className="crs-toc__title">{cl.lesson.titleDisplayed}</span>
-                  {(cl.lesson.audioUrl || cl.lesson.videoUrl) && (
-                    <span className="crs-toc__badges">
-                      {cl.lesson.audioUrl && <span className="crs-toc__badge">Audio</span>}
-                      {cl.lesson.videoUrl && <span className="crs-toc__badge">Video</span>}
-                    </span>
+            {lessonItems.map((cl, i) => {
+              const hasAudio = !!cl.lesson.audioUrl;
+              const hasVideo = !!cl.lesson.videoUrl;
+              const mediaType = hasAudio ? "audio" : hasVideo ? "video" : "text";
+
+              return (
+                <div key={cl.lessonId}>
+                  {cl.groupLabel && (
+                    <p className="crs-toc__section">{cl.groupLabel}</p>
                   )}
-                </Link>
-              </div>
-            ))}
+                  <Link
+                    href={`/lessons/${cl.lesson.slug}?course=${course.slug}`}
+                    className="crs-toc__item"
+                  >
+                    <span className="crs-toc__num">{i + 1}</span>
+                    <span className="crs-toc__title">{cl.lesson.titleDisplayed}</span>
+                    <span className={`crs-toc__icon-wrap crs-toc__icon-wrap--${mediaType}`} aria-label={mediaType}>
+                      {hasAudio ? <AudioIcon /> : hasVideo ? <VideoIcon /> : <TextIcon />}
+                    </span>
+                  </Link>
+                </div>
+              );
+            })}
           </div>
         </div>
       ) : (

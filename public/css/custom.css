@@ -15563,9 +15563,14 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 }
 
 /* ── Table of contents ── */
-.crs-toc { /* items are block-level */ }
+.crs-toc {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 28px;
+}
 
-/* Section heading */
+/* Section heading — floats above its group of cards */
 .crs-toc__section {
   font-family: var(--font-sans);
   font-size: 11px;
@@ -15573,64 +15578,75 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--rim-text-muted);
-  padding: 32px 0 10px;
+  margin: 16px 0 4px;
+  padding-top: 20px;
   border-top: 1px solid #ddd8d2;
-  margin-top: 4px;
 }
 .crs-toc > div:first-child .crs-toc__section {
   border-top: none;
-  padding-top: 20px;
+  margin-top: 0;
+  padding-top: 0;
 }
 
-/* Lesson row */
+/* Lesson card */
 .crs-toc__item {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 16px;
-  padding: 18px 0;
-  border-bottom: 1px solid #ede8e3;
+  padding: 16px 20px;
+  background: #ffffff;
+  border: 1px solid #ebe6e1;
+  border-radius: 10px;
   text-decoration: none;
   color: var(--rim-text);
+  transition: border-color 0.15s;
+}
+.crs-toc__item:hover {
+  border-color: #c4bcb4;
 }
 .crs-toc__item:hover .crs-toc__title {
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  color: var(--rim-blue);
 }
 .crs-toc__num {
   font-family: var(--font-serif);
   font-size: 14px;
   font-weight: 400;
   color: var(--rim-text-muted);
-  min-width: 20px;
+  min-width: 18px;
   text-align: right;
   flex-shrink: 0;
-  line-height: 1.6;
 }
 .crs-toc__title {
   font-family: var(--font-sans);
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 400;
   color: var(--rim-text);
   flex: 1;
-  line-height: 1.5;
+  line-height: 1.45;
+  transition: color 0.15s;
 }
-.crs-toc__badges {
+
+/* Media-type icon container — tinted square, color-coded by type */
+.crs-toc__icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
   display: flex;
-  gap: 6px;
-  flex-shrink: 0;
   align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
-.crs-toc__badge {
-  font-family: var(--font-sans);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--rim-text-muted);
-  padding: 2px 6px;
-  border: 1px solid #d5cfc9;
-  border-radius: 3px;
-  white-space: nowrap;
+.crs-toc__icon-wrap--audio {
+  background: #e4eeea;
+  color: #3d7a66;
+}
+.crs-toc__icon-wrap--video {
+  background: #e4ecf2;
+  color: #3a607c;
+}
+.crs-toc__icon-wrap--text {
+  background: #ede9e4;
+  color: #8a7d74;
 }
 
 /* ── Access gate ── */
@@ -15667,5 +15683,7 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 @media (max-width: 600px) {
   .crs-header { padding: 56px 20px 40px; }
   .crs-title { font-size: 30px; }
-  .crs-toc__badges { display: none; }
+  .crs-lessons { padding-left: 16px; padding-right: 16px; }
+  .crs-toc__item { padding: 14px 16px; gap: 12px; }
+  .crs-toc__icon-wrap { width: 30px; height: 30px; border-radius: 6px; }
 }
