@@ -111,6 +111,13 @@ export default async function PostSessionPage({
 
   const userId = session.user.id;
 
+  // Fetch the program display name
+  const programRecord = await db.program.findUnique({
+    where: { slug: programSlug },
+    select: { name: true },
+  });
+  const programName = programRecord?.name ?? programSlug.replace(/-/g, " ");
+
   // Check if a report already exists for today (so we can pre-fill)
   // Also fetch the host assignment and co-host status for this program + today
   const [existingReport, todayAssignment, coHostRecord] = await Promise.all([
@@ -179,6 +186,7 @@ export default async function PostSessionPage({
   return (
     <PostSessionClient
       programSlug={programSlug}
+      programName={programName}
       sessionDate={sessionDateKey.toISOString()}
       sessionDateDisplay={fmtDate(sessionDateKey)}
       flaggedAttendees={flaggedAttendees}

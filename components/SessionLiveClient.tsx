@@ -308,6 +308,14 @@ export default function SessionLiveClient({
     .sort((a, b) => stateOrder[a.state] - stateOrder[b.state]);
   const hasLive = progStates.some((ps) => ps.state === "live");
 
+  // When the current user has a form to file, other ended sessions collapse to quiet lines
+  // so the form stays the unambiguous focus of the page.
+  const hasActiveForm = progStates.some(
+    (ps) =>
+      ps.state === "post-session" &&
+      (ps.prog.currentUserIsAssignedHost || ps.prog.currentUserIsCoHost)
+  );
+
   return (
     <div className="sv-wrap">
       <p className="sv-date">{todayCT}</p>
@@ -316,8 +324,15 @@ export default function SessionLiveClient({
         const isEndingThis = endingSession === prog.slug;
         const isMarkingThis = markingCoHost === prog.slug;
 
-        // ── Visual hierarchy: collapse non-live sessions to a quiet footnote ──
-        if (hasLive && state !== "live") {
+        // ── Visual hierarchy: collapse non-primary sessions to a quiet footnote ──
+        // Rule 1: a live session is happening — everything else collapses.
+        // Rule 2: this user has a form to file — other ended sessions collapse.
+        const isReporterHere = prog.currentUserIsAssignedHost || prog.currentUserIsCoHost;
+        const shouldCollapse =
+          (hasLive && state !== "live") ||
+          (hasActiveForm && !isReporterHere && state !== "live");
+
+        if (shouldCollapse) {
           const isEnded = state === "post-session" || state === "done";
           return (
             <p key={prog._id} className="sv-session-footnote">
@@ -521,64 +536,52 @@ export default function SessionLiveClient({
         // ── State 5: Session ended, report not filed ─────────────────────────
         if (state === "post-session") {
           const isReporter = prog.currentUserIsAssignedHost || prog.currentUserIsCoHost;
-          const showAttendees = isReporter || isCoordinator;
+
+          if (isReporter) {
+            // Reporter: full post-session form — PostSessionClient handles all heading/framing.
+            return (
+              <div key={prog._id} className="sv-state-wrap sv-state-wrap--5">
+                <PostSessionClient
+                  programSlug={prog.slug}
+                  programName={prog.name}
+                  sessionDate={prog.sessionDateISO}
+                  sessionDateDisplay={todayCT}
+                  flaggedAttendees={prog.attendees
+                    .filter((a) => a.flaggedByHost)
+                    .map((a) => ({ attendanceId: a.recordId, displayName: a.displayName, note: null, action: "NONE" }))}
+                  allAttendees={prog.attendees.map((a) => ({
+                    attendanceId: a.recordId,
+                    displayName: a.displayName,
+                    flaggedByHost: a.flaggedByHost,
+                  }))}
+                  existingReflection={null}
+                  existingResourceUrl={null}
+                  existingResourceNote={null}
+                  alreadySubmitted={false}
+                  assignedHost={prog.assignedHost}
+                  apiPath={
+                    prog.currentUserIsCoHost && !prog.currentUserIsAssignedHost
+                      ? `/api/attendance/session/${prog.slug}/cohost-report`
+                      : `/api/attendance/session/${prog.slug}/post`
+                  }
+                  isCoHost={prog.currentUserIsCoHost && !prog.currentUserIsAssignedHost}
+                  onSuccess={() => router.refresh()}
+                />
+              </div>
+            );
+          }
+
+          // Non-reporter (coordinator / other host): quiet ended summary card.
           return (
             <div key={prog._id} className="sv-state-wrap sv-state-wrap--5">
-              <div className="sv-live-title-row sv-live-title-row--ended">
-                <h2 className="sv-live-title sv-live-title--ended">{prog.name} — ended</h2>
-                <span className="sv-live-count-inline">{prog.attendees.length} in the room</span>
-              </div>
-
-              {showAttendees && (
-                prog.attendees.length === 0 ? (
-                  <p className="sv-no-attendees">No attendance recorded.</p>
-                ) : (
-                  <div className="sv-person-rows">
-                    {prog.attendees.map((a) => (
-                      <AttendeeRow key={a.recordId} attendee={a} flagging={flagging} onFlag={toggleFlag} />
-                    ))}
-                  </div>
-                )
-              )}
-
-              {isReporter ? (
-                <>
-                  <p className="sv-state-body sv-state-body--report-prompt">
-                    Take a few minutes for your report — it helps the whole team.
-                  </p>
-                  <PostSessionClient
-                    programSlug={prog.slug}
-                    sessionDate={prog.sessionDateISO}
-                    sessionDateDisplay={todayCT}
-                    flaggedAttendees={prog.attendees
-                      .filter((a) => a.flaggedByHost)
-                      .map((a) => ({ attendanceId: a.recordId, displayName: a.displayName, note: null, action: "NONE" }))}
-                    allAttendees={prog.attendees.map((a) => ({
-                      attendanceId: a.recordId,
-                      displayName: a.displayName,
-                      flaggedByHost: a.flaggedByHost,
-                    }))}
-                    existingReflection={null}
-                    existingResourceUrl={null}
-                    existingResourceNote={null}
-                    alreadySubmitted={false}
-                    assignedHost={prog.assignedHost}
-                    apiPath={
-                      prog.currentUserIsCoHost && !prog.currentUserIsAssignedHost
-                        ? `/api/attendance/session/${prog.slug}/cohost-report`
-                        : `/api/attendance/session/${prog.slug}/post`
-                    }
-                    isCoHost={prog.currentUserIsCoHost && !prog.currentUserIsAssignedHost}
-                    onSuccess={() => router.refresh()}
-                  />
-                </>
-              ) : (
-                <p className="sv-state-quiet">
-                  <a href={`/account/hub/${hubSlug}/session/history/team`} className="sv-quiet-link">
-                    See the team journal →
-                  </a>
-                </p>
-              )}
+              <p className="sv-ended-summary">
+                <span className="sv-ended-summary__name">{prog.name}</span>
+                <span className="sv-ended-summary__sep">·</span>
+                <span className="sv-ended-summary__meta">ended · {prog.attendees.length} in the room</span>
+                <a href={`/account/hub/${hubSlug}/session/history/team`} className="sv-ended-summary__link">
+                  See journal →
+                </a>
+              </p>
             </div>
           );
         }

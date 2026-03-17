@@ -11064,122 +11064,137 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   font-size: 14px;
 }
 
-/* ── Post-Session Form (ps-) ──────────────────────────────────── */
+/* ── Post-Session Form (ps-) ──────────────────────────────────────────────── */
+
+/* Form container */
 .ps-form {
-  max-width: 580px;
+  max-width: 560px;
   padding: 8px 0 48px;
 }
+
+/* Page heading — calm, 24px, not display size */
 .ps-form__header {
   margin-bottom: 32px;
 }
 .ps-form__title {
-  font-family: var(--font-serif);
-  font-size: 22px;
-  font-weight: 400;
+  font-family: var(--font-sans);
+  font-size: 24px;
+  font-weight: 600;
   color: var(--rim-text);
-  text-transform: capitalize;
-  margin-bottom: 4px;
+  line-height: 1.3;
+  margin-bottom: 10px;
 }
-.ps-form__date {
-  font-size: 13px;
+.ps-form__framing {
+  font-size: 16px;
   color: var(--rim-text-muted);
+  line-height: 1.7;
+  margin-bottom: 8px;
 }
-.ps-form__assigned-host {
-  margin-top: 8px;
-  font-size: 13px;
+.ps-form__meta {
+  font-size: 15px;
   color: var(--rim-text-muted);
+  font-weight: 500;
 }
+
+/* Section — 13px all-caps muted label, consistent with "REGISTERED BUT NOT HERE YET" */
 .ps-section {
   margin-bottom: 32px;
 }
-.ps-section--quiet {
-  background: #f6f3f0;
-  border-radius: 8px;
-  padding: 14px 16px;
-}
-.ps-section__title {
-  font-family: var(--font-serif);
-  font-size: 17px;
-  font-weight: 400;
-  color: var(--rim-text);
-  margin-bottom: 6px;
+.ps-section-label {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--rim-text-muted);
+  margin: 0 0 6px;
 }
 .ps-section__desc {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--rim-text-muted);
   margin-bottom: 14px;
   line-height: 1.6;
 }
-/* Flagged person items */
+
+/* Flagged person cards */
 .ps-flagged-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 .ps-flag-item {
   background: #fef9f2;
   border: 1px solid #f0e4c8;
   border-radius: 8px;
-  padding: 14px 16px;
+  padding: 16px;
 }
 .ps-flag-item__name {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--rim-text);
-  margin-bottom: 10px;
+  margin: 0 0 12px;
 }
 .ps-flag-item__note {
+  display: block;
   width: 100%;
-  border: 1px solid #e0ddd7;
-  border-radius: 6px;
-  padding: 8px 10px;
-  font-size: 14px;
-  font-family: var(--font-sans);
-  line-height: 1.5;
-  color: var(--rim-text);
-  background: #fff;
-  resize: vertical;
-  margin-bottom: 10px;
-  box-sizing: border-box;
-}
-.ps-flag-item__note:focus {
-  outline: none;
-  border-color: var(--rim-mid);
-}
-.ps-flag-item__action {
-  width: 100%;
-  border: 1px solid #e0ddd7;
-  border-radius: 6px;
-  padding: 8px 10px;
-  font-size: 14px;
-  font-family: var(--font-sans);
-  color: var(--rim-text);
-  background: #fff;
-  box-sizing: border-box;
-}
-.ps-flag-item__action:focus {
-  outline: none;
-  border-color: var(--rim-mid);
-}
-/* Reflection */
-.ps-reflection {
-  width: 100%;
+  min-height: 80px;
   border: 1px solid #e0ddd7;
   border-radius: 6px;
   padding: 10px 12px;
-  font-size: 15px;
+  font-size: 16px;
   font-family: var(--font-sans);
   line-height: 1.6;
   color: var(--rim-text);
   background: #fff;
   resize: vertical;
+  margin-bottom: 14px;
   box-sizing: border-box;
 }
-.ps-reflection:focus {
-  outline: none;
-  border-color: var(--rim-mid);
+.ps-flag-item__note:focus { outline: none; border-color: var(--rim-mid); }
+
+/* Routing radio buttons */
+.ps-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
-/* Resource */
+.ps-radio {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+.ps-radio input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--rim-blue);
+  cursor: pointer;
+}
+.ps-radio__label {
+  font-size: 16px;
+  color: var(--rim-text);
+  line-height: 1.4;
+}
+
+/* Reflection — plain textarea, 17px, 1.8 line height */
+.ps-reflection {
+  display: block;
+  width: 100%;
+  min-height: 120px;
+  border: 1px solid #e0ddd7;
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-size: 17px;
+  font-family: var(--font-sans);
+  line-height: 1.8;
+  color: var(--rim-text);
+  background: #fff;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.ps-reflection:focus { outline: none; border-color: var(--rim-mid); }
+
+/* Resource fields */
 .ps-resource-url,
 .ps-resource-note {
   display: block;
@@ -11187,7 +11202,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   border: 1px solid #e0ddd7;
   border-radius: 6px;
   padding: 10px 12px;
-  font-size: 14px;
+  font-size: 16px;
   font-family: var(--font-sans);
   color: var(--rim-text);
   background: #fff;
@@ -11195,49 +11210,35 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   margin-bottom: 10px;
 }
 .ps-resource-url:focus,
-.ps-resource-note:focus {
-  outline: none;
-  border-color: var(--rim-mid);
-}
-/* Footer */
+.ps-resource-note:focus { outline: none; border-color: var(--rim-mid); }
+
+/* Footer — submit only, no cancel */
 .ps-form__footer {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding-top: 8px;
+  margin-top: 24px;
 }
 .ps-submit {
   background: var(--rim-blue);
   color: #fff;
   border: none;
   border-radius: 6px;
-  padding: 11px 28px;
-  font-size: 15px;
+  padding: 14px 36px;
+  font-size: 16px;
   font-family: var(--font-sans);
   font-weight: 600;
+  min-height: 48px;
   cursor: pointer;
   transition: opacity 0.15s;
+  box-sizing: border-box;
 }
-.ps-submit:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-.ps-submit:hover:not(:disabled) {
-  opacity: 0.9;
-}
-.ps-cancel {
-  font-size: 14px;
-  color: var(--rim-text-muted);
-  text-decoration: none;
-}
-.ps-cancel:hover {
-  text-decoration: underline;
-}
+.ps-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+.ps-submit:hover:not(:disabled) { opacity: 0.88; }
+
 .ps-error {
-  font-size: 14px;
+  font-size: 15px;
   color: #b00020;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
+
 /* Done state */
 .ps-done {
   max-width: 480px;
@@ -11257,12 +11258,54 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   margin-bottom: 24px;
 }
 .ps-done__back {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--rim-mid);
   text-decoration: none;
   font-weight: 600;
 }
-.ps-done__back:hover {
+.ps-done__back:hover { text-decoration: underline; }
+
+/* Draft restored notice */
+.ps-draft-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f2eeea;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 15px;
+  color: var(--rim-text-muted);
+  margin-bottom: 24px;
+}
+.ps-draft-notice__clear {
+  background: none;
+  border: none;
+  color: var(--rim-mid);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+/* Ended summary line — quiet card for non-reporter ended sessions */
+.sv-ended-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 15px;
+  color: var(--rim-text-muted);
+  margin: 0;
+}
+.sv-ended-summary__name {
+  font-weight: 600;
+  color: var(--rim-text);
+}
+.sv-ended-summary__sep { color: #c8bcb2; }
+.sv-ended-summary__meta { color: var(--rim-text-muted); }
+.sv-ended-summary__link {
+  color: var(--rim-mid);
+  font-size: 14px;
   text-decoration: underline;
 }
 
@@ -12004,18 +12047,15 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 
   /* iOS auto-zoom prevention: all inputs ≥16px */
   .ps-flag-item__note,
-  .ps-flag-item__action,
   .ps-resource-url,
-  .ps-resource-note,
-  .ps-reflection { font-size: 16px; }
+  .ps-resource-note { font-size: 16px; }
+  /* Reflection stays 17px — already ≥16 */
 
   .ps-flag-item { padding: 12px 14px; }
-  .ps-flag-item__action { min-height: 44px; }
+  .ps-radio__label { font-size: 16px; }
 
-  /* Footer: stack, submit full-width */
-  .ps-form__footer { flex-direction: column; gap: 12px; }
-  .ps-submit { width: 100%; padding: 14px 16px; font-size: 16px; min-height: 48px; box-sizing: border-box; }
-  .ps-cancel { text-align: center; padding: 10px; font-size: 15px; min-height: 44px; display: flex; align-items: center; justify-content: center; }
+  /* Submit: full-width on phone */
+  .ps-submit { display: block; width: 100%; text-align: center; padding: 14px 16px; font-size: 16px; min-height: 48px; box-sizing: border-box; }
 
   /* Done state */
   .ps-done { padding: 32px 0; }

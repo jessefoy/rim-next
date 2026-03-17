@@ -3,9 +3,12 @@
 /**
  * PostSessionClient — post-session form for the Host Team hub.
  *
- * Section 1: Flagged people — notes + routing
- * Section 2: Session reflection (open textarea, warm framing)
- * Section 3: Resource for the group (optional URL + note)
+ * Primary host sees:
+ *   1. Flagged people (if any) — note + routing choice per person
+ *   2. Session reflection — plain textarea
+ *   3. Resource to share (optional)
+ *
+ * Co-host sees reflection only.
  *
  * Autosave: form state is persisted to localStorage on every change,
  * keyed by programSlug + sessionDate. Draft is restored on load and
@@ -14,13 +17,12 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import RimEditor from "./RimEditor";
 
 const ACTION_OPTIONS = [
   { value: "NONE",             label: "No action needed" },
-  { value: "GENTLE_FOLLOWUP", label: "Gentle follow-up (Jesse + coordinator)" },
+  { value: "GENTLE_FOLLOWUP", label: "Gentle follow-up" },
   { value: "JESSE_ONLY",      label: "Jesse only — sensitive" },
-  { value: "TECHNICAL_ISSUE", label: "Technical issue (coordinator)" },
+  { value: "TECHNICAL_ISSUE", label: "Technical issue" },
 ] as const;
 
 type ActionValue = typeof ACTION_OPTIONS[number]["value"];
@@ -45,8 +47,9 @@ export interface AssignedHost {
 
 interface Props {
   programSlug: string;
+  programName: string;           // display name — not the slug
   sessionDate: string;           // ISO string — midnight CT
-  sessionDateDisplay: string;    // human-readable date
+  sessionDateDisplay: string;    // e.g. "Monday, March 16"
   flaggedAttendees: FlaggedAttendee[];
   allAttendees: AllAttendee[];
   existingReflection: string | null;
@@ -56,7 +59,7 @@ interface Props {
   assignedHost: AssignedHost | null;
   backPath?: string;
   apiPath: string;
-  isCoHost?: boolean;  // Co-host sees reflection-only form
+  isCoHost?: boolean;
   onSuccess?: () => void;
 }
 
@@ -70,6 +73,7 @@ interface DraftState {
 
 export default function PostSessionClient({
   programSlug,
+  programName,
   sessionDate,
   sessionDateDisplay,
   flaggedAttendees: initialFlagged,
@@ -86,7 +90,6 @@ export default function PostSessionClient({
 }: Props) {
   const router = useRouter();
 
-  // Flag states — keyed by attendanceId
   const [flagNotes, setFlagNotes] = useState<Record<string, string>>(
     Object.fromEntries(initialFlagged.map((f) => [f.attendanceId, f.note ?? ""]))
   );
@@ -110,8 +113,6 @@ export default function PostSessionClient({
   // ── Draft autosave ────────────────────────────────────────────────────────
   const draftKey = `psr-draft:${programSlug}:${sessionDate}`;
 
-  // Save current form state, merging in the freshly-computed value from
-  // the caller to avoid stale-closure issues with async state updates.
   function saveDraft(update: Partial<DraftState>) {
     try {
       localStorage.setItem(draftKey, JSON.stringify({
@@ -125,7 +126,6 @@ export default function PostSessionClient({
     try { localStorage.removeItem(draftKey); } catch { /* ignore */ }
   }
 
-  // Restore draft on mount (client-side only; skip if report already filed)
   useEffect(() => {
     if (alreadySubmitted) return;
     try {
@@ -134,7 +134,7 @@ export default function PostSessionClient({
       const draft = JSON.parse(raw) as Partial<DraftState>;
       if (draft.flagNotes)   setFlagNotes(draft.flagNotes);
       if (draft.flagActions) setFlagActions(draft.flagActions);
-      if (typeof draft.reflection  === "string") setReflection(draft.reflection);
+      if (typeof draft.reflection   === "string") setReflection(draft.reflection);
       if (typeof draft.resourceUrl  === "string") setResourceUrl(draft.resourceUrl);
       if (typeof draft.resourceNote === "string") setResourceNote(draft.resourceNote);
       setDraftRestored(true);
@@ -148,7 +148,6 @@ export default function PostSessionClient({
     setError(null);
 
     try {
-      // Co-host: reflection only → cohost-report API
       const payload = isCoHost
         ? { sessionDate, reflection: reflection.trim() || null }
         : {
@@ -186,10 +185,11 @@ export default function PostSessionClient({
     }
   }
 
+  // ── Submitted state ────────────────────────────────────────────────────────
   if (submitted) {
     return (
       <div className="ps-done">
-        <h2 className="ps-done__title">{isCoHost ? "You're done." : "Thank you."}</h2>
+        <h2 className="ps-done__title">{isCoHost ? "You&rsquo;re done." : "Thank you."}</h2>
         <p className="ps-done__body">
           {isCoHost
             ? "Your reflection has been added to the team journal."
@@ -202,60 +202,20 @@ export default function PostSessionClient({
     );
   }
 
-  // ── Co-host view: reflection only ─────────────────────────────────────────
-  if (isCoHost) {
-    return (
-      <form className="ps-form" onSubmit={handleSubmit}>
-        <div className="ps-form__header">
-          <h2 className="ps-state-header">Session ended. Take a few minutes for your reflection.</h2>
-          <p className="ps-form__date">{sessionDateDisplay} — {programSlug.replace(/-/g, " ")}</p>
-        </div>
-
-        {draftRestored && (
-          <div className="ps-draft-notice">
-            Draft restored.{" "}
-            <button
-              type="button"
-              className="ps-draft-notice__clear"
-              onClick={() => { clearDraft(); setDraftRestored(false); }}
-            >
-              Clear
-            </button>
-          </div>
-        )}
-
-        <div className="ps-section">
-          <h3 className="ps-section__title">How was the session?</h3>
-          <p className="ps-section__desc">
-            Optional — but encouraged. How did the session feel? Anything worth the team knowing?
-          </p>
-          <RimEditor
-            className="ps-reflection"
-            rows={5}
-            placeholder="Notes for the team — whatever feels worth saying…"
-            value={reflection}
-            onChange={(v) => {
-              setReflection(v);
-              saveDraft({ reflection: v });
-            }}
-          />
-        </div>
-
-        {error && <p className="ps-error">{error}</p>}
-
-        <div className="ps-form__footer">
-          <button type="submit" className="ps-submit" disabled={submitting}>
-            {submitting ? "Saving…" : "Submit My Reflection"}
-          </button>
-          {backPath && <a href={backPath} className="ps-cancel">Back</a>}
-        </div>
-      </form>
-    );
-  }
-
-  // ── Primary host view: full form ──────────────────────────────────────────
+  // ── Form ──────────────────────────────────────────────────────────────────
   return (
     <form className="ps-form" onSubmit={handleSubmit}>
+
+      {/* ── Page heading ── */}
+      <div className="ps-form__header">
+        <h2 className="ps-form__title">
+          Session ended. Take a few minutes for your report.
+        </h2>
+        <p className="ps-form__framing">
+          This is part of the role — it only takes a few minutes and it helps the whole team.
+        </p>
+        <p className="ps-form__meta">{programName} · {sessionDateDisplay}</p>
+      </div>
 
       {/* ── Draft restored notice ── */}
       {draftRestored && (
@@ -271,127 +231,105 @@ export default function PostSessionClient({
         </div>
       )}
 
-      <div className="ps-form__header">
-        <h2 className="ps-form__title">
-          Post-session — {programSlug.replace(/-/g, " ")}
-        </h2>
-        <p className="ps-form__date">{sessionDateDisplay}</p>
-        {assignedHost && (
-          <p className="ps-form__assigned-host">
-            Assigned host: <strong>{assignedHost.name}</strong>
-          </p>
-        )}
-      </div>
-
-      {/* ── Section 1: Flagged people ── */}
-      {initialFlagged.length > 0 && (
+      {/* ── Section 1: Flagged people — primary host only, only when flags exist ── */}
+      {!isCoHost && initialFlagged.length > 0 && (
         <div className="ps-section">
-          <h3 className="ps-section__title">People you flagged</h3>
-          <p className="ps-section__desc">
-            For each person you tapped during the session, add a brief note and choose how to route it.
-          </p>
+          <p className="ps-section-label">People you noted during the session</p>
+          <p className="ps-section__desc">Add a note if helpful, then choose what happens next.</p>
           <div className="ps-flagged-list">
             {initialFlagged.map((f) => (
               <div key={f.attendanceId} className="ps-flag-item">
-                <div className="ps-flag-item__name">{f.displayName}</div>
-                <RimEditor
+                <p className="ps-flag-item__name">{f.displayName}</p>
+                <textarea
                   className="ps-flag-item__note"
-                  rows={2}
-                  placeholder="Brief note — 2 or 3 sentences at most"
+                  rows={3}
+                  placeholder="What did you notice? (optional)"
                   value={flagNotes[f.attendanceId] ?? ""}
-                  onChange={(v) => {
-                    const updated = { ...flagNotes, [f.attendanceId]: v };
+                  onChange={(e) => {
+                    const updated = { ...flagNotes, [f.attendanceId]: e.target.value };
                     setFlagNotes(updated);
                     saveDraft({ flagNotes: updated });
                   }}
                 />
-                <select
-                  className="ps-flag-item__action"
-                  value={flagActions[f.attendanceId] ?? "NONE"}
-                  onChange={(e) => {
-                    const v = e.target.value as ActionValue;
-                    const updated = { ...flagActions, [f.attendanceId]: v };
-                    setFlagActions(updated);
-                    saveDraft({ flagActions: updated });
-                  }}
-                >
+                <div className="ps-radio-group">
                   {ACTION_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
+                    <label key={o.value} className="ps-radio">
+                      <input
+                        type="radio"
+                        name={`action-${f.attendanceId}`}
+                        value={o.value}
+                        checked={(flagActions[f.attendanceId] ?? "NONE") === o.value}
+                        onChange={() => {
+                          const updated = { ...flagActions, [f.attendanceId]: o.value };
+                          setFlagActions(updated);
+                          saveDraft({ flagActions: updated });
+                        }}
+                      />
+                      <span className="ps-radio__label">{o.label}</span>
+                    </label>
                   ))}
-                </select>
+                </div>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Show a note if no one was flagged */}
-      {initialFlagged.length === 0 && allAttendees.length > 0 && (
-        <div className="ps-section ps-section--quiet">
-          <p className="ps-section__desc">
-            You didn&rsquo;t flag anyone during this session. If something comes to mind now,
-            note it in the reflection below.
-          </p>
-        </div>
-      )}
-
       {/* ── Section 2: Session reflection ── */}
       <div className="ps-section">
-        <h3 className="ps-section__title">How was the session?</h3>
-        <p className="ps-section__desc">
-          The spirit of the session, anything that came up, anything worth the team knowing.
-          Optional, but this is how the team learns together over time.
-        </p>
-        <RimEditor
+        <p className="ps-section-label">Session reflection</p>
+        <p className="ps-section__desc">Optional — but encouraged.</p>
+        <textarea
           className="ps-reflection"
           rows={5}
-          placeholder="Notes for the team — whatever feels worth saying…"
+          placeholder="How did the session feel? Anything worth the team knowing?"
           value={reflection}
-          onChange={(v) => {
-            setReflection(v);
-            saveDraft({ reflection: v });
+          onChange={(e) => {
+            setReflection(e.target.value);
+            saveDraft({ reflection: e.target.value });
           }}
         />
       </div>
 
-      {/* ── Section 3: Resource for the group ── */}
-      <div className="ps-section">
-        <h3 className="ps-section__title">Something to share with everyone who attended?</h3>
-        <p className="ps-section__desc">
-          A book reference, a link, something from the session worth passing on.
-          If filled in, it&rsquo;ll go to Jesse and the coordinator for review — they&rsquo;ll send it.
-        </p>
-        <input
-          type="text"
-          className="ps-resource-url"
-          placeholder="URL or text"
-          value={resourceUrl}
-          onChange={(e) => {
-            setResourceUrl(e.target.value);
-            saveDraft({ resourceUrl: e.target.value });
-          }}
-        />
-        {resourceUrl && (
+      {/* ── Section 3: Resource to share — primary host only ── */}
+      {!isCoHost && (
+        <div className="ps-section">
+          <p className="ps-section-label">Something to share with attendees?</p>
+          <p className="ps-section__desc">
+            A book, a link, something from the session worth passing on. Optional — it goes to
+            Jesse and the coordinator for review.
+          </p>
           <input
             type="text"
-            className="ps-resource-note"
-            placeholder="Brief description (optional)"
-            value={resourceNote}
+            className="ps-resource-url"
+            placeholder="URL or text"
+            value={resourceUrl}
             onChange={(e) => {
-              setResourceNote(e.target.value);
-              saveDraft({ resourceNote: e.target.value });
+              setResourceUrl(e.target.value);
+              saveDraft({ resourceUrl: e.target.value });
             }}
           />
-        )}
-      </div>
+          {resourceUrl && (
+            <input
+              type="text"
+              className="ps-resource-note"
+              placeholder="Brief description (optional)"
+              value={resourceNote}
+              onChange={(e) => {
+                setResourceNote(e.target.value);
+                saveDraft({ resourceNote: e.target.value });
+              }}
+            />
+          )}
+        </div>
+      )}
 
       {error && <p className="ps-error">{error}</p>}
 
       <div className="ps-form__footer">
         <button type="submit" className="ps-submit" disabled={submitting}>
-          {submitting ? "Saving…" : "Submit Report"}
+          {submitting ? "Saving…" : isCoHost ? "Submit My Reflection" : "Submit Report"}
         </button>
-        {backPath && <a href={backPath} className="ps-cancel">Back</a>}
       </div>
     </form>
   );
