@@ -69,7 +69,7 @@ export default async function HubLayout({ children, params }: Props) {
       : []),
     ...(isTeacherHub
       ? [
-          { label: "Courses",  href: `${base}/courses` },
+          { label: "Series",   href: `${base}/courses` },
           { label: "Lessons",  href: `${base}/lessons` },
         ]
       : []),

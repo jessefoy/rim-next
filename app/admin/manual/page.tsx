@@ -2093,56 +2093,72 @@ export default async function ManualPage() {
         <section id="hub-session" className="man-section">
           <h2 className="man-section__title">Session Tab</h2>
           <p>
-            The <strong>Session tab</strong> at <strong>/account/hub/host-team/session</strong> is a live view of who has clicked in to today&rsquo;s virtual and hybrid programs. It&rsquo;s designed to be glanced at during a session — names and subtle status badges only. You should be able to take it all in within a few seconds.
-          </p>
-          <p>
-            The page refreshes automatically every 60 seconds, so attendance updates arrive without any action on your part. You can also reload manually at any time.
+            The <strong>Session tab</strong> at <strong>/account/hub/host-team/session</strong> is a live view of today&rsquo;s virtual and hybrid programs. It updates automatically every 60 seconds — attendance appears as members click in. You can also reload manually at any time.
           </p>
 
-          <h3 className="man-section__h3">What you&rsquo;ll see</h3>
+          <h3 className="man-section__h3">Program cards and states</h3>
           <p>
-            Each program running today gets its own card. Within the card:
+            Each program scheduled for today gets its own card. A card&rsquo;s appearance changes based on where the session is in its lifecycle:
           </p>
           <ul className="man-list">
-            <li><strong>Attendance count</strong> — how many people have clicked in so far, shown next to the program name.</li>
-            <li><strong>Hosting today</strong> — if a host is assigned for today&rsquo;s session, their name appears above the attendee list. They are not listed as a regular attendee — this spot is separate.</li>
-            <li><strong>Attendee names</strong> — each person who has clicked the Join button on their dashboard appears as a name chip. New members get a <em>New</em> badge; someone returning after six or more weeks away gets a <em>Welcome back</em> badge.</li>
-            <li><strong>Registered, not yet in</strong> — if registration is enabled for the program, people who registered but haven&rsquo;t clicked in yet appear in a muted list below the attendee chips. This disappears as people join.</li>
+            <li><strong>Later today</strong> — session is scheduled but hasn&rsquo;t started yet. Shown quietly.</li>
+            <li><strong>Getting ready</strong> — within 15 minutes of start. A reminder to open the Meet room.</li>
+            <li><strong>Live</strong> — session is currently running. The card has a green left border and a scoreboard showing how many people are in the room. This is the dominant view — other non-active cards collapse to small links if you have a form to file.</li>
+            <li><strong>Post-session</strong> — session time has passed. A link to the post-session form appears.</li>
+            <li><strong>Done</strong> — form has been submitted. A quiet confirmation.</li>
           </ul>
 
-          <h3 className="man-section__h3">Flagging someone for follow-up</h3>
+          <h3 className="man-section__h3">Attendee rows</h3>
           <p>
-            Tap any attendee&rsquo;s name to flag them for follow-up. The chip gets a small dot to mark it. Tap again to unflag. This is a lightweight note you make to yourself during the session — it doesn&rsquo;t notify anyone, it doesn&rsquo;t appear anywhere else, and it doesn&rsquo;t carry forward. It&rsquo;s a prompt: <em>remember to reach out to this person after the session.</em>
+            During a live session, each person who clicked the Join button appears as a full-width row. A colored stripe on the left edge tells you who they are at a glance:
           </p>
+          <ul className="man-list">
+            <li><strong>Amber stripe</strong> — this person is new to the community.</li>
+            <li><strong>Teal stripe</strong> — returning member.</li>
+            <li><strong>Grey</strong> — registered but hasn&rsquo;t clicked in yet.</li>
+          </ul>
+
+          <h3 className="man-section__h3">Flagging someone during the session</h3>
           <p>
-            Use it whenever you notice someone who might benefit from a personal check-in — a new member who seemed quiet, someone who mentioned a hard week, or anyone you want to circle back with. The post-session form (below) has a field where you can write down anything you want to remember.
+            Tap any attendee row to flag them for follow-up. The row gets a highlighted background. Tap again to unflag. This is a personal in-session note — it doesn&rsquo;t notify anyone immediately. When you file your post-session report, the people you flagged appear in the form so you can add a note and choose what happens next.
+          </p>
+
+          <h3 className="man-section__h3">Co-hosting</h3>
+          <p>
+            If you&rsquo;re on the host team and you&rsquo;re also sitting in on a session that another host is leading, tap <strong>I&rsquo;m also hosting this</strong> to add yourself. Your name appears as a co-host. All co-hosts can file a post-session report.
           </p>
 
           <h3 className="man-section__h3">Closing a session early</h3>
           <p>
-            Near the bottom of each program card, you&rsquo;ll see a <strong>Close session &amp; write notes →</strong> button. Clicking it does two things: it marks the session as closed in the system, and it takes you directly to the post-session form.
+            Near the bottom of each active program card, HOST, HOST_MANAGER, and ADMIN users see a <strong>Close session &amp; write notes →</strong> button. Clicking it marks the session closed and redirects to the post-session form. Once closed:
           </p>
+          <ul className="man-list">
+            <li>A <strong>Session closed [time]</strong> badge appears on the card for all hosts viewing the page.</li>
+            <li>New Join clicks from members are silently blocked — the button still works on their end, but no attendance record is written.</li>
+          </ul>
           <p>
-            Once a session is closed, two things change: a <strong>Session closed [time]</strong> badge appears on the card (so a second host on the page knows the session has ended), and new attendance clicks from members are silently blocked — the Join button on the dashboard will still respond, but no attendance record is written. This prevents someone from accidentally joining an already-ended session.
-          </p>
-          <p>
-            The Close button is only shown to Meet Hosts, Host Managers, and Admins. Registrars can view the session tab but cannot close sessions.
-          </p>
-          <p>
-            If you don&rsquo;t click Close, the session is considered ended automatically when the scheduled end time passes (or 90 minutes after start if no end time is set). Either way, the post-session form link appears once the session is over.
+            If you don&rsquo;t click Close, the session ends automatically when the scheduled end time passes.
           </p>
 
           <h3 className="man-section__h3">Post-session form</h3>
           <p>
-            After a session ends — whether you clicked Close or the time passed — a <strong>Complete post-session form →</strong> link appears at the bottom of the program card. This takes you to the post-session form where you can record:
+            After a session ends — whether you clicked Close or the time passed — a <strong>Complete post-session form →</strong> link appears. Every host on the session (primary and co-host) sees the same full form. The form has three sections:
           </p>
           <ul className="man-list">
-            <li>Attendance notes (anyone you flagged, anything that felt significant)</li>
-            <li>How the session felt</li>
-            <li>Anything to pass along to the teacher or coordinators</li>
+            <li>
+              <strong>People you noted</strong> — anyone you tapped during the session appears here. Write a brief note and choose what happens next:
+              <ul className="man-list" style={{marginTop: "8px"}}>
+                <li><strong>No action needed</strong> — the tap was precautionary, nothing needs to happen.</li>
+                <li><strong>Gentle follow-up</strong> — someone who might appreciate a brief reach-out from Jesse or the coordinator.</li>
+                <li><strong>Jesse only — sensitive</strong> — something private that needs Jesse&rsquo;s direct attention.</li>
+                <li><strong>Technical issue</strong> — something went wrong with the room, audio, or tech — routes to the coordinator.</li>
+              </ul>
+            </li>
+            <li><strong>Session reflection</strong> — optional but encouraged. How did the session feel? Anything worth the team knowing?</li>
+            <li><strong>Something to share</strong> — a book, link, or resource from the session worth passing on. Goes to Jesse and the coordinator for review.</li>
           </ul>
           <p>
-            Completing the form is part of the host&rsquo;s closing practice — it creates a record of what happened and helps the team learn over time.
+            The form autosaves as you type. You can close the tab and come back — your draft will be waiting. Submitting creates a permanent record and sends notification emails based on the routing choices you made.
           </p>
           <div className="man-note">
             The Session tab only shows programs scheduled for today. If a program is set up with today as an occurrence (single event or recurring), it will appear. Programs with no date configured do not appear.

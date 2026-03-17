@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json();
   const {
-    titleInternal, titleDisplayed, slug, isSectionTitle,
+    titleInternal, titleDisplayed, slug, accessLevel,
     body: lessonBody, heroImageUrl, heroImageAlt, audioUrl, videoUrl,
     headerQuote, quoteSource, teacherNames, resources,
   } = body;
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       titleInternal,
       titleDisplayed,
       slug,
-      isSectionTitle: isSectionTitle ?? false,
+      accessLevel: accessLevel ?? "MEMBERS",
       body: lessonBody || null,
       heroImageUrl: heroImageUrl || null,
       heroImageAlt: heroImageAlt || null,

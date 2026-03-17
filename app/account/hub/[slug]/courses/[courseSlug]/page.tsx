@@ -63,6 +63,7 @@ export default async function EditCoursePage({
     lessons: course.lessons.map((cl) => ({
       lessonId: cl.lessonId,
       sortOrder: cl.sortOrder,
+      groupLabel: cl.groupLabel ?? "",
       lesson: {
         id: cl.lesson.id,
         titleInternal: cl.lesson.titleInternal,

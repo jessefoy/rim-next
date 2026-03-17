@@ -465,7 +465,7 @@ model Lesson {
   titleDisplayed  String
   slug            String   @unique
 
-  isSectionTitle  Boolean  @default(false)
+  accessLevel     CourseAccessLevel @default(MEMBERS)
   body            Json?    // Tiptap JSON
 
   heroImageUrl    String?  // Vercel Blob URL
@@ -486,9 +486,10 @@ model Lesson {
 }
 
 model CourseLesson {
-  courseId  String
-  lessonId String
-  sortOrder Int     @default(0)
+  courseId   String
+  lessonId   String
+  sortOrder  Int     @default(0)
+  groupLabel String? // Section header rendered before this lesson on the series page
 
   course  Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lesson  Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)

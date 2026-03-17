@@ -60,7 +60,9 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
   const [titleInternal, setTitleInternal] = useState(initialData?.titleInternal ?? "");
   const [titleDisplayed, setTitleDisplayed] = useState(initialData?.titleDisplayed ?? "");
   const [slug, setSlug] = useState(initialData?.slug ?? "");
-  const [isSectionTitle, setIsSectionTitle] = useState(initialData?.isSectionTitle ?? false);
+  const [accessLevel, setAccessLevel] = useState<"MEMBERS" | "REGISTRATION_REQUIRED">(
+    (initialData as any)?.accessLevel ?? "MEMBERS"
+  );
 
   // Content — Tiptap JSON
   const [body, setBody] = useState<any>(initialData?.body ?? null);
@@ -195,7 +197,7 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
         titleInternal,
         titleDisplayed,
         slug,
-        isSectionTitle,
+        accessLevel,
         body: body || null,
         heroImageUrl: heroImageUrl || null,
         heroImageAlt: heroImageAlt || null,
@@ -289,14 +291,17 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
             />
           </label>
 
-          <label className="th-checkbox">
-            <input
-              type="checkbox"
-              checked={isSectionTitle}
-              onChange={(e) => setIsSectionTitle(e.target.checked)}
-            />
-            Section title (non-linked divider in course list)
-          </label>
+          <fieldset className="th-field">
+            <legend className="th-field__label">Who can access this lesson?</legend>
+            <label className="th-radio">
+              <input type="radio" checked={accessLevel === "MEMBERS"} onChange={() => setAccessLevel("MEMBERS")} />
+              All Members
+            </label>
+            <label className="th-radio">
+              <input type="radio" checked={accessLevel === "REGISTRATION_REQUIRED"} onChange={() => setAccessLevel("REGISTRATION_REQUIRED")} />
+              Registration Required
+            </label>
+          </fieldset>
         </div>
       </div>
 

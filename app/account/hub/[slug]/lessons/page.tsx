@@ -34,7 +34,7 @@ export default async function LessonsListPage({
     orderBy: { titleInternal: "asc" },
     include: {
       courses: {
-        include: { course: { select: { title: true } } },
+        include: { course: { select: { title: true, slug: true } } },
       },
     },
   });
@@ -44,7 +44,7 @@ export default async function LessonsListPage({
     titleInternal: l.titleInternal,
     titleDisplayed: l.titleDisplayed,
     slug: l.slug,
-    courses: l.courses.map((cl) => cl.course.title),
+    series: l.courses.map((cl) => ({ title: cl.course.title, slug: cl.course.slug })),
   }));
 
   return <LessonListClient hubSlug={slug} lessons={serialized} />;

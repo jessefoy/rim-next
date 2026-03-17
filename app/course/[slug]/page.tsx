@@ -3,7 +3,6 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { renderFormattedText } from "@/lib/renderRichContent";
-import SeriesListItem from "@/components/SeriesListItem";
 
 export const dynamic = "force-dynamic";
 
@@ -15,12 +14,11 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const course = await db.course.findUnique({ where: { slug }, select: { title: true } });
-  return { title: `${course?.title ?? "Course"} — Rooted In Mindfulness` };
+  return { title: `${course?.title ?? "Series"} — Rooted In Mindfulness` };
 }
 
 export default async function CoursePage({ params }: { params: Promise<{ slug: string }> }) {
   const session = await auth();
-  // proxy.ts handles the redirect for unauthenticated users, but guard here too
   if (!session?.user) redirect("/login");
 
   const { slug } = await params;
@@ -36,10 +34,9 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
   if (!course) notFound();
 
   // ── Access check ──────────────────────────────────────────────────────────
-  let hasAccess = course.accessLevel === "MEMBERS"; // any logged-in user
+  let hasAccess = course.accessLevel === "MEMBERS";
 
   if (!hasAccess && course.accessLevel === "REGISTRATION_REQUIRED" && session.user.id) {
-    // Check 1: active registration for any program linked to this course
     const programCourses = await db.programCourse.findMany({
       where: { courseId: course.id },
       select: { programId: true },
@@ -58,7 +55,6 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
       if (reg) hasAccess = true;
     }
 
-    // Check 2: manual admin grant
     if (!hasAccess) {
       const grant = await db.courseAccess.findUnique({
         where: { userId_courseSlug: { userId: session.user.id, courseSlug: slug } },
@@ -70,76 +66,79 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
 
   if (!hasAccess) {
     return (
-      <>
-        <div className="course-header">
-          <div className="f-container-regular">
-            <div className="f-header-wrapper-left">
-              <div className="f-margin-bottom-24">
-                <h1 className="course-title">{course.title}</h1>
-              </div>
-            </div>
+      <div className="crs-page">
+        <div className="crs-hero">
+          <div className="crs-hero__inner">
+            <h1 className="crs-hero__title">{course.title}</h1>
           </div>
         </div>
-        <div className="content-container" style={{ padding: "48px 24px" }}>
-          <p style={{ marginBottom: 16 }}>
-            Access to this course requires registration for the associated program.
+        <div className="crs-body">
+          <p className="crs-gate__msg">
+            Access to this series requires registration for the associated program.
           </p>
-          <Link href="/community-programs" style={{ color: "var(--rim-blue)" }}>
+          <Link href="/community-programs" className="crs-gate__link">
             View programs →
           </Link>
         </div>
-      </>
+      </div>
     );
   }
 
-  const lessons = course.lessons.map((cl) => cl.lesson);
+  const lessonItems = course.lessons; // CourseLesson[] with .lesson + .groupLabel
 
   return (
-    <>
-      {/* ── Course header: fafafa gradient background, blue title ── */}
-      <div className="course-header">
-        <div className="f-container-regular">
-          <div className="f-header-wrapper-left">
-            {course.subheading && (
-              <div className="f-margin-bottom-08">
-                <h5 className="course-type">{course.subheading}</h5>
-              </div>
-            )}
-            <div className="f-margin-bottom-24">
-              <h1 className="course-title">{course.title}</h1>
-            </div>
-            {course.description && (
-              <div className="text-block-65 w-richtext"
-                dangerouslySetInnerHTML={{ __html: renderFormattedText(course.description) }}
-              />
-            )}
-          </div>
+    <div className="crs-page">
+      {/* ── Hero ── */}
+      <div className="crs-hero">
+        <div className="crs-hero__inner">
+          {course.subheading && (
+            <p className="crs-hero__label">{course.subheading}</p>
+          )}
+          <h1 className="crs-hero__title">{course.title}</h1>
+          {course.description && (
+            <div
+              className="crs-hero__desc"
+              dangerouslySetInnerHTML={{ __html: renderFormattedText(course.description) }}
+            />
+          )}
         </div>
       </div>
 
-      {/* ── Lessons section ── */}
-      {lessons.length > 0 && (
-        <div className="course-lessons">
-          <div className="content-container">
-            <div className="series-list-section">
-              <div className="program-details-content no-bottom-margin">
-                <h2 className="text-center bottom-margin-30">Lessons</h2>
-                <div className="series-list-wrapper">
-                  {lessons.map((lesson, i) => (
-                    <SeriesListItem
-                      key={i}
-                      title={lesson.titleDisplayed}
-                      href={lesson.isSectionTitle ? undefined : `/lessons/${lesson.slug}?course=${course.slug}`}
-                      isSectionTitle={lesson.isSectionTitle}
-                      includesAudio={!!lesson.audioUrl}
-                    />
-                  ))}
-                </div>
+      {/* ── Lesson list ── */}
+      {lessonItems.length > 0 && (
+        <div className="crs-body">
+          <h2 className="crs-body__heading">Lessons</h2>
+          <div className="crs-list">
+            {lessonItems.map((cl, i) => (
+              <div key={cl.lessonId}>
+                {/* Section label (groupLabel) */}
+                {cl.groupLabel && (
+                  <div className="crs-section-label">{cl.groupLabel}</div>
+                )}
+                {/* Lesson row */}
+                <Link
+                  href={`/lessons/${cl.lesson.slug}?course=${course.slug}`}
+                  className="crs-item"
+                >
+                  <span className="crs-item__num">{i + 1}</span>
+                  <span className="crs-item__title">{cl.lesson.titleDisplayed}</span>
+                  <span className="crs-item__meta">
+                    {cl.lesson.audioUrl && <span className="crs-item__badge">🎧 Audio</span>}
+                    {cl.lesson.videoUrl && <span className="crs-item__badge">▶ Video</span>}
+                  </span>
+                  <span className="crs-item__arrow">→</span>
+                </Link>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       )}
-    </>
+
+      {lessonItems.length === 0 && (
+        <div className="crs-body">
+          <p className="crs-empty">No lessons have been added to this series yet.</p>
+        </div>
+      )}
+    </div>
   );
 }

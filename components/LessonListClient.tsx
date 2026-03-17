@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * LessonListClient — lesson list with client-side search.
+ * LessonListClient — lesson library with standalone / in-series sections.
  * CSS prefix: th-
  */
 
@@ -13,7 +13,7 @@ interface LessonRow {
   titleInternal: string;
   titleDisplayed: string;
   slug: string;
-  courses: string[];
+  series: { title: string; slug: string }[];
 }
 
 interface Props {
@@ -21,19 +21,66 @@ interface Props {
   lessons: LessonRow[];
 }
 
+function LessonTableRow({ lesson, hubSlug }: { lesson: LessonRow; hubSlug: string }) {
+  return (
+    <tr>
+      <td>
+        <Link href={`/account/hub/${hubSlug}/lessons/${lesson.slug}`} className="th-link">
+          {lesson.titleInternal}
+        </Link>
+      </td>
+      <td className="th-table__muted">{lesson.titleDisplayed}</td>
+      <td>
+        {lesson.series.length > 0
+          ? lesson.series.map((s) => (
+              <Link key={s.slug} href={`/account/hub/${hubSlug}/courses/${s.slug}`} className="th-link th-link--sm" style={{ marginRight: 8 }}>
+                {s.title}
+              </Link>
+            ))
+          : <span className="th-badge th-badge--muted">Standalone</span>
+        }
+      </td>
+      <td>
+        <Link href={`/account/hub/${hubSlug}/lessons/${lesson.slug}`} className="th-link">
+          Edit
+        </Link>
+      </td>
+    </tr>
+  );
+}
+
+function LessonTable({ lessons, hubSlug }: { lessons: LessonRow[]; hubSlug: string }) {
+  return (
+    <table className="th-table">
+      <thead>
+        <tr>
+          <th>Internal Title</th>
+          <th>Displayed Title</th>
+          <th>Series</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {lessons.map((l) => <LessonTableRow key={l.id} lesson={l} hubSlug={hubSlug} />)}
+      </tbody>
+    </table>
+  );
+}
+
 export default function LessonListClient({ hubSlug, lessons }: Props) {
   const [filter, setFilter] = useState("");
 
   const filtered = filter
-    ? lessons.filter((l) =>
-        l.titleInternal.toLowerCase().includes(filter.toLowerCase())
-      )
+    ? lessons.filter((l) => l.titleInternal.toLowerCase().includes(filter.toLowerCase()))
     : lessons;
+
+  const standalone = filtered.filter((l) => l.series.length === 0);
+  const inSeries   = filtered.filter((l) => l.series.length > 0);
 
   return (
     <div className="th-list">
       <div className="th-list__header">
-        <h2 className="th-list__title">Lessons</h2>
+        <h2 className="th-list__title">All Lessons</h2>
         <Link href={`/account/hub/${hubSlug}/lessons/new`} className="th-btn th-btn--primary">
           New Lesson
         </Link>
@@ -41,7 +88,7 @@ export default function LessonListClient({ hubSlug, lessons }: Props) {
 
       <input
         type="text"
-        placeholder="Search by internal title…"
+        placeholder="Search by title…"
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
         className="th-input th-list__search"
@@ -49,41 +96,25 @@ export default function LessonListClient({ hubSlug, lessons }: Props) {
 
       {filtered.length === 0 ? (
         <p className="th-empty">
-          {filter ? "No lessons match your search." : "No lessons yet. Create your first lesson to get started."}
+          {filter ? "No lessons match your search." : "No lessons yet. Create one from within a series, or use New Lesson above."}
         </p>
       ) : (
-        <table className="th-table">
-          <thead>
-            <tr>
-              <th>Internal Title</th>
-              <th>Displayed Title</th>
-              <th>Slug</th>
-              <th>Courses</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((lesson) => (
-              <tr key={lesson.id}>
-                <td>
-                  <Link href={`/account/hub/${hubSlug}/lessons/${lesson.slug}`} className="th-link">
-                    {lesson.titleInternal}
-                  </Link>
-                </td>
-                <td>{lesson.titleDisplayed}</td>
-                <td className="th-table__muted">{lesson.slug}</td>
-                <td className="th-table__muted">
-                  {lesson.courses.length > 0 ? lesson.courses.join(", ") : "—"}
-                </td>
-                <td>
-                  <Link href={`/account/hub/${hubSlug}/lessons/${lesson.slug}`} className="th-link">
-                    Edit
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <>
+          {standalone.length > 0 && (
+            <div className="th-list-section">
+              <h3 className="th-list-section__title">Standalone Teachings</h3>
+              <p className="th-list-section__desc">Not part of any series — shareable as individual lessons.</p>
+              <LessonTable lessons={standalone} hubSlug={hubSlug} />
+            </div>
+          )}
+
+          {inSeries.length > 0 && (
+            <div className="th-list-section">
+              <h3 className="th-list-section__title">In a Series</h3>
+              <LessonTable lessons={inSeries} hubSlug={hubSlug} />
+            </div>
+          )}
+        </>
       )}
     </div>
   );

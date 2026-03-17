@@ -47,16 +47,18 @@ export async function PATCH(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // Handle lesson order update
+  // Handle lesson order update — accepts { id, groupLabel? }[] or legacy string[]
   if (body.lessonOrder && Array.isArray(body.lessonOrder)) {
-    // Delete existing and recreate with new order
     await db.courseLesson.deleteMany({ where: { courseId: course.id } });
     await db.courseLesson.createMany({
-      data: body.lessonOrder.map((lessonId: string, i: number) => ({
-        courseId: course.id,
-        lessonId,
-        sortOrder: i,
-      })),
+      data: body.lessonOrder.map(
+        (item: string | { id: string; groupLabel?: string | null }, i: number) => ({
+          courseId: course.id,
+          lessonId: typeof item === "string" ? item : item.id,
+          sortOrder: i,
+          groupLabel: typeof item === "string" ? null : (item.groupLabel || null),
+        })
+      ),
     });
   }
 

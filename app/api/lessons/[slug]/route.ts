@@ -58,7 +58,7 @@ export async function PATCH(
     }
     updateData.slug = body.slug;
   }
-  if (body.isSectionTitle !== undefined) updateData.isSectionTitle = body.isSectionTitle;
+  if (body.accessLevel !== undefined) updateData.accessLevel = body.accessLevel;
   if (body.body !== undefined) updateData.body = body.body || null;
   if (body.heroImageUrl !== undefined) updateData.heroImageUrl = body.heroImageUrl || null;
   if (body.heroImageAlt !== undefined) updateData.heroImageAlt = body.heroImageAlt || null;

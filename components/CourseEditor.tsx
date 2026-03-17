@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * CourseEditor — handles both create and edit for courses.
+ * CourseEditor — create and edit Series.
  * CSS prefix: th-
  */
 
@@ -19,6 +19,7 @@ interface Lesson {
 interface CourseLesson {
   lessonId: string;
   sortOrder: number;
+  groupLabel: string; // section header before this lesson; "" = none
   lesson: Lesson;
 }
 
@@ -66,13 +67,20 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
   const [sortOrder, setSortOrder] = useState(initialData?.sortOrder ?? "");
   const [isActive, setIsActive] = useState(initialData?.isActive ?? true);
 
-  // Lesson manager state
-  const [lessons, setLessons] = useState<CourseLesson[]>(initialData?.lessons ?? []);
+  // Lesson manager
+  const [lessons, setLessons] = useState<CourseLesson[]>(
+    initialData?.lessons?.map((cl) => ({ ...cl, groupLabel: cl.groupLabel ?? "" })) ?? []
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Lesson[]>([]);
   const [searching, setSearching] = useState(false);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
+
+  // Inline lesson creation
+  const [showNewLessonForm, setShowNewLessonForm] = useState(false);
+  const [newLessonTitle, setNewLessonTitle] = useState("");
+  const [creatingLesson, setCreatingLesson] = useState(false);
 
   // Auto-generate slug from title
   useEffect(() => {
@@ -81,7 +89,7 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
     }
   }, [title, isEditing, slugTouched]);
 
-  // Lesson search
+  // Lesson search (add existing)
   useEffect(() => {
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
     if (searchQuery.length < 2) {
@@ -94,7 +102,6 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
         const res = await fetch(`/api/lessons/search?q=${encodeURIComponent(searchQuery)}`);
         if (res.ok) {
           const data = await res.json();
-          // Filter out lessons already in the course
           const existingIds = new Set(lessons.map((l) => l.lessonId));
           setSearchResults(data.filter((l: Lesson) => !existingIds.has(l.id)));
         }
@@ -107,7 +114,7 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
   function addLesson(lesson: Lesson) {
     setLessons((prev) => [
       ...prev,
-      { lessonId: lesson.id, sortOrder: prev.length, lesson },
+      { lessonId: lesson.id, sortOrder: prev.length, groupLabel: "", lesson },
     ]);
     setSearchQuery("");
     setSearchResults([]);
@@ -117,9 +124,13 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
     setLessons((prev) => prev.filter((l) => l.lessonId !== lessonId));
   }
 
-  function handleDragStart(idx: number) {
-    setDragIdx(idx);
+  function updateGroupLabel(lessonId: string, value: string) {
+    setLessons((prev) =>
+      prev.map((l) => (l.lessonId === lessonId ? { ...l, groupLabel: value } : l))
+    );
   }
+
+  function handleDragStart(idx: number) { setDragIdx(idx); }
 
   function handleDragOver(e: React.DragEvent, idx: number) {
     e.preventDefault();
@@ -133,8 +144,41 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
     setDragIdx(idx);
   }
 
-  function handleDragEnd() {
-    setDragIdx(null);
+  function handleDragEnd() { setDragIdx(null); }
+
+  // Create a new lesson inline and add it to this series
+  async function handleCreateLesson() {
+    if (!newLessonTitle.trim() || creatingLesson) return;
+    setCreatingLesson(true);
+    setError("");
+    try {
+      const res = await fetch("/api/lessons", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          titleInternal: newLessonTitle.trim(),
+          titleDisplayed: newLessonTitle.trim(),
+          slug: slugify(newLessonTitle.trim()),
+          accessLevel: "MEMBERS",
+        }),
+      });
+      if (res.ok) {
+        const newLesson = await res.json();
+        setLessons((prev) => [
+          ...prev,
+          { lessonId: newLesson.id, sortOrder: prev.length, groupLabel: "", lesson: newLesson },
+        ]);
+        setNewLessonTitle("");
+        setShowNewLessonForm(false);
+      } else {
+        const data = await res.json();
+        setError(data.error || "Failed to create lesson");
+      }
+    } catch {
+      setError("Network error");
+    } finally {
+      setCreatingLesson(false);
+    }
   }
 
   async function handleSave() {
@@ -155,7 +199,11 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
       };
 
       if (isEditing) {
-        payload.lessonOrder = lessons.map((l) => l.lessonId);
+        // Include groupLabel per lesson
+        payload.lessonOrder = lessons.map((l) => ({
+          id: l.lessonId,
+          groupLabel: l.groupLabel || null,
+        }));
       }
 
       const url = isEditing ? `/api/courses/${initialData?.slug}` : "/api/courses";
@@ -190,20 +238,20 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
   return (
     <div className="th-editor">
       <div className="th-editor__header">
-        <h2 className="th-editor__title">{isEditing ? "Edit Course" : "New Course"}</h2>
+        <h2 className="th-editor__title">{isEditing ? "Edit Series" : "New Series"}</h2>
         {isEditing && slug && (
           <a href={`/course/${slug}`} target="_blank" rel="noopener noreferrer" className="th-link th-link--view">
-            View course page →
+            View series page →
           </a>
         )}
       </div>
 
       {error && <div className="th-msg th-msg--error">{error}</div>}
-      {success && <div className="th-msg th-msg--success">Saved successfully</div>}
+      {success && <div className="th-msg th-msg--success">Saved</div>}
 
       <div className="th-form">
         <label className="th-field">
-          <span className="th-field__label">Course Title</span>
+          <span className="th-field__label">Series Title</span>
           <input
             type="text"
             value={title}
@@ -239,13 +287,13 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
           <FormattedEditor
             value={description}
             onChange={setDescription}
-            placeholder="A brief description of this course…"
+            placeholder="A brief description of this series…"
             minHeight={200}
           />
         </div>
 
         <fieldset className="th-field">
-          <legend className="th-field__label">Access Level</legend>
+          <legend className="th-field__label">Who can access this series?</legend>
           <label className="th-radio">
             <input
               type="radio"
@@ -293,42 +341,107 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
         </label>
       </div>
 
-      {/* ── Lesson Manager (edit mode only) ── */}
+      {/* ── Lesson Manager (edit mode) ── */}
       {isEditing && (
         <div className="th-lessons">
           <h3 className="th-lessons__title">Lessons</h3>
+          <p className="th-lessons__help">
+            Drag to reorder. Add a section label above any lesson to create a visual divider on the series page.
+          </p>
 
           {lessons.length === 0 ? (
-            <p className="th-empty">No lessons in this course yet.</p>
+            <p className="th-empty">No lessons yet — create one below or search to add an existing one.</p>
           ) : (
             <div className="th-lessons__list">
               {lessons.map((cl, i) => (
-                <div
-                  key={cl.lessonId}
-                  className={`th-lessons__item${dragIdx === i ? " th-lessons__item--dragging" : ""}`}
-                  draggable
-                  onDragStart={() => handleDragStart(i)}
-                  onDragOver={(e) => handleDragOver(e, i)}
-                  onDragEnd={handleDragEnd}
-                >
-                  <span className="th-lessons__handle" title="Drag to reorder">☰</span>
-                  <span className="th-lessons__name">{cl.lesson.titleInternal}</span>
-                  <button
-                    type="button"
-                    className="th-btn th-btn--danger th-btn--small"
-                    onClick={() => removeLesson(cl.lessonId)}
+                <div key={cl.lessonId} className="th-lessons__group">
+                  {/* Section label input — optional, shown above lesson row */}
+                  <input
+                    type="text"
+                    placeholder="Section label (optional — e.g. "Week 1")"
+                    value={cl.groupLabel}
+                    onChange={(e) => updateGroupLabel(cl.lessonId, e.target.value)}
+                    className="th-lessons__group-input"
+                    aria-label="Section label"
+                  />
+                  {/* Lesson row */}
+                  <div
+                    className={`th-lessons__item${dragIdx === i ? " th-lessons__item--dragging" : ""}`}
+                    draggable
+                    onDragStart={() => handleDragStart(i)}
+                    onDragOver={(e) => handleDragOver(e, i)}
+                    onDragEnd={handleDragEnd}
                   >
-                    Remove
-                  </button>
+                    <span className="th-lessons__handle" title="Drag to reorder">☰</span>
+                    <span className="th-lessons__name">{cl.lesson.titleInternal}</span>
+                    <a
+                      href={`/account/hub/${hubSlug}/lessons/${cl.lesson.slug}`}
+                      className="th-link th-link--sm"
+                    >
+                      Edit ↗
+                    </a>
+                    <button
+                      type="button"
+                      className="th-btn th-btn--danger th-btn--small"
+                      onClick={() => removeLesson(cl.lessonId)}
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
           )}
 
+          {/* ── Create new lesson inline ── */}
+          <div className="th-lessons__new">
+            {!showNewLessonForm ? (
+              <button
+                type="button"
+                className="th-btn th-btn--primary th-btn--small"
+                onClick={() => setShowNewLessonForm(true)}
+              >
+                + New Lesson
+              </button>
+            ) : (
+              <div className="th-lessons__new-form">
+                <input
+                  type="text"
+                  placeholder="Lesson title…"
+                  value={newLessonTitle}
+                  onChange={(e) => setNewLessonTitle(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleCreateLesson(); if (e.key === "Escape") { setShowNewLessonForm(false); setNewLessonTitle(""); } }}
+                  className="th-input"
+                  autoFocus
+                />
+                <div className="th-lessons__new-actions">
+                  <button
+                    type="button"
+                    className="th-btn th-btn--primary th-btn--small"
+                    onClick={handleCreateLesson}
+                    disabled={creatingLesson || !newLessonTitle.trim()}
+                  >
+                    {creatingLesson ? "Creating…" : "Create & Add"}
+                  </button>
+                  <button
+                    type="button"
+                    className="th-btn th-btn--small"
+                    onClick={() => { setShowNewLessonForm(false); setNewLessonTitle(""); }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+                <p className="th-muted">The lesson will be added to this series. Use Edit ↗ to add content.</p>
+              </div>
+            )}
+          </div>
+
+          {/* ── Add existing lesson by search ── */}
           <div className="th-lessons__add">
+            <p className="th-lessons__add-label">Or add an existing lesson:</p>
             <input
               type="text"
-              placeholder="Search lessons to add…"
+              placeholder="Search lessons…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="th-input"
@@ -359,7 +472,7 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
           disabled={saving || !title || !slug}
           className="th-btn th-btn--primary"
         >
-          {saving ? "Saving…" : "Save"}
+          {saving ? "Saving…" : isEditing ? "Save Series" : "Create Series"}
         </button>
         <button
           type="button"

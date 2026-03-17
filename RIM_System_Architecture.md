@@ -103,6 +103,8 @@ The **Registrar Hub** (Phase 1) was migrated into the hub system in session 53. 
 
 **Support Inbox — complete (sessions 56–57):** A standalone hub (`/account/hub/support/`) was built for the SUPPORT role. It provides a full Gmail-integrated shared email client for `support@rootedinmindfulness.org`: OAuth2 sync engine, three-column inbox UI, thread management (OPEN/CLAIMED/WAITING/RESOLVED), reply and compose via Gmail API, internal notes, email templates, per-user signatures, member matching, soft delete, notifications, and cron-based auto-sync (5 min, Vercel Pro). Security hardening completed in session 57 (SSRF guard, attachment ownership check, soft-delete bypass fix in sync, 404 on deleted threads, rate limiting on manual sync, enum validation, signature HTML escaping, audit trail on hard delete).
 
+**Host Hub Session tab — complete (session 58):** Full visual redesign and post-session form overhaul. Six-state machine (`later-today → getting-ready → live → post-session → done`) transitions correctly via tick counter without page reload. Person rows are full-width tap targets with color-coded left strip (amber=new member, teal=returning) and flag circle. Live session card has sage green background; ended sessions collapse to footnotes when a form is pending. Post-session form: all hosts see the full form (flagged people with note + routing descriptions, session reflection, resource to share). FormattedEditor (Tiptap JSON) used for all multi-line communication fields. Three schema fields migrated from `String?` to `Json?`: `SessionAttendance.postSessionNote`, `SessionReport.reflection`, `SessionCoHostReport.reflection`.
+
 **What remains for the Registrar Hub:**
 
 - **Check-in tools:** Digital check-in per program (phone-first), PDF export, future member self-check-in.
@@ -121,4 +123,4 @@ This file is part of the closing ritual for any Claude Code session that touches
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org*
-*Working document · March 2026 (updated session 57)*
+*Working document · March 2026 (updated session 58)*
