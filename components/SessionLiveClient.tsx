@@ -13,6 +13,7 @@
  *
  * Design principle: designed for the moment of panic, not the moment of calm.
  * One block gets full visual treatment at a time. Everything else is a footnote.
+ * The live view is a glanceable status board — not a webpage you read.
  */
 
 import { useEffect, useCallback, useState } from "react";
@@ -49,22 +50,22 @@ export interface SessionProgram {
   name: string;
   startTimeCT: string | null;
   endTimeCT: string | null;
-  startDatetimeISO: string | null;   // actual shifted ISO for this occurrence
+  startDatetimeISO: string | null;
   endDatetimeISO: string | null;
-  sessionDateISO: string;            // midnight CT ISO for this occurrence
+  sessionDateISO: string;
   zoomLink: string | null;
   meetHostAccount: string | null;
   isRegistered: boolean;
   attendees: Attendee[];
   notYetJoined: Registrant[];
-  sessionEnded: boolean;             // server-computed time-based flag
-  sessionEndedAt: string | null;     // ISO — manually ended by host
+  sessionEnded: boolean;
+  sessionEndedAt: string | null;
   assignedHost: { id: string; name: string } | null;
   coHosts: Array<{ id: string; name: string }>;
   currentUserIsAssignedHost: boolean;
   currentUserIsCoHost: boolean;
-  reportSubmitted: boolean;          // current user submitted the primary report
-  coHostReportSubmitted: boolean;    // current user submitted a co-host reflection
+  reportSubmitted: boolean;
+  coHostReportSubmitted: boolean;
   postSessionPath: string;
 }
 
@@ -81,41 +82,32 @@ interface Props {
 // ── State computation ─────────────────────────────────────────────────────────
 
 type SessionState =
-  | "later-today"    // State 2
-  | "getting-ready"  // State 3
-  | "live"           // State 4
-  | "post-session"   // State 5
-  | "done";          // State 6
+  | "later-today"
+  | "getting-ready"
+  | "live"
+  | "post-session"
+  | "done";
 
 function computeState(prog: SessionProgram): SessionState {
   const now = Date.now();
   const startMs = prog.startDatetimeISO ? new Date(prog.startDatetimeISO).getTime() : null;
   const endMs   = prog.endDatetimeISO   ? new Date(prog.endDatetimeISO).getTime()   : null;
-  // No fallback end time — if endDatetime is not set, only a manual End Session
-  // can transition out of State 4. Sessions should not auto-expire.
 
   const manuallyEnded = !!prog.sessionEndedAt;
   const timeEnded = endMs !== null && now > endMs;
   const isEnded = manuallyEnded || timeEnded;
 
   if (isEnded) {
-    if (prog.currentUserIsAssignedHost) {
-      return prog.reportSubmitted ? "done" : "post-session";
-    }
-    if (prog.currentUserIsCoHost) {
-      return prog.coHostReportSubmitted ? "done" : "post-session";
-    }
-    // Neither — session is over, nothing to file
+    if (prog.currentUserIsAssignedHost) return prog.reportSubmitted ? "done" : "post-session";
+    if (prog.currentUserIsCoHost)       return prog.coHostReportSubmitted ? "done" : "post-session";
     return "post-session";
   }
 
-  if (startMs === null) return "live"; // No schedule data → always show live view
-
-  if (now >= startMs) return "live";
+  if (startMs === null) return "live";
+  if (now >= startMs)   return "live";
 
   const minutesToStart = (startMs - now) / 60_000;
   if (minutesToStart <= 90) return "getting-ready";
-
   return "later-today";
 }
 
@@ -125,50 +117,52 @@ function minutesUntil(isoString: string): number {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-/** Tappable attendee chips with clear new/returning/flagged indicators */
-function AttendeeChips({
-  attendees,
+/**
+ * Full-width tappable person row.
+ * Left edge color = status (amber = new, teal = returning, none = regular).
+ * Right circle = flag state (empty = not flagged, filled = flagged).
+ * Entire row is the tap target.
+ */
+function AttendeeRow({
+  attendee: a,
   flagging,
   onFlag,
 }: {
-  attendees: Attendee[];
+  attendee: Attendee;
   flagging: string | null;
   onFlag: (id: string) => void;
 }) {
-  return (
-    <div className="sv-attendees">
-      {attendees.map((a) => {
-        const chipClass = [
-          "sv-person",
-          a.isNewMember                              ? "sv-person--new"       : "",
-          a.returningAfterAbsence && !a.isNewMember ? "sv-person--returning" : "",
-          a.flaggedByHost                            ? "sv-person--flagged"   : "",
-          flagging === a.recordId                    ? "sv-person--toggling"  : "",
-        ].filter(Boolean).join(" ");
+  const rowClass = [
+    "sv-person-row",
+    a.isNewMember                              ? "sv-person-row--new"       : "",
+    a.returningAfterAbsence && !a.isNewMember ? "sv-person-row--returning" : "",
+    a.flaggedByHost                            ? "sv-person-row--flagged"   : "",
+    flagging === a.recordId                    ? "sv-person-row--toggling"  : "",
+  ].filter(Boolean).join(" ");
 
-        return (
-          <button
-            key={a.recordId}
-            type="button"
-            className={chipClass}
-            onClick={() => onFlag(a.recordId)}
-            title={a.flaggedByHost ? "Flagged — tap to unflag" : "Tap to flag for follow-up"}
-          >
-            <span className="sv-person__name">{a.displayName}</span>
-            {a.isNewMember && (
-              <span className="sv-person__label sv-person__label--new">New</span>
-            )}
-            {a.returningAfterAbsence && !a.isNewMember && (
-              <span className="sv-person__label sv-person__label--returning">Welcome back</span>
-            )}
-            {a.flaggedByHost && <span className="sv-flag-dot" aria-label="Flagged" />}
-          </button>
-        );
-      })}
-    </div>
+  return (
+    <button
+      type="button"
+      className={rowClass}
+      onClick={() => onFlag(a.recordId)}
+      title={a.flaggedByHost ? "Flagged — tap to unflag" : "Tap to flag for follow-up"}
+    >
+      <span className="sv-person-row__name">{a.displayName}</span>
+      {a.isNewMember && (
+        <span className="sv-person-row__status sv-person-row__status--new">✦ New</span>
+      )}
+      {a.returningAfterAbsence && !a.isNewMember && (
+        <span className="sv-person-row__status sv-person-row__status--returning">↩ Back</span>
+      )}
+      <span
+        className={`sv-person-row__flag${a.flaggedByHost ? " sv-person-row__flag--filled" : ""}`}
+        aria-label={a.flaggedByHost ? "Flagged" : "Not flagged"}
+      />
+    </button>
   );
 }
 
+/** Roster of registered names for States 2 and 3 (pre-session, not tappable) */
 function Roster({ notYetJoined, attendees }: { notYetJoined: Registrant[]; attendees: Attendee[] }) {
   if (notYetJoined.length === 0 && attendees.length === 0) return null;
   const allNames = [
@@ -189,6 +183,7 @@ function Roster({ notYetJoined, attendees }: { notYetJoined: Registrant[]; atten
   );
 }
 
+/** Co-host self-mark — only for States 2 and 3 (pre-session) */
 function CoHostButton({
   slug,
   isCoHost,
@@ -210,18 +205,13 @@ function CoHostButton({
       <p className="sv-cohost-confirmed">
         You&rsquo;re set as co-host.{" "}
         {coHosts.length > 1 && (
-          <span>Also hosting: {coHosts.filter((ch) => ch.id !== undefined).map((ch) => ch.name).join(", ")}</span>
+          <span>Also hosting: {coHosts.map((ch) => ch.name).join(", ")}</span>
         )}
       </p>
     );
   }
   return (
-    <button
-      type="button"
-      className="sv-cohost-btn"
-      disabled={marking}
-      onClick={() => onMark(slug)}
-    >
+    <button type="button" className="sv-cohost-btn" disabled={marking} onClick={() => onMark(slug)}>
       {marking ? "Marking…" : "I'm also hosting this"}
     </button>
   );
@@ -244,9 +234,9 @@ export default function SessionLiveClient({
   const [confirmEndSlug, setConfirmEndSlug] = useState<string | null>(null);
   const [endingSession, setEndingSession] = useState<string | null>(null);
   const [markingCoHost, setMarkingCoHost] = useState<string | null>(null);
-  const [, forceUpdate] = useState(0); // triggers re-render for live state transitions
+  const [, forceUpdate] = useState(0);
 
-  // Poll every 60 seconds for new attendance + refresh state
+  // Refresh every 60 seconds for new attendance + live state transitions
   useEffect(() => {
     const interval = setInterval(() => {
       router.refresh();
@@ -261,7 +251,7 @@ export default function SessionLiveClient({
     try {
       await fetch(`/api/attendance/${recordId}/flag`, { method: "PATCH" });
       router.refresh();
-    } catch { /* Silently ignore — flag state syncs on next poll */ }
+    } catch { /* syncs on next poll */ }
     finally { setFlagging(null); }
   }, [flagging, router]);
 
@@ -272,11 +262,8 @@ export default function SessionLiveClient({
     try {
       await fetch(`/api/attendance/session/${prog.slug}/end`, { method: "POST" });
       router.refresh();
-    } catch {
-      // Silently ignore — state will transition naturally when session time passes
-    } finally {
-      setEndingSession(null);
-    }
+    } catch { /* state transitions on time */ }
+    finally { setEndingSession(null); }
   }, [endingSession, router]);
 
   const markCoHost = useCallback(async (slug: string) => {
@@ -285,7 +272,7 @@ export default function SessionLiveClient({
     try {
       await fetch(`/api/attendance/session/${slug}/cohost`, { method: "POST" });
       router.refresh();
-    } catch { /* Silently ignore — co-host status syncs on next poll */ }
+    } catch { /* syncs on next poll */ }
     finally { setMarkingCoHost(null); }
   }, [markingCoHost, router]);
 
@@ -308,7 +295,7 @@ export default function SessionLiveClient({
     );
   }
 
-  // Compute states for all programs — used for visual hierarchy (one block dominant at a time)
+  // Compute states once — drives visual hierarchy (live = dominant)
   const progStates = programs.map((p) => ({ prog: p, state: computeState(p) }));
   const hasLive = progStates.some((ps) => ps.state === "live");
 
@@ -320,9 +307,7 @@ export default function SessionLiveClient({
         const isEndingThis = endingSession === prog.slug;
         const isMarkingThis = markingCoHost === prog.slug;
 
-        // ── Visual hierarchy: when a live session exists, collapse all others ──
-        // Ended sessions become a single quiet line; upcoming sessions are footnotes.
-        // This keeps the live block visually dominant with nothing competing.
+        // ── Visual hierarchy: collapse non-live sessions to a quiet footnote ──
         if (hasLive && state !== "live") {
           const isEnded = state === "post-session" || state === "done";
           return (
@@ -387,16 +372,13 @@ export default function SessionLiveClient({
           return (
             <div key={prog._id} className="sv-state-wrap sv-state-wrap--3">
               <h2 className="sv-state-header">
-                {mins !== null ? `Your session starts in ${mins} minute${mins === 1 ? "" : "s"}.` : "Your session is starting soon."}
+                {mins !== null
+                  ? `Your session starts in ${mins} minute${mins === 1 ? "" : "s"}.`
+                  : "Your session is starting soon."}
               </h2>
 
               {prog.zoomLink && (
-                <a
-                  href={prog.zoomLink}
-                  className="sv-meet-primary-btn"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
+                <a href={prog.zoomLink} className="sv-meet-primary-btn" target="_blank" rel="noopener noreferrer">
                   Join Google Meet →
                 </a>
               )}
@@ -426,46 +408,54 @@ export default function SessionLiveClient({
         }
 
         // ── State 4: Session is live ─────────────────────────────────────────
+        // Glanceable status board. No co-host button — session is already in progress.
         if (state === "live") {
           return (
             <div key={prog._id} className="sv-state-wrap sv-state-wrap--4 sv-state-wrap--live">
-              <div className="sv-live-header">
-                <div className="sv-live-title-row">
-                  <span className="sv-live-dot" aria-hidden="true" />
-                  <h2 className="sv-live-title">Session is live — {prog.name}</h2>
-                </div>
-                <p className="sv-live-count">{prog.attendees.length} in the room</p>
-              </div>
 
-              {prog.attendees.length === 0 ? (
-                <p className="sv-no-attendees">No one has joined yet.</p>
-              ) : (
-                <AttendeeChips attendees={prog.attendees} flagging={flagging} onFlag={toggleFlag} />
+              {/* Title row: pulsing dot + session name */}
+              <div className="sv-live-title-row">
+                <span className="sv-live-dot" aria-hidden="true" />
+                <h2 className="sv-live-title">Session is live — {prog.name}</h2>
+              </div>
+              {(prog.startTimeCT || prog.endTimeCT) && (
+                <p className="sv-live-time">
+                  {prog.startTimeCT}{prog.endTimeCT ? ` – ${prog.endTimeCT}` : ""}{" CT"}
+                </p>
               )}
 
+              {/* Scoreboard count — large, reads at a glance */}
+              <div className="sv-scoreboard">
+                <span className="sv-scoreboard__number">{prog.attendees.length}</span>
+                <p className="sv-scoreboard__label">in the room</p>
+              </div>
+
+              {/* Attendee rows — full-width, entire row tappable to flag */}
+              <div className="sv-person-rows">
+                {prog.attendees.length === 0 ? (
+                  <p className="sv-no-attendees">No one has joined yet.</p>
+                ) : (
+                  prog.attendees.map((a) => (
+                    <AttendeeRow key={a.recordId} attendee={a} flagging={flagging} onFlag={toggleFlag} />
+                  ))
+                )}
+              </div>
+
+              {/* Registered but not here yet — muted, not tappable */}
               {prog.notYetJoined.length > 0 && (
                 <div className="sv-not-joined">
                   <p className="sv-not-joined__label">Registered but not here yet</p>
-                  <div className="sv-not-joined__names">
+                  <div className="sv-person-rows">
                     {prog.notYetJoined.map((r, i) => (
-                      <span key={r.userId ?? r.email ?? i} className="sv-not-joined__name">
-                        {r.displayName}
-                      </span>
+                      <div key={r.userId ?? r.email ?? i} className="sv-person-row sv-person-row--absent">
+                        <span className="sv-person-row__name">{r.displayName}</span>
+                      </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              <CoHostButton
-                slug={prog.slug}
-                isCoHost={prog.currentUserIsCoHost}
-                isAssignedHost={prog.currentUserIsAssignedHost}
-                coHosts={prog.coHosts}
-                onMark={markCoHost}
-                marking={isMarkingThis}
-              />
-
-              {/* End Session — ghost style, low visual weight, below the attendee list */}
+              {/* End Session — ghost, full-width on mobile, below attendees */}
               {canEndSession && (
                 <div className="sv-end-wrap">
                   <button
@@ -487,18 +477,10 @@ export default function SessionLiveClient({
                       End {prog.name} and go to your post-session report?
                     </p>
                     <div className="sv-confirm-actions">
-                      <button
-                        type="button"
-                        className="sv-confirm-yes"
-                        onClick={() => endSession(prog)}
-                      >
+                      <button type="button" className="sv-confirm-yes" onClick={() => endSession(prog)}>
                         End Session
                       </button>
-                      <button
-                        type="button"
-                        className="sv-confirm-no"
-                        onClick={() => setConfirmEndSlug(null)}
-                      >
+                      <button type="button" className="sv-confirm-no" onClick={() => setConfirmEndSlug(null)}>
                         Not yet
                       </button>
                     </div>
@@ -515,24 +497,27 @@ export default function SessionLiveClient({
           const showAttendees = isReporter || isCoordinator;
           return (
             <div key={prog._id} className="sv-state-wrap sv-state-wrap--5">
-              <div className="sv-live-header">
+              <div className="sv-live-title-row sv-live-title-row--ended">
                 <h2 className="sv-live-title sv-live-title--ended">{prog.name} — ended</h2>
-                <p className="sv-live-count">{prog.attendees.length} in the room</p>
+                <span className="sv-live-count-inline">{prog.attendees.length} in the room</span>
               </div>
 
-              {/* Attendee list — visible to assigned host, co-host, and coordinators */}
               {showAttendees && (
                 prog.attendees.length === 0 ? (
                   <p className="sv-no-attendees">No attendance recorded.</p>
                 ) : (
-                  <AttendeeChips attendees={prog.attendees} flagging={flagging} onFlag={toggleFlag} />
+                  <div className="sv-person-rows">
+                    {prog.attendees.map((a) => (
+                      <AttendeeRow key={a.recordId} attendee={a} flagging={flagging} onFlag={toggleFlag} />
+                    ))}
+                  </div>
                 )
               )}
 
               {isReporter ? (
                 <>
                   <p className="sv-state-body sv-state-body--report-prompt">
-                    Take a few minutes for your report — it only takes a few minutes and it helps the whole team.
+                    Take a few minutes for your report — it helps the whole team.
                   </p>
                   <PostSessionClient
                     programSlug={prog.slug}
@@ -576,32 +561,30 @@ export default function SessionLiveClient({
           <div key={prog._id} className="sv-state-wrap sv-state-wrap--6">
             <h2 className="sv-state-header">You&rsquo;re done.</h2>
             <p className="sv-state-body">Your reflection has been added to the team journal.</p>
-            <a
-              href={`/account/hub/${hubSlug}/session/history/team`}
-              className="sv-journal-link"
-            >
+            <a href={`/account/hub/${hubSlug}/session/history/team`} className="sv-journal-link">
               See the team journal →
             </a>
           </div>
         );
       })}
 
-      {/* Coordinator section — only renders for HOST_MANAGER and ADMIN */}
+      {/* Coordinator section — only renders for HOST_MANAGER and ADMIN.
+          Positioned below a quiet divider so it doesn't compete with the live block. */}
       {isCoordinator && programs.length > 0 && (
         <div className="sv-coordinator-section">
-          <h3 className="sv-coordinator-section__title">Coordinator</h3>
+          <hr className="sv-coordinator-divider" />
+          <p className="sv-coordinator-label">Coordinator</p>
           {programs.filter((p) => !programsWithReportsToday.includes(p.slug)).length > 0 && (
-            <div className="sv-missing-reports">
-              <p className="sv-missing-reports__label">No report filed yet:</p>
+            <p className="sv-coordinator-missing">
+              No report yet:{" "}
               {programs
                 .filter((p) => !programsWithReportsToday.includes(p.slug))
-                .map((p) => (
-                  <span key={p.slug} className="sv-missing-reports__item">{p.name}</span>
-                ))}
-            </div>
+                .map((p) => p.name)
+                .join(", ")}
+            </p>
           )}
           <a href={`/account/hub/${hubSlug}/session/history`} className="sv-coordinator-link">
-            View coordinator history →
+            Coordinator history →
           </a>
         </div>
       )}

@@ -11294,7 +11294,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 
 /* State wrapper — each state is a focused, single-purpose block */
 .sv-state-wrap {
-  padding: 32px 0 40px;
+  padding: 28px 0 36px;
 }
 
 /* State 1 — no session today */
@@ -11302,7 +11302,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   max-width: 520px;
 }
 
-/* States 2, 3, 5, 6 — centered reading column */
+/* States 2, 3, 5, 6 — reading column */
 .sv-state-wrap--2,
 .sv-state-wrap--3,
 .sv-state-wrap--5,
@@ -11310,17 +11310,16 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   max-width: 560px;
 }
 
-/* State 4 — live view: full width, stays compact on phone */
+/* State 4 — live view */
 .sv-state-wrap--4 {
-  padding-top: 20px;
+  padding-top: 16px;
   padding-bottom: 32px;
 }
 
-/* Applied to state 4 when session is live — visual signal via left border */
+/* Live block signal: green left border */
 .sv-state-wrap--live {
-  border-left: 3px solid #2a9e62;
-  padding-left: 20px;
-  margin-left: -23px; /* compensate so content stays aligned with other states */
+  border-left: 4px solid #2a9e62;
+  padding-left: 16px;
 }
 
 .sv-state-date {
@@ -11496,17 +11495,22 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   margin-top: 4px;
 }
 
-/* State 4 / 5: live/ended session header */
-.sv-live-header {
-  margin-bottom: 20px;
-}
+/* ── State 4 live header ── */
 
-/* Row containing the pulsing dot + title */
+/* Pulsing dot + title row */
 .sv-live-title-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
+}
+
+/* State 5: ended variant — no dot, inline count */
+.sv-live-title-row--ended {
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
 }
 
 /* Pulsing green dot — signals an active session */
@@ -11522,43 +11526,206 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 
 @keyframes sv-dot-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.55; transform: scale(0.78); }
+  50%       { opacity: 0.5; transform: scale(0.75); }
 }
 
-/* The dominant heading — largest text on the page during a live session */
+/* Dominant session title — largest text on page during live session */
 .sv-live-title {
   font-family: var(--font-sans);
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
   color: var(--rim-text);
   margin: 0;
   line-height: 1.2;
 }
 
-/* Muted variant for ended sessions (State 5) */
+/* Muted, smaller for ended state */
 .sv-live-title--ended {
   color: var(--rim-text-muted);
-  font-size: 20px;
+  font-size: 18px;
+  font-weight: 600;
 }
 
-/* Attendee count — readable paragraph, not tiny metadata */
-.sv-live-count {
-  font-size: 16px;
+/* Inline count for ended state (State 5) */
+.sv-live-count-inline {
+  font-size: 14px;
   color: var(--rim-text-muted);
-  font-weight: 500;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+/* Session time — below the title */
+.sv-live-time {
+  font-size: 14px;
+  color: var(--rim-text-muted);
+  margin: 0 0 16px;
+}
+
+/* ── Scoreboard count — reads at a glance, like a scoreboard ── */
+.sv-scoreboard {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 12px 0 20px;
+}
+
+.sv-scoreboard__number {
+  font-family: var(--font-sans);
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--rim-text);
+  line-height: 1;
+}
+
+.sv-scoreboard__label {
+  font-size: 17px;
+  color: var(--rim-text-muted);
+  font-weight: 400;
   margin: 0;
 }
 
-/* Legacy icon badges — kept for safety */
+/* ── Full-width person rows (State 4 and 5) ── */
+
+/* Container */
+.sv-person-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+/* Each person — full-width tappable row, 60px min height */
+.sv-person-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 60px;
+  padding: 12px 16px 12px 16px;
+  background: #faf8f6;
+  border: none;
+  border-left: 4px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  text-align: left;
+  gap: 10px;
+  box-sizing: border-box;
+  transition: background 0.1s;
+}
+
+.sv-person-row:hover {
+  background: #f2eeea;
+}
+
+/* New member — amber left edge */
+.sv-person-row--new {
+  border-left-color: #c07e2a;
+}
+
+/* Returning after absence — teal left edge */
+.sv-person-row--returning {
+  border-left-color: var(--rim-mid);
+}
+
+/* Flagged — warm background */
+.sv-person-row--flagged {
+  background: #fef6ec;
+}
+.sv-person-row--flagged:hover {
+  background: #fdecd4;
+}
+
+/* Transitioning (tap in progress) */
+.sv-person-row--toggling {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Absent (not yet joined) — muted, not tappable (div element) */
+.sv-person-row--absent {
+  background: #f4f2ef;
+  border-left-color: transparent;
+  cursor: default;
+  min-height: 48px;
+}
+.sv-person-row--absent:hover {
+  background: #f4f2ef;
+}
+
+/* Person name — fills available space */
+.sv-person-row__name {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--rim-text);
+  line-height: 1.3;
+}
+.sv-person-row--absent .sv-person-row__name {
+  color: var(--rim-text-muted);
+  font-weight: 400;
+}
+
+/* Status label — "✦ New" or "↩ Back" */
+.sv-person-row__status {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+
+.sv-person-row__status--new {
+  color: #9e5e10;
+}
+
+.sv-person-row__status--returning {
+  color: var(--rim-mid);
+}
+
+/* Flag circle — right side. Empty = not flagged. Filled = flagged. */
+.sv-person-row__flag {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid #c8bcb2;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  display: block;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.sv-person-row__flag--filled {
+  background: #c07e2a;
+  border-color: #c07e2a;
+}
+
+/* Not-joined section — below attendees, clear label */
+.sv-not-joined {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #eceae5;
+}
+
+.sv-not-joined__label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #b0a89e;
+  margin: 0 0 8px;
+}
+
+/* Legacy chip classes — kept for safety */
+.sv-no-attendees { font-size: 14px; color: var(--rim-text-muted); font-style: italic; margin: 4px 0 16px; }
 .sv-live-badge { font-size: 13px; margin-left: 4px; line-height: 1; }
 .sv-live-badge--new  { color: #a87c3a; }
 .sv-live-badge--returning { color: var(--rim-mid); }
 
-/* Session footnote — collapsed quiet line when another session is live */
+/* Session footnote — quiet single line when another session is live */
 .sv-session-footnote {
   font-size: 14px;
   color: var(--rim-text-muted);
-  margin: 0 0 10px;
+  margin: 0 0 12px;
 }
 
 .sv-session-footnote__link {
@@ -11566,14 +11733,18 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   text-decoration: underline;
 }
 
-/* End Session button — ghost style, low visual weight, 44px tap target */
+/* End Session — ghost style, 48px tap target, adequate spacing above */
+.sv-end-wrap {
+  margin-top: 28px;
+}
+
 .sv-end-btn--ghost {
   background: transparent;
   border: 1.5px solid #c8bcb2;
   color: var(--rim-text-muted);
-  font-size: 14px;
-  padding: 11px 24px;
-  min-height: 44px;
+  font-size: 15px;
+  padding: 13px 28px;
+  min-height: 48px;
   border-radius: 6px;
   cursor: pointer;
   font-weight: 500;
@@ -11713,110 +11884,97 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   .ps-section { margin-bottom: 24px; }
 }
 
+/* ── Mobile breakpoints ── */
+
+/* Tablet: ≤768px */
+@media (max-width: 768px) {
+  .ps-form__title { font-size: 20px; }
+  .ps-section { margin-bottom: 24px; }
+  .sv-scoreboard__number { font-size: 40px; }
+}
+
 /* Phone: ≤430px */
 @media (max-width: 430px) {
-  /* Session live view */
-  .sv-program { padding: 14px 14px; margin-bottom: 14px; }
-  .sv-program__header { flex-direction: column; gap: 4px; align-items: flex-start; margin-bottom: 12px; }
-  .sv-program__count { margin-left: 0; }
-  .sv-program__name { font-size: 16px; }
+  /* Live view — tighten spacing */
+  .sv-state-wrap--live { padding-left: 12px; }
+  .sv-scoreboard { margin: 8px 0 16px; }
+  .sv-scoreboard__number { font-size: 36px; }
+  .sv-scoreboard__label { font-size: 15px; }
 
-  /* Person buttons: 44px min touch target (already set globally, reinforce on phone) */
-  .sv-person {
-    padding: 10px 14px;
-    font-size: 15px;
+  /* Person rows — larger touch targets on phone */
+  .sv-person-row {
+    min-height: 64px;
+    padding: 14px 14px 14px 12px;
+    font-size: 16px;
   }
-  .sv-person__label { font-size: 9px; }
-  .sv-badge { font-size: 11px; }
-  .sv-not-joined__name { padding: 8px 12px; min-height: 36px; display: inline-flex; align-items: center; }
-
-  /* End session + post-session buttons: full-width, prominent */
-  .sv-end-btn {
-    display: block;
-    width: 100%;
-    padding: 14px 16px;
-    font-size: 15px;
-    text-align: center;
-    min-height: 48px;
-    box-sizing: border-box;
-  }
-  .sv-post-link__btn {
-    display: block;
-    width: 100%;
-    text-align: center;
-    padding: 12px 16px;
-    background: #f0f5f7;
-    border: 1px solid #b0c4cd;
-    border-radius: 6px;
-    font-size: 15px;
-    min-height: 48px;
-    box-sizing: border-box;
+  .sv-person-row__flag {
+    width: 28px;
+    height: 28px;
   }
   .sv-history-nav { gap: 12px; }
+
+  /* End Session — full width on phone */
+  .sv-end-btn--ghost {
+    display: block;
+    width: 100%;
+    text-align: center;
+    padding: 14px 16px;
+    font-size: 16px;
+    min-height: 48px;
+    box-sizing: border-box;
+  }
+
+  /* State headers */
+  .sv-state-header { font-size: 19px; }
+  .sv-state-body { font-size: 15px; }
+  .sv-live-title { font-size: 18px; }
+  .sv-live-title--ended { font-size: 16px; }
+
+  /* Meet button */
+  .sv-meet-primary-btn { font-size: 16px; padding: 14px 20px; }
+
+  /* Co-host: full-width on phone */
+  .sv-cohost-btn { display: block; width: 100%; text-align: center; padding: 12px 16px; min-height: 44px; box-sizing: border-box; }
+
+  /* Confirmation dialog */
+  .sv-confirm-dialog { padding: 22px 18px 20px; }
+  .sv-confirm-msg { font-size: 16px; }
+  .sv-confirm-yes, .sv-confirm-no { width: 100%; }
 
   /* Post-session form */
   .ps-form { padding: 4px 0 40px; }
   .ps-form__header { margin-bottom: 24px; }
   .ps-form__title { font-size: 18px; }
 
-  /* iOS auto-zoom prevention: all inputs/selects ≥16px */
+  /* iOS auto-zoom prevention: all inputs ≥16px */
   .ps-flag-item__note,
   .ps-flag-item__action,
   .ps-resource-url,
   .ps-resource-note,
-  .ps-reflection {
-    font-size: 16px;
-  }
+  .ps-reflection { font-size: 16px; }
 
   .ps-flag-item { padding: 12px 14px; }
   .ps-flag-item__action { min-height: 44px; }
 
-  /* Footer: stack vertically, submit full-width */
-  .ps-form__footer {
-    flex-direction: column;
-    gap: 12px;
-  }
-  .ps-submit {
-    width: 100%;
-    padding: 14px 16px;
-    font-size: 16px;
-    min-height: 48px;
-    box-sizing: border-box;
-  }
-  .ps-cancel {
-    text-align: center;
-    padding: 10px;
-    font-size: 15px;
-    min-height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+  /* Footer: stack, submit full-width */
+  .ps-form__footer { flex-direction: column; gap: 12px; }
+  .ps-submit { width: 100%; padding: 14px 16px; font-size: 16px; min-height: 48px; box-sizing: border-box; }
+  .ps-cancel { text-align: center; padding: 10px; font-size: 15px; min-height: 44px; display: flex; align-items: center; justify-content: center; }
 
   /* Done state */
   .ps-done { padding: 32px 0; }
   .ps-done__title { font-size: 24px; }
-  .ps-done__back {
-    display: block;
-    text-align: center;
-    padding: 12px;
-    min-height: 44px;
-  }
-
-  /* State headers and buttons: full-width on phone */
-  .sv-state-header { font-size: 19px; }
-  .sv-state-body { font-size: 15px; }
-  .sv-meet-primary-btn { font-size: 16px; padding: 14px 20px; }
-  .sv-post-primary-btn { display: block; width: 100%; text-align: center; padding: 14px 16px; font-size: 16px; box-sizing: border-box; }
-  .sv-cohost-btn { display: block; width: 100%; text-align: center; padding: 12px 16px; min-height: 44px; box-sizing: border-box; }
-  .sv-confirm-dialog { padding: 22px 18px 20px; }
-  .sv-confirm-msg { font-size: 16px; }
-  .sv-confirm-yes, .sv-confirm-no { width: 100%; }
-  .sv-live-title { font-size: 16px; }
-  .sv-end-btn--ghost { display: block; width: 100%; text-align: center; padding: 13px; min-height: 48px; box-sizing: border-box; }
+  .ps-done__back { display: block; text-align: center; padding: 12px; min-height: 44px; }
 
   /* Draft notice: wrap on narrow */
   .ps-draft-notice { flex-wrap: wrap; padding: 10px 12px; }
+}
+
+/* Smallest phones: ≤375px */
+@media (max-width: 375px) {
+  .sv-scoreboard__number { font-size: 32px; }
+  .sv-live-title { font-size: 17px; }
+  .sv-state-wrap--live { padding-left: 10px; }
 }
 
 
@@ -14906,36 +15064,34 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 }
 
 /* Coordinator section — sv-coordinator-section */
-.sv-coordinator-section {
-  margin-top: 40px;
-  padding-top: 24px;
-  border-top: 1px solid #ddd;
+/* Coordinator section — only renders for HOST_MANAGER / ADMIN.
+   De-emphasized: smaller, muted, below a clear divider. Not competing with live content. */
+.sv-coordinator-divider {
+  border: none;
+  border-top: 1px solid #e4e0da;
+  margin: 36px 0 20px;
 }
-.sv-coordinator-section__title {
+
+.sv-coordinator-section {
+  /* no padding-top — divider above handles separation */
+}
+
+.sv-coordinator-label {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--rim-text-muted);
-  margin: 0 0 12px;
+  color: #b0a89e;
+  margin: 0 0 10px;
 }
-.sv-missing-reports {
-  margin-bottom: 12px;
-}
-.sv-missing-reports__label {
+
+.sv-coordinator-missing {
   font-size: 14px;
   color: var(--rim-text-muted);
-  margin: 0 0 6px;
+  margin: 0 0 10px;
+  line-height: 1.5;
 }
-.sv-missing-reports__item {
-  display: inline-block;
-  font-size: 14px;
-  background: #fff3cd;
-  color: #856404;
-  border-radius: 4px;
-  padding: 2px 8px;
-  margin: 0 4px 4px 0;
-}
+
 .sv-coordinator-link {
   font-size: 14px;
   color: var(--rim-mid);
