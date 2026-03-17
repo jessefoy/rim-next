@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import {
   sendSubClaimedEmail,
   type SubClaimedEmailData,
@@ -67,7 +68,7 @@ export async function POST(
       data: {
         requestId: id,
         claimedById: session.user.id,
-        message: message ?? null,
+        message: message ?? Prisma.JsonNull,
       },
     }),
     db.subRequest.update({

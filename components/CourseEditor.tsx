@@ -23,6 +23,11 @@ interface CourseLesson {
   lesson: Lesson;
 }
 
+// Flat list item — either a section divider or a lesson
+type ListItem =
+  | { type: "section"; uid: string; label: string }
+  | { type: "lesson"; lessonId: string; lesson: Lesson };
+
 interface CourseData {
   id?: string;
   title: string;
@@ -31,7 +36,6 @@ interface CourseData {
   description: any; // Tiptap JSON
   accessLevel: "MEMBERS" | "REGISTRATION_REQUIRED";
   hideFromMemberProfile: boolean;
-  sortOrder: string;
   isActive: boolean;
   lessons?: CourseLesson[];
 }
@@ -49,6 +53,36 @@ function slugify(text: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
+/** Convert CourseLesson[] (with groupLabel) → flat ListItem[] */
+function courseLessonsToList(cls: CourseLesson[]): ListItem[] {
+  const items: ListItem[] = [];
+  let uid = 0;
+  for (const cl of cls) {
+    if (cl.groupLabel) {
+      items.push({ type: "section", uid: `s-${uid++}`, label: cl.groupLabel });
+    }
+    items.push({ type: "lesson", lessonId: cl.lessonId, lesson: cl.lesson });
+  }
+  return items;
+}
+
+/** Convert flat ListItem[] back to lessonOrder payload for the API */
+function listToLessonOrder(
+  items: ListItem[]
+): { id: string; groupLabel: string | null }[] {
+  const result: { id: string; groupLabel: string | null }[] = [];
+  let pendingSection: string | null = null;
+  for (const item of items) {
+    if (item.type === "section") {
+      pendingSection = item.label || null;
+    } else {
+      result.push({ id: item.lessonId, groupLabel: pendingSection });
+      pendingSection = null; // only first lesson after section gets the label
+    }
+  }
+  return result;
+}
+
 export default function CourseEditor({ hubSlug, initialData, isEditing }: Props) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
@@ -63,19 +97,25 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
   const [accessLevel, setAccessLevel] = useState<"MEMBERS" | "REGISTRATION_REQUIRED">(
     initialData?.accessLevel ?? "MEMBERS"
   );
-  const [hideFromMemberProfile, setHideFromMemberProfile] = useState(initialData?.hideFromMemberProfile ?? false);
-  const [sortOrder, setSortOrder] = useState(initialData?.sortOrder ?? "");
+  const [hideFromMemberProfile, setHideFromMemberProfile] = useState(
+    initialData?.hideFromMemberProfile ?? false
+  );
   const [isActive, setIsActive] = useState(initialData?.isActive ?? true);
 
-  // Lesson manager
-  const [lessons, setLessons] = useState<CourseLesson[]>(
-    initialData?.lessons?.map((cl) => ({ ...cl, groupLabel: cl.groupLabel ?? "" })) ?? []
+  // Flat list of sections + lessons
+  const [items, setItems] = useState<ListItem[]>(() =>
+    courseLessonsToList(
+      initialData?.lessons?.map((cl) => ({ ...cl, groupLabel: cl.groupLabel ?? "" })) ?? []
+    )
   );
+
+  // Lesson search (add existing)
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Lesson[]>([]);
   const [searching, setSearching] = useState(false);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const uidCounter = useRef(100);
 
   // Inline lesson creation
   const [showNewLessonForm, setShowNewLessonForm] = useState(false);
@@ -89,7 +129,7 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
     }
   }, [title, isEditing, slugTouched]);
 
-  // Lesson search (add existing)
+  // Lesson search
   useEffect(() => {
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
     if (searchQuery.length < 2) {
@@ -102,40 +142,48 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
         const res = await fetch(`/api/lessons/search?q=${encodeURIComponent(searchQuery)}`);
         if (res.ok) {
           const data = await res.json();
-          const existingIds = new Set(lessons.map((l) => l.lessonId));
+          const existingIds = new Set(
+            items.filter((i) => i.type === "lesson").map((i) => (i as any).lessonId)
+          );
           setSearchResults(data.filter((l: Lesson) => !existingIds.has(l.id)));
         }
       } finally {
         setSearching(false);
       }
     }, 300);
-  }, [searchQuery, lessons]);
+  }, [searchQuery, items]);
 
   function addLesson(lesson: Lesson) {
-    setLessons((prev) => [
-      ...prev,
-      { lessonId: lesson.id, sortOrder: prev.length, groupLabel: "", lesson },
-    ]);
+    setItems((prev) => [...prev, { type: "lesson", lessonId: lesson.id, lesson }]);
     setSearchQuery("");
     setSearchResults([]);
   }
 
-  function removeLesson(lessonId: string) {
-    setLessons((prev) => prev.filter((l) => l.lessonId !== lessonId));
+  function removeItem(idx: number) {
+    setItems((prev) => prev.filter((_, i) => i !== idx));
   }
 
-  function updateGroupLabel(lessonId: string, value: string) {
-    setLessons((prev) =>
-      prev.map((l) => (l.lessonId === lessonId ? { ...l, groupLabel: value } : l))
+  function addSection() {
+    const uid = `s-${uidCounter.current++}`;
+    setItems((prev) => [...prev, { type: "section", uid, label: "" }]);
+  }
+
+  function updateSectionLabel(uid: string, value: string) {
+    setItems((prev) =>
+      prev.map((item) =>
+        item.type === "section" && item.uid === uid ? { ...item, label: value } : item
+      )
     );
   }
 
-  function handleDragStart(idx: number) { setDragIdx(idx); }
+  function handleDragStart(idx: number) {
+    setDragIdx(idx);
+  }
 
   function handleDragOver(e: React.DragEvent, idx: number) {
     e.preventDefault();
     if (dragIdx === null || dragIdx === idx) return;
-    setLessons((prev) => {
+    setItems((prev) => {
       const updated = [...prev];
       const [moved] = updated.splice(dragIdx, 1);
       updated.splice(idx, 0, moved);
@@ -144,7 +192,9 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
     setDragIdx(idx);
   }
 
-  function handleDragEnd() { setDragIdx(null); }
+  function handleDragEnd() {
+    setDragIdx(null);
+  }
 
   // Create a new lesson inline and add it to this series
   async function handleCreateLesson() {
@@ -164,9 +214,9 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
       });
       if (res.ok) {
         const newLesson = await res.json();
-        setLessons((prev) => [
+        setItems((prev) => [
           ...prev,
-          { lessonId: newLesson.id, sortOrder: prev.length, groupLabel: "", lesson: newLesson },
+          { type: "lesson", lessonId: newLesson.id, lesson: newLesson },
         ]);
         setNewLessonTitle("");
         setShowNewLessonForm(false);
@@ -194,16 +244,11 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
         description,
         accessLevel,
         hideFromMemberProfile,
-        sortOrder: sortOrder ? Number(sortOrder) : null,
         isActive,
       };
 
       if (isEditing) {
-        // Include groupLabel per lesson
-        payload.lessonOrder = lessons.map((l) => ({
-          id: l.lessonId,
-          groupLabel: l.groupLabel || null,
-        }));
+        payload.lessonOrder = listToLessonOrder(items);
       }
 
       const url = isEditing ? `/api/courses/${initialData?.slug}` : "/api/courses";
@@ -240,7 +285,12 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
       <div className="th-editor__header">
         <h2 className="th-editor__title">{isEditing ? "Edit Series" : "New Series"}</h2>
         {isEditing && slug && (
-          <a href={`/course/${slug}`} target="_blank" rel="noopener noreferrer" className="th-link th-link--view">
+          <a
+            href={`/course/${slug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="th-link th-link--view"
+          >
             View series page →
           </a>
         )}
@@ -266,7 +316,10 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
           <input
             type="text"
             value={slug}
-            onChange={(e) => { setSlug(e.target.value); setSlugTouched(true); }}
+            onChange={(e) => {
+              setSlug(e.target.value);
+              setSlugTouched(true);
+            }}
             className="th-input"
             required
           />
@@ -321,16 +374,6 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
           Hide from member profile
         </label>
 
-        <label className="th-field">
-          <span className="th-field__label">Sort Order</span>
-          <input
-            type="number"
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
-            className="th-input th-input--narrow"
-          />
-        </label>
-
         <label className="th-checkbox">
           <input
             type="checkbox"
@@ -346,26 +389,51 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
         <div className="th-lessons">
           <h3 className="th-lessons__title">Lessons</h3>
           <p className="th-lessons__help">
-            Drag to reorder. Add a section label above any lesson to create a visual divider on the series page.
+            Drag rows to reorder. Use{" "}
+            <strong>+ Add Section</strong> to insert a labeled divider between lessons.
           </p>
 
-          {lessons.length === 0 ? (
-            <p className="th-empty">No lessons yet — create one below or search to add an existing one.</p>
+          {items.length === 0 ? (
+            <p className="th-empty">
+              No lessons yet — create one below or search to add an existing one.
+            </p>
           ) : (
             <div className="th-lessons__list">
-              {lessons.map((cl, i) => (
-                <div key={cl.lessonId} className="th-lessons__group">
-                  {/* Section label input — optional, shown above lesson row */}
-                  <input
-                    type="text"
-                    placeholder="Section label (optional — e.g. Week 1)"
-                    value={cl.groupLabel}
-                    onChange={(e) => updateGroupLabel(cl.lessonId, e.target.value)}
-                    className="th-lessons__group-input"
-                    aria-label="Section label"
-                  />
-                  {/* Lesson row */}
+              {items.map((item, i) =>
+                item.type === "section" ? (
+                  /* Section divider row */
                   <div
+                    key={item.uid}
+                    className={`th-section-row${dragIdx === i ? " th-lessons__item--dragging" : ""}`}
+                    draggable
+                    onDragStart={() => handleDragStart(i)}
+                    onDragOver={(e) => handleDragOver(e, i)}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <span className="th-lessons__handle" title="Drag to reorder">☰</span>
+                    <span className="th-section-row__tag">Section</span>
+                    <input
+                      type="text"
+                      placeholder="Section title (e.g. Week 1)"
+                      value={item.label}
+                      onChange={(e) => updateSectionLabel(item.uid, e.target.value)}
+                      className="th-section-row__input"
+                      aria-label="Section title"
+                    />
+                    <button
+                      type="button"
+                      className="th-section-row__remove"
+                      onClick={() => removeItem(i)}
+                      title="Remove section"
+                      aria-label="Remove section"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  /* Lesson row */
+                  <div
+                    key={item.lessonId}
                     className={`th-lessons__item${dragIdx === i ? " th-lessons__item--dragging" : ""}`}
                     draggable
                     onDragStart={() => handleDragStart(i)}
@@ -373,9 +441,9 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
                     onDragEnd={handleDragEnd}
                   >
                     <span className="th-lessons__handle" title="Drag to reorder">☰</span>
-                    <span className="th-lessons__name">{cl.lesson.titleInternal}</span>
+                    <span className="th-lessons__name">{item.lesson.titleInternal}</span>
                     <a
-                      href={`/lessons/${cl.lesson.slug}`}
+                      href={`/lessons/${item.lesson.slug}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="th-link th-link--sm"
@@ -383,7 +451,7 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
                       View →
                     </a>
                     <a
-                      href={`/account/hub/${hubSlug}/lessons/${cl.lesson.slug}`}
+                      href={`/account/hub/${hubSlug}/lessons/${item.lesson.slug}`}
                       className="th-link th-link--sm"
                     >
                       Edit ↗
@@ -391,15 +459,26 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
                     <button
                       type="button"
                       className="th-btn th-btn--danger th-btn--small"
-                      onClick={() => removeLesson(cl.lessonId)}
+                      onClick={() => removeItem(i)}
                     >
                       Remove
                     </button>
                   </div>
-                </div>
-              ))}
+                )
+              )}
             </div>
           )}
+
+          {/* ── Add section button ── */}
+          <div className="th-lessons__add-section">
+            <button
+              type="button"
+              className="th-btn th-btn--ghost th-btn--small"
+              onClick={addSection}
+            >
+              + Add Section
+            </button>
+          </div>
 
           {/* ── Create new lesson inline ── */}
           <div className="th-lessons__new">
@@ -418,7 +497,13 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
                   placeholder="Lesson title…"
                   value={newLessonTitle}
                   onChange={(e) => setNewLessonTitle(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleCreateLesson(); if (e.key === "Escape") { setShowNewLessonForm(false); setNewLessonTitle(""); } }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleCreateLesson();
+                    if (e.key === "Escape") {
+                      setShowNewLessonForm(false);
+                      setNewLessonTitle("");
+                    }
+                  }}
                   className="th-input"
                   autoFocus
                 />
@@ -434,12 +519,17 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
                   <button
                     type="button"
                     className="th-btn th-btn--small"
-                    onClick={() => { setShowNewLessonForm(false); setNewLessonTitle(""); }}
+                    onClick={() => {
+                      setShowNewLessonForm(false);
+                      setNewLessonTitle("");
+                    }}
                   >
                     Cancel
                   </button>
                 </div>
-                <p className="th-muted">The lesson will be added to this series. Use Edit ↗ to add content.</p>
+                <p className="th-muted">
+                  The lesson will be added to this series. Use Edit ↗ to add content.
+                </p>
               </div>
             )}
           </div>

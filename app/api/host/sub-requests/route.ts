@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import {
   sendSubRequestEmail,
   type SubRequestEmailData,
@@ -78,7 +79,7 @@ export async function POST(request: Request) {
   const { assignmentId, sessionDate, message } = body as {
     assignmentId: string;
     sessionDate?: string | null;
-    message?: string | null;
+    message?: unknown;
   };
 
   // Verify assignment belongs to this user (or is HOST_MANAGER/ADMIN)
@@ -111,7 +112,7 @@ export async function POST(request: Request) {
       assignmentId,
       programSlug: assignment.programSlug,
       sessionDate: sessionDate ? new Date(sessionDate) : null,
-      message: message ?? null,
+      message: message ?? Prisma.JsonNull,
     },
   });
 
@@ -155,7 +156,7 @@ export async function POST(request: Request) {
             requesterName,
             programName: assignment.programSlug,
             sessionDate: sessionLabel,
-            message: message ? (extractText(message) || null) : null,
+            message: message ? (extractText(message as any) || null) : null,
           } as SubRequestEmailData)
         )
       );
