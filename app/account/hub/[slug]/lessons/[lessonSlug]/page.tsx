@@ -42,7 +42,7 @@ export default async function EditLessonPage({
     titleInternal: lesson.titleInternal,
     titleDisplayed: lesson.titleDisplayed,
     slug: lesson.slug,
-    isSectionTitle: lesson.isSectionTitle,
+    accessLevel: lesson.accessLevel as "MEMBERS" | "REGISTRATION_REQUIRED",
     body: lesson.body ?? null,
     heroImageUrl: lesson.heroImageUrl ?? "",
     heroImageAlt: lesson.heroImageAlt ?? "",
