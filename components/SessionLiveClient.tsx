@@ -295,8 +295,17 @@ export default function SessionLiveClient({
     );
   }
 
-  // Compute states once — drives visual hierarchy (live = dominant)
-  const progStates = programs.map((p) => ({ prog: p, state: computeState(p) }));
+  // Compute states + sort so live session always renders first
+  const stateOrder: Record<SessionState, number> = {
+    live: 0,
+    "getting-ready": 1,
+    "later-today": 2,
+    "post-session": 3,
+    done: 4,
+  };
+  const progStates = programs
+    .map((p) => ({ prog: p, state: computeState(p) }))
+    .sort((a, b) => stateOrder[a.state] - stateOrder[b.state]);
   const hasLive = progStates.some((ps) => ps.state === "live");
 
   return (
@@ -408,7 +417,6 @@ export default function SessionLiveClient({
         }
 
         // ── State 4: Session is live ─────────────────────────────────────────
-        // Glanceable status board. No co-host button — session is already in progress.
         if (state === "live") {
           return (
             <div key={prog._id} className="sv-state-wrap sv-state-wrap--4 sv-state-wrap--live">
@@ -422,6 +430,25 @@ export default function SessionLiveClient({
                 <p className="sv-live-time">
                   {prog.startTimeCT}{prog.endTimeCT ? ` – ${prog.endTimeCT}` : ""}{" CT"}
                 </p>
+              )}
+
+              {/* Co-host — immediately after header/time, before scoreboard.
+                  A host joining late needs this available at the top of the block. */}
+              {!prog.currentUserIsAssignedHost && (
+                prog.currentUserIsCoHost ? (
+                  <p className="sv-cohost-confirmed sv-cohost-confirmed--live">
+                    You&rsquo;re co-hosting this session.
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    className="sv-cohost-btn sv-cohost-btn--live"
+                    disabled={isMarkingThis}
+                    onClick={() => markCoHost(prog.slug)}
+                  >
+                    {isMarkingThis ? "Marking…" : "I'm also hosting this"}
+                  </button>
+                )
               )}
 
               {/* Scoreboard count — large, reads at a glance */}
@@ -453,25 +480,6 @@ export default function SessionLiveClient({
                     ))}
                   </div>
                 </div>
-              )}
-
-              {/* Co-host mark — low-weight link; removed from pre-session placement here
-                  but kept so a host joining late can still register themselves */}
-              {!prog.currentUserIsAssignedHost && (
-                prog.currentUserIsCoHost ? (
-                  <p className="sv-cohost-confirmed sv-cohost-confirmed--live">
-                    You&rsquo;re set as co-host.
-                  </p>
-                ) : (
-                  <button
-                    type="button"
-                    className="sv-cohost-inline-btn"
-                    disabled={isMarkingThis}
-                    onClick={() => markCoHost(prog.slug)}
-                  >
-                    {isMarkingThis ? "Marking…" : "I'm also hosting this"}
-                  </button>
-                )
               )}
 
               {/* End Session — ghost, full-width on mobile, below attendees */}

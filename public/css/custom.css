@@ -11316,10 +11316,12 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   padding-bottom: 32px;
 }
 
-/* Live block signal: green left border */
+/* Live block: green left border + very subtle sage wash — signals alive at a glance */
 .sv-state-wrap--live {
   border-left: 4px solid #2a9e62;
-  padding-left: 16px;
+  background: rgba(74, 140, 100, 0.055);
+  border-radius: 0 6px 6px 0;
+  padding: 20px 20px 24px 20px;
 }
 
 .sv-state-date {
@@ -11495,33 +11497,16 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   margin-top: 4px;
 }
 
-/* Live-state variant — quieter */
+/* Live-state co-host confirmation — at top of block, before scoreboard */
 .sv-cohost-confirmed--live {
-  margin-top: 16px;
+  margin: 14px 0 4px;
   font-size: 13px;
 }
 
-/* Inline co-host button for live state — low visual weight, just a text link */
-.sv-cohost-inline-btn {
-  display: inline-block;
-  background: none;
-  border: none;
-  padding: 0;
-  margin-top: 16px;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  color: var(--rim-text-muted);
-  text-decoration: underline;
-  cursor: pointer;
-  min-height: 44px;
-  line-height: 44px;
-}
-.sv-cohost-inline-btn:hover:not(:disabled) {
-  color: var(--rim-mid);
-}
-.sv-cohost-inline-btn:disabled {
-  opacity: 0.5;
-  cursor: default;
+/* Co-host button in live state — same outline style, with spacing around it */
+.sv-cohost-btn--live {
+  margin-top: 14px;
+  margin-bottom: 4px;
 }
 
 /* ── State 4 live header ── */
@@ -11723,9 +11708,11 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   transition: background 0.12s, border-color 0.12s;
 }
 
+/* Filled = flagged. Dark charcoal — clearly distinct from the amber left-edge
+   that signals "new member". Two different things must look like two different things. */
 .sv-person-row__flag--filled {
-  background: #c07e2a;
-  border-color: #c07e2a;
+  background: #3d3530;
+  border-color: #3d3530;
 }
 
 /* Not-joined section — below attendees, clear label */
@@ -11925,7 +11912,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 /* Phone: ≤430px */
 @media (max-width: 430px) {
   /* Live view — tighten spacing */
-  .sv-state-wrap--live { padding-left: 12px; }
+  .sv-state-wrap--live { padding: 14px 14px 18px 14px; }
   .sv-scoreboard { margin: 8px 0 16px; }
   .sv-scoreboard__number { font-size: 36px; }
   .sv-scoreboard__label { font-size: 15px; }
@@ -12003,7 +11990,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 @media (max-width: 375px) {
   .sv-scoreboard__number { font-size: 32px; }
   .sv-live-title { font-size: 17px; }
-  .sv-state-wrap--live { padding-left: 10px; }
+  .sv-state-wrap--live { padding: 12px 12px 16px 12px; }
 }
 
 
