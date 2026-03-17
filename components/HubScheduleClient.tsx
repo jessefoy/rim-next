@@ -352,6 +352,13 @@ export default function HubScheduleClient({
   const [toast, setToast] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "mine" | "action">("all");
 
+  // Mobile agenda: which day is selected in the mini-calendar
+  const [agendaDay, setAgendaDay] = useState<number>(() => {
+    const t = new Date();
+    if (t.getFullYear() === initialYear && t.getMonth() === initialMonth) return t.getDate();
+    return 1;
+  });
+
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2800);
@@ -375,16 +382,28 @@ export default function HubScheduleClient({
     }
   }, [apiBase]);
 
+  function resetAgendaDay(y: number, m: number) {
+    const t = new Date();
+    setAgendaDay(y === t.getFullYear() && m === t.getMonth() ? t.getDate() : 1);
+  }
+
   function prevMonth() {
     const m = month === 0 ? 11 : month - 1;
     const y = month === 0 ? year - 1 : year;
-    setYear(y); setMonth(m); loadMonth(y, m);
+    setYear(y); setMonth(m); loadMonth(y, m); resetAgendaDay(y, m);
   }
 
   function nextMonth() {
     const m = month === 11 ? 0 : month + 1;
     const y = month === 11 ? year + 1 : year;
-    setYear(y); setMonth(m); loadMonth(y, m);
+    setYear(y); setMonth(m); loadMonth(y, m); resetAgendaDay(y, m);
+  }
+
+  function goToToday() {
+    const t = new Date();
+    setYear(t.getFullYear()); setMonth(t.getMonth());
+    setAgendaDay(t.getDate());
+    loadMonth(t.getFullYear(), t.getMonth());
   }
 
   // claimOne handles both real assignment ids and synthetic "unassigned::slug::date" ids.
@@ -522,6 +541,22 @@ export default function HubScheduleClient({
       return d.getFullYear() === year && d.getMonth() === month && d.getDate() === day;
     });
 
+  const isCurrentMonth = year === today.getFullYear() && month === today.getMonth();
+  const MAX_VISIBLE = 3;
+
+  /** Returns up to 3 dot-type strings for a day (one per unique status type) */
+  function dotsForDay(day: number) {
+    const ds = sessionsForDay(day);
+    const seen = new Set<string>();
+    const result: string[] = [];
+    for (const s of ds) {
+      const type = s.hostUserId === currentUserId ? "mine" : s.status === "claimed" ? "covered" : "needs";
+      if (!seen.has(type)) { seen.add(type); result.push(type); }
+      if (result.length === 3) break;
+    }
+    return result;
+  }
+
   return (
     <div className="hub-schedule">
 
@@ -556,20 +591,102 @@ export default function HubScheduleClient({
 
       {/* ── Row 2: Month navigation ── */}
       <div className="hub-schedule__month-nav">
-        <button className="hub-schedule__nav-btn" onClick={prevMonth} aria-label="Previous month">
-          Previous
-        </button>
-        <h2 className="hub-schedule__month">{MONTHS[month]} {year}</h2>
-        <button className="hub-schedule__nav-btn" onClick={nextMonth} aria-label="Next month">
-          Next
-        </button>
+        <button className="hub-schedule__nav-btn" onClick={prevMonth} aria-label="Previous month">←</button>
+        <div className="hub-schedule__month-center">
+          <h2 className="hub-schedule__month">{MONTHS[month]} {year}</h2>
+          {!isCurrentMonth && (
+            <button className="hub-schedule__today-btn" onClick={goToToday}>Today</button>
+          )}
+        </div>
+        <button className="hub-schedule__nav-btn" onClick={nextMonth} aria-label="Next month">→</button>
       </div>
 
       {loading && <div className="hub-schedule__loading">Loading…</div>}
 
-      {/* ── CALENDAR VIEW ── */}
+      {/* ── MOBILE: Mini-calendar + agenda ── */}
+      {!loading && (
+        <div className="hub-cal-mobile">
+          <div className="hub-mini-cal">
+            <div className="hub-mini-cal__header">
+              {DAYS.map((d) => <div key={d} className="hub-mini-cal__day-label">{d.charAt(0)}</div>)}
+            </div>
+            <div className="hub-mini-cal__grid">
+              {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+                <div key={`memp-${i}`} className="hub-mini-cal__cell hub-mini-cal__cell--empty" />
+              ))}
+              {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
+                const dots = dotsForDay(day);
+                const isSelected = agendaDay === day;
+                const isTodayDay = isToday(day);
+                return (
+                  <div
+                    key={day}
+                    className={`hub-mini-cal__cell${isSelected ? " hub-mini-cal__cell--selected" : ""}${isTodayDay && !isSelected ? " hub-mini-cal__cell--today" : ""}`}
+                    onClick={() => { setAgendaDay(day); setSelected(null); }}
+                  >
+                    <span className="hub-mini-cal__num">{day}</span>
+                    {dots.length > 0 && (
+                      <div className="hub-mini-cal__dots">
+                        {dots.map((type) => (
+                          <span key={type} className={`hub-mini-cal__dot hub-mini-cal__dot--${type}`} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Agenda for selected day */}
+          <div className="hub-agenda">
+            <div className="hub-agenda__title">
+              {DAYS[new Date(year, month, agendaDay).getDay()]}, {MONTHS[month]} {agendaDay}
+            </div>
+            {sessionsForDay(agendaDay).length === 0 ? (
+              <div className="hub-agenda__empty">No sessions</div>
+            ) : (
+              sessionsForDay(agendaDay).map((s) => {
+                const isMine = s.hostUserId === currentUserId;
+                const type = isMine ? "mine" : s.status === "claimed" ? "covered" : "needs";
+                const hostLabel = s.status === "unclaimed" ? "Unassigned" : isMine ? "You" : (s.hostName ?? "—");
+                return (
+                  <div key={s.id} className="hub-agenda__item" onClick={() => setSelected(selected?.id === s.id ? null : s)}>
+                    <div className={`hub-agenda__stripe hub-agenda__stripe--${type}`} />
+                    <div className="hub-agenda__body">
+                      <div className="hub-agenda__name">{s.programName}</div>
+                      <div className="hub-agenda__meta">
+                        {s.sessionDate ? fmtTime(s.sessionDate) + " · " : ""}{hostLabel}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Detail panel on mobile */}
+          {selected && (
+            <div className="hub-agenda__detail-wrap">
+              <SessionDetail
+                session={selected}
+                currentUserId={currentUserId}
+                currentUserName={currentUserName}
+                coordinatorName={coordinatorName}
+                onClose={() => setSelected(null)}
+                onClaim={claimSession}
+                onSubRequest={submitSubRequest}
+                onUnclaim={unclaimSession}
+                onClaimSub={claimSub}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── CALENDAR VIEW (desktop) ── */}
       {view === "calendar" && !loading && (
-        <div className="hub-cal-wrap">
+        <div className="hub-cal-wrap hub-cal-wrap--desktop">
           <div className="hub-cal">
             <div className="hub-cal__headers">
               {DAYS.map((d) => <div key={d} className="hub-cal__day-label">{d}</div>)}
@@ -580,11 +697,13 @@ export default function HubScheduleClient({
               ))}
               {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
                 const daySessions = sessionsForDay(day);
+                const visible = daySessions.slice(0, MAX_VISIBLE);
+                const overflow = daySessions.length - MAX_VISIBLE;
                 const todayCell = isToday(day);
                 return (
                   <div key={day} className={`hub-cal__cell${todayCell ? " hub-cal__cell--today" : ""}`}>
                     <div className={`hub-cal__day-num${todayCell ? " hub-cal__day-num--today" : ""}`}>{day}</div>
-                    {daySessions.map((s) => {
+                    {visible.map((s) => {
                       const inMulti = multiIds.has(s.id);
                       const isMine  = s.hostUserId === currentUserId;
                       const evtClass = isMine ? "mine" : (s.status === "claimed" ? "covered" : "needs");
@@ -611,6 +730,11 @@ export default function HubScheduleClient({
                         </div>
                       );
                     })}
+                    {overflow > 0 && (
+                      <div className="hub-cal__more" onClick={() => setView("list")}>
+                        +{overflow} more
+                      </div>
+                    )}
                   </div>
                 );
               })}
