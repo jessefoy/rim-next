@@ -58,7 +58,6 @@ export default async function LessonPage({
     const allLessons = await db.courseLesson.findMany({
       where: {
         courseId: courseLessonJoin.courseId,
-        lesson: { isSectionTitle: false },
       },
       include: {
         lesson: { select: { id: true, slug: true, titleDisplayed: true } },

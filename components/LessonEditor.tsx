@@ -22,7 +22,7 @@ interface LessonData {
   titleInternal: string;
   titleDisplayed: string;
   slug: string;
-  isSectionTitle: boolean;
+  accessLevel: "MEMBERS" | "REGISTRATION_REQUIRED";
   body: any; // Tiptap JSON
   heroImageUrl: string;
   heroImageAlt: string;
