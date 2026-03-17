@@ -129,7 +129,7 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
                     <SeriesListItem
                       key={i}
                       title={lesson.titleDisplayed}
-                      href={lesson.isSectionTitle ? undefined : `/lessons/${lesson.slug}`}
+                      href={lesson.isSectionTitle ? undefined : `/lessons/${lesson.slug}?course=${course.slug}`}
                       isSectionTitle={lesson.isSectionTitle}
                       includesAudio={!!lesson.audioUrl}
                     />

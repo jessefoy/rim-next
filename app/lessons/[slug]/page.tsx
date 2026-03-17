@@ -1,15 +1,11 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { db } from "@/lib/db";
 import { renderContentBody } from "@/lib/renderRichContent";
 import DanaSection from "@/components/DanaSection";
 import AudioPlayer from "@/components/AudioPlayer";
 
-export const revalidate = 60;
-
-export async function generateStaticParams() {
-  const lessons = await db.lesson.findMany({ select: { slug: true } });
-  return lessons.map((l) => ({ slug: l.slug }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -17,10 +13,70 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return { title: `${lesson?.titleDisplayed ?? "Lesson"} — Rooted In Mindfulness` };
 }
 
-export default async function LessonPage({ params }: { params: Promise<{ slug: string }> }) {
+type CourseContext = {
+  course: { slug: string; title: string };
+  lessonNumber: number;
+  totalLessons: number;
+  prevLesson: { slug: string; titleDisplayed: string } | null;
+  nextLesson: { slug: string; titleDisplayed: string } | null;
+};
+
+export default async function LessonPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ course?: string }>;
+}) {
   const { slug } = await params;
+  const { course: courseSlug } = await searchParams;
+
   const lesson = await db.lesson.findUnique({ where: { slug } });
   if (!lesson) notFound();
+
+  // ── Course context ─────────────────────────────────────────────────────────
+  // If ?course= is set, use that course. Otherwise auto-detect the first active
+  // course containing this lesson. Drives breadcrumb + prev/next navigation.
+  let courseContext: CourseContext | null = null;
+
+  const courseLessonJoin = await db.courseLesson.findFirst({
+    where: {
+      lesson: { slug },
+      course: {
+        isActive: true,
+        ...(courseSlug ? { slug: courseSlug } : {}),
+      },
+    },
+    include: {
+      course: { select: { id: true, slug: true, title: true } },
+    },
+    orderBy: { sortOrder: "asc" },
+  });
+
+  if (courseLessonJoin) {
+    // All navigable (non-section-title) lessons in order
+    const allLessons = await db.courseLesson.findMany({
+      where: {
+        courseId: courseLessonJoin.courseId,
+        lesson: { isSectionTitle: false },
+      },
+      include: {
+        lesson: { select: { id: true, slug: true, titleDisplayed: true } },
+      },
+      orderBy: { sortOrder: "asc" },
+    });
+
+    const idx = allLessons.findIndex((cl) => cl.lessonId === lesson.id);
+    if (idx !== -1) {
+      courseContext = {
+        course: courseLessonJoin.course,
+        lessonNumber: idx + 1,
+        totalLessons: allLessons.length,
+        prevLesson: idx > 0 ? allLessons[idx - 1].lesson : null,
+        nextLesson: idx < allLessons.length - 1 ? allLessons[idx + 1].lesson : null,
+      };
+    }
+  }
 
   const hasAudio = !!lesson.audioUrl;
   const hasQuote = !!lesson.headerQuote;
@@ -28,16 +84,32 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
   const hasResources = resources.length > 0;
   const hasTeachers = lesson.teacherNames.length > 0;
 
-  // Render Tiptap JSON to HTML
   const bodyHtml = renderContentBody(lesson.body);
+
+  // Helper: build lesson URL preserving course context
+  const lessonUrl = (s: string) =>
+    courseContext ? `/lessons/${s}?course=${courseContext.course.slug}` : `/lessons/${s}`;
 
   return (
     <div className="lp-page">
 
+      {/* ── Breadcrumb: back to course ── */}
+      {courseContext && (
+        <div className="lp-breadcrumb">
+          <Link href={`/course/${courseContext.course.slug}`} className="lp-breadcrumb__link">
+            ← {courseContext.course.title}
+          </Link>
+        </div>
+      )}
+
       {/* ── Header: label + title ── */}
       <header className="lp-header">
         <div className="lp-header__inner">
-          <p className="lp-label">Learning &amp; Practice</p>
+          <p className="lp-label">
+            {courseContext
+              ? `${courseContext.course.title} · Lesson ${courseContext.lessonNumber} of ${courseContext.totalLessons}`
+              : "Learning & Practice"}
+          </p>
           <h1 className="lp-title">{lesson.titleDisplayed}</h1>
         </div>
       </header>
@@ -62,9 +134,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
       {/* ── Content column ── */}
       <div className="lp-content">
 
-        {/* Pull quote — editorial style, no box. Uses <figure> not <blockquote>
-            to avoid Webflow's aggressive blockquote element styles.
-            Shown when no audio file is set (same conditional as before). */}
+        {/* Pull quote — shown when no audio file is set */}
         {hasQuote && !hasAudio && (
           <figure className="lp-pullquote">
             {lesson.headerQuote}
@@ -120,10 +190,67 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
           </div>
         )}
 
-        {/* Dana */}
         <DanaSection />
 
       </div>
+
+      {/* ── Lesson navigation ── */}
+      {courseContext && (
+        <nav className="lp-lesson-nav" aria-label="Lesson navigation">
+          <div className="lp-lesson-nav__inner">
+
+            <div className="lp-lesson-nav__prev">
+              {courseContext.prevLesson ? (
+                <Link
+                  href={lessonUrl(courseContext.prevLesson.slug)}
+                  className="lp-lesson-nav__link lp-lesson-nav__link--prev"
+                >
+                  <span className="lp-lesson-nav__arrow">←</span>
+                  <span className="lp-lesson-nav__meta">Previous</span>
+                  <span className="lp-lesson-nav__name">{courseContext.prevLesson.titleDisplayed}</span>
+                </Link>
+              ) : (
+                <Link
+                  href={`/course/${courseContext.course.slug}`}
+                  className="lp-lesson-nav__link lp-lesson-nav__link--prev"
+                >
+                  <span className="lp-lesson-nav__arrow">←</span>
+                  <span className="lp-lesson-nav__meta">Back to course</span>
+                  <span className="lp-lesson-nav__name">{courseContext.course.title}</span>
+                </Link>
+              )}
+            </div>
+
+            <div className="lp-lesson-nav__count">
+              {courseContext.lessonNumber} / {courseContext.totalLessons}
+            </div>
+
+            <div className="lp-lesson-nav__next">
+              {courseContext.nextLesson ? (
+                <Link
+                  href={lessonUrl(courseContext.nextLesson.slug)}
+                  className="lp-lesson-nav__link lp-lesson-nav__link--next"
+                >
+                  <span className="lp-lesson-nav__name">{courseContext.nextLesson.titleDisplayed}</span>
+                  <span className="lp-lesson-nav__meta">Next</span>
+                  <span className="lp-lesson-nav__arrow">→</span>
+                </Link>
+              ) : (
+                <Link
+                  href={`/course/${courseContext.course.slug}`}
+                  className="lp-lesson-nav__link lp-lesson-nav__link--next"
+                >
+                  <span className="lp-lesson-nav__name">{courseContext.course.title}</span>
+                  <span className="lp-lesson-nav__meta">Course overview</span>
+                  <span className="lp-lesson-nav__arrow">→</span>
+                </Link>
+              )}
+            </div>
+
+          </div>
+        </nav>
+      )}
+
     </div>
   );
 }
