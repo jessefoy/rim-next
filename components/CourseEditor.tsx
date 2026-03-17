@@ -358,7 +358,7 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
                   {/* Section label input — optional, shown above lesson row */}
                   <input
                     type="text"
-                    placeholder="Section label (optional — e.g. "Week 1")"
+                    placeholder="Section label (optional — e.g. Week 1)"
                     value={cl.groupLabel}
                     onChange={(e) => updateGroupLabel(cl.lessonId, e.target.value)}
                     className="th-lessons__group-input"
