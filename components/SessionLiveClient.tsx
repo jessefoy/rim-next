@@ -149,10 +149,10 @@ function AttendeeRow({
     >
       <span className="sv-person-row__name">{a.displayName}</span>
       {a.isNewMember && (
-        <span className="sv-person-row__status sv-person-row__status--new">✦ New</span>
+        <span className="sv-person-row__status sv-person-row__status--new">New</span>
       )}
       {a.returningAfterAbsence && !a.isNewMember && (
-        <span className="sv-person-row__status sv-person-row__status--returning">↩ Back</span>
+        <span className="sv-person-row__status sv-person-row__status--returning">Back</span>
       )}
       <span
         className={`sv-person-row__flag${a.flaggedByHost ? " sv-person-row__flag--filled" : ""}`}

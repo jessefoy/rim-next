@@ -10809,13 +10809,14 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   max-width: 640px;
   padding: 8px 0 40px;
 }
+/* Date header — orientation marker; first thing on the page, always visible */
 .sv-date {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--rim-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   font-weight: 700;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 .sv-empty {
   padding: 40px 0;
@@ -11316,10 +11317,10 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   padding-bottom: 32px;
 }
 
-/* Live block: green left border + very subtle sage wash — signals alive at a glance */
+/* Live block: green left border + sage wash — immediately reads as a distinct active zone */
 .sv-state-wrap--live {
   border-left: 4px solid #2a9e62;
-  background: rgba(74, 140, 100, 0.055);
+  background: rgba(100, 140, 100, 0.11);
   border-radius: 0 6px 6px 0;
   padding: 20px 20px 24px 20px;
 }
@@ -11503,10 +11504,20 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   font-size: 13px;
 }
 
-/* Co-host button in live state — same outline style, with spacing around it */
+/* Co-host button in live state — quieter than End Session.
+   Secondary action (joining late); should not compete visually with the attendee list. */
 .sv-cohost-btn--live {
   margin-top: 14px;
   margin-bottom: 4px;
+  border-color: #c8bcb2;
+  color: var(--rim-text-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+.sv-cohost-btn--live:hover:not(:disabled) {
+  background: #f4f2ef;
+  border-color: #a09080;
+  color: var(--rim-text);
 }
 
 /* ── State 4 live header ── */
@@ -11680,23 +11691,30 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   font-weight: 400;
 }
 
-/* Status label — "✦ New" or "↩ Back" */
+/* Status badge — pill style so it reads instantly without needing a legend */
 .sv-person-row__status {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.03em;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 10px;
   flex-shrink: 0;
 }
 
 .sv-person-row__status--new {
-  color: #9e5e10;
+  background: #fdebd0;
+  color: #7d4512;
 }
 
 .sv-person-row__status--returning {
-  color: var(--rim-mid);
+  background: #ddeaf0;
+  color: #1d4b62;
 }
 
-/* Flag circle — right side. Empty = not flagged. Filled = flagged. */
+/* Flag circle — right side toggle.
+   Empty outline = not flagged (looks tappable, like a checkbox).
+   Teal filled + checkmark = flagged. Clearly distinct from the amber left-edge
+   which signals member status — these two signals must never look like the same thing. */
 .sv-person-row__flag {
   width: 26px;
   height: 26px;
@@ -11704,30 +11722,38 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   border: 2px solid #c8bcb2;
   flex-shrink: 0;
   box-sizing: border-box;
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: background 0.12s, border-color 0.12s;
 }
 
-/* Filled = flagged. Dark charcoal — clearly distinct from the amber left-edge
-   that signals "new member". Two different things must look like two different things. */
 .sv-person-row__flag--filled {
-  background: #3d3530;
-  border-color: #3d3530;
+  background: var(--rim-blue);
+  border-color: var(--rim-blue);
 }
 
-/* Not-joined section — below attendees, clear label */
+.sv-person-row__flag--filled::before {
+  content: "✓";
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Not-joined section — clear visual break from active attendees */
 .sv-not-joined {
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid #eceae5;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 2px solid #cec8c0;
 }
 
 .sv-not-joined__label {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: #b0a89e;
+  letter-spacing: 0.14em;
+  color: #968e85;
   margin: 0 0 8px;
 }
 
@@ -11749,9 +11775,10 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   text-decoration: underline;
 }
 
-/* End Session — ghost style, 48px tap target, adequate spacing above */
+/* End Session — ghost style, more breathing room above than co-host button.
+   Larger padding so it reads as a more deliberate action. */
 .sv-end-wrap {
-  margin-top: 28px;
+  margin-top: 40px;
 }
 
 .sv-end-btn--ghost {
@@ -11759,7 +11786,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   border: 1.5px solid #c8bcb2;
   color: var(--rim-text-muted);
   font-size: 15px;
-  padding: 13px 28px;
+  padding: 14px 36px;
   min-height: 48px;
   border-radius: 6px;
   cursor: pointer;

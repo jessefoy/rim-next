@@ -410,6 +410,8 @@ export default async function SessionPage({
         isCoordinator={isCoordinator}
         programsWithReportsToday={programsWithReportsToday}
       />
+      {/* Bottom nav: Session journal visible to all.
+          Coordinator history lives in the coordinator section above — not duplicated here. */}
       <div className="sv-history-nav">
         <a
           href={`/account/hub/${slug}/session/history/team`}
@@ -417,14 +419,6 @@ export default async function SessionPage({
         >
           Session journal →
         </a>
-        {isManager && (
-          <a
-            href={`/account/hub/${slug}/session/history`}
-            className="sv-history-nav__link sv-history-nav__link--coord"
-          >
-            Coordinator history →
-          </a>
-        )}
       </div>
     </>
   );
