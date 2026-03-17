@@ -67,12 +67,14 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
   if (!hasAccess) {
     return (
       <div className="crs-page">
-        <div className="crs-hero">
-          <div className="crs-hero__inner">
-            <h1 className="crs-hero__title">{course.title}</h1>
+        <header className="crs-header">
+          <div className="crs-header__inner">
+            <p className="crs-label">A Teaching Series</p>
+            <h1 className="crs-title">{course.title}</h1>
           </div>
-        </div>
-        <div className="crs-body">
+        </header>
+        <hr className="crs-rule" />
+        <div className="crs-gate">
           <p className="crs-gate__msg">
             Access to this series requires registration for the associated program.
           </p>
@@ -88,57 +90,57 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
 
   return (
     <div className="crs-page">
-      {/* ── Hero ── */}
-      <div className="crs-hero">
-        <div className="crs-hero__inner">
-          {course.subheading && (
-            <p className="crs-hero__label">{course.subheading}</p>
-          )}
-          <h1 className="crs-hero__title">{course.title}</h1>
+
+      {/* ── Header — mirrors lp-header style ── */}
+      <header className="crs-header">
+        <div className="crs-header__inner">
+          <p className="crs-label">
+            {course.subheading || "A Teaching Series"}
+          </p>
+          <h1 className="crs-title">{course.title}</h1>
           {course.description && (
             <div
-              className="crs-hero__desc"
+              className="crs-desc"
               dangerouslySetInnerHTML={{ __html: renderFormattedText(course.description) }}
             />
           )}
         </div>
-      </div>
+      </header>
 
-      {/* ── Lesson list ── */}
-      {lessonItems.length > 0 && (
-        <div className="crs-body">
-          <h2 className="crs-body__heading">Lessons</h2>
-          <div className="crs-list">
+      <hr className="crs-rule" />
+
+      {/* ── Lesson table of contents ── */}
+      {lessonItems.length > 0 ? (
+        <div className="crs-lessons">
+          <div className="crs-toc">
             {lessonItems.map((cl, i) => (
               <div key={cl.lessonId}>
-                {/* Section label (groupLabel) */}
                 {cl.groupLabel && (
-                  <div className="crs-section-label">{cl.groupLabel}</div>
+                  <div className="crs-toc__section">{cl.groupLabel}</div>
                 )}
-                {/* Lesson row */}
                 <Link
                   href={`/lessons/${cl.lesson.slug}?course=${course.slug}`}
-                  className="crs-item"
+                  className="crs-toc__item"
                 >
-                  <span className="crs-item__num">{i + 1}</span>
-                  <span className="crs-item__title">{cl.lesson.titleDisplayed}</span>
-                  <span className="crs-item__meta">
-                    {cl.lesson.audioUrl && <span className="crs-item__badge">🎧 Audio</span>}
-                    {cl.lesson.videoUrl && <span className="crs-item__badge">▶ Video</span>}
-                  </span>
-                  <span className="crs-item__arrow">→</span>
+                  <span className="crs-toc__num">{i + 1}</span>
+                  <span className="crs-toc__title">{cl.lesson.titleDisplayed}</span>
+                  {(cl.lesson.audioUrl || cl.lesson.videoUrl) && (
+                    <span className="crs-toc__badges">
+                      {cl.lesson.audioUrl && <span className="crs-toc__badge">Audio</span>}
+                      {cl.lesson.videoUrl && <span className="crs-toc__badge">Video</span>}
+                    </span>
+                  )}
                 </Link>
               </div>
             ))}
           </div>
         </div>
-      )}
-
-      {lessonItems.length === 0 && (
-        <div className="crs-body">
+      ) : (
+        <div className="crs-lessons">
           <p className="crs-empty">No lessons have been added to this series yet.</p>
         </div>
       )}
+
     </div>
   );
 }
