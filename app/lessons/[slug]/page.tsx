@@ -1,4 +1,5 @@
-import { notFound } from "next/navigation";
+import { auth } from "@/auth";
+import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { renderContentBody } from "@/lib/renderRichContent";
@@ -28,11 +29,79 @@ export default async function LessonPage({
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ course?: string }>;
 }) {
+  // ── Auth ────────────────────────────────────────────────────────────────────
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+
   const { slug } = await params;
   const { course: courseSlug } = await searchParams;
 
   const lesson = await db.lesson.findUnique({ where: { slug } });
   if (!lesson) notFound();
+
+  // ── Access check ─────────────────────────────────────────────────────────
+  // MEMBERS lessons: any logged-in user.
+  // REGISTRATION_REQUIRED lessons: must have access via a parent course.
+  if (lesson.accessLevel === "REGISTRATION_REQUIRED") {
+    const parentCourses = await db.courseLesson.findMany({
+      where: { lessonId: lesson.id, course: { isActive: true } },
+      include: { course: { select: { id: true, slug: true, accessLevel: true } } },
+    });
+
+    // Standalone REGISTRATION_REQUIRED: no course to check against — allow any member.
+    let hasAccess = parentCourses.length === 0;
+
+    for (const cl of parentCourses) {
+      if (hasAccess) break;
+      // If the parent course itself allows all members, lesson is accessible
+      if (cl.course.accessLevel === "MEMBERS") { hasAccess = true; break; }
+
+      // Check program registration
+      const programCourses = await db.programCourse.findMany({
+        where: { courseId: cl.course.id },
+        select: { programId: true },
+      });
+      if (programCourses.length > 0) {
+        const reg = await db.registration.findFirst({
+          where: {
+            userId: session.user.id,
+            programId: { in: programCourses.map((pc) => pc.programId) },
+            status: { in: ["REGISTERED", "APPROVED"] },
+          },
+          select: { id: true },
+        });
+        if (reg) { hasAccess = true; break; }
+      }
+
+      // Check manual admin grant
+      const grant = await db.courseAccess.findUnique({
+        where: { userId_courseSlug: { userId: session.user.id, courseSlug: cl.course.slug } },
+        select: { id: true },
+      });
+      if (grant) { hasAccess = true; break; }
+    }
+
+    if (!hasAccess) {
+      return (
+        <div className="lp-page">
+          <header className="lp-header">
+            <div className="lp-header__inner">
+              <p className="lp-label">Learning &amp; Practice</p>
+              <h1 className="lp-title">{lesson.titleDisplayed}</h1>
+            </div>
+          </header>
+          <div className="lp-content">
+            <p style={{ color: "var(--rim-text-muted)", marginBottom: 16, lineHeight: 1.6 }}>
+              Access to this lesson requires registration for the associated program.
+            </p>
+            <Link href="/community-programs" style={{ color: "var(--rim-blue)" }}>
+              View programs →
+            </Link>
+          </div>
+        </div>
+      );
+    }
+  }
 
   // ── Course context ─────────────────────────────────────────────────────────
   // If ?course= is set, use that course. Otherwise auto-detect the first active
@@ -54,11 +123,8 @@ export default async function LessonPage({
   });
 
   if (courseLessonJoin) {
-    // All navigable (non-section-title) lessons in order
     const allLessons = await db.courseLesson.findMany({
-      where: {
-        courseId: courseLessonJoin.courseId,
-      },
+      where: { courseId: courseLessonJoin.courseId },
       include: {
         lesson: { select: { id: true, slug: true, titleDisplayed: true } },
       },
@@ -214,7 +280,7 @@ export default async function LessonPage({
                   className="lp-lesson-nav__link lp-lesson-nav__link--prev"
                 >
                   <span className="lp-lesson-nav__arrow">←</span>
-                  <span className="lp-lesson-nav__meta">Back to course</span>
+                  <span className="lp-lesson-nav__meta">Back to series</span>
                   <span className="lp-lesson-nav__name">{courseContext.course.title}</span>
                 </Link>
               )}
@@ -240,7 +306,7 @@ export default async function LessonPage({
                   className="lp-lesson-nav__link lp-lesson-nav__link--next"
                 >
                   <span className="lp-lesson-nav__name">{courseContext.course.title}</span>
-                  <span className="lp-lesson-nav__meta">Course overview</span>
+                  <span className="lp-lesson-nav__meta">Series overview</span>
                   <span className="lp-lesson-nav__arrow">→</span>
                 </Link>
               )}

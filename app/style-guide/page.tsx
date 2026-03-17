@@ -163,20 +163,20 @@ export default function StyleGuidePage() {
             </div>
             <p className="sg-component-desc">
               Lesson list rows inside <code>.series-list-wrapper</code> on course pages.
-              Props: <code>title</code>, <code>href</code>, <code>isSectionTitle</code> (transparent header, no button),
+              Props: <code>title</code>, <code>href</code>, <code>isHeader</code> (section divider label, no button),
               <code>includesAudio</code> (appends 🎧 badge). Wrap in <code>.series-list-section &gt; .series-list-wrapper</code>.
             </p>
             <div className="sg-component-preview sg-component-preview--grey">
               <div className="series-list-section">
                 <div className="series-list-wrapper">
-                  <SeriesListItem title="Part One: Foundations" isSectionTitle />
+                  <SeriesListItem title="Part One: Foundations" isHeader />
                   <SeriesListItem
                     title="Introduction to the Handful of Leaves Model"
                     href="/lessons/introduction-to-the-handful-of-leaves-model"
                     includesAudio
                   />
                   <SeriesListItem title="The Four Noble Truths" href="/lessons/four-noble-truths" />
-                  <SeriesListItem title="Part Two: Practice" isSectionTitle />
+                  <SeriesListItem title="Part Two: Practice" isHeader />
                   <SeriesListItem
                     title="Mindfulness of Breathing"
                     href="/lessons/mindfulness-of-breathing"

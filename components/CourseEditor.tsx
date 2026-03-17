@@ -375,6 +375,14 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
                     <span className="th-lessons__handle" title="Drag to reorder">☰</span>
                     <span className="th-lessons__name">{cl.lesson.titleInternal}</span>
                     <a
+                      href={`/lessons/${cl.lesson.slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="th-link th-link--sm"
+                    >
+                      View →
+                    </a>
+                    <a
                       href={`/account/hub/${hubSlug}/lessons/${cl.lesson.slug}`}
                       className="th-link th-link--sm"
                     >
