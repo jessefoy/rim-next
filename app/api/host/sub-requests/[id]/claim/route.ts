@@ -4,6 +4,7 @@ import {
   sendSubClaimedEmail,
   type SubClaimedEmailData,
 } from "@/lib/email";
+import { extractText } from "@/lib/renderRichContent";
 
 function hasHubAccess(roles: string[]) {
   return roles.some((r) => ["HOST", "HOST_MANAGER", "ADMIN"].includes(r));
@@ -108,7 +109,7 @@ export async function POST(
         claimerName,
         programName: subRequest.programSlug,
         sessionDate: sessionLabel,
-        message: message ?? null,
+        message: message ? (extractText(message) || null) : null,
       } as SubClaimedEmailData);
     } catch (e) {
       console.error("[sub-claim] notification error:", e);

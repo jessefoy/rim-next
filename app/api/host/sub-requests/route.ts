@@ -4,6 +4,7 @@ import {
   sendSubRequestEmail,
   type SubRequestEmailData,
 } from "@/lib/email";
+import { extractText } from "@/lib/renderRichContent";
 
 function hasHubAccess(roles: string[]) {
   return roles.some((r) => ["HOST", "HOST_MANAGER", "ADMIN"].includes(r));
@@ -154,7 +155,7 @@ export async function POST(request: Request) {
             requesterName,
             programName: assignment.programSlug,
             sessionDate: sessionLabel,
-            message: message ?? null,
+            message: message ? (extractText(message) || null) : null,
           } as SubRequestEmailData)
         )
       );

@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { getHubMembership, requireCoordinator } from "@/lib/hubAuth";
+import { extractText } from "@/lib/renderRichContent";
 
 // GET /api/hub/[slug]/announcements — list active announcements
 export async function GET(
@@ -52,7 +53,7 @@ export async function POST(
   }
 
   const { title, body, priority } = await req.json();
-  if (!title?.trim() || !body?.trim()) {
+  if (!title?.trim() || !extractText(body)?.trim()) {
     return NextResponse.json({ error: "Title and body required" }, { status: 400 });
   }
 
@@ -61,7 +62,7 @@ export async function POST(
       hubId:    hub.id,
       authorId: session.user.id,
       title:    title.trim(),
-      body:     body.trim(),
+      body:     body,
       priority: priority ?? "NORMAL",
     },
     include: {

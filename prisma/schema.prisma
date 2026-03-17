@@ -369,7 +369,7 @@ model Registration {
   waitlistPosition Int?               // null if not waitlisted
 
   // Volunteer notes (internal only)
-  notes          String?
+  notes          Json?
 
   // Donation (Stripe)
   donationStatus  DonationStatus  @default(NOT_REQUIRED)
@@ -590,7 +590,7 @@ model SubRequest {
   programSlug  String         // denormalized for display without join
   sessionDate  DateTime?      // specific date (for recurring programs); null = next/all
   status       SubStatus      @default(OPEN)
-  message      String?        // context for potential claimers
+  message      Json?          // context for potential claimers (Tiptap JSON)
   claim        SubClaim?
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
@@ -605,7 +605,7 @@ model SubClaim {
   request     SubRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
   claimedById String
   claimedBy   User       @relation("SubClaims", fields: [claimedById], references: [id], onDelete: Cascade)
-  message     String?    // optional note to the original host
+  message     Json?      // optional note to the original host (Tiptap JSON)
   createdAt   DateTime   @default(now())
 
   @@map("sub_claims")
@@ -862,7 +862,7 @@ model HubAnnouncement {
   hubId          String
   authorId       String
   title          String
-  body           String               @db.Text
+  body           Json
   priority       AnnouncementPriority @default(NORMAL)
   status         AnnouncementStatus   @default(ACTIVE)
   linkedThreadId String?

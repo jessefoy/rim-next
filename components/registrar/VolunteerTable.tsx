@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, Fragment } from "react";
+import FormattedEditor from "@/components/FormattedEditor";
 import type { RegistrationField } from "@/components/RegistrationForm";
 
 export interface SerializedRegistration {
@@ -16,7 +17,7 @@ export interface SerializedRegistration {
   customFields: Record<string, string> | null;
   status: string;
   waitlistPosition: number | null;
-  notes: string | null;
+  notes: any;
   donationStatus: string;
   donationAmount: number | null;
   reminderSentAt: string | null;
@@ -82,7 +83,7 @@ export default function VolunteerTable({
   const [filter, setFilter] = useState<Filter>("ALL");
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [editingNotes, setEditingNotes] = useState<Record<string, string>>({});
+  const [editingNotes, setEditingNotes] = useState<Record<string, any>>({});
   const [savingNotes, setSavingNotes] = useState<string | null>(null);
   const [savedNotes, setSavedNotes] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -379,7 +380,7 @@ export default function VolunteerTable({
 
   // ── Notes save ──────────────────────────────────────────────────────────────
   async function saveNotes(id: string) {
-    const notes = editingNotes[id] ?? "";
+    const notes = editingNotes[id] ?? null;
     setSavingNotes(id);
 
     try {
@@ -401,7 +402,7 @@ export default function VolunteerTable({
   }
 
   // ── Expand/collapse ─────────────────────────────────────────────────────────
-  function toggleExpand(id: string, currentNotes: string | null) {
+  function toggleExpand(id: string, currentNotes: any) {
     if (expandedId === id) {
       setExpandedId(null);
       setConfirmCancelId(null);
@@ -417,7 +418,7 @@ export default function VolunteerTable({
       setConfirmProgReminderId(null);
       setConfirmResendId(null);
       if (!(id in editingNotes)) {
-        setEditingNotes((prev) => ({ ...prev, [id]: currentNotes ?? "" }));
+        setEditingNotes((prev) => ({ ...prev, [id]: currentNotes ?? null }));
       }
     }
   }
@@ -989,20 +990,15 @@ export default function VolunteerTable({
                             </div>
 
                             {/* Notes — below actions */}
-                            <div className="vol-detail__notes-wrap">
+                            <div className="vol-detail__notes-wrap" onClick={(e) => e.stopPropagation()}>
                               <p className="vol-detail__col-label">Internal Notes</p>
-                              <textarea
-                                className="vol-notes"
-                                placeholder="Notes visible only to staff…"
-                                value={editingNotes[r.id] ?? r.notes ?? ""}
-                                onChange={(e) =>
-                                  setEditingNotes((prev) => ({
-                                    ...prev,
-                                    [r.id]: e.target.value,
-                                  }))
+                              <FormattedEditor
+                                value={editingNotes[r.id] ?? r.notes ?? null}
+                                onChange={(val) =>
+                                  setEditingNotes((prev) => ({ ...prev, [r.id]: val }))
                                 }
-                                onClick={(e) => e.stopPropagation()}
-                                rows={3}
+                                placeholder="Notes visible only to staff…"
+                                minHeight={100}
                               />
                               <button
                                 className="vol-save-btn"

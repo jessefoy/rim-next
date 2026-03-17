@@ -2,7 +2,8 @@
 
 import { useState, useCallback } from "react";
 import MeetJoinButton from "@/components/MeetJoinButton";
-import RimEditor from "./RimEditor";
+import FormattedEditor from "@/components/FormattedEditor";
+import { renderFormattedText, extractText } from "@/lib/renderRichContent";
 
 interface Session {
   id: string;
@@ -14,7 +15,7 @@ interface Session {
   hostUserId: string | null;
   hostName: string | null;
   subRequestId: string | null;
-  subMessage: string | null;
+  subMessage: any;
   zoomLink: string | null;
   meetHostAccount: string | null;
   programFormat: string | null;
@@ -110,7 +111,7 @@ function SessionDetail({
   onClaimSub: (id: string, subRequestId: string) => void;
 }) {
   const [subFormOpen, setSubFormOpen] = useState(false);
-  const [subMsg, setSubMsg] = useState("");
+  const [subMsg, setSubMsg] = useState<any>(null);
   const [removeWarnOpen, setRemoveWarnOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -181,9 +182,10 @@ function SessionDetail({
           </div>
         )}
 
-        {s.subMessage && (
+        {s.subMessage && extractText(s.subMessage) && (
           <div className="hub-detail__sub-msg">
-            <strong>Sub note:</strong> &ldquo;{s.subMessage}&rdquo;
+            <strong>Sub note:</strong>
+            <div dangerouslySetInnerHTML={{ __html: renderFormattedText(s.subMessage) }} />
           </div>
         )}
       </div>
@@ -223,11 +225,11 @@ function SessionDetail({
       {subFormOpen && (
         <div className="hub-panel__form">
           <div className="hub-panel__form-label">Add context for your team:</div>
-          <RimEditor
-            rows={4}
+          <FormattedEditor
             value={subMsg}
             onChange={setSubMsg}
             placeholder="Why you need a sub, any handoff notes..."
+            minHeight={120}
           />
           <div className="hub-form-actions">
             <button

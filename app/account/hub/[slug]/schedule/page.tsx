@@ -171,7 +171,7 @@ export default async function HubSchedulePage({
     hostUserId: string | null;
     hostName: string | null;
     subRequestId: string | null;
-    subMessage: string | null;
+    subMessage: any;
     zoomLink: string | null;
     meetHostAccount: string | null;
     programFormat: string | null;

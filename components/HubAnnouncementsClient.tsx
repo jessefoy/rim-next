@@ -7,7 +7,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import RimEditor from "./RimEditor";
+import FormattedEditor from "@/components/FormattedEditor";
+import { renderFormattedText, extractText } from "@/lib/renderRichContent";
 
 interface AnnAuthor {
   firstName: string | null;
@@ -18,7 +19,7 @@ interface AnnAuthor {
 interface Announcement {
   id: string;
   title: string;
-  body: string;
+  body: any;
   priority: "NORMAL" | "IMPORTANT" | "URGENT";
   status: "ACTIVE" | "ARCHIVED";
   linkedThreadId: string | null;
@@ -74,7 +75,7 @@ export default function HubAnnouncementsClient({
 
   // Compose form state
   const [title, setTitle]       = useState("");
-  const [body, setBody]         = useState("");
+  const [body, setBody]         = useState<any>(null);
   const [priority, setPriority] = useState<"NORMAL" | "IMPORTANT" | "URGENT">("NORMAL");
   const [posting, setPosting]   = useState(false);
 
@@ -84,17 +85,17 @@ export default function HubAnnouncementsClient({
   const [turningId, setTurningId]         = useState<string | null>(null);
 
   async function postAnnouncement() {
-    if (!title.trim() || !body.trim()) return;
+    if (!title.trim() || !extractText(body)?.trim()) return;
     setPosting(true);
     const res = await fetch(`/api/hub/${hubSlug}/announcements`, {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ title: title.trim(), body: body.trim(), priority }),
+      body:    JSON.stringify({ title: title.trim(), body, priority }),
     });
     if (res.ok) {
       const ann = await res.json();
       setAnnouncements((prev) => [ann, ...prev]);
-      setTitle(""); setBody(""); setPriority("NORMAL"); setShowCompose(false);
+      setTitle(""); setBody(null); setPriority("NORMAL"); setShowCompose(false);
     }
     setPosting(false);
   }
@@ -170,11 +171,11 @@ export default function HubAnnouncementsClient({
           </div>
           <div className="fg">
             <label className="fl">Message</label>
-            <RimEditor
-              rows={5}
+            <FormattedEditor
               value={body}
               onChange={setBody}
               placeholder="Write your message here…"
+              minHeight={160}
             />
           </div>
           <div className="fg" style={{ marginBottom: 0 }}>
@@ -228,7 +229,7 @@ export default function HubAnnouncementsClient({
               <div className="ann-item__meta">
                 Posted by {displayName(ann.author)} · {fmtDate(ann.createdAt)}
               </div>
-              <div className="ann-item__body">{ann.body}</div>
+              <div className="ann-item__body" dangerouslySetInnerHTML={{ __html: renderFormattedText(ann.body) }} />
               <div className="ann-item__footer">
                 {/* Discussion link */}
                 <span>
