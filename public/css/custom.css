@@ -10809,14 +10809,15 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   max-width: 640px;
   padding: 8px 0 40px;
 }
-/* Date header — orientation marker; first thing on the page, always visible */
+/* Date header — orientation marker; first thing on the page, always visible.
+   Bold enough to anchor the page without competing with the live block below. */
 .sv-date {
-  font-size: 14px;
-  color: var(--rim-text-muted);
+  font-size: 15px;
+  color: var(--rim-text);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   font-weight: 700;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 .sv-empty {
   padding: 40px 0;
@@ -11504,15 +11505,19 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   font-size: 13px;
 }
 
-/* Co-host button in live state — quieter than End Session.
-   Secondary action (joining late); should not compete visually with the attendee list. */
+/* Co-host button in live state — visibly smaller and lighter than End Session.
+   Secondary action (joining late); must not compete with the attendee list.
+   Explicit height/padding so the size difference reads clearly. */
 .sv-cohost-btn--live {
   margin-top: 14px;
   margin-bottom: 4px;
   border-color: #c8bcb2;
+  border-width: 1px;
   color: var(--rim-text-muted);
   font-size: 13px;
   font-weight: 500;
+  padding: 7px 16px;
+  min-height: 36px;
 }
 .sv-cohost-btn--live:hover:not(:disabled) {
   background: #f4f2ef;
@@ -11691,35 +11696,39 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   font-weight: 400;
 }
 
-/* Status badge — pill style so it reads instantly without needing a legend */
+/* Status badge — pill with colored border so it reads on any row background,
+   including the amber flagged-row background (#fef6ec). Border is the key. */
 .sv-person-row__status {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  padding: 2px 7px;
+  letter-spacing: 0.03em;
+  padding: 2px 8px;
   border-radius: 10px;
+  border: 1.5px solid;
   flex-shrink: 0;
 }
 
 .sv-person-row__status--new {
-  background: #fdebd0;
+  background: #fff8f0;
   color: #7d4512;
+  border-color: #d4935a;
 }
 
 .sv-person-row__status--returning {
-  background: #ddeaf0;
+  background: #f0f6fa;
   color: #1d4b62;
+  border-color: #6fa3be;
 }
 
 /* Flag circle — right side toggle.
-   Empty outline = not flagged (looks tappable, like a checkbox).
-   Teal filled + checkmark = flagged. Clearly distinct from the amber left-edge
-   which signals member status — these two signals must never look like the same thing. */
+   Empty outline = not flagged. Darker border (#9e9188) so it's clearly visible
+   and reads as a tappable toggle, not a decoration.
+   Teal filled + checkmark = flagged. Distinct from amber new-member left edge. */
 .sv-person-row__flag {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  border: 2px solid #c8bcb2;
+  border: 2px solid #9e9188;
   flex-shrink: 0;
   box-sizing: border-box;
   display: flex;
@@ -11763,11 +11772,12 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .sv-live-badge--new  { color: #a87c3a; }
 .sv-live-badge--returning { color: var(--rim-mid); }
 
-/* Session footnote — quiet single line when another session is live */
+/* Session footnote — readable information, not a throwaway label.
+   Clear breathing room above (after live block) and below. */
 .sv-session-footnote {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--rim-text-muted);
-  margin: 0 0 12px;
+  margin: 24px 0 16px;
 }
 
 .sv-session-footnote__link {
@@ -11775,18 +11785,19 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   text-decoration: underline;
 }
 
-/* End Session — ghost style, more breathing room above than co-host button.
-   Larger padding so it reads as a more deliberate action. */
+/* End Session — 48px, 2px border, more horizontal padding.
+   Visibly heavier than "I'm also hosting this" (1px border, 36px, 13px).
+   The 40px top margin creates clear separation from the attendee list. */
 .sv-end-wrap {
   margin-top: 40px;
 }
 
 .sv-end-btn--ghost {
   background: transparent;
-  border: 1.5px solid #c8bcb2;
+  border: 2px solid #b8b0a6;
   color: var(--rim-text-muted);
   font-size: 15px;
-  padding: 14px 36px;
+  padding: 14px 40px;
   min-height: 48px;
   border-radius: 6px;
   cursor: pointer;
@@ -11978,6 +11989,8 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 
   /* Co-host: full-width on phone */
   .sv-cohost-btn { display: block; width: 100%; text-align: center; padding: 12px 16px; min-height: 44px; box-sizing: border-box; }
+  /* Live-state co-host: stays smaller even on phone */
+  .sv-cohost-btn--live { min-height: 38px; padding: 8px 16px; font-size: 13px; }
 
   /* Confirmation dialog */
   .sv-confirm-dialog { padding: 22px 18px 20px; }
