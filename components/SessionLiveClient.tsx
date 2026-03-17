@@ -7,12 +7,12 @@
  *   1 — No session today
  *   2 — Session later today (>90 min out)
  *   3 — Getting ready (≤90 min to start)
- *   4 — Session is live  ← glanceable, minimal
+ *   4 — Session is live  ← full visual treatment; all other sessions collapse to footnotes
  *   5 — Session ended, report not yet filed
  *   6 — Done (report submitted)
  *
  * Design principle: designed for the moment of panic, not the moment of calm.
- * Every state shows only what's needed right now.
+ * One block gets full visual treatment at a time. Everything else is a footnote.
  */
 
 import { useEffect, useCallback, useState } from "react";
@@ -124,6 +124,50 @@ function minutesUntil(isoString: string): number {
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
+
+/** Tappable attendee chips with clear new/returning/flagged indicators */
+function AttendeeChips({
+  attendees,
+  flagging,
+  onFlag,
+}: {
+  attendees: Attendee[];
+  flagging: string | null;
+  onFlag: (id: string) => void;
+}) {
+  return (
+    <div className="sv-attendees">
+      {attendees.map((a) => {
+        const chipClass = [
+          "sv-person",
+          a.isNewMember                              ? "sv-person--new"       : "",
+          a.returningAfterAbsence && !a.isNewMember ? "sv-person--returning" : "",
+          a.flaggedByHost                            ? "sv-person--flagged"   : "",
+          flagging === a.recordId                    ? "sv-person--toggling"  : "",
+        ].filter(Boolean).join(" ");
+
+        return (
+          <button
+            key={a.recordId}
+            type="button"
+            className={chipClass}
+            onClick={() => onFlag(a.recordId)}
+            title={a.flaggedByHost ? "Flagged — tap to unflag" : "Tap to flag for follow-up"}
+          >
+            <span className="sv-person__name">{a.displayName}</span>
+            {a.isNewMember && (
+              <span className="sv-person__label sv-person__label--new">New</span>
+            )}
+            {a.returningAfterAbsence && !a.isNewMember && (
+              <span className="sv-person__label sv-person__label--returning">Welcome back</span>
+            )}
+            {a.flaggedByHost && <span className="sv-flag-dot" aria-label="Flagged" />}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 function Roster({ notYetJoined, attendees }: { notYetJoined: Registrant[]; attendees: Attendee[] }) {
   if (notYetJoined.length === 0 && attendees.length === 0) return null;
@@ -264,14 +308,36 @@ export default function SessionLiveClient({
     );
   }
 
+  // Compute states for all programs — used for visual hierarchy (one block dominant at a time)
+  const progStates = programs.map((p) => ({ prog: p, state: computeState(p) }));
+  const hasLive = progStates.some((ps) => ps.state === "live");
+
   return (
     <div className="sv-wrap">
       <p className="sv-date">{todayCT}</p>
 
-      {programs.map((prog) => {
-        const state = computeState(prog);
+      {progStates.map(({ prog, state }) => {
         const isEndingThis = endingSession === prog.slug;
         const isMarkingThis = markingCoHost === prog.slug;
+
+        // ── Visual hierarchy: when a live session exists, collapse all others ──
+        // Ended sessions become a single quiet line; upcoming sessions are footnotes.
+        // This keeps the live block visually dominant with nothing competing.
+        if (hasLive && state !== "live") {
+          const isEnded = state === "post-session" || state === "done";
+          return (
+            <p key={prog._id} className="sv-session-footnote">
+              {isEnded
+                ? `${prog.name} ended earlier today.`
+                : prog.startTimeCT
+                  ? `${prog.name} starts later at ${prog.startTimeCT} CT.`
+                  : `${prog.name} starts later today.`}
+              {isEnded && (
+                <>{" "}<a href={`/account/hub/${hubSlug}/session/history/team`} className="sv-session-footnote__link">See journal →</a></>
+              )}
+            </p>
+          );
+        }
 
         // ── State 2: Session later today ────────────────────────────────────
         if (state === "later-today") {
@@ -362,42 +428,24 @@ export default function SessionLiveClient({
         // ── State 4: Session is live ─────────────────────────────────────────
         if (state === "live") {
           return (
-            <div key={prog._id} className="sv-state-wrap sv-state-wrap--4">
+            <div key={prog._id} className="sv-state-wrap sv-state-wrap--4 sv-state-wrap--live">
               <div className="sv-live-header">
-                <h2 className="sv-live-title">Session is live — {prog.name}</h2>
-                <span className="sv-live-count">{prog.attendees.length} in the room</span>
+                <div className="sv-live-title-row">
+                  <span className="sv-live-dot" aria-hidden="true" />
+                  <h2 className="sv-live-title">Session is live — {prog.name}</h2>
+                </div>
+                <p className="sv-live-count">{prog.attendees.length} in the room</p>
               </div>
 
               {prog.attendees.length === 0 ? (
                 <p className="sv-no-attendees">No one has joined yet.</p>
               ) : (
-                <div className="sv-attendees">
-                  {prog.attendees.map((a) => (
-                    <button
-                      key={a.recordId}
-                      type="button"
-                      className={`sv-person${a.flaggedByHost ? " sv-person--flagged" : ""}${flagging === a.recordId ? " sv-person--toggling" : ""}`}
-                      onClick={() => toggleFlag(a.recordId)}
-                      title={a.flaggedByHost ? "Flagged — tap to unflag" : "Tap to flag for follow-up"}
-                    >
-                      <span className="sv-person__name">{a.displayName}</span>
-                      {a.isNewMember && (
-                        <span className="sv-live-badge sv-live-badge--new" aria-label="New member" title="New member">★</span>
-                      )}
-                      {a.returningAfterAbsence && !a.isNewMember && (
-                        <span className="sv-live-badge sv-live-badge--returning" aria-label="Returning after absence" title="Returning after absence">↩</span>
-                      )}
-                      {a.flaggedByHost && (
-                        <span className="sv-flag-dot" aria-label="Flagged" />
-                      )}
-                    </button>
-                  ))}
-                </div>
+                <AttendeeChips attendees={prog.attendees} flagging={flagging} onFlag={toggleFlag} />
               )}
 
               {prog.notYetJoined.length > 0 && (
                 <div className="sv-not-joined">
-                  <p className="sv-not-joined__label">Registered, not yet in</p>
+                  <p className="sv-not-joined__label">Registered but not here yet</p>
                   <div className="sv-not-joined__names">
                     {prog.notYetJoined.map((r, i) => (
                       <span key={r.userId ?? r.email ?? i} className="sv-not-joined__name">
@@ -408,7 +456,16 @@ export default function SessionLiveClient({
                 </div>
               )}
 
-              {/* End Session — ghost style, at the bottom */}
+              <CoHostButton
+                slug={prog.slug}
+                isCoHost={prog.currentUserIsCoHost}
+                isAssignedHost={prog.currentUserIsAssignedHost}
+                coHosts={prog.coHosts}
+                onMark={markCoHost}
+                marking={isMarkingThis}
+              />
+
+              {/* End Session — ghost style, low visual weight, below the attendee list */}
               {canEndSession && (
                 <div className="sv-end-wrap">
                   <button
@@ -459,8 +516,8 @@ export default function SessionLiveClient({
           return (
             <div key={prog._id} className="sv-state-wrap sv-state-wrap--5">
               <div className="sv-live-header">
-                <h2 className="sv-live-title">{prog.name} — ended</h2>
-                <span className="sv-live-count">{prog.attendees.length} in the room</span>
+                <h2 className="sv-live-title sv-live-title--ended">{prog.name} — ended</h2>
+                <p className="sv-live-count">{prog.attendees.length} in the room</p>
               </div>
 
               {/* Attendee list — visible to assigned host, co-host, and coordinators */}
@@ -468,28 +525,7 @@ export default function SessionLiveClient({
                 prog.attendees.length === 0 ? (
                   <p className="sv-no-attendees">No attendance recorded.</p>
                 ) : (
-                  <div className="sv-attendees">
-                    {prog.attendees.map((a) => (
-                      <button
-                        key={a.recordId}
-                        type="button"
-                        className={`sv-person${a.flaggedByHost ? " sv-person--flagged" : ""}${flagging === a.recordId ? " sv-person--toggling" : ""}`}
-                        onClick={() => toggleFlag(a.recordId)}
-                        title={a.flaggedByHost ? "Flagged — tap to unflag" : "Tap to flag for follow-up"}
-                      >
-                        <span className="sv-person__name">{a.displayName}</span>
-                        {a.isNewMember && (
-                          <span className="sv-live-badge sv-live-badge--new" aria-label="New member" title="New member">★</span>
-                        )}
-                        {a.returningAfterAbsence && !a.isNewMember && (
-                          <span className="sv-live-badge sv-live-badge--returning" aria-label="Returning after absence" title="Returning after absence">↩</span>
-                        )}
-                        {a.flaggedByHost && (
-                          <span className="sv-flag-dot" aria-label="Flagged" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
+                  <AttendeeChips attendees={prog.attendees} flagging={flagging} onFlag={toggleFlag} />
                 )
               )}
 
@@ -550,21 +586,22 @@ export default function SessionLiveClient({
         );
       })}
 
+      {/* Coordinator section — only renders for HOST_MANAGER and ADMIN */}
       {isCoordinator && programs.length > 0 && (
         <div className="sv-coordinator-section">
           <h3 className="sv-coordinator-section__title">Coordinator</h3>
-          {programs.filter(p => !programsWithReportsToday.includes(p.slug)).length > 0 && (
+          {programs.filter((p) => !programsWithReportsToday.includes(p.slug)).length > 0 && (
             <div className="sv-missing-reports">
               <p className="sv-missing-reports__label">No report filed yet:</p>
               {programs
-                .filter(p => !programsWithReportsToday.includes(p.slug))
-                .map(p => (
+                .filter((p) => !programsWithReportsToday.includes(p.slug))
+                .map((p) => (
                   <span key={p.slug} className="sv-missing-reports__item">{p.name}</span>
                 ))}
             </div>
           )}
-          <a href={`/account/hub/${hubSlug}/session/history/team`} className="sv-coordinator-link">
-            View team journal →
+          <a href={`/account/hub/${hubSlug}/session/history`} className="sv-coordinator-link">
+            View coordinator history →
           </a>
         </div>
       )}

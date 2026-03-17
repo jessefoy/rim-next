@@ -10876,58 +10876,78 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   gap: 8px;
   margin-bottom: 4px;
 }
-/* Each person is a tappable button */
+/* Each person is a tappable button — 44px min touch target */
 .sv-person {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: #f6f3f0;
-  border: 1px solid #ddd8d2;
-  border-radius: 20px;
+  gap: 7px;
+  padding: 9px 14px;
+  min-height: 44px;
+  background: #ede9e5;
+  border: none;
+  border-radius: 22px;
   font-size: 15px;
   color: var(--rim-text);
   cursor: pointer;
-  transition: background 0.1s, border-color 0.1s;
+  transition: background 0.12s;
   font-family: var(--font-sans);
+  box-sizing: border-box;
+  text-align: left;
 }
 .sv-person:hover {
-  background: #ede9e5;
-  border-color: #c8bcb2;
+  background: #e2dcd6;
 }
+/* New member — warm amber tint */
+.sv-person--new {
+  background: #f5e8cf;
+  color: #6b3e0e;
+}
+.sv-person--new:hover {
+  background: #eedad8;
+}
+/* Returning after absence — teal tint */
+.sv-person--returning {
+  background: #d5e8ed;
+  color: #1a4f5e;
+}
+.sv-person--returning:hover {
+  background: #c4dce3;
+}
+/* Flagged — amber warm */
 .sv-person--flagged {
-  background: #fef3e2;
-  border-color: #e8c78a;
+  background: #fef0d6;
+  color: #7a4800;
+}
+.sv-person--flagged:hover {
+  background: #fde5b8;
 }
 .sv-person--toggling {
-  opacity: 0.6;
+  opacity: 0.55;
   pointer-events: none;
 }
 .sv-person__name {
   font-size: 15px;
+  line-height: 1.2;
 }
-.sv-badge {
+/* Small status tag inside the chip */
+.sv-person__label {
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  border-radius: 3px;
-  padding: 1px 5px;
+  opacity: 0.65;
+  flex-shrink: 0;
 }
-.sv-badge--new {
-  background: #d4e6cc;
-  color: #2a5c20;
-}
-.sv-badge--returning {
-  background: #dce9ef;
-  color: #1d4b62;
-}
+/* Legacy badge classes — kept for safety */
+.sv-badge { font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; border-radius: 3px; padding: 1px 5px; }
+.sv-badge--new { background: #d4e6cc; color: #2a5c20; }
+.sv-badge--returning { background: #dce9ef; color: #1d4b62; }
 .sv-flag-dot {
   display: inline-block;
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: #d48a1a;
+  background: #c47a00;
   flex-shrink: 0;
 }
 /* Registered but not yet joined */
@@ -11296,6 +11316,13 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   padding-bottom: 32px;
 }
 
+/* Applied to state 4 when session is live — visual signal via left border */
+.sv-state-wrap--live {
+  border-left: 3px solid #2a9e62;
+  padding-left: 20px;
+  margin-left: -23px; /* compensate so content stays aligned with other states */
+}
+
 .sv-state-date {
   font-size: 13px;
   color: var(--rim-text-muted);
@@ -11469,56 +11496,88 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   margin-top: 4px;
 }
 
-/* State 4: live view header */
+/* State 4 / 5: live/ended session header */
 .sv-live-header {
-  display: flex;
-  align-items: baseline;
-  gap: 16px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
+  margin-bottom: 20px;
 }
 
+/* Row containing the pulsing dot + title */
+.sv-live-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+/* Pulsing green dot — signals an active session */
+.sv-live-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #2a9e62;
+  flex-shrink: 0;
+  animation: sv-dot-pulse 2s ease-in-out infinite;
+}
+
+@keyframes sv-dot-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.55; transform: scale(0.78); }
+}
+
+/* The dominant heading — largest text on the page during a live session */
 .sv-live-title {
   font-family: var(--font-sans);
-  font-size: 18px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--rim-text);
   margin: 0;
-  line-height: 1.3;
+  line-height: 1.2;
 }
 
-.sv-live-count {
-  font-size: 13px;
+/* Muted variant for ended sessions (State 5) */
+.sv-live-title--ended {
   color: var(--rim-text-muted);
-  font-weight: 600;
-  white-space: nowrap;
+  font-size: 20px;
 }
 
-/* Icon-only badges in live view — small, unobtrusive */
-.sv-live-badge {
-  font-size: 13px;
-  margin-left: 4px;
-  line-height: 1;
+/* Attendee count — readable paragraph, not tiny metadata */
+.sv-live-count {
+  font-size: 16px;
+  color: var(--rim-text-muted);
+  font-weight: 500;
+  margin: 0;
 }
 
-.sv-live-badge--new {
-  color: #a87c3a;
+/* Legacy icon badges — kept for safety */
+.sv-live-badge { font-size: 13px; margin-left: 4px; line-height: 1; }
+.sv-live-badge--new  { color: #a87c3a; }
+.sv-live-badge--returning { color: var(--rim-mid); }
+
+/* Session footnote — collapsed quiet line when another session is live */
+.sv-session-footnote {
+  font-size: 14px;
+  color: var(--rim-text-muted);
+  margin: 0 0 10px;
 }
 
-.sv-live-badge--returning {
+.sv-session-footnote__link {
   color: var(--rim-mid);
+  text-decoration: underline;
 }
 
-/* End Session button — ghost style, low visual weight */
+/* End Session button — ghost style, low visual weight, 44px tap target */
 .sv-end-btn--ghost {
   background: transparent;
   border: 1.5px solid #c8bcb2;
   color: var(--rim-text-muted);
   font-size: 14px;
-  padding: 9px 20px;
+  padding: 11px 24px;
+  min-height: 44px;
   border-radius: 6px;
   cursor: pointer;
   font-weight: 500;
+  box-sizing: border-box;
 }
 
 .sv-end-btn--ghost:hover:not(:disabled) {
@@ -11662,13 +11721,12 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   .sv-program__count { margin-left: 0; }
   .sv-program__name { font-size: 16px; }
 
-  /* Person buttons: 44px min touch target */
+  /* Person buttons: 44px min touch target (already set globally, reinforce on phone) */
   .sv-person {
     padding: 10px 14px;
-    min-height: 44px;
-    box-sizing: border-box;
     font-size: 15px;
   }
+  .sv-person__label { font-size: 9px; }
   .sv-badge { font-size: 11px; }
   .sv-not-joined__name { padding: 8px 12px; min-height: 36px; display: inline-flex; align-items: center; }
 
