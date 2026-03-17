@@ -105,6 +105,8 @@ The **Registrar Hub** (Phase 1) was migrated into the hub system in session 53. 
 
 **Host Hub Session tab — complete (session 58):** Full visual redesign and post-session form overhaul. Six-state machine (`later-today → getting-ready → live → post-session → done`) transitions correctly via tick counter without page reload. Person rows are full-width tap targets with color-coded left strip (amber=new member, teal=returning) and flag circle. Live session card has sage green background; ended sessions collapse to footnotes when a form is pending. Post-session form: all hosts see the full form (flagged people with note + routing descriptions, session reflection, resource to share). FormattedEditor (Tiptap JSON) used for all multi-line communication fields. Three schema fields migrated from `String?` to `Json?`: `SessionAttendance.postSessionNote`, `SessionReport.reflection`, `SessionCoHostReport.reflection`.
 
+**Series page redesign — complete (session 59):** The course/series page (`/course/[slug]`) was redesigned to match the `lp-` design language — warm `var(--rim-bg)` background, centered weight-400 serif header, `crs-rule` hr divider, white lesson cards with 10px border radius. SVG media-type icons (teal=audio, amber=video, slate=text) replace the old text badge pills. The Course Editor received a UX overhaul for section labels: a flat `ListItem[]` union type now drives a unified drag list where section-divider rows are first-class draggable items with inline-editable labels and a ✕ remove button. The `+ Add Section` button uses the new `th-btn--ghost` style. Sort order was removed from the course form entirely. Three routes were fixed for `Prisma.JsonNull` (TypeScript enforces `JsonValue` not `string | null` for `Json?` fields). The planned learning system (§30 FEATURES.md) was documented as the next major teacher-facing feature area.
+
 **What remains for the Registrar Hub:**
 
 - **Check-in tools:** Digital check-in per program (phone-first), PDF export, future member self-check-in.
@@ -123,4 +125,4 @@ This file is part of the closing ritual for any Claude Code session that touches
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org*
-*Working document · March 2026 (updated session 58)*
+*Working document · March 2026 (updated session 59)*

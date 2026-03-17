@@ -1819,68 +1819,83 @@ export default async function ManualPage() {
             ════════════════════════════════════════ */}
 
         <div id="courses" className="man-chapter man-chapter--break">
-          <h1 className="man-chapter__title">Courses &amp; Lessons</h1>
+          <h1 className="man-chapter__title">Series &amp; Lessons</h1>
           <p className="man-chapter__subtitle">
-            How teaching materials are organized and delivered to community members. Courses and lessons live in our database and are managed through the Teacher Hub.
+            How teaching materials are organized and delivered to community members. Series and lessons live in our database and are managed through the Teacher Hub.
           </p>
         </div>
 
         <section id="courses-overview" className="man-section">
           <h2 className="man-section__title">Overview</h2>
           <p>
-            Courses and lessons are the structured teaching materials available to RIM community members. A <strong>course</strong> is a container that groups related lessons together. A <strong>lesson</strong> is a single piece of content &mdash; it might include text, an audio recording, a video, or downloadable resources.
+            Series and lessons are the structured teaching materials available to RIM community members. A <strong>series</strong> is a container that groups related lessons together — a retreat series, a study course, a collection of guided practices. A <strong>lesson</strong> is a single piece of content &mdash; it might include text, an audio recording, a video, or downloadable resources.
           </p>
           <p>
-            Members access courses at <code>/course/[slug]</code> and individual lessons at <code>/lessons/[slug]</code>. Some courses are open to all logged-in members; others require registration for a specific program.
+            Members access series at <code>/course/[slug]</code> and individual lessons at <code>/lessons/[slug]</code>. Some series are open to all logged-in members; others require registration for a specific program. The series page shows a warm, centered layout with the list of lessons as white cards, each with a small icon indicating whether the lesson is audio, video, or text.
+          </p>
+          <p>
+            <em>Note: the database model is still named &ldquo;Course&rdquo; and the URL path is still <code>/course/</code>. The label &ldquo;Series&rdquo; is used throughout the staff UI and for members, but you may see &ldquo;Course&rdquo; in technical contexts.</em>
           </p>
         </section>
 
         <section id="courses-access" className="man-section">
           <h2 className="man-section__title">Access levels</h2>
-          <p>Each course has one of two access levels:</p>
+          <p>Each series has one of two access levels:</p>
           <table className="man-table">
             <thead><tr><th>Level</th><th>Who can view</th></tr></thead>
             <tbody>
               <tr><td><strong>Members</strong></td><td>Any logged-in community member</td></tr>
-              <tr><td><strong>Registration Required</strong></td><td>Only members with an active registration for a program linked to this course, or members who have been manually granted access by an admin</td></tr>
+              <tr><td><strong>Registration Required</strong></td><td>Only members with an active registration for a program linked to this series, or members who have been manually granted access by an admin</td></tr>
             </tbody>
           </table>
           <p>
-            Access is checked every time someone opens a course page &mdash; there&rsquo;s no separate &ldquo;enrollment&rdquo; step. If a member registers for a program that&rsquo;s linked to a course, they automatically get access.
+            Access is checked every time someone opens a series page &mdash; there&rsquo;s no separate &ldquo;enrollment&rdquo; step. If a member registers for a program that&rsquo;s linked to a series, they automatically get access.
           </p>
         </section>
 
         <section id="courses-teacher-hub" className="man-section">
           <h2 className="man-section__title">Teacher Hub</h2>
           <p>
-            Courses and lessons are managed in the <strong>Teacher Hub</strong> at <code>/account/hub/teacher</code>. This is a workspace available to anyone with the TEACHER or ADMIN role.
+            Series and lessons are managed in the <strong>Teacher Hub</strong> at <code>/account/hub/teacher</code>. This is a workspace available to anyone with the TEACHER or ADMIN role.
           </p>
           <p>
             The Teacher Hub has two main sections:
           </p>
           <ul className="man-list">
-            <li><strong>Courses</strong> &mdash; create and edit courses, set access levels, add or reorder lessons within a course</li>
+            <li><strong>Series</strong> &mdash; create and edit series, set access levels, add or reorder lessons, and organize lessons into named sections</li>
             <li><strong>Lessons</strong> &mdash; create and edit individual lessons with a rich text editor, upload images and audio files, add video links and downloadable resources</li>
           </ul>
           <p>
-            The lesson editor includes a WYSIWYG text editor with a formatting toolbar (bold, italic, underline, headings, lists, links, text alignment) plus three special content blocks: Verse Quote, Practice Suggestion, and Callout. Click the block buttons in the toolbar to insert them. You can also insert tables for comparison grids and study materials &mdash; when your cursor is inside a table, additional controls appear for adding/removing rows and columns. The course editor has the same formatting toolbar (including underline and text alignment) but without the special blocks or tables. Both editors show a word count at the bottom. Smart quotes, em dashes, and ellipsis are applied automatically as you type.
+            The lesson editor includes a WYSIWYG text editor with a formatting toolbar (bold, italic, underline, headings, lists, links, text alignment) plus three special content blocks: Verse Quote, Practice Suggestion, and Callout. Click the block buttons in the toolbar to insert them. You can also insert tables for comparison grids and study materials &mdash; when your cursor is inside a table, additional controls appear for adding/removing rows and columns. The series description editor has the same formatting toolbar (including underline and text alignment) but without the special blocks or tables. Both editors show a word count at the bottom. Smart quotes, em dashes, and ellipsis are applied automatically as you type.
             File uploads (images and audio) are saved automatically &mdash; you don&rsquo;t need to click Save after uploading a file. Audio files up to 500 MB are supported.
           </p>
           <p>
-            When editing a course or lesson, use the &ldquo;View course page &rarr;&rdquo; or &ldquo;View lesson page &rarr;&rdquo; link at the top of the editor to preview how it looks on the public site.
+            When editing a series or lesson, use the &ldquo;View series page &rarr;&rdquo; or &ldquo;View lesson page &rarr;&rdquo; link at the top of the editor to preview how it looks on the member-facing site.
           </p>
+
+          <h3 className="man-section__h3">Organizing lessons with sections</h3>
+          <p>
+            Within a series, you can group lessons into named sections — for example, &ldquo;Week 1,&rdquo; &ldquo;Foundations,&rdquo; or &ldquo;Advanced Practice.&rdquo; In the series editor, the lesson list shows as a unified drag list where both lessons and section dividers are rows you can reorder.
+          </p>
+          <ol className="man-steps">
+            <li>In the lesson manager, click <strong>+ Add Section</strong>.</li>
+            <li>A section divider row appears with a text input — type the section name directly in the row.</li>
+            <li>Drag the section divider (and any lessons) into the order you want. Lessons below a section divider inherit that section label.</li>
+            <li>To remove a section, click the &times; button on the section row. The lessons below it remain — they just lose the section label.</li>
+            <li>Click <strong>Save order</strong> when finished.</li>
+          </ol>
         </section>
 
         <section id="courses-linking" className="man-section">
-          <h2 className="man-section__title">Linking courses to programs</h2>
+          <h2 className="man-section__title">Linking series to programs</h2>
           <p>
-            To make a course available to registrants of a specific program, link them in the course editor. A single program can be linked to multiple courses, and a single course can be linked to multiple programs.
+            To make a series available to registrants of a specific program, link them in the series editor. A single program can be linked to multiple series, and a single series can be linked to multiple programs.
           </p>
           <p>
-            Programs are linked to courses via the ProgramCourse join table. Programs are managed in the Program Editor (Registrar Hub), while the course-to-program relationship is managed in the Teacher Hub.
+            Programs are linked to series via the ProgramCourse join table. Programs are managed in the Program Editor (Registrar Hub), while the series-to-program relationship is managed in the Teacher Hub.
           </p>
           <p>
-            You can also grant individual members access to any course from the <strong>Course Access</strong> section on their member profile page (Admin &rarr; Members &rarr; [member name]).
+            You can also grant individual members access to any series from the <strong>Course Access</strong> section on their member profile page (Admin &rarr; Members &rarr; [member name]).
           </p>
         </section>
 

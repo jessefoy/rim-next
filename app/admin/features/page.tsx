@@ -684,19 +684,19 @@ const AREAS: FunctionalArea[] = [
 
   {
     id: "courses",
-    title: "Course Access & Content",
+    title: "Series Access & Content",
     icon: "📚",
-    desc: "Member-gated course and lesson pages. Courses and lessons live in Postgres (migrated from Postgres). Access can be open to all members, granted via program registration, or manually granted by an admin. Content managed via Teacher Hub.",
+    desc: "Member-gated series and lesson pages. Series and lessons live in Postgres. Access can be open to all members, granted via program registration, or manually granted by an admin. Content managed via Teacher Hub. UI label is 'Series'; DB model is still 'Course'.",
     features: [
       {
-        name: "Course Page Gating",
+        name: "Series Page",
         locations: ["/course/[slug]"],
-        what: "Each course has an accessLevel in Postgres (MEMBERS or REGISTRATION_REQUIRED). MEMBERS = any logged-in user. REGISTRATION_REQUIRED = must have an active registration for a program linked via ProgramCourse table, or a manual CourseAccess grant. Non-members see a registration prompt.",
+        what: "Series page redesigned in session 59 to match the lp- design language: warm var(--rim-bg) background, centered weight-400 serif header, crs-rule hr divider, white lesson cards with 10px border radius. Each lesson card shows a number, the lesson title, and a small color-coded SVG icon indicating media type (teal square = audio, amber square = video, slate square = text-only). Section labels appear as subheadings between lesson cards. Access gating: accessLevel in Postgres (MEMBERS or REGISTRATION_REQUIRED). Non-members see a registration prompt.",
         relatedTo: [
           "accessLevel set on Course model in Postgres (managed via Teacher Hub)",
           "Auto-access via ProgramCourse join table (replaces old Sanity linkedCourses)",
           "Manual grants managed in Member Management (CourseAccessSection)",
-          "Lessons listed as clickable cards; section titles as non-linked dividers",
+          "crs- CSS prefix in public/css/custom.css",
         ],
       },
       {
@@ -983,27 +983,28 @@ const AREAS: FunctionalArea[] = [
     id: "teacher-hub",
     title: "Teacher Hub & Content Management",
     icon: "🎓",
-    desc: "Full CRUD for courses and lessons, accessible to TEACHER and ADMIN roles via the Teacher Hub. Content stored in Postgres. Tiptap WYSIWYG editors with underline, text alignment, typography, character count, tables, and custom block support.",
+    desc: "Full CRUD for series and lessons, accessible to TEACHER and ADMIN roles via the Teacher Hub. Content stored in Postgres. Tiptap WYSIWYG editors with underline, text alignment, typography, character count, tables, and custom block support. UI calls them 'Series'; DB model is still 'Course'.",
     features: [
       {
         name: "Teacher Hub Workspace",
         locations: ["/account/hub/teacher", "/account/hub/teacher/courses", "/account/hub/teacher/lessons"],
-        what: "A hub workspace for TEACHER and ADMIN roles. Reuses the multi-hub system. Primary tabs are Courses and Lessons (instead of the default Announcements). Hub root redirects to /account/hub/teacher/courses. Also includes Announcements, Documents, Conversations, and Members tabs.",
+        what: "A hub workspace for TEACHER and ADMIN roles. Reuses the multi-hub system. Primary tabs are Series and Lessons (instead of the default Announcements). Hub root redirects to /account/hub/teacher/courses. Also includes Announcements, Documents, Conversations, and Members tabs.",
         relatedTo: [
           "Multi-Hub Workspace System (/account/hub/[slug])",
           "TEACHER role assignment (syncHubMembership auto-creates HubMember)",
-          "Course Access & Content (course/lesson data managed here)",
+          "Series Access & Content (series/lesson data managed here)",
         ],
       },
       {
-        name: "Course Editor",
+        name: "Series Editor",
         locations: ["/account/hub/teacher/courses/new", "/account/hub/teacher/courses/[courseSlug]", "Component: CourseEditor.tsx", "API: POST /api/courses, PATCH /api/courses/[slug], DELETE /api/courses/[slug]"],
-        what: "Create and edit courses: title, slug, subheading, FormattedEditor description (with underline, text alignment, word count), access level (MEMBERS / REGISTRATION_REQUIRED), active toggle, sort order. Edit mode includes a lesson manager with search-to-add (debounced API search), drag-and-drop reordering, and remove. Delete is guarded — returns 409 if ProgramCourse records exist.",
+        what: "Create and edit series: title, slug, subheading, FormattedEditor description (with underline, text alignment, word count), access level (MEMBERS / REGISTRATION_REQUIRED), active toggle. Sort order was removed in session 59. Edit mode includes a unified lesson + section manager: a flat ListItem[] union type drives a drag list where section-divider rows and lesson rows are all first-class draggable items. Section rows have an inline-editable label and a ✕ remove button. + Add Section button uses th-btn--ghost style. Lessons are added via search-to-add (debounced API search). Delete is guarded — returns 409 if ProgramCourse records exist.",
         relatedTo: [
-          "Course model in Postgres",
+          "Course model in Postgres (CourseLesson.groupLabel = section header for a lesson)",
           "Lesson search API (/api/lessons/search)",
           "ProgramCourse join table (links programs to courses in Postgres)",
-          "Course Access & Content (access levels enforced at /course/[slug])",
+          "Series Access & Content (access levels enforced at /course/[slug])",
+          "th-section-row CSS in public/css/custom.css",
         ],
       },
       {

@@ -41,6 +41,8 @@ Two audiences:
 26. [Email Template Manager](#26-email-template-manager)
 27. [Teacher Hub & Content Management](#27-teacher-hub--content-management)
 28. [Editor Standard](#28-editor-standard)
+29. [Support Inbox](#29--support-inbox)
+30. [Learning System — Planned](#30-learning-system--planned)
 
 ---
 
@@ -2708,21 +2710,32 @@ This table documents all 18 email functions in `lib/email.ts`. Keep it current i
 
 ## 27. Teacher Hub & Content Management
 
-**What it does:** A full content management system for courses and lessons, accessible to TEACHER and ADMIN roles via the Teacher Hub at `/account/hub/teacher`. Courses and lessons are stored in Postgres (migrated from Sanity). The Teacher Hub provides CRUD interfaces for creating, editing, and organizing courses and lessons, including a rich Markdown editor with custom block support and file uploads via Vercel Blob.
+**What it does:** A full content management system for series (called "courses" in the DB) and lessons, accessible to TEACHER and ADMIN roles via the Teacher Hub at `/account/hub/teacher`. Series and lessons are stored in Postgres (migrated from Sanity). The Teacher Hub provides CRUD interfaces for creating, editing, and organizing series and lessons, including a rich Tiptap editor with custom block support and file uploads via Vercel Blob.
+
+> **Naming note (session 59):** The DB model is `Course` and the Prisma enum is `CourseAccessLevel`, but all UI labels say "Series." This is a deliberate rename — RIM's content is better described as a series of teachings than a "course." DB model name unchanged to avoid a migration.
 
 ### Who uses it
 | Role | Access |
 |---|---|
-| `TEACHER` | Full CRUD for courses and lessons |
+| `TEACHER` | Full CRUD for series and lessons |
 | `ADMIN` | Same as TEACHER (bypasses hub membership check) |
 
 ### Teacher Hub layout
-The Teacher Hub reuses the multi-hub workspace system (`/account/hub/[slug]`). When `slug === "teacher"`, the hub root redirects to `/account/hub/teacher/courses` and the tab bar shows Courses and Lessons as the primary tabs (before Announcements, Documents, Conversations, Members).
+The Teacher Hub reuses the multi-hub workspace system (`/account/hub/[slug]`). When `slug === "teacher"`, the hub root redirects to `/account/hub/teacher/courses` and the tab bar shows **Series** and Lessons as the primary tabs (before Announcements, Documents, Conversations, Members).
 
-### Course Editor
-- Create/edit courses with title, auto-generated slug, subheading, description (Markdown), access level (MEMBERS / REGISTRATION_REQUIRED), active toggle, sort order
-- Lesson manager (edit mode only): search-to-add lessons with debounced API call to `/api/lessons/search`, drag-and-drop reordering, remove button
-- Delete protection: returns 409 if ProgramCourse records exist
+### Series Editor (`CourseEditor.tsx`)
+- Create/edit series with title, auto-generated slug, subheading, description (FormattedEditor/Tiptap JSON), access level (MEMBERS / REGISTRATION_REQUIRED), active toggle
+- **No sort order field** — removed in session 59 (was a Webflow artifact; lesson order is managed by drag-and-drop)
+- **Lesson manager with section dividers** (edit mode only):
+  - Lessons and section dividers share one flat draggable list
+  - **`+ Add Section`** button inserts a styled section-divider row (teal dashed border, "SECTION" badge, inline-editable label, ✕ remove)
+  - Dragging reorders both lessons and section dividers freely
+  - On save, each lesson's `groupLabel` is derived from the section-divider row immediately above it (or null if none precedes it)
+  - `+ New Lesson` button: inline title input → POST `/api/lessons` → immediately added to list
+  - Search-to-add existing lessons (debounced API call to `/api/lessons/search`)
+  - Remove button per lesson; delete protection on series: returns 409 if ProgramCourse records exist
+- `listToLessonOrder()` helper serializes the flat items array to `{ id, groupLabel }[]` for the PATCH payload
+- `courseLessonsToList()` helper reconstructs the flat items array from `CourseLesson[]` with `groupLabel` on load
 
 ### Lesson Editor
 - Create/edit lessons with internal title, displayed title, auto-generated slug, section title toggle
@@ -3034,8 +3047,66 @@ Three-column split-pane email client:
 
 | 2026-03-16 (session 57) | **Support Inbox — security hardening (12 fixes).** Full audit by Claude (independent review) identified 4 critical, 4 moderate, and 4 minor issues. All fixed in a single commit (`43676d3`). **(1) Soft-delete bypass in sync:** `lib/supportSync.ts` — `findUnique` now includes `deletedAt` in select; if a thread is soft-deleted, sync skips it entirely (no resurrection, no new messages processed). **(2) Replies/notes on deleted threads:** `reply/route.ts` and `note/route.ts` both return 404 if `thread.deletedAt` is set — prevents writing to a thread the user already deleted. **(3) SSRF on attachment fetch:** `reply/route.ts` and `compose/route.ts` — added `isSafeBlobUrl()` validator; any attachment URL that doesn't match `*.public.blob.vercel-storage.com` is silently skipped before fetch. **(4) Attachment proxy ownership check:** `attachment/[messageId]/[attachmentId]/route.ts` — imports `db`, looks up `SupportMessage.gmailMessageId` before proxying; unknown messageIds return 404. **(5) Size limit on attachment buffering:** Both reply and compose routes — check `Content-Length` header before calling `.arrayBuffer()`; files over 20 MB skipped. **(6) Rate limit on manual sync:** `sync/route.ts` — 30-second cooldown per user stored in AppSetting (`support.sync.lastAt.{userId}`); returns 429 with seconds-remaining message. **(7) Status PATCH enum validation:** `threads/[id]/route.ts` — explicit check against `["OPEN","CLAIMED","WAITING","RESOLVED"]` before hitting Prisma; returns 400 for unknown values. **(8) Signature field escaping:** `reply/route.ts` and `compose/route.ts` — added `escapeHtml()` helper; name/role/tagline escaped before interpolation into outbound email HTML. **(9) Notification domain:** `lib/supportNotify.ts` — replaced hardcoded `https://rim-next.vercel.app` with `process.env.NEXTAUTH_URL`. **(10) Audit trail for permanent delete:** `threads/[id]/route.ts` DELETE — `console.log` with admin ID, thread ID, subject, and ISO timestamp; appears in Vercel logs. **(11) Max-length validation on signature fields:** `signature/route.ts` — name, role, and tagline each capped at 100 characters; returns 400 if exceeded. **(12) Notification dedup comment:** Added comment in `supportNotify.ts` noting the 5-minute window is an intentional spam-prevention trade-off. Items NOT in the audit fix list (by design): auto-assignment race in reply handler (fire-and-forget is intentional); weak email regex in compose (low risk, `@/` blocks obvious junk). |
 
+| 2026-03-17 (session 59) | **Course→Series rename + series page redesign + section labels UX + build fixes + learning system planned.** **(1) Build fixes:** `Prisma.JsonNull` required for `Json?` nullable fields — fixed in `app/api/host/sub-requests/[id]/claim/route.ts` (message field), `app/api/host/sub-requests/route.ts` (message field), and `app/api/programs/[slug]/registrations/route.ts` (notes field in CSV export — used `extractText()` to convert Tiptap JSON to plain string). **(2) Course→Series rename:** All UI labels throughout the Teacher Hub now say "Series." DB model name `Course` unchanged. Hub tab, CourseEditor headings, LessonListClient, all hub pages updated. **(3) Section labels UX redesign:** Replaced floating text inputs above each lesson row with explicit draggable section-divider rows in `CourseEditor.tsx`. `+ Add Section` button appends a teal dashed-border row (inline-editable label, ✕ remove). `listToLessonOrder()` serializes to `{ id, groupLabel }[]`; `courseLessonsToList()` reconstructs on load. **(4) Sort order removed:** Removed from Series editor UI — was a Webflow artifact; DB column remains. **(5) Series page redesign (`/course/[slug]`):** Full redesign from dark teal hero bar to `lp-` lesson-page aesthetic. `var(--rim-bg)` warm background, centered weight-400 serif title (42px), muted small-caps label, thin `<hr>` rule, 640px reading column. **(6) Lesson cards + SVG icons:** Lesson rows are now white cards (border-radius 10px, border-color hover transition). Replaced text badges with tinted icon squares: headphones/sage for audio, play-circle/slate for video, text-lines/warm-gray for reading. Inline SVG icon components (`AudioIcon`, `VideoIcon`, `TextIcon`). CSS classes: `crs-toc__icon-wrap`, `crs-toc__icon-wrap--audio/video/text`, `th-section-row`, `th-btn--ghost`. **(7) Learning system planned:** Full feature set designed and documented in §30 (progress tracking, enrollment, duration estimates, reflection prompts, personal notes, completion, teacher profiles, per-series discussion). New "Learning System" section added to roadmap (`app/admin/roadmap/page.tsx`) as high priority with 8 detailed items. Key files: `components/CourseEditor.tsx`, `app/course/[slug]/page.tsx`, `app/api/host/sub-requests/route.ts`, `app/api/host/sub-requests/[id]/claim/route.ts`, `app/api/programs/[slug]/registrations/route.ts`, `public/css/custom.css`, `app/admin/roadmap/page.tsx`. |
+
 | 2026-03-16 (session 58) | **Session tab visual redesign + post-session form overhaul + FormattedEditor standard.** Full redesign of the Host Hub Session tab and post-session form across `SessionLiveClient.tsx`, `PostSessionClient.tsx`, schema, and CSS. **(1) State machine fixes:** `computeState` was called once on mount and never re-ran. Added tick counter (`useState` incremented inside the 60-second poll interval) so all 6 states (later-today → getting-ready → live → post-session → done) transition correctly without a page reload. Removed server-side `prog.sessionEnded` from `isEnded` — was frozen at render time, could force State 5 while session was live. Now only `manuallyEnded` (explicit Close Session click) and `timeEnded` (`Date.now()` > endMs) control the ended state. **(2) Visual redesign — person rows:** Replaced chip grid with `AttendeeRow` full-width button component (52px tall). Left-edge 4px color strip: amber = new member, teal = returning, grey = absent. Inline "New" / "Back" label, name centered, flag circle at right edge. Tap toggles flag; flagged rows get amber background. **(3) Live block prominence:** Sage green background (`rgba(100, 140, 100, 0.12)`) with 4px left border on live session card. Non-live sessions without forms collapse to footnote links when `hasActiveForm = true`. `hasLive` computed once; sessions without a form to file always show. **(4) Scoreboard:** `sv-scoreboard` — 48px number + "in the room" label, displayed inside the live block. **(5) Co-host flow:** "I'm also hosting this" button restored as quiet inline text link in live state. Confirmation: `sv-cohost-confirmed--live` pill after click (no page reload needed). **(6) Post-session form — flagged people section:** All hosts now see the full post-session form (no more isCoHost distinction). Section 1 shows flagged attendees (everyone tapped during the session) with a FormattedEditor note field per person + 4 routing radio buttons with descriptions: No action needed / Gentle follow-up / Jesse only — sensitive / Technical issue. Descriptions render as `ps-radio__desc` beneath each label. **(7) FormattedEditor standard enforced:** Replaced plain textarea in reflection and all flag note fields with `FormattedEditor` (Tiptap JSON). Autosave to localStorage includes Tiptap JSON objects. `DraftState` uses `object | null` for `reflection` and `flagNotes`. **(8) Schema migration:** 3 fields changed from `String?` to `Json?` via `prisma db push`: `SessionAttendance.postSessionNote`, `SessionReport.reflection`, `SessionCoHostReport.reflection`. All stored as Tiptap JSON. Uses `Prisma.JsonNull` for nullable writes. **(9) `extractText()` utility:** Added to `lib/renderRichContent.ts` — runs `generateHTML()` then strips tags, used for email notification plain text from Tiptap JSON. **(10) API route updates:** `/api/attendance/session/[programSlug]/post/route.ts` — `flags.note` typed as `object | null`; stores `Prisma.JsonNull`; email notification uses `extractText()`. `/api/attendance/session/[programSlug]/cohost-report/route.ts` — same `Prisma.JsonNull` pattern. **(11) History page updates:** `session/history/page.tsx` and `session/history/team/page.tsx` — `postSessionNote`/`reflection` cast to `object | null`, rendered with `renderFormattedText()` + `dangerouslySetInnerHTML`. **(12) Memory saved:** `memory/feedback_editor_standard.md` — documents the FormattedEditor standard (all multi-line communication fields, `Json?` DB type, `renderFormattedText()` for display, `extractText()` for email) so it's applied automatically in future sessions. Key files: `components/SessionLiveClient.tsx`, `components/PostSessionClient.tsx`, `app/api/attendance/session/[programSlug]/post/route.ts`, `app/api/attendance/session/[programSlug]/cohost-report/route.ts`, `app/account/hub/[slug]/session/history/page.tsx`, `app/account/hub/[slug]/session/history/team/page.tsx`, `app/account/hub/[slug]/session/[programSlug]/post/page.tsx`, `lib/renderRichContent.ts`, `prisma/schema.prisma`, `public/css/custom.css`. |
 
-*Last updated: 2026-03-16 (session 58)*
+---
+
+## 30. Learning System — Planned
+
+**What it is:** A set of features that upgrades the Series/Lesson library from a static content archive into an active learning companion — designed specifically for a contemplative community. No gamification, streaks, points, or credentials. The goal is to give members the tools to engage deeply with teachings over time: knowing where they are, reflecting on what they've read, and marking moments of completion.
+
+**Design principle:** Every feature in this system should feel like a journal or a practice companion — not a platform. The contemplative context is load-bearing: choices that work for a MOOC platform may not fit here.
+
+### Planned features (prioritized)
+
+| # | Feature | Effort | What it does |
+|---|---|---|---|
+| 1 | **Lesson progress tracking + Continue button** | Medium | Mark lessons complete; series page shows progress bar + "Continue →" link; dashboard shows active series |
+| 2 | **Series enrollment** | Medium | Members consciously enroll in a series (separate from access); connects progress to identity + intention; drives dashboard |
+| 3 | **Duration estimates** | Small | `durationMinutes Int?` on Lesson; shown on series page cards as "~25 min"; helps practitioners plan |
+| 4 | **Reflection prompts** | Small | `reflectionPrompt String?` on Lesson; a teacher-written invitation shown at the bottom of each lesson; no member interaction required |
+| 5 | **Personal lesson notes** | Medium | Private per-lesson note (FormattedEditor, Tiptap JSON); auto-saves; only visible to the member |
+| 6 | **Completion moment** | Small | When last lesson is marked complete: a quiet acknowledgment with teacher's completion note; sets `SeriesEnrollment.completedAt` |
+| 7 | **Teacher profiles** | Large | Full `Teacher` Postgres records with bio + photo; replaces the `teacherNames String[]` field; enables "also from this teacher" links |
+| 8 | **Shared reflection / per-series discussion** | Medium | Optional per-series contemplative sharing thread; off by default; coordinator enables per series |
+
+### Key data models (new)
+
+| Model | Fields | Purpose |
+|---|---|---|
+| `LessonProgress` | `userId`, `lessonId`, `completedAt`, `@@unique([userId, lessonId])` | Tracks per-lesson completion per member |
+| `SeriesEnrollment` | `userId`, `courseId`, `enrolledAt`, `completedAt?`, `@@unique([userId, courseId])` | Tracks explicit enrollment + completion |
+| `LessonNote` | `userId`, `lessonId`, `body Json?`, `updatedAt`, `@@unique([userId, lessonId])` | Private member notes per lesson |
+| `Teacher` | `name`, `slug`, `bio String?`, `photoUrl String?`, `isActive` | Teacher profiles (future) |
+
+### Fields to add to existing models
+
+| Model | Field | Purpose |
+|---|---|---|
+| `Lesson` | `durationMinutes Int?` | Shown as "~N min" on series page |
+| `Lesson` | `reflectionPrompt String?` | Teacher-written closing invitation |
+| `Course` | `completionNote String?` | Shown on completion acknowledgment |
+| `Course` | `discussionEnabled Boolean @default(false)` | Whether per-series discussion is enabled |
+
+### Key files (when built)
+- `app/api/lessons/[slug]/complete/route.ts` — POST: toggle complete; check if all lessons done → set `SeriesEnrollment.completedAt`
+- `app/api/courses/[slug]/enroll/route.ts` — POST/DELETE: enroll / unenroll
+- `app/api/lessons/[slug]/note/route.ts` — GET/PATCH: personal note upsert
+- `app/course/[slug]/page.tsx` — progress bar, Continue link, enrollment button, completion state
+- `app/lessons/[slug]/page.tsx` — Complete button, reflection prompt, personal note editor
+- `app/account/dashboard/page.tsx` — enrolled series with progress
+- `components/LessonNoteEditor.tsx` — FormattedEditor with auto-save
+
+**🔧 Design decisions:**
+- Progress and enrollment are separate concepts: you can have access without being "enrolled," and you can make progress without formally enrolling. Enrollment is the intentional act.
+- `reflectionPrompt` is plain text (not Tiptap) — it's a single sentence or short paragraph the teacher writes. No need for rich formatting.
+- Personal notes use Tiptap JSON (FormattedEditor) — members may want to write in paragraphs, lists, or with some structure.
+- `completedAt` on `SeriesEnrollment` is set automatically when all lessons are marked complete — not manually by the member.
+- Teacher profiles are a large effort and should wait until the simpler features are proven valuable.
+- Shared discussion requires community norm-setting before being turned on — build the infrastructure, leave it disabled.
+
+*Last updated: 2026-03-17 (session 59)*
 
 **2026-03-16 (session 58, continued)** — Session tab: finished remaining gaps from the UX redesign brief. (1) meetHostAccount display: Added to States 2 and 3 — shows the Google Meet room account labeled "Room account" in State 2, quiet text below the join button in State 3. (2) State 5 inline form: PostSessionClient now renders inline in State 5 instead of linking to a separate page. Co-host vs primary host routing handled via isCoHost prop derived from SessionProgram flags. (3) End Session stays on page: endSession callback now calls router.refresh() instead of router.push — user stays on the session tab and State 5 appears with the inline form. (4) Coordinator section: Coordinator/Admin users see a muted section below the host cards with missing report indicators and team journal link. Key files: components/SessionLiveClient.tsx, components/PostSessionClient.tsx, app/account/hub/[slug]/session/page.tsx.
