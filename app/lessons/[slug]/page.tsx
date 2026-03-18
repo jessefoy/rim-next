@@ -6,6 +6,7 @@ import { renderContentBody } from "@/lib/renderRichContent";
 import DanaSection from "@/components/DanaSection";
 import AudioPlayer from "@/components/AudioPlayer";
 import MarkCompleteButton from "@/components/MarkCompleteButton";
+import { isLessonAvailable, computeAvailableDate, formatAvailableDate } from "@/lib/drip";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 type CourseContext = {
-  course: { slug: string; title: string; completionNote?: string | null };
+  course: { id: string; slug: string; title: string; completionNote?: string | null };
   lessonNumber: number;
   totalLessons: number;
   prevLesson: { slug: string; titleDisplayed: string } | null;
@@ -139,6 +140,7 @@ export default async function LessonPage({
     if (idx !== -1) {
       courseContext = {
         course: {
+          id: courseLessonJoin.course.id,
           slug: courseLessonJoin.course.slug,
           title: courseLessonJoin.course.title,
           completionNote: courseLessonJoin.course.completionNote ?? null,
@@ -150,6 +152,91 @@ export default async function LessonPage({
       };
     }
   }
+
+  // ── Drip check ─────────────────────────────────────────────────────────────
+  if (courseContext) {
+    const [dripCourse, dripEnrollment] = await Promise.all([
+      db.course.findUnique({
+        where: { slug: courseContext.course.slug },
+        select: {
+          dripEnabled: true,
+          dripIntervalDays: true,
+          lessons: { select: { lessonId: true }, orderBy: { sortOrder: "asc" } },
+        },
+      }),
+      db.seriesEnrollment.findUnique({
+        where: { userId_courseId: { userId: session.user.id!, courseId: courseContext.course.id } },
+        select: { enrolledAt: true },
+      }),
+    ]);
+
+    if (dripCourse?.dripEnabled) {
+      const positionIndex = dripCourse.lessons.findIndex((cl) => cl.lessonId === lesson.id);
+      const available = isLessonAvailable(
+        { id: lesson.id, releaseDate: lesson.releaseDate, releaseDelayDays: lesson.releaseDelayDays },
+        positionIndex >= 0 ? positionIndex : 0,
+        { dripEnabled: dripCourse.dripEnabled, dripIntervalDays: dripCourse.dripIntervalDays },
+        dripEnrollment,
+        new Date()
+      );
+
+      if (!available) {
+        const availDate = dripEnrollment
+          ? computeAvailableDate(
+              { id: lesson.id, releaseDate: lesson.releaseDate, releaseDelayDays: lesson.releaseDelayDays },
+              positionIndex >= 0 ? positionIndex : 0,
+              { dripEnabled: dripCourse.dripEnabled, dripIntervalDays: dripCourse.dripIntervalDays },
+              dripEnrollment
+            )
+          : null;
+
+        return (
+          <div className="lp-page">
+            {courseContext && (
+              <div className="lp-breadcrumb">
+                <Link href={`/course/${courseContext.course.slug}`} className="lp-breadcrumb__link">
+                  ← {courseContext.course.title}
+                </Link>
+              </div>
+            )}
+            <header className="lp-header">
+              <div className="lp-header__inner">
+                <p className="lp-label">{courseContext.course.title}</p>
+                <h1 className="lp-title">{lesson.titleDisplayed}</h1>
+              </div>
+            </header>
+            <div className="lp-content">
+              <div className="lp-drip-locked">
+                <p className="lp-drip-locked__msg">This lesson isn&apos;t available yet.</p>
+                {availDate && (
+                  <p className="lp-drip-locked__date">
+                    Available {formatAvailableDate(availDate)}
+                  </p>
+                )}
+                <Link href={`/course/${courseContext.course.slug}`} className="lp-drip-locked__back">
+                  ← Back to series
+                </Link>
+              </div>
+            </div>
+          </div>
+        );
+      }
+    }
+  }
+
+  // ── Dana visibility ────────────────────────────────────────────────────────
+  // Show dana if any active parent course has showDana=true.
+  // Standalone lessons (no active parent courses) default to showing dana.
+  const [danaParent, parentCourseCount] = await Promise.all([
+    db.courseLesson.findFirst({
+      where: { lessonId: lesson.id, course: { isActive: true, showDana: true } },
+      select: { courseId: true },
+    }),
+    db.courseLesson.count({
+      where: { lessonId: lesson.id, course: { isActive: true } },
+    }),
+  ]);
+  const showDana = !!danaParent || parentCourseCount === 0;
 
   const hasAudio = !!lesson.audioUrl;
   const hasQuote = !!lesson.headerQuote;
@@ -289,7 +376,7 @@ export default async function LessonPage({
           />
         </div>
 
-        <DanaSection />
+        {showDana && <DanaSection />}
 
       </div>
 
@@ -298,6 +385,7 @@ export default async function LessonPage({
         <nav className="lp-lesson-nav" aria-label="Lesson navigation">
           <div className="lp-lesson-nav__inner">
 
+            {/* Left: prev lesson or series link */}
             <div className="lp-lesson-nav__prev">
               {courseContext.prevLesson ? (
                 <Link
@@ -305,7 +393,6 @@ export default async function LessonPage({
                   className="lp-lesson-nav__link lp-lesson-nav__link--prev"
                 >
                   <span className="lp-lesson-nav__arrow">←</span>
-                  <span className="lp-lesson-nav__meta">Previous</span>
                   <span className="lp-lesson-nav__name">{courseContext.prevLesson.titleDisplayed}</span>
                 </Link>
               ) : (
@@ -314,7 +401,6 @@ export default async function LessonPage({
                   className="lp-lesson-nav__link lp-lesson-nav__link--prev"
                 >
                   <span className="lp-lesson-nav__arrow">←</span>
-                  <span className="lp-lesson-nav__meta">Back to series</span>
                   <span className="lp-lesson-nav__name">{courseContext.course.title}</span>
                 </Link>
               )}
@@ -324,6 +410,7 @@ export default async function LessonPage({
               {courseContext.lessonNumber} / {courseContext.totalLessons}
             </div>
 
+            {/* Right: next lesson, series overview, or nothing (single-lesson series) */}
             <div className="lp-lesson-nav__next">
               {courseContext.nextLesson ? (
                 <Link
@@ -331,19 +418,17 @@ export default async function LessonPage({
                   className="lp-lesson-nav__link lp-lesson-nav__link--next"
                 >
                   <span className="lp-lesson-nav__name">{courseContext.nextLesson.titleDisplayed}</span>
-                  <span className="lp-lesson-nav__meta">Next</span>
                   <span className="lp-lesson-nav__arrow">→</span>
                 </Link>
-              ) : (
+              ) : courseContext.totalLessons > 1 ? (
                 <Link
                   href={`/course/${courseContext.course.slug}`}
                   className="lp-lesson-nav__link lp-lesson-nav__link--next"
                 >
-                  <span className="lp-lesson-nav__name">{courseContext.course.title}</span>
-                  <span className="lp-lesson-nav__meta">Series overview</span>
+                  <span className="lp-lesson-nav__name">{courseContext.course.title} overview</span>
                   <span className="lp-lesson-nav__arrow">→</span>
                 </Link>
-              )}
+              ) : null}
             </div>
 
           </div>
