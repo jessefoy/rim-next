@@ -79,10 +79,18 @@ export default function ManualContent({ isAdmin }: { isAdmin: boolean }) {
           <li>
             <a href="#courses" className="man-sidebar__link">Courses &amp; Lessons</a>
             <ul className="man-sidebar__sub">
-              <li><a href="#courses-overview"   className="man-sidebar__sublink">Overview</a></li>
-              <li><a href="#courses-access"     className="man-sidebar__sublink">Access levels</a></li>
-              <li><a href="#courses-course-hub" className="man-sidebar__sublink">Course Hub</a></li>
-              <li><a href="#courses-linking"    className="man-sidebar__sublink">Linking courses to programs</a></li>
+              <li><a href="#courses-overview"          className="man-sidebar__sublink">Overview</a></li>
+              <li><a href="#courses-member-experience" className="man-sidebar__sublink">How members experience courses</a></li>
+              <li><a href="#courses-library"           className="man-sidebar__sublink">The course library</a></li>
+              <li><a href="#courses-access"            className="man-sidebar__sublink">Access levels</a></li>
+              <li><a href="#courses-enrollment"        className="man-sidebar__sublink">Enrollment</a></li>
+              <li><a href="#courses-progress"          className="man-sidebar__sublink">Progress and completion</a></li>
+              <li><a href="#courses-course-hub"        className="man-sidebar__sublink">The Course Hub</a></li>
+              <li><a href="#courses-series"            className="man-sidebar__sublink">Managing series</a></li>
+              <li><a href="#courses-lessons"           className="man-sidebar__sublink">Managing lessons</a></li>
+              <li><a href="#courses-teachers"          className="man-sidebar__sublink">Teacher profiles</a></li>
+              <li><a href="#courses-drip"              className="man-sidebar__sublink">Drip and scheduled release</a></li>
+              <li><a href="#courses-linking"           className="man-sidebar__sublink">Linking courses to programs</a></li>
             </ul>
           </li>
 
@@ -1816,83 +1824,639 @@ export default function ManualContent({ isAdmin }: { isAdmin: boolean }) {
             ════════════════════════════════════════ */}
 
         <div id="courses" className="man-chapter man-chapter--break">
-          <h1 className="man-chapter__title">Series &amp; Lessons</h1>
+          <h1 className="man-chapter__title">Courses &amp; Lessons</h1>
           <p className="man-chapter__subtitle">
-            How teaching materials are organized and delivered to community members. Series and lessons live in our database and are managed through the Course Hub.
+            How RIM&rsquo;s teaching materials are organized, managed, and delivered to members &mdash; from public dharma series to internal volunteer training.
           </p>
         </div>
 
+        {/* ── Overview ── */}
         <section id="courses-overview" className="man-section">
           <h2 className="man-section__title">Overview</h2>
           <p>
-            Series and lessons are the structured teaching materials available to RIM community members. A <strong>series</strong> is a container that groups related lessons together — a retreat series, a study course, a collection of guided practices. A <strong>lesson</strong> is a single piece of content &mdash; it might include text, an audio recording, a video, or downloadable resources.
+            The courses system is RIM&rsquo;s library of structured teaching materials. It holds everything from public dharma series open to any member &mdash; guided meditations, retreat recordings, study collections &mdash; to internal volunteer training, role-specific content, and program support materials. All of it lives in the same system, organized by access level and managed through the Course Hub.
           </p>
           <p>
-            Members access series at <code>/course/[slug]</code> and individual lessons at <code>/lessons/[slug]</code>. Some series are open to all logged-in members; others require registration for a specific program. The series page shows a warm, centered layout with the list of lessons as white cards, each with a small icon indicating whether the lesson is audio, video, or text.
-          </p>
-          <p>
-            <em>Note: the database model is still named &ldquo;Course&rdquo; and the URL path is still <code>/course/</code>. The label &ldquo;Series&rdquo; is used throughout the staff UI and for members, but you may see &ldquo;Course&rdquo; in technical contexts.</em>
-          </p>
-        </section>
-
-        <section id="courses-access" className="man-section">
-          <h2 className="man-section__title">Access levels</h2>
-          <p>Each series has one of two access levels:</p>
-          <table className="man-table">
-            <thead><tr><th>Level</th><th>Who can view</th></tr></thead>
-            <tbody>
-              <tr><td><strong>Members</strong></td><td>Any logged-in community member</td></tr>
-              <tr><td><strong>Registration Required</strong></td><td>Only members with an active registration for a program linked to this series, or members who have been manually granted access by an admin</td></tr>
-            </tbody>
-          </table>
-          <p>
-            Access is checked every time someone opens a series page &mdash; there&rsquo;s no separate &ldquo;enrollment&rdquo; step. If a member registers for a program that&rsquo;s linked to a series, they automatically get access.
-          </p>
-        </section>
-
-        <section id="courses-course-hub" className="man-section">
-          <h2 className="man-section__title">Course Hub</h2>
-          <p>
-            Series and lessons are managed in the <strong>Course Hub</strong> at <code>/account/hub/courses</code>. This is a workspace available to anyone with the TEACHER or ADMIN role.
-          </p>
-          <p>
-            The Course Hub has two main sections:
+            The system has two building blocks:
           </p>
           <ul className="man-list">
-            <li><strong>Series</strong> &mdash; create and edit series, set access levels, add or reorder lessons, and organize lessons into named sections</li>
-            <li><strong>Lessons</strong> &mdash; create and edit individual lessons with a rich text editor, upload images and audio files, add video links and downloadable resources</li>
+            <li><strong>A series</strong> is a container. It groups related lessons together &mdash; a course, a collection, a training program. The series page is what members visit to see the lesson list, track progress, and navigate through the content.</li>
+            <li><strong>A lesson</strong> is a single piece of content. It might be an audio recording, a video, a written teaching, a guided practice, or a mix. Lessons have their own pages and URLs.</li>
           </ul>
           <p>
-            The lesson editor includes a WYSIWYG text editor with a formatting toolbar (bold, italic, underline, headings, lists, links, text alignment) plus three special content blocks: Verse Quote, Practice Suggestion, and Callout. Click the block buttons in the toolbar to insert them. You can also insert tables for comparison grids and study materials &mdash; when your cursor is inside a table, additional controls appear for adding/removing rows and columns. The series description editor has the same formatting toolbar (including underline and text alignment) but without the special blocks or tables. Both editors show a word count at the bottom. Smart quotes, em dashes, and ellipsis are applied automatically as you type.
-            File uploads (images and audio) are saved automatically &mdash; you don&rsquo;t need to click Save after uploading a file. Audio files up to 500 MB are supported.
+            A lesson can belong to more than one series. This is intentional and useful. A guided breathing meditation might appear in an introductory series for new members, in a retreat preparation series, and in a standalone lesson library all at once. The lesson only needs to be created once &mdash; the series just references it.
           </p>
           <p>
-            When editing a series or lesson, use the &ldquo;View series page &rarr;&rdquo; or &ldquo;View lesson page &rarr;&rdquo; link at the top of the editor to preview how it looks on the member-facing site.
+            Members find courses in two places: the browse page at <strong>/courses/</strong> (organized by category, showing access status) and their personal library at <strong>/account/courses/</strong> (organized by progress &mdash; in progress, not started, completed). Teachers manage everything through the Course Hub at <strong>/account/hub/courses/</strong>.
           </p>
-
-          <h3 className="man-section__h3">Organizing lessons with sections</h3>
-          <p>
-            Within a series, you can group lessons into named sections — for example, &ldquo;Week 1,&rdquo; &ldquo;Foundations,&rdquo; or &ldquo;Advanced Practice.&rdquo; In the series editor, the lesson list shows as a unified drag list where both lessons and section dividers are rows you can reorder.
-          </p>
-          <ol className="man-steps">
-            <li>In the lesson manager, click <strong>+ Add Section</strong>.</li>
-            <li>A section divider row appears with a text input — type the section name directly in the row.</li>
-            <li>Drag the section divider (and any lessons) into the order you want. Lessons below a section divider inherit that section label.</li>
-            <li>To remove a section, click the &times; button on the section row. The lessons below it remain — they just lose the section label.</li>
-            <li>Click <strong>Save order</strong> when finished.</li>
-          </ol>
+          <div className="man-note">
+            <strong>A naming note:</strong> The database model is still called &ldquo;Course&rdquo; and the member-facing URL is still <code>/course/[slug]</code>. Throughout the staff UI and for members, the word <strong>Series</strong> is used &mdash; it better reflects how these collections are actually used at RIM. You may see &ldquo;Course&rdquo; in technical contexts (API routes, database fields, this manual where it refers to the system itself). They mean the same thing.
+          </div>
         </section>
 
+        {/* ── Member experience ── */}
+        <section id="courses-member-experience" className="man-section">
+          <h2 className="man-section__title">How members experience courses</h2>
+
+          <h3 className="man-section__h3">The browse page &mdash; /courses/</h3>
+          <p>
+            Any logged-in member can visit <strong>/courses/</strong> to browse available series. The page shows all active, non-onboarding series organized by category. Members can filter by category using pills at the top of the page. Each series card shows the title, a short description, and an access or enrollment status badge:
+          </p>
+          <ul className="man-list">
+            <li>No badge &mdash; open to all members, not yet enrolled</li>
+            <li><strong>Enrolled</strong> &mdash; the member is actively working through this series, with a progress indicator showing how many lessons they&rsquo;ve completed</li>
+            <li><strong>Completed</strong> &mdash; all lessons marked complete</li>
+            <li><strong>Registration required</strong> &mdash; access requires program registration or a manual grant</li>
+          </ul>
+          <p>
+            Series marked as onboarding do not appear on the browse page &mdash; they surface instead through the welcome prompt on the dashboard.
+          </p>
+
+          <h3 className="man-section__h3">The welcome prompt for new members</h3>
+          <p>
+            When a new member account is created and there are series marked as isOnboarding, a welcome prompt appears on their dashboard. It says something like &ldquo;Welcome &mdash; you have introductory resources waiting&rdquo; and links to those series. The prompt disappears once all onboarding series are complete or the member has enrolled and made progress through them.
+          </p>
+
+          <h3 className="man-section__h3">The dashboard &ldquo;Your Courses&rdquo; link</h3>
+          <p>
+            The member dashboard shows a single line: <strong>Your Courses &mdash; N in progress &rarr;</strong> when the member has active enrollments. Clicking it goes to <strong>/account/courses/</strong>. This keeps the dashboard uncluttered while still making courses easy to reach.
+          </p>
+
+          <h3 className="man-section__h3">The series page</h3>
+          <p>
+            Each series has its own page at <code>/course/[slug]</code>. The layout is warm and focused: a centered serif header with the series title and optional description, followed by the lesson list as white cards on a warm background. Each lesson card shows:
+          </p>
+          <ul className="man-list">
+            <li>A number (or a checkmark if complete)</li>
+            <li>The lesson title</li>
+            <li>A small media type icon &mdash; teal headphones for audio, amber play button for video, slate lines for text</li>
+            <li>A lock icon with available date if the lesson is drip-locked</li>
+          </ul>
+          <p>
+            Lessons can be organized into named sections (e.g. &ldquo;Week 1&rdquo;, &ldquo;Foundations&rdquo;) &mdash; section labels appear as quiet dividers above their group of lessons.
+          </p>
+          <p>
+            When enrolled, a progress bar and <strong>Continue &rarr;</strong> button appear above the lesson list. The Continue button goes to the next incomplete lesson that&rsquo;s available (it skips locked lessons).
+          </p>
+
+          <h3 className="man-section__h3">The lesson page</h3>
+          <p>
+            Each lesson lives at <code>/lessons/[slug]</code>. If the member arrived from a series, a breadcrumb at the top links back to that series. The lesson page layout:
+          </p>
+          <ul className="man-list">
+            <li>A label showing which series this is and which lesson number</li>
+            <li>The lesson title</li>
+            <li>Optional hero image</li>
+            <li>An audio player, if the lesson has audio (the player appears above the body content)</li>
+            <li>An opening header quote in large italic serif &mdash; shown only when no audio is set, since both serve the same orienting purpose</li>
+            <li>The lesson body &mdash; rich text with any special blocks (verse quotes, practice callouts, callout text)</li>
+            <li>A horizontal rule, then teacher names as links to their profiles</li>
+            <li>Downloadable resources, if any</li>
+            <li>A <strong>Mark as complete</strong> button at the bottom</li>
+            <li>A dana invitation (can be turned off per series)</li>
+            <li>Prev/Next navigation &mdash; previous lesson title or series name on the left, next lesson title or series overview on the right</li>
+          </ul>
+
+          <h3 className="man-section__h3">The completion moment</h3>
+          <p>
+            When a member marks the final lesson complete, the Mark as Complete button area transforms into a quiet completion message: <em>&ldquo;You&rsquo;ve completed this series. Take a moment to let that land.&rdquo;</em> If the teacher has written a completion note for this series, it appears below that line in warm italic text. This is the only place the completion note appears &mdash; it&rsquo;s a closing thought from the teacher, not a notification.
+          </p>
+        </section>
+
+        {/* ── The course library ── */}
+        <section id="courses-library" className="man-section">
+          <h2 className="man-section__title">The course library</h2>
+          <p>
+            Each member has a personal course library at <strong>/account/courses/</strong>. It shows every series they&rsquo;re enrolled in, organized into three sections:
+          </p>
+
+          <div className="man-field-list">
+            <div className="man-field">
+              <div className="man-field__name">In Progress</div>
+              <div className="man-field__desc">
+                <p>Enrolled, at least one lesson complete, not finished. Shows a progress bar and a <strong>Continue &rarr;</strong> button that links to the next available lesson.</p>
+              </div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Not Started</div>
+              <div className="man-field__desc">
+                <p>Enrolled but no lessons opened yet. Shows a <strong>Start &rarr;</strong> button. A quiet source label explains how they got here:</p>
+                <ul className="man-list">
+                  <li><em>Part of your welcome resources</em> &mdash; for onboarding series</li>
+                  <li><em>Included with [Program Name]</em> &mdash; for series linked to a program the member registered for</li>
+                  <li>No label &mdash; for self-enrolled series</li>
+                </ul>
+              </div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Completed</div>
+              <div className="man-field__desc">
+                <p>All lessons marked complete. Shows the completion date and a <strong>Revisit &rarr;</strong> link. Completed series stay fully accessible &mdash; members can return to any lesson anytime.</p>
+              </div>
+            </div>
+          </div>
+
+          <h3 className="man-section__h3">Un-enrollment</h3>
+          <p>
+            Members can leave a series they enrolled in themselves &mdash; there&rsquo;s a &ldquo;Leave course&rdquo; option with a confirmation step on the series page. Their progress is cleared when they un-enroll.
+          </p>
+          <p>
+            Un-enrollment is <strong>not available</strong> for program-linked enrollments or onboarding enrollments. The reason is intentional: when enrollment happens automatically through registration or account creation, removing it from the library would be confusing &mdash; the member would lose access to materials they&rsquo;re meant to have as part of their program. If a member needs to be un-enrolled from one of these, an admin can do it from the member&rsquo;s profile page.
+          </p>
+        </section>
+
+        {/* ── Access levels ── */}
+        <section id="courses-access" className="man-section">
+          <h2 className="man-section__title">Access levels</h2>
+          <p>
+            Every series has an access level that controls who can view it. This is separate from enrollment &mdash; access is the door, enrollment is the decision to walk through it.
+          </p>
+          <table className="man-table">
+            <thead>
+              <tr>
+                <th>Level</th>
+                <th>Who sees it</th>
+                <th>Plain explanation</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>All Members</strong></td>
+                <td>Any logged-in member</td>
+                <td>Open to the whole community. Good for public dharma content.</td>
+              </tr>
+              <tr>
+                <td><strong>Registration Required</strong></td>
+                <td>Members registered for a linked program, or manually granted access by admin</td>
+                <td>Used for program support materials and courses offered as part of a registration-based program.</td>
+              </tr>
+              <tr>
+                <td><strong>Role Required</strong></td>
+                <td>Members holding a specified volunteer role</td>
+                <td>Used for volunteer training, teacher training, or internal community content. The series is invisible to anyone who doesn&rsquo;t qualify &mdash; they don&rsquo;t see a lock, they simply don&rsquo;t see it at all.</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3 className="man-section__h3">The manual grant escape hatch</h3>
+          <p>
+            Any access level can be overridden by an admin. From a member&rsquo;s profile page at <strong>/admin/members/[id]</strong>, scroll to the <strong>Course Access</strong> section. You can grant or revoke manual access to any series, regardless of access level. This is for edge cases: a scholarship situation, a member who missed registration but should have access, or someone who needs access to a role-gated series without holding the role.
+          </p>
+          <p>
+            Manual grants are separate from registration-based access. Revoking a manual grant does not remove access that came through a program registration.
+          </p>
+
+          <h3 className="man-section__h3">The isOnboarding flag</h3>
+          <p>
+            Series marked as isOnboarding behave differently from other All Members series. They are excluded from the browse page and instead appear only in the new-member welcome prompt on the dashboard. When a new account is created, the member is automatically enrolled in all active onboarding series. Use this for foundational welcome content &mdash; orientation recordings, community introduction, getting-started guides.
+          </p>
+        </section>
+
+        {/* ── Enrollment ── */}
+        <section id="courses-enrollment" className="man-section">
+          <h2 className="man-section__title">Enrollment</h2>
+          <p>
+            Access and enrollment are not the same thing. A member can have access to a series &mdash; meaning they can view it and read the lessons &mdash; without being enrolled. Enrollment is the intentional act of working through a series actively. It&rsquo;s what creates a progress record, puts the series in the member&rsquo;s library, and enables the Continue button and completion moment.
+          </p>
+          <p>
+            There are four ways enrollment happens, each with a different source label:
+          </p>
+
+          <div className="man-field-list">
+            <div className="man-field">
+              <div className="man-field__name">Self</div>
+              <div className="man-field__desc">
+                <p>The member clicks <strong>Enroll in this series</strong> on the series page. This is a conscious act &mdash; they&rsquo;re saying &ldquo;I want to work through this.&rdquo; They can un-enroll later from their library (their progress is cleared).</p>
+              </div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Program</div>
+              <div className="man-field__desc">
+                <p>Registration is confirmed for a program linked to this series. Happens automatically &mdash; the member doesn&rsquo;t need to do anything. The series appears in their library labeled <em>Included with [Program Name]</em>. Cannot be self-removed.</p>
+              </div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Onboarding</div>
+              <div className="man-field__desc">
+                <p>A new member account is created and there are active series marked isOnboarding. Happens automatically. The series appears in the welcome prompt and the library. Cannot be self-removed.</p>
+              </div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Role</div>
+              <div className="man-field__desc">
+                <p>A volunteer role is assigned to a member that matches a series&rsquo; required roles. Happens automatically when the role is saved. Cannot be self-removed.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="man-note">
+            <strong>Admin enrollment:</strong> From a member&rsquo;s profile page, an admin can grant manual access to any series. When access is granted this way, the member is also enrolled automatically &mdash; they don&rsquo;t need to find the series and click Enroll.
+          </div>
+        </section>
+
+        {/* ── Progress and completion ── */}
+        <section id="courses-progress" className="man-section">
+          <h2 className="man-section__title">Progress and completion</h2>
+
+          <h3 className="man-section__h3">Marking lessons complete</h3>
+          <p>
+            At the bottom of every lesson page, there&rsquo;s a <strong>Mark as complete</strong> button. Clicking it records the completion and moves the member forward &mdash; the button changes to show the lesson is done, and the series progress bar updates. Clicking the button again un-marks it, which is useful if someone wants to revisit the same lesson fresh.
+          </p>
+
+          <h3 className="man-section__h3">The progress bar</h3>
+          <p>
+            The series page shows a progress bar above the lesson list when the member is enrolled: <em>&ldquo;3 of 8 complete&rdquo;</em>. This appears alongside the Continue button. Both disappear once the series is fully complete.
+          </p>
+
+          <h3 className="man-section__h3">The Continue button</h3>
+          <p>
+            The Continue button only appears when the member is enrolled. It links to the next incomplete lesson that&rsquo;s currently available &mdash; it skips over lessons they&rsquo;ve already completed and skips locked (drip-gated) lessons. If no lessons are available and unlocked, the button doesn&rsquo;t appear.
+          </p>
+
+          <h3 className="man-section__h3">Series completion</h3>
+          <p>
+            When the last lesson is marked complete, the completion moment appears on the lesson page: <em>&ldquo;You&rsquo;ve completed this series. Take a moment to let that land.&rdquo;</em> If the teacher wrote a completion note for this series in the series editor, it appears below that message in warm italic text. The series moves to the Completed section of the member&rsquo;s library.
+          </p>
+          <p>
+            Completed series stay fully accessible. Members can return to any lesson at any time &mdash; revisiting completed content is encouraged.
+          </p>
+        </section>
+
+        {/* ── The Course Hub ── */}
+        <section id="courses-course-hub" className="man-section">
+          <h2 className="man-section__title">The Course Hub</h2>
+          <p>
+            The Course Hub at <strong>/account/hub/courses/</strong> is the workspace where series and lessons are created and managed. It has two main tabs:
+          </p>
+          <ul className="man-list">
+            <li><strong>Series</strong> &mdash; create new series, edit existing ones, manage the lesson list, set access levels, and configure drip scheduling</li>
+            <li><strong>Lessons</strong> &mdash; create new lessons, edit existing ones, upload media, assign teachers, and add downloadable resources</li>
+          </ul>
+
+          <h3 className="man-section__h3">Who has access</h3>
+          <p>
+            Access to the Course Hub is person-assigned, not purely role-based. An admin grants access to a specific person from their member profile page in the <strong>Hub Access</strong> section &mdash; this creates a hub membership record for that person. The <strong>TEACHER</strong> role also grants Course Hub access by default.
+          </p>
+          <p>
+            This flexibility matters: two people with the same TEACHER role might have different hub access depending on their actual responsibilities. A visiting teacher who contributes one series doesn&rsquo;t necessarily need access to edit the entire lesson library. Access is scoped to what each person actually needs.
+          </p>
+          <div className="man-note">
+            Hub coordinators (people with isCoordinator = true on their hub membership) have the ability to add or remove hub members from within the hub itself. Admins can always manage access from the member profile page.
+          </div>
+
+          <h3 className="man-section__h3">Preview links</h3>
+          <p>
+            Both the series editor and the lesson editor have a small <strong>View series page &rarr;</strong> or <strong>View lesson page &rarr;</strong> link at the top. Use these to check how something looks on the member-facing site before sharing it or considering it done. The preview opens in a new tab.
+          </p>
+        </section>
+
+        {/* ── Managing series ── */}
+        <section id="courses-series" className="man-section">
+          <h2 className="man-section__title">Managing series</h2>
+          <p>
+            To create a new series, go to the Course Hub &rarr; Series tab &rarr; click <strong>New Series</strong>. To edit an existing one, click its title in the list.
+          </p>
+
+          <div className="man-field-list">
+            <div className="man-field">
+              <div className="man-field__name">Title</div>
+              <div className="man-field__desc">
+                <p>The name members see on the series page, in the browse list, and in their library. Use the full name as you&rsquo;d say it out loud.</p>
+              </div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Slug</div>
+              <div className="man-field__desc">
+                <p>The URL identifier for this series &mdash; auto-generated from the title, but editable. The series page lives at <code>/course/[slug]</code>.</p>
+                <div className="man-note man-note--warn" style={{margin: "8px 0 0"}}>&#9888; <strong>Do not change the slug after the series is live and has members enrolled.</strong> Changing it breaks every existing link to the series &mdash; bookmarks, emails, and any lesson that was reached via that series URL.</div>
+              </div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Subheading</div>
+              <div className="man-field__desc">
+                <p>A small label shown above the title on the series page. Defaults to <em>A Teaching Series</em>. Change it when this series is something different &mdash; <em>A Practice Collection</em>, <em>Host Team Training</em>, <em>Foundations Retreat Materials</em>. Helps members orient quickly.</p>
+              </div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Description</div>
+              <div className="man-field__desc">
+                <p>Optional introductory text shown above the lesson list on the series page. Good for explaining what the series is, how it&rsquo;s meant to be used, or setting context. Supports full rich text formatting.</p>
+              </div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Access Level</div>
+              <div className="man-field__desc">
+                <p>Who can view this series. Choose from <strong>All Members</strong>, <strong>Registration Required</strong>, or <strong>Role Required</strong>. See the Access Levels section for a full explanation of each.</p>
+                <p>When <strong>Role Required</strong> is selected, a multi-select field appears where you choose which roles qualify. A member needs to hold at least one of the selected roles to access the series.</p>
+              </div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">isOnboarding</div>
+              <div className="man-field__desc">
+                <p>When checked, this series is treated as welcome content for new members. It is excluded from the browse page and instead surfaces in the new-member welcome prompt on the dashboard. New member accounts are automatically enrolled in all active isOnboarding series when they are created.</p>
+                <p>Use this for foundational orientation content &mdash; not for regular teaching series.</p>
+              </div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Show Dana</div>
+              <div className="man-field__desc">
+                <p>Controls whether a dana invitation appears at the bottom of each lesson in this series. On by default for public teaching content.</p>
+                <p><strong>Turn this off</strong> for volunteer training, internal content, role-gated series, or any series where a donation ask would feel out of place or inappropriate.</p>
+              </div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Category</div>
+              <div className="man-field__desc">
+                <p>Optional. Used to organize the browse page &mdash; members can filter by category using the pills at the top. If no category is set, the series won&rsquo;t appear in any category filter but will still appear in the &ldquo;All&rdquo; view.</p>
+                <p>Categories are managed by admins. If you need a new category that doesn&rsquo;t exist yet, ask an admin to add it.</p>
+              </div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Completion Note</div>
+              <div className="man-field__desc">
+                <p>A teacher-written message shown when a member finishes the series. It appears below the quiet completion message (&ldquo;You&rsquo;ve completed this series. Take a moment to let that land.&rdquo;) in warm italic text.</p>
+                <p>Optional. If left blank, only the standard completion message appears. A good completion note is brief, personal, and closing &mdash; a few sentences from the teacher that acknowledge the work the member has done. It&rsquo;s not a next-step prompt or a call to action.</p>
+              </div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Active</div>
+              <div className="man-field__desc">
+                <p>Inactive series are invisible to members &mdash; they don&rsquo;t appear on the browse page, in search, or in the welcome prompt. Members who are already enrolled in an inactive series retain their enrollment and can still access it via direct URL, but it won&rsquo;t surface anywhere in the UI.</p>
+                <p>Use inactive when a series is in draft, being revised, or being retired without deleting.</p>
+              </div>
+            </div>
+          </div>
+
+          <h3 className="man-section__h3">The lesson manager</h3>
+          <p>
+            Below the series fields is the lesson manager &mdash; where you add lessons to the series and arrange them in order. The list shows lessons and section dividers as a unified drag list.
+          </p>
+
+          <div className="man-task">
+            <h3 className="man-task__title">Adding a lesson to the series</h3>
+            <ol className="man-steps">
+              <li>In the lesson search field at the bottom of the lesson manager, start typing the lesson title.</li>
+              <li>Results appear as you type &mdash; click a lesson to add it.</li>
+              <li>The lesson appears at the bottom of the list. Drag it or use the arrow buttons to reorder it.</li>
+              <li>Click <strong>Save order</strong> when finished.</li>
+            </ol>
+            <p className="man-task__note">Lessons already in the series are filtered out of search results so you can&rsquo;t accidentally add the same lesson twice.</p>
+          </div>
+
+          <div className="man-task">
+            <h3 className="man-task__title">Reordering lessons</h3>
+            <p>Drag any row to a new position, or use the &uarr; &darr; arrow buttons on the right side of each row. Click <strong>Save order</strong> to persist the new order.</p>
+          </div>
+
+          <div className="man-task">
+            <h3 className="man-task__title">Adding section dividers</h3>
+            <p>Section dividers let you organize lessons into named groups &mdash; &ldquo;Week 1&rdquo;, &ldquo;Foundations&rdquo;, &ldquo;Advanced Practice&rdquo;. They appear as quiet labels between lesson cards on the series page.</p>
+            <ol className="man-steps">
+              <li>Click <strong>+ Add Section</strong> below the lesson list.</li>
+              <li>A section divider row appears with a text input &mdash; type the section name directly in the row.</li>
+              <li>Drag the section divider to the position where you want the section to begin. Lessons below a section divider inherit that section label on the series page.</li>
+              <li>To rename a section, click its label in the row and edit it.</li>
+              <li>To remove a section, click the <strong>&times;</strong> on the section row. The lessons below it remain &mdash; they just lose the section label.</li>
+              <li>Click <strong>Save order</strong> when finished.</li>
+            </ol>
+          </div>
+
+          <div className="man-task">
+            <h3 className="man-task__title">Removing a lesson from the series</h3>
+            <p>Click the <strong>&times;</strong> button on the lesson row in the list. The lesson itself is not deleted &mdash; it&rsquo;s just removed from this series. It can still exist in other series and be re-added here at any time.</p>
+          </div>
+        </section>
+
+        {/* ── Managing lessons ── */}
+        <section id="courses-lessons" className="man-section">
+          <h2 className="man-section__title">Managing lessons</h2>
+          <p>
+            To create a new lesson, go to the Course Hub &rarr; Lessons tab &rarr; click <strong>New Lesson</strong>. To edit an existing one, click its title in the list.
+          </p>
+
+          <div className="man-field-list">
+            <div className="man-field">
+              <div className="man-field__name">Internal title</div>
+              <div className="man-field__desc">
+                <p>How this lesson appears in the lesson list and search results in the Course Hub. Members never see this &mdash; it&rsquo;s purely for your own organization. Be descriptive: <em>Session 3 &mdash; Working with Difficult Emotions (retreat recording)</em> is more useful than <em>Session 3</em>.</p>
+              </div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Displayed title</div>
+              <div className="man-field__desc">
+                <p>What members see as the lesson title on the lesson page and in the series card list. This can be shorter and more evocative than the internal title &mdash; the member-facing name is what someone will remember.</p>
+              </div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Slug</div>
+              <div className="man-field__desc">
+                <p>The URL identifier for this lesson. The lesson page lives at <code>/lessons/[slug]</code>.</p>
+                <div className="man-note man-note--warn" style={{margin: "8px 0 0"}}>&#9888; <strong>Do not change the slug after the lesson is live.</strong> Changing it breaks every existing link, including links from emails and bookmarks.</div>
+              </div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Access Level</div>
+              <div className="man-field__desc">
+                <p>Lesson-level access can be more restrictive than the series level. A series open to all members can have individual lessons that are registration-required. This is useful for series that mix public preview content with deeper materials available only to registered participants.</p>
+                <p>If a lesson&rsquo;s access level is more permissive than its parent series, the series-level restriction still applies &mdash; a member must pass the series access check before they can reach individual lessons.</p>
+              </div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Content</div>
+              <div className="man-field__desc">
+                <p>The main lesson body &mdash; a full rich text editor. Standard formatting includes bold, italic, underline, headings (H2 for main sections, H3 for sub-sections), bullet and numbered lists, links, and text alignment. Tables can be inserted for comparison grids or study materials &mdash; when your cursor is inside a table, extra controls appear for adding/removing rows and columns.</p>
+                <p>Three special block types can be inserted with the toolbar buttons:</p>
+                <ul className="man-list">
+                  <li><strong>Verse Quote</strong> &mdash; indented italic text, set slightly apart from the body. Use for suttas, poems, traditional verses, or anything meant to be read differently than prose.</li>
+                  <li><strong>Practice Callout</strong> &mdash; a teal-highlighted box. Use for guided practice instructions, a &ldquo;try this&rdquo; prompt, or anything you want to visually stand out as actionable.</li>
+                  <li><strong>Callout Text</strong> &mdash; larger serif emphasis text. Use for a key sentence or phrase you want to breathe &mdash; something you want the reader to slow down for.</li>
+                </ul>
+                <p>Smart quotes, em dashes, and ellipsis are applied automatically as you type.</p>
+              </div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Hero image</div>
+              <div className="man-field__desc">
+                <p>An optional full-width image that appears below the lesson header and above the audio player or content. Upload using the image button. Good for setting a visual tone &mdash; a nature photograph, artwork, or a contemplative image. Leave blank if the lesson doesn&rsquo;t need one.</p>
+              </div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Audio file</div>
+              <div className="man-field__desc">
+                <p>Upload an audio recording directly. When set, a styled audio player appears above the lesson body. Audio files up to 500 MB are supported and upload directly to secure file storage &mdash; you don&rsquo;t need an external hosting service.</p>
+                <p><strong>Note:</strong> When audio is set, the header quote is suppressed &mdash; both serve the same purpose of orienting the reader/listener before the content begins. If a lesson has audio, it doesn&rsquo;t need a text opening quote.</p>
+              </div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Video URL</div>
+              <div className="man-field__desc">
+                <p>A YouTube or Vimeo URL. When set, an embedded video player appears in the content column. Paste the full URL from the browser address bar.</p>
+              </div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Header quote</div>
+              <div className="man-field__desc">
+                <p>An opening line displayed in large italic serif at the top of the content column, before the lesson body. Shown only when no audio is set. Use for a brief framing quote, a sutta line, or a single sentence that sets the tone for what follows. An optional attribution field appears below it.</p>
+              </div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Teachers</div>
+              <div className="man-field__desc">
+                <p>Search for teachers by name and select them. Selected teachers appear as removable tags in the editor and as linked names at the bottom of the lesson page. Their names link to their public teacher profile.</p>
+                <p>Teachers are managed as separate records at <strong>/admin/teachers/</strong> &mdash; see the Teacher Profiles section below. You can only assign teachers who already have a record in the system. If a teacher you need isn&rsquo;t there yet, create their profile first, then come back to the lesson.</p>
+                <p>Inactive teachers already assigned to a lesson remain visible with an <em>(inactive)</em> label in the editor and still appear on the lesson page with a link to their profile.</p>
+              </div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Resources</div>
+              <div className="man-field__desc">
+                <p>Downloadable files or links associated with this lesson. Each resource has a name, a URL, and a type label (PDF, Audio, Document, Link, etc.). Resources appear in a section below the lesson body.</p>
+                <p>Good for: practice worksheets, supplementary readings, downloadable audio files, guided meditation scripts, retreat schedules.</p>
+              </div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Release delay (days)</div>
+              <div className="man-field__desc">
+                <p>Only visible when this lesson&rsquo;s parent series has drip scheduling enabled. Overrides the series-level interval for this specific lesson. If blank, the series default applies. See the Drip and Scheduled Release section for the full picture.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Teacher profiles ── */}
+        <section id="courses-teachers" className="man-section">
+          <h2 className="man-section__title">Teacher profiles</h2>
+          <p>
+            Teacher profiles are full records for anyone who teaches at RIM &mdash; name, bio, photo, and a public profile page at <code>/teachers/[slug]</code>. They&rsquo;re what make the teacher names on lesson pages into real links that members can follow to learn more about who is speaking.
+          </p>
+          <p>
+            Teacher profiles are managed at <strong>/admin/teachers/</strong>. This area is ADMIN-only &mdash; teachers don&rsquo;t manage their own profiles.
+          </p>
+
+          <div className="man-field-list">
+            <div className="man-field">
+              <div className="man-field__name">Name</div>
+              <div className="man-field__desc"><p>The teacher&rsquo;s full name as it will appear on lesson pages and the public listing.</p></div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Slug</div>
+              <div className="man-field__desc"><p>The URL path for their profile page: <code>/teachers/[slug]</code>. Auto-generated from the name. Same slug warning applies &mdash; don&rsquo;t change it after the teacher has lessons.</p></div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Bio</div>
+              <div className="man-field__desc"><p>A short biography shown on their public profile page. A few sentences to a paragraph is typical. Supports basic rich text formatting.</p></div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Photo</div>
+              <div className="man-field__desc"><p>Displayed in a circular frame on the teacher&rsquo;s profile page and the teachers listing. Upload a portrait or square crop &mdash; it will be displayed at 120px. If no photo is set, a placeholder circle appears.</p></div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Active</div>
+              <div className="man-field__desc">
+                <p>Controls public visibility:</p>
+                <ul className="man-list">
+                  <li><strong>Active</strong> &mdash; the teacher appears on the public <code>/teachers/</code> listing, and their name links to their full profile from lesson pages.</li>
+                  <li><strong>Inactive with lessons</strong> &mdash; the teacher does not appear in the listing, but their profile page still exists at <code>/teachers/[slug]</code>, marked <em>Previously taught at RIM</em>. Their name still links to this page from lesson pages. Use this when a teacher has moved on but their lessons remain in the library.</li>
+                  <li><strong>Inactive with no lessons</strong> &mdash; the profile page returns a 404. The teacher effectively doesn&rsquo;t exist publicly.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <h3 className="man-section__h3">Assigning teachers to lessons</h3>
+          <p>
+            Teacher assignment is done in the lesson editor, not in the teacher admin. Open a lesson, find the <strong>Teachers</strong> field, search for the teacher&rsquo;s name, and select them. Multiple teachers can be assigned to a single lesson. Remove a teacher from a lesson by clicking the &times; on their tag in the editor.
+          </p>
+        </section>
+
+        {/* ── Drip and scheduled release ── */}
+        <section id="courses-drip" className="man-section">
+          <h2 className="man-section__title">Drip and scheduled release</h2>
+          <p>
+            Drip release lets you control when each lesson becomes available to enrolled members. Instead of making all lessons accessible immediately on enrollment, lessons unlock on a schedule &mdash; either spaced out by days after enrollment, or tied to specific calendar dates.
+          </p>
+          <p>
+            This is useful for structured programs where pacing is part of the design: a weekly course that releases one lesson at a time, a retreat preparation series that builds week by week, or a training program with deliberate breathing room between sessions.
+          </p>
+          <p>
+            Drip is optional. When disabled (the default), all lessons are available the moment someone enrolls.
+          </p>
+
+          <h3 className="man-section__h3">The two modes</h3>
+
+          <div className="man-field-list">
+            <div className="man-field">
+              <div className="man-field__name">Interval mode</div>
+              <div className="man-field__desc">
+                <p>A new lesson unlocks every N days after the member enrolled. Lesson 1 is always immediately available. Lesson 2 unlocks after N days. Lesson 3 after 2N days. And so on.</p>
+                <p>Because the interval is calculated from each member&rsquo;s individual enrollment date, two members who enroll three weeks apart will progress through the series at the same pace relative to when they started &mdash; each on their own timeline.</p>
+                <p>Set the interval in the series editor under <strong>Release Schedule</strong> &mdash; enter a number of days and the schedule will preview below the lesson list.</p>
+              </div>
+            </div>
+            <div className="man-field">
+              <div className="man-field__name">Fixed dates mode</div>
+              <div className="man-field__desc">
+                <p>Each lesson has an explicit calendar date when it becomes available. Everyone enrolled sees the lesson unlock on that date, regardless of when they enrolled.</p>
+                <p>Use this for cohort-style programs where all participants should be at the same place at the same time &mdash; everyone gets Lesson 3 on March 15th, for example.</p>
+                <p>Set release dates per-lesson in the series editor. A date picker appears on each lesson row when fixed dates mode is active.</p>
+              </div>
+            </div>
+          </div>
+
+          <h3 className="man-section__h3">What members see when a lesson is locked</h3>
+          <p>
+            On the series page, locked lessons show a lock icon instead of a number, and a small <em>Available [date]</em> label below the title. Members can see the lesson exists and when it will open, but they cannot click into it.
+          </p>
+          <p>
+            If a member tries to visit a locked lesson directly (via bookmark or old link), the lesson page shows a locked state: <em>&ldquo;This lesson isn&rsquo;t available yet&rdquo;</em> with the release date, and a link back to the series.
+          </p>
+          <p>
+            The <strong>Continue &rarr;</strong> button on the series page always skips locked lessons &mdash; it takes the member to the next lesson that&rsquo;s both incomplete and available right now.
+          </p>
+
+          <h3 className="man-section__h3">Per-lesson release delay override</h3>
+          <p>
+            In the lesson editor, a <strong>Release delay (days)</strong> field appears when the parent series has drip enabled in interval mode. This overrides the series-level interval for that specific lesson. Useful when one lesson in a series needs extra breathing room &mdash; or when a lesson should be available immediately even in an otherwise drip-gated series.
+          </p>
+
+          <h3 className="man-section__h3">Email notification</h3>
+          <p>
+            When a new lesson unlocks for an enrolled member, they receive a quiet email notification: <em>&ldquo;A new lesson is available: [Lesson Title]&rdquo;</em> with a link to the lesson. This runs automatically at 6:00 AM UTC each day via a scheduled job.
+          </p>
+          <div className="man-note man-note--dev">
+            <span className="man-note--dev__label">&#9888;&#8197;Technical note</span>
+            The drip notification system uses a DripNotification database record as a deduplication guard &mdash; once an email is sent for a lesson/member pair, it won&rsquo;t send again even if the cron runs multiple times. If a drip email doesn&rsquo;t arrive, check that the lesson is actually unlocked and that the enrollment exists.
+          </div>
+        </section>
+
+        {/* ── Linking courses to programs ── */}
         <section id="courses-linking" className="man-section">
-          <h2 className="man-section__title">Linking series to programs</h2>
+          <h2 className="man-section__title">Linking courses to programs</h2>
           <p>
-            To make a series available to registrants of a specific program, link them in the series editor. A single program can be linked to multiple series, and a single series can be linked to multiple programs.
+            A series can be linked to one or more programs. When a member registers for a program, they are automatically enrolled in all series linked to that program &mdash; no action required from the registrar or the member. The series appears in their library labeled <em>Included with [Program Name]</em>.
           </p>
           <p>
-            Programs are linked to series via the ProgramCourse join table. Programs are managed in the Program Editor (Registrar Hub), while the series-to-program relationship is managed in the Course Hub.
+            This connection is managed in two places:
+          </p>
+          <ul className="man-list">
+            <li><strong>In the series editor</strong> (Course Hub) &mdash; there&rsquo;s a program link field where you can associate a program with this series. This is the typical place to make the connection when you&rsquo;re setting up a new course-backed program.</li>
+            <li><strong>In the Program Editor</strong> (Registrar Hub &rarr; program &rarr; Registration tab &rarr; Linked Courses) &mdash; the same link from the program&rsquo;s side. Both directions create the same relationship.</li>
+          </ul>
+          <p>
+            A program can link to multiple series, and a series can be linked to multiple programs. The connection is symmetric &mdash; it doesn&rsquo;t matter which direction you set it from.
+          </p>
+
+          <h3 className="man-section__h3">Timing matters</h3>
+          <p>
+            Access and enrollment are granted at the moment of registration. If you add a series link to a program after some members have already registered, those existing registrants <strong>will not</strong> automatically receive access. The system only checks for linked series at registration time, not retroactively.
           </p>
           <p>
-            You can also grant individual members access to any series from the <strong>Course Access</strong> section on their member profile page (Admin &rarr; Members &rarr; [member name]).
+            For members who registered before the link was added, grant access manually from their member profile page at <strong>/admin/members/[id]</strong> &rarr; Course Access section.
+          </p>
+
+          <h3 className="man-section__h3">Manual grants</h3>
+          <p>
+            For situations that don&rsquo;t fit the automatic model &mdash; a scholarship, a member who couldn&rsquo;t attend a program but should have the materials, a one-off exception &mdash; an admin can grant any member access to any series directly from the member&rsquo;s profile page. Manual grants are separate from program-linked access and can be revoked independently.
           </p>
         </section>
 
