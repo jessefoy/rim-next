@@ -5,8 +5,14 @@ import { db } from "@/lib/db";
 /**
  * POST /api/lessons/[slug]/complete
  * Toggles the lesson complete/incomplete for the authenticated member.
- * Returns { completed: boolean, courseSlug?: string } so the client can
- * check if the whole series is now done and set SeriesEnrollment.completedAt.
+ *
+ * Body: { courseSlug?: string }
+ * - If courseSlug is provided, checks that a SeriesEnrollment exists (403 if not).
+ * - Toggle: LessonProgress exists → delete (incomplete); absent → create (complete).
+ * - After toggling, updates SeriesEnrollment.completedAt:
+ *   - On complete: if all lessons now done → set completedAt = now()
+ *   - On incomplete: if completedAt was set → clear it (null)
+ * Returns { completed: boolean, seriesCompleted: boolean }
  */
 export async function POST(
   request: NextRequest,
@@ -28,27 +34,10 @@ export async function POST(
 
   const { courseSlug } = await request.json().catch(() => ({})) as { courseSlug?: string };
 
-  // Toggle: if exists → delete (mark incomplete); if absent → create (mark complete)
-  const existing = await db.lessonProgress.findUnique({
-    where: { userId_lessonId: { userId, lessonId: lesson.id } },
-  });
-
-  if (existing) {
-    await db.lessonProgress.delete({
-      where: { userId_lessonId: { userId, lessonId: lesson.id } },
-    });
-    return NextResponse.json({ completed: false });
-  }
-
-  await db.lessonProgress.create({
-    data: { userId, lessonId: lesson.id },
-  });
-
-  // If the member is enrolled in a series that contains this lesson,
-  // check whether all lessons in that series are now complete.
-  // If so, stamp SeriesEnrollment.completedAt.
+  // Resolve course if courseSlug provided — also gate on enrollment
+  let course: { id: string; lessons: { lessonId: string }[]; completionNote: string | null } | null = null;
   if (courseSlug) {
-    const course = await db.course.findUnique({
+    course = await db.course.findUnique({
       where: { slug: courseSlug },
       select: {
         id: true,
@@ -56,30 +45,71 @@ export async function POST(
         completionNote: true,
       },
     });
+
     if (course) {
       const enrollment = await db.seriesEnrollment.findUnique({
         where: { userId_courseId: { userId, courseId: course.id } },
+        select: { id: true },
       });
-      if (enrollment && !enrollment.completedAt) {
-        const lessonIds = course.lessons.map((cl) => cl.lessonId);
-        const progressCount = await db.lessonProgress.count({
-          where: { userId, lessonId: { in: lessonIds } },
-        });
-        if (progressCount === lessonIds.length) {
-          await db.seriesEnrollment.update({
-            where: { userId_courseId: { userId, courseId: course.id } },
-            data: { completedAt: new Date() },
-          });
-          return NextResponse.json({
-            completed: true,
-            seriesCompleted: true,
-            courseSlug,
-            completionNote: course.completionNote ?? null,
-          });
-        }
+      if (!enrollment) {
+        return NextResponse.json({ error: "Not enrolled in this series" }, { status: 403 });
       }
     }
   }
 
-  return NextResponse.json({ completed: true });
+  // Toggle: if exists → delete (mark incomplete); if absent → create (mark complete)
+  const existing = await db.lessonProgress.findUnique({
+    where: { userId_lessonId: { userId, lessonId: lesson.id } },
+  });
+
+  if (existing) {
+    // Mark incomplete
+    await db.lessonProgress.delete({
+      where: { userId_lessonId: { userId, lessonId: lesson.id } },
+    });
+
+    // Clear completedAt if the series was previously marked complete
+    if (course) {
+      await db.seriesEnrollment.updateMany({
+        where: { userId, courseId: course.id, completedAt: { not: null } },
+        data: { completedAt: null },
+      });
+    }
+
+    return NextResponse.json({ completed: false, seriesCompleted: false });
+  }
+
+  // Mark complete
+  await db.lessonProgress.create({
+    data: { userId, lessonId: lesson.id },
+  });
+
+  // Check if all lessons in the series are now complete
+  if (course) {
+    const enrollment = await db.seriesEnrollment.findUnique({
+      where: { userId_courseId: { userId, courseId: course.id } },
+      select: { completedAt: true },
+    });
+
+    if (enrollment && !enrollment.completedAt) {
+      const lessonIds = course.lessons.map((cl) => cl.lessonId);
+      const progressCount = await db.lessonProgress.count({
+        where: { userId, lessonId: { in: lessonIds } },
+      });
+      if (progressCount === lessonIds.length) {
+        await db.seriesEnrollment.update({
+          where: { userId_courseId: { userId, courseId: course.id } },
+          data: { completedAt: new Date() },
+        });
+        return NextResponse.json({
+          completed: true,
+          seriesCompleted: true,
+          courseSlug,
+          completionNote: course.completionNote ?? null,
+        });
+      }
+    }
+  }
+
+  return NextResponse.json({ completed: true, seriesCompleted: false });
 }
