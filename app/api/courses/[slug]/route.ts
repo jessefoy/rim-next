@@ -154,6 +154,19 @@ export async function PATCH(
     }
   }
 
+  // Handle per-lesson delay overrides (for interval drip mode)
+  if (body.lessonDelayDays && typeof body.lessonDelayDays === "object") {
+    for (const [lessonId, daysStr] of Object.entries(body.lessonDelayDays)) {
+      const days = daysStr !== "" && daysStr != null ? parseInt(daysStr as string) : null;
+      await db.lesson.update({
+        where: { id: lessonId },
+        data: {
+          releaseDelayDays: Number.isFinite(days as number) ? (days as number) : null,
+        },
+      });
+    }
+  }
+
   return NextResponse.json(updated);
 }
 

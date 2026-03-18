@@ -16127,6 +16127,10 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .th-drip-preview__row { font-size: 13px; color: var(--rim-text-muted); margin: 0; padding: 3px 0; }
 .th-input--inline { width: 60px !important; display: inline-block; margin: 0 6px; vertical-align: middle; }
 .th-input--date { width: 150px; font-size: 13px; }
+.th-input--readonly { background: #f3f0ed; color: var(--rim-text-muted); cursor: default; }
+.th-drip-delay-label { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--rim-text-muted); margin-right: 8px; }
+.th-drip-delay-label__text { white-space: nowrap; }
+.th-drip-preview__custom { color: var(--rim-mid); font-size: 11px; margin-left: 4px; }
 
 /* ── Manual Help Icon ──────────────────────────────────────────────────────── */
 .mh-icon {
