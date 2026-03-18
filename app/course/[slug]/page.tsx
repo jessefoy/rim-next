@@ -237,6 +237,31 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
   const hasHiddenLessons = course.hideLockedLessons && !isAdmin && visibleCount < totalCount;
   const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
+  // Edge case: hideLockedLessons is on and zero lessons are currently available
+  const allLocked = course.hideLockedLessons && !isAdmin && visibleCount === 0 && totalCount > 0;
+  let firstLessonDateStr: string | null = null;
+  if (allLocked) {
+    const firstCl = allLessonItems[0];
+    let date: Date | null = null;
+    if (firstCl.lesson.releaseDate) {
+      date = firstCl.lesson.releaseDate;
+    } else if (enrollment) {
+      date = computeAvailableDate(
+        { id: firstCl.lesson.id, releaseDate: firstCl.lesson.releaseDate, releaseDelayDays: firstCl.lesson.releaseDelayDays },
+        0,
+        { dripEnabled: course.dripEnabled, dripIntervalDays: course.dripIntervalDays },
+        { enrolledAt: enrollment.enrolledAt }
+      );
+    }
+    if (date) {
+      const opts: Intl.DateTimeFormatOptions = {
+        weekday: "long", month: "long", day: "numeric", timeZone: "America/Chicago",
+      };
+      if (date.getFullYear() !== now.getFullYear()) opts.year = "numeric";
+      firstLessonDateStr = date.toLocaleDateString("en-US", opts);
+    }
+  }
+
   // Find the first incomplete AND available lesson for "Continue →"
   const firstIncomplete = lessonItems.find(
     (cl) => !completedIds.has(cl.lessonId) && (lessonAvailability.get(cl.lessonId) !== false)
@@ -382,7 +407,15 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
         </div>
       ) : (
         <div className="crs-lessons">
-          <p className="crs-empty">No lessons have been added to this series yet.</p>
+          {allLocked ? (
+            <p className="crs-pending">
+              {firstLessonDateStr
+                ? <>Your first lesson will be available on {firstLessonDateStr}.</>
+                : <>Lessons will become available soon.</>}
+            </p>
+          ) : (
+            <p className="crs-empty">No lessons have been added to this series yet.</p>
+          )}
         </div>
       )}
 

@@ -15700,6 +15700,17 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   padding-top: 32px;
   line-height: 1.6;
 }
+.crs-pending {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  color: var(--rim-text-muted);
+  text-align: center;
+  padding: 56px 24px 72px;
+  line-height: 1.7;
+  font-style: italic;
+  max-width: var(--reading-width);
+  margin: 0 auto;
+}
 
 /* ── Mobile ── */
 @media (max-width: 600px) {
