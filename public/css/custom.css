@@ -6818,6 +6818,33 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   color: var(--rim-text-muted);
   margin: 0 0 16px;
 }
+.man-sidebar__editor-link {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--rim-mid);
+  text-decoration: none;
+  margin: -8px 0 16px;
+  opacity: 0.7;
+}
+.man-sidebar__editor-link:hover { opacity: 1; }
+.man-sidebar__public-note {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--rim-text-muted);
+  margin: -10px 0 12px;
+  font-style: italic;
+}
+.man-public-banner {
+  background: #f5f2ee;
+  border: 1px solid #e8e4de;
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--rim-text-muted);
+  margin-bottom: 32px;
+}
 
 .man-sidebar__list {
   list-style: none;
