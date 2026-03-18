@@ -16100,3 +16100,54 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .th-drip-preview__row { font-size: 13px; color: var(--rim-text-muted); margin: 0; padding: 3px 0; }
 .th-input--inline { width: 60px !important; display: inline-block; margin: 0 6px; vertical-align: middle; }
 .th-input--date { width: 150px; font-size: 13px; }
+
+/* ── Manual Help Icon ──────────────────────────────────────────────────────── */
+.mh-icon {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid var(--rim-mid);
+  color: var(--rim-mid);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  opacity: 0.55;
+  transition: opacity 0.15s;
+  z-index: 10;
+}
+.mh-icon:hover { opacity: 1; }
+
+/* ── Admin Manual (man2- prefix) ───────────────────────────────────────────── */
+.man2-page { max-width: 820px; margin: 0 auto; padding: 40px 24px 80px; }
+.man2-header { display: flex; align-items: center; gap: 16px; margin-bottom: 32px; }
+.man2-header h1 { font-family: var(--font-serif); font-size: 28px; color: var(--rim-text); margin: 0; }
+.man2-new-btn { margin-left: auto; }
+.man2-section { border: 1px solid #e8e4de; border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+.man2-section__header { display: flex; align-items: center; gap: 12px; padding: 14px 18px; cursor: pointer; background: #faf8f5; }
+.man2-section__header:hover { background: #f5f2ee; }
+.man2-section__title { font-family: var(--font-sans); font-size: 15px; font-weight: 600; color: var(--rim-text); flex: 1; }
+.man2-section__slug { font-family: var(--font-sans); font-size: 12px; color: var(--rim-text-muted); }
+.man2-section__body { padding: 0 18px 18px; }
+.man2-section__actions { display: flex; gap: 8px; padding: 8px 18px; border-top: 1px solid #e8e4de; background: #faf8f5; }
+.man2-detail { max-width: 720px; margin: 0 auto; padding: 40px 24px 80px; }
+.man2-detail__title { font-family: var(--font-serif); font-size: 32px; color: var(--rim-text); margin-bottom: 8px; }
+.man2-detail__meta { font-family: var(--font-sans); font-size: 13px; color: var(--rim-text-muted); margin-bottom: 32px; }
+.man2-related { margin-top: 48px; padding-top: 24px; border-top: 1px solid #e8e4de; }
+.man2-related__title { font-family: var(--font-sans); font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--rim-text-muted); margin-bottom: 12px; }
+.man2-related__list { display: flex; flex-wrap: wrap; gap: 8px; }
+.man2-related__link { font-family: var(--font-sans); font-size: 14px; color: var(--rim-blue); text-decoration: none; padding: 4px 10px; border: 1px solid #d4cfc9; border-radius: 20px; }
+.man2-related__link:hover { background: #f5f2ee; }
+.man2-edit { max-width: 720px; margin: 0 auto; padding: 40px 24px 80px; }
+.man2-edit__form { display: flex; flex-direction: column; gap: 24px; }
+.man2-edit__field { display: flex; flex-direction: column; gap: 6px; }
+.man2-edit__label { font-family: var(--font-sans); font-size: 13px; font-weight: 600; color: var(--rim-text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.man2-edit__input { font-family: var(--font-sans); font-size: 15px; padding: 8px 12px; border: 1px solid #d4cfc9; border-radius: 6px; background: white; color: var(--rim-text); }
+.man2-edit__input:focus { outline: none; border-color: var(--rim-mid); }

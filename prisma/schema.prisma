@@ -129,6 +129,7 @@ model User {
   // Hub access grants
   hubAccess            UserHubAccess[]
   hubAccessGranted     UserHubAccess[]       @relation("HubAccessGranter")
+  dripNotifications    DripNotification[]
 
   @@map("users")
 }
@@ -525,9 +526,13 @@ model Lesson {
 
   resources       Json?    // { name, url, resourceType }[]
 
+  releaseDate      DateTime? // fixed-date release; overrides interval if set
+  releaseDelayDays Int?      // per-lesson override of dripIntervalDays
+
   courses   CourseLesson[]
   teachers  LessonTeacher[]
   progress  LessonProgress[]
+  dripNotifications DripNotification[]
 
   @@index([slug])
   @@map("lessons")
@@ -558,6 +563,19 @@ model LessonTeacher {
 
   @@id([lessonId, teacherId])
   @@map("lesson_teachers")
+}
+
+model DripNotification {
+  id       String   @id @default(cuid())
+  userId   String
+  lessonId String
+  sentAt   DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@map("drip_notifications")
 }
 
 model CourseLesson {
@@ -1207,4 +1225,20 @@ model SupportTemplate {
   updatedAt DateTime @updatedAt
 
   @@map("support_templates")
+}
+
+// ─── MANUAL / CONTEXTUAL HELP ─────────────────────────────────────────────────
+
+model ManualSection {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  hubSlug   String?
+  body      Json?
+  relations String[]
+  order     Int      @default(0)
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@map("manual_sections")
 }

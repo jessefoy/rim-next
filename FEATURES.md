@@ -3047,6 +3047,8 @@ Three-column split-pane email client:
 
 | 2026-03-16 (session 57) | **Support Inbox — security hardening (12 fixes).** Full audit by Claude (independent review) identified 4 critical, 4 moderate, and 4 minor issues. All fixed in a single commit (`43676d3`). **(1) Soft-delete bypass in sync:** `lib/supportSync.ts` — `findUnique` now includes `deletedAt` in select; if a thread is soft-deleted, sync skips it entirely (no resurrection, no new messages processed). **(2) Replies/notes on deleted threads:** `reply/route.ts` and `note/route.ts` both return 404 if `thread.deletedAt` is set — prevents writing to a thread the user already deleted. **(3) SSRF on attachment fetch:** `reply/route.ts` and `compose/route.ts` — added `isSafeBlobUrl()` validator; any attachment URL that doesn't match `*.public.blob.vercel-storage.com` is silently skipped before fetch. **(4) Attachment proxy ownership check:** `attachment/[messageId]/[attachmentId]/route.ts` — imports `db`, looks up `SupportMessage.gmailMessageId` before proxying; unknown messageIds return 404. **(5) Size limit on attachment buffering:** Both reply and compose routes — check `Content-Length` header before calling `.arrayBuffer()`; files over 20 MB skipped. **(6) Rate limit on manual sync:** `sync/route.ts` — 30-second cooldown per user stored in AppSetting (`support.sync.lastAt.{userId}`); returns 429 with seconds-remaining message. **(7) Status PATCH enum validation:** `threads/[id]/route.ts` — explicit check against `["OPEN","CLAIMED","WAITING","RESOLVED"]` before hitting Prisma; returns 400 for unknown values. **(8) Signature field escaping:** `reply/route.ts` and `compose/route.ts` — added `escapeHtml()` helper; name/role/tagline escaped before interpolation into outbound email HTML. **(9) Notification domain:** `lib/supportNotify.ts` — replaced hardcoded `https://rim-next.vercel.app` with `process.env.NEXTAUTH_URL`. **(10) Audit trail for permanent delete:** `threads/[id]/route.ts` DELETE — `console.log` with admin ID, thread ID, subject, and ISO timestamp; appears in Vercel logs. **(11) Max-length validation on signature fields:** `signature/route.ts` — name, role, and tagline each capped at 100 characters; returns 400 if exceeded. **(12) Notification dedup comment:** Added comment in `supportNotify.ts` noting the 5-minute window is an intentional spam-prevention trade-off. Items NOT in the audit fix list (by design): auto-assignment race in reply handler (fire-and-forget is intentional); weak email regex in compose (low risk, `@/` blocks obvious junk). |
 
+| 2026-03-18 (session 61) | **Contextual Help System + Manual Migration.** **(1) ManualSection model:** Added to Prisma schema (`manual_sections` table); `slug` @unique, `body` Json?, `relations` String[], `hubSlug` String?, `order` Int. `prisma db push`. **(2) API routes:** `app/api/admin/manual/route.ts` (GET list / POST create) and `app/api/admin/manual/[slug]/route.ts` (GET one / PATCH update); both ADMIN-only; no DELETE. **(3) Admin manual pages:** `app/admin/manual/page.tsx` replaced (was ~1200 lines hardcoded JSX) with client component fetching from API; accordion list with expand/collapse. `app/admin/manual/[slug]/page.tsx` — section detail with body rendered via `renderContentBody()` and related section pill links. `app/admin/manual/[slug]/edit/page.tsx` + `components/ManualSectionEditor.tsx` — editor with ContentEditor for body, relations input, order field. **(4) ManualHelpIcon component:** `components/ManualHelpIcon.tsx` — small `?` circle, `position: absolute; top: 12px; right: 12px`, links to `/admin/manual/[slug]` in new tab; `mh-` CSS prefix. Wired into 9 locations: Series list, Series editor, Lesson editor, /account/courses, /courses, host-team hub, registrar programs, support inbox, member detail page. **(5) Manual migration:** `prisma/seed-manual.ts` seeds 4 sections (registration-management, programs-editor, member-registry, volunteer-roles) from the old hardcoded content. `prisma/seed-courses-manual.ts` seeds 5 courses sections (course-hub, course-hub-series, course-hub-lessons, member-courses, teacher-profiles) with full plain-language content. **(6) Closing ritual standard:** Updated FEATURES.md (§31 + session log), RIM_Stack_Reference.md with ManualSection model and closing ritual note. |
+
 | 2026-03-17 (session 59) | **Course→Series rename + series page redesign + section labels UX + build fixes + learning system planned.** **(1) Build fixes:** `Prisma.JsonNull` required for `Json?` nullable fields — fixed in `app/api/host/sub-requests/[id]/claim/route.ts` (message field), `app/api/host/sub-requests/route.ts` (message field), and `app/api/programs/[slug]/registrations/route.ts` (notes field in CSV export — used `extractText()` to convert Tiptap JSON to plain string). **(2) Course→Series rename:** All UI labels throughout the Teacher Hub now say "Series." DB model name `Course` unchanged. Hub tab, CourseEditor headings, LessonListClient, all hub pages updated. **(3) Section labels UX redesign:** Replaced floating text inputs above each lesson row with explicit draggable section-divider rows in `CourseEditor.tsx`. `+ Add Section` button appends a teal dashed-border row (inline-editable label, ✕ remove). `listToLessonOrder()` serializes to `{ id, groupLabel }[]`; `courseLessonsToList()` reconstructs on load. **(4) Sort order removed:** Removed from Series editor UI — was a Webflow artifact; DB column remains. **(5) Series page redesign (`/course/[slug]`):** Full redesign from dark teal hero bar to `lp-` lesson-page aesthetic. `var(--rim-bg)` warm background, centered weight-400 serif title (42px), muted small-caps label, thin `<hr>` rule, 640px reading column. **(6) Lesson cards + SVG icons:** Lesson rows are now white cards (border-radius 10px, border-color hover transition). Replaced text badges with tinted icon squares: headphones/sage for audio, play-circle/slate for video, text-lines/warm-gray for reading. Inline SVG icon components (`AudioIcon`, `VideoIcon`, `TextIcon`). CSS classes: `crs-toc__icon-wrap`, `crs-toc__icon-wrap--audio/video/text`, `th-section-row`, `th-btn--ghost`. **(7) Learning system planned:** Full feature set designed and documented in §30 (progress tracking, enrollment, duration estimates, reflection prompts, personal notes, completion, teacher profiles, per-series discussion). New "Learning System" section added to roadmap (`app/admin/roadmap/page.tsx`) as high priority with 8 detailed items. Key files: `components/CourseEditor.tsx`, `app/course/[slug]/page.tsx`, `app/api/host/sub-requests/route.ts`, `app/api/host/sub-requests/[id]/claim/route.ts`, `app/api/programs/[slug]/registrations/route.ts`, `public/css/custom.css`, `app/admin/roadmap/page.tsx`. |
 
 | 2026-03-16 (session 58) | **Session tab visual redesign + post-session form overhaul + FormattedEditor standard.** Full redesign of the Host Hub Session tab and post-session form across `SessionLiveClient.tsx`, `PostSessionClient.tsx`, schema, and CSS. **(1) State machine fixes:** `computeState` was called once on mount and never re-ran. Added tick counter (`useState` incremented inside the 60-second poll interval) so all 6 states (later-today → getting-ready → live → post-session → done) transition correctly without a page reload. Removed server-side `prog.sessionEnded` from `isEnded` — was frozen at render time, could force State 5 while session was live. Now only `manuallyEnded` (explicit Close Session click) and `timeEnded` (`Date.now()` > endMs) control the ended state. **(2) Visual redesign — person rows:** Replaced chip grid with `AttendeeRow` full-width button component (52px tall). Left-edge 4px color strip: amber = new member, teal = returning, grey = absent. Inline "New" / "Back" label, name centered, flag circle at right edge. Tap toggles flag; flagged rows get amber background. **(3) Live block prominence:** Sage green background (`rgba(100, 140, 100, 0.12)`) with 4px left border on live session card. Non-live sessions without forms collapse to footnote links when `hasActiveForm = true`. `hasLive` computed once; sessions without a form to file always show. **(4) Scoreboard:** `sv-scoreboard` — 48px number + "in the room" label, displayed inside the live block. **(5) Co-host flow:** "I'm also hosting this" button restored as quiet inline text link in live state. Confirmation: `sv-cohost-confirmed--live` pill after click (no page reload needed). **(6) Post-session form — flagged people section:** All hosts now see the full post-session form (no more isCoHost distinction). Section 1 shows flagged attendees (everyone tapped during the session) with a FormattedEditor note field per person + 4 routing radio buttons with descriptions: No action needed / Gentle follow-up / Jesse only — sensitive / Technical issue. Descriptions render as `ps-radio__desc` beneath each label. **(7) FormattedEditor standard enforced:** Replaced plain textarea in reflection and all flag note fields with `FormattedEditor` (Tiptap JSON). Autosave to localStorage includes Tiptap JSON objects. `DraftState` uses `object | null` for `reflection` and `flagNotes`. **(8) Schema migration:** 3 fields changed from `String?` to `Json?` via `prisma db push`: `SessionAttendance.postSessionNote`, `SessionReport.reflection`, `SessionCoHostReport.reflection`. All stored as Tiptap JSON. Uses `Prisma.JsonNull` for nullable writes. **(9) `extractText()` utility:** Added to `lib/renderRichContent.ts` — runs `generateHTML()` then strips tags, used for email notification plain text from Tiptap JSON. **(10) API route updates:** `/api/attendance/session/[programSlug]/post/route.ts` — `flags.note` typed as `object | null`; stores `Prisma.JsonNull`; email notification uses `extractText()`. `/api/attendance/session/[programSlug]/cohost-report/route.ts` — same `Prisma.JsonNull` pattern. **(11) History page updates:** `session/history/page.tsx` and `session/history/team/page.tsx` — `postSessionNote`/`reflection` cast to `object | null`, rendered with `renderFormattedText()` + `dangerouslySetInnerHTML`. **(12) Memory saved:** `memory/feedback_editor_standard.md` — documents the FormattedEditor standard (all multi-line communication fields, `Json?` DB type, `renderFormattedText()` for display, `extractText()` for email) so it's applied automatically in future sessions. Key files: `components/SessionLiveClient.tsx`, `components/PostSessionClient.tsx`, `app/api/attendance/session/[programSlug]/post/route.ts`, `app/api/attendance/session/[programSlug]/cohost-report/route.ts`, `app/account/hub/[slug]/session/history/page.tsx`, `app/account/hub/[slug]/session/history/team/page.tsx`, `app/account/hub/[slug]/session/[programSlug]/post/page.tsx`, `lib/renderRichContent.ts`, `prisma/schema.prisma`, `public/css/custom.css`. |
@@ -3107,6 +3109,77 @@ Three-column split-pane email client:
 - Teacher profiles are a large effort and should wait until the simpler features are proven valuable.
 - Shared discussion requires community norm-setting before being turned on — build the infrastructure, leave it disabled.
 
-*Last updated: 2026-03-17 (session 59)*
+## 31. Contextual Help System (Manual Sections)
+
+**What it is:** A database-backed staff manual system where each section of the manual is a `ManualSection` record with a slug, title, body (Tiptap JSON), and a list of related section slugs. Any page in the staff area can show a small `?` icon that links to the relevant manual section in a new tab.
+
+**Who uses it:**
+- **Teachers** — the Course Hub pages now have `?` icons linking to the relevant manual sections
+- **Registrars** — the Programs hub page links to the Registration Management manual section
+- **Support** — the Support Inbox links to the support-inbox manual section
+- **Admins** — can create, edit, and view all manual sections via the new admin manual pages
+
+**User flow:**
+1. A Teacher visits the Series editor at `/account/hub/courses/courses/[slug]`
+2. A small `?` circle in the top-right of the page links to `/admin/manual/course-hub-series`
+3. The manual section opens in a new tab with plain-language guidance
+4. Admins can update the manual section content at any time — no redeploy needed
+
+**Admin pages:**
+- `/admin/manual` — lists all sections with expand/collapse and edit links; create new sections inline
+- `/admin/manual/[slug]` — view a single section with body rendered from Tiptap JSON
+- `/admin/manual/[slug]/edit` — edit title, hub slug, body (ContentEditor), related sections, sort order
+
+**Help icon locations (9 total):**
+
+| Page | manualSlug |
+|---|---|
+| `/account/hub/courses/courses` — Series list | `course-hub` |
+| `/account/hub/courses/courses/[slug]` — Series editor | `course-hub-series` |
+| `/account/hub/courses/lessons/[slug]` — Lesson editor | `course-hub-lessons` |
+| `/account/courses` — My Courses | `member-courses` |
+| `/courses` — Browse courses | `member-courses` |
+| `/account/hub/host-team` — Host hub announcements | `host-hub` |
+| `/account/hub/registrar/programs` — Programs list | `registrar-hub` |
+| `/account/hub/support/inbox` — Support inbox | `support-inbox` |
+| `/admin/members/[id]` — Member detail | `member-registry` |
+
+**Seeded sections:**
+- `registration-management` — Registration Management (order 20)
+- `programs-editor` — Programs — Creating and Managing (order 21)
+- `member-registry` — Member Accounts (order 30)
+- `volunteer-roles` — Volunteer Roles (order 40)
+- `course-hub` — Course Hub (order 10)
+- `course-hub-series` — Managing Series (order 11)
+- `course-hub-lessons` — Creating and Editing Lessons (order 12)
+- `member-courses` — Courses — Member Experience (order 13)
+- `teacher-profiles` — Teacher Profiles (order 14)
+
+**Key files:**
+- `prisma/schema.prisma` — `ManualSection` model (`manual_sections` table)
+- `app/api/admin/manual/route.ts` — GET (list) / POST (create); ADMIN only
+- `app/api/admin/manual/[slug]/route.ts` — GET (one) / PATCH (update); ADMIN only; no DELETE
+- `app/admin/manual/page.tsx` — admin list page (replaces old hardcoded manual)
+- `app/admin/manual/[slug]/page.tsx` — section detail view
+- `app/admin/manual/[slug]/edit/page.tsx` — section editor (server page wrapping ManualSectionEditor)
+- `components/ManualSectionEditor.tsx` — client component; ContentEditor for body
+- `components/ManualHelpIcon.tsx` — client component; `?` link with `mh-` CSS prefix
+- `prisma/seed-manual.ts` — seeds 4 core manual sections from old hardcoded content
+- `prisma/seed-courses-manual.ts` — seeds 5 courses-system sections
+
+**🔧 Technical notes:**
+- `ManualSection.body` is `Json?` (Tiptap JSON); rendered with `renderContentBody()` from `lib/renderRichContent`
+- `ManualSection.relations` is `String[]` — slugs of related sections; rendered as pill links at the bottom of detail pages
+- `ManualHelpIcon` is `"use client"` — it's just an anchor link, no server data needed
+- The old `/admin/manual/page.tsx` was a huge hardcoded JSX file (~1200 lines); the new page is a client component that fetches from `/api/admin/manual`
+- Seed scripts use `POSTGRES_URL_NON_POOLING` (direct connection) since `POSTGRES_PRISMA_URL` has PgBouncer and isn't in `.env.local`
+
+**Closing ritual note:** After any session that adds, changes, or removes a feature, update the relevant `ManualSection` database records to reflect what was built. Use upsert on the slug. Write for the person doing the work, not the developer. This is part of every closing ritual, not optional.
+
+*Added: 2026-03-18 (session 61)*
+
+---
+
+*Last updated: 2026-03-18 (session 61)*
 
 **2026-03-16 (session 58, continued)** — Session tab: finished remaining gaps from the UX redesign brief. (1) meetHostAccount display: Added to States 2 and 3 — shows the Google Meet room account labeled "Room account" in State 2, quiet text below the join button in State 3. (2) State 5 inline form: PostSessionClient now renders inline in State 5 instead of linking to a separate page. Co-host vs primary host routing handled via isCoHost prop derived from SessionProgram flags. (3) End Session stays on page: endSession callback now calls router.refresh() instead of router.push — user stays on the session tab and State 5 appears with the inline form. (4) Coordinator section: Coordinator/Admin users see a muted section below the host cards with missing report indicators and team journal link. Key files: components/SessionLiveClient.tsx, components/PostSessionClient.tsx, app/account/hub/[slug]/session/page.tsx.

@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getHubMembership } from "@/lib/hubAuth";
 import HubAnnouncementsClient from "@/components/HubAnnouncementsClient";
+import ManualHelpIcon from "@/components/ManualHelpIcon";
 
 export const dynamic = "force-dynamic";
 
@@ -71,12 +72,18 @@ export default async function HubAnnouncementsPage({
     createdAt: a.createdAt.toISOString(),
   }));
 
+  const helpSlug =
+    slug === "host-team" ? "host-hub" : null;
+
   return (
-    <HubAnnouncementsClient
-      hubSlug={slug}
-      initialAnnouncements={serialized}
-      isCoordinator={isCoordinator}
-      conversationsBase={`/account/hub/${slug}/conversations`}
-    />
+    <div style={{ position: "relative" }}>
+      {helpSlug && <ManualHelpIcon manualSlug={helpSlug} />}
+      <HubAnnouncementsClient
+        hubSlug={slug}
+        initialAnnouncements={serialized}
+        isCoordinator={isCoordinator}
+        conversationsBase={`/account/hub/${slug}/conversations`}
+      />
+    </div>
   );
 }

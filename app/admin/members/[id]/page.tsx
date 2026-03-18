@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import MemberDetail from "@/components/MemberDetail";
+import ManualHelpIcon from "@/components/ManualHelpIcon";
 
 export const dynamic = "force-dynamic";
 
@@ -147,7 +148,8 @@ export default async function AdminMemberDetailPage({
 
   return (
     <div className="adm-page">
-      <div className="adm-content adm-content--narrow">
+      <div className="adm-content adm-content--narrow" style={{ position: "relative" }}>
+        <ManualHelpIcon manualSlug="member-registry" />
         <MemberDetail member={serialized} isAdmin={isAdmin} />
       </div>
     </div>

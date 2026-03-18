@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import AccountLayout from "@/components/AccountLayout";
 import MyCourseLibrary from "@/components/MyCourseLibrary";
+import ManualHelpIcon from "@/components/ManualHelpIcon";
 
 export const metadata = { title: "My Courses — Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
@@ -62,7 +63,10 @@ export default async function MyCoursesPage() {
 
   return (
     <AccountLayout>
-      <MyCourseLibrary enrollments={serialized} />
+      <div style={{ position: "relative" }}>
+        <ManualHelpIcon manualSlug="member-courses" />
+        <MyCourseLibrary enrollments={serialized} />
+      </div>
     </AccountLayout>
   );
 }

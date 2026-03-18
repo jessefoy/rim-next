@@ -4,6 +4,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { renderFormattedText } from "@/lib/renderRichContent";
 import EnrollButton from "@/components/EnrollButton";
+import { isLessonAvailable, computeAvailableDate, formatAvailableDate } from "@/lib/drip";
 
 export const dynamic = "force-dynamic";
 
@@ -69,7 +70,15 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
     where: { slug, isActive: true },
     include: {
       lessons: {
-        include: { lesson: { select: { id: true, slug: true, titleDisplayed: true, audioUrl: true, videoUrl: true } } },
+        include: {
+          lesson: {
+            select: {
+              id: true, slug: true, titleDisplayed: true,
+              audioUrl: true, videoUrl: true,
+              releaseDate: true, releaseDelayDays: true,
+            }
+          }
+        },
         orderBy: { sortOrder: "asc" },
       },
     },
@@ -173,8 +182,33 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
   const totalCount = lessonItems.length;
   const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-  // Find the first incomplete lesson for "Continue →"
-  const firstIncomplete = lessonItems.find((cl) => !completedIds.has(cl.lessonId));
+  // ── Drip availability ──────────────────────────────────────────────────────
+  const now = new Date();
+  const lessonAvailability = new Map<string, boolean>(); // lessonId → available
+
+  if (course.dripEnabled) {
+    lessonItems.forEach((cl, index) => {
+      const available = isLessonAvailable(
+        {
+          id: cl.lesson.id,
+          releaseDate: cl.lesson.releaseDate,
+          releaseDelayDays: cl.lesson.releaseDelayDays,
+        },
+        index,
+        { dripEnabled: course.dripEnabled, dripIntervalDays: course.dripIntervalDays },
+        enrollment ? { enrolledAt: enrollment.enrolledAt } : null,
+        now
+      );
+      lessonAvailability.set(cl.lessonId, available);
+    });
+  } else {
+    lessonItems.forEach((cl) => lessonAvailability.set(cl.lessonId, true));
+  }
+
+  // Find the first incomplete AND available lesson for "Continue →"
+  const firstIncomplete = lessonItems.find(
+    (cl) => !completedIds.has(cl.lessonId) && (lessonAvailability.get(cl.lessonId) !== false)
+  );
   const isFullyComplete = totalCount > 0 && completedCount === totalCount;
 
   return (
@@ -248,6 +282,40 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
               const hasVideo = !!cl.lesson.videoUrl;
               const mediaType = hasAudio ? "audio" : hasVideo ? "video" : "text";
               const isComplete = completedIds.has(cl.lessonId);
+              const available = lessonAvailability.get(cl.lessonId) !== false;
+
+              if (!available) {
+                const availDate = enrollment
+                  ? computeAvailableDate(
+                      {
+                        id: cl.lesson.id,
+                        releaseDate: cl.lesson.releaseDate,
+                        releaseDelayDays: cl.lesson.releaseDelayDays,
+                      },
+                      i,
+                      { dripEnabled: course.dripEnabled, dripIntervalDays: course.dripIntervalDays },
+                      { enrolledAt: enrollment.enrolledAt }
+                    )
+                  : null;
+
+                return (
+                  <div key={cl.lessonId}>
+                    {cl.groupLabel && (
+                      <p className="crs-toc__section">{cl.groupLabel}</p>
+                    )}
+                    <div
+                      className="crs-toc__item crs-toc__item--locked"
+                      title={availDate ? `Available ${formatAvailableDate(availDate)}` : "Not yet available"}
+                    >
+                      <span className="crs-toc__num crs-toc__num--locked">🔒</span>
+                      <span className="crs-toc__title crs-toc__title--locked">{cl.lesson.titleDisplayed}</span>
+                      {availDate && (
+                        <span className="crs-toc__available-date">Available {formatAvailableDate(availDate)}</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              }
 
               return (
                 <div key={cl.lessonId}>

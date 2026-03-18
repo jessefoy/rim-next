@@ -9,6 +9,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import SupportInboxClient from "@/components/SupportInboxClient";
+import ManualHelpIcon from "@/components/ManualHelpIcon";
 
 export const dynamic = "force-dynamic";
 
@@ -94,12 +95,15 @@ export default async function SupportInboxPage({
   }
 
   return (
-    <SupportInboxClient
-      currentUserId={session.user.id}
-      currentUserName={session.user.name || "You"}
-      isAdmin={isAdmin}
-      teamMembers={teamMembers}
-      connectedEmail={credential.email}
-    />
+    <div style={{ position: "relative" }}>
+      <ManualHelpIcon manualSlug="support-inbox" />
+      <SupportInboxClient
+        currentUserId={session.user.id}
+        currentUserName={session.user.name || "You"}
+        isAdmin={isAdmin}
+        teamMembers={teamMembers}
+        connectedEmail={credential.email}
+      />
+    </div>
   );
 }

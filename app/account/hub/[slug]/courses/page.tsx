@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getHubMembership } from "@/lib/hubAuth";
 import Link from "next/link";
+import ManualHelpIcon from "@/components/ManualHelpIcon";
 
 export const dynamic = "force-dynamic";
 
@@ -39,11 +40,12 @@ export default async function CoursesListPage({
 
   return (
     <div className="th-list">
-      <div className="th-list__header">
+      <div className="th-list__header" style={{ position: "relative" }}>
         <h2 className="th-list__title">Series</h2>
         <Link href={`/account/hub/${slug}/courses/new`} className="th-btn th-btn--primary">
           New Series
         </Link>
+        <ManualHelpIcon manualSlug="course-hub" />
       </div>
 
       {courses.length === 0 ? (

@@ -77,6 +77,8 @@ export async function PATCH(
   if (body.quoteSource !== undefined) updateData.quoteSource = body.quoteSource || null;
   if (body.resources !== undefined) updateData.resources = body.resources;
   if (body.videoUrl !== undefined) updateData.videoUrl = body.videoUrl || null;
+  if (body.releaseDate !== undefined) updateData.releaseDate = body.releaseDate ? new Date(body.releaseDate) : null;
+  if (body.releaseDelayDays !== undefined) updateData.releaseDelayDays = body.releaseDelayDays != null ? Number(body.releaseDelayDays) : null;
 
   const updated = await db.lesson.update({
     where: { slug },

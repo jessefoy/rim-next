@@ -7,6 +7,7 @@ import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { getHubMembership } from "@/lib/hubAuth";
 import CourseEditor from "@/components/CourseEditor";
+import ManualHelpIcon from "@/components/ManualHelpIcon";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,7 @@ export default async function EditCoursePage({
       lessons: {
         include: {
           lesson: {
-            select: { id: true, titleInternal: true, titleDisplayed: true, slug: true },
+            select: { id: true, titleInternal: true, titleDisplayed: true, slug: true, releaseDate: true },
           },
         },
         orderBy: { sortOrder: "asc" },
@@ -62,10 +63,13 @@ export default async function EditCoursePage({
     hideFromMemberProfile: course.hideFromMemberProfile,
     sortOrder: course.sortOrder != null ? String(course.sortOrder) : "",
     isActive: course.isActive,
+    dripEnabled: course.dripEnabled,
+    dripIntervalDays: course.dripIntervalDays ?? null,
     lessons: course.lessons.map((cl) => ({
       lessonId: cl.lessonId,
       sortOrder: cl.sortOrder,
       groupLabel: cl.groupLabel ?? "",
+      releaseDate: cl.lesson.releaseDate ? cl.lesson.releaseDate.toISOString() : null,
       lesson: {
         id: cl.lesson.id,
         titleInternal: cl.lesson.titleInternal,
@@ -75,5 +79,10 @@ export default async function EditCoursePage({
     })),
   };
 
-  return <CourseEditor hubSlug={slug} initialData={initialData} isEditing />;
+  return (
+    <div style={{ position: "relative" }}>
+      <ManualHelpIcon manualSlug="course-hub-series" />
+      <CourseEditor hubSlug={slug} initialData={initialData} isEditing />
+    </div>
+  );
 }

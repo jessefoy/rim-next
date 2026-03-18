@@ -12,6 +12,7 @@ import { getHubMembership } from "@/lib/hubAuth";
 import ProgramsTableClient, {
   type ProgramRow,
 } from "@/components/registrar/ProgramsTableClient";
+import ManualHelpIcon from "@/components/ManualHelpIcon";
 
 export const dynamic = "force-dynamic";
 
@@ -103,7 +104,8 @@ export default async function RegistrarProgramsPage({
 
   return (
     <div className="vol-page">
-      <div className="vol-content">
+      <div className="vol-content" style={{ position: "relative" }}>
+        <ManualHelpIcon manualSlug="registrar-hub" />
         <ProgramsTableClient
           programs={programRows}
           hubBase={base}

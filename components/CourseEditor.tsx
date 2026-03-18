@@ -21,6 +21,7 @@ interface CourseLesson {
   sortOrder: number;
   groupLabel: string; // section header before this lesson; "" = none
   lesson: Lesson;
+  releaseDate?: string | null;
 }
 
 // Flat list item — either a section divider or a lesson
@@ -49,6 +50,8 @@ interface CourseData {
   hideFromMemberProfile: boolean;
   isActive: boolean;
   lessons?: CourseLesson[];
+  dripEnabled?: boolean;
+  dripIntervalDays?: number | null;
 }
 
 interface Props {
@@ -116,6 +119,20 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
     initialData?.hideFromMemberProfile ?? false
   );
   const [isActive, setIsActive] = useState(initialData?.isActive ?? true);
+
+  // Drip / scheduled release
+  const [dripEnabled, setDripEnabled] = useState(initialData?.dripEnabled ?? false);
+  const [dripMode, setDripMode] = useState<"interval" | "fixed">("interval");
+  const [dripIntervalDays, setDripIntervalDays] = useState(
+    String(initialData?.dripIntervalDays ?? "7")
+  );
+  const [lessonReleaseDates, setLessonReleaseDates] = useState<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    initialData?.lessons?.forEach((cl) => {
+      if (cl.releaseDate) map[cl.lessonId] = (cl.releaseDate as string).slice(0, 10);
+    });
+    return map;
+  });
 
   // Flat list of sections + lessons
   const [items, setItems] = useState<ListItem[]>(() =>
@@ -262,10 +279,15 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
         isOnboarding,
         hideFromMemberProfile,
         isActive,
+        dripEnabled,
+        dripIntervalDays: dripEnabled && dripMode === "interval" ? (parseInt(dripIntervalDays) || 7) : null,
       };
 
       if (isEditing) {
         payload.lessonOrder = listToLessonOrder(items);
+        if (dripEnabled && dripMode === "fixed") {
+          payload.lessonReleaseDates = lessonReleaseDates;
+        }
       }
 
       const url = isEditing ? `/api/courses/${initialData?.slug}` : "/api/courses";
@@ -420,6 +442,49 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
           Auto-enroll new members (onboarding series)
         </label>
 
+        {/* ── Release Schedule ── */}
+        <fieldset className="th-field">
+          <legend className="th-field__label">Release Schedule</legend>
+          <label className="th-checkbox">
+            <input
+              type="checkbox"
+              checked={dripEnabled}
+              onChange={(e) => setDripEnabled(e.target.checked)}
+            />
+            Release lessons on a schedule
+          </label>
+
+          {dripEnabled && (
+            <div className="th-drip-options">
+              <label className="th-radio">
+                <input
+                  type="radio"
+                  checked={dripMode === "interval"}
+                  onChange={() => setDripMode("interval")}
+                />
+                Interval — unlock a new lesson every
+                <input
+                  type="number"
+                  min="1"
+                  value={dripIntervalDays}
+                  onChange={(e) => setDripIntervalDays(e.target.value)}
+                  className="th-input th-input--inline"
+                  disabled={dripMode !== "interval"}
+                />
+                days after enrollment
+              </label>
+              <label className="th-radio">
+                <input
+                  type="radio"
+                  checked={dripMode === "fixed"}
+                  onChange={() => setDripMode("fixed")}
+                />
+                Fixed dates — set a release date per lesson below
+              </label>
+            </div>
+          )}
+        </fieldset>
+
         <label className="th-checkbox">
           <input
             type="checkbox"
@@ -497,6 +562,20 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
                   >
                     <span className="th-lessons__handle" title="Drag to reorder">☰</span>
                     <span className="th-lessons__name">{item.lesson.titleInternal}</span>
+                    {dripEnabled && dripMode === "fixed" && (
+                      <input
+                        type="date"
+                        className="th-input th-input--date"
+                        value={lessonReleaseDates[item.lessonId] ?? ""}
+                        onChange={(e) =>
+                          setLessonReleaseDates((prev) => ({
+                            ...prev,
+                            [item.lessonId]: e.target.value,
+                          }))
+                        }
+                        aria-label={`Release date for ${item.lesson.titleInternal}`}
+                      />
+                    )}
                     <a
                       href={`/lessons/${item.lesson.slug}`}
                       target="_blank"
@@ -521,6 +600,17 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
                   </div>
                 )
               )}
+            </div>
+          )}
+
+          {/* ── Drip interval preview ── */}
+          {dripEnabled && dripMode === "interval" && items.filter((i) => i.type === "lesson").length > 0 && (
+            <div className="th-drip-preview">
+              {items.filter((i) => i.type === "lesson").map((item, idx) => (
+                <p key={(item as any).lessonId} className="th-drip-preview__row">
+                  Lesson {idx + 1}: {idx === 0 ? "available immediately" : `${idx * (parseInt(dripIntervalDays) || 7)} days after enrollment`}
+                </p>
+              ))}
             </div>
           )}
 

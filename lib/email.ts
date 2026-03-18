@@ -1788,3 +1788,22 @@ export async function sendMissingReportEmail(data: MissingReportEmailData): Prom
   });
   // Note: subject line in the template uses {{programName}} and {{sessionDateDisplay}}.
 }
+
+// ─── Drip / Scheduled Lesson Release ─────────────────────────────────────────
+
+export interface DripLessonAvailableData {
+  to: string;
+  memberFirstName: string;
+  lessonTitle: string;
+  seriesTitle: string;
+  lessonUrl: string;
+}
+
+export async function sendDripLessonAvailableEmail(data: DripLessonAvailableData): Promise<void> {
+  await sendTemplatedEmail("drip-lesson-available", data.to, {
+    memberFirstName: data.memberFirstName,
+    lessonTitle: data.lessonTitle,
+    seriesTitle: data.seriesTitle,
+    lessonUrl: data.lessonUrl,
+  });
+}

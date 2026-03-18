@@ -7,6 +7,7 @@ import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { getHubMembership } from "@/lib/hubAuth";
 import LessonEditor from "@/components/LessonEditor";
+import ManualHelpIcon from "@/components/ManualHelpIcon";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,14 @@ export default async function EditLessonPage({
 
   const lesson = await db.lesson.findUnique({
     where: { slug: lessonSlug },
-    include: { teachers: { include: { teacher: true } } },
+    include: {
+      teachers: { include: { teacher: true } },
+      courses: {
+        include: {
+          course: { select: { dripEnabled: true, dripIntervalDays: true, title: true } },
+        },
+      },
+    },
   });
   if (!lesson) notFound();
 
@@ -60,7 +68,19 @@ export default async function EditLessonPage({
       slug: lt.teacher.slug,
       isActive: lt.teacher.isActive,
     })),
+    releaseDelayDays: lesson.releaseDelayDays ?? null,
+    parentDripInfo: lesson.courses
+      .filter((cl) => cl.course.dripEnabled)
+      .map((cl) => ({
+        seriesTitle: cl.course.title,
+        intervalDays: cl.course.dripIntervalDays,
+      })),
   };
 
-  return <LessonEditor hubSlug={slug} initialData={initialData} isEditing />;
+  return (
+    <div style={{ position: "relative" }}>
+      <ManualHelpIcon manualSlug="course-hub-lessons" />
+      <LessonEditor hubSlug={slug} initialData={initialData} isEditing />
+    </div>
+  );
 }
