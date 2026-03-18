@@ -1230,15 +1230,16 @@ model SupportTemplate {
 // ─── MANUAL / CONTEXTUAL HELP ─────────────────────────────────────────────────
 
 model ManualSection {
-  id        String   @id @default(cuid())
-  slug      String   @unique
-  title     String
-  hubSlug   String?
-  body      Json?
-  relations String[]
-  order     Int      @default(0)
-  updatedAt DateTime @updatedAt
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String?
+  hubSlug     String?
+  body        Json?
+  relations   String[]
+  order       Int      @default(0)
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
 
   @@map("manual_sections")
 }

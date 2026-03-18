@@ -64,7 +64,7 @@ export default async function MyCoursesPage() {
   return (
     <AccountLayout>
       <div style={{ position: "relative" }}>
-        <ManualHelpIcon manualSlug="member-courses" />
+        <ManualHelpIcon manualSlug="course-hub" />
         <MyCourseLibrary enrollments={serialized} />
       </div>
     </AccountLayout>

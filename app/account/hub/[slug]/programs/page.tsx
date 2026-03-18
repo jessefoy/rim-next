@@ -105,7 +105,7 @@ export default async function RegistrarProgramsPage({
   return (
     <div className="vol-page">
       <div className="vol-content" style={{ position: "relative" }}>
-        <ManualHelpIcon manualSlug="registrar-hub" />
+        <ManualHelpIcon manualSlug="registration" />
         <ProgramsTableClient
           programs={programRows}
           hubBase={base}

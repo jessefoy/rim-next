@@ -16178,3 +16178,43 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .man2-edit__label { font-family: var(--font-sans); font-size: 13px; font-weight: 600; color: var(--rim-text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
 .man2-edit__input { font-family: var(--font-sans); font-size: 15px; padding: 8px 12px; border: 1px solid #d4cfc9; border-radius: 6px; background: white; color: var(--rim-text); }
 .man2-edit__input:focus { outline: none; border-color: var(--rim-mid); }
+
+/* ── Manual Index (man-idx-) ─────────────────────────────────────────────── */
+.man-idx { max-width: 700px; margin: 0 auto; padding: 48px 24px 80px; }
+.man-idx__header { margin-bottom: 40px; }
+.man-idx__title { font-family: var(--font-serif); font-size: 36px; color: var(--rim-text); margin-bottom: 8px; }
+.man-idx__subtitle { font-family: var(--font-sans); font-size: 16px; color: var(--rim-text-muted); margin-bottom: 16px; }
+.man-idx__editor-link { font-family: var(--font-sans); font-size: 13px; color: var(--rim-blue); text-decoration: none; }
+.man-idx__editor-link:hover { text-decoration: underline; }
+.man-idx__list { display: flex; flex-direction: column; gap: 2px; }
+.man-idx__entry { display: flex; align-items: center; gap: 16px; padding: 16px 20px; border-radius: 8px; text-decoration: none; background: white; border: 1px solid #e8e4de; transition: background 0.1s; }
+.man-idx__entry:hover { background: #f8f5f2; }
+.man-idx__entry-main { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+.man-idx__entry-title { font-family: var(--font-sans); font-size: 16px; font-weight: 600; color: var(--rim-text); }
+.man-idx__entry-desc { font-family: var(--font-sans); font-size: 14px; color: var(--rim-text-muted); }
+.man-idx__hub-badge { font-family: var(--font-sans); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--rim-mid); background: #eef2f5; padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
+
+/* ── Manual Section Page (man-sec-page-) ──────────────────────────────────── */
+.man-sec-page { max-width: 800px; margin: 0 auto; padding: 40px 24px 80px; }
+.man-sec-page__back { margin-bottom: 24px; }
+.man-sec-page__back-link { font-family: var(--font-sans); font-size: 13px; color: var(--rim-text-muted); text-decoration: none; }
+.man-sec-page__back-link:hover { color: var(--rim-blue); text-decoration: underline; }
+.man-sec-page__header { margin-bottom: 32px; }
+.man-sec-page__title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 8px; }
+.man-sec-page__title { font-family: var(--font-serif); font-size: 36px; color: var(--rim-text); margin: 0; }
+.man-sec-page__edit-link { font-family: var(--font-sans); font-size: 13px; color: var(--rim-blue); text-decoration: none; white-space: nowrap; margin-top: 8px; }
+.man-sec-page__edit-link:hover { text-decoration: underline; }
+.man-sec-page__meta { display: flex; align-items: center; gap: 12px; }
+.man-sec-page__hub-badge { font-family: var(--font-sans); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--rim-mid); background: #eef2f5; padding: 3px 8px; border-radius: 4px; }
+.man-sec-page__updated { font-family: var(--font-sans); font-size: 13px; color: var(--rim-text-muted); }
+.man-sec-page__body { line-height: 1.7; }
+.man-sec-page__empty { font-family: var(--font-sans); font-size: 14px; color: var(--rim-text-muted); font-style: italic; }
+.man-sec-page__rule { border: none; border-top: 1px solid #e8e4de; margin: 40px 0 24px; }
+.man-sec-page__related { margin-top: 8px; }
+.man-sec-page__related-label { font-family: var(--font-sans); font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--rim-text-muted); margin-bottom: 12px; }
+.man-sec-page__related-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.man-sec-page__related-link { font-family: var(--font-sans); font-size: 14px; color: var(--rim-blue); text-decoration: none; padding: 4px 12px; border: 1px solid #d4cfc9; border-radius: 20px; }
+.man-sec-page__related-link:hover { background: #f5f2ee; }
+.man-sec-page__footer { margin-top: 16px; }
+/* man-layout-single: wraps manual body content rendered from rawHtml */
+.man-layout-single { font-family: var(--font-sans); font-size: 15px; color: var(--rim-text); }

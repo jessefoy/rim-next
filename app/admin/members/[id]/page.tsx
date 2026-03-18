@@ -149,7 +149,7 @@ export default async function AdminMemberDetailPage({
   return (
     <div className="adm-page">
       <div className="adm-content adm-content--narrow" style={{ position: "relative" }}>
-        <ManualHelpIcon manualSlug="member-registry" />
+        <ManualHelpIcon manualSlug="member-accounts" />
         <MemberDetail member={serialized} isAdmin={isAdmin} />
       </div>
     </div>

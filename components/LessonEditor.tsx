@@ -10,6 +10,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
 import ContentEditor from "@/components/ContentEditor";
+import ManualHelpIcon from "@/components/ManualHelpIcon";
 
 interface Resource {
   name: string;
@@ -292,6 +293,7 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
     <div className="th-editor">
       <div className="th-editor__header">
         <h2 className="th-editor__title">{isEditing ? "Edit Lesson" : "New Lesson"}</h2>
+        <ManualHelpIcon manualSlug="course-hub" />
         {isEditing && slug && (
           <a href={`/lessons/${slug}`} target="_blank" rel="noopener noreferrer" className="th-link th-link--view">
             View lesson page →

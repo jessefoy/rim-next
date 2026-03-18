@@ -34,6 +34,10 @@ const formattedExtensions = [
 
 export function renderContentBody(json: any): string {
   if (!json) return ""
+  // Support raw HTML stored as { type: "rawHtml", html: "..." }
+  if (json.type === "rawHtml" && typeof json.html === "string") {
+    return json.html
+  }
   try {
     return generateHTML(json, contentExtensions)
   } catch {

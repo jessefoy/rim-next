@@ -121,7 +121,7 @@ export default async function CoursesPage() {
 
   return (
     <div style={{ position: "relative" }}>
-      <ManualHelpIcon manualSlug="member-courses" />
+      <ManualHelpIcon manualSlug="course-hub" />
       <CourseBrowse
         courses={serializedCourses}
         categories={categories}

@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import TeacherAdmin from "@/components/TeacherAdmin";
+import ManualHelpIcon from "@/components/ManualHelpIcon";
 
 export const metadata = { title: "Teachers — Admin" };
 export const dynamic = "force-dynamic";
@@ -38,7 +39,10 @@ export default async function AdminTeachersPage() {
   return (
     <div className="adm-page">
       <div className="adm-content">
-        <h1 className="adm-title">Teachers</h1>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+          <h1 className="adm-title" style={{ margin: 0 }}>Teachers</h1>
+          <ManualHelpIcon manualSlug="course-hub" />
+        </div>
         <TeacherAdmin teachers={serialized} />
       </div>
     </div>

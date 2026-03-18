@@ -8,6 +8,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import FormattedEditor from "@/components/FormattedEditor";
+import ManualHelpIcon from "@/components/ManualHelpIcon";
 
 interface Lesson {
   id: string;
@@ -323,6 +324,7 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
     <div className="th-editor">
       <div className="th-editor__header">
         <h2 className="th-editor__title">{isEditing ? "Edit Series" : "New Series"}</h2>
+        <ManualHelpIcon manualSlug="course-hub" />
         {isEditing && slug && (
           <a
             href={`/course/${slug}`}
