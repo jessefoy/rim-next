@@ -16157,6 +16157,9 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .th-input--inline { width: 60px !important; display: inline-block; margin: 0 6px; vertical-align: middle; }
 .th-input--date { width: 150px; font-size: 13px; }
 .th-input--readonly { background: #f3f0ed; color: var(--rim-text-muted); cursor: default; }
+.th-slug-row { display: flex; gap: 8px; align-items: center; }
+.th-slug-row .th-input { flex: 1; }
+.th-field__hint--warn { color: #b45309; }
 .th-drip-delay-label { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--rim-text-muted); margin-right: 8px; }
 .th-drip-delay-label__text { white-space: nowrap; }
 .th-drip-preview__custom { color: var(--rim-mid); font-size: 11px; margin-left: 4px; }

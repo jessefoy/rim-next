@@ -106,6 +106,7 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [slugTouched, setSlugTouched] = useState(false);
+  const [slugLocked, setSlugLocked] = useState(isEditing);
 
   const [title, setTitle] = useState(initialData?.title ?? "");
   const [slug, setSlug] = useState(initialData?.slug ?? "");
@@ -376,27 +377,29 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
 
         <label className="th-field">
           <span className="th-field__label">Slug</span>
-          {isEditing ? (
-            <>
-              <input
-                type="text"
-                value={slug}
-                readOnly
-                className="th-input th-input--readonly"
-              />
-              <span className="th-field__hint">Slug is permanent once a series is created.</span>
-            </>
-          ) : (
+          <div className="th-slug-row">
             <input
               type="text"
               value={slug}
-              onChange={(e) => {
-                setSlug(e.target.value);
-                setSlugTouched(true);
-              }}
+              onChange={(e) => { setSlug(e.target.value); setSlugTouched(true); }}
               className="th-input"
+              disabled={slugLocked}
               required
             />
+            {isEditing && (
+              <button
+                type="button"
+                className="th-btn th-btn--small"
+                onClick={() => setSlugLocked(!slugLocked)}
+              >
+                {slugLocked ? "Unlock" : "Lock"}
+              </button>
+            )}
+          </div>
+          {isEditing && !slugLocked && (
+            <span className="th-field__hint th-field__hint--warn">
+              Changing the slug will break existing links to this series.
+            </span>
           )}
         </label>
 
