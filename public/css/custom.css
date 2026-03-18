@@ -16011,3 +16011,80 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .th-teacher-result { display: block; width: 100%; text-align: left; padding: 8px 12px; background: none; border: none; cursor: pointer; font-size: 14px; border-bottom: 1px solid #f5f5f5; }
 .th-teacher-result:last-child { border-bottom: none; }
 .th-teacher-result:hover { background: #f6f3f0; }
+
+/* ── Course Listing (cls-) ─────────────────────────────────────────── */
+.cls-page { max-width: 960px; margin: 0 auto; padding: 48px 24px 80px; }
+.cls-header { margin-bottom: 32px; }
+.cls-title { font-family: var(--font-serif); font-size: 36px; color: var(--rim-blue); margin-bottom: 8px; font-weight: normal; }
+.cls-subtitle { font-size: 16px; color: var(--rim-text-muted); }
+.cls-filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid #ede9e5; overflow-x: auto; }
+.cls-filter-pill { padding: 6px 16px; border-radius: 20px; border: 1px solid #ddd; background: white; font-size: 13px; cursor: pointer; color: var(--rim-text-muted); transition: all 0.15s; white-space: nowrap; }
+.cls-filter-pill--active { background: var(--rim-blue); color: white; border-color: var(--rim-blue); }
+.cls-filter-pill:hover:not(.cls-filter-pill--active) { border-color: var(--rim-mid); color: var(--rim-mid); }
+.cls-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+.cls-empty { color: var(--rim-text-muted); font-style: italic; padding: 32px 0; }
+.cls-card { display: flex; flex-direction: column; padding: 20px 24px; background: white; border-radius: 10px; text-decoration: none; color: inherit; transition: box-shadow 0.15s; }
+.cls-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+.cls-card__category { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--rim-text-muted); margin-bottom: 8px; }
+.cls-card__title { font-family: var(--font-serif); font-size: 18px; color: var(--rim-blue); margin-bottom: 6px; font-weight: 600; line-height: 1.3; }
+.cls-card__sub { font-size: 14px; color: var(--rim-text-muted); margin-bottom: 8px; line-height: 1.5; }
+.cls-card__teachers { font-size: 13px; color: var(--rim-mid); margin-bottom: 10px; }
+.cls-card__meta { display: flex; gap: 10px; align-items: center; font-size: 12px; color: var(--rim-text-muted); margin-top: auto; padding-top: 10px; flex-wrap: wrap; }
+.cls-card__access-label { background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+.cls-card__enroll-state { margin-top: 8px; }
+.cls-card__badge { display: inline-block; font-size: 12px; padding: 3px 10px; border-radius: 4px; font-weight: 600; }
+.cls-card__badge--complete { background: #d1fae5; color: #065f46; }
+.cls-card__badge--progress { background: #dbeafe; color: #1e40af; }
+.cls-card__badge--enrolled { background: #f3f4f6; color: #374151; }
+
+/* Enroll button updates */
+.crs-enroll-wrap { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.crs-enrolled-badge { font-size: 14px; color: #065f46; font-weight: 600; }
+.crs-leave-link { background: none; border: none; padding: 0; font-size: 12px; color: var(--rim-text-muted); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.crs-leave-link:hover { color: #b91c1c; }
+.crs-leave-confirm { font-size: 13px; color: var(--rim-text-muted); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.crs-leave-confirm__yes { background: #fee2e2; color: #b91c1c; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+.crs-leave-confirm__cancel { background: none; border: none; color: var(--rim-text-muted); cursor: pointer; font-size: 13px; text-decoration: underline; }
+
+/* Series completion note */
+.lp-series-complete__note { font-style: italic; color: var(--rim-text-muted); font-size: 15px; margin-top: 8px; line-height: 1.6; }
+
+/* ── Member Course Library (mcl-) ──────────────────────────────────── */
+.mcl-page { max-width: 720px; }
+.mcl-title { font-family: var(--font-serif); font-size: 28px; color: var(--rim-blue); margin-bottom: 32px; font-weight: normal; }
+.mcl-section { margin-bottom: 40px; }
+.mcl-section__title { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--rim-text-muted); margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #ede9e5; }
+.mcl-card { background: white; border-radius: 8px; padding: 16px 20px; display: flex; gap: 16px; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.mcl-card__body { flex: 1; }
+.mcl-card__title { font-family: var(--font-serif); font-size: 16px; color: var(--rim-blue); font-weight: 600; text-decoration: none; display: block; margin-bottom: 6px; }
+.mcl-card__title:hover { color: var(--rim-mid); }
+.mcl-card__progress-wrap { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.mcl-card__bar-bg { flex: 1; height: 4px; background: #e8e2dc; border-radius: 2px; max-width: 120px; }
+.mcl-card__bar { height: 4px; background: var(--rim-mid); border-radius: 2px; }
+.mcl-card__progress-label { font-size: 12px; color: var(--rim-text-muted); white-space: nowrap; }
+.mcl-card__source { font-size: 12px; color: var(--rim-text-muted); font-style: italic; margin-top: 4px; }
+.mcl-card__completed-date { font-size: 12px; color: var(--rim-text-muted); margin-top: 4px; }
+.mcl-card__actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; }
+.mcl-continue-btn { display: inline-block; padding: 6px 16px; background: var(--rim-blue); color: white; border-radius: 6px; text-decoration: none; font-size: 13px; white-space: nowrap; }
+.mcl-continue-btn:hover { background: var(--rim-mid); }
+.mcl-leave-link { background: none; border: none; padding: 0; font-size: 12px; color: var(--rim-text-muted); cursor: pointer; text-decoration: underline; }
+.mcl-leave-link:hover { color: #b91c1c; }
+.mcl-leave-confirm { font-size: 12px; color: var(--rim-text-muted); display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+.mcl-leave-confirm__text { text-align: right; max-width: 160px; line-height: 1.4; }
+.mcl-leave-confirm__actions { display: flex; gap: 8px; }
+.mcl-leave-confirm__yes { background: #fee2e2; color: #b91c1c; border: none; padding: 3px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+.mcl-leave-confirm__cancel { background: none; border: none; color: var(--rim-text-muted); cursor: pointer; font-size: 12px; text-decoration: underline; }
+.mcl-empty { text-align: center; padding: 48px 24px; color: var(--rim-text-muted); }
+.mcl-empty a { color: var(--rim-blue); }
+
+/* Dashboard course updates (db2-) */
+.db2-welcome-prompt { background: #f0ebe6; border-radius: 8px; padding: 20px 24px; }
+.db2-welcome-prompt__heading { font-family: var(--font-serif); font-size: 16px; color: var(--rim-blue); margin-bottom: 12px; }
+.db2-welcome-prompt__list { display: flex; flex-direction: column; gap: 8px; }
+.db2-welcome-prompt__item { display: flex; justify-content: space-between; font-size: 14px; color: var(--rim-mid); text-decoration: none; padding: 6px 0; }
+.db2-welcome-prompt__item:hover { color: var(--rim-blue); }
+.db2-courses-line { display: flex; align-items: center; gap: 12px; padding: 14px 18px; background: white; border-radius: 8px; }
+.db2-courses-line__label { font-family: var(--font-serif); font-size: 15px; color: var(--rim-blue); font-weight: 600; }
+.db2-courses-line__count { font-size: 13px; color: var(--rim-text-muted); }
+.db2-courses-line__link { margin-left: auto; font-size: 13px; color: var(--rim-blue); text-decoration: none; }
+.db2-courses-line__link:hover { text-decoration: underline; }

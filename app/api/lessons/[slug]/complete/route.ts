@@ -53,6 +53,7 @@ export async function POST(
       select: {
         id: true,
         lessons: { select: { lessonId: true } },
+        completionNote: true,
       },
     });
     if (course) {
@@ -69,7 +70,12 @@ export async function POST(
             where: { userId_courseId: { userId, courseId: course.id } },
             data: { completedAt: new Date() },
           });
-          return NextResponse.json({ completed: true, seriesCompleted: true, courseSlug });
+          return NextResponse.json({
+            completed: true,
+            seriesCompleted: true,
+            courseSlug,
+            completionNote: course.completionNote ?? null,
+          });
         }
       }
     }

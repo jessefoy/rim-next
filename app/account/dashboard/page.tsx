@@ -128,7 +128,7 @@ export default async function DashboardPage() {
   const userId = session.user.id;
   const today  = todayCT();
 
-  const [allVirtual, upcomingRegistrations, pendingDana, hubMemberships, activeEnrollments] =
+  const [allVirtual, upcomingRegistrations, pendingDana, hubMemberships, onboardingEnrollments] =
     await Promise.all([
       db.program.findMany({
         where: {
@@ -170,23 +170,29 @@ export default async function DashboardPage() {
         include: { hub: { select: { id: true, slug: true, name: true, type: true } } },
         orderBy: { joinedAt: "asc" },
       }),
-      // Active series: enrolled, not yet completed, active course
+      // Onboarding series: enrolled via ONBOARDING source, not yet completed
       db.seriesEnrollment.findMany({
-        where: { userId, completedAt: null, course: { isActive: true } },
-        include: {
-          course: {
-            select: {
-              id: true,
-              slug: true,
-              title: true,
-              lessons: { select: { lessonId: true } },
-            },
-          },
+        where: {
+          userId,
+          enrollmentSource: "ONBOARDING",
+          completedAt: null,
+          course: { isActive: true },
         },
-        orderBy: { enrolledAt: "desc" },
-        take: 3,
+        select: {
+          courseId: true,
+          course: { select: { id: true, slug: true, title: true } },
+        },
       }),
     ]);
+
+  // Count incomplete non-onboarding enrollments for the "Your Courses" line
+  const inProgressCount = await db.seriesEnrollment.count({
+    where: {
+      userId,
+      completedAt: null,
+      course: { isActive: true, isOnboarding: false },
+    },
+  });
 
   // Filter to programs with an occurrence today, using recurrence logic
   const todaySessionsRaw = allVirtual.filter((p) => isOccurrenceToday(p, today));
@@ -235,24 +241,6 @@ export default async function DashboardPage() {
         orderBy: { name: "asc" },
       })
     : hubMemberships.map((m) => m.hub);
-
-  // Compute progress for each active enrollment
-  const activeSeries = await Promise.all(
-    activeEnrollments.map(async (e) => {
-      const lessonIds = e.course.lessons.map((cl) => cl.lessonId);
-      const completedCount = lessonIds.length > 0
-        ? await db.lessonProgress.count({ where: { userId, lessonId: { in: lessonIds } } })
-        : 0;
-      return {
-        courseId: e.courseId,
-        slug: e.course.slug,
-        title: e.course.title,
-        totalCount: lessonIds.length,
-        completedCount,
-        pct: lessonIds.length > 0 ? Math.round((completedCount / lessonIds.length) * 100) : 0,
-      };
-    })
-  );
 
   const firstName =
     session.user?.name?.split(" ")[0] ??
@@ -363,28 +351,33 @@ export default async function DashboardPage() {
           <div className="db2-quicklinks">
             <Link href="/account/dashboard-my-profile" className="db2-quicklink">My Profile</Link>
             <Link href="/account/programs" className="db2-quicklink">My Registrations</Link>
-            <Link href="/account/dashboard-my-library" className="db2-quicklink">Course Library</Link>
+            <Link href="/account/courses" className="db2-quicklink">My Courses</Link>
           </div>
         </div>
 
-        {/* 5. Active Series */}
-        {activeSeries.length > 0 && (
+        {/* 5. Onboarding welcome (only if incomplete onboarding series exist) */}
+        {onboardingEnrollments.length > 0 && (
           <div className="db-section">
-            <p className="db-section__label">Active Series</p>
-            <div className="db2-series">
-              {activeSeries.map((s) => (
-                <Link key={s.courseId} href={`/course/${s.slug}`} className="db2-series-card">
-                  <span className="db2-series-card__title">{s.title}</span>
-                  <div className="db2-series-card__progress-wrap">
-                    <div className="db2-series-card__bar-wrap">
-                      <div className="db2-series-card__bar" style={{ width: `${s.pct}%` }} />
-                    </div>
-                    <span className="db2-series-card__label">
-                      {s.completedCount} / {s.totalCount}
-                    </span>
-                  </div>
-                </Link>
-              ))}
+            <div className="db2-welcome-prompt">
+              <p className="db2-welcome-prompt__heading">Welcome to RIM — here&apos;s where to begin</p>
+              <div className="db2-welcome-prompt__list">
+                {onboardingEnrollments.map((e) => (
+                  <Link key={e.courseId} href={`/course/${e.course.slug}`} className="db2-welcome-prompt__item">
+                    {e.course.title} <span>Start →</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 5b. In Progress courses */}
+        {inProgressCount > 0 && (
+          <div className="db-section">
+            <div className="db2-courses-line">
+              <span className="db2-courses-line__label">Your Courses</span>
+              <span className="db2-courses-line__count">{inProgressCount} in progress</span>
+              <Link href="/account/courses" className="db2-courses-line__link">View all →</Link>
             </div>
           </div>
         )}

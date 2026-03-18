@@ -6,12 +6,19 @@ interface Props {
   lessonSlug: string;
   courseSlug?: string;
   initialCompleted: boolean;
+  courseCompletionNote?: string | null;
 }
 
-export default function MarkCompleteButton({ lessonSlug, courseSlug, initialCompleted }: Props) {
+export default function MarkCompleteButton({
+  lessonSlug,
+  courseSlug,
+  initialCompleted,
+  courseCompletionNote,
+}: Props) {
   const [completed, setCompleted] = useState(initialCompleted);
   const [loading, setLoading] = useState(false);
   const [seriesCompleted, setSeriesCompleted] = useState(false);
+  const [completionNote, setCompletionNote] = useState<string | null>(courseCompletionNote ?? null);
 
   async function toggle() {
     setLoading(true);
@@ -24,7 +31,10 @@ export default function MarkCompleteButton({ lessonSlug, courseSlug, initialComp
       if (res.ok) {
         const data = await res.json();
         setCompleted(data.completed);
-        if (data.seriesCompleted) setSeriesCompleted(true);
+        if (data.seriesCompleted) {
+          setSeriesCompleted(true);
+          if (data.completionNote) setCompletionNote(data.completionNote);
+        }
       }
     } finally {
       setLoading(false);
@@ -37,6 +47,9 @@ export default function MarkCompleteButton({ lessonSlug, courseSlug, initialComp
         <p className="lp-series-complete__msg">
           You&apos;ve completed this series. Take a moment to let that land.
         </p>
+        {completionNote && (
+          <p className="lp-series-complete__note">{completionNote}</p>
+        )}
       </div>
     );
   }

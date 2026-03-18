@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 type CourseContext = {
-  course: { slug: string; title: string };
+  course: { slug: string; title: string; completionNote?: string | null };
   lessonNumber: number;
   totalLessons: number;
   prevLesson: { slug: string; titleDisplayed: string } | null;
@@ -121,7 +121,7 @@ export default async function LessonPage({
       },
     },
     include: {
-      course: { select: { id: true, slug: true, title: true } },
+      course: { select: { id: true, slug: true, title: true, completionNote: true } },
     },
     orderBy: { sortOrder: "asc" },
   });
@@ -138,7 +138,11 @@ export default async function LessonPage({
     const idx = allLessons.findIndex((cl) => cl.lessonId === lesson.id);
     if (idx !== -1) {
       courseContext = {
-        course: courseLessonJoin.course,
+        course: {
+          slug: courseLessonJoin.course.slug,
+          title: courseLessonJoin.course.title,
+          completionNote: courseLessonJoin.course.completionNote ?? null,
+        },
         lessonNumber: idx + 1,
         totalLessons: allLessons.length,
         prevLesson: idx > 0 ? allLessons[idx - 1].lesson : null,
@@ -281,6 +285,7 @@ export default async function LessonPage({
             lessonSlug={lesson.slug}
             courseSlug={courseContext?.course.slug}
             initialCompleted={isComplete}
+            courseCompletionNote={courseContext?.course.completionNote ?? null}
           />
         </div>
 

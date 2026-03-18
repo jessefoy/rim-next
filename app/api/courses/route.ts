@@ -3,7 +3,6 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 
 async function canAccessCourseHub(userId: string, roles: string[]): Promise<boolean> {
-
   if (roles.some((r) => ["ADMIN", "TEACHER"].includes(r))) return true;
   const ua = await db.userHubAccess.findUnique({
     where: { userId_hubSlug: { userId, hubSlug: "courses" } },
@@ -11,25 +10,57 @@ async function canAccessCourseHub(userId: string, roles: string[]): Promise<bool
   return !!ua;
 }
 
+/**
+ * GET /api/courses — Public browse endpoint.
+ * Returns all active, non-onboarding courses visible to the current user.
+ * Auth optional: ROLE_REQUIRED courses filtered by user's roles.
+ */
 export async function GET() {
   const session = await auth();
-  if (!session?.user?.id || !await canAccessCourseHub(session.user.id, session.user.roles ?? [])) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-  }
+  const userId = session?.user?.id ?? null;
+  const userRoles = session?.user?.roles ?? [];
+  const isAdmin = userRoles.includes("ADMIN");
 
   const courses = await db.course.findMany({
+    where: { isActive: true, isOnboarding: false },
     orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
     include: {
+      category: { select: { id: true, name: true, slug: true } },
       _count: { select: { lessons: true } },
     },
   });
 
-  return NextResponse.json(courses);
+  // Filter by access level
+  const visibleCourses = courses.filter((c) => {
+    if (c.accessLevel === "ALL_MEMBERS") return true;
+    if (c.accessLevel === "REGISTRATION_REQUIRED") return true;
+    if (c.accessLevel === "ROLE_REQUIRED") {
+      return isAdmin || c.requiredRoles.some((r) => userRoles.includes(r));
+    }
+    return true;
+  });
+
+  const result = visibleCourses.map((c) => ({
+    id: c.id,
+    title: c.title,
+    slug: c.slug,
+    subheading: c.subheading ?? null,
+    accessLevel: c.accessLevel as string,
+    requiredRoles: c.requiredRoles,
+    categoryId: c.categoryId ?? null,
+    category: c.category ?? null,
+    lessonCount: c._count.lessons,
+  }));
+
+  // Suppress unused variable warning
+  void userId;
+
+  return NextResponse.json(result);
 }
 
 export async function POST(request: NextRequest) {
   const session = await auth();
-  if (!session?.user?.id || !await canAccessCourseHub(session.user.id, session.user.roles ?? [])) {
+  if (!session?.user?.id || !(await canAccessCourseHub(session.user.id, session.user.roles ?? []))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 

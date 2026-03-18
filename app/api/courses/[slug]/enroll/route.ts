@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { EnrollmentSource } from "@prisma/client";
 
 /**
  * POST /api/courses/[slug]/enroll  — enroll in a series
- * DELETE /api/courses/[slug]/enroll — unenroll (removes enrollment record)
+ * DELETE /api/courses/[slug]/enroll — unenroll (only allowed for SELF enrollments)
  */
 
 export async function POST(
@@ -28,7 +29,7 @@ export async function POST(
   const enrollment = await db.seriesEnrollment.upsert({
     where: { userId_courseId: { userId, courseId: course.id } },
     update: {}, // already enrolled — no-op
-    create: { userId, courseId: course.id },
+    create: { userId, courseId: course.id, enrollmentSource: EnrollmentSource.SELF },
   });
 
   return NextResponse.json({ enrolled: true, enrolledAt: enrollment.enrolledAt });
@@ -51,6 +52,21 @@ export async function DELETE(
     select: { id: true },
   });
   if (!course) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // Check enrollment source before deleting
+  const existing = await db.seriesEnrollment.findUnique({
+    where: { userId_courseId: { userId, courseId: course.id } },
+    select: { enrollmentSource: true },
+  });
+
+  if (!existing) return NextResponse.json({ enrolled: false });
+
+  if (existing.enrollmentSource !== EnrollmentSource.SELF) {
+    return NextResponse.json(
+      { error: "This enrollment can only be removed by an administrator." },
+      { status: 403 }
+    );
+  }
 
   await db.seriesEnrollment.deleteMany({
     where: { userId, courseId: course.id },

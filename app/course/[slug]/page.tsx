@@ -164,7 +164,7 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
       : [],
     db.seriesEnrollment.findUnique({
       where: { userId_courseId: { userId, courseId: course.id } },
-      select: { enrolledAt: true, completedAt: true },
+      select: { enrolledAt: true, completedAt: true, enrollmentSource: true },
     }),
   ]);
 
@@ -201,7 +201,11 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
       {/* ── Enrollment + Progress ── */}
       {lessonItems.length > 0 && (
         <div className="crs-meta-bar">
-          <EnrollButton courseSlug={slug} initialEnrolled={!!enrollment} />
+          <EnrollButton
+            courseSlug={slug}
+            initialEnrolled={!!enrollment}
+            enrollmentSource={enrollment?.enrollmentSource ?? undefined}
+          />
 
           {enrollment && (
             <div className="crs-progress">
