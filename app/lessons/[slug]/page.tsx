@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { renderContentBody } from "@/lib/renderRichContent";
 import DanaSection from "@/components/DanaSection";
 import AudioPlayer from "@/components/AudioPlayer";
+import MarkCompleteButton from "@/components/MarkCompleteButton";
+import LessonNoteEditor from "@/components/LessonNoteEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -151,6 +153,19 @@ export default async function LessonPage({
 
   const bodyHtml = renderContentBody(lesson.body);
 
+  // ── Progress & notes ───────────────────────────────────────────────────────
+  const [progressRecord, existingNote] = await Promise.all([
+    db.lessonProgress.findUnique({
+      where: { userId_lessonId: { userId: session.user.id!, lessonId: lesson.id } },
+      select: { completedAt: true },
+    }),
+    db.lessonNote.findUnique({
+      where: { userId_lessonId: { userId: session.user.id!, lessonId: lesson.id } },
+      select: { body: true },
+    }),
+  ]);
+  const isComplete = !!progressRecord;
+
   // Helper: build lesson URL preserving course context
   const lessonUrl = (s: string) =>
     courseContext ? `/lessons/${s}?course=${courseContext.course.slug}` : `/lessons/${s}`;
@@ -254,6 +269,30 @@ export default async function LessonPage({
             <p>{lesson.teacherNames.join(", ")}</p>
           </div>
         )}
+
+        {/* Reflection prompt */}
+        {lesson.reflectionPrompt && (
+          <div className="lp-reflection">
+            <p className="lp-reflection__text">{lesson.reflectionPrompt}</p>
+          </div>
+        )}
+
+        {/* Mark complete */}
+        <div className="lp-complete-wrap">
+          <MarkCompleteButton
+            lessonSlug={lesson.slug}
+            courseSlug={courseContext?.course.slug}
+            initialCompleted={isComplete}
+          />
+        </div>
+
+        {/* Personal notes */}
+        <div className="lp-notes-section">
+          <LessonNoteEditor
+            lessonSlug={lesson.slug}
+            initialBody={existingNote?.body ?? null}
+          />
+        </div>
 
         <DanaSection />
 

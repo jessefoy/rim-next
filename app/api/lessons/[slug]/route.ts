@@ -69,6 +69,8 @@ export async function PATCH(
   if (body.teacherNames !== undefined) updateData.teacherNames = body.teacherNames;
   if (body.resources !== undefined) updateData.resources = body.resources;
   if (body.videoUrl !== undefined) updateData.videoUrl = body.videoUrl || null;
+  if (body.durationMinutes !== undefined) updateData.durationMinutes = body.durationMinutes ?? null;
+  if (body.reflectionPrompt !== undefined) updateData.reflectionPrompt = body.reflectionPrompt || null;
 
   const updated = await db.lesson.update({
     where: { slug },

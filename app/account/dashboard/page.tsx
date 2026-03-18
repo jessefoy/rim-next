@@ -128,7 +128,7 @@ export default async function DashboardPage() {
   const userId = session.user.id;
   const today  = todayCT();
 
-  const [allVirtual, upcomingRegistrations, pendingDana, hubMemberships] =
+  const [allVirtual, upcomingRegistrations, pendingDana, hubMemberships, activeEnrollments] =
     await Promise.all([
       db.program.findMany({
         where: {
@@ -169,6 +169,22 @@ export default async function DashboardPage() {
         where: { userId },
         include: { hub: { select: { id: true, slug: true, name: true, type: true } } },
         orderBy: { joinedAt: "asc" },
+      }),
+      // Active series: enrolled, not yet completed, active course
+      db.seriesEnrollment.findMany({
+        where: { userId, completedAt: null, course: { isActive: true } },
+        include: {
+          course: {
+            select: {
+              id: true,
+              slug: true,
+              title: true,
+              lessons: { select: { lessonId: true } },
+            },
+          },
+        },
+        orderBy: { enrolledAt: "desc" },
+        take: 3,
       }),
     ]);
 
@@ -219,6 +235,24 @@ export default async function DashboardPage() {
         orderBy: { name: "asc" },
       })
     : hubMemberships.map((m) => m.hub);
+
+  // Compute progress for each active enrollment
+  const activeSeries = await Promise.all(
+    activeEnrollments.map(async (e) => {
+      const lessonIds = e.course.lessons.map((cl) => cl.lessonId);
+      const completedCount = lessonIds.length > 0
+        ? await db.lessonProgress.count({ where: { userId, lessonId: { in: lessonIds } } })
+        : 0;
+      return {
+        courseId: e.courseId,
+        slug: e.course.slug,
+        title: e.course.title,
+        totalCount: lessonIds.length,
+        completedCount,
+        pct: lessonIds.length > 0 ? Math.round((completedCount / lessonIds.length) * 100) : 0,
+      };
+    })
+  );
 
   const firstName =
     session.user?.name?.split(" ")[0] ??
@@ -333,7 +367,29 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* 5. Pending Dana */}
+        {/* 5. Active Series */}
+        {activeSeries.length > 0 && (
+          <div className="db-section">
+            <p className="db-section__label">Active Series</p>
+            <div className="db2-series">
+              {activeSeries.map((s) => (
+                <Link key={s.courseId} href={`/course/${s.slug}`} className="db2-series-card">
+                  <span className="db2-series-card__title">{s.title}</span>
+                  <div className="db2-series-card__progress-wrap">
+                    <div className="db2-series-card__bar-wrap">
+                      <div className="db2-series-card__bar" style={{ width: `${s.pct}%` }} />
+                    </div>
+                    <span className="db2-series-card__label">
+                      {s.completedCount} / {s.totalCount}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 6. Pending Dana */}
         {pendingDana.length > 0 && (
           <div className="db-section">
             <div className="db-dana-reminder" style={{ marginTop: 0 }}>
@@ -354,7 +410,7 @@ export default async function DashboardPage() {
           </div>
         )}
 
-        {/* 6. Your Hubs */}
+        {/* 7. Your Hubs */}
         {dashboardHubs.length > 0 && (
           <div className="db-section">
             <p className="db-section__label">Your Hubs</p>

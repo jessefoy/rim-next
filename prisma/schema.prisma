@@ -79,6 +79,11 @@ model User {
   adminNotes      Json?             // Tiptap JSON (FormattedEditor)
   tags            String[]     @default([])
 
+  // Learning system
+  lessonProgress    LessonProgress[]
+  seriesEnrollments SeriesEnrollment[]
+  lessonNotes       LessonNote[]
+
   // Support inbox notification preference
   supportEmailNotifications Boolean @default(true)
 
@@ -448,9 +453,10 @@ model Course {
   sortOrder             Int?
   isActive              Boolean           @default(true)
 
-  lessons  CourseLesson[]
-  programs ProgramCourse[]
-  access   CourseAccess[]
+  lessons     CourseLesson[]
+  programs    ProgramCourse[]
+  access      CourseAccess[]
+  enrollments SeriesEnrollment[]
 
   @@index([slug])
   @@map("courses")
@@ -479,7 +485,12 @@ model Lesson {
   teacherNames    String[]
   resources       Json?    // { name, url, resourceType }[]
 
-  courses  CourseLesson[]
+  durationMinutes Int?     // estimated read/listen time; shown on series page cards
+  reflectionPrompt String? // optional closing invitation shown at bottom of lesson page
+
+  courses   CourseLesson[]
+  progress  LessonProgress[]
+  notes     LessonNote[]
 
   @@index([slug])
   @@map("lessons")
@@ -508,6 +519,55 @@ model ProgramCourse {
 
   @@id([programId, courseId])
   @@map("program_courses")
+}
+
+// ─── LEARNING SYSTEM ──────────────────────────────────────────────────────────
+// Progress tracking, enrollment, and personal notes for the series/lesson library.
+
+// Tracks which lessons a member has marked complete.
+model LessonProgress {
+  userId      String
+  lessonId    String
+  completedAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@id([userId, lessonId])
+  @@index([userId])
+  @@map("lesson_progress")
+}
+
+// Tracks conscious enrollment in a series (separate from access).
+// Sets a start date and drives dashboard "Active Series" integration.
+// completedAt is set when the member marks all lessons in the series complete.
+model SeriesEnrollment {
+  userId      String
+  courseId    String
+  enrolledAt  DateTime  @default(now())
+  completedAt DateTime?
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@id([userId, courseId])
+  @@index([userId])
+  @@map("series_enrollments")
+}
+
+// Private per-lesson notes, visible only to the member who wrote them.
+model LessonNote {
+  userId    String
+  lessonId  String
+  body      Json?    // Tiptap JSON (FormattedEditor)
+  updatedAt DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@id([userId, lessonId])
+  @@index([userId])
+  @@map("lesson_notes")
 }
 
 // ─── DONATION MANAGEMENT (Phase 2) ───────────────────────────────────────────
