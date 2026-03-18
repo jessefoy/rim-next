@@ -32,8 +32,6 @@ interface LessonData {
   quoteSource: string;
   teacherNames: string;
   resources: Resource[];
-  durationMinutes: string;
-  reflectionPrompt: string;
 }
 
 interface Props {
@@ -84,9 +82,6 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
   // Teachers
   const [teacherNames, setTeacherNames] = useState(initialData?.teacherNames ?? "");
 
-  // Duration & reflection
-  const [durationMinutes, setDurationMinutes] = useState(initialData?.durationMinutes ?? "");
-  const [reflectionPrompt, setReflectionPrompt] = useState(initialData?.reflectionPrompt ?? "");
 
   // Resources
   const [resources, setResources] = useState<Resource[]>(initialData?.resources ?? []);
@@ -213,8 +208,6 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
         quoteSource: quoteSource || null,
         teacherNames: teacherArr,
         resources: resources.filter((r) => r.name || r.url),
-        durationMinutes: durationMinutes ? parseInt(durationMinutes as string, 10) : null,
-        reflectionPrompt: reflectionPrompt || null,
       };
 
       const url = isEditing ? `/api/lessons/${initialData?.slug}` : "/api/lessons";
@@ -311,18 +304,6 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
             </label>
           </fieldset>
 
-          <label className="th-field">
-            <span className="th-field__label">Estimated Duration (minutes)</span>
-            <input
-              type="number"
-              min="1"
-              value={durationMinutes}
-              onChange={(e) => setDurationMinutes(e.target.value)}
-              className="th-input th-input--short"
-              placeholder="e.g. 25"
-            />
-            <span className="th-field__help">Shown as "~25 min" on the series page. Optional.</span>
-          </label>
         </div>
       </div>
 
@@ -457,24 +438,6 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
               onChange={(e) => setTeacherNames(e.target.value)}
               className="th-input"
               placeholder="Comma-separated names"
-            />
-          </label>
-        </div>
-      </div>
-
-      {/* ── Section: Reflection Prompt ── */}
-      <div className="th-section">
-        <h3 className="th-section__title">Reflection Prompt</h3>
-        <p className="th-section__help">A gentle closing invitation shown at the bottom of the lesson. Optional.</p>
-        <div className="th-form">
-          <label className="th-field">
-            <span className="th-field__label">Prompt</span>
-            <textarea
-              value={reflectionPrompt}
-              onChange={(e) => setReflectionPrompt(e.target.value)}
-              className="th-textarea"
-              rows={3}
-              placeholder="Before you continue, you might sit with…"
             />
           </label>
         </div>

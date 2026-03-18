@@ -15692,20 +15692,6 @@ a.vol-table__name:hover { color: var(--rim-mid); }
    LEARNING SYSTEM — Series page additions (session 60)
    ───────────────────────────────────────────────────────────────────────────── */
 
-/* ── Right-side wrapper on lesson cards (duration + icon) ── */
-.crs-toc__right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
-.crs-toc__duration {
-  font-family: var(--font-sans);
-  font-size: 13px;
-  color: var(--rim-text-muted);
-  white-space: nowrap;
-}
-
 /* ── Completed lesson card state ── */
 .crs-toc__item--complete {
   border-color: #c8ddd6;
@@ -15806,24 +15792,6 @@ a.vol-table__name:hover { color: var(--rim-mid); }
    LEARNING SYSTEM — Lesson page additions (session 60)
    ───────────────────────────────────────────────────────────────────────────── */
 
-/* ── Reflection prompt ── */
-.lp-body .lp-reflection,
-.lp-reflection {
-  max-width: var(--reading-width);
-  margin: 40px auto 0;
-  padding: 24px 28px;
-  background: #f4f0ea;
-  border-radius: 8px;
-}
-.lp-reflection__text {
-  font-family: var(--font-serif);
-  font-size: 18px;
-  font-style: italic;
-  color: var(--rim-text);
-  line-height: 1.7;
-  margin: 0;
-}
-
 /* ── Mark complete button ── */
 .lp-complete-wrap {
   max-width: var(--reading-width);
@@ -15869,54 +15837,6 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   color: #3d7a66;
   margin: 0;
   line-height: 1.6;
-}
-
-/* ── Personal notes section ── */
-.lp-notes-section {
-  max-width: var(--reading-width);
-  margin: 40px auto 0;
-}
-.lp-notes-collapsed {
-  margin-top: 40px;
-}
-.lp-notes-toggle {
-  font-family: var(--font-sans);
-  font-size: 14px;
-  color: var(--rim-text-muted);
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-.lp-notes-toggle:hover { color: var(--rim-text); }
-.lp-notes {
-  background: #faf8f5;
-  border: 1px solid #ebe6e1;
-  border-radius: 8px;
-  overflow: hidden;
-}
-.lp-notes__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 18px 0;
-}
-.lp-notes__label {
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--rim-text-muted);
-  margin: 0;
-}
-.lp-notes__save-state {
-  font-family: var(--font-sans);
-  font-size: 12px;
-  color: var(--rim-text-muted);
-  min-height: 16px;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -15975,7 +15895,3 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   flex-shrink: 0;
 }
 
-/* ── LessonEditor: short number input ── */
-.th-input--short {
-  max-width: 120px;
-}

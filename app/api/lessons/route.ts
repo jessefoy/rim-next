@@ -31,7 +31,6 @@ export async function POST(request: NextRequest) {
     titleInternal, titleDisplayed, slug, accessLevel,
     body: lessonBody, heroImageUrl, heroImageAlt, audioUrl, videoUrl,
     headerQuote, quoteSource, teacherNames, resources,
-    durationMinutes, reflectionPrompt,
   } = body;
 
   if (!titleInternal || !titleDisplayed || !slug) {
@@ -58,8 +57,6 @@ export async function POST(request: NextRequest) {
       quoteSource: quoteSource || null,
       teacherNames: teacherNames ?? [],
       resources: resources ?? null,
-      durationMinutes: durationMinutes ?? null,
-      reflectionPrompt: reflectionPrompt || null,
     },
   });
 

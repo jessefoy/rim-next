@@ -69,7 +69,7 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
     where: { slug, isActive: true },
     include: {
       lessons: {
-        include: { lesson: { select: { id: true, slug: true, titleDisplayed: true, audioUrl: true, videoUrl: true, durationMinutes: true } } },
+        include: { lesson: { select: { id: true, slug: true, titleDisplayed: true, audioUrl: true, videoUrl: true } } },
         orderBy: { sortOrder: "asc" },
       },
     },
@@ -237,13 +237,8 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
                       {isComplete ? <CheckIcon /> : i + 1}
                     </span>
                     <span className="crs-toc__title">{cl.lesson.titleDisplayed}</span>
-                    <span className="crs-toc__right">
-                      {cl.lesson.durationMinutes && (
-                        <span className="crs-toc__duration">~{cl.lesson.durationMinutes} min</span>
-                      )}
-                      <span className={`crs-toc__icon-wrap crs-toc__icon-wrap--${mediaType}`} aria-label={mediaType}>
-                        {hasAudio ? <AudioIcon /> : hasVideo ? <VideoIcon /> : <TextIcon />}
-                      </span>
+                    <span className={`crs-toc__icon-wrap crs-toc__icon-wrap--${mediaType}`} aria-label={mediaType}>
+                      {hasAudio ? <AudioIcon /> : hasVideo ? <VideoIcon /> : <TextIcon />}
                     </span>
                   </Link>
                 </div>

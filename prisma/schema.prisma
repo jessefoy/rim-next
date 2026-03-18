@@ -82,7 +82,6 @@ model User {
   // Learning system
   lessonProgress    LessonProgress[]
   seriesEnrollments SeriesEnrollment[]
-  lessonNotes       LessonNote[]
 
   // Support inbox notification preference
   supportEmailNotifications Boolean @default(true)
@@ -485,12 +484,8 @@ model Lesson {
   teacherNames    String[]
   resources       Json?    // { name, url, resourceType }[]
 
-  durationMinutes Int?     // estimated read/listen time; shown on series page cards
-  reflectionPrompt String? // optional closing invitation shown at bottom of lesson page
-
   courses   CourseLesson[]
   progress  LessonProgress[]
-  notes     LessonNote[]
 
   @@index([slug])
   @@map("lessons")
@@ -555,20 +550,6 @@ model SeriesEnrollment {
   @@map("series_enrollments")
 }
 
-// Private per-lesson notes, visible only to the member who wrote them.
-model LessonNote {
-  userId    String
-  lessonId  String
-  body      Json?    // Tiptap JSON (FormattedEditor)
-  updatedAt DateTime @updatedAt
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-
-  @@id([userId, lessonId])
-  @@index([userId])
-  @@map("lesson_notes")
-}
 
 // ─── DONATION MANAGEMENT (Phase 2) ───────────────────────────────────────────
 // Unified log of all contributions regardless of source.

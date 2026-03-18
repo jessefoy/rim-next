@@ -52,8 +52,6 @@ export default async function EditLessonPage({
     quoteSource: lesson.quoteSource ?? "",
     teacherNames: lesson.teacherNames.join(", "),
     resources: (lesson.resources as { name: string; url: string; resourceType: string }[]) ?? [],
-    durationMinutes: lesson.durationMinutes?.toString() ?? "",
-    reflectionPrompt: lesson.reflectionPrompt ?? "",
   };
 
   return <LessonEditor hubSlug={slug} initialData={initialData} isEditing />;
