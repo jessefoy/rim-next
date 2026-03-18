@@ -13371,6 +13371,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .th-editor__header { display: flex; align-items: baseline; gap: 16px; margin-bottom: 24px; }
 .th-editor__title { font-family: var(--font-serif); font-size: 24px; font-weight: 400; margin: 0; }
 .th-link--view { font-size: 14px; color: var(--rim-blue); white-space: nowrap; }
+.th-link--sm { font-size: 13px; font-weight: 400; color: var(--rim-blue); white-space: nowrap; }
 
 /* Sections */
 .th-section { margin-top: 32px; padding-top: 24px; border-top: 1px solid #ede9e5; }
