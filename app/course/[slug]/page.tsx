@@ -79,6 +79,9 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
   // ── Access check ──────────────────────────────────────────────────────────
   let hasAccess = course.accessLevel === "ALL_MEMBERS";
 
+  const userRoles = session.user.roles ?? [];
+  const isAdmin = userRoles.includes("ADMIN");
+
   if (!hasAccess && course.accessLevel === "REGISTRATION_REQUIRED") {
     const programCourses = await db.programCourse.findMany({
       where: { courseId: course.id },
@@ -107,7 +110,21 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
     }
   }
 
+  if (!hasAccess && course.accessLevel === "ROLE_REQUIRED") {
+    if (isAdmin || course.requiredRoles.some((r) => userRoles.includes(r))) {
+      hasAccess = true;
+    }
+    if (!hasAccess) {
+      const grant = await db.courseAccess.findUnique({
+        where: { userId_courseSlug: { userId, courseSlug: slug } },
+        select: { id: true },
+      });
+      if (grant) hasAccess = true;
+    }
+  }
+
   if (!hasAccess) {
+    const isRoleGated = course.accessLevel === "ROLE_REQUIRED";
     return (
       <div className="crs-page">
         <header className="crs-header">
@@ -119,11 +136,15 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
         <hr className="crs-rule" />
         <div className="crs-gate">
           <p className="crs-gate__msg">
-            Access to this series requires registration for the associated program.
+            {isRoleGated
+              ? "Access to this series is restricted to specific community roles."
+              : "Access to this series requires registration for the associated program."}
           </p>
-          <Link href="/community-programs" className="crs-gate__link">
-            View programs →
-          </Link>
+          {!isRoleGated && (
+            <Link href="/community-programs" className="crs-gate__link">
+              View programs →
+            </Link>
+          )}
         </div>
       </div>
     );

@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { enrollMemberInOnboardingSeries } from "@/lib/enrollment";
 
 // POST — save name/phone and mark community agreements accepted
 export async function POST(request: Request) {
@@ -28,6 +29,9 @@ export async function POST(request: Request) {
       agreedAt: new Date(),
     },
   });
+
+  // Auto-enroll in onboarding series — fire-and-forget
+  enrollMemberInOnboardingSeries(session.user.id).catch(() => {});
 
   return NextResponse.json({ ok: true });
 }

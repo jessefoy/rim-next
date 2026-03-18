@@ -477,6 +477,7 @@ model Course {
   hideFromMemberProfile Boolean           @default(false)
   sortOrder             Int?
   isActive              Boolean           @default(true)
+  isOnboarding          Boolean           @default(false) // auto-enroll all new members
 
   // Categorization & access
   categoryId    String?

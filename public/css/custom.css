@@ -13373,6 +13373,9 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .th-select { padding: 6px 10px; border: 1px solid var(--rim-rule); border-radius: 6px; font-size: 13px; background: white; }
 .th-radio { display: flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; }
 .th-checkbox { display: flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; }
+.th-checkbox--sm { font-size: 13px; }
+.th-roles-select { margin-top: 10px; padding: 12px 14px; background: #f9f7f5; border-radius: 6px; display: flex; flex-direction: column; gap: 8px; }
+.th-field__hint { font-size: 12px; color: var(--rim-text-muted); margin: 0 0 4px; }
 .th-file-input { font-size: 13px; }
 .th-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
 

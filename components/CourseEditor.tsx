@@ -28,13 +28,24 @@ type ListItem =
   | { type: "section"; uid: string; label: string }
   | { type: "lesson"; lessonId: string; lesson: Lesson };
 
+const ROLE_OPTIONS: { value: string; label: string }[] = [
+  { value: "HOST",         label: "Host" },
+  { value: "HOST_MANAGER", label: "Host Manager" },
+  { value: "TEACHER",      label: "Teacher" },
+  { value: "REGISTRAR",    label: "Registrar" },
+  { value: "SUPPORT",      label: "Support" },
+  { value: "ADMIN",        label: "Admin" },
+];
+
 interface CourseData {
   id?: string;
   title: string;
   slug: string;
   subheading: string;
   description: any; // Tiptap JSON
-  accessLevel: "ALL_MEMBERS" | "REGISTRATION_REQUIRED";
+  accessLevel: "ALL_MEMBERS" | "REGISTRATION_REQUIRED" | "ROLE_REQUIRED";
+  requiredRoles: string[];
+  isOnboarding: boolean;
   hideFromMemberProfile: boolean;
   isActive: boolean;
   lessons?: CourseLesson[];
@@ -94,9 +105,13 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
   const [slug, setSlug] = useState(initialData?.slug ?? "");
   const [subheading, setSubheading] = useState(initialData?.subheading ?? "");
   const [description, setDescription] = useState<any>(initialData?.description ?? null);
-  const [accessLevel, setAccessLevel] = useState<"ALL_MEMBERS" | "REGISTRATION_REQUIRED">(
+  const [accessLevel, setAccessLevel] = useState<"ALL_MEMBERS" | "REGISTRATION_REQUIRED" | "ROLE_REQUIRED">(
     initialData?.accessLevel ?? "ALL_MEMBERS"
   );
+  const [requiredRoles, setRequiredRoles] = useState<string[]>(
+    initialData?.requiredRoles ?? []
+  );
+  const [isOnboarding, setIsOnboarding] = useState(initialData?.isOnboarding ?? false);
   const [hideFromMemberProfile, setHideFromMemberProfile] = useState(
     initialData?.hideFromMemberProfile ?? false
   );
@@ -243,6 +258,8 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
         subheading,
         description,
         accessLevel,
+        requiredRoles: accessLevel === "ROLE_REQUIRED" ? requiredRoles : [],
+        isOnboarding,
         hideFromMemberProfile,
         isActive,
       };
@@ -351,7 +368,7 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
             <input
               type="radio"
               checked={accessLevel === "ALL_MEMBERS"}
-              onChange={() => setAccessLevel("ALL_MEMBERS")}
+              onChange={() => { setAccessLevel("ALL_MEMBERS"); setRequiredRoles([]); }}
             />
             All Members
           </label>
@@ -359,11 +376,49 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
             <input
               type="radio"
               checked={accessLevel === "REGISTRATION_REQUIRED"}
-              onChange={() => setAccessLevel("REGISTRATION_REQUIRED")}
+              onChange={() => { setAccessLevel("REGISTRATION_REQUIRED"); setRequiredRoles([]); }}
             />
             Registration Required
           </label>
+          <label className="th-radio">
+            <input
+              type="radio"
+              checked={accessLevel === "ROLE_REQUIRED"}
+              onChange={() => setAccessLevel("ROLE_REQUIRED")}
+            />
+            Role Required
+          </label>
+          {accessLevel === "ROLE_REQUIRED" && (
+            <div className="th-roles-select">
+              <p className="th-field__hint">Members with any of these roles can access this series:</p>
+              {ROLE_OPTIONS.map((opt) => (
+                <label key={opt.value} className="th-checkbox th-checkbox--sm">
+                  <input
+                    type="checkbox"
+                    checked={requiredRoles.includes(opt.value)}
+                    onChange={(e) => {
+                      setRequiredRoles((prev) =>
+                        e.target.checked
+                          ? [...prev, opt.value]
+                          : prev.filter((r) => r !== opt.value)
+                      );
+                    }}
+                  />
+                  {opt.label}
+                </label>
+              ))}
+            </div>
+          )}
         </fieldset>
+
+        <label className="th-checkbox">
+          <input
+            type="checkbox"
+            checked={isOnboarding}
+            onChange={(e) => setIsOnboarding(e.target.checked)}
+          />
+          Auto-enroll new members (onboarding series)
+        </label>
 
         <label className="th-checkbox">
           <input

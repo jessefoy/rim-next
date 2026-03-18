@@ -6,6 +6,10 @@ import { buildGoogleCalendarUrl, buildIcsUrl } from "@/lib/calendarLinks";
 import { resolveLocation } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
 import { rematchUnlinkedThreads } from "@/lib/supportSync";
+import {
+  enrollMemberInOnboardingSeries,
+  enrollMemberInProgramCourse,
+} from "@/lib/enrollment";
 
 export async function POST(request: NextRequest) {
   try {
@@ -105,6 +109,10 @@ export async function POST(request: NextRequest) {
         });
         // Fire-and-forget: match any existing support threads to this new member
         rematchUnlinkedThreads().catch(() => {});
+        // Auto-enroll new member in onboarding series (fire-and-forget)
+        if (agreedToTerms === true) {
+          enrollMemberInOnboardingSeries(user.id).catch(() => {});
+        }
       } else {
         // Existing account: use the account's stored values for the registration record.
         // Never overwrite existing data from unauthenticated form input.
@@ -177,6 +185,11 @@ export async function POST(request: NextRequest) {
           : "PENDING",
       },
     });
+
+    // Enroll member in series linked to this program (fire-and-forget)
+    if (registration.status === "REGISTERED" && programId) {
+      enrollMemberInProgramCourse(resolvedUserId, programId).catch(() => {});
+    }
 
     // Build confirmation email data from Postgres program
     let confirmationMessageHtml: string | undefined;

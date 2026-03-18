@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import stripe from "@/lib/stripe";
 import { db } from "@/lib/db";
 import type Stripe from "stripe";
+import { enrollMemberInProgramCourse } from "@/lib/enrollment";
 
 // POST /api/stripe/webhook
 // Receives Stripe webhook events and updates the database.
@@ -64,15 +65,21 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   const amountCents = session.amount_total ?? 0;
 
-  // Update registration donation status
-  await db.registration.update({
+  // Update registration donation status; fetch userId + programId for enrollment
+  const updatedReg = await db.registration.update({
     where: { id: registrationId },
     data: {
       donationStatus: "COMPLETED",
       donationAmount: amountCents,
       stripeSessionId: session.id,
     },
+    select: { userId: true, programId: true },
   });
+
+  // Enroll in series linked to this program — fire-and-forget
+  if (updatedReg.userId && updatedReg.programId) {
+    enrollMemberInProgramCourse(updatedReg.userId, updatedReg.programId).catch(() => {});
+  }
 
   // Write to the Donation ledger — upsert for idempotency (Stripe can deliver webhooks twice)
   const paymentIntentId =

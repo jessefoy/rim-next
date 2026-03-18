@@ -92,6 +92,29 @@ export async function PATCH(
   if (fields.hideFromMemberProfile !== undefined) updateData.hideFromMemberProfile = fields.hideFromMemberProfile;
   if (fields.sortOrder !== undefined) updateData.sortOrder = fields.sortOrder != null ? Number(fields.sortOrder) : null;
   if (fields.isActive !== undefined) updateData.isActive = fields.isActive;
+  if (fields.isOnboarding !== undefined) updateData.isOnboarding = fields.isOnboarding;
+  if (fields.requiredRoles !== undefined) {
+    if (fields.accessLevel === "ROLE_REQUIRED" || course.accessLevel === "ROLE_REQUIRED") {
+      if (fields.accessLevel !== "ROLE_REQUIRED" && fields.accessLevel !== undefined) {
+        // Switching away from ROLE_REQUIRED — clear requiredRoles
+        updateData.requiredRoles = [];
+      } else {
+        if (!Array.isArray(fields.requiredRoles) || fields.requiredRoles.length === 0) {
+          return NextResponse.json(
+            { error: "At least one role is required when access level is Role Required" },
+            { status: 400 }
+          );
+        }
+        updateData.requiredRoles = fields.requiredRoles;
+      }
+    } else {
+      updateData.requiredRoles = [];
+    }
+  }
+  // If switching away from ROLE_REQUIRED without explicit requiredRoles, clear them
+  if (fields.accessLevel !== undefined && fields.accessLevel !== "ROLE_REQUIRED" && fields.requiredRoles === undefined) {
+    updateData.requiredRoles = [];
+  }
 
   const updated = await db.course.update({
     where: { slug },

@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { Role, MemberStatus } from "@prisma/client";
 import { sendRoleAssignmentEmail, sendHostRoleAssignmentEmail } from "@/lib/email";
 import { syncHubMembership } from "@/lib/syncHubMembership";
+import { enrollMemberInRoleSeries } from "@/lib/enrollment";
 
 const ALL_ROLES = Object.values(Role);
 
@@ -106,6 +107,12 @@ export async function PATCH(
     (user.roles as string[]).includes("SUPPORT") &&
     !(roles as string[]).includes("SUPPORT");
 
+  // Detect newly added roles (for series auto-enrollment)
+  const newlyAddedRoles: string[] =
+    roles !== undefined
+      ? (roles as string[]).filter((r) => !(user.roles as string[]).includes(r))
+      : [];
+
   // Determine archivedAt changes driven by memberStatus
   let statusDrivenArchivedAt: Date | null | undefined;
   if (memberStatus !== undefined) {
@@ -162,6 +169,11 @@ export async function PATCH(
   // Sync HubMember records whenever roles change
   if (roles !== undefined) {
     await syncHubMembership(id, roles as string[]);
+  }
+
+  // Auto-enroll in role-gated series for each newly added role — fire-and-forget
+  for (const role of newlyAddedRoles) {
+    enrollMemberInRoleSeries(id, role).catch(() => {});
   }
 
   // SUPPORT role revoked: reassign their active threads
