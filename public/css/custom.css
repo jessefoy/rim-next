@@ -15795,6 +15795,22 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   white-space: nowrap;
   flex-shrink: 0;
 }
+.crs-progress__unlock-note {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--rim-text-muted);
+  font-style: italic;
+  flex-basis: 100%;
+  margin: 2px 0 0;
+}
+.crs-unlock-note {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--rim-text-muted);
+  font-style: italic;
+  margin: 0 0 16px;
+  padding: 0 var(--crs-pad, 24px);
+}
 
 /* ── Continue button ── */
 .crs-continue-btn {
@@ -16124,6 +16140,7 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 
 /* CourseEditor drip controls */
 .th-drip-options { margin-top: 12px; padding: 12px 14px; background: #f9f7f5; border-radius: 6px; display: flex; flex-direction: column; gap: 10px; }
+.th-drip-options__divider { border: none; border-top: 1px solid #e0dbd6; margin: 2px 0; }
 .th-drip-preview { margin-top: 16px; padding: 12px 16px; background: #f9f7f5; border-radius: 6px; }
 .th-drip-preview__row { font-size: 13px; color: var(--rim-text-muted); margin: 0; padding: 3px 0; }
 .th-input--inline { width: 60px !important; display: inline-block; margin: 0 6px; vertical-align: middle; }

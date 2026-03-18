@@ -490,9 +490,10 @@ model Course {
   showDana          Boolean  @default(true)
 
   // Drip / cohort pacing
-  dripEnabled      Boolean @default(false)
-  dripIntervalDays Int?    // days between lesson releases (when dripEnabled)
-  cohortProgramId  String? // links to a Program for cohort-based pacing
+  dripEnabled        Boolean @default(false)
+  dripIntervalDays   Int?    // days between lesson releases (when dripEnabled)
+  hideLockedLessons  Boolean @default(false) // if true, locked lessons are hidden from members entirely
+  cohortProgramId    String? // links to a Program for cohort-based pacing
 
   category    CourseCategory?    @relation(fields: [categoryId], references: [id])
   lessons     CourseLesson[]

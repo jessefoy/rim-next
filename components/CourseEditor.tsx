@@ -54,6 +54,7 @@ interface CourseData {
   lessons?: CourseLesson[];
   dripEnabled?: boolean;
   dripIntervalDays?: number | null;
+  hideLockedLessons?: boolean;
 }
 
 interface Props {
@@ -124,6 +125,7 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
 
   // Drip / scheduled release
   const [dripEnabled, setDripEnabled] = useState(initialData?.dripEnabled ?? false);
+  const [hideLockedLessons, setHideLockedLessons] = useState(initialData?.hideLockedLessons ?? false);
   // Infer mode: if dripEnabled is true but dripIntervalDays is null, we're in fixed-date mode
   const [dripMode, setDripMode] = useState<"interval" | "fixed">(
     initialData?.dripEnabled && initialData?.dripIntervalDays == null ? "fixed" : "interval"
@@ -298,6 +300,7 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
         isActive,
         dripEnabled,
         dripIntervalDays: dripEnabled && dripMode === "interval" ? (parseInt(dripIntervalDays) || 7) : null,
+        hideLockedLessons: dripEnabled ? hideLockedLessons : false,
       };
 
       if (isEditing) {
@@ -518,6 +521,18 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
                 />
                 Fixed dates — set a release date per lesson below
               </label>
+              <div className="th-drip-options__divider" />
+              <label className="th-checkbox">
+                <input
+                  type="checkbox"
+                  checked={hideLockedLessons}
+                  onChange={(e) => setHideLockedLessons(e.target.checked)}
+                />
+                Hide locked lessons from members until they become available
+              </label>
+              <p className="th-field__hint" style={{ marginLeft: 24 }}>
+                When checked, members only see lessons that are currently available. When unchecked, upcoming lessons are visible with a lock icon and release date.
+              </p>
             </div>
           )}
         </fieldset>

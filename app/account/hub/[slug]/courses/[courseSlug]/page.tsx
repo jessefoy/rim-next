@@ -65,6 +65,7 @@ export default async function EditCoursePage({
     isActive: course.isActive,
     dripEnabled: course.dripEnabled,
     dripIntervalDays: course.dripIntervalDays ?? null,
+    hideLockedLessons: course.hideLockedLessons,
     lessons: course.lessons.map((cl) => ({
       lessonId: cl.lessonId,
       sortOrder: cl.sortOrder,
