@@ -107,6 +107,8 @@ The **Registrar Hub** (Phase 1) was migrated into the hub system in session 53. 
 
 **Series page redesign — complete (session 59):** The course/series page (`/course/[slug]`) was redesigned to match the `lp-` design language — warm `var(--rim-bg)` background, centered weight-400 serif header, `crs-rule` hr divider, white lesson cards with 10px border radius. SVG media-type icons (teal=audio, amber=video, slate=text) replace the old text badge pills. The Course Editor received a UX overhaul for section labels: a flat `ListItem[]` union type now drives a unified drag list where section-divider rows are first-class draggable items with inline-editable labels and a ✕ remove button. The `+ Add Section` button uses the new `th-btn--ghost` style. Sort order was removed from the course form entirely. Three routes were fixed for `Prisma.JsonNull` (TypeScript enforces `JsonValue` not `string | null` for `Json?` fields). The planned learning system (§30 FEATURES.md) was documented as the next major teacher-facing feature area.
 
+**Learning System features 1–6 — complete (session 60):** The series/lesson library is now an active learning companion. Members enroll in a series (`SeriesEnrollment` — `enrolledAt`, `completedAt?`, `enrollmentSource`), track per-lesson completion (`LessonProgress`), and write private per-lesson notes (`LessonNote` — new in session 60, `body Json?` via FormattedEditor). The lesson page shows an enrollment-gated `ls-lesson-footer` below the content: the teacher's reflection prompt (italic serif, preceded by rule), the personal notes editor (autosaved via 1.5s debounce), and the Mark Complete button. The member dashboard shows enrolled series as `ls-dash-card` cards with live inline progress bars and "Continue →" links. The complete API (`POST /api/lessons/[slug]/complete`) now gates on enrollment (403 if not enrolled) and clears `SeriesEnrollment.completedAt` when a lesson is un-completed. Two new `Lesson` fields: `durationMinutes Int?` and `reflectionPrompt String?`, editable in the Teacher Hub's LessonEditor. `CourseEditor` gains a `completionNote` field. Features 7 (Teacher Profiles) and 8 (Shared Discussion) remain deferred.
+
 **What remains for the Registrar Hub:**
 
 - **Check-in tools:** Digital check-in per program (phone-first), PDF export, future member self-check-in.
@@ -125,4 +127,4 @@ This file is part of the closing ritual for any Claude Code session that touches
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org*
-*Working document · March 2026 (updated session 59)*
+*Working document · March 2026 (updated session 60)*

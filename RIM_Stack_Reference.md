@@ -1,6 +1,6 @@
 # RIM Next — Stack Reference
 
-_Generated 2026-03-11. Last updated 2026-03-17 (session 59). Update this file whenever a service, credential, or major structural decision changes._
+_Generated 2026-03-11. Last updated 2026-03-18 (session 60). Update this file whenever a service, credential, or major structural decision changes._
 
 ---
 
@@ -116,6 +116,8 @@ All set in Vercel. Pull locally with `npx vercel env pull .env.local`.
 **FormattedEditor standard (session 58):** All multi-line communication fields (host flag notes, session reflections) use `FormattedEditor` (Tiptap JSON stored as `Json?` in Prisma). Three additional schema fields migrated: `SessionAttendance.postSessionNote`, `SessionReport.reflection`, `SessionCoHostReport.reflection`. `extractText()` added to `lib/renderRichContent.ts` for plain-text extraction for email contexts. Pattern: `Json?` DB field → `Prisma.JsonNull` for null writes → `renderFormattedText()` for display → `extractText()` for email.
 
 **SlugField component (session 66):** `components/SlugField.tsx` — shared locked-by-default slug input with Unlock/Lock toggle + amber warning. Use for any URL slug field in any editor. Props: `value`, `onChange`, `isEditing`, `warnText?`, `hintText?`. In use: CourseEditor, LessonEditor, TeacherEditor. ProgramEditor uses the same pattern on its own `pe-` classes.
+
+**Learning System (session 60):** Three new Prisma models — `LessonProgress` (`lesson_progress`, `userId + lessonId @@unique`), `SeriesEnrollment` (`series_enrollments`, `userId + courseId @@unique`, `enrollmentSource EnrollmentSource`, `completedAt DateTime?`), `LessonNote` (`lesson_notes`, `userId + lessonId @@unique`, `body Json?`). `Lesson` gains `durationMinutes Int?` and `reflectionPrompt String?`. `Course` has `completionNote String?` and `discussionEnabled Boolean`. Key API routes: `POST /api/courses/[slug]/enroll` (enroll; DELETE unenrolls without touching progress), `POST /api/lessons/[slug]/complete` (toggle; enrollment-gated; sets/clears `SeriesEnrollment.completedAt`), `GET + PATCH /api/lessons/[slug]/note` (personal notes; enrollment-gated). Key components: `EnrollButton.tsx`, `MarkCompleteButton.tsx`, `LessonNoteEditor.tsx` (FormattedEditor + 1.5s debounce autosave). Lesson page shows `ls-lesson-footer` only when enrolled.
 
 **Course drip system (session 63–64):** `Course.dripEnabled` + `dripIntervalDays` (global) + `Lesson.releaseDelayDays` (per-lesson override) + `Lesson.releaseDate` (fixed date). `Course.hideLockedLessons Boolean @default(false)` — when true, locked lessons are hidden from member view entirely; section dividers re-attach to first available lesson per section. `lib/drip.ts` — `isLessonAvailable()`, `computeAvailableDate()`, `formatAvailableDate()`.
 

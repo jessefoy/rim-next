@@ -3059,65 +3059,89 @@ Three-column split-pane email client:
 
 | 2026-03-18 (session 61) | **Contextual Help System + Manual Migration.** **(1) ManualSection model:** Added to Prisma schema (`manual_sections` table); `slug` @unique, `body` Json?, `relations` String[], `hubSlug` String?, `order` Int. `prisma db push`. **(2) API routes:** `app/api/admin/manual/route.ts` (GET list / POST create) and `app/api/admin/manual/[slug]/route.ts` (GET one / PATCH update); both ADMIN-only; no DELETE. **(3) Admin manual pages:** `app/admin/manual/page.tsx` replaced (was ~1200 lines hardcoded JSX) with client component fetching from API; accordion list with expand/collapse. `app/admin/manual/[slug]/page.tsx` — section detail with body rendered via `renderContentBody()` and related section pill links. `app/admin/manual/[slug]/edit/page.tsx` + `components/ManualSectionEditor.tsx` — editor with ContentEditor for body, relations input, order field. **(4) ManualHelpIcon component:** `components/ManualHelpIcon.tsx` — small `?` circle, `position: absolute; top: 12px; right: 12px`, links to `/admin/manual/[slug]` in new tab; `mh-` CSS prefix. Wired into 9 locations: Series list, Series editor, Lesson editor, /account/courses, /courses, host-team hub, registrar programs, support inbox, member detail page. **(5) Manual migration:** `prisma/seed-manual.ts` seeds 4 sections (registration-management, programs-editor, member-registry, volunteer-roles) from the old hardcoded content. `prisma/seed-courses-manual.ts` seeds 5 courses sections (course-hub, course-hub-series, course-hub-lessons, member-courses, teacher-profiles) with full plain-language content. **(6) Closing ritual standard:** Updated FEATURES.md (§31 + session log), RIM_Stack_Reference.md with ManualSection model and closing ritual note. |
 
+| 2026-03-18 (session 60) | **Learning System — features 1–6 built.** New `LessonNote` Prisma model (`lesson_notes` table, `userId + lessonId @@unique`, `body Json?`). `durationMinutes Int?` and `reflectionPrompt String?` added to `Lesson`. New API: `GET + PATCH /api/lessons/[slug]/note` (enrollment-gated — 403 if not enrolled). `POST /api/lessons/[slug]/complete` fixed: (a) enrollment gate (403 if `courseSlug` provided but no `SeriesEnrollment`), (b) when toggling to incomplete: clears `SeriesEnrollment.completedAt` if set, (c) returns `{ completed, seriesCompleted }` consistently. Lesson PATCH + POST routes + course PATCH route accept new fields. New `components/LessonNoteEditor.tsx` — `FormattedEditor` with 1.5s debounced autosave + Saving/Saved status indicator (`ls-note-status`). `app/lessons/[slug]/page.tsx`: fetches `SeriesEnrollment` + `LessonNote` server-side; shows `ls-lesson-footer` only when enrolled — contains reflection prompt (italic serif below rule), notes editor, mark complete button. `app/account/dashboard/page.tsx`: replaced simple series count line with `ls-dash-card` cards showing title link, inline progress bar (X of Y lessons), and Continue → link to first incomplete lesson; non-onboarding enrollments only. `CourseEditor.tsx` gains `completionNote` textarea; `LessonEditor.tsx` gains `durationMinutes` number input and `reflectionPrompt` textarea. Full `ls-` CSS prefix block added. §30 in FEATURES.md updated from Planned → ✅ Built. Key files: `prisma/schema.prisma`, `app/api/lessons/[slug]/complete/route.ts`, `app/api/lessons/[slug]/note/route.ts`, `components/LessonNoteEditor.tsx`, `components/CourseEditor.tsx`, `components/LessonEditor.tsx`, `app/lessons/[slug]/page.tsx`, `app/account/dashboard/page.tsx`, `public/css/custom.css`. |
+
 | 2026-03-17 (session 59) | **Course→Series rename + series page redesign + section labels UX + build fixes + learning system planned.** **(1) Build fixes:** `Prisma.JsonNull` required for `Json?` nullable fields — fixed in `app/api/host/sub-requests/[id]/claim/route.ts` (message field), `app/api/host/sub-requests/route.ts` (message field), and `app/api/programs/[slug]/registrations/route.ts` (notes field in CSV export — used `extractText()` to convert Tiptap JSON to plain string). **(2) Course→Series rename:** All UI labels throughout the Teacher Hub now say "Series." DB model name `Course` unchanged. Hub tab, CourseEditor headings, LessonListClient, all hub pages updated. **(3) Section labels UX redesign:** Replaced floating text inputs above each lesson row with explicit draggable section-divider rows in `CourseEditor.tsx`. `+ Add Section` button appends a teal dashed-border row (inline-editable label, ✕ remove). `listToLessonOrder()` serializes to `{ id, groupLabel }[]`; `courseLessonsToList()` reconstructs on load. **(4) Sort order removed:** Removed from Series editor UI — was a Webflow artifact; DB column remains. **(5) Series page redesign (`/course/[slug]`):** Full redesign from dark teal hero bar to `lp-` lesson-page aesthetic. `var(--rim-bg)` warm background, centered weight-400 serif title (42px), muted small-caps label, thin `<hr>` rule, 640px reading column. **(6) Lesson cards + SVG icons:** Lesson rows are now white cards (border-radius 10px, border-color hover transition). Replaced text badges with tinted icon squares: headphones/sage for audio, play-circle/slate for video, text-lines/warm-gray for reading. Inline SVG icon components (`AudioIcon`, `VideoIcon`, `TextIcon`). CSS classes: `crs-toc__icon-wrap`, `crs-toc__icon-wrap--audio/video/text`, `th-section-row`, `th-btn--ghost`. **(7) Learning system planned:** Full feature set designed and documented in §30 (progress tracking, enrollment, duration estimates, reflection prompts, personal notes, completion, teacher profiles, per-series discussion). New "Learning System" section added to roadmap (`app/admin/roadmap/page.tsx`) as high priority with 8 detailed items. Key files: `components/CourseEditor.tsx`, `app/course/[slug]/page.tsx`, `app/api/host/sub-requests/route.ts`, `app/api/host/sub-requests/[id]/claim/route.ts`, `app/api/programs/[slug]/registrations/route.ts`, `public/css/custom.css`, `app/admin/roadmap/page.tsx`. |
 
 | 2026-03-16 (session 58) | **Session tab visual redesign + post-session form overhaul + FormattedEditor standard.** Full redesign of the Host Hub Session tab and post-session form across `SessionLiveClient.tsx`, `PostSessionClient.tsx`, schema, and CSS. **(1) State machine fixes:** `computeState` was called once on mount and never re-ran. Added tick counter (`useState` incremented inside the 60-second poll interval) so all 6 states (later-today → getting-ready → live → post-session → done) transition correctly without a page reload. Removed server-side `prog.sessionEnded` from `isEnded` — was frozen at render time, could force State 5 while session was live. Now only `manuallyEnded` (explicit Close Session click) and `timeEnded` (`Date.now()` > endMs) control the ended state. **(2) Visual redesign — person rows:** Replaced chip grid with `AttendeeRow` full-width button component (52px tall). Left-edge 4px color strip: amber = new member, teal = returning, grey = absent. Inline "New" / "Back" label, name centered, flag circle at right edge. Tap toggles flag; flagged rows get amber background. **(3) Live block prominence:** Sage green background (`rgba(100, 140, 100, 0.12)`) with 4px left border on live session card. Non-live sessions without forms collapse to footnote links when `hasActiveForm = true`. `hasLive` computed once; sessions without a form to file always show. **(4) Scoreboard:** `sv-scoreboard` — 48px number + "in the room" label, displayed inside the live block. **(5) Co-host flow:** "I'm also hosting this" button restored as quiet inline text link in live state. Confirmation: `sv-cohost-confirmed--live` pill after click (no page reload needed). **(6) Post-session form — flagged people section:** All hosts now see the full post-session form (no more isCoHost distinction). Section 1 shows flagged attendees (everyone tapped during the session) with a FormattedEditor note field per person + 4 routing radio buttons with descriptions: No action needed / Gentle follow-up / Jesse only — sensitive / Technical issue. Descriptions render as `ps-radio__desc` beneath each label. **(7) FormattedEditor standard enforced:** Replaced plain textarea in reflection and all flag note fields with `FormattedEditor` (Tiptap JSON). Autosave to localStorage includes Tiptap JSON objects. `DraftState` uses `object | null` for `reflection` and `flagNotes`. **(8) Schema migration:** 3 fields changed from `String?` to `Json?` via `prisma db push`: `SessionAttendance.postSessionNote`, `SessionReport.reflection`, `SessionCoHostReport.reflection`. All stored as Tiptap JSON. Uses `Prisma.JsonNull` for nullable writes. **(9) `extractText()` utility:** Added to `lib/renderRichContent.ts` — runs `generateHTML()` then strips tags, used for email notification plain text from Tiptap JSON. **(10) API route updates:** `/api/attendance/session/[programSlug]/post/route.ts` — `flags.note` typed as `object | null`; stores `Prisma.JsonNull`; email notification uses `extractText()`. `/api/attendance/session/[programSlug]/cohost-report/route.ts` — same `Prisma.JsonNull` pattern. **(11) History page updates:** `session/history/page.tsx` and `session/history/team/page.tsx` — `postSessionNote`/`reflection` cast to `object | null`, rendered with `renderFormattedText()` + `dangerouslySetInnerHTML`. **(12) Memory saved:** `memory/feedback_editor_standard.md` — documents the FormattedEditor standard (all multi-line communication fields, `Json?` DB type, `renderFormattedText()` for display, `extractText()` for email) so it's applied automatically in future sessions. Key files: `components/SessionLiveClient.tsx`, `components/PostSessionClient.tsx`, `app/api/attendance/session/[programSlug]/post/route.ts`, `app/api/attendance/session/[programSlug]/cohost-report/route.ts`, `app/account/hub/[slug]/session/history/page.tsx`, `app/account/hub/[slug]/session/history/team/page.tsx`, `app/account/hub/[slug]/session/[programSlug]/post/page.tsx`, `lib/renderRichContent.ts`, `prisma/schema.prisma`, `public/css/custom.css`. |
 
 ---
 
-## 30. Learning System — Planned
+## 30. Learning System ✅ Features 1–6 Built (session 60, 2026-03-18)
 
 **What it is:** A set of features that upgrades the Series/Lesson library from a static content archive into an active learning companion — designed specifically for a contemplative community. No gamification, streaks, points, or credentials. The goal is to give members the tools to engage deeply with teachings over time: knowing where they are, reflecting on what they've read, and marking moments of completion.
 
 **Design principle:** Every feature in this system should feel like a journal or a practice companion — not a platform. The contemplative context is load-bearing: choices that work for a MOOC platform may not fit here.
 
-### Planned features (prioritized)
+### Feature status
 
-| # | Feature | Effort | What it does |
+| # | Feature | Status | What it does |
 |---|---|---|---|
-| 1 | **Lesson progress tracking + Continue button** | Medium | Mark lessons complete; series page shows progress bar + "Continue →" link; dashboard shows active series |
-| 2 | **Series enrollment** | Medium | Members consciously enroll in a series (separate from access); connects progress to identity + intention; drives dashboard |
-| 3 | **Duration estimates** | Small | `durationMinutes Int?` on Lesson; shown on series page cards as "~25 min"; helps practitioners plan |
-| 4 | **Reflection prompts** | Small | `reflectionPrompt String?` on Lesson; a teacher-written invitation shown at the bottom of each lesson; no member interaction required |
-| 5 | **Personal lesson notes** | Medium | Private per-lesson note (FormattedEditor, Tiptap JSON); auto-saves; only visible to the member |
-| 6 | **Completion moment** | Small | When last lesson is marked complete: a quiet acknowledgment with teacher's completion note; sets `SeriesEnrollment.completedAt` |
-| 7 | **Teacher profiles** | Large | Full `Teacher` Postgres records with bio + photo; replaces the `teacherNames String[]` field; enables "also from this teacher" links |
-| 8 | **Shared reflection / per-series discussion** | Medium | Optional per-series contemplative sharing thread; off by default; coordinator enables per series |
+| 1 | **Lesson progress tracking + Continue button** | ✅ Built | Mark lessons complete; series page shows progress bar + "Continue →" link; dashboard shows active series cards |
+| 2 | **Series enrollment** | ✅ Built | Members consciously enroll in a series (separate from access); drives dashboard; `SeriesEnrollment` model |
+| 3 | **Duration estimates** | ✅ Built | `durationMinutes Int?` on Lesson; teacher-entered in LessonEditor |
+| 4 | **Reflection prompts** | ✅ Built | `reflectionPrompt String?` on Lesson; shown at bottom of lesson (italic serif, preceded by rule) when enrolled |
+| 5 | **Personal lesson notes** | ✅ Built | Private per-lesson note (FormattedEditor, Tiptap JSON); 1.5s debounced autosave; only shown when enrolled |
+| 6 | **Completion moment** | ✅ Built | All lessons marked complete → sets `SeriesEnrollment.completedAt`; quiet acknowledgment with teacher's completion note |
+| 7 | **Teacher profiles** | Deferred | Full `Teacher` Postgres records with bio + photo; enables "also from this teacher" links |
+| 8 | **Shared reflection / per-series discussion** | Deferred | Optional per-series contemplative sharing thread; off by default |
 
-### Key data models (new)
+### Key data models
 
-| Model | Fields | Purpose |
+| Model | Fields | Status |
 |---|---|---|
-| `LessonProgress` | `userId`, `lessonId`, `completedAt`, `@@unique([userId, lessonId])` | Tracks per-lesson completion per member |
-| `SeriesEnrollment` | `userId`, `courseId`, `enrolledAt`, `completedAt?`, `@@unique([userId, courseId])` | Tracks explicit enrollment + completion |
-| `LessonNote` | `userId`, `lessonId`, `body Json?`, `updatedAt`, `@@unique([userId, lessonId])` | Private member notes per lesson |
-| `Teacher` | `name`, `slug`, `bio String?`, `photoUrl String?`, `isActive` | Teacher profiles (future) |
+| `LessonProgress` | `userId`, `lessonId`, `completedAt`, `@@unique([userId, lessonId])`, `@@map("lesson_progress")` | ✅ Built |
+| `SeriesEnrollment` | `userId`, `courseId`, `enrolledAt`, `completedAt?`, `enrollmentSource`, `@@unique([userId, courseId])`, `@@map("series_enrollments")` | ✅ Built |
+| `LessonNote` | `userId`, `lessonId`, `body Json?`, `updatedAt`, `@@unique([userId, lessonId])`, `@@map("lesson_notes")` | ✅ Built (session 60) |
+| `Teacher` | `name`, `slug`, `bio Json?`, `photoUrl?`, `isActive` | ✅ Built (profile infra exists; full teacher-profile pages deferred) |
 
-### Fields to add to existing models
+### Fields added to existing models
 
-| Model | Field | Purpose |
+| Model | Field | Status |
 |---|---|---|
-| `Lesson` | `durationMinutes Int?` | Shown as "~N min" on series page |
-| `Lesson` | `reflectionPrompt String?` | Teacher-written closing invitation |
-| `Course` | `completionNote String?` | Shown on completion acknowledgment |
-| `Course` | `discussionEnabled Boolean @default(false)` | Whether per-series discussion is enabled |
+| `Lesson` | `durationMinutes Int?` | ✅ Built (session 60) |
+| `Lesson` | `reflectionPrompt String?` | ✅ Built (session 60) |
+| `Course` | `completionNote String?` | ✅ Built (already existed) |
+| `Course` | `discussionEnabled Boolean @default(false)` | ✅ Schema only (UI deferred with Feature 8) |
 
-### Key files (when built)
-- `app/api/lessons/[slug]/complete/route.ts` — POST: toggle complete; check if all lessons done → set `SeriesEnrollment.completedAt`
-- `app/api/courses/[slug]/enroll/route.ts` — POST/DELETE: enroll / unenroll
-- `app/api/lessons/[slug]/note/route.ts` — GET/PATCH: personal note upsert
+### Who uses it
+- **Members** — enroll in series via the series page; track progress; write private lesson notes; mark lessons complete
+- **Teachers** — enter duration estimates and reflection prompts via the Lesson Editor; set a completion note via the Series Editor
+
+### Member user flow
+1. Member visits `/course/[slug]` — sees Enroll button if not enrolled
+2. Member clicks Enroll → `SeriesEnrollment` record created → progress bar + Continue button appear
+3. Member clicks Continue → goes to first incomplete lesson
+4. At bottom of lesson (enrolled only): reflection prompt (if set), personal notes editor, Mark Complete button
+5. Notes autosave as member types (1.5s debounce)
+6. Member marks lesson complete → progress updates on next visit to series page
+7. Last lesson marked complete → `SeriesEnrollment.completedAt` set → completion note shown on lesson page + series page
+8. Dashboard shows `ls-dash-card` cards for all non-onboarding enrolled series with progress bars and Continue links
+
+### Key files
+- `app/api/lessons/[slug]/complete/route.ts` — POST: toggle complete; check if all done → set `SeriesEnrollment.completedAt`
+- `app/api/courses/[slug]/enroll/route.ts` — POST/DELETE: enroll / unenroll (SELF source only for unenroll)
+- `app/api/lessons/[slug]/note/route.ts` — GET/PATCH: personal note upsert (enrollment-gated)
 - `app/course/[slug]/page.tsx` — progress bar, Continue link, enrollment button, completion state
-- `app/lessons/[slug]/page.tsx` — Complete button, reflection prompt, personal note editor
-- `app/account/dashboard/page.tsx` — enrolled series with progress
-- `components/LessonNoteEditor.tsx` — FormattedEditor with auto-save
+- `app/lessons/[slug]/page.tsx` — `ls-lesson-footer` (reflection prompt + notes editor + complete button); only shown when enrolled in a containing series
+- `app/account/dashboard/page.tsx` — `ls-dash-card` series cards with progress
+- `components/LessonNoteEditor.tsx` — FormattedEditor with 1.5s debounced autosave + save status indicator
+- `components/MarkCompleteButton.tsx` — toggle complete; handles series completion acknowledgment
+- `components/EnrollButton.tsx` — enroll/unenroll with confirmation
+- `components/CourseEditor.tsx` — `completionNote` field added (session 60)
+- `components/LessonEditor.tsx` — `durationMinutes` + `reflectionPrompt` fields added (session 60)
 
-**🔧 Design decisions:**
-- Progress and enrollment are separate concepts: you can have access without being "enrolled," and you can make progress without formally enrolling. Enrollment is the intentional act.
-- `reflectionPrompt` is plain text (not Tiptap) — it's a single sentence or short paragraph the teacher writes. No need for rich formatting.
-- Personal notes use Tiptap JSON (FormattedEditor) — members may want to write in paragraphs, lists, or with some structure.
-- `completedAt` on `SeriesEnrollment` is set automatically when all lessons are marked complete — not manually by the member.
-- Teacher profiles are a large effort and should wait until the simpler features are proven valuable.
-- Shared discussion requires community norm-setting before being turned on — build the infrastructure, leave it disabled.
+**🔧 Technical notes:**
+- Enrollment is required to access the lesson footer (reflection, notes, complete). Access (viewing content) is controlled separately by `accessLevel` and `CourseAccess`.
+- `reflectionPrompt` is plain `String?` (not Tiptap) — single sentence or short paragraph, no formatting needed.
+- Personal notes (`LessonNote.body`) are Tiptap JSON via `FormattedEditor`. `Prisma.JsonNull` required when body is null.
+- `completedAt` on `SeriesEnrollment` is set automatically when all lessons in the course have `LessonProgress` records — not manually by the member.
+- The lesson note API (`/api/lessons/[slug]/note`) checks `SeriesEnrollment` before allowing GET or PATCH — returns 403 if not enrolled.
+- Dashboard cards exclude ONBOARDING-source enrollments (those already have their own dedicated welcome section).
+- `durationMinutes` is stored on `Lesson`; it's the teacher's estimate, not a tracked metric.
+- Teacher profiles (`Teacher` model) already exist in the DB (from a prior session); what's deferred is the public teacher profile pages and the "also from this teacher" feature.
+
+*Updated: 2026-03-18 (session 60)*
 
 ## 31. Contextual Help System (Manual Sections)
 
