@@ -128,7 +128,7 @@ export default async function DashboardPage() {
   const userId = session.user.id;
   const today  = todayCT();
 
-  const [allVirtual, upcomingRegistrations, pendingDana, hubMemberships, onboardingEnrollments] =
+  const [allVirtual, upcomingRegistrations, pendingDana, hubMemberships, onboardingEnrollments, seriesEnrollments] =
     await Promise.all([
       db.program.findMany({
         where: {
@@ -183,16 +183,36 @@ export default async function DashboardPage() {
           course: { select: { id: true, slug: true, title: true } },
         },
       }),
+      // All non-onboarding enrollments for "Your Series" cards
+      db.seriesEnrollment.findMany({
+        where: {
+          userId,
+          enrollmentSource: { not: "ONBOARDING" },
+          course: { isActive: true },
+        },
+        include: {
+          course: {
+            include: {
+              lessons: {
+                select: { lessonId: true, lesson: { select: { slug: true } } },
+                orderBy: { sortOrder: "asc" },
+              },
+            },
+          },
+        },
+        orderBy: { enrolledAt: "desc" },
+      }),
     ]);
 
-  // Count incomplete non-onboarding enrollments for the "Your Courses" line
-  const inProgressCount = await db.seriesEnrollment.count({
-    where: {
-      userId,
-      completedAt: null,
-      course: { isActive: true, isOnboarding: false },
-    },
-  });
+  // Fetch lesson progress for the series cards
+  const seriesLessonIds = [...new Set(seriesEnrollments.flatMap((e) => e.course.lessons.map((l) => l.lessonId)))];
+  const seriesProgressRecords = seriesLessonIds.length > 0
+    ? await db.lessonProgress.findMany({
+        where: { userId, lessonId: { in: seriesLessonIds } },
+        select: { lessonId: true },
+      })
+    : [];
+  const completedLessonIdSet = new Set(seriesProgressRecords.map((p) => p.lessonId));
 
   // Filter to programs with an occurrence today, using recurrence logic
   const todaySessionsRaw = allVirtual.filter((p) => isOccurrenceToday(p, today));
@@ -371,13 +391,49 @@ export default async function DashboardPage() {
           </div>
         )}
 
-        {/* 5b. In Progress courses */}
-        {inProgressCount > 0 && (
+        {/* 5b. Enrolled series */}
+        {seriesEnrollments.length > 0 && (
           <div className="db-section">
-            <div className="db2-courses-line">
-              <span className="db2-courses-line__label">Your Courses</span>
-              <span className="db2-courses-line__count">{inProgressCount} in progress</span>
-              <Link href="/account/courses" className="db2-courses-line__link">View all →</Link>
+            <p className="db-section__label">Your Series</p>
+            <div className="ls-dash-list">
+              {seriesEnrollments.map((enrollment) => {
+                const lessons = enrollment.course.lessons;
+                const totalCount = lessons.length;
+                const completedCount = lessons.filter((l) => completedLessonIdSet.has(l.lessonId)).length;
+                const isFullyComplete = enrollment.completedAt != null;
+                const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+                // First lesson not yet completed, for "Continue →"
+                const firstIncomplete = lessons.find((l) => !completedLessonIdSet.has(l.lessonId)) as typeof lessons[0] | undefined;
+
+                return (
+                  <div key={enrollment.id} className="ls-dash-card">
+                    <Link href={`/course/${enrollment.course.slug}`} className="ls-dash-card__title">
+                      {enrollment.course.title}
+                    </Link>
+                    {isFullyComplete ? (
+                      <span className="ls-dash-card__complete">Completed</span>
+                    ) : (
+                      <>
+                        <div className="ls-dash-card__progress">
+                          <div className="ls-dash-card__bar-wrap">
+                            <div className="ls-dash-card__bar" style={{ width: `${progressPct}%` }} />
+                          </div>
+                          <span className="ls-dash-card__count">{completedCount} of {totalCount}</span>
+                        </div>
+                        {firstIncomplete && (
+                          <Link
+                            href={`/lessons/${firstIncomplete.lesson.slug}?course=${enrollment.course.slug}`}
+                            className="ls-dash-card__continue"
+                          >
+                            Continue →
+                          </Link>
+                        )}
+                      </>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

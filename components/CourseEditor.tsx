@@ -56,6 +56,7 @@ interface CourseData {
   dripEnabled?: boolean;
   dripIntervalDays?: number | null;
   hideLockedLessons?: boolean;
+  completionNote?: string | null;
 }
 
 interface Props {
@@ -123,6 +124,8 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
     initialData?.hideFromMemberProfile ?? false
   );
   const [isActive, setIsActive] = useState(initialData?.isActive ?? true);
+
+  const [completionNote, setCompletionNote] = useState(initialData?.completionNote ?? "");
 
   // Drip / scheduled release
   const [dripEnabled, setDripEnabled] = useState(initialData?.dripEnabled ?? false);
@@ -302,6 +305,7 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
         dripEnabled,
         dripIntervalDays: dripEnabled && dripMode === "interval" ? (parseInt(dripIntervalDays) || 7) : null,
         hideLockedLessons: dripEnabled ? hideLockedLessons : false,
+        completionNote: completionNote.trim() || null,
       };
 
       if (isEditing) {
@@ -401,6 +405,18 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
             minHeight={200}
           />
         </div>
+
+        <label className="th-field">
+          <span className="th-field__label">Completion note</span>
+          <span className="th-field__help">Shown to members when they finish every lesson in this series. Optional — a sentence or two is enough.</span>
+          <textarea
+            value={completionNote}
+            onChange={(e) => setCompletionNote(e.target.value)}
+            className="th-input th-input--textarea"
+            rows={3}
+            placeholder="e.g. You've completed this series. Take time to rest in what you've discovered."
+          />
+        </label>
 
         <fieldset className="th-field">
           <legend className="th-field__label">Who can access this series?</legend>

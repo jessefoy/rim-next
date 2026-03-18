@@ -16255,3 +16255,55 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .man-sec-page__footer { margin-top: 16px; }
 /* man-layout-single: wraps manual body content rendered from rawHtml */
 .man-layout-single { font-family: var(--font-sans); font-size: 15px; color: var(--rim-text); }
+
+/* ── Learning System (ls-) ────────────────────────────────────────────────── */
+
+/* Progress bar on series page */
+.ls-progress { display: flex; flex-direction: column; gap: 6px; margin: 0 0 4px; }
+.ls-progress__bar-wrap { height: 6px; background: #e4dfd9; border-radius: 3px; overflow: hidden; }
+.ls-progress__bar { height: 100%; background: var(--rim-mid); border-radius: 3px; transition: width 0.3s ease; }
+.ls-progress__label { font-family: var(--font-sans); font-size: 13px; color: var(--rim-text-muted); }
+
+/* Enroll button */
+.ls-enroll-btn { display: inline-block; font-family: var(--font-sans); font-size: 15px; font-weight: 600; color: #fff; background: var(--rim-blue); padding: 10px 24px; border-radius: 4px; text-decoration: none; cursor: pointer; border: none; }
+.ls-enroll-btn:hover { background: var(--rim-mid); }
+@media (max-width: 480px) { .ls-enroll-btn { width: 100%; text-align: center; } }
+
+/* Unenroll link */
+.ls-unenroll-link { font-family: var(--font-sans); font-size: 13px; color: var(--rim-text-muted); text-decoration: underline; cursor: pointer; background: none; border: none; padding: 0; margin-top: 8px; }
+.ls-unenroll-link:hover { color: var(--rim-text); }
+
+/* Series completion acknowledgment */
+.ls-completion-note { font-family: var(--font-sans); font-size: 15px; color: var(--rim-text-muted); padding: 12px 0; }
+
+/* ── Lesson footer (reflection + notes + complete) ── */
+.ls-lesson-footer { margin-top: 40px; padding-top: 32px; border-top: 1px solid #e4dfd9; display: flex; flex-direction: column; gap: 32px; }
+
+/* Reflection prompt */
+.ls-reflection-rule { border: none; border-top: 1px solid #e4dfd9; margin: 0; }
+.ls-reflection { font-family: var(--font-serif); font-size: 18px; font-style: italic; color: var(--rim-text-muted); line-height: 1.65; margin: 0; }
+
+/* Personal notes */
+.ls-notes-wrap { display: flex; flex-direction: column; gap: 8px; }
+.ls-notes-label { font-family: var(--font-sans); font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--rim-text-muted); margin: 0; }
+.ls-note-status { font-family: var(--font-sans); font-size: 12px; color: var(--rim-text-muted); margin: 0; transition: opacity 0.4s; }
+.ls-note-status--saved { color: var(--rim-mid); }
+
+/* Mark complete button (reusing lp- namespace that already exists) */
+/* lp-complete-btn and lp-series-complete are already defined in the lp- block */
+/* These ls- aliases are for any future standalone use */
+.ls-complete-btn { display: inline-block; font-family: var(--font-sans); font-size: 15px; font-weight: 600; padding: 10px 24px; border-radius: 4px; cursor: pointer; border: none; }
+.ls-completed-state { display: flex; align-items: center; gap: 12px; font-family: var(--font-sans); font-size: 15px; }
+
+/* ── Dashboard series cards ── */
+.ls-dash-list { display: flex; flex-direction: column; gap: 12px; }
+.ls-dash-card { background: #fff; border-radius: 6px; padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; }
+.ls-dash-card__title { font-family: var(--font-sans); font-size: 15px; font-weight: 600; color: var(--rim-blue); text-decoration: none; }
+.ls-dash-card__title:hover { text-decoration: underline; }
+.ls-dash-card__progress { display: flex; align-items: center; gap: 10px; }
+.ls-dash-card__bar-wrap { flex: 1; height: 5px; background: #e4dfd9; border-radius: 3px; overflow: hidden; }
+.ls-dash-card__bar { height: 100%; background: var(--rim-mid); border-radius: 3px; }
+.ls-dash-card__count { font-family: var(--font-sans); font-size: 13px; color: var(--rim-text-muted); white-space: nowrap; }
+.ls-dash-card__continue { font-family: var(--font-sans); font-size: 14px; color: var(--rim-blue); text-decoration: none; font-weight: 600; }
+.ls-dash-card__continue:hover { text-decoration: underline; }
+.ls-dash-card__complete { font-family: var(--font-sans); font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--rim-mid); }

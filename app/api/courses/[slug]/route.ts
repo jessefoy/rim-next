@@ -131,6 +131,7 @@ export async function PATCH(
     updateData.dripIntervalDays = fields.dripIntervalDays != null ? Number(fields.dripIntervalDays) : null;
   }
   if (fields.hideLockedLessons !== undefined) updateData.hideLockedLessons = fields.hideLockedLessons;
+  if (fields.completionNote !== undefined) updateData.completionNote = fields.completionNote || null;
 
   const updated = await db.course.update({
     where: { slug },

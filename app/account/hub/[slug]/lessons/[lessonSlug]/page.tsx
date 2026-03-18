@@ -69,6 +69,8 @@ export default async function EditLessonPage({
       isActive: lt.teacher.isActive,
     })),
     releaseDelayDays: lesson.releaseDelayDays ?? null,
+    durationMinutes: lesson.durationMinutes ?? null,
+    reflectionPrompt: lesson.reflectionPrompt ?? null,
     parentDripInfo: lesson.courses
       .filter((cl) => cl.course.dripEnabled)
       .map((cl) => ({

@@ -82,6 +82,7 @@ model User {
   // Learning system
   lessonProgress    LessonProgress[]
   seriesEnrollments SeriesEnrollment[]
+  lessonNotes       LessonNote[]
 
   // Support inbox notification preference
   supportEmailNotifications Boolean @default(true)
@@ -530,9 +531,14 @@ model Lesson {
   releaseDate      DateTime? // fixed-date release; overrides interval if set
   releaseDelayDays Int?      // per-lesson override of dripIntervalDays
 
+  // Learning system
+  durationMinutes  Int?     // estimated reading/listening time shown on lesson cards
+  reflectionPrompt String?  // optional invitation shown at the bottom of the lesson
+
   courses   CourseLesson[]
   teachers  LessonTeacher[]
   progress  LessonProgress[]
+  notes     LessonNote[]
   dripNotifications DripNotification[]
 
   @@index([slug])
@@ -639,6 +645,22 @@ model SeriesEnrollment {
   @@unique([userId, courseId])
   @@index([userId])
   @@map("series_enrollments")
+}
+
+// Personal notes a member writes while going through a lesson.
+// Stored as Tiptap JSON via FormattedEditor.
+model LessonNote {
+  id        String   @id @default(cuid())
+  userId    String
+  lessonId  String
+  body      Json?
+  updatedAt DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@map("lesson_notes")
 }
 
 

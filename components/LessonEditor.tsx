@@ -43,6 +43,8 @@ interface LessonData {
   teachers?: TeacherItem[];
   releaseDelayDays?: number | null;
   parentDripInfo?: { seriesTitle: string; intervalDays: number | null }[];
+  durationMinutes?: number | null;
+  reflectionPrompt?: string | null;
 }
 
 interface Props {
@@ -95,6 +97,12 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
     String(initialData?.releaseDelayDays ?? "")
   );
   const parentDripInfo = initialData?.parentDripInfo ?? [];
+
+  // Learning system
+  const [durationMinutes, setDurationMinutes] = useState(
+    initialData?.durationMinutes != null ? String(initialData.durationMinutes) : ""
+  );
+  const [reflectionPrompt, setReflectionPrompt] = useState(initialData?.reflectionPrompt ?? "");
 
   // Resources
   const [resources, setResources] = useState<Resource[]>(initialData?.resources ?? []);
@@ -259,6 +267,8 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
         resources: resources.filter((r) => r.name || r.url),
         teacherIds: selectedTeachers.map((t) => t.id),
         releaseDelayDays: releaseDelayDays !== "" ? (parseInt(releaseDelayDays) || null) : null,
+        durationMinutes: durationMinutes !== "" ? (parseInt(durationMinutes) || null) : null,
+        reflectionPrompt: reflectionPrompt.trim() || null,
       };
 
       const url = isEditing ? `/api/lessons/${initialData?.slug}` : "/api/lessons";
@@ -340,6 +350,19 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
             warnText="Changing the slug will break existing links to this lesson."
           />
 
+          <label className="th-field">
+            <span className="th-field__label">Estimated duration (minutes)</span>
+            <input
+              type="number"
+              min="1"
+              value={durationMinutes}
+              onChange={(e) => setDurationMinutes(e.target.value)}
+              className="th-input th-input--short"
+              placeholder="e.g. 20"
+            />
+            <span className="th-field__help">Leave blank if unknown. Shown on lesson cards in the series.</span>
+          </label>
+
           <fieldset className="th-field">
             <legend className="th-field__label">Who can access this lesson?</legend>
             <label className="th-radio">
@@ -364,6 +387,20 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
           placeholder="Begin writing your lesson here…"
           minHeight={500}
         />
+
+        <div className="th-form" style={{ marginTop: 24 }}>
+          <label className="th-field">
+            <span className="th-field__label">Reflection prompt</span>
+            <span className="th-field__help">An invitation shown at the bottom of this lesson after the content. A single sentence or short paragraph. No formatting needed.</span>
+            <textarea
+              value={reflectionPrompt}
+              onChange={(e) => setReflectionPrompt(e.target.value)}
+              className="th-input th-input--textarea"
+              rows={3}
+              placeholder="e.g. What stayed with you? What are you still sitting with?"
+            />
+          </label>
+        </div>
       </div>
 
       {/* ── Section: Media ── */}

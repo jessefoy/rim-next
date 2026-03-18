@@ -6,6 +6,7 @@ import { renderContentBody } from "@/lib/renderRichContent";
 import DanaSection from "@/components/DanaSection";
 import AudioPlayer from "@/components/AudioPlayer";
 import MarkCompleteButton from "@/components/MarkCompleteButton";
+import LessonNoteEditor from "@/components/LessonNoteEditor";
 import { isLessonAvailable, computeAvailableDate, formatAvailableDate } from "@/lib/drip";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +44,7 @@ export default async function LessonPage({
     include: { teachers: { include: { teacher: true } } },
   });
   if (!lesson) notFound();
+  const userId = session.user.id!;
 
   // ── Access check ─────────────────────────────────────────────────────────
   // MEMBERS lessons: any logged-in user.
@@ -165,7 +167,7 @@ export default async function LessonPage({
         },
       }),
       db.seriesEnrollment.findUnique({
-        where: { userId_courseId: { userId: session.user.id!, courseId: courseContext.course.id } },
+        where: { userId_courseId: { userId, courseId: courseContext.course.id } },
         select: { enrolledAt: true },
       }),
     ]);
@@ -246,12 +248,27 @@ export default async function LessonPage({
 
   const bodyHtml = renderContentBody(lesson.body);
 
-  // ── Progress & notes ───────────────────────────────────────────────────────
-  const progressRecord = await db.lessonProgress.findUnique({
-    where: { userId_lessonId: { userId: session.user.id!, lessonId: lesson.id } },
-    select: { completedAt: true },
-  });
+  // ── Progress, enrollment & notes ───────────────────────────────────────────
+  const [progressRecord, enrollment, lessonNote] = await Promise.all([
+    db.lessonProgress.findUnique({
+      where: { userId_lessonId: { userId, lessonId: lesson.id } },
+      select: { completedAt: true },
+    }),
+    courseContext
+      ? db.seriesEnrollment.findUnique({
+          where: { userId_courseId: { userId, courseId: courseContext.course.id } },
+          select: { id: true },
+        })
+      : Promise.resolve(null),
+    courseContext
+      ? db.lessonNote.findUnique({
+          where: { userId_lessonId: { userId, lessonId: lesson.id } },
+          select: { body: true },
+        })
+      : Promise.resolve(null),
+  ]);
   const isComplete = !!progressRecord;
+  const isEnrolled = !!enrollment;
 
   // Helper: build lesson URL preserving course context
   const lessonUrl = (s: string) =>
@@ -366,15 +383,32 @@ export default async function LessonPage({
           </div>
         )}
 
-        {/* Mark complete */}
-        <div className="lp-complete-wrap">
-          <MarkCompleteButton
-            lessonSlug={lesson.slug}
-            courseSlug={courseContext?.course.slug}
-            initialCompleted={isComplete}
-            courseCompletionNote={courseContext?.course.completionNote ?? null}
-          />
-        </div>
+        {/* ── Learning footer — only when enrolled in a containing series ── */}
+        {isEnrolled && (
+          <div className="ls-lesson-footer">
+            {/* 1. Reflection prompt */}
+            {lesson.reflectionPrompt && (
+              <>
+                <hr className="ls-reflection-rule" />
+                <p className="ls-reflection">{lesson.reflectionPrompt}</p>
+              </>
+            )}
+
+            {/* 2. Personal notes */}
+            <LessonNoteEditor
+              lessonSlug={lesson.slug}
+              initialBody={(lessonNote?.body ?? null) as object | null}
+            />
+
+            {/* 3. Mark complete */}
+            <MarkCompleteButton
+              lessonSlug={lesson.slug}
+              courseSlug={courseContext?.course.slug}
+              initialCompleted={isComplete}
+              courseCompletionNote={courseContext?.course.completionNote ?? null}
+            />
+          </div>
+        )}
 
         {showDana && <DanaSection />}
 
