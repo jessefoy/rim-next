@@ -77,7 +77,7 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
   if (!course) notFound();
 
   // ── Access check ──────────────────────────────────────────────────────────
-  let hasAccess = course.accessLevel === "MEMBERS";
+  let hasAccess = course.accessLevel === "ALL_MEMBERS";
 
   if (!hasAccess && course.accessLevel === "REGISTRATION_REQUIRED") {
     const programCourses = await db.programCourse.findMany({

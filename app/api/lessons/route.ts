@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
   const {
     titleInternal, titleDisplayed, slug, accessLevel,
     body: lessonBody, heroImageUrl, heroImageAlt, audioUrl, videoUrl,
-    headerQuote, quoteSource, teacherNames, resources,
+    headerQuote, quoteSource, resources,
   } = body;
 
   if (!titleInternal || !titleDisplayed || !slug) {
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       titleInternal,
       titleDisplayed,
       slug,
-      accessLevel: accessLevel ?? "MEMBERS",
+      accessLevel: accessLevel ?? "ALL_MEMBERS",
       body: lessonBody || null,
       heroImageUrl: heroImageUrl || null,
       heroImageAlt: heroImageAlt || null,
@@ -55,7 +55,6 @@ export async function POST(request: NextRequest) {
       videoUrl: videoUrl || null,
       headerQuote: headerQuote || null,
       quoteSource: quoteSource || null,
-      teacherNames: teacherNames ?? [],
       resources: resources ?? null,
     },
   });

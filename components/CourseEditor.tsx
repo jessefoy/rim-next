@@ -34,7 +34,7 @@ interface CourseData {
   slug: string;
   subheading: string;
   description: any; // Tiptap JSON
-  accessLevel: "MEMBERS" | "REGISTRATION_REQUIRED";
+  accessLevel: "ALL_MEMBERS" | "REGISTRATION_REQUIRED";
   hideFromMemberProfile: boolean;
   isActive: boolean;
   lessons?: CourseLesson[];
@@ -94,8 +94,8 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
   const [slug, setSlug] = useState(initialData?.slug ?? "");
   const [subheading, setSubheading] = useState(initialData?.subheading ?? "");
   const [description, setDescription] = useState<any>(initialData?.description ?? null);
-  const [accessLevel, setAccessLevel] = useState<"MEMBERS" | "REGISTRATION_REQUIRED">(
-    initialData?.accessLevel ?? "MEMBERS"
+  const [accessLevel, setAccessLevel] = useState<"ALL_MEMBERS" | "REGISTRATION_REQUIRED">(
+    initialData?.accessLevel ?? "ALL_MEMBERS"
   );
   const [hideFromMemberProfile, setHideFromMemberProfile] = useState(
     initialData?.hideFromMemberProfile ?? false
@@ -209,7 +209,7 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
           titleInternal: newLessonTitle.trim(),
           titleDisplayed: newLessonTitle.trim(),
           slug: slugify(newLessonTitle.trim()),
-          accessLevel: "MEMBERS",
+          accessLevel: "ALL_MEMBERS",
         }),
       });
       if (res.ok) {
@@ -350,8 +350,8 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
           <label className="th-radio">
             <input
               type="radio"
-              checked={accessLevel === "MEMBERS"}
-              onChange={() => setAccessLevel("MEMBERS")}
+              checked={accessLevel === "ALL_MEMBERS"}
+              onChange={() => setAccessLevel("ALL_MEMBERS")}
             />
             All Members
           </label>

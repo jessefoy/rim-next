@@ -126,6 +126,9 @@ model User {
   // Session co-hosting
   sessionCoHosts       SessionCoHost[]       @relation("SessionCoHosts")
   sessionCoHostReports SessionCoHostReport[] @relation("SessionCoHostReports")
+  // Hub access grants
+  hubAccess            UserHubAccess[]
+  hubAccessGranted     UserHubAccess[]       @relation("HubAccessGranter")
 
   @@map("users")
 }
@@ -434,8 +437,31 @@ model CourseAccess {
 // CourseAccess (manual admin grants above) still uses courseSlug — unchanged.
 
 enum CourseAccessLevel {
-  MEMBERS
+  ALL_MEMBERS
   REGISTRATION_REQUIRED
+  ROLE_REQUIRED
+}
+
+enum EnrollmentSource {
+  SELF
+  PROGRAM
+  ROLE
+  ONBOARDING
+  ADMIN
+}
+
+// Admin-managed categories for organizing the series library.
+model CourseCategory {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  courses Course[]
+
+  @@map("course_categories")
 }
 
 model Course {
@@ -447,11 +473,26 @@ model Course {
   slug                  String            @unique
   subheading            String?
   description           Json?             // Tiptap JSON
-  accessLevel           CourseAccessLevel @default(MEMBERS)
+  accessLevel           CourseAccessLevel @default(ALL_MEMBERS)
   hideFromMemberProfile Boolean           @default(false)
   sortOrder             Int?
   isActive              Boolean           @default(true)
 
+  // Categorization & access
+  categoryId    String?
+  requiredRoles Role[]    // only used when accessLevel = ROLE_REQUIRED
+
+  // Completion & presentation
+  completionNote    String?  // shown when member completes the series
+  discussionEnabled Boolean  @default(false)
+  showDana          Boolean  @default(true)
+
+  // Drip / cohort pacing
+  dripEnabled      Boolean @default(false)
+  dripIntervalDays Int?    // days between lesson releases (when dripEnabled)
+  cohortProgramId  String? // links to a Program for cohort-based pacing
+
+  category    CourseCategory?    @relation(fields: [categoryId], references: [id])
   lessons     CourseLesson[]
   programs    ProgramCourse[]
   access      CourseAccess[]
@@ -470,7 +511,7 @@ model Lesson {
   titleDisplayed  String
   slug            String   @unique
 
-  accessLevel     CourseAccessLevel @default(MEMBERS)
+  accessLevel     CourseAccessLevel @default(ALL_MEMBERS)
   body            Json?    // Tiptap JSON
 
   heroImageUrl    String?  // Vercel Blob URL
@@ -481,14 +522,41 @@ model Lesson {
   headerQuote     String?
   quoteSource     String?
 
-  teacherNames    String[]
   resources       Json?    // { name, url, resourceType }[]
 
   courses   CourseLesson[]
+  teachers  LessonTeacher[]
   progress  LessonProgress[]
 
   @@index([slug])
   @@map("lessons")
+}
+
+// Full teacher profile records, replacing the teacherNames String[] on Lesson.
+model Teacher {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  bio       String?
+  photoUrl  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  lessons LessonTeacher[]
+
+  @@map("teachers")
+}
+
+// Many-to-many: Lesson ↔ Teacher
+model LessonTeacher {
+  lessonId  String
+  teacherId String
+
+  lesson  Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@id([lessonId, teacherId])
+  @@map("lesson_teachers")
 }
 
 model CourseLesson {
@@ -521,6 +589,7 @@ model ProgramCourse {
 
 // Tracks which lessons a member has marked complete.
 model LessonProgress {
+  id          String   @id @default(cuid())
   userId      String
   lessonId    String
   completedAt DateTime @default(now())
@@ -528,7 +597,7 @@ model LessonProgress {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
-  @@id([userId, lessonId])
+  @@unique([userId, lessonId])
   @@index([userId])
   @@map("lesson_progress")
 }
@@ -537,15 +606,17 @@ model LessonProgress {
 // Sets a start date and drives dashboard "Active Series" integration.
 // completedAt is set when the member marks all lessons in the series complete.
 model SeriesEnrollment {
-  userId      String
-  courseId    String
-  enrolledAt  DateTime  @default(now())
-  completedAt DateTime?
+  id               String           @id @default(cuid())
+  userId           String
+  courseId         String
+  enrolledAt       DateTime         @default(now())
+  completedAt      DateTime?
+  enrollmentSource EnrollmentSource @default(SELF)
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
-  @@id([userId, courseId])
+  @@unique([userId, courseId])
   @@index([userId])
   @@map("series_enrollments")
 }
@@ -830,6 +901,25 @@ model SessionCoHostReport {
 
   @@unique([programSlug, sessionDate, userId])
   @@map("session_cohost_reports")
+}
+
+// ─── HUB ACCESS (person-level) ────────────────────────────────────────────────
+// Replaces role-baked hub access checks with explicit per-person, per-hub grants.
+// Carries an audit trail (grantedAt, grantedById).
+// ADMIN users bypass this table entirely — see lib/hubAuth.ts.
+
+model UserHubAccess {
+  id          String   @id @default(cuid())
+  userId      String
+  hubSlug     String
+  grantedAt   DateTime @default(now())
+  grantedById String?
+
+  user      User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  grantedBy User? @relation("HubAccessGranter", fields: [grantedById], references: [id])
+
+  @@unique([userId, hubSlug])
+  @@map("user_hub_access")
 }
 
 // ─── MULTI-HUB SYSTEM ────────────────────────────────────────────────────────

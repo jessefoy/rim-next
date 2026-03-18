@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       slug,
       subheading: subheading || null,
       description: description || null,
-      accessLevel: accessLevel || "MEMBERS",
+      accessLevel: accessLevel || "ALL_MEMBERS",
       hideFromMemberProfile: hideFromMemberProfile ?? false,
       sortOrder: sortOrder != null ? Number(sortOrder) : null,
       isActive: isActive ?? true,

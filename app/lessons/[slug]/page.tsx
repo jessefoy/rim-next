@@ -37,7 +37,10 @@ export default async function LessonPage({
   const { slug } = await params;
   const { course: courseSlug } = await searchParams;
 
-  const lesson = await db.lesson.findUnique({ where: { slug } });
+  const lesson = await db.lesson.findUnique({
+    where: { slug },
+    include: { teachers: { include: { teacher: true } } },
+  });
   if (!lesson) notFound();
 
   // ── Access check ─────────────────────────────────────────────────────────
@@ -55,7 +58,7 @@ export default async function LessonPage({
     for (const cl of parentCourses) {
       if (hasAccess) break;
       // If the parent course itself allows all members, lesson is accessible
-      if (cl.course.accessLevel === "MEMBERS") { hasAccess = true; break; }
+      if (cl.course.accessLevel === "ALL_MEMBERS") { hasAccess = true; break; }
 
       // Check program registration
       const programCourses = await db.programCourse.findMany({
@@ -148,7 +151,8 @@ export default async function LessonPage({
   const hasQuote = !!lesson.headerQuote;
   const resources = (lesson.resources as { name: string; url: string; resourceType: string }[]) ?? [];
   const hasResources = resources.length > 0;
-  const hasTeachers = lesson.teacherNames.length > 0;
+  const hasTeachers = lesson.teachers.length > 0;
+  const teacherNameList = lesson.teachers.map((lt) => lt.teacher.name).join(", ");
 
   const bodyHtml = renderContentBody(lesson.body);
 
@@ -259,7 +263,7 @@ export default async function LessonPage({
         {hasTeachers && (
           <div className="lp-teachers-simple">
             <p className="lp-resources__label">Teachers</p>
-            <p>{lesson.teacherNames.join(", ")}</p>
+            <p>{teacherNameList}</p>
           </div>
         )}
 

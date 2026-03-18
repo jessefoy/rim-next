@@ -70,8 +70,8 @@ export default async function CoursesListPage({
                 </td>
                 <td className="th-table__muted">{course.slug}</td>
                 <td>
-                  <span className={`th-badge ${course.accessLevel === "MEMBERS" ? "th-badge--green" : "th-badge--blue"}`}>
-                    {course.accessLevel === "MEMBERS" ? "All Members" : "Registration Required"}
+                  <span className={`th-badge ${course.accessLevel === "ALL_MEMBERS" ? "th-badge--green" : "th-badge--blue"}`}>
+                    {course.accessLevel === "ALL_MEMBERS" ? "All Members" : "Registration Required"}
                   </span>
                 </td>
                 <td>{course._count.lessons}</td>

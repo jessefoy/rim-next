@@ -66,7 +66,6 @@ export async function PATCH(
   if (body.videoUrl !== undefined) updateData.videoUrl = body.videoUrl || null;
   if (body.headerQuote !== undefined) updateData.headerQuote = body.headerQuote || null;
   if (body.quoteSource !== undefined) updateData.quoteSource = body.quoteSource || null;
-  if (body.teacherNames !== undefined) updateData.teacherNames = body.teacherNames;
   if (body.resources !== undefined) updateData.resources = body.resources;
   if (body.videoUrl !== undefined) updateData.videoUrl = body.videoUrl || null;
 

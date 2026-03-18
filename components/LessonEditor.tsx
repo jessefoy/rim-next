@@ -22,7 +22,7 @@ interface LessonData {
   titleInternal: string;
   titleDisplayed: string;
   slug: string;
-  accessLevel: "MEMBERS" | "REGISTRATION_REQUIRED";
+  accessLevel: "ALL_MEMBERS" | "REGISTRATION_REQUIRED";
   body: any; // Tiptap JSON
   heroImageUrl: string;
   heroImageAlt: string;
@@ -30,7 +30,6 @@ interface LessonData {
   videoUrl: string;
   headerQuote: string;
   quoteSource: string;
-  teacherNames: string;
   resources: Resource[];
 }
 
@@ -60,8 +59,8 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
   const [titleInternal, setTitleInternal] = useState(initialData?.titleInternal ?? "");
   const [titleDisplayed, setTitleDisplayed] = useState(initialData?.titleDisplayed ?? "");
   const [slug, setSlug] = useState(initialData?.slug ?? "");
-  const [accessLevel, setAccessLevel] = useState<"MEMBERS" | "REGISTRATION_REQUIRED">(
-    (initialData as any)?.accessLevel ?? "MEMBERS"
+  const [accessLevel, setAccessLevel] = useState<"ALL_MEMBERS" | "REGISTRATION_REQUIRED">(
+    (initialData as any)?.accessLevel ?? "ALL_MEMBERS"
   );
 
   // Content — Tiptap JSON
@@ -78,10 +77,6 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
   // Header Quote
   const [headerQuote, setHeaderQuote] = useState(initialData?.headerQuote ?? "");
   const [quoteSource, setQuoteSource] = useState(initialData?.quoteSource ?? "");
-
-  // Teachers
-  const [teacherNames, setTeacherNames] = useState(initialData?.teacherNames ?? "");
-
 
   // Resources
   const [resources, setResources] = useState<Resource[]>(initialData?.resources ?? []);
@@ -189,11 +184,6 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
     setSaving(true);
 
     try {
-      const teacherArr = teacherNames
-        .split(",")
-        .map((n) => n.trim())
-        .filter(Boolean);
-
       const payload = {
         titleInternal,
         titleDisplayed,
@@ -206,7 +196,6 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
         videoUrl: videoUrl || null,
         headerQuote: headerQuote || null,
         quoteSource: quoteSource || null,
-        teacherNames: teacherArr,
         resources: resources.filter((r) => r.name || r.url),
       };
 
@@ -295,7 +284,7 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
           <fieldset className="th-field">
             <legend className="th-field__label">Who can access this lesson?</legend>
             <label className="th-radio">
-              <input type="radio" checked={accessLevel === "MEMBERS"} onChange={() => setAccessLevel("MEMBERS")} />
+              <input type="radio" checked={accessLevel === "ALL_MEMBERS"} onChange={() => setAccessLevel("ALL_MEMBERS")} />
               All Members
             </label>
             <label className="th-radio">
@@ -421,23 +410,6 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
               value={quoteSource}
               onChange={(e) => setQuoteSource(e.target.value)}
               className="th-input"
-            />
-          </label>
-        </div>
-      </div>
-
-      {/* ── Section: Teachers ── */}
-      <div className="th-section">
-        <h3 className="th-section__title">Teachers</h3>
-        <div className="th-form">
-          <label className="th-field">
-            <span className="th-field__label">Teacher Names</span>
-            <input
-              type="text"
-              value={teacherNames}
-              onChange={(e) => setTeacherNames(e.target.value)}
-              className="th-input"
-              placeholder="Comma-separated names"
             />
           </label>
         </div>

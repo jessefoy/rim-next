@@ -42,7 +42,7 @@ export default async function EditLessonPage({
     titleInternal: lesson.titleInternal,
     titleDisplayed: lesson.titleDisplayed,
     slug: lesson.slug,
-    accessLevel: lesson.accessLevel as "MEMBERS" | "REGISTRATION_REQUIRED",
+    accessLevel: lesson.accessLevel as "ALL_MEMBERS" | "REGISTRATION_REQUIRED",
     body: lesson.body ?? null,
     heroImageUrl: lesson.heroImageUrl ?? "",
     heroImageAlt: lesson.heroImageAlt ?? "",
@@ -50,7 +50,6 @@ export default async function EditLessonPage({
     videoUrl: lesson.videoUrl ?? "",
     headerQuote: lesson.headerQuote ?? "",
     quoteSource: lesson.quoteSource ?? "",
-    teacherNames: lesson.teacherNames.join(", "),
     resources: (lesson.resources as { name: string; url: string; resourceType: string }[]) ?? [],
   };
 
