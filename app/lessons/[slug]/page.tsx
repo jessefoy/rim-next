@@ -152,7 +152,6 @@ export default async function LessonPage({
   const resources = (lesson.resources as { name: string; url: string; resourceType: string }[]) ?? [];
   const hasResources = resources.length > 0;
   const hasTeachers = lesson.teachers.length > 0;
-  const teacherNameList = lesson.teachers.map((lt) => lt.teacher.name).join(", ");
 
   const bodyHtml = renderContentBody(lesson.body);
 
@@ -263,7 +262,16 @@ export default async function LessonPage({
         {hasTeachers && (
           <div className="lp-teachers-simple">
             <p className="lp-resources__label">Teachers</p>
-            <p>{teacherNameList}</p>
+            <p>
+              {lesson.teachers.map((lt, i) => (
+                <span key={lt.teacher.slug}>
+                  {i > 0 && ", "}
+                  <Link href={`/teachers/${lt.teacher.slug}`} className="lp-teacher-link">
+                    {lt.teacher.name}
+                  </Link>
+                </span>
+              ))}
+            </p>
           </div>
         )}
 

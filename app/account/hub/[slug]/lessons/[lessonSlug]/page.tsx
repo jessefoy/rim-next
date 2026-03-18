@@ -33,7 +33,10 @@ export default async function EditLessonPage({
   const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, roles);
   if (!hub || (!member && !isAdmin)) redirect("/account/dashboard");
 
-  const lesson = await db.lesson.findUnique({ where: { slug: lessonSlug } });
+  const lesson = await db.lesson.findUnique({
+    where: { slug: lessonSlug },
+    include: { teachers: { include: { teacher: true } } },
+  });
   if (!lesson) notFound();
 
   // Serialize for client component
@@ -51,6 +54,12 @@ export default async function EditLessonPage({
     headerQuote: lesson.headerQuote ?? "",
     quoteSource: lesson.quoteSource ?? "",
     resources: (lesson.resources as { name: string; url: string; resourceType: string }[]) ?? [],
+    teachers: lesson.teachers.map((lt) => ({
+      id: lt.teacher.id,
+      name: lt.teacher.name,
+      slug: lt.teacher.slug,
+      isActive: lt.teacher.isActive,
+    })),
   };
 
   return <LessonEditor hubSlug={slug} initialData={initialData} isEditing />;

@@ -17,6 +17,13 @@ interface Resource {
   resourceType: string;
 }
 
+interface TeacherItem {
+  id: string;
+  name: string;
+  slug: string;
+  isActive: boolean;
+}
+
 interface LessonData {
   id?: string;
   titleInternal: string;
@@ -31,6 +38,7 @@ interface LessonData {
   headerQuote: string;
   quoteSource: string;
   resources: Resource[];
+  teachers?: TeacherItem[];
 }
 
 interface Props {
@@ -81,6 +89,13 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
   // Resources
   const [resources, setResources] = useState<Resource[]>(initialData?.resources ?? []);
   const [uploadingResourceIdx, setUploadingResourceIdx] = useState<number | null>(null);
+
+  // Teachers
+  const [selectedTeachers, setSelectedTeachers] = useState<TeacherItem[]>(initialData?.teachers ?? []);
+  const [teacherQuery, setTeacherQuery] = useState("");
+  const [teacherResults, setTeacherResults] = useState<{ id: string; name: string; slug: string }[]>([]);
+  const [teacherSearching, setTeacherSearching] = useState(false);
+  const teacherDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
@@ -162,6 +177,41 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
     setUploadingResourceIdx(null);
   }
 
+  // Teacher search
+  useEffect(() => {
+    if (teacherDebounceRef.current) clearTimeout(teacherDebounceRef.current);
+    if (!teacherQuery.trim()) {
+      setTeacherResults([]);
+      return;
+    }
+    teacherDebounceRef.current = setTimeout(async () => {
+      setTeacherSearching(true);
+      try {
+        const res = await fetch(`/api/teachers/search?q=${encodeURIComponent(teacherQuery)}`);
+        if (res.ok) {
+          const data = await res.json();
+          // Filter out already-selected
+          setTeacherResults(
+            data.filter((t: { id: string }) => !selectedTeachers.some((s) => s.id === t.id))
+          );
+        }
+      } finally {
+        setTeacherSearching(false);
+      }
+    }, 300);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teacherQuery]);
+
+  function addTeacher(teacher: { id: string; name: string; slug: string }) {
+    setSelectedTeachers((prev) => [...prev, { ...teacher, isActive: true }]);
+    setTeacherResults([]);
+    setTeacherQuery("");
+  }
+
+  function removeTeacher(id: string) {
+    setSelectedTeachers((prev) => prev.filter((t) => t.id !== id));
+  }
+
   function addResource() {
     setResources((prev) => [...prev, { name: "", url: "", resourceType: "Link" }]);
   }
@@ -197,6 +247,7 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
         headerQuote: headerQuote || null,
         quoteSource: quoteSource || null,
         resources: resources.filter((r) => r.name || r.url),
+        teacherIds: selectedTeachers.map((t) => t.id),
       };
 
       const url = isEditing ? `/api/lessons/${initialData?.slug}` : "/api/lessons";
@@ -412,6 +463,59 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
               className="th-input"
             />
           </label>
+        </div>
+      </div>
+
+      {/* ── Section: Teachers ── */}
+      <div className="th-section">
+        <h3 className="th-section__title">Teachers</h3>
+
+        {selectedTeachers.length > 0 && (
+          <div className="th-teacher-tags">
+            {selectedTeachers.map((t) => (
+              <span
+                key={t.id}
+                className={`th-teacher-tag${!t.isActive ? " th-teacher-tag--inactive" : ""}`}
+              >
+                {t.name}{!t.isActive && " (inactive)"}
+                <button
+                  type="button"
+                  className="th-teacher-tag__remove"
+                  onClick={() => removeTeacher(t.id)}
+                  aria-label={`Remove ${t.name}`}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div className="th-form">
+          <div className="th-field">
+            <input
+              type="text"
+              value={teacherQuery}
+              onChange={(e) => setTeacherQuery(e.target.value)}
+              placeholder="Search teachers by name…"
+              className="th-input"
+            />
+            {teacherSearching && <p className="th-muted">Searching…</p>}
+            {teacherResults.length > 0 && (
+              <div className="th-teacher-results">
+                {teacherResults.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    className="th-teacher-result"
+                    onClick={() => addTeacher(t)}
+                  >
+                    {t.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

@@ -83,6 +83,19 @@ export async function PATCH(
     data: updateData,
   });
 
+  // Handle teacher associations
+  if (body.teacherIds !== undefined) {
+    await db.lessonTeacher.deleteMany({ where: { lessonId: lesson.id } });
+    if (Array.isArray(body.teacherIds) && body.teacherIds.length > 0) {
+      await db.lessonTeacher.createMany({
+        data: body.teacherIds.map((tid: string) => ({
+          lessonId: lesson.id,
+          teacherId: tid,
+        })),
+      });
+    }
+  }
+
   return NextResponse.json(updated);
 }
 

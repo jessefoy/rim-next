@@ -15959,3 +15959,55 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   background: #fdf2f2;
   color: #c0392b;
 }
+
+/* ── Teacher Public Pages (tpr-) ──────────────────────────────────── */
+.tpr-listing-page { max-width: 960px; margin: 0 auto; padding: 48px 24px 80px; }
+.tpr-listing-title { font-family: var(--font-serif); font-size: 32px; color: var(--rim-blue); margin-bottom: 32px; }
+.tpr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 24px; }
+.tpr-card { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 24px 16px; background: white; border-radius: 8px; text-decoration: none; color: inherit; transition: box-shadow 0.15s; }
+.tpr-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+.tpr-card__photo { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-bottom: 12px; }
+.tpr-card__photo-placeholder { width: 80px; height: 80px; border-radius: 50%; background: #e8e2dc; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; color: var(--rim-text-muted); font-size: 28px; font-family: var(--font-serif); }
+.tpr-card__name { font-family: var(--font-serif); font-size: 17px; color: var(--rim-blue); margin-bottom: 8px; font-weight: 600; }
+.tpr-card__bio { font-size: 13px; color: var(--rim-text-muted); line-height: 1.5; }
+
+/* Teacher profile page */
+.tpr-page { max-width: 720px; margin: 0 auto; padding: 48px 24px 80px; }
+.tpr-header { margin-bottom: 48px; }
+.tpr-photo { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 20px; display: block; }
+.tpr-name { font-family: var(--font-serif); font-size: 36px; color: var(--rim-blue); margin-bottom: 16px; font-weight: normal; line-height: 1.2; }
+.tpr-bio { font-size: 17px; line-height: 1.75; color: var(--rim-text); margin-bottom: 16px; }
+.tpr-inactive-note { font-size: 14px; color: var(--rim-text-muted); font-style: italic; margin-top: 12px; }
+.tpr-teachings { margin-top: 48px; }
+.tpr-teachings__title { font-family: var(--font-serif); font-size: 22px; color: var(--rim-blue); margin-bottom: 20px; }
+.tpr-teachings__list { display: flex; flex-direction: column; gap: 12px; }
+.tpr-course-card { display: block; padding: 16px 20px; background: white; border-radius: 8px; text-decoration: none; color: inherit; }
+.tpr-course-card:hover { background: #f0ebe6; }
+.tpr-course-card__title { font-family: var(--font-serif); font-size: 17px; color: var(--rim-blue); font-weight: 600; margin-bottom: 4px; }
+.tpr-course-card__sub { font-size: 14px; color: var(--rim-text-muted); margin-bottom: 6px; }
+.tpr-course-card__meta { font-size: 13px; color: var(--rim-text-muted); display: flex; gap: 12px; align-items: center; }
+.tpr-course-card__access { background: #f0ebe6; padding: 2px 8px; border-radius: 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+.lp-teacher-link { color: var(--rim-blue); text-decoration: underline; text-underline-offset: 2px; }
+.lp-teacher-link:hover { color: var(--rim-mid); }
+
+/* Teacher admin */
+.adm-teacher-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 16px; }
+.adm-teacher-table th { text-align: left; padding: 8px 12px; border-bottom: 2px solid #ede9e5; font-weight: 600; color: var(--rim-text-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+.adm-teacher-table td { padding: 10px 12px; border-bottom: 1px solid #f0ece8; vertical-align: middle; }
+.adm-teacher-table tr:last-child td { border-bottom: none; }
+.adm-teacher-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+.adm-teacher-badge--active { background: #d1fae5; color: #065f46; }
+.adm-teacher-badge--inactive { background: #f3f4f6; color: #6b7280; }
+.adm-teacher-add { margin-top: 24px; padding-top: 24px; border-top: 1px solid #ede9e5; display: flex; gap: 10px; align-items: flex-end; }
+.adm-teacher-add__field { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.adm-teacher-add__label { font-size: 12px; font-weight: 600; color: var(--rim-text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* Teacher search tags (lesson editor) */
+.th-teacher-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.th-teacher-tag { display: flex; align-items: center; gap: 6px; padding: 4px 10px; background: #e8f4f0; border-radius: 20px; font-size: 13px; color: var(--rim-mid); }
+.th-teacher-tag--inactive { background: #f3f4f6; color: var(--rim-text-muted); }
+.th-teacher-tag__remove { background: none; border: none; cursor: pointer; color: currentColor; font-size: 15px; padding: 0; line-height: 1; }
+.th-teacher-results { border: 1px solid #ddd; border-radius: 6px; background: white; max-height: 160px; overflow-y: auto; margin-top: 4px; }
+.th-teacher-result { display: block; width: 100%; text-align: left; padding: 8px 12px; background: none; border: none; cursor: pointer; font-size: 14px; border-bottom: 1px solid #f5f5f5; }
+.th-teacher-result:last-child { border-bottom: none; }
+.th-teacher-result:hover { background: #f6f3f0; }

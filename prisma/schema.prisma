@@ -538,7 +538,7 @@ model Teacher {
   id        String   @id @default(cuid())
   name      String
   slug      String   @unique
-  bio       String?
+  bio       Json?    // Tiptap JSON (FormattedEditor)
   photoUrl  String?
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())

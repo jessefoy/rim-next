@@ -66,6 +66,12 @@ export default function Nav() {
               >
                 Programs
               </Link>
+              <Link
+                href="/teachers"
+                className={`nav__link${isActive("/teachers")}`}
+              >
+                Teachers
+              </Link>
 
               {isAdmin && (
                 <div className="nav__dropdown">
@@ -118,6 +124,12 @@ export default function Nav() {
                 className={`nav__link${isActive("/community-programs")}`}
               >
                 Programs
+              </Link>
+              <Link
+                href="/teachers"
+                className={`nav__link${isActive("/teachers")}`}
+              >
+                Teachers
               </Link>
 
               {/* Get Involved dropdown */}
@@ -220,6 +232,9 @@ export default function Nav() {
               <Link href="/community-programs" className="nav__mobile-link">
                 Programs
               </Link>
+              <Link href="/teachers" className={`nav__mobile-link${isActive("/teachers")}`}>
+                Teachers
+              </Link>
               {isAdmin && (
                 <Link
                   href="/admin/sitemap"
@@ -268,6 +283,12 @@ export default function Nav() {
                 className={`nav__mobile-link${isActive("/community-programs")}`}
               >
                 Programs
+              </Link>
+              <Link
+                href="/teachers"
+                className={`nav__mobile-link${isActive("/teachers")}`}
+              >
+                Teachers
               </Link>
               <Link
                 href="/volunteerism/volunteer"
