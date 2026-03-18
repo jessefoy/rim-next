@@ -686,14 +686,14 @@ const AREAS: FunctionalArea[] = [
     id: "courses",
     title: "Series Access & Content",
     icon: "📚",
-    desc: "Member-gated series and lesson pages. Series and lessons live in Postgres. Access can be open to all members, granted via program registration, or manually granted by an admin. Content managed via Teacher Hub. UI label is 'Series'; DB model is still 'Course'.",
+    desc: "Member-gated series and lesson pages. Series and lessons live in Postgres. Access can be open to all members, granted via program registration, or manually granted by an admin. Content managed via Course Hub. UI label is 'Series'; DB model is still 'Course'.",
     features: [
       {
         name: "Series Page",
         locations: ["/course/[slug]"],
         what: "Series page redesigned in session 59 to match the lp- design language: warm var(--rim-bg) background, centered weight-400 serif header, crs-rule hr divider, white lesson cards with 10px border radius. Each lesson card shows a number, the lesson title, and a small color-coded SVG icon indicating media type (teal square = audio, amber square = video, slate square = text-only). Section labels appear as subheadings between lesson cards. Access gating: accessLevel in Postgres (MEMBERS or REGISTRATION_REQUIRED). Non-members see a registration prompt.",
         relatedTo: [
-          "accessLevel set on Course model in Postgres (managed via Teacher Hub)",
+          "accessLevel set on Course model in Postgres (managed via Course Hub)",
           "Auto-access via ProgramCourse join table (replaces old Sanity linkedCourses)",
           "Manual grants managed in Member Management (CourseAccessSection)",
           "crs- CSS prefix in public/css/custom.css",
@@ -704,7 +704,7 @@ const AREAS: FunctionalArea[] = [
         locations: ["/lessons/[slug]"],
         what: "Individual lesson pages rendered from Postgres. Body is Tiptap JSON, rendered via renderContentBody() from lib/renderRichContent.ts. Supports custom blocks: verseQuote (pull quote), practiceCallout (teal practice box), calloutText (highlighted insight). Also supports audio player, video embed, hero image, header quote, teacher attribution, and downloadable resources.",
         relatedTo: [
-          "Lesson model in Postgres (managed via Teacher Hub)",
+          "Lesson model in Postgres (managed via Course Hub)",
           "lib/renderRichContent.ts — renderContentBody() for Tiptap JSON rendering",
           "lp- prefix CSS (design system)",
           "Course pages link to lessons via CourseLesson join table",
@@ -717,7 +717,7 @@ const AREAS: FunctionalArea[] = [
         relatedTo: [
           "ProgramCourse join table (programId references Program.id)",
           "Registration status (Postgres) checked at page render time",
-          "Program-course links managed from Teacher Hub course editor",
+          "Program-course links managed from Course Hub course editor",
         ],
       },
       {
@@ -933,10 +933,10 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Lessons Schema (Legacy — migrated to Postgres)",
         locations: ["File: sanity/schemas/lessons.js", "Program Editor: lessons collection"],
-        what: "Original Sanity schema for lessons. Lessons have been migrated to Postgres and are now managed via the Teacher Hub. This schema remains in Postgres for reference but is no longer the source of truth.",
+        what: "Original Sanity schema for lessons. Lessons have been migrated to Postgres and are now managed via the Course Hub. This schema remains in Postgres for reference but is no longer the source of truth.",
         relatedTo: [
           "Lesson page (/lessons/[slug]) — now reads from Postgres",
-          "Teacher Hub — CRUD management of lessons",
+          "Course Hub — CRUD management of lessons",
           "Lesson model in Postgres (prisma/schema.prisma)",
         ],
         status: "partial",
@@ -945,10 +945,10 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Courses Schema (Legacy — migrated to Postgres)",
         locations: ["File: sanity/schemas/courses.js", "Program Editor: courses collection"],
-        what: "Original Sanity schema for courses. Courses have been migrated to Postgres and are now managed via the Teacher Hub. Access levels, lesson groupings, and program links all live in Postgres now.",
+        what: "Original Sanity schema for courses. Courses have been migrated to Postgres and are now managed via the Course Hub. Access levels, lesson groupings, and program links all live in Postgres now.",
         relatedTo: [
           "Course Access System (/course/[slug]) — now reads from Postgres",
-          "Teacher Hub — CRUD management of courses",
+          "Course Hub — CRUD management of courses",
           "Course model + ProgramCourse join table in Postgres",
         ],
         status: "partial",
@@ -980,15 +980,15 @@ const AREAS: FunctionalArea[] = [
   },
 
   {
-    id: "teacher-hub",
-    title: "Teacher Hub & Content Management",
+    id: "course-hub",
+    title: "Course Hub & Content Management",
     icon: "🎓",
-    desc: "Full CRUD for series and lessons, accessible to TEACHER and ADMIN roles via the Teacher Hub. Content stored in Postgres. Tiptap WYSIWYG editors with underline, text alignment, typography, character count, tables, and custom block support. UI calls them 'Series'; DB model is still 'Course'.",
+    desc: "Full CRUD for series and lessons, accessible to TEACHER and ADMIN roles via the Course Hub. Content stored in Postgres. Tiptap WYSIWYG editors with underline, text alignment, typography, character count, tables, and custom block support. UI calls them 'Series'; DB model is still 'Course'.",
     features: [
       {
-        name: "Teacher Hub Workspace",
-        locations: ["/account/hub/teacher", "/account/hub/teacher/courses", "/account/hub/teacher/lessons"],
-        what: "A hub workspace for TEACHER and ADMIN roles. Reuses the multi-hub system. Primary tabs are Series and Lessons (instead of the default Announcements). Hub root redirects to /account/hub/teacher/courses. Also includes Announcements, Documents, Conversations, and Members tabs.",
+        name: "Course Hub Workspace",
+        locations: ["/account/hub/courses", "/account/hub/courses/courses", "/account/hub/courses/lessons"],
+        what: "A hub workspace for TEACHER and ADMIN roles. Reuses the multi-hub system. Primary tabs are Series and Lessons (instead of the default Announcements). Hub root redirects to /account/hub/courses/courses. Also includes Announcements, Documents, Conversations, and Members tabs.",
         relatedTo: [
           "Multi-Hub Workspace System (/account/hub/[slug])",
           "TEACHER role assignment (syncHubMembership auto-creates HubMember)",
@@ -997,7 +997,7 @@ const AREAS: FunctionalArea[] = [
       },
       {
         name: "Series Editor",
-        locations: ["/account/hub/teacher/courses/new", "/account/hub/teacher/courses/[courseSlug]", "Component: CourseEditor.tsx", "API: POST /api/courses, PATCH /api/courses/[slug], DELETE /api/courses/[slug]"],
+        locations: ["/account/hub/courses/courses/new", "/account/hub/courses/courses/[courseSlug]", "Component: CourseEditor.tsx", "API: POST /api/courses, PATCH /api/courses/[slug], DELETE /api/courses/[slug]"],
         what: "Create and edit series: title, slug, subheading, FormattedEditor description (with underline, text alignment, word count), access level (MEMBERS / REGISTRATION_REQUIRED), active toggle. Sort order was removed in session 59. Edit mode includes a unified lesson + section manager: a flat ListItem[] union type drives a drag list where section-divider rows and lesson rows are all first-class draggable items. Section rows have an inline-editable label and a ✕ remove button. + Add Section button uses th-btn--ghost style. Lessons are added via search-to-add (debounced API search). Delete is guarded — returns 409 if ProgramCourse records exist.",
         relatedTo: [
           "Course model in Postgres (CourseLesson.groupLabel = section header for a lesson)",
@@ -1009,7 +1009,7 @@ const AREAS: FunctionalArea[] = [
       },
       {
         name: "Lesson Editor (ContentEditor)",
-        locations: ["/account/hub/teacher/lessons/new", "/account/hub/teacher/lessons/[lessonSlug]", "Component: LessonEditor.tsx", "API: POST /api/lessons, PATCH /api/lessons/[slug], DELETE /api/lessons/[slug]"],
+        locations: ["/account/hub/courses/lessons/new", "/account/hub/courses/lessons/[lessonSlug]", "Component: LessonEditor.tsx", "API: POST /api/lessons, PATCH /api/lessons/[slug], DELETE /api/lessons/[slug]"],
         what: "Create and edit lessons with ContentEditor (Tiptap WYSIWYG). Toolbar: Bold, Italic, Underline, H2, H3, UL, OL, Link, Align L/C/R, Insert Table, plus custom block buttons: + Verse, + Practice, + Callout. Table context toolbar: +Row, +Col, −Row, −Col, Delete Table. Typography extension auto-converts smart quotes, em dashes, ellipsis. Character count footer shows word count. Content stored as Tiptap JSON. Media section: image and audio upload via Vercel Blob, video URL. Also: header quote, teacher names, and an inline resource list builder.",
         relatedTo: [
           "Lesson model in Postgres (body: Json?)",
@@ -1079,7 +1079,7 @@ const AREAS: FunctionalArea[] = [
         locations: ["/lessons/[slug]"],
         what: "Audio player, video embed, Tiptap JSON body rendered via renderContentBody() — verseQuote pull quotes, practiceCallout suggestion boxes, calloutText highlighted insights. Data reads from Postgres (migrated from Sanity, session 50).",
         relatedTo: [
-          "Postgres — Lesson model (managed via Teacher Hub)",
+          "Postgres — Lesson model (managed via Course Hub)",
           "Course pages (/course/[slug]) — lessons grouped into courses",
           "lib/renderRichContent.ts — renderContentBody() for Tiptap JSON rendering",
         ],
@@ -1340,7 +1340,7 @@ const SYSTEM_MAP: { area: string; needs: string; powers: string; note: string }[
   {
     area: "Course Access & Content",
     needs: "Postgres (Course, Lesson, ProgramCourse, CourseAccess, Registration status) · Postgres (program names for ProgramCourse display during Phase 2)",
-    powers: "Gates or allows access to /course/[slug] and /lessons/[slug] pages for each member · Teacher Hub manages all content",
+    powers: "Gates or allows access to /course/[slug] and /lessons/[slug] pages for each member · Course Hub manages all content",
     note: "Courses and lessons migrated from Postgres to Postgres (session 50). Access checked dynamically at page render.",
   },
   {
@@ -1584,7 +1584,7 @@ export default async function AdminFeaturesPage() {
               <li><strong>Gives staff the tools</strong> to manage registrations, members, and content — without needing direct database access.</li>
             </ol>
             <p>
-              Programs, courses, lessons, and member data all live in <strong>Postgres</strong> (hosted on Neon), managed by staff via the Program Editor, Teacher Hub, and admin tools. Some non-program content (teams, glossary, magazine articles) still lives in <strong>Sanity CMS</strong>.
+              Programs, courses, lessons, and member data all live in <strong>Postgres</strong> (hosted on Neon), managed by staff via the Program Editor, Course Hub, and admin tools. Some non-program content (teams, glossary, magazine articles) still lives in <strong>Sanity CMS</strong>.
             </p>
           </div>
 

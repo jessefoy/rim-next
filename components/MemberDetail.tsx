@@ -6,6 +6,7 @@ import FormattedEditor from "@/components/FormattedEditor";
 import Link from "next/link";
 import CourseAccessSection from "@/components/CourseAccessSection";
 import HouseholdSection from "@/components/HouseholdSection";
+import HubAccessSection from "@/components/HubAccessSection";
 
 interface MemberRegistration {
   id: string;
@@ -43,6 +44,7 @@ interface Member {
   createdAt: string;
   registrations: MemberRegistration[];
   courseAccess: CourseAccessGrant[];
+  hubAccess: { hubSlug: string; grantedAt: string }[];
   household: {
     id: string;
     name: string | null;
@@ -75,7 +77,7 @@ const ROLE_DESCRIPTIONS: Record<string, string> = {
   HOST_MANAGER:          "Manages host schedule and assignments — full Hub read/write; can also be on rotation",
   REGISTRAR:             "View and manage registrations, programs, and member profiles",
   ADMIN:                 "Full access — members, registrations, and all volunteer areas",
-  TEACHER:               "Teacher Hub access — manages courses and lessons",
+  TEACHER:               "Course Hub access — manages courses and lessons",
   SUPPORT:               "Support Inbox — shared inbox, thread assignment, reply, internal notes",
   VOLUNTEER_COORDINATOR: "Coordinates volunteer scheduling and onboarding",
   NEWSLETTER:            "Creates and sends the community newsletter",
@@ -562,6 +564,15 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
           </button>
         )}
       </div>
+
+      {/* ── Hub Access ───────────────────────────────────────────────────────── */}
+      {isAdmin && (
+        <HubAccessSection
+          memberId={member.id}
+          memberName={displayName}
+          initialAccess={member.hubAccess}
+        />
+      )}
 
       {/* ── Course Access ────────────────────────────────────────────────────── */}
       <section className="adm-section">

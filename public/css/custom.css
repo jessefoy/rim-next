@@ -15895,3 +15895,64 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   flex-shrink: 0;
 }
 
+
+/* ── Hub Access Section (admin member detail) ───────────────────────────────── */
+.adm-hub-access__list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+}
+.adm-hub-access__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rim-rule);
+}
+.adm-hub-access__item:last-child { border-bottom: none; }
+.adm-hub-access__name {
+  font-weight: 600;
+  font-size: 14px;
+  min-width: 140px;
+}
+.adm-hub-access__since {
+  font-size: 13px;
+  color: var(--rim-text-muted);
+  flex: 1;
+}
+.adm-hub-access__confirm {
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.adm-hub-access__grant {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+.adm-hub-access__select {
+  flex: 1;
+  max-width: 240px;
+}
+.adm-hub-access__empty {
+  font-size: 14px;
+  color: var(--rim-text-muted);
+  margin: 0;
+}
+.adm-hub-access__message {
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+.adm-hub-access__message--success {
+  background: #edf7f0;
+  color: #2d6a4f;
+}
+.adm-hub-access__message--error {
+  background: #fdf2f2;
+  color: #c0392b;
+}

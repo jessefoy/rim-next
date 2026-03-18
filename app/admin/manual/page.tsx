@@ -84,7 +84,7 @@ export default async function ManualPage() {
             <ul className="man-sidebar__sub">
               <li><a href="#courses-overview"   className="man-sidebar__sublink">Overview</a></li>
               <li><a href="#courses-access"     className="man-sidebar__sublink">Access levels</a></li>
-              <li><a href="#courses-teacher-hub" className="man-sidebar__sublink">Teacher Hub</a></li>
+              <li><a href="#courses-course-hub" className="man-sidebar__sublink">Course Hub</a></li>
               <li><a href="#courses-linking"    className="man-sidebar__sublink">Linking courses to programs</a></li>
             </ul>
           </li>
@@ -406,7 +406,7 @@ export default async function ManualPage() {
         <section id="reg-course-access" className="man-section">
           <h2 className="man-section__title">Course access</h2>
           <p>
-            Some programs include access to online materials — audio recordings, readings, or structured courses — hosted in the Members Area. When a program is linked to a course (via the Teacher Hub course editor), anyone who registers for that program automatically receives access. You don&rsquo;t need to do anything.
+            Some programs include access to online materials — audio recordings, readings, or structured courses — hosted in the Members Area. When a program is linked to a course (via the Course Hub course editor), anyone who registers for that program automatically receives access. You don&rsquo;t need to do anything.
           </p>
           <p>
             For situations where automatic access doesn&rsquo;t apply, you can grant or revoke course access manually from the member detail page (<strong>/admin/members/[id]</strong>).
@@ -414,7 +414,7 @@ export default async function ManualPage() {
 
           <h3 className="man-section__h3">When to use manual grants</h3>
           <ul className="man-list">
-            <li><strong>Historical members</strong> — someone participated before the course was linked to the program. Automatic access only applies to registrations made <em>after</em> the link was added in the Teacher Hub.</li>
+            <li><strong>Historical members</strong> — someone participated before the course was linked to the program. Automatic access only applies to registrations made <em>after</em> the link was added in the Course Hub.</li>
             <li><strong>Exceptions</strong> — a member who couldn&rsquo;t attend but should still have access to the materials.</li>
             <li><strong>One-off access</strong> — a course not tied to any program, granted directly to a specific person.</li>
           </ul>
@@ -702,7 +702,7 @@ export default async function ManualPage() {
         <section id="prog-overview" className="man-section">
           <h2 className="man-section__title">Overview</h2>
           <p>
-            Programs are managed through the <strong>Program Editor</strong> in the Registrar Hub. Go to your hub → Programs tab → click any program to edit it. (Note: courses and lessons are managed separately in the <a href="#courses-teacher-hub">Teacher Hub</a>.)
+            Programs are managed through the <strong>Program Editor</strong> in the Registrar Hub. Go to your hub → Programs tab → click any program to edit it. (Note: courses and lessons are managed separately in the <a href="#courses-course-hub">Course Hub</a>.)
           </p>
           <p>
             When you save a program, changes appear on the website within seconds. There is no separate &ldquo;publish&rdquo; step — saving is it.
@@ -1821,7 +1821,7 @@ export default async function ManualPage() {
         <div id="courses" className="man-chapter man-chapter--break">
           <h1 className="man-chapter__title">Series &amp; Lessons</h1>
           <p className="man-chapter__subtitle">
-            How teaching materials are organized and delivered to community members. Series and lessons live in our database and are managed through the Teacher Hub.
+            How teaching materials are organized and delivered to community members. Series and lessons live in our database and are managed through the Course Hub.
           </p>
         </div>
 
@@ -1853,13 +1853,13 @@ export default async function ManualPage() {
           </p>
         </section>
 
-        <section id="courses-teacher-hub" className="man-section">
-          <h2 className="man-section__title">Teacher Hub</h2>
+        <section id="courses-course-hub" className="man-section">
+          <h2 className="man-section__title">Course Hub</h2>
           <p>
-            Series and lessons are managed in the <strong>Teacher Hub</strong> at <code>/account/hub/teacher</code>. This is a workspace available to anyone with the TEACHER or ADMIN role.
+            Series and lessons are managed in the <strong>Course Hub</strong> at <code>/account/hub/courses</code>. This is a workspace available to anyone with the TEACHER or ADMIN role.
           </p>
           <p>
-            The Teacher Hub has two main sections:
+            The Course Hub has two main sections:
           </p>
           <ul className="man-list">
             <li><strong>Series</strong> &mdash; create and edit series, set access levels, add or reorder lessons, and organize lessons into named sections</li>
@@ -1892,7 +1892,7 @@ export default async function ManualPage() {
             To make a series available to registrants of a specific program, link them in the series editor. A single program can be linked to multiple series, and a single series can be linked to multiple programs.
           </p>
           <p>
-            Programs are linked to series via the ProgramCourse join table. Programs are managed in the Program Editor (Registrar Hub), while the series-to-program relationship is managed in the Teacher Hub.
+            Programs are linked to series via the ProgramCourse join table. Programs are managed in the Program Editor (Registrar Hub), while the series-to-program relationship is managed in the Course Hub.
           </p>
           <p>
             You can also grant individual members access to any series from the <strong>Course Access</strong> section on their member profile page (Admin &rarr; Members &rarr; [member name]).
@@ -2371,18 +2371,18 @@ export default async function ManualPage() {
 
           <h3 className="man-section__h3">Teacher</h3>
           <p>
-            A Teacher manages courses and lessons through the <strong>Teacher Hub</strong> at <strong>/account/hub/teacher</strong>. This role is for dharma teachers and content authors who create and maintain the teaching materials available to community members.
+            A Teacher manages courses and lessons through the <strong>Course Hub</strong> at <strong>/account/hub/courses</strong>. This role is for dharma teachers and content authors who create and maintain the teaching materials available to community members.
           </p>
           <p>What a Teacher can do:</p>
           <ul className="man-list">
-            <li>Create, edit, and organize <strong>courses</strong> and <strong>lessons</strong> in the Teacher Hub</li>
+            <li>Create, edit, and organize <strong>courses</strong> and <strong>lessons</strong> in the Course Hub</li>
             <li>Upload images and audio files for lessons</li>
             <li>Set course access levels (all members vs. registration required)</li>
             <li>Link courses to programs</li>
             <li>Access the <strong>Volunteer Manual</strong></li>
           </ul>
           <p>
-            Teachers do not have access to registration management, member data, or the host hub — only the teacher hub.
+            Teachers do not have access to registration management, member data, or the host hub — only the course hub.
           </p>
 
           <h3 className="man-section__h3">Registrar</h3>

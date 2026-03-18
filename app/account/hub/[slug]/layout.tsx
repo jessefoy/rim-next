@@ -39,7 +39,18 @@ export default async function HubLayout({ children, params }: Props) {
 
   const isMember = hub.members.some((m) => m.userId === session.user.id);
   const isAdmin  = (session.user.roles ?? []).includes("ADMIN");
-  if (!isMember && !isAdmin) {
+
+  // For the Course Hub, also accept UserHubAccess as an alternative to HubMember.
+  // All other hubs continue to use HubMember exclusively.
+  let hasAccess = isMember || isAdmin;
+  if (!hasAccess && slug === "courses") {
+    const ua = await db.userHubAccess.findUnique({
+      where: { userId_hubSlug: { userId: session.user.id, hubSlug: "courses" } },
+    });
+    hasAccess = !!ua;
+  }
+
+  if (!hasAccess) {
     // 403 — user is authenticated but not in this hub
     return (
       <AccountLayout>
@@ -59,24 +70,24 @@ export default async function HubLayout({ children, params }: Props) {
     slug === "host-team" &&
     roles.some((r) => ["HOST", "HOST_MANAGER", "REGISTRAR", "ADMIN"].includes(r));
 
-  const isTeacherHub    = slug === "teacher";
-  const isRegistrarHub  = slug === "registrar";
-  const isSupportHub    = slug === "support";
+  const isCourseHub    = slug === "courses";
+  const isRegistrarHub = slug === "registrar";
+  const isSupportHub   = slug === "support";
 
   const tabs = [
     ...(isSupportHub
       ? [{ label: "Inbox", href: `${base}/inbox` }]
       : []),
-    ...(isTeacherHub
+    ...(isCourseHub
       ? [
-          { label: "Series",   href: `${base}/courses` },
-          { label: "Lessons",  href: `${base}/lessons` },
+          { label: "Series",  href: `${base}/courses` },
+          { label: "Lessons", href: `${base}/lessons` },
         ]
       : []),
     ...(isRegistrarHub
       ? [{ label: "Programs", href: `${base}/programs` }]
       : []),
-    { label: "Announcements", href: (isTeacherHub || isRegistrarHub || isSupportHub) ? `${base}/announcements` : base },
+    { label: "Announcements", href: (isCourseHub || isRegistrarHub || isSupportHub) ? `${base}/announcements` : base },
     ...(hub.hasSchedule ? [{ label: "Schedule", href: `${base}/schedule` }] : []),
     ...(canSeeSessionTab ? [{ label: "Session", href: `${base}/session` }] : []),
     { label: "Documents",     href: `${base}/documents` },
