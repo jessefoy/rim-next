@@ -9,6 +9,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import FormattedEditor from "@/components/FormattedEditor";
 import ManualHelpIcon from "@/components/ManualHelpIcon";
+import SlugField from "@/components/SlugField";
 
 interface Lesson {
   id: string;
@@ -106,7 +107,6 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [slugTouched, setSlugTouched] = useState(false);
-  const [slugLocked, setSlugLocked] = useState(isEditing);
 
   const [title, setTitle] = useState(initialData?.title ?? "");
   const [slug, setSlug] = useState(initialData?.slug ?? "");
@@ -375,33 +375,12 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
           />
         </label>
 
-        <label className="th-field">
-          <span className="th-field__label">Slug</span>
-          <div className="th-slug-row">
-            <input
-              type="text"
-              value={slug}
-              onChange={(e) => { setSlug(e.target.value); setSlugTouched(true); }}
-              className="th-input"
-              disabled={slugLocked}
-              required
-            />
-            {isEditing && (
-              <button
-                type="button"
-                className="th-btn th-btn--small"
-                onClick={() => setSlugLocked(!slugLocked)}
-              >
-                {slugLocked ? "Unlock" : "Lock"}
-              </button>
-            )}
-          </div>
-          {isEditing && !slugLocked && (
-            <span className="th-field__hint th-field__hint--warn">
-              Changing the slug will break existing links to this series.
-            </span>
-          )}
-        </label>
+        <SlugField
+          value={slug}
+          onChange={(v) => { setSlug(v); setSlugTouched(true); }}
+          isEditing={isEditing}
+          warnText="Changing the slug will break existing links to this series."
+        />
 
         <label className="th-field">
           <span className="th-field__label">Subheading</span>

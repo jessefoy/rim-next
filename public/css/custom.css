@@ -13384,6 +13384,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .th-field__label { font-size: 13px; font-weight: 600; color: var(--rim-text); }
 .th-field__help { font-size: 12px; color: var(--rim-text-muted); }
 .th-input { padding: 8px 12px; border: 1px solid var(--rim-rule); border-radius: 6px; font-size: 14px; font-family: var(--font-sans); background: white; color: var(--rim-text); }
+.th-input:disabled { background: var(--rim-bg-accent); color: var(--rim-text-muted); cursor: default; }
 .th-input:focus { outline: none; border-color: var(--rim-blue); box-shadow: 0 0 0 2px rgba(19,82,116,0.12); }
 .th-input--narrow { max-width: 120px; }
 .th-textarea { padding: 8px 12px; border: 1px solid var(--rim-rule); border-radius: 6px; font-size: 14px; font-family: var(--font-sans); resize: vertical; background: white; color: var(--rim-text); line-height: 1.6; }

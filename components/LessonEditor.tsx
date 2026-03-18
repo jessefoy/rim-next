@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
 import ContentEditor from "@/components/ContentEditor";
 import ManualHelpIcon from "@/components/ManualHelpIcon";
+import SlugField from "@/components/SlugField";
 
 interface Resource {
   name: string;
@@ -332,16 +333,12 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
             <span className="th-field__help">Shown on the lesson page.</span>
           </label>
 
-          <label className="th-field">
-            <span className="th-field__label">Slug</span>
-            <input
-              type="text"
-              value={slug}
-              onChange={(e) => { setSlug(e.target.value); setSlugTouched(true); }}
-              className="th-input"
-              required
-            />
-          </label>
+          <SlugField
+            value={slug}
+            onChange={(v) => { setSlug(v); setSlugTouched(true); }}
+            isEditing={isEditing}
+            warnText="Changing the slug will break existing links to this lesson."
+          />
 
           <fieldset className="th-field">
             <legend className="th-field__label">Who can access this lesson?</legend>

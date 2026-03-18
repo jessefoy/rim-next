@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import Link from "next/link";
 import { upload } from "@vercel/blob/client";
 import FormattedEditor from "@/components/FormattedEditor";
+import SlugField from "@/components/SlugField";
 
 interface LessonItem {
   lessonId: string;
@@ -131,17 +132,13 @@ export default function TeacherEditor({ initialData }: Props) {
             />
           </label>
 
-          <label className="th-field">
-            <span className="th-field__label">Slug</span>
-            <input
-              type="text"
-              value={slug}
-              onChange={(e) => { setSlug(e.target.value); setSlugTouched(true); }}
-              className="th-input"
-              required
-            />
-            <span className="th-field__help">Used in the public URL: /teachers/[slug]</span>
-          </label>
+          <SlugField
+            value={slug}
+            onChange={(v) => { setSlug(v); setSlugTouched(true); }}
+            isEditing={true}
+            warnText="Changing the slug will break existing links to this teacher's page."
+            hintText="Used in the public URL: /teachers/[slug]"
+          />
 
           <div className="th-field">
             <label className="th-checkbox-label">
