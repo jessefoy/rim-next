@@ -76,6 +76,8 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
               id: true, slug: true, titleDisplayed: true,
               audioUrl: true, videoUrl: true,
               releaseDate: true, releaseDelayDays: true,
+              questionsRequired: true,
+              _count: { select: { questions: true } },
             }
           }
         },
@@ -383,6 +385,9 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
                 );
               }
 
+              const hasRequiredQuestions =
+                cl.lesson.questionsRequired && cl.lesson._count.questions > 0;
+
               return (
                 <div key={cl.lessonId}>
                   {sectionLabel && (
@@ -396,6 +401,13 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
                       {isComplete ? <CheckIcon /> : globalIdx + 1}
                     </span>
                     <span className="crs-toc__title">{cl.lesson.titleDisplayed}</span>
+                    <span className="crs-toc__badges">
+                      {hasRequiredQuestions && (
+                        <span className="ls-q-indicator" title={`Includes ${cl.lesson._count.questions} reflection question${cl.lesson._count.questions !== 1 ? "s" : ""} — required to complete`}>
+                          {cl.lesson._count.questions}Q
+                        </span>
+                      )}
+                    </span>
                     <span className={`crs-toc__icon-wrap crs-toc__icon-wrap--${mediaType}`} aria-label={mediaType}>
                       {hasAudio ? <AudioIcon /> : hasVideo ? <VideoIcon /> : <TextIcon />}
                     </span>

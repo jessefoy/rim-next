@@ -34,17 +34,32 @@ export default async function EditLessonPage({
   const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, roles);
   if (!hub || (!member && !isAdmin)) redirect("/account/dashboard");
 
-  const lesson = await db.lesson.findUnique({
-    where: { slug: lessonSlug },
-    include: {
-      teachers: { include: { teacher: true } },
-      courses: {
-        include: {
-          course: { select: { dripEnabled: true, dripIntervalDays: true, title: true } },
+  const [lesson, initialQuestions] = await Promise.all([
+    db.lesson.findUnique({
+      where: { slug: lessonSlug },
+      include: {
+        teachers: { include: { teacher: true } },
+        courses: {
+          include: {
+            course: { select: { dripEnabled: true, dripIntervalDays: true, title: true } },
+          },
         },
       },
-    },
-  });
+    }),
+    db.reflectionQuestion.findMany({
+      where: { lesson: { slug: lessonSlug } },
+      orderBy: { sortOrder: "asc" },
+      select: {
+        id: true,
+        text: true,
+        sortOrder: true,
+        options: {
+          orderBy: { sortOrder: "asc" },
+          select: { id: true, text: true, isCorrect: true, sortOrder: true },
+        },
+      },
+    }),
+  ]);
   if (!lesson) notFound();
 
   // Serialize for client component
@@ -71,6 +86,8 @@ export default async function EditLessonPage({
     releaseDelayDays: lesson.releaseDelayDays ?? null,
     durationMinutes: lesson.durationMinutes ?? null,
     reflectionPrompt: lesson.reflectionPrompt ?? null,
+    questionsRequired: lesson.questionsRequired,
+    initialQuestions,
     parentDripInfo: lesson.courses
       .filter((cl) => cl.course.dripEnabled)
       .map((cl) => ({

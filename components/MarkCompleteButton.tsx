@@ -7,6 +7,8 @@ interface Props {
   courseSlug?: string;
   initialCompleted: boolean;
   courseCompletionNote?: string | null;
+  /** When true (questionsRequired + not all correct), the button is disabled with a hint */
+  locked?: boolean;
 }
 
 export default function MarkCompleteButton({
@@ -14,6 +16,7 @@ export default function MarkCompleteButton({
   courseSlug,
   initialCompleted,
   courseCompletionNote,
+  locked = false,
 }: Props) {
   const [completed, setCompleted] = useState(initialCompleted);
   const [loading, setLoading] = useState(false);
@@ -50,6 +53,24 @@ export default function MarkCompleteButton({
         {completionNote && (
           <p className="lp-series-complete__note">{completionNote}</p>
         )}
+      </div>
+    );
+  }
+
+  if (locked) {
+    return (
+      <div className="ls-complete-locked">
+        <button
+          type="button"
+          disabled
+          className="lp-complete-btn lp-complete-btn--locked"
+          title="Answer all reflection questions correctly to enable"
+        >
+          Mark as complete
+        </button>
+        <p className="ls-complete-locked__hint">
+          Answer all reflection questions correctly to enable.
+        </p>
       </div>
     );
   }

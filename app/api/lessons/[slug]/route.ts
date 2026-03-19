@@ -81,6 +81,7 @@ export async function PATCH(
   if (body.releaseDelayDays !== undefined) updateData.releaseDelayDays = body.releaseDelayDays != null ? Number(body.releaseDelayDays) : null;
   if (body.durationMinutes !== undefined) updateData.durationMinutes = body.durationMinutes != null ? Number(body.durationMinutes) : null;
   if (body.reflectionPrompt !== undefined) updateData.reflectionPrompt = body.reflectionPrompt || null;
+  if (body.questionsRequired !== undefined) updateData.questionsRequired = Boolean(body.questionsRequired);
 
   const updated = await db.lesson.update({
     where: { slug },

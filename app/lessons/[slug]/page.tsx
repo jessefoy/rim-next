@@ -5,8 +5,7 @@ import { db } from "@/lib/db";
 import { renderContentBody } from "@/lib/renderRichContent";
 import DanaSection from "@/components/DanaSection";
 import AudioPlayer from "@/components/AudioPlayer";
-import MarkCompleteButton from "@/components/MarkCompleteButton";
-import LessonNoteEditor from "@/components/LessonNoteEditor";
+import LessonFooterClient from "@/components/LessonFooterClient";
 import { isLessonAvailable, computeAvailableDate, formatAvailableDate } from "@/lib/drip";
 
 export const dynamic = "force-dynamic";
@@ -248,8 +247,8 @@ export default async function LessonPage({
 
   const bodyHtml = renderContentBody(lesson.body);
 
-  // ── Progress, enrollment & notes ───────────────────────────────────────────
-  const [progressRecord, enrollment, lessonNote] = await Promise.all([
+  // ── Progress, enrollment, notes & questions ────────────────────────────────
+  const [progressRecord, enrollment, lessonNote, rawQuestions] = await Promise.all([
     db.lessonProgress.findUnique({
       where: { userId_lessonId: { userId, lessonId: lesson.id } },
       select: { completedAt: true },
@@ -266,9 +265,66 @@ export default async function LessonPage({
           select: { body: true },
         })
       : Promise.resolve(null),
+    // Fetch questions for enrolled members (or when questionsRequired to know count)
+    courseContext
+      ? db.reflectionQuestion.findMany({
+          where: { lessonId: lesson.id },
+          orderBy: { sortOrder: "asc" },
+          select: {
+            id: true,
+            text: true,
+            sortOrder: true,
+            options: {
+              orderBy: { sortOrder: "asc" },
+              // omit isCorrect — members should not see the answer in page source
+              select: { id: true, text: true, sortOrder: true },
+            },
+          },
+        })
+      : Promise.resolve([]),
   ]);
   const isComplete = !!progressRecord;
   const isEnrolled = !!enrollment;
+
+  // Fetch existing responses and compute allCorrect for enrolled members
+  let initialAllCorrect = false;
+  let questionsWithResponses: {
+    id: string; text: string; sortOrder: number;
+    options: { id: string; text: string; sortOrder: number }[];
+    responseOptionId: string | null;
+  }[] = [];
+
+  if (isEnrolled && rawQuestions.length > 0) {
+    const questionIds = rawQuestions.map((q) => q.id);
+    const [responses, correctOptions] = await Promise.all([
+      db.reflectionResponse.findMany({
+        where: { userId, questionId: { in: questionIds } },
+        select: { questionId: true, optionId: true },
+      }),
+      // Fetch correct option IDs to compute allCorrect server-side
+      db.reflectionOption.findMany({
+        where: { questionId: { in: questionIds }, isCorrect: true },
+        select: { id: true, questionId: true },
+      }),
+    ]);
+
+    const responseMap = new Map(responses.map((r) => [r.questionId, r.optionId]));
+    const correctMap = new Map(correctOptions.map((o) => [o.questionId, o.id]));
+
+    questionsWithResponses = rawQuestions.map((q) => ({
+      ...q,
+      responseOptionId: responseMap.get(q.id) ?? null,
+    }));
+
+    // All correct = every question has a response that matches its correct option
+    initialAllCorrect =
+      rawQuestions.length > 0 &&
+      rawQuestions.every((q) => {
+        const responded = responseMap.get(q.id);
+        const correct = correctMap.get(q.id);
+        return responded != null && correct != null && responded === correct;
+      });
+  }
 
   // Helper: build lesson URL preserving course context
   const lessonUrl = (s: string) =>
@@ -385,29 +441,17 @@ export default async function LessonPage({
 
         {/* ── Learning footer — only when enrolled in a containing series ── */}
         {isEnrolled && (
-          <div className="ls-lesson-footer">
-            {/* 1. Reflection prompt */}
-            {lesson.reflectionPrompt && (
-              <>
-                <hr className="ls-reflection-rule" />
-                <p className="ls-reflection">{lesson.reflectionPrompt}</p>
-              </>
-            )}
-
-            {/* 2. Personal notes */}
-            <LessonNoteEditor
-              lessonSlug={lesson.slug}
-              initialBody={(lessonNote?.body ?? null) as object | null}
-            />
-
-            {/* 3. Mark complete */}
-            <MarkCompleteButton
-              lessonSlug={lesson.slug}
-              courseSlug={courseContext?.course.slug}
-              initialCompleted={isComplete}
-              courseCompletionNote={courseContext?.course.completionNote ?? null}
-            />
-          </div>
+          <LessonFooterClient
+            lessonSlug={lesson.slug}
+            courseSlug={courseContext?.course.slug}
+            reflectionPrompt={lesson.reflectionPrompt}
+            initialNoteBody={(lessonNote?.body ?? null) as object | null}
+            initialCompleted={isComplete}
+            courseCompletionNote={courseContext?.course.completionNote ?? null}
+            questionsRequired={lesson.questionsRequired}
+            initialQuestions={questionsWithResponses}
+            initialAllCorrect={initialAllCorrect}
+          />
         )}
 
         {showDana && <DanaSection />}
