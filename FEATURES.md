@@ -3067,7 +3067,7 @@ Three-column split-pane email client:
 
 ---
 
-## 30. Learning System ✅ Features 1–6 Built (session 60, 2026-03-18)
+## 30. Learning System ✅ Features 1–6 + Reflection Questions Built (sessions 60–61, 2026-03-18)
 
 **What it is:** A set of features that upgrades the Series/Lesson library from a static content archive into an active learning companion — designed specifically for a contemplative community. No gamification, streaks, points, or credentials. The goal is to give members the tools to engage deeply with teachings over time: knowing where they are, reflecting on what they've read, and marking moments of completion.
 
@@ -3083,8 +3083,9 @@ Three-column split-pane email client:
 | 4 | **Reflection prompts** | ✅ Built | `reflectionPrompt String?` on Lesson; shown at bottom of lesson (italic serif, preceded by rule) when enrolled |
 | 5 | **Personal lesson notes** | ✅ Built | Private per-lesson note (FormattedEditor, Tiptap JSON); 1.5s debounced autosave; only shown when enrolled |
 | 6 | **Completion moment** | ✅ Built | All lessons marked complete → sets `SeriesEnrollment.completedAt`; quiet acknowledgment with teacher's completion note |
-| 7 | **Teacher profiles** | Deferred | Full `Teacher` Postgres records with bio + photo; enables "also from this teacher" links |
-| 8 | **Shared reflection / per-series discussion** | Deferred | Optional per-series contemplative sharing thread; off by default |
+| 7 | **Reflection Questions** | ✅ Built (session 61) | Multiple-choice questions per lesson; teacher sets correct answer; required vs. gentle mode; Complete button gate in required mode |
+| 8 | **Teacher profiles** | Deferred | Full `Teacher` Postgres records with bio + photo; enables "also from this teacher" links |
+| 9 | **Shared reflection / per-series discussion** | Deferred | Optional per-series contemplative sharing thread; off by default |
 
 ### Key data models
 
@@ -3093,6 +3094,9 @@ Three-column split-pane email client:
 | `LessonProgress` | `userId`, `lessonId`, `completedAt`, `@@unique([userId, lessonId])`, `@@map("lesson_progress")` | ✅ Built |
 | `SeriesEnrollment` | `userId`, `courseId`, `enrolledAt`, `completedAt?`, `enrollmentSource`, `@@unique([userId, courseId])`, `@@map("series_enrollments")` | ✅ Built |
 | `LessonNote` | `userId`, `lessonId`, `body Json?`, `updatedAt`, `@@unique([userId, lessonId])`, `@@map("lesson_notes")` | ✅ Built (session 60) |
+| `ReflectionQuestion` | `lessonId`, `text`, `sortOrder`, `@@map("reflection_questions")` | ✅ Built (session 61) |
+| `ReflectionOption` | `questionId`, `text`, `isCorrect Boolean`, `sortOrder`, `@@map("reflection_options")` | ✅ Built (session 61) |
+| `ReflectionResponse` | `userId`, `questionId`, `optionId`, `answeredAt`, `@@unique([userId, questionId])`, `@@map("reflection_responses")` | ✅ Built (session 61) |
 | `Teacher` | `name`, `slug`, `bio Json?`, `photoUrl?`, `isActive` | ✅ Built (profile infra exists; full teacher-profile pages deferred) |
 
 ### Fields added to existing models
@@ -3101,47 +3105,63 @@ Three-column split-pane email client:
 |---|---|---|
 | `Lesson` | `durationMinutes Int?` | ✅ Built (session 60) |
 | `Lesson` | `reflectionPrompt String?` | ✅ Built (session 60) |
+| `Lesson` | `questionsRequired Boolean @default(false)` | ✅ Built (session 61) |
 | `Course` | `completionNote String?` | ✅ Built (already existed) |
-| `Course` | `discussionEnabled Boolean @default(false)` | ✅ Schema only (UI deferred with Feature 8) |
+| `Course` | `discussionEnabled Boolean @default(false)` | ✅ Schema only (UI deferred with Feature 9) |
 
 ### Who uses it
-- **Members** — enroll in series via the series page; track progress; write private lesson notes; mark lessons complete
-- **Teachers** — enter duration estimates and reflection prompts via the Lesson Editor; set a completion note via the Series Editor
+- **Members** — enroll in series; track progress; write private lesson notes; answer reflection questions; mark lessons complete
+- **Teachers** — enter duration, reflection prompt, questions, and correct answers via LessonEditor; set completion note via CourseEditor; toggle `questionsRequired` to gate the Complete button
 
-### Member user flow
+### Member user flow — base features
 1. Member visits `/course/[slug]` — sees Enroll button if not enrolled
 2. Member clicks Enroll → `SeriesEnrollment` record created → progress bar + Continue button appear
 3. Member clicks Continue → goes to first incomplete lesson
-4. At bottom of lesson (enrolled only): reflection prompt (if set), personal notes editor, Mark Complete button
+4. At bottom of lesson (enrolled only): reflection prompt (if set), reflection questions (if set), personal notes editor, Mark Complete button
 5. Notes autosave as member types (1.5s debounce)
 6. Member marks lesson complete → progress updates on next visit to series page
 7. Last lesson marked complete → `SeriesEnrollment.completedAt` set → completion note shown on lesson page + series page
 8. Dashboard shows `ls-dash-card` cards for all non-onboarding enrolled series with progress bars and Continue links
 
+### Member user flow — reflection questions
+1. Teacher writes questions in LessonEditor; marks one option per question as correct; optionally checks "Required mode"
+2. Member visits the lesson (must be enrolled) — sees questions below the reflection prompt
+3. Member selects an answer per question and clicks Submit — immediately sees ✓ Correct or ✗ Not quite feedback
+4. If incorrect, the correct answer is revealed inline; member can click "Try again" to retake
+5. Retakes always allowed — re-submission overwrites the previous answer
+6. **Required mode:** Complete button is disabled until all questions answered correctly. Once unlocked it stays unlocked for the session and on all future visits (`initialAllCorrect` computed server-side)
+7. **Gentle mode:** questions are shown but Complete button is always active; footer note says "these don't affect completion"
+8. Series page shows `ls-q-indicator` badge ("3Q") on lessons with required questions
+
 ### Key files
-- `app/api/lessons/[slug]/complete/route.ts` — POST: toggle complete; check if all done → set `SeriesEnrollment.completedAt`
-- `app/api/courses/[slug]/enroll/route.ts` — POST/DELETE: enroll / unenroll (SELF source only for unenroll)
+- `app/api/lessons/[slug]/questions/route.ts` — GET (member, enrollment-gated, no isCorrect in options) + PUT (teacher replace-all)
+- `app/api/lessons/[slug]/questions/[questionId]/respond/route.ts` — POST upsert response; returns `isCorrect + correctOptionId`
+- `app/api/lessons/[slug]/complete/route.ts` — POST: toggle complete; 403 if not enrolled; clears `completedAt` on un-complete
+- `app/api/courses/[slug]/enroll/route.ts` — POST/DELETE: enroll / unenroll
 - `app/api/lessons/[slug]/note/route.ts` — GET/PATCH: personal note upsert (enrollment-gated)
-- `app/course/[slug]/page.tsx` — progress bar, Continue link, enrollment button, completion state
-- `app/lessons/[slug]/page.tsx` — `ls-lesson-footer` (reflection prompt + notes editor + complete button); only shown when enrolled in a containing series
+- `app/course/[slug]/page.tsx` — progress bar, Continue link, enrollment button, completion state; `ls-q-indicator` on required-question lessons
+- `app/lessons/[slug]/page.tsx` — fetches questions + responses + correctOptionIds server-side; computes `initialAllCorrect`; renders `LessonFooterClient`
 - `app/account/dashboard/page.tsx` — `ls-dash-card` series cards with progress
+- `components/LessonFooterClient.tsx` — "use client" wrapper; holds `allCorrect` state; feeds `locked` prop to `MarkCompleteButton`
+- `components/ReflectionQuestionsClient.tsx` — per-question radio + submit + correct/incorrect feedback + retake; calls `onAllCorrect` callback
 - `components/LessonNoteEditor.tsx` — FormattedEditor with 1.5s debounced autosave + save status indicator
-- `components/MarkCompleteButton.tsx` — toggle complete; handles series completion acknowledgment
+- `components/MarkCompleteButton.tsx` — toggle complete; `locked` prop for questions gate; handles series completion acknowledgment
 - `components/EnrollButton.tsx` — enroll/unenroll with confirmation
-- `components/CourseEditor.tsx` — `completionNote` field added (session 60)
-- `components/LessonEditor.tsx` — `durationMinutes` + `reflectionPrompt` fields added (session 60)
+- `components/LessonEditor.tsx` — `durationMinutes` + `reflectionPrompt` + `questionsRequired` + full questions section (add/reorder/remove questions + options, correct-answer radio)
+- `components/CourseEditor.tsx` — `completionNote` field
 
 **🔧 Technical notes:**
 - Enrollment is required to access the lesson footer (reflection, notes, complete). Access (viewing content) is controlled separately by `accessLevel` and `CourseAccess`.
 - `reflectionPrompt` is plain `String?` (not Tiptap) — single sentence or short paragraph, no formatting needed.
 - Personal notes (`LessonNote.body`) are Tiptap JSON via `FormattedEditor`. `Prisma.JsonNull` required when body is null.
 - `completedAt` on `SeriesEnrollment` is set automatically when all lessons in the course have `LessonProgress` records — not manually by the member.
-- The lesson note API (`/api/lessons/[slug]/note`) checks `SeriesEnrollment` before allowing GET or PATCH — returns 403 if not enrolled.
-- Dashboard cards exclude ONBOARDING-source enrollments (those already have their own dedicated welcome section).
-- `durationMinutes` is stored on `Lesson`; it's the teacher's estimate, not a tracked metric.
-- Teacher profiles (`Teacher` model) already exist in the DB (from a prior session); what's deferred is the public teacher profile pages and the "also from this teacher" feature.
+- **isCorrect is never sent to the client in the member questions GET** — only `optionId`, `text`, `sortOrder`. The correct option ID is only revealed after the member submits an answer (via the respond route).
+- `initialAllCorrect` is computed server-side (comparing `ReflectionResponse.optionId` against `ReflectionOption.isCorrect`) so the Complete button is correctly unlocked on page load for members who already answered correctly in a previous session.
+- The `LessonFooterClient` wrapper holds `allCorrect` state locally; `ReflectionQuestionsClient` fires `onAllCorrect()` when all questions are answered correctly in this session, updating the parent state.
+- Teacher question saves: LessonEditor calls PUT `/api/lessons/[slug]/questions` after PATCH lesson. The PUT is a full replace (deleteMany + re-create), keeping the implementation simple since question sets are small.
+- `ls-q-indicator` on the series page only appears when `questionsRequired = true` AND the lesson has at least one question (uses `_count.questions`).
 
-*Updated: 2026-03-18 (session 60)*
+*Updated: 2026-03-18 (session 61)*
 
 ## 31. Contextual Help System (Manual Sections)
 
