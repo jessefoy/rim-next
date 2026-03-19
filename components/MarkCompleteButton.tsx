@@ -64,12 +64,11 @@ export default function MarkCompleteButton({
           type="button"
           disabled
           className="lp-complete-btn lp-complete-btn--locked"
-          title="Answer all reflection questions correctly to enable"
         >
           Mark as complete
         </button>
         <p className="ls-complete-locked__hint">
-          Answer all reflection questions correctly to enable.
+          Answer all reflection questions correctly to complete this lesson.
         </p>
       </div>
     );

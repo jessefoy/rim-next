@@ -46,32 +46,26 @@ export default function LessonFooterClient({
     <div className="ls-lesson-footer">
       {/* 1. Reflection prompt */}
       {reflectionPrompt && (
-        <>
-          <hr className="ls-reflection-rule" />
-          <p className="ls-reflection">{reflectionPrompt}</p>
-        </>
+        <p className="ls-reflection">{reflectionPrompt}</p>
       )}
 
-      {/* 2. Reflection questions */}
-      {initialQuestions.length > 0 && (
-        <>
-          <hr className="ls-reflection-rule" />
-          <ReflectionQuestionsClient
-            lessonSlug={lessonSlug}
-            questionsRequired={questionsRequired}
-            initialQuestions={initialQuestions}
-            initialAllCorrect={initialAllCorrect}
-            onAllCorrect={() => setAllCorrect(true)}
-          onRetake={() => setAllCorrect(false)}
-          />
-        </>
-      )}
-
-      {/* 3. Personal notes */}
+      {/* 2. Personal notes */}
       <LessonNoteEditor
         lessonSlug={lessonSlug}
         initialBody={initialNoteBody}
       />
+
+      {/* 3. Reflection questions — sits immediately above Complete button since it gates it */}
+      {initialQuestions.length > 0 && (
+        <ReflectionQuestionsClient
+          lessonSlug={lessonSlug}
+          questionsRequired={questionsRequired}
+          initialQuestions={initialQuestions}
+          initialAllCorrect={initialAllCorrect}
+          onAllCorrect={() => setAllCorrect(true)}
+          onRetake={() => setAllCorrect(false)}
+        />
+      )}
 
       {/* 4. Mark complete — locked if questionsRequired and not all correct */}
       <MarkCompleteButton

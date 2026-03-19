@@ -155,11 +155,6 @@ export default function ReflectionQuestionsClient({
         <p className="ls-questions__privacy">
           Your answers are private — only you can see them.
         </p>
-        {questionsRequired && !allCorrect && (
-          <p className="ls-questions__gate-note">
-            Answer all questions correctly to enable the Complete button.
-          </p>
-        )}
         {questionsRequired && allCorrect && (
           <p className="ls-questions__gate-done">
             ✓ All questions answered correctly — you may now mark this lesson complete.
