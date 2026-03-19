@@ -1,5 +1,21 @@
 # RIM Web Design Philosophy
 
+## The Primary Intention
+
+RIM's design is rooted in a Dharma principle: **clear seeing is the prerequisite for wise and compassionate response.**
+
+The Metta Sutta describes the conditions from which loving-kindness arises — calm, ease, freedom from complication. These are not incidental qualities or aesthetic preferences. They are the ground from which right action becomes possible. When the mind is cluttered and competing for attention, it cannot see clearly. When it cannot see clearly, it cannot respond with wisdom or compassion. It can only react.
+
+This is the primary intention behind every design decision at RIM — public site, member pages, volunteer tools, admin screens. We reduce noise not primarily for aesthetic reasons, but because noise obscures. A cluttered page prevents the person using it from actually seeing what is in front of them: the member they're looking at, the situation that needs attention, what would genuinely help.
+
+**Every screen should ask: does this create the conditions for clear seeing?**
+
+Does it show what is actually here, without demanding that the viewer sort through what isn't relevant? Does it make the primary thing visible before anything else competes? Does it create the quiet in which a wise and compassionate response becomes available?
+
+The Dharma does not stop at the threshold of an admin interface. It is either present in the whole or it isn't present at all.
+
+---
+
 ## What This Document Is
 
 This is a working reference for design decisions made on the RIM website and platform. It is not a style guide in the traditional sense — it does not enumerate colors and font sizes. It captures the *why* behind the choices we make, so that future decisions stay coherent with the ones that came before. This document covers both the public-facing website and the member- and volunteer-facing platform. The principles apply across all interfaces RIM builds.

@@ -84,41 +84,57 @@ export default function HubAccessSection({ memberId, memberName, initialAccess }
   }
 
   return (
-    <section className="adm-section">
-      <h2 className="adm-section__title">Hub Access</h2>
-      <p className="adm-section__hint">
+    <section className="adm2-section">
+      <h2 className="adm2-section__title">Hub Access</h2>
+      <p className="adm2-section__hint">
         Person-level access grants — independent of role. Controls which hub workspaces this member can enter.
       </p>
 
       {message && (
-        <p className={`adm-hub-access__message adm-hub-access__message--${message.type}`}>
+        <p style={{
+          fontFamily: "var(--font-sans)",
+          fontSize: 13,
+          color: message.type === "success" ? "#2d6b4a" : "#c0392b",
+          marginBottom: 12,
+        }}>
           {message.text}
         </p>
       )}
 
       {/* Current access list */}
       {access.length === 0 ? (
-        <p className="adm-hub-access__empty">No hub access grants.</p>
+        <p className="adm2-empty">No hub access grants.</p>
       ) : (
-        <ul className="adm-hub-access__list">
+        <ul style={{ listStyle: "none", padding: 0, margin: "0 0 16px" }}>
           {access.map((record) => (
-            <li key={record.hubSlug} className="adm-hub-access__item">
-              <span className="adm-hub-access__name">{hubLabel(record.hubSlug)}</span>
-              <span className="adm-hub-access__since">
+            <li key={record.hubSlug} style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              padding: "10px 0",
+              borderBottom: "1px solid var(--rim-bg-accent)",
+              flexWrap: "wrap",
+            }}>
+              <span style={{ fontFamily: "var(--font-sans)", fontSize: 14, fontWeight: 600, color: "var(--rim-text)", flex: 1 }}>
+                {hubLabel(record.hubSlug)}
+              </span>
+              <span style={{ fontFamily: "var(--font-sans)", fontSize: 13, color: "var(--rim-text-muted)" }}>
                 since {new Date(record.grantedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
               </span>
               {confirmRevoke === record.hubSlug ? (
-                <span className="adm-hub-access__confirm">
-                  Remove {memberName}&rsquo;s access to {hubLabel(record.hubSlug)}?{" "}
+                <span style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                  <span style={{ fontFamily: "var(--font-sans)", fontSize: 13, color: "var(--rim-text)" }}>
+                    Remove {memberName}&rsquo;s access to {hubLabel(record.hubSlug)}?
+                  </span>
                   <button
-                    className="adm-btn--danger adm-btn--sm"
+                    className="adm2-btn--danger adm2-btn--sm"
                     onClick={() => handleRevoke(record.hubSlug)}
                     disabled={revoking === record.hubSlug}
                   >
                     {revoking === record.hubSlug ? "Removing…" : "Yes, remove"}
-                  </button>{" "}
+                  </button>
                   <button
-                    className="adm-btn--neutral adm-btn--sm"
+                    className="adm2-btn--neutral adm2-btn--sm"
                     onClick={() => setConfirmRevoke(null)}
                     disabled={revoking === record.hubSlug}
                   >
@@ -127,7 +143,7 @@ export default function HubAccessSection({ memberId, memberName, initialAccess }
                 </span>
               ) : (
                 <button
-                  className="adm-btn--neutral adm-btn--sm"
+                  className="adm2-btn--neutral adm2-btn--sm"
                   onClick={() => setConfirmRevoke(record.hubSlug)}
                 >
                   Revoke
@@ -140,9 +156,10 @@ export default function HubAccessSection({ memberId, memberName, initialAccess }
 
       {/* Grant access */}
       {availableToGrant.length > 0 && (
-        <div className="adm-hub-access__grant">
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <select
-            className="adm-form__select adm-hub-access__select"
+            className="adm2-form__select"
+            style={{ maxWidth: 240 }}
             value={selectedHub}
             onChange={(e) => setSelectedHub(e.target.value)}
           >
@@ -152,7 +169,7 @@ export default function HubAccessSection({ memberId, memberName, initialAccess }
             ))}
           </select>
           <button
-            className="adm-btn--primary adm-btn--sm"
+            className="adm2-save__btn adm2-btn--sm"
             onClick={handleGrant}
             disabled={!selectedHub || granting}
           >
@@ -162,7 +179,7 @@ export default function HubAccessSection({ memberId, memberName, initialAccess }
       )}
 
       {availableToGrant.length === 0 && (
-        <p className="adm-hub-access__empty" style={{ marginTop: 12 }}>
+        <p className="adm2-empty" style={{ marginTop: 12 }}>
           This member has access to all known hubs.
         </p>
       )}

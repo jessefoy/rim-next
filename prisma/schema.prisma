@@ -78,6 +78,9 @@ model User {
   firstVisitDate  DateTime?
   adminNotes      Json?             // Tiptap JSON (FormattedEditor)
   tags            String[]     @default([])
+  // Viewer-level section access grants — sections this person can view on other member profiles
+  // without holding the team role. Admin-assigned. Example values: "admin-notes", "care-notes"
+  sectionGrants   String[]     @default([])
 
   // Learning system
   lessonProgress      LessonProgress[]

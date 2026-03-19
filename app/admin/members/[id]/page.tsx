@@ -3,6 +3,7 @@ import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import MemberDetail from "@/components/MemberDetail";
 import ManualHelpIcon from "@/components/ManualHelpIcon";
+import { type ViewerPermissions } from "@/lib/memberSectionRegistry";
 
 export const dynamic = "force-dynamic";
 
@@ -27,53 +28,57 @@ export default async function AdminMemberDetailPage({
   }
 
   const { id } = await params;
-  const user = await db.user.findUnique({
-    where: { id },
-    include: {
-      teacherProfile: {
-        select: { bio: true, photoUrl: true, slug: true, isPublic: true },
-      },
-      registrations: {
-        orderBy: { createdAt: "desc" },
-        select: {
-          id: true,
-          programTitle: true,
-          programSlug: true,
-          status: true,
-          donationStatus: true,
-          createdAt: true,
+
+  // Fetch viewer's sectionGrants alongside the member record
+  const [user, viewer] = await Promise.all([
+    db.user.findUnique({
+      where: { id },
+      include: {
+        teacherProfile: {
+          select: { bio: true, photoUrl: true, slug: true, isPublic: true },
         },
-      },
-      courseAccess: {
-        orderBy: { createdAt: "asc" },
-        select: { id: true, courseSlug: true, createdAt: true },
-      },
-      hubAccess: {
-        orderBy: { grantedAt: "asc" },
-        select: { hubSlug: true, grantedAt: true },
-      },
-      household: {
-        select: {
-          isPrimary: true,
-          relationshipType: true,
-          relationshipCustom: true,
-          household: {
-            select: {
-              id: true,
-              name: true,
-              addressLine1: true,
-              addressCity: true,
-              addressState: true,
-              addressZip: true,
-              members: {
-                orderBy: { createdAt: "asc" },
-                select: {
-                  userId: true,
-                  isPrimary: true,
-                  relationshipType: true,
-                  relationshipCustom: true,
-                  user: {
-                    select: { id: true, firstName: true, lastName: true, email: true },
+        registrations: {
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            programTitle: true,
+            programSlug: true,
+            status: true,
+            donationStatus: true,
+            createdAt: true,
+          },
+        },
+        courseAccess: {
+          orderBy: { createdAt: "asc" },
+          select: { id: true, courseSlug: true, createdAt: true },
+        },
+        hubAccess: {
+          orderBy: { grantedAt: "asc" },
+          select: { hubSlug: true, grantedAt: true },
+        },
+        household: {
+          select: {
+            isPrimary: true,
+            relationshipType: true,
+            relationshipCustom: true,
+            household: {
+              select: {
+                id: true,
+                name: true,
+                addressLine1: true,
+                addressCity: true,
+                addressState: true,
+                addressZip: true,
+                members: {
+                  orderBy: { createdAt: "asc" },
+                  select: {
+                    userId: true,
+                    isPrimary: true,
+                    relationshipType: true,
+                    relationshipCustom: true,
+                    user: {
+                      select: { id: true, firstName: true, lastName: true, email: true },
+                    },
                   },
                 },
               },
@@ -81,10 +86,19 @@ export default async function AdminMemberDetailPage({
           },
         },
       },
-    },
-  });
+    }),
+    db.user.findUnique({
+      where: { id: session.user.id },
+      select: { sectionGrants: true },
+    }),
+  ]);
 
   if (!user) notFound();
+
+  const viewerPermissions: ViewerPermissions = {
+    roles: session.user.roles ?? [],
+    sectionGrants: viewer?.sectionGrants ?? [],
+  };
 
   // Construct serialized object explicitly — never spread the full Prisma user object,
   // as it contains Date fields (updatedAt, emailVerified, agreedAt, legacyLastLogin, etc.)
@@ -105,6 +119,7 @@ export default async function AdminMemberDetailPage({
     firstVisitDate: user.firstVisitDate?.toISOString() ?? null,
     adminNotes: user.adminNotes,
     tags: user.tags,
+    sectionGrants: user.sectionGrants,
     roles: user.roles,
     isTeacher: user.isTeacher,
     teacherProfile: user.teacherProfile
@@ -159,10 +174,10 @@ export default async function AdminMemberDetailPage({
   };
 
   return (
-    <div className="adm-page">
-      <div className="adm-content adm-content--narrow" style={{ position: "relative" }}>
+    <div className="adm2-page">
+      <div className="adm2-content" style={{ position: "relative" }}>
         <ManualHelpIcon manualSlug="member-accounts" />
-        <MemberDetail member={serialized} isAdmin={isAdmin} />
+        <MemberDetail member={serialized} viewerPermissions={viewerPermissions} />
       </div>
     </div>
   );

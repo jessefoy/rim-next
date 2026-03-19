@@ -43,6 +43,8 @@ Two audiences:
 28. [Editor Standard](#28-editor-standard)
 29. [Support Inbox](#29--support-inbox)
 30. [Learning System — Planned](#30-learning-system--planned)
+31. [Contextual Help System (Manual Sections)](#31-contextual-help-system-manual-sections)
+32. [Admin Member Profile — Section Registry](#32-admin-member-profile--section-registry)
 
 ---
 
@@ -3252,6 +3254,43 @@ Three-column split-pane email client:
 
 ---
 
-*Last updated: 2026-03-19 (session 67)*
+*Last updated: 2026-03-19 (session 68)*
+
+---
+
+## 32. Admin Member Profile — Section Registry
+
+**What it does:** The admin member profile page (`/admin/members/[id]`) uses a declarative section registry to control which sections are visible, to whom, and under what conditions. The pattern replaced the previous monolithic `MemberDetail.tsx` in session 68.
+
+**Where it lives:** `lib/memberSectionRegistry.tsx`
+
+**Section components:** `components/member-sections/`
+- `CoreRecordSection` — Identity, Contact, Status, Tags; one save bar
+- `AdminNotesSection` — Tiptap rich-text notes; independent save
+- `RolesSection` — Role checkboxes; independent save; role assignment email side effect lives in the API route
+- `TeacherSection` — `isTeacher` toggle + TeacherProfile fields; saves to `/teacher-profile` endpoint
+- `RegistrationHistorySection` — read-only
+- `DangerZoneSection` — delete flow; only rendered when member has no registrations
+
+**Existing components used as-is via registry:**
+- `HouseholdSection`
+- `HubAccessSection`
+- `CourseAccessSection` (registry render function provides the `<section>` wrapper)
+
+**Key types (all exported from `lib/memberSectionRegistry.tsx`):**
+- `SerializedMember` — canonical type for member data on the profile page
+- `ViewerPermissions` — `{ roles, sectionGrants }` computed server-side in `page.tsx`
+- `MemberSection` — `{ id, allowedRoles, condition?, render }`
+
+**sectionGrants:** A `String[]` field on `User`. Grants the viewing user access to specific section IDs when viewing other member profiles, independent of team roles. Managed via Neon console until an admin UI is built.
+
+**🔧 Technical notes:**
+- `page.tsx` fetches `viewer.sectionGrants` from the DB using the session user's ID; builds `ViewerPermissions` and passes it to `MemberDetail`
+- `MemberDetail.tsx` is now ~60 lines: header, archived banner, and a `MEMBER_SECTIONS.map()` with `canViewSection()` check
+- The `isAdmin` prop was removed; all permission checks derive from `ViewerPermissions`
+- `isTeacher` was moved out of the main PATCH endpoint — it now lives exclusively in `PATCH /api/admin/members/[id]/teacher-profile`
+- To add a new section: (1) create a component in `components/member-sections/`, (2) add one entry to `MEMBER_SECTIONS` in the registry. Nothing else changes.
+
+*Updated: 2026-03-19 (session 68)*
 
 **2026-03-16 (session 58, continued)** — Session tab: finished remaining gaps from the UX redesign brief. (1) meetHostAccount display: Added to States 2 and 3 — shows the Google Meet room account labeled "Room account" in State 2, quiet text below the join button in State 3. (2) State 5 inline form: PostSessionClient now renders inline in State 5 instead of linking to a separate page. Co-host vs primary host routing handled via isCoHost prop derived from SessionProgram flags. (3) End Session stays on page: endSession callback now calls router.refresh() instead of router.push — user stays on the session tab and State 5 appears with the inline form. (4) Coordinator section: Coordinator/Admin users see a muted section below the host cards with missing report indicators and team journal link. Key files: components/SessionLiveClient.tsx, components/PostSessionClient.tsx, app/account/hub/[slug]/session/page.tsx.

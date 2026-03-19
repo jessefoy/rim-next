@@ -25,7 +25,7 @@ export async function PATCH(
     action,
     firstName, lastName, phone, email, roles,
     preferredName, title, addressLine1, addressCity, addressState, addressZip,
-    memberStatus, firstVisitDate, adminNotes, tags, isTeacher,
+    memberStatus, firstVisitDate, adminNotes, tags,
   } = body;
 
   // ── Special actions (Admin only) ─────────────────────────────────────────────
@@ -144,7 +144,6 @@ export async function PATCH(
     ...(adminNotes !== undefined && { adminNotes }),
     ...(tags !== undefined && { tags }),
     ...(statusDrivenArchivedAt !== undefined && { archivedAt: statusDrivenArchivedAt }),
-    ...(isTeacher !== undefined && isAdmin && { isTeacher: Boolean(isTeacher) }),
   };
 
   const updated = await db.user.update({

@@ -4,8 +4,8 @@ import { db } from "@/lib/db";
 
 /**
  * PATCH /api/admin/members/[id]/teacher-profile
- * Upsert TeacherProfile for a member. ADMIN only.
- * Body: { bio?, photoUrl?, slug?, isPublic? }
+ * Upsert TeacherProfile for a member and set isTeacher flag. ADMIN only.
+ * Body: { isTeacher?, bio?, photoUrl?, slug?, isPublic? }
  */
 export async function PATCH(
   request: NextRequest,
@@ -36,24 +36,34 @@ export async function PATCH(
     }
   }
 
-  const profile = await db.teacherProfile.upsert({
-    where: { userId: id },
-    create: {
-      userId: id,
-      bio: body.bio ?? null,
-      photoUrl: body.photoUrl ?? null,
-      slug: slug ?? null,
-      isPublic: body.isPublic ?? false,
-    },
-    update: {
-      ...(body.bio !== undefined && { bio: body.bio || null }),
-      ...(body.photoUrl !== undefined && { photoUrl: body.photoUrl || null }),
-      ...(slug !== undefined && { slug }),
-      ...(body.isPublic !== undefined && { isPublic: body.isPublic }),
-    },
-  });
+  // Update isTeacher on User and upsert TeacherProfile in a transaction
+  const [, profile] = await db.$transaction([
+    db.user.update({
+      where: { id },
+      data: {
+        ...(body.isTeacher !== undefined && { isTeacher: Boolean(body.isTeacher) }),
+      },
+    }),
+    db.teacherProfile.upsert({
+      where: { userId: id },
+      create: {
+        userId: id,
+        bio: body.bio ?? null,
+        photoUrl: body.photoUrl ?? null,
+        slug: slug ?? null,
+        isPublic: body.isPublic ?? false,
+      },
+      update: {
+        ...(body.bio !== undefined && { bio: body.bio || null }),
+        ...(body.photoUrl !== undefined && { photoUrl: body.photoUrl || null }),
+        ...(slug !== undefined && { slug }),
+        ...(body.isPublic !== undefined && { isPublic: body.isPublic }),
+      },
+    }),
+  ]);
 
   return NextResponse.json({
+    isTeacher: body.isTeacher !== undefined ? Boolean(body.isTeacher) : user.isTeacher,
     bio: profile.bio,
     photoUrl: profile.photoUrl,
     slug: profile.slug,

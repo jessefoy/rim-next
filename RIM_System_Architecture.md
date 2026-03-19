@@ -61,6 +61,60 @@ This is the framework for every future hub data view. If a proposed feature can'
 
 ---
 
+## Member Profile Architecture — Section Registry Pattern
+
+The admin member profile page (`/admin/members/[id]`) uses a **section registry pattern** introduced in session 68. This governs how the profile page is structured and how visibility is determined.
+
+### The registry
+
+`lib/memberSectionRegistry.tsx` defines:
+- `SerializedMember` — the canonical serialized type for a member record passed to the profile page and all section components
+- `ViewerPermissions` — `{ roles: string[], sectionGrants: string[] }` — the viewing user's effective access
+- `MemberSection` — `{ id, allowedRoles, condition?, render }` — a section definition
+- `MEMBER_SECTIONS` — the ordered array of all sections
+
+Adding a new section means adding one entry to `MEMBER_SECTIONS` and creating a component in `components/member-sections/`. Nothing else changes.
+
+### Visibility logic
+
+A section is shown if:
+1. The viewer holds any role in `section.allowedRoles`, **or** the section `id` appears in the viewer's `sectionGrants`
+2. AND `section.condition(member)` returns true (if a condition is defined)
+
+```typescript
+const visible = (hasRole || hasGrant) && passesCondition;
+```
+
+### sectionGrants
+
+`User.sectionGrants String[]` is a field on the **viewer's** record — not the subject member's. It grants that person access to specific sections when viewing any member profile they can otherwise reach. Example: a `sectionGrants` value of `"care-notes"` lets that person see Care Notes on any profile, without holding the PEOPLE_TEAM role.
+
+Assigned by ADMIN via the Neon console for now; a UI for this will be added when the first non-role section grant is needed in practice.
+
+### Current sections (session 68)
+
+| Section ID | Allowed Roles | Condition |
+|---|---|---|
+| `core-record` | ADMIN, REGISTRAR | — |
+| `household` | ADMIN, REGISTRAR | — |
+| `admin-notes` | ADMIN | — |
+| `roles` | ADMIN | — |
+| `hub-access` | ADMIN | — |
+| `teacher` | ADMIN | — |
+| `course-access` | ADMIN, REGISTRAR | — |
+| `registrations` | ADMIN, REGISTRAR | — |
+| `danger-zone` | ADMIN | member has no registrations |
+
+### Save model
+
+The core record (Identity, Contact, Status, Tags) saves together via `PATCH /api/admin/members/[id]`. All other sections save independently via their own endpoints. No global save bar exists on the page.
+
+### isTeacher / TeacherProfile
+
+The `isTeacher` boolean and the `TeacherProfile` upsert are both handled by `PATCH /api/admin/members/[id]/teacher-profile`. The main member PATCH endpoint no longer accepts `isTeacher`.
+
+---
+
 ## The Build Model
 
 **One hub role at a time.** Each hub with a member data need gets its own scoped view built specifically for that role's workflow. This approach:
@@ -127,4 +181,4 @@ This file is part of the closing ritual for any Claude Code session that touches
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org*
-*Working document · March 2026 (updated session 60)*
+*Working document · March 2026 (updated session 68)*
