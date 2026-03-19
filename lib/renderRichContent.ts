@@ -84,16 +84,48 @@ function renderBlockNode(block: any): string {
   }
 }
 
+function isTiptapJSON(json: any): boolean {
+  return (
+    json !== null &&
+    typeof json === "object" &&
+    !Array.isArray(json) &&
+    json.type === "doc" &&
+    Array.isArray(json.content)
+  )
+}
+
 /**
  * Render BlockNote JSON → HTML (client-safe, no JSDOM).
- * Also handles legacy rawHtml format.
- * Returns empty string for null/non-BlockNote values.
+ * Also handles legacy rawHtml and Tiptap JSON formats.
+ * Tiptap fallback extracts plain text when full rendering isn't available client-side.
+ * Server components should use renderFormattedTextAsync for accurate output.
  */
 export function renderBlockNoteHtml(json: any): string {
   if (!json) return ""
   if (isRawHtml(json)) return json.html
-  if (!isBlockNoteJSON(json)) return ""
-  return (json as any[]).map(renderBlockNode).join("")
+  if (isBlockNoteJSON(json)) return (json as any[]).map(renderBlockNode).join("")
+  // Legacy Tiptap JSON — extract text content as paragraph fallback until migration
+  if (isTiptapJSON(json)) {
+    return extractTiptapText(json)
+  }
+  return ""
+}
+
+function extractTiptapText(json: any): string {
+  if (!json || typeof json !== "object") return ""
+  if (typeof json.text === "string") return json.text
+  if (Array.isArray(json.content)) {
+    const children = json.content.map(extractTiptapText).filter(Boolean).join(" ")
+    const tag = json.type
+    if (tag === "paragraph" || tag === "doc") return children ? `<p>${children}</p>` : ""
+    if (tag === "heading") return `<h${json.attrs?.level ?? 2}>${children}</h${json.attrs?.level ?? 2}>`
+    if (tag === "bulletList" || tag === "orderedList") return children
+    if (tag === "listItem") return `<li>${children}</li>`
+    if (tag === "blockquote") return `<blockquote>${children}</blockquote>`
+    if (tag === "hardBreak") return "<br>"
+    return children
+  }
+  return ""
 }
 
 /**

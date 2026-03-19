@@ -47,7 +47,6 @@ export default function AdminNotesSection({ memberId, initialNotes, legacyAdminN
         onChange={(v: unknown) => setNotes(v)}
         placeholder="Internal notes about this member…"
         minHeight={160}
-        minimal
         legacyHtml={legacyAdminNotesHtml}
       />
       <div className="adm2-save">
