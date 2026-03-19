@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { renderFormattedText } from "@/lib/renderRichContent";
+import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import EnrollButton from "@/components/EnrollButton";
 import { isLessonAvailable, computeAvailableDate, formatAvailableDate } from "@/lib/drip";
 
@@ -296,6 +296,9 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
     (cl) => !completedIds.has(cl.lessonId) && (lessonAvailability.get(cl.lessonId) !== false)
   );
   const isFullyComplete = totalCount > 0 && completedCount === totalCount;
+  const descriptionHtml = course.description
+    ? await renderFormattedTextAsync(course.description)
+    : "";
 
   return (
     <div className="crs-page">
@@ -313,7 +316,7 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
           {course.description && (
             <div
               className="crs-desc"
-              dangerouslySetInnerHTML={{ __html: renderFormattedText(course.description) }}
+              dangerouslySetInnerHTML={{ __html: descriptionHtml }}
             />
           )}
         </div>

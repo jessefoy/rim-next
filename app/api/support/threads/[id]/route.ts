@@ -8,6 +8,7 @@ import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { notifyAssigned } from "@/lib/supportNotify";
+import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 
 function hasSupport(roles: string[]) {
   return roles.some((r) => ["SUPPORT", "ADMIN"].includes(r));
@@ -115,15 +116,16 @@ export async function GET(
         size: a.size,
       })),
     })),
-    ...thread.notes.map((n) => ({
+    ...await Promise.all(thread.notes.map(async (n) => ({
       type: "note" as const,
       id: n.id,
       body: n.body,
+      bodyHtml: await renderFormattedTextAsync(n.body),
       createdAt: n.createdAt.toISOString(),
       author: {
         name: n.author.preferredName || [n.author.firstName, n.author.lastName].filter(Boolean).join(" ") || "Unknown",
       },
-    })),
+    }))),
   ].sort((a, b) => {
     const aTime = "sentAt" in a ? a.sentAt : a.createdAt;
     const bTime = "sentAt" in b ? b.sentAt : b.createdAt;

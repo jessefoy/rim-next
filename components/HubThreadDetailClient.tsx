@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import FormattedEditor from "./FormattedEditor";
-import { renderFormattedText } from "@/lib/renderRichContent";
+import RimProseEditor from "./RimProseEditor";
+import { renderBlockNoteHtml } from "@/lib/renderRichContent";
 
 type ThreadCategory = "OPERATIONAL" | "CONTEMPLATION" | "GENERAL";
 type ThreadStatus = "OPEN" | "CLOSED" | "ARCHIVED";
@@ -238,7 +238,7 @@ function ReplyItem({
 
       {editing ? (
         <div>
-          <FormattedEditor
+          <RimProseEditor
             value={editBody}
             onChange={setEditBody}
             minHeight={120}
@@ -267,7 +267,7 @@ function ReplyItem({
       ) : (
         <div
           className="hub-reply__body"
-          dangerouslySetInnerHTML={{ __html: renderFormattedText(reply.body) }}
+          dangerouslySetInnerHTML={{ __html: renderBlockNoteHtml(reply.body) }}
         />
       )}
 
@@ -413,7 +413,7 @@ export default function HubThreadDetailClient({
       {/* Opening post body */}
       <div
         className="hub-thread-detail__body"
-        dangerouslySetInnerHTML={{ __html: renderFormattedText(thread.body) }}
+        dangerouslySetInnerHTML={{ __html: renderBlockNoteHtml(thread.body) }}
       />
 
       {/* Replies */}
@@ -440,7 +440,7 @@ export default function HubThreadDetailClient({
         <div className="hub-thread-detail__reply-form">
           <p className="hub-thread-detail__reply-label">Add a reply</p>
           <form onSubmit={handleReplySubmit}>
-            <FormattedEditor
+            <RimProseEditor
               value={replyBody}
               onChange={setReplyBody}
               placeholder="Share your thoughts\u2026"

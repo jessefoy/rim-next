@@ -10,7 +10,7 @@ import {
   sendRegistrationEmail,
   sendReminderEmail,
 } from "@/lib/email";
-import { renderFormattedText } from "@/lib/renderRichContent";
+import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import { buildGoogleCalendarUrl, buildIcsUrl } from "@/lib/calendarLinks";
 import { resolveLocation } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
@@ -119,7 +119,7 @@ export async function PATCH(
       let confirmationMessageHtml: string | undefined;
       let confirmationMessageText: string | undefined;
       if (pgProgram?.confirmationMessage) {
-        const html = renderFormattedText(pgProgram.confirmationMessage);
+        const html = await renderFormattedTextAsync(pgProgram.confirmationMessage);
         if (html) {
           confirmationMessageHtml = html;
           confirmationMessageText = html.replace(/<[^>]+>/g, "");

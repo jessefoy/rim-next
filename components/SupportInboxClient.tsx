@@ -13,7 +13,6 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { upload } from "@vercel/blob/client";
 import type { Editor } from "@tiptap/react";
 import RimProseEditor from "@/components/RimProseEditor";
-import { renderFormattedText } from "@/lib/renderRichContent";
 
 interface StagedFile {
   file: File;
@@ -864,7 +863,7 @@ export default function SupportInboxClient({
                       <div
                         className="si-note__body"
                         dangerouslySetInnerHTML={{
-                          __html: renderFormattedText(entry.body),
+                          __html: entry.bodyHtml ?? "",
                         }}
                       />
                     </div>

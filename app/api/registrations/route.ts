@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sendRegistrationEmail } from "@/lib/email";
-import { renderFormattedText } from "@/lib/renderRichContent";
+import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import { buildGoogleCalendarUrl, buildIcsUrl } from "@/lib/calendarLinks";
 import { resolveLocation } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
       if (pgProgram) {
         // Render Tiptap JSON confirmation message to HTML for email
         if (pgProgram.confirmationMessage) {
-          const html = renderFormattedText(pgProgram.confirmationMessage);
+          const html = await renderFormattedTextAsync(pgProgram.confirmationMessage);
           if (html) {
             confirmationMessageHtml = html;
             // Strip HTML for plain text fallback

@@ -20,7 +20,6 @@
  */
 
 import { useState } from "react";
-import { renderFormattedText } from "@/lib/renderRichContent";
 
 export interface QuestionOption {
   id: string;
@@ -30,7 +29,8 @@ export interface QuestionOption {
 
 export interface QuestionWithResponse {
   id: string;
-  body: unknown; // Tiptap JSON
+  body: unknown;
+  bodyHtml: string;
   sortOrder: number;
   options: QuestionOption[];
   responseOptionId: string | null;
@@ -182,11 +182,7 @@ export default function ReflectionQuestionsClient({
             >
               <div className="ls-question__text">
                 <span className="ls-question__num">{qi + 1}.</span>
-                {typeof q.body === "string" ? (
-                  <span>{q.body}</span>
-                ) : (
-                  <span dangerouslySetInnerHTML={{ __html: renderFormattedText(q.body) }} />
-                )}
+                <span dangerouslySetInnerHTML={{ __html: q.bodyHtml || String(q.body ?? "") }} />
               </div>
 
               {answered ? (

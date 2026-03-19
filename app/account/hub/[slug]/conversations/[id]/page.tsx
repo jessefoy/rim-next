@@ -7,6 +7,7 @@ import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { getHubMembership } from "@/lib/hubAuth";
 import HubConvThreadClient from "@/components/HubConvThreadClient";
+import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +58,7 @@ export default async function HubConvThreadPage({
     id:       thread.id,
     title:    thread.title,
     body:     thread.body,
+    bodyHtml: await renderFormattedTextAsync(thread.body),
     status:   thread.status,
     authorId: thread.authorId,
     author: {
@@ -64,9 +66,10 @@ export default async function HubConvThreadPage({
       lastName:      thread.author.lastName,
       preferredName: thread.author.preferredName,
     },
-    replies: thread.replies.map((r) => ({
+    replies: await Promise.all(thread.replies.map(async (r) => ({
       id:       r.id,
       body:     r.body,
+      bodyHtml: await renderFormattedTextAsync(r.body),
       authorId: r.authorId,
       author: {
         firstName:     r.author.firstName,
@@ -74,7 +77,7 @@ export default async function HubConvThreadPage({
         preferredName: r.author.preferredName,
       },
       createdAt: r.createdAt.toISOString(),
-    })),
+    }))),
     createdAt: thread.createdAt.toISOString(),
   };
 

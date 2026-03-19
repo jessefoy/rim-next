@@ -8,7 +8,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import RimProseEditor from "@/components/RimProseEditor";
-import { renderFormattedText } from "@/lib/renderRichContent";
+import { renderBlockNoteHtml } from "@/lib/renderRichContent";
 
 interface AnnAuthor {
   firstName: string | null;
@@ -20,6 +20,7 @@ interface Announcement {
   id: string;
   title: string;
   body: any;
+  bodyHtml: string;
   priority: "NORMAL" | "IMPORTANT" | "URGENT";
   status: "ACTIVE" | "ARCHIVED";
   linkedThreadId: string | null;
@@ -94,7 +95,7 @@ export default function HubAnnouncementsClient({
     });
     if (res.ok) {
       const ann = await res.json();
-      setAnnouncements((prev) => [ann, ...prev]);
+      setAnnouncements((prev) => [{ ...ann, bodyHtml: renderBlockNoteHtml(ann.body) }, ...prev]);
       setTitle(""); setBody(null); setPriority("NORMAL"); setShowCompose(false);
     }
     setPosting(false);
@@ -229,7 +230,7 @@ export default function HubAnnouncementsClient({
               <div className="ann-item__meta">
                 Posted by {displayName(ann.author)} · {fmtDate(ann.createdAt)}
               </div>
-              <div className="ann-item__body" dangerouslySetInnerHTML={{ __html: renderFormattedText(ann.body) }} />
+              <div className="ann-item__body" dangerouslySetInnerHTML={{ __html: ann.bodyHtml }} />
               <div className="ann-item__footer">
                 {/* Discussion link */}
                 <span>

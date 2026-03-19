@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import FormattedEditor from "@/components/FormattedEditor";
+import RimProseEditor from "@/components/RimProseEditor";
 import ManualHelpIcon from "@/components/ManualHelpIcon";
 import SlugField from "@/components/SlugField";
 
@@ -398,7 +398,7 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
 
         <div className="th-field">
           <span className="th-field__label">Description</span>
-          <FormattedEditor
+          <RimProseEditor
             value={description}
             onChange={setDescription}
             placeholder="A brief description of this series…"

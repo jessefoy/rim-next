@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { buildGoogleCalendarUrl, buildIcsUrl, describeRecurrence } from "@/lib/calendarLinks";
 import { resolveLocation } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
-import { renderContentBody, renderFormattedText } from "@/lib/renderRichContent";
+import { renderContentBodyAsync, renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 
 export const dynamic = "force-dynamic";
 
@@ -89,9 +89,8 @@ export default async function ProgramDetailPage({
   const hasDescription = !!program.description;
   const hasSpecialNotes = !!program.specialNotes;
 
-  // Render Tiptap JSON to HTML
-  const descriptionHtml = hasDescription ? renderContentBody(program.description) : "";
-  const specialNotesHtml = hasSpecialNotes ? renderFormattedText(program.specialNotes) : "";
+  const descriptionHtml = hasDescription ? await renderContentBodyAsync(program.description) : "";
+  const specialNotesHtml = hasSpecialNotes ? await renderFormattedTextAsync(program.specialNotes) : "";
 
   return (
     <div className="pg-page">

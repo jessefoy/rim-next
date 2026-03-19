@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, Fragment } from "react";
-import FormattedEditor from "@/components/FormattedEditor";
+import RimProseEditor from "@/components/RimProseEditor";
 import type { RegistrationField } from "@/components/RegistrationForm";
 
 export interface SerializedRegistration {
@@ -992,7 +992,7 @@ export default function VolunteerTable({
                             {/* Notes — below actions */}
                             <div className="vol-detail__notes-wrap" onClick={(e) => e.stopPropagation()}>
                               <p className="vol-detail__col-label">Internal Notes</p>
-                              <FormattedEditor
+                              <RimProseEditor
                                 value={editingNotes[r.id] ?? r.notes ?? null}
                                 onChange={(val) =>
                                   setEditingNotes((prev) => ({ ...prev, [r.id]: val }))

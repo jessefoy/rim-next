@@ -13,8 +13,8 @@ import dynamic from "next/dynamic";
 import { upload } from "@vercel/blob/client";
 import CreateMeetButton from "@/components/registrar/CreateMeetButton";
 
-const ContentEditor = dynamic(() => import("@/components/ContentEditor"), { ssr: false });
-const FormattedEditor = dynamic(() => import("@/components/FormattedEditor"), { ssr: false });
+const RimBlockEditor = dynamic(() => import("@/components/RimBlockEditor"), { ssr: false });
+const RimProseEditor = dynamic(() => import("@/components/RimProseEditor"), { ssr: false });
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -438,7 +438,7 @@ export default function ProgramEditor({ hubSlug, initialData, isEditing, categor
 
             <div className="pe-field">
               <span className="pe-field__label">Description</span>
-              <ContentEditor
+              <RimBlockEditor
                 value={description}
                 onChange={setDescription}
                 placeholder="Program description…"
@@ -459,7 +459,7 @@ export default function ProgramEditor({ hubSlug, initialData, isEditing, categor
             <div className="pe-field">
               <span className="pe-field__label">Special Notes</span>
               <span className="pe-field__help">Temporary logistical notices displayed on the program page.</span>
-              <FormattedEditor
+              <RimProseEditor
                 value={specialNotes}
                 onChange={setSpecialNotes}
                 placeholder="Any temporary notes…"
@@ -746,7 +746,7 @@ export default function ProgramEditor({ hubSlug, initialData, isEditing, categor
             <div className="pe-field">
               <span className="pe-field__label">Confirmation Message</span>
               <span className="pe-field__help">Custom message included in the confirmation email.</span>
-              <FormattedEditor
+              <RimProseEditor
                 value={confirmationMessage}
                 onChange={setConfirmationMessage}
                 placeholder="Optional custom message…"
@@ -768,7 +768,7 @@ export default function ProgramEditor({ hubSlug, initialData, isEditing, categor
             <div className="pe-field">
               <span className="pe-field__label">Reminder Message</span>
               <span className="pe-field__help">Custom message included in the reminder email.</span>
-              <FormattedEditor
+              <RimProseEditor
                 value={reminderMessage}
                 onChange={setReminderMessage}
                 placeholder="Optional reminder message…"

@@ -11,7 +11,7 @@ import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { getHubMembership } from "@/lib/hubAuth";
 import Link from "next/link";
-import { renderFormattedText } from "@/lib/renderRichContent";
+import { renderBlockNoteHtml } from "@/lib/renderRichContent";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Session History — Host Team Hub" };
@@ -352,7 +352,7 @@ export default async function SessionHistoryPage({
               <h4 className="sh-detail__section-title">Reflection</h4>
               <div
                 className="sh-detail__text"
-                dangerouslySetInnerHTML={{ __html: renderFormattedText(detailEntry.report.reflection) }}
+                dangerouslySetInnerHTML={{ __html: renderBlockNoteHtml(detailEntry.report.reflection) }}
               />
             </div>
           )}
@@ -394,7 +394,7 @@ export default async function SessionHistoryPage({
                   {a.postSessionNote && (
                     <div
                       className="sh-flagged-item__note"
-                      dangerouslySetInnerHTML={{ __html: renderFormattedText(a.postSessionNote) }}
+                      dangerouslySetInnerHTML={{ __html: renderBlockNoteHtml(a.postSessionNote) }}
                     />
                   )}
                 </div>

@@ -14,8 +14,8 @@
  */
 
 import { useState } from "react";
-import FormattedEditor from "./FormattedEditor";
-import { renderFormattedText } from "@/lib/renderRichContent";
+import RimProseEditor from "./RimProseEditor";
+import { renderBlockNoteHtml } from "@/lib/renderRichContent";
 
 interface TemplateData {
   id: string;
@@ -362,7 +362,7 @@ export default function SupportSettingsClient({
                 </label>
 
                 <label className="si-settings__label">Body</label>
-                <FormattedEditor
+                <RimProseEditor
                   key={`tpl-${tplEditing}`}
                   value={tplBody}
                   onChange={setTplBody}
@@ -377,7 +377,7 @@ export default function SupportSettingsClient({
                     <div
                       className="si-settings__preview-body"
                       dangerouslySetInnerHTML={{
-                        __html: renderFormattedText(tplBody),
+                        __html: renderBlockNoteHtml(tplBody),
                       }}
                     />
                   </div>

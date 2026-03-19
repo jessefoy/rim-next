@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { renderContentBody } from "@/lib/renderRichContent";
+import { renderBlockNoteHtml } from "@/lib/renderRichContent";
 
 interface ManualSection {
   id: string;
@@ -152,7 +152,7 @@ export default function AdminManualPage() {
                 <div
                   className="lp-body"
                   dangerouslySetInnerHTML={{
-                    __html: renderContentBody(section.body),
+                    __html: renderBlockNoteHtml(section.body),
                   }}
                 />
               ) : (

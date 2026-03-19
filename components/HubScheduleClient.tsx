@@ -2,8 +2,8 @@
 
 import { useState, useCallback } from "react";
 import MeetJoinButton from "@/components/MeetJoinButton";
-import FormattedEditor from "@/components/FormattedEditor";
-import { renderFormattedText, extractText } from "@/lib/renderRichContent";
+import RimProseEditor from "@/components/RimProseEditor";
+import { renderBlockNoteHtml, extractBlockNoteText } from "@/lib/renderRichContent";
 
 interface Session {
   id: string;
@@ -182,10 +182,10 @@ function SessionDetail({
           </div>
         )}
 
-        {s.subMessage && extractText(s.subMessage) && (
+        {s.subMessage && extractBlockNoteText(s.subMessage) && (
           <div className="hub-detail__sub-msg">
             <strong>Sub note:</strong>
-            <div dangerouslySetInnerHTML={{ __html: renderFormattedText(s.subMessage) }} />
+            <div dangerouslySetInnerHTML={{ __html: renderBlockNoteHtml(s.subMessage) }} />
           </div>
         )}
       </div>
@@ -225,7 +225,7 @@ function SessionDetail({
       {subFormOpen && (
         <div className="hub-panel__form">
           <div className="hub-panel__form-label">Add context for your team:</div>
-          <FormattedEditor
+          <RimProseEditor
             value={subMsg}
             onChange={setSubMsg}
             placeholder="Why you need a sub, any handoff notes..."

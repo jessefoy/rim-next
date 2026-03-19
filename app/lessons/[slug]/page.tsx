@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { renderContentBodyAsync } from "@/lib/renderRichContentServer";
+import { renderContentBodyAsync, renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import AudioPlayer from "@/components/AudioPlayer";
 import LessonFooterClient from "@/components/LessonFooterClient";
 import { isLessonAvailable, computeAvailableDate, formatAvailableDate } from "@/lib/drip";
@@ -287,7 +287,7 @@ export default async function LessonPage({
   // Fetch existing responses and compute allCorrect for enrolled members
   let initialAllCorrect = false;
   let questionsWithResponses: {
-    id: string; body: unknown; sortOrder: number;
+    id: string; body: unknown; bodyHtml: string; sortOrder: number;
     options: { id: string; text: string; sortOrder: number }[];
     responseOptionId: string | null;
   }[] = [];
@@ -309,10 +309,13 @@ export default async function LessonPage({
     const responseMap = new Map(responses.map((r) => [r.questionId, r.optionId]));
     const correctMap = new Map(correctOptions.map((o) => [o.questionId, o.id]));
 
-    questionsWithResponses = rawQuestions.map((q) => ({
-      ...q,
-      responseOptionId: responseMap.get(q.id) ?? null,
-    }));
+    questionsWithResponses = await Promise.all(
+      rawQuestions.map(async (q) => ({
+        ...q,
+        bodyHtml: await renderFormattedTextAsync(q.body),
+        responseOptionId: responseMap.get(q.id) ?? null,
+      }))
+    );
 
     // All correct = every question has a response that matches its correct option
     initialAllCorrect =

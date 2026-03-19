@@ -9,6 +9,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getHubMembership } from "@/lib/hubAuth";
 import HubAnnouncementsClient from "@/components/HubAnnouncementsClient";
+import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 
 export const dynamic = "force-dynamic";
 
@@ -46,21 +47,24 @@ export default async function HubAnnouncementsRoute({
   const isCoordinator =
     member?.isCoordinator || (session.user.roles ?? []).includes("ADMIN");
 
-  const serialized = announcements.map((a) => ({
-    id:             a.id,
-    title:          a.title,
-    body:           a.body,
-    priority:       a.priority as "NORMAL" | "IMPORTANT" | "URGENT",
-    status:         a.status  as "ACTIVE" | "ARCHIVED",
-    linkedThreadId: a.linkedThreadId,
-    authorId:       a.authorId,
-    author: {
-      firstName:     a.author.firstName,
-      lastName:      a.author.lastName,
-      preferredName: a.author.preferredName,
-    },
-    createdAt: a.createdAt.toISOString(),
-  }));
+  const serialized = await Promise.all(
+    announcements.map(async (a) => ({
+      id:             a.id,
+      title:          a.title,
+      body:           a.body,
+      bodyHtml:       await renderFormattedTextAsync(a.body),
+      priority:       a.priority as "NORMAL" | "IMPORTANT" | "URGENT",
+      status:         a.status  as "ACTIVE" | "ARCHIVED",
+      linkedThreadId: a.linkedThreadId,
+      authorId:       a.authorId,
+      author: {
+        firstName:     a.author.firstName,
+        lastName:      a.author.lastName,
+        preferredName: a.author.preferredName,
+      },
+      createdAt: a.createdAt.toISOString(),
+    }))
+  );
 
   return (
     <HubAnnouncementsClient

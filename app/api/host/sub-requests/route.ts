@@ -5,7 +5,7 @@ import {
   sendSubRequestEmail,
   type SubRequestEmailData,
 } from "@/lib/email";
-import { extractText } from "@/lib/renderRichContent";
+import { extractTextAsync } from "@/lib/renderRichContentServer";
 
 function hasHubAccess(roles: string[]) {
   return roles.some((r) => ["HOST", "HOST_MANAGER", "ADMIN"].includes(r));
@@ -148,6 +148,7 @@ export async function POST(request: Request) {
         skipDuplicates: true,
       });
 
+      const messageText = message ? (await extractTextAsync(message as any) || null) : null;
       await Promise.all(
         recipientUsers.map((u) =>
           sendSubRequestEmail({
@@ -156,7 +157,7 @@ export async function POST(request: Request) {
             requesterName,
             programName: assignment.programSlug,
             sessionDate: sessionLabel,
-            message: message ? (extractText(message as any) || null) : null,
+            message: messageText,
           } as SubRequestEmailData)
         )
       );

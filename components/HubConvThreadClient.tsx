@@ -8,7 +8,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import RimProseEditor from "@/components/RimProseEditor";
-import { renderFormattedText } from "@/lib/renderRichContent";
+import { renderBlockNoteHtml } from "@/lib/renderRichContent";
 
 interface PersonName {
   firstName: string | null;
@@ -18,7 +18,8 @@ interface PersonName {
 
 interface Reply {
   id: string;
-  body: any; // Tiptap JSON
+  body: any;
+  bodyHtml: string;
   authorId: string;
   author: PersonName;
   createdAt: string;
@@ -27,7 +28,8 @@ interface Reply {
 interface Thread {
   id: string;
   title: string;
-  body: any; // Tiptap JSON
+  body: any;
+  bodyHtml: string;
   status: string;
   authorId: string;
   author: PersonName;
@@ -96,6 +98,7 @@ export default function HubConvThreadClient({
       const newReply: Reply = {
         id:       reply.id,
         body:     reply.body,
+        bodyHtml: renderBlockNoteHtml(reply.body),
         authorId: reply.authorId,
         author: {
           firstName:     null,
@@ -153,7 +156,7 @@ export default function HubConvThreadClient({
       <div className="cv-post cv-post--op">
         <div
           className="cv-post__body"
-          dangerouslySetInnerHTML={{ __html: renderFormattedText(thread.body) }}
+          dangerouslySetInnerHTML={{ __html: thread.bodyHtml }}
         />
       </div>
 
@@ -168,7 +171,7 @@ export default function HubConvThreadClient({
               </div>
               <div
                 className="cv-post__body"
-                dangerouslySetInnerHTML={{ __html: renderFormattedText(r.body) }}
+                dangerouslySetInnerHTML={{ __html: r.bodyHtml }}
               />
               <div className="cv-post__date">{fmtDate(r.createdAt)}</div>
             </div>

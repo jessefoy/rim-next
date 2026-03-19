@@ -76,7 +76,7 @@ model User {
   addressZip      String?
   memberStatus    MemberStatus @default(ACTIVE)
   firstVisitDate  DateTime?
-  adminNotes      Json?             // Tiptap JSON (FormattedEditor)
+  adminNotes      Json?             // BlockNote JSON (RimProseEditor)
   tags            String[]     @default([])
   // Viewer-level section access grants — sections this person can view on other member profiles
   // without holding the team role. Admin-assigned. Example values: "admin-notes", "care-notes"
@@ -292,10 +292,10 @@ model Program {
   // ── Content ────────────────────────────────────────────
   tagline             String?
   programImage        String?          // URL (Vercel Blob or external)
-  description         Json?            // ContentEditor (Tiptap JSON)
+  description         Json?            // BlockNote JSON (RimBlockEditor)
   pullQuote           String?
   pullQuoteSource     String?
-  specialNotes        Json?            // FormattedEditor (Tiptap JSON)
+  specialNotes        Json?            // BlockNote JSON (RimProseEditor)
   teacherFacilitators String[]         // plain text names
 
   // ── Schedule & Location ────────────────────────────────
@@ -322,9 +322,9 @@ model Program {
   registrationCapacity Int?
   registrationDeadline DateTime?
   registrationFields   Json?     // [{label, fieldType, required, options[]}]
-  confirmationMessage  Json?     // FormattedEditor (Tiptap JSON)
+  confirmationMessage  Json?     // BlockNote JSON (RimProseEditor)
   reminderDate         DateTime?
-  reminderMessage      Json?     // FormattedEditor (Tiptap JSON)
+  reminderMessage      Json?     // BlockNote JSON (RimProseEditor)
 
   // ── Dana ───────────────────────────────────────────────
   danaMode        String  @default("none") // "none"|"voluntary"|"base_plus_dana"|"fixed"
@@ -481,7 +481,7 @@ model Course {
   title                 String
   slug                  String            @unique
   subheading            String?
-  description           Json?             // Tiptap JSON
+  description           Json?             // BlockNote JSON
   accessLevel           CourseAccessLevel @default(ALL_MEMBERS)
   hideFromMemberProfile Boolean           @default(false)
   sortOrder             Int?
@@ -523,7 +523,7 @@ model Lesson {
   slug            String   @unique
 
   accessLevel     CourseAccessLevel @default(ALL_MEMBERS)
-  body            Json?    // Tiptap JSON
+  body            Json?    // BlockNote JSON
 
   heroImageUrl    String?  // Vercel Blob URL
   heroImageAlt    String?
@@ -658,7 +658,7 @@ model SeriesEnrollment {
 }
 
 // Personal notes a member writes while going through a lesson.
-// Stored as Tiptap JSON via FormattedEditor.
+// Stored as BlockNote JSON (RimProseEditor).
 model LessonNote {
   id        String   @id @default(cuid())
   userId    String
@@ -679,7 +679,7 @@ model LessonNote {
 model ReflectionQuestion {
   id       String @id @default(cuid())
   lessonId String
-  body     Json?  // Tiptap JSON (FormattedEditor — bold, italic, emphasis)
+  body     Json?  // BlockNote JSON (RimProseEditor)
   sortOrder Int    @default(0)
 
   lesson  Lesson             @relation(fields: [lessonId], references: [id], onDelete: Cascade)
@@ -801,7 +801,7 @@ model SubRequest {
   programSlug  String         // denormalized for display without join
   sessionDate  DateTime?      // specific date (for recurring programs); null = next/all
   status       SubStatus      @default(OPEN)
-  message      Json?          // context for potential claimers (Tiptap JSON)
+  message      Json?          // context for potential claimers (BlockNote JSON)
   claim        SubClaim?
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
@@ -816,7 +816,7 @@ model SubClaim {
   request     SubRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
   claimedById String
   claimedBy   User       @relation("SubClaims", fields: [claimedById], references: [id], onDelete: Cascade)
-  message     Json?      // optional note to the original host (Tiptap JSON)
+  message     Json?      // optional note to the original host (BlockNote JSON)
   createdAt   DateTime   @default(now())
 
   @@map("sub_claims")
@@ -926,7 +926,7 @@ model SessionAttendance {
   isNewMember           Boolean           @default(false)
   returningAfterAbsence Boolean           @default(false)
   flaggedByHost         Boolean           @default(false)
-  postSessionNote       Json?     // Tiptap JSON (FormattedEditor)
+  postSessionNote       Json?     // BlockNote JSON (RimProseEditor)
   postSessionAction     PostSessionAction @default(NONE)
   actionRouted          Boolean           @default(false)
   createdAt             DateTime          @default(now())
@@ -950,7 +950,7 @@ model SessionReport {
   sessionDate             DateTime  // Date of session — stored as midnight CT
   hostId                  String    // FK → User (host who submitted)
   submittedByAssignedHost Boolean?  // null = no assignment; true = submitter matched; false = someone else submitted
-  reflection              Json?     // Tiptap JSON (FormattedEditor)
+  reflection              Json?     // BlockNote JSON (RimProseEditor)
   resourceUrl             String?   // URL or text to share with all attendees
   resourceNote            String?   // Brief description of the resource
   resourceRouted          Boolean   @default(false)  // Set when resource has been sent to support/registrar
@@ -995,7 +995,7 @@ model SessionCoHostReport {
   sessionDate DateTime // CT midnight for the session date
   userId      String
   user        User     @relation("SessionCoHostReports", fields: [userId], references: [id], onDelete: Cascade)
-  reflection  Json?    // Tiptap JSON (FormattedEditor)
+  reflection  Json?    // BlockNote JSON (RimProseEditor)
   submittedAt DateTime @default(now())
 
   @@unique([programSlug, sessionDate, userId])

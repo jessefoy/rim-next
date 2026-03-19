@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import { portableTextToMarkdown } from "@/lib/portableTextEmail";
-import { renderFormattedText } from "@/lib/renderRichContent";
+import { isBlockNoteJSON } from "@/lib/renderRichContent";
+import { extractTextAsync, renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import { db } from "@/lib/db";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -638,13 +639,12 @@ export async function sendReminderEmail(data: ReminderEmailData): Promise<void> 
     ? `[${data.locationText}](${data.locationLink})`
     : (data.locationText ?? "");
 
-  // Render reminder message — detect Tiptap JSON vs Portable Text
+  // Render reminder message — detect BlockNote JSON vs Portable Text
   let reminderMessage = "";
   if (data.reminderMessage) {
-    if (data.reminderMessage?.type === "doc" && Array.isArray(data.reminderMessage?.content)) {
-      // Tiptap JSON — render to HTML, then strip tags for markdown template
-      const html = renderFormattedText(data.reminderMessage);
-      reminderMessage = html.replace(/<[^>]+>/g, "").trim();
+    if (isBlockNoteJSON(data.reminderMessage)) {
+      // BlockNote JSON — extract plain text for email template
+      reminderMessage = await extractTextAsync(data.reminderMessage);
     } else if (Array.isArray(data.reminderMessage) && data.reminderMessage.length > 0) {
       // Legacy Portable Text array
       reminderMessage = portableTextToMarkdown(data.reminderMessage);

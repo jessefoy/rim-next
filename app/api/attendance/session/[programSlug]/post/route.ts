@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { sendPostSessionNotification } from "@/lib/email";
-import { extractText } from "@/lib/renderRichContent";
+import { extractTextAsync } from "@/lib/renderRichContentServer";
 
 /**
  * POST /api/attendance/session/[programSlug]/post
@@ -119,17 +119,17 @@ export async function POST(
   const hostName = host?.preferredName || host?.firstName || "Your host";
 
   // Build notification payload
-  const flagItems = flags.map((f) => {
+  const flagItems = (await Promise.all(flags.map(async (f) => {
     const record = flaggedWithUsers.find((r) => r.id === f.attendanceId);
     const u = record?.user;
     return {
       name: u
         ? (u.preferredName || u.firstName || "") + " " + (u.lastName || "")
         : "Unknown",
-      note:   f.note ? extractText(f.note) : null,
+      note:   f.note ? await extractTextAsync(f.note) : null,
       action: f.action,
     };
-  }).filter((f) => f.action !== "NONE");
+  }))).filter((f) => f.action !== "NONE");
 
   if (flagItems.length > 0 || resourceUrl) {
     await sendPostSessionNotification({
@@ -137,7 +137,7 @@ export async function POST(
       sessionDate: sessionDateParsed,
       hostName,
       flags: flagItems,
-      reflection: reflection ? extractText(reflection) : null,
+      reflection: reflection ? await extractTextAsync(reflection) : null,
       resourceUrl: resourceUrl ?? null,
       resourceNote: resourceNote ?? null,
     }).catch((e) => {

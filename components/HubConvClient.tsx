@@ -11,8 +11,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import FormattedEditor from "./FormattedEditor";
-import { renderFormattedText } from "@/lib/renderRichContent";
+import RimProseEditor from "./RimProseEditor";
 
 interface ThreadAuthor {
   firstName: string | null;
@@ -48,20 +47,26 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-/** Extract plain text from Tiptap JSON for excerpts */
+/** Extract plain text from BlockNote JSON for excerpts */
 function extractText(json: any): string {
   if (!json) return "";
-  if (typeof json === "string") return json;
-  if (json.text) return json.text;
-  if (json.content) return json.content.map(extractText).join(" ");
+  // BlockNote JSON: array of blocks
+  if (Array.isArray(json)) {
+    function inlineText(content: any[]): string {
+      return (content || []).map((c: any) => c.text ?? "").join("");
+    }
+    function blockText(block: any): string {
+      return [inlineText(block.content || []), ...(block.children || []).map(blockText)].filter(Boolean).join(" ");
+    }
+    return json.map(blockText).filter(Boolean).join("\n");
+  }
   return "";
 }
 
-/** Check if Tiptap JSON has meaningful content */
+/** Check if BlockNote JSON has meaningful content */
 function hasContent(json: any): boolean {
   if (!json) return false;
-  const text = extractText(json).trim();
-  return text.length > 0;
+  return extractText(json).trim().length > 0;
 }
 
 export default function HubConvClient({
@@ -208,7 +213,7 @@ export default function HubConvClient({
           </div>
           <div className="fg">
             <label className="fl">Message</label>
-            <FormattedEditor
+            <RimProseEditor
               value={body}
               onChange={setBody}
               placeholder="Share your thoughts…"

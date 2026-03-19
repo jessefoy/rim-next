@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { extractText } from "@/lib/renderRichContent";
+import { extractBlockNoteText } from "@/lib/renderRichContent";
 
 export async function GET(
   request: NextRequest,
@@ -64,7 +64,7 @@ export async function GET(
         csvEscape(r.donationStatus),
         ...customKeys.map((k) => csvEscape(String(custom[k] ?? ""))),
         csvEscape(r.waitlistPosition != null ? String(r.waitlistPosition) : ""),
-        csvEscape(extractText(r.notes) ?? ""),
+        csvEscape(extractBlockNoteText(r.notes) ?? ""),
         csvEscape(r.createdAt.toISOString()),
       ].join(",");
     });
