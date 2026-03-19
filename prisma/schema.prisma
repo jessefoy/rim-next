@@ -84,7 +84,9 @@ model User {
   seriesEnrollments   SeriesEnrollment[]
   lessonNotes         LessonNote[]
   reflectionResponses ReflectionResponse[]
-  teacherProfile      Teacher?
+  isTeacher           Boolean        @default(false)
+  teacherProfile      TeacherProfile?
+  lessonTeachers      LessonTeacher[]
 
   // Support inbox notification preference
   supportEmailNotifications Boolean @default(true)
@@ -549,36 +551,31 @@ model Lesson {
   @@map("lessons")
 }
 
-// Full teacher profile records. Optional link to a member account via userId.
-model Teacher {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  bio       Json?    // Tiptap JSON (FormattedEditor)
-  photoUrl  String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
+// One-to-one public profile for members flagged as teachers.
+model TeacherProfile {
+  id       String  @id @default(cuid())
+  userId   String  @unique
+  bio      String?
+  photoUrl String?
+  slug     String? @unique
+  isPublic Boolean @default(false)
 
-  // Optional link to a member account (enables future profile features)
-  userId    String?  @unique
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  lessonTeachers LessonTeacher[]
-
-  @@map("teachers")
+  @@map("teacher_profiles")
 }
 
-// Many-to-many: Lesson ↔ Teacher
+// Many-to-many: Lesson ↔ User (member flagged as teacher)
 model LessonTeacher {
-  id        String @id @default(cuid())
-  lessonId  String
-  teacherId String
-  order     Int    @default(0)
+  id       String @id @default(cuid())
+  lessonId String
+  userId   String
+  order    Int    @default(0)
 
-  lesson  Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([lessonId, teacherId])
+  @@unique([lessonId, userId])
   @@map("lesson_teachers")
 }
 

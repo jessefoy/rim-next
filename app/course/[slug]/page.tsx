@@ -80,7 +80,7 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
               _count: { select: { questions: true } },
               teachers: {
                 select: {
-                  teacher: { select: { id: true, name: true } },
+                  user: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
                   order: true,
                 },
                 orderBy: { order: "asc" },
@@ -169,11 +169,12 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
   }
 
   // Collect deduplicated teachers across all lessons in the series
-  const teacherMap = new Map<string, string>(); // teacherId → displayName
+  const teacherMap = new Map<string, string>(); // userId → displayName
   for (const cl of course.lessons) {
     for (const lt of cl.lesson.teachers) {
-      if (!teacherMap.has(lt.teacher.id)) {
-        teacherMap.set(lt.teacher.id, lt.teacher.name);
+      if (!teacherMap.has(lt.user.id)) {
+        const name = [lt.user.preferredName || lt.user.firstName, lt.user.lastName].filter(Boolean).join(" ");
+        if (name) teacherMap.set(lt.user.id, name);
       }
     }
   }

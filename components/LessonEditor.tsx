@@ -222,12 +222,16 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
     teacherDebounceRef.current = setTimeout(async () => {
       setTeacherSearching(true);
       try {
-        const res = await fetch(`/api/teachers/search?q=${encodeURIComponent(teacherQuery)}`);
+        const res = await fetch(`/api/members/search?q=${encodeURIComponent(teacherQuery)}`);
         if (res.ok) {
-          const data = await res.json();
-          // Filter out already-selected
+          const raw: { id: string; firstName: string; lastName: string }[] = await res.json();
+          // Map to TeacherItem shape and filter out already-selected
+          const mapped = raw.map((m) => ({
+            id: m.id,
+            name: [m.firstName, m.lastName].filter(Boolean).join(" "),
+          }));
           setTeacherResults(
-            data.filter((t: { id: string }) => !selectedTeachers.some((s) => s.id === t.id))
+            mapped.filter((t) => !selectedTeachers.some((s) => s.id === t.id))
           );
         }
       } finally {

@@ -41,7 +41,14 @@ export default async function LessonPage({
     where: { slug },
     include: {
       teachers: {
-        include: { teacher: { select: { id: true, name: true, slug: true } } },
+        include: {
+          user: {
+            select: {
+              id: true, firstName: true, lastName: true, preferredName: true,
+              teacherProfile: { select: { slug: true, isPublic: true } },
+            },
+          },
+        },
         orderBy: { order: "asc" },
       },
     },
@@ -418,12 +425,20 @@ export default async function LessonPage({
           <div className="lp-teachers-simple">
             <p className="lp-resources__label">Teachers</p>
             <p>
-              {lesson.teachers.map((lt, i) => (
-                <span key={lt.teacher.id}>
-                  {i > 0 && ", "}
-                  <span className="lp-teacher-link">{lt.teacher.name}</span>
-                </span>
-              ))}
+              {lesson.teachers.map((lt, i) => {
+                const name = [lt.user.preferredName || lt.user.firstName, lt.user.lastName].filter(Boolean).join(" ");
+                const profileSlug = lt.user.teacherProfile?.isPublic ? lt.user.teacherProfile.slug : null;
+                return (
+                  <span key={lt.user.id}>
+                    {i > 0 && ", "}
+                    {profileSlug ? (
+                      <a href={`/teachers/${profileSlug}`} className="lp-teacher-link">{name}</a>
+                    ) : (
+                      <span className="lp-teacher-link">{name}</span>
+                    )}
+                  </span>
+                );
+              })}
             </p>
           </div>
         )}

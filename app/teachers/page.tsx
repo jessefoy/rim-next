@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { extractText } from "@/lib/renderRichContent";
 
 export const metadata = {
   title: "Teachers — Rooted In Mindfulness",
@@ -9,45 +8,53 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function TeachersPage() {
-  const teachers = await db.teacher.findMany({
-    where: { isActive: true },
-    orderBy: { name: "asc" },
-    select: { name: true, slug: true, bio: true, photoUrl: true },
+  const profiles = await db.teacherProfile.findMany({
+    where: { isPublic: true, slug: { not: null } },
+    orderBy: { user: { firstName: "asc" } },
+    select: {
+      slug: true,
+      bio: true,
+      photoUrl: true,
+      user: { select: { firstName: true, lastName: true, preferredName: true } },
+    },
   });
 
   return (
     <div className="tpr-listing-page">
       <h1 className="tpr-listing-title">Teachers</h1>
 
-      {teachers.length === 0 ? (
+      {profiles.length === 0 ? (
         <p style={{ color: "var(--rim-text-muted)" }}>No teachers listed yet.</p>
       ) : (
         <div className="tpr-grid">
-          {teachers.map((teacher) => {
-            const bioExcerpt = teacher.bio
-              ? extractText(teacher.bio).slice(0, 120)
-              : "";
+          {profiles.map((profile) => {
+            const name = [profile.user.preferredName || profile.user.firstName, profile.user.lastName]
+              .filter(Boolean)
+              .join(" ");
+            const bioExcerpt = profile.bio ? profile.bio.slice(0, 120) : "";
 
             return (
               <Link
-                key={teacher.slug}
-                href={`/teachers/${teacher.slug}`}
+                key={profile.slug}
+                href={`/teachers/${profile.slug}`}
                 className="tpr-card"
               >
-                {teacher.photoUrl ? (
+                {profile.photoUrl ? (
                   <img
-                    src={teacher.photoUrl}
-                    alt={teacher.name}
+                    src={profile.photoUrl}
+                    alt={name}
                     className="tpr-card__photo"
                   />
                 ) : (
                   <div className="tpr-card__photo-placeholder" aria-hidden="true">
-                    {teacher.name.charAt(0)}
+                    {name.charAt(0)}
                   </div>
                 )}
-                <div className="tpr-card__name">{teacher.name}</div>
+                <div className="tpr-card__name">{name}</div>
                 {bioExcerpt && (
-                  <div className="tpr-card__bio">{bioExcerpt}{bioExcerpt.length >= 120 ? "…" : ""}</div>
+                  <div className="tpr-card__bio">
+                    {bioExcerpt}{bioExcerpt.length >= 120 ? "…" : ""}
+                  </div>
                 )}
               </Link>
             );

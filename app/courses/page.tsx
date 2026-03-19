@@ -26,7 +26,7 @@ export default async function CoursesPage() {
               id: true,
               teachers: {
                 select: {
-                  teacher: { select: { id: true, name: true } },
+                  user: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
                   order: true,
                 },
                 orderBy: { order: "asc" },
@@ -99,9 +99,10 @@ export default async function CoursesPage() {
     const seenIds = new Set<string>();
     for (const cl of c.lessons) {
       for (const lt of cl.lesson.teachers) {
-        if (!seenIds.has(lt.teacher.id)) {
-          teachers.push({ name: lt.teacher.name, slug: "" });
-          seenIds.add(lt.teacher.id);
+        if (!seenIds.has(lt.user.id)) {
+          const name = [lt.user.preferredName || lt.user.firstName, lt.user.lastName].filter(Boolean).join(" ");
+          if (name) teachers.push({ name, slug: "" });
+          seenIds.add(lt.user.id);
         }
       }
     }

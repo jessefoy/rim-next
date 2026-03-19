@@ -40,6 +40,13 @@ interface Member {
   adminNotes: any; // Tiptap JSON or null
   tags: string[];
   roles: string[];
+  isTeacher: boolean;
+  teacherProfile: {
+    bio: string | null;
+    photoUrl: string | null;
+    slug: string | null;
+    isPublic: boolean;
+  } | null;
   archivedAt: string | null;
   createdAt: string;
   registrations: MemberRegistration[];
@@ -186,6 +193,16 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
   const [dangerError, setDangerError] = useState("");
 
   const [savedRoles, setSavedRoles] = useState<string[]>(member.roles);
+  const [isTeacher, setIsTeacher] = useState(member.isTeacher);
+
+  // Teacher profile state
+  const [teacherBio, setTeacherBio] = useState(member.teacherProfile?.bio ?? "");
+  const [teacherPhotoUrl, setTeacherPhotoUrl] = useState(member.teacherProfile?.photoUrl ?? "");
+  const [teacherSlug, setTeacherSlug] = useState(member.teacherProfile?.slug ?? "");
+  const [teacherIsPublic, setTeacherIsPublic] = useState(member.teacherProfile?.isPublic ?? false);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
+  const [profileError, setProfileError] = useState("");
 
   const toggleRole = (role: string) => {
     setRoles((prev) => prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]);
@@ -230,7 +247,7 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
         roles,
       };
       if (emailChanged) body.email = email.trim();
-      if (isAdmin) body.adminNotes = adminNotes || null;
+      if (isAdmin) { body.adminNotes = adminNotes || null; body.isTeacher = isTeacher; }
 
       const res = await fetch(`/api/admin/members/${member.id}`, {
         method: "PATCH",
@@ -256,6 +273,32 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
       setError(err instanceof Error ? err.message : "Save failed");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveTeacherProfile = async () => {
+    setProfileSaving(true);
+    setProfileSaved(false);
+    setProfileError("");
+    try {
+      const res = await fetch(`/api/admin/members/${member.id}/teacher-profile`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bio: teacherBio || null,
+          photoUrl: teacherPhotoUrl || null,
+          slug: teacherSlug || null,
+          isPublic: teacherIsPublic,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Save failed");
+      setProfileSaved(true);
+      setTimeout(() => setProfileSaved(false), 3000);
+    } catch (err) {
+      setProfileError(err instanceof Error ? err.message : "Save failed");
+    } finally {
+      setProfileSaving(false);
     }
   };
 
@@ -530,6 +573,87 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
                 </div>
               </label>
             ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── Is a Teacher ─────────────────────────────────────────────────────── */}
+      {isAdmin && (
+        <section className="adm-section">
+          <h2 className="adm-section__title">Teacher Attribution</h2>
+          <label className="adm-role">
+            <input
+              type="checkbox"
+              className="adm-role__checkbox"
+              checked={isTeacher}
+              onChange={() => { setIsTeacher((v) => !v); setSaved(false); }}
+            />
+            <div className="adm-role__text">
+              <span className="adm-role__name">Teacher</span>
+              <span className="adm-role__desc">Can be attributed to lessons and series in the lesson editor.</span>
+            </div>
+          </label>
+        </section>
+      )}
+
+      {/* ── Teacher Profile (visible when isTeacher) ─────────────────────────── */}
+      {isAdmin && isTeacher && (
+        <section className="adm-section">
+          <h2 className="adm-section__title">Public Teacher Profile</h2>
+          <p className="adm-section__hint">
+            Optional public profile page. Set a slug to enable the public URL (e.g. /teachers/jesse-foy).
+            Check &ldquo;Show on public Teachers page&rdquo; to make it discoverable.
+          </p>
+          <div className="adm-form">
+            <label className="adm-field">
+              <span className="adm-field__label">Bio</span>
+              <textarea
+                value={teacherBio}
+                onChange={(e) => setTeacherBio(e.target.value)}
+                className="adm-textarea"
+                rows={4}
+                placeholder="A short bio for this teacher…"
+              />
+            </label>
+            <label className="adm-field">
+              <span className="adm-field__label">Photo URL</span>
+              <input
+                type="text"
+                value={teacherPhotoUrl}
+                onChange={(e) => setTeacherPhotoUrl(e.target.value)}
+                className="adm-input"
+                placeholder="https://…"
+              />
+            </label>
+            <label className="adm-field">
+              <span className="adm-field__label">Slug</span>
+              <input
+                type="text"
+                value={teacherSlug}
+                onChange={(e) => setTeacherSlug(e.target.value)}
+                className="adm-input"
+                placeholder="e.g. jesse-foy"
+              />
+              <span className="adm-field__hint">Public URL: /teachers/[slug]. Leave blank to hide from the public page.</span>
+            </label>
+            <label className="adm-role" style={{ marginTop: 8 }}>
+              <input
+                type="checkbox"
+                className="adm-role__checkbox"
+                checked={teacherIsPublic}
+                onChange={(e) => setTeacherIsPublic(e.target.checked)}
+              />
+              <div className="adm-role__text">
+                <span className="adm-role__name">Show on public Teachers page</span>
+              </div>
+            </label>
+          </div>
+          <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 12 }}>
+            <button className="adm-save__btn" onClick={handleSaveTeacherProfile} disabled={profileSaving}>
+              {profileSaving ? "Saving…" : "Save teacher profile"}
+            </button>
+            {profileSaved && <span style={{ color: "#3a7a5a", fontSize: 14 }}>Saved ✓</span>}
+            {profileError && <span style={{ color: "#c0392b", fontSize: 14 }}>{profileError}</span>}
           </div>
         </section>
       )}

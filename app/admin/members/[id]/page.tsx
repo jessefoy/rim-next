@@ -30,6 +30,9 @@ export default async function AdminMemberDetailPage({
   const user = await db.user.findUnique({
     where: { id },
     include: {
+      teacherProfile: {
+        select: { bio: true, photoUrl: true, slug: true, isPublic: true },
+      },
       registrations: {
         orderBy: { createdAt: "desc" },
         select: {
@@ -103,6 +106,15 @@ export default async function AdminMemberDetailPage({
     adminNotes: user.adminNotes,
     tags: user.tags,
     roles: user.roles,
+    isTeacher: user.isTeacher,
+    teacherProfile: user.teacherProfile
+      ? {
+          bio: user.teacherProfile.bio ?? null,
+          photoUrl: user.teacherProfile.photoUrl ?? null,
+          slug: user.teacherProfile.slug ?? null,
+          isPublic: user.teacherProfile.isPublic,
+        }
+      : null,
     archivedAt: user.archivedAt?.toISOString() ?? null,
     createdAt: user.createdAt.toISOString(),
     registrations: user.registrations.map((r) => ({

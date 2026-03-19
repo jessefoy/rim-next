@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
     where: {
       archivedAt: null,
       agreedToTerms: true,
+      isTeacher: true,
       ...(q
         ? {
             OR: [
