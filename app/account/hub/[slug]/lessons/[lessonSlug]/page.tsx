@@ -38,7 +38,7 @@ export default async function EditLessonPage({
     db.lesson.findUnique({
       where: { slug: lessonSlug },
       include: {
-        teachers: { include: { user: { select: { id: true, firstName: true, lastName: true, preferredName: true } } }, orderBy: { order: "asc" } },
+        teachers: { include: { teacher: { select: { id: true, name: true } } }, orderBy: { order: "asc" } },
         courses: {
           include: {
             course: { select: { dripEnabled: true, dripIntervalDays: true, title: true } },
@@ -78,9 +78,8 @@ export default async function EditLessonPage({
     quoteSource: lesson.quoteSource ?? "",
     resources: (lesson.resources as { name: string; url: string; resourceType: string }[]) ?? [],
     teachers: lesson.teachers.map((lt) => ({
-      id: lt.user.id,
-      firstName: lt.user.preferredName || lt.user.firstName || "",
-      lastName: lt.user.lastName || "",
+      id: lt.teacher.id,
+      name: lt.teacher.name,
     })),
     releaseDelayDays: lesson.releaseDelayDays ?? null,
     durationMinutes: lesson.durationMinutes ?? null,

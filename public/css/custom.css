@@ -16368,9 +16368,10 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .ls-btn--retake { font-family: var(--font-sans); font-size: 13px; color: var(--rim-text-muted); background: none; border: none; cursor: pointer; padding: 0; text-decoration: underline; }
 .ls-btn--retake:hover { color: var(--rim-text); }
 .ls-questions__actions { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-top: 24px; }
-.ls-btn--submit-all { font-family: var(--font-sans); font-size: 15px; font-weight: 600; padding: 11px 32px; background: var(--rim-blue); color: #fff; border: none; border-radius: 6px; cursor: pointer; letter-spacing: 0.02em; transition: background 0.15s; }
+.ls-btn--submit-all { font-family: var(--font-sans); font-size: 15px; font-weight: 600; padding: 11px 32px; background: var(--rim-blue); color: #fff; border: none; border-radius: 6px; cursor: pointer; letter-spacing: 0.02em; transition: background 0.15s; width: fit-content; min-width: 180px; }
 .ls-btn--submit-all:hover { background: var(--rim-mid); }
 .ls-btn--submit-all:disabled { opacity: 0.45; cursor: not-allowed; background: var(--rim-blue); }
+@media (max-width: 430px) { .ls-btn--submit-all { width: 100%; min-width: 0; } }
 .ls-btn--retake-all { font-family: var(--font-sans); font-size: 13px; color: var(--rim-text-muted); background: none; border: none; cursor: pointer; padding: 0; text-decoration: underline; }
 .ls-btn--retake-all:hover { color: var(--rim-text); }
 .ls-btn--retake-all:disabled { opacity: 0.55; cursor: not-allowed; }

@@ -36,8 +36,7 @@ interface ReflectionQuestion {
 
 interface TeacherItem {
   id: string;
-  firstName: string;
-  lastName: string;
+  name: string;
 }
 
 interface LessonData {
@@ -54,7 +53,7 @@ interface LessonData {
   headerQuote: string;
   quoteSource: string;
   resources: Resource[];
-  teachers?: { id: string; firstName: string; lastName: string }[];
+  teachers?: { id: string; name: string }[];
   releaseDelayDays?: number | null;
   parentDripInfo?: { seriesTitle: string; intervalDays: number | null }[];
   durationMinutes?: number | null;
@@ -223,7 +222,7 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
     teacherDebounceRef.current = setTimeout(async () => {
       setTeacherSearching(true);
       try {
-        const res = await fetch(`/api/members/search?q=${encodeURIComponent(teacherQuery)}`);
+        const res = await fetch(`/api/teachers/search?q=${encodeURIComponent(teacherQuery)}`);
         if (res.ok) {
           const data = await res.json();
           // Filter out already-selected
@@ -709,12 +708,12 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
           <div className="th-teacher-tags">
             {selectedTeachers.map((t) => (
               <span key={t.id} className="th-teacher-tag">
-                {[t.firstName, t.lastName].filter(Boolean).join(" ")}
+                {t.name}
                 <button
                   type="button"
                   className="th-teacher-tag__remove"
                   onClick={() => removeTeacher(t.id)}
-                  aria-label={`Remove ${[t.firstName, t.lastName].filter(Boolean).join(" ")}`}
+                  aria-label={`Remove ${t.name}`}
                 >
                   ×
                 </button>
@@ -742,7 +741,7 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
                     className="th-teacher-result"
                     onClick={() => addTeacher(t)}
                   >
-                    {[t.firstName, t.lastName].filter(Boolean).join(" ")}
+                    {t.name}
                   </button>
                 ))}
               </div>

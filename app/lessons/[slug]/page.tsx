@@ -41,7 +41,7 @@ export default async function LessonPage({
     where: { slug },
     include: {
       teachers: {
-        include: { user: { select: { id: true, firstName: true, lastName: true } } },
+        include: { teacher: { select: { id: true, name: true, slug: true } } },
         orderBy: { order: "asc" },
       },
     },
@@ -419,11 +419,9 @@ export default async function LessonPage({
             <p className="lp-resources__label">Teachers</p>
             <p>
               {lesson.teachers.map((lt, i) => (
-                <span key={lt.user.id}>
+                <span key={lt.teacher.id}>
                   {i > 0 && ", "}
-                  <span className="lp-teacher-link">
-                    {[lt.user.firstName, lt.user.lastName].filter(Boolean).join(" ")}
-                  </span>
+                  <span className="lp-teacher-link">{lt.teacher.name}</span>
                 </span>
               ))}
             </p>

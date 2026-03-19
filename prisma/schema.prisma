@@ -84,7 +84,7 @@ model User {
   seriesEnrollments   SeriesEnrollment[]
   lessonNotes         LessonNote[]
   reflectionResponses ReflectionResponse[]
-  lessonTeacher       LessonTeacher[]
+  teacherProfile      Teacher?
 
   // Support inbox notification preference
   supportEmailNotifications Boolean @default(true)
@@ -549,7 +549,7 @@ model Lesson {
   @@map("lessons")
 }
 
-// Full teacher profile records, replacing the teacherNames String[] on Lesson.
+// Full teacher profile records. Optional link to a member account via userId.
 model Teacher {
   id        String   @id @default(cuid())
   name      String
@@ -559,20 +559,26 @@ model Teacher {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
 
+  // Optional link to a member account (enables future profile features)
+  userId    String?  @unique
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  lessonTeachers LessonTeacher[]
+
   @@map("teachers")
 }
 
-// Many-to-many: Lesson ↔ User (member as teacher)
+// Many-to-many: Lesson ↔ Teacher
 model LessonTeacher {
-  id       String @id @default(cuid())
-  lessonId String
-  userId   String
-  order    Int    @default(0)
+  id        String @id @default(cuid())
+  lessonId  String
+  teacherId String
+  order     Int    @default(0)
 
-  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson  Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 
-  @@unique([lessonId, userId])
+  @@unique([lessonId, teacherId])
   @@map("lesson_teachers")
 }
 

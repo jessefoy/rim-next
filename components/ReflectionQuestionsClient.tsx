@@ -182,7 +182,11 @@ export default function ReflectionQuestionsClient({
             >
               <div className="ls-question__text">
                 <span className="ls-question__num">{qi + 1}.</span>
-                <span dangerouslySetInnerHTML={{ __html: renderFormattedText(q.body) }} />
+                {typeof q.body === "string" ? (
+                  <span>{q.body}</span>
+                ) : (
+                  <span dangerouslySetInnerHTML={{ __html: renderFormattedText(q.body) }} />
+                )}
               </div>
 
               {answered ? (

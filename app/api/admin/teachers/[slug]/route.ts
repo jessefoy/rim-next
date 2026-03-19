@@ -15,14 +15,22 @@ export async function GET(
 
   const teacher = await db.teacher.findUnique({
     where: { slug },
-    select: { id: true, name: true, slug: true, bio: true, photoUrl: true, isActive: true, createdAt: true },
+    select: {
+      id: true, name: true, slug: true, bio: true, photoUrl: true, isActive: true, createdAt: true,
+      userId: true,
+      user: { select: { firstName: true, lastName: true, preferredName: true } },
+    },
   });
 
   if (!teacher) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  return NextResponse.json(teacher);
+  const linkedMemberName = teacher.user
+    ? [teacher.user.preferredName || teacher.user.firstName, teacher.user.lastName].filter(Boolean).join(" ")
+    : null;
+
+  return NextResponse.json({ ...teacher, linkedMemberName });
 }
 
 export async function PATCH(
@@ -57,6 +65,7 @@ export async function PATCH(
   if (body.bio !== undefined) updateData.bio = body.bio ?? null;
   if (body.photoUrl !== undefined) updateData.photoUrl = body.photoUrl ?? null;
   if (body.isActive !== undefined) updateData.isActive = body.isActive;
+  if ("userId" in body) updateData.userId = body.userId ?? null;
 
   const updated = await db.teacher.update({
     where: { slug },

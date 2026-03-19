@@ -37,10 +37,18 @@ export default async function AdminTeacherEditPage({
 
   const teacher = await db.teacher.findUnique({
     where: { slug },
-    select: { id: true, name: true, slug: true, bio: true, photoUrl: true, isActive: true },
+    select: {
+      id: true, name: true, slug: true, bio: true, photoUrl: true, isActive: true,
+      userId: true,
+      user: { select: { firstName: true, lastName: true, preferredName: true } },
+    },
   });
 
   if (!teacher) notFound();
+
+  const linkedMemberName = teacher.user
+    ? [teacher.user.preferredName || teacher.user.firstName, teacher.user.lastName].filter(Boolean).join(" ")
+    : null;
 
   const serialized = {
     id: teacher.id,
@@ -49,6 +57,8 @@ export default async function AdminTeacherEditPage({
     bio: teacher.bio ?? null,
     photoUrl: teacher.photoUrl ?? null,
     isActive: teacher.isActive,
+    userId: teacher.userId ?? null,
+    linkedMemberName,
     lessons: [] as { lessonId: string; lessonSlug: string; lessonTitle: string; courses: { courseSlug: string; courseTitle: string }[] }[],
   };
 

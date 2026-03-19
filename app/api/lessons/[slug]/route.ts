@@ -88,14 +88,14 @@ export async function PATCH(
     data: updateData,
   });
 
-  // Handle teacher associations (User-based)
+  // Handle teacher associations (Teacher-based)
   if (body.teacherIds !== undefined) {
     await db.lessonTeacher.deleteMany({ where: { lessonId: lesson.id } });
     if (Array.isArray(body.teacherIds) && body.teacherIds.length > 0) {
       await db.lessonTeacher.createMany({
-        data: body.teacherIds.map((uid: string, order: number) => ({
+        data: body.teacherIds.map((tid: string, order: number) => ({
           lessonId: lesson.id,
-          userId: uid,
+          teacherId: tid,
           order,
         })),
       });

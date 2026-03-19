@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { upload } from "@vercel/blob/client";
 import FormattedEditor from "@/components/FormattedEditor";
@@ -13,6 +13,12 @@ interface LessonItem {
   courses: { courseSlug: string; courseTitle: string }[];
 }
 
+interface MemberResult {
+  id: string;
+  firstName: string;
+  lastName: string;
+}
+
 export interface TeacherEditorData {
   id: string;
   name: string;
@@ -20,6 +26,8 @@ export interface TeacherEditorData {
   bio: any; // Tiptap JSON
   photoUrl: string | null;
   isActive: boolean;
+  userId: string | null;
+  linkedMemberName: string | null;
   lessons: LessonItem[];
 }
 
@@ -46,7 +54,30 @@ export default function TeacherEditor({ initialData }: Props) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
+  // Linked member account
+  const [linkedUserId, setLinkedUserId] = useState<string | null>(initialData.userId);
+  const [linkedMemberName, setLinkedMemberName] = useState<string | null>(initialData.linkedMemberName);
+  const [memberQuery, setMemberQuery] = useState("");
+  const [memberResults, setMemberResults] = useState<MemberResult[]>([]);
+  const [memberSearching, setMemberSearching] = useState(false);
+  const memberDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const photoInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (memberDebounceRef.current) clearTimeout(memberDebounceRef.current);
+    if (!memberQuery.trim()) { setMemberResults([]); return; }
+    memberDebounceRef.current = setTimeout(async () => {
+      setMemberSearching(true);
+      try {
+        const res = await fetch(`/api/members/search?q=${encodeURIComponent(memberQuery)}`);
+        if (res.ok) setMemberResults(await res.json());
+      } finally {
+        setMemberSearching(false);
+      }
+    }, 300);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [memberQuery]);
 
   function handleNameChange(value: string) {
     setName(value);
@@ -88,6 +119,7 @@ export default function TeacherEditor({ initialData }: Props) {
           bio: bio || null,
           photoUrl: photoUrl || null,
           isActive,
+          userId: linkedUserId,
         }),
       });
 
@@ -200,6 +232,59 @@ export default function TeacherEditor({ initialData }: Props) {
           placeholder="Write a bio for this teacher…"
           minHeight={200}
         />
+      </div>
+
+      {/* ── Linked member account ── */}
+      <div className="th-section">
+        <h3 className="th-section__title">Linked Member Account</h3>
+        <p className="th-muted" style={{ marginBottom: 12 }}>
+          Optional. Linking a member account enables future profile features (e.g. "Also by this teacher" cross-links).
+          Not all teacher profiles need a linked account.
+        </p>
+        {linkedUserId && linkedMemberName ? (
+          <div className="th-linked-member">
+            <span className="th-linked-member__name">{linkedMemberName}</span>
+            <button
+              type="button"
+              className="th-btn th-btn--small"
+              onClick={() => { setLinkedUserId(null); setLinkedMemberName(null); setMemberQuery(""); }}
+            >
+              Remove link
+            </button>
+          </div>
+        ) : (
+          <div className="th-form">
+            <div className="th-field">
+              <input
+                type="text"
+                value={memberQuery}
+                onChange={(e) => setMemberQuery(e.target.value)}
+                placeholder="Search by member name…"
+                className="th-input"
+              />
+              {memberSearching && <p className="th-muted">Searching…</p>}
+              {memberResults.length > 0 && (
+                <div className="th-teacher-results">
+                  {memberResults.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      className="th-teacher-result"
+                      onClick={() => {
+                        setLinkedUserId(m.id);
+                        setLinkedMemberName([m.firstName, m.lastName].filter(Boolean).join(" "));
+                        setMemberResults([]);
+                        setMemberQuery("");
+                      }}
+                    >
+                      {[m.firstName, m.lastName].filter(Boolean).join(" ")}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Actions ── */}
