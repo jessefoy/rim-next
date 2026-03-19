@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, KeyboardEvent } from "react";
+import { useState, useEffect, KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import FormattedEditor from "@/components/FormattedEditor";
+import SlugField from "@/components/SlugField";
 import Link from "next/link";
 import CourseAccessSection from "@/components/CourseAccessSection";
 import HouseholdSection from "@/components/HouseholdSection";
@@ -203,6 +204,20 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
   const [profileError, setProfileError] = useState("");
+
+  // Auto-generate slug when isTeacher is first enabled and no slug exists yet
+  useEffect(() => {
+    if (isTeacher && !teacherSlug) {
+      const name = [member.firstName, member.lastName].filter(Boolean).join(" ");
+      const generated = name
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, "")
+        .trim()
+        .replace(/\s+/g, "-");
+      if (generated) setTeacherSlug(generated);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTeacher]);
 
   const toggleRole = (role: string) => {
     setRoles((prev) => prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]);
@@ -625,17 +640,16 @@ export default function MemberDetail({ member, isAdmin }: { member: Member; isAd
                 placeholder="https://…"
               />
             </label>
-            <label className="adm-field">
+            <div className="adm-field">
               <span className="adm-field__label">Slug</span>
-              <input
-                type="text"
+              <SlugField
                 value={teacherSlug}
-                onChange={(e) => setTeacherSlug(e.target.value)}
-                className="adm-input"
-                placeholder="e.g. jesse-foy"
+                onChange={setTeacherSlug}
+                isEditing={true}
+                warnText="Changing the slug will break any existing links to this teacher's public page."
+                hintText="Public URL: /teachers/[slug]. Leave blank to hide from the public page."
               />
-              <span className="adm-field__hint">Public URL: /teachers/[slug]. Leave blank to hide from the public page.</span>
-            </label>
+            </div>
             <label className="adm-role" style={{ marginTop: 8 }}>
               <input
                 type="checkbox"
