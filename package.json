@@ -10,6 +10,12 @@
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
+    "@blocknote/core": "^0.47.1",
+    "@blocknote/mantine": "^0.47.1",
+    "@blocknote/react": "^0.47.1",
+    "@blocknote/server-util": "^0.47.1",
+    "@mantine/core": "^8.3.18",
+    "@mantine/hooks": "^8.3.18",
     "@portabletext/react": "^6.0.2",
     "@portabletext/to-html": "^5.0.1",
     "@prisma/client": "^5.22.0",
