@@ -7,7 +7,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import FormattedEditor from "./FormattedEditor";
+import RimProseEditor from "@/components/RimProseEditor";
 import { renderFormattedText } from "@/lib/renderRichContent";
 
 interface PersonName {
@@ -51,18 +51,20 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-/** Check if Tiptap JSON has meaningful content */
+/** Check if JSON has meaningful content — handles both Tiptap and BlockNote JSON */
 function hasContent(json: any): boolean {
   if (!json) return false;
+  // BlockNote JSON: array of blocks
+  if (Array.isArray(json)) return json.some((b: any) => b.content?.some((c: any) => c.text?.trim()));
+  // Tiptap JSON: traverse content tree
+  function extractText(node: any): string {
+    if (!node) return "";
+    if (typeof node === "string") return node;
+    if (node.text) return node.text;
+    if (node.content) return node.content.map(extractText).join(" ");
+    return "";
+  }
   return extractText(json).trim().length > 0;
-}
-
-function extractText(json: any): string {
-  if (!json) return "";
-  if (typeof json === "string") return json;
-  if (json.text) return json.text;
-  if (json.content) return json.content.map(extractText).join(" ");
-  return "";
 }
 
 export default function HubConvThreadClient({
@@ -177,7 +179,7 @@ export default function HubConvThreadClient({
       {/* Reply form */}
       {!isClosed ? (
         <div className="cv-reply-form">
-          <FormattedEditor
+          <RimProseEditor
             value={replyBody}
             onChange={setReplyBody}
             placeholder="Add a reply…"

@@ -6,12 +6,15 @@
  * No headings, no custom blocks, no slash menu.
  *
  * Props:
- *   minimal  — when true, shows only Bold + Italic + Link in the formatting toolbar
+ *   minimal    — when true, shows only Bold + Italic + Link in the formatting toolbar
+ *   legacyHtml — pre-rendered HTML from server (Tiptap JSON → HTML).
+ *                Imported into BlockNote on mount when value is null/empty.
  *
  * Stores content as BlockNote JSON (array of blocks).
  */
 
 import "@blocknote/mantine/style.css";
+import { useEffect } from "react";
 import { useCreateBlockNote } from "@blocknote/react";
 import {
   FormattingToolbarController,
@@ -29,6 +32,7 @@ interface Props {
   placeholder?: string;
   minHeight?: number;
   minimal?: boolean;    // strips toolbar to Bold + Italic + Link only
+  legacyHtml?: string;  // pre-rendered HTML for Tiptap → BlockNote import on mount
 }
 
 export default function RimProseEditor({
@@ -36,14 +40,27 @@ export default function RimProseEditor({
   onChange,
   minHeight = 160,
   minimal = false,
+  legacyHtml,
 }: Props) {
+  const hasBlockNoteContent = Array.isArray(value) && value.length > 0;
+
   const editor = useCreateBlockNote(
     {
       schema: rimProseSchema,
-      initialContent: Array.isArray(value) && value.length > 0 ? value : undefined,
+      initialContent: hasBlockNoteContent ? value : undefined,
     },
     []
   );
+
+  // Import legacy HTML on mount when no BlockNote content exists
+  useEffect(() => {
+    if (legacyHtml && !hasBlockNoteContent) {
+      const blocks = editor.tryParseHTMLToBlocks(legacyHtml);
+      if (blocks.length > 0) {
+        editor.replaceBlocks(editor.document, blocks);
+      }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (minimal) {
     return (

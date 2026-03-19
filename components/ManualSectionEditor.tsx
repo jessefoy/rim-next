@@ -1,23 +1,14 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { generateJSON } from "@tiptap/core";
-import StarterKit from "@tiptap/starter-kit";
-import Link from "@tiptap/extension-link";
-import Underline from "@tiptap/extension-underline";
-import TextAlign from "@tiptap/extension-text-align";
-import { Table } from "@tiptap/extension-table";
-import TableRow from "@tiptap/extension-table-row";
-import TableHeader from "@tiptap/extension-table-header";
-import TableCell from "@tiptap/extension-table-cell";
-import { VerseQuote, PracticeSuggestion, Callout } from "@/lib/tiptap-extensions";
-import ContentEditor from "@/components/ContentEditor";
+import { useState } from "react";
+import RimBlockEditor from "@/components/RimBlockEditor";
 
 interface Props {
   slug: string;
   initialTitle: string;
   initialHubSlug: string;
   initialBody: unknown;
+  legacyBodyHtml: string | null;  // pre-rendered HTML from server for Tiptap → BlockNote import
   initialRelations: string[];
   initialOrder: number;
 }
@@ -27,38 +18,16 @@ export default function ManualSectionEditor({
   initialTitle,
   initialHubSlug,
   initialBody,
+  legacyBodyHtml,
   initialRelations,
   initialOrder,
 }: Props) {
-  // Convert rawHtml bodies to Tiptap JSON so ContentEditor can load them
-  const resolvedInitialBody = useMemo(() => {
-    const b = initialBody as any;
-    if (b && b.type === "rawHtml" && typeof b.html === "string") {
-      try {
-        return generateJSON(b.html, [
-          StarterKit,
-          Link.configure({ openOnClick: false }),
-          Underline,
-          TextAlign.configure({ types: ["heading", "paragraph"] }),
-          Table.configure({ resizable: false }),
-          TableRow,
-          TableHeader,
-          TableCell,
-          VerseQuote,
-          PracticeSuggestion,
-          Callout,
-        ]);
-      } catch {
-        return null;
-      }
-    }
-    return initialBody ?? null;
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   const [title, setTitle] = useState(initialTitle);
   const [hubSlug, setHubSlug] = useState(initialHubSlug);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [body, setBody] = useState<any>(resolvedInitialBody);
+  const [body, setBody] = useState<any>(
+    Array.isArray(initialBody) ? initialBody : null
+  );
   const [relations, setRelations] = useState(initialRelations.join(", "));
   const [order, setOrder] = useState(String(initialOrder));
   const [saving, setSaving] = useState(false);
@@ -168,9 +137,12 @@ export default function ManualSectionEditor({
 
         <div className="man2-edit__field">
           <label className="man2-edit__label">Content</label>
-          <ContentEditor
+          <RimBlockEditor
             value={body}
             onChange={setBody}
+            placeholder="Write the manual section content…"
+            minHeight={500}
+            legacyHtml={legacyBodyHtml ?? undefined}
           />
         </div>
 

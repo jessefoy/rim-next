@@ -17,7 +17,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import FormattedEditor from "./FormattedEditor";
+import RimProseEditor from "@/components/RimProseEditor";
 
 const ACTION_OPTIONS = [
   { value: "NONE",             label: "No action needed",        desc: "The tap was precautionary — nothing needs to happen." },
@@ -236,7 +236,7 @@ export default function PostSessionClient({
               <div key={f.attendanceId} className="ps-flag-item">
                 <p className="ps-flag-item__name">{f.displayName}</p>
                 <div className="ps-flag-item__note-wrap">
-                  <FormattedEditor
+                  <RimProseEditor
                     placeholder="What did you notice? (optional)"
                     value={flagNotes[f.attendanceId] ?? null}
                     minHeight={80}
@@ -279,7 +279,7 @@ export default function PostSessionClient({
         <p className="ps-section-label">Session reflection</p>
         <p className="ps-section__desc">Optional — but encouraged.</p>
         <div className="ps-reflection-wrap">
-          <FormattedEditor
+          <RimProseEditor
             placeholder="How did the session feel? Anything worth the team knowing?"
             value={reflection}
             minHeight={120}

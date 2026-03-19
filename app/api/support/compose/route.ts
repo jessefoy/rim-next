@@ -10,6 +10,7 @@ import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getGmailClient } from "@/lib/gmail";
+import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 
 function hasSupport(roles: string[]) {
   return roles.some((r) => ["SUPPORT", "ADMIN"].includes(r));
@@ -54,16 +55,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { to, subject, bodyHtml, attachments } = await req.json() as {
+  const { to, subject, body: bodyJson, bodyHtml: legacyBodyHtml, attachments } = await req.json() as {
     to: string;
     subject: string;
-    bodyHtml: string;
+    body?: any;
+    bodyHtml?: string;
     attachments?: AttachmentInput[];
   };
 
-  if (!to || !subject || !bodyHtml) {
+  if (!to || !subject || (!bodyJson && !legacyBodyHtml)) {
     return NextResponse.json({ error: "To, subject, and body are required" }, { status: 400 });
   }
+
+  // Render body to HTML: new BlockNote JSON path or legacy HTML path
+  const bodyHtml = bodyJson
+    ? await renderFormattedTextAsync(bodyJson)
+    : (legacyBodyHtml ?? "");
 
   // Validate email format
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

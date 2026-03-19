@@ -27,6 +27,7 @@ export async function GET(
 }
 
 // POST /api/hub/[slug]/documents — coordinator only
+// Accepts external link docs ({ label, url, fileType, ... }) or native docs ({ label, body, isNative: true })
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ slug: string }> }
@@ -43,8 +44,12 @@ export async function POST(
   try { requireCoordinator(member?.isCoordinator ?? false, session.user.roles ?? []); }
   catch { return NextResponse.json({ error: "Coordinators only" }, { status: 403 }); }
 
-  const { label, url, description, fileType, category, newCategory } = await req.json();
-  if (!label?.trim() || !url?.trim()) {
+  const { label, url, description, fileType, category, newCategory, body, isNative } = await req.json();
+
+  if (!label?.trim()) {
+    return NextResponse.json({ error: "Label required" }, { status: 400 });
+  }
+  if (!isNative && !url?.trim()) {
     return NextResponse.json({ error: "Label and URL required" }, { status: 400 });
   }
 
@@ -63,10 +68,12 @@ export async function POST(
       hubId:       hub.id,
       addedById:   session.user.id,
       label:       label.trim(),
-      url:         url.trim(),
+      url:         isNative ? null : (url?.trim() ?? null),
       description: description?.trim() || null,
-      fileType:    fileType ?? "LINK",
+      fileType:    isNative ? "DOC" : (fileType ?? "LINK"),
       category:    resolvedCategory,
+      body:        isNative ? (body ?? null) : null,
+      isNative:    isNative ?? false,
     },
     include: { addedBy: { select: { firstName: true, lastName: true, preferredName: true } } },
   });

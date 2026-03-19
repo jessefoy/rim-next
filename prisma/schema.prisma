@@ -1111,10 +1111,12 @@ model HubDocument {
   hubId       String
   addedById   String
   label       String
-  url         String
+  url         String?             // nullable — native docs have no external URL
   description String?
   fileType    HubDocumentFileType @default(LINK)
   category    String?
+  body        Json?               // BlockNote JSON — set when isNative = true
+  isNative    Boolean             @default(false)
 
   hub     Hub      @relation(fields: [hubId], references: [id])
   addedBy User     @relation(fields: [addedById], references: [id], onDelete: Cascade)

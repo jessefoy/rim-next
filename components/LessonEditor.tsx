@@ -9,8 +9,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
-import ContentEditor from "@/components/ContentEditor";
-import FormattedEditor from "@/components/FormattedEditor";
+import RimBlockEditor from "@/components/RimBlockEditor";
+import RimProseEditor from "@/components/RimProseEditor";
 import ManualHelpIcon from "@/components/ManualHelpIcon";
 import SlugField from "@/components/SlugField";
 
@@ -66,6 +66,7 @@ interface Props {
   hubSlug: string;
   initialData?: LessonData;
   isEditing: boolean;
+  legacyBodyHtml?: string;  // pre-rendered HTML for Tiptap → BlockNote import on mount
 }
 
 const RESOURCE_TYPES = ["PDF", "Audio", "Worksheet", "Guide", "Link", "Other"];
@@ -77,7 +78,7 @@ function slugify(text: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
-export default function LessonEditor({ hubSlug, initialData, isEditing }: Props) {
+export default function LessonEditor({ hubSlug, initialData, isEditing, legacyBodyHtml }: Props) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -92,8 +93,10 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
     (initialData as any)?.accessLevel ?? "ALL_MEMBERS"
   );
 
-  // Content — Tiptap JSON
-  const [body, setBody] = useState<any>(initialData?.body ?? null);
+  // Content — BlockNote JSON (or null for new lessons)
+  const [body, setBody] = useState<any>(
+    Array.isArray(initialData?.body) ? initialData.body : null
+  );
 
   // Media
   const [heroImageUrl, setHeroImageUrl] = useState(initialData?.heroImageUrl ?? "");
@@ -494,11 +497,12 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
       {/* ── Section: Content ── */}
       <div className="th-section">
         <h3 className="th-section__title">Content</h3>
-        <ContentEditor
+        <RimBlockEditor
           value={body}
           onChange={setBody}
           placeholder="Begin writing your lesson here…"
           minHeight={500}
+          legacyHtml={legacyBodyHtml}
         />
 
         <div className="th-form" style={{ marginTop: 24 }}>
@@ -551,7 +555,7 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
               </button>
             </div>
             <div style={{ marginBottom: 16 }}>
-              <FormattedEditor
+              <RimProseEditor
                 key={qi}
                 value={q.body}
                 onChange={(body) => updateQuestionBody(qi, body)}

@@ -24,6 +24,7 @@ export type SerializedMember = {
   memberStatus: string;
   firstVisitDate: string | null;
   adminNotes: unknown;
+  legacyAdminNotesHtml: string | null;
   tags: string[];
   sectionGrants: string[];
   roles: string[];
@@ -114,7 +115,11 @@ export const MEMBER_SECTIONS: MemberSection[] = [
     allowedRoles: ["ADMIN"],
     zoneStart: true,
     render: ({ member }) => (
-      <AdminNotesSection memberId={member.id} initialNotes={member.adminNotes} />
+      <AdminNotesSection
+        memberId={member.id}
+        initialNotes={member.adminNotes}
+        legacyAdminNotesHtml={member.legacyAdminNotesHtml ?? undefined}
+      />
     ),
   },
   {

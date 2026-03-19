@@ -12,7 +12,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { upload } from "@vercel/blob/client";
 import type { Editor } from "@tiptap/react";
-import FormattedEditor from "./FormattedEditor";
+import RimProseEditor from "@/components/RimProseEditor";
 import { renderFormattedText } from "@/lib/renderRichContent";
 
 interface StagedFile {
@@ -427,7 +427,6 @@ export default function SupportInboxClient({
     }
 
     setReplySending(true);
-    const html = renderFormattedText(replyDraft);
     const attachments = replyFiles
       .filter((f) => f.url)
       .map((f) => ({
@@ -440,7 +439,7 @@ export default function SupportInboxClient({
     const res = await fetch(`/api/support/threads/${selectedId}/reply`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ bodyHtml: html, attachments }),
+      body: JSON.stringify({ body: replyDraft, attachments }),
     });
     if (res.ok) {
       setReplyDraft(null);
@@ -604,7 +603,6 @@ export default function SupportInboxClient({
     }
 
     setComposeSending(true);
-    const html = renderFormattedText(composeDraft);
     const attachments = composeFiles
       .filter((f) => f.url)
       .map((f) => ({
@@ -620,7 +618,7 @@ export default function SupportInboxClient({
       body: JSON.stringify({
         to: composeTo,
         subject: composeSubject,
-        bodyHtml: html,
+        body: composeDraft,
         attachments: attachments.length > 0 ? attachments : undefined,
       }),
     });
@@ -822,7 +820,7 @@ export default function SupportInboxClient({
                   </button>
                 </div>
                 <div className="si-note-composer__editor">
-                  <FormattedEditor
+                  <RimProseEditor
                     key="note-editor"
                     value={noteDraft}
                     onChange={setNoteDraft}
@@ -931,14 +929,12 @@ export default function SupportInboxClient({
                 ) : (
                   <>
                     <div className="si-composer__editor">
-                      <FormattedEditor
+                      <RimProseEditor
                         key="reply-editor"
                         value={replyDraft}
                         onChange={setReplyDraft}
                         placeholder="Type your reply…"
                         minHeight={100}
-                        context="support-reply"
-                        editorRef={replyEditorRef}
                       />
                     </div>
                     {/* Staged attachments */}
@@ -1315,14 +1311,12 @@ export default function SupportInboxClient({
 
               {/* Body */}
               <div className="si-modal__field si-modal__field--editor">
-                <FormattedEditor
+                <RimProseEditor
                   key="compose-editor"
                   value={composeDraft}
                   onChange={setComposeDraft}
                   placeholder="Write your message…"
                   minHeight={200}
-                  context="support-reply"
-                  editorRef={composeEditorRef}
                 />
               </div>
 

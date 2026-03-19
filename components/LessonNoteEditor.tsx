@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import FormattedEditor from "@/components/FormattedEditor";
+import RimProseEditor from "@/components/RimProseEditor";
 
 interface Props {
   lessonSlug: string;
@@ -51,7 +51,7 @@ export default function LessonNoteEditor({ lessonSlug, initialBody }: Props) {
   return (
     <div className="ls-notes-wrap">
       <p className="ls-notes-label">Your notes</p>
-      <FormattedEditor
+      <RimProseEditor
         value={body}
         onChange={handleChange}
         placeholder="Write anything that came up while reading or listening…"

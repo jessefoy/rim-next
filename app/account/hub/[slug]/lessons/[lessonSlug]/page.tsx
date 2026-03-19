@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { getHubMembership } from "@/lib/hubAuth";
 import LessonEditor from "@/components/LessonEditor";
 import ManualHelpIcon from "@/components/ManualHelpIcon";
+import { renderContentBodyAsync } from "@/lib/renderRichContentServer";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +66,11 @@ export default async function EditLessonPage({
   ]);
   if (!lesson) notFound();
 
+  // Pre-render legacy Tiptap body for BlockNote import on mount
+  const legacyBodyHtml = lesson.body && !Array.isArray(lesson.body)
+    ? await renderContentBodyAsync(lesson.body)
+    : null;
+
   // Serialize for client component
   const initialData = {
     id: lesson.id,
@@ -100,7 +106,7 @@ export default async function EditLessonPage({
   return (
     <div style={{ position: "relative" }}>
       <ManualHelpIcon manualSlug="course-hub-lessons" />
-      <LessonEditor hubSlug={slug} initialData={initialData} isEditing />
+      <LessonEditor hubSlug={slug} initialData={initialData} isEditing legacyBodyHtml={legacyBodyHtml ?? undefined} />
     </div>
   );
 }

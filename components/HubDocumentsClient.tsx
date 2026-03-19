@@ -19,10 +19,11 @@ interface DocAddedBy {
 interface HubDoc {
   id: string;
   label: string;
-  url: string;
+  url: string | null;             // nullable — native docs have no external URL
   description: string | null;
   fileType: "DOC" | "SHEET" | "SLIDE" | "FORM" | "LINK";
   category: string | null;
+  isNative: boolean;
   addedBy: DocAddedBy;
   createdAt: string;
 }
@@ -80,7 +81,7 @@ export default function HubDocumentsClient({
   function openEdit(doc: HubDoc) {
     setEditingId(doc.id);
     setEditLabel(doc.label);
-    setEditUrl(doc.url);
+    setEditUrl(doc.url ?? "");
     setEditDesc(doc.description ?? "");
     setEditCategory(doc.category ?? "");
     setEditFileType(doc.fileType);
@@ -158,8 +159,11 @@ export default function HubDocumentsClient({
       {/* Toolbar */}
       {isCoordinator && (
         <div className="doc-toolbar">
-          <button className="btn btn--sm" onClick={() => setShowAdd((v) => !v)}>
-            + Add Document
+          <a href={`/account/hub/${hubSlug}/documents/new`} className="btn btn--sm">
+            + New Document
+          </a>
+          <button className="btn btn--sm btn--ghost" onClick={() => setShowAdd((v) => !v)}>
+            + Add Link
           </button>
         </div>
       )}
@@ -270,16 +274,32 @@ export default function HubDocumentsClient({
                       </div>
                     </div>
                   ) : (
-                    <div className="doc-item" onClick={() => { if (!isCoordinator) window.open(doc.url, "_blank"); }}>
-                      <span className="doc-type-badge">{doc.fileType}</span>
+                    <div className="doc-item">
+                      {!doc.isNative && <span className="doc-type-badge">{doc.fileType}</span>}
                       <div className="doc-item__text">
-                        <div className="doc-item__title">{doc.label}</div>
+                        {doc.isNative ? (
+                          <a
+                            href={`/account/hub/${hubSlug}/documents/${doc.id}`}
+                            className="doc-item__native-link"
+                          >
+                            {doc.label}
+                          </a>
+                        ) : (
+                          <a
+                            href={doc.url!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="doc-item__link"
+                          >
+                            {doc.label} ↗
+                          </a>
+                        )}
                         {doc.description && <div className="doc-item__desc">{doc.description}</div>}
                       </div>
                       <div className="doc-item__meta">
                         {fmtDate(doc.createdAt)} · {displayName(doc.addedBy)}
                       </div>
-                      {isCoordinator ? (
+                      {isCoordinator && !doc.isNative && (
                         <button
                           className="ann-btn"
                           style={{ flexShrink: 0 }}
@@ -287,8 +307,15 @@ export default function HubDocumentsClient({
                         >
                           Edit
                         </button>
-                      ) : (
-                        <span className="doc-item__arrow">↗</span>
+                      )}
+                      {isCoordinator && doc.isNative && (
+                        <a
+                          href={`/account/hub/${hubSlug}/documents/${doc.id}/edit`}
+                          className="ann-btn"
+                          style={{ flexShrink: 0, textDecoration: "none" }}
+                        >
+                          Edit
+                        </a>
                       )}
                     </div>
                   )}

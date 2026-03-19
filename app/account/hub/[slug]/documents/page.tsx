@@ -47,10 +47,11 @@ export default async function HubDocumentsPage({
   const serialized = documents.map((d) => ({
     id:          d.id,
     label:       d.label,
-    url:         d.url,
+    url:         d.url,                    // string | null
     description: d.description,
     fileType:    d.fileType as "DOC" | "SHEET" | "SLIDE" | "FORM" | "LINK",
     category:    d.category,
+    isNative:    d.isNative,
     addedBy: {
       firstName:     d.addedBy.firstName,
       lastName:      d.addedBy.lastName,

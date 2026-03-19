@@ -1,15 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import FormattedEditor from "@/components/FormattedEditor";
+import RimProseEditor from "@/components/RimProseEditor";
 
 interface Props {
   memberId: string;
   initialNotes: unknown;
+  legacyAdminNotesHtml?: string;
 }
 
-export default function AdminNotesSection({ memberId, initialNotes }: Props) {
-  const [notes, setNotes] = useState<unknown>(initialNotes ?? null);
+export default function AdminNotesSection({ memberId, initialNotes, legacyAdminNotesHtml }: Props) {
+  const [notes, setNotes] = useState<unknown>(
+    Array.isArray(initialNotes) ? initialNotes : null
+  );
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
@@ -39,12 +42,13 @@ export default function AdminNotesSection({ memberId, initialNotes }: Props) {
     <section className="adm2-section">
       <h2 className="adm2-section__title">Admin Notes</h2>
       <p className="adm2-section__hint">Private — not visible to the member.</p>
-      <FormattedEditor
+      <RimProseEditor
         value={notes}
         onChange={(v: unknown) => setNotes(v)}
         placeholder="Internal notes about this member…"
         minHeight={160}
         minimal
+        legacyHtml={legacyAdminNotesHtml}
       />
       <div className="adm2-save">
         {error && <p className="adm2-save__error">{error}</p>}

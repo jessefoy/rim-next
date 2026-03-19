@@ -11,6 +11,7 @@ import { auth } from "@/auth";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getGmailClient } from "@/lib/gmail";
+import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 
 function hasSupport(roles: string[]) {
   return roles.some((r) => ["SUPPORT", "ADMIN"].includes(r));
@@ -59,15 +60,21 @@ export async function POST(
   }
 
   const { id } = await params;
-  const { bodyHtml, bodyText, attachments } = await req.json() as {
+  const { body: bodyJson, bodyHtml: legacyBodyHtml, bodyText, attachments } = await req.json() as {
+    body?: any;
     bodyHtml?: string;
     bodyText?: string;
     attachments?: AttachmentInput[];
   };
 
-  if (!bodyHtml && !bodyText) {
+  if (!bodyJson && !legacyBodyHtml && !bodyText) {
     return NextResponse.json({ error: "Body is required" }, { status: 400 });
   }
+
+  // Render body to HTML: new BlockNote JSON path or legacy HTML path
+  const bodyHtml = bodyJson
+    ? await renderFormattedTextAsync(bodyJson)
+    : (legacyBodyHtml ?? null);
 
   // Get thread + last message for threading headers
   const thread = await db.supportThread.findUnique({

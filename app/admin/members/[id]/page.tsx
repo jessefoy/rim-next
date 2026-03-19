@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import MemberDetail from "@/components/MemberDetail";
 import ManualHelpIcon from "@/components/ManualHelpIcon";
 import { type ViewerPermissions } from "@/lib/memberSectionRegistry";
+import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 
 export const dynamic = "force-dynamic";
 
@@ -95,6 +96,11 @@ export default async function AdminMemberDetailPage({
 
   if (!user) notFound();
 
+  // Pre-render legacy admin notes for BlockNote import on mount
+  const legacyAdminNotesHtml = user.adminNotes && !Array.isArray(user.adminNotes)
+    ? await renderFormattedTextAsync(user.adminNotes)
+    : null;
+
   const viewerPermissions: ViewerPermissions = {
     roles: session.user.roles ?? [],
     sectionGrants: viewer?.sectionGrants ?? [],
@@ -118,6 +124,7 @@ export default async function AdminMemberDetailPage({
     memberStatus: user.memberStatus,
     firstVisitDate: user.firstVisitDate?.toISOString() ?? null,
     adminNotes: user.adminNotes,
+    legacyAdminNotesHtml: legacyAdminNotesHtml,
     tags: user.tags,
     sectionGrants: user.sectionGrants,
     roles: user.roles,

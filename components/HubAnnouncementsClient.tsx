@@ -7,8 +7,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import FormattedEditor from "@/components/FormattedEditor";
-import { renderFormattedText, extractText } from "@/lib/renderRichContent";
+import RimProseEditor from "@/components/RimProseEditor";
+import { renderFormattedText } from "@/lib/renderRichContent";
 
 interface AnnAuthor {
   firstName: string | null;
@@ -85,7 +85,7 @@ export default function HubAnnouncementsClient({
   const [turningId, setTurningId]         = useState<string | null>(null);
 
   async function postAnnouncement() {
-    if (!title.trim() || !extractText(body)?.trim()) return;
+    if (!title.trim() || !body) return;
     setPosting(true);
     const res = await fetch(`/api/hub/${hubSlug}/announcements`, {
       method:  "POST",
@@ -171,7 +171,7 @@ export default function HubAnnouncementsClient({
           </div>
           <div className="fg">
             <label className="fl">Message</label>
-            <FormattedEditor
+            <RimProseEditor
               value={body}
               onChange={setBody}
               placeholder="Write your message here…"
@@ -195,7 +195,7 @@ export default function HubAnnouncementsClient({
           </div>
           <div className="form-actions">
             <button className="btn--ghost" onClick={() => setShowCompose(false)}>Cancel</button>
-            <button className="btn" onClick={postAnnouncement} disabled={posting || !title.trim() || !body.trim()}>
+            <button className="btn" onClick={postAnnouncement} disabled={posting || !title.trim() || !body}>
               {posting ? "Posting…" : "Post Announcement"}
             </button>
           </div>

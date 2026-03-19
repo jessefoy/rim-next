@@ -3,6 +3,28 @@ import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { getHubMembership, requireCoordinator } from "@/lib/hubAuth";
 
+// GET — fetch a single document (for view/edit pages)
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ slug: string; id: string }> }
+) {
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { slug, id } = await params;
+  const { hub, member } = await getHubMembership(slug, session.user.id);
+  const isAdmin = (session.user.roles ?? []).includes("ADMIN");
+  if (!hub || (!member && !isAdmin)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const doc = await db.hubDocument.findUnique({
+    where: { id },
+    include: { addedBy: { select: { firstName: true, lastName: true, preferredName: true } } },
+  });
+  if (!doc || doc.hubId !== hub.id) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  return NextResponse.json(doc);
+}
+
 // PATCH /api/hub/[slug]/documents/[id]
 export async function PATCH(
   req: Request,
@@ -23,15 +45,16 @@ export async function PATCH(
   const doc = await db.hubDocument.findFirst({ where: { id, hubId: hub.id } });
   if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const { label, url, description, fileType, category } = await req.json();
+  const { label, url, description, fileType, category, body } = await req.json();
   const updated = await db.hubDocument.update({
     where: { id },
     data: {
       label:       label?.trim()       ?? doc.label,
-      url:         url?.trim()         ?? doc.url,
-      description: description?.trim() ?? doc.description,
+      url:         doc.isNative ? null : (url?.trim() ?? doc.url),
+      description: description !== undefined ? (description?.trim() || null) : doc.description,
       fileType:    fileType            ?? doc.fileType,
-      category:    category            ?? doc.category,
+      category:    category !== undefined ? (category || null) : doc.category,
+      body:        body !== undefined ? body : doc.body,
     },
     include: { addedBy: { select: { firstName: true, lastName: true, preferredName: true } } },
   });
