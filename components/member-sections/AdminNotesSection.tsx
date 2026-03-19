@@ -44,6 +44,7 @@ export default function AdminNotesSection({ memberId, initialNotes }: Props) {
         onChange={(v: unknown) => setNotes(v)}
         placeholder="Internal notes about this member…"
         minHeight={160}
+        minimal
       />
       <div className="adm2-save">
         {error && <p className="adm2-save__error">{error}</p>}

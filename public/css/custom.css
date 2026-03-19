@@ -16467,7 +16467,7 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: var(--rim-blue);
+  background: linear-gradient(145deg, var(--rim-mid) 0%, var(--rim-dark) 100%);
   color: #fff;
   font-family: var(--font-sans);
   font-size: 20px;
@@ -16557,17 +16557,28 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   zone. Zones are separated by breath, not borders or backgrounds.
 */
 .adm2-section--zone-start {
-  margin-top: 64px;
+  margin-top: 56px;
+  padding-top: 8px;
+}
+
+.adm2-section--zone-start::before {
+  content: "";
+  display: block;
+  width: 40px;
+  height: 1px;
+  background: var(--rim-rule);
+  margin: 0 0 40px;
 }
 
 .adm2-section__title {
   font-family: var(--font-sans);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.13em;
+  letter-spacing: 0.11em;
   text-transform: uppercase;
   color: var(--rim-text-muted);
-  margin: 0 0 16px;
+  opacity: 0.8;
+  margin: 0 0 18px;
   padding-bottom: 10px;
   border-bottom: 1px solid var(--rim-rule);
   display: flex;
@@ -17127,4 +17138,40 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   .adm2-section--zone-start {
     margin-top: 48px;
   }
+}
+
+/* ─── adm2: third-party section flattening ──────────────────────────────── */
+/*
+  HouseholdSection (hh-) and CourseAccessSection (ca-) were built before
+  the adm2- design system. When rendered inside .adm2-page, we flatten their
+  legacy card styles so they read as native adm2- sections.
+*/
+
+.adm2-page .hh-section,
+.adm2-page .ca-section {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+}
+
+.adm2-page .hh-section__title,
+.adm2-page .ca-section__title {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--rim-text-muted);
+  opacity: 0.8;
+  margin: 0 0 18px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rim-rule);
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  border-radius: 0;
+  background: transparent;
 }

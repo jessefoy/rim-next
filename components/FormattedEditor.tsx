@@ -20,6 +20,7 @@ interface Props {
   maxChars?: number
   context?: string     // "support-reply" enables image insert button
   editorRef?: React.MutableRefObject<Editor | null>
+  minimal?: boolean    // strips toolbar to Bold + Italic + Link only
 }
 
 export default function FormattedEditor({
@@ -30,6 +31,7 @@ export default function FormattedEditor({
   maxChars,
   context,
   editorRef,
+  minimal = false,
 }: Props) {
   const imageInputRef = useRef<HTMLInputElement>(null)
   const showImageButton = context === "support-reply"
@@ -96,33 +98,37 @@ export default function FormattedEditor({
           className={editor.isActive("italic") ? "rte-btn rte-btn--active" : "rte-btn"}
         ><em>I</em></button>
 
-        <button type="button"
-          onClick={() => editor.chain().focus().toggleUnderline().run()}
-          className={editor.isActive("underline") ? "rte-btn rte-btn--active" : "rte-btn"}
-          title="Underline"
-        ><u>U</u></button>
+        {!minimal && (
+          <>
+            <button type="button"
+              onClick={() => editor.chain().focus().toggleUnderline().run()}
+              className={editor.isActive("underline") ? "rte-btn rte-btn--active" : "rte-btn"}
+              title="Underline"
+            ><u>U</u></button>
 
-        <button type="button"
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          className={editor.isActive("heading", { level: 2 }) ? "rte-btn rte-btn--active" : "rte-btn"}
-        >H2</button>
+            <button type="button"
+              onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+              className={editor.isActive("heading", { level: 2 }) ? "rte-btn rte-btn--active" : "rte-btn"}
+            >H2</button>
 
-        <button type="button"
-          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-          className={editor.isActive("heading", { level: 3 }) ? "rte-btn rte-btn--active" : "rte-btn"}
-        >H3</button>
+            <button type="button"
+              onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+              className={editor.isActive("heading", { level: 3 }) ? "rte-btn rte-btn--active" : "rte-btn"}
+            >H3</button>
 
-        <div className="rte-divider" />
+            <div className="rte-divider" />
 
-        <button type="button"
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          className={editor.isActive("bulletList") ? "rte-btn rte-btn--active" : "rte-btn"}
-        >UL</button>
+            <button type="button"
+              onClick={() => editor.chain().focus().toggleBulletList().run()}
+              className={editor.isActive("bulletList") ? "rte-btn rte-btn--active" : "rte-btn"}
+            >UL</button>
 
-        <button type="button"
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          className={editor.isActive("orderedList") ? "rte-btn rte-btn--active" : "rte-btn"}
-        >OL</button>
+            <button type="button"
+              onClick={() => editor.chain().focus().toggleOrderedList().run()}
+              className={editor.isActive("orderedList") ? "rte-btn rte-btn--active" : "rte-btn"}
+            >OL</button>
+          </>
+        )}
 
         <button type="button"
           onClick={() => {
@@ -132,25 +138,29 @@ export default function FormattedEditor({
           className={editor.isActive("link") ? "rte-btn rte-btn--active" : "rte-btn"}
         >Link</button>
 
-        <div className="rte-divider" />
+        {!minimal && (
+          <>
+            <div className="rte-divider" />
 
-        <button type="button"
-          onClick={() => editor.chain().focus().setTextAlign("left").run()}
-          className={editor.isActive({ textAlign: "left" }) ? "rte-btn rte-btn--active" : "rte-btn"}
-          title="Align left"
-        >L</button>
+            <button type="button"
+              onClick={() => editor.chain().focus().setTextAlign("left").run()}
+              className={editor.isActive({ textAlign: "left" }) ? "rte-btn rte-btn--active" : "rte-btn"}
+              title="Align left"
+            >L</button>
 
-        <button type="button"
-          onClick={() => editor.chain().focus().setTextAlign("center").run()}
-          className={editor.isActive({ textAlign: "center" }) ? "rte-btn rte-btn--active" : "rte-btn"}
-          title="Align center"
-        >C</button>
+            <button type="button"
+              onClick={() => editor.chain().focus().setTextAlign("center").run()}
+              className={editor.isActive({ textAlign: "center" }) ? "rte-btn rte-btn--active" : "rte-btn"}
+              title="Align center"
+            >C</button>
 
-        <button type="button"
-          onClick={() => editor.chain().focus().setTextAlign("right").run()}
-          className={editor.isActive({ textAlign: "right" }) ? "rte-btn rte-btn--active" : "rte-btn"}
-          title="Align right"
-        >R</button>
+            <button type="button"
+              onClick={() => editor.chain().focus().setTextAlign("right").run()}
+              className={editor.isActive({ textAlign: "right" }) ? "rte-btn rte-btn--active" : "rte-btn"}
+              title="Align right"
+            >R</button>
+          </>
+        )}
 
         {showImageButton && (
           <>

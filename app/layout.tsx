@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Nav from "@/components/Nav";
-import Footer from "@/components/Footer";
+import FooterWrapper from "@/components/FooterWrapper";
 import SessionProvider from "@/components/SessionProvider";
 
 export const metadata: Metadata = {
@@ -29,7 +29,7 @@ export default function RootLayout({
         <SessionProvider>
           <Nav />
           <main>{children}</main>
-          <Footer />
+          <FooterWrapper />
         </SessionProvider>
       </body>
     </html>
