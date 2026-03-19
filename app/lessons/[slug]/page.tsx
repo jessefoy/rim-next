@@ -3,7 +3,6 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { renderContentBody } from "@/lib/renderRichContent";
-import DanaSection from "@/components/DanaSection";
 import AudioPlayer from "@/components/AudioPlayer";
 import LessonFooterClient from "@/components/LessonFooterClient";
 import { isLessonAvailable, computeAvailableDate, formatAvailableDate } from "@/lib/drip";
@@ -40,7 +39,12 @@ export default async function LessonPage({
 
   const lesson = await db.lesson.findUnique({
     where: { slug },
-    include: { teachers: { include: { teacher: true } } },
+    include: {
+      teachers: {
+        include: { user: { select: { id: true, firstName: true, lastName: true } } },
+        orderBy: { order: "asc" },
+      },
+    },
   });
   if (!lesson) notFound();
   const userId = session.user.id!;
@@ -226,20 +230,6 @@ export default async function LessonPage({
     }
   }
 
-  // ── Dana visibility ────────────────────────────────────────────────────────
-  // Show dana if any active parent course has showDana=true.
-  // Standalone lessons (no active parent courses) default to showing dana.
-  const [danaParent, parentCourseCount] = await Promise.all([
-    db.courseLesson.findFirst({
-      where: { lessonId: lesson.id, course: { isActive: true, showDana: true } },
-      select: { courseId: true },
-    }),
-    db.courseLesson.count({
-      where: { lessonId: lesson.id, course: { isActive: true } },
-    }),
-  ]);
-  const showDana = !!danaParent || parentCourseCount === 0;
-
   const hasAudio = !!lesson.audioUrl;
   const hasQuote = !!lesson.headerQuote;
   const resources = (lesson.resources as { name: string; url: string; resourceType: string }[]) ?? [];
@@ -273,7 +263,7 @@ export default async function LessonPage({
           orderBy: { sortOrder: "asc" },
           select: {
             id: true,
-            text: true,
+            body: true,
             sortOrder: true,
             options: {
               orderBy: { sortOrder: "asc" },
@@ -290,7 +280,7 @@ export default async function LessonPage({
   // Fetch existing responses and compute allCorrect for enrolled members
   let initialAllCorrect = false;
   let questionsWithResponses: {
-    id: string; text: string; sortOrder: number;
+    id: string; body: unknown; sortOrder: number;
     options: { id: string; text: string; sortOrder: number }[];
     responseOptionId: string | null;
   }[] = [];
@@ -429,11 +419,11 @@ export default async function LessonPage({
             <p className="lp-resources__label">Teachers</p>
             <p>
               {lesson.teachers.map((lt, i) => (
-                <span key={lt.teacher.slug}>
+                <span key={lt.user.id}>
                   {i > 0 && ", "}
-                  <Link href={`/teachers/${lt.teacher.slug}`} className="lp-teacher-link">
-                    {lt.teacher.name}
-                  </Link>
+                  <span className="lp-teacher-link">
+                    {[lt.user.firstName, lt.user.lastName].filter(Boolean).join(" ")}
+                  </span>
                 </span>
               ))}
             </p>
@@ -455,7 +445,6 @@ export default async function LessonPage({
           />
         )}
 
-        {showDana && <DanaSection />}
 
       </div>
 
@@ -464,14 +453,14 @@ export default async function LessonPage({
         <nav className="lp-lesson-nav" aria-label="Lesson navigation">
           <div className="lp-lesson-nav__inner">
 
-            {/* Left: prev lesson or series link */}
+            {/* Left: prev lesson or back to series */}
             <div className="lp-lesson-nav__prev">
               {courseContext.prevLesson ? (
                 <Link
                   href={lessonUrl(courseContext.prevLesson.slug)}
                   className="lp-lesson-nav__link lp-lesson-nav__link--prev"
                 >
-                  <span className="lp-lesson-nav__arrow">←</span>
+                  <span className="lp-lesson-nav__dir">← Previous</span>
                   <span className="lp-lesson-nav__name">{courseContext.prevLesson.titleDisplayed}</span>
                 </Link>
               ) : (
@@ -479,7 +468,7 @@ export default async function LessonPage({
                   href={`/course/${courseContext.course.slug}`}
                   className="lp-lesson-nav__link lp-lesson-nav__link--prev"
                 >
-                  <span className="lp-lesson-nav__arrow">←</span>
+                  <span className="lp-lesson-nav__dir">← Back to series</span>
                   <span className="lp-lesson-nav__name">{courseContext.course.title}</span>
                 </Link>
               )}
@@ -489,23 +478,23 @@ export default async function LessonPage({
               {courseContext.lessonNumber} / {courseContext.totalLessons}
             </div>
 
-            {/* Right: next lesson, series overview, or nothing (single-lesson series) */}
+            {/* Right: next lesson or series overview */}
             <div className="lp-lesson-nav__next">
               {courseContext.nextLesson ? (
                 <Link
                   href={lessonUrl(courseContext.nextLesson.slug)}
                   className="lp-lesson-nav__link lp-lesson-nav__link--next"
                 >
+                  <span className="lp-lesson-nav__dir">Next →</span>
                   <span className="lp-lesson-nav__name">{courseContext.nextLesson.titleDisplayed}</span>
-                  <span className="lp-lesson-nav__arrow">→</span>
                 </Link>
               ) : courseContext.totalLessons > 1 ? (
                 <Link
                   href={`/course/${courseContext.course.slug}`}
                   className="lp-lesson-nav__link lp-lesson-nav__link--next"
                 >
-                  <span className="lp-lesson-nav__name">{courseContext.course.title} overview</span>
-                  <span className="lp-lesson-nav__arrow">→</span>
+                  <span className="lp-lesson-nav__dir">Series overview →</span>
+                  <span className="lp-lesson-nav__name">{courseContext.course.title}</span>
                 </Link>
               ) : null}
             </div>

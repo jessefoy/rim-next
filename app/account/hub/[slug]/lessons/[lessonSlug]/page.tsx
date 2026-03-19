@@ -38,7 +38,7 @@ export default async function EditLessonPage({
     db.lesson.findUnique({
       where: { slug: lessonSlug },
       include: {
-        teachers: { include: { teacher: true } },
+        teachers: { include: { user: { select: { id: true, firstName: true, lastName: true, preferredName: true } } }, orderBy: { order: "asc" } },
         courses: {
           include: {
             course: { select: { dripEnabled: true, dripIntervalDays: true, title: true } },
@@ -51,7 +51,7 @@ export default async function EditLessonPage({
       orderBy: { sortOrder: "asc" },
       select: {
         id: true,
-        text: true,
+        body: true,
         sortOrder: true,
         options: {
           orderBy: { sortOrder: "asc" },
@@ -78,16 +78,15 @@ export default async function EditLessonPage({
     quoteSource: lesson.quoteSource ?? "",
     resources: (lesson.resources as { name: string; url: string; resourceType: string }[]) ?? [],
     teachers: lesson.teachers.map((lt) => ({
-      id: lt.teacher.id,
-      name: lt.teacher.name,
-      slug: lt.teacher.slug,
-      isActive: lt.teacher.isActive,
+      id: lt.user.id,
+      firstName: lt.user.preferredName || lt.user.firstName || "",
+      lastName: lt.user.lastName || "",
     })),
     releaseDelayDays: lesson.releaseDelayDays ?? null,
     durationMinutes: lesson.durationMinutes ?? null,
     reflectionPrompt: lesson.reflectionPrompt ?? null,
     questionsRequired: lesson.questionsRequired,
-    initialQuestions,
+    initialQuestions: initialQuestions.map((q) => ({ ...q, body: q.body ?? null })),
     parentDripInfo: lesson.courses
       .filter((cl) => cl.course.dripEnabled)
       .map((cl) => ({

@@ -17,7 +17,7 @@ export async function GET() {
 
   const teachers = await db.teacher.findMany({
     orderBy: { name: "asc" },
-    include: { _count: { select: { lessons: true } } },
+    select: { id: true, name: true, slug: true, bio: true, photoUrl: true, isActive: true, createdAt: true },
   });
 
   return NextResponse.json(teachers);

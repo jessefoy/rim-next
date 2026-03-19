@@ -15,21 +15,7 @@ export async function GET(
 
   const teacher = await db.teacher.findUnique({
     where: { slug },
-    include: {
-      lessons: {
-        include: {
-          lesson: {
-            include: {
-              courses: {
-                include: {
-                  course: { select: { id: true, title: true, slug: true } },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
+    select: { id: true, name: true, slug: true, bio: true, photoUrl: true, isActive: true, createdAt: true },
   });
 
   if (!teacher) {

@@ -20,6 +20,7 @@
  */
 
 import { useState } from "react";
+import { renderFormattedText } from "@/lib/renderRichContent";
 
 export interface QuestionOption {
   id: string;
@@ -29,7 +30,7 @@ export interface QuestionOption {
 
 export interface QuestionWithResponse {
   id: string;
-  text: string;
+  body: unknown; // Tiptap JSON
   sortOrder: number;
   options: QuestionOption[];
   responseOptionId: string | null;
@@ -57,10 +58,10 @@ export default function ReflectionQuestionsClient({
   onAllCorrect,
   onRetake,
 }: Props) {
-  // Current selections — pre-filled from previous responses
+  // Always start unselected — responseOptionId is only used for initialAllCorrect, not for pre-filling UI
   const [selections, setSelections] = useState<Map<string, string | null>>(() => {
     const m = new Map<string, string | null>();
-    for (const q of initialQuestions) m.set(q.id, q.responseOptionId);
+    for (const q of initialQuestions) m.set(q.id, null);
     return m;
   });
 
@@ -179,9 +180,10 @@ export default function ReflectionQuestionsClient({
                   : ""
               }`}
             >
-              <p className="ls-question__text">
-                <span className="ls-question__num">{qi + 1}.</span> {q.text}
-              </p>
+              <div className="ls-question__text">
+                <span className="ls-question__num">{qi + 1}.</span>
+                <span dangerouslySetInnerHTML={{ __html: renderFormattedText(q.body) }} />
+              </div>
 
               {answered ? (
                 // Post-submit: feedback + highlighted options

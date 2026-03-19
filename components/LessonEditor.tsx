@@ -10,6 +10,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
 import ContentEditor from "@/components/ContentEditor";
+import FormattedEditor from "@/components/FormattedEditor";
 import ManualHelpIcon from "@/components/ManualHelpIcon";
 import SlugField from "@/components/SlugField";
 
@@ -28,16 +29,15 @@ interface QuestionOption {
 
 interface ReflectionQuestion {
   id?: string;
-  text: string;
+  body: any; // Tiptap JSON
   sortOrder: number;
   options: QuestionOption[];
 }
 
 interface TeacherItem {
   id: string;
-  name: string;
-  slug: string;
-  isActive: boolean;
+  firstName: string;
+  lastName: string;
 }
 
 interface LessonData {
@@ -54,7 +54,7 @@ interface LessonData {
   headerQuote: string;
   quoteSource: string;
   resources: Resource[];
-  teachers?: TeacherItem[];
+  teachers?: { id: string; firstName: string; lastName: string }[];
   releaseDelayDays?: number | null;
   parentDripInfo?: { seriesTitle: string; intervalDays: number | null }[];
   durationMinutes?: number | null;
@@ -126,10 +126,10 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
   const [resources, setResources] = useState<Resource[]>(initialData?.resources ?? []);
   const [uploadingResourceIdx, setUploadingResourceIdx] = useState<number | null>(null);
 
-  // Teachers
+  // Teachers (User-based)
   const [selectedTeachers, setSelectedTeachers] = useState<TeacherItem[]>(initialData?.teachers ?? []);
   const [teacherQuery, setTeacherQuery] = useState("");
-  const [teacherResults, setTeacherResults] = useState<{ id: string; name: string; slug: string }[]>([]);
+  const [teacherResults, setTeacherResults] = useState<TeacherItem[]>([]);
   const [teacherSearching, setTeacherSearching] = useState(false);
   const teacherDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -223,7 +223,7 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
     teacherDebounceRef.current = setTimeout(async () => {
       setTeacherSearching(true);
       try {
-        const res = await fetch(`/api/teachers/search?q=${encodeURIComponent(teacherQuery)}`);
+        const res = await fetch(`/api/members/search?q=${encodeURIComponent(teacherQuery)}`);
         if (res.ok) {
           const data = await res.json();
           // Filter out already-selected
@@ -238,8 +238,8 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teacherQuery]);
 
-  function addTeacher(teacher: { id: string; name: string; slug: string }) {
-    setSelectedTeachers((prev) => [...prev, { ...teacher, isActive: true }]);
+  function addTeacher(teacher: TeacherItem) {
+    setSelectedTeachers((prev) => [...prev, teacher]);
     setTeacherResults([]);
     setTeacherQuery("");
   }
@@ -253,7 +253,7 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
     setQuestions((prev) => [
       ...prev,
       {
-        text: "",
+        body: null,
         sortOrder: prev.length,
         options: [
           { text: "", isCorrect: true, sortOrder: 0 },
@@ -267,8 +267,8 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
     setQuestions((prev) => prev.filter((_, i) => i !== idx).map((q, i) => ({ ...q, sortOrder: i })));
   }
 
-  function updateQuestionText(idx: number, text: string) {
-    setQuestions((prev) => prev.map((q, i) => (i === idx ? { ...q, text } : q)));
+  function updateQuestionBody(idx: number, body: any) {
+    setQuestions((prev) => prev.map((q, i) => (i === idx ? { ...q, body } : q)));
   }
 
   function moveQuestion(idx: number, dir: -1 | 1) {
@@ -385,13 +385,13 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
 
       // Save questions in parallel (only if editing or just created)
       if (lessonSlug) {
-        const validQuestions = questions.filter((q) => q.text.trim());
+        const validQuestions = questions.filter((q) => q.body != null);
         const questionsRes = await fetch(`/api/lessons/${lessonSlug}/questions`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             questions: validQuestions.map((q, qi) => ({
-              text: q.text.trim(),
+              body: q.body,
               sortOrder: qi,
               options: q.options
                 .filter((o) => o.text.trim())
@@ -473,19 +473,6 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
             warnText="Changing the slug will break existing links to this lesson."
           />
 
-          <label className="th-field">
-            <span className="th-field__label">Estimated duration (minutes)</span>
-            <input
-              type="number"
-              min="1"
-              value={durationMinutes}
-              onChange={(e) => setDurationMinutes(e.target.value)}
-              className="th-input th-input--short"
-              placeholder="e.g. 20"
-            />
-            <span className="th-field__help">Leave blank if unknown. Shown on lesson cards in the series.</span>
-          </label>
-
           <fieldset className="th-field">
             <legend className="th-field__label">Who can access this lesson?</legend>
             <label className="th-radio">
@@ -560,15 +547,17 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
                 Remove
               </button>
             </div>
-            <textarea
-              value={q.text}
-              onChange={(e) => updateQuestionText(qi, e.target.value)}
-              className="th-input th-input--textarea"
-              rows={2}
-              placeholder="Question text…"
-            />
+            <div style={{ marginBottom: 16 }}>
+              <FormattedEditor
+                key={qi}
+                value={q.body}
+                onChange={(body) => updateQuestionBody(qi, body)}
+                placeholder="Question text…"
+                minHeight={80}
+              />
+            </div>
             <div className="th-question-block__options">
-              <p className="th-field__label" style={{ marginBottom: 6 }}>Options — select the correct answer</p>
+              <p className="th-field__label" style={{ marginBottom: 8 }}>Options — select the correct answer</p>
               {q.options.map((opt, oi) => (
                 <div key={oi} className="th-option-row">
                   <input
@@ -582,7 +571,7 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
                     type="text"
                     value={opt.text}
                     onChange={(e) => updateOptionText(qi, oi, e.target.value)}
-                    className="th-input"
+                    className="th-input th-option-input"
                     placeholder={`Option ${oi + 1}`}
                   />
                   {q.options.length > 2 && (
@@ -719,16 +708,13 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
         {selectedTeachers.length > 0 && (
           <div className="th-teacher-tags">
             {selectedTeachers.map((t) => (
-              <span
-                key={t.id}
-                className={`th-teacher-tag${!t.isActive ? " th-teacher-tag--inactive" : ""}`}
-              >
-                {t.name}{!t.isActive && " (inactive)"}
+              <span key={t.id} className="th-teacher-tag">
+                {[t.firstName, t.lastName].filter(Boolean).join(" ")}
                 <button
                   type="button"
                   className="th-teacher-tag__remove"
                   onClick={() => removeTeacher(t.id)}
-                  aria-label={`Remove ${t.name}`}
+                  aria-label={`Remove ${[t.firstName, t.lastName].filter(Boolean).join(" ")}`}
                 >
                   ×
                 </button>
@@ -756,7 +742,7 @@ export default function LessonEditor({ hubSlug, initialData, isEditing }: Props)
                     className="th-teacher-result"
                     onClick={() => addTeacher(t)}
                   >
-                    {t.name}
+                    {[t.firstName, t.lastName].filter(Boolean).join(" ")}
                   </button>
                 ))}
               </div>

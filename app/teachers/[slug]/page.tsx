@@ -45,47 +45,13 @@ export default async function TeacherProfilePage({
 
   const teacher = await db.teacher.findUnique({
     where: { slug },
-    include: {
-      lessons: {
-        include: {
-          lesson: {
-            include: {
-              courses: {
-                include: {
-                  course: {
-                    select: {
-                      id: true,
-                      title: true,
-                      slug: true,
-                      subheading: true,
-                      accessLevel: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
+    select: { id: true, name: true, slug: true, bio: true, photoUrl: true, isActive: true },
   });
 
   if (!teacher) notFound();
-  if (!teacher.isActive && teacher.lessons.length === 0) notFound();
+  if (!teacher.isActive) notFound();
 
-  // Build deduplicated course map with lesson counts
-  const courseMap = new Map<string, CourseWithCount>();
-  for (const lt of teacher.lessons) {
-    for (const cl of lt.lesson.courses) {
-      const c = cl.course;
-      if (courseMap.has(c.id)) {
-        courseMap.get(c.id)!.lessonCount += 1;
-      } else {
-        courseMap.set(c.id, { course: c, lessonCount: 1 });
-      }
-    }
-  }
-  const uniqueCoursesWithCount = Array.from(courseMap.values());
+  const uniqueCoursesWithCount: CourseWithCount[] = [];
 
   const bioHtml = teacher.bio ? renderFormattedText(teacher.bio) : null;
 

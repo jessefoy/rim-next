@@ -78,6 +78,13 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
               releaseDate: true, releaseDelayDays: true,
               questionsRequired: true,
               _count: { select: { questions: true } },
+              teachers: {
+                select: {
+                  user: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
+                  order: true,
+                },
+                orderBy: { order: "asc" },
+              },
             }
           }
         },
@@ -160,6 +167,28 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
       </div>
     );
   }
+
+  // Collect deduplicated teachers across all lessons in the series
+  const teacherMap = new Map<string, string>(); // userId → displayName
+  for (const cl of course.lessons) {
+    for (const lt of cl.lesson.teachers) {
+      if (!teacherMap.has(lt.user.id)) {
+        const name = [lt.user.preferredName || lt.user.firstName, lt.user.lastName]
+          .filter(Boolean)
+          .join(" ");
+        if (name) teacherMap.set(lt.user.id, name);
+      }
+    }
+  }
+  const teacherNames = Array.from(teacherMap.values());
+  const teacherByline =
+    teacherNames.length === 0
+      ? null
+      : teacherNames.length === 1
+      ? `Taught by ${teacherNames[0]}`
+      : teacherNames.length === 2
+      ? `Taught by ${teacherNames[0]} and ${teacherNames[1]}`
+      : `Taught by ${teacherNames.slice(0, -1).join(", ")}, and ${teacherNames[teacherNames.length - 1]}`;
 
   // Apply hideLockedLessons filter — admins always see all lessons
   const allLessonItems = course.lessons;
@@ -280,6 +309,9 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
             {course.subheading || "A Teaching Series"}
           </p>
           <h1 className="crs-title">{course.title}</h1>
+          {teacherByline && (
+            <p className="crs-teacher-byline">{teacherByline}</p>
+          )}
           {course.description && (
             <div
               className="crs-desc"

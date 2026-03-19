@@ -25,9 +25,11 @@ export default async function CoursesPage() {
             select: {
               id: true,
               teachers: {
-                include: {
-                  teacher: { select: { name: true, slug: true } },
+                select: {
+                  user: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
+                  order: true,
                 },
+                orderBy: { order: "asc" },
               },
             },
           },
@@ -94,12 +96,13 @@ export default async function CoursesPage() {
   const serializedCourses = visibleCourses.map((c) => {
     // Collect unique teachers from all lessons
     const teachers: { name: string; slug: string }[] = [];
-    const seenSlugs = new Set<string>();
+    const seenIds = new Set<string>();
     for (const cl of c.lessons) {
       for (const lt of cl.lesson.teachers) {
-        if (!seenSlugs.has(lt.teacher.slug)) {
-          teachers.push({ name: lt.teacher.name, slug: lt.teacher.slug });
-          seenSlugs.add(lt.teacher.slug);
+        if (!seenIds.has(lt.user.id)) {
+          const name = [lt.user.preferredName || lt.user.firstName, lt.user.lastName].filter(Boolean).join(" ");
+          if (name) teachers.push({ name, slug: "" });
+          seenIds.add(lt.user.id);
         }
       }
     }

@@ -12,7 +12,7 @@ import { db } from "@/lib/db";
  *   { questionsRequired: boolean, questions: QuestionWithResponse[] }
  *
  * Each question:
- *   { id, text, sortOrder, options: { id, text, sortOrder }[], responseOptionId: string | null }
+ *   { id, body, sortOrder, options: { id, text, sortOrder }[], responseOptionId: string | null }
  * Note: isCorrect is intentionally omitted from options for members.
  */
 export async function GET(
@@ -40,7 +40,7 @@ export async function GET(
         orderBy: { sortOrder: "asc" },
         select: {
           id: true,
-          text: true,
+          body: true,
           sortOrder: true,
           options: {
             orderBy: { sortOrder: "asc" },
@@ -90,7 +90,7 @@ export async function GET(
  * PUT /api/lessons/[slug]/questions
  * Replace the full question set for a lesson (teacher/admin only).
  *
- * Body: { questions: { id?: string, text: string, sortOrder: number, options: { id?: string, text: string, isCorrect: boolean, sortOrder: number }[] }[] }
+ * Body: { questions: { id?: string, body: any, sortOrder: number, options: { id?: string, text: string, isCorrect: boolean, sortOrder: number }[] }[] }
  *
  * Strategy: delete all existing questions for the lesson, re-create from payload.
  * Simpler than diffing — question count is small (typically 3-8).
@@ -120,7 +120,7 @@ export async function PUT(
 
   const body = await request.json() as {
     questions: {
-      text: string;
+      body: any;
       sortOrder: number;
       options: { text: string; isCorrect: boolean; sortOrder: number }[];
     }[];
@@ -135,7 +135,7 @@ export async function PUT(
       await db.reflectionQuestion.create({
         data: {
           lessonId: lesson.id,
-          text: q.text,
+          body: q.body ?? null,
           sortOrder: q.sortOrder,
           options: {
             create: q.options.map((o) => ({
@@ -155,7 +155,7 @@ export async function PUT(
     orderBy: { sortOrder: "asc" },
     select: {
       id: true,
-      text: true,
+      body: true,
       sortOrder: true,
       options: {
         orderBy: { sortOrder: "asc" },

@@ -84,6 +84,7 @@ model User {
   seriesEnrollments   SeriesEnrollment[]
   lessonNotes         LessonNote[]
   reflectionResponses ReflectionResponse[]
+  lessonTeacher       LessonTeacher[]
 
   // Support inbox notification preference
   supportEmailNotifications Boolean @default(true)
@@ -558,20 +559,20 @@ model Teacher {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
 
-  lessons LessonTeacher[]
-
   @@map("teachers")
 }
 
-// Many-to-many: Lesson ↔ Teacher
+// Many-to-many: Lesson ↔ User (member as teacher)
 model LessonTeacher {
-  lessonId  String
-  teacherId String
+  id       String @id @default(cuid())
+  lessonId String
+  userId   String
+  order    Int    @default(0)
 
-  lesson  Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@id([lessonId, teacherId])
+  @@unique([lessonId, userId])
   @@map("lesson_teachers")
 }
 
@@ -672,7 +673,7 @@ model LessonNote {
 model ReflectionQuestion {
   id       String @id @default(cuid())
   lessonId String
-  text     String @db.Text // question text
+  body     Json?  // Tiptap JSON (FormattedEditor — bold, italic, emphasis)
   sortOrder Int    @default(0)
 
   lesson  Lesson             @relation(fields: [lessonId], references: [id], onDelete: Cascade)

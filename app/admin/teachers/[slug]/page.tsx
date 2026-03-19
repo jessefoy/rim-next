@@ -37,21 +37,7 @@ export default async function AdminTeacherEditPage({
 
   const teacher = await db.teacher.findUnique({
     where: { slug },
-    include: {
-      lessons: {
-        include: {
-          lesson: {
-            include: {
-              courses: {
-                include: {
-                  course: { select: { id: true, title: true, slug: true } },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
+    select: { id: true, name: true, slug: true, bio: true, photoUrl: true, isActive: true },
   });
 
   if (!teacher) notFound();
@@ -63,15 +49,7 @@ export default async function AdminTeacherEditPage({
     bio: teacher.bio ?? null,
     photoUrl: teacher.photoUrl ?? null,
     isActive: teacher.isActive,
-    lessons: teacher.lessons.map((lt) => ({
-      lessonId: lt.lessonId,
-      lessonSlug: lt.lesson.slug,
-      lessonTitle: lt.lesson.titleInternal,
-      courses: lt.lesson.courses.map((cl) => ({
-        courseSlug: cl.course.slug,
-        courseTitle: cl.course.title,
-      })),
-    })),
+    lessons: [] as { lessonId: string; lessonSlug: string; lessonTitle: string; courses: { courseSlug: string; courseTitle: string }[] }[],
   };
 
   return (

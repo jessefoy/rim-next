@@ -24,7 +24,7 @@ export default async function AdminTeachersPage() {
 
   const teachers = await db.teacher.findMany({
     orderBy: { name: "asc" },
-    include: { _count: { select: { lessons: true } } },
+    select: { id: true, name: true, slug: true, isActive: true, createdAt: true },
   });
 
   const serialized = teachers.map((t) => ({
@@ -32,7 +32,7 @@ export default async function AdminTeachersPage() {
     name: t.name,
     slug: t.slug,
     isActive: t.isActive,
-    lessonCount: t._count.lessons,
+    lessonCount: 0,
     createdAt: t.createdAt.toISOString(),
   }));
 
