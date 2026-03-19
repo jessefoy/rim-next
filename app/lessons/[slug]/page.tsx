@@ -44,6 +44,7 @@ export default async function LessonPage({
   });
   if (!lesson) notFound();
   const userId = session.user.id!;
+  const isStaff = (session.user.roles ?? []).some((r: string) => ["TEACHER", "ADMIN"].includes(r));
 
   // ── Access check ─────────────────────────────────────────────────────────
   // MEMBERS lessons: any logged-in user.
@@ -265,8 +266,8 @@ export default async function LessonPage({
           select: { body: true },
         })
       : Promise.resolve(null),
-    // Fetch questions for enrolled members (or when questionsRequired to know count)
-    courseContext
+    // Fetch questions for enrolled members OR staff (staff can preview without enrolling)
+    (courseContext || isStaff)
       ? db.reflectionQuestion.findMany({
           where: { lessonId: lesson.id },
           orderBy: { sortOrder: "asc" },
@@ -294,7 +295,7 @@ export default async function LessonPage({
     responseOptionId: string | null;
   }[] = [];
 
-  if (isEnrolled && rawQuestions.length > 0) {
+  if ((isEnrolled || isStaff) && rawQuestions.length > 0) {
     const questionIds = rawQuestions.map((q) => q.id);
     const [responses, correctOptions] = await Promise.all([
       db.reflectionResponse.findMany({
@@ -439,8 +440,8 @@ export default async function LessonPage({
           </div>
         )}
 
-        {/* ── Learning footer — only when enrolled in a containing series ── */}
-        {isEnrolled && (
+        {/* ── Learning footer — enrolled members + staff preview ── */}
+        {(isEnrolled || isStaff) && (
           <LessonFooterClient
             lessonSlug={lesson.slug}
             courseSlug={courseContext?.course.slug}
