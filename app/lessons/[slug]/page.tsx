@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { renderContentBody } from "@/lib/renderRichContent";
+import { renderContentBodyAsync } from "@/lib/renderRichContentServer";
 import AudioPlayer from "@/components/AudioPlayer";
 import LessonFooterClient from "@/components/LessonFooterClient";
 import { isLessonAvailable, computeAvailableDate, formatAvailableDate } from "@/lib/drip";
@@ -243,7 +243,7 @@ export default async function LessonPage({
   const hasResources = resources.length > 0;
   const hasTeachers = lesson.teachers.length > 0;
 
-  const bodyHtml = renderContentBody(lesson.body);
+  const bodyHtml = await renderContentBodyAsync(lesson.body);
 
   // ── Progress, enrollment, notes & questions ────────────────────────────────
   const [progressRecord, enrollment, lessonNote, rawQuestions] = await Promise.all([

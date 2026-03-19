@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import Link from "next/link";
-import { renderContentBody } from "@/lib/renderRichContent";
+import { renderContentBodyAsync } from "@/lib/renderRichContentServer";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +42,7 @@ export default async function ManualSectionPage({
         })
       : [];
 
-  const bodyHtml = section.body ? renderContentBody(section.body) : "";
+  const bodyHtml = section.body ? await renderContentBodyAsync(section.body) : "";
 
   const hubLabel: Record<string, string> = {
     courses: "Course Hub",

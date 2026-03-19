@@ -32,12 +32,31 @@ const formattedExtensions = [
   Image,
 ]
 
+// ── Format helpers ────────────────────────────────────────────────────────────
+
+export function isBlockNoteJSON(json: any): boolean {
+  return (
+    Array.isArray(json) &&
+    json.length > 0 &&
+    typeof json[0] === "object" &&
+    json[0] !== null &&
+    typeof json[0].type === "string" &&
+    "id" in json[0]
+  )
+}
+
+export function isRawHtml(json: any): boolean {
+  return json && typeof json === "object" && json.type === "rawHtml" && typeof json.html === "string"
+}
+
+// ── SYNC functions — safe for client components (Tiptap JSON only) ────────────
+// DO NOT make these async. Client components call them synchronously in render.
+// These remain correct while the database contains Tiptap JSON.
+// Phase 3/4 will migrate data and refactor client components to the async path.
+
 export function renderContentBody(json: any): string {
   if (!json) return ""
-  // Support raw HTML stored as { type: "rawHtml", html: "..." }
-  if (json.type === "rawHtml" && typeof json.html === "string") {
-    return json.html
-  }
+  if (isRawHtml(json)) return json.html
   try {
     return generateHTML(json, contentExtensions)
   } catch {
