@@ -62,6 +62,7 @@ export default function LessonFooterClient({
             initialQuestions={initialQuestions}
             initialAllCorrect={initialAllCorrect}
             onAllCorrect={() => setAllCorrect(true)}
+          onRetake={() => setAllCorrect(false)}
           />
         </>
       )}

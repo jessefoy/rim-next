@@ -3,16 +3,18 @@
 /**
  * ReflectionQuestionsClient — member-facing reflection question UI.
  *
- * Displays multiple-choice questions for a lesson.
- * Members select an answer and submit per question. Feedback (correct/incorrect) appears inline.
- * Retakes always available (re-submission overwrites the previous answer).
+ * Group submission model: member selects answers for all questions freely,
+ * then submits once. Feedback appears on all questions simultaneously.
+ * A single Retake link clears the entire set (server + client) and resets
+ * to selection state.
  *
  * Props:
  *   - lessonSlug: string
- *   - questionsRequired: boolean — if true, all must be correct before Complete button activates
+ *   - questionsRequired: boolean — if true, all must be correct before Complete activates
  *   - initialQuestions: question list with member's existing responses
  *   - initialAllCorrect: boolean — true if member has already answered all correctly
- *   - onAllCorrect: () => void — called when all questions are correct (enables Complete button)
+ *   - onAllCorrect: () => void — called when all answers are submitted correctly
+ *   - onRetake: () => void — called on retake (re-locks the Complete button)
  *
  * CSS prefix: ls-
  */
@@ -33,46 +35,18 @@ export interface QuestionWithResponse {
   responseOptionId: string | null;
 }
 
+interface QuestionResult {
+  isCorrect: boolean;
+  correctOptionId: string | null;
+}
+
 interface Props {
   lessonSlug: string;
   questionsRequired: boolean;
   initialQuestions: QuestionWithResponse[];
   initialAllCorrect: boolean;
   onAllCorrect?: () => void;
-}
-
-interface QuestionState {
-  selectedOptionId: string | null;
-  submittedOptionId: string | null;
-  isCorrect: boolean | null;
-  correctOptionId: string | null;
-  submitting: boolean;
-  error: string | null;
-  showRetake: boolean;
-}
-
-function buildInitialState(
-  questions: QuestionWithResponse[],
-  correctMap: Map<string, string>
-): Map<string, QuestionState> {
-  const map = new Map<string, QuestionState>();
-  for (const q of questions) {
-    const responded = q.responseOptionId != null;
-    const correctOptionId = correctMap.get(q.id) ?? null;
-    const isCorrect = responded && correctOptionId != null
-      ? q.responseOptionId === correctOptionId
-      : null;
-    map.set(q.id, {
-      selectedOptionId: q.responseOptionId,
-      submittedOptionId: q.responseOptionId,
-      isCorrect: responded ? isCorrect : null,
-      correctOptionId,
-      submitting: false,
-      error: null,
-      showRetake: false,
-    });
-  }
-  return map;
+  onRetake?: () => void;
 }
 
 export default function ReflectionQuestionsClient({
@@ -81,90 +55,97 @@ export default function ReflectionQuestionsClient({
   initialQuestions,
   initialAllCorrect,
   onAllCorrect,
+  onRetake,
 }: Props) {
-  // correctOptionId isn't available client-side until first submit — start null
-  const [states, setStates] = useState<Map<string, QuestionState>>(() =>
-    buildInitialState(initialQuestions, new Map())
-  );
+  // Current selections — pre-filled from previous responses
+  const [selections, setSelections] = useState<Map<string, string | null>>(() => {
+    const m = new Map<string, string | null>();
+    for (const q of initialQuestions) m.set(q.id, q.responseOptionId);
+    return m;
+  });
+
+  // null = not yet submitted in this session; Map = submitted, holds per-question results
+  const [results, setResults] = useState<Map<string, QuestionResult> | null>(null);
+
+  const [submitting, setSubmitting] = useState(false);
+  const [retaking, setRetaking] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [allCorrect, setAllCorrect] = useState(initialAllCorrect);
 
   if (initialQuestions.length === 0) return null;
 
-  function updateState(questionId: string, patch: Partial<QuestionState>) {
-    setStates((prev) => {
-      const next = new Map(prev);
-      next.set(questionId, { ...prev.get(questionId)!, ...patch });
-      return next;
-    });
-  }
+  const hasSubmitted = results !== null;
+  const allSelected = initialQuestions.every((q) => selections.get(q.id) != null);
 
-  function checkAllCorrect(newStates: Map<string, QuestionState>): boolean {
-    for (const q of initialQuestions) {
-      const s = newStates.get(q.id);
-      if (!s || s.isCorrect !== true) return false;
-    }
-    return true;
-  }
-
-  async function handleSubmit(questionId: string) {
-    const s = states.get(questionId);
-    if (!s || !s.selectedOptionId) return;
-
-    updateState(questionId, { submitting: true, error: null });
+  async function handleSubmitAll() {
+    setSubmitting(true);
+    setSubmitError(null);
 
     try {
-      const res = await fetch(
-        `/api/lessons/${lessonSlug}/questions/${questionId}/respond`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ optionId: s.selectedOptionId }),
-        }
+      const responses = await Promise.all(
+        initialQuestions.map(async (q) => {
+          const optionId = selections.get(q.id)!;
+          const res = await fetch(
+            `/api/lessons/${lessonSlug}/questions/${q.id}/respond`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ optionId }),
+            }
+          );
+          if (!res.ok) {
+            const d = await res.json();
+            throw new Error(d.error || "Failed to save answer");
+          }
+          const data = (await res.json()) as QuestionResult;
+          return { questionId: q.id, ...data };
+        })
       );
 
-      if (!res.ok) {
-        const d = await res.json();
-        updateState(questionId, { submitting: false, error: d.error || "Failed to save" });
-        return;
-      }
+      const newResults = new Map<string, QuestionResult>(
+        responses.map((r) => [
+          r.questionId,
+          { isCorrect: r.isCorrect, correctOptionId: r.correctOptionId },
+        ])
+      );
+      setResults(newResults);
 
-      const { isCorrect, correctOptionId } = await res.json() as {
-        isCorrect: boolean;
-        correctOptionId: string | null;
-      };
-
-      setStates((prev) => {
-        const next = new Map(prev);
-        next.set(questionId, {
-          ...prev.get(questionId)!,
-          submitting: false,
-          submittedOptionId: s.selectedOptionId,
-          isCorrect,
-          correctOptionId,
-          showRetake: false,
-          error: null,
-        });
-
-        const nowAllCorrect = checkAllCorrect(next);
-        if (nowAllCorrect && !allCorrect) {
-          setAllCorrect(true);
-          onAllCorrect?.();
-        }
-        return next;
-      });
-    } catch {
-      updateState(questionId, { submitting: false, error: "Network error" });
+      const nowAllCorrect = responses.every((r) => r.isCorrect);
+      setAllCorrect(nowAllCorrect);
+      if (nowAllCorrect) onAllCorrect?.();
+    } catch (e) {
+      setSubmitError(e instanceof Error ? e.message : "Failed to submit");
+    } finally {
+      setSubmitting(false);
     }
   }
 
-  function handleRetake(questionId: string) {
-    updateState(questionId, {
-      showRetake: true,
-      isCorrect: null,
-      submittedOptionId: null,
-      selectedOptionId: null,
-      error: null,
-    });
+  async function handleRetake() {
+    setRetaking(true);
+    setSubmitError(null);
+
+    try {
+      const res = await fetch(`/api/lessons/${lessonSlug}/questions/responses`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error || "Failed to clear answers");
+      }
+    } catch (e) {
+      setSubmitError(e instanceof Error ? e.message : "Failed to clear answers");
+      setRetaking(false);
+      return;
+    }
+
+    // Reset all client state
+    const cleared = new Map<string, string | null>();
+    for (const q of initialQuestions) cleared.set(q.id, null);
+    setSelections(cleared);
+    setResults(null);
+    setAllCorrect(false);
+    onRetake?.();
+    setRetaking(false);
   }
 
   return (
@@ -188,79 +169,95 @@ export default function ReflectionQuestionsClient({
 
       <div className="ls-questions__list">
         {initialQuestions.map((q, qi) => {
-          const s = states.get(q.id)!;
-          const answered = s.submittedOptionId != null && s.isCorrect !== null;
-          const isRetaking = s.showRetake;
+          const selectedId = selections.get(q.id) ?? null;
+          const result = results?.get(q.id) ?? null;
+          const answered = hasSubmitted && result !== null;
 
           return (
             <div
               key={q.id}
-              className={`ls-question${answered && !isRetaking ? (s.isCorrect ? " ls-question--correct" : " ls-question--incorrect") : ""}`}
+              className={`ls-question${
+                answered
+                  ? result.isCorrect
+                    ? " ls-question--correct"
+                    : " ls-question--incorrect"
+                  : ""
+              }`}
             >
               <p className="ls-question__text">
                 <span className="ls-question__num">{qi + 1}.</span> {q.text}
               </p>
 
-              {answered && !isRetaking ? (
-                // Answered state
+              {answered ? (
+                // Post-submit: feedback + highlighted options
                 <div className="ls-question__result">
-                  <p className={`ls-question__feedback ${s.isCorrect ? "ls-question__feedback--correct" : "ls-question__feedback--incorrect"}`}>
-                    {s.isCorrect ? "✓ Correct" : "✗ Not quite"}
+                  <p
+                    className={`ls-question__feedback ${
+                      result.isCorrect
+                        ? "ls-question__feedback--correct"
+                        : "ls-question__feedback--incorrect"
+                    }`}
+                  >
+                    {result.isCorrect ? "✓ Correct" : "✗ Not quite"}
                   </p>
                   <div className="ls-question__answered-options">
                     {q.options.map((opt) => {
-                      const wasSelected = opt.id === s.submittedOptionId;
-                      const isCorrectOpt = opt.id === s.correctOptionId;
+                      const wasSelected = opt.id === selectedId;
+                      const isCorrectOpt = opt.id === result.correctOptionId;
                       return (
                         <div
                           key={opt.id}
-                          className={`ls-option ls-option--result${wasSelected ? " ls-option--selected" : ""}${isCorrectOpt ? " ls-option--correct-ans" : ""}${wasSelected && !isCorrectOpt ? " ls-option--wrong-ans" : ""}`}
+                          className={`ls-option ls-option--result${
+                            wasSelected ? " ls-option--selected" : ""
+                          }${isCorrectOpt ? " ls-option--correct-ans" : ""}${
+                            wasSelected && !isCorrectOpt
+                              ? " ls-option--wrong-ans"
+                              : ""
+                          }`}
                         >
                           {opt.text}
-                          {isCorrectOpt && <span className="ls-option__badge ls-option__badge--correct">Correct answer</span>}
-                          {wasSelected && !isCorrectOpt && <span className="ls-option__badge ls-option__badge--yours">Your answer</span>}
+                          {isCorrectOpt && (
+                            <span className="ls-option__badge ls-option__badge--correct">
+                              Correct answer
+                            </span>
+                          )}
+                          {wasSelected && !isCorrectOpt && (
+                            <span className="ls-option__badge ls-option__badge--yours">
+                              Your answer
+                            </span>
+                          )}
                         </div>
                       );
                     })}
                   </div>
-                  <button
-                    type="button"
-                    className="ls-btn--retake"
-                    onClick={() => handleRetake(q.id)}
-                  >
-                    Try again
-                  </button>
                 </div>
               ) : (
-                // Selection state
-                <div className="ls-question__input">
-                  <div className="ls-question__options">
-                    {q.options.map((opt) => (
-                      <label
-                        key={opt.id}
-                        className={`ls-option ls-option--selectable${s.selectedOptionId === opt.id ? " ls-option--active" : ""}`}
-                      >
-                        <input
-                          type="radio"
-                          name={`q-${q.id}`}
-                          value={opt.id}
-                          checked={s.selectedOptionId === opt.id}
-                          onChange={() => updateState(q.id, { selectedOptionId: opt.id })}
-                          className="ls-option__radio"
-                        />
-                        {opt.text}
-                      </label>
-                    ))}
-                  </div>
-                  {s.error && <p className="ls-question__error">{s.error}</p>}
-                  <button
-                    type="button"
-                    className="ls-btn--submit-answer"
-                    onClick={() => handleSubmit(q.id)}
-                    disabled={!s.selectedOptionId || s.submitting}
-                  >
-                    {s.submitting ? "Saving…" : "Submit"}
-                  </button>
+                // Pre-submit: radio selection
+                <div className="ls-question__options">
+                  {q.options.map((opt) => (
+                    <label
+                      key={opt.id}
+                      className={`ls-option ls-option--selectable${
+                        selectedId === opt.id ? " ls-option--active" : ""
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name={`q-${q.id}`}
+                        value={opt.id}
+                        checked={selectedId === opt.id}
+                        onChange={() =>
+                          setSelections((prev) => {
+                            const next = new Map(prev);
+                            next.set(q.id, opt.id);
+                            return next;
+                          })
+                        }
+                        className="ls-option__radio"
+                      />
+                      {opt.text}
+                    </label>
+                  ))}
                 </div>
               )}
             </div>
@@ -268,9 +265,33 @@ export default function ReflectionQuestionsClient({
         })}
       </div>
 
+      <div className="ls-questions__actions">
+        {!hasSubmitted ? (
+          <button
+            type="button"
+            className="ls-btn--submit-all"
+            onClick={handleSubmitAll}
+            disabled={!allSelected || submitting}
+          >
+            {submitting ? "Submitting…" : "Submit answers."}
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="ls-btn--retake-all"
+            onClick={handleRetake}
+            disabled={retaking}
+          >
+            {retaking ? "Clearing…" : "Retake reflection questions."}
+          </button>
+        )}
+        {submitError && <p className="ls-question__error">{submitError}</p>}
+      </div>
+
       {!questionsRequired && (
         <p className="ls-questions__gentle-note">
-          These questions are for your own reflection — they don&apos;t affect lesson completion.
+          These questions are for your own reflection — they don&apos;t affect lesson
+          completion.
         </p>
       )}
     </div>
