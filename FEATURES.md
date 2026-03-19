@@ -3090,7 +3090,7 @@ Three-column split-pane email client:
 | 5 | **Personal lesson notes** | ✅ Built | Private per-lesson note (FormattedEditor, Tiptap JSON); 1.5s debounced autosave; only shown when enrolled |
 | 6 | **Completion moment** | ✅ Built | All lessons marked complete → sets `SeriesEnrollment.completedAt`; quiet acknowledgment with teacher's completion note |
 | 7 | **Reflection Questions** | ✅ Built (session 61) | Multiple-choice questions per lesson; teacher sets correct answer; required vs. gentle mode; Complete button gate in required mode |
-| 8 | **Teacher profiles** | Deferred | Full `Teacher` Postgres records with bio + photo; enables "also from this teacher" links |
+| 8 | **Teacher profiles** | ✅ Built (session 67) | Optional TeacherProfile one-to-one extension on User; bio, photo, slug, isPublic; managed from member admin page; public /teachers page shows profiles where isPublic: true. |
 | 9 | **Shared reflection / per-series discussion** | Deferred | Optional per-series contemplative sharing thread; off by default |
 
 ### Key data models
@@ -3250,6 +3250,6 @@ Three-column split-pane email client:
 
 ---
 
-*Last updated: 2026-03-18 (session 61)*
+*Last updated: 2026-03-19 (session 67)*
 
 **2026-03-16 (session 58, continued)** — Session tab: finished remaining gaps from the UX redesign brief. (1) meetHostAccount display: Added to States 2 and 3 — shows the Google Meet room account labeled "Room account" in State 2, quiet text below the join button in State 3. (2) State 5 inline form: PostSessionClient now renders inline in State 5 instead of linking to a separate page. Co-host vs primary host routing handled via isCoHost prop derived from SessionProgram flags. (3) End Session stays on page: endSession callback now calls router.refresh() instead of router.push — user stays on the session tab and State 5 appears with the inline form. (4) Coordinator section: Coordinator/Admin users see a muted section below the host cards with missing report indicators and team journal link. Key files: components/SessionLiveClient.tsx, components/PostSessionClient.tsx, app/account/hub/[slug]/session/page.tsx.
