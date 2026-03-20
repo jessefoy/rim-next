@@ -85,14 +85,14 @@ Every place in the system that uses an editor is registered here. When adding a 
 ### hub-announcement
 **Editor:** RimProseEditor
 **Custom blocks:** None
-**Output CSS class:** `ann-body`
+**Output CSS class:** `ann-item__body`
 **Used in:** HubAnnouncementsClient
 **Design intent:** Clear, direct team messages. Prose with lists when needed. Not a document — a message.
 
 ### hub-conversation
 **Editor:** RimProseEditor
 **Custom blocks:** None
-**Output CSS class:** `cv-body`
+**Output CSS class:** `cv-post__body`
 **Used in:** HubConvClient, HubConvThreadClient
 **Design intent:** Conversational. Minimal. Should feel like a thoughtful message, not a formatted document.
 
