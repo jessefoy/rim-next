@@ -443,6 +443,7 @@ export default function ProgramEditor({ hubSlug, initialData, isEditing, categor
                 onChange={setDescription}
                 placeholder="Program description…"
                 minHeight={300}
+                context="document"
               />
             </div>
 

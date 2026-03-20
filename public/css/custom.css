@@ -17105,13 +17105,46 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   border: none;
   border-radius: 0;
   font-family: var(--font-doc);
+  position: relative;        /* anchor for bottom bar */
 }
+
+/* Force Inter into BlockNote's internal content area.
+   The chain: .bn-editor → .bn-default-styles → .bn-block-outer → .bn-block-content → .bn-inline-content → .ProseMirror
+   We target multiple levels to beat any specificity from BlockNote's bundled CSS. */
+.rim-block-editor .bn-editor,
+.rim-block-editor .bn-default-styles,
+.rim-block-editor .bn-block-content,
+.rim-block-editor .bn-inline-content,
+.rim-block-editor .ProseMirror,
 .rim-block-editor [class*="bn-editor"] {
-  font-family: var(--font-doc);
-  font-size: 16px;
-  line-height: 1.75;
+  font-family: var(--font-doc) !important;
+  font-size: 16px !important;
+  line-height: 1.75 !important;
   color: var(--rim-text);
-  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+/* Editor container: no padding (the card provides it) */
+.rim-block-editor .bn-editor {
+  padding: 0 !important;
+}
+/* Block-level spacing — generous like Bear */
+.rim-block-editor .bn-block-outer {
+  line-height: 1.75 !important;
+  margin: 0 !important;
+}
+/* Headings inside editor */
+.rim-block-editor [data-content-type="heading"] .bn-inline-content {
+  font-family: var(--font-doc) !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em;
+}
+/* Placeholder text */
+.rim-block-editor .bn-editor [data-is-empty-and-focused] [data-placeholder]::before,
+.rim-block-editor .bn-editor .bn-block-content [data-placeholder]::before {
+  font-family: var(--font-doc) !important;
+  color: #c8bcb2 !important;
+  font-style: normal !important;
 }
 
 .rim-prose-editor {
@@ -17120,8 +17153,17 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   border-radius: 6px;
   overflow: hidden;
 }
+/* Inter for prose editor too */
+.rim-prose-editor .bn-editor,
+.rim-prose-editor .bn-default-styles,
+.rim-prose-editor .bn-block-content,
+.rim-prose-editor .bn-inline-content,
+.rim-prose-editor .ProseMirror {
+  font-family: var(--font-doc) !important;
+  -webkit-font-smoothing: antialiased;
+}
 
-/* ── Bear-style formatting toolbar (pill) ── */
+/* ── Floating pill toolbar (appears on text selection) ── */
 .rim-block-editor .bn-toolbar,
 .rim-prose-editor .bn-toolbar {
   border-radius: 24px !important;
@@ -17143,38 +17185,112 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   font-family: var(--font-doc) !important;
 }
 
-/* ── Bear ⋯ More menu ── */
-.bear-more-wrap {
+/* ── Bear-style persistent bottom bar ── */
+.bear-bar {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-top: 1px solid #e8e4e0;
+  z-index: 50;
+  font-family: var(--font-doc);
+}
+.bear-bar--collapsed {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-top: 1px solid #e8e4e0;
+  z-index: 50;
+}
+
+/* Bottom bar buttons */
+.bear-bar__btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-doc);
+  font-size: 14px;
+  color: var(--rim-text-muted);
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: background 0.12s, color 0.12s;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.bear-bar__btn:hover {
+  background: var(--rim-bg-accent);
+  color: var(--rim-text);
+}
+.bear-bar__btn--active {
+  background: var(--rim-bg-accent);
+  color: var(--rim-mid);
+  font-weight: 600;
+}
+.bear-bar__btn--dropdown {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+/* Separator */
+.bear-bar__sep {
+  width: 1px;
+  height: 20px;
+  background: #e0dcd8;
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+/* Toggle (show/hide bar) */
+.bear-bar__toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 10px;
+  color: var(--rim-text-muted);
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  margin-left: auto;
+  transition: background 0.12s, color 0.12s;
+  opacity: 0.6;
+}
+.bear-bar__toggle:hover {
+  background: var(--rim-bg-accent);
+  color: var(--rim-text);
+  opacity: 1;
+}
+
+/* Dropdown group (wrapper for button + popup) */
+.bear-bar__group {
   position: relative;
   display: flex;
   align-items: center;
 }
 
-.bear-more-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 18px;
-  letter-spacing: 2px;
-  color: var(--rim-text-muted);
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  transition: background 0.12s, color 0.12s;
-}
-.bear-more-btn:hover,
-.bear-more-btn--open {
-  background: var(--rim-bg-accent);
-  color: var(--rim-text);
-}
-
-.bear-more-dropdown {
+/* Dropdown menus — open upward from bar */
+.bear-bar__dropdown {
   position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
+  bottom: calc(100% + 8px);
+  left: 0;
   background: #fff;
   border: 1px solid #e0dcd8;
   border-radius: 10px;
@@ -17185,8 +17301,12 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   display: flex;
   flex-direction: column;
 }
+.bear-bar__dropdown--right {
+  left: auto;
+  right: 0;
+}
 
-.bear-more-item {
+.bear-bar__dropdown-item {
   background: none;
   border: none;
   cursor: pointer;
@@ -17198,13 +17318,35 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   padding: 8px 12px;
   border-radius: 6px;
   transition: background 0.1s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-.bear-more-item:hover {
+.bear-bar__dropdown-item:hover {
   background: var(--rim-bg-accent);
 }
-.bear-more-item--active {
+.bear-bar__dropdown-item--active {
   color: var(--rim-mid);
   font-weight: 600;
+}
+
+.bear-bar__dropdown-icon {
+  display: flex;
+  align-items: center;
+  color: var(--rim-text-muted);
+}
+
+/* Mobile: tighter bottom bar */
+@media (max-width: 430px) {
+  .bear-bar {
+    padding: 6px 8px;
+    gap: 2px;
+  }
+  .bear-bar__btn {
+    width: 30px;
+    height: 30px;
+    font-size: 13px;
+  }
 }
 
 /* ── Document page wrapper — clean white card on warm bg ── */

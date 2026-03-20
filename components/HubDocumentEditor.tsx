@@ -119,6 +119,7 @@ export default function HubDocumentEditor({
           onChange={setBody}
           placeholder="Begin writing…"
           minHeight={500}
+          context="document"
         />
       </div>
 

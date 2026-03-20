@@ -503,6 +503,7 @@ export default function LessonEditor({ hubSlug, initialData, isEditing, legacyBo
           placeholder="Begin writing your lesson here…"
           minHeight={500}
           legacyHtml={legacyBodyHtml}
+          context="lesson"
         />
 
         <div className="th-form" style={{ marginTop: 24 }}>

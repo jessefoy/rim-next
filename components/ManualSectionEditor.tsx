@@ -143,6 +143,7 @@ export default function ManualSectionEditor({
             placeholder="Write the manual section content…"
             minHeight={500}
             legacyHtml={legacyBodyHtml ?? undefined}
+            context="document"
           />
         </div>
 
