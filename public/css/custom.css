@@ -17197,16 +17197,17 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   border-radius: 4px;
 }
 
-/* ── Image alignment overlay — L/C/R buttons on the image ── */
+/* ── Image alignment overlay — L/C/R buttons injected into image block ── */
 .img-align-overlay {
   display: inline-flex;
   gap: 2px;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.92);
   border: 1px solid #e0dcd8;
   border-radius: 8px;
   padding: 3px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   animation: bear-fade-in-below 0.1s ease;
+  pointer-events: auto;
 }
 .img-align-btn {
   background: none;

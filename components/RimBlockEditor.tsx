@@ -661,143 +661,179 @@ function EmptyLinePill({ context }: { context: EditorContext }) {
 }
 
 /* ── Image alignment overlay ──────────────────────────────────────────────
-   Shows L/C/R alignment buttons directly ON the image so the user never
-   has to leave the image area to change alignment.
+   Injects L/C/R alignment buttons directly INTO the image block's DOM
+   element so there's zero gap to cross. Shows on hover, stays while
+   interacting. Uses a portal-free DOM injection approach.
    ──────────────────────────────────────────────────────────────────────── */
 
 function ImageAlignOverlay() {
   const editor = useBlockNoteEditor();
-  const [imageBlock, setImageBlock] = useState<any>(null);
-  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
 
-  useEditorSelectionChange(() => {
-    try {
-      const block = editor.getTextCursorPosition().block;
-      if (block?.type === "image" && (block.props as any)?.url) {
-        setImageBlock(block);
-        // Position the overlay on the image DOM element
-        const el = editor.domElement?.querySelector(
-          `[data-id="${block.id}"] .bn-visual-media-wrapper, [data-id="${block.id}"] img`
-        );
-        if (el) {
-          const rect = el.getBoundingClientRect();
-          setPos({ top: rect.top + 8, left: rect.left + rect.width / 2 - 54, width: rect.width });
-        }
-      } else {
-        setImageBlock(null);
-      }
-    } catch {
-      setImageBlock(null);
-    }
-  });
-
-  // Also listen for mouse hover on images
   useEffect(() => {
     const editorEl = editor.domElement;
     if (!editorEl) return;
 
-    function onMouseOver(e: MouseEvent) {
-      const target = e.target as HTMLElement;
-      const imgWrapper = target.closest("[data-content-type='image']");
-      if (!imgWrapper) return;
-      const blockId = imgWrapper.closest("[data-id]")?.getAttribute("data-id");
-      if (!blockId) return;
-      // Find the block in the editor
-      try {
-        const doc = editor.document;
-        const block = doc.find((b: any) => b.id === blockId);
-        if (block?.type === "image" && (block.props as any)?.url) {
-          setImageBlock(block);
-          const el = imgWrapper.querySelector(".bn-visual-media-wrapper") || imgWrapper.querySelector("img");
-          if (el) {
-            const rect = el.getBoundingClientRect();
-            setPos({ top: rect.top + 8, left: rect.left + rect.width / 2 - 54, width: rect.width });
-          }
-        }
-      } catch {}
+    let currentOverlay: HTMLElement | null = null;
+    let currentBlockId: string | null = null;
+    let hideTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function clearHideTimer() {
+      if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
     }
 
-    function onMouseLeave(e: MouseEvent) {
-      const related = e.relatedTarget as HTMLElement | null;
-      // Don't hide if moving to the overlay itself
-      if (related?.closest(".img-align-overlay")) return;
+    function removeOverlay() {
+      if (currentOverlay) {
+        currentOverlay.remove();
+        currentOverlay = null;
+        currentBlockId = null;
+      }
+    }
+
+    function startHideTimer() {
+      clearHideTimer();
+      hideTimer = setTimeout(() => {
+        removeOverlay();
+      }, 300);
+    }
+
+    function findBlockData(blockId: string) {
+      try {
+        return editor.document.find((b: any) => b.id === blockId);
+      } catch { return null; }
+    }
+
+    function showOverlay(imgBlockEl: Element) {
+      const blockId = imgBlockEl.closest("[data-id]")?.getAttribute("data-id");
+      if (!blockId) return;
+
+      // Already showing for this block
+      if (currentBlockId === blockId && currentOverlay) {
+        clearHideTimer();
+        return;
+      }
+
+      const block = findBlockData(blockId);
+      if (!block || block.type !== "image" || !(block.props as any)?.url) return;
+
+      removeOverlay();
+      currentBlockId = blockId;
+
+      const overlay = document.createElement("div");
+      overlay.className = "img-align-overlay";
+      const currentAlign = (block.props as any)?.textAlignment || "left";
+
+      const aligns = [
+        { key: "left", lines: "3,6,21,6 3,12,15,12 3,18,18,18" },
+        { key: "center", lines: "3,6,21,6 6,12,18,12 4,18,20,18" },
+        { key: "right", lines: "3,6,21,6 9,12,21,12 6,18,21,18" },
+      ];
+
+      aligns.forEach(({ key, lines }) => {
+        const btn = document.createElement("button");
+        btn.className = `img-align-btn${currentAlign === key ? " img-align-btn--active" : ""}`;
+        btn.title = key === "center" ? "Center" : `Align ${key}`;
+        const svgLines = lines.split(" ").map((l) => {
+          const [x1, y1, x2, y2] = l.split(",");
+          return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+        }).join("");
+        btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">${svgLines}</svg>`;
+        btn.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          try {
+            editor.updateBlock(block, { props: { textAlignment: key } } as any);
+            // Update active states
+            overlay.querySelectorAll(".img-align-btn").forEach((b) => b.classList.remove("img-align-btn--active"));
+            btn.classList.add("img-align-btn--active");
+          } catch (err) {
+            console.error("setAlign failed:", err);
+          }
+        });
+        overlay.appendChild(btn);
+      });
+
+      overlay.addEventListener("mouseenter", clearHideTimer);
+      overlay.addEventListener("mouseleave", startHideTimer);
+
+      // Insert into the image block's DOM — inside the block-outer wrapper
+      const blockOuter = imgBlockEl.closest(".bn-block-outer") || imgBlockEl.closest("[data-id]");
+      if (blockOuter) {
+        (blockOuter as HTMLElement).style.position = "relative";
+        overlay.style.position = "absolute";
+        overlay.style.top = "8px";
+        overlay.style.left = "50%";
+        overlay.style.transform = "translateX(-50%)";
+        overlay.style.zIndex = "200";
+        blockOuter.appendChild(overlay);
+      }
+
+      currentOverlay = overlay;
+    }
+
+    function onMouseOver(e: MouseEvent) {
       const target = e.target as HTMLElement;
-      if (target.closest("[data-content-type='image']")) {
-        // Small delay to allow moving to the overlay
-        setTimeout(() => {
-          const hovered = document.querySelectorAll(":hover");
-          const overImage = Array.from(hovered).some(
-            (el) => el.closest("[data-content-type='image']") || el.closest(".img-align-overlay")
-          );
-          if (!overImage) setImageBlock(null);
-        }, 100);
+      const imgContent = target.closest("[data-content-type='image']");
+      if (imgContent) {
+        clearHideTimer();
+        showOverlay(imgContent);
+      }
+    }
+
+    function onMouseOut(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      const related = e.relatedTarget as HTMLElement | null;
+      // Stay visible if moving within the image or to the overlay
+      if (related?.closest("[data-content-type='image']")) return;
+      if (related?.closest(".img-align-overlay")) return;
+      if (target.closest("[data-content-type='image']") || target.closest(".img-align-overlay")) {
+        startHideTimer();
       }
     }
 
     editorEl.addEventListener("mouseover", onMouseOver);
-    editorEl.addEventListener("mouseout", onMouseLeave);
+    editorEl.addEventListener("mouseout", onMouseOut);
+
     return () => {
       editorEl.removeEventListener("mouseover", onMouseOver);
-      editorEl.removeEventListener("mouseout", onMouseLeave);
+      editorEl.removeEventListener("mouseout", onMouseOut);
+      clearHideTimer();
+      removeOverlay();
     };
   }, [editor]);
 
-  if (!imageBlock) return null;
+  return null; // No React rendering — uses DOM injection
+}
 
-  const currentAlign = (imageBlock.props as any)?.textAlignment || "left";
+/* ── Conditional formatting toolbar ───────────────────────────────────────
+   Hides the toolbar for image/table blocks (they have their own controls).
+   ──────────────────────────────────────────────────────────────────────── */
 
-  function setAlign(align: string) {
+function ConditionalFormattingToolbar({ context }: { context: EditorContext }) {
+  const editor = useBlockNoteEditor();
+  const [blockType, setBlockType] = useState<string>("");
+
+  useEditorSelectionChange(() => {
     try {
-      editor.updateBlock(imageBlock, { props: { textAlignment: align } } as any);
-      setImageBlock({ ...imageBlock, props: { ...imageBlock.props, textAlignment: align } });
-    } catch (err) {
-      console.error("setAlign failed:", err);
-    }
+      setBlockType(editor.getTextCursorPosition().block?.type ?? "");
+    } catch {}
+  });
+
+  // Don't show toolbar for image/table blocks
+  if (["image", "table", "video", "audio", "file"].includes(blockType)) {
+    return null;
   }
 
   return (
-    <div
-      className="img-align-overlay"
-      style={{ position: "fixed", top: pos.top, left: pos.left, zIndex: 200 }}
-      onMouseDown={(e) => e.preventDefault()}
-      onMouseLeave={() => {
-        setTimeout(() => {
-          const hovered = document.querySelectorAll(":hover");
-          const overImage = Array.from(hovered).some(
-            (el) => el.closest("[data-content-type='image']") || el.closest(".img-align-overlay")
-          );
-          if (!overImage) setImageBlock(null);
-        }, 100);
-      }}
-    >
-      <button
-        className={`img-align-btn${currentAlign === "left" ? " img-align-btn--active" : ""}`}
-        onMouseDown={(e) => { e.preventDefault(); setAlign("left"); }}
-        title="Align left"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-          <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/>
-        </svg>
-      </button>
-      <button
-        className={`img-align-btn${currentAlign === "center" ? " img-align-btn--active" : ""}`}
-        onMouseDown={(e) => { e.preventDefault(); setAlign("center"); }}
-        title="Center"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-          <line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
-        </svg>
-      </button>
-      <button
-        className={`img-align-btn${currentAlign === "right" ? " img-align-btn--active" : ""}`}
-        onMouseDown={(e) => { e.preventDefault(); setAlign("right"); }}
-        title="Align right"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-          <line x1="3" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/>
-        </svg>
-      </button>
-    </div>
+    <FormattingToolbar>
+      <BasicTextStyleButton key="bold" basicTextStyle="bold" />
+      <BasicTextStyleButton key="italic" basicTextStyle="italic" />
+      <BasicTextStyleButton key="underline" basicTextStyle="underline" />
+      <CreateLinkButton key="link" />
+      <TextAlignButton key="align-left" textAlignment="left" />
+      <TextAlignButton key="align-center" textAlignment="center" />
+      <TextAlignButton key="align-right" textAlignment="right" />
+      <ToolbarMoreMenu key="more" context={context} />
+    </FormattingToolbar>
   );
 }
 
@@ -855,19 +891,10 @@ export default function RimBlockEditor({
         sideMenu={false}
         formattingToolbar={false}
       >
-        {/* Selection toolbar — native BlockNote components only */}
+        {/* Selection toolbar — hidden for image/table blocks which have their own controls */}
         <FormattingToolbarController
           formattingToolbar={() => (
-            <FormattingToolbar>
-              <BasicTextStyleButton key="bold" basicTextStyle="bold" />
-              <BasicTextStyleButton key="italic" basicTextStyle="italic" />
-              <BasicTextStyleButton key="underline" basicTextStyle="underline" />
-              <CreateLinkButton key="link" />
-              <TextAlignButton key="align-left" textAlignment="left" />
-              <TextAlignButton key="align-center" textAlignment="center" />
-              <TextAlignButton key="align-right" textAlignment="right" />
-              <ToolbarMoreMenu key="more" context={context} />
-            </FormattingToolbar>
+            <ConditionalFormattingToolbar context={context} />
           )}
         />
         {/* Empty line — full Bear pill */}
