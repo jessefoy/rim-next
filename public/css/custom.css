@@ -17194,6 +17194,28 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   align-items: center;
 }
 
+/* ⋯ button inside the native FormattingToolbar */
+.bear-more-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  letter-spacing: 2px;
+  color: var(--rim-text-muted);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: background 0.12s, color 0.12s;
+}
+.bear-more-btn:hover,
+.bear-more-btn--open {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--rim-text);
+}
+
 /* Dropdown button inside the native FormattingToolbar (bn-toolbar) */
 .bear-dd-btn {
   background: none;

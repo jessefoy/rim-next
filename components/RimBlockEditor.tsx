@@ -3,11 +3,16 @@
 /**
  * RimBlockEditor — Bear-inspired block editor for long-form content.
  *
- * Toolbar layout (matches Bear):
- *   [H▾] [≡▾] | [B] [I] [U] [🔗] [≡] | [⊞] [📷] [⋯]
+ * Two toolbar contexts:
  *
- * Appears on text selection (above) AND on empty paragraphs (below/above).
- * Pill flips above cursor when near viewport bottom.
+ * Selection toolbar (appears above selected text):
+ *   Uses ONLY native BlockNote components to avoid rendering conflicts.
+ *   [B] [I] [U] [Link] [Align L/C/R] [⋯ block types + inserts]
+ *
+ * Empty-line pill (floats below/above cursor on empty paragraphs):
+ *   Full Bear layout with custom dropdowns:
+ *   [H▾] [≡▾] | [B] [I] [U] [🔗] | [⊞] [📷] [⋯]
+ *
  * Stores content as BlockNote JSON (array of blocks).
  */
 
@@ -19,7 +24,6 @@ import {
   FormattingToolbar,
   BasicTextStyleButton,
   CreateLinkButton,
-  TextAlignButton,
   useBlockNoteEditor,
   useEditorSelectionChange,
 } from "@blocknote/react";
@@ -86,7 +90,7 @@ function CaretIcon() {
   );
 }
 
-/* ── Image upload helper (lazy import to avoid module-level side effects) ── */
+/* ── Image upload (lazy import) ────────────────────────────────────────── */
 
 async function uploadFile(file: File): Promise<string> {
   const { upload } = await import("@vercel/blob/client");
@@ -97,7 +101,7 @@ async function uploadFile(file: File): Promise<string> {
   return blob.url;
 }
 
-/* ── Shared close-on-click-outside hook ────────────────────────────────── */
+/* ── Shared helpers ────────────────────────────────────────────────────── */
 
 function useClickOutside(ref: React.RefObject<HTMLElement | null>, open: boolean, onClose: () => void) {
   useEffect(() => {
@@ -110,37 +114,26 @@ function useClickOutside(ref: React.RefObject<HTMLElement | null>, open: boolean
   }, [open, ref, onClose]);
 }
 
-/* ── Safe insert block helper ──────────────────────────────────────────── */
+/* ── Selection toolbar ⋯ menu ──────────────────────────────────────────
+   This is the PROVEN pattern (worked before the refactor). A single ⋯
+   button inside FormattingToolbar that opens a dropdown with block
+   types and insert options. Only native hooks + DOM — no custom
+   component trees inside FormattingToolbar.
+   ──────────────────────────────────────────────────────────────────────── */
 
-function useInsertBlock() {
-  const editor = useBlockNoteEditor();
-  return useCallback((type: string, props?: Record<string, any>) => {
-    try {
-      const block = editor.getTextCursorPosition().block;
-      const spec: Record<string, any> = { type: type as any };
-      if (props) spec.props = props;
-      editor.insertBlocks([spec as any], block, "after");
-      setTimeout(() => {
-        try {
-          const next = editor.getTextCursorPosition().nextBlock;
-          if (next) editor.setTextCursorPosition(next, "start");
-        } catch {}
-        editor.focus();
-      }, 50);
-    } catch (err) {
-      console.error("RimBlockEditor: insertBlock failed", err);
-    }
-  }, [editor]);
-}
-
-/* ── Heading dropdown (H▾) ─────────────────────────────────────────────── */
-
-function HeadingDropdown() {
+function ToolbarMoreMenu({ context = "default" as EditorContext }) {
   const editor = useBlockNoteEditor();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const close = useCallback(() => setOpen(false), []);
-  useClickOutside(ref, open, close);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(e: PointerEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [open]);
 
   const [activeBlock, setActiveBlock] = useState<string>("");
   const [activeLevel, setActiveLevel] = useState<number>(0);
@@ -160,170 +153,36 @@ function HeadingDropdown() {
     setOpen(false);
   }
 
-  const isHeading = activeBlock === "heading";
-
-  return (
-    <div className="bear-more-wrap" ref={ref}>
-      <button
-        type="button"
-        className={`bear-dd-btn${isHeading ? " bear-dd-btn--active" : ""}${open ? " bear-dd-btn--open" : ""}`}
-        onMouseDown={(e) => { e.preventDefault(); setOpen(!open); }}
-        title="Heading"
-      >
-        <span style={{ fontWeight: 700, fontSize: 14 }}>H</span>
-        <CaretIcon />
-      </button>
-      {open && (
-        <div className="bear-more-dropdown" onPointerDown={(e) => e.stopPropagation()}>
-          <button type="button" className={`bear-more-item${isHeading && activeLevel === 2 ? " bear-more-item--active" : ""}`}
-            onMouseDown={(e) => { e.preventDefault(); setBlockType("heading", { level: 2 }); }}>
-            Heading 2
-          </button>
-          <button type="button" className={`bear-more-item${isHeading && activeLevel === 3 ? " bear-more-item--active" : ""}`}
-            onMouseDown={(e) => { e.preventDefault(); setBlockType("heading", { level: 3 }); }}>
-            Heading 3
-          </button>
-          <div className="bear-more-divider" />
-          <button type="button" className={`bear-more-item${activeBlock === "paragraph" ? " bear-more-item--active" : ""}`}
-            onMouseDown={(e) => { e.preventDefault(); setBlockType("paragraph"); }}>
-            Paragraph
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ── Block type dropdown (≡▾) — lists, quote ───────────────────────────── */
-
-function BlockTypeDropdown() {
-  const editor = useBlockNoteEditor();
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const close = useCallback(() => setOpen(false), []);
-  useClickOutside(ref, open, close);
-
-  const [activeBlock, setActiveBlock] = useState<string>("");
-  useEditorSelectionChange(() => {
+  function insertBlockAfter(type: string, props?: Record<string, any>) {
     try {
-      setActiveBlock(editor.getTextCursorPosition().block?.type ?? "");
-    } catch {}
-  });
-
-  function setBlockType(type: string) {
-    try {
-      editor.focus();
-      editor.updateBlock(editor.getTextCursorPosition().block, { type: type as any });
+      const block = editor.getTextCursorPosition().block;
+      const spec: Record<string, any> = { type: type as any };
+      if (props) spec.props = props;
+      editor.insertBlocks([spec as any], block, "after");
+      setTimeout(() => {
+        try {
+          const next = editor.getTextCursorPosition().nextBlock;
+          if (next) editor.setTextCursorPosition(next, "start");
+        } catch {}
+        editor.focus();
+      }, 50);
     } catch {}
     setOpen(false);
   }
 
-  const isListOrQuote = ["bulletListItem", "numberedListItem", "quote"].includes(activeBlock);
-
-  return (
-    <div className="bear-more-wrap" ref={ref}>
-      <button
-        type="button"
-        className={`bear-dd-btn${isListOrQuote ? " bear-dd-btn--active" : ""}${open ? " bear-dd-btn--open" : ""}`}
-        onMouseDown={(e) => { e.preventDefault(); setOpen(!open); }}
-        title="Lists & quotes"
-      >
-        <ListIcon size={14} />
-        <CaretIcon />
-      </button>
-      {open && (
-        <div className="bear-more-dropdown" onPointerDown={(e) => e.stopPropagation()}>
-          <button type="button" className={`bear-more-item${activeBlock === "bulletListItem" ? " bear-more-item--active" : ""}`}
-            onMouseDown={(e) => { e.preventDefault(); setBlockType("bulletListItem"); }}>
-            Bullet List
-          </button>
-          <button type="button" className={`bear-more-item${activeBlock === "numberedListItem" ? " bear-more-item--active" : ""}`}
-            onMouseDown={(e) => { e.preventDefault(); setBlockType("numberedListItem"); }}>
-            Numbered List
-          </button>
-          <div className="bear-more-divider" />
-          <button type="button" className={`bear-more-item${activeBlock === "quote" ? " bear-more-item--active" : ""}`}
-            onMouseDown={(e) => { e.preventDefault(); setBlockType("quote"); }}>
-            Block Quote
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ── Table insert button ──────────────────────────────────────────────── */
-
-function TableInsertButton() {
-  const insertBlock = useInsertBlock();
-  return (
-    <div className="bear-more-wrap">
-      <button
-        type="button"
-        className="bear-dd-btn"
-        onMouseDown={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          insertBlock("table");
-        }}
-        title="Insert table"
-      >
-        <TableIcon size={14} />
-      </button>
-    </div>
-  );
-}
-
-/* ── Image insert button ──────────────────────────────────────────────── */
-
-function ImageInsertButton() {
-  const insertBlock = useInsertBlock();
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  return (
-    <div className="bear-more-wrap">
-      <button
-        type="button"
-        className="bear-dd-btn"
-        onMouseDown={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          fileRef.current?.click();
-        }}
-        title="Insert image"
-      >
-        <ImageIcon size={14} />
-      </button>
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        style={{ display: "none" }}
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file && file.type.startsWith("image/")) {
-            const url = URL.createObjectURL(file);
-            insertBlock("image", { url, name: file.name });
-          }
-          e.target.value = "";
-        }}
-      />
-    </div>
-  );
-}
-
-/* ── Context menu (⋯) — page-specific insert blocks only ──────────────── */
-
-function ContextMenuButton({ context = "default" as EditorContext }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const close = useCallback(() => setOpen(false), []);
-  useClickOutside(ref, open, close);
-
-  const insertBlock = useInsertBlock();
+  const blockItems = [
+    { label: "Heading 2", type: "heading", props: { level: 2 }, match: activeBlock === "heading" && activeLevel === 2 },
+    { label: "Heading 3", type: "heading", props: { level: 3 }, match: activeBlock === "heading" && activeLevel === 3 },
+    { label: "Bullet list", type: "bulletListItem", match: activeBlock === "bulletListItem" },
+    { label: "Numbered list", type: "numberedListItem", match: activeBlock === "numberedListItem" },
+    { label: "Quote", type: "quote", match: activeBlock === "quote" },
+    { label: "Paragraph", type: "paragraph", match: activeBlock === "paragraph" },
+  ];
 
   const insertItems = useMemo(() => {
     const items: { label: string; icon?: React.ReactNode; type: string }[] = [];
+    items.push({ label: "Table", type: "table" });
+    items.push({ label: "Image", type: "image" });
     if (context === "lesson") {
       items.push(
         { label: "Verse Quote", icon: <RiQuoteText size={15} />, type: "verseQuote" },
@@ -334,21 +193,33 @@ function ContextMenuButton({ context = "default" as EditorContext }) {
     return items;
   }, [context]);
 
-  if (insertItems.length === 0) return null;
-
   return (
     <div className="bear-more-wrap" ref={ref}>
       <button
         type="button"
-        className={`bear-dd-btn${open ? " bear-dd-btn--open" : ""}`}
+        className={`bear-more-btn${open ? " bear-more-btn--open" : ""}`}
         onMouseDown={(e) => { e.preventDefault(); setOpen(!open); }}
-        aria-label="Special blocks"
-        title="Special blocks"
+        aria-label="More formatting"
+        title="More formatting"
       >
         ⋯
       </button>
       {open && (
         <div className="bear-more-dropdown" onPointerDown={(e) => e.stopPropagation()}>
+          {blockItems.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              className={`bear-more-item${item.match ? " bear-more-item--active" : ""}`}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                setBlockType(item.type, item.props);
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
+          <div className="bear-more-divider" />
           {insertItems.map((item) => (
             <button
               key={item.label}
@@ -356,8 +227,7 @@ function ContextMenuButton({ context = "default" as EditorContext }) {
               className="bear-more-item"
               onMouseDown={(e) => {
                 e.preventDefault();
-                insertBlock(item.type);
-                setOpen(false);
+                insertBlockAfter(item.type);
               }}
             >
               {item.icon && <span className="bear-more-icon">{item.icon}</span>}
@@ -370,8 +240,9 @@ function ContextMenuButton({ context = "default" as EditorContext }) {
   );
 }
 
-/* ── Standalone dropdown components for EmptyLinePill ───────────────────
-   Same logic as above but using custom pill button styling.
+/* ── Empty-line pill components ─────────────────────────────────────────
+   Full Bear layout with custom dropdowns. These are plain HTML/React
+   components — NOT inside FormattingToolbar — so they work fine.
    ──────────────────────────────────────────────────────────────────────── */
 
 function PillHeadingDropdown() {
@@ -441,9 +312,7 @@ function PillBlockTypeDropdown() {
 
   const [activeBlock, setActiveBlock] = useState<string>("");
   useEditorSelectionChange(() => {
-    try {
-      setActiveBlock(editor.getTextCursorPosition().block?.type ?? "");
-    } catch {}
+    try { setActiveBlock(editor.getTextCursorPosition().block?.type ?? ""); } catch {}
   });
 
   function setBlockType(type: string) {
@@ -488,12 +357,27 @@ function PillBlockTypeDropdown() {
 }
 
 function PillContextMenu({ context, onAction }: { context: EditorContext; onAction?: () => void }) {
+  const editor = useBlockNoteEditor();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const close = useCallback(() => setOpen(false), []);
   useClickOutside(ref, open, close);
 
-  const insertBlock = useInsertBlock();
+  function insertBlockAfter(type: string) {
+    try {
+      const block = editor.getTextCursorPosition().block;
+      editor.insertBlocks([{ type: type as any }], block, "after");
+      setTimeout(() => {
+        try {
+          const next = editor.getTextCursorPosition().nextBlock;
+          if (next) editor.setTextCursorPosition(next, "start");
+        } catch {}
+        editor.focus();
+      }, 50);
+    } catch {}
+    setOpen(false);
+    onAction?.();
+  }
 
   const insertItems = useMemo(() => {
     const items: { label: string; icon?: React.ReactNode; type: string }[] = [];
@@ -521,17 +405,8 @@ function PillContextMenu({ context, onAction }: { context: EditorContext; onActi
       {open && (
         <div className="bear-more-dropdown" onPointerDown={(e) => e.stopPropagation()}>
           {insertItems.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              className="bear-more-item"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                insertBlock(item.type);
-                setOpen(false);
-                onAction?.();
-              }}
-            >
+            <button key={item.label} type="button" className="bear-more-item"
+              onMouseDown={(e) => { e.preventDefault(); insertBlockAfter(item.type); }}>
               {item.icon && <span className="bear-more-icon">{item.icon}</span>}
               {item.label}
             </button>
@@ -542,10 +417,7 @@ function PillContextMenu({ context, onAction }: { context: EditorContext; onActi
   );
 }
 
-/* ── Empty-line pill ───────────────────────────────────────────────────
-   Flips above cursor when near viewport bottom.
-   150ms debounce prevents flash when typing through Enter.
-   ──────────────────────────────────────────────────────────────────────── */
+/* ── Empty-line pill ──────────────────────────────────────────────────── */
 
 const PILL_HEIGHT = 48;
 
@@ -557,6 +429,7 @@ function EmptyLinePill({ context }: { context: EditorContext }) {
   const [activeStyles, setActiveStyles] = useState<Record<string, any>>({});
   const menuRef = useRef<HTMLDivElement>(null);
   const showTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   function isBlockEmpty() {
     try {
@@ -576,49 +449,37 @@ function EmptyLinePill({ context }: { context: EditorContext }) {
       const range = sel.getRangeAt(0);
       let rect = range.getBoundingClientRect();
       if (rect.height === 0 && rect.width === 0) {
-        const el =
-          range.startContainer instanceof HTMLElement
-            ? range.startContainer
-            : range.startContainer.parentElement;
+        const el = range.startContainer instanceof HTMLElement
+          ? range.startContainer
+          : range.startContainer.parentElement;
         if (el) rect = el.getBoundingClientRect();
       }
-
       const viewportH = window.innerHeight;
-      const spaceBelow = viewportH - rect.bottom;
-      const shouldFlip = spaceBelow < PILL_HEIGHT + 24;
-
+      const shouldFlip = viewportH - rect.bottom < PILL_HEIGHT + 24;
       setFlipped(shouldFlip);
-      if (shouldFlip) {
-        setPos({ top: rect.top - PILL_HEIGHT - 8, left: Math.max(16, rect.left - 80) });
-      } else {
-        setPos({ top: rect.bottom + 8, left: Math.max(16, rect.left - 80) });
-      }
+      setPos({
+        top: shouldFlip ? rect.top - PILL_HEIGHT - 8 : rect.bottom + 8,
+        left: Math.max(16, rect.left - 80),
+      });
     } catch {}
   }
 
   useEditorSelectionChange(() => {
     try {
       if (showTimer.current) { clearTimeout(showTimer.current); showTimer.current = null; }
-
       const sel = editor.getSelection();
       if (sel) { setShow(false); return; }
-
       try { setActiveStyles(editor.getActiveStyles()); } catch { setActiveStyles({}); }
-
       if (isBlockEmpty()) {
         updatePos();
         showTimer.current = setTimeout(() => setShow(true), 150);
       } else {
         setShow(false);
       }
-    } catch {
-      setShow(false);
-    }
+    } catch { setShow(false); }
   });
 
-  useEffect(() => {
-    return () => { if (showTimer.current) clearTimeout(showTimer.current); };
-  }, []);
+  useEffect(() => () => { if (showTimer.current) clearTimeout(showTimer.current); }, []);
 
   useEffect(() => {
     if (!show) return;
@@ -637,21 +498,29 @@ function EmptyLinePill({ context }: { context: EditorContext }) {
   }, [show]);
 
   function toggleStyle(style: string) {
-    try {
-      editor.focus();
-      editor.toggleStyles({ [style]: true } as any);
-    } catch {}
+    try { editor.focus(); editor.toggleStyles({ [style]: true } as any); } catch {}
   }
 
   function insertLink() {
     editor.focus();
     const url = window.prompt("Link URL:");
-    if (url) {
-      try { editor.createLink(url); } catch {}
-    }
+    if (url) { try { editor.createLink(url); } catch {} }
   }
 
-  const insertBlock = useInsertBlock();
+  function insertBlockAfter(type: string) {
+    try {
+      const block = editor.getTextCursorPosition().block;
+      editor.insertBlocks([{ type: type as any }], block, "after");
+      setTimeout(() => {
+        try {
+          const next = editor.getTextCursorPosition().nextBlock;
+          if (next) editor.setTextCursorPosition(next, "start");
+        } catch {}
+        editor.focus();
+      }, 50);
+    } catch {}
+    setShow(false);
+  }
 
   if (!show) return null;
 
@@ -668,42 +537,47 @@ function EmptyLinePill({ context }: { context: EditorContext }) {
 
         <span className="bear-pill__sep" />
 
-        <button
-          className={`bear-pill__btn${activeStyles.bold ? " bear-pill__btn--active" : ""}`}
-          onMouseDown={(e) => { e.preventDefault(); toggleStyle("bold"); }}
-          title="Bold"
-        ><strong>B</strong></button>
-        <button
-          className={`bear-pill__btn${activeStyles.italic ? " bear-pill__btn--active" : ""}`}
-          onMouseDown={(e) => { e.preventDefault(); toggleStyle("italic"); }}
-          title="Italic"
-        ><em>I</em></button>
-        <button
-          className={`bear-pill__btn${activeStyles.underline ? " bear-pill__btn--active" : ""}`}
-          onMouseDown={(e) => { e.preventDefault(); toggleStyle("underline"); }}
-          title="Underline"
-        ><u>U</u></button>
-        <button
-          className="bear-pill__btn"
-          onMouseDown={(e) => { e.preventDefault(); insertLink(); }}
-          title="Link"
-        ><LinkIcon size={14} /></button>
+        <button className={`bear-pill__btn${activeStyles.bold ? " bear-pill__btn--active" : ""}`}
+          onMouseDown={(e) => { e.preventDefault(); toggleStyle("bold"); }} title="Bold">
+          <strong>B</strong></button>
+        <button className={`bear-pill__btn${activeStyles.italic ? " bear-pill__btn--active" : ""}`}
+          onMouseDown={(e) => { e.preventDefault(); toggleStyle("italic"); }} title="Italic">
+          <em>I</em></button>
+        <button className={`bear-pill__btn${activeStyles.underline ? " bear-pill__btn--active" : ""}`}
+          onMouseDown={(e) => { e.preventDefault(); toggleStyle("underline"); }} title="Underline">
+          <u>U</u></button>
+        <button className="bear-pill__btn"
+          onMouseDown={(e) => { e.preventDefault(); insertLink(); }} title="Link">
+          <LinkIcon size={14} /></button>
 
         <span className="bear-pill__sep" />
 
-        <button
-          className="bear-pill__btn"
-          onMouseDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            insertBlock("table");
-            setShow(false);
-          }}
-          title="Insert table"
-        ><TableIcon size={14} /></button>
+        <button className="bear-pill__btn"
+          onMouseDown={(e) => { e.preventDefault(); insertBlockAfter("table"); }} title="Insert table">
+          <TableIcon size={14} /></button>
+        <button className="bear-pill__btn"
+          onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); fileRef.current?.click(); }}
+          title="Insert image">
+          <ImageIcon size={14} /></button>
 
         <PillContextMenu context={context} onAction={() => setShow(false)} />
       </div>
+
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        style={{ display: "none" }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file && file.type.startsWith("image/")) {
+            const url = URL.createObjectURL(file);
+            insertBlockAfter("image");
+            // TODO: Upload via uploadFile and update block URL
+          }
+          e.target.value = "";
+        }}
+      />
     </div>
   );
 }
@@ -732,7 +606,6 @@ export default function RimBlockEditor({
     {
       schema: rimBlockSchema,
       initialContent: hasBlockNoteContent ? value : undefined,
-      uploadFile,
       dictionary: {
         placeholders: {
           default: "Type something…",
@@ -765,26 +638,19 @@ export default function RimBlockEditor({
         sideMenu={false}
         formattingToolbar={false}
       >
-        {/* Selection pill */}
+        {/* Selection toolbar — native BlockNote components only */}
         <FormattingToolbarController
           formattingToolbar={() => (
             <FormattingToolbar>
-              <HeadingDropdown key="heading" />
-              <BlockTypeDropdown key="blockType" />
               <BasicTextStyleButton key="bold" basicTextStyle="bold" />
               <BasicTextStyleButton key="italic" basicTextStyle="italic" />
               <BasicTextStyleButton key="underline" basicTextStyle="underline" />
               <CreateLinkButton key="link" />
-              <TextAlignButton key="alignLeft" textAlignment="left" />
-              <TextAlignButton key="alignCenter" textAlignment="center" />
-              <TextAlignButton key="alignRight" textAlignment="right" />
-              <TableInsertButton key="table" />
-              <ImageInsertButton key="image" />
-              <ContextMenuButton key="context" context={context} />
+              <ToolbarMoreMenu key="more" context={context} />
             </FormattingToolbar>
           )}
         />
-        {/* Empty line pill */}
+        {/* Empty line — full Bear pill */}
         <EmptyLinePill context={context} />
       </BlockNoteView>
     </div>
