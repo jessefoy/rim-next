@@ -24,6 +24,7 @@ import {
   FormattingToolbar,
   BasicTextStyleButton,
   CreateLinkButton,
+  TextAlignButton,
   useBlockNoteEditor,
   useEditorSelectionChange,
 } from "@blocknote/react";
@@ -606,15 +607,7 @@ export default function RimBlockEditor({
     {
       schema: rimBlockSchema,
       initialContent: hasBlockNoteContent ? value : undefined,
-      dictionary: {
-        placeholders: {
-          default: "Type something…",
-          heading: "Heading",
-          bulletListItem: "List",
-          numberedListItem: "List",
-          checkListItem: "List",
-        },
-      } as any,
+      uploadFile,
     },
     []
   );
@@ -646,6 +639,9 @@ export default function RimBlockEditor({
               <BasicTextStyleButton key="italic" basicTextStyle="italic" />
               <BasicTextStyleButton key="underline" basicTextStyle="underline" />
               <CreateLinkButton key="link" />
+              <TextAlignButton key="align-left" textAlignment="left" />
+              <TextAlignButton key="align-center" textAlignment="center" />
+              <TextAlignButton key="align-right" textAlignment="right" />
               <ToolbarMoreMenu key="more" context={context} />
             </FormattingToolbar>
           )}

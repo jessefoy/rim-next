@@ -17147,6 +17147,44 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   font-style: normal !important;
 }
 
+/* ── Table visibility fix ── */
+.rim-block-editor table,
+.rim-block-editor [data-content-type="table"] table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  border: 1px solid #e0dcd8 !important;
+  margin: 8px 0 !important;
+}
+.rim-block-editor table td,
+.rim-block-editor table th,
+.rim-block-editor [data-content-type="table"] td,
+.rim-block-editor [data-content-type="table"] th {
+  border: 1px solid #e0dcd8 !important;
+  padding: 8px 12px !important;
+  font-family: var(--font-doc) !important;
+  font-size: 15px !important;
+  min-width: 60px !important;
+  vertical-align: top;
+}
+.rim-block-editor table th,
+.rim-block-editor [data-content-type="table"] th {
+  background: #f8f6f4 !important;
+  font-weight: 600 !important;
+}
+/* Ensure the table block itself is visible */
+.rim-block-editor [data-content-type="table"] {
+  overflow-x: auto;
+}
+
+/* ── Image blocks ── */
+.rim-block-editor [data-content-type="image"] {
+  margin: 12px 0 !important;
+}
+.rim-block-editor [data-content-type="image"] img {
+  max-width: 100%;
+  border-radius: 4px;
+}
+
 .rim-prose-editor {
   background: #fff;
   border: 1px solid var(--rim-rule);
