@@ -29,6 +29,7 @@ import {
   useEditorSelectionChange,
 } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
+import { upload } from "@vercel/blob/client";
 import { RiQuoteText, RiPlantLine, RiInformationLine } from "react-icons/ri";
 import { rimTheme } from "@/lib/blockNoteTheme";
 import { rimBlockSchema } from "@/lib/blockNoteCustomBlocks";
@@ -91,10 +92,9 @@ function CaretIcon() {
   );
 }
 
-/* ── Image upload (lazy import) ────────────────────────────────────────── */
+/* ── Image upload ─────────────────────────────────────────────────────── */
 
 async function uploadFile(file: File): Promise<string> {
-  const { upload } = await import("@vercel/blob/client");
   const blob = await upload(file.name, file, {
     access: "public",
     handleUploadUrl: "/api/upload",
@@ -636,21 +636,15 @@ function EmptyLinePill({ context }: { context: EditorContext }) {
           const file = e.target.files?.[0];
           if (file && file.type.startsWith("image/")) {
             try {
-              // Insert empty image block first
+              // Upload first, then insert with URL already set
+              const url = await uploadFile(file);
               const block = editor.getTextCursorPosition().block;
               editor.insertBlocks(
-                [{ type: "image" as any, props: { name: file.name } }],
+                [{ type: "image" as any, props: { url, name: file.name } }],
                 block,
                 "after"
               );
-              // Find the inserted block (next block after current)
-              const next = editor.getTextCursorPosition().nextBlock;
-              // Upload the file
-              const url = await uploadFile(file);
-              // Update the image block with the uploaded URL
-              if (next && next.type === "image") {
-                editor.updateBlock(next, { props: { url, name: file.name } });
-              }
+              editor.focus();
             } catch (err) {
               console.error("Image upload failed:", err);
             }

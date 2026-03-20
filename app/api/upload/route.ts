@@ -17,14 +17,14 @@ export async function POST(request: NextRequest) {
         // Auth check here — only runs for token generation requests from the browser,
         // not for the completion callback from Vercel's servers
         const session = await auth();
-        if (!session?.user?.roles?.some((r) => ["ADMIN", "TEACHER", "SUPPORT"].includes(r))) {
+        if (!session?.user) {
           throw new Error("Unauthorized");
         }
         // ADMIN and SUPPORT: any content type (support inbox needs arbitrary files)
-        // TEACHER-only: media types only (lessons)
-        const hasSupport = session.user.roles?.some((r) => ["SUPPORT", "ADMIN"].includes(r));
+        // Everyone else: media types only (images, audio, PDFs for documents/lessons)
+        const hasFullAccess = session.user.roles?.some((r) => ["SUPPORT", "ADMIN"].includes(r));
         return {
-          allowedContentTypes: hasSupport ? undefined : ["image/*", "audio/*", "application/pdf"],
+          allowedContentTypes: hasFullAccess ? undefined : ["image/*", "audio/*", "application/pdf"],
           maximumSizeInBytes: 500 * 1024 * 1024, // 500 MB
         };
       },
