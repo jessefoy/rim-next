@@ -6,6 +6,7 @@
 - Keep changes minimal and focused. No over-engineering or speculative improvements.
 - Prefer editing existing files over creating new ones.
 - Full stack reference: `RIM_Stack_Reference.md` in project root.
+- Editor system reference: `RIM_Editor_Design.md` in project root — **read before working on any editor component, content renderer, display page, or CSS for rich text output.**
 
 ## Stack
 - Next.js **16** (App Router) + TypeScript
