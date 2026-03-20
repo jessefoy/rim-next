@@ -8,14 +8,21 @@
  * Props:
  *   legacyHtml — pre-rendered HTML from server (Tiptap JSON → HTML).
  *                Imported into BlockNote on mount when value is null/empty.
- *                Enables editing of existing Tiptap content without data migration.
  *
  * Stores content as BlockNote JSON (array of blocks).
  */
 
 import "@blocknote/mantine/style.css";
-import { useEffect } from "react";
-import { useCreateBlockNote } from "@blocknote/react";
+import { useEffect, useMemo } from "react";
+import {
+  useCreateBlockNote,
+  SuggestionMenuController,
+  getDefaultReactSlashMenuItems,
+} from "@blocknote/react";
+import {
+  filterSuggestionItems,
+  insertOrUpdateBlockForSlashMenu,
+} from "@blocknote/core/extensions";
 import { BlockNoteView } from "@blocknote/mantine";
 import { rimTheme } from "@/lib/blockNoteTheme";
 import { rimBlockSchema } from "@/lib/blockNoteCustomBlocks";
@@ -41,11 +48,10 @@ export default function RimBlockEditor({
       schema: rimBlockSchema,
       initialContent: hasBlockNoteContent ? value : undefined,
     },
-    // deps: value intentionally excluded — BlockNoteView is uncontrolled after mount
     []
   );
 
-  // Import legacy HTML (pre-rendered from Tiptap JSON) on mount when no BlockNote content exists
+  // Import legacy HTML on mount when no BlockNote content exists
   useEffect(() => {
     if (legacyHtml && !hasBlockNoteContent) {
       const blocks = editor.tryParseHTMLToBlocks(legacyHtml);
@@ -55,13 +61,69 @@ export default function RimBlockEditor({
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Custom slash menu: default items + Dharma blocks
+  const getSlashMenuItems = useMemo(
+    () => async (query: string) => {
+      const defaultItems = getDefaultReactSlashMenuItems(editor);
+      const dharmaItems = [
+        {
+          title: "Verse Quote",
+          subtext: "Italic serif block with attribution line",
+          onItemClick: () => {
+            insertOrUpdateBlockForSlashMenu(editor, {
+              type: "verseQuote" as any,
+            });
+          },
+          aliases: ["verse", "quote", "poetry", "sutta"],
+          group: "Dharma",
+          key: "verse_quote",
+        },
+        {
+          title: "Practice Suggestion",
+          subtext: "Teal practice box with label",
+          onItemClick: () => {
+            insertOrUpdateBlockForSlashMenu(editor, {
+              type: "practiceSuggestion" as any,
+            });
+          },
+          aliases: ["practice", "suggestion", "meditation", "exercise"],
+          group: "Dharma",
+          key: "practice_suggestion",
+        },
+        {
+          title: "Callout",
+          subtext: "Highlighted note or aside",
+          onItemClick: () => {
+            insertOrUpdateBlockForSlashMenu(editor, {
+              type: "callout" as any,
+            });
+          },
+          aliases: ["callout", "note", "aside", "info", "warning"],
+          group: "Dharma",
+          key: "callout",
+        },
+      ];
+      return filterSuggestionItems(
+        [...defaultItems, ...dharmaItems],
+        query
+      );
+    },
+    [editor]
+  );
+
   return (
     <div className="rim-block-editor" style={{ minHeight }}>
       <BlockNoteView
         editor={editor}
         theme={rimTheme}
         onChange={(editor) => onChange(editor.document)}
-      />
+        slashMenu={false}
+      >
+        <SuggestionMenuController
+          triggerCharacter="/"
+          getItems={getSlashMenuItems}
+        />
+      </BlockNoteView>
     </div>
   );
 }
