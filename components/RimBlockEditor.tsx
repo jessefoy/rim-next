@@ -1,22 +1,26 @@
 "use client";
 
 /**
- * RimBlockEditor — Unified contextual editor menu.
+ * RimBlockEditor — Bear-inspired block editor for long-form content.
  *
- * One horizontal pill toolbar for all editor interactions:
- *   - Text selection → pill above selection: [B] [I] [U] [🔗] | [H▾] [≡▾] [+▾]
- *   - Empty paragraph → same pill below cursor: [H▾] [≡▾] [+▾]
- *   - No side menu, no slash commands, no bottom bar
- *   - Context prop controls which blocks appear in the + dropdown
+ * Design:
+ *   - No side menu (no hovering drag handle / + button)
+ *   - Clean floating pill toolbar on text selection: B, I, U, Link, ⋯
+ *   - ⋯ menu: headings, lists, quote, paragraph + context-specific blocks
+ *   - Empty paragraph: compact floating menu with same block options
+ *   - Inter font for clean document editing
  *
  * Stores content as BlockNote JSON (array of blocks).
  */
 
 import "@blocknote/mantine/style.css";
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import {
   useCreateBlockNote,
   FormattingToolbarController,
+  FormattingToolbar,
+  BasicTextStyleButton,
+  CreateLinkButton,
   useBlockNoteEditor,
   useEditorSelectionChange,
 } from "@blocknote/react";
@@ -29,9 +33,10 @@ import { rimBlockSchema } from "@/lib/blockNoteCustomBlocks";
 
 export type EditorContext = "lesson" | "document" | "default";
 
-/* ── Dropdown helper ───────────────────────────────────────────────────── */
+/* ── Bear-style ⋯ More menu (inside the pill toolbar) ──────────────────── */
 
-function useDropdown() {
+function MoreMenuButton({ context = "default" as EditorContext }) {
+  const editor = useBlockNoteEditor();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -44,55 +49,24 @@ function useDropdown() {
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [open]);
 
-  return { open, setOpen, ref };
-}
-
-/* ── Unified pill toolbar (the "one menu") ─────────────────────────────
-   Horizontal bar: [B] [I] [U] [🔗] | [H▾] [≡▾] [+▾]
-   Rendered by FormattingToolbarController (selection) and CommandMenu (empty line).
-   Same component, same look, different trigger.
-   ──────────────────────────────────────────────────────────────────────── */
-
-function UnifiedToolbar({
-  hasTextSelection,
-  context,
-  onAction,
-}: {
-  hasTextSelection: boolean;
-  context: EditorContext;
-  onAction?: () => void;
-}) {
-  const editor = useBlockNoteEditor();
-  const [activeBlock, setActiveBlock] = useState("");
-  const [activeStyles, setActiveStyles] = useState<Record<string, any>>({});
-
+  const [activeBlock, setActiveBlock] = useState<string>("");
   useEditorSelectionChange(() => {
-    try { setActiveBlock(editor.getTextCursorPosition().block?.type ?? ""); } catch { setActiveBlock(""); }
-    try { setActiveStyles(editor.getActiveStyles()); } catch { setActiveStyles({}); }
+    const block = editor.getTextCursorPosition().block;
+    setActiveBlock(block?.type ?? "");
   });
-
-  const hDrop = useDropdown();
-  const listDrop = useDropdown();
-  const insertDrop = useDropdown();
-
-  /* ── Actions ── */
-
-  function toggleStyle(style: string) {
-    editor.focus();
-    editor.toggleStyles({ [style]: true } as any);
-  }
 
   function setBlockType(type: string, props?: Record<string, any>) {
     editor.focus();
-    editor.updateBlock(editor.getTextCursorPosition().block, { type: type as any, props });
-    hDrop.setOpen(false);
-    listDrop.setOpen(false);
-    onAction?.();
+    editor.updateBlock(editor.getTextCursorPosition().block, {
+      type: type as any,
+      props,
+    });
+    setOpen(false);
   }
 
-  function insertBlockAfter(type: string, props?: Record<string, any>) {
+  function insertBlockAfter(type: string) {
     const block = editor.getTextCursorPosition().block;
-    editor.insertBlocks([{ type: type as any, props }], block, "after");
+    editor.insertBlocks([{ type: type as any }], block, "after");
     setTimeout(() => {
       try {
         const next = editor.getTextCursorPosition().nextBlock;
@@ -100,143 +74,96 @@ function UnifiedToolbar({
       } catch {}
       editor.focus();
     }, 50);
-    insertDrop.setOpen(false);
-    onAction?.();
+    setOpen(false);
   }
 
-  function insertLink() {
-    editor.focus();
-    const url = window.prompt("Link URL:");
-    if (url) editor.createLink(url);
-  }
-
-  /* Close other dropdowns when one opens */
-  function openOnly(target: "h" | "list" | "insert") {
-    hDrop.setOpen(target === "h" ? !hDrop.open : false);
-    listDrop.setOpen(target === "list" ? !listDrop.open : false);
-    insertDrop.setOpen(target === "insert" ? !insertDrop.open : false);
-  }
-
-  /* ── Context insert items ── */
+  const blockItems = [
+    { label: "Heading 2", type: "heading", props: { level: 2 }, match: activeBlock === "heading" },
+    { label: "Heading 3", type: "heading", props: { level: 3 }, match: activeBlock === "heading" },
+    { label: "Bullet list", type: "bulletListItem", match: activeBlock === "bulletListItem" },
+    { label: "Numbered list", type: "numberedListItem", match: activeBlock === "numberedListItem" },
+    { label: "Quote", type: "quote", match: activeBlock === "quote" },
+    { label: "Paragraph", type: "paragraph", match: activeBlock === "paragraph" },
+  ];
 
   const insertItems = useMemo(() => {
-    const items: { id: string; label: string; icon?: React.ReactNode; type: string }[] = [];
+    const items: { label: string; icon?: React.ReactNode; type: string }[] = [];
     if (context === "lesson") {
       items.push(
-        { id: "verse", label: "Verse Quote", icon: <RiQuoteText size={15} />, type: "verseQuote" },
-        { id: "practice", label: "Practice", icon: <RiPlantLine size={15} />, type: "practiceSuggestion" },
-        { id: "callout", label: "Callout", icon: <RiInformationLine size={15} />, type: "callout" },
+        { label: "Verse Quote", icon: <RiQuoteText size={15} />, type: "verseQuote" },
+        { label: "Practice Suggestion", icon: <RiPlantLine size={15} />, type: "practiceSuggestion" },
+        { label: "Callout", icon: <RiInformationLine size={15} />, type: "callout" },
       );
     }
-    items.push({ id: "table", label: "Table", type: "table" });
+    items.push({ label: "Table", type: "table" });
     return items;
   }, [context]);
 
   return (
-    <div className="uem-bar" onMouseDown={(e) => e.preventDefault()}>
-      {/* ── Inline formatting (only with text selection) ── */}
-      {hasTextSelection && (
-        <>
-          <button
-            className={`uem-bar__btn${activeStyles.bold ? " uem-bar__btn--active" : ""}`}
-            onMouseDown={(e) => { e.preventDefault(); toggleStyle("bold"); }}
-            title="Bold"
-          ><strong>B</strong></button>
-          <button
-            className={`uem-bar__btn${activeStyles.italic ? " uem-bar__btn--active" : ""}`}
-            onMouseDown={(e) => { e.preventDefault(); toggleStyle("italic"); }}
-            title="Italic"
-          ><em>I</em></button>
-          <button
-            className={`uem-bar__btn${activeStyles.underline ? " uem-bar__btn--active" : ""}`}
-            onMouseDown={(e) => { e.preventDefault(); toggleStyle("underline"); }}
-            title="Underline"
-          ><u>U</u></button>
-          <button
-            className="uem-bar__btn"
-            onMouseDown={(e) => { e.preventDefault(); insertLink(); }}
-            title="Link"
-          >🔗</button>
-          <div className="uem-bar__sep" />
-        </>
+    <div className="bear-more-wrap" ref={ref}>
+      <button
+        type="button"
+        className={`bear-more-btn${open ? " bear-more-btn--open" : ""}`}
+        onMouseDown={(e) => { e.preventDefault(); setOpen(!open); }}
+        aria-label="More formatting"
+        title="More formatting"
+      >
+        ⋯
+      </button>
+      {open && (
+        <div className="bear-more-dropdown" onPointerDown={(e) => e.stopPropagation()}>
+          {blockItems.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              className={`bear-more-item${item.match ? " bear-more-item--active" : ""}`}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                setBlockType(item.type, item.props);
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
+          {insertItems.length > 0 && (
+            <>
+              <div className="bear-more-divider" />
+              {insertItems.map((item) => (
+                <button
+                  key={item.label}
+                  type="button"
+                  className="bear-more-item"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    insertBlockAfter(item.type);
+                  }}
+                >
+                  {item.icon && <span className="bear-more-icon">{item.icon}</span>}
+                  {item.label}
+                </button>
+              ))}
+            </>
+          )}
+        </div>
       )}
-
-      {/* ── Heading dropdown ── */}
-      <div className="uem-bar__group" ref={hDrop.ref}>
-        <button
-          className={`uem-bar__btn${activeBlock === "heading" ? " uem-bar__btn--active" : ""}`}
-          onMouseDown={(e) => { e.preventDefault(); openOnly("h"); }}
-          title="Headings"
-        >H</button>
-        {hDrop.open && (
-          <div className="uem-bar__dropdown" onPointerDown={(e) => e.stopPropagation()}>
-            <button className={`uem-bar__dd-item${activeBlock === "heading" ? " uem-bar__dd-item--active" : ""}`}
-              onMouseDown={(e) => { e.preventDefault(); setBlockType("heading", { level: 2 }); }}>Heading 2</button>
-            <button className={`uem-bar__dd-item${activeBlock === "heading" ? " uem-bar__dd-item--active" : ""}`}
-              onMouseDown={(e) => { e.preventDefault(); setBlockType("heading", { level: 3 }); }}>Heading 3</button>
-            <button className={`uem-bar__dd-item${activeBlock === "paragraph" ? " uem-bar__dd-item--active" : ""}`}
-              onMouseDown={(e) => { e.preventDefault(); setBlockType("paragraph"); }}>Paragraph</button>
-          </div>
-        )}
-      </div>
-
-      {/* ── List / quote dropdown ── */}
-      <div className="uem-bar__group" ref={listDrop.ref}>
-        <button
-          className={`uem-bar__btn${["bulletListItem", "numberedListItem", "quote"].includes(activeBlock) ? " uem-bar__btn--active" : ""}`}
-          onMouseDown={(e) => { e.preventDefault(); openOnly("list"); }}
-          title="Lists & Quotes"
-        >≡</button>
-        {listDrop.open && (
-          <div className="uem-bar__dropdown" onPointerDown={(e) => e.stopPropagation()}>
-            <button className={`uem-bar__dd-item${activeBlock === "bulletListItem" ? " uem-bar__dd-item--active" : ""}`}
-              onMouseDown={(e) => { e.preventDefault(); setBlockType("bulletListItem"); }}>Bullet List</button>
-            <button className={`uem-bar__dd-item${activeBlock === "numberedListItem" ? " uem-bar__dd-item--active" : ""}`}
-              onMouseDown={(e) => { e.preventDefault(); setBlockType("numberedListItem"); }}>Numbered List</button>
-            <button className={`uem-bar__dd-item${activeBlock === "quote" ? " uem-bar__dd-item--active" : ""}`}
-              onMouseDown={(e) => { e.preventDefault(); setBlockType("quote"); }}>Quote</button>
-          </div>
-        )}
-      </div>
-
-      {/* ── Insert dropdown (context-specific) ── */}
-      <div className="uem-bar__group" ref={insertDrop.ref}>
-        <button
-          className="uem-bar__btn"
-          onMouseDown={(e) => { e.preventDefault(); openOnly("insert"); }}
-          title="Insert Block"
-        >+</button>
-        {insertDrop.open && (
-          <div className="uem-bar__dropdown" onPointerDown={(e) => e.stopPropagation()}>
-            {insertItems.map((item) => (
-              <button
-                key={item.id}
-                className="uem-bar__dd-item"
-                onMouseDown={(e) => { e.preventDefault(); insertBlockAfter(item.type); }}
-              >
-                {item.icon && <span className="uem-bar__dd-icon">{item.icon}</span>}
-                {item.label}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
 
-/* ── Command menu — shows toolbar on empty paragraphs ──────────────────
-   Detects empty paragraph → positions the same UnifiedToolbar below cursor.
-   Brief debounce prevents flash when pressing Enter and immediately typing.
-   No slash detection, no content manipulation — clean trigger only.
+/* ── Empty-line floating menu ──────────────────────────────────────────
+   When cursor lands in an empty paragraph, a compact menu appears
+   with block-type and insert options (same items as the ⋯ dropdown).
+   150ms debounce prevents flash when typing through Enter.
    ──────────────────────────────────────────────────────────────────────── */
 
-function CommandMenu({ context }: { context: EditorContext }) {
+function EmptyLineMenu({ context }: { context: EditorContext }) {
   const editor = useBlockNoteEditor();
   const [show, setShow] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0 });
   const menuRef = useRef<HTMLDivElement>(null);
   const showTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [activeBlock, setActiveBlock] = useState<string>("");
 
   function isBlockEmpty() {
     try {
@@ -270,9 +197,12 @@ function CommandMenu({ context }: { context: EditorContext }) {
     const sel = editor.getSelection();
     if (sel) { setShow(false); return; }
 
+    try {
+      setActiveBlock(editor.getTextCursorPosition().block?.type ?? "");
+    } catch {}
+
     if (isBlockEmpty()) {
       updatePos();
-      // 150ms debounce: if user types immediately after Enter, menu never flashes
       showTimer.current = setTimeout(() => setShow(true), 150);
     } else {
       setShow(false);
@@ -299,19 +229,93 @@ function CommandMenu({ context }: { context: EditorContext }) {
     return () => { clearTimeout(t); document.removeEventListener("pointerdown", onPtr); };
   }, [show]);
 
+  function setBlockType(type: string, props?: Record<string, any>) {
+    editor.focus();
+    editor.updateBlock(editor.getTextCursorPosition().block, {
+      type: type as any,
+      props,
+    });
+    setShow(false);
+  }
+
+  function insertBlockAfter(type: string) {
+    const block = editor.getTextCursorPosition().block;
+    editor.insertBlocks([{ type: type as any }], block, "after");
+    setTimeout(() => {
+      try {
+        const next = editor.getTextCursorPosition().nextBlock;
+        if (next) editor.setTextCursorPosition(next, "start");
+      } catch {}
+      editor.focus();
+    }, 50);
+    setShow(false);
+  }
+
+  const blockItems = [
+    { label: "Heading 2", type: "heading", props: { level: 2 }, match: activeBlock === "heading" },
+    { label: "Heading 3", type: "heading", props: { level: 3 }, match: activeBlock === "heading" },
+    { label: "Bullet list", type: "bulletListItem", match: activeBlock === "bulletListItem" },
+    { label: "Numbered list", type: "numberedListItem", match: activeBlock === "numberedListItem" },
+    { label: "Quote", type: "quote", match: activeBlock === "quote" },
+    { label: "Paragraph", type: "paragraph", match: activeBlock === "paragraph" },
+  ];
+
+  const insertItems = useMemo(() => {
+    const items: { label: string; icon?: React.ReactNode; type: string }[] = [];
+    if (context === "lesson") {
+      items.push(
+        { label: "Verse Quote", icon: <RiQuoteText size={15} />, type: "verseQuote" },
+        { label: "Practice Suggestion", icon: <RiPlantLine size={15} />, type: "practiceSuggestion" },
+        { label: "Callout", icon: <RiInformationLine size={15} />, type: "callout" },
+      );
+    }
+    items.push({ label: "Table", type: "table" });
+    return items;
+  }, [context]);
+
   if (!show) return null;
 
   return (
     <div
       ref={menuRef}
-      className="uem-bar__floating"
+      className="bear-float"
       style={{ position: "fixed", top: pos.top, left: pos.left, zIndex: 300 }}
+      onMouseDown={(e) => e.preventDefault()}
     >
-      <UnifiedToolbar
-        hasTextSelection={false}
-        context={context}
-        onAction={() => setShow(false)}
-      />
+      <div className="bear-more-dropdown bear-more-dropdown--floating">
+        {blockItems.map((item) => (
+          <button
+            key={item.label}
+            type="button"
+            className={`bear-more-item${item.match ? " bear-more-item--active" : ""}`}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              setBlockType(item.type, item.props);
+            }}
+          >
+            {item.label}
+          </button>
+        ))}
+        {insertItems.length > 0 && (
+          <>
+            <div className="bear-more-divider" />
+            {insertItems.map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                className="bear-more-item"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  insertBlockAfter(item.type);
+                }}
+              >
+                {item.icon && <span className="bear-more-icon">{item.icon}</span>}
+                {item.label}
+              </button>
+            ))}
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -319,12 +323,12 @@ function CommandMenu({ context }: { context: EditorContext }) {
 /* ── Main editor ────────────────────────────────────────────────────────── */
 
 interface Props {
-  value: any;
+  value: any;            // BlockNote JSON (array of blocks) or null
   onChange: (json: any) => void;
   placeholder?: string;
   minHeight?: number;
-  legacyHtml?: string;
-  context?: EditorContext;
+  legacyHtml?: string;  // pre-rendered HTML for Tiptap → BlockNote import on mount
+  context?: EditorContext;  // controls which blocks appear in ⋯ menu
 }
 
 export default function RimBlockEditor({
@@ -344,6 +348,7 @@ export default function RimBlockEditor({
     []
   );
 
+  // Import legacy HTML on mount when no BlockNote content exists
   useEffect(() => {
     if (legacyHtml && !hasBlockNoteContent) {
       const blocks = editor.tryParseHTMLToBlocks(legacyHtml);
@@ -363,14 +368,20 @@ export default function RimBlockEditor({
         sideMenu={false}
         formattingToolbar={false}
       >
-        {/* Selection: pill toolbar above selected text */}
+        {/* Bear-style pill toolbar: B / I / U / Link / ⋯ */}
         <FormattingToolbarController
           formattingToolbar={() => (
-            <UnifiedToolbar hasTextSelection={true} context={context} />
+            <FormattingToolbar>
+              <BasicTextStyleButton key="bold" basicTextStyle="bold" />
+              <BasicTextStyleButton key="italic" basicTextStyle="italic" />
+              <BasicTextStyleButton key="underline" basicTextStyle="underline" />
+              <CreateLinkButton key="link" />
+              <MoreMenuButton key="more" context={context} />
+            </FormattingToolbar>
           )}
         />
-        {/* Empty line: same pill toolbar below cursor */}
-        <CommandMenu context={context} />
+        {/* Empty-line menu: same block options, appears on new paragraphs */}
+        <EmptyLineMenu context={context} />
       </BlockNoteView>
     </div>
   );

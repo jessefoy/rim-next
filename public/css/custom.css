@@ -17163,7 +17163,8 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   -webkit-font-smoothing: antialiased;
 }
 
-/* ── Pill toolbar for RimProseEditor (still uses FormattingToolbar) ── */
+/* ── Bear-style pill toolbar (appears on text selection) ── */
+.rim-block-editor .bn-toolbar,
 .rim-prose-editor .bn-toolbar {
   border-radius: 24px !important;
   padding: 4px 8px !important;
@@ -17172,6 +17173,10 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08) !important;
   background: #fff !important;
 }
+
+/* Toolbar buttons — clean, round */
+.rim-block-editor .bn-toolbar .mantine-ActionIcon-root,
+.rim-block-editor .bn-toolbar .mantine-Button-root,
 .rim-prose-editor .bn-toolbar .mantine-ActionIcon-root,
 .rim-prose-editor .bn-toolbar .mantine-Button-root {
   border-radius: 8px !important;
@@ -17180,137 +17185,95 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   font-family: var(--font-doc) !important;
 }
 
-/* ── Unified Editor Menu — horizontal pill toolbar ─────────────────────
-   One toolbar for all editor interactions:
-   - Appears above text selection: [B] [I] [U] [🔗] | [H▾] [≡▾] [+▾]
-   - Appears below cursor on empty paragraphs: [H▾] [≡▾] [+▾]
-   Same component, same CSS, different trigger.
-   ──────────────────────────────────────────────────────────────────────── */
-
-/* Strip Mantine popover chrome only when it wraps our toolbar.
-   :has() scopes this so BlockNote's built-in popovers (link editor, etc.)
-   keep their normal styling. overflow:visible lets dropdowns escape. */
-.rim-block-editor .mantine-Popover-dropdown:has(.uem-bar) {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  padding: 0 !important;
-  overflow: visible !important;
-}
-
-/* The pill toolbar */
-.uem-bar {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 4px 8px;
-  background: #ffffff;
-  border: 1px solid #e0dcd8;
-  border-radius: 24px;
-  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
-  font-family: var(--font-doc);
-  white-space: nowrap;
-}
-
-/* Buttons */
-.uem-bar__btn {
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-family: var(--font-doc);
-  font-size: 14px;
-  color: var(--rim-text-muted);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.12s, color 0.12s;
-  line-height: 1;
-  flex-shrink: 0;
-}
-.uem-bar__btn:hover {
-  background: var(--rim-bg-accent);
-  color: var(--rim-text);
-}
-.uem-bar__btn--active {
-  background: var(--rim-bg-accent);
-  color: var(--rim-mid);
-}
-
-/* Separator between inline formatting and block dropdowns */
-.uem-bar__sep {
-  width: 1px;
-  height: 20px;
-  background: #e0dcd8;
-  margin: 0 4px;
-  flex-shrink: 0;
-}
-
-/* Dropdown trigger wrapper */
-.uem-bar__group {
+/* ── Bear ⋯ More menu (inside pill toolbar + empty-line float) ── */
+.bear-more-wrap {
   position: relative;
   display: flex;
   align-items: center;
 }
 
-/* Dropdown panel — opens below the button, centered */
-.uem-bar__dropdown {
+.bear-more-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  letter-spacing: 2px;
+  color: var(--rim-text-muted);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: background 0.12s, color 0.12s;
+}
+.bear-more-btn:hover,
+.bear-more-btn--open {
+  background: var(--rim-bg-accent);
+  color: var(--rim-text);
+}
+
+.bear-more-dropdown {
   position: absolute;
-  top: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
-  background: #ffffff;
+  top: calc(100% + 6px);
+  right: 0;
+  background: #fff;
   border: 1px solid #e0dcd8;
   border-radius: 10px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   padding: 4px;
-  min-width: 150px;
-  z-index: 300;
+  min-width: 170px;
+  z-index: 200;
   display: flex;
   flex-direction: column;
-  animation: uem-fade-in 0.1s ease;
+}
+/* When used as the empty-line floating menu, it's not inside .bear-more-wrap */
+.bear-more-dropdown--floating {
+  position: static;
 }
 
-/* Dropdown items */
-.uem-bar__dd-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 7px 12px;
-  border: none;
+.bear-more-item {
   background: none;
-  border-radius: 6px;
+  border: none;
   cursor: pointer;
   font-family: var(--font-doc);
   font-size: 13px;
   font-weight: 500;
   color: var(--rim-text);
   text-align: left;
+  padding: 8px 12px;
+  border-radius: 6px;
   transition: background 0.1s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-.uem-bar__dd-item:hover {
+.bear-more-item:hover {
   background: var(--rim-bg-accent);
 }
-.uem-bar__dd-item--active {
+.bear-more-item--active {
   color: var(--rim-mid);
   font-weight: 600;
 }
 
-.uem-bar__dd-icon {
+.bear-more-icon {
   display: flex;
   align-items: center;
   color: var(--rim-text-muted);
 }
 
-/* Floating wrapper for empty-line toolbar (position: fixed from JS) */
-.uem-bar__floating {
-  animation: uem-fade-in 0.12s ease;
+.bear-more-divider {
+  height: 1px;
+  background: #f0eeec;
+  margin: 4px 8px;
 }
 
-@keyframes uem-fade-in {
+/* ── Empty-line floating menu ── */
+.bear-float {
+  animation: bear-fade-in 0.12s ease;
+}
+
+@keyframes bear-fade-in {
   from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
