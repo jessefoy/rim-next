@@ -17276,11 +17276,19 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 
 /* ── Empty-line floating pill ──────────────────────────────────────── */
 .bear-float {
-  animation: bear-fade-in 0.12s ease;
+  animation: bear-fade-in-below 0.12s ease;
+}
+/* Flipped above cursor when near bottom of viewport */
+.bear-float--above {
+  animation: bear-fade-in-above 0.12s ease;
 }
 
-@keyframes bear-fade-in {
+@keyframes bear-fade-in-below {
   from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes bear-fade-in-above {
+  from { opacity: 0; transform: translateY(-4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
