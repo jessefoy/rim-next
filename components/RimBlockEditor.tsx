@@ -24,6 +24,7 @@ import {
   insertOrUpdateBlockForSlashMenu,
 } from "@blocknote/core/extensions";
 import { BlockNoteView } from "@blocknote/mantine";
+import { RiQuoteText, RiPlantLine, RiInformationLine } from "react-icons/ri";
 import { rimTheme } from "@/lib/blockNoteTheme";
 import { rimBlockSchema } from "@/lib/blockNoteCustomBlocks";
 
@@ -69,6 +70,7 @@ export default function RimBlockEditor({
         {
           title: "Verse Quote",
           subtext: "Italic serif block with attribution line",
+          icon: <RiQuoteText size={18} />,
           onItemClick: () => {
             insertOrUpdateBlockForSlashMenu(editor, {
               type: "verseQuote" as any,
@@ -81,6 +83,7 @@ export default function RimBlockEditor({
         {
           title: "Practice Suggestion",
           subtext: "Teal practice box with label",
+          icon: <RiPlantLine size={18} />,
           onItemClick: () => {
             insertOrUpdateBlockForSlashMenu(editor, {
               type: "practiceSuggestion" as any,
@@ -93,6 +96,7 @@ export default function RimBlockEditor({
         {
           title: "Callout",
           subtext: "Highlighted note or aside",
+          icon: <RiInformationLine size={18} />,
           onItemClick: () => {
             insertOrUpdateBlockForSlashMenu(editor, {
               type: "callout" as any,
