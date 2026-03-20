@@ -1,5 +1,8 @@
 /**
  * /account/hub/[slug]/documents/[id] — View a native hub document
+ *
+ * Bear-inspired document presentation: clean white card on warm background,
+ * Inter font, generous padding, no borders.
  */
 
 import { auth } from "@/auth";
@@ -37,21 +40,21 @@ export default async function HubDocumentViewPage({
     [doc.addedBy.firstName, doc.addedBy.lastName].filter(Boolean).join(" ");
 
   return (
-    <div className="hdoc-view">
-      <div className="hdoc-view__nav">
-        <Link href={`/account/hub/${slug}/documents`} className="hdoc-view__back">
+    <div className="doc-page">
+      <div className="doc-page__nav">
+        <Link href={`/account/hub/${slug}/documents`} className="doc-page__back">
           ← Documents
         </Link>
         {isCoordinator && (
-          <Link href={`/account/hub/${slug}/documents/${id}/edit`} className="hdoc-view__edit-link">
+          <Link href={`/account/hub/${slug}/documents/${id}/edit`} className="doc-page__edit-link">
             Edit
           </Link>
         )}
       </div>
 
-      <div className="hdoc-view__header">
-        <h1 className="hdoc-view__title">{doc.label}</h1>
-        <p className="hdoc-view__meta">
+      <div className="doc-page__card">
+        <h1>{doc.label}</h1>
+        <p className="doc-page__meta">
           {addedByName} ·{" "}
           {new Date(doc.updatedAt).toLocaleDateString("en-US", {
             month: "long",
@@ -59,21 +62,23 @@ export default async function HubDocumentViewPage({
             year: "numeric",
           })}
         </p>
+        <hr />
+
+        {bodyHtml ? (
+          <div
+            className="doc-body"
+            dangerouslySetInnerHTML={{ __html: bodyHtml }}
+          />
+        ) : (
+          <p style={{ fontFamily: "var(--font-doc)", fontSize: 14, color: "var(--rim-text-muted)", fontStyle: "italic" }}>
+            No content yet.
+          </p>
+        )}
       </div>
 
-      {bodyHtml ? (
-        <div
-          className="hdoc-body"
-          dangerouslySetInnerHTML={{ __html: bodyHtml }}
-        />
-      ) : (
-        <p className="hdoc-view__empty">No content yet.</p>
-      )}
-
-      <div className="hdoc-view__footer">
+      <div className="doc-page__footer">
         <a
           href={`/api/hub/${slug}/documents/${id}/export`}
-          className="hdoc-view__export"
           download
         >
           ↓ Download as Markdown

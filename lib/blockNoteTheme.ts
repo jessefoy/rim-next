@@ -4,7 +4,7 @@ export const rimTheme: Theme = {
   colors: {
     editor: {
       text: "#333333",
-      background: "#ffffff",
+      background: "transparent",
     },
     menu: {
       text: "#333333",
@@ -16,7 +16,7 @@ export const rimTheme: Theme = {
     },
     hovered: {
       text: "#333333",
-      background: "#ede9e5",
+      background: "#f0eeec",
     },
     selected: {
       text: "#ffffff",
@@ -26,8 +26,8 @@ export const rimTheme: Theme = {
       text: "#5a5450",
       background: "#f6f3f0",
     },
-    shadow: "rgba(13, 34, 53, 0.12)",
-    border: "#c8bcb2",
+    shadow: "rgba(13, 34, 53, 0.08)",
+    border: "#ddd8d3",
     sideMenu: "#5a5450",
     highlights: {
       gray:   { text: "#5a5450", background: "#f6f3f0" },
@@ -35,6 +35,6 @@ export const rimTheme: Theme = {
       green:  { text: "#1a5a4a", background: "#e3f0ea" },
     },
   },
-  borderRadius: 5,
-  fontFamily: "'Open Sans', sans-serif",
+  borderRadius: 10,
+  fontFamily: "'Inter', sans-serif",
 };

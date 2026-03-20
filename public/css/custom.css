@@ -17094,12 +17094,24 @@ a.vol-table__name:hover { color: var(--rim-mid); }
    Rendered HTML output uses the existing lp- classes.
 ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Editor shells */
+/* ── Design token ── */
+:root {
+  --font-doc: 'Inter', sans-serif;
+}
+
+/* ── Editor shells ── */
 .rim-block-editor {
-  background: #fff;
-  border: 1px solid var(--rim-rule);
-  border-radius: 6px;
-  overflow: hidden;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  font-family: var(--font-doc);
+}
+.rim-block-editor [class*="bn-editor"] {
+  font-family: var(--font-doc);
+  font-size: 16px;
+  line-height: 1.75;
+  color: var(--rim-text);
+  padding: 0;
 }
 
 .rim-prose-editor {
@@ -17107,6 +17119,229 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   border: 1px solid var(--rim-rule);
   border-radius: 6px;
   overflow: hidden;
+}
+
+/* ── Bear-style formatting toolbar (pill) ── */
+.rim-block-editor .bn-toolbar,
+.rim-prose-editor .bn-toolbar {
+  border-radius: 24px !important;
+  padding: 4px 8px !important;
+  gap: 2px !important;
+  border: 1px solid #e0dcd8 !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08) !important;
+  background: #fff !important;
+}
+
+/* Toolbar buttons — clean, round */
+.rim-block-editor .bn-toolbar .mantine-ActionIcon-root,
+.rim-block-editor .bn-toolbar .mantine-Button-root,
+.rim-prose-editor .bn-toolbar .mantine-ActionIcon-root,
+.rim-prose-editor .bn-toolbar .mantine-Button-root {
+  border-radius: 8px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  font-family: var(--font-doc) !important;
+}
+
+/* ── Bear ⋯ More menu ── */
+.bear-more-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.bear-more-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  letter-spacing: 2px;
+  color: var(--rim-text-muted);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: background 0.12s, color 0.12s;
+}
+.bear-more-btn:hover,
+.bear-more-btn--open {
+  background: var(--rim-bg-accent);
+  color: var(--rim-text);
+}
+
+.bear-more-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: #fff;
+  border: 1px solid #e0dcd8;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 4px;
+  min-width: 160px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+}
+
+.bear-more-item {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-doc);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--rim-text);
+  text-align: left;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: background 0.1s;
+}
+.bear-more-item:hover {
+  background: var(--rim-bg-accent);
+}
+.bear-more-item--active {
+  color: var(--rim-mid);
+  font-weight: 600;
+}
+
+/* ── Document page wrapper — clean white card on warm bg ── */
+.doc-page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.doc-page__card {
+  background: #ffffff;
+  border-radius: 0;
+  padding: 80px 64px 100px;
+  margin: 40px 0 80px;
+  min-height: 60vh;
+}
+
+.doc-page__card h1 {
+  font-family: var(--font-doc);
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--rim-text);
+  line-height: 1.25;
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
+}
+
+.doc-page__card .doc-page__subtitle {
+  font-family: var(--font-doc);
+  font-size: 15px;
+  font-style: italic;
+  color: var(--rim-text-muted);
+  margin: 0 0 32px;
+}
+
+.doc-page__card hr {
+  border: none;
+  border-top: 1px solid #e0dcd8;
+  margin: 0 0 40px;
+}
+
+/* Document body typography — Inter, generous spacing */
+.doc-body {
+  font-family: var(--font-doc);
+  font-size: 16px;
+  line-height: 1.8;
+  color: var(--rim-text);
+}
+.doc-body p                     { margin: 0 0 20px; }
+.doc-body h2                    { font-family: var(--font-doc); font-size: 22px; font-weight: 700; margin: 48px 0 16px; letter-spacing: -0.01em; }
+.doc-body h3                    { font-family: var(--font-doc); font-size: 18px; font-weight: 600; margin: 36px 0 12px; }
+.doc-body ul, .doc-body ol      { padding-left: 24px; margin: 0 0 20px; }
+.doc-body li                    { margin-bottom: 8px; }
+.doc-body blockquote            { border-left: 3px solid #ddd8d3; padding-left: 20px; margin: 24px 0; color: var(--rim-text-muted); font-style: italic; }
+.doc-body a                     { color: var(--rim-mid); text-decoration: underline; text-underline-offset: 2px; }
+.doc-body a:hover               { color: var(--rim-blue); }
+.doc-body strong                { font-weight: 600; }
+.doc-body table                 { width: 100%; border-collapse: collapse; margin: 24px 0; font-size: 14px; }
+.doc-body th, .doc-body td      { border: 1px solid #e0dcd8; padding: 10px 14px; text-align: left; }
+.doc-body th                    { font-weight: 600; background: #faf8f6; }
+
+/* Document navigation — above the card */
+.doc-page__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 0 0;
+}
+
+.doc-page__back,
+.doc-page__edit-link {
+  font-family: var(--font-doc);
+  font-size: 13px;
+  color: var(--rim-text-muted);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.doc-page__back:hover,
+.doc-page__edit-link:hover { color: var(--rim-mid); }
+
+.doc-page__meta {
+  font-family: var(--font-doc);
+  font-size: 13px;
+  color: var(--rim-text-muted);
+  margin: 0;
+}
+
+/* Title input in edit mode */
+.doc-page__title-input {
+  font-family: var(--font-doc);
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--rim-text);
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  padding: 0;
+  margin: 0 0 8px;
+}
+.doc-page__title-input::placeholder { color: #c8bcb2; }
+
+.doc-page__footer {
+  padding: 0 64px 40px;
+}
+.doc-page__footer a {
+  font-family: var(--font-doc);
+  font-size: 13px;
+  color: var(--rim-text-muted);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.doc-page__footer a:hover { color: var(--rim-mid); }
+
+/* ── Editor inside document page (no border, just the typing surface) ── */
+.doc-page .rim-block-editor {
+  background: transparent;
+  border: none;
+}
+
+@media (max-width: 768px) {
+  .doc-page__card {
+    padding: 48px 32px 64px;
+    margin: 24px 0 60px;
+  }
+  .doc-page__footer { padding: 0 32px 32px; }
+}
+@media (max-width: 430px) {
+  .doc-page { padding: 0 16px; }
+  .doc-page__card {
+    padding: 32px 20px 48px;
+    margin: 16px 0 40px;
+  }
+  .doc-page__card h1 { font-size: 26px; }
+  .doc-page__footer { padding: 0 20px 24px; }
 }
 
 /* Verse Quote — editor view */

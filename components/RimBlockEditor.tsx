@@ -2,22 +2,29 @@
 
 /**
  * RimBlockEditor — full-featured block editor for long-form content.
- * Replaces ContentEditor. Supports headings, tables, lists, and custom
- * Dharma blocks (VerseQuote, PracticeSuggestion, Callout) via slash commands.
  *
- * Props:
- *   legacyHtml — pre-rendered HTML from server (Tiptap JSON → HTML).
- *                Imported into BlockNote on mount when value is null/empty.
+ * Bear-inspired design:
+ *   - No side menu (no hovering drag handle / + button)
+ *   - Clean floating toolbar when text is selected: B, I, U, Link, ⋯
+ *   - Additional formatting (headings, lists, quote) behind the ⋯ menu
+ *   - Slash commands (/) for inserting blocks including custom Dharma blocks
+ *   - Inter font for clean document editing
  *
  * Stores content as BlockNote JSON (array of blocks).
  */
 
 import "@blocknote/mantine/style.css";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import {
   useCreateBlockNote,
   SuggestionMenuController,
   getDefaultReactSlashMenuItems,
+  FormattingToolbarController,
+  FormattingToolbar,
+  BasicTextStyleButton,
+  CreateLinkButton,
+  useBlockNoteEditor,
+  useEditorSelectionChange,
 } from "@blocknote/react";
 import {
   filterSuggestionItems,
@@ -27,6 +34,84 @@ import { BlockNoteView } from "@blocknote/mantine";
 import { RiQuoteText, RiPlantLine, RiInformationLine } from "react-icons/ri";
 import { rimTheme } from "@/lib/blockNoteTheme";
 import { rimBlockSchema } from "@/lib/blockNoteCustomBlocks";
+
+/* ── Bear-style ⋯ More menu ────────────────────────────────────────────── */
+
+function MoreMenuButton() {
+  const editor = useBlockNoteEditor();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(e: PointerEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [open]);
+
+  // Track which block type is active for visual feedback
+  const [activeBlock, setActiveBlock] = useState<string>("");
+  useEditorSelectionChange(() => {
+    const block = editor.getTextCursorPosition().block;
+    setActiveBlock(block?.type ?? "");
+  });
+
+  function setBlockType(type: string, props?: Record<string, any>) {
+    editor.focus();
+    editor.updateBlock(editor.getTextCursorPosition().block, {
+      type: type as any,
+      props,
+    });
+    setOpen(false);
+  }
+
+  const items = [
+    { label: "Heading 2", type: "heading", props: { level: 2 }, match: activeBlock === "heading" },
+    { label: "Heading 3", type: "heading", props: { level: 3 }, match: activeBlock === "heading" },
+    { label: "Bullet list", type: "bulletListItem", match: activeBlock === "bulletListItem" },
+    { label: "Numbered list", type: "numberedListItem", match: activeBlock === "numberedListItem" },
+    { label: "Quote", type: "quote", match: activeBlock === "quote" },
+    { label: "Paragraph", type: "paragraph", match: activeBlock === "paragraph" },
+  ];
+
+  return (
+    <div className="bear-more-wrap" ref={ref}>
+      <button
+        type="button"
+        className={`bear-more-btn${open ? " bear-more-btn--open" : ""}`}
+        onMouseDown={(e) => { e.preventDefault(); setOpen(!open); }}
+        aria-label="More formatting"
+        title="More formatting"
+      >
+        ⋯
+      </button>
+      {open && (
+        <div className="bear-more-dropdown" onPointerDown={(e) => e.stopPropagation()}>
+          {items.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              className={`bear-more-item${item.match ? " bear-more-item--active" : ""}`}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                setBlockType(item.type, item.props);
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Main editor ────────────────────────────────────────────────────────── */
 
 interface Props {
   value: any;            // BlockNote JSON (array of blocks) or null
@@ -122,7 +207,21 @@ export default function RimBlockEditor({
         theme={rimTheme}
         onChange={(editor) => onChange(editor.document)}
         slashMenu={false}
+        sideMenu={false}
+        formattingToolbar={false}
       >
+        {/* Bear-style formatting toolbar: B / I / U / Link / ⋯ */}
+        <FormattingToolbarController
+          formattingToolbar={() => (
+            <FormattingToolbar>
+              <BasicTextStyleButton key="bold" basicTextStyle="bold" />
+              <BasicTextStyleButton key="italic" basicTextStyle="italic" />
+              <BasicTextStyleButton key="underline" basicTextStyle="underline" />
+              <CreateLinkButton key="link" />
+              <MoreMenuButton key="more" />
+            </FormattingToolbar>
+          )}
+        />
         <SuggestionMenuController
           triggerCharacter="/"
           getItems={getSlashMenuItems}

@@ -1,5 +1,12 @@
 "use client";
 
+/**
+ * HubDocumentEditor — Bear-inspired document editing surface.
+ *
+ * Clean white card on warm background. Title input at the top, editor below.
+ * No chrome, no border on the editor — just you and the page.
+ */
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import RimBlockEditor from "@/components/RimBlockEditor";
@@ -78,21 +85,11 @@ export default function HubDocumentEditor({
   }
 
   return (
-    <div className="hdoc-editor">
-      <div className="hdoc-editor__nav">
-        <a href={`/account/hub/${hubSlug}/documents`} className="hdoc-editor__back">
+    <div className="doc-page">
+      <div className="doc-page__nav">
+        <a href={`/account/hub/${hubSlug}/documents`} className="doc-page__back">
           ← Documents
         </a>
-      </div>
-
-      <div className="hdoc-editor__header">
-        <input
-          className="hdoc-editor__title-input"
-          type="text"
-          placeholder="Document title"
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-        />
         {documentCategories.length > 0 && (
           <select
             className="hdoc-editor__category"
@@ -107,18 +104,27 @@ export default function HubDocumentEditor({
         )}
       </div>
 
-      <div className="hdoc-editor__body">
+      <div className="doc-page__card">
+        <input
+          className="doc-page__title-input"
+          type="text"
+          placeholder="Document title"
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+        />
+        <hr />
+
         <RimBlockEditor
           value={body}
           onChange={setBody}
           placeholder="Begin writing…"
-          minHeight={600}
+          minHeight={500}
         />
       </div>
 
-      <div className="hdoc-editor__footer">
-        {error && <p className="hdoc-editor__error">{error}</p>}
-        <div className="hdoc-editor__actions">
+      <div className="doc-page__footer" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        {error && <p style={{ fontFamily: "var(--font-doc)", fontSize: 13, color: "#c0392b", flex: 1, margin: 0 }}>{error}</p>}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginLeft: "auto" }}>
           {!isNew && (
             <button className="hdoc-editor__delete" onClick={handleDelete}>
               Delete
