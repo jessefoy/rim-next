@@ -17278,6 +17278,47 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ── Bear pill (empty-line floating toolbar) ──
+   Matches the native .bn-toolbar pill styling. */
+.bear-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: #fff;
+  border: 1px solid #e0dcd8;
+  border-radius: 24px;
+  padding: 4px 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.bear-pill__btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-doc);
+  font-size: 14px;
+  color: var(--rim-text-muted);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: background 0.12s, color 0.12s;
+  padding: 0;
+  line-height: 1;
+}
+
+.bear-pill__btn:hover {
+  background: var(--rim-bg-accent);
+  color: var(--rim-text);
+}
+
+.bear-pill__btn--active {
+  background: var(--rim-bg-accent);
+  color: var(--rim-mid);
+}
+
 /* ── Document page wrapper — clean white card on warm bg ── */
 .doc-page {
   max-width: 760px;

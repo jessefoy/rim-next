@@ -5,9 +5,9 @@
  *
  * Design:
  *   - No side menu (no hovering drag handle / + button)
- *   - Clean floating pill toolbar on text selection: B, I, U, Link, ⋯
- *   - ⋯ menu: headings, lists, quote, paragraph + context-specific blocks
- *   - Empty paragraph: compact floating menu with same block options
+ *   - Clean floating pill toolbar: B, I, U, Link, ⋯
+ *   - Appears on text selection (above) AND on empty paragraphs (below)
+ *   - ⋯ holds block types + context-specific insert blocks
  *   - Inter font for clean document editing
  *
  * Stores content as BlockNote JSON (array of blocks).
@@ -33,7 +33,7 @@ import { rimBlockSchema } from "@/lib/blockNoteCustomBlocks";
 
 export type EditorContext = "lesson" | "document" | "default";
 
-/* ── Bear-style ⋯ More menu (inside the pill toolbar) ──────────────────── */
+/* ── Bear-style ⋯ More menu (lives inside the pill toolbar) ───────────── */
 
 function MoreMenuButton({ context = "default" as EditorContext }) {
   const editor = useBlockNoteEditor();
@@ -150,20 +150,131 @@ function MoreMenuButton({ context = "default" as EditorContext }) {
   );
 }
 
-/* ── Empty-line floating menu ──────────────────────────────────────────
-   When cursor lands in an empty paragraph, a compact menu appears
-   with block-type and insert options (same items as the ⋯ dropdown).
+/* ── Standalone ⋯ button for the empty-line pill ──────────────────────
+   Same as MoreMenuButton but works outside FormattingToolbarController.
+   Uses editor API directly instead of BlockNote's toolbar button context.
+   ──────────────────────────────────────────────────────────────────────── */
+
+function StandaloneMoreButton({ context, onAction }: { context: EditorContext; onAction?: () => void }) {
+  const editor = useBlockNoteEditor();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(e: PointerEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [open]);
+
+  const [activeBlock, setActiveBlock] = useState<string>("");
+  useEditorSelectionChange(() => {
+    try { setActiveBlock(editor.getTextCursorPosition().block?.type ?? ""); } catch {}
+  });
+
+  function setBlockType(type: string, props?: Record<string, any>) {
+    editor.focus();
+    editor.updateBlock(editor.getTextCursorPosition().block, { type: type as any, props });
+    setOpen(false);
+    onAction?.();
+  }
+
+  function insertBlockAfter(type: string) {
+    const block = editor.getTextCursorPosition().block;
+    editor.insertBlocks([{ type: type as any }], block, "after");
+    setTimeout(() => {
+      try {
+        const next = editor.getTextCursorPosition().nextBlock;
+        if (next) editor.setTextCursorPosition(next, "start");
+      } catch {}
+      editor.focus();
+    }, 50);
+    setOpen(false);
+    onAction?.();
+  }
+
+  const blockItems = [
+    { label: "Heading 2", type: "heading", props: { level: 2 }, match: activeBlock === "heading" },
+    { label: "Heading 3", type: "heading", props: { level: 3 }, match: activeBlock === "heading" },
+    { label: "Bullet list", type: "bulletListItem", match: activeBlock === "bulletListItem" },
+    { label: "Numbered list", type: "numberedListItem", match: activeBlock === "numberedListItem" },
+    { label: "Quote", type: "quote", match: activeBlock === "quote" },
+    { label: "Paragraph", type: "paragraph", match: activeBlock === "paragraph" },
+  ];
+
+  const insertItems = useMemo(() => {
+    const items: { label: string; icon?: React.ReactNode; type: string }[] = [];
+    if (context === "lesson") {
+      items.push(
+        { label: "Verse Quote", icon: <RiQuoteText size={15} />, type: "verseQuote" },
+        { label: "Practice Suggestion", icon: <RiPlantLine size={15} />, type: "practiceSuggestion" },
+        { label: "Callout", icon: <RiInformationLine size={15} />, type: "callout" },
+      );
+    }
+    items.push({ label: "Table", type: "table" });
+    return items;
+  }, [context]);
+
+  return (
+    <div className="bear-more-wrap" ref={ref} style={{ position: "relative" }}>
+      <button
+        type="button"
+        className={`bear-more-btn${open ? " bear-more-btn--open" : ""}`}
+        onMouseDown={(e) => { e.preventDefault(); setOpen(!open); }}
+        aria-label="More formatting"
+        title="More formatting"
+      >
+        ⋯
+      </button>
+      {open && (
+        <div className="bear-more-dropdown" onPointerDown={(e) => e.stopPropagation()}>
+          {blockItems.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              className={`bear-more-item${item.match ? " bear-more-item--active" : ""}`}
+              onMouseDown={(e) => { e.preventDefault(); setBlockType(item.type, item.props); }}
+            >
+              {item.label}
+            </button>
+          ))}
+          {insertItems.length > 0 && (
+            <>
+              <div className="bear-more-divider" />
+              {insertItems.map((item) => (
+                <button
+                  key={item.label}
+                  type="button"
+                  className="bear-more-item"
+                  onMouseDown={(e) => { e.preventDefault(); insertBlockAfter(item.type); }}
+                >
+                  {item.icon && <span className="bear-more-icon">{item.icon}</span>}
+                  {item.label}
+                </button>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Empty-line pill ───────────────────────────────────────────────────
+   When cursor lands in an empty paragraph, the SAME pill toolbar appears
+   below the cursor. B/I/U/Link + ⋯ — identical to the selection pill.
    150ms debounce prevents flash when typing through Enter.
    ──────────────────────────────────────────────────────────────────────── */
 
-function EmptyLineMenu({ context }: { context: EditorContext }) {
+function EmptyLinePill({ context }: { context: EditorContext }) {
   const editor = useBlockNoteEditor();
   const [show, setShow] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0 });
+  const [activeStyles, setActiveStyles] = useState<Record<string, any>>({});
   const menuRef = useRef<HTMLDivElement>(null);
   const showTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const [activeBlock, setActiveBlock] = useState<string>("");
 
   function isBlockEmpty() {
     try {
@@ -188,7 +299,8 @@ function EmptyLineMenu({ context }: { context: EditorContext }) {
           : range.startContainer.parentElement;
       if (el) rect = el.getBoundingClientRect();
     }
-    setPos({ top: rect.bottom + 8, left: Math.max(16, rect.left) });
+    // Center the pill below the cursor line
+    setPos({ top: rect.bottom + 8, left: Math.max(16, rect.left - 40) });
   }
 
   useEditorSelectionChange(() => {
@@ -197,9 +309,7 @@ function EmptyLineMenu({ context }: { context: EditorContext }) {
     const sel = editor.getSelection();
     if (sel) { setShow(false); return; }
 
-    try {
-      setActiveBlock(editor.getTextCursorPosition().block?.type ?? "");
-    } catch {}
+    try { setActiveStyles(editor.getActiveStyles()); } catch { setActiveStyles({}); }
 
     if (isBlockEmpty()) {
       updatePos();
@@ -229,49 +339,17 @@ function EmptyLineMenu({ context }: { context: EditorContext }) {
     return () => { clearTimeout(t); document.removeEventListener("pointerdown", onPtr); };
   }, [show]);
 
-  function setBlockType(type: string, props?: Record<string, any>) {
+  /* ── Inline style toggles (same as the pill toolbar buttons) ── */
+  function toggleStyle(style: string) {
     editor.focus();
-    editor.updateBlock(editor.getTextCursorPosition().block, {
-      type: type as any,
-      props,
-    });
-    setShow(false);
+    editor.toggleStyles({ [style]: true } as any);
   }
 
-  function insertBlockAfter(type: string) {
-    const block = editor.getTextCursorPosition().block;
-    editor.insertBlocks([{ type: type as any }], block, "after");
-    setTimeout(() => {
-      try {
-        const next = editor.getTextCursorPosition().nextBlock;
-        if (next) editor.setTextCursorPosition(next, "start");
-      } catch {}
-      editor.focus();
-    }, 50);
-    setShow(false);
+  function insertLink() {
+    editor.focus();
+    const url = window.prompt("Link URL:");
+    if (url) editor.createLink(url);
   }
-
-  const blockItems = [
-    { label: "Heading 2", type: "heading", props: { level: 2 }, match: activeBlock === "heading" },
-    { label: "Heading 3", type: "heading", props: { level: 3 }, match: activeBlock === "heading" },
-    { label: "Bullet list", type: "bulletListItem", match: activeBlock === "bulletListItem" },
-    { label: "Numbered list", type: "numberedListItem", match: activeBlock === "numberedListItem" },
-    { label: "Quote", type: "quote", match: activeBlock === "quote" },
-    { label: "Paragraph", type: "paragraph", match: activeBlock === "paragraph" },
-  ];
-
-  const insertItems = useMemo(() => {
-    const items: { label: string; icon?: React.ReactNode; type: string }[] = [];
-    if (context === "lesson") {
-      items.push(
-        { label: "Verse Quote", icon: <RiQuoteText size={15} />, type: "verseQuote" },
-        { label: "Practice Suggestion", icon: <RiPlantLine size={15} />, type: "practiceSuggestion" },
-        { label: "Callout", icon: <RiInformationLine size={15} />, type: "callout" },
-      );
-    }
-    items.push({ label: "Table", type: "table" });
-    return items;
-  }, [context]);
 
   if (!show) return null;
 
@@ -282,39 +360,29 @@ function EmptyLineMenu({ context }: { context: EditorContext }) {
       style={{ position: "fixed", top: pos.top, left: pos.left, zIndex: 300 }}
       onMouseDown={(e) => e.preventDefault()}
     >
-      <div className="bear-more-dropdown bear-more-dropdown--floating">
-        {blockItems.map((item) => (
-          <button
-            key={item.label}
-            type="button"
-            className={`bear-more-item${item.match ? " bear-more-item--active" : ""}`}
-            onMouseDown={(e) => {
-              e.preventDefault();
-              setBlockType(item.type, item.props);
-            }}
-          >
-            {item.label}
-          </button>
-        ))}
-        {insertItems.length > 0 && (
-          <>
-            <div className="bear-more-divider" />
-            {insertItems.map((item) => (
-              <button
-                key={item.label}
-                type="button"
-                className="bear-more-item"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  insertBlockAfter(item.type);
-                }}
-              >
-                {item.icon && <span className="bear-more-icon">{item.icon}</span>}
-                {item.label}
-              </button>
-            ))}
-          </>
-        )}
+      {/* The pill — same shape and style as the selection toolbar */}
+      <div className="bear-pill">
+        <button
+          className={`bear-pill__btn${activeStyles.bold ? " bear-pill__btn--active" : ""}`}
+          onMouseDown={(e) => { e.preventDefault(); toggleStyle("bold"); }}
+          title="Bold"
+        ><strong>B</strong></button>
+        <button
+          className={`bear-pill__btn${activeStyles.italic ? " bear-pill__btn--active" : ""}`}
+          onMouseDown={(e) => { e.preventDefault(); toggleStyle("italic"); }}
+          title="Italic"
+        ><em>I</em></button>
+        <button
+          className={`bear-pill__btn${activeStyles.underline ? " bear-pill__btn--active" : ""}`}
+          onMouseDown={(e) => { e.preventDefault(); toggleStyle("underline"); }}
+          title="Underline"
+        ><u>U</u></button>
+        <button
+          className="bear-pill__btn"
+          onMouseDown={(e) => { e.preventDefault(); insertLink(); }}
+          title="Link"
+        >🔗</button>
+        <StandaloneMoreButton context={context} onAction={() => setShow(false)} />
       </div>
     </div>
   );
@@ -344,6 +412,15 @@ export default function RimBlockEditor({
     {
       schema: rimBlockSchema,
       initialContent: hasBlockNoteContent ? value : undefined,
+      dictionary: {
+        placeholders: {
+          default: "Enter text or press Space for menu",
+          heading: "Heading",
+          bulletListItem: "List",
+          numberedListItem: "List",
+          checkListItem: "List",
+        },
+      } as any,
     },
     []
   );
@@ -368,7 +445,7 @@ export default function RimBlockEditor({
         sideMenu={false}
         formattingToolbar={false}
       >
-        {/* Bear-style pill toolbar: B / I / U / Link / ⋯ */}
+        {/* Selection: the original Bear pill — B / I / U / Link / ⋯ */}
         <FormattingToolbarController
           formattingToolbar={() => (
             <FormattingToolbar>
@@ -380,8 +457,8 @@ export default function RimBlockEditor({
             </FormattingToolbar>
           )}
         />
-        {/* Empty-line menu: same block options, appears on new paragraphs */}
-        <EmptyLineMenu context={context} />
+        {/* Empty line: the same pill, floating below cursor */}
+        <EmptyLinePill context={context} />
       </BlockNoteView>
     </div>
   );
