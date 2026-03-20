@@ -20,11 +20,15 @@ export default async function HubDocumentEditPage({
   if (!session) redirect("/login");
 
   const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
-  const isCoordinator = (member?.isCoordinator ?? false) || isAdmin;
-  if (!hub || !isCoordinator) redirect(`/account/hub/${slug}/documents`);
+  if (!hub || (!member && !isAdmin)) redirect(`/account/hub/${slug}/documents`);
 
   const doc = await db.hubDocument.findUnique({ where: { id } });
   if (!doc || doc.hubId !== hub.id) notFound();
+
+  // Only author or coordinator can edit
+  const isCoordinator = (member?.isCoordinator ?? false) || isAdmin;
+  const isAuthor = doc.addedById === session.user.id;
+  if (!isAuthor && !isCoordinator) redirect(`/account/hub/${slug}/documents`);
 
   return (
     <HubDocumentEditor

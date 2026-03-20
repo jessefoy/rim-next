@@ -52,6 +52,7 @@ export default async function HubDocumentsPage({
     fileType:    d.fileType as "DOC" | "SHEET" | "SLIDE" | "FORM" | "LINK",
     category:    d.category,
     isNative:    d.isNative,
+    addedById:   d.addedById,
     addedBy: {
       firstName:     d.addedBy.firstName,
       lastName:      d.addedBy.lastName,
@@ -66,6 +67,7 @@ export default async function HubDocumentsPage({
       initialDocuments={serialized}
       documentCategories={hub.documentCategories as string[]}
       isCoordinator={isCoordinator}
+      currentUserId={session.user.id}
     />
   );
 }

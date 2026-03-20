@@ -17607,6 +17607,21 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   flex-shrink: 0;
 }
 
+.hdoc-editor__category-input {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--rim-text);
+  background: #fff;
+  border: 1px solid var(--rim-rule);
+  border-radius: 20px;
+  padding: 4px 12px;
+  outline: none;
+  width: 180px;
+}
+.hdoc-editor__category-input:focus {
+  border-color: var(--rim-mid);
+}
+
 .hdoc-editor__body { margin-bottom: 32px; }
 
 .hdoc-editor__footer {

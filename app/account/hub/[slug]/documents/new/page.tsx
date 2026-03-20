@@ -20,8 +20,7 @@ export default async function HubDocumentNewPage({
   if (!session) redirect("/login");
 
   const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
-  const isCoordinator = (member?.isCoordinator ?? false) || isAdmin;
-  if (!hub || !isCoordinator) redirect(`/account/hub/${slug}/documents`);
+  if (!hub || (!member && !isAdmin)) redirect(`/account/hub/${slug}/documents`);
 
   return (
     <HubDocumentEditor

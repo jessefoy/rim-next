@@ -32,6 +32,8 @@ export default function HubDocumentEditor({
   const [label, setLabel] = useState(initialLabel);
   const [body, setBody] = useState<any>(initialBody);
   const [category, setCategory] = useState(initialCategory);
+  const [newCat, setNewCat] = useState("");
+  const [categories, setCategories] = useState(documentCategories);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,6 +45,9 @@ export default function HubDocumentEditor({
     setError(null);
 
     try {
+      const resolvedCategory = newCat.trim() ? null : (category || null);
+      const newCategory = newCat.trim() || undefined;
+
       let res: Response;
       if (isNew) {
         res = await fetch(`/api/hub/${hubSlug}/documents`, {
@@ -51,7 +56,8 @@ export default function HubDocumentEditor({
           body: JSON.stringify({
             label: label.trim(),
             body,
-            category: category || null,
+            category: resolvedCategory,
+            newCategory,
             isNative: true,
           }),
         });
@@ -59,8 +65,17 @@ export default function HubDocumentEditor({
         res = await fetch(`/api/hub/${hubSlug}/documents/${docId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ label: label.trim(), body, category: category || null }),
+          body: JSON.stringify({
+            label: label.trim(), body,
+            category: resolvedCategory,
+            newCategory,
+          }),
         });
+      }
+
+      // If a new category was created, track it locally
+      if (newCat.trim() && !categories.includes(newCat.trim())) {
+        setCategories((prev) => [...prev, newCat.trim()]);
       }
 
       if (!res.ok) {
@@ -90,16 +105,35 @@ export default function HubDocumentEditor({
         <a href={`/account/hub/${hubSlug}/documents`} className="doc-page__back">
           ← Documents
         </a>
-        {documentCategories.length > 0 && (
+        {category === "__new__" || newCat ? (
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <input
+              className="hdoc-editor__category-input"
+              type="text"
+              value={newCat}
+              onChange={(e) => setNewCat(e.target.value)}
+              placeholder="New category name"
+            />
+            <button
+              type="button"
+              className="btn--ghost"
+              style={{ fontSize: 12, padding: "4px 8px", whiteSpace: "nowrap" }}
+              onClick={() => { setNewCat(""); setCategory(categories[0] ?? ""); }}
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
           <select
             className="hdoc-editor__category"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
           >
             <option value="">No category</option>
-            {documentCategories.map((c) => (
+            {categories.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
+            <option value="__new__">+ Add new category…</option>
           </select>
         )}
       </div>

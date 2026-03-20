@@ -6,6 +6,9 @@
  *
  * Layout: documents grouped by category (from hub.documentCategories order).
  * Uncategorized documents rendered last.
+ *
+ * All hub members can create documents and edit/delete their own.
+ * Coordinators can edit/delete any document.
  */
 
 import { useState } from "react";
@@ -24,6 +27,7 @@ interface HubDoc {
   fileType: "DOC" | "SHEET" | "SLIDE" | "FORM" | "LINK";
   category: string | null;
   isNative: boolean;
+  addedById: string;
   addedBy: DocAddedBy;
   createdAt: string;
 }
@@ -33,6 +37,7 @@ interface Props {
   initialDocuments: HubDoc[];
   documentCategories: string[];
   isCoordinator: boolean;
+  currentUserId: string;
 }
 
 function detectFileType(url: string): HubDoc["fileType"] {
@@ -54,10 +59,12 @@ function displayName(u: DocAddedBy) {
 export default function HubDocumentsClient({
   hubSlug,
   initialDocuments,
-  documentCategories,
+  documentCategories: initialCategories,
   isCoordinator,
+  currentUserId,
 }: Props) {
   const [docs, setDocs]               = useState<HubDoc[]>(initialDocuments);
+  const [categories, setCategories]   = useState<string[]>(initialCategories);
   const [showAdd, setShowAdd]         = useState(false);
   const [editingId, setEditingId]     = useState<string | null>(null);
   const [deletingId, setDeletingId]   = useState<string | null>(null);
@@ -66,7 +73,7 @@ export default function HubDocumentsClient({
   const [addLabel, setAddLabel]         = useState("");
   const [addUrl, setAddUrl]             = useState("");
   const [addDesc, setAddDesc]           = useState("");
-  const [addCategory, setAddCategory]   = useState(documentCategories[0] ?? "");
+  const [addCategory, setAddCategory]   = useState(initialCategories[0] ?? "");
   const [addNewCat, setAddNewCat]       = useState("");
   const [addFileType, setAddFileType]   = useState<HubDoc["fileType"]>("LINK");
   const [saving, setSaving]             = useState(false);
@@ -76,7 +83,12 @@ export default function HubDocumentsClient({
   const [editUrl, setEditUrl]           = useState("");
   const [editDesc, setEditDesc]         = useState("");
   const [editCategory, setEditCategory] = useState("");
+  const [editNewCat, setEditNewCat]     = useState("");
   const [editFileType, setEditFileType] = useState<HubDoc["fileType"]>("LINK");
+
+  function canEdit(doc: HubDoc) {
+    return isCoordinator || doc.addedById === currentUserId;
+  }
 
   function openEdit(doc: HubDoc) {
     setEditingId(doc.id);
@@ -84,6 +96,7 @@ export default function HubDocumentsClient({
     setEditUrl(doc.url ?? "");
     setEditDesc(doc.description ?? "");
     setEditCategory(doc.category ?? "");
+    setEditNewCat("");
     setEditFileType(doc.fileType);
   }
 
@@ -105,7 +118,12 @@ export default function HubDocumentsClient({
     if (res.ok) {
       const doc = await res.json();
       setDocs((prev) => [doc, ...prev]);
-      setAddLabel(""); setAddUrl(""); setAddDesc(""); setAddNewCat(""); setShowAdd(false);
+      // If a new category was created, add it to the local list
+      if (addNewCat.trim() && !categories.includes(addNewCat.trim())) {
+        setCategories((prev) => [...prev, addNewCat.trim()]);
+      }
+      setAddLabel(""); setAddUrl(""); setAddDesc(""); setAddNewCat("");
+      setAddCategory(initialCategories[0] ?? ""); setShowAdd(false);
     }
     setSaving(false);
   }
@@ -118,12 +136,18 @@ export default function HubDocumentsClient({
       body: JSON.stringify({
         label: editLabel.trim(), url: editUrl.trim(),
         description: editDesc.trim() || null,
-        fileType: editFileType, category: editCategory || null,
+        fileType: editFileType,
+        category: editNewCat.trim() ? null : (editCategory || null),
+        newCategory: editNewCat.trim() || undefined,
       }),
     });
     if (res.ok) {
       const updated = await res.json();
       setDocs((prev) => prev.map((d) => (d.id === id ? updated : d)));
+      // If a new category was created, add it to the local list
+      if (editNewCat.trim() && !categories.includes(editNewCat.trim())) {
+        setCategories((prev) => [...prev, editNewCat.trim()]);
+      }
       setEditingId(null);
     }
     setSaving(false);
@@ -146,27 +170,53 @@ export default function HubDocumentsClient({
 
   // Render in documentCategories order, uncategorized last
   const sections: Array<{ label: string; docs: HubDoc[] }> = [];
-  for (const cat of documentCategories) {
+  for (const cat of categories) {
     const catDocs = byCategory.get(cat) ?? [];
     if (catDocs.length > 0) sections.push({ label: cat, docs: catDocs });
   }
   const uncategorized = byCategory.get(null) ?? [];
   if (uncategorized.length > 0) sections.push({ label: "Uncategorized", docs: uncategorized });
 
+  /* ── Category select helper ───────────────────────────────── */
+  function CategorySelect({
+    value, onChange, newCat, onNewCatChange,
+  }: {
+    value: string; onChange: (v: string) => void;
+    newCat: string; onNewCatChange: (v: string) => void;
+  }) {
+    if (value === "__new__" || newCat) {
+      return (
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <input className="fi" type="text" value={newCat} onChange={(e) => onNewCatChange(e.target.value)}
+            placeholder="New category name" style={{ flex: 1 }} />
+          <button type="button" className="btn--ghost" style={{ fontSize: 12, padding: "4px 8px" }}
+            onClick={() => { onNewCatChange(""); onChange(categories[0] ?? ""); }}>
+            Cancel
+          </button>
+        </div>
+      );
+    }
+    return (
+      <select className="fs" value={value} onChange={(e) => onChange(e.target.value)}>
+        {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+        <option value="">None (uncategorized)</option>
+        <option value="__new__">+ Add new category…</option>
+      </select>
+    );
+  }
+
   return (
     <div style={{ maxWidth: 680 }}>
 
-      {/* Toolbar */}
-      {isCoordinator && (
-        <div className="doc-toolbar">
-          <a href={`/account/hub/${hubSlug}/documents/new`} className="btn btn--sm">
-            + New Document
-          </a>
-          <button className="btn btn--sm btn--ghost" onClick={() => setShowAdd((v) => !v)}>
-            + Add Link
-          </button>
-        </div>
-      )}
+      {/* Toolbar — all hub members can create */}
+      <div className="doc-toolbar">
+        <a href={`/account/hub/${hubSlug}/documents/new`} className="btn btn--sm">
+          + New Document
+        </a>
+        <button className="btn btn--sm btn--ghost" onClick={() => setShowAdd((v) => !v)}>
+          + Add Link
+        </button>
+      </div>
 
       {/* Add form */}
       {showAdd && (
@@ -193,16 +243,10 @@ export default function HubDocumentsClient({
           </div>
           <div className="fg">
             <label className="fl">Category</label>
-            {addCategory === "__new__" ? (
-              <input className="fi" type="text" value={addNewCat} onChange={(e) => setAddNewCat(e.target.value)}
-                placeholder="New category name" />
-            ) : (
-              <select className="fs" value={addCategory} onChange={(e) => setAddCategory(e.target.value)}>
-                {documentCategories.map((c) => <option key={c} value={c}>{c}</option>)}
-                <option value="">None (uncategorized)</option>
-                <option value="__new__">Add new category…</option>
-              </select>
-            )}
+            <CategorySelect
+              value={addCategory} onChange={setAddCategory}
+              newCat={addNewCat} onNewCatChange={setAddNewCat}
+            />
           </div>
           <div className="fg">
             <label className="fl">Description (optional)</label>
@@ -237,26 +281,30 @@ export default function HubDocumentsClient({
                         <label className="fl">Label</label>
                         <input className="fi" type="text" value={editLabel} onChange={(e) => setEditLabel(e.target.value)} />
                       </div>
-                      <div className="fg">
-                        <label className="fl">Google Drive URL</label>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <input className="fi" type="url" value={editUrl}
-                            onChange={(e) => { setEditUrl(e.target.value); setEditFileType(detectFileType(e.target.value)); }}
-                            style={{ flex: 1 }} />
-                          <span className="doc-type-badge">{editFileType}</span>
+                      {!doc.isNative && (
+                        <div className="fg">
+                          <label className="fl">Google Drive URL</label>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <input className="fi" type="url" value={editUrl}
+                              onChange={(e) => { setEditUrl(e.target.value); setEditFileType(detectFileType(e.target.value)); }}
+                              style={{ flex: 1 }} />
+                            <span className="doc-type-badge">{editFileType}</span>
+                          </div>
                         </div>
-                      </div>
+                      )}
                       <div className="fg">
                         <label className="fl">Category</label>
-                        <select className="fs" value={editCategory} onChange={(e) => setEditCategory(e.target.value)}>
-                          {documentCategories.map((c) => <option key={c} value={c}>{c}</option>)}
-                          <option value="">None (uncategorized)</option>
-                        </select>
+                        <CategorySelect
+                          value={editCategory} onChange={setEditCategory}
+                          newCat={editNewCat} onNewCatChange={setEditNewCat}
+                        />
                       </div>
-                      <div className="fg">
-                        <label className="fl">Description</label>
-                        <input className="fi" type="text" value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
-                      </div>
+                      {!doc.isNative && (
+                        <div className="fg">
+                          <label className="fl">Description</label>
+                          <input className="fi" type="text" value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
+                        </div>
+                      )}
                       <div className="form-actions" style={{ justifyContent: "space-between" }}>
                         <button
                           className="ann-btn ann-btn--del"
@@ -299,7 +347,7 @@ export default function HubDocumentsClient({
                       <div className="doc-item__meta">
                         {fmtDate(doc.createdAt)} · {displayName(doc.addedBy)}
                       </div>
-                      {isCoordinator && !doc.isNative && (
+                      {canEdit(doc) && !doc.isNative && (
                         <button
                           className="ann-btn"
                           style={{ flexShrink: 0 }}
@@ -308,7 +356,7 @@ export default function HubDocumentsClient({
                           Edit
                         </button>
                       )}
-                      {isCoordinator && doc.isNative && (
+                      {canEdit(doc) && doc.isNative && (
                         <a
                           href={`/account/hub/${hubSlug}/documents/${doc.id}/edit`}
                           className="ann-btn"

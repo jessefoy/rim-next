@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { getHubMembership, requireCoordinator } from "@/lib/hubAuth";
+import { getHubMembership } from "@/lib/hubAuth";
 
 // GET /api/hub/[slug]/documents
 export async function GET(
@@ -26,7 +26,7 @@ export async function GET(
   return NextResponse.json({ documents, documentCategories: hub.documentCategories });
 }
 
-// POST /api/hub/[slug]/documents — coordinator only
+// POST /api/hub/[slug]/documents — any hub member can create
 // Accepts external link docs ({ label, url, fileType, ... }) or native docs ({ label, body, isNative: true })
 export async function POST(
   req: Request,
@@ -40,9 +40,6 @@ export async function POST(
   if (!hub) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
   if (!member && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-
-  try { requireCoordinator(member?.isCoordinator ?? false, session.user.roles ?? []); }
-  catch { return NextResponse.json({ error: "Coordinators only" }, { status: 403 }); }
 
   const { label, url, description, fileType, category, newCategory, body, isNative } = await req.json();
 
