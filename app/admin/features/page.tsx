@@ -291,11 +291,11 @@ const AREAS: FunctionalArea[] = [
       },
       {
         name: "Email Template Manager",
-        locations: ["Page: /admin/emails", "Page: /admin/emails/[slug]", "File: components/EmailTemplateEditor.tsx", "File: components/RimEditor.tsx", "File: lib/tiptap-variable-node.ts", "API: PATCH /api/admin/emails/[slug]", "API: POST /api/admin/emails/[slug]/preview"],
-        what: "Database-backed system for editing transactional email copy without code deploys. 7 managed templates stored in the email_templates table (Postgres). Admins can edit subject lines, body copy (rich Tiptap markdown editor with variable chip insertion), enable/disable delivery, and preview rendered output. Chrome bands show the email header/footer wrapper. Contextual help text above the subject explains each template; Program-origin variables are called out with a distinct teal callout. 11 email functions remain hardcoded for structural reasons (attachments, conditional logic, auth flows) — documented with comment blocks in lib/email.ts.",
+        locations: ["Page: /admin/emails", "Page: /admin/emails/[slug]", "File: components/EmailTemplateEditor.tsx", "File: components/MarkdownEditor.tsx", "File: lib/tiptap-variable-node.ts", "API: PATCH /api/admin/emails/[slug]", "API: POST /api/admin/emails/[slug]/preview"],
+        what: "Database-backed system for editing transactional email copy without code deploys. 7 managed templates stored in the email_templates table (Postgres). Admins can edit subject lines, body copy (Tiptap markdown editor with variable chip insertion — the only surface that uses MarkdownEditor instead of BlockNote), enable/disable delivery, and preview rendered output. Chrome bands show the email header/footer wrapper. Contextual help text above the subject explains each template; Program-origin variables are called out with a distinct teal callout. 11 email functions remain hardcoded for structural reasons (attachments, conditional logic, auth flows) — documented with comment blocks in lib/email.ts.",
         relatedTo: [
           "Managed templates: session-reminder, first-time-attendee, returning-after-absence, host-role-assigned, sub-request-posted, sub-request-claimed, missing-report-alert",
-          "Uses RimEditor with custom VariableNode for {{token}} pills",
+          "Uses MarkdownEditor (Tiptap) with custom VariableNode for {{token}} pills — pipeline is markdown → marked() → juice() → Resend",
           "portableTextToMarkdown() in lib/portableTextEmail.ts for PT → template variable conversion",
           "Render pipeline: sendTemplatedEmail → marked → wrapInEmailChrome → juice → Resend",
           "Seed files: seed-email-templates.js, seed-email-groups.ts, seed-email-help-text.js",
@@ -812,7 +812,7 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Household Detail",
         locations: ["/admin/households/[id]", "Component: HouseholdDetail.tsx", "API: PATCH/DELETE /api/admin/households/[id]"],
-        what: "Edit the household name, shared address, and notes. Member list shows all members with their relationship labels, a 'Set primary' action, and a 'Remove' action. Add Member search lets you find and add any member who isn't already in a household. Delete is available to admins only, when the household has one or zero members.",
+        what: "Edit the household name, shared address, and notes (BlockNote rich text via RimProseEditor — stored as JSON). Member list shows all members with their relationship labels, a 'Set primary' action, and a 'Remove' action. Add Member search lets you find and add any member who isn't already in a household. Delete is available to admins only, when the household has one or zero members.",
         relatedTo: [
           "Member Detail (links to member profiles from household member rows)",
           "Household List (breadcrumb back)",

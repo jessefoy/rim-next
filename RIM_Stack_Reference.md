@@ -1,6 +1,6 @@
 # RIM Next — Stack Reference
 
-_Generated 2026-03-11. Last updated 2026-03-19 (session 69)._
+_Generated 2026-03-11. Last updated 2026-03-20 (session 70)._
 
 ---
 
@@ -43,7 +43,7 @@ Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfie
 | Video | Google Meet | 4 shared room accounts via DWD + Google Calendar API |
 | Hosting | Vercel | auto-deploy on push to `main` |
 | CSS | Custom design system | `public/css/custom.css` only — never touch webflow CSS files |
-| Rich text editor | BlockNote v0.47.1 | `@blocknote/core`, `@blocknote/react`, `@blocknote/mantine`, `@blocknote/server-util` — replaced Tiptap entirely in session 69. Two components: `RimBlockEditor` (full) and `RimProseEditor` (prose). Custom Dharma blocks: VerseQuote, PracticeSuggestion, Callout. |
+| Rich text editor | BlockNote v0.47.1 | `@blocknote/core`, `@blocknote/react`, `@blocknote/mantine`, `@blocknote/server-util` — replaced Tiptap entirely in session 69. Two components: `RimBlockEditor` (full) and `RimProseEditor` (prose). Custom Dharma blocks: VerseQuote, PracticeSuggestion, Callout. **Exception:** `MarkdownEditor` (Tiptap + tiptap-markdown, renamed from `RimEditor.tsx` in session 70) is used exclusively by `EmailTemplateEditor` — email template pipeline is markdown → marked() → juice() → Resend. |
 | Footer suppression | `components/FooterWrapper.tsx` | Newsletter footer suppressed on `/admin/*`, `/account/*`, `/lessons/*`, `/course/*` |
 | File storage | Vercel Blob | `@vercel/blob` + `@vercel/blob/client` — client-side upload pattern (browser → Blob direct, bypasses 4.5 MB serverless limit); max 500 MB; `BLOB_READ_WRITE_TOKEN` env var |
 
@@ -114,7 +114,7 @@ All set in Vercel. Pull locally with `npx vercel env pull .env.local`.
 | `GMAIL_CLIENT_SECRET` | OAuth2 client secret |
 | `GMAIL_REDIRECT_URI` | OAuth2 callback URL (`https://rim-next.vercel.app/api/support/auth/callback`) |
 
-**FormattedEditor standard (session 58):** All multi-line communication fields (host flag notes, session reflections) use `FormattedEditor` (Tiptap JSON stored as `Json?` in Prisma). Three additional schema fields migrated: `SessionAttendance.postSessionNote`, `SessionReport.reflection`, `SessionCoHostReport.reflection`. `extractText()` added to `lib/renderRichContent.ts` for plain-text extraction for email contexts. Pattern: `Json?` DB field → `Prisma.JsonNull` for null writes → `renderFormattedText()` for display → `extractText()` for email.
+**Editor standard (updated session 70):** All multi-line rich text fields use **BlockNote JSON** (via `RimBlockEditor` or `RimProseEditor`). `FormattedEditor` and `ContentEditor` removed in session 69. `RimEditor.tsx` renamed to `MarkdownEditor.tsx` — used exclusively for email templates (markdown string pipeline). Full context registry in `RIM_Editor_Design.md`. Pattern: `Json?` DB field → `Prisma.JsonNull` for null writes → `renderFormattedTextAsync()` (server) or `renderBlockNoteHtml()` (client) for display → `extractTextAsync()` for email.
 
 **SlugField component (session 66):** `components/SlugField.tsx` — shared locked-by-default slug input with Unlock/Lock toggle + amber warning. Use for any URL slug field in any editor. Props: `value`, `onChange`, `isEditing`, `warnText?`, `hintText?`. In use: CourseEditor, LessonEditor, MemberDetail (Teacher Profile slug). ProgramEditor uses the same pattern on its own `pe-` classes.
 
