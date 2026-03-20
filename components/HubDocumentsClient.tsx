@@ -27,6 +27,7 @@ interface HubDoc {
   fileType: "DOC" | "SHEET" | "SLIDE" | "FORM" | "LINK";
   category: string | null;
   isNative: boolean;
+  isLocked: boolean;
   addedById: string;
   addedBy: DocAddedBy;
   createdAt: string;
@@ -324,6 +325,7 @@ export default function HubDocumentsClient({
                   ) : (
                     <div className="doc-item">
                       {!doc.isNative && <span className="doc-type-badge">{doc.fileType}</span>}
+                      {doc.isLocked && <span style={{ fontSize: 13, flexShrink: 0 }} title="Locked by author">🔒</span>}
                       <div className="doc-item__text">
                         {doc.isNative ? (
                           <a
@@ -347,7 +349,7 @@ export default function HubDocumentsClient({
                       <div className="doc-item__meta">
                         {fmtDate(doc.createdAt)} · {displayName(doc.addedBy)}
                       </div>
-                      {canEdit(doc) && !doc.isNative && (
+                      {canEdit(doc) && !doc.isNative && !doc.isLocked && (
                         <button
                           className="ann-btn"
                           style={{ flexShrink: 0 }}
@@ -362,7 +364,7 @@ export default function HubDocumentsClient({
                           className="ann-btn"
                           style={{ flexShrink: 0, textDecoration: "none" }}
                         >
-                          Edit
+                          {doc.isLocked && doc.addedById !== currentUserId ? "View" : "Edit"}
                         </a>
                       )}
                     </div>

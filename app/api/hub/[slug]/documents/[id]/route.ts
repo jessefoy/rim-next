@@ -50,6 +50,11 @@ export async function PATCH(
     return NextResponse.json({ error: "Only the author or a coordinator can edit" }, { status: 403 });
   }
 
+  // Enforce lock — only author and admin can edit a locked document
+  if (doc.isLocked && !isAuthor && !isAdminPatch) {
+    return NextResponse.json({ error: "This document is locked by the author" }, { status: 403 });
+  }
+
   const { label, url, description, fileType, category, newCategory, body } = await req.json();
 
   // Handle inline new category creation

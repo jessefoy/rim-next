@@ -52,6 +52,7 @@ export default async function HubDocumentsPage({
     fileType:    d.fileType as "DOC" | "SHEET" | "SLIDE" | "FORM" | "LINK",
     category:    d.category,
     isNative:    d.isNative,
+    isLocked:    d.isLocked,
     addedById:   d.addedById,
     addedBy: {
       firstName:     d.addedBy.firstName,

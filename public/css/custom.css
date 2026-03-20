@@ -17591,6 +17591,67 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   .doc-page__footer { padding: 0 20px 24px; }
 }
 
+/* ── Document banners (author attribution, presence warning) ── */
+.doc-banner {
+  font-family: var(--font-doc);
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 10px 20px;
+  border-radius: 8px;
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.doc-banner--info {
+  background: #f0eeec;
+  color: var(--rim-text-muted);
+}
+.doc-banner--warning {
+  background: #fef3e2;
+  color: #8b6914;
+  border: 1px solid #f0d68a;
+}
+.doc-banner__dismiss {
+  background: none;
+  border: 1px solid currentColor;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-family: var(--font-doc);
+  font-size: 13px;
+  font-weight: 500;
+  color: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s;
+}
+.doc-banner__dismiss:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* Lock toggle button */
+.doc-lock-btn {
+  background: none;
+  border: 1px solid #e0dcd8;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.12s, border-color 0.12s;
+}
+.doc-lock-btn:hover {
+  background: #f0eeec;
+}
+.doc-lock-btn--locked {
+  background: #fef3e2;
+  border-color: #f0d68a;
+}
+
 /* Verse Quote — editor view */
 .bn-verse-quote {
   border-left: 3px solid var(--rim-rule);

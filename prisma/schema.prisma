@@ -120,7 +120,8 @@ model User {
   // Hub system
   hubMemberships  HubMember[]
   hubAnnouncements HubAnnouncement[]
-  hubDocuments    HubDocument[]
+  hubDocuments       HubDocument[] @relation("HubDocumentAuthor")
+  hubDocumentsEditing HubDocument[] @relation("HubDocumentEditor")
   hubThreads2     HubConversationThread[]
   hubReplies2     HubConversationReply[]
   emailTemplates  EmailTemplate[]
@@ -1117,11 +1118,15 @@ model HubDocument {
   category    String?
   body        Json?               // BlockNote JSON — set when isNative = true
   isNative    Boolean             @default(false)
+  isLocked    Boolean             @default(false) // Author can lock to prevent edits
+  editingById String?             // Currently editing — presence tracking
+  editingAt   DateTime?           // When the editor was last opened/heartbeat
 
-  hub     Hub      @relation(fields: [hubId], references: [id])
-  addedBy User     @relation(fields: [addedById], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  hub        Hub      @relation(fields: [hubId], references: [id])
+  addedBy    User     @relation("HubDocumentAuthor", fields: [addedById], references: [id], onDelete: Cascade)
+  editingBy  User?    @relation("HubDocumentEditor", fields: [editingById], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@map("hub_documents")
 }

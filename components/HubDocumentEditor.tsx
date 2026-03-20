@@ -5,9 +5,15 @@
  *
  * Clean white card on warm background. Title input at the top, editor below.
  * No chrome, no border on the editor — just you and the page.
+ *
+ * Features:
+ * - Author attribution banner when not the author
+ * - Active editor presence warning
+ * - Author lock toggle (prevents edits by non-author/non-admin)
+ * - Presence heartbeat every 30s while editing
  */
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import RimBlockEditor from "@/components/RimBlockEditor";
 
@@ -18,6 +24,11 @@ interface Props {
   initialBody: any;               // BlockNote JSON or null
   initialCategory: string;
   documentCategories: string[];
+  isAuthor?: boolean;
+  isAdmin?: boolean;
+  isLocked?: boolean;
+  authorName?: string;
+  activeEditorName?: string | null;
 }
 
 export default function HubDocumentEditor({
@@ -27,6 +38,11 @@ export default function HubDocumentEditor({
   initialBody,
   initialCategory,
   documentCategories,
+  isAuthor = true,
+  isAdmin = false,
+  isLocked: initialLocked = false,
+  authorName,
+  activeEditorName,
 }: Props) {
   const router = useRouter();
   const [label, setLabel] = useState(initialLabel);
@@ -36,8 +52,40 @@ export default function HubDocumentEditor({
   const [categories, setCategories] = useState(documentCategories);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [locked, setLocked] = useState(initialLocked);
+  const [dismissed, setDismissed] = useState(false);
+  const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const isNew = docId === null;
+
+  // ── Presence heartbeat ───────────────────────────────────────────────
+  useEffect(() => {
+    if (isNew || !docId) return;
+
+    // Initial heartbeat
+    fetch(`/api/hub/${hubSlug}/documents/${docId}/presence`, { method: "POST" });
+
+    // Heartbeat every 30s
+    heartbeatRef.current = setInterval(() => {
+      fetch(`/api/hub/${hubSlug}/documents/${docId}/presence`, { method: "POST" });
+    }, 30_000);
+
+    // Clear presence on unmount
+    return () => {
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+      fetch(`/api/hub/${hubSlug}/documents/${docId}/presence`, { method: "DELETE" });
+    };
+  }, [docId, hubSlug, isNew]);
+
+  // ── Lock toggle ──────────────────────────────────────────────────────
+  async function toggleLock() {
+    if (!docId) return;
+    const res = await fetch(`/api/hub/${hubSlug}/documents/${docId}/lock`, { method: "POST" });
+    if (res.ok) {
+      const data = await res.json();
+      setLocked(data.isLocked);
+    }
+  }
 
   async function handleSave() {
     if (!label.trim()) { setError("Title is required."); return; }
@@ -101,41 +149,66 @@ export default function HubDocumentEditor({
 
   return (
     <div className="doc-page">
+      {/* ── Banners ─────────────────────────────────────────────────── */}
+      {activeEditorName && !dismissed && (
+        <div className="doc-banner doc-banner--warning">
+          <span><strong>{activeEditorName}</strong> may be editing this document right now. Changes could conflict.</span>
+          <button className="doc-banner__dismiss" onClick={() => setDismissed(true)}>Continue anyway</button>
+        </div>
+      )}
+      {!isNew && !isAuthor && authorName && (
+        <div className="doc-banner doc-banner--info">
+          You are editing a document created by <strong>{authorName}</strong>.
+        </div>
+      )}
+
       <div className="doc-page__nav">
         <a href={`/account/hub/${hubSlug}/documents`} className="doc-page__back">
           ← Documents
         </a>
-        {category === "__new__" || newCat ? (
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <input
-              className="hdoc-editor__category-input"
-              type="text"
-              value={newCat}
-              onChange={(e) => setNewCat(e.target.value)}
-              placeholder="New category name"
-            />
-            <button
-              type="button"
-              className="btn--ghost"
-              style={{ fontSize: 12, padding: "4px 8px", whiteSpace: "nowrap" }}
-              onClick={() => { setNewCat(""); setCategory(categories[0] ?? ""); }}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {category === "__new__" || newCat ? (
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <input
+                className="hdoc-editor__category-input"
+                type="text"
+                value={newCat}
+                onChange={(e) => setNewCat(e.target.value)}
+                placeholder="New category name"
+              />
+              <button
+                type="button"
+                className="btn--ghost"
+                style={{ fontSize: 12, padding: "4px 8px", whiteSpace: "nowrap" }}
+                onClick={() => { setNewCat(""); setCategory(categories[0] ?? ""); }}
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <select
+              className="hdoc-editor__category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
             >
-              Cancel
+              <option value="">No category</option>
+              {categories.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+              <option value="__new__">+ Add new category…</option>
+            </select>
+          )}
+          {/* Lock toggle — only author + admin */}
+          {!isNew && (isAuthor || isAdmin) && (
+            <button
+              className={`doc-lock-btn${locked ? " doc-lock-btn--locked" : ""}`}
+              onClick={toggleLock}
+              title={locked ? "Unlock document" : "Lock document"}
+            >
+              {locked ? "🔒" : "🔓"}
             </button>
-          </div>
-        ) : (
-          <select
-            className="hdoc-editor__category"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-          >
-            <option value="">No category</option>
-            {categories.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-            <option value="__new__">+ Add new category…</option>
-          </select>
-        )}
+          )}
+        </div>
       </div>
 
       <div className="doc-page__card">
@@ -159,6 +232,11 @@ export default function HubDocumentEditor({
 
       <div className="doc-page__footer" style={{ display: "flex", alignItems: "center", gap: 12 }}>
         {error && <p style={{ fontFamily: "var(--font-doc)", fontSize: 13, color: "#c0392b", flex: 1, margin: 0 }}>{error}</p>}
+        {locked && (
+          <span style={{ fontFamily: "var(--font-doc)", fontSize: 13, color: "var(--rim-text-muted)", flex: 1, margin: 0 }}>
+            🔒 Locked{isAuthor ? " — only you and admins can edit" : ""}
+          </span>
+        )}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginLeft: "auto" }}>
           {!isNew && (
             <button className="hdoc-editor__delete" onClick={handleDelete}>
