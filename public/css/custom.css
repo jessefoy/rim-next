@@ -13456,179 +13456,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .th-resource-row__upload { cursor: pointer; }
 .th-resource-row .th-select { min-width: 100px; }
 
-/* ─── Rich Text Editor (rte-) ──────────────────────────────────── */
-
-.rte-editor {
-  border: 1px solid var(--rim-rule);
-  border-radius: 8px;
-  overflow: hidden;
-  background: #fff;
-}
-
-.rte-editor__toolbar {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--rim-rule);
-  background: var(--rim-bg);
-  flex-wrap: wrap;
-}
-
-.rte-btn {
-  padding: 4px 10px;
-  font-size: 13px;
-  border: 1px solid var(--rim-rule);
-  border-radius: 4px;
-  background: #fff;
-  color: var(--rim-text);
-  cursor: pointer;
-  line-height: 1.5;
-  transition: background 0.1s;
-}
-
-.rte-btn:hover {
-  background: var(--rim-bg-accent);
-}
-
-.rte-btn--active {
-  background: var(--rim-bg-accent);
-  border-color: var(--rim-mid);
-  color: var(--rim-blue);
-}
-
-.rte-btn--block {
-  font-size: 11px;
-  color: var(--rim-mid);
-  border-color: var(--rim-mid);
-}
-
-.rte-divider {
-  width: 1px;
-  height: 20px;
-  background: var(--rim-rule);
-  margin: 0 4px;
-  flex-shrink: 0;
-}
-
-.rte-editor__content {
-  padding: 20px 24px;
-  font-size: 16px;
-  line-height: 1.8;
-  color: var(--rim-text);
-}
-
-.rte-editor__content .ProseMirror {
-  outline: none;
-}
-
-.rte-editor__content .ProseMirror p.is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
-  float: left;
-  color: var(--rim-text-muted);
-  pointer-events: none;
-  height: 0;
-}
-
-/* Custom block previews inside editor */
-.rte-editor__content [data-type="verse-quote"] {
-  text-align: center;
-  padding: 20px 32px;
-  margin: 16px 0;
-  border-top: 1px solid var(--rim-rule);
-  border-bottom: 1px solid var(--rim-rule);
-  font-style: italic;
-  font-family: var(--font-serif);
-}
-
-.rte-editor__content [data-type="practice-suggestion"] {
-  background: var(--rim-bg-accent);
-  border-left: 3px solid var(--rim-mid);
-  border-radius: 4px;
-  padding: 14px 18px;
-  margin: 16px 0;
-  font-size: 15px;
-}
-
-.rte-editor__content [data-type="callout"] {
-  font-size: 18px;
-  line-height: 1.6;
-  font-style: italic;
-  padding: 8px 0 8px 20px;
-  margin: 16px 0;
-  border-left: 3px solid var(--rim-rule);
-  background: var(--rim-bg);
-}
-
-/* Editor footer (character/word count) */
-.rte-editor__footer {
-  padding: 6px 16px 8px;
-  border-top: 1px solid var(--rim-rule);
-  background: var(--rim-bg);
-}
-
-.rte-char-count {
-  font-size: 12px;
-  color: var(--rim-text-muted);
-}
-
-.rte-char-count--warning {
-  color: #b05a00;
-}
-
-/* Table toolbar button — slightly wider */
-.rte-btn[title="Insert table"] {
-  padding: 4px 12px;
-}
-
-.rte-btn--table {
-  font-size: 11px;
-}
-
-.rte-btn--danger {
-  color: #a03030;
-  border-color: #c8a0a0;
-}
-
-.rte-btn--danger:hover {
-  background: #fdf0f0;
-}
-
-/* Table styles inside editor */
-.rte-editor__content table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 16px 0;
-  font-size: 15px;
-}
-
-.rte-editor__content table th {
-  background: var(--rim-bg-accent);
-  font-weight: 600;
-  text-align: left;
-  padding: 8px 12px;
-  border: 1px solid var(--rim-rule);
-  font-size: 13px;
-}
-
-.rte-editor__content table td {
-  padding: 8px 12px;
-  border: 1px solid var(--rim-rule);
-  vertical-align: top;
-}
-
-.rte-editor__content .selectedCell:after {
-  background: rgba(19, 82, 116, 0.08);
-  content: "";
-  left: 0; right: 0; top: 0; bottom: 0;
-  pointer-events: none;
-  position: absolute;
-  z-index: 2;
-}
-
-.rte-editor__content .column-resize-handle {
-  display: none;
-}
+/* (rte- block removed — old FormattedEditor/ContentEditor; replaced by RimBlockEditor + RimProseEditor) */
 
 /* Responsive */
 @media (max-width: 768px) {
@@ -14227,9 +14055,6 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   .pe-dialog__actions { flex-direction: column; }
   .pe-dialog__actions .pe-btn { width: 100%; text-align: center; justify-content: center; }
 
-  /* Tiptap editor toolbar: horizontal scroll on narrow viewports */
-  .rte-editor__toolbar { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
-  .rte-editor__toolbar button { flex-shrink: 0; }
 }
 
 
@@ -16267,8 +16092,94 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .man-sec-page__related-link { font-family: var(--font-sans); font-size: 14px; color: var(--rim-blue); text-decoration: none; padding: 4px 12px; border: 1px solid #d4cfc9; border-radius: 20px; }
 .man-sec-page__related-link:hover { background: #f5f2ee; }
 .man-sec-page__footer { margin-top: 16px; }
-/* man-layout-single: wraps manual body content rendered from rawHtml */
-.man-layout-single { font-family: var(--font-sans); font-size: 15px; color: var(--rim-text); }
+/* ── Content Output: manual (man-body) ───────────────────────────────────── */
+/* Structured reference docs. Tables with styled headers, clear heading hierarchy. */
+.man-body { font-family: var(--font-sans); font-size: 15px; color: var(--rim-text); line-height: 1.7; }
+.man-body p { margin: 0 0 1em; }
+.man-body p:last-child { margin-bottom: 0; }
+.man-body h2 { font-family: var(--font-sans); font-size: 22px; font-weight: 700; color: var(--rim-text); line-height: 1.3; margin: 40px 0 14px; }
+.man-body h3 { font-family: var(--font-sans); font-size: 18px; font-weight: 700; color: var(--rim-text); line-height: 1.3; margin: 32px 0 10px; }
+.man-body h4 { font-family: var(--font-sans); font-size: 15px; font-weight: 700; color: var(--rim-text); line-height: 1.4; margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 0.04em; }
+.man-body ul, .man-body ol { margin: 0 0 1em 1.6em; padding: 0; }
+.man-body li { margin: 0.3em 0; }
+.man-body blockquote { border-left: 3px solid var(--rim-mid); padding: 8px 0 8px 16px; margin: 1em 0; color: var(--rim-text); font-style: italic; }
+.man-body table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 14px; }
+.man-body table th { background: #f0ece7; font-weight: 600; text-align: left; padding: 8px 12px; border: 1px solid #ddd8d2; font-size: 13px; }
+.man-body table td { padding: 8px 12px; border: 1px solid #ddd8d2; vertical-align: top; }
+.man-body code { font-size: 13px; background: #f5f2ee; padding: 2px 5px; border-radius: 3px; }
+.man-body hr { border: none; border-top: 1px solid #e8e4de; margin: 32px 0; }
+.man-body a { color: var(--rim-blue); text-decoration: none; }
+.man-body a:hover { text-decoration: underline; }
+.man-body strong { font-weight: 700; }
+
+/* ── Content Output: hub-document (hdoc-body) ────────────────────────────── */
+/* Notion-like: clean, spacious, block-based, typeset working documents. */
+.hdoc-body { font-family: var(--font-sans); font-size: 15px; color: var(--rim-text); line-height: 1.65; }
+.hdoc-body p { margin: 0 0 0.9em; }
+.hdoc-body p:last-child { margin-bottom: 0; }
+.hdoc-body h2 { font-family: var(--font-sans); font-size: 22px; font-weight: 600; color: var(--rim-text); line-height: 1.25; margin: 36px 0 12px; }
+.hdoc-body h3 { font-family: var(--font-sans); font-size: 18px; font-weight: 600; color: var(--rim-text); line-height: 1.3; margin: 28px 0 8px; }
+.hdoc-body h4 { font-family: var(--font-sans); font-size: 15px; font-weight: 600; color: var(--rim-text); line-height: 1.4; margin: 20px 0 6px; }
+.hdoc-body ul, .hdoc-body ol { margin: 0 0 0.9em 1.6em; padding: 0; }
+.hdoc-body li { margin: 0.25em 0; }
+.hdoc-body blockquote { border-left: 3px solid #d4cfc9; padding: 6px 0 6px 16px; margin: 0.9em 0; color: var(--rim-text-muted); }
+.hdoc-body table { width: 100%; border-collapse: collapse; margin: 0.9em 0; font-size: 14px; }
+.hdoc-body table th { font-weight: 600; text-align: left; padding: 8px 12px; border-bottom: 2px solid #d4cfc9; font-size: 13px; }
+.hdoc-body table td { padding: 8px 12px; border-bottom: 1px solid #e8e4de; vertical-align: top; }
+.hdoc-body code { font-size: 13px; background: #f5f2ee; padding: 2px 5px; border-radius: 3px; }
+.hdoc-body hr { border: none; border-top: 1px solid #e8e4de; margin: 28px 0; }
+.hdoc-body a { color: var(--rim-blue); text-decoration: none; }
+.hdoc-body a:hover { text-decoration: underline; }
+
+/* ── Content Output: program-description (prog-description) ──────────────── */
+/* Rich program info. Warm, readable, callout support. Separate from lp-body. */
+.prog-description { font-family: var(--font-sans); font-size: 17px; font-weight: 400; line-height: 1.8; color: var(--rim-text); margin-bottom: 40px; }
+.prog-description p { margin: 0 0 1.6em; }
+.prog-description p:last-child { margin-bottom: 0; }
+.prog-description p:empty { display: none; }
+.prog-description h2 { font-family: var(--font-serif); font-size: 28px; font-weight: 400; color: var(--rim-text); line-height: 1.3; margin: 48px 0 16px; }
+.prog-description h3 { font-family: var(--font-serif); font-size: 22px; font-weight: 400; color: var(--rim-text); line-height: 1.3; margin: 36px 0 12px; }
+.prog-description ul, .prog-description ol { margin: 0 0 1.6em 1.6em; padding: 0; }
+.prog-description li { margin: 0.3em 0; }
+.prog-description blockquote { font-family: var(--font-serif); font-size: 20px; font-weight: 400; font-style: italic; line-height: 1.5; color: var(--rim-text); border-left: 3px solid var(--rim-mid); padding: 8px 0 8px 20px; margin: 1.6em 0; }
+.prog-description strong { font-weight: 600; }
+.prog-description a { color: var(--rim-blue); text-decoration: none; }
+.prog-description a:hover { text-decoration: underline; }
+/* Callout block support in program descriptions */
+.prog-description [data-callout] { background: #faf6f0; border-left: 3px solid #c8a060; padding: 16px 20px; margin: 1.6em 0; border-radius: 4px; font-size: 16px; }
+
+/* ── Content Output: announcement (ann-body) ─────────────────────────────── */
+/* Clear, direct team messages. Prose with lists when needed. */
+.ann-item__body { font-family: var(--font-sans); font-size: 15px; color: var(--rim-text); line-height: 1.6; }
+.ann-item__body p { margin: 0 0 0.7em; }
+.ann-item__body p:last-child { margin-bottom: 0; }
+.ann-item__body ul, .ann-item__body ol { margin: 0 0 0.7em 1.4em; padding: 0; }
+.ann-item__body li { margin: 0.2em 0; }
+.ann-item__body a { color: var(--rim-blue); text-decoration: none; }
+.ann-item__body a:hover { text-decoration: underline; }
+.ann-item__body strong { font-weight: 600; }
+
+/* ── Content Output: conversation (cv-body) ──────────────────────────────── */
+/* Conversational. Minimal. Thoughtful message feel. */
+.cv-post__body { font-family: var(--font-sans); font-size: 15px; color: var(--rim-text); line-height: 1.6; }
+.cv-post__body p { margin: 0 0 0.7em; }
+.cv-post__body p:last-child { margin-bottom: 0; }
+.cv-post__body ul, .cv-post__body ol { margin: 0 0 0.7em 1.4em; padding: 0; }
+.cv-post__body li { margin: 0.2em 0; }
+.cv-post__body a { color: var(--rim-blue); text-decoration: none; }
+.cv-post__body a:hover { text-decoration: underline; }
+.cv-post__body strong { font-weight: 600; }
+
+/* ── Content Output: lesson-notes (ls-notes-body) ────────────────────────── */
+/* Personal and private. Member's own reflection space. Warm, inviting. */
+.ls-notes-body { font-family: var(--font-sans); font-size: 15px; color: var(--rim-text); line-height: 1.6; }
+.ls-notes-body p { margin: 0 0 0.6em; }
+.ls-notes-body p:last-child { margin-bottom: 0; }
+.ls-notes-body ul, .ls-notes-body ol { margin: 0 0 0.6em 1.4em; padding: 0; }
+.ls-notes-body li { margin: 0.15em 0; }
+.ls-notes-body a { color: var(--rim-blue); text-decoration: none; }
+.ls-notes-body strong { font-weight: 600; }
+.ls-notes-body em { font-style: italic; }
 
 /* ── Learning System (ls-) ────────────────────────────────────────────────── */
 

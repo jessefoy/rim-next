@@ -254,13 +254,13 @@ export default async function ProgramDetailPage({
 
         {/* Program description — Tiptap JSON rendered to HTML */}
         {hasDescription && (
-          <div className="lp-body" dangerouslySetInnerHTML={{ __html: descriptionHtml }} />
+          <div className="prog-description" dangerouslySetInnerHTML={{ __html: descriptionHtml }} />
         )}
 
         {/* Special notes */}
         {hasSpecialNotes && (
           <div className="pg-notes">
-            <div className="lp-body" dangerouslySetInnerHTML={{ __html: specialNotesHtml }} />
+            <div className="prog-description" dangerouslySetInnerHTML={{ __html: specialNotesHtml }} />
           </div>
         )}
 

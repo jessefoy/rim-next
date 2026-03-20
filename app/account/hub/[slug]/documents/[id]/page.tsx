@@ -63,7 +63,7 @@ export default async function HubDocumentViewPage({
 
       {bodyHtml ? (
         <div
-          className="hdoc-view__body man-layout-single"
+          className="hdoc-body"
           dangerouslySetInnerHTML={{ __html: bodyHtml }}
         />
       ) : (

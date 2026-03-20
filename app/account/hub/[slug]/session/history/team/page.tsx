@@ -12,7 +12,7 @@ import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { getHubMembership } from "@/lib/hubAuth";
 import Link from "next/link";
-import { renderBlockNoteHtml } from "@/lib/renderRichContent";
+import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Session Journal — Host Team Hub" };
@@ -164,6 +164,16 @@ export default async function TeamHistoryPage({
   const totalPages = Math.max(1, Math.ceil(allSessions.length / PAGE_SIZE));
   const pageItems = allSessions.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  // Pre-render reflection rich text (server-side async)
+  const reflectionHtmlMap = new Map<string, string>();
+  for (const s of pageItems) {
+    const key = `${s.programSlug}||${s.ctDate}`;
+    const report = reportByKey.get(key);
+    if (report?.reflection) {
+      reflectionHtmlMap.set(key, await renderFormattedTextAsync(report.reflection));
+    }
+  }
+
   const isCoordinator = (member?.isCoordinator ?? false) || isAdmin;
   const baseHref = `/account/hub/${slug}/session/history`;
   const teamHref = `/account/hub/${slug}/session/history/team`;
@@ -217,7 +227,7 @@ export default async function TeamHistoryPage({
                   {report?.reflection && (
                     <div
                       className="sh-journal__reflection"
-                      dangerouslySetInnerHTML={{ __html: renderBlockNoteHtml(report.reflection) }}
+                      dangerouslySetInnerHTML={{ __html: reflectionHtmlMap.get(key) || "" }}
                     />
                   )}
 

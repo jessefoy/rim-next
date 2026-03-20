@@ -11,7 +11,7 @@ import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { getHubMembership } from "@/lib/hubAuth";
 import Link from "next/link";
-import { renderBlockNoteHtml } from "@/lib/renderRichContent";
+import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Session History — Host Team Hub" };
@@ -278,6 +278,18 @@ export default async function SessionHistoryPage({
     }
   }
 
+  // Pre-render rich text fields (server-side async)
+  let reflectionHtml = "";
+  const noteHtmlMap = new Map<string, string>();
+  if (detailEntry?.report?.reflection) {
+    reflectionHtml = await renderFormattedTextAsync(detailEntry.report.reflection);
+  }
+  for (const a of detailAttendance) {
+    if (a.postSessionNote) {
+      noteHtmlMap.set(a.id, await renderFormattedTextAsync(a.postSessionNote));
+    }
+  }
+
   // Pagination
   const totalPages = Math.max(1, Math.ceil(allSessions.length / PAGE_SIZE));
   const offset = (page - 1) * PAGE_SIZE;
@@ -352,7 +364,7 @@ export default async function SessionHistoryPage({
               <h4 className="sh-detail__section-title">Reflection</h4>
               <div
                 className="sh-detail__text"
-                dangerouslySetInnerHTML={{ __html: renderBlockNoteHtml(detailEntry.report.reflection) }}
+                dangerouslySetInnerHTML={{ __html: reflectionHtml }}
               />
             </div>
           )}
@@ -394,7 +406,7 @@ export default async function SessionHistoryPage({
                   {a.postSessionNote && (
                     <div
                       className="sh-flagged-item__note"
-                      dangerouslySetInnerHTML={{ __html: renderBlockNoteHtml(a.postSessionNote) }}
+                      dangerouslySetInnerHTML={{ __html: noteHtmlMap.get(a.id) || "" }}
                     />
                   )}
                 </div>
