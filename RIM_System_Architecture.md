@@ -163,6 +163,10 @@ The **Registrar Hub** (Phase 1) was migrated into the hub system in session 53. 
 
 **Learning System features 1–6 — complete (session 60):** The series/lesson library is now an active learning companion. Members enroll in a series (`SeriesEnrollment` — `enrolledAt`, `completedAt?`, `enrollmentSource`), track per-lesson completion (`LessonProgress`), and write private per-lesson notes (`LessonNote` — new in session 60, `body Json?` via FormattedEditor). The lesson page shows an enrollment-gated `ls-lesson-footer` below the content: the teacher's reflection prompt (italic serif, preceded by rule), the personal notes editor (autosaved via 1.5s debounce), and the Mark Complete button. The member dashboard shows enrolled series as `ls-dash-card` cards with live inline progress bars and "Continue →" links. The complete API (`POST /api/lessons/[slug]/complete`) now gates on enrollment (403 if not enrolled) and clears `SeriesEnrollment.completedAt` when a lesson is un-completed. Two new `Lesson` fields: `durationMinutes Int?` and `reflectionPrompt String?`, editable in the Teacher Hub's LessonEditor. `CourseEditor` gains a `completionNote` field. Features 7 (Teacher Profiles) and 8 (Shared Discussion) remain deferred.
 
+**BlockNote migration — complete (session 69):** All Tiptap-based editor components (`ContentEditor`, `FormattedEditor`, `lib/tiptap-extensions.ts`) have been removed. The system now uses `RimBlockEditor` and `RimProseEditor` (both BlockNote-based). All 18 `Json?` rich-text fields across 14 database tables have been converted to BlockNote JSON format. The render pipeline is split: `lib/renderRichContentServer.ts` (async, server-only, accurate HTML) and `lib/renderRichContent.ts` (sync, client-safe, lightweight walker). Native hub documents were introduced as a first-class content type (`HubDocument.isNative`, `body Json?`).
+
+**Admin member profile redesign — complete (session 69):** The profile page was visually redesigned using the `adm2-` CSS system. Key changes: member header card with avatar/initials, serif name, status/role/tag badge strip; display-mode-first for Identity & Contact (shows read view by default, Edit toggle opens form); roles section compressed into a grouped grid (System Access / Volunteer Teams / Governance); zone separators via CSS `::before` rules; `HouseholdSection` and `CourseAccessSection` card appearance flattened via `.adm2-page` context overrides. Newsletter footer suppressed on all admin, hub, account, lesson, and course pages via `FooterWrapper`.
+
 **What remains for the Registrar Hub:**
 
 - **Check-in tools:** Digital check-in per program (phone-first), PDF export, future member self-check-in.
@@ -181,4 +185,4 @@ This file is part of the closing ritual for any Claude Code session that touches
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org*
-*Working document · March 2026 (updated session 68)*
+*Working document · March 2026 (updated session 69)*

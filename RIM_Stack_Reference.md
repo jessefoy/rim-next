@@ -1,6 +1,6 @@
 # RIM Next — Stack Reference
 
-_Generated 2026-03-11. Last updated 2026-03-18 (session 61). Update this file whenever a service, credential, or major structural decision changes._
+_Generated 2026-03-11. Last updated 2026-03-19 (session 69)._
 
 ---
 
@@ -43,7 +43,8 @@ Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfie
 | Video | Google Meet | 4 shared room accounts via DWD + Google Calendar API |
 | Hosting | Vercel | auto-deploy on push to `main` |
 | CSS | Custom design system | `public/css/custom.css` only — never touch webflow CSS files |
-| Rich text editor | Tiptap v3 | `@tiptap/react ^3.20.1` + `tiptap-markdown` + `@tiptap/html` — three editor components: ContentEditor (prose + custom blocks + tables), FormattedEditor (prose only), RimEditor (legacy markdown I/O); extensions: Underline, TextAlign, Typography (input-only), CharacterCount, Table/TableRow/TableHeader/TableCell; custom VerseQuote/PracticeSuggestion/Callout + VariableNode for `{{token}}` pills |
+| Rich text editor | BlockNote v0.47.1 | `@blocknote/core`, `@blocknote/react`, `@blocknote/mantine`, `@blocknote/server-util` — replaced Tiptap entirely in session 69. Two components: `RimBlockEditor` (full) and `RimProseEditor` (prose). Custom Dharma blocks: VerseQuote, PracticeSuggestion, Callout. |
+| Footer suppression | `components/FooterWrapper.tsx` | Newsletter footer suppressed on `/admin/*`, `/account/*`, `/lessons/*`, `/course/*` |
 | File storage | Vercel Blob | `@vercel/blob` + `@vercel/blob/client` — client-side upload pattern (browser → Blob direct, bypasses 4.5 MB serverless limit); max 500 MB; `BLOB_READ_WRITE_TOKEN` env var |
 
 ---

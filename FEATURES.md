@@ -45,6 +45,8 @@ Two audiences:
 30. [Learning System — Planned](#30-learning-system--planned)
 31. [Contextual Help System (Manual Sections)](#31-contextual-help-system-manual-sections)
 32. [Admin Member Profile — Section Registry](#32-admin-member-profile--section-registry)
+33. [BlockNote Editor System](#33-blocknote-editor-system)
+34. [Hub Documents — Native](#34-hub-documents--native)
 
 ---
 
@@ -2810,53 +2812,49 @@ When the TEACHER role is granted via admin member detail, `syncHubMembership()` 
 
 ## 28. Editor Standard
 
-**What it does:** Establishes a system-wide rich text editing standard. Every formatted text field in the application uses one of two shared Tiptap editor components. No plain textareas for multi-line formatted content.
+**Current standard (session 69):** BlockNote replaces Tiptap entirely as the editor foundation. Two components:
 
-### Two editors
-| Component | Purpose | Custom blocks | Used for |
-|---|---|---|---|
-| `ContentEditor` | Full editorial editor | ✓ Verse Quote, Practice Suggestion, Callout | Dharma content written by Jesse or a teacher for members to read |
-| `FormattedEditor` | Standard formatted editor | — | Functional formatted text: communications, descriptions, admin-facing content |
-
-Both are built on Tiptap v3. ContentEditor extends FormattedEditor's base extensions with three custom Tiptap nodes defined in `lib/tiptap-extensions.ts`. They share the same visual design (`rte-` CSS prefix) — only the toolbar differs (ContentEditor adds + Verse, + Practice, + Callout buttons).
-
-### The rule for future development
-- **Multi-line formatted text** → `FormattedEditor` (bold, italic, headings, lists, links)
-- **Dharma content for members** → `ContentEditor` (prose + custom blocks)
-- **Plain `<textarea>`** → only for single-purpose short text: slugs, names, phone numbers, URLs, numeric values, labels, pull quotes, dana messages
-- When in doubt: use `FormattedEditor`. Never use a plain textarea for multi-line content.
-
-### Where each editor is used
-| Location | Field | Component |
+| Component | Purpose | Replaces |
 |---|---|---|
-| LessonEditor | body | ContentEditor |
-| CourseEditor | description | FormattedEditor |
-| MemberDetail (admin) | adminNotes | FormattedEditor |
+| `RimBlockEditor` | Full editor — headings, tables, lists, custom Dharma blocks, slash commands | `ContentEditor` |
+| `RimProseEditor` | Prose only — paragraphs, lists, quotes, formatting toolbar | `FormattedEditor` |
 
-**Program fields (Phase 3 complete — session 54):** Programs now live in Postgres. Program description, confirmationMessage, reminderMessage, and specialNotes are stored as Tiptap JSON in the Program model. The Program Editor uses FormattedEditor for these fields.
+Both store content as **BlockNote JSON** (array of block objects). Both are uncontrolled after mount — `initialContent` is set once, changes fire `onChange`.
 
-### Data format
-All editor fields store **Tiptap JSON** (Prisma `Json?` type). No serialization or parsing needed — Prisma handles JSON natively. Editors accept JSON or null as their `value` prop and emit JSON via `onChange`.
+**Custom Dharma blocks** (available in `RimBlockEditor` via slash command):
+- `VerseQuote` — italic serif block with optional attribution line. Renders as `.lp-verse-quote`
+- `PracticeSuggestion` — teal-tinted block with "Practice" label. Renders as `.lp-callout`
+- `Callout` — info/note/warning variant. Renders as `.lp-callout-block`
 
-### Rendering
-`lib/renderRichContent.ts` provides two server-side functions:
-- `renderContentBody(json)` → HTML string (includes custom blocks)
-- `renderFormattedText(json)` → HTML string (prose only)
+Defined in `lib/blockNoteCustomBlocks.tsx`. Exports `rimBlockSchema` (full) and `rimProseSchema` (prose-only).
 
-Both use `@tiptap/html` `generateHTML()`. Output is used with `dangerouslySetInnerHTML` on rendered pages.
+**Theme:** `lib/blockNoteTheme.ts` — RIM design tokens applied to BlockNote's Mantine theme system.
 
-### Key files
-- `components/ContentEditor.tsx` — full editorial editor with custom blocks
-- `components/FormattedEditor.tsx` — standard formatted editor
-- `lib/tiptap-extensions.ts` — VerseQuote, PracticeSuggestion, Callout Tiptap nodes
-- `lib/renderRichContent.ts` — server-side JSON → HTML rendering
-- `components/RimEditor.tsx` — legacy markdown-based Tiptap editor (still used by 8 hub components and EmailTemplateEditor; outputs/accepts markdown strings, not JSON)
+**`minimal` prop on `RimProseEditor`:** strips toolbar to Bold + Italic + Link only. Not used by default — removed from `AdminNotesSection` in session 69.
+
+**`legacyHtml` prop on both editors:** accepts pre-rendered HTML from server for Tiptap → BlockNote import on mount. Used when editing records that were created before the BlockNote migration.
+
+**Key files:**
+- `components/RimBlockEditor.tsx`
+- `components/RimProseEditor.tsx`
+- `lib/blockNoteCustomBlocks.tsx`
+- `lib/blockNoteTheme.ts`
+- `lib/renderRichContent.ts` — client-safe: `renderBlockNoteHtml()`, `extractBlockNoteText()`, `isBlockNoteJSON()`, `isRawHtml()`
+- `lib/renderRichContentServer.ts` — server-only (`import "server-only"`): `renderContentBodyAsync()`, `renderFormattedTextAsync()`, `extractTextAsync()`
+
+**Render pipeline:**
+- Server components: import from `lib/renderRichContentServer.ts` — handles BlockNote JSON via `@blocknote/server-util` (dynamically imported, JSDOM kept out of client bundles)
+- Client components that display stored content: receive pre-rendered `bodyHtml` string from server parent — never call async render functions directly
+- `@blocknote/server-util` is always dynamically imported (`await import(...)`) to prevent Turbopack build-time evaluation
 
 **🔧 Technical notes:**
-- Custom block CSS classes: PracticeSuggestion → `lp-callout` (shared with Sanity PortableText `practiceCallout` on program pages), Callout → `lp-callout-block`, VerseQuote → `lp-verse-quote`
-- Markdown extension (`tiptap-markdown`) configured with `transformPastedText: true` — pasting Markdown from other editors (Bear, etc.) auto-converts to formatted content
-- `rte-` prefix for all editor CSS. Custom block previews inside the editor use `[data-type]` attribute selectors.
-- RimEditor remains for hub conversations, announcements, schedule notes, email templates — these fields use markdown strings (`String?`) and don't need Tiptap JSON. RimEditor and FormattedEditor coexist but serve different storage patterns.
+- BlockNote is **free/open source** (MIT). Monthly pricing on blocknotejs.org is for their cloud hosting service — not used here. Content stays in Neon.
+- `rimBlockSchema` and `rimProseSchema` are passed to `useCreateBlockNote({ schema })` — required for custom blocks to work correctly
+- The `legacyHtml` prop uses `editor.tryParseHTMLToBlocks(html)` on mount — verify this method name against the installed v0.47.1 API
+- `BlockNoteView` is imported from `@blocknote/mantine` (not `@blocknote/react`)
+- No `@blocknote/core/fonts/inter.css` path exists in v0.47.1 — Open Sans from Google Fonts covers it
+
+*Updated: 2026-03-19 (session 69)*
 
 ---
 
@@ -3254,7 +3252,78 @@ Three-column split-pane email client:
 
 ---
 
-*Last updated: 2026-03-19 (session 68)*
+---
+
+## 33. BlockNote Editor System
+
+**What it is:** Complete migration from Tiptap to BlockNote as the editor foundation, completed in session 69. All `Json?` rich-text fields in the database now store BlockNote JSON. Tiptap is fully removed from the codebase.
+
+**Migration scope:** 18 fields across 14 database tables converted. Migration script: `prisma/migrate-to-blocknote.ts`. All 54 existing records were converted successfully (confirmed dry-run post-migration).
+
+**Deleted in session 69:**
+- `components/ContentEditor.tsx`
+- `components/FormattedEditor.tsx`
+- `lib/tiptap-extensions.ts`
+
+**Render architecture:**
+- `lib/renderRichContent.ts` — client-safe, synchronous. `renderBlockNoteHtml()` walks BlockNote JSON to HTML without JSDOM. Also handles legacy rawHtml format.
+- `lib/renderRichContentServer.ts` — server-only (`import "server-only"`). Async functions using `@blocknote/server-util` for accurate HTML including custom blocks. Dynamically imports server-util to prevent JSDOM from entering client bundles.
+- Client components that display rich text receive pre-rendered `bodyHtml` strings from their server component parents — they do not call render functions directly.
+
+**Hub Documents upgrade (also session 69):** `HubDocument` model gained `body Json?`, `isNative Boolean`, and `url String?` (nullable). Native documents are created/edited within the platform using `RimBlockEditor` and exported as Markdown. See §34.
+
+**🔧 Technical notes:**
+- `@blocknote/server-util` must always be dynamically imported. Static import causes JSDOM to be evaluated at Turbopack build time, crashing `createContext`.
+- `renderRichContentServer.ts` retains a Tiptap fallback (`generateHTML` from `@tiptap/html`) for any records that might not have been migrated. This can be removed once the production database is confirmed fully converted.
+- The migration script is idempotent — safe to re-run. It skips records that are already BlockNote JSON or null.
+
+*Added: 2026-03-19 (session 69)*
+
+---
+
+## 34. Hub Documents — Native
+
+**What it is:** Native document creation within hub workspaces. Coordinators can create, edit, view, and export full-featured documents inside any hub — no Google Drive link required.
+
+**Where it lives:** `/account/hub/[slug]/documents/` — existing documents tab, extended.
+
+**New routes:**
+- `/account/hub/[slug]/documents/new` — create a new native document
+- `/account/hub/[slug]/documents/[id]` — view a document (rendered, styled like the manual)
+- `/account/hub/[slug]/documents/[id]/edit` — edit a document in `RimBlockEditor`
+- `/api/hub/[slug]/documents/[id]/export` — download as Markdown (server-side `blocksToMarkdownLossy`)
+
+**New components:**
+- `components/HubDocumentEditor.tsx` — title input + category selector + `RimBlockEditor` + save/delete
+
+**Schema changes (session 69):**
+```prisma
+model HubDocument {
+  url      String?   // nullable — native docs have no URL
+  body     Json?     // BlockNote JSON
+  isNative Boolean   @default(false)
+  updatedAt DateTime @updatedAt
+}
+```
+
+**Documents tab UI:** Split toolbar — "New Document" (creates native doc) and "Add Link" (existing external URL flow). Native docs link to the view page; link docs open external URL.
+
+**Document view page:** Renders body via `renderContentBodyAsync` inside `man-layout-single` CSS — same reading experience as the staff manual. Includes a "Download as Markdown" link.
+
+**Permissions:** Coordinator-only for create/edit/delete. All hub members can view.
+
+**CSS prefix:** `hdoc-` — `hdoc-editor` and `hdoc-view` blocks in `custom.css`.
+
+**🔧 Technical notes:**
+- Markdown export uses `ServerBlockNoteEditor.blocksToMarkdownLossy()` — server-side only, dynamically imported
+- The `HubDocumentFileType` enum still uses `DOC`, `SHEET`, `SLIDE`, `FORM`, `LINK` — native documents use `DOC` with `isNative: true`
+- `updatedAt` was added to `HubDocument` in this migration alongside the other fields
+
+*Added: 2026-03-19 (session 69)*
+
+---
+
+*Last updated: 2026-03-19 (session 69)*
 
 ---
 
