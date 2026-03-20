@@ -17147,33 +17147,39 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   font-style: normal !important;
 }
 
-/* ── Table visibility fix ── */
-.rim-block-editor table,
-.rim-block-editor [data-content-type="table"] table {
-  width: 100% !important;
-  border-collapse: collapse !important;
-  border: 1px solid #e0dcd8 !important;
-  margin: 8px 0 !important;
+/* ── Table visibility — warm border style, override any resets ── */
+.rim-block-editor [data-content-type="table"] {
+  overflow-x: auto !important;
+  display: block !important;
 }
-.rim-block-editor table td,
-.rim-block-editor table th,
+.rim-block-editor [data-content-type="table"] .tableWrapper {
+  display: block !important;
+  overflow: visible !important;
+}
+.rim-block-editor [data-content-type="table"] table {
+  border-collapse: collapse !important;
+  display: table !important;
+  visibility: visible !important;
+}
 .rim-block-editor [data-content-type="table"] td,
 .rim-block-editor [data-content-type="table"] th {
   border: 1px solid #e0dcd8 !important;
   padding: 8px 12px !important;
   font-family: var(--font-doc) !important;
   font-size: 15px !important;
-  min-width: 60px !important;
+  min-width: 80px !important;
   vertical-align: top;
+  display: table-cell !important;
+  visibility: visible !important;
 }
-.rim-block-editor table th,
 .rim-block-editor [data-content-type="table"] th {
   background: #f8f6f4 !important;
   font-weight: 600 !important;
 }
-/* Ensure the table block itself is visible */
-.rim-block-editor [data-content-type="table"] {
-  overflow-x: auto;
+.rim-block-editor [data-content-type="table"] td > p,
+.rim-block-editor [data-content-type="table"] th > p {
+  min-height: 1.5rem;
+  margin: 0;
 }
 
 /* ── Image blocks ── */

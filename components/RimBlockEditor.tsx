@@ -167,7 +167,36 @@ function ToolbarMoreMenu({ context = "default" as EditorContext }) {
         } catch {}
         editor.focus();
       }, 50);
-    } catch {}
+    } catch (err) {
+      console.error("insertBlockAfter failed:", err);
+    }
+    setOpen(false);
+  }
+
+  function insertTable() {
+    try {
+      const block = editor.getTextCursorPosition().block;
+      const emptyCell = [{ type: "text" as const, text: "", styles: {} }];
+      const makeRow = (n: number) => ({
+        cells: Array.from({ length: n }, () => ({
+          type: "tableCell" as const,
+          content: emptyCell,
+          props: { colspan: 1, rowspan: 1 },
+        })),
+      });
+      const tableBlock = {
+        type: "table" as any,
+        content: {
+          type: "tableContent" as const,
+          columnWidths: [undefined, undefined, undefined],
+          rows: [makeRow(3), makeRow(3), makeRow(3)],
+        },
+      };
+      editor.insertBlocks([tableBlock as any], block, "after");
+      setTimeout(() => editor.focus(), 50);
+    } catch (err) {
+      console.error("insertTable failed:", err);
+    }
     setOpen(false);
   }
 
@@ -228,7 +257,8 @@ function ToolbarMoreMenu({ context = "default" as EditorContext }) {
               className="bear-more-item"
               onMouseDown={(e) => {
                 e.preventDefault();
-                insertBlockAfter(item.type);
+                if (item.type === "table") insertTable();
+                else insertBlockAfter(item.type);
               }}
             >
               {item.icon && <span className="bear-more-icon">{item.icon}</span>}
@@ -470,6 +500,10 @@ function EmptyLinePill({ context }: { context: EditorContext }) {
       if (showTimer.current) { clearTimeout(showTimer.current); showTimer.current = null; }
       const sel = editor.getSelection();
       if (sel) { setShow(false); return; }
+      // Don't show pill on non-text blocks (image, table, etc.)
+      const block = editor.getTextCursorPosition().block;
+      const nonTextBlocks = ["image", "table", "video", "audio", "file"];
+      if (block && nonTextBlocks.includes(block.type)) { setShow(false); return; }
       try { setActiveStyles(editor.getActiveStyles()); } catch { setActiveStyles({}); }
       if (isBlockEmpty()) {
         updatePos();
@@ -519,7 +553,36 @@ function EmptyLinePill({ context }: { context: EditorContext }) {
         } catch {}
         editor.focus();
       }, 50);
-    } catch {}
+    } catch (err) {
+      console.error("insertBlockAfter failed:", err);
+    }
+    setShow(false);
+  }
+
+  function insertTable() {
+    try {
+      const block = editor.getTextCursorPosition().block;
+      const emptyCell = [{ type: "text" as const, text: "", styles: {} }];
+      const makeRow = (n: number) => ({
+        cells: Array.from({ length: n }, () => ({
+          type: "tableCell" as const,
+          content: emptyCell,
+          props: { colspan: 1, rowspan: 1 },
+        })),
+      });
+      const tableBlock = {
+        type: "table" as any,
+        content: {
+          type: "tableContent" as const,
+          columnWidths: [undefined, undefined, undefined],
+          rows: [makeRow(3), makeRow(3), makeRow(3)],
+        },
+      };
+      editor.insertBlocks([tableBlock as any], block, "after");
+      setTimeout(() => editor.focus(), 50);
+    } catch (err) {
+      console.error("insertTable failed:", err);
+    }
     setShow(false);
   }
 
@@ -554,7 +617,7 @@ function EmptyLinePill({ context }: { context: EditorContext }) {
         <span className="bear-pill__sep" />
 
         <button className="bear-pill__btn"
-          onMouseDown={(e) => { e.preventDefault(); insertBlockAfter("table"); }} title="Insert table">
+          onMouseDown={(e) => { e.preventDefault(); insertTable(); }} title="Insert table">
           <TableIcon size={14} /></button>
         <button className="bear-pill__btn"
           onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); fileRef.current?.click(); }}
@@ -569,12 +632,28 @@ function EmptyLinePill({ context }: { context: EditorContext }) {
         type="file"
         accept="image/*"
         style={{ display: "none" }}
-        onChange={(e) => {
+        onChange={async (e) => {
           const file = e.target.files?.[0];
           if (file && file.type.startsWith("image/")) {
-            const url = URL.createObjectURL(file);
-            insertBlockAfter("image");
-            // TODO: Upload via uploadFile and update block URL
+            try {
+              // Insert empty image block first
+              const block = editor.getTextCursorPosition().block;
+              editor.insertBlocks(
+                [{ type: "image" as any, props: { name: file.name } }],
+                block,
+                "after"
+              );
+              // Find the inserted block (next block after current)
+              const next = editor.getTextCursorPosition().nextBlock;
+              // Upload the file
+              const url = await uploadFile(file);
+              // Update the image block with the uploaded URL
+              if (next && next.type === "image") {
+                editor.updateBlock(next, { props: { url, name: file.name } });
+              }
+            } catch (err) {
+              console.error("Image upload failed:", err);
+            }
           }
           e.target.value = "";
         }}
@@ -608,6 +687,12 @@ export default function RimBlockEditor({
       schema: rimBlockSchema,
       initialContent: hasBlockNoteContent ? value : undefined,
       uploadFile,
+      tables: {
+        splitCells: true,
+        cellBackgroundColor: true,
+        cellTextColor: true,
+        headers: true,
+      },
     },
     []
   );
