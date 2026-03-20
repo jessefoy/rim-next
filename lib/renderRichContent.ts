@@ -78,6 +78,15 @@ function renderBlockNode(block: any): string {
       }).join("")
       return `<table>${rows}</table>`
     }
+    // Custom Dharma blocks
+    case "verseQuote": {
+      const attr = block.props?.attribution
+      return `<div class="lp-verse-quote">${inner}${attr ? `<cite>${attr}</cite>` : ""}</div>${children}`
+    }
+    case "practiceSuggestion":
+      return `<div class="lp-callout">${inner}</div>${children}`
+    case "callout":
+      return `<div class="lp-callout-block">${inner}</div>${children}`
     case "paragraph":
     default:
       return inner ? `<p>${inner}</p>${children}` : (children || "")

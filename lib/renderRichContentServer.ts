@@ -1,45 +1,32 @@
 /**
  * renderRichContentServer.ts
  *
- * Async render functions for SERVER COMPONENTS AND API ROUTES ONLY.
+ * Server-side render functions for SERVER COMPONENTS AND API ROUTES ONLY.
  *
- * Handles both BlockNote JSON (new format) and Tiptap JSON (legacy — present
- * in the database until the migration script has been run).
+ * Uses the client-safe renderBlockNoteHtml() walker from renderRichContent.ts.
+ * Does NOT use @blocknote/server-util — that package depends on @blocknote/react
+ * which calls React.createContext, and Turbopack's SSR bundling mangles it
+ * (TypeError: tj.createContext is not a function).
  *
- * @blocknote/server-util is dynamically imported to prevent Turbopack from
- * evaluating the JSDOM-heavy module at build time.
+ * The client-safe walker handles all standard BlockNote blocks plus custom
+ * Dharma blocks (verseQuote, practiceSuggestion, callout). It produces
+ * correct HTML for all content currently in the database.
  *
  * Never import this file from a client component.
- *
- * TODO: Remove the Tiptap fallback after running prisma/migrate-to-blocknote.ts
- * and confirming all records are converted.
  */
 
 import "server-only"
-import { isBlockNoteJSON, isRawHtml } from "./renderRichContent"
-import { generateHTML } from "@tiptap/html"
-import StarterKit from "@tiptap/starter-kit"
-import Link from "@tiptap/extension-link"
-import Underline from "@tiptap/extension-underline"
-import TextAlign from "@tiptap/extension-text-align"
-import Image from "@tiptap/extension-image"
-import { Table } from "@tiptap/extension-table"
-import TableRow from "@tiptap/extension-table-row"
-import TableHeader from "@tiptap/extension-table-header"
-import TableCell from "@tiptap/extension-table-cell"
+import {
+  isBlockNoteJSON,
+  isRawHtml,
+  renderBlockNoteHtml,
+  extractBlockNoteText,
+} from "./renderRichContent"
 
-const contentExtensions = [
-  StarterKit, Link, Underline,
-  TextAlign.configure({ types: ["heading", "paragraph"] }),
-  Table.configure({ resizable: false }),
-  TableRow, TableHeader, TableCell,
-]
-
-const formattedExtensions = [
-  StarterKit, Link, Underline,
-  TextAlign.configure({ types: ["heading", "paragraph"] }),
-  Image,
-]
+// ── Legacy Tiptap support ───────────────────────────────────────────────────
+// Kept for any records that might not have been migrated yet.
+// Uses @tiptap/html which throws at call time in Node ("use @tiptap/html/server
+// instead") but @tiptap/html/server is the correct import for Node environments.
 
 function isTiptapJSON(json: any): boolean {
   return (
@@ -51,16 +38,54 @@ function isTiptapJSON(json: any): boolean {
   )
 }
 
-// ── BlockNote server renderer — lazy-loaded ───────────────────────────────────
+let tiptapRenderContent: ((json: any) => string) | null = null
+let tiptapRenderFormatted: ((json: any) => string) | null = null
 
-async function blockNoteToHTML(json: any[]): Promise<string> {
+async function ensureTiptapRenderers() {
+  if (tiptapRenderContent) return
   try {
-    const { ServerBlockNoteEditor } = await import("@blocknote/server-util")
-    const editor = ServerBlockNoteEditor.create()
-    return await editor.blocksToHTMLLossy(json)
+    const [
+      { generateHTML },
+      { default: StarterKit },
+      { default: Link },
+      { default: Underline },
+      { default: TextAlign },
+      { default: Image },
+      { Table },
+      { default: TableRow },
+      { default: TableHeader },
+      { default: TableCell },
+    ] = await Promise.all([
+      import("@tiptap/html/server"),
+      import("@tiptap/starter-kit"),
+      import("@tiptap/extension-link"),
+      import("@tiptap/extension-underline"),
+      import("@tiptap/extension-text-align"),
+      import("@tiptap/extension-image"),
+      import("@tiptap/extension-table"),
+      import("@tiptap/extension-table-row"),
+      import("@tiptap/extension-table-header"),
+      import("@tiptap/extension-table-cell"),
+    ])
+
+    const contentExts = [
+      StarterKit, Link, Underline,
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      Table.configure({ resizable: false }),
+      TableRow, TableHeader, TableCell,
+    ]
+    const formattedExts = [
+      StarterKit, Link, Underline,
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      Image,
+    ]
+
+    tiptapRenderContent = (json: any) => generateHTML(json, contentExts)
+    tiptapRenderFormatted = (json: any) => generateHTML(json, formattedExts)
   } catch (e) {
-    console.error("[renderRichContentServer] BlockNote render failed:", e)
-    return ""
+    console.error("[renderRichContentServer] Tiptap renderer init failed:", e)
+    tiptapRenderContent = () => ""
+    tiptapRenderFormatted = () => ""
   }
 }
 
@@ -73,10 +98,10 @@ async function blockNoteToHTML(json: any[]): Promise<string> {
 export async function renderContentBodyAsync(json: any): Promise<string> {
   if (!json) return ""
   if (isRawHtml(json)) return json.html
-  if (isBlockNoteJSON(json)) return blockNoteToHTML(json)
-  // Legacy Tiptap JSON — present until migration script is run
+  if (isBlockNoteJSON(json)) return renderBlockNoteHtml(json)
   if (isTiptapJSON(json)) {
-    try { return generateHTML(json, contentExtensions) } catch { return "" }
+    await ensureTiptapRenderers()
+    try { return tiptapRenderContent!(json) } catch { return "" }
   }
   return ""
 }
@@ -87,10 +112,10 @@ export async function renderContentBodyAsync(json: any): Promise<string> {
  */
 export async function renderFormattedTextAsync(json: any): Promise<string> {
   if (!json) return ""
-  if (isBlockNoteJSON(json)) return blockNoteToHTML(json)
-  // Legacy Tiptap JSON — present until migration script is run
+  if (isBlockNoteJSON(json)) return renderBlockNoteHtml(json)
   if (isTiptapJSON(json)) {
-    try { return generateHTML(json, formattedExtensions) } catch { return "" }
+    await ensureTiptapRenderers()
+    try { return tiptapRenderFormatted!(json) } catch { return "" }
   }
   return ""
 }
@@ -100,11 +125,13 @@ export async function renderFormattedTextAsync(json: any): Promise<string> {
  */
 export async function extractTextAsync(json: any): Promise<string> {
   if (!json) return ""
-  let html = ""
-  if (isBlockNoteJSON(json)) {
-    html = await blockNoteToHTML(json)
-  } else if (isTiptapJSON(json)) {
-    try { html = generateHTML(json, formattedExtensions) } catch { return "" }
+  if (isBlockNoteJSON(json)) return extractBlockNoteText(json)
+  if (isTiptapJSON(json)) {
+    await ensureTiptapRenderers()
+    try {
+      const html = tiptapRenderFormatted!(json)
+      return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
+    } catch { return "" }
   }
-  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
+  return ""
 }

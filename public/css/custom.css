@@ -16337,6 +16337,7 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .ls-question--correct { background: #f0f7f3; border-color: #b8dcca; }
 .ls-question--incorrect { background: #fdf4f3; border-color: #f0c4be; }
 .ls-question__text { font-family: var(--font-sans); font-size: 16px; color: var(--rim-text); line-height: 1.55; margin: 0 0 14px; }
+.ls-question__text p { display: inline; margin: 0; }
 .ls-question__num { color: var(--rim-text-muted); margin-right: 6px; }
 
 /* Options — selectable */
