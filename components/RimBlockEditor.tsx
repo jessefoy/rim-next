@@ -755,16 +755,18 @@ function ImageAlignOverlay() {
       overlay.addEventListener("mouseenter", clearHideTimer);
       overlay.addEventListener("mouseleave", startHideTimer);
 
-      // Insert into the image block's DOM — inside the block-outer wrapper
-      const blockOuter = imgBlockEl.closest(".bn-block-outer") || imgBlockEl.closest("[data-id]");
-      if (blockOuter) {
-        (blockOuter as HTMLElement).style.position = "relative";
+      // Insert into the image block's visual wrapper so it sits ON the image
+      const visualWrapper = imgBlockEl.querySelector(".bn-visual-media-wrapper")
+        || imgBlockEl.querySelector(".bn-file-block-content-wrapper")
+        || imgBlockEl;
+      if (visualWrapper) {
+        (visualWrapper as HTMLElement).style.position = "relative";
         overlay.style.position = "absolute";
-        overlay.style.top = "8px";
+        overlay.style.bottom = "8px";
         overlay.style.left = "50%";
         overlay.style.transform = "translateX(-50%)";
         overlay.style.zIndex = "200";
-        blockOuter.appendChild(overlay);
+        visualWrapper.appendChild(overlay);
       }
 
       currentOverlay = overlay;
@@ -804,6 +806,92 @@ function ImageAlignOverlay() {
   return null; // No React rendering — uses DOM injection
 }
 
+/* ── Toolbar block-type dropdown ──────────────────────────────────────────
+   Shows current block type (¶, H2, H3, etc.) with dropdown to switch.
+   ──────────────────────────────────────────────────────────────────────── */
+
+function ToolbarBlockTypeSelect() {
+  const editor = useBlockNoteEditor();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const [activeBlock, setActiveBlock] = useState<string>("paragraph");
+  const [activeLevel, setActiveLevel] = useState<number>(0);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(e: PointerEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [open]);
+
+  useEditorSelectionChange(() => {
+    try {
+      const block = editor.getTextCursorPosition().block;
+      setActiveBlock(block?.type ?? "paragraph");
+      setActiveLevel((block?.props as any)?.level ?? 0);
+    } catch {}
+  });
+
+  function setBlockType(type: string, props?: Record<string, any>) {
+    try {
+      editor.focus();
+      editor.updateBlock(editor.getTextCursorPosition().block, { type: type as any, props });
+    } catch {}
+    setOpen(false);
+  }
+
+  // Label for the current block type
+  const label = activeBlock === "heading" && activeLevel === 2 ? "H2"
+    : activeBlock === "heading" && activeLevel === 3 ? "H3"
+    : activeBlock === "bulletListItem" ? "•"
+    : activeBlock === "numberedListItem" ? "1."
+    : activeBlock === "quote" ? "❝"
+    : "¶";
+
+  const items = [
+    { label: "Paragraph", short: "¶", type: "paragraph", match: activeBlock === "paragraph" },
+    { label: "Heading 2", short: "H2", type: "heading", props: { level: 2 }, match: activeBlock === "heading" && activeLevel === 2 },
+    { label: "Heading 3", short: "H3", type: "heading", props: { level: 3 }, match: activeBlock === "heading" && activeLevel === 3 },
+    { label: "Bullet list", short: "•", type: "bulletListItem", match: activeBlock === "bulletListItem" },
+    { label: "Numbered list", short: "1.", type: "numberedListItem", match: activeBlock === "numberedListItem" },
+    { label: "Quote", short: "❝", type: "quote", match: activeBlock === "quote" },
+  ];
+
+  return (
+    <div className="bear-more-wrap" ref={ref}>
+      <button
+        type="button"
+        className={`bear-dd-btn${open ? " bear-dd-btn--open" : ""}`}
+        onMouseDown={(e) => { e.preventDefault(); setOpen(!open); }}
+        title="Block type"
+      >
+        <span style={{ fontWeight: 700, fontSize: 13, minWidth: 18, textAlign: "center" }}>{label}</span>
+        <CaretIcon />
+      </button>
+      {open && (
+        <div className="bear-more-dropdown" onPointerDown={(e) => e.stopPropagation()}>
+          {items.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              className={`bear-more-item${item.match ? " bear-more-item--active" : ""}`}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                setBlockType(item.type, item.props);
+              }}
+            >
+              <span style={{ fontWeight: 600, minWidth: 24 }}>{item.short}</span>
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Conditional formatting toolbar ───────────────────────────────────────
    Hides the toolbar for image/table blocks (they have their own controls).
    ──────────────────────────────────────────────────────────────────────── */
@@ -825,6 +913,7 @@ function ConditionalFormattingToolbar({ context }: { context: EditorContext }) {
 
   return (
     <FormattingToolbar>
+      <ToolbarBlockTypeSelect key="blockType" />
       <BasicTextStyleButton key="bold" basicTextStyle="bold" />
       <BasicTextStyleButton key="italic" basicTextStyle="italic" />
       <BasicTextStyleButton key="underline" basicTextStyle="underline" />
