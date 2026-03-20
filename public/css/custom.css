@@ -17180,57 +17180,42 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   font-family: var(--font-doc) !important;
 }
 
-/* ── Unified Editor Menu (uem) ─────────────────────────────────────────
-   One contextual menu for all editor interactions:
-   - Appears above text selection (with inline B/I/U/Link row)
-   - Appears below cursor on empty lines and "/" commands
+/* ── Unified Editor Menu — horizontal pill toolbar ─────────────────────
+   One toolbar for all editor interactions:
+   - Appears above text selection: [B] [I] [U] [🔗] | [H▾] [≡▾] [+▾]
+   - Appears below cursor on empty paragraphs: [H▾] [≡▾] [+▾]
+   Same component, same CSS, different trigger.
    ──────────────────────────────────────────────────────────────────────── */
 
-/* Menu panel — standalone (empty-line / slash command float) */
-.uem {
+/* Strip Mantine popover chrome only when it wraps our toolbar.
+   :has() scopes this so BlockNote's built-in popovers (link editor, etc.)
+   keep their normal styling. overflow:visible lets dropdowns escape. */
+.rim-block-editor .mantine-Popover-dropdown:has(.uem-bar) {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+/* The pill toolbar */
+.uem-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px;
   background: #ffffff;
   border: 1px solid #e0dcd8;
-  border-radius: 10px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
-  padding: 6px;
-  min-width: 190px;
-  max-width: 230px;
+  border-radius: 24px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
   font-family: var(--font-doc);
+  white-space: nowrap;
 }
 
-/* When rendered inside BlockNote's popover (FormattingToolbarController),
-   the popover already provides chrome — strip ours */
-.bn-container .uem,
-.mantine-Popover-dropdown .uem {
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  border-radius: 0;
-  padding: 4px 2px;
-  min-width: 180px;
-}
-
-/* Style the popover wrapper itself for the selection menu */
-.rim-block-editor .mantine-Popover-dropdown {
-  border-radius: 12px !important;
-  border: 1px solid #e0dcd8 !important;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1) !important;
-  padding: 0 !important;
-  overflow: hidden;
-}
-
-/* ── Inline formatting row (top of selection menu) ── */
-.uem__inline-row {
-  display: flex;
-  gap: 2px;
-  padding: 4px 4px 6px;
-  border-bottom: 1px solid #f0eeec;
-  margin-bottom: 4px;
-}
-
-.uem__inline-btn {
-  width: 34px;
-  height: 34px;
+/* Buttons */
+.uem-bar__btn {
+  width: 32px;
+  height: 32px;
   border: none;
   background: none;
   border-radius: 8px;
@@ -17243,43 +17228,58 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   justify-content: center;
   transition: background 0.12s, color 0.12s;
   line-height: 1;
+  flex-shrink: 0;
 }
-.uem__inline-btn:hover {
+.uem-bar__btn:hover {
   background: var(--rim-bg-accent);
   color: var(--rim-text);
 }
-.uem__inline-btn--active {
+.uem-bar__btn--active {
   background: var(--rim-bg-accent);
   color: var(--rim-mid);
 }
 
-/* ── Sections ── */
-.uem__section {
-  padding: 2px 0;
-}
-.uem__section + .uem__section {
-  border-top: 1px solid #f0eeec;
-  margin-top: 2px;
-  padding-top: 4px;
-}
-
-.uem__section-label {
-  display: block;
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--rim-text-muted);
-  padding: 4px 8px 2px;
+/* Separator between inline formatting and block dropdowns */
+.uem-bar__sep {
+  width: 1px;
+  height: 20px;
+  background: #e0dcd8;
+  margin: 0 4px;
+  flex-shrink: 0;
 }
 
-/* ── Menu items ── */
-.uem__item {
+/* Dropdown trigger wrapper */
+.uem-bar__group {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Dropdown panel — opens below the button, centered */
+.uem-bar__dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ffffff;
+  border: 1px solid #e0dcd8;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 4px;
+  min-width: 150px;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  animation: uem-fade-in 0.1s ease;
+}
+
+/* Dropdown items */
+.uem-bar__dd-item {
   display: flex;
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 6px 8px;
+  padding: 7px 12px;
   border: none;
   background: none;
   border-radius: 6px;
@@ -17291,31 +17291,22 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   text-align: left;
   transition: background 0.1s;
 }
-.uem__item:hover {
+.uem-bar__dd-item:hover {
   background: var(--rim-bg-accent);
 }
-.uem__item--active {
+.uem-bar__dd-item--active {
   color: var(--rim-mid);
   font-weight: 600;
 }
 
-.uem__item-icon {
+.uem-bar__dd-icon {
   display: flex;
   align-items: center;
   color: var(--rim-text-muted);
 }
 
-/* ── Empty state ── */
-.uem__empty {
-  padding: 12px 8px;
-  font-size: 12px;
-  color: var(--rim-text-muted);
-  text-align: center;
-  font-style: italic;
-}
-
-/* ── Floating wrapper (position: fixed from JS) ── */
-.uem__floating {
+/* Floating wrapper for empty-line toolbar (position: fixed from JS) */
+.uem-bar__floating {
   animation: uem-fade-in 0.12s ease;
 }
 
