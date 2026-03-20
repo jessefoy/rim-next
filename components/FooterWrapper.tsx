@@ -7,8 +7,8 @@ export default function FooterWrapper() {
   const suppress =
     pathname.startsWith("/admin") ||
     pathname.startsWith("/account") ||
-    pathname.startsWith("/lessons") ||
-    pathname.startsWith("/course");
+    pathname.startsWith("/lessons/") ||
+    pathname.startsWith("/course/");
   if (suppress) return null;
   return <Footer />;
 }
