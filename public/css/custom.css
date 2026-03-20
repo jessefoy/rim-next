@@ -17163,8 +17163,7 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   -webkit-font-smoothing: antialiased;
 }
 
-/* ── Floating pill toolbar (appears on text selection) ── */
-.rim-block-editor .bn-toolbar,
+/* ── Pill toolbar for RimProseEditor (still uses FormattingToolbar) ── */
 .rim-prose-editor .bn-toolbar {
   border-radius: 24px !important;
   padding: 4px 8px !important;
@@ -17173,10 +17172,6 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08) !important;
   background: #fff !important;
 }
-
-/* Toolbar buttons — clean, round */
-.rim-block-editor .bn-toolbar .mantine-ActionIcon-root,
-.rim-block-editor .bn-toolbar .mantine-Button-root,
 .rim-prose-editor .bn-toolbar .mantine-ActionIcon-root,
 .rim-prose-editor .bn-toolbar .mantine-Button-root {
   border-radius: 8px !important;
@@ -17185,168 +17180,148 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   font-family: var(--font-doc) !important;
 }
 
-/* ── Bear-style persistent bottom bar ── */
-.bear-bar {
-  position: sticky;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border-top: 1px solid #e8e4e0;
-  z-index: 50;
+/* ── Unified Editor Menu (uem) ─────────────────────────────────────────
+   One contextual menu for all editor interactions:
+   - Appears above text selection (with inline B/I/U/Link row)
+   - Appears below cursor on empty lines and "/" commands
+   ──────────────────────────────────────────────────────────────────────── */
+
+/* Menu panel — standalone (empty-line / slash command float) */
+.uem {
+  background: #ffffff;
+  border: 1px solid #e0dcd8;
+  border-radius: 10px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+  padding: 6px;
+  min-width: 190px;
+  max-width: 230px;
   font-family: var(--font-doc);
 }
-.bear-bar--collapsed {
-  position: sticky;
-  bottom: 0;
-  display: flex;
-  justify-content: center;
-  padding: 4px;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border-top: 1px solid #e8e4e0;
-  z-index: 50;
+
+/* When rendered inside BlockNote's popover (FormattingToolbarController),
+   the popover already provides chrome — strip ours */
+.bn-container .uem,
+.mantine-Popover-dropdown .uem {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 4px 2px;
+  min-width: 180px;
 }
 
-/* Bottom bar buttons */
-.bear-bar__btn {
-  background: none;
+/* Style the popover wrapper itself for the selection menu */
+.rim-block-editor .mantine-Popover-dropdown {
+  border-radius: 12px !important;
+  border: 1px solid #e0dcd8 !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1) !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+/* ── Inline formatting row (top of selection menu) ── */
+.uem__inline-row {
+  display: flex;
+  gap: 2px;
+  padding: 4px 4px 6px;
+  border-bottom: 1px solid #f0eeec;
+  margin-bottom: 4px;
+}
+
+.uem__inline-btn {
+  width: 34px;
+  height: 34px;
   border: none;
+  background: none;
+  border-radius: 8px;
   cursor: pointer;
   font-family: var(--font-doc);
   font-size: 14px;
   color: var(--rim-text-muted);
-  width: 34px;
-  height: 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
   transition: background 0.12s, color 0.12s;
-  flex-shrink: 0;
   line-height: 1;
 }
-.bear-bar__btn:hover {
+.uem__inline-btn:hover {
   background: var(--rim-bg-accent);
   color: var(--rim-text);
 }
-.bear-bar__btn--active {
+.uem__inline-btn--active {
   background: var(--rim-bg-accent);
   color: var(--rim-mid);
-  font-weight: 600;
-}
-.bear-bar__btn--dropdown {
-  font-weight: 600;
-  font-size: 15px;
 }
 
-/* Separator */
-.bear-bar__sep {
-  width: 1px;
-  height: 20px;
-  background: #e0dcd8;
-  margin: 0 4px;
-  flex-shrink: 0;
+/* ── Sections ── */
+.uem__section {
+  padding: 2px 0;
+}
+.uem__section + .uem__section {
+  border-top: 1px solid #f0eeec;
+  margin-top: 2px;
+  padding-top: 4px;
 }
 
-/* Toggle (show/hide bar) */
-.bear-bar__toggle {
-  background: none;
-  border: none;
-  cursor: pointer;
+.uem__section-label {
+  display: block;
   font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   color: var(--rim-text-muted);
-  width: 28px;
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  margin-left: auto;
-  transition: background 0.12s, color 0.12s;
-  opacity: 0.6;
-}
-.bear-bar__toggle:hover {
-  background: var(--rim-bg-accent);
-  color: var(--rim-text);
-  opacity: 1;
+  padding: 4px 8px 2px;
 }
 
-/* Dropdown group (wrapper for button + popup) */
-.bear-bar__group {
-  position: relative;
+/* ── Menu items ── */
+.uem__item {
   display: flex;
   align-items: center;
-}
-
-/* Dropdown menus — open upward from bar */
-.bear-bar__dropdown {
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 0;
-  background: #fff;
-  border: 1px solid #e0dcd8;
-  border-radius: 10px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  padding: 4px;
-  min-width: 160px;
-  z-index: 200;
-  display: flex;
-  flex-direction: column;
-}
-.bear-bar__dropdown--right {
-  left: auto;
-  right: 0;
-}
-
-.bear-bar__dropdown-item {
-  background: none;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
   border: none;
+  background: none;
+  border-radius: 6px;
   cursor: pointer;
   font-family: var(--font-doc);
   font-size: 13px;
   font-weight: 500;
   color: var(--rim-text);
   text-align: left;
-  padding: 8px 12px;
-  border-radius: 6px;
   transition: background 0.1s;
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
-.bear-bar__dropdown-item:hover {
+.uem__item:hover {
   background: var(--rim-bg-accent);
 }
-.bear-bar__dropdown-item--active {
+.uem__item--active {
   color: var(--rim-mid);
   font-weight: 600;
 }
 
-.bear-bar__dropdown-icon {
+.uem__item-icon {
   display: flex;
   align-items: center;
   color: var(--rim-text-muted);
 }
 
-/* Mobile: tighter bottom bar */
-@media (max-width: 430px) {
-  .bear-bar {
-    padding: 6px 8px;
-    gap: 2px;
-  }
-  .bear-bar__btn {
-    width: 30px;
-    height: 30px;
-    font-size: 13px;
-  }
+/* ── Empty state ── */
+.uem__empty {
+  padding: 12px 8px;
+  font-size: 12px;
+  color: var(--rim-text-muted);
+  text-align: center;
+  font-style: italic;
+}
+
+/* ── Floating wrapper (position: fixed from JS) ── */
+.uem__floating {
+  animation: uem-fade-in 0.12s ease;
+}
+
+@keyframes uem-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* ── Document page wrapper — clean white card on warm bg ── */
