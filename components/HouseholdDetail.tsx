@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
-import RimEditor from "./RimEditor";
+import RimProseEditor from "./RimProseEditor";
 
 const RELATIONSHIP_LABELS: Record<string, string> = {
   SPOUSE: "Spouse",
@@ -38,7 +38,7 @@ interface Household {
   addressCity: string | null;
   addressState: string | null;
   addressZip: string | null;
-  notes: string | null;
+  notes: unknown; // BlockNote JSON
   createdAt: string;
   members: HouseholdMember[];
 }
@@ -69,7 +69,7 @@ export default function HouseholdDetail({ household: initial, isAdmin }: Props) 
   const [addressCity, setAddressCity] = useState(initial.addressCity ?? "");
   const [addressState, setAddressState] = useState(initial.addressState ?? "");
   const [addressZip, setAddressZip] = useState(initial.addressZip ?? "");
-  const [notes, setNotes] = useState(initial.notes ?? "");
+  const [notes, setNotes] = useState<unknown>(initial.notes ?? null);
 
   // Add member
   const [addSearch, setAddSearch] = useState("");
@@ -270,10 +270,10 @@ export default function HouseholdDetail({ household: initial, isAdmin }: Props) 
         </div>
         <div className="adm-form__field">
           <label className="adm-form__label">Notes</label>
-          <RimEditor
-            rows={4}
-            value={notes ?? ""}
-            onChange={setNotes}
+          <RimProseEditor
+            value={notes}
+            onChange={(blocks) => setNotes(blocks)}
+            minHeight={140}
           />
         </div>
         <div className="adm-save-bar">

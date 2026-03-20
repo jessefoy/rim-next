@@ -5,7 +5,7 @@
  *
  * Sections:
  *   Header   — breadcrumb, template name, last-saved metadata
- *   Form     — subject input, body (RimEditor), variables reference, enabled toggle
+ *   Form     — subject input, body (MarkdownEditor), variables reference, enabled toggle
  *   Preview  — modal: POST /api/admin/emails/[slug]/preview → full HTML in iframe
  *   Footer   — Save + Preview buttons
  *
@@ -15,7 +15,7 @@
 import { useState, useRef } from "react";
 import Link from "next/link";
 import { type Editor } from "@tiptap/react";
-import RimEditor from "./RimEditor";
+import MarkdownEditor from "./MarkdownEditor";
 
 interface TemplateData {
   id: string;
@@ -49,7 +49,7 @@ export default function EmailTemplateEditor({ template, userId }: Props) {
     by: template.updatedBy,
   });
 
-  // Ref to the Tiptap editor instance (populated by RimEditor once ready)
+  // Ref to the Tiptap editor instance (populated by MarkdownEditor once ready)
   const editorRef = useRef<Editor | null>(null);
 
   // Preview modal
@@ -154,7 +154,7 @@ export default function EmailTemplateEditor({ template, userId }: Props) {
         <div className="em-chrome-band em-chrome-band--header" aria-hidden="true">
           Rooted In Mindfulness
         </div>
-        <RimEditor
+        <MarkdownEditor
           value={body}
           onChange={setBody}
           rows={12}

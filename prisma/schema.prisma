@@ -189,7 +189,7 @@ model Household {
   addressCity  String?
   addressState String?
   addressZip   String?
-  notes        String?
+  notes        Json?       // BlockNote JSON (RimProseEditor)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

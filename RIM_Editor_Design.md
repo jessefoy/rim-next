@@ -124,6 +124,20 @@ Every place in the system that uses an editor is registered here. When adding a 
 **Used in:** LessonEditor (question body field)
 **Design intent:** Short question text. May include bold/italic for emphasis. Rendered inline with a question number prefix.
 
+### household-notes
+**Editor:** RimProseEditor
+**Custom blocks:** None
+**Output CSS class:** rendered inline in household detail (no wrapper)
+**Used in:** HouseholdDetail
+**Design intent:** Internal admin notes about a household. Plain prose. Not displayed to members.
+
+### email-template (MarkdownEditor — exception)
+**Editor:** MarkdownEditor (Tiptap + tiptap-markdown, NOT BlockNote)
+**Custom blocks:** VariableNode ({{variable}} template tags)
+**Output CSS class:** email HTML (inline styles via marked → juice → Resend)
+**Used in:** EmailTemplateEditor
+**Design intent:** Email template authoring. Input/output is markdown, not BlockNote JSON. The markdown → marked() → juice() → Resend pipeline produces email-safe HTML with inline styles. This is the only editor surface that does NOT use BlockNote. The MarkdownEditor component exists solely for this purpose.
+
 ---
 
 ## Adding a New Context

@@ -1,7 +1,14 @@
 "use client";
 
 /**
- * RimEditor — shared rich text editor for all member-area multi-line inputs.
+ * MarkdownEditor — Tiptap-based markdown editor for email templates.
+ *
+ * This is NOT the standard editor for the platform. For all rich text fields
+ * (notes, messages, documents, descriptions), use RimBlockEditor or RimProseEditor
+ * which store BlockNote JSON. See RIM_Editor_Design.md.
+ *
+ * This editor exists solely for email templates, where markdown → marked() → juice()
+ * → Resend is the correct pipeline for email-safe HTML output.
  *
  * Toolbar groups:
  *   Text marks   — Bold, Italic, Underline
@@ -11,15 +18,9 @@
  *   Utility      — Clear formatting
  *
  * Output: markdown string via tiptap-markdown
- * Input:  markdown string (restored from localStorage draft, DB, etc.)
+ * Input:  markdown string
  *
- * Props mirror a controlled <textarea>:
- *   value     — current markdown string
- *   onChange  — called with updated markdown on every change
- *   rows      — approximate visible height (default 5); maps to min-height
- *   placeholder
- *   className — extra class on the outer wrapper
- *   editorRef — populated with the Tiptap Editor instance once initialised
+ * Has a VariableNode extension for email template {{variables}}.
  *
  * CSS prefix: re-
  */
@@ -89,7 +90,7 @@ function Sep() {
   return <div className="re-toolbar__sep" role="separator" />;
 }
 
-export default function RimEditor({
+export default function MarkdownEditor({
   value,
   onChange,
   placeholder,
