@@ -17139,6 +17139,12 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   font-weight: 700 !important;
   letter-spacing: -0.01em;
 }
+/* Bold — Inter's 700 can feel light; bump to 800 for stronger contrast */
+.rim-block-editor .bn-editor strong,
+.rim-block-editor .bn-editor b {
+  font-weight: 800 !important;
+}
+
 /* Placeholder text */
 .rim-block-editor .bn-editor [data-is-empty-and-focused] [data-placeholder]::before,
 .rim-block-editor .bn-editor .bn-block-content [data-placeholder]::before {

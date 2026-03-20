@@ -95,7 +95,11 @@ function CaretIcon() {
 /* ── Image upload ─────────────────────────────────────────────────────── */
 
 async function uploadFile(file: File): Promise<string> {
-  const blob = await upload(file.name, file, {
+  // Add timestamp to filename to avoid any browser/CDN caching issues
+  const ext = file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : "";
+  const base = file.name.includes(".") ? file.name.slice(0, file.name.lastIndexOf(".")) : file.name;
+  const uniqueName = `${base}-${Date.now()}${ext}`;
+  const blob = await upload(uniqueName, file, {
     access: "public",
     handleUploadUrl: "/api/upload",
   });
@@ -461,6 +465,7 @@ function EmptyLinePill({ context }: { context: EditorContext }) {
   const menuRef = useRef<HTMLDivElement>(null);
   const showTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const nonTextCooldown = useRef<number>(0);
 
   function isBlockEmpty() {
     try {
@@ -503,7 +508,15 @@ function EmptyLinePill({ context }: { context: EditorContext }) {
       // Don't show pill on non-text blocks (image, table, etc.)
       const block = editor.getTextCursorPosition().block;
       const nonTextBlocks = ["image", "table", "video", "audio", "file"];
-      if (block && nonTextBlocks.includes(block.type)) { setShow(false); return; }
+      if (block && nonTextBlocks.includes(block.type)) {
+        setShow(false);
+        // Set cooldown so pill won't immediately steal focus when cursor
+        // moves from image/table to an adjacent empty line
+        nonTextCooldown.current = Date.now();
+        return;
+      }
+      // Skip if we just left a non-text block (800ms cooldown)
+      if (Date.now() - nonTextCooldown.current < 800) { setShow(false); return; }
       try { setActiveStyles(editor.getActiveStyles()); } catch { setActiveStyles({}); }
       if (isBlockEmpty()) {
         updatePos();
@@ -534,12 +547,6 @@ function EmptyLinePill({ context }: { context: EditorContext }) {
 
   function toggleStyle(style: string) {
     try { editor.focus(); editor.toggleStyles({ [style]: true } as any); } catch {}
-  }
-
-  function insertLink() {
-    editor.focus();
-    const url = window.prompt("Link URL:");
-    if (url) { try { editor.createLink(url); } catch {} }
   }
 
   function insertBlockAfter(type: string) {
@@ -610,9 +617,6 @@ function EmptyLinePill({ context }: { context: EditorContext }) {
         <button className={`bear-pill__btn${activeStyles.underline ? " bear-pill__btn--active" : ""}`}
           onMouseDown={(e) => { e.preventDefault(); toggleStyle("underline"); }} title="Underline">
           <u>U</u></button>
-        <button className="bear-pill__btn"
-          onMouseDown={(e) => { e.preventDefault(); insertLink(); }} title="Link">
-          <LinkIcon size={14} /></button>
 
         <span className="bear-pill__sep" />
 
