@@ -4,15 +4,7 @@
  * RimBlockEditor — Bear-inspired block editor for long-form content.
  *
  * Toolbar layout (matches Bear):
- *   [H▾] [≡▾] | [B] [I] [U] [🔗] | [⊞] [📷] [⋯]
- *
- *   H▾  = Heading dropdown (H2, H3, Paragraph)
- *   ≡▾  = Block type dropdown (Bullet, Numbered, Quote)
- *   B/I/U = inline formatting
- *   🔗  = link
- *   ⊞   = insert table
- *   📷  = insert image (drag & drop also supported)
- *   ⋯   = page-specific blocks (Dharma blocks on lessons, etc.)
+ *   [H▾] [≡▾] | [B] [I] [U] [🔗] [≡] | [⊞] [📷] [⋯]
  *
  * Appears on text selection (above) AND on empty paragraphs (below/above).
  * Pill flips above cursor when near viewport bottom.
@@ -27,6 +19,7 @@ import {
   FormattingToolbar,
   BasicTextStyleButton,
   CreateLinkButton,
+  TextAlignButton,
   useBlockNoteEditor,
   useEditorSelectionChange,
 } from "@blocknote/react";
@@ -34,7 +27,6 @@ import { BlockNoteView } from "@blocknote/mantine";
 import { RiQuoteText, RiPlantLine, RiInformationLine } from "react-icons/ri";
 import { rimTheme } from "@/lib/blockNoteTheme";
 import { rimBlockSchema } from "@/lib/blockNoteCustomBlocks";
-import { upload } from "@vercel/blob/client";
 
 /* ── Types ─────────────────────────────────────────────────────────────────── */
 
@@ -94,9 +86,10 @@ function CaretIcon() {
   );
 }
 
-/* ── Image upload helper ──────────────────────────────────────────────── */
+/* ── Image upload helper (lazy import to avoid module-level side effects) ── */
 
 async function uploadFile(file: File): Promise<string> {
+  const { upload } = await import("@vercel/blob/client");
   const blob = await upload(file.name, file, {
     access: "public",
     handleUploadUrl: "/api/upload",
@@ -117,20 +110,26 @@ function useClickOutside(ref: React.RefObject<HTMLElement | null>, open: boolean
   }, [open, ref, onClose]);
 }
 
-/* ── Insert block helper (shared by table + image buttons) ───────────── */
+/* ── Safe insert block helper ──────────────────────────────────────────── */
 
 function useInsertBlock() {
   const editor = useBlockNoteEditor();
   return useCallback((type: string, props?: Record<string, any>) => {
-    const block = editor.getTextCursorPosition().block;
-    editor.insertBlocks([{ type: type as any, props }], block, "after");
-    setTimeout(() => {
-      try {
-        const next = editor.getTextCursorPosition().nextBlock;
-        if (next) editor.setTextCursorPosition(next, "start");
-      } catch {}
-      editor.focus();
-    }, 50);
+    try {
+      const block = editor.getTextCursorPosition().block;
+      const spec: Record<string, any> = { type: type as any };
+      if (props) spec.props = props;
+      editor.insertBlocks([spec as any], block, "after");
+      setTimeout(() => {
+        try {
+          const next = editor.getTextCursorPosition().nextBlock;
+          if (next) editor.setTextCursorPosition(next, "start");
+        } catch {}
+        editor.focus();
+      }, 50);
+    } catch (err) {
+      console.error("RimBlockEditor: insertBlock failed", err);
+    }
   }, [editor]);
 }
 
@@ -146,14 +145,18 @@ function HeadingDropdown() {
   const [activeBlock, setActiveBlock] = useState<string>("");
   const [activeLevel, setActiveLevel] = useState<number>(0);
   useEditorSelectionChange(() => {
-    const block = editor.getTextCursorPosition().block;
-    setActiveBlock(block?.type ?? "");
-    setActiveLevel((block?.props as any)?.level ?? 0);
+    try {
+      const block = editor.getTextCursorPosition().block;
+      setActiveBlock(block?.type ?? "");
+      setActiveLevel((block?.props as any)?.level ?? 0);
+    } catch {}
   });
 
   function setBlockType(type: string, props?: Record<string, any>) {
-    editor.focus();
-    editor.updateBlock(editor.getTextCursorPosition().block, { type: type as any, props });
+    try {
+      editor.focus();
+      editor.updateBlock(editor.getTextCursorPosition().block, { type: type as any, props });
+    } catch {}
     setOpen(false);
   }
 
@@ -202,12 +205,16 @@ function BlockTypeDropdown() {
 
   const [activeBlock, setActiveBlock] = useState<string>("");
   useEditorSelectionChange(() => {
-    setActiveBlock(editor.getTextCursorPosition().block?.type ?? "");
+    try {
+      setActiveBlock(editor.getTextCursorPosition().block?.type ?? "");
+    } catch {}
   });
 
   function setBlockType(type: string) {
-    editor.focus();
-    editor.updateBlock(editor.getTextCursorPosition().block, { type: type as any });
+    try {
+      editor.focus();
+      editor.updateBlock(editor.getTextCursorPosition().block, { type: type as any });
+    } catch {}
     setOpen(false);
   }
 
@@ -245,41 +252,36 @@ function BlockTypeDropdown() {
   );
 }
 
-/* ── Table insert button (⊞) ──────────────────────────────────────────── */
+/* ── Table insert button ──────────────────────────────────────────────── */
 
 function TableInsertButton() {
   const insertBlock = useInsertBlock();
   return (
-    <button
-      type="button"
-      className="bear-dd-btn"
-      onMouseDown={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        insertBlock("table");
-      }}
-      title="Insert table"
-    >
-      <TableIcon size={14} />
-    </button>
+    <div className="bear-more-wrap">
+      <button
+        type="button"
+        className="bear-dd-btn"
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          insertBlock("table");
+        }}
+        title="Insert table"
+      >
+        <TableIcon size={14} />
+      </button>
+    </div>
   );
 }
 
-/* ── Image insert button (📷) ─────────────────────────────────────────── */
+/* ── Image insert button ──────────────────────────────────────────────── */
 
 function ImageInsertButton() {
   const insertBlock = useInsertBlock();
   const fileRef = useRef<HTMLInputElement>(null);
 
-  function handleFile(file: File) {
-    if (!file.type.startsWith("image/")) return;
-    // Insert image block with the file — BlockNote will call uploadFile
-    const url = URL.createObjectURL(file);
-    insertBlock("image", { url, name: file.name });
-  }
-
   return (
-    <>
+    <div className="bear-more-wrap">
       <button
         type="button"
         className="bear-dd-btn"
@@ -299,18 +301,20 @@ function ImageInsertButton() {
         style={{ display: "none" }}
         onChange={(e) => {
           const file = e.target.files?.[0];
-          if (file) handleFile(file);
+          if (file && file.type.startsWith("image/")) {
+            const url = URL.createObjectURL(file);
+            insertBlock("image", { url, name: file.name });
+          }
           e.target.value = "";
         }}
       />
-    </>
+    </div>
   );
 }
 
 /* ── Context menu (⋯) — page-specific insert blocks only ──────────────── */
 
 function ContextMenuButton({ context = "default" as EditorContext }) {
-  const editor = useBlockNoteEditor();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const close = useCallback(() => setOpen(false), []);
@@ -330,7 +334,6 @@ function ContextMenuButton({ context = "default" as EditorContext }) {
     return items;
   }, [context]);
 
-  // Don't render the button if there are no context-specific blocks
   if (insertItems.length === 0) return null;
 
   return (
@@ -381,14 +384,18 @@ function PillHeadingDropdown() {
   const [activeBlock, setActiveBlock] = useState<string>("");
   const [activeLevel, setActiveLevel] = useState<number>(0);
   useEditorSelectionChange(() => {
-    const block = editor.getTextCursorPosition().block;
-    setActiveBlock(block?.type ?? "");
-    setActiveLevel((block?.props as any)?.level ?? 0);
+    try {
+      const block = editor.getTextCursorPosition().block;
+      setActiveBlock(block?.type ?? "");
+      setActiveLevel((block?.props as any)?.level ?? 0);
+    } catch {}
   });
 
   function setBlockType(type: string, props?: Record<string, any>) {
-    editor.focus();
-    editor.updateBlock(editor.getTextCursorPosition().block, { type: type as any, props });
+    try {
+      editor.focus();
+      editor.updateBlock(editor.getTextCursorPosition().block, { type: type as any, props });
+    } catch {}
     setOpen(false);
   }
 
@@ -434,12 +441,16 @@ function PillBlockTypeDropdown() {
 
   const [activeBlock, setActiveBlock] = useState<string>("");
   useEditorSelectionChange(() => {
-    setActiveBlock(editor.getTextCursorPosition().block?.type ?? "");
+    try {
+      setActiveBlock(editor.getTextCursorPosition().block?.type ?? "");
+    } catch {}
   });
 
   function setBlockType(type: string) {
-    editor.focus();
-    editor.updateBlock(editor.getTextCursorPosition().block, { type: type as any });
+    try {
+      editor.focus();
+      editor.updateBlock(editor.getTextCursorPosition().block, { type: type as any });
+    } catch {}
     setOpen(false);
   }
 
@@ -477,7 +488,6 @@ function PillBlockTypeDropdown() {
 }
 
 function PillContextMenu({ context, onAction }: { context: EditorContext; onAction?: () => void }) {
-  const editor = useBlockNoteEditor();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const close = useCallback(() => setOpen(false), []);
@@ -532,56 +542,12 @@ function PillContextMenu({ context, onAction }: { context: EditorContext; onActi
   );
 }
 
-/* ── Pill image button for EmptyLinePill ────────────────────────────────── */
-
-function PillImageButton({ onAction }: { onAction?: () => void }) {
-  const insertBlock = useInsertBlock();
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  function handleFile(file: File) {
-    if (!file.type.startsWith("image/")) return;
-    const url = URL.createObjectURL(file);
-    insertBlock("image", { url, name: file.name });
-    onAction?.();
-  }
-
-  return (
-    <>
-      <button
-        className="bear-pill__btn"
-        onMouseDown={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          fileRef.current?.click();
-        }}
-        title="Insert image"
-      >
-        <ImageIcon size={14} />
-      </button>
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        style={{ display: "none" }}
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) handleFile(file);
-          e.target.value = "";
-        }}
-      />
-    </>
-  );
-}
-
 /* ── Empty-line pill ───────────────────────────────────────────────────
-   When cursor lands in an empty paragraph, the Bear-style pill appears
-   near the cursor: [H▾] [≡▾] | [B] [I] [U] [🔗] | [⊞] [📷] [⋯]
-
    Flips above cursor when near viewport bottom.
    150ms debounce prevents flash when typing through Enter.
    ──────────────────────────────────────────────────────────────────────── */
 
-const PILL_HEIGHT = 48; // approximate pill height for flip detection
+const PILL_HEIGHT = 48;
 
 function EmptyLinePill({ context }: { context: EditorContext }) {
   const editor = useBlockNoteEditor();
@@ -604,44 +570,48 @@ function EmptyLinePill({ context }: { context: EditorContext }) {
   }
 
   function updatePos() {
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return;
-    const range = sel.getRangeAt(0);
-    let rect = range.getBoundingClientRect();
-    if (rect.height === 0 && rect.width === 0) {
-      const el =
-        range.startContainer instanceof HTMLElement
-          ? range.startContainer
-          : range.startContainer.parentElement;
-      if (el) rect = el.getBoundingClientRect();
-    }
+    try {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return;
+      const range = sel.getRangeAt(0);
+      let rect = range.getBoundingClientRect();
+      if (rect.height === 0 && rect.width === 0) {
+        const el =
+          range.startContainer instanceof HTMLElement
+            ? range.startContainer
+            : range.startContainer.parentElement;
+        if (el) rect = el.getBoundingClientRect();
+      }
 
-    const viewportH = window.innerHeight;
-    const spaceBelow = viewportH - rect.bottom;
-    const shouldFlip = spaceBelow < PILL_HEIGHT + 24;
+      const viewportH = window.innerHeight;
+      const spaceBelow = viewportH - rect.bottom;
+      const shouldFlip = spaceBelow < PILL_HEIGHT + 24;
 
-    setFlipped(shouldFlip);
-    if (shouldFlip) {
-      // Place above the cursor line
-      setPos({ top: rect.top - PILL_HEIGHT - 8, left: Math.max(16, rect.left - 80) });
-    } else {
-      // Place below the cursor line
-      setPos({ top: rect.bottom + 8, left: Math.max(16, rect.left - 80) });
-    }
+      setFlipped(shouldFlip);
+      if (shouldFlip) {
+        setPos({ top: rect.top - PILL_HEIGHT - 8, left: Math.max(16, rect.left - 80) });
+      } else {
+        setPos({ top: rect.bottom + 8, left: Math.max(16, rect.left - 80) });
+      }
+    } catch {}
   }
 
   useEditorSelectionChange(() => {
-    if (showTimer.current) { clearTimeout(showTimer.current); showTimer.current = null; }
+    try {
+      if (showTimer.current) { clearTimeout(showTimer.current); showTimer.current = null; }
 
-    const sel = editor.getSelection();
-    if (sel) { setShow(false); return; }
+      const sel = editor.getSelection();
+      if (sel) { setShow(false); return; }
 
-    try { setActiveStyles(editor.getActiveStyles()); } catch { setActiveStyles({}); }
+      try { setActiveStyles(editor.getActiveStyles()); } catch { setActiveStyles({}); }
 
-    if (isBlockEmpty()) {
-      updatePos();
-      showTimer.current = setTimeout(() => setShow(true), 150);
-    } else {
+      if (isBlockEmpty()) {
+        updatePos();
+        showTimer.current = setTimeout(() => setShow(true), 150);
+      } else {
+        setShow(false);
+      }
+    } catch {
       setShow(false);
     }
   });
@@ -667,14 +637,18 @@ function EmptyLinePill({ context }: { context: EditorContext }) {
   }, [show]);
 
   function toggleStyle(style: string) {
-    editor.focus();
-    editor.toggleStyles({ [style]: true } as any);
+    try {
+      editor.focus();
+      editor.toggleStyles({ [style]: true } as any);
+    } catch {}
   }
 
   function insertLink() {
     editor.focus();
     const url = window.prompt("Link URL:");
-    if (url) editor.createLink(url);
+    if (url) {
+      try { editor.createLink(url); } catch {}
+    }
   }
 
   const insertBlock = useInsertBlock();
@@ -689,13 +663,11 @@ function EmptyLinePill({ context }: { context: EditorContext }) {
       onMouseDown={(e) => e.preventDefault()}
     >
       <div className="bear-pill">
-        {/* Block type dropdowns */}
         <PillHeadingDropdown />
         <PillBlockTypeDropdown />
 
         <span className="bear-pill__sep" />
 
-        {/* Inline formatting */}
         <button
           className={`bear-pill__btn${activeStyles.bold ? " bear-pill__btn--active" : ""}`}
           onMouseDown={(e) => { e.preventDefault(); toggleStyle("bold"); }}
@@ -719,7 +691,6 @@ function EmptyLinePill({ context }: { context: EditorContext }) {
 
         <span className="bear-pill__sep" />
 
-        {/* Insert blocks */}
         <button
           className="bear-pill__btn"
           onMouseDown={(e) => {
@@ -731,9 +702,6 @@ function EmptyLinePill({ context }: { context: EditorContext }) {
           title="Insert table"
         ><TableIcon size={14} /></button>
 
-        <PillImageButton onAction={() => setShow(false)} />
-
-        {/* Context-specific special blocks */}
         <PillContextMenu context={context} onAction={() => setShow(false)} />
       </div>
     </div>
@@ -743,12 +711,12 @@ function EmptyLinePill({ context }: { context: EditorContext }) {
 /* ── Main editor ────────────────────────────────────────────────────────── */
 
 interface Props {
-  value: any;            // BlockNote JSON (array of blocks) or null
+  value: any;
   onChange: (json: any) => void;
   placeholder?: string;
   minHeight?: number;
-  legacyHtml?: string;  // pre-rendered HTML for Tiptap → BlockNote import on mount
-  context?: EditorContext;  // controls which blocks appear in ⋯ menu
+  legacyHtml?: string;
+  context?: EditorContext;
 }
 
 export default function RimBlockEditor({
@@ -778,7 +746,6 @@ export default function RimBlockEditor({
     []
   );
 
-  // Import legacy HTML on mount when no BlockNote content exists
   useEffect(() => {
     if (legacyHtml && !hasBlockNoteContent) {
       const blocks = editor.tryParseHTMLToBlocks(legacyHtml);
@@ -798,7 +765,7 @@ export default function RimBlockEditor({
         sideMenu={false}
         formattingToolbar={false}
       >
-        {/* Selection pill: [H▾] [≡▾] | [B] [I] [U] [Link] | [Table] [Image] [⋯] */}
+        {/* Selection pill */}
         <FormattingToolbarController
           formattingToolbar={() => (
             <FormattingToolbar>
@@ -808,13 +775,16 @@ export default function RimBlockEditor({
               <BasicTextStyleButton key="italic" basicTextStyle="italic" />
               <BasicTextStyleButton key="underline" basicTextStyle="underline" />
               <CreateLinkButton key="link" />
+              <TextAlignButton key="alignLeft" textAlignment="left" />
+              <TextAlignButton key="alignCenter" textAlignment="center" />
+              <TextAlignButton key="alignRight" textAlignment="right" />
               <TableInsertButton key="table" />
               <ImageInsertButton key="image" />
               <ContextMenuButton key="context" context={context} />
             </FormattingToolbar>
           )}
         />
-        {/* Empty line: same pill, floating near cursor */}
+        {/* Empty line pill */}
         <EmptyLinePill context={context} />
       </BlockNoteView>
     </div>
