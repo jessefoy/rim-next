@@ -17185,53 +17185,58 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   font-family: var(--font-doc) !important;
 }
 
-/* ── Bear ⋯ More menu (inside pill toolbar + empty-line float) ── */
+/* ── Bear toolbar — shared dropdown + button components ─────────────── */
+
+/* Wrapper for any dropdown button (H▾, ≡▾, ⋯) */
 .bear-more-wrap {
   position: relative;
   display: flex;
   align-items: center;
 }
 
-.bear-more-btn {
+/* Dropdown button inside the native FormattingToolbar (bn-toolbar) */
+.bear-dd-btn {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 18px;
-  letter-spacing: 2px;
+  font-size: 14px;
   color: var(--rim-text-muted);
-  width: 32px;
   height: 32px;
-  display: flex;
+  padding: 0 6px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 2px;
   border-radius: 8px;
   transition: background 0.12s, color 0.12s;
+  font-family: var(--font-doc);
 }
-.bear-more-btn:hover,
-.bear-more-btn--open {
-  background: var(--rim-bg-accent);
+.bear-dd-btn:hover,
+.bear-dd-btn--open {
+  background: rgba(0, 0, 0, 0.06);
   color: var(--rim-text);
 }
+.bear-dd-btn--active {
+  color: var(--rim-mid);
+}
 
+/* Dropdown panel (used by H▾, ≡▾, and ⋯ context menu) */
 .bear-more-dropdown {
   position: absolute;
   top: calc(100% + 6px);
-  right: 0;
+  left: 0;
   background: #fff;
   border: 1px solid #e0dcd8;
   border-radius: 10px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   padding: 4px;
   min-width: 170px;
-  z-index: 200;
+  z-index: 400;
   display: flex;
   flex-direction: column;
 }
-/* When used as the empty-line floating menu, it's not inside .bear-more-wrap */
-.bear-more-dropdown--floating {
-  position: static;
-}
 
+/* Dropdown items */
 .bear-more-item {
   background: none;
   border: none;
@@ -17247,9 +17252,10 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   display: flex;
   align-items: center;
   gap: 8px;
+  white-space: nowrap;
 }
 .bear-more-item:hover {
-  background: var(--rim-bg-accent);
+  background: rgba(0, 0, 0, 0.04);
 }
 .bear-more-item--active {
   color: var(--rim-mid);
@@ -17268,7 +17274,7 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   margin: 4px 8px;
 }
 
-/* ── Empty-line floating menu ── */
+/* ── Empty-line floating pill ──────────────────────────────────────── */
 .bear-float {
   animation: bear-fade-in 0.12s ease;
 }
@@ -17278,8 +17284,7 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Bear pill (empty-line floating toolbar) ──
-   Matches the native .bn-toolbar pill styling. */
+/* The pill container — matches bn-toolbar pill styling */
 .bear-pill {
   display: inline-flex;
   align-items: center;
@@ -17291,6 +17296,7 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 
+/* Pill buttons — inline formatting (B, I, U, link, table) */
 .bear-pill__btn {
   background: none;
   border: none;
@@ -17308,15 +17314,30 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   padding: 0;
   line-height: 1;
 }
+/* Dropdown variant — slightly wider to fit caret */
+.bear-pill__btn--dd {
+  width: auto;
+  padding: 0 6px;
+  gap: 2px;
+}
 
 .bear-pill__btn:hover {
-  background: var(--rim-bg-accent);
+  background: rgba(0, 0, 0, 0.06);
   color: var(--rim-text);
 }
 
 .bear-pill__btn--active {
-  background: var(--rim-bg-accent);
+  background: rgba(0, 0, 0, 0.06);
   color: var(--rim-mid);
+}
+
+/* Thin vertical separator between button groups */
+.bear-pill__sep {
+  width: 1px;
+  height: 18px;
+  background: #e0dcd8;
+  margin: 0 4px;
+  flex-shrink: 0;
 }
 
 /* ── Document page wrapper — clean white card on warm bg ── */

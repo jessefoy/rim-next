@@ -3,18 +3,22 @@
 /**
  * RimBlockEditor — Bear-inspired block editor for long-form content.
  *
- * Design:
- *   - No side menu (no hovering drag handle / + button)
- *   - Clean floating pill toolbar: B, I, U, Link, ⋯
- *   - Appears on text selection (above) AND on empty paragraphs (below)
- *   - ⋯ holds block types + context-specific insert blocks
- *   - Inter font for clean document editing
+ * Toolbar layout (matches Bear):
+ *   [H▾] [≡▾] | [B] [I] [U] [🔗] | [⊞] [⋯]
  *
+ *   H▾  = Heading dropdown (H2, H3, Paragraph)
+ *   ≡▾  = Block type dropdown (Bullet, Numbered, Quote)
+ *   B/I/U = inline formatting
+ *   🔗  = link
+ *   ⊞   = insert table
+ *   ⋯   = page-specific blocks (Dharma blocks on lessons, etc.)
+ *
+ * Appears on text selection (above) AND on empty paragraphs (below).
  * Stores content as BlockNote JSON (array of blocks).
  */
 
 import "@blocknote/mantine/style.css";
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import {
   useCreateBlockNote,
   FormattingToolbarController,
@@ -33,153 +37,385 @@ import { rimBlockSchema } from "@/lib/blockNoteCustomBlocks";
 
 export type EditorContext = "lesson" | "document" | "default";
 
-/* ── Bear-style ⋯ More menu (lives inside the pill toolbar) ───────────── */
+/* ── SVG Icons ────────────────────────────────────────────────────────────── */
 
-function MoreMenuButton({ context = "default" as EditorContext }) {
-  const editor = useBlockNoteEditor();
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    function onPointerDown(e: PointerEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [open]);
-
-  const [activeBlock, setActiveBlock] = useState<string>("");
-  useEditorSelectionChange(() => {
-    const block = editor.getTextCursorPosition().block;
-    setActiveBlock(block?.type ?? "");
-  });
-
-  function setBlockType(type: string, props?: Record<string, any>) {
-    editor.focus();
-    editor.updateBlock(editor.getTextCursorPosition().block, {
-      type: type as any,
-      props,
-    });
-    setOpen(false);
-  }
-
-  function insertBlockAfter(type: string) {
-    const block = editor.getTextCursorPosition().block;
-    editor.insertBlocks([{ type: type as any }], block, "after");
-    setTimeout(() => {
-      try {
-        const next = editor.getTextCursorPosition().nextBlock;
-        if (next) editor.setTextCursorPosition(next, "start");
-      } catch {}
-      editor.focus();
-    }, 50);
-    setOpen(false);
-  }
-
-  const blockItems = [
-    { label: "Heading 2", type: "heading", props: { level: 2 }, match: activeBlock === "heading" },
-    { label: "Heading 3", type: "heading", props: { level: 3 }, match: activeBlock === "heading" },
-    { label: "Bullet list", type: "bulletListItem", match: activeBlock === "bulletListItem" },
-    { label: "Numbered list", type: "numberedListItem", match: activeBlock === "numberedListItem" },
-    { label: "Quote", type: "quote", match: activeBlock === "quote" },
-    { label: "Paragraph", type: "paragraph", match: activeBlock === "paragraph" },
-  ];
-
-  const insertItems = useMemo(() => {
-    const items: { label: string; icon?: React.ReactNode; type: string }[] = [];
-    if (context === "lesson") {
-      items.push(
-        { label: "Verse Quote", icon: <RiQuoteText size={15} />, type: "verseQuote" },
-        { label: "Practice Suggestion", icon: <RiPlantLine size={15} />, type: "practiceSuggestion" },
-        { label: "Callout", icon: <RiInformationLine size={15} />, type: "callout" },
-      );
-    }
-    items.push({ label: "Table", type: "table" });
-    return items;
-  }, [context]);
-
+function LinkIcon({ size = 15 }: { size?: number }) {
   return (
-    <div className="bear-more-wrap" ref={ref}>
-      <button
-        type="button"
-        className={`bear-more-btn${open ? " bear-more-btn--open" : ""}`}
-        onMouseDown={(e) => { e.preventDefault(); setOpen(!open); }}
-        aria-label="More formatting"
-        title="More formatting"
-      >
-        ⋯
-      </button>
-      {open && (
-        <div className="bear-more-dropdown" onPointerDown={(e) => e.stopPropagation()}>
-          {blockItems.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              className={`bear-more-item${item.match ? " bear-more-item--active" : ""}`}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                setBlockType(item.type, item.props);
-              }}
-            >
-              {item.label}
-            </button>
-          ))}
-          {insertItems.length > 0 && (
-            <>
-              <div className="bear-more-divider" />
-              {insertItems.map((item) => (
-                <button
-                  key={item.label}
-                  type="button"
-                  className="bear-more-item"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    insertBlockAfter(item.type);
-                  }}
-                >
-                  {item.icon && <span className="bear-more-icon">{item.icon}</span>}
-                  {item.label}
-                </button>
-              ))}
-            </>
-          )}
-        </div>
-      )}
-    </div>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </svg>
   );
 }
 
-/* ── Standalone ⋯ button for the empty-line pill ──────────────────────
-   Same as MoreMenuButton but works outside FormattingToolbarController.
-   Uses editor API directly instead of BlockNote's toolbar button context.
-   ──────────────────────────────────────────────────────────────────────── */
+function TableIcon({ size = 15 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <line x1="3" y1="9" x2="21" y2="9" />
+      <line x1="3" y1="15" x2="21" y2="15" />
+      <line x1="9" y1="3" x2="9" y2="21" />
+      <line x1="15" y1="3" x2="15" y2="21" />
+    </svg>
+  );
+}
 
-function StandaloneMoreButton({ context, onAction }: { context: EditorContext; onAction?: () => void }) {
-  const editor = useBlockNoteEditor();
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+function ListIcon({ size = 15 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <line x1="8" y1="6" x2="21" y2="6" />
+      <line x1="8" y1="12" x2="21" y2="12" />
+      <line x1="8" y1="18" x2="21" y2="18" />
+      <line x1="3" y1="6" x2="3.01" y2="6" />
+      <line x1="3" y1="12" x2="3.01" y2="12" />
+      <line x1="3" y1="18" x2="3.01" y2="18" />
+    </svg>
+  );
+}
 
+function CaretIcon() {
+  return (
+    <svg width={8} height={8} viewBox="0 0 8 8" fill="currentColor" style={{ marginLeft: 1, opacity: 0.5 }}>
+      <path d="M1 2.5 L4 5.5 L7 2.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/* ── Shared close-on-click-outside hook ────────────────────────────────── */
+
+function useClickOutside(ref: React.RefObject<HTMLElement | null>, open: boolean, onClose: () => void) {
   useEffect(() => {
     if (!open) return;
     function onPointerDown(e: PointerEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
     }
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [open]);
+  }, [open, ref, onClose]);
+}
+
+/* ── Heading dropdown (H▾) ─────────────────────────────────────────────── */
+
+function HeadingDropdown() {
+  const editor = useBlockNoteEditor();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const close = useCallback(() => setOpen(false), []);
+  useClickOutside(ref, open, close);
 
   const [activeBlock, setActiveBlock] = useState<string>("");
+  const [activeLevel, setActiveLevel] = useState<number>(0);
   useEditorSelectionChange(() => {
-    try { setActiveBlock(editor.getTextCursorPosition().block?.type ?? ""); } catch {}
+    const block = editor.getTextCursorPosition().block;
+    setActiveBlock(block?.type ?? "");
+    setActiveLevel((block?.props as any)?.level ?? 0);
   });
 
   function setBlockType(type: string, props?: Record<string, any>) {
     editor.focus();
     editor.updateBlock(editor.getTextCursorPosition().block, { type: type as any, props });
     setOpen(false);
-    onAction?.();
   }
+
+  const isHeading = activeBlock === "heading";
+
+  return (
+    <div className="bear-more-wrap" ref={ref}>
+      <button
+        type="button"
+        className={`bear-dd-btn${isHeading ? " bear-dd-btn--active" : ""}${open ? " bear-dd-btn--open" : ""}`}
+        onMouseDown={(e) => { e.preventDefault(); setOpen(!open); }}
+        title="Heading"
+      >
+        <span style={{ fontWeight: 700, fontSize: 14 }}>H</span>
+        <CaretIcon />
+      </button>
+      {open && (
+        <div className="bear-more-dropdown" onPointerDown={(e) => e.stopPropagation()}>
+          <button type="button" className={`bear-more-item${isHeading && activeLevel === 2 ? " bear-more-item--active" : ""}`}
+            onMouseDown={(e) => { e.preventDefault(); setBlockType("heading", { level: 2 }); }}>
+            Heading 2
+          </button>
+          <button type="button" className={`bear-more-item${isHeading && activeLevel === 3 ? " bear-more-item--active" : ""}`}
+            onMouseDown={(e) => { e.preventDefault(); setBlockType("heading", { level: 3 }); }}>
+            Heading 3
+          </button>
+          <div className="bear-more-divider" />
+          <button type="button" className={`bear-more-item${activeBlock === "paragraph" ? " bear-more-item--active" : ""}`}
+            onMouseDown={(e) => { e.preventDefault(); setBlockType("paragraph"); }}>
+            Paragraph
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Block type dropdown (≡▾) — lists, quote ───────────────────────────── */
+
+function BlockTypeDropdown() {
+  const editor = useBlockNoteEditor();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const close = useCallback(() => setOpen(false), []);
+  useClickOutside(ref, open, close);
+
+  const [activeBlock, setActiveBlock] = useState<string>("");
+  useEditorSelectionChange(() => {
+    setActiveBlock(editor.getTextCursorPosition().block?.type ?? "");
+  });
+
+  function setBlockType(type: string) {
+    editor.focus();
+    editor.updateBlock(editor.getTextCursorPosition().block, { type: type as any });
+    setOpen(false);
+  }
+
+  const isListOrQuote = ["bulletListItem", "numberedListItem", "quote"].includes(activeBlock);
+
+  return (
+    <div className="bear-more-wrap" ref={ref}>
+      <button
+        type="button"
+        className={`bear-dd-btn${isListOrQuote ? " bear-dd-btn--active" : ""}${open ? " bear-dd-btn--open" : ""}`}
+        onMouseDown={(e) => { e.preventDefault(); setOpen(!open); }}
+        title="Lists & quotes"
+      >
+        <ListIcon size={14} />
+        <CaretIcon />
+      </button>
+      {open && (
+        <div className="bear-more-dropdown" onPointerDown={(e) => e.stopPropagation()}>
+          <button type="button" className={`bear-more-item${activeBlock === "bulletListItem" ? " bear-more-item--active" : ""}`}
+            onMouseDown={(e) => { e.preventDefault(); setBlockType("bulletListItem"); }}>
+            Bullet List
+          </button>
+          <button type="button" className={`bear-more-item${activeBlock === "numberedListItem" ? " bear-more-item--active" : ""}`}
+            onMouseDown={(e) => { e.preventDefault(); setBlockType("numberedListItem"); }}>
+            Numbered List
+          </button>
+          <div className="bear-more-divider" />
+          <button type="button" className={`bear-more-item${activeBlock === "quote" ? " bear-more-item--active" : ""}`}
+            onMouseDown={(e) => { e.preventDefault(); setBlockType("quote"); }}>
+            Block Quote
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Table insert button (⊞) ──────────────────────────────────────────── */
+
+function TableInsertButton() {
+  const editor = useBlockNoteEditor();
+
+  function insertTable() {
+    const block = editor.getTextCursorPosition().block;
+    editor.insertBlocks([{ type: "table" as any }], block, "after");
+    setTimeout(() => {
+      try {
+        const next = editor.getTextCursorPosition().nextBlock;
+        if (next) editor.setTextCursorPosition(next, "start");
+      } catch {}
+      editor.focus();
+    }, 50);
+  }
+
+  return (
+    <button
+      type="button"
+      className="bear-dd-btn"
+      onMouseDown={(e) => { e.preventDefault(); insertTable(); }}
+      title="Insert table"
+    >
+      <TableIcon size={14} />
+    </button>
+  );
+}
+
+/* ── Context menu (⋯) — page-specific insert blocks only ──────────────── */
+
+function ContextMenuButton({ context = "default" as EditorContext }) {
+  const editor = useBlockNoteEditor();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const close = useCallback(() => setOpen(false), []);
+  useClickOutside(ref, open, close);
+
+  function insertBlockAfter(type: string) {
+    const block = editor.getTextCursorPosition().block;
+    editor.insertBlocks([{ type: type as any }], block, "after");
+    setTimeout(() => {
+      try {
+        const next = editor.getTextCursorPosition().nextBlock;
+        if (next) editor.setTextCursorPosition(next, "start");
+      } catch {}
+      editor.focus();
+    }, 50);
+    setOpen(false);
+  }
+
+  const insertItems = useMemo(() => {
+    const items: { label: string; icon?: React.ReactNode; type: string }[] = [];
+    if (context === "lesson") {
+      items.push(
+        { label: "Verse Quote", icon: <RiQuoteText size={15} />, type: "verseQuote" },
+        { label: "Practice Suggestion", icon: <RiPlantLine size={15} />, type: "practiceSuggestion" },
+        { label: "Callout", icon: <RiInformationLine size={15} />, type: "callout" },
+      );
+    }
+    return items;
+  }, [context]);
+
+  // Don't render the button if there are no context-specific blocks
+  if (insertItems.length === 0) return null;
+
+  return (
+    <div className="bear-more-wrap" ref={ref}>
+      <button
+        type="button"
+        className={`bear-dd-btn${open ? " bear-dd-btn--open" : ""}`}
+        onMouseDown={(e) => { e.preventDefault(); setOpen(!open); }}
+        aria-label="Special blocks"
+        title="Special blocks"
+      >
+        ⋯
+      </button>
+      {open && (
+        <div className="bear-more-dropdown" onPointerDown={(e) => e.stopPropagation()}>
+          {insertItems.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              className="bear-more-item"
+              onMouseDown={(e) => { e.preventDefault(); insertBlockAfter(item.type); }}
+            >
+              {item.icon && <span className="bear-more-icon">{item.icon}</span>}
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Standalone dropdown components for EmptyLinePill ───────────────────
+   Same logic as above but using custom pill button styling.
+   ──────────────────────────────────────────────────────────────────────── */
+
+function PillHeadingDropdown() {
+  const editor = useBlockNoteEditor();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const close = useCallback(() => setOpen(false), []);
+  useClickOutside(ref, open, close);
+
+  const [activeBlock, setActiveBlock] = useState<string>("");
+  const [activeLevel, setActiveLevel] = useState<number>(0);
+  useEditorSelectionChange(() => {
+    const block = editor.getTextCursorPosition().block;
+    setActiveBlock(block?.type ?? "");
+    setActiveLevel((block?.props as any)?.level ?? 0);
+  });
+
+  function setBlockType(type: string, props?: Record<string, any>) {
+    editor.focus();
+    editor.updateBlock(editor.getTextCursorPosition().block, { type: type as any, props });
+    setOpen(false);
+  }
+
+  const isHeading = activeBlock === "heading";
+
+  return (
+    <div className="bear-more-wrap" ref={ref} style={{ position: "relative" }}>
+      <button
+        className={`bear-pill__btn bear-pill__btn--dd${isHeading ? " bear-pill__btn--active" : ""}`}
+        onMouseDown={(e) => { e.preventDefault(); setOpen(!open); }}
+        title="Heading"
+      >
+        <span style={{ fontWeight: 700, fontSize: 14 }}>H</span>
+        <CaretIcon />
+      </button>
+      {open && (
+        <div className="bear-more-dropdown" onPointerDown={(e) => e.stopPropagation()}>
+          <button type="button" className={`bear-more-item${isHeading && activeLevel === 2 ? " bear-more-item--active" : ""}`}
+            onMouseDown={(e) => { e.preventDefault(); setBlockType("heading", { level: 2 }); }}>
+            Heading 2
+          </button>
+          <button type="button" className={`bear-more-item${isHeading && activeLevel === 3 ? " bear-more-item--active" : ""}`}
+            onMouseDown={(e) => { e.preventDefault(); setBlockType("heading", { level: 3 }); }}>
+            Heading 3
+          </button>
+          <div className="bear-more-divider" />
+          <button type="button" className={`bear-more-item${activeBlock === "paragraph" ? " bear-more-item--active" : ""}`}
+            onMouseDown={(e) => { e.preventDefault(); setBlockType("paragraph"); }}>
+            Paragraph
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PillBlockTypeDropdown() {
+  const editor = useBlockNoteEditor();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const close = useCallback(() => setOpen(false), []);
+  useClickOutside(ref, open, close);
+
+  const [activeBlock, setActiveBlock] = useState<string>("");
+  useEditorSelectionChange(() => {
+    setActiveBlock(editor.getTextCursorPosition().block?.type ?? "");
+  });
+
+  function setBlockType(type: string) {
+    editor.focus();
+    editor.updateBlock(editor.getTextCursorPosition().block, { type: type as any });
+    setOpen(false);
+  }
+
+  const isListOrQuote = ["bulletListItem", "numberedListItem", "quote"].includes(activeBlock);
+
+  return (
+    <div className="bear-more-wrap" ref={ref} style={{ position: "relative" }}>
+      <button
+        className={`bear-pill__btn bear-pill__btn--dd${isListOrQuote ? " bear-pill__btn--active" : ""}`}
+        onMouseDown={(e) => { e.preventDefault(); setOpen(!open); }}
+        title="Lists & quotes"
+      >
+        <ListIcon size={14} />
+        <CaretIcon />
+      </button>
+      {open && (
+        <div className="bear-more-dropdown" onPointerDown={(e) => e.stopPropagation()}>
+          <button type="button" className={`bear-more-item${activeBlock === "bulletListItem" ? " bear-more-item--active" : ""}`}
+            onMouseDown={(e) => { e.preventDefault(); setBlockType("bulletListItem"); }}>
+            Bullet List
+          </button>
+          <button type="button" className={`bear-more-item${activeBlock === "numberedListItem" ? " bear-more-item--active" : ""}`}
+            onMouseDown={(e) => { e.preventDefault(); setBlockType("numberedListItem"); }}>
+            Numbered List
+          </button>
+          <div className="bear-more-divider" />
+          <button type="button" className={`bear-more-item${activeBlock === "quote" ? " bear-more-item--active" : ""}`}
+            onMouseDown={(e) => { e.preventDefault(); setBlockType("quote"); }}>
+            Block Quote
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PillContextMenu({ context, onAction }: { context: EditorContext; onAction?: () => void }) {
+  const editor = useBlockNoteEditor();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const close = useCallback(() => setOpen(false), []);
+  useClickOutside(ref, open, close);
 
   function insertBlockAfter(type: string) {
     const block = editor.getTextCursorPosition().block;
@@ -195,15 +431,6 @@ function StandaloneMoreButton({ context, onAction }: { context: EditorContext; o
     onAction?.();
   }
 
-  const blockItems = [
-    { label: "Heading 2", type: "heading", props: { level: 2 }, match: activeBlock === "heading" },
-    { label: "Heading 3", type: "heading", props: { level: 3 }, match: activeBlock === "heading" },
-    { label: "Bullet list", type: "bulletListItem", match: activeBlock === "bulletListItem" },
-    { label: "Numbered list", type: "numberedListItem", match: activeBlock === "numberedListItem" },
-    { label: "Quote", type: "quote", match: activeBlock === "quote" },
-    { label: "Paragraph", type: "paragraph", match: activeBlock === "paragraph" },
-  ];
-
   const insertItems = useMemo(() => {
     const items: { label: string; icon?: React.ReactNode; type: string }[] = [];
     if (context === "lesson") {
@@ -213,49 +440,33 @@ function StandaloneMoreButton({ context, onAction }: { context: EditorContext; o
         { label: "Callout", icon: <RiInformationLine size={15} />, type: "callout" },
       );
     }
-    items.push({ label: "Table", type: "table" });
     return items;
   }, [context]);
+
+  if (insertItems.length === 0) return null;
 
   return (
     <div className="bear-more-wrap" ref={ref} style={{ position: "relative" }}>
       <button
-        type="button"
-        className={`bear-more-btn${open ? " bear-more-btn--open" : ""}`}
+        className={`bear-pill__btn${open ? " bear-pill__btn--active" : ""}`}
         onMouseDown={(e) => { e.preventDefault(); setOpen(!open); }}
-        aria-label="More formatting"
-        title="More formatting"
+        title="Special blocks"
       >
         ⋯
       </button>
       {open && (
         <div className="bear-more-dropdown" onPointerDown={(e) => e.stopPropagation()}>
-          {blockItems.map((item) => (
+          {insertItems.map((item) => (
             <button
               key={item.label}
               type="button"
-              className={`bear-more-item${item.match ? " bear-more-item--active" : ""}`}
-              onMouseDown={(e) => { e.preventDefault(); setBlockType(item.type, item.props); }}
+              className="bear-more-item"
+              onMouseDown={(e) => { e.preventDefault(); insertBlockAfter(item.type); }}
             >
+              {item.icon && <span className="bear-more-icon">{item.icon}</span>}
               {item.label}
             </button>
           ))}
-          {insertItems.length > 0 && (
-            <>
-              <div className="bear-more-divider" />
-              {insertItems.map((item) => (
-                <button
-                  key={item.label}
-                  type="button"
-                  className="bear-more-item"
-                  onMouseDown={(e) => { e.preventDefault(); insertBlockAfter(item.type); }}
-                >
-                  {item.icon && <span className="bear-more-icon">{item.icon}</span>}
-                  {item.label}
-                </button>
-              ))}
-            </>
-          )}
         </div>
       )}
     </div>
@@ -263,8 +474,8 @@ function StandaloneMoreButton({ context, onAction }: { context: EditorContext; o
 }
 
 /* ── Empty-line pill ───────────────────────────────────────────────────
-   When cursor lands in an empty paragraph, the SAME pill toolbar appears
-   below the cursor. B/I/U/Link + ⋯ — identical to the selection pill.
+   When cursor lands in an empty paragraph, the Bear-style pill appears
+   below the cursor: [H▾] [≡▾] | [B] [I] [U] [🔗] | [⊞] [⋯]
    150ms debounce prevents flash when typing through Enter.
    ──────────────────────────────────────────────────────────────────────── */
 
@@ -299,8 +510,7 @@ function EmptyLinePill({ context }: { context: EditorContext }) {
           : range.startContainer.parentElement;
       if (el) rect = el.getBoundingClientRect();
     }
-    // Center the pill below the cursor line
-    setPos({ top: rect.bottom + 8, left: Math.max(16, rect.left - 40) });
+    setPos({ top: rect.bottom + 8, left: Math.max(16, rect.left - 80) });
   }
 
   useEditorSelectionChange(() => {
@@ -317,6 +527,23 @@ function EmptyLinePill({ context }: { context: EditorContext }) {
     } else {
       setShow(false);
     }
+  });
+
+  // Space bar on empty line → show the pill immediately
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== " " || show) return;
+      if (isBlockEmpty()) {
+        e.preventDefault();
+        updatePos();
+        setShow(true);
+      }
+    }
+    // Attach to the editor's DOM element
+    const el = editor.domElement;
+    if (!el) return;
+    el.addEventListener("keydown", onKeyDown);
+    return () => el.removeEventListener("keydown", onKeyDown);
   });
 
   useEffect(() => {
@@ -339,7 +566,6 @@ function EmptyLinePill({ context }: { context: EditorContext }) {
     return () => { clearTimeout(t); document.removeEventListener("pointerdown", onPtr); };
   }, [show]);
 
-  /* ── Inline style toggles (same as the pill toolbar buttons) ── */
   function toggleStyle(style: string) {
     editor.focus();
     editor.toggleStyles({ [style]: true } as any);
@@ -351,6 +577,19 @@ function EmptyLinePill({ context }: { context: EditorContext }) {
     if (url) editor.createLink(url);
   }
 
+  function insertTable() {
+    const block = editor.getTextCursorPosition().block;
+    editor.insertBlocks([{ type: "table" as any }], block, "after");
+    setTimeout(() => {
+      try {
+        const next = editor.getTextCursorPosition().nextBlock;
+        if (next) editor.setTextCursorPosition(next, "start");
+      } catch {}
+      editor.focus();
+    }, 50);
+    setShow(false);
+  }
+
   if (!show) return null;
 
   return (
@@ -360,8 +599,14 @@ function EmptyLinePill({ context }: { context: EditorContext }) {
       style={{ position: "fixed", top: pos.top, left: pos.left, zIndex: 300 }}
       onMouseDown={(e) => e.preventDefault()}
     >
-      {/* The pill — same shape and style as the selection toolbar */}
       <div className="bear-pill">
+        {/* Block type dropdowns */}
+        <PillHeadingDropdown />
+        <PillBlockTypeDropdown />
+
+        <span className="bear-pill__sep" />
+
+        {/* Inline formatting */}
         <button
           className={`bear-pill__btn${activeStyles.bold ? " bear-pill__btn--active" : ""}`}
           onMouseDown={(e) => { e.preventDefault(); toggleStyle("bold"); }}
@@ -381,8 +626,19 @@ function EmptyLinePill({ context }: { context: EditorContext }) {
           className="bear-pill__btn"
           onMouseDown={(e) => { e.preventDefault(); insertLink(); }}
           title="Link"
-        >🔗</button>
-        <StandaloneMoreButton context={context} onAction={() => setShow(false)} />
+        ><LinkIcon size={14} /></button>
+
+        <span className="bear-pill__sep" />
+
+        {/* Insert blocks */}
+        <button
+          className="bear-pill__btn"
+          onMouseDown={(e) => { e.preventDefault(); insertTable(); }}
+          title="Insert table"
+        ><TableIcon size={14} /></button>
+
+        {/* Context-specific special blocks */}
+        <PillContextMenu context={context} onAction={() => setShow(false)} />
       </div>
     </div>
   );
@@ -445,19 +701,22 @@ export default function RimBlockEditor({
         sideMenu={false}
         formattingToolbar={false}
       >
-        {/* Selection: the original Bear pill — B / I / U / Link / ⋯ */}
+        {/* Selection pill: [H▾] [≡▾] | [B] [I] [U] [Link] | [Table] [⋯] */}
         <FormattingToolbarController
           formattingToolbar={() => (
             <FormattingToolbar>
+              <HeadingDropdown key="heading" />
+              <BlockTypeDropdown key="blockType" />
               <BasicTextStyleButton key="bold" basicTextStyle="bold" />
               <BasicTextStyleButton key="italic" basicTextStyle="italic" />
               <BasicTextStyleButton key="underline" basicTextStyle="underline" />
               <CreateLinkButton key="link" />
-              <MoreMenuButton key="more" context={context} />
+              <TableInsertButton key="table" />
+              <ContextMenuButton key="context" context={context} />
             </FormattingToolbar>
           )}
         />
-        {/* Empty line: the same pill, floating below cursor */}
+        {/* Empty line: same pill, floating below cursor */}
         <EmptyLinePill context={context} />
       </BlockNoteView>
     </div>
