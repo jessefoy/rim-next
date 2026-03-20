@@ -4,7 +4,11 @@ import Footer from "@/components/Footer";
 
 export default function FooterWrapper() {
   const pathname = usePathname();
-  const suppress = pathname.startsWith("/admin") || pathname.startsWith("/account/hub");
+  const suppress =
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/account") ||
+    pathname.startsWith("/lessons") ||
+    pathname.startsWith("/course");
   if (suppress) return null;
   return <Footer />;
 }
