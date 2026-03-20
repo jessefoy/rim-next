@@ -295,7 +295,7 @@ const AREAS: FunctionalArea[] = [
         what: "Database-backed system for editing transactional email copy without code deploys. 7 managed templates stored in the email_templates table (Postgres). Admins can edit subject lines, body copy (rich Tiptap markdown editor with variable chip insertion), enable/disable delivery, and preview rendered output. Chrome bands show the email header/footer wrapper. Contextual help text above the subject explains each template; Program-origin variables are called out with a distinct teal callout. 11 email functions remain hardcoded for structural reasons (attachments, conditional logic, auth flows) — documented with comment blocks in lib/email.ts.",
         relatedTo: [
           "Managed templates: session-reminder, first-time-attendee, returning-after-absence, host-role-assigned, sub-request-posted, sub-request-claimed, missing-report-alert",
-          "Uses RimEditor (Tiptap v3) with custom VariableNode for {{token}} pills",
+          "Uses RimEditor with custom VariableNode for {{token}} pills",
           "portableTextToMarkdown() in lib/portableTextEmail.ts for PT → template variable conversion",
           "Render pipeline: sendTemplatedEmail → marked → wrapInEmailChrome → juice → Resend",
           "Seed files: seed-email-templates.js, seed-email-groups.ts, seed-email-help-text.js",
@@ -520,7 +520,7 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Threads",
         locations: ["/account/hub/host-team/threads", "/account/hub/host-team/threads/[id]", "Component: HubThreadDetailClient.tsx", "API: GET/POST /api/host/threads, GET/PATCH /api/host/threads/[id], POST /api/host/threads/[id]/replies"],
-        what: "A discussion board with two categories: OPERATIONAL (peer support, tips, questions) and CONTEMPLATION (weekly teacher/manager post for group reflection). Any hub member can create threads and reply using FormattedEditor (rich text with underline, alignment, word count). Thread and reply bodies stored as Tiptap JSON, rendered via renderFormattedText(). HOST_MANAGER/ADMIN can close (no new replies) or archive (hidden from main list) threads. Reply notification targets thread author + all prior repliers (deduplicated, excluding the current replier). Posting a reply bumps thread updatedAt so it floats to the top.",
+        what: "A discussion board with two categories: OPERATIONAL (peer support, tips, questions) and CONTEMPLATION (weekly teacher/manager post for group reflection). Any hub member can create threads and reply using RimProseEditor (rich text with underline, alignment, word count). Thread and reply bodies stored as BlockNote JSON, rendered via renderFormattedTextAsync(). HOST_MANAGER/ADMIN can close (no new replies) or archive (hidden from main list) threads. Reply notification targets thread author + all prior repliers (deduplicated, excluding the current replier). Posting a reply bumps thread updatedAt so it floats to the top.",
         relatedTo: [
           "HostThread + HostReply Postgres models; ThreadStatus enum: OPEN / CLOSED / ARCHIVED",
           "New thread notifies all hub members (email + alert)",
@@ -607,12 +607,12 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Post-Session Form",
         locations: ["/account/hub/host-team/session/[programSlug]/post", "Component: PostSessionClient.tsx", "API: POST /api/attendance/session/[programSlug]/post"],
-        what: "Three-section form filed after each session. Section 1: Flagged people — each person tapped during the session appears with a FormattedEditor note field and 4 routing radio buttons (No action / Gentle follow-up / Jesse only — sensitive / Technical issue), each with a plain-language description. Section 2: Session reflection (FormattedEditor, optional but encouraged). Section 3: Resource to share with attendees (URL + brief note). All hosts see the full form — no co-host distinction. Autosaves to localStorage on every change, keyed by programSlug + sessionDate. Submitting upserts SessionReport + updates SessionAttendance routing + sends notification email to Jesse and/or coordinator. Notes and reflections stored as Tiptap JSON (Json?). Email notifications use extractText() for plain-text.",
+        what: "Three-section form filed after each session. Section 1: Flagged people — each person tapped during the session appears with a RimProseEditor note field and 4 routing radio buttons (No action / Gentle follow-up / Jesse only — sensitive / Technical issue), each with a plain-language description. Section 2: Session reflection (RimProseEditor, optional but encouraged). Section 3: Resource to share with attendees (URL + brief note). All hosts see the full form — no co-host distinction. Autosaves to localStorage on every change, keyed by programSlug + sessionDate. Submitting upserts SessionReport + updates SessionAttendance routing + sends notification email to Jesse and/or coordinator. Notes and reflections stored as BlockNote JSON (Json?). Email notifications use extractText() for plain-text.",
         relatedTo: [
           "SessionReport Postgres model — reflection Json?, resourceUrl, resourceNote, submittedByAssignedHost",
           "SessionAttendance Postgres model — postSessionNote Json?, postSessionAction enum",
-          "FormattedEditor (Tiptap JSON) — all multi-line text fields",
-          "lib/renderRichContent.ts — extractText() for email, renderFormattedText() for history display",
+          "RimProseEditor (BlockNote JSON) — prose editor for all multi-line text fields",
+          "lib/renderRichContent.ts — extractText() for email, renderFormattedTextAsync() for history display",
           "End Session Button — creates stub SessionReport, form fills the rest",
           "Live Session View — post-session link appears when isEnded",
           "Session History — coordinator view shows flagged attendees with notes and routing",
@@ -702,10 +702,10 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Lesson Pages",
         locations: ["/lessons/[slug]"],
-        what: "Individual lesson pages rendered from Postgres. Body is Tiptap JSON, rendered via renderContentBody() from lib/renderRichContent.ts. Supports custom blocks: verseQuote (pull quote), practiceCallout (teal practice box), calloutText (highlighted insight). Also supports audio player, video embed, hero image, header quote, teacher attribution, and downloadable resources.",
+        what: "Individual lesson pages rendered from Postgres. Body is BlockNote JSON, rendered via renderContentBodyAsync() from lib/renderRichContent.ts. Supports custom blocks: verseQuote (pull quote), practiceCallout (teal practice box), calloutText (highlighted insight). Also supports audio player, video embed, hero image, header quote, teacher attribution, and downloadable resources.",
         relatedTo: [
           "Lesson model in Postgres (managed via Course Hub)",
-          "lib/renderRichContent.ts — renderContentBody() for Tiptap JSON rendering",
+          "lib/renderRichContentServer.ts — renderContentBodyAsync() for BlockNote JSON rendering",
           "lp- prefix CSS (design system)",
           "Course pages link to lessons via CourseLesson join table",
         ],
@@ -957,11 +957,11 @@ const AREAS: FunctionalArea[] = [
       {
         name: "richContent Shared Schema",
         locations: ["File: sanity/schemas/richContent.js"],
-        what: "A named array type used by lessonContent in Sanity. Both lessons and programs have migrated to Postgres (Tiptap JSON) as of sessions 50–54. This schema remains in Sanity for reference and any remaining Sanity-managed content, but is no longer the primary content source for lessons or programs.",
+        what: "A named array type used by lessonContent in Sanity. Both lessons and programs have migrated to Postgres (BlockNote JSON) as of sessions 50–69. This schema remains in Sanity for reference and any remaining Sanity-managed content, but is no longer the primary content source for lessons or programs.",
         relatedTo: [
-          "Lesson pages (lp- prefix) — now Tiptap/Postgres via renderContentBody()",
-          "Program detail pages (pg- prefix) — now Tiptap/Postgres via renderContentBody()",
-          "lib/renderRichContent.ts — Tiptap rendering for both",
+          "Lesson pages (lp- prefix) — BlockNote/Postgres via renderContentBodyAsync()",
+          "Program detail pages (pg- prefix) — BlockNote/Postgres via renderContentBodyAsync()",
+          "lib/renderRichContentServer.ts — BlockNote rendering for both (server-only)",
         ],
       },
       {
@@ -983,7 +983,7 @@ const AREAS: FunctionalArea[] = [
     id: "course-hub",
     title: "Course Hub & Content Management",
     icon: "🎓",
-    desc: "Full CRUD for series and lessons, accessible to TEACHER and ADMIN roles via the Course Hub. Content stored in Postgres. Tiptap WYSIWYG editors with underline, text alignment, typography, character count, tables, and custom block support. UI calls them 'Series'; DB model is still 'Course'.",
+    desc: "Full CRUD for series and lessons, accessible to TEACHER and ADMIN roles via the Course Hub. Content stored in Postgres. BlockNote WYSIWYG editors with slash commands, drag-and-drop blocks, tables, and custom Dharma block support. UI calls them 'Series'; DB model is still 'Course'.",
     features: [
       {
         name: "Course Hub Workspace",
@@ -998,7 +998,7 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Series Editor",
         locations: ["/account/hub/courses/courses/new", "/account/hub/courses/courses/[courseSlug]", "Component: CourseEditor.tsx", "API: POST /api/courses, PATCH /api/courses/[slug], DELETE /api/courses/[slug]"],
-        what: "Create and edit series: title, slug, subheading, FormattedEditor description (with underline, text alignment, word count), access level (MEMBERS / REGISTRATION_REQUIRED), active toggle. Sort order was removed in session 59. Edit mode includes a unified lesson + section manager: a flat ListItem[] union type drives a drag list where section-divider rows and lesson rows are all first-class draggable items. Section rows have an inline-editable label and a ✕ remove button. + Add Section button uses th-btn--ghost style. Lessons are added via search-to-add (debounced API search). Delete is guarded — returns 409 if ProgramCourse records exist.",
+        what: "Create and edit series: title, slug, subheading, RimProseEditor description (with underline, text alignment, word count), access level (MEMBERS / REGISTRATION_REQUIRED), active toggle. Sort order was removed in session 59. Edit mode includes a unified lesson + section manager: a flat ListItem[] union type drives a drag list where section-divider rows and lesson rows are all first-class draggable items. Section rows have an inline-editable label and a ✕ remove button. + Add Section button uses th-btn--ghost style. Lessons are added via search-to-add (debounced API search). Delete is guarded — returns 409 if ProgramCourse records exist.",
         relatedTo: [
           "Course model in Postgres (CourseLesson.groupLabel = section header for a lesson)",
           "Lesson search API (/api/lessons/search)",
@@ -1010,7 +1010,7 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Lesson Editor (ContentEditor)",
         locations: ["/account/hub/courses/lessons/new", "/account/hub/courses/lessons/[lessonSlug]", "Component: LessonEditor.tsx", "API: POST /api/lessons, PATCH /api/lessons/[slug], DELETE /api/lessons/[slug]"],
-        what: "Create and edit lessons with ContentEditor (Tiptap WYSIWYG). Toolbar: Bold, Italic, Underline, H2, H3, UL, OL, Link, Align L/C/R, Insert Table, plus custom block buttons: + Verse, + Practice, + Callout. Table context toolbar: +Row, +Col, −Row, −Col, Delete Table. Typography extension auto-converts smart quotes, em dashes, ellipsis. Character count footer shows word count. Content stored as Tiptap JSON. Media section: image and audio upload via Vercel Blob, video URL. Also: header quote, teacher names, and an inline resource list builder.",
+        what: "Create and edit lessons with ContentEditor (Tiptap WYSIWYG). Toolbar: Bold, Italic, Underline, H2, H3, UL, OL, Link, Align L/C/R, Insert Table, plus custom block buttons: + Verse, + Practice, + Callout. Table context toolbar: +Row, +Col, −Row, −Col, Delete Table. Typography extension auto-converts smart quotes, em dashes, ellipsis. Character count footer shows word count. Content stored as BlockNote JSON. Media section: image and audio upload via Vercel Blob, video URL. Also: header quote, teacher names, and an inline resource list builder.",
         relatedTo: [
           "Lesson model in Postgres (body: Json?)",
           "File uploads via /api/upload (Vercel Blob)",
@@ -1077,11 +1077,11 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Dharma Lessons",
         locations: ["/lessons/[slug]"],
-        what: "Audio player, video embed, Tiptap JSON body rendered via renderContentBody() — verseQuote pull quotes, practiceCallout suggestion boxes, calloutText highlighted insights. Data reads from Postgres (migrated from Sanity, session 50).",
+        what: "Audio player, video embed, BlockNote JSON body rendered via renderContentBodyAsync() — verseQuote pull quotes, practiceCallout suggestion boxes, calloutText highlighted insights. Data reads from Postgres (migrated from Sanity, session 50).",
         relatedTo: [
           "Postgres — Lesson model (managed via Course Hub)",
           "Course pages (/course/[slug]) — lessons grouped into courses",
-          "lib/renderRichContent.ts — renderContentBody() for Tiptap JSON rendering",
+          "lib/renderRichContentServer.ts — renderContentBodyAsync() for BlockNote JSON rendering",
         ],
         status: "active",
         note: "🟢 Design system (lp- prefix)",
@@ -1208,7 +1208,7 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Inbox UI (three-column client)",
         locations: ["Page: /account/hub/support/inbox", "Component: SupportInboxClient.tsx"],
-        what: "Thread list (fluid 320–400px) with 5 filter pills + search. Message timeline with inline notes. Reply composer with FormattedEditor + file attachments. Collapsible sidebar with status, assignment, member context, contact history. Responsive: single-column on mobile with back button.",
+        what: "Thread list (fluid 320–400px) with 5 filter pills + search. Message timeline with inline notes. Reply composer with RimProseEditor + file attachments. Collapsible sidebar with status, assignment, member context, contact history. Responsive: single-column on mobile with back button.",
         relatedTo: ["Gmail Sync Engine", "Thread Management", "Templates", "Notifications"],
       },
       {
@@ -1226,13 +1226,13 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Internal Notes",
         locations: ["API: /api/support/threads/[id]/note"],
-        what: "Private notes on threads, visible only to support team. Tiptap JSON body. Rendered in amber-themed cards in the timeline. Triggers notification to assigned member.",
+        what: "Private notes on threads, visible only to support team. BlockNote JSON body. Rendered in amber-themed cards in the timeline. Triggers notification to assigned member.",
         relatedTo: ["Inbox UI", "Notifications"],
       },
       {
         name: "Email Templates",
         locations: ["API: /api/support/templates", "API: /api/support/templates/[id]"],
-        what: "Reusable response templates with Tiptap JSON body and optional subject line. ADMIN manages CRUD. All support members can use templates via picker dropdown in reply and compose forms.",
+        what: "Reusable response templates with BlockNote JSON body and optional subject line. ADMIN manages CRUD. All support members can use templates via picker dropdown in reply and compose forms.",
         relatedTo: ["Reply & Compose", "Inbox UI"],
       },
       {

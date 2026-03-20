@@ -145,11 +145,11 @@ const SECTIONS: RoadmapSection[] = [
         effort: "medium",
         status: "designed",
         ref: "FEATURES.md §30",
-        desc: "A private per-lesson note field visible only to the member. Uses FormattedEditor (Tiptap JSON). Appears at the bottom of each lesson page — like a personal journal companion to the teaching. Auto-saves. Members can review their notes from their profile or a dedicated My Notes page.",
+        desc: "A private per-lesson note field visible only to the member. Uses RimProseEditor (BlockNote JSON). Appears at the bottom of each lesson page — like a personal journal companion to the teaching. Auto-saves. Members can review their notes from their profile or a dedicated My Notes page.",
         files: [
           "prisma/schema.prisma — new LessonNote model (userId, lessonId, body Json?, updatedAt, @@unique([userId, lessonId]))",
           "app/lessons/[slug]/page.tsx — LessonNoteEditor client component",
-          "components/LessonNoteEditor.tsx — FormattedEditor with auto-save",
+          "components/LessonNoteEditor.tsx — RimProseEditor with auto-save",
           "app/api/lessons/[slug]/note/route.ts — GET / PATCH (upsert)",
         ],
       },
