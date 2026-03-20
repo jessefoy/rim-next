@@ -20,6 +20,7 @@
  */
 
 import { useState } from "react";
+import { renderBlockNoteHtml } from "@/lib/renderRichContent";
 
 export interface QuestionOption {
   id: string;
@@ -182,7 +183,7 @@ export default function ReflectionQuestionsClient({
             >
               <div className="ls-question__text">
                 <span className="ls-question__num">{qi + 1}.</span>
-                <span dangerouslySetInnerHTML={{ __html: q.bodyHtml || String(q.body ?? "") }} />
+                <span dangerouslySetInnerHTML={{ __html: q.bodyHtml || renderBlockNoteHtml(q.body) }} />
               </div>
 
               {answered ? (
