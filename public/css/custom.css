@@ -17197,6 +17197,39 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   border-radius: 4px;
 }
 
+/* ── Image alignment overlay — L/C/R buttons on the image ── */
+.img-align-overlay {
+  display: inline-flex;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #e0dcd8;
+  border-radius: 8px;
+  padding: 3px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  animation: bear-fade-in-below 0.1s ease;
+}
+.img-align-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 30px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  color: var(--rim-text-muted);
+  transition: background 0.1s, color 0.1s;
+}
+.img-align-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--rim-text);
+}
+.img-align-btn--active {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--rim-mid);
+}
+
 .rim-prose-editor {
   background: #fff;
   border: 1px solid var(--rim-rule);

@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { getHubMembership } from "@/lib/hubAuth";
+import { cleanupRemovedBlobs, cleanupAllBlobs } from "@/lib/blobCleanup";
 
 // GET — fetch a single document (for view/edit pages)
 export async function GET(
@@ -61,6 +62,8 @@ export async function PATCH(
     });
   }
 
+  const oldBody = doc.body;
+
   const updated = await db.hubDocument.update({
     where: { id },
     data: {
@@ -73,6 +76,11 @@ export async function PATCH(
     },
     include: { addedBy: { select: { firstName: true, lastName: true, preferredName: true } } },
   });
+
+  // Clean up any blob images that were removed from the body
+  if (body !== undefined) {
+    cleanupRemovedBlobs(oldBody, body); // fire-and-forget
+  }
 
   return NextResponse.json(updated);
 }
@@ -100,6 +108,9 @@ export async function DELETE(
   if (!isAuthorDel && !isCoordDel) {
     return NextResponse.json({ error: "Only the author or a coordinator can delete" }, { status: 403 });
   }
+
+  // Clean up any blob images before deleting the document
+  if (doc.body) cleanupAllBlobs(doc.body); // fire-and-forget
 
   await db.hubDocument.delete({ where: { id } });
   return NextResponse.json({ ok: true });

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { cleanupRemovedBlobs } from "@/lib/blobCleanup";
 
 async function canAccessCourseHub(userId: string, roles: string[]): Promise<boolean> {
 
@@ -82,6 +83,11 @@ export async function PATCH(
   if (body.durationMinutes !== undefined) updateData.durationMinutes = body.durationMinutes != null ? Number(body.durationMinutes) : null;
   if (body.reflectionPrompt !== undefined) updateData.reflectionPrompt = body.reflectionPrompt || null;
   if (body.questionsRequired !== undefined) updateData.questionsRequired = Boolean(body.questionsRequired);
+
+  // Clean up removed blob images from body
+  if (body.body !== undefined) {
+    cleanupRemovedBlobs(lesson.body, body.body); // fire-and-forget
+  }
 
   const updated = await db.lesson.update({
     where: { slug },

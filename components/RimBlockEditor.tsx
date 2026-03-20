@@ -660,6 +660,147 @@ function EmptyLinePill({ context }: { context: EditorContext }) {
   );
 }
 
+/* ── Image alignment overlay ──────────────────────────────────────────────
+   Shows L/C/R alignment buttons directly ON the image so the user never
+   has to leave the image area to change alignment.
+   ──────────────────────────────────────────────────────────────────────── */
+
+function ImageAlignOverlay() {
+  const editor = useBlockNoteEditor();
+  const [imageBlock, setImageBlock] = useState<any>(null);
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
+
+  useEditorSelectionChange(() => {
+    try {
+      const block = editor.getTextCursorPosition().block;
+      if (block?.type === "image" && (block.props as any)?.url) {
+        setImageBlock(block);
+        // Position the overlay on the image DOM element
+        const el = editor.domElement?.querySelector(
+          `[data-id="${block.id}"] .bn-visual-media-wrapper, [data-id="${block.id}"] img`
+        );
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          setPos({ top: rect.top + 8, left: rect.left + rect.width / 2 - 54, width: rect.width });
+        }
+      } else {
+        setImageBlock(null);
+      }
+    } catch {
+      setImageBlock(null);
+    }
+  });
+
+  // Also listen for mouse hover on images
+  useEffect(() => {
+    const editorEl = editor.domElement;
+    if (!editorEl) return;
+
+    function onMouseOver(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      const imgWrapper = target.closest("[data-content-type='image']");
+      if (!imgWrapper) return;
+      const blockId = imgWrapper.closest("[data-id]")?.getAttribute("data-id");
+      if (!blockId) return;
+      // Find the block in the editor
+      try {
+        const doc = editor.document;
+        const block = doc.find((b: any) => b.id === blockId);
+        if (block?.type === "image" && (block.props as any)?.url) {
+          setImageBlock(block);
+          const el = imgWrapper.querySelector(".bn-visual-media-wrapper") || imgWrapper.querySelector("img");
+          if (el) {
+            const rect = el.getBoundingClientRect();
+            setPos({ top: rect.top + 8, left: rect.left + rect.width / 2 - 54, width: rect.width });
+          }
+        }
+      } catch {}
+    }
+
+    function onMouseLeave(e: MouseEvent) {
+      const related = e.relatedTarget as HTMLElement | null;
+      // Don't hide if moving to the overlay itself
+      if (related?.closest(".img-align-overlay")) return;
+      const target = e.target as HTMLElement;
+      if (target.closest("[data-content-type='image']")) {
+        // Small delay to allow moving to the overlay
+        setTimeout(() => {
+          const hovered = document.querySelectorAll(":hover");
+          const overImage = Array.from(hovered).some(
+            (el) => el.closest("[data-content-type='image']") || el.closest(".img-align-overlay")
+          );
+          if (!overImage) setImageBlock(null);
+        }, 100);
+      }
+    }
+
+    editorEl.addEventListener("mouseover", onMouseOver);
+    editorEl.addEventListener("mouseout", onMouseLeave);
+    return () => {
+      editorEl.removeEventListener("mouseover", onMouseOver);
+      editorEl.removeEventListener("mouseout", onMouseLeave);
+    };
+  }, [editor]);
+
+  if (!imageBlock) return null;
+
+  const currentAlign = (imageBlock.props as any)?.textAlignment || "left";
+
+  function setAlign(align: string) {
+    try {
+      editor.updateBlock(imageBlock, { props: { textAlignment: align } } as any);
+      setImageBlock({ ...imageBlock, props: { ...imageBlock.props, textAlignment: align } });
+    } catch (err) {
+      console.error("setAlign failed:", err);
+    }
+  }
+
+  return (
+    <div
+      className="img-align-overlay"
+      style={{ position: "fixed", top: pos.top, left: pos.left, zIndex: 200 }}
+      onMouseDown={(e) => e.preventDefault()}
+      onMouseLeave={() => {
+        setTimeout(() => {
+          const hovered = document.querySelectorAll(":hover");
+          const overImage = Array.from(hovered).some(
+            (el) => el.closest("[data-content-type='image']") || el.closest(".img-align-overlay")
+          );
+          if (!overImage) setImageBlock(null);
+        }, 100);
+      }}
+    >
+      <button
+        className={`img-align-btn${currentAlign === "left" ? " img-align-btn--active" : ""}`}
+        onMouseDown={(e) => { e.preventDefault(); setAlign("left"); }}
+        title="Align left"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/>
+        </svg>
+      </button>
+      <button
+        className={`img-align-btn${currentAlign === "center" ? " img-align-btn--active" : ""}`}
+        onMouseDown={(e) => { e.preventDefault(); setAlign("center"); }}
+        title="Center"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/>
+        </svg>
+      </button>
+      <button
+        className={`img-align-btn${currentAlign === "right" ? " img-align-btn--active" : ""}`}
+        onMouseDown={(e) => { e.preventDefault(); setAlign("right"); }}
+        title="Align right"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <line x1="3" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+    </div>
+  );
+}
+
 /* ── Main editor ────────────────────────────────────────────────────────── */
 
 interface Props {
@@ -731,6 +872,8 @@ export default function RimBlockEditor({
         />
         {/* Empty line — full Bear pill */}
         <EmptyLinePill context={context} />
+        {/* Image alignment overlay — shows L/C/R on the image itself */}
+        <ImageAlignOverlay />
       </BlockNoteView>
     </div>
   );
