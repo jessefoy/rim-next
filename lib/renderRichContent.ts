@@ -51,7 +51,7 @@ function renderInlineContent(content: any[]): string {
 
 function renderBlockNode(block: any): string {
   if (!block || typeof block !== "object") return ""
-  const inner    = renderInlineContent(block.content || [])
+  const inner    = Array.isArray(block.content) ? renderInlineContent(block.content) : ""
   const children = (block.children || []).map(renderBlockNode).join("")
 
   switch (block.type) {
