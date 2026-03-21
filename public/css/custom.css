@@ -17157,19 +17157,31 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   line-height: 1.75 !important;
   margin: 0 !important;
 }
-/* Headings inside editor — proper typographic scale */
+/* Headings inside editor — match .doc-body view-mode spacing */
 .rim-block-editor [data-content-type="heading"] .bn-inline-content {
   font-family: var(--font-doc) !important;
   font-weight: 700 !important;
   letter-spacing: -0.01em;
 }
+.rim-block-editor [data-content-type="heading"][data-level="1"] {
+  margin-top: 48px !important;
+  margin-bottom: 12px !important;
+}
 .rim-block-editor [data-content-type="heading"][data-level="1"] .bn-inline-content {
   font-size: 32px !important;
   line-height: 1.2 !important;
 }
+.rim-block-editor [data-content-type="heading"][data-level="2"] {
+  margin-top: 40px !important;
+  margin-bottom: 8px !important;
+}
 .rim-block-editor [data-content-type="heading"][data-level="2"] .bn-inline-content {
   font-size: 24px !important;
   line-height: 1.25 !important;
+}
+.rim-block-editor [data-content-type="heading"][data-level="3"] {
+  margin-top: 32px !important;
+  margin-bottom: 6px !important;
 }
 .rim-block-editor [data-content-type="heading"][data-level="3"] .bn-inline-content {
   font-size: 20px !important;
@@ -17189,10 +17201,12 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   font-style: normal !important;
 }
 
-/* ── Table visibility — warm border style, override any resets ── */
+/* ── Table visibility — warm border style, constrain to editor width ── */
 .rim-block-editor [data-content-type="table"] {
   overflow-x: auto !important;
   display: block !important;
+  max-width: 100% !important;
+  position: relative;
 }
 .rim-block-editor [data-content-type="table"] .tableWrapper {
   display: block !important;
@@ -17222,6 +17236,43 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .rim-block-editor [data-content-type="table"] th > p {
   min-height: 1.5rem;
   margin: 0;
+}
+.rim-block-editor [data-content-type="table"] table {
+  max-width: 100% !important;
+  width: 100% !important;
+  table-layout: fixed !important;
+}
+/* Table delete button — injected via DOM */
+.table-delete-btn {
+  position: absolute;
+  top: -14px;
+  right: -14px;
+  z-index: 200;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #999;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  transition: color 0.15s, border-color 0.15s;
+  opacity: 0;
+  pointer-events: none;
+}
+[data-content-type="table"]:hover .table-delete-btn,
+[data-content-type="table"]:focus-within .table-delete-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
+.table-delete-btn:hover {
+  color: #d44;
+  border-color: #d44;
 }
 
 /* ── Image blocks ── */

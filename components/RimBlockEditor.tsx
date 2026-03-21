@@ -849,6 +849,64 @@ function ImageAlignOverlay() {
   return null; // No React rendering — uses DOM injection
 }
 
+/* ── Table delete overlay ─────────────────────────────────────────────────
+   Injects an × button at top-right of each table block for deletion.
+   Uses DOM injection (same pattern as ImageAlignOverlay).
+   ──────────────────────────────────────────────────────────────────────── */
+
+function TableDeleteOverlay() {
+  const editor = useBlockNoteEditor();
+
+  useEffect(() => {
+    const editorEl = editor.domElement;
+    if (!editorEl) return;
+
+    function injectDeleteBtn(tableBlock: Element) {
+      if (tableBlock.querySelector(".table-delete-btn")) return;
+
+      const blockId = tableBlock.closest("[data-id]")?.getAttribute("data-id");
+      if (!blockId) return;
+
+      // Ensure the content-type wrapper is positioned
+      (tableBlock as HTMLElement).style.position = "relative";
+
+      const btn = document.createElement("button");
+      btn.className = "table-delete-btn";
+      btn.type = "button";
+      btn.title = "Delete table";
+      btn.innerHTML = "×";
+      btn.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+          const block = editor.document.find((b: any) => b.id === blockId);
+          if (block) {
+            editor.removeBlocks([block]);
+          }
+        } catch (err) {
+          console.error("Table delete failed:", err);
+        }
+      });
+
+      tableBlock.appendChild(btn);
+    }
+
+    // Observe DOM for table blocks (they may be inserted dynamically)
+    const observer = new MutationObserver(() => {
+      editorEl.querySelectorAll("[data-content-type='table']").forEach(injectDeleteBtn);
+    });
+
+    // Initial injection
+    editorEl.querySelectorAll("[data-content-type='table']").forEach(injectDeleteBtn);
+
+    observer.observe(editorEl, { childList: true, subtree: true });
+
+    return () => observer.disconnect();
+  }, [editor]);
+
+  return null;
+}
+
 /* ── Toolbar block-type dropdown ──────────────────────────────────────────
    Shows current block type (¶, H2, H3, etc.) with dropdown to switch.
    ──────────────────────────────────────────────────────────────────────── */
@@ -1038,6 +1096,8 @@ export default function RimBlockEditor({
         <EmptyLinePill context={context} />
         {/* Image alignment overlay — shows L/C/R on the image itself */}
         <ImageAlignOverlay />
+        {/* Table delete button — × at top-right corner on hover */}
+        <TableDeleteOverlay />
       </BlockNoteView>
     </div>
   );
