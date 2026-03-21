@@ -41,32 +41,48 @@ function renderInlineContent(content: any[]): string {
     }
     let t: string = c.text ?? ""
     if (!t) return ""
-    if (c.styles?.bold)      t = `<strong>${t}</strong>`
-    if (c.styles?.italic)    t = `<em>${t}</em>`
-    if (c.styles?.underline) t = `<u>${t}</u>`
-    if (c.styles?.code)      t = `<code>${t}</code>`
+    if (c.styles?.bold)          t = `<strong>${t}</strong>`
+    if (c.styles?.italic)        t = `<em>${t}</em>`
+    if (c.styles?.underline)     t = `<u>${t}</u>`
+    if (c.styles?.strike)        t = `<s>${t}</s>`
+    if (c.styles?.code)          t = `<code>${t}</code>`
+    // Inline text color / background color
+    const inlineStyles: string[] = []
+    if (c.styles?.textColor)       inlineStyles.push(`color:${c.styles.textColor}`)
+    if (c.styles?.backgroundColor) inlineStyles.push(`background-color:${c.styles.backgroundColor}`)
+    if (inlineStyles.length > 0)   t = `<span style="${inlineStyles.join(";")}">${t}</span>`
     return t
   }).join("")
+}
+
+function blockStyleAttr(block: any): string {
+  const styles: string[] = []
+  const align = block.props?.textAlignment
+  if (align && align !== "left") styles.push(`text-align:${align}`)
+  if (block.props?.textColor) styles.push(`color:${block.props.textColor}`)
+  if (block.props?.backgroundColor) styles.push(`background-color:${block.props.backgroundColor}`)
+  return styles.length > 0 ? ` style="${styles.join(";")}"` : ""
 }
 
 function renderSingleBlock(block: any): string {
   if (!block || typeof block !== "object") return ""
   const inner    = Array.isArray(block.content) ? renderInlineContent(block.content) : ""
   const children = (block.children || []).map(renderSingleBlock).join("")
+  const bStyle   = blockStyleAttr(block)
 
   switch (block.type) {
     case "heading": {
       const level = block.props?.level ?? 2
-      return `<h${level}>${inner}</h${level}>${children}`
+      return `<h${level}${bStyle}>${inner}</h${level}>${children}`
     }
     case "bulletListItem":
-      return `<li>${inner}${children}</li>`
+      return `<li${bStyle}>${inner}${children}</li>`
     case "numberedListItem":
-      return `<li>${inner}${children}</li>`
+      return `<li${bStyle}>${inner}${children}</li>`
     case "checkListItem":
-      return `<li>${inner}${children}</li>`
+      return `<li${bStyle}>${inner}${children}</li>`
     case "quote":
-      return `<blockquote>${inner}</blockquote>${children}`
+      return `<blockquote${bStyle}>${inner}</blockquote>${children}`
     case "codeBlock":
       return `<pre><code>${inner}</code></pre>${children}`
     case "image": {
@@ -94,6 +110,11 @@ function renderSingleBlock(block: any): string {
           const attrs: string[] = []
           if (cell.props?.colspan && cell.props.colspan > 1) attrs.push(`colspan="${cell.props.colspan}"`)
           if (cell.props?.rowspan && cell.props.rowspan > 1) attrs.push(`rowspan="${cell.props.rowspan}"`)
+          // Cell-level background and text colors from advanced tables
+          const cellStyles: string[] = []
+          if (cell.props?.backgroundColor) cellStyles.push(`background-color:${cell.props.backgroundColor}`)
+          if (cell.props?.textColor)       cellStyles.push(`color:${cell.props.textColor}`)
+          if (cellStyles.length > 0) attrs.push(`style="${cellStyles.join(";")}"`)
           return `<${tag}${attrs.length ? " " + attrs.join(" ") : ""}>${cellContent}</${tag}>`
         }).join("")
         html += `<tr>${cells}</tr>`
@@ -116,7 +137,7 @@ function renderSingleBlock(block: any): string {
       return `<div class="lp-callout-block">${inner}</div>${children}`
     case "paragraph":
     default:
-      return inner ? `<p>${inner}</p>${children}` : (children || "")
+      return inner ? `<p${bStyle}>${inner}</p>${children}` : (children || "")
   }
 }
 
