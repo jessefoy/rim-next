@@ -18,6 +18,7 @@
 
 import "@blocknote/mantine/style.css";
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   useCreateBlockNote,
   FormattingToolbarController,
@@ -37,6 +38,40 @@ import { rimBlockSchema } from "@/lib/blockNoteCustomBlocks";
 /* ── Types ─────────────────────────────────────────────────────────────────── */
 
 export type EditorContext = "lesson" | "document" | "default";
+
+/* ── Portal dropdown — renders at document.body to escape overflow:hidden ── */
+
+function PortalDropdown({
+  anchorRef,
+  children,
+  onPointerDown,
+}: {
+  anchorRef: React.RefObject<HTMLElement | null>;
+  children: React.ReactNode;
+  onPointerDown?: (e: React.PointerEvent) => void;
+}) {
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+
+  useEffect(() => {
+    if (anchorRef.current) {
+      const rect = anchorRef.current.getBoundingClientRect();
+      setPos({ top: rect.bottom + 6, left: rect.left });
+    }
+  }, [anchorRef]);
+
+  if (!pos) return null;
+
+  return createPortal(
+    <div
+      className="bear-more-dropdown bear-more-dropdown--portal"
+      style={{ position: "fixed", top: pos.top, left: pos.left }}
+      onPointerDown={onPointerDown}
+    >
+      {children}
+    </div>,
+    document.body,
+  );
+}
 
 /* ── SVG Icons ────────────────────────────────────────────────────────────── */
 
@@ -205,6 +240,7 @@ function ToolbarMoreMenu({ context = "default" as EditorContext }) {
   }
 
   const blockItems = [
+    { label: "Heading 1", type: "heading", props: { level: 1 }, match: activeBlock === "heading" && activeLevel === 1 },
     { label: "Heading 2", type: "heading", props: { level: 2 }, match: activeBlock === "heading" && activeLevel === 2 },
     { label: "Heading 3", type: "heading", props: { level: 3 }, match: activeBlock === "heading" && activeLevel === 3 },
     { label: "Bullet list", type: "bulletListItem", match: activeBlock === "bulletListItem" },
@@ -227,9 +263,12 @@ function ToolbarMoreMenu({ context = "default" as EditorContext }) {
     return items;
   }, [context]);
 
+  const btnRef = useRef<HTMLButtonElement>(null);
+
   return (
     <div className="bear-more-wrap" ref={ref}>
       <button
+        ref={btnRef}
         type="button"
         className={`bear-more-btn${open ? " bear-more-btn--open" : ""}`}
         onMouseDown={(e) => { e.preventDefault(); setOpen(!open); }}
@@ -239,7 +278,7 @@ function ToolbarMoreMenu({ context = "default" as EditorContext }) {
         ⋯
       </button>
       {open && (
-        <div className="bear-more-dropdown" onPointerDown={(e) => e.stopPropagation()}>
+        <PortalDropdown anchorRef={btnRef} onPointerDown={(e) => e.stopPropagation()}>
           {blockItems.map((item) => (
             <button
               key={item.label}
@@ -269,7 +308,7 @@ function ToolbarMoreMenu({ context = "default" as EditorContext }) {
               {item.label}
             </button>
           ))}
-        </div>
+        </PortalDropdown>
       )}
     </div>
   );
@@ -319,6 +358,10 @@ function PillHeadingDropdown() {
       </button>
       {open && (
         <div className="bear-more-dropdown" onPointerDown={(e) => e.stopPropagation()}>
+          <button type="button" className={`bear-more-item${isHeading && activeLevel === 1 ? " bear-more-item--active" : ""}`}
+            onMouseDown={(e) => { e.preventDefault(); setBlockType("heading", { level: 1 }); }}>
+            Heading 1
+          </button>
           <button type="button" className={`bear-more-item${isHeading && activeLevel === 2 ? " bear-more-item--active" : ""}`}
             onMouseDown={(e) => { e.preventDefault(); setBlockType("heading", { level: 2 }); }}>
             Heading 2
@@ -843,7 +886,8 @@ function ToolbarBlockTypeSelect() {
   }
 
   // Label for the current block type
-  const label = activeBlock === "heading" && activeLevel === 2 ? "H2"
+  const label = activeBlock === "heading" && activeLevel === 1 ? "H1"
+    : activeBlock === "heading" && activeLevel === 2 ? "H2"
     : activeBlock === "heading" && activeLevel === 3 ? "H3"
     : activeBlock === "bulletListItem" ? "•"
     : activeBlock === "numberedListItem" ? "1."
@@ -852,6 +896,7 @@ function ToolbarBlockTypeSelect() {
 
   const items = [
     { label: "Paragraph", short: "¶", type: "paragraph", match: activeBlock === "paragraph" },
+    { label: "Heading 1", short: "H1", type: "heading", props: { level: 1 }, match: activeBlock === "heading" && activeLevel === 1 },
     { label: "Heading 2", short: "H2", type: "heading", props: { level: 2 }, match: activeBlock === "heading" && activeLevel === 2 },
     { label: "Heading 3", short: "H3", type: "heading", props: { level: 3 }, match: activeBlock === "heading" && activeLevel === 3 },
     { label: "Bullet list", short: "•", type: "bulletListItem", match: activeBlock === "bulletListItem" },
@@ -859,9 +904,12 @@ function ToolbarBlockTypeSelect() {
     { label: "Quote", short: "❝", type: "quote", match: activeBlock === "quote" },
   ];
 
+  const btnRef = useRef<HTMLButtonElement>(null);
+
   return (
     <div className="bear-more-wrap" ref={ref}>
       <button
+        ref={btnRef}
         type="button"
         className={`bear-dd-btn${open ? " bear-dd-btn--open" : ""}`}
         onMouseDown={(e) => { e.preventDefault(); setOpen(!open); }}
@@ -871,7 +919,7 @@ function ToolbarBlockTypeSelect() {
         <CaretIcon />
       </button>
       {open && (
-        <div className="bear-more-dropdown" onPointerDown={(e) => e.stopPropagation()}>
+        <PortalDropdown anchorRef={btnRef} onPointerDown={(e) => e.stopPropagation()}>
           {items.map((item) => (
             <button
               key={item.label}
@@ -886,7 +934,7 @@ function ToolbarBlockTypeSelect() {
               {item.label}
             </button>
           ))}
-        </div>
+        </PortalDropdown>
       )}
     </div>
   );

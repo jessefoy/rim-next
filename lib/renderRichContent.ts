@@ -49,10 +49,10 @@ function renderInlineContent(content: any[]): string {
   }).join("")
 }
 
-function renderBlockNode(block: any): string {
+function renderSingleBlock(block: any): string {
   if (!block || typeof block !== "object") return ""
   const inner    = Array.isArray(block.content) ? renderInlineContent(block.content) : ""
-  const children = (block.children || []).map(renderBlockNode).join("")
+  const children = (block.children || []).map(renderSingleBlock).join("")
 
   switch (block.type) {
     case "heading": {
@@ -60,11 +60,11 @@ function renderBlockNode(block: any): string {
       return `<h${level}>${inner}</h${level}>${children}`
     }
     case "bulletListItem":
-      return `<li>${inner}</li>${children}`
+      return `<li>${inner}${children}</li>`
     case "numberedListItem":
-      return `<li>${inner}</li>${children}`
+      return `<li>${inner}${children}</li>`
     case "checkListItem":
-      return `<li>${inner}</li>${children}`
+      return `<li>${inner}${children}</li>`
     case "quote":
       return `<blockquote>${inner}</blockquote>${children}`
     case "codeBlock":
@@ -81,13 +81,29 @@ function renderBlockNode(block: any): string {
       return `<figure style="${alignStyle};margin:16px 0">${imgTag}${caption}</figure>${children}`
     }
     case "table": {
-      const rows = (block.content?.rows || []).map((row: any) => {
-        const cells = (row.cells || [])
-          .map((cell: any) => `<td>${renderInlineContent(cell.content || [])}</td>`)
-          .join("")
-        return `<tr>${cells}</tr>`
-      }).join("")
-      return `<table>${rows}</table>`
+      const rows = block.content?.rows || []
+      const headerRows = block.content?.headerRows ?? 0
+      let html = ""
+      rows.forEach((row: any, i: number) => {
+        const isHeader = i < headerRows
+        const tag = isHeader ? "th" : "td"
+        const cells = (row.cells || []).map((cell: any) => {
+          const cellContent = Array.isArray(cell.content)
+            ? renderInlineContent(cell.content)
+            : (cell.content ? renderInlineContent(cell.content) : "")
+          const attrs: string[] = []
+          if (cell.props?.colspan && cell.props.colspan > 1) attrs.push(`colspan="${cell.props.colspan}"`)
+          if (cell.props?.rowspan && cell.props.rowspan > 1) attrs.push(`rowspan="${cell.props.rowspan}"`)
+          return `<${tag}${attrs.length ? " " + attrs.join(" ") : ""}>${cellContent}</${tag}>`
+        }).join("")
+        html += `<tr>${cells}</tr>`
+      })
+      if (headerRows > 0) {
+        const headRows = html.split("</tr>").slice(0, headerRows).join("</tr>") + "</tr>"
+        const bodyRows = html.split("</tr>").slice(headerRows).filter(Boolean).join("</tr>")
+        return `<table><thead>${headRows}</thead><tbody>${bodyRows}</tbody></table>${children}`
+      }
+      return `<table><tbody>${html}</tbody></table>${children}`
     }
     // Custom Dharma blocks
     case "verseQuote": {
@@ -102,6 +118,44 @@ function renderBlockNode(block: any): string {
     default:
       return inner ? `<p>${inner}</p>${children}` : (children || "")
   }
+}
+
+/**
+ * Render an array of BlockNote blocks to HTML, grouping consecutive
+ * list items into proper <ul>/<ol> wrappers.
+ */
+function renderBlockNodes(blocks: any[]): string {
+  let html = ""
+  let i = 0
+  while (i < blocks.length) {
+    const block = blocks[i]
+    if (block.type === "bulletListItem") {
+      let items = ""
+      while (i < blocks.length && blocks[i].type === "bulletListItem") {
+        items += renderSingleBlock(blocks[i])
+        i++
+      }
+      html += `<ul>${items}</ul>`
+    } else if (block.type === "numberedListItem") {
+      let items = ""
+      while (i < blocks.length && blocks[i].type === "numberedListItem") {
+        items += renderSingleBlock(blocks[i])
+        i++
+      }
+      html += `<ol>${items}</ol>`
+    } else if (block.type === "checkListItem") {
+      let items = ""
+      while (i < blocks.length && blocks[i].type === "checkListItem") {
+        items += renderSingleBlock(blocks[i])
+        i++
+      }
+      html += `<ul class="check-list">${items}</ul>`
+    } else {
+      html += renderSingleBlock(block)
+      i++
+    }
+  }
+  return html
 }
 
 function isTiptapJSON(json: any): boolean {
@@ -123,7 +177,7 @@ function isTiptapJSON(json: any): boolean {
 export function renderBlockNoteHtml(json: any): string {
   if (!json) return ""
   if (isRawHtml(json)) return json.html
-  if (isBlockNoteJSON(json)) return (json as any[]).map(renderBlockNode).join("")
+  if (isBlockNoteJSON(json)) return renderBlockNodes(json as any[])
   // Legacy Tiptap JSON — extract text content as paragraph fallback until migration
   if (isTiptapJSON(json)) {
     return extractTiptapText(json)
