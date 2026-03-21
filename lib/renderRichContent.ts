@@ -8,6 +8,24 @@
  * custom blocks, etc.), use renderRichContentServer.ts instead.
  */
 
+// ── BlockNote color palette ──────────────────────────────────────────────────
+// BlockNote stores colors as named tokens ("red", "blue", etc.) not CSS values.
+// These maps match @blocknote/core/src/editor/defaultColors.ts (light mode).
+
+const BN_TEXT_COLORS: Record<string, string> = {
+  gray: "#9b9a97", brown: "#64473a", red: "#e03e3e", orange: "#d9730d",
+  yellow: "#dfab01", green: "#4d6461", blue: "#0b6e99", purple: "#6940a5", pink: "#ad1a72",
+}
+
+const BN_BG_COLORS: Record<string, string> = {
+  gray: "#ebeced", brown: "#e9e5e3", red: "#fbe4e4", orange: "#f6e9d9",
+  yellow: "#fbf3db", green: "#ddedea", blue: "#ddebf1", purple: "#eae4f2", pink: "#f4dfeb",
+}
+
+/** Resolve a BlockNote color token to a CSS color value. */
+function resolveTextColor(c: string): string { return BN_TEXT_COLORS[c] ?? c }
+function resolveBgColor(c: string): string { return BN_BG_COLORS[c] ?? c }
+
 // ── Format helpers ────────────────────────────────────────────────────────────
 
 export function isBlockNoteJSON(json: any): boolean {
@@ -48,8 +66,8 @@ function renderInlineContent(content: any[]): string {
     if (c.styles?.code)          t = `<code>${t}</code>`
     // Inline text color / background color
     const inlineStyles: string[] = []
-    if (c.styles?.textColor)       inlineStyles.push(`color:${c.styles.textColor}`)
-    if (c.styles?.backgroundColor) inlineStyles.push(`background-color:${c.styles.backgroundColor}`)
+    if (c.styles?.textColor)       inlineStyles.push(`color:${resolveTextColor(c.styles.textColor)}`)
+    if (c.styles?.backgroundColor) inlineStyles.push(`background-color:${resolveBgColor(c.styles.backgroundColor)}`)
     if (inlineStyles.length > 0)   t = `<span style="${inlineStyles.join(";")}">${t}</span>`
     return t
   }).join("")
@@ -59,8 +77,8 @@ function blockStyleAttr(block: any): string {
   const styles: string[] = []
   const align = block.props?.textAlignment
   if (align && align !== "left") styles.push(`text-align:${align}`)
-  if (block.props?.textColor) styles.push(`color:${block.props.textColor}`)
-  if (block.props?.backgroundColor) styles.push(`background-color:${block.props.backgroundColor}`)
+  if (block.props?.textColor) styles.push(`color:${resolveTextColor(block.props.textColor)}`)
+  if (block.props?.backgroundColor) styles.push(`background-color:${resolveBgColor(block.props.backgroundColor)}`)
   return styles.length > 0 ? ` style="${styles.join(";")}"` : ""
 }
 
@@ -112,8 +130,8 @@ function renderSingleBlock(block: any): string {
           if (cell.props?.rowspan && cell.props.rowspan > 1) attrs.push(`rowspan="${cell.props.rowspan}"`)
           // Cell-level background and text colors from advanced tables
           const cellStyles: string[] = []
-          if (cell.props?.backgroundColor) cellStyles.push(`background-color:${cell.props.backgroundColor}`)
-          if (cell.props?.textColor)       cellStyles.push(`color:${cell.props.textColor}`)
+          if (cell.props?.backgroundColor) cellStyles.push(`background-color:${resolveBgColor(cell.props.backgroundColor)}`)
+          if (cell.props?.textColor)       cellStyles.push(`color:${resolveTextColor(cell.props.textColor)}`)
           if (cellStyles.length > 0) attrs.push(`style="${cellStyles.join(";")}"`)
           return `<${tag}${attrs.length ? " " + attrs.join(" ") : ""}>${cellContent}</${tag}>`
         }).join("")
