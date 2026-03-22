@@ -6,6 +6,7 @@
  *
  * Thread list with compose form. Each thread links to /conversations/[id].
  * Any member can post; coordinators can close/archive threads.
+ * Pinned threads appear at the top with a ‼️ badge.
  */
 
 import { useState } from "react";
@@ -22,8 +23,9 @@ interface ThreadAuthor {
 interface Thread {
   id: string;
   title: string;
-  body: any; // Tiptap JSON
+  body: any; // BlockNote JSON
   status: string;
+  isPinned: boolean;
   authorId: string;
   author: ThreadAuthor;
   replyCount: number;
@@ -89,6 +91,8 @@ export default function HubConvClient({
   const [closedThreads, setClosedThreads] = useState<Thread[] | null>(null);
 
   const displayed = view === "open" ? threads : (closedThreads ?? []);
+  const pinnedThreads = displayed.filter((t) => t.isPinned);
+  const unpinnedThreads = displayed.filter((t) => !t.isPinned);
 
   async function loadClosed() {
     if (closedThreads !== null) return;
@@ -102,6 +106,7 @@ export default function HubConvClient({
           title:      t.title,
           body:       t.body,
           status:     t.status,
+          isPinned:   t.isPinned ?? false,
           authorId:   t.authorId,
           author:     t.author,
           replyCount: t._count?.replies ?? 0,
@@ -128,6 +133,7 @@ export default function HubConvClient({
         title:      t.title,
         body:       t.body,
         status:     t.status,
+        isPinned:   false,
         authorId:   t.authorId,
         author: {
           firstName:     null,
@@ -158,6 +164,7 @@ export default function HubConvClient({
           title:      updated.title,
           body:       updated.body,
           status:     updated.status,
+          isPinned:   updated.isPinned ?? false,
           authorId:   updated.authorId,
           author:     updated.author,
           replyCount: updated._count?.replies ?? 0,
@@ -171,6 +178,64 @@ export default function HubConvClient({
         setClosedThreads(null);
       }
     }
+  }
+
+  async function togglePin(id: string, currentlyPinned: boolean) {
+    const action = currentlyPinned ? "unpin" : "pin";
+    const res = await fetch(`/api/hub/${hubSlug}/conversations/${id}`, {
+      method:  "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ action }),
+    });
+    if (res.ok) {
+      const updateFn = (prev: Thread[]) =>
+        prev.map((t) => t.id === id ? { ...t, isPinned: !currentlyPinned } : t);
+      setThreads(updateFn);
+      if (closedThreads) setClosedThreads((prev) => prev ? updateFn(prev) : null);
+    }
+  }
+
+  function renderThreadRow(thread: Thread) {
+    const excerpt = extractText(thread.body);
+    return (
+      <div key={thread.id} className="cv-item">
+        <div className="cv-item__main">
+          <Link href={`/account/hub/${hubSlug}/conversations/${thread.id}`} className="cv-item__title">
+            {thread.isPinned && <span className="hub-conv__pin-badge">‼️</span>}
+            {thread.title}
+          </Link>
+          <div className="cv-item__excerpt">{excerpt.slice(0, 120)}{excerpt.length > 120 ? "…" : ""}</div>
+          <div className="cv-item__meta">
+            {fmtDate(thread.createdAt)} · {displayName(thread.author)}
+            {thread.replyCount > 0 && (
+              <span className="cv-item__replies"> · {thread.replyCount} {thread.replyCount === 1 ? "reply" : "replies"}</span>
+            )}
+          </div>
+        </div>
+        {isCoordinator && (
+          <div className="cv-item__actions">
+            {thread.isPinned ? (
+              <button className="ann-btn" onClick={() => togglePin(thread.id, true)}>
+                Unpin
+              </button>
+            ) : (
+              <button className="ann-btn" onClick={() => togglePin(thread.id, false)}>
+                Pin
+              </button>
+            )}
+            {thread.status === "OPEN" ? (
+              <button className="ann-btn" onClick={() => setStatus(thread.id, "CLOSED")}>
+                Close
+              </button>
+            ) : (
+              <button className="ann-btn" onClick={() => setStatus(thread.id, "OPEN")}>
+                Reopen
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -246,38 +311,16 @@ export default function HubConvClient({
         </p>
       ) : (
         <div className="cv-list">
-          {displayed.map((thread) => {
-            const excerpt = extractText(thread.body);
-            return (
-              <div key={thread.id} className="cv-item">
-                <div className="cv-item__main">
-                  <Link href={`/account/hub/${hubSlug}/conversations/${thread.id}`} className="cv-item__title">
-                    {thread.title}
-                  </Link>
-                  <div className="cv-item__excerpt">{excerpt.slice(0, 120)}{excerpt.length > 120 ? "…" : ""}</div>
-                  <div className="cv-item__meta">
-                    {fmtDate(thread.createdAt)} · {displayName(thread.author)}
-                    {thread.replyCount > 0 && (
-                      <span className="cv-item__replies"> · {thread.replyCount} {thread.replyCount === 1 ? "reply" : "replies"}</span>
-                    )}
-                  </div>
-                </div>
-                {isCoordinator && (
-                  <div className="cv-item__actions">
-                    {thread.status === "OPEN" ? (
-                      <button className="ann-btn" onClick={() => setStatus(thread.id, "CLOSED")}>
-                        Close
-                      </button>
-                    ) : (
-                      <button className="ann-btn" onClick={() => setStatus(thread.id, "OPEN")}>
-                        Reopen
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          {/* Pinned section */}
+          {pinnedThreads.length > 0 && (
+            <div className="hub-conv__pinned-section">
+              <div className="hub-conv__pinned-label">Pinned</div>
+              {pinnedThreads.map(renderThreadRow)}
+            </div>
+          )}
+
+          {/* Regular threads */}
+          {unpinnedThreads.map(renderThreadRow)}
         </div>
       )}
     </div>

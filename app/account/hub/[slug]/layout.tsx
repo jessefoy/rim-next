@@ -87,11 +87,10 @@ export default async function HubLayout({ children, params }: Props) {
     ...(isRegistrarHub
       ? [{ label: "Programs", href: `${base}/programs` }]
       : []),
-    { label: "Announcements", href: (isCourseHub || isRegistrarHub || isSupportHub) ? `${base}/announcements` : base },
+    { label: "Conversations", href: `${base}/conversations` },
     ...(hub.hasSchedule ? [{ label: "Schedule", href: `${base}/schedule` }] : []),
     ...(canSeeSessionTab ? [{ label: "Session", href: `${base}/session` }] : []),
     { label: "Documents",     href: `${base}/documents` },
-    { label: "Conversations", href: `${base}/conversations` },
     { label: "Members",       href: `${base}/members` },
     ...(isSupportHub
       ? [{ label: "Settings", href: `${base}/settings` }]

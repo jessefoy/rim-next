@@ -41,7 +41,11 @@ export default async function HubConversationsPage({
       author: { select: { firstName: true, lastName: true, preferredName: true } },
       _count:  { select: { replies: true } },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: [
+      { isPinned: "desc" },
+      { pinnedAt: { sort: "desc", nulls: "last" } },
+      { createdAt: "desc" },
+    ],
   });
 
   const isCoordinator =
@@ -52,6 +56,7 @@ export default async function HubConversationsPage({
     title:      t.title,
     body:       t.body,
     status:     t.status,
+    isPinned:   t.isPinned,
     authorId:   t.authorId,
     author: {
       firstName:     t.author.firstName,

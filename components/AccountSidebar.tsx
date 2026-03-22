@@ -122,6 +122,12 @@ export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
           </Link>
         )}
 
+        {isAdmin && (
+          <Link href="/admin/banner" className={linkClass("/admin/banner")}>
+            Banner
+          </Link>
+        )}
+
       </div>
     </nav>
   );

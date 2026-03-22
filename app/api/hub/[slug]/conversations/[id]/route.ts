@@ -60,7 +60,35 @@ export async function PATCH(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const { status } = await req.json();
+  const body = await req.json();
+  const { action, status } = body;
+
+  // Pin/unpin actions
+  if (action === "pin") {
+    const updated = await db.hubConversationThread.update({
+      where: { id },
+      data:  { isPinned: true, pinnedAt: new Date() },
+      include: {
+        author: { select: { firstName: true, lastName: true, preferredName: true } },
+        _count:  { select: { replies: true } },
+      },
+    });
+    return NextResponse.json(updated);
+  }
+
+  if (action === "unpin") {
+    const updated = await db.hubConversationThread.update({
+      where: { id },
+      data:  { isPinned: false, pinnedAt: null },
+      include: {
+        author: { select: { firstName: true, lastName: true, preferredName: true } },
+        _count:  { select: { replies: true } },
+      },
+    });
+    return NextResponse.json(updated);
+  }
+
+  // Status change (existing behavior)
   const updated = await db.hubConversationThread.update({
     where: { id },
     data:  { status },

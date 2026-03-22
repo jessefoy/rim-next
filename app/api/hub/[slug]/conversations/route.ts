@@ -26,7 +26,11 @@ export async function GET(
       author: { select: { firstName: true, lastName: true, preferredName: true } },
       _count:  { select: { replies: true } },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: [
+      { isPinned: "desc" },
+      { pinnedAt: { sort: "desc", nulls: "last" } },
+      { createdAt: "desc" },
+    ],
   });
 
   return NextResponse.json(threads);

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import AccountLayout from "@/components/AccountLayout";
-import AlertStrip from "@/components/AlertStrip";
+import SiteBannerStrip from "@/components/SiteBannerStrip";
 import DashboardAutoRefresh from "@/components/DashboardAutoRefresh";
 import MeetJoinButton from "@/components/MeetJoinButton";
 
@@ -128,7 +128,7 @@ export default async function DashboardPage() {
   const userId = session.user.id;
   const today  = todayCT();
 
-  const [allVirtual, upcomingRegistrations, pendingDana, hubMemberships, onboardingEnrollments, seriesEnrollments] =
+  const [allVirtual, upcomingRegistrations, pendingDana, hubMemberships, onboardingEnrollments, seriesEnrollments, activeBanner] =
     await Promise.all([
       db.program.findMany({
         where: {
@@ -202,6 +202,13 @@ export default async function DashboardPage() {
         },
         orderBy: { enrolledAt: "desc" },
       }),
+      // Active site banner + dismissal check
+      db.siteBanner.findFirst({
+        where: { isActive: true },
+        include: {
+          dismissals: { where: { userId } },
+        },
+      }),
     ]);
 
   // Fetch lesson progress for the series cards
@@ -262,6 +269,42 @@ export default async function DashboardPage() {
       })
     : hubMemberships.map((m) => m.hub);
 
+  // Compute unread counts per hub (skip for admin — they can check hubs directly)
+  const hubUnreadCounts: Record<string, number> = {};
+  if (!isAdmin) {
+    for (const membership of hubMemberships) {
+      const lastVisited = membership.lastVisitedAt ?? new Date(0);
+      const unreadThreads = await db.hubConversationThread.count({
+        where: {
+          hubId: membership.hub.id,
+          status: { not: "ARCHIVED" },
+          OR: [
+            { createdAt: { gt: lastVisited } },
+            { replies: { some: { createdAt: { gt: lastVisited } } } },
+          ],
+        },
+      });
+
+      // For host-team hub, also count unread alerts
+      let unreadAlerts = 0;
+      if (membership.hub.slug === "host-team") {
+        unreadAlerts = await db.alert.count({
+          where: {
+            userId,
+            read: false,
+            type: { in: ["SUB_REQUEST", "SUB_CLAIMED", "NEW_THREAD", "NEW_REPLY", "UNASSIGNED_SESSION"] },
+          },
+        });
+      }
+
+      hubUnreadCounts[membership.hub.id] = unreadThreads + unreadAlerts;
+    }
+  }
+
+  // Site banner
+  const showBanner = activeBanner && activeBanner.dismissals.length === 0;
+  const bannerData = showBanner ? { id: activeBanner.id, body: activeBanner.body } : null;
+
   const firstName =
     session.user?.name?.split(" ")[0] ??
     session.user?.email?.split("@")[0] ??
@@ -271,16 +314,16 @@ export default async function DashboardPage() {
     <AccountLayout>
       <div className="db2-wrap">
 
+        {/* Site-wide banner */}
+        <SiteBannerStrip banner={bannerData} />
+
         {/* 1. Greeting */}
         <div className="db2-greeting">
           <h1 className="db2-greeting__name">Welcome back, {firstName}.</h1>
           <p className="db2-greeting__date">{fmtTodayFull()}</p>
         </div>
 
-        {/* 2. Alerts */}
-        <AlertStrip />
-
-        {/* 3. Today's Virtual Sessions */}
+        {/* 2. Today's Virtual Sessions */}
         {showTodayCard && (
           <div className="db-section">
             <div className="today-card">
@@ -464,15 +507,23 @@ export default async function DashboardPage() {
           <div className="db-section">
             <p className="db-section__label">Your Hubs</p>
             <div className="db2-hub-grid">
-              {dashboardHubs.map((hub) => (
-                <Link key={hub.id} href={`/account/hub/${hub.slug}`} className="db2-hub-card">
-                  <span className="db2-hub-card__name">{hub.name}</span>
-                  <span className="db2-hub-card__type">
-                    {hub.type === "OPERATIONAL" ? "Operational" :
-                     hub.type === "GOVERNANCE"  ? "Governance"  : "Community Group"}
-                  </span>
-                </Link>
-              ))}
+              {dashboardHubs.map((hub) => {
+                const unread = hubUnreadCounts[hub.id] ?? 0;
+                return (
+                  <Link key={hub.id} href={`/account/hub/${hub.slug}`} className="db2-hub-card">
+                    <span className="db2-hub-card__name">{hub.name}</span>
+                    <span className="db2-hub-card__type">
+                      {hub.type === "OPERATIONAL" ? "Operational" :
+                       hub.type === "GOVERNANCE"  ? "Governance"  : "Community Group"}
+                    </span>
+                    {unread > 0 && (
+                      <span className="db2-hub-card__unread">
+                        {unread > 9 ? "9+" : unread}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
             </div>
           </div>
         )}

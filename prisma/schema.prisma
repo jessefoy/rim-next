@@ -139,6 +139,8 @@ model User {
   hubAccess            UserHubAccess[]
   hubAccessGranted     UserHubAccess[]       @relation("HubAccessGranter")
   dripNotifications    DripNotification[]
+  siteBannersCreated   SiteBanner[]          @relation("SiteBannerCreator")
+  siteBannerDismissals SiteBannerDismissal[] @relation("SiteBannerDismissal")
 
   @@map("users")
 }
@@ -1140,6 +1142,8 @@ model HubConversationThread {
   category             String    @default("General")
   status               String    @default("OPEN")
   sourceAnnouncementId String?
+  isPinned             Boolean   @default(false)
+  pinnedAt             DateTime?
 
   hub           Hub               @relation(fields: [hubId], references: [id])
   author        User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
@@ -1329,4 +1333,32 @@ model ManualSection {
   createdAt   DateTime @default(now())
 
   @@map("manual_sections")
+}
+
+// ─── SITE-WIDE BANNER ────────────────────────────────────────────────────────
+// Single-slot broadcast for community-wide notices (cancellations, etc.).
+// ADMIN posts and dismisses globally; members can dismiss individually.
+
+model SiteBanner {
+  id          String    @id @default(cuid())
+  body        String
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  createdById String
+  createdBy   User      @relation("SiteBannerCreator", fields: [createdById], references: [id])
+
+  dismissals  SiteBannerDismissal[]
+
+  @@map("site_banners")
+}
+
+model SiteBannerDismissal {
+  id       String     @id @default(cuid())
+  bannerId String
+  userId   String
+  banner   SiteBanner @relation(fields: [bannerId], references: [id], onDelete: Cascade)
+  user     User       @relation("SiteBannerDismissal", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([bannerId, userId])
+  @@map("site_banner_dismissals")
 }

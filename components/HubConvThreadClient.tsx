@@ -31,6 +31,7 @@ interface Thread {
   body: any;
   bodyHtml: string;
   status: string;
+  isPinned: boolean;
   authorId: string;
   author: PersonName;
   replies: Reply[];
@@ -124,6 +125,18 @@ export default function HubConvThreadClient({
     }
   }
 
+  async function togglePin() {
+    const action = thread.isPinned ? "unpin" : "pin";
+    const res = await fetch(`/api/hub/${hubSlug}/conversations/${thread.id}`, {
+      method:  "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ action }),
+    });
+    if (res.ok) {
+      setThread((prev) => ({ ...prev, isPinned: !prev.isPinned }));
+    }
+  }
+
   return (
     <div style={{ maxWidth: 680 }}>
 
@@ -136,13 +149,19 @@ export default function HubConvThreadClient({
 
       {/* Thread header */}
       <div className="cv-thread-hdr">
-        <div className="cv-thread-hdr__title">{thread.title}</div>
+        <div className="cv-thread-hdr__title">
+          {thread.isPinned && <span className="hub-conv__pin-badge">‼️</span>}
+          {thread.title}
+        </div>
         <div className="cv-thread-hdr__meta">
           {fmtDate(thread.createdAt)} · {displayName(thread.author)}
           {isClosed && <span className="cv-status-badge cv-status-badge--closed"> · Closed</span>}
         </div>
         {isCoordinator && (
           <div className="cv-thread-hdr__actions">
+            <button className="ann-btn" onClick={togglePin}>
+              {thread.isPinned ? "Unpin" : "Pin this thread ‼️"}
+            </button>
             {isClosed ? (
               <button className="ann-btn" onClick={() => setStatus("OPEN")}>Reopen</button>
             ) : (
