@@ -1123,6 +1123,38 @@ export default function RimBlockEditor({
       .rim-block-editor .bn-block-outer[data-prev-type="heading"] > .bn-block > .bn-block-content:not([data-content-type="heading"]) {
         font-size: 16px !important; font-weight: 400 !important;
       }
+      /* ── Paragraph spacing ── */
+      .rim-block-editor .bn-block-content[data-content-type="paragraph"] {
+        margin-bottom: 4px !important;
+      }
+      /* ── Lists — match doc-body view mode ── */
+      .rim-block-editor .bn-block-content[data-content-type="bulletListItem"],
+      .rim-block-editor .bn-block-content[data-content-type="numberedListItem"] {
+        margin-bottom: 2px !important;
+      }
+      /* ── Blockquote ── */
+      .rim-block-editor .bn-block-content[data-content-type="quote"] {
+        border-left: 3px solid #ddd8d3 !important;
+        padding-left: 20px !important;
+        color: var(--rim-text-muted) !important;
+        font-style: italic !important;
+      }
+      /* ── Links ── */
+      .rim-block-editor .bn-editor a {
+        color: var(--rim-mid) !important;
+        text-decoration: underline !important;
+        text-underline-offset: 2px !important;
+      }
+      .rim-block-editor .bn-editor a:hover {
+        color: var(--rim-blue) !important;
+      }
+      /* ── Table cells — borders + padding to match doc-body ── */
+      .rim-block-editor table td,
+      .rim-block-editor table th {
+        border: 1px solid #d5d0cb !important;
+        padding: 10px 14px !important;
+        vertical-align: top !important;
+      }
     `;
     document.head.appendChild(style);
   }, []);
