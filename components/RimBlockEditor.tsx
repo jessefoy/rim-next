@@ -1091,41 +1091,37 @@ export default function RimBlockEditor({
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Inject heading size overrides AFTER BlockNote CSS loads.
-  // BlockNote's component CSS import loads after our static custom.css,
-  // so static overrides lose the cascade battle. A <style> tag injected
-  // on mount always wins because it appears last in the document.
+  // BlockNote renders actual <h1>, <h2>, <h3> tags inside [data-content-type="heading"].
+  // Note: data-level is only set by SideMenu which we've disabled (sideMenu={false}),
+  // so we must target the actual HTML heading tags directly.
   useEffect(() => {
     const id = "rim-heading-overrides";
     if (document.getElementById(id)) return;
     const style = document.createElement("style");
     style.id = id;
     style.textContent = `
-      /* H1 / H2 / H3 sizes — must beat BlockNote's .bn-block-outer:not([data-prev-type]) > ... selector */
-      .rim-block-editor .bn-block-outer > .bn-block > .bn-block-content[data-content-type="heading"][data-level="1"],
-      .rim-block-editor .bn-block-outer:not([data-prev-type]) > .bn-block > .bn-block-content[data-content-type="heading"][data-level="1"] {
+      .rim-block-editor .bn-block-content[data-content-type="heading"] h1 {
         font-size: 32px !important; line-height: 1.2 !important;
+        margin-top: 24px !important; margin-bottom: 8px !important;
       }
-      .rim-block-editor .bn-block-outer > .bn-block > .bn-block-content[data-content-type="heading"][data-level="2"],
-      .rim-block-editor .bn-block-outer:not([data-prev-type]) > .bn-block > .bn-block-content[data-content-type="heading"][data-level="2"] {
+      .rim-block-editor .bn-block-content[data-content-type="heading"] h2 {
         font-size: 24px !important; line-height: 1.25 !important;
+        margin-top: 20px !important; margin-bottom: 6px !important;
       }
-      .rim-block-editor .bn-block-outer > .bn-block > .bn-block-content[data-content-type="heading"][data-level="3"],
-      .rim-block-editor .bn-block-outer:not([data-prev-type]) > .bn-block > .bn-block-content[data-content-type="heading"][data-level="3"] {
+      .rim-block-editor .bn-block-content[data-content-type="heading"] h3 {
         font-size: 20px !important; line-height: 1.3 !important;
+        margin-top: 16px !important; margin-bottom: 4px !important;
       }
-      /* Block after a heading — snap back to body size (BlockNote animates these via --prev-level) */
+      .rim-block-editor .bn-block-content[data-content-type="heading"] h1,
+      .rim-block-editor .bn-block-content[data-content-type="heading"] h2,
+      .rim-block-editor .bn-block-content[data-content-type="heading"] h3 {
+        font-family: var(--font-doc) !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.01em !important;
+      }
+      /* Reset any block-level font-size that BlockNote's transition animation sets */
       .rim-block-editor .bn-block-outer[data-prev-type="heading"] > .bn-block > .bn-block-content:not([data-content-type="heading"]) {
         font-size: 16px !important; font-weight: 400 !important;
-      }
-      /* Heading spacing */
-      .rim-block-editor .bn-block-outer:has(> .bn-block > [data-content-type="heading"][data-level="1"]) {
-        margin-top: 48px !important; margin-bottom: 12px !important;
-      }
-      .rim-block-editor .bn-block-outer:has(> .bn-block > [data-content-type="heading"][data-level="2"]) {
-        margin-top: 40px !important; margin-bottom: 8px !important;
-      }
-      .rim-block-editor .bn-block-outer:has(> .bn-block > [data-content-type="heading"][data-level="3"]) {
-        margin-top: 32px !important; margin-bottom: 6px !important;
       }
     `;
     document.head.appendChild(style);
