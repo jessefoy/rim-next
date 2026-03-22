@@ -17164,53 +17164,11 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   letter-spacing: -0.01em;
 }
 /* ── Heading size overrides ──
-   BlockNote uses TWO high-specificity rules that set font-size:
-   1. .bn-block-outer:not([data-prev-type]) > .bn-block > .bn-block-content[data-content-type=heading]
-      → font-size: var(--level)   (the heading itself)
-   2. .bn-block-outer[data-prev-type=heading] > .bn-block > .bn-block-content
-      → font-size: var(--prev-level)   (block AFTER a heading, for transition animation)
-   Strategy: override the --level / --prev-level CSS vars so both rules use our sizes,
-   PLUS override font-size directly with matching specificity. */
+   BlockNote's CSS loads AFTER ours (component import vs <link> in layout).
+   CSS variable overrides (--level) don't work reliably with !important.
+   Solution: inject a <style> tag from JS so it always loads last.
+   The CSS below is a fallback — the real override is in RimBlockEditor.tsx. */
 
-/* Override the CSS variable at source — controls both heading and post-heading blocks */
-.rim-block-editor [data-content-type="heading"][data-level="1"] { --level: 32px !important; --prev-level: 32px !important; }
-.rim-block-editor [data-content-type="heading"][data-level="2"] { --level: 24px !important; --prev-level: 24px !important; }
-.rim-block-editor [data-content-type="heading"][data-level="3"] { --level: 20px !important; --prev-level: 20px !important; }
-
-/* Direct font-size override with specificity to match BlockNote's selector */
-.rim-block-editor .bn-block-outer > .bn-block > .bn-block-content[data-content-type="heading"][data-level="1"] {
-  font-size: 32px !important;
-  line-height: 1.2 !important;
-}
-.rim-block-editor .bn-block-outer > .bn-block > .bn-block-content[data-content-type="heading"][data-level="2"] {
-  font-size: 24px !important;
-  line-height: 1.25 !important;
-}
-.rim-block-editor .bn-block-outer > .bn-block > .bn-block-content[data-content-type="heading"][data-level="3"] {
-  font-size: 20px !important;
-  line-height: 1.3 !important;
-}
-
-/* Reset blocks that follow headings — BlockNote gives them font-size:var(--prev-level) for animation.
-   Non-heading blocks should snap back to body size. */
-.rim-block-editor .bn-block-outer[data-prev-type="heading"] > .bn-block > .bn-block-content:not([data-content-type="heading"]) {
-  font-size: 16px !important;
-  font-weight: 400 !important;
-}
-
-/* Heading spacing */
-.rim-block-editor .bn-block-outer:has(> .bn-block > [data-content-type="heading"][data-level="1"]) {
-  margin-top: 48px !important;
-  margin-bottom: 12px !important;
-}
-.rim-block-editor .bn-block-outer:has(> .bn-block > [data-content-type="heading"][data-level="2"]) {
-  margin-top: 40px !important;
-  margin-bottom: 8px !important;
-}
-.rim-block-editor .bn-block-outer:has(> .bn-block > [data-content-type="heading"][data-level="3"]) {
-  margin-top: 32px !important;
-  margin-bottom: 6px !important;
-}
 /* First block shouldn't have giant top margin */
 .rim-block-editor .bn-block-outer:first-child {
   margin-top: 0 !important;
