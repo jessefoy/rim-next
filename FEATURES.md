@@ -3281,12 +3281,31 @@ Three-column split-pane email client:
 
 **Hub Documents upgrade (also session 69):** `HubDocument` model gained `body Json?`, `isNative Boolean`, and `url String?` (nullable). Native documents are created/edited within the platform using `RimBlockEditor` and exported as Markdown. See §34.
 
+**RimBlockEditor enhancements (sessions 71):**
+- **Bear-inspired toolbar:** Selection toolbar (`FormattingToolbarController`) with B/I/U/Link/Align + ⋯ more menu. Empty-line pill with heading/list dropdowns, formatting, table/image insert.
+- **Image support:** Upload via pill button and drag-and-drop. `uploadFile` callback on `useCreateBlockNote`. Image alignment overlay (L/C/R) via DOM injection into `.bn-visual-media-wrapper`. Any authenticated user can upload (not just ADMIN/TEACHER).
+- **Advanced tables:** `tables: { splitCells, cellBackgroundColor, cellTextColor, headers }`. Table delete button (× at top-left on hover via `TableDeleteOverlay`). Explicit 3×3 `tableContent` structure for reliable insertion.
+- **Heading hierarchy:** H1: 32px, H2: 24px, H3: 20px. Injected via `<style>` tag on mount (BlockNote's component CSS loads after static CSS; `data-level` attribute only set by disabled SideMenu — must target actual `<h1>`/`<h2>`/`<h3>` tags).
+- **Block type selector:** `ToolbarBlockTypeSelect` dropdown (¶/H1/H2/H3/bullet/numbered/quote) in selection toolbar. `ToolbarMoreMenu` for extended block types and insert actions.
+- **Document locking:** Author can lock doc (`HubDocument.isLocked`), ADMIN override. Author attribution banner. Concurrent editing presence (heartbeat POST every 30s, stale after 60s).
+- **Blob cleanup:** `lib/blobCleanup.ts` — `extractBlobUrls()`, `cleanupRemovedBlobs()`, `cleanupAllBlobs()`. Fire-and-forget on document PATCH/DELETE.
+- **Editor-to-view parity:** Injected styles match editor appearance to published `doc-body` view for all elements (headings, lists, blockquotes, links, tables, bold).
+
+**Render improvements (session 71):**
+- `renderBlockNodes()` groups consecutive list items into `<ul>`/`<ol>` wrappers (was outputting bare `<li>` elements).
+- Image rendering: `<figure>` with alignment, previewWidth, caption support.
+- Table rendering: `<thead>`/`<tbody>`, headerRows, colspan/rowspan, cell background/text colors.
+- BlockNote color token resolution: named tokens ("red", "blue") mapped to actual CSS values via `BN_TEXT_COLORS`/`BN_BG_COLORS` lookup maps matching BlockNote's default palette. Without this, `"red"` background renders as CSS red (#FF0000) instead of BlockNote's soft pink (#fbe4e4).
+
 **🔧 Technical notes:**
 - `@blocknote/server-util` must always be dynamically imported. Static import causes JSDOM to be evaluated at Turbopack build time, crashing `createContext`.
 - `renderRichContentServer.ts` retains a Tiptap fallback (`generateHTML` from `@tiptap/html`) for any records that might not have been migrated. This can be removed once the production database is confirmed fully converted.
 - The migration script is idempotent — safe to re-run. It skips records that are already BlockNote JSON or null.
+- `data-level` attribute is only set by BlockNote's `SideMenu` component (`sideMenu={false}` disables it). All heading CSS must target actual `<h1>`/`<h2>`/`<h3>` tags, not `[data-level]`.
+- `@blocknote/core/style.css` is NOT imported — only `@blocknote/mantine/style.css`. Core heading rules (`font-size: var(--level)`) are unused; our injected `<style>` tag handles all heading sizing.
+- Leading empty paragraphs in saved content are stripped on load via `cleanedContent` memo.
 
-*Added: 2026-03-19 (session 69)*
+*Added: 2026-03-19 (session 69). Updated: 2026-03-21 (session 71)*
 
 ---
 
@@ -3303,36 +3322,53 @@ Three-column split-pane email client:
 - `/api/hub/[slug]/documents/[id]/export` — download as Markdown (server-side `blocksToMarkdownLossy`)
 
 **New components:**
-- `components/HubDocumentEditor.tsx` — title input + category selector + `RimBlockEditor` + save/delete
+- `components/HubDocumentEditor.tsx` — title input + category selector + `RimBlockEditor` + save/delete + lock toggle + presence warning + author attribution banner
 
-**Schema changes (session 69):**
+**Schema changes (sessions 69, 71):**
 ```prisma
 model HubDocument {
-  url      String?   // nullable — native docs have no URL
-  body     Json?     // BlockNote JSON
-  isNative Boolean   @default(false)
-  updatedAt DateTime @updatedAt
+  url         String?   // nullable — native docs have no URL
+  body        Json?     // BlockNote JSON
+  isNative    Boolean   @default(false)
+  isLocked    Boolean   @default(false)
+  editingById String?   // presence tracking
+  editingAt   DateTime? // presence timestamp
+  addedById   String    // author attribution
+  updatedAt   DateTime  @updatedAt
 }
 ```
 
-**Documents tab UI:** Split toolbar — "New Document" (creates native doc) and "Add Link" (existing external URL flow). Native docs link to the view page; link docs open external URL.
+**Documents tab UI:** Split toolbar — "New Document" (creates native doc) and "Add Link" (existing external URL flow). Native docs link to the view page; link docs open external URL. 🔒 icon on locked docs. Edit button shows "View" for locked docs when not author.
 
 **Document view page:** Renders body via `renderContentBodyAsync` inside `man-layout-single` CSS — same reading experience as the staff manual. Includes a "Download as Markdown" link.
 
-**Permissions:** Coordinator-only for create/edit/delete. All hub members can view.
+**Document locking (session 71):** Author can lock a document to prevent edits from other hub members. ADMIN can always override. Lock toggle via `POST /api/hub/[slug]/documents/[id]/lock`. PATCH route returns 403 for non-author on locked docs (unless ADMIN).
+
+**Presence tracking (session 71):** Heartbeat every 30s via `POST /api/hub/[slug]/documents/[id]/presence`. Stale after 60s. `GET` checks who's editing. `DELETE` clears on unmount. If someone is actively editing, a warning banner appears with "Continue anyway" dismiss.
+
+**Author attribution:** Non-authors see a muted info banner: "This document was created by [name]." CSS: `doc-banner--info`, `doc-banner--warning`.
+
+**Blob cleanup (session 71):** When images are removed from a document, their Vercel Blob files are auto-deleted. `lib/blobCleanup.ts` — `cleanupRemovedBlobs(oldBody, newBody)` on PATCH, `cleanupAllBlobs(body)` on DELETE. Fire-and-forget, best-effort.
+
+**Permissions:** Coordinator-only for create/edit/delete. All hub members can view. Author or ADMIN can lock/unlock.
 
 **CSS prefix:** `hdoc-` — `hdoc-editor` and `hdoc-view` blocks in `custom.css`.
+
+**API routes (session 71):**
+- `POST /api/hub/[slug]/documents/[id]/lock` — toggle lock (author or ADMIN)
+- `POST|GET|DELETE /api/hub/[slug]/documents/[id]/presence` — editing presence heartbeat
 
 **🔧 Technical notes:**
 - Markdown export uses `ServerBlockNoteEditor.blocksToMarkdownLossy()` — server-side only, dynamically imported
 - The `HubDocumentFileType` enum still uses `DOC`, `SHEET`, `SLIDE`, `FORM`, `LINK` — native documents use `DOC` with `isNative: true`
 - `updatedAt` was added to `HubDocument` in this migration alongside the other fields
+- Upload permissions opened to all authenticated users (not just ADMIN/TEACHER/SUPPORT) — non-privileged users limited to `image/*, audio/*, application/pdf`
 
-*Added: 2026-03-19 (session 69)*
+*Added: 2026-03-19 (session 69). Updated: 2026-03-21 (session 71)*
 
 ---
 
-*Last updated: 2026-03-20 (session 70)*
+*Last updated: 2026-03-21 (session 71)*
 
 ---
 
@@ -3370,5 +3406,7 @@ model HubDocument {
 - To add a new section: (1) create a component in `components/member-sections/`, (2) add one entry to `MEMBER_SECTIONS` in the registry. Nothing else changes.
 
 *Updated: 2026-03-19 (session 69)*
+
+**2026-03-21 (session 71)** — RimBlockEditor full feature build + rendering fixes. **(1) Bear-inspired toolbar:** Selection toolbar with B/I/U/Link/Align/⋯ more menu; empty-line pill with heading/list dropdowns, table/image insert. **(2) Image support:** Upload via pill + drag-and-drop; alignment overlay (L/C/R) via DOM injection; upload opened to all authenticated users (not just ADMIN/TEACHER). **(3) Advanced tables:** splitCells, cellBackgroundColor, cellTextColor, headers; table delete × at top-left on hover; explicit 3×3 tableContent for reliable insertion. **(4) Heading hierarchy:** H1: 32px, H2: 24px, H3: 20px via injected `<style>` tag (discovered `data-level` only set by disabled SideMenu — must target `<h1>`/`<h2>`/`<h3>` tags directly). **(5) Block type selector:** ToolbarBlockTypeSelect dropdown in selection toolbar. **(6) Document locking:** Author lock + ADMIN override + presence heartbeat (30s POST, stale 60s) + author attribution banner. **(7) Blob cleanup:** `lib/blobCleanup.ts` auto-deletes orphaned Vercel Blob files. **(8) Render fixes:** List grouping (`<ul>`/`<ol>` wrappers), image rendering (`<figure>`), table `<thead>`/`<tbody>`, BlockNote color token resolution (named tokens mapped to actual hex values). **(9) Editor-view parity:** Injected styles match editor to published doc-body for all elements. Schema: HubDocument gained `isLocked`, `editingById`, `editingAt`, `addedById`. New API routes: `/lock`, `/presence`. Key files: `components/RimBlockEditor.tsx`, `components/HubDocumentEditor.tsx`, `lib/renderRichContent.ts`, `lib/blobCleanup.ts`.
 
 **2026-03-16 (session 58, continued)** — Session tab: finished remaining gaps from the UX redesign brief. (1) meetHostAccount display: Added to States 2 and 3 — shows the Google Meet room account labeled "Room account" in State 2, quiet text below the join button in State 3. (2) State 5 inline form: PostSessionClient now renders inline in State 5 instead of linking to a separate page. Co-host vs primary host routing handled via isCoHost prop derived from SessionProgram flags. (3) End Session stays on page: endSession callback now calls router.refresh() instead of router.push — user stays on the session tab and State 5 appears with the inline form. (4) Coordinator section: Coordinator/Admin users see a muted section below the host cards with missing report indicators and team journal link. Key files: components/SessionLiveClient.tsx, components/PostSessionClient.tsx, app/account/hub/[slug]/session/page.tsx.

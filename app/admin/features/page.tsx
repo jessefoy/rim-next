@@ -618,6 +618,18 @@ const AREAS: FunctionalArea[] = [
           "Session History — coordinator view shows flagged attendees with notes and routing",
         ],
       },
+      {
+        name: "Hub Documents",
+        locations: ["/account/hub/[slug]/documents", "/account/hub/[slug]/documents/[id]", "/account/hub/[slug]/documents/[id]/edit", "Component: HubDocumentEditor.tsx", "Component: HubDocumentsClient.tsx", "API: /api/hub/[slug]/documents/[id]/lock", "API: /api/hub/[slug]/documents/[id]/presence"],
+        what: "Native document creation and editing within any hub. Uses RimBlockEditor with Bear-inspired toolbar (selection + empty-line pill), image upload (any authenticated user, drag-and-drop), advanced tables (split cells, cell colors, headers), heading hierarchy (H1/H2/H3), block type selector. Document locking (author lock + ADMIN override). Presence tracking (heartbeat every 30s, stale after 60s). Author attribution banner. Blob cleanup (auto-delete orphaned Vercel Blob images). Published view matches editor styling via doc-body CSS. Color token resolution maps BlockNote named tokens to actual hex values.",
+        relatedTo: [
+          "HubDocument Postgres model — body Json?, isLocked, editingById, editingAt, addedById",
+          "lib/blobCleanup.ts — extractBlobUrls(), cleanupRemovedBlobs(), cleanupAllBlobs()",
+          "lib/renderRichContent.ts — renderBlockNodes() with list grouping, image <figure>, table colors",
+          "RimBlockEditor heading CSS injected via <style> tag (data-level only set by disabled SideMenu)",
+          "Upload route /api/upload — opened to all authenticated users for images",
+        ],
+      },
     ],
   },
 

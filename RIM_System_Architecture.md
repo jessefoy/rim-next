@@ -167,6 +167,8 @@ The **Registrar Hub** (Phase 1) was migrated into the hub system in session 53. 
 
 **Admin member profile redesign — complete (session 69):** The profile page was visually redesigned using the `adm2-` CSS system. Key changes: member header card with avatar/initials, serif name, status/role/tag badge strip; display-mode-first for Identity & Contact (shows read view by default, Edit toggle opens form); roles section compressed into a grouped grid (System Access / Volunteer Teams / Governance); zone separators via CSS `::before` rules; `HouseholdSection` and `CourseAccessSection` card appearance flattened via `.adm2-page` context overrides. Newsletter footer suppressed on all admin, hub, account, lesson, and course pages via `FooterWrapper`.
 
+**RimBlockEditor full feature build — complete (session 71):** The block editor gained a Bear-inspired dual-toolbar system (selection toolbar + empty-line pill), image upload with alignment overlay (opened to all authenticated users), advanced tables (split cells, colors, headers), heading hierarchy (H1/H2/H3 with injected CSS — discovered `data-level` only set by disabled SideMenu, must target actual `<h1>`/`<h2>`/`<h3>` tags), block type selector dropdown, document locking (author lock + ADMIN override + presence heartbeat), and Vercel Blob cleanup for orphaned images. The renderer (`lib/renderRichContent.ts`) was upgraded with list grouping (`<ul>`/`<ol>` wrappers), image `<figure>` rendering, table `<thead>`/`<tbody>` with cell colors, and BlockNote color token resolution (named tokens like "red" mapped to actual hex values via `BN_TEXT_COLORS`/`BN_BG_COLORS` maps). Editor-view parity: injected styles ensure the editor matches the published `doc-body` appearance for all elements.
+
 **What remains for the Registrar Hub:**
 
 - **Check-in tools:** Digital check-in per program (phone-first), PDF export, future member self-check-in.
@@ -185,4 +187,4 @@ This file is part of the closing ritual for any Claude Code session that touches
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org*
-*Working document · March 2026 (updated session 70)*
+*Working document · March 2026 (updated session 71)*
