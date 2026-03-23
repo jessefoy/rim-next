@@ -81,7 +81,9 @@ export interface ProgramData {
 }
 
 interface Props {
-  hubSlug: string;
+  hubSlug?: string;
+  /** Base path for navigation (e.g. "/tools/programs"). Falls back to hub-based path if not set. */
+  basePath?: string;
   initialData?: ProgramData;
   isEditing: boolean;
   categories: Category[];
@@ -117,7 +119,8 @@ function toLocalDatetime(iso: string | null | undefined): string {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export default function ProgramEditor({ hubSlug, initialData, isEditing, categories }: Props) {
+export default function ProgramEditor({ hubSlug, basePath: basePathProp, initialData, isEditing, categories }: Props) {
+  const basePath = basePathProp ?? `/account/hub/${hubSlug}/programs`;
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("Content");
   const [saving, setSaving] = useState(false);
@@ -327,11 +330,11 @@ export default function ProgramEditor({ hubSlug, initialData, isEditing, categor
         setTimeout(() => setSuccess(false), 3000);
         // If slug changed, redirect to new URL
         if (slug !== initialData?.slug) {
-          router.push(`/account/hub/${hubSlug}/programs/${slug}/edit`);
+          router.push(`${basePath}/${slug}/edit`);
         }
       } else {
         const created = await res.json();
-        router.push(`/account/hub/${hubSlug}/programs/${created.slug}/edit`);
+        router.push(`${basePath}/${created.slug}/edit`);
       }
     } catch {
       setError("Network error");
@@ -975,7 +978,7 @@ export default function ProgramEditor({ hubSlug, initialData, isEditing, categor
         </button>
         <button
           type="button"
-          onClick={() => router.push(`/account/hub/${hubSlug}/programs`)}
+          onClick={() => router.push(basePath)}
           className="pe-btn"
         >
           Cancel

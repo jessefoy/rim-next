@@ -39,6 +39,18 @@ async function main() {
     });
     console.log(`  ✓ ${hub.name}`);
   }
+  // Seed app links for hubs that have tools
+  const registrarHub = await db.hub.findUnique({ where: { slug: "registrar" } });
+  if (registrarHub) {
+    const existing = await db.hubAppLink.findFirst({ where: { hubId: registrarHub.id, label: "Program Manager" } });
+    if (!existing) {
+      await db.hubAppLink.create({
+        data: { hubId: registrarHub.id, label: "Program Manager", href: "/tools/programs", order: 0 },
+      });
+      console.log("  ✓ Registrar Hub → Program Manager app link");
+    }
+  }
+
   console.log("Done.");
 }
 

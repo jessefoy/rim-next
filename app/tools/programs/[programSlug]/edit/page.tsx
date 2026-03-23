@@ -1,12 +1,11 @@
 /**
- * /account/hub/registrar/programs/[programSlug]/edit — Edit an existing program.
- * REGISTRAR | ADMIN only.
+ * /tools/programs/[programSlug]/edit — Edit an existing program.
+ * Role gate: REGISTRAR | ADMIN (handled by tools/programs/layout.tsx).
  */
 
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { getHubMembership } from "@/lib/hubAuth";
 import Link from "next/link";
 import ProgramEditor from "@/components/registrar/ProgramEditor";
 import type { ProgramData } from "@/components/registrar/ProgramEditor";
@@ -14,21 +13,14 @@ import { toCentralDatetime } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
 
-export default async function EditProgramPage({
+export default async function EditProgramToolPage({
   params,
 }: {
-  params: Promise<{ slug: string; programSlug: string }>;
+  params: Promise<{ programSlug: string }>;
 }) {
-  const { slug, programSlug } = await params;
+  const { programSlug } = await params;
   const session = await auth();
   if (!session) redirect("/login");
-
-  const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
-  if (!hub || (!member && !isAdmin)) redirect("/account/dashboard");
-
-  const roles = session.user.roles ?? [];
-  const isRegistrar = roles.includes("REGISTRAR") || roles.includes("ADMIN");
-  if (!isRegistrar) redirect(`/account/hub/${slug}/programs`);
 
   const [program, categories] = await Promise.all([
     db.program.findUnique({ where: { slug: programSlug } }),
@@ -45,7 +37,6 @@ export default async function EditProgramPage({
     );
   }
 
-  // Serialize for the client component — convert Dates to datetime-local strings
   const initialData: ProgramData = {
     id: program.id,
     slug: program.slug,
@@ -99,10 +90,10 @@ export default async function EditProgramPage({
     <div className="vol-page">
       <div className="vol-content">
         <div className="vol-header">
-          <Link href={`/account/hub/${slug}/programs`} className="vol-back">&larr; Programs</Link>
+          <Link href="/tools/programs" className="vol-back">&larr; Programs</Link>
         </div>
         <ProgramEditor
-          hubSlug={slug}
+          basePath="/tools/programs"
           initialData={initialData}
           isEditing={true}
           categories={categories.map((c) => ({ id: c.id, slug: c.slug, name: c.name }))}

@@ -25,14 +25,18 @@ type Filter = "all" | "open" | "waitlist" | "attention" | "archived";
 export default function ProgramsTableClient({
   programs,
   hubBase,
+  basePath: basePathProp,
   isRegistrar,
   isAdmin,
 }: {
   programs: ProgramRow[];
-  hubBase: string;
+  hubBase?: string;
+  /** Base path for program links (e.g. "/tools/programs"). Falls back to hubBase/programs. */
+  basePath?: string;
   isRegistrar: boolean;
   isAdmin: boolean;
 }) {
+  const basePath = basePathProp ?? `${hubBase}/programs`;
   const [filter, setFilter] = useState<Filter>("all");
   const [search, setSearch] = useState("");
   const [confirming, setConfirming] = useState<{
@@ -290,7 +294,7 @@ export default function ProgramsTableClient({
           />
           {isRegistrar && (
             <Link
-              href={`${hubBase}/programs/new`}
+              href={`${basePath}/new`}
               className="pe-btn pe-btn--primary vol-add-btn"
             >
               + Add Program
@@ -334,7 +338,7 @@ export default function ProgramsTableClient({
                 <td className="vol-table__td">
                   {isRegistrar && !p.archivedAt ? (
                     <Link
-                      href={`${hubBase}/programs/${p.slug}`}
+                      href={`${basePath}/${p.slug}`}
                       className="vol-table__name"
                     >
                       {p.name}
@@ -402,7 +406,7 @@ export default function ProgramsTableClient({
                     ) : (
                       <div className="vol-table__actions">
                         <Link
-                          href={`${hubBase}/programs/${p.slug}/edit`}
+                          href={`${basePath}/${p.slug}/edit`}
                           className="vol-table__action"
                         >
                           Edit

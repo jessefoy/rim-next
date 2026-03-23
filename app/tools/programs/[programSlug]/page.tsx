@@ -1,13 +1,11 @@
 /**
- * /account/hub/registrar/programs/[programSlug] — Program detail with VolunteerTable.
- *
- * Only REGISTRAR | ADMIN can access (stakeholders see list page only).
+ * /tools/programs/[programSlug] — Program detail with registration table.
+ * Role gate: REGISTRAR | ADMIN (handled by tools/programs/layout.tsx).
  */
 
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { getHubMembership } from "@/lib/hubAuth";
 import Link from "next/link";
 import VolunteerTable, { SerializedRegistration } from "@/components/registrar/VolunteerTable";
 import CreateMeetButton from "@/components/registrar/CreateMeetButton";
@@ -15,22 +13,14 @@ import type { RegistrationField } from "@/components/RegistrationForm";
 
 export const dynamic = "force-dynamic";
 
-export default async function RegistrarProgramDetailPage({
+export default async function ProgramDetailToolPage({
   params,
 }: {
-  params: Promise<{ slug: string; programSlug: string }>;
+  params: Promise<{ programSlug: string }>;
 }) {
-  const { slug, programSlug } = await params;
+  const { programSlug } = await params;
   const session = await auth();
   if (!session) redirect("/login");
-
-  const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
-  if (!hub || (!member && !isAdmin)) redirect("/account/dashboard");
-
-  // Only REGISTRAR | ADMIN can access detail pages
-  const roles = session.user.roles ?? [];
-  const isRegistrar = roles.includes("REGISTRAR") || roles.includes("ADMIN");
-  if (!isRegistrar) redirect(`/account/hub/${slug}/programs`);
 
   const [program, registrations] = await Promise.all([
     db.program.findUnique({
@@ -68,7 +58,6 @@ export default async function RegistrarProgramDetailPage({
     );
   }
 
-  // Serialize dates for client component
   const serialized: SerializedRegistration[] = registrations.map((r) => ({
     id: r.id,
     programId: r.programId,
@@ -89,14 +78,12 @@ export default async function RegistrarProgramDetailPage({
     createdAt: r.createdAt.toISOString(),
   }));
 
-  const base = `/account/hub/${slug}/programs`;
-
   return (
     <div className="vol-page">
       <div className="vol-content">
 
         <div className="vol-header">
-          <Link href={base} className="vol-back">&larr; Programs</Link>
+          <Link href="/tools/programs" className="vol-back">&larr; Programs</Link>
           <h1 className="vol-header__title">{program.name}</h1>
         </div>
 

@@ -1,8 +1,8 @@
 /**
- * /account/hub/registrar/programs — Program list with registration counts.
+ * /account/hub/[slug]/programs — Program list (stakeholder view).
  *
- * Full view (REGISTRAR | ADMIN): table with all columns, actions, filter pills.
- * Stakeholder view (other hub members): same table, no actions/flags/registration column.
+ * Shows program names, headcount, capacity — read-only.
+ * Full program management has moved to /tools/programs (REGISTRAR | ADMIN).
  */
 
 import { auth } from "@/auth";
@@ -12,11 +12,11 @@ import { getHubMembership } from "@/lib/hubAuth";
 import ProgramsTableClient, {
   type ProgramRow,
 } from "@/components/registrar/ProgramsTableClient";
-import ManualHelpIcon from "@/components/ManualHelpIcon";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-export default async function RegistrarProgramsPage({
+export default async function HubProgramsPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
@@ -54,7 +54,6 @@ export default async function RegistrarProgramsPage({
     },
   });
 
-  // Get registration counts grouped by program + status, and pending dana counts — in parallel
   const [counts, pendingDanaRows] = await Promise.all([
     db.registration.groupBy({
       by: ["programId", "status"],
@@ -104,13 +103,20 @@ export default async function RegistrarProgramsPage({
 
   return (
     <div className="vol-page">
-      <div className="vol-content" style={{ position: "relative" }}>
-        <ManualHelpIcon manualSlug="registration" />
+      <div className="vol-content">
+        {/* Stakeholder view — read only. Registrars see a link to the full tool. */}
+        {isRegistrar && (
+          <div style={{ marginBottom: 16 }}>
+            <Link href="/tools/programs" className="vol-back" style={{ fontSize: 14 }}>
+              Open Program Manager &rarr;
+            </Link>
+          </div>
+        )}
         <ProgramsTableClient
           programs={programRows}
           hubBase={base}
-          isRegistrar={isRegistrar}
-          isAdmin={isAdmin}
+          isRegistrar={false}
+          isAdmin={false}
         />
       </div>
     </div>
