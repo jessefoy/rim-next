@@ -1,5 +1,5 @@
 /**
- * /account/hub/support/settings — Support Hub Settings
+ * /tools/inbox/settings — Support Inbox Settings
  *
  * Sections:
  * 1. Gmail connection (ADMIN only)
@@ -7,6 +7,9 @@
  * 3. Re-match member threads (ADMIN only)
  * 4. My Signature (all support members)
  * 5. Email notifications toggle (all support members)
+ * 6. Templates (ADMIN only)
+ *
+ * Role gate: SUPPORT | ADMIN (handled by tools/inbox/layout.tsx).
  */
 
 import { auth } from "@/auth";
@@ -16,27 +19,20 @@ import SupportSettingsClient from "@/components/SupportSettingsClient";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Support Settings" };
+export const metadata = { title: "Support Settings — Tools" };
 
-export default async function SupportSettingsPage({
-  params,
+export default async function SupportSettingsToolPage({
   searchParams,
 }: {
-  params: Promise<{ slug: string }>;
   searchParams: Promise<{ connected?: string }>;
 }) {
-  const { slug } = await params;
-  if (slug !== "support") redirect(`/account/hub/${slug}`);
-
   const session = await auth();
   if (!session) redirect("/login");
 
   const roles = session.user.roles ?? [];
-  const hasAccess = roles.some((r) => ["SUPPORT", "ADMIN"].includes(r));
-  if (!hasAccess) redirect("/account/dashboard");
-
   const isAdmin = roles.includes("ADMIN");
   const { connected } = await searchParams;
+
   const credential = await db.gmailCredential.findFirst({
     select: { email: true, expiresAt: true },
   });

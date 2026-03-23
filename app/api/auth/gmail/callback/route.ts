@@ -55,6 +55,6 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.redirect(
-    new URL("/account/hub/support/settings?connected=true", req.nextUrl.origin)
+    new URL("/tools/inbox/settings?connected=true", req.nextUrl.origin)
   );
 }

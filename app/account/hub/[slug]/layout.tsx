@@ -72,13 +72,9 @@ export default async function HubLayout({ children, params }: Props) {
 
   const isCourseHub    = slug === "courses";
   const isRegistrarHub = slug === "registrar";
-  const isSupportHub   = slug === "support";
 
   const tabs = [
     { label: "Home", href: base },
-    ...(isSupportHub
-      ? [{ label: "Inbox", href: `${base}/inbox` }]
-      : []),
     ...(isCourseHub
       ? [
           { label: "Series",  href: `${base}/courses` },
@@ -94,9 +90,6 @@ export default async function HubLayout({ children, params }: Props) {
     { label: "Tasks",          href: `${base}/tasks` },
     { label: "Documents",     href: `${base}/documents` },
     { label: "Members",       href: `${base}/members` },
-    ...(isSupportHub
-      ? [{ label: "Settings", href: `${base}/settings` }]
-      : []),
   ];
 
   return (

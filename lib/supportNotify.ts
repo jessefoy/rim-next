@@ -49,7 +49,7 @@ export async function notifySupport(opts: NotifyOpts): Promise<void> {
     });
     if (existing) return;
 
-    const linkUrl = `/account/hub/support/inbox?thread=${threadId}`;
+    const linkUrl = `/tools/inbox?thread=${threadId}`;
 
     // Create in-app alert
     await db.alert.create({
