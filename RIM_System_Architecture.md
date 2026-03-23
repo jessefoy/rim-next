@@ -23,7 +23,7 @@ Hubs are team workspaces for RIM's volunteer groups. Each hub serves one team. M
 
 **Current hubs:** Host Team, Teacher Hub, Registrar Hub, People Team, Greeter Team, AV Team, Housekeeping, Plant Care, Newsletter, Sangha Care, KM Support, Silent Meditation, Volunteer Coordination (all OPERATIONAL) + Board and Teacher Council (GOVERNANCE).
 
-**What they are:** Task-specific workspaces. Each hub currently provides Announcements, Documents, Conversations, and a Members tab. The Host Team hub also has a Schedule tab.
+**What they are:** Task-specific workspaces. Each hub provides Conversations (default tab — with pinned threads replacing former Announcements), Documents, and a Members tab. The Host Team hub also has a Schedule tab. Dashboard hub cards show unread badges.
 
 ---
 

@@ -540,9 +540,9 @@ const AREAS: FunctionalArea[] = [
         ],
       },
       {
-        name: "Alert Strip",
-        locations: ["/account/dashboard", "Component: AlertStrip.tsx", "API: GET /api/account/alerts, PATCH /api/account/alerts (mark-read / mark-all-read)"],
-        what: "An unread alert badge and expandable strip rendered above the nav cards on the member dashboard. Shows unread count in a badge; clicking the alert icon expands the list. Each alert links to the relevant hub page. Clicking an alert marks it read; 'Mark all as read' bulk action available.",
+        name: "Hub Card Unread Indicators (replaced AlertStrip in session 72)",
+        locations: ["/account/dashboard", "Dashboard hub cards"],
+        what: "Dashboard hub cards show a teal badge with unread count (threads created or replied since lastVisitedAt, plus unread Alert records for host-team). Badge shows 1–9 or '9+'. ADMIN users skip badges. The AlertStrip component was removed — host-team alerts fold into the hub card indicator.",
         relatedTo: [
           "Alert Postgres model — type, message, linkUrl, read flag, userId",
           "AlertType enum: SUB_REQUEST · SUB_CLAIMED · NEW_THREAD · NEW_REPLY · UNASSIGNED_SESSION",
@@ -1000,7 +1000,7 @@ const AREAS: FunctionalArea[] = [
       {
         name: "Course Hub Workspace",
         locations: ["/account/hub/courses", "/account/hub/courses/courses", "/account/hub/courses/lessons"],
-        what: "A hub workspace for TEACHER and ADMIN roles. Reuses the multi-hub system. Primary tabs are Series and Lessons (instead of the default Announcements). Hub root redirects to /account/hub/courses/courses. Also includes Announcements, Documents, Conversations, and Members tabs.",
+        what: "A hub workspace for TEACHER and ADMIN roles. Reuses the multi-hub system. Primary tabs are Series and Lessons. Hub root redirects to /account/hub/courses/courses. Also includes Conversations (with pinned threads), Documents, and Members tabs.",
         relatedTo: [
           "Multi-Hub Workspace System (/account/hub/[slug])",
           "TEACHER role assignment (syncHubMembership auto-creates HubMember)",
@@ -1370,7 +1370,7 @@ const SYSTEM_MAP: { area: string; needs: string; powers: string; note: string }[
   {
     area: "Host Community Hub",
     needs: "Postgres (HostAssignment, SubRequest, SubClaim, HostThread, HostReply, Alert models) · Postgres (program names and meet links) · Email (hub notification emails) · Auth (HOST / HOST_MANAGER / ADMIN roles)",
-    powers: "Schedule tab (who covers which program) · Sub board (coverage requests) · Threads (discussion) · AlertStrip on dashboard (unread badge) · Unassigned-hosts cron alert",
+    powers: "Schedule tab (who covers which program) · Sub board (coverage requests) · Threads (discussion) · Hub card unread badge on dashboard · Unassigned-hosts cron alert",
     note: "programSlug is the join key for HostAssignment — never change a program slug once assignments exist. Slug changes silently orphan assignments.",
   },
   {

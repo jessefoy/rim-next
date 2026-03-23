@@ -47,6 +47,8 @@ Two audiences:
 32. [Admin Member Profile — Section Registry](#32-admin-member-profile--section-registry)
 33. [BlockNote Editor System](#33-blocknote-editor-system)
 34. [Hub Documents — Native](#34-hub-documents--native)
+35. [Hub Notification Redesign — Pinned Threads + Unread Indicators](#35-hub-notification-redesign)
+36. [Site-Wide Banner](#36-site-wide-banner)
 
 ---
 
@@ -1688,6 +1690,78 @@ const spotOpened = !!registrationCapacity
 
 ---
 
+## 35. Hub Notification Redesign ✅ Built — session 72 (2026-03-23)
+
+### What it does
+
+Merges the Announcements tab into Conversations as pinned threads, adds unread indicators to dashboard hub cards, and removes the AlertStrip component.
+
+### Changes
+
+**Announcements → Pinned Conversations:**
+- The HubAnnouncement model and Announcements tab are retired
+- Coordinators can mark any conversation thread as pinned (‼️ badge, always at top of list)
+- Pinned threads render in a "Pinned" section above regular threads
+- Any hub member can start threads; coordinators pin/unpin them
+- `HubConversationThread` gained `isPinned Boolean` and `pinnedAt DateTime?`
+- Migration script: `prisma/migrate-announcements.ts`
+
+**Dashboard Hub Card Unread Indicators:**
+- Each hub card shows a teal badge with unread count (threads + replies since `lastVisitedAt`)
+- Host-team hub also counts unread `Alert` records
+- ADMIN bypasses (no HubMember records)
+
+**AlertStrip Removal:**
+- `AlertStrip.tsx` deleted; all `alert-strip` CSS removed
+- Alert model stays — powers host-team unread count via hub card indicator
+
+### Key files
+
+| File | Change |
+|---|---|
+| `prisma/schema.prisma` | Added `isPinned`, `pinnedAt` to HubConversationThread |
+| `app/api/hub/[slug]/conversations/[id]/route.ts` | PATCH supports `action: "pin"` / `"unpin"` |
+| `components/HubConvClient.tsx` | Pinned section, pin/unpin coordinator actions |
+| `components/HubConvThreadClient.tsx` | Pin/unpin button in thread header |
+| `app/account/hub/[slug]/page.tsx` | Redirects all hubs to `/conversations` |
+| `app/account/hub/[slug]/layout.tsx` | Announcements tab removed from HubNavStrip |
+| `app/account/dashboard/page.tsx` | Unread counts computed; hub card badges; AlertStrip removed |
+
+---
+
+## 36. Site-Wide Banner ✅ Built — session 72 (2026-03-23)
+
+### What it does
+
+A single-slot ADMIN broadcast banner visible to all logged-in members at the top of their dashboard. Used for community-wide notices (cancellations, closures, etc.).
+
+### How it works
+
+- ADMIN posts a banner from `/admin/banner` — plain text via RimProseEditor (compact variant)
+- Only one banner can be active at a time (posting a new one deactivates the previous)
+- Members see the banner on their dashboard with a ✕ dismiss button
+- Dismissals are per-member (SiteBannerDismissal model)
+- ADMIN can deactivate the banner globally
+
+### Schema
+
+| Model | Purpose |
+|---|---|
+| `SiteBanner` | `body Json`, `isActive`, `createdById` → User |
+| `SiteBannerDismissal` | `bannerId` + `userId` @@unique — per-member dismiss |
+
+### Key files
+
+| File | Purpose |
+|---|---|
+| `app/admin/banner/page.tsx` | Admin management UI |
+| `app/api/admin/site-banner/route.ts` | GET/POST/DELETE — banner CRUD (ADMIN only) |
+| `app/api/site-banner/dismiss/route.ts` | POST — member dismiss |
+| `components/SiteBannerStrip.tsx` | Client component rendered on dashboard |
+| `components/AccountSidebar.tsx` | Added "Banner" link for ADMIN |
+
+---
+
 ## Session Log
 
 | Date | Summary |
@@ -2181,11 +2255,12 @@ A self-contained workspace inside `/account/hub/host-team` that replaces Basecam
 - All posts show the author's real name; own posts annotated with `(you)` in italic
 - HOST_MANAGER can close (no new replies) or archive (hidden from main list)
 
-**Dashboard AlertStrip**
-- Unread alerts shown above the nav cards on `/account/dashboard`
-- Covers: sub requests, sub claims, new conversations, new replies, unassigned sessions (HOST_MANAGER only)
-- Each alert has a ✕ dismiss button; "Mark all read" clears all at once
-- Navigating to an alert's linked page does NOT auto-dismiss the alert
+**Dashboard Hub Card Indicators (session 72)**
+- Hub cards on `/account/dashboard` show a small teal unread-count badge (top-right corner)
+- Unread count = threads created or replied to since `HubMember.lastVisitedAt`, plus unread `Alert` records for host-team
+- Badge shows number (1–9) or "9+" for larger counts
+- ADMIN users skip unread dots (they check hubs directly)
+- The AlertStrip component was removed — host-team alerts fold into the hub card indicator
 
 ### New Prisma models
 
@@ -2266,7 +2341,7 @@ A self-contained workspace inside `/account/hub/host-team` that replaces Basecam
 
 ### What it does
 
-A general-purpose hub system for ALL RIM volunteer teams — not just the host team. Each volunteer group (host team, people team, newsletter, greeter team, etc.) has its own hub workspace with Announcements, Documents, Conversations, Members, and (for host-team only) a Schedule tab. The workspace is accessed via "Your Hubs" in the account sidebar.
+A general-purpose hub system for ALL RIM volunteer teams — not just the host team. Each volunteer group (host team, people team, newsletter, greeter team, etc.) has its own hub workspace with Conversations (default tab), Documents, Members, and (for host-team only) a Schedule tab. The workspace is accessed via "Your Hubs" in the account sidebar. Announcements are now pinned conversation threads (merged in session 72).
 
 ### Who uses it
 
@@ -2275,7 +2350,7 @@ Any authenticated member who has a `HubMember` row for a given hub. Coordinators
 ### Architecture
 
 **Single hub system:**
-- `/account/hub/[slug]/*` — general-purpose multi-hub workspace for all volunteer teams (Prisma models: Hub, HubMember, HubAnnouncement, HubDocument, HubConversationThread, HubConversationReply).
+- `/account/hub/[slug]/*` — general-purpose multi-hub workspace for all volunteer teams (Prisma models: Hub, HubMember, HubDocument, HubConversationThread, HubConversationReply). HubAnnouncement was retired in session 72 — announcements are now pinned conversation threads.
 
 The host-team hub at `/account/hub/host-team` reuses the `HubScheduleClient` component connected to `HostAssignment` data via `apiBase="/api/host"`. The old `/account/host/*` pages were removed in session 42.
 
@@ -2301,10 +2376,9 @@ The host-team hub at `/account/hub/host-team` reuses the `HubScheduleClient` com
 
 | Tab | Always | Condition |
 |---|---|---|
-| Announcements | ✅ | Hub home (default) |
+| Conversations | ✅ | Hub home (default since session 72); pinned threads replace former Announcements tab |
 | Schedule | conditional | `hub.hasSchedule = true` (host-team only) |
 | Documents | ✅ | |
-| Conversations | ✅ | |
 | Members | ✅ | |
 
 ### New Prisma models
@@ -2313,9 +2387,9 @@ The host-team hub at `/account/hub/host-team` reuses the `HubScheduleClient` com
 |---|---|
 | `Hub` | A volunteer team hub — slug, name, type (OPERATIONAL/GOVERNANCE), hasSchedule, documentCategories[], conversationCategories[] |
 | `HubMember` | User membership in a hub — position, isCoordinator, lastVisitedAt (for unread tracking) |
-| `HubAnnouncement` | Coordinator-posted announcement with priority (NORMAL/IMPORTANT/URGENT); can link to a conversation thread |
+| `HubAnnouncement` | ~~Retired session 72~~ — announcements migrated to pinned conversation threads |
 | `HubDocument` | Link or file attached to a hub — label, url, description, fileType, category |
-| `HubConversationThread` | Discussion thread — title, body, category (string from hub.conversationCategories), status (OPEN/CLOSED/ARCHIVED) |
+| `HubConversationThread` | Discussion thread — title, body, category, status (OPEN/CLOSED/ARCHIVED), isPinned, pinnedAt |
 | `HubConversationReply` | Reply to a thread — body, author |
 
 ### Key files
@@ -2325,7 +2399,7 @@ The host-team hub at `/account/hub/host-team` reuses the `HubScheduleClient` com
 - `lib/hubAuth.ts` — `getHubMembership(slug, userId)` helper; `requireCoordinator()` guard
 
 **Pages:**
-- `app/account/hub/[slug]/page.tsx` — Announcements (hub home)
+- `app/account/hub/[slug]/page.tsx` — Redirect to conversations (hub home)
 - `app/account/hub/[slug]/schedule/page.tsx` — Schedule (hasSchedule hubs only)
 - `app/account/hub/[slug]/documents/page.tsx` — Documents
 - `app/account/hub/[slug]/conversations/page.tsx` — Conversations list
@@ -2335,7 +2409,6 @@ The host-team hub at `/account/hub/host-team` reuses the `HubScheduleClient` com
 **Components:**
 - `components/HubHeader.tsx` — hub name, type badge, member count + avatar strip
 - `components/HubNavStrip.tsx` — horizontal tab nav (renders only tabs that apply to this hub)
-- `components/HubAnnouncementsClient.tsx` — announcement list + post form (coordinator only)
 - `components/HubDocumentsClient.tsx` — document list + add form (coordinator only)
 - `components/HubConvClient.tsx` — conversation list + new thread form
 - `components/HubConvThreadClient.tsx` — thread detail + replies + reply form
@@ -2347,11 +2420,8 @@ The host-team hub at `/account/hub/host-team` reuses the `HubScheduleClient` com
 | Route | Methods | Purpose |
 |---|---|---|
 | `/api/hub/[slug]` | GET, PATCH | Hub details; update settings (coordinator) |
-| `/api/hub/[slug]/announcements` | GET, POST | List announcements; post new |
-| `/api/hub/[slug]/announcements/[id]` | PATCH, DELETE | Update/archive announcement |
-| `/api/hub/[slug]/announcements/[id]/thread` | POST | Create linked conversation thread from announcement |
-| `/api/hub/[slug]/conversations` | GET, POST | List threads; create thread |
-| `/api/hub/[slug]/conversations/[id]` | GET, PATCH | Thread detail; change status |
+| `/api/hub/[slug]/conversations` | GET, POST | List threads (pinned first); create thread |
+| `/api/hub/[slug]/conversations/[id]` | GET, PATCH | Thread detail; change status; pin/unpin (coordinator) |
 | `/api/hub/[slug]/conversations/[id]/replies` | POST | Add reply |
 | `/api/hub/[slug]/documents` | GET, POST | List documents; add document |
 | `/api/hub/[slug]/documents/[id]` | PATCH, DELETE | Update/remove document |
@@ -2373,7 +2443,7 @@ The host-team hub at `/account/hub/host-team` reuses the `HubScheduleClient` com
 
 **Shared `HubScheduleClient`:** Used by both `/account/host/schedule` (the old host-only page) and `/account/hub/host-team/schedule`. The hub page passes `apiBase="/api/host"` to connect to the same HostAssignment API. The host page uses the default `apiBase` which is also `/api/host`.
 
-**`lastVisitedAt` tracking:** Each hub page visit updates `HubMember.lastVisitedAt`. This is used by the dashboard hub cards to show unread dots (not yet implemented — reserved for future use).
+**`lastVisitedAt` tracking:** Each hub page visit updates `HubMember.lastVisitedAt`. Dashboard hub cards compute an unread count (threads created/replied since `lastVisitedAt` + unread Alerts for host-team) and display a teal badge. ADMIN bypasses this (no HubMember records).
 
 **CSS prefix:** `hub-` for all hub UI. Key CSS classes:
 - `.hub-page` — max-width 920px, 36px side padding; constrained by `AccountLayout`'s sidebar + `ac-content`
@@ -3408,5 +3478,7 @@ model HubDocument {
 *Updated: 2026-03-19 (session 69)*
 
 **2026-03-21 (session 71)** — RimBlockEditor full feature build + rendering fixes. **(1) Bear-inspired toolbar:** Selection toolbar with B/I/U/Link/Align/⋯ more menu; empty-line pill with heading/list dropdowns, table/image insert. **(2) Image support:** Upload via pill + drag-and-drop; alignment overlay (L/C/R) via DOM injection; upload opened to all authenticated users (not just ADMIN/TEACHER). **(3) Advanced tables:** splitCells, cellBackgroundColor, cellTextColor, headers; table delete × at top-left on hover; explicit 3×3 tableContent for reliable insertion. **(4) Heading hierarchy:** H1: 32px, H2: 24px, H3: 20px via injected `<style>` tag (discovered `data-level` only set by disabled SideMenu — must target `<h1>`/`<h2>`/`<h3>` tags directly). **(5) Block type selector:** ToolbarBlockTypeSelect dropdown in selection toolbar. **(6) Document locking:** Author lock + ADMIN override + presence heartbeat (30s POST, stale 60s) + author attribution banner. **(7) Blob cleanup:** `lib/blobCleanup.ts` auto-deletes orphaned Vercel Blob files. **(8) Render fixes:** List grouping (`<ul>`/`<ol>` wrappers), image rendering (`<figure>`), table `<thead>`/`<tbody>`, BlockNote color token resolution (named tokens mapped to actual hex values). **(9) Editor-view parity:** Injected styles match editor to published doc-body for all elements. Schema: HubDocument gained `isLocked`, `editingById`, `editingAt`, `addedById`. New API routes: `/lock`, `/presence`. Key files: `components/RimBlockEditor.tsx`, `components/HubDocumentEditor.tsx`, `lib/renderRichContent.ts`, `lib/blobCleanup.ts`.
+
+**2026-03-23 (session 72)** — Hub notification redesign: merge announcements into pinned conversations, unread indicators, site banner. **(1) Announcements → Pinned Threads:** `isPinned Boolean` + `pinnedAt DateTime?` added to `HubConversationThread`. Announcements tab removed from all hubs; hub root redirects to `/conversations`. `HubConvClient` renders pinned section with ‼️ badge; coordinators can pin/unpin from thread list and detail. `HubAnnouncementsClient.tsx` deleted. Announcement API routes deleted (3 files). Migration script: `prisma/migrate-announcements.ts`. **(2) Dashboard Hub Card Unread Indicators:** Dashboard computes `unreadCount` per hub (threads created/replied since `lastVisitedAt` + unread Alerts for host-team). Teal badge on hub cards (1–9 or "9+"). ADMIN skips badges. **(3) AlertStrip Removed:** `AlertStrip.tsx` deleted, ~110 lines of `alert-strip` CSS removed. Alert model stays for host-team unread count. **(4) Site-Wide Banner:** `SiteBanner` + `SiteBannerDismissal` models. ADMIN posts via `/admin/banner` (RimProseEditor compact). Members see banner on dashboard with ✕ dismiss. One banner at a time. APIs: `/api/admin/site-banner` (CRUD), `/api/site-banner/dismiss`. `SiteBannerStrip.tsx` client component. Banner link added to admin sidebar. **(5) SiteBanner.body:** Changed from `String` to `Json?` (BlockNote JSON) — editor standard enforced, no plain textarea. Key files: `prisma/schema.prisma`, `components/HubConvClient.tsx`, `components/HubConvThreadClient.tsx`, `components/SiteBannerStrip.tsx`, `app/account/dashboard/page.tsx`, `app/admin/banner/page.tsx`, `app/api/admin/site-banner/route.ts`, `app/api/site-banner/dismiss/route.ts`. Commits: `ffeef25` + follow-up editor migration.
 
 **2026-03-16 (session 58, continued)** — Session tab: finished remaining gaps from the UX redesign brief. (1) meetHostAccount display: Added to States 2 and 3 — shows the Google Meet room account labeled "Room account" in State 2, quiet text below the join button in State 3. (2) State 5 inline form: PostSessionClient now renders inline in State 5 instead of linking to a separate page. Co-host vs primary host routing handled via isCoHost prop derived from SessionProgram flags. (3) End Session stays on page: endSession callback now calls router.refresh() instead of router.push — user stays on the session tab and State 5 appears with the inline form. (4) Coordinator section: Coordinator/Admin users see a muted section below the host cards with missing report indicators and team journal link. Key files: components/SessionLiveClient.tsx, components/PostSessionClient.tsx, app/account/hub/[slug]/session/page.tsx.
