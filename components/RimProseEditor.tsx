@@ -1,14 +1,15 @@
 "use client";
 
 /**
- * RimProseEditor — lightweight prose editor for notes, messages, and short fields.
- * Restricted to paragraph, bullet/numbered lists, and quotes.
- * No headings, no custom blocks, no slash menu.
+ * RimProseEditor — prose editor for notes, messages, descriptions, and short fields.
+ *
+ * Uses the same rimBlockSchema as RimBlockEditor (one schema, two toolbars).
+ * Any fix or block type added to the full editor is available here automatically.
  *
  * Props:
  *   variant    — "document" (default): full formatting toolbar, standard padding.
- *                "compact": selection-only floating toolbar with full formatting
- *                (bold/italic/underline/link + bullet/ordered list), reduced padding.
+ *                "compact": selection-only floating toolbar with contextual formatting
+ *                (B/I/U/Link + H2/H3 + Bullet/Ordered/Quote), reduced padding.
  *                For message compose fields.
  *   minimal    — when true, shows only Bold + Italic + Link in the formatting toolbar
  *   legacyHtml — pre-rendered HTML from server (Tiptap JSON → HTML).
@@ -30,7 +31,7 @@ import {
 } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import { rimTheme } from "@/lib/blockNoteTheme";
-import { rimProseSchema } from "@/lib/blockNoteCustomBlocks";
+import { rimBlockSchema } from "@/lib/blockNoteCustomBlocks";
 
 interface Props {
   value: any;
@@ -46,10 +47,12 @@ interface Props {
 
 function BlockTypeToggle({
   blockType,
+  props: blockProps,
   icon,
   title,
 }: {
-  blockType: "bulletListItem" | "numberedListItem";
+  blockType: string;
+  props?: Record<string, any>;
   icon: React.ReactNode;
   title: string;
 }) {
@@ -59,7 +62,17 @@ function BlockTypeToggle({
   useEditorSelectionChange(() => {
     try {
       const block = editor.getTextCursorPosition().block;
-      setActive(block?.type === blockType);
+      if (blockProps) {
+        // Match type AND props (e.g. heading + level)
+        setActive(
+          block?.type === blockType &&
+          Object.entries(blockProps).every(
+            ([k, v]) => (block.props as any)?.[k] === v
+          )
+        );
+      } else {
+        setActive(block?.type === blockType);
+      }
     } catch {
       setActive(false);
     }
@@ -69,13 +82,18 @@ function BlockTypeToggle({
     try {
       editor.focus();
       const block = editor.getTextCursorPosition().block;
-      if (block.type === blockType) {
-        editor.updateBlock(block, { type: "paragraph" as any });
+      const isActive = blockProps
+        ? block.type === blockType &&
+          Object.entries(blockProps).every(([k, v]) => (block.props as any)?.[k] === v)
+        : block.type === blockType;
+
+      if (isActive) {
+        editor.updateBlock(block, { type: "paragraph" as any, props: {} });
       } else {
-        editor.updateBlock(block, { type: blockType as any });
+        editor.updateBlock(block, { type: blockType as any, props: blockProps });
       }
     } catch {}
-  }, [editor, blockType]);
+  }, [editor, blockType, blockProps]);
 
   return (
     <button
@@ -89,6 +107,36 @@ function BlockTypeToggle({
   );
 }
 
+/* ── Icons ─────────────────────────────────────────────────────────────── */
+
+const BulletIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+    <circle cx="3" cy="4" r="1.5" /><rect x="6" y="3" width="8" height="2" rx="0.5" />
+    <circle cx="3" cy="8" r="1.5" /><rect x="6" y="7" width="8" height="2" rx="0.5" />
+    <circle cx="3" cy="12" r="1.5" /><rect x="6" y="11" width="8" height="2" rx="0.5" />
+  </svg>
+);
+
+const OrderedIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+    <text x="1" y="5.5" fontSize="6" fontWeight="700" fontFamily="sans-serif">1</text>
+    <rect x="6" y="3" width="8" height="2" rx="0.5" />
+    <text x="1" y="9.5" fontSize="6" fontWeight="700" fontFamily="sans-serif">2</text>
+    <rect x="6" y="7" width="8" height="2" rx="0.5" />
+    <text x="1" y="13.5" fontSize="6" fontWeight="700" fontFamily="sans-serif">3</text>
+    <rect x="6" y="11" width="8" height="2" rx="0.5" />
+  </svg>
+);
+
+const QuoteIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+    <rect x="2" y="3" width="2" height="10" rx="1" />
+    <rect x="6" y="4" width="8" height="2" rx="0.5" />
+    <rect x="6" y="7" width="6" height="2" rx="0.5" />
+    <rect x="6" y="10" width="7" height="2" rx="0.5" />
+  </svg>
+);
+
 /* ── Compact formatting toolbar ─────────────────────────────────────────── */
 
 function CompactFormattingToolbar() {
@@ -101,21 +149,31 @@ function CompactFormattingToolbar() {
       <CreateLinkButton key="link" />
 
       {/* Divider */}
-      <span key="div" className="rte-compact-divider" />
+      <span key="div1" className="rte-compact-divider" />
+
+      {/* Headings */}
+      <BlockTypeToggle
+        key="h2"
+        blockType="heading"
+        props={{ level: 2 }}
+        title="Heading 2"
+        icon={<span style={{ fontWeight: 700, fontSize: 12, lineHeight: 1 }}>H2</span>}
+      />
+      <BlockTypeToggle
+        key="h3"
+        blockType="heading"
+        props={{ level: 3 }}
+        title="Heading 3"
+        icon={<span style={{ fontWeight: 700, fontSize: 11, lineHeight: 1 }}>H3</span>}
+      />
+
+      {/* Divider */}
+      <span key="div2" className="rte-compact-divider" />
 
       {/* Block types */}
-      <BlockTypeToggle
-        key="bullet"
-        blockType="bulletListItem"
-        title="Bullet list"
-        icon={<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><circle cx="3" cy="4" r="1.5"/><rect x="6" y="3" width="8" height="2" rx="0.5"/><circle cx="3" cy="8" r="1.5"/><rect x="6" y="7" width="8" height="2" rx="0.5"/><circle cx="3" cy="12" r="1.5"/><rect x="6" y="11" width="8" height="2" rx="0.5"/></svg>}
-      />
-      <BlockTypeToggle
-        key="ordered"
-        blockType="numberedListItem"
-        title="Numbered list"
-        icon={<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><text x="1" y="5.5" fontSize="6" fontWeight="700" fontFamily="sans-serif">1</text><rect x="6" y="3" width="8" height="2" rx="0.5"/><text x="1" y="9.5" fontSize="6" fontWeight="700" fontFamily="sans-serif">2</text><rect x="6" y="7" width="8" height="2" rx="0.5"/><text x="1" y="13.5" fontSize="6" fontWeight="700" fontFamily="sans-serif">3</text><rect x="6" y="11" width="8" height="2" rx="0.5"/></svg>}
-      />
+      <BlockTypeToggle key="bullet" blockType="bulletListItem" title="Bullet list" icon={<BulletIcon />} />
+      <BlockTypeToggle key="ordered" blockType="numberedListItem" title="Numbered list" icon={<OrderedIcon />} />
+      <BlockTypeToggle key="quote" blockType="quote" title="Quote" icon={<QuoteIcon />} />
     </FormattingToolbar>
   );
 }
@@ -136,7 +194,7 @@ export default function RimProseEditor({
 
   const editor = useCreateBlockNote(
     {
-      schema: rimProseSchema,
+      schema: rimBlockSchema,
       initialContent: hasBlockNoteContent ? value : undefined,
     },
     []
