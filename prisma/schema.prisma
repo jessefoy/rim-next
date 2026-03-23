@@ -119,7 +119,6 @@ model User {
   sessionReports     SessionReport[]
   // Hub system
   hubMemberships  HubMember[]
-  hubAnnouncements HubAnnouncement[]
   hubDocuments       HubDocument[] @relation("HubDocumentAuthor")
   hubDocumentsEditing HubDocument[] @relation("HubDocumentEditor")
   hubThreads2     HubConversationThread[]
@@ -1035,17 +1034,6 @@ enum HubType {
   COMMUNITY_GROUP
 }
 
-enum AnnouncementPriority {
-  NORMAL
-  IMPORTANT
-  URGENT
-}
-
-enum AnnouncementStatus {
-  ACTIVE
-  ARCHIVED
-}
-
 enum HubDocumentFileType {
   DOC
   SHEET
@@ -1067,7 +1055,6 @@ model Hub {
   updatedAt              DateTime      @updatedAt
 
   members       HubMember[]
-  announcements HubAnnouncement[]
   documents     HubDocument[]
   threads       HubConversationThread[]
 
@@ -1088,25 +1075,6 @@ model HubMember {
 
   @@unique([hubId, userId])
   @@map("hub_members")
-}
-
-model HubAnnouncement {
-  id             String               @id @default(cuid())
-  hubId          String
-  authorId       String
-  title          String
-  body           Json
-  priority       AnnouncementPriority @default(NORMAL)
-  status         AnnouncementStatus   @default(ACTIVE)
-  linkedThreadId String?
-
-  hub          Hub                    @relation(fields: [hubId], references: [id])
-  author       User                   @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  linkedThread HubConversationThread? @relation(fields: [linkedThreadId], references: [id])
-  createdAt    DateTime               @default(now())
-  updatedAt    DateTime               @updatedAt
-
-  @@map("hub_announcements")
 }
 
 model HubDocument {
@@ -1141,14 +1109,12 @@ model HubConversationThread {
   body                 Json?
   category             String    @default("General")
   status               String    @default("OPEN")
-  sourceAnnouncementId String?
   isPinned             Boolean   @default(false)
   pinnedAt             DateTime?
 
   hub           Hub               @relation(fields: [hubId], references: [id])
   author        User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
   replies       HubConversationReply[]
-  announcements HubAnnouncement[]
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 

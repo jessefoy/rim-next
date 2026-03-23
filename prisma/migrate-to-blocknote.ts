@@ -232,22 +232,6 @@ async function main() {
     );
   }
 
-  // ── hub_announcements.body ──
-  {
-    const records = await db.hubAnnouncement.findMany({
-      select: { id: true, body: true },
-    });
-    allResults.push(
-      await migrateField(
-        "hub_announcements.body",
-        records,
-        (r) => r.body,
-        (id, val) =>
-          db.hubAnnouncement.update({ where: { id }, data: { body: val } }).then(() => {})
-      )
-    );
-  }
-
   // ── hub_conversation_threads.body ──
   {
     const records = await db.hubConversationThread.findMany({

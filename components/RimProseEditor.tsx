@@ -19,15 +19,14 @@
  */
 
 import "@blocknote/mantine/style.css";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect } from "react";
 import {
   useCreateBlockNote,
-  useBlockNoteEditor,
-  useEditorSelectionChange,
   FormattingToolbarController,
   FormattingToolbar,
   BasicTextStyleButton,
   CreateLinkButton,
+  BlockTypeSelect,
 } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import { rimTheme } from "@/lib/blockNoteTheme";
@@ -43,148 +42,18 @@ interface Props {
   legacyHtml?: string;       // pre-rendered HTML for Tiptap → BlockNote import on mount
 }
 
-/* ── Block-type toggle button for the compact toolbar ──────────────────── */
-
-function BlockTypeToggle({
-  blockType,
-  props: blockProps,
-  icon,
-  title,
-}: {
-  blockType: string;
-  props?: Record<string, any>;
-  icon: React.ReactNode;
-  title: string;
-}) {
-  const editor = useBlockNoteEditor();
-  const [active, setActive] = useState(false);
-
-  useEditorSelectionChange(() => {
-    try {
-      const block = editor.getTextCursorPosition().block;
-      if (blockProps) {
-        // Match type AND props (e.g. heading + level)
-        setActive(
-          block?.type === blockType &&
-          Object.entries(blockProps).every(
-            ([k, v]) => (block.props as any)?.[k] === v
-          )
-        );
-      } else {
-        setActive(block?.type === blockType);
-      }
-    } catch {
-      setActive(false);
-    }
-  });
-
-  const toggle = useCallback(() => {
-    try {
-      editor.focus();
-      const block = editor.getTextCursorPosition().block;
-      const isActive = blockProps
-        ? block.type === blockType &&
-          Object.entries(blockProps).every(([k, v]) => (block.props as any)?.[k] === v)
-        : block.type === blockType;
-
-      if (isActive) {
-        editor.updateBlock(block, { type: "paragraph" as any, props: {} });
-      } else {
-        editor.updateBlock(block, { type: blockType as any, props: blockProps });
-      }
-    } catch {}
-  }, [editor, blockType, blockProps]);
-
-  return (
-    <button
-      type="button"
-      className={`rte-compact-btn${active ? " rte-compact-btn--active" : ""}`}
-      onMouseDown={(e) => { e.preventDefault(); toggle(); }}
-      title={title}
-    >
-      {icon}
-    </button>
-  );
-}
-
-/* ── Icons ─────────────────────────────────────────────────────────────── */
-
-const BulletIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-    <circle cx="3" cy="4" r="1.5" /><rect x="6" y="3" width="8" height="2" rx="0.5" />
-    <circle cx="3" cy="8" r="1.5" /><rect x="6" y="7" width="8" height="2" rx="0.5" />
-    <circle cx="3" cy="12" r="1.5" /><rect x="6" y="11" width="8" height="2" rx="0.5" />
-  </svg>
-);
-
-const OrderedIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-    <text x="1" y="5.5" fontSize="6" fontWeight="700" fontFamily="sans-serif">1</text>
-    <rect x="6" y="3" width="8" height="2" rx="0.5" />
-    <text x="1" y="9.5" fontSize="6" fontWeight="700" fontFamily="sans-serif">2</text>
-    <rect x="6" y="7" width="8" height="2" rx="0.5" />
-    <text x="1" y="13.5" fontSize="6" fontWeight="700" fontFamily="sans-serif">3</text>
-    <rect x="6" y="11" width="8" height="2" rx="0.5" />
-  </svg>
-);
-
-const CheckIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-    <rect x="1.5" y="2.5" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none" />
-    <path d="M3 5l1.2 1.2L6.5 3.5" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-    <rect x="9" y="4" width="6" height="1.5" rx="0.5" />
-    <rect x="1.5" y="9.5" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none" />
-    <rect x="9" y="11" width="6" height="1.5" rx="0.5" />
-  </svg>
-);
-
-const QuoteIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-    <rect x="2" y="3" width="2" height="10" rx="1" />
-    <rect x="6" y="4" width="8" height="2" rx="0.5" />
-    <rect x="6" y="7" width="6" height="2" rx="0.5" />
-    <rect x="6" y="10" width="7" height="2" rx="0.5" />
-  </svg>
-);
-
 /* ── Compact formatting toolbar ─────────────────────────────────────────── */
+/* Uses only BlockNote built-in components — custom components inside
+   FormattingToolbar cause client-side crashes (see commit 59a02ae).        */
 
 function CompactFormattingToolbar() {
   return (
     <FormattingToolbar>
-      {/* Inline styles */}
+      <BlockTypeSelect key="blockType" />
       <BasicTextStyleButton key="bold" basicTextStyle="bold" />
       <BasicTextStyleButton key="italic" basicTextStyle="italic" />
       <BasicTextStyleButton key="underline" basicTextStyle="underline" />
       <CreateLinkButton key="link" />
-
-      {/* Divider */}
-      <span key="div1" className="rte-compact-divider" />
-
-      {/* Headings */}
-      <BlockTypeToggle
-        key="h2"
-        blockType="heading"
-        props={{ level: 2 }}
-        title="Heading 2"
-        icon={<span style={{ fontWeight: 700, fontSize: 12, lineHeight: 1 }}>H2</span>}
-      />
-      <BlockTypeToggle
-        key="h3"
-        blockType="heading"
-        props={{ level: 3 }}
-        title="Heading 3"
-        icon={<span style={{ fontWeight: 700, fontSize: 11, lineHeight: 1 }}>H3</span>}
-      />
-
-      {/* Divider */}
-      <span key="div2" className="rte-compact-divider" />
-
-      {/* Block types */}
-      <BlockTypeToggle key="bullet" blockType="bulletListItem" title="Bullet list" icon={<BulletIcon />} />
-      <BlockTypeToggle key="ordered" blockType="numberedListItem" title="Numbered list" icon={<OrderedIcon />} />
-      <BlockTypeToggle key="check" blockType="checkListItem" title="Checklist" icon={<CheckIcon />} />
-      <BlockTypeToggle key="quote" blockType="quote" title="Quote" icon={<QuoteIcon />} />
     </FormattingToolbar>
   );
 }

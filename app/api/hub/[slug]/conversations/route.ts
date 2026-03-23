@@ -50,41 +50,24 @@ export async function POST(
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
   if (!member && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { title, body, sourceAnnouncementId } = await req.json();
+  const { title, body } = await req.json();
   if (!title?.trim() || !body) {
     return NextResponse.json({ error: "Title and body required" }, { status: 400 });
   }
 
-  // If sourced from an announcement, verify no thread yet
-  if (sourceAnnouncementId) {
-    const ann = await db.hubAnnouncement.findUnique({ where: { id: sourceAnnouncementId } });
-    if (ann?.linkedThreadId) {
-      return NextResponse.json({ error: "Thread already exists for this announcement" }, { status: 409 });
-    }
-  }
-
   const thread = await db.hubConversationThread.create({
     data: {
-      hubId:                hub.id,
-      authorId:             session.user.id,
-      title:                title.trim(),
+      hubId:    hub.id,
+      authorId: session.user.id,
+      title:    title.trim(),
       body,
-      status:               "OPEN",
-      sourceAnnouncementId: sourceAnnouncementId ?? null,
+      status:   "OPEN",
     },
     include: {
       author: { select: { firstName: true, lastName: true, preferredName: true } },
       _count:  { select: { replies: true } },
     },
   });
-
-  // Link announcement → thread
-  if (sourceAnnouncementId) {
-    await db.hubAnnouncement.update({
-      where: { id: sourceAnnouncementId },
-      data:  { linkedThreadId: thread.id },
-    });
-  }
 
   return NextResponse.json(thread, { status: 201 });
 }
