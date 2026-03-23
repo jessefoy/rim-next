@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { extractBlockNoteText } from "@/lib/renderRichContent";
 
 // GET /api/admin/site-banner — current active banner
 export async function GET() {
@@ -26,7 +27,7 @@ export async function POST(req: Request) {
   }
 
   const { body } = await req.json();
-  if (!body?.trim()) {
+  if (!body || !extractBlockNoteText(body).trim()) {
     return NextResponse.json({ error: "Body is required" }, { status: 400 });
   }
 
@@ -38,7 +39,7 @@ export async function POST(req: Request) {
 
   const banner = await db.siteBanner.create({
     data: {
-      body: body.trim(),
+      body,
       createdById: session.user.id,
     },
   });

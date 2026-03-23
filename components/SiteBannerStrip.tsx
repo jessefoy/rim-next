@@ -6,12 +6,13 @@
  *
  * Renders a single muted bar above dashboard content.
  * Members can dismiss individually.
+ * Body is BlockNote JSON, pre-rendered to HTML on the server.
  */
 
 import { useState } from "react";
 
 interface Props {
-  banner: { id: string; body: string } | null;
+  banner: { id: string; bodyHtml: string } | null;
 }
 
 export default function SiteBannerStrip({ banner }: Props) {
@@ -30,7 +31,10 @@ export default function SiteBannerStrip({ banner }: Props) {
 
   return (
     <div className="sb-strip">
-      <div className="sb-strip__body">{banner.body}</div>
+      <div
+        className="sb-strip__body"
+        dangerouslySetInnerHTML={{ __html: banner.bodyHtml }}
+      />
       <button className="sb-strip__dismiss" onClick={dismiss} aria-label="Dismiss banner">
         ✕
       </button>

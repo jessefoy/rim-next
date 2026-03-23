@@ -8,40 +8,57 @@
  */
 
 import { useState, useEffect } from "react";
+import RimProseEditor from "@/components/RimProseEditor";
+import { renderBlockNoteHtml, extractBlockNoteText } from "@/lib/renderRichContent";
 
 interface Banner {
   id: string;
-  body: string;
+  body: any; // BlockNote JSON
+  bodyHtml: string;
   createdAt: string;
 }
 
 export default function AdminBannerPage() {
   const [banner, setBanner] = useState<Banner | null>(null);
   const [loading, setLoading] = useState(true);
-  const [body, setBody] = useState("");
+  const [body, setBody] = useState<any>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetch("/api/admin/site-banner")
       .then((r) => r.json())
       .then((data) => {
-        setBanner(data.banner ?? null);
+        if (data.banner) {
+          setBanner({
+            ...data.banner,
+            bodyHtml: renderBlockNoteHtml(data.banner.body),
+          });
+        }
         setLoading(false);
       });
   }, []);
 
+  /** Check if BlockNote JSON has meaningful content */
+  function hasContent(json: any): boolean {
+    if (!json) return false;
+    return extractBlockNoteText(json).trim().length > 0;
+  }
+
   async function postBanner() {
-    if (!body.trim()) return;
+    if (!hasContent(body)) return;
     setSaving(true);
     const res = await fetch("/api/admin/site-banner", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body: body.trim() }),
+      body: JSON.stringify({ body }),
     });
     if (res.ok) {
       const data = await res.json();
-      setBanner(data.banner);
-      setBody("");
+      setBanner({
+        ...data.banner,
+        bodyHtml: renderBlockNoteHtml(data.banner.body),
+      });
+      setBody(null);
     }
     setSaving(false);
   }
@@ -68,7 +85,10 @@ export default function AdminBannerPage() {
             Active Banner
           </p>
           <div className="sb-strip" style={{ borderRadius: 6 }}>
-            <div className="sb-strip__body">{banner.body}</div>
+            <div
+              className="sb-strip__body"
+              dangerouslySetInnerHTML={{ __html: banner.bodyHtml }}
+            />
           </div>
           <div style={{ marginTop: 12 }}>
             <button className="btn--ghost" onClick={deactivate}>Deactivate</button>
@@ -85,20 +105,18 @@ export default function AdminBannerPage() {
           Post New Banner
         </p>
         <div className="fg">
-          <textarea
-            className="fi"
-            rows={3}
+          <RimProseEditor
             value={body}
-            onChange={(e) => setBody(e.target.value)}
+            onChange={setBody}
             placeholder="e.g. Tonight's meditation is cancelled due to weather."
-            style={{ resize: "vertical" }}
+            minHeight={100}
           />
         </div>
         <div className="form-actions" style={{ justifyContent: "flex-end" }}>
           <button
             className="btn"
             onClick={postBanner}
-            disabled={saving || !body.trim()}
+            disabled={saving || !hasContent(body)}
           >
             {saving ? "Posting…" : "Post Banner"}
           </button>

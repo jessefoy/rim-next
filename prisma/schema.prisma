@@ -1341,7 +1341,7 @@ model ManualSection {
 
 model SiteBanner {
   id          String    @id @default(cuid())
-  body        String
+  body        Json?     // BlockNote JSON (RimProseEditor)
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
   createdById String

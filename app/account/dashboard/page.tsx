@@ -6,6 +6,7 @@ import AccountLayout from "@/components/AccountLayout";
 import SiteBannerStrip from "@/components/SiteBannerStrip";
 import DashboardAutoRefresh from "@/components/DashboardAutoRefresh";
 import MeetJoinButton from "@/components/MeetJoinButton";
+import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 
 export const metadata = { title: "My Dashboard — Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
@@ -303,7 +304,9 @@ export default async function DashboardPage() {
 
   // Site banner
   const showBanner = activeBanner && activeBanner.dismissals.length === 0;
-  const bannerData = showBanner ? { id: activeBanner.id, body: activeBanner.body } : null;
+  const bannerData = showBanner
+    ? { id: activeBanner.id, bodyHtml: await renderFormattedTextAsync(activeBanner.body) }
+    : null;
 
   const firstName =
     session.user?.name?.split(" ")[0] ??
