@@ -229,7 +229,7 @@ function SessionDetail({
             value={subMsg}
             onChange={setSubMsg}
             placeholder="Why you need a sub, any handoff notes..."
-            minHeight={120}
+            variant="compact"
           />
           <div className="hub-form-actions">
             <button

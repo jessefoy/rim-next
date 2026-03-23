@@ -282,7 +282,7 @@ export default function HubConvClient({
               value={body}
               onChange={setBody}
               placeholder="Share your thoughts…"
-              minHeight={160}
+              variant="compact"
             />
           </div>
           <div className="form-actions">

@@ -239,7 +239,7 @@ export default function PostSessionClient({
                   <RimProseEditor
                     placeholder="What did you notice? (optional)"
                     value={flagNotes[f.attendanceId] ?? null}
-                    minHeight={80}
+                    variant="compact"
                     onChange={(v) => {
                       const updated = { ...flagNotes, [f.attendanceId]: v };
                       setFlagNotes(updated);
@@ -282,7 +282,7 @@ export default function PostSessionClient({
           <RimProseEditor
             placeholder="How did the session feel? Anything worth the team knowing?"
             value={reflection}
-            minHeight={120}
+            variant="compact"
             onChange={(v) => {
               setReflection(v);
               saveDraft({ reflection: v });

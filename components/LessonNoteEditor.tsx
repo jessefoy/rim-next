@@ -55,7 +55,7 @@ export default function LessonNoteEditor({ lessonSlug, initialBody }: Props) {
         value={body}
         onChange={handleChange}
         placeholder="Write anything that came up while reading or listening…"
-        minHeight={120}
+        variant="compact"
       />
       {status !== "idle" && (
         <p className={`ls-note-status${status === "saved" ? " ls-note-status--saved" : ""}`}>

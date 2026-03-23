@@ -241,7 +241,7 @@ function ReplyItem({
           <RimProseEditor
             value={editBody}
             onChange={setEditBody}
-            minHeight={120}
+            variant="compact"
           />
           {editError && <p className="hub-form-error">{editError}</p>}
           <div className="hub-form-actions">
@@ -443,8 +443,8 @@ export default function HubThreadDetailClient({
             <RimProseEditor
               value={replyBody}
               onChange={setReplyBody}
-              placeholder="Share your thoughts\u2026"
-              minHeight={160}
+              placeholder="Share your thoughts…"
+              variant="compact"
             />
             {replyError && <p className="hub-form-error">{replyError}</p>}
             <div className="hub-form-actions" style={{ marginTop: 10 }}>

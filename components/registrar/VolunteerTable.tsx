@@ -998,7 +998,7 @@ export default function VolunteerTable({
                                   setEditingNotes((prev) => ({ ...prev, [r.id]: val }))
                                 }
                                 placeholder="Notes visible only to staff…"
-                                minHeight={100}
+                                variant="compact"
                               />
                               <button
                                 className="vol-save-btn"

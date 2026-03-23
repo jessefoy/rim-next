@@ -17273,6 +17273,26 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   -webkit-font-smoothing: antialiased;
 }
 
+/* ── Compact variant — message-sized fields, tighter padding ── */
+.rim-prose-editor--compact .bn-editor {
+  padding: 6px 4px !important;
+}
+.rim-prose-editor--compact .bn-block-group > [data-node-type="blockContainer"] {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+.rim-prose-editor--compact .bn-block-content {
+  padding: 2px 0 !important;
+}
+.rim-prose-editor--compact .bn-toolbar .mantine-ActionIcon-root,
+.rim-prose-editor--compact .bn-toolbar .mantine-Button-root {
+  min-width: 28px !important;
+  min-height: 28px !important;
+}
+.rim-prose-editor--compact .bn-toolbar {
+  padding: 3px 6px !important;
+}
+
 /* ── Bear-style pill toolbar (appears on text selection) ── */
 .rim-block-editor .bn-toolbar,
 .rim-prose-editor .bn-toolbar {

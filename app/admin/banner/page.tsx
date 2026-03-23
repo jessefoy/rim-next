@@ -109,7 +109,7 @@ export default function AdminBannerPage() {
             value={body}
             onChange={setBody}
             placeholder="e.g. Tonight's meditation is cancelled due to weather."
-            minHeight={100}
+            variant="compact"
           />
         </div>
         <div className="form-actions" style={{ justifyContent: "flex-end" }}>

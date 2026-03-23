@@ -273,7 +273,7 @@ export default function HouseholdDetail({ household: initial, isAdmin }: Props) 
           <RimProseEditor
             value={notes}
             onChange={(blocks) => setNotes(blocks)}
-            minHeight={140}
+            variant="compact"
           />
         </div>
         <div className="adm-save-bar">

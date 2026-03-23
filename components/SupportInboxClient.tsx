@@ -824,7 +824,7 @@ export default function SupportInboxClient({
                     value={noteDraft}
                     onChange={setNoteDraft}
                     placeholder="Write an internal note…"
-                    minHeight={80}
+                    variant="compact"
                   />
                 </div>
                 <div className="si-note-composer__footer">
@@ -933,7 +933,7 @@ export default function SupportInboxClient({
                         value={replyDraft}
                         onChange={setReplyDraft}
                         placeholder="Type your reply…"
-                        minHeight={100}
+                        variant="compact"
                       />
                     </div>
                     {/* Staged attachments */}
@@ -1315,7 +1315,7 @@ export default function SupportInboxClient({
                   value={composeDraft}
                   onChange={setComposeDraft}
                   placeholder="Write your message…"
-                  minHeight={200}
+                  variant="compact"
                 />
               </div>
 

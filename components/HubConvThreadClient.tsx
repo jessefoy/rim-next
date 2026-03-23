@@ -205,7 +205,7 @@ export default function HubConvThreadClient({
             value={replyBody}
             onChange={setReplyBody}
             placeholder="Add a reply…"
-            minHeight={120}
+            variant="compact"
           />
           <div className="form-actions" style={{ justifyContent: "flex-end" }}>
             <button
