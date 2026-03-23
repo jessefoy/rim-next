@@ -128,6 +128,16 @@ const OrderedIcon = () => (
   </svg>
 );
 
+const CheckIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+    <rect x="1.5" y="2.5" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none" />
+    <path d="M3 5l1.2 1.2L6.5 3.5" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    <rect x="9" y="4" width="6" height="1.5" rx="0.5" />
+    <rect x="1.5" y="9.5" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none" />
+    <rect x="9" y="11" width="6" height="1.5" rx="0.5" />
+  </svg>
+);
+
 const QuoteIcon = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
     <rect x="2" y="3" width="2" height="10" rx="1" />
@@ -173,6 +183,7 @@ function CompactFormattingToolbar() {
       {/* Block types */}
       <BlockTypeToggle key="bullet" blockType="bulletListItem" title="Bullet list" icon={<BulletIcon />} />
       <BlockTypeToggle key="ordered" blockType="numberedListItem" title="Numbered list" icon={<OrderedIcon />} />
+      <BlockTypeToggle key="check" blockType="checkListItem" title="Checklist" icon={<CheckIcon />} />
       <BlockTypeToggle key="quote" blockType="quote" title="Quote" icon={<QuoteIcon />} />
     </FormattingToolbar>
   );

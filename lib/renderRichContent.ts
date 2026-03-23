@@ -97,8 +97,11 @@ function renderSingleBlock(block: any): string {
       return `<li${bStyle}>${inner}${children}</li>`
     case "numberedListItem":
       return `<li${bStyle}>${inner}${children}</li>`
-    case "checkListItem":
-      return `<li${bStyle}>${inner}${children}</li>`
+    case "checkListItem": {
+      const checked = (block.props as any)?.checked === true
+      const checkbox = `<span class="check-list__box${checked ? " check-list__box--checked" : ""}"></span>`
+      return `<li class="check-list__item${checked ? " check-list__item--checked" : ""}"${bStyle}>${checkbox}${inner}${children}</li>`
+    }
     case "quote":
       return `<blockquote${bStyle}>${inner}</blockquote>${children}`
     case "codeBlock":

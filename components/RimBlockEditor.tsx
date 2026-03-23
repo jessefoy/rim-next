@@ -401,7 +401,7 @@ function PillBlockTypeDropdown() {
     setOpen(false);
   }
 
-  const isListOrQuote = ["bulletListItem", "numberedListItem", "quote"].includes(activeBlock);
+  const isListOrQuote = ["bulletListItem", "numberedListItem", "checkListItem", "quote"].includes(activeBlock);
 
   return (
     <div className="bear-more-wrap" ref={ref} style={{ position: "relative" }}>
@@ -422,6 +422,10 @@ function PillBlockTypeDropdown() {
           <button type="button" className={`bear-more-item${activeBlock === "numberedListItem" ? " bear-more-item--active" : ""}`}
             onMouseDown={(e) => { e.preventDefault(); setBlockType("numberedListItem"); }}>
             Numbered List
+          </button>
+          <button type="button" className={`bear-more-item${activeBlock === "checkListItem" ? " bear-more-item--active" : ""}`}
+            onMouseDown={(e) => { e.preventDefault(); setBlockType("checkListItem"); }}>
+            Checklist
           </button>
           <div className="bear-more-divider" />
           <button type="button" className={`bear-more-item${activeBlock === "quote" ? " bear-more-item--active" : ""}`}
@@ -949,6 +953,7 @@ function ToolbarBlockTypeSelect() {
     : activeBlock === "heading" && activeLevel === 3 ? "H3"
     : activeBlock === "bulletListItem" ? "•"
     : activeBlock === "numberedListItem" ? "1."
+    : activeBlock === "checkListItem" ? "☑"
     : activeBlock === "quote" ? "❝"
     : "¶";
 
@@ -959,6 +964,7 @@ function ToolbarBlockTypeSelect() {
     { label: "Heading 3", short: "H3", type: "heading", props: { level: 3 }, match: activeBlock === "heading" && activeLevel === 3 },
     { label: "Bullet list", short: "•", type: "bulletListItem", match: activeBlock === "bulletListItem" },
     { label: "Numbered list", short: "1.", type: "numberedListItem", match: activeBlock === "numberedListItem" },
+    { label: "Checklist", short: "☑", type: "checkListItem", match: activeBlock === "checkListItem" },
     { label: "Quote", short: "❝", type: "quote", match: activeBlock === "quote" },
   ];
 

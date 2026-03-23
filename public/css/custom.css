@@ -16153,6 +16153,26 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .cv-post__body a:hover { text-decoration: underline; }
 .cv-post__body strong { font-weight: 600; }
 
+/* ── Rendered checklist (check-list) — used across all content output contexts ── */
+ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
+.check-list__item { display: flex; align-items: flex-start; gap: 8px; margin: 0.25em 0; }
+.check-list__item--checked { text-decoration: line-through; color: var(--rim-text-muted); }
+.check-list__box {
+  display: inline-block; flex-shrink: 0;
+  width: 16px; height: 16px; margin-top: 3px;
+  border: 2px solid var(--rim-rule, #d4cfc9); border-radius: 3px;
+  background: #fff; position: relative;
+}
+.check-list__box--checked {
+  background: var(--rim-teal, #3d7a66); border-color: var(--rim-teal, #3d7a66);
+}
+.check-list__box--checked::after {
+  content: ''; position: absolute;
+  left: 3px; top: 0; width: 5px; height: 9px;
+  border: solid #fff; border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
 /* ── Content Output: lesson-notes (ls-notes-body) ────────────────────────── */
 /* Personal and private. Member's own reflection space. Warm, inviting. */
 .ls-notes-body { font-family: var(--font-sans); font-size: 15px; color: var(--rim-text); line-height: 1.6; }
