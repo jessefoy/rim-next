@@ -1,6 +1,6 @@
 # RIM Next — Stack Reference
 
-_Generated 2026-03-11. Last updated 2026-03-23 (session 72)._
+_Generated 2026-03-11. Last updated 2026-03-23 (session 73)._
 
 ---
 
@@ -44,7 +44,7 @@ Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfie
 | Hosting | Vercel | auto-deploy on push to `main` |
 | CSS | Custom design system | `public/css/custom.css` only — never touch webflow CSS files |
 | Rich text editor | BlockNote v0.47.1 | `@blocknote/core`, `@blocknote/react`, `@blocknote/mantine`, `@blocknote/server-util` — replaced Tiptap entirely in session 69. Two components: `RimBlockEditor` (full — Bear-inspired toolbar, image upload, advanced tables, heading hierarchy, document locking, blob cleanup) and `RimProseEditor` (prose). Custom Dharma blocks: VerseQuote, PracticeSuggestion, Callout. Heading CSS injected via `<style>` tag on mount (must target `<h1>`/`<h2>`/`<h3>` tags, not `data-level`). Color token rendering via `BN_TEXT_COLORS`/`BN_BG_COLORS` maps in `renderRichContent.ts`. **Exception:** `MarkdownEditor` (Tiptap + tiptap-markdown, renamed from `RimEditor.tsx` in session 70) is used exclusively by `EmailTemplateEditor` — email template pipeline is markdown → marked() → juice() → Resend. |
-| Footer suppression | `components/FooterWrapper.tsx` | Newsletter footer suppressed on `/admin/*`, `/account/*`, `/lessons/*`, `/course/*` |
+| Footer suppression | `components/FooterWrapper.tsx` | Newsletter footer suppressed on `/admin/*`, `/account/*`, `/tools/*`, `/lessons/*`, `/course/*` |
 | File storage | Vercel Blob | `@vercel/blob` + `@vercel/blob/client` — client-side upload pattern (browser → Blob direct, bypasses 4.5 MB serverless limit); max 500 MB; `BLOB_READ_WRITE_TOKEN` env var |
 
 ---
@@ -176,10 +176,14 @@ app/
   account/
     dashboard/        member home
     programs/         my registrations
-    hub/[slug]/       Multi-hub volunteer workspaces (host-team, teacher, registrar, etc.)
-    hub/[slug]/programs/  Registrar Hub programs tab (REGISTRAR | ADMIN + stakeholder view)
+    hub/[slug]/       Multi-hub volunteer workspaces (conversations, tasks, documents, members)
+    hub/[slug]/programs/  Registrar Hub stakeholder view (read-only headcount)
     welcome/          onboarding
     reactivate/       self-service reactivation
+  tools/
+    programs/         Program Manager (REGISTRAR | ADMIN) — extracted from hub
+    inbox/            Support Inbox + Settings (SUPPORT | ADMIN) — extracted from hub
+    schedule/         Host Schedule + Live Session + History (HOST | HOST_MANAGER | ADMIN) — extracted from hub
   admin/
     members/          member management (ADMIN | REGISTRAR)
     households/       household grouping (ADMIN | REGISTRAR)

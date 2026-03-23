@@ -21,15 +21,38 @@ The Member Registry is the authoritative record of every person in the RIM commu
 
 Hubs are team workspaces for RIM's volunteer groups. Each hub serves one team. Members see only the hubs they belong to.
 
-**Current hubs:** Host Team, Teacher Hub, Registrar Hub, People Team, Greeter Team, AV Team, Housekeeping, Plant Care, Newsletter, Sangha Care, KM Support, Silent Meditation, Volunteer Coordination (all OPERATIONAL) + Board and Teacher Council (GOVERNANCE).
+**Current hubs:** Host Team, Course Hub, Registrar Hub, Support Hub (all ACTIVE, OPERATIONAL) + People Team, Greeter Team, AV Team, Housekeeping, Plant Care, Newsletter, Sangha Care, KM Support, Silent Meditation, Volunteer Coordination (OPERATIONAL) + Board and Teacher Council (GOVERNANCE).
 
-**What they are:** Task-specific workspaces. Each hub provides Conversations (default tab — with pinned threads replacing former Announcements), Documents, and a Members tab. The Host Team hub also has a Schedule tab. Dashboard hub cards show unread badges.
+**What they are:** Team-centric workspaces. Each hub provides a Home screen (with app links and coordinator content), Conversations (with pinned threads), Tasks, Documents, and a Members tab. Dashboard hub cards show unread badges.
+
+### Tools (`/tools/*`)
+
+Tools are full-featured staff applications extracted from hubs. They serve one workflow, with their own navigation chrome and sub-pages.
+
+**Current tools:**
+- `/tools/programs` — Program Manager (REGISTRAR/ADMIN)
+- `/tools/inbox` — Support Inbox (SUPPORT/ADMIN)
+- `/tools/schedule` — Host Schedule + Live Session + Journal (HOST/HOST_MANAGER/ADMIN)
+
+**The distinction:** Hubs are about the *team*. Tools are about the *work*. When an application inside a hub grows complex enough to need its own navigation, its own sub-pages, and its own UX flow, it is extracted to `/tools/`. The hub keeps a stakeholder view or an app link — but the application itself lives independently.
+
+---
+
+## The Three-Layer Architecture
+
+| Layer | Purpose | Examples |
+|---|---|---|
+| **Member Registry** (`/admin/members`) | Canonical record authority | Full profile, roles, households, tags |
+| **Hubs** (`/account/hub/[slug]`) | Team workspaces | Conversations, documents, tasks, members |
+| **Tools** (`/tools/*`) | Operational applications | Program Manager, Support Inbox, Host Schedule |
+
+Hubs and Tools both provide scoped projections of member data — but they serve different needs. A hub is where a team coordinates. A tool is where they do their specialized work.
 
 ---
 
 ## The Core Architectural Principle
 
-> **Volunteers access member data through their hub — not through the Member Registry.**
+> **Volunteers access member data through their hub or tool — not through the Member Registry.**
 
 When a hub needs to surface member data, it does so as a **scoped projection**: only the fields relevant to that role, only the people within that role's scope, only the actions that role's work requires.
 
@@ -149,28 +172,16 @@ Someone who is both a Host Team coordinator and a Volunteer Coordination member 
 
 ## What's Next
 
-The **Virtual Host Hub** was the first hub to receive a scoped member data view — built in sessions 41–45. It established the pattern for all subsequent hub data views.
+**Tools extraction — complete (session 73):** Three full applications extracted from hub tabs to `/tools/*`: Program Manager → `/tools/programs`, Support Inbox → `/tools/inbox`, Host Schedule → `/tools/schedule`. Each tool has its own nav chrome, role gate, and back link to its associated hub. Hub tabs simplified — only team-centric tabs remain (Home, Conversations, Tasks, Documents, Members, plus course-specific tabs for Course Hub and stakeholder Programs tab for Registrar Hub). This establishes the three-layer architecture: Member Registry (canonical authority) → Hubs (team workspaces) → Tools (operational applications).
 
-The **Registrar Hub** (Phase 1) was migrated into the hub system in session 53. The standalone `/account/registrar` area was retired and all registrar functionality now lives at `/account/hub/registrar/programs`. Phase 1 also introduced **stakeholder visibility** — non-registrar hub members see headcount and capacity only, no PII, no detail page access. The role design document is in `RIM_Role_Design.md`.
+**Hub schema enhancements — session 73:** `HubStatus` enum (ACTIVE/ARCHIVED) with status field on Hub. `HubAppLink` model for hub-to-tool linking. `firstVisitedAt` on HubMember for newcomer welcome tracking. `TaskList`, `Task`, `Subtask` models with `TaskStatus` enum for hub task management.
 
-**Phase 3 complete (session 54):** Programs are now fully managed in Postgres via the Program Editor in the Registrar Hub. All Sanity program dependencies removed. Google Meet sync happens on save (no webhook needed). The Sanity invitation system was removed entirely.
+**What remains:**
 
-**Support Inbox — complete (sessions 56–57):** A standalone hub (`/account/hub/support/`) was built for the SUPPORT role. It provides a full Gmail-integrated shared email client for `support@rootedinmindfulness.org`: OAuth2 sync engine, three-column inbox UI, thread management (OPEN/CLAIMED/WAITING/RESOLVED), reply and compose via Gmail API, internal notes, email templates, per-user signatures, member matching, soft delete, notifications, and cron-based auto-sync (5 min, Vercel Pro). Security hardening completed in session 57 (SSRF guard, attachment ownership check, soft-delete bypass fix in sync, 404 on deleted threads, rate limiting on manual sync, enum validation, signature HTML escaping, audit trail on hard delete).
-
-**Host Hub Session tab — complete (session 58):** Full visual redesign and post-session form overhaul. Six-state machine (`later-today → getting-ready → live → post-session → done`) transitions correctly via tick counter without page reload. Person rows are full-width tap targets with color-coded left strip (amber=new member, teal=returning) and flag circle. Live session card has sage green background; ended sessions collapse to footnotes when a form is pending. Post-session form: all hosts see the full form (flagged people with note + routing descriptions, session reflection, resource to share). FormattedEditor (Tiptap JSON) used for all multi-line communication fields. Three schema fields migrated from `String?` to `Json?`: `SessionAttendance.postSessionNote`, `SessionReport.reflection`, `SessionCoHostReport.reflection`.
-
-**Series page redesign — complete (session 59):** The course/series page (`/course/[slug]`) was redesigned to match the `lp-` design language — warm `var(--rim-bg)` background, centered weight-400 serif header, `crs-rule` hr divider, white lesson cards with 10px border radius. SVG media-type icons (teal=audio, amber=video, slate=text) replace the old text badge pills. The Course Editor received a UX overhaul for section labels: a flat `ListItem[]` union type now drives a unified drag list where section-divider rows are first-class draggable items with inline-editable labels and a ✕ remove button. The `+ Add Section` button uses the new `th-btn--ghost` style. Sort order was removed from the course form entirely. Three routes were fixed for `Prisma.JsonNull` (TypeScript enforces `JsonValue` not `string | null` for `Json?` fields). The planned learning system (§30 FEATURES.md) was documented as the next major teacher-facing feature area.
-
-**Learning System features 1–6 — complete (session 60):** The series/lesson library is now an active learning companion. Members enroll in a series (`SeriesEnrollment` — `enrolledAt`, `completedAt?`, `enrollmentSource`), track per-lesson completion (`LessonProgress`), and write private per-lesson notes (`LessonNote` — new in session 60, `body Json?` via FormattedEditor). The lesson page shows an enrollment-gated `ls-lesson-footer` below the content: the teacher's reflection prompt (italic serif, preceded by rule), the personal notes editor (autosaved via 1.5s debounce), and the Mark Complete button. The member dashboard shows enrolled series as `ls-dash-card` cards with live inline progress bars and "Continue →" links. The complete API (`POST /api/lessons/[slug]/complete`) now gates on enrollment (403 if not enrolled) and clears `SeriesEnrollment.completedAt` when a lesson is un-completed. Two new `Lesson` fields: `durationMinutes Int?` and `reflectionPrompt String?`, editable in the Teacher Hub's LessonEditor. `CourseEditor` gains a `completionNote` field. Features 7 (Teacher Profiles) and 8 (Shared Discussion) remain deferred.
-
-**BlockNote migration — complete (session 69):** All Tiptap-based editor components (`ContentEditor`, `FormattedEditor`, `lib/tiptap-extensions.ts`) have been removed. The system now uses `RimBlockEditor` and `RimProseEditor` (both BlockNote-based). All 18 `Json?` rich-text fields across 14 database tables have been converted to BlockNote JSON format. The render pipeline is split: `lib/renderRichContentServer.ts` (async, server-only, accurate HTML) and `lib/renderRichContent.ts` (sync, client-safe, lightweight walker). Native hub documents were introduced as a first-class content type (`HubDocument.isNative`, `body Json?`).
-
-**Admin member profile redesign — complete (session 69):** The profile page was visually redesigned using the `adm2-` CSS system. Key changes: member header card with avatar/initials, serif name, status/role/tag badge strip; display-mode-first for Identity & Contact (shows read view by default, Edit toggle opens form); roles section compressed into a grouped grid (System Access / Volunteer Teams / Governance); zone separators via CSS `::before` rules; `HouseholdSection` and `CourseAccessSection` card appearance flattened via `.adm2-page` context overrides. Newsletter footer suppressed on all admin, hub, account, lesson, and course pages via `FooterWrapper`.
-
-**RimBlockEditor full feature build — complete (session 71):** The block editor gained a Bear-inspired dual-toolbar system (selection toolbar + empty-line pill), image upload with alignment overlay (opened to all authenticated users), advanced tables (split cells, colors, headers), heading hierarchy (H1/H2/H3 with injected CSS — discovered `data-level` only set by disabled SideMenu, must target actual `<h1>`/`<h2>`/`<h3>` tags), block type selector dropdown, document locking (author lock + ADMIN override + presence heartbeat), and Vercel Blob cleanup for orphaned images. The renderer (`lib/renderRichContent.ts`) was upgraded with list grouping (`<ul>`/`<ol>` wrappers), image `<figure>` rendering, table `<thead>`/`<tbody>` with cell colors, and BlockNote color token resolution (named tokens like "red" mapped to actual hex values via `BN_TEXT_COLORS`/`BN_BG_COLORS` maps). Editor-view parity: injected styles ensure the editor matches the published `doc-body` appearance for all elements.
-
-**What remains for the Registrar Hub:**
-
+- **Hub admin page:** `/admin/hubs` — create, edit, archive hubs. No more managing hubs only through seed scripts.
+- **Hub home screen:** Coordinator-editable home content, app links rendered as cards, pinned threads surfaced.
+- **Hub newcomer welcome:** One-time interstitial on first visit (uses `firstVisitedAt` + `welcomeBody`).
+- **Hub task system UI:** Tasks tab with lists, assignees, due dates, subtasks, templates (schema ready, UI not yet built).
 - **Check-in tools:** Digital check-in per program (phone-first), PDF export, future member self-check-in.
 - **Stakeholder names visibility:** Whether certain stakeholders should see participant names (not just headcount) is a privacy question deferred until a real use case requires it.
 
@@ -187,4 +198,4 @@ This file is part of the closing ritual for any Claude Code session that touches
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org*
-*Working document · March 2026 (updated session 72)*
+*Working document · March 2026 (updated session 73)*

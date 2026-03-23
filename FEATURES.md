@@ -1762,6 +1762,76 @@ A single-slot ADMIN broadcast banner visible to all logged-in members at the top
 
 ---
 
+## 37. Tools Route Group ✅ Built — session 73 (2026-03-23)
+
+### What it does
+
+A dedicated `/tools/` route group for full-featured staff applications that outgrew the hub tab system. Tools are independent applications with their own navigation chrome — they are not hub tabs. Each hub links to its associated tool(s) via app links on its home screen.
+
+### The hub vs. application distinction
+
+Hubs are **team workspaces** — conversations, documents, members, tasks. They are about the team. Tools are **applications** — full-featured operational software for a specific workflow. They are about the work.
+
+When an application (like the Program Manager or Support Inbox) grew complex enough to need its own nav, its own sub-pages, and its own UX flow, it was extracted from its hub tab into `/tools/`. The hub keeps a stakeholder view or an app link — but the application itself lives independently.
+
+### Architecture
+
+| Component | Purpose |
+|---|---|
+| `app/tools/layout.tsx` | Shared shell — auth gate, renders ToolsNav + content wrapper |
+| `components/ToolsContext.tsx` | React context for `{ toolName, backHref, backLabel, subNav? }` |
+| `components/ToolsNav.tsx` | Sticky nav bar — tool name (left), sub-nav pills (center), back link (right) |
+| Per-tool layouts | Each tool directory has its own `layout.tsx` that wraps children in `<ToolsProvider>` with role gate + hub back link resolution |
+
+Site `<Nav>` returns null for `/tools/*` paths. `FooterWrapper` suppresses footer.
+
+### Tools
+
+| Tool | Route | Role Gate | Back Link | Replaced |
+|---|---|---|---|---|
+| Program Manager | `/tools/programs` | REGISTRAR, ADMIN | Registrar Hub | Hub Programs tab (full management) |
+| Support Inbox | `/tools/inbox` | SUPPORT, ADMIN | Support Hub | Hub Inbox + Settings tabs |
+| Host Schedule | `/tools/schedule` | HOST, HOST_MANAGER, ADMIN | Host Team Hub | Hub Schedule + Session tabs |
+
+### Sub-navigation
+
+Tools can declare sub-navigation items via the `subNav` property in ToolsContext. These render as pill-style links in the ToolsNav center slot with active-state highlighting. Currently used by Host Schedule: Schedule, Live Session, Journal.
+
+### Key files
+
+| File | Purpose |
+|---|---|
+| `app/tools/programs/page.tsx` | Program list (registrar view) |
+| `app/tools/programs/new/page.tsx` | Create program |
+| `app/tools/programs/[programSlug]/page.tsx` | Program detail + registrations |
+| `app/tools/programs/[programSlug]/edit/page.tsx` | Edit program |
+| `app/tools/inbox/page.tsx` | Support Inbox (3-column email client) |
+| `app/tools/inbox/settings/page.tsx` | Support settings (Gmail, signatures, templates) |
+| `app/tools/schedule/page.tsx` | Monthly host schedule calendar |
+| `app/tools/schedule/session/page.tsx` | Live session view (6-state machine) |
+| `app/tools/schedule/session/[programSlug]/post/page.tsx` | Post-session report form |
+| `app/tools/schedule/session/history/page.tsx` | Coordinator session history |
+| `app/tools/schedule/session/history/team/page.tsx` | Team session journal |
+
+### Hub stakeholder views
+
+When an application is extracted, the hub may retain a simplified read-only view:
+- **Registrar Hub** → Programs tab shows stakeholder dashboard (headcount, capacity, no actions). Registrars see "Open Program Manager →" link.
+- **Support Hub** → No stakeholder view. Inbox and Settings tabs removed. App links point to tool.
+- **Host Team Hub** → No stakeholder view. Schedule and Session tabs removed. App link points to tool.
+
+### Component updates for extraction
+
+`ProgramEditor` and `ProgramsTableClient` gained a `basePath` prop — all navigation uses it instead of constructing hub URLs. `hubSlug` kept as optional fallback.
+
+`SessionLiveClient` gained a `basePath` prop — all 4 internal links (journal ×3, coordinator history ×1) use it instead of hub URL construction.
+
+### CSS prefix
+
+`tools-nav-` for nav chrome, `tools-` for shell layout. Tools reuse their existing CSS prefixes (`vol-`, `si-`, `hub-cal-`, `sv-`, `sh-`, etc.) — the extraction did not change any application-level CSS.
+
+---
+
 ## Session Log
 
 | Date | Summary |
@@ -2376,10 +2446,15 @@ The host-team hub at `/account/hub/host-team` reuses the `HubScheduleClient` com
 
 | Tab | Always | Condition |
 |---|---|---|
-| Conversations | ✅ | Hub home (default since session 72); pinned threads replace former Announcements tab |
-| Schedule | conditional | `hub.hasSchedule = true` (host-team only) |
+| Home | ✅ | Hub landing screen (default) |
+| Conversations | ✅ | Pinned threads replace former Announcements tab |
+| Programs | conditional | `slug === "registrar"` — stakeholder read-only view |
+| Series + Lessons | conditional | `slug === "courses"` |
+| Tasks | ✅ | |
 | Documents | ✅ | |
 | Members | ✅ | |
+
+**Extracted to /tools/ (session 73):** Schedule, Session, Inbox, Settings tabs removed from hub nav. Full applications now live at `/tools/schedule`, `/tools/inbox`, `/tools/programs`. See §37.
 
 ### New Prisma models
 
@@ -3478,6 +3553,8 @@ model HubDocument {
 *Updated: 2026-03-19 (session 69)*
 
 **2026-03-21 (session 71)** — RimBlockEditor full feature build + rendering fixes. **(1) Bear-inspired toolbar:** Selection toolbar with B/I/U/Link/Align/⋯ more menu; empty-line pill with heading/list dropdowns, table/image insert. **(2) Image support:** Upload via pill + drag-and-drop; alignment overlay (L/C/R) via DOM injection; upload opened to all authenticated users (not just ADMIN/TEACHER). **(3) Advanced tables:** splitCells, cellBackgroundColor, cellTextColor, headers; table delete × at top-left on hover; explicit 3×3 tableContent for reliable insertion. **(4) Heading hierarchy:** H1: 32px, H2: 24px, H3: 20px via injected `<style>` tag (discovered `data-level` only set by disabled SideMenu — must target `<h1>`/`<h2>`/`<h3>` tags directly). **(5) Block type selector:** ToolbarBlockTypeSelect dropdown in selection toolbar. **(6) Document locking:** Author lock + ADMIN override + presence heartbeat (30s POST, stale 60s) + author attribution banner. **(7) Blob cleanup:** `lib/blobCleanup.ts` auto-deletes orphaned Vercel Blob files. **(8) Render fixes:** List grouping (`<ul>`/`<ol>` wrappers), image rendering (`<figure>`), table `<thead>`/`<tbody>`, BlockNote color token resolution (named tokens mapped to actual hex values). **(9) Editor-view parity:** Injected styles match editor to published doc-body for all elements. Schema: HubDocument gained `isLocked`, `editingById`, `editingAt`, `addedById`. New API routes: `/lock`, `/presence`. Key files: `components/RimBlockEditor.tsx`, `components/HubDocumentEditor.tsx`, `lib/renderRichContent.ts`, `lib/blobCleanup.ts`.
+
+**2026-03-23 (session 73)** — Tools route group + application extraction. **(1) Hub schema additions:** `HubStatus` enum (ACTIVE/ARCHIVED), `status`, `welcomeHeadline`, `welcomeBody`, `homeContent` fields on Hub. `HubAppLink` model (label, href, order, isEnabled). `firstVisitedAt` on HubMember. `TaskList`, `Task`, `Subtask` models with `TaskStatus` enum. **(2) Tools layout:** New `/tools/` route group with shared `ToolsNav` + `ToolsContext` (React context for tool name, back link, sub-nav). Site Nav returns null for `/tools/*`; FooterWrapper suppresses footer. Three per-tool layouts with role gates: programs (REGISTRAR/ADMIN), inbox (SUPPORT/ADMIN), schedule (HOST/HOST_MANAGER/ADMIN). Each resolves hub membership for back link. **(3) Program Manager extracted:** Full registrar program management moved from `/account/hub/[slug]/programs/*` to `/tools/programs/*` (list, new, detail, edit). `ProgramEditor` + `ProgramsTableClient` updated with `basePath` prop. Hub programs page converted to stakeholder-only read-only view (Option A) with "Open Program Manager →" link. **(4) Support Inbox extracted:** Inbox + Settings moved from `/account/hub/[slug]/inbox` and `/settings` to `/tools/inbox` and `/tools/inbox/settings`. Internal links updated: `supportNotify.ts` → `/tools/inbox`, Gmail OAuth callback → `/tools/inbox/settings`, inbox "not connected" → `/tools/inbox/settings`. Inbox and Settings tabs removed from hub nav. **(5) Host Schedule extracted:** Five pages moved from hub schedule/session to `/tools/schedule/*`. `SessionLiveClient` updated with `basePath` prop. 13 external references updated across 8 files (API alert linkUrls, cron notification links, email template links). Schedule and Session tabs removed from hub nav. ToolsNav sub-navigation added (Schedule, Live Session, Journal) with pill-style active state. **(6) Hub nav cleanup:** Hub layout tabs simplified — removed Inbox, Settings, Schedule, Session conditionals. `isSupportHub` and `canSeeSessionTab` variables cleaned up. **(7) Seed updates:** App links seeded for all three hubs (Host Schedule, Program Manager, Support Inbox + Settings). Key files: `app/tools/layout.tsx`, `components/ToolsNav.tsx`, `components/ToolsContext.tsx`, all files under `app/tools/programs/`, `app/tools/inbox/`, `app/tools/schedule/`.
 
 **2026-03-23 (session 72)** — Hub notification redesign: merge announcements into pinned conversations, unread indicators, site banner. **(1) Announcements → Pinned Threads:** `isPinned Boolean` + `pinnedAt DateTime?` added to `HubConversationThread`. Announcements tab removed from all hubs; hub root redirects to `/conversations`. `HubConvClient` renders pinned section with ‼️ badge; coordinators can pin/unpin from thread list and detail. `HubAnnouncementsClient.tsx` deleted. Announcement API routes deleted (3 files). Migration script: `prisma/migrate-announcements.ts`. **(2) Dashboard Hub Card Unread Indicators:** Dashboard computes `unreadCount` per hub (threads created/replied since `lastVisitedAt` + unread Alerts for host-team). Teal badge on hub cards (1–9 or "9+"). ADMIN skips badges. **(3) AlertStrip Removed:** `AlertStrip.tsx` deleted, ~110 lines of `alert-strip` CSS removed. Alert model stays for host-team unread count. **(4) Site-Wide Banner:** `SiteBanner` + `SiteBannerDismissal` models. ADMIN posts via `/admin/banner` (RimProseEditor compact). Members see banner on dashboard with ✕ dismiss. One banner at a time. APIs: `/api/admin/site-banner` (CRUD), `/api/site-banner/dismiss`. `SiteBannerStrip.tsx` client component. Banner link added to admin sidebar. **(5) SiteBanner.body:** Changed from `String` to `Json?` (BlockNote JSON) — editor standard enforced, no plain textarea. Key files: `prisma/schema.prisma`, `components/HubConvClient.tsx`, `components/HubConvThreadClient.tsx`, `components/SiteBannerStrip.tsx`, `app/account/dashboard/page.tsx`, `app/admin/banner/page.tsx`, `app/api/admin/site-banner/route.ts`, `app/api/site-banner/dismiss/route.ts`. Commits: `ffeef25` + follow-up editor migration. **(6) Cleanup (session 72 cont.):** Purged test data from conversation/announcement tables. Removed `HubAnnouncement` model, `AnnouncementPriority`/`AnnouncementStatus` enums, `sourceAnnouncementId` from schema. Deleted `prisma/migrate-announcements.ts`. Cleaned announcement references from conversations POST route. Fixed compact `RimProseEditor` crash: custom `BlockTypeToggle` components inside `FormattingToolbar` caused client-side exceptions (same pattern as commit `59a02ae`); replaced with BlockNote built-in `BlockTypeSelect`. **(7) Editor architecture discussion:** Mapped all 24 editor usage sites (4 RimBlockEditor + 20 RimProseEditor). Confirmed inheritance model: one schema (`rimBlockSchema`), two toolbar configs, one renderer. `RimBlockEditor` = writing tool (Bear pill, images, tables, Dharma blocks); `RimProseEditor` = compose field (selection toolbar, compact variant). `variant="compact"` now on 12 usage sites. Checklist block type (`checkListItem`) already in schema+renderer, confirmed available in both editors. Commit: `1404fe8`.
 
