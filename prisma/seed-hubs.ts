@@ -11,7 +11,7 @@ import { PrismaClient } from "@prisma/client";
 const db = new PrismaClient();
 
 const hubs = [
-  { slug: "host-team",              name: "Host Team",              type: "OPERATIONAL" as const, hasSchedule: true },
+  { slug: "host-team",              name: "Host Team",              type: "OPERATIONAL" as const, hasSchedule: true, status: "ACTIVE" as const },
   { slug: "people-team",            name: "People Team",            type: "OPERATIONAL" as const },
   { slug: "newsletter",             name: "Newsletter",             type: "OPERATIONAL" as const },
   { slug: "greeter",                name: "Greeter Team",           type: "OPERATIONAL" as const },
@@ -24,9 +24,9 @@ const hubs = [
   { slug: "volunteer-coordination", name: "Volunteer Coordination", type: "OPERATIONAL" as const },
   { slug: "board",                  name: "Board",                  type: "GOVERNANCE"  as const },
   { slug: "teacher-council",        name: "Teacher Council",        type: "GOVERNANCE"  as const },
-  { slug: "courses",                 name: "Course Hub",             type: "OPERATIONAL" as const },
-  { slug: "registrar",              name: "Registrar Hub",          type: "OPERATIONAL" as const, description: "Program registration management and participant support." },
-  { slug: "support",                name: "Support Inbox",          type: "OPERATIONAL" as const, description: "Shared inbox for support@rootedinmindfulness.org." },
+  { slug: "courses",                 name: "Course Hub",             type: "OPERATIONAL" as const, status: "ACTIVE" as const },
+  { slug: "registrar",              name: "Registrar Hub",          type: "OPERATIONAL" as const, status: "ACTIVE" as const, description: "Program registration management and participant support." },
+  { slug: "support",                name: "Support Inbox",          type: "OPERATIONAL" as const, status: "ACTIVE" as const, description: "Shared inbox for support@rootedinmindfulness.org." },
 ];
 
 async function main() {
@@ -34,8 +34,8 @@ async function main() {
   for (const hub of hubs) {
     await db.hub.upsert({
       where:  { slug: hub.slug },
-      update: { name: hub.name, type: hub.type, hasSchedule: hub.hasSchedule ?? false, ...(hub.description ? { description: hub.description } : {}) },
-      create: { slug: hub.slug, name: hub.name, type: hub.type, hasSchedule: hub.hasSchedule ?? false, ...(hub.description ? { description: hub.description } : {}) },
+      update: { name: hub.name, type: hub.type, hasSchedule: hub.hasSchedule ?? false, ...(hub.status ? { status: hub.status } : {}), ...(hub.description ? { description: hub.description } : {}) },
+      create: { slug: hub.slug, name: hub.name, type: hub.type, hasSchedule: hub.hasSchedule ?? false, ...(hub.status ? { status: hub.status } : {}), ...(hub.description ? { description: hub.description } : {}) },
     });
     console.log(`  ✓ ${hub.name}`);
   }

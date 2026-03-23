@@ -75,6 +75,7 @@ export default async function HubLayout({ children, params }: Props) {
   const isSupportHub   = slug === "support";
 
   const tabs = [
+    { label: "Home", href: base },
     ...(isSupportHub
       ? [{ label: "Inbox", href: `${base}/inbox` }]
       : []),
@@ -90,6 +91,7 @@ export default async function HubLayout({ children, params }: Props) {
     { label: "Conversations", href: `${base}/conversations` },
     ...(hub.hasSchedule ? [{ label: "Schedule", href: `${base}/schedule` }] : []),
     ...(canSeeSessionTab ? [{ label: "Session", href: `${base}/session` }] : []),
+    { label: "Tasks",          href: `${base}/tasks` },
     { label: "Documents",     href: `${base}/documents` },
     { label: "Members",       href: `${base}/members` },
     ...(isSupportHub

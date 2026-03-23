@@ -105,6 +105,12 @@ export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
         {isAdmin && <div className="ac-sidebar__divider" role="separator" />}
 
         {isAdmin && (
+          <Link href="/admin/hubs" className={linkClass("/admin/hubs")}>
+            Hubs
+          </Link>
+        )}
+
+        {isAdmin && (
           <Link href="/admin/emails" className={linkClass("/admin/emails")}>
             Emails
           </Link>
