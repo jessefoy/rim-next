@@ -17293,6 +17293,39 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   padding: 3px 6px !important;
 }
 
+/* Compact toolbar — custom block-type toggle buttons */
+.rte-compact-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--rim-text-muted);
+  transition: background 0.12s, color 0.12s;
+}
+.rte-compact-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--rim-text);
+}
+.rte-compact-btn--active {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--rim-blue);
+}
+.rte-compact-divider {
+  display: inline-block;
+  width: 1px;
+  height: 18px;
+  background: #e0dcd8;
+  margin: 0 4px;
+  flex-shrink: 0;
+  align-self: center;
+}
+
 /* ── Bear-style pill toolbar (appears on text selection) ── */
 .rim-block-editor .bn-toolbar,
 .rim-prose-editor .bn-toolbar {
