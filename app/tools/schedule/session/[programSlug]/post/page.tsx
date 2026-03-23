@@ -1,18 +1,17 @@
 /**
- * /account/hub/[slug]/session/[programSlug]/post
- * Post-session form for the Host Team hub.
- * Access: HOST, HOST_MANAGER, REGISTRAR, ADMIN only.
+ * /tools/schedule/session/[programSlug]/post — Post-session report form.
+ * Role gate: HOST, HOST_MANAGER, or ADMIN (handled by layout).
  */
 
 import { auth } from "@/auth";
-import { redirect, notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import PostSessionClient from "@/components/PostSessionClient";
 import type { AssignedHost } from "@/components/PostSessionClient";
 
 export const dynamic = "force-dynamic";
 
-// ── Date helpers (same midnight-CT approach as session/page.tsx) ──────────────
+// ── Date helpers ──────────────────────────────────────────────────────────────
 
 function ctDateStr(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", {
@@ -51,17 +50,15 @@ function fmtDate(date: Date): string {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-export default async function PostSessionPage({
+export default async function PostSessionToolPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ slug: string; programSlug: string }>;
+  params: Promise<{ programSlug: string }>;
   searchParams: Promise<{ date?: string }>;
 }) {
-  const { slug, programSlug } = await params;
+  const { programSlug } = await params;
   const { date: dateParam } = await searchParams;
-
-  if (slug !== "host-team") notFound();
 
   const session = await auth();
   if (!session) redirect("/login");
@@ -79,18 +76,13 @@ export default async function PostSessionPage({
   }
 
   const today = todayCTStr();
-
-  // Use ?date=YYYY-MM-DD param if provided and valid (past or today only — no future dates)
   const dateStr = (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) && dateParam <= today)
     ? dateParam
     : today;
 
   const { startOfDay, endOfDay } = ctDayBounds(dateStr);
-
-  // Midnight CT for the target date — used as the SessionReport sessionDate key
   const sessionDateKey = startOfDay;
 
-  // Fetch today's attendance records for this program, including flagged ones
   const attendanceRecords = await db.sessionAttendance.findMany({
     where: {
       programSlug,
@@ -111,15 +103,12 @@ export default async function PostSessionPage({
 
   const userId = session.user.id;
 
-  // Fetch the program display name
   const programRecord = await db.program.findUnique({
     where: { slug: programSlug },
     select: { name: true },
   });
   const programName = programRecord?.name ?? programSlug.replace(/-/g, " ");
 
-  // Check if a report already exists for today (so we can pre-fill)
-  // Also fetch the host assignment and co-host status for this program + today
   const [existingReport, todayAssignment, coHostRecord] = await Promise.all([
     db.sessionReport.findUnique({
       where: { programSlug_sessionDate: { programSlug, sessionDate: sessionDateKey } },
@@ -147,7 +136,6 @@ export default async function PostSessionPage({
       }
     : null;
 
-  // isCoHost = user has a co-host record AND is not the assigned host
   const isCoHost = !!coHostRecord && assignedHost?.id !== userId;
 
   const flaggedAttendees = attendanceRecords
@@ -175,7 +163,6 @@ export default async function PostSessionPage({
     };
   });
 
-  // For co-host: check if they already submitted their reflection
   const coHostReportExists = isCoHost
     ? await db.sessionCoHostReport.findUnique({
         where: { programSlug_sessionDate_userId: { programSlug, sessionDate: sessionDateKey, userId } },
@@ -196,7 +183,7 @@ export default async function PostSessionPage({
       existingResourceNote={existingReport?.resourceNote ?? null}
       alreadySubmitted={!!existingReport}
       assignedHost={assignedHost}
-      backPath={`/account/hub/${slug}/session`}
+      backPath="/tools/schedule/session"
       apiPath={`/api/attendance/session/${programSlug}/post`}
     />
   );

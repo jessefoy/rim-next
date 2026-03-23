@@ -43,7 +43,16 @@ export default async function ScheduleToolLayout({
   }
 
   return (
-    <ToolsProvider value={{ toolName: "Schedule", backHref, backLabel }}>
+    <ToolsProvider value={{
+      toolName: "Host Schedule",
+      backHref,
+      backLabel,
+      subNav: [
+        { label: "Schedule", href: "/tools/schedule" },
+        { label: "Live Session", href: "/tools/schedule/session" },
+        { label: "Journal", href: "/tools/schedule/session/history/team" },
+      ],
+    }}>
       {children}
     </ToolsProvider>
   );

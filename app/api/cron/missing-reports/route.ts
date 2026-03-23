@@ -131,7 +131,7 @@ export async function GET(req: NextRequest) {
       nameBySlug.get(session.programSlug) ?? session.programSlug.replace(/-/g, " ");
     const assignedHostName = hostBySlug.get(session.programSlug) ?? null;
     const dateDisplay = fmtDisplayDate(session.ct_date);
-    const detailUrl = `${SITE_URL}/account/hub/host-team/session/history?detail_slug=${encodeURIComponent(session.programSlug)}&detail_date=${session.ct_date}`;
+    const detailUrl = `${SITE_URL}/tools/schedule/session/history?detail_slug=${encodeURIComponent(session.programSlug)}&detail_date=${session.ct_date}`;
 
     for (const coord of coordinators) {
       await sendMissingReportEmail({

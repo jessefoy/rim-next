@@ -66,10 +66,6 @@ export default async function HubLayout({ children, params }: Props) {
   // Build tab list
   const base = `/account/hub/${slug}`;
   const roles = session.user.roles ?? [];
-  const canSeeSessionTab =
-    slug === "host-team" &&
-    roles.some((r) => ["HOST", "HOST_MANAGER", "REGISTRAR", "ADMIN"].includes(r));
-
   const isCourseHub    = slug === "courses";
   const isRegistrarHub = slug === "registrar";
 
@@ -85,8 +81,6 @@ export default async function HubLayout({ children, params }: Props) {
       ? [{ label: "Programs", href: `${base}/programs` }]
       : []),
     { label: "Conversations", href: `${base}/conversations` },
-    ...(hub.hasSchedule ? [{ label: "Schedule", href: `${base}/schedule` }] : []),
-    ...(canSeeSessionTab ? [{ label: "Session", href: `${base}/session` }] : []),
     { label: "Tasks",          href: `${base}/tasks` },
     { label: "Documents",     href: `${base}/documents` },
     { label: "Members",       href: `${base}/members` },

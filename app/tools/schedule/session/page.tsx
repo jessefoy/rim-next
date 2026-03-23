@@ -1,6 +1,6 @@
 /**
- * /account/hub/[slug]/session — Time-aware live session view for Host Team hub.
- * Access: HOST, HOST_MANAGER, REGISTRAR, ADMIN only.
+ * /tools/schedule/session — Live session view for hosts.
+ * Role gate: HOST, HOST_MANAGER, or ADMIN (handled by layout).
  *
  * Six states, computed server-side and refreshed every 60s by SessionLiveClient:
  *   1 — No session today
@@ -12,7 +12,7 @@
  */
 
 import { auth } from "@/auth";
-import { redirect, notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import SessionLiveClient, {
   type SessionProgram,
@@ -20,7 +20,7 @@ import SessionLiveClient, {
 } from "@/components/SessionLiveClient";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Live Session — Host Team Hub" };
+export const metadata = { title: "Live Session — Host Schedule" };
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
 
@@ -162,15 +162,7 @@ function findNextSession(programs: PgProgram[], afterDate: string): NextSession 
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-export default async function SessionPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const { slug } = await params;
-
-  if (slug !== "host-team") notFound();
-
+export default async function SessionToolPage() {
   const session = await auth();
   if (!session) redirect("/login");
 
@@ -191,7 +183,6 @@ export default async function SessionPage({
   const now = new Date();
   const { startOfDay, endOfDay } = ctDayBounds(today);
 
-  // Fetch all virtual/hybrid programs (needed for today filter + next-session lookup)
   const allPrograms = await db.program.findMany({
     where: {
       programFormat: { in: ["virtual", "hybrid"] },
@@ -217,7 +208,6 @@ export default async function SessionPage({
   const todayPrograms = allPrograms.filter((p) => isOccurrenceOnDate(p, today));
   const todaySlugs = todayPrograms.map((p) => p.slug);
 
-  // All data fetched in parallel
   const [
     todayAttendance,
     todayReports,
@@ -262,19 +252,16 @@ export default async function SessionPage({
           },
         })
       : Promise.resolve([]),
-    // Has current user submitted the primary SessionReport for any program today?
     db.sessionReport.findMany({
       where: { sessionDate: startOfDay, hostId: userId },
       select: { programSlug: true },
     }),
-    // Has current user submitted a co-host reflection for any program today?
     db.sessionCoHostReport.findMany({
       where: { sessionDate: startOfDay, userId },
       select: { programSlug: true },
     }),
   ]);
 
-  // Build lookup maps
   const assignmentBySlug = new Map<string, { userId: string; name: string }>();
   for (const a of todayAssignments) {
     if (a.userId && a.user) {
@@ -306,7 +293,6 @@ export default async function SessionPage({
     attendanceBySlug.set(record.programSlug, list);
   }
 
-  // Registrations for registered programs
   const registeredSlugs = todayPrograms.filter((p) => p.registrationEnabled).map((p) => p.slug);
   const registrationMap = new Map<
     string,
@@ -325,7 +311,6 @@ export default async function SessionPage({
     }
   }
 
-  // Build serialized program data
   const programs: SessionProgram[] = todayPrograms.map((p) => {
     const attendees = attendanceBySlug.get(p.slug) ?? [];
     const attendeeUserIds = new Set(attendees.map((a) => a.userId));
@@ -371,7 +356,7 @@ export default async function SessionPage({
       currentUserIsCoHost: coHosts.some((ch) => ch.id === userId),
       reportSubmitted: myReportSlugs.has(p.slug),
       coHostReportSubmitted: myCoHostReportSlugs.has(p.slug),
-      postSessionPath: `/account/hub/${slug}/session/${p.slug}/post`,
+      postSessionPath: `/tools/schedule/session/${p.slug}/post`,
       attendees: attendees.map((a) => {
         const u = a.user;
         const first = u?.preferredName || u?.firstName || "";
@@ -389,12 +374,10 @@ export default async function SessionPage({
     };
   });
 
-  const isManager = roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
   const isCoordinator = roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
   const canEndSession = roles.some((r) => ["HOST", "HOST_MANAGER", "ADMIN"].includes(r));
   const programsWithReportsToday = todayReports.map((r) => r.programSlug);
 
-  // For State 1: find the next scheduled session
   const nextSession = todayPrograms.length === 0
     ? findNextSession(allPrograms, today)
     : null;
@@ -405,16 +388,14 @@ export default async function SessionPage({
         programs={programs}
         todayCT={fmtTodayFull(today)}
         canEndSession={canEndSession}
-        hubSlug={slug}
+        basePath="/tools/schedule/session"
         nextSession={nextSession}
         isCoordinator={isCoordinator}
         programsWithReportsToday={programsWithReportsToday}
       />
-      {/* Bottom nav: Session journal visible to all.
-          Coordinator history lives in the coordinator section above — not duplicated here. */}
       <div className="sv-history-nav">
         <a
-          href={`/account/hub/${slug}/session/history/team`}
+          href="/tools/schedule/session/history/team"
           className="sv-history-nav__link"
         >
           Session journal →

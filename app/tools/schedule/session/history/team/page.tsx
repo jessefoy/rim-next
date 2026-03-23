@@ -1,21 +1,16 @@
 /**
- * /account/hub/[slug]/session/history/team — Team session history (shared journal).
- * Access: any HubMember of the host-team hub. Also coordinator and ADMIN.
- *
- * Shows reflections and resources from past sessions. No sensitive data —
- * no report status, no flagged people, no routing decisions.
- * Tone: a record of the community's practice, not an operational dashboard.
+ * /tools/schedule/session/history/team — Team session journal (shared).
+ * Access: any HubMember of host-team hub, or ADMIN.
  */
 
 import { auth } from "@/auth";
-import { redirect, notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { getHubMembership } from "@/lib/hubAuth";
 import Link from "next/link";
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Session Journal — Host Team Hub" };
+export const metadata = { title: "Session Journal — Host Schedule" };
 
 const PAGE_SIZE = 30;
 
@@ -41,32 +36,34 @@ function ctMidnight(ctDate: string): Date {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-export default async function TeamHistoryPage({
-  params,
+export default async function TeamHistoryToolPage({
   searchParams,
 }: {
-  params: Promise<{ slug: string }>;
   searchParams: Promise<{ page?: string }>;
 }) {
-  const { slug } = await params;
   const { page: pageStr } = await searchParams;
-
-  if (slug !== "host-team") notFound();
 
   const session = await auth();
   if (!session) redirect("/login");
 
   const roles = session.user.roles ?? [];
-  const { member } = await getHubMembership(slug, session.user.id, roles);
-
   const isAdmin = roles.includes("ADMIN");
-  const isMember = !!member;
+
+  // Check membership via direct HubMember query
+  const hostHub = await db.hub.findUnique({ where: { slug: "host-team" }, select: { id: true } });
+  const hubMember = hostHub
+    ? await db.hubMember.findUnique({
+        where: { hubId_userId: { hubId: hostHub.id, userId: session.user.id } },
+      })
+    : null;
+  const isMember = !!hubMember;
+  const isCoordinator = (hubMember?.isCoordinator ?? false) || isAdmin;
 
   if (!isMember && !isAdmin) {
     return (
       <div className="sh-access-denied">
         <p>This page is for host team members.</p>
-        <Link href={`/account/hub/${slug}/session`}>← Back to today&rsquo;s session</Link>
+        <Link href="/tools/schedule/session">&larr; Back to today&rsquo;s session</Link>
       </div>
     );
   }
@@ -74,7 +71,6 @@ export default async function TeamHistoryPage({
   const todayCT = toCTDateStr(new Date());
   const page = Math.max(1, parseInt(pageStr ?? "1", 10) || 1);
 
-  // ── Fetch all past sessions with attendance ────────────────────────────────
   type AttSess = { programSlug: string; ct_date: string; attendance_count: number };
   const attendanceSessions = await db.$queryRaw<AttSess[]>`
     SELECT
@@ -87,7 +83,6 @@ export default async function TeamHistoryPage({
     ORDER BY ct_date DESC
   `;
 
-  // ── Fetch all past SessionReports ─────────────────────────────────────────
   const todayMidnight = ctMidnight(todayCT);
   const reports = await db.sessionReport.findMany({
     where: { sessionDate: { lt: todayMidnight } },
@@ -103,7 +98,6 @@ export default async function TeamHistoryPage({
     })
   );
 
-  // ── Build unified session list ─────────────────────────────────────────────
   const sessionMap = new Map<string, { programSlug: string; ctDate: string; attendanceCount: number }>();
   for (const a of attendanceSessions) {
     sessionMap.set(`${a.programSlug}||${a.ct_date}`, {
@@ -124,7 +118,6 @@ export default async function TeamHistoryPage({
     b.ctDate.localeCompare(a.ctDate)
   );
 
-  // ── Fetch HostAssignments ─────────────────────────────────────────────────
   const uniqueDates = [...new Set(allSessions.map((s) => s.ctDate))];
   const assignments = uniqueDates.length > 0
     ? await db.hostAssignment.findMany({
@@ -149,7 +142,6 @@ export default async function TeamHistoryPage({
     }
   }
 
-  // ── Fetch program names from Postgres ─────────────────────────────────────
   const uniqueSlugs = [...new Set(allSessions.map((s) => s.programSlug))];
   const pgPrograms = uniqueSlugs.length > 0
     ? await db.program.findMany({
@@ -160,11 +152,9 @@ export default async function TeamHistoryPage({
 
   const nameBySlug = new Map(pgPrograms.map((p) => [p.slug, p.name]));
 
-  // ── Paginate ──────────────────────────────────────────────────────────────
   const totalPages = Math.max(1, Math.ceil(allSessions.length / PAGE_SIZE));
   const pageItems = allSessions.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  // Pre-render reflection rich text (server-side async)
   const reflectionHtmlMap = new Map<string, string>();
   for (const s of pageItems) {
     const key = `${s.programSlug}||${s.ctDate}`;
@@ -174,18 +164,16 @@ export default async function TeamHistoryPage({
     }
   }
 
-  const isCoordinator = (member?.isCoordinator ?? false) || isAdmin;
-  const baseHref = `/account/hub/${slug}/session/history`;
-  const teamHref = `/account/hub/${slug}/session/history/team`;
+  const baseHref = "/tools/schedule/session/history";
+  const teamHref = "/tools/schedule/session/history/team";
 
   return (
     <div className="sh-wrap">
-      {/* ── Header ── */}
       <div className="sh-header">
         <div className="sh-header__row">
           <h2 className="sh-title">Session Journal</h2>
           {(isCoordinator || isAdmin) && (
-            <a href={baseHref} className="sh-view-toggle">Coordinator view →</a>
+            <a href={baseHref} className="sh-view-toggle">Coordinator view &rarr;</a>
           )}
         </div>
         <p className="sh-subtitle">
@@ -208,9 +196,6 @@ export default async function TeamHistoryPage({
               const isMyMissingSession = !report && assignment?.userId === session.user.id;
               const programName = nameBySlug.get(s.programSlug) ?? s.programSlug.replace(/-/g, " ");
 
-              // Team view only shows sessions with something worth reading
-              // (reflection or resource). Sessions with only a count are still listed
-              // but with minimal treatment.
               return (
                 <div key={key} className="sh-journal__entry">
                   <div className="sh-journal__meta">
@@ -255,10 +240,10 @@ export default async function TeamHistoryPage({
 
                   {isMyMissingSession && (
                     <Link
-                      href={`/account/hub/${slug}/session/${s.programSlug}/post?date=${s.ctDate}`}
+                      href={`/tools/schedule/session/${s.programSlug}/post?date=${s.ctDate}`}
                       className="sh-journal__complete-link"
                     >
-                      Complete your report →
+                      Complete your report &rarr;
                     </Link>
                   )}
                 </div>
@@ -266,15 +251,14 @@ export default async function TeamHistoryPage({
             })}
           </div>
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="sh-pagination">
               {page > 1 && (
-                <a href={`${teamHref}?page=${page - 1}`} className="sh-pagination__btn">← Newer</a>
+                <a href={`${teamHref}?page=${page - 1}`} className="sh-pagination__btn">&larr; Newer</a>
               )}
               <span className="sh-pagination__info">Page {page} of {totalPages}</span>
               {page < totalPages && (
-                <a href={`${teamHref}?page=${page + 1}`} className="sh-pagination__btn">Older →</a>
+                <a href={`${teamHref}?page=${page + 1}`} className="sh-pagination__btn">Older &rarr;</a>
               )}
             </div>
           )}

@@ -73,7 +73,9 @@ interface Props {
   programs: SessionProgram[];
   todayCT: string;
   canEndSession: boolean;
-  hubSlug: string;
+  hubSlug?: string;
+  /** Base path for session links (e.g. "/tools/schedule/session"). Falls back to hub-based path. */
+  basePath?: string;
   nextSession: NextSession | null;
   isCoordinator: boolean;
   programsWithReportsToday: string[];
@@ -224,10 +226,12 @@ export default function SessionLiveClient({
   todayCT,
   canEndSession,
   hubSlug,
+  basePath: basePathProp,
   nextSession,
   isCoordinator,
   programsWithReportsToday,
 }: Props) {
+  const basePath = basePathProp ?? `/account/hub/${hubSlug}/session`;
   const router = useRouter();
 
   const [flagging, setFlagging] = useState<string | null>(null);
@@ -342,7 +346,7 @@ export default function SessionLiveClient({
                   ? `${prog.name} starts later at ${prog.startTimeCT} CT.`
                   : `${prog.name} starts later today.`}
               {isEnded && (
-                <>{" "}<a href={`/account/hub/${hubSlug}/session/history/team`} className="sv-session-footnote__link">See journal →</a></>
+                <>{" "}<a href={`${basePath}/history/team`} className="sv-session-footnote__link">See journal →</a></>
               )}
             </p>
           );
@@ -573,7 +577,7 @@ export default function SessionLiveClient({
                 <span className="sv-ended-summary__name">{prog.name}</span>
                 <span className="sv-ended-summary__sep">·</span>
                 <span className="sv-ended-summary__meta">ended · {prog.attendees.length} in the room</span>
-                <a href={`/account/hub/${hubSlug}/session/history/team`} className="sv-ended-summary__link">
+                <a href={`${basePath}/history/team`} className="sv-ended-summary__link">
                   See journal →
                 </a>
               </p>
@@ -586,7 +590,7 @@ export default function SessionLiveClient({
           <div key={prog._id} className="sv-state-wrap sv-state-wrap--6">
             <h2 className="sv-state-header">You&rsquo;re done.</h2>
             <p className="sv-state-body">Your reflection has been added to the team journal.</p>
-            <a href={`/account/hub/${hubSlug}/session/history/team`} className="sv-journal-link">
+            <a href={`${basePath}/history/team`} className="sv-journal-link">
               See the team journal →
             </a>
           </div>
@@ -608,7 +612,7 @@ export default function SessionLiveClient({
                 .join(", ")}
             </p>
           )}
-          <a href={`/account/hub/${hubSlug}/session/history`} className="sv-coordinator-link">
+          <a href={`${basePath}/history`} className="sv-coordinator-link">
             Coordinator history →
           </a>
         </div>

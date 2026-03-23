@@ -8,10 +8,16 @@
 
 import { createContext, useContext } from "react";
 
+export interface SubNavItem {
+  label: string;
+  href: string;
+}
+
 interface ToolsConfig {
   toolName: string;
   backHref: string;
   backLabel: string;
+  subNav?: SubNavItem[];
 }
 
 const ToolsContext = createContext<ToolsConfig>({

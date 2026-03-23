@@ -1281,7 +1281,7 @@ export async function sendSubRequestEmail(data: SubRequestEmailData): Promise<vo
     programName:   data.programName,
     sessionDate:   sessionLabel,
     message:       data.message ?? "",
-    hubUrl:        `${BASE_URL}/account/hub/host-team/schedule`,
+    hubUrl:        `${BASE_URL}/tools/schedule`,
   });
 }
 
@@ -1307,7 +1307,7 @@ export async function sendSubClaimedEmail(data: SubClaimedEmailData): Promise<vo
     programName: data.programName,
     sessionDate: sessionLabel,
     message:     data.message ?? "",
-    hubUrl:      `${BASE_URL}/account/hub/host-team/schedule`,
+    hubUrl:      `${BASE_URL}/tools/schedule`,
   });
 }
 

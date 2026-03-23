@@ -18647,3 +18647,25 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
   .tools-nav__name { font-size: 16px; }
   .tools-content { padding: 20px 16px 48px; }
 }
+
+/* Tools sub-nav */
+.tools-nav__subnav { display: flex; gap: 4px; }
+.tools-nav__subnav-link {
+  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: 16px;
+  color: var(--rim-text-muted);
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+.tools-nav__subnav-link:hover { background: var(--rim-bg-accent); color: var(--rim-text); }
+.tools-nav__subnav-link--active {
+  background: var(--rim-bg-accent);
+  color: var(--rim-text);
+  font-weight: 600;
+}
+
+@media (max-width: 767px) {
+  .tools-nav__subnav { gap: 2px; overflow-x: auto; }
+  .tools-nav__subnav-link { font-size: 12px; padding: 4px 8px; white-space: nowrap; }
+}

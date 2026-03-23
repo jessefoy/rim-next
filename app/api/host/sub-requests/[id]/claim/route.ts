@@ -100,7 +100,7 @@ export async function POST(
           userId: requester.id,
           type: "SUB_CLAIMED",
           message: `${claimerName} will cover your session${sessionLabel ? ` on ${sessionLabel}` : ""}`,
-          linkUrl: "/account/hub/host-team/schedule",
+          linkUrl: "/tools/schedule",
         },
       });
 

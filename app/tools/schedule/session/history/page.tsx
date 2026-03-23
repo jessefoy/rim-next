@@ -1,20 +1,16 @@
 /**
- * /account/hub/[slug]/session/history — Coordinator session history view.
+ * /tools/schedule/session/history — Coordinator session history.
  * Access: isCoordinator on host-team HubMember, or ADMIN.
- *
- * Shows all past sessions with report status, attendance count, assigned host,
- * and full detail including flagged people (coordinator only).
  */
 
 import { auth } from "@/auth";
-import { redirect, notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { getHubMembership } from "@/lib/hubAuth";
 import Link from "next/link";
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Session History — Host Team Hub" };
+export const metadata = { title: "Session History — Host Schedule" };
 
 const PAGE_SIZE = 30;
 
@@ -73,7 +69,6 @@ interface AttendanceRow {
 // ── Data fetching ─────────────────────────────────────────────────────────────
 
 async function fetchSessionList(todayCT: string): Promise<SessionEntry[]> {
-  // ── Source 1: Sessions with attendance records (including today) ───────────
   type AttSess = { programSlug: string; ct_date: string; attendance_count: number };
   const attendanceSessions = await db.$queryRaw<AttSess[]>`
     SELECT
@@ -86,7 +81,6 @@ async function fetchSessionList(todayCT: string): Promise<SessionEntry[]> {
     ORDER BY ct_date DESC
   `;
 
-  // ── Source 2: SessionReports (including today) ────────────────────────────
   const todayMidnight = ctMidnight(todayCT);
   const reports = await db.sessionReport.findMany({
     where: { sessionDate: { lte: todayMidnight } },
@@ -102,8 +96,6 @@ async function fetchSessionList(todayCT: string): Promise<SessionEntry[]> {
     })
   );
 
-  // ── Build unified session map ──────────────────────────────────────────────
-  // Start from attendance sessions, add any report-only sessions
   const sessionMap = new Map<string, { programSlug: string; ctDate: string; attendanceCount: number }>();
   for (const a of attendanceSessions) {
     sessionMap.set(`${a.programSlug}||${a.ct_date}`, {
@@ -112,7 +104,6 @@ async function fetchSessionList(todayCT: string): Promise<SessionEntry[]> {
       attendanceCount: a.attendance_count,
     });
   }
-  // Add report-only sessions (report filed but no attendance tracked)
   for (const r of reports) {
     const ctDate = toCTDateStr(r.sessionDate);
     const key = `${r.programSlug}||${ctDate}`;
@@ -125,7 +116,6 @@ async function fetchSessionList(todayCT: string): Promise<SessionEntry[]> {
     b.ctDate.localeCompare(a.ctDate)
   );
 
-  // ── Fetch HostAssignments for all session dates ────────────────────────────
   const uniqueDates = [...new Set(allSessions.map((s) => s.ctDate))];
   const assignments = uniqueDates.length > 0
     ? await db.hostAssignment.findMany({
@@ -150,7 +140,6 @@ async function fetchSessionList(todayCT: string): Promise<SessionEntry[]> {
     }
   }
 
-  // ── Fetch program names from Postgres ─────────────────────────────────────
   const uniqueSlugs = [...new Set(allSessions.map((s) => s.programSlug))];
   const pgPrograms = uniqueSlugs.length > 0
     ? await db.program.findMany({
@@ -161,7 +150,6 @@ async function fetchSessionList(todayCT: string): Promise<SessionEntry[]> {
 
   const nameBySlug = new Map(pgPrograms.map((p) => [p.slug, p.name]));
 
-  // ── Assemble final entries ─────────────────────────────────────────────────
   return allSessions.map((s) => {
     const key = `${s.programSlug}||${s.ctDate}`;
     const report = reportByKey.get(key) ?? null;
@@ -215,8 +203,6 @@ async function fetchSessionDetail(programSlug: string, ctDate: string): Promise<
   });
 }
 
-// ── Action label ──────────────────────────────────────────────────────────────
-
 function actionLabel(action: string): string {
   switch (action) {
     case "GENTLE_FOLLOWUP": return "Gentle follow-up";
@@ -228,32 +214,33 @@ function actionLabel(action: string): string {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-export default async function SessionHistoryPage({
-  params,
+export default async function SessionHistoryToolPage({
   searchParams,
 }: {
-  params: Promise<{ slug: string }>;
   searchParams: Promise<{ page?: string; detail_slug?: string; detail_date?: string }>;
 }) {
-  const { slug } = await params;
   const { page: pageStr, detail_slug: detailSlug, detail_date: detailDate } = await searchParams;
-
-  if (slug !== "host-team") notFound();
 
   const session = await auth();
   if (!session) redirect("/login");
 
   const roles = session.user.roles ?? [];
-  const { member } = await getHubMembership(slug, session.user.id, roles);
-
   const isAdmin = roles.includes("ADMIN");
-  const isCoordinator = (member?.isCoordinator ?? false) || isAdmin;
 
-  if (!isCoordinator && !isAdmin) {
+  // Check coordinator status via direct HubMember query
+  const hostHub = await db.hub.findUnique({ where: { slug: "host-team" }, select: { id: true } });
+  const hubMember = hostHub
+    ? await db.hubMember.findUnique({
+        where: { hubId_userId: { hubId: hostHub.id, userId: session.user.id } },
+      })
+    : null;
+  const isCoordinator = (hubMember?.isCoordinator ?? false) || isAdmin;
+
+  if (!isCoordinator) {
     return (
       <div className="sh-access-denied">
         <p>This view is for host team coordinators only.</p>
-        <Link href={`/account/hub/${slug}/session`}>← Back to today&rsquo;s session</Link>
+        <Link href="/tools/schedule/session">&larr; Back to today&rsquo;s session</Link>
       </div>
     );
   }
@@ -261,10 +248,8 @@ export default async function SessionHistoryPage({
   const todayCT = toCTDateStr(new Date());
   const page = Math.max(1, parseInt(pageStr ?? "1", 10) || 1);
 
-  // Fetch all sessions
   const allSessions = await fetchSessionList(todayCT);
 
-  // Detail view
   const showDetail = !!(detailSlug && detailDate);
   let detailEntry: SessionEntry | null = null;
   let detailAttendance: AttendanceRow[] = [];
@@ -278,7 +263,6 @@ export default async function SessionHistoryPage({
     }
   }
 
-  // Pre-render rich text fields (server-side async)
   let reflectionHtml = "";
   const noteHtmlMap = new Map<string, string>();
   if (detailEntry?.report?.reflection) {
@@ -290,35 +274,32 @@ export default async function SessionHistoryPage({
     }
   }
 
-  // Pagination
   const totalPages = Math.max(1, Math.ceil(allSessions.length / PAGE_SIZE));
   const offset = (page - 1) * PAGE_SIZE;
   const pageItems = allSessions.slice(offset, offset + PAGE_SIZE);
 
-  const baseHref = `/account/hub/${slug}/session/history`;
-  const teamHref = `/account/hub/${slug}/session/history/team`;
+  const baseHref = "/tools/schedule/session/history";
+  const teamHref = "/tools/schedule/session/history/team";
 
   return (
     <div className="sh-wrap">
-      {/* ── Header ── */}
       <div className="sh-header">
         <div className="sh-header__row">
           <h2 className="sh-title">Session History</h2>
-          <a href={teamHref} className="sh-view-toggle">Team view →</a>
+          <a href={teamHref} className="sh-view-toggle">Team view &rarr;</a>
         </div>
         <p className="sh-subtitle">
-          Coordinator view — {allSessions.length} session{allSessions.length !== 1 ? "s" : ""} on record
+          Coordinator view &mdash; {allSessions.length} session{allSessions.length !== 1 ? "s" : ""} on record
         </p>
       </div>
 
-      {/* ── Detail panel ── */}
       {showDetail && detailEntry && (
         <div className="sh-detail">
           <Link
             href={`${baseHref}?page=${page}`}
             className="sh-detail__back"
           >
-            ← Back to list
+            &larr; Back to list
           </Link>
 
           <div className="sh-detail__head">
@@ -358,7 +339,6 @@ export default async function SessionHistoryPage({
             )}
           </div>
 
-          {/* Reflection */}
           {detailEntry.report?.reflection && (
             <div className="sh-detail__section">
               <h4 className="sh-detail__section-title">Reflection</h4>
@@ -369,7 +349,6 @@ export default async function SessionHistoryPage({
             </div>
           )}
 
-          {/* Resource */}
           {detailEntry.report?.resourceUrl && (
             <div className="sh-detail__section">
               <h4 className="sh-detail__section-title">Resource shared</h4>
@@ -391,7 +370,6 @@ export default async function SessionHistoryPage({
             </div>
           )}
 
-          {/* Flagged people — coordinator only */}
           {detailAttendance.filter((a) => a.flaggedByHost).length > 0 && (
             <div className="sh-detail__section sh-detail__section--sensitive">
               <h4 className="sh-detail__section-title">Flagged people</h4>
@@ -414,7 +392,6 @@ export default async function SessionHistoryPage({
             </div>
           )}
 
-          {/* All attendees */}
           {detailAttendance.length > 0 && (
             <div className="sh-detail__section">
               <h4 className="sh-detail__section-title">
@@ -438,17 +415,16 @@ export default async function SessionHistoryPage({
             <div className="sh-detail__missing">
               No post-session report was filed for this session.{" "}
               <Link
-                href={`/account/hub/${slug}/session/${detailEntry.programSlug}/post?date=${detailEntry.ctDate}`}
+                href={`/tools/schedule/session/${detailEntry.programSlug}/post?date=${detailEntry.ctDate}`}
                 className="sh-detail__file-link"
               >
-                File a report now →
+                File a report now &rarr;
               </Link>
             </div>
           )}
         </div>
       )}
 
-      {/* ── Session list ── */}
       {!showDetail && (
         <>
           {allSessions.length === 0 ? (
@@ -471,7 +447,7 @@ export default async function SessionHistoryPage({
                     <Link key={`${s.programSlug}||${s.ctDate}`} href={href} className="sh-list__row">
                       <span className="sh-list__name">{s.programName}</span>
                       <span className="sh-list__date">{fmtDisplayDate(s.ctDate)}</span>
-                      <span className="sh-list__host">{s.assignedHost?.name ?? <em className="sh-list__unassigned">—</em>}</span>
+                      <span className="sh-list__host">{s.assignedHost?.name ?? <em className="sh-list__unassigned">&mdash;</em>}</span>
                       <span className="sh-list__col--num sh-list__count">{s.attendanceCount}</span>
                       <span>
                         {s.report
@@ -484,15 +460,14 @@ export default async function SessionHistoryPage({
                 })}
               </div>
 
-              {/* Pagination */}
               {totalPages > 1 && (
                 <div className="sh-pagination">
                   {page > 1 && (
-                    <a href={`${baseHref}?page=${page - 1}`} className="sh-pagination__btn">← Newer</a>
+                    <a href={`${baseHref}?page=${page - 1}`} className="sh-pagination__btn">&larr; Newer</a>
                   )}
                   <span className="sh-pagination__info">Page {page} of {totalPages}</span>
                   {page < totalPages && (
-                    <a href={`${baseHref}?page=${page + 1}`} className="sh-pagination__btn">Older →</a>
+                    <a href={`${baseHref}?page=${page + 1}`} className="sh-pagination__btn">Older &rarr;</a>
                   )}
                 </div>
               )}

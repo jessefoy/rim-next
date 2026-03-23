@@ -305,7 +305,7 @@ export async function GET(req: NextRequest) {
       });
 
       const message = `${monthLabel} sessions are now open for claiming. ${unclaimedCount} session${unclaimedCount !== 1 ? "s" : ""} need${unclaimedCount === 1 ? "s" : ""} a host.`;
-      const linkUrl = "/account/hub/host-team/schedule";
+      const linkUrl = "/tools/schedule";
 
       for (const member of hubMembers) {
         // Dedup: at most one alert per user per announced month within the current cal month

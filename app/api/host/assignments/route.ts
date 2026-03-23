@@ -354,7 +354,7 @@ async function notifyTeamClaimed(
         userId: u.id,
         type: "SUB_REQUEST" as const,
         message: `${claimerName} claimed${sessionLabel ? ` the ${sessionLabel}` : " a"} session for ${programSlug}`,
-        linkUrl: "/account/hub/host-team/schedule",
+        linkUrl: "/tools/schedule",
       })),
       skipDuplicates: true,
     });

@@ -40,6 +40,17 @@ async function main() {
     console.log(`  ✓ ${hub.name}`);
   }
   // Seed app links for hubs that have tools
+  const hostTeamHub = await db.hub.findUnique({ where: { slug: "host-team" } });
+  if (hostTeamHub) {
+    const existing = await db.hubAppLink.findFirst({ where: { hubId: hostTeamHub.id, label: "Host Schedule" } });
+    if (!existing) {
+      await db.hubAppLink.create({
+        data: { hubId: hostTeamHub.id, label: "Host Schedule", href: "/tools/schedule", order: 0 },
+      });
+      console.log("  ✓ Host Team → Host Schedule app link");
+    }
+  }
+
   const registrarHub = await db.hub.findUnique({ where: { slug: "registrar" } });
   if (registrarHub) {
     const existing = await db.hubAppLink.findFirst({ where: { hubId: registrarHub.id, label: "Program Manager" } });

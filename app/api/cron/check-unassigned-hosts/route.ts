@@ -81,7 +81,7 @@ export async function GET(req: NextRequest) {
   let alertsCreated = 0;
 
   for (const program of unassigned) {
-    const linkUrl = `/account/hub/host-team/schedule`;
+    const linkUrl = `/tools/schedule`;
 
     for (const manager of managers) {
       // Check dedup
