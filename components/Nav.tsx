@@ -10,6 +10,7 @@ export default function Nav() {
   const { data: session } = useSession();
   const isLoggedIn = !!session;
   const isAdmin = session?.user?.roles?.includes("ADMIN") ?? false;
+  const isToolsArea = pathname?.startsWith("/tools") ?? false;
   const isMemberArea =
     (pathname?.startsWith("/account") ?? false) ||
     (pathname?.startsWith("/admin") ?? false);
@@ -35,6 +36,9 @@ export default function Nav() {
     pathname === path || pathname.startsWith(path + "/")
       ? " nav__link--active"
       : "";
+
+  // Tools area has its own nav — hide the site nav entirely
+  if (isToolsArea) return null;
 
   return (
     <header className="nav">
