@@ -138,18 +138,6 @@ export default function RimProseEditor({
     {
       schema: rimProseSchema,
       initialContent: hasBlockNoteContent ? value : undefined,
-      // Compact: override the default placeholder to remove slash command hint
-      ...(isCompact && {
-        dictionary: {
-          placeholders: {
-            default: "Type here…",
-            heading: "Heading",
-            bulletListItem: "List",
-            numberedListItem: "List",
-            checkListItem: "List",
-          },
-        } as any,
-      }),
     },
     []
   );

@@ -17292,6 +17292,10 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .rim-prose-editor--compact .bn-toolbar {
   padding: 3px 6px !important;
 }
+/* Hide the slash command hint in compact — replace with neutral placeholder */
+.rim-prose-editor--compact .bn-block-default[data-is-empty-and-focused] .bn-inline-content::before {
+  content: "Type here…" !important;
+}
 
 /* Compact toolbar — custom block-type toggle buttons */
 .rte-compact-btn {
