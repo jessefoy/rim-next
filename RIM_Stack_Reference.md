@@ -130,6 +130,10 @@ All set in Vercel. Pull locally with `npx vercel env pull .env.local`.
 3. Update `RIM_System_Architecture.md` — if hubs, roles, or member data architecture changed
 4. **Upsert ManualSection DB records** — touch only affected section(s); upsert on slug; write for the person doing the work. Edit at `/admin/manual/[slug]/edit` or re-run `prisma/seed-manual-chapters.ts` for large rewrites.
 
+**Site-Wide Banner (session 72):** `SiteBanner` + `SiteBannerDismissal` models. ADMIN single-slot broadcast; `body Json?` (BlockNote JSON via RimProseEditor compact). APIs: `/api/admin/site-banner` (GET/POST/DELETE), `/api/site-banner/dismiss` (POST). Admin page: `/admin/banner`. Component: `SiteBannerStrip.tsx` on dashboard.
+
+**Hub notification redesign (session 72):** Announcements merged into pinned conversation threads (`isPinned Boolean`, `pinnedAt DateTime?` on `HubConversationThread`). `HubAnnouncement` model removed. Announcements tab removed; hub root → `/conversations`. Dashboard hub cards show teal unread-count badge (threads + alerts since `lastVisitedAt`). `AlertStrip` removed.
+
 **Support Inbox security posture (hardened 2026-03-16):** SSRF guard on attachment fetch (Vercel Blob domain only), attachment proxy ownership check, soft-delete bypass fix in sync engine, deleted-thread 404 on reply/note, 30s rate limit on manual sync, status enum validation, HTML escaping on signature fields, 100-char max on signature fields, audit log on hard delete, `NEXTAUTH_URL` in notification emails.
 
 ### Payments (Stripe — test mode)
