@@ -123,7 +123,7 @@ export default function HubSidebar({ hub, navItems, isCoordinator, isAdmin }: Pr
                 onClick={() => setMobileOpen(false)}
               >
                 <span className="hub-sb-item__label">{link.label}</span>
-                <span className="hub-sb-tool__arrow">&nearr;</span>
+                <span className="hub-sb-tool__arrow">{"\u2197"}</span>
               </Link>
             ))}
           </div>
