@@ -43,15 +43,7 @@ export default async function HubLayout({ children, params }: Props) {
   const isMember = hub.members.some((m) => m.userId === session.user.id);
   const isAdmin  = (session.user.roles ?? []).includes("ADMIN");
 
-  // For the Course Hub, also accept UserHubAccess as an alternative to HubMember.
-  // All other hubs continue to use HubMember exclusively.
-  let hasAccess = isMember || isAdmin;
-  if (!hasAccess && slug === "courses") {
-    const ua = await db.userHubAccess.findUnique({
-      where: { userId_hubSlug: { userId: session.user.id, hubSlug: "courses" } },
-    });
-    hasAccess = !!ua;
-  }
+  const hasAccess = isMember || isAdmin;
 
   if (!hasAccess) {
     return (
@@ -69,25 +61,14 @@ export default async function HubLayout({ children, params }: Props) {
     );
   }
 
-  // Build nav items
+  // Build nav items — all hubs get the same 5 core sections
   const base = `/account/hub/${slug}`;
-  const isCourseHub    = slug === "courses";
-  const isRegistrarHub = slug === "registrar";
-  const isCoordinator  = hub.members.some(
+  const isCoordinator = hub.members.some(
     (m) => m.userId === session.user.id && m.isCoordinator
   );
 
   const navItems = [
-    { label: "Home", href: base },
-    ...(isCourseHub
-      ? [
-          { label: "Series",  href: `${base}/courses` },
-          { label: "Lessons", href: `${base}/lessons` },
-        ]
-      : []),
-    ...(isRegistrarHub
-      ? [{ label: "Programs", href: `${base}/programs` }]
-      : []),
+    { label: "Home",          href: base },
     { label: "Conversations", href: `${base}/conversations` },
     { label: "Tasks",         href: `${base}/tasks` },
     { label: "Documents",     href: `${base}/documents` },

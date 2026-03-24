@@ -1,12 +1,13 @@
 /**
  * Inbox tool layout — wraps /tools/inbox/* with ToolsProvider.
- * Role gate: SUPPORT or ADMIN.
+ * Role gate: SUPPORT or ADMIN, or individual UserToolAccess grant.
  */
 
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { ToolsProvider } from "@/components/ToolsContext";
+import { hasToolAccess } from "@/lib/toolAuth";
 
 export default async function InboxToolLayout({
   children,
@@ -18,7 +19,7 @@ export default async function InboxToolLayout({
 
   const roles = session.user.roles ?? [];
   const isAdmin = roles.includes("ADMIN");
-  const hasAccess = isAdmin || roles.includes("SUPPORT");
+  const hasAccess = await hasToolAccess(session.user.id, roles, ["SUPPORT"], "inbox");
 
   if (!hasAccess) {
     return (

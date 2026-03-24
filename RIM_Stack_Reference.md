@@ -184,6 +184,7 @@ app/
     welcome/          onboarding
     reactivate/       self-service reactivation
   tools/
+    learning/         Course Manager — Series + Lessons (TEACHER | ADMIN) — extracted from hub
     programs/         Program Manager (REGISTRAR | ADMIN) — extracted from hub
     inbox/            Support Inbox + Settings (SUPPORT | ADMIN) — extracted from hub
     schedule/         Host Schedule + Live Session + History (HOST | HOST_MANAGER | ADMIN) — extracted from hub

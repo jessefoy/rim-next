@@ -1,14 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-
-async function canAccessCourseHub(userId: string, roles: string[]): Promise<boolean> {
-  if (roles.some((r) => ["ADMIN", "TEACHER"].includes(r))) return true;
-  const ua = await db.userHubAccess.findUnique({
-    where: { userId_hubSlug: { userId, hubSlug: "courses" } },
-  });
-  return !!ua;
-}
+import { hasToolAccess } from "@/lib/toolAuth";
 
 /**
  * GET /api/courses — Public browse endpoint.
@@ -60,7 +53,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const session = await auth();
-  if (!session?.user?.id || !(await canAccessCourseHub(session.user.id, session.user.roles ?? []))) {
+  if (!session?.user?.id || !(await hasToolAccess(session.user.id, session.user.roles ?? [], ["TEACHER"], "learning"))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 

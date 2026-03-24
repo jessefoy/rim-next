@@ -63,7 +63,7 @@ interface LessonData {
 }
 
 interface Props {
-  hubSlug: string;
+  basePath?: string;
   initialData?: LessonData;
   isEditing: boolean;
   legacyBodyHtml?: string;  // pre-rendered HTML for Tiptap → BlockNote import on mount
@@ -78,7 +78,7 @@ function slugify(text: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
-export default function LessonEditor({ hubSlug, initialData, isEditing, legacyBodyHtml }: Props) {
+export default function LessonEditor({ basePath = "/tools/learning/lessons", initialData, isEditing, legacyBodyHtml }: Props) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -420,7 +420,7 @@ export default function LessonEditor({ hubSlug, initialData, isEditing, legacyBo
         setSuccess(true);
         setTimeout(() => setSuccess(false), 3000);
       } else {
-        router.push(`/account/hub/${hubSlug}/lessons/${lessonSlug}`);
+        router.push(`${basePath}/${lessonSlug}`);
       }
     } catch {
       setError("Network error");
@@ -852,7 +852,7 @@ export default function LessonEditor({ hubSlug, initialData, isEditing, legacyBo
         </button>
         <button
           type="button"
-          onClick={() => router.push(`/account/hub/${hubSlug}/lessons`)}
+          onClick={() => router.push(basePath)}
           className="th-btn"
         >
           Cancel

@@ -1,35 +1,22 @@
 /**
- * /account/hub/[slug]/courses — Course list (Courses tab)
- * Server component. Fetches all courses from Postgres.
+ * /tools/learning — Course/Series list
  */
 
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { getHubMembership } from "@/lib/hubAuth";
 import Link from "next/link";
 import ManualHelpIcon from "@/components/ManualHelpIcon";
 
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const hub = await db.hub.findUnique({ where: { slug }, select: { name: true } });
-  return { title: `${hub?.name ?? "Hub"} — Courses` };
+export function generateMetadata() {
+  return { title: "Course Manager — Series" };
 }
 
-export default async function CoursesListPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
-  const { slug } = await params;
+export default async function SeriesListPage() {
   const session = await auth();
   if (!session) redirect("/login");
-
-  const roles = session.user.roles ?? [];
-  const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, roles);
-  if (!hub || (!member && !isAdmin)) redirect("/account/dashboard");
 
   const courses = await db.course.findMany({
     orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
@@ -42,7 +29,7 @@ export default async function CoursesListPage({
     <div className="th-list">
       <div className="th-list__header" style={{ position: "relative" }}>
         <h2 className="th-list__title">Series</h2>
-        <Link href={`/account/hub/${slug}/courses/new`} className="th-btn th-btn--primary">
+        <Link href="/tools/learning/new" className="th-btn th-btn--primary">
           New Series
         </Link>
         <ManualHelpIcon manualSlug="course-hub" />
@@ -66,7 +53,7 @@ export default async function CoursesListPage({
             {courses.map((course) => (
               <tr key={course.id}>
                 <td>
-                  <Link href={`/account/hub/${slug}/courses/${course.slug}`} className="th-link">
+                  <Link href={`/tools/learning/${course.slug}`} className="th-link">
                     {course.title}
                   </Link>
                 </td>
@@ -83,7 +70,7 @@ export default async function CoursesListPage({
                   </span>
                 </td>
                 <td>
-                  <Link href={`/account/hub/${slug}/courses/${course.slug}`} className="th-link">
+                  <Link href={`/tools/learning/${course.slug}`} className="th-link">
                     Edit
                   </Link>
                 </td>

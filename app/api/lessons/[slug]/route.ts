@@ -2,22 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { cleanupRemovedBlobs } from "@/lib/blobCleanup";
-
-async function canAccessCourseHub(userId: string, roles: string[]): Promise<boolean> {
-
-  if (roles.some((r) => ["ADMIN", "TEACHER"].includes(r))) return true;
-  const ua = await db.userHubAccess.findUnique({
-    where: { userId_hubSlug: { userId, hubSlug: "courses" } },
-  });
-  return !!ua;
-}
+import { hasToolAccess } from "@/lib/toolAuth";
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const session = await auth();
-  if (!session?.user?.id || !await canAccessCourseHub(session.user.id, session.user.roles ?? [])) {
+  if (!session?.user?.id || !await hasToolAccess(session.user.id, session.user.roles ?? [], ["TEACHER"], "learning")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -43,7 +35,7 @@ export async function PATCH(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const session = await auth();
-  if (!session?.user?.id || !await canAccessCourseHub(session.user.id, session.user.roles ?? [])) {
+  if (!session?.user?.id || !await hasToolAccess(session.user.id, session.user.roles ?? [], ["TEACHER"], "learning")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
@@ -116,7 +108,7 @@ export async function DELETE(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const session = await auth();
-  if (!session?.user?.id || !await canAccessCourseHub(session.user.id, session.user.roles ?? [])) {
+  if (!session?.user?.id || !await hasToolAccess(session.user.id, session.user.roles ?? [], ["TEACHER"], "learning")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 

@@ -135,6 +135,9 @@ model User {
   // Hub access grants
   hubAccess            UserHubAccess[]
   hubAccessGranted     UserHubAccess[]       @relation("HubAccessGranter")
+  // Tool access grants (individual access without role)
+  toolAccess           UserToolAccess[]      @relation("ToolAccess")
+  toolAccessGranted    UserToolAccess[]      @relation("ToolAccessGranter")
   dripNotifications    DripNotification[]
   siteBannersCreated   SiteBanner[]          @relation("SiteBannerCreator")
   siteBannerDismissals SiteBannerDismissal[] @relation("SiteBannerDismissal")
@@ -987,6 +990,20 @@ model UserHubAccess {
 
   @@unique([userId, hubSlug])
   @@map("user_hub_access")
+}
+
+model UserToolAccess {
+  id          String   @id @default(cuid())
+  userId      String
+  toolSlug    String   // "learning", "programs", "inbox", "schedule"
+  grantedAt   DateTime @default(now())
+  grantedById String?
+
+  user      User  @relation("ToolAccess", fields: [userId], references: [id], onDelete: Cascade)
+  grantedBy User? @relation("ToolAccessGranter", fields: [grantedById], references: [id])
+
+  @@unique([userId, toolSlug])
+  @@map("user_tool_access")
 }
 
 // ─── MULTI-HUB SYSTEM ────────────────────────────────────────────────────────

@@ -119,21 +119,17 @@ Every hub has a left sidebar (220px, sticky on desktop) that serves as its navig
 
 **Core sections** — Home, Conversations, Tasks, Documents, Members. These are the same in every hub. Improving any one of them improves every hub simultaneously because they're all powered by the same shared code.
 
-**Hub-specific sections** — Injected between Home and Conversations based on hub type:
-- Course Hub adds "Series" and "Lessons"
-- Registrar Hub adds "Programs" (stakeholder view)
-
 **Tools** — a curated list of applications this team uses, rendered from `HubAppLink` records. Each tool link navigates away from the hub to the tool's full-screen experience. An arrow indicator (↗) signals that it's leaving the hub. The `?hub=<slug>` param is automatically appended.
 
 **Hub settings** — visible only to coordinators and admins. Links to `/admin/hubs/[slug]/edit`.
+
+**No hub-specific sections.** As of session 76, all hubs have the same five core sections. Hub-specific functionality (course management, program management) lives in tools linked via app links. No hub injects custom nav items.
 
 ### Sidebar nav item construction (in layout.tsx)
 
 ```
 const navItems = [
-  { label: "Home", href: base },
-  ...(isCourseHub ? [Series, Lessons] : []),
-  ...(isRegistrarHub ? [Programs] : []),
+  { label: "Home",          href: base },
   { label: "Conversations", href: `${base}/conversations` },
   { label: "Tasks",         href: `${base}/tasks` },
   { label: "Documents",     href: `${base}/documents` },
@@ -208,9 +204,12 @@ These are separate. Being a member of a hub that links to a tool does not grant 
 
 | Tool | Route | Required Role | Primary Hub |
 |------|-------|--------------|-------------|
+| Course Manager | `/tools/learning` | TEACHER or ADMIN | courses |
 | Program Manager | `/tools/programs` | REGISTRAR or ADMIN | registrar |
 | Support Inbox | `/tools/inbox` | SUPPORT or ADMIN | support |
 | Host Schedule | `/tools/schedule` | HOST, HOST_MANAGER, or ADMIN | host-team |
+
+All tools also support individual access grants via `UserToolAccess` — admins can grant a specific user access to any tool without assigning them the full role. See `lib/toolAuth.ts`.
 
 ### Role gate pattern
 
@@ -521,18 +520,16 @@ The five core sections are shared infrastructure. Every hub gets them for free. 
 
 **Data model:** `HubMember` (hubId, userId, position, isCoordinator, joinedAt, lastVisitedAt, firstVisitedAt)
 
-### Hub-Specific Additions
+### No Hub-Specific Additions
 
-Some hubs inject additional sections into the sidebar nav. These are not separate from the core — they're added in the hub layout based on the hub's slug:
+As of session 76, no hub has custom nav items. All hub-specific functionality has been extracted to tools:
 
-**Course Hub** (`slug: "courses"`):
-- **Series** (`/hub/courses/courses`) — course list with create/edit CRUD
-- **Lessons** (`/hub/courses/lessons`) — lesson list with create/edit CRUD
+- Course/Lesson management → `/tools/learning` (Course Manager tool)
+- Program management → `/tools/programs` (Program Manager tool)
+- Support email → `/tools/inbox` (Support Inbox tool)
+- Host scheduling → `/tools/schedule` (Host Schedule tool)
 
-**Registrar Hub** (`slug: "registrar"`):
-- **Programs** (`/hub/registrar/programs`) — read-only stakeholder view showing program names, dates, and participant headcounts. Not the full Program Manager — just enough for team awareness.
-
-These additions follow the same pattern as core sections (server component, hub-scoped data query, rendered in the hub's main content area). They don't need their own navigation chrome.
+Hubs connect to their tools via app links in the sidebar. This ensures every hub is structurally identical — the same five core sections, no exceptions.
 
 ---
 
@@ -628,8 +625,8 @@ Navigation between screens is via click-through (forward) and back button (backw
 | Hub | Slug | Tools | Hub-Specific Sections |
 |-----|------|-------|----------------------|
 | Host Team | `host-team` | Host Schedule | — |
-| Course Hub | `courses` | — | Series, Lessons |
-| Registrar Hub | `registrar` | Program Manager | Programs (stakeholder) |
+| Course Hub | `courses` | Course Manager | — |
+| Registrar Hub | `registrar` | Program Manager | — |
 | Support Hub | `support` | Support Inbox, Inbox Settings | — |
 | People Team | `people-team` | — | — |
 | Greeter Team | `greeter` | — | — |

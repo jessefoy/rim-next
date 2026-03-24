@@ -1,12 +1,13 @@
 /**
  * Programs tool layout — wraps /tools/programs/* with ToolsProvider.
- * Role gate: REGISTRAR or ADMIN (checked in page, not here).
+ * Role gate: REGISTRAR or ADMIN, or individual UserToolAccess grant.
  */
 
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { ToolsProvider } from "@/components/ToolsContext";
+import { hasToolAccess } from "@/lib/toolAuth";
 
 export default async function ProgramsToolLayout({
   children,
@@ -18,7 +19,7 @@ export default async function ProgramsToolLayout({
 
   const roles = session.user.roles ?? [];
   const isAdmin = roles.includes("ADMIN");
-  const hasAccess = isAdmin || roles.includes("REGISTRAR");
+  const hasAccess = await hasToolAccess(session.user.id, roles, ["REGISTRAR"], "programs");
 
   if (!hasAccess) {
     return (

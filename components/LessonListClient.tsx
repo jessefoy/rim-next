@@ -17,15 +17,16 @@ interface LessonRow {
 }
 
 interface Props {
-  hubSlug: string;
+  basePath?: string;
+  seriesBasePath?: string;
   lessons: LessonRow[];
 }
 
-function LessonTableRow({ lesson, hubSlug }: { lesson: LessonRow; hubSlug: string }) {
+function LessonTableRow({ lesson, basePath, seriesBasePath }: { lesson: LessonRow; basePath: string; seriesBasePath: string }) {
   return (
     <tr>
       <td>
-        <Link href={`/account/hub/${hubSlug}/lessons/${lesson.slug}`} className="th-link">
+        <Link href={`${basePath}/${lesson.slug}`} className="th-link">
           {lesson.titleInternal}
         </Link>
       </td>
@@ -33,7 +34,7 @@ function LessonTableRow({ lesson, hubSlug }: { lesson: LessonRow; hubSlug: strin
       <td>
         {lesson.series.length > 0
           ? lesson.series.map((s) => (
-              <Link key={s.slug} href={`/account/hub/${hubSlug}/courses/${s.slug}`} className="th-link th-link--sm" style={{ marginRight: 8 }}>
+              <Link key={s.slug} href={`${seriesBasePath}/${s.slug}`} className="th-link th-link--sm" style={{ marginRight: 8 }}>
                 {s.title}
               </Link>
             ))
@@ -41,7 +42,7 @@ function LessonTableRow({ lesson, hubSlug }: { lesson: LessonRow; hubSlug: strin
         }
       </td>
       <td>
-        <Link href={`/account/hub/${hubSlug}/lessons/${lesson.slug}`} className="th-link">
+        <Link href={`${basePath}/${lesson.slug}`} className="th-link">
           Edit
         </Link>
       </td>
@@ -49,7 +50,7 @@ function LessonTableRow({ lesson, hubSlug }: { lesson: LessonRow; hubSlug: strin
   );
 }
 
-function LessonTable({ lessons, hubSlug }: { lessons: LessonRow[]; hubSlug: string }) {
+function LessonTable({ lessons, basePath, seriesBasePath }: { lessons: LessonRow[]; basePath: string; seriesBasePath: string }) {
   return (
     <table className="th-table">
       <thead>
@@ -61,13 +62,13 @@ function LessonTable({ lessons, hubSlug }: { lessons: LessonRow[]; hubSlug: stri
         </tr>
       </thead>
       <tbody>
-        {lessons.map((l) => <LessonTableRow key={l.id} lesson={l} hubSlug={hubSlug} />)}
+        {lessons.map((l) => <LessonTableRow key={l.id} lesson={l} basePath={basePath} seriesBasePath={seriesBasePath} />)}
       </tbody>
     </table>
   );
 }
 
-export default function LessonListClient({ hubSlug, lessons }: Props) {
+export default function LessonListClient({ basePath = "/tools/learning/lessons", seriesBasePath = "/tools/learning", lessons }: Props) {
   const [filter, setFilter] = useState("");
 
   const filtered = filter
@@ -81,7 +82,7 @@ export default function LessonListClient({ hubSlug, lessons }: Props) {
     <div className="th-list">
       <div className="th-list__header">
         <h2 className="th-list__title">All Lessons</h2>
-        <Link href={`/account/hub/${hubSlug}/lessons/new`} className="th-btn th-btn--primary">
+        <Link href={`${basePath}/new`} className="th-btn th-btn--primary">
           New Lesson
         </Link>
       </div>
@@ -104,14 +105,14 @@ export default function LessonListClient({ hubSlug, lessons }: Props) {
             <div className="th-list-section">
               <h3 className="th-list-section__title">Standalone Teachings</h3>
               <p className="th-list-section__desc">Not part of any series — shareable as individual lessons.</p>
-              <LessonTable lessons={standalone} hubSlug={hubSlug} />
+              <LessonTable lessons={standalone} basePath={basePath} seriesBasePath={seriesBasePath} />
             </div>
           )}
 
           {inSeries.length > 0 && (
             <div className="th-list-section">
               <h3 className="th-list-section__title">In a Series</h3>
-              <LessonTable lessons={inSeries} hubSlug={hubSlug} />
+              <LessonTable lessons={inSeries} basePath={basePath} seriesBasePath={seriesBasePath} />
             </div>
           )}
         </>

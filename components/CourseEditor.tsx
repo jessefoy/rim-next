@@ -60,7 +60,8 @@ interface CourseData {
 }
 
 interface Props {
-  hubSlug: string;
+  basePath?: string;
+  lessonBasePath?: string;
   initialData?: CourseData;
   isEditing: boolean;
 }
@@ -102,7 +103,7 @@ function listToLessonOrder(
   return result;
 }
 
-export default function CourseEditor({ hubSlug, initialData, isEditing }: Props) {
+export default function CourseEditor({ basePath = "/tools/learning", lessonBasePath = "/tools/learning/lessons", initialData, isEditing }: Props) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -338,7 +339,7 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
         setTimeout(() => setSuccess(false), 3000);
       } else {
         const created = await res.json();
-        router.push(`/account/hub/${hubSlug}/courses/${created.slug}`);
+        router.push(`${basePath}/${created.slug}`);
       }
     } catch {
       setError("Network error");
@@ -660,7 +661,7 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
                       View →
                     </a>
                     <a
-                      href={`/account/hub/${hubSlug}/lessons/${item.lesson.slug}`}
+                      href={`${lessonBasePath}/${item.lesson.slug}`}
                       className="th-link th-link--sm"
                     >
                       Edit ↗
@@ -802,7 +803,7 @@ export default function CourseEditor({ hubSlug, initialData, isEditing }: Props)
         </button>
         <button
           type="button"
-          onClick={() => router.push(`/account/hub/${hubSlug}/courses`)}
+          onClick={() => router.push(basePath)}
           className="th-btn"
         >
           Cancel

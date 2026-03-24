@@ -1,11 +1,10 @@
 /**
- * /account/hub/[slug]/lessons/[lessonSlug] — Edit lesson
+ * /tools/learning/lessons/[lessonSlug] — Edit lesson
  */
 
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { getHubMembership } from "@/lib/hubAuth";
 import LessonEditor from "@/components/LessonEditor";
 import ManualHelpIcon from "@/components/ManualHelpIcon";
 import { renderContentBodyAsync } from "@/lib/renderRichContentServer";
@@ -15,7 +14,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ slug: string; lessonSlug: string }>;
+  params: Promise<{ lessonSlug: string }>;
 }) {
   const { lessonSlug } = await params;
   const lesson = await db.lesson.findUnique({ where: { slug: lessonSlug }, select: { titleInternal: true } });
@@ -25,15 +24,11 @@ export async function generateMetadata({
 export default async function EditLessonPage({
   params,
 }: {
-  params: Promise<{ slug: string; lessonSlug: string }>;
+  params: Promise<{ lessonSlug: string }>;
 }) {
-  const { slug, lessonSlug } = await params;
+  const { lessonSlug } = await params;
   const session = await auth();
   if (!session) redirect("/login");
-
-  const roles = session.user.roles ?? [];
-  const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, roles);
-  if (!hub || (!member && !isAdmin)) redirect("/account/dashboard");
 
   const [lesson, initialQuestions] = await Promise.all([
     db.lesson.findUnique({
@@ -66,12 +61,10 @@ export default async function EditLessonPage({
   ]);
   if (!lesson) notFound();
 
-  // Pre-render legacy Tiptap body for BlockNote import on mount
   const legacyBodyHtml = lesson.body && !Array.isArray(lesson.body)
     ? await renderContentBodyAsync(lesson.body)
     : null;
 
-  // Serialize for client component
   const initialData = {
     id: lesson.id,
     titleInternal: lesson.titleInternal,
@@ -106,7 +99,7 @@ export default async function EditLessonPage({
   return (
     <div style={{ position: "relative" }}>
       <ManualHelpIcon manualSlug="course-hub-lessons" />
-      <LessonEditor hubSlug={slug} initialData={initialData} isEditing legacyBodyHtml={legacyBodyHtml ?? undefined} />
+      <LessonEditor initialData={initialData} isEditing legacyBodyHtml={legacyBodyHtml ?? undefined} />
     </div>
   );
 }
