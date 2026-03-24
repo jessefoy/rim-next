@@ -4,15 +4,14 @@
  * - Auth check: redirect to /login if not authenticated
  * - Hub existence: 404 if hub not found
  * - Membership check: 403 if user is not a hub member
- * - Renders: HubHeader + HubNavStrip + {children}
+ * - Renders: HubSidebar (left) + main content area (right)
  */
 
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import AccountLayout from "@/components/AccountLayout";
-import HubHeader from "@/components/HubHeader";
-import HubNavStrip from "@/components/HubNavStrip";
+import HubSidebar from "@/components/HubSidebar";
 
 interface Props {
   children: React.ReactNode;
@@ -31,6 +30,10 @@ export default async function HubLayout({ children, params }: Props) {
         include: {
           user: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
         },
+      },
+      appLinks: {
+        where: { isEnabled: true },
+        orderBy: { order: "asc" },
       },
     },
   });
@@ -51,25 +54,30 @@ export default async function HubLayout({ children, params }: Props) {
   }
 
   if (!hasAccess) {
-    // 403 — user is authenticated but not in this hub
     return (
       <AccountLayout suppressSidebar>
-        <div className="hub-page">
-          <div className="hub-empty" style={{ padding: "40px 0" }}>
-            You don&rsquo;t have access to this hub.
+        <div className="hub-shell">
+          <div className="hub-main">
+            <div className="hub-main__content">
+              <div className="hub-empty" style={{ padding: "40px 0" }}>
+                You don&rsquo;t have access to this hub.
+              </div>
+            </div>
           </div>
         </div>
       </AccountLayout>
     );
   }
 
-  // Build tab list
+  // Build nav items
   const base = `/account/hub/${slug}`;
-  const roles = session.user.roles ?? [];
   const isCourseHub    = slug === "courses";
   const isRegistrarHub = slug === "registrar";
+  const isCoordinator  = hub.members.some(
+    (m) => m.userId === session.user.id && m.isCoordinator
+  );
 
-  const tabs = [
+  const navItems = [
     { label: "Home", href: base },
     ...(isCourseHub
       ? [
@@ -81,23 +89,30 @@ export default async function HubLayout({ children, params }: Props) {
       ? [{ label: "Programs", href: `${base}/programs` }]
       : []),
     { label: "Conversations", href: `${base}/conversations` },
-    { label: "Tasks",          href: `${base}/tasks` },
+    { label: "Tasks",         href: `${base}/tasks` },
     { label: "Documents",     href: `${base}/documents` },
     { label: "Members",       href: `${base}/members` },
   ];
 
   return (
     <AccountLayout suppressSidebar>
-      <div className="hub-page">
-        <HubHeader
-          hubType={hub.type}
-          hubName={hub.name}
-          memberCount={hub.members.length}
-          members={hub.members}
+      <div className="hub-shell">
+        <HubSidebar
+          hub={{
+            slug: hub.slug,
+            name: hub.name,
+            type: hub.type as "OPERATIONAL" | "GOVERNANCE" | "COMMUNITY_GROUP",
+            members: hub.members,
+            appLinks: hub.appLinks,
+          }}
+          navItems={navItems}
+          isCoordinator={isCoordinator}
+          isAdmin={isAdmin}
         />
-        <HubNavStrip tabs={tabs} />
-        <div className="hub-content">
-          {children}
+        <div className="hub-main">
+          <div className="hub-main__content">
+            {children}
+          </div>
         </div>
       </div>
     </AccountLayout>
