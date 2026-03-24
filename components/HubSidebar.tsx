@@ -115,17 +115,22 @@ export default function HubSidebar({ hub, navItems, isCoordinator, isAdmin }: Pr
           <div className="hub-sb-divider" />
           <div className="hub-sb-group">
             <div className="hub-sb-group-label">Tools</div>
-            {enabledAppLinks.map((link) => (
+            {enabledAppLinks.map((link) => {
+              const toolHref = link.href.includes("?")
+                ? `${link.href}&hub=${hub.slug}`
+                : `${link.href}?hub=${hub.slug}`;
+              return (
               <Link
                 key={link.id}
-                href={link.href}
+                href={toolHref}
                 className="hub-sb-tool"
                 onClick={() => setMobileOpen(false)}
               >
                 <span className="hub-sb-item__label">{link.label}</span>
                 <span className="hub-sb-tool__arrow">{"\u2197"}</span>
               </Link>
-            ))}
+              );
+            })}
           </div>
         </>
       )}
