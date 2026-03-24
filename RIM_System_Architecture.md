@@ -185,12 +185,15 @@ Someone who is both a Host Team coordinator and a Volunteer Coordination member 
 - **Hub sidebar navigation (session 74):** Horizontal tab strip replaced with 220px left sidebar. Identity block, core sections, Tools section (app links with ↗), Hub settings link. Mobile: slide-in drawer via hamburger. `HubNavStrip.tsx` and `HubHeader.tsx` deleted.
 - **Hub context for tools (session 74):** `?hub=` query param appended to all tool links from sidebar. `ToolsContext` reads param client-side via `useSearchParams()`, exposes `hubSlug` to tool pages. Foundation for scoped data.
 
+**Hub core section conformance — session 76:** All five hub core sections (Home, Conversations, Tasks, Documents, Members) standardized to match the Tasks design standard. CSS prefixes unified: `hub-conv-`, `hub-doc-`, `hub-mem-` (previously `cv-`/`ann-`/`doc-`/`mem-`). Inline `maxWidth` styles replaced with CSS container classes. Conversations gained: emoji reactions (👍❤️🙏💡😊), reply editing (own replies), category filtering (hub `conversationCategories`), and email notifications (new thread → coordinators, new reply → participants). Members gained: coordinator member management (add/remove members, toggle coordinator status) via new API routes. Home app links bug fixed (`?hub=slug` now appended). Dead host-team conversation fork removed: `HubThreadDetailClient.tsx`, `/api/host/threads/*`, `/api/host/replies/*`, `HostThread`/`HostReply` schema models. Features ported to shared system before deletion.
+
 **What remains:**
 
 - **Check-in tools:** Digital check-in per program (phone-first), PDF export, future member self-check-in.
 - **Stakeholder names visibility:** Whether certain stakeholders should see participant names (not just headcount) is a privacy question deferred until a real use case requires it.
 - **Tool home screen cards with live context:** App links on hub home could surface tool-specific counts ("3 new registrations") — needs per-tool API endpoints.
 - **Hub-scoped tool data:** Tools linked from multiple hubs can filter by `hubSlug` context — foundation laid, filtering logic not yet implemented.
+- **Documents page-based unification:** Link documents still use inline forms; native documents use page-based editors. Planned: unify both to page-based creation/editing flow.
 
 ---
 
@@ -224,4 +227,4 @@ This file is part of the closing ritual for any Claude Code session that touches
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org*
-*Working document · March 2026 (updated session 74)*
+*Working document · March 2026 (updated session 76)*

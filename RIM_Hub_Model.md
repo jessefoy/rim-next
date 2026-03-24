@@ -681,4 +681,4 @@ All hub-related models in `prisma/schema.prisma`:
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org*
-*Working document · March 2026 (updated session 75)*
+*Working document · March 2026 (updated session 76)*

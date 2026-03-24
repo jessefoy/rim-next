@@ -2,7 +2,7 @@
 
 /**
  * HubDocumentsClient — Documents tab for generic hubs.
- * CSS prefix: doc-
+ * CSS prefix: hub-doc-
  *
  * Layout: documents grouped by category (from hub.documentCategories order).
  * Uncategorized documents rendered last.
@@ -207,10 +207,10 @@ export default function HubDocumentsClient({
   }
 
   return (
-    <div style={{ maxWidth: 680 }}>
+    <div className="hub-doc-container">
 
       {/* Toolbar — all hub members can create */}
-      <div className="doc-toolbar">
+      <div className="hub-doc-toolbar">
         <a href={`/account/hub/${hubSlug}/documents/new`} className="btn btn--sm">
           + New Document
         </a>
@@ -221,7 +221,7 @@ export default function HubDocumentsClient({
 
       {/* Add form */}
       {showAdd && (
-        <div className="doc-add-form">
+        <div className="hub-doc-add-form">
           <div className="add-doc-form__title">Add Document</div>
           <div className="fg">
             <label className="fl">Label</label>
@@ -239,7 +239,7 @@ export default function HubDocumentsClient({
                 placeholder="https://docs.google.com/…"
                 style={{ flex: 1 }}
               />
-              {addUrl && <span className="doc-type-badge">{addFileType}</span>}
+              {addUrl && <span className="hub-doc-type-badge">{addFileType}</span>}
             </div>
           </div>
           <div className="fg">
@@ -268,16 +268,16 @@ export default function HubDocumentsClient({
         <p className="hub-empty">No documents yet.</p>
       ) : (
         sections.map(({ label, docs: catDocs }) => (
-          <div key={label} className="doc-category">
-            <div className="doc-category__header">
-              <div className="doc-category__title">{label}</div>
+          <div key={label} className="hub-doc-category">
+            <div className="hub-doc-category__header">
+              <div className="hub-doc-category__title">{label}</div>
             </div>
-            <div className="doc-list">
+            <div className="hub-doc-list">
               {catDocs.map((doc) => (
                 <div key={doc.id}>
                   {editingId === doc.id ? (
                     /* Inline edit panel */
-                    <div className="doc-add-form" style={{ borderRadius: 0, borderLeft: 0, borderRight: 0 }}>
+                    <div className="hub-doc-add-form" style={{ borderRadius: 0, borderLeft: 0, borderRight: 0 }}>
                       <div className="fg">
                         <label className="fl">Label</label>
                         <input className="fi" type="text" value={editLabel} onChange={(e) => setEditLabel(e.target.value)} />
@@ -289,7 +289,7 @@ export default function HubDocumentsClient({
                             <input className="fi" type="url" value={editUrl}
                               onChange={(e) => { setEditUrl(e.target.value); setEditFileType(detectFileType(e.target.value)); }}
                               style={{ flex: 1 }} />
-                            <span className="doc-type-badge">{editFileType}</span>
+                            <span className="hub-doc-type-badge">{editFileType}</span>
                           </div>
                         </div>
                       )}
@@ -308,7 +308,7 @@ export default function HubDocumentsClient({
                       )}
                       <div className="form-actions" style={{ justifyContent: "space-between" }}>
                         <button
-                          className="ann-btn ann-btn--del"
+                          className="hub-action-btn hub-action-btn--del"
                           onClick={() => deleteDoc(doc.id)}
                           disabled={deletingId === doc.id}
                         >
@@ -323,14 +323,14 @@ export default function HubDocumentsClient({
                       </div>
                     </div>
                   ) : (
-                    <div className="doc-item">
-                      {!doc.isNative && <span className="doc-type-badge">{doc.fileType}</span>}
+                    <div className="hub-doc-item">
+                      {!doc.isNative && <span className="hub-doc-type-badge">{doc.fileType}</span>}
                       {doc.isLocked && <span style={{ fontSize: 13, flexShrink: 0 }} title="Locked by author">🔒</span>}
-                      <div className="doc-item__text">
+                      <div className="hub-doc-item__text">
                         {doc.isNative ? (
                           <a
                             href={`/account/hub/${hubSlug}/documents/${doc.id}`}
-                            className="doc-item__native-link"
+                            className="hub-doc-item__native-link"
                           >
                             {doc.label}
                           </a>
@@ -339,19 +339,19 @@ export default function HubDocumentsClient({
                             href={doc.url!}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="doc-item__link"
+                            className="hub-doc-item__link"
                           >
                             {doc.label} ↗
                           </a>
                         )}
-                        {doc.description && <div className="doc-item__desc">{doc.description}</div>}
+                        {doc.description && <div className="hub-doc-item__desc">{doc.description}</div>}
                       </div>
-                      <div className="doc-item__meta">
+                      <div className="hub-doc-item__meta">
                         {fmtDate(doc.createdAt)} · {displayName(doc.addedBy)}
                       </div>
                       {canEdit(doc) && !doc.isNative && !doc.isLocked && (
                         <button
-                          className="ann-btn"
+                          className="hub-action-btn"
                           style={{ flexShrink: 0 }}
                           onClick={(e) => { e.stopPropagation(); openEdit(doc); }}
                         >
@@ -361,7 +361,7 @@ export default function HubDocumentsClient({
                       {canEdit(doc) && doc.isNative && (
                         <a
                           href={`/account/hub/${hubSlug}/documents/${doc.id}/edit`}
-                          className="ann-btn"
+                          className="hub-action-btn"
                           style={{ flexShrink: 0, textDecoration: "none" }}
                         >
                           {doc.isLocked && doc.addedById !== currentUserId ? "View" : "Edit"}

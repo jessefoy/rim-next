@@ -1,25 +1,23 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { getHubMembership } from "@/lib/hubAuth";
 
-function hasHubAccess(roles: string[]) {
-  return roles.some((r) => ["HOST", "HOST_MANAGER", "ADMIN"].includes(r));
-}
-
-// PATCH /api/host/replies/[id] — edit own reply body
-// Body: { body }
+/** PATCH /api/hub/[slug]/conversations/[id]/replies/[replyId] — edit own reply */
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ slug: string; id: string; replyId: string }> }
 ) {
   const session = await auth();
   if (!session?.user?.id) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
-  if (!hasHubAccess(session.user.roles ?? [])) {
+
+  const { slug, id: threadId, replyId } = await params;
+  const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
+  if (!hub || (!member && !isAdmin)) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { id } = await params;
   const reqBody = await request.json().catch(() => null);
   const { body: newBody } = (reqBody ?? {}) as { body?: any };
 
@@ -27,18 +25,18 @@ export async function PATCH(
     return Response.json({ error: "Reply body is required" }, { status: 400 });
   }
 
-  const reply = await db.hostReply.findUnique({ where: { id } });
-  if (!reply) {
+  const reply = await db.hubConversationReply.findUnique({ where: { id: replyId } });
+  if (!reply || reply.threadId !== threadId) {
     return Response.json({ error: "Not found" }, { status: 404 });
   }
   if (reply.authorId !== session.user.id) {
     return Response.json({ error: "You can only edit your own replies" }, { status: 403 });
   }
 
-  await db.hostReply.update({
-    where: { id },
+  const updated = await db.hubConversationReply.update({
+    where: { id: replyId },
     data: { body: newBody, edited: true, editedAt: new Date() },
   });
 
-  return Response.json({ ok: true });
+  return Response.json(updated);
 }

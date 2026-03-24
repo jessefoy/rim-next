@@ -1439,6 +1439,106 @@ export async function sendNewReplyEmail(data: NewReplyEmailData): Promise<void> 
   if (error) console.error("[email] sendNewReplyEmail failed:", error);
 }
 
+// ─── Hub Conversation Notifications (generic, any hub) ───────────────────────
+
+export interface HubConvNewThreadEmailData {
+  to: string;
+  firstName: string | null;
+  authorName: string;
+  hubName: string;
+  hubSlug: string;
+  threadTitle: string;
+  threadId: string;
+}
+
+/**
+ * Sent to hub coordinators when a new conversation thread is created.
+ * Works for any hub — not hardcoded to a specific hub.
+ */
+export async function sendHubConvNewThreadEmail(data: HubConvNewThreadEmailData): Promise<void> {
+  const { to, firstName, authorName, hubName, hubSlug, threadTitle, threadId } = data;
+  const threadUrl = `${BASE_URL}/account/hub/${hubSlug}/conversations/${threadId}`;
+  const greeting = firstName ? `Hi ${firstName},` : "Hello,";
+
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>New conversation</title></head>
+<body style="margin:0;padding:0;background:#f6f3f0;font-family:'Open Sans',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f6f3f0;padding:40px 16px;">
+<tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:4px;overflow:hidden;">
+<tr><td style="background:#135274;padding:28px 36px;"><p style="margin:0;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:#c5d8e4;font-family:'Open Sans',Arial,sans-serif;">Rooted In Mindfulness · ${hubName}</p></td></tr>
+<tr><td style="padding:36px 36px 28px;">
+<p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">${greeting}</p>
+<p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">
+  <strong>${authorName}</strong> started a new conversation: <em>${threadTitle}</em>
+</p>
+<table cellpadding="0" cellspacing="0" style="margin-top:8px;">
+<tr><td style="background:#135274;border-radius:3px;padding:12px 24px;">
+<a href="${threadUrl}" style="font-family:'Open Sans',Arial,sans-serif;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">Read Thread →</a>
+</td></tr></table>
+</td></tr>
+<tr><td style="padding:20px 36px 28px;border-top:1px solid #ede9e5;">
+<p style="margin:0;font-family:'Open Sans',Arial,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">Rooted In Mindfulness · Brookfield, WI</p>
+</td></tr>
+</table></td></tr></table></body></html>`;
+
+  const text = [greeting, "", `${authorName} started a new conversation in ${hubName}: "${threadTitle}"`, "", `Read it here: ${threadUrl}`].join("\n");
+
+  const { error } = await resend.emails.send({
+    from: FROM, to,
+    subject: `New conversation in ${hubName}: ${threadTitle}`,
+    html, text,
+  });
+  if (error) console.error("[email] sendHubConvNewThreadEmail failed:", error);
+}
+
+export interface HubConvNewReplyEmailData {
+  to: string;
+  firstName: string | null;
+  replierName: string;
+  hubName: string;
+  hubSlug: string;
+  threadTitle: string;
+  threadId: string;
+}
+
+/**
+ * Sent to thread participants when a new reply is posted.
+ * Works for any hub — not hardcoded to a specific hub.
+ */
+export async function sendHubConvNewReplyEmail(data: HubConvNewReplyEmailData): Promise<void> {
+  const { to, firstName, replierName, hubName, hubSlug, threadTitle, threadId } = data;
+  const threadUrl = `${BASE_URL}/account/hub/${hubSlug}/conversations/${threadId}`;
+  const greeting = firstName ? `Hi ${firstName},` : "Hello,";
+
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>New reply</title></head>
+<body style="margin:0;padding:0;background:#f6f3f0;font-family:'Open Sans',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f6f3f0;padding:40px 16px;">
+<tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:4px;overflow:hidden;">
+<tr><td style="background:#135274;padding:28px 36px;"><p style="margin:0;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:#c5d8e4;font-family:'Open Sans',Arial,sans-serif;">Rooted In Mindfulness · ${hubName}</p></td></tr>
+<tr><td style="padding:36px 36px 28px;">
+<p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">${greeting}</p>
+<p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">
+  <strong>${replierName}</strong> replied to <em>${threadTitle}</em>.
+</p>
+<table cellpadding="0" cellspacing="0" style="margin-top:8px;">
+<tr><td style="background:#135274;border-radius:3px;padding:12px 24px;">
+<a href="${threadUrl}" style="font-family:'Open Sans',Arial,sans-serif;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">Read Thread →</a>
+</td></tr></table>
+</td></tr>
+<tr><td style="padding:20px 36px 28px;border-top:1px solid #ede9e5;">
+<p style="margin:0;font-family:'Open Sans',Arial,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">Rooted In Mindfulness · Brookfield, WI</p>
+</td></tr>
+</table></td></tr></table></body></html>`;
+
+  const text = [greeting, "", `${replierName} replied to "${threadTitle}" in ${hubName}.`, "", `Read it here: ${threadUrl}`].join("\n");
+
+  const { error } = await resend.emails.send({
+    from: FROM, to,
+    subject: `New reply in ${hubName}: ${threadTitle}`,
+    html, text,
+  });
+  if (error) console.error("[email] sendHubConvNewReplyEmail failed:", error);
+}
+
 // ─── Magic link email (authentication) ───────────────────────────────────────
 
 /**

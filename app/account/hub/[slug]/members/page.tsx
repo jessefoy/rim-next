@@ -28,9 +28,11 @@ export default async function HubMembersPage({
   const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
   if (!hub || (!member && !isAdmin)) redirect("/account/dashboard");
 
+  const isCoordinator = (member?.isCoordinator ?? false) || isAdmin;
+
   const members = await db.hubMember.findMany({
     where:   { hubId: hub.id },
-    include: { user: { select: { firstName: true, lastName: true, preferredName: true, title: true } } },
+    include: { user: { select: { firstName: true, lastName: true, preferredName: true, title: true, email: true } } },
     orderBy: [{ isCoordinator: "desc" }, { joinedAt: "asc" }],
   });
 
@@ -45,8 +47,16 @@ export default async function HubMembersPage({
       lastName:      m.user.lastName,
       preferredName: m.user.preferredName,
       title:         m.user.title,
+      email:         m.user.email,
     },
   }));
 
-  return <HubMembersClient members={serialized} />;
+  return (
+    <HubMembersClient
+      hubSlug={slug}
+      members={serialized}
+      isCoordinator={isCoordinator}
+      currentUserId={session.user.id}
+    />
+  );
 }

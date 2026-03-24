@@ -1,12 +1,12 @@
 "use client";
 
 /**
- * HubConvClient — Conversations tab for generic hubs.
- * CSS prefix: cv-
+ * HubConvClient — Conversations tab for all hubs.
+ * CSS prefix: hub-conv-
  *
  * Thread list with compose form. Each thread links to /conversations/[id].
  * Any member can post; coordinators can close/archive threads.
- * Pinned threads appear at the top with a ‼️ badge.
+ * Pinned threads appear at the top with a pin badge.
  */
 
 import { useState } from "react";
@@ -24,6 +24,7 @@ interface Thread {
   id: string;
   title: string;
   body: any; // BlockNote JSON
+  category: string;
   status: string;
   isPinned: boolean;
   authorId: string;
@@ -36,6 +37,7 @@ interface Thread {
 interface Props {
   hubSlug: string;
   initialThreads: Thread[];
+  categories: string[];
   isCoordinator: boolean;
   currentUserId: string;
   currentUserName: string;
@@ -52,7 +54,6 @@ function fmtDate(iso: string) {
 /** Extract plain text from BlockNote JSON for excerpts */
 function extractText(json: any): string {
   if (!json) return "";
-  // BlockNote JSON: array of blocks
   if (Array.isArray(json)) {
     function inlineText(content: any[]): string {
       return (content || []).map((c: any) => c.text ?? "").join("");
@@ -74,6 +75,7 @@ function hasContent(json: any): boolean {
 export default function HubConvClient({
   hubSlug,
   initialThreads,
+  categories,
   isCoordinator,
   currentUserId,
   currentUserName,
@@ -85,14 +87,21 @@ export default function HubConvClient({
   const [showCompose, setShowCompose] = useState(!!newTopicParam);
   const [title, setTitle] = useState(newTopicParam);
   const [body, setBody] = useState<any>(null);
+  const [composeCategory, setComposeCategory] = useState(categories[0] ?? "General");
   const [saving, setSaving] = useState(false);
   const [view, setView] = useState<"open" | "closed">("open");
+  const [filterCategory, setFilterCategory] = useState<string | null>(null);
   const [loadingClosed, setLoadingClosed] = useState(false);
   const [closedThreads, setClosedThreads] = useState<Thread[] | null>(null);
 
+  const hasMultipleCategories = categories.length > 1;
+
   const displayed = view === "open" ? threads : (closedThreads ?? []);
-  const pinnedThreads = displayed.filter((t) => t.isPinned);
-  const unpinnedThreads = displayed.filter((t) => !t.isPinned);
+  const filtered = filterCategory
+    ? displayed.filter((t) => t.category === filterCategory)
+    : displayed;
+  const pinnedThreads = filtered.filter((t) => t.isPinned);
+  const unpinnedThreads = filtered.filter((t) => !t.isPinned);
 
   async function loadClosed() {
     if (closedThreads !== null) return;
@@ -105,6 +114,7 @@ export default function HubConvClient({
           id:         t.id,
           title:      t.title,
           body:       t.body,
+          category:   t.category ?? "General",
           status:     t.status,
           isPinned:   t.isPinned ?? false,
           authorId:   t.authorId,
@@ -124,7 +134,7 @@ export default function HubConvClient({
     const res = await fetch(`/api/hub/${hubSlug}/conversations`, {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ title: title.trim(), body }),
+      body:    JSON.stringify({ title: title.trim(), body, category: composeCategory }),
     });
     if (res.ok) {
       const t = await res.json();
@@ -132,6 +142,7 @@ export default function HubConvClient({
         id:         t.id,
         title:      t.title,
         body:       t.body,
+        category:   t.category ?? composeCategory,
         status:     t.status,
         isPinned:   false,
         authorId:   t.authorId,
@@ -163,6 +174,7 @@ export default function HubConvClient({
           id:         updated.id,
           title:      updated.title,
           body:       updated.body,
+          category:   updated.category ?? "General",
           status:     updated.status,
           isPinned:   updated.isPinned ?? false,
           authorId:   updated.authorId,
@@ -198,37 +210,37 @@ export default function HubConvClient({
   function renderThreadRow(thread: Thread) {
     const excerpt = extractText(thread.body);
     return (
-      <div key={thread.id} className="cv-item">
-        <div className="cv-item__main">
-          <Link href={`/account/hub/${hubSlug}/conversations/${thread.id}`} className="cv-item__title">
-            {thread.isPinned && <span className="hub-conv__pin-badge">‼️</span>}
+      <div key={thread.id} className="hub-conv-item">
+        <div className="hub-conv-item__main">
+          <Link href={`/account/hub/${hubSlug}/conversations/${thread.id}`} className="hub-conv-item__title">
+            {thread.isPinned && <span className="hub-conv-pin-badge">📌</span>}
             {thread.title}
           </Link>
-          <div className="cv-item__excerpt">{excerpt.slice(0, 120)}{excerpt.length > 120 ? "…" : ""}</div>
-          <div className="cv-item__meta">
+          <div className="hub-conv-item__excerpt">{excerpt.slice(0, 120)}{excerpt.length > 120 ? "…" : ""}</div>
+          <div className="hub-conv-item__meta">
             {fmtDate(thread.createdAt)} · {displayName(thread.author)}
             {thread.replyCount > 0 && (
-              <span className="cv-item__replies"> · {thread.replyCount} {thread.replyCount === 1 ? "reply" : "replies"}</span>
+              <span className="hub-conv-item__replies"> · {thread.replyCount} {thread.replyCount === 1 ? "reply" : "replies"}</span>
             )}
           </div>
         </div>
         {isCoordinator && (
-          <div className="cv-item__actions">
+          <div className="hub-conv-item__actions">
             {thread.isPinned ? (
-              <button className="ann-btn" onClick={() => togglePin(thread.id, true)}>
+              <button className="hub-action-btn" onClick={() => togglePin(thread.id, true)}>
                 Unpin
               </button>
             ) : (
-              <button className="ann-btn" onClick={() => togglePin(thread.id, false)}>
+              <button className="hub-action-btn" onClick={() => togglePin(thread.id, false)}>
                 Pin
               </button>
             )}
             {thread.status === "OPEN" ? (
-              <button className="ann-btn" onClick={() => setStatus(thread.id, "CLOSED")}>
+              <button className="hub-action-btn" onClick={() => setStatus(thread.id, "CLOSED")}>
                 Close
               </button>
             ) : (
-              <button className="ann-btn" onClick={() => setStatus(thread.id, "OPEN")}>
+              <button className="hub-action-btn" onClick={() => setStatus(thread.id, "OPEN")}>
                 Reopen
               </button>
             )}
@@ -239,19 +251,19 @@ export default function HubConvClient({
   }
 
   return (
-    <div style={{ maxWidth: 680 }}>
+    <div className="hub-conv-container">
 
       {/* Toolbar */}
-      <div className="cv-toolbar">
-        <div className="cv-view-pills">
+      <div className="hub-conv-toolbar">
+        <div className="hub-conv-view-pills">
           <button
-            className={`cv-pill${view === "open" ? " cv-pill--active" : ""}`}
+            className={`hub-conv-pill${view === "open" ? " hub-conv-pill--active" : ""}`}
             onClick={() => setView("open")}
           >
             Open
           </button>
           <button
-            className={`cv-pill${view === "closed" ? " cv-pill--active" : ""}`}
+            className={`hub-conv-pill${view === "closed" ? " hub-conv-pill--active" : ""}`}
             onClick={() => { setView("closed"); loadClosed(); }}
           >
             Closed
@@ -262,10 +274,31 @@ export default function HubConvClient({
         </button>
       </div>
 
+      {/* Category filter */}
+      {hasMultipleCategories && (
+        <div className="hub-conv-category-filter">
+          <button
+            className={`hub-conv-category-pill${!filterCategory ? " hub-conv-category-pill--active" : ""}`}
+            onClick={() => setFilterCategory(null)}
+          >
+            All
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              className={`hub-conv-category-pill${filterCategory === cat ? " hub-conv-category-pill--active" : ""}`}
+              onClick={() => setFilterCategory(cat)}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Compose form */}
       {showCompose && (
-        <div className="cv-compose">
-          <div className="cv-compose__title">New Topic</div>
+        <div className="hub-conv-compose">
+          <div className="hub-conv-compose__title">New Topic</div>
           <div className="fg">
             <label className="fl">Subject</label>
             <input
@@ -276,6 +309,20 @@ export default function HubConvClient({
               placeholder="What would you like to discuss?"
             />
           </div>
+          {hasMultipleCategories && (
+            <div className="fg">
+              <label className="fl">Category</label>
+              <select
+                className="fi"
+                value={composeCategory}
+                onChange={(e) => setComposeCategory(e.target.value)}
+              >
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="fg">
             <label className="fl">Message</label>
             <RimProseEditor
@@ -310,11 +357,11 @@ export default function HubConvClient({
             : "No closed conversations."}
         </p>
       ) : (
-        <div className="cv-list">
+        <div className="hub-conv-list">
           {/* Pinned section */}
           {pinnedThreads.length > 0 && (
-            <div className="hub-conv__pinned-section">
-              <div className="hub-conv__pinned-label">Pinned</div>
+            <div className="hub-conv-pinned-section">
+              <div className="hub-conv-pinned-label">Pinned</div>
               {pinnedThreads.map(renderThreadRow)}
             </div>
           )}

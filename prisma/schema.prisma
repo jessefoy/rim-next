@@ -111,8 +111,6 @@ model User {
   household       HouseholdMember?
   hostAssignments HostAssignment[]   @relation("HostAssignments")
   subClaims       SubClaim[]         @relation("SubClaims")
-  hostThreads     HostThread[]       @relation("HostThreads")
-  hostReplies     HostReply[]        @relation("HostReplies")
   alerts          Alert[]            @relation("Alerts")
   // Session attendance
   sessionAttendances SessionAttendance[]
@@ -835,48 +833,9 @@ enum SubStatus {
   CANCELLED
 }
 
-// Async community thread in the host hub.
-model HostThread {
-  id        String         @id @default(cuid())
-  title     String
-  body      Json?
-  category  ThreadCategory
-  authorId  String
-  author    User           @relation("HostThreads", fields: [authorId], references: [id], onDelete: Cascade)
-  status    ThreadStatus   @default(OPEN)
-  replies   HostReply[]
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-
-  @@map("host_threads")
-}
-
-model HostReply {
-  id        String     @id @default(cuid())
-  threadId  String
-  thread    HostThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  authorId  String
-  author    User       @relation("HostReplies", fields: [authorId], references: [id], onDelete: Cascade)
-  body      Json?
-  edited    Boolean    @default(false)
-  editedAt  DateTime?
-  reactions Json       @default("{}")  // { "👍": 2, "❤️": 1, ... }
-  createdAt DateTime   @default(now())
-
-  @@map("host_replies")
-}
-
-enum ThreadCategory {
-  OPERATIONAL    // peer support, tips, difficult situations, questions (Issues & Challenges room)
-  CONTEMPLATION  // weekly teacher/manager post for group discussion
-  GENERAL        // open conversation, any host can post
-}
-
-enum ThreadStatus {
-  OPEN
-  CLOSED    // no new replies allowed; visible to all
-  ARCHIVED  // hidden from main list; retained in DB
-}
+// HostThread and HostReply models removed in session 76 (hub conformance).
+// Features (reactions, reply editing, categories) ported to shared HubConversationThread/Reply.
+// Tables host_threads and host_replies retained in DB for historical reference.
 
 // ─── APP SETTINGS (key-value) ─────────────────────────────────────────────────
 
@@ -1220,10 +1179,13 @@ model HubConversationThread {
 }
 
 model HubConversationReply {
-  id       String   @id @default(cuid())
-  threadId String
-  authorId String
-  body     Json?
+  id        String    @id @default(cuid())
+  threadId  String
+  authorId  String
+  body      Json?
+  edited    Boolean   @default(false)
+  editedAt  DateTime?
+  reactions Json      @default("{}")
 
   thread    HubConversationThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
   author    User                  @relation(fields: [authorId], references: [id], onDelete: Cascade)

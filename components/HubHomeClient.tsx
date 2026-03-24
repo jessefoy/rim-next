@@ -210,17 +210,25 @@ export default function HubHomeClient({
         <div className="hub-home__section">
           <div className="hub-home__section-label">Tools</div>
           <div className="hub-home__links">
-            {appLinks.map((link, i) => (
-              <a
-                key={i}
-                href={link.href}
-                className="hub-home__link-item"
-                target={link.href.startsWith("http") ? "_blank" : undefined}
-                rel={link.href.startsWith("http") ? "noopener noreferrer" : undefined}
-              >
-                {link.label}
-              </a>
-            ))}
+            {appLinks.map((link, i) => {
+              const isExternal = link.href.startsWith("http");
+              const toolHref = isExternal
+                ? link.href
+                : link.href.includes("?")
+                  ? `${link.href}&hub=${slug}`
+                  : `${link.href}?hub=${slug}`;
+              return (
+                <a
+                  key={i}
+                  href={toolHref}
+                  className="hub-home__link-item"
+                  target={isExternal ? "_blank" : undefined}
+                  rel={isExternal ? "noopener noreferrer" : undefined}
+                >
+                  {link.label}
+                </a>
+              );
+            })}
           </div>
         </div>
       )}

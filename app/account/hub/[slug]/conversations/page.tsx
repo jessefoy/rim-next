@@ -51,10 +51,13 @@ export default async function HubConversationsPage({
   const isCoordinator =
     member?.isCoordinator || (session.user.roles ?? []).includes("ADMIN");
 
+  const categories = hub.conversationCategories ?? ["General"];
+
   const serialized = threads.map((t) => ({
     id:         t.id,
     title:      t.title,
     body:       t.body,
+    category:   t.category,
     status:     t.status,
     isPinned:   t.isPinned,
     authorId:   t.authorId,
@@ -77,6 +80,7 @@ export default async function HubConversationsPage({
     <HubConvClient
       hubSlug={slug}
       initialThreads={serialized}
+      categories={categories}
       isCoordinator={isCoordinator}
       currentUserId={session.user.id}
       currentUserName={userName}
