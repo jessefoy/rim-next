@@ -196,15 +196,20 @@ Someone who is both a Host Team coordinator and a Volunteer Coordination member 
 
 ## The Hub and Tools Model
 
-The conceptual architecture for how hubs and tools relate is documented in **`RIM_Hub_Model.md`**. That document describes:
+The complete architecture for how hubs and tools relate is documented in **`RIM_Hub_Model.md`**. That document covers:
 
 - The two-layer separation: hubs (team homes) vs. tools (work applications)
-- How tools are connected to hubs via app links
-- The `?hub=` context parameter and scoped data foundation
-- Access control: role-based (tools) vs. membership-based (hubs)
-- The mental model in one sentence
+- Hub lifecycle — step-by-step database records created when setting up a hub
+- Tool creation pattern — checklist and template for building new tools
+- Data scoping — how `?hub=` context flows from sidebar → URL → ToolsContext → queries
+- Decision tree — when to keep functionality in a hub section vs. extract to a tool
+- Core sections architecture — Home, Conversations, Tasks, Documents, Members as shared infrastructure
+- App link and home screen pattern — current implementation and planned live context cards
+- Access control matrix — complete role → hub → tool → section mapping
+- Mobile navigation — sidebar drawer, three-screen task flow, tool patterns
+- Database schema reference — all hub-related models and their fields
 
-**Claude Code: Read `RIM_Hub_Model.md` before working on any hub-to-tool integration, app link, or scoped data feature.**
+**Claude Code: Read `RIM_Hub_Model.md` before working on any hub, tool, app link, sidebar, or scoped data feature.**
 
 ---
 
