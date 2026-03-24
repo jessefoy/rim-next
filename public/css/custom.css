@@ -8834,7 +8834,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   font-weight: 400; margin: 0 0 12px; padding: 0 16px;
 }
 .hub-tasks-rail__section-label {
-  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  font-size: 11.5px; font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.1em; color: var(--rim-text-muted); padding: 12px 16px 4px;
 }
 .hub-tasks-rail__section-label--templates { padding-top: 8px; }
@@ -8924,14 +8924,14 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .hub-tasks-list-col__mobile-header { display: none; }
 .hub-tasks-list-col__header { margin-bottom: 12px; }
 .hub-tasks-list-col__title {
-  font-size: 16px; font-weight: 500; color: var(--rim-text); margin: 0;
+  font-size: 17px; font-weight: 500; color: var(--rim-text); margin: 0;
 }
 .hub-tasks-list-col__desc { font-size: 13px; color: var(--rim-text-muted); margin: 2px 0 0; }
 
 /* Section labels */
 .hub-tasks-section-label {
   display: flex; align-items: center; gap: 8px; padding: 12px 0 6px;
-  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  font-size: 11.5px; font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.08em; color: var(--rim-text-muted);
 }
 .hub-tasks-section-label__rule { flex: 1; height: 1px; background: #e5e0da; }
@@ -9045,11 +9045,11 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 }
 .hub-tasks-detail__field { display: flex; flex-direction: column; gap: 4px; position: relative; }
 .hub-tasks-detail__label {
-  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  font-size: 11.5px; font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.08em; color: var(--rim-text-muted);
 }
 .hub-tasks-detail__field-value { font-size: 14px; color: var(--rim-text); }
-.hub-tasks-detail__field-muted { font-size: 13px; color: var(--rim-text-muted); }
+.hub-tasks-detail__field-muted { font-size: 14px; color: var(--rim-text-muted); }
 .hub-tasks-detail__assignee-name { display: flex; align-items: center; gap: 6px; font-size: 14px; }
 .hub-tasks-detail__clear {
   border: none; background: none; font-size: 16px; color: var(--rim-text-muted);
@@ -9058,13 +9058,13 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .hub-tasks-detail__clear:hover { color: #dc2626; }
 .hub-tasks-detail__assign-btn {
   border: 1px dashed #ccc; background: none; border-radius: 4px; padding: 5px 10px;
-  font-size: 13px; color: var(--rim-text-muted); cursor: pointer;
+  font-size: 16px; color: var(--rim-text-muted); cursor: pointer;
 }
 .hub-tasks-detail__assign-btn:hover { border-color: var(--rim-mid); color: var(--rim-text); }
 .hub-tasks-detail__due { display: flex; align-items: center; gap: 6px; }
 .hub-tasks-detail__date-input {
   padding: 5px 8px; border: 1px solid #ccc; border-radius: 4px;
-  font-size: 13px; font-family: var(--font-sans); max-width: 140px;
+  font-size: 16px; font-family: var(--font-sans); max-width: 160px;
 }
 
 /* Assignee dropdown */
@@ -9076,7 +9076,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 }
 .hub-tasks-assignee-dropdown__search {
   width: 100%; padding: 8px 10px; border: none; border-bottom: 1px solid #eee;
-  font-size: 13px; outline: none;
+  font-size: 16px; outline: none;
 }
 .hub-tasks-assignee-dropdown__item {
   display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px;
@@ -9087,10 +9087,14 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 /* Section labels in detail */
 .hub-tasks-detail__section { display: flex; flex-direction: column; gap: 8px; }
 .hub-tasks-detail__section-label {
-  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  font-size: 11.5px; font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.08em; color: var(--rim-text-muted);
 }
-.hub-tasks-detail__body { min-height: 120px; }
+.hub-tasks-detail__body { min-height: 120px; padding: 24px; }
+.hub-tasks-detail__body .bn-container,
+.hub-tasks-detail__body .bn-editor,
+.hub-tasks-detail__body [class*="bnEditor"],
+.hub-tasks-detail__body .rte-editor { border: none !important; box-shadow: none !important; }
 
 /* Bottom two-column */
 .hub-tasks-detail__bottom { display: flex; gap: 24px; }
