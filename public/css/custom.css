@@ -8819,14 +8819,15 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 
 /* ── Hub Tasks (hub-tasks-) — redesigned session 73 ── */
 
-/* Three-column layout */
-.hub-tasks { display: flex; min-height: 500px; margin: 0 -36px; }
+/* Three-column layout — white cards on warm canvas */
+.hub-tasks { display: flex; min-height: 500px; gap: 12px; padding: 16px; }
 
 /* ── Rail (left) ── */
 .hub-tasks-rail {
-  width: 220px; min-width: 220px; background: var(--rim-bg-accent);
-  border-right: 1px solid #e5e0da; padding: 16px 0; display: flex;
-  flex-direction: column; gap: 1px; overflow-y: auto;
+  width: 220px; min-width: 220px; background: #fff;
+  border: 0.5px solid #e5e0da; border-radius: 12px;
+  padding: 16px 0; display: flex;
+  flex-direction: column; gap: 1px; overflow: hidden;
 }
 .hub-tasks-rail__heading {
   display: none; font-family: var(--font-serif); font-size: 22px;
@@ -8916,8 +8917,9 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 
 /* ── Task List column (middle) ── */
 .hub-tasks-list-col {
-  width: 380px; min-width: 320px; border-right: 1px solid #e5e0da;
-  padding: 16px 20px; overflow-y: auto; display: flex; flex-direction: column;
+  width: 380px; min-width: 320px; background: #fff;
+  border: 0.5px solid #e5e0da; border-radius: 12px;
+  padding: 16px 20px; overflow: hidden; display: flex; flex-direction: column;
 }
 .hub-tasks-list-col__mobile-header { display: none; }
 .hub-tasks-list-col__header { margin-bottom: 12px; }
@@ -9004,7 +9006,9 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 
 /* ── Detail panel (right) ── */
 .hub-tasks-detail-col {
-  flex: 1; min-width: 0; overflow-y: auto; display: none;
+  flex: 1; min-width: 0; background: #fff;
+  border: 0.5px solid #e5e0da; border-radius: 12px;
+  overflow: hidden; display: none;
 }
 .hub-tasks-detail-col--visible { display: block; }
 .hub-tasks-detail {
@@ -9166,10 +9170,10 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 
 /* ── Mobile (<900px) — three-screen flow ── */
 @media (max-width: 899px) {
-  .hub-tasks { display: block; margin: 0; min-height: auto; }
+  .hub-tasks { display: block; min-height: auto; padding: 0; gap: 0; }
   .hub-tasks-rail,
   .hub-tasks-list-col,
-  .hub-tasks-detail-col { display: none !important; width: 100%; min-width: unset; border: none; }
+  .hub-tasks-detail-col { display: none !important; width: 100%; min-width: unset; border: none; border-radius: 0; }
 
   .hub-tasks-rail--mobile-visible { display: flex !important; padding: 16px; }
   .hub-tasks-rail__heading { display: block; }
