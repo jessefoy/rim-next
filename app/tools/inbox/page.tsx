@@ -9,6 +9,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import { getToolHubContext } from "@/lib/toolAuth";
 import SupportInboxClient from "@/components/SupportInboxClient";
 import ManualHelpIcon from "@/components/ManualHelpIcon";
 
@@ -16,7 +17,11 @@ export const dynamic = "force-dynamic";
 
 export const metadata = { title: "Support Inbox — Tools" };
 
-export default async function SupportInboxToolPage() {
+export default async function SupportInboxToolPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ hub?: string }>;
+}) {
   const session = await auth();
   if (!session) redirect("/login");
 
@@ -48,23 +53,10 @@ export default async function SupportInboxToolPage() {
     );
   }
 
-  // Fetch support team members for assignment dropdown
-  const supportMembers = await db.hubMember.findMany({
-    where: {
-      hub: { slug: "support" },
-    },
-    include: {
-      user: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          preferredName: true,
-          title: true,
-        },
-      },
-    },
-  });
+  // Fetch support team members for assignment dropdown via hub context
+  const { hub: hubSlug } = await searchParams;
+  const hubContext = await getToolHubContext(hubSlug || "support");
+  const supportMembers = hubContext?.members ?? [];
 
   const teamMembers = supportMembers.map((m) => {
     const name =

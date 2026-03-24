@@ -11,6 +11,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import { getToolHubContext } from "@/lib/toolAuth";
 import HubScheduleClient from "@/components/HubScheduleClient";
 
 export const dynamic = "force-dynamic";
@@ -92,24 +93,20 @@ function isOccurrenceOnDate(p: PgProgram, dateStr: string): boolean {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-export default async function ScheduleToolPage() {
+export default async function ScheduleToolPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ hub?: string }>;
+}) {
   const session = await auth();
   if (!session) redirect("/login");
 
-  // Fetch coordinator name from host-team hub
-  const hostHub = await db.hub.findUnique({
-    where: { slug: "host-team" },
-    include: {
-      members: {
-        where: { isCoordinator: true },
-        include: {
-          user: { select: { firstName: true, lastName: true, preferredName: true } },
-        },
-      },
-    },
-  });
+  // Fetch hub context (members, coordinator) from ?hub= param or fall back to host-team
+  const { hub: hubSlug } = await searchParams;
+  const hubContext = await getToolHubContext(hubSlug || "host-team");
 
-  const coordinators = (hostHub?.members ?? [])
+  const coordinators = (hubContext?.members ?? [])
+    .filter((m) => m.isCoordinator)
     .map((m) => m.user.preferredName || [m.user.firstName, m.user.lastName].filter(Boolean).join(" ") || null)
     .filter(Boolean) as string[];
   const coordinatorName = coordinators.length > 0 ? coordinators[0] : undefined;

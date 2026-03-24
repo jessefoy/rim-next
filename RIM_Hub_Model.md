@@ -262,16 +262,25 @@ Coordinator actions (editing home content, managing settings) are gated by `isCo
 ### How hub context flows
 
 ```
-Sidebar click → URL (?hub=slug) → ToolsContext (React) → tool page reads hubSlug
+Sidebar click → URL (?hub=slug) → server page (searchParams) → getToolHubContext() → hub + members
+                                → ToolsContext (client) → useToolsContext().hubSlug
 ```
 
 1. **HubSidebar** appends `?hub=<slug>` to every tool link href
-2. **ToolsContext** (`components/ToolsContext.tsx`) reads `?hub=` from `useSearchParams()` and stores it as `hubSlug` in React context
-3. Any tool page can call `useToolsContext().hubSlug` to know which hub launched it
+2. **Server-side:** Page components receive `searchParams` prop with `hub` param. Call `getToolHubContext(hubSlug)` from `lib/toolAuth.ts` to get the full hub record with members. This is the primary hub awareness mechanism.
+3. **Client-side:** `ToolsContext` reads `?hub=` from `useSearchParams()` for any client components that need the hub slug.
 
-### Current state of data scoping
+### Hub awareness in tools (implemented)
 
-**Foundation is laid, filtering not yet implemented.** Today's tools query data globally:
+**Host Schedule** — reads `?hub=` and calls `getToolHubContext()` to get coordinator names and hub membership for access control. Falls back to `"host-team"` if no hub param.
+
+**Support Inbox** — reads `?hub=` and calls `getToolHubContext()` to get team members for the assignment dropdown. Falls back to `"support"` if no hub param.
+
+**Program Manager and Course Manager** — not yet hub-aware (no hub member queries needed currently). When a tool serves multiple hubs, it will add `getToolHubContext()` to scope its data.
+
+### Data scoping pattern
+
+Tools query data globally by default. When hub context is available, they can scope:
 
 **Program Manager** — fetches all programs regardless of hub context:
 ```

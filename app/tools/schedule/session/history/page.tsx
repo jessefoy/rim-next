@@ -6,6 +6,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import { getToolHubContext } from "@/lib/toolAuth";
 import Link from "next/link";
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 
@@ -217,9 +218,9 @@ function actionLabel(action: string): string {
 export default async function SessionHistoryToolPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; detail_slug?: string; detail_date?: string }>;
+  searchParams: Promise<{ hub?: string; page?: string; detail_slug?: string; detail_date?: string }>;
 }) {
-  const { page: pageStr, detail_slug: detailSlug, detail_date: detailDate } = await searchParams;
+  const { hub: hubSlug, page: pageStr, detail_slug: detailSlug, detail_date: detailDate } = await searchParams;
 
   const session = await auth();
   if (!session) redirect("/login");
@@ -227,13 +228,9 @@ export default async function SessionHistoryToolPage({
   const roles = session.user.roles ?? [];
   const isAdmin = roles.includes("ADMIN");
 
-  // Check coordinator status via direct HubMember query
-  const hostHub = await db.hub.findUnique({ where: { slug: "host-team" }, select: { id: true } });
-  const hubMember = hostHub
-    ? await db.hubMember.findUnique({
-        where: { hubId_userId: { hubId: hostHub.id, userId: session.user.id } },
-      })
-    : null;
+  // Check coordinator status via hub context
+  const hubContext = await getToolHubContext(hubSlug || "host-team");
+  const hubMember = hubContext?.members.find((m) => m.userId === session.user.id) ?? null;
   const isCoordinator = (hubMember?.isCoordinator ?? false) || isAdmin;
 
   if (!isCoordinator) {

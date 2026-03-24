@@ -26,3 +26,41 @@ export async function hasToolAccess(
   });
   return !!grant;
 }
+
+/**
+ * Fetch hub context for a tool page.
+ *
+ * When a tool is launched from a hub sidebar, the URL includes ?hub=<slug>.
+ * This function resolves that slug into the full hub record with members.
+ *
+ * Returns null if no hubSlug provided or hub not found.
+ *
+ * Usage (in a server page component):
+ *   const { hub: hubSlug } = await searchParams;
+ *   const hubContext = await getToolHubContext(hubSlug);
+ *   const teamMembers = hubContext?.members ?? [];
+ */
+export async function getToolHubContext(hubSlug: string | undefined) {
+  if (!hubSlug) return null;
+  const hub = await db.hub.findUnique({
+    where: { slug: hubSlug },
+    include: {
+      members: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              preferredName: true,
+              email: true,
+              title: true,
+            },
+          },
+        },
+        orderBy: [{ isCoordinator: "desc" }, { joinedAt: "asc" }],
+      },
+    },
+  });
+  return hub;
+}

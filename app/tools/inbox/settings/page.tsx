@@ -15,6 +15,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import { getToolHubContext } from "@/lib/toolAuth";
 import SupportSettingsClient from "@/components/SupportSettingsClient";
 
 export const dynamic = "force-dynamic";
@@ -24,14 +25,14 @@ export const metadata = { title: "Support Settings — Tools" };
 export default async function SupportSettingsToolPage({
   searchParams,
 }: {
-  searchParams: Promise<{ connected?: string }>;
+  searchParams: Promise<{ hub?: string; connected?: string }>;
 }) {
   const session = await auth();
   if (!session) redirect("/login");
 
   const roles = session.user.roles ?? [];
   const isAdmin = roles.includes("ADMIN");
-  const { connected } = await searchParams;
+  const { hub: hubSlug, connected } = await searchParams;
 
   const credential = await db.gmailCredential.findFirst({
     select: { email: true, expiresAt: true },
@@ -58,15 +59,8 @@ export default async function SupportSettingsToolPage({
     });
     defaultAssigneeId = setting?.value ?? null;
 
-    const supportMembers = await db.hubMember.findMany({
-      where: { hub: { slug: "support" } },
-      include: {
-        user: {
-          select: { id: true, firstName: true, lastName: true, preferredName: true },
-        },
-      },
-    });
-    supportTeam = supportMembers.map((m) => ({
+    const hubContext = await getToolHubContext(hubSlug || "support");
+    supportTeam = (hubContext?.members ?? []).map((m) => ({
       id: m.user.id,
       name:
         m.user.preferredName ||
