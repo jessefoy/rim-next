@@ -53,7 +53,7 @@ export default async function HubLayout({ children, params }: Props) {
   if (!hasAccess) {
     // 403 — user is authenticated but not in this hub
     return (
-      <AccountLayout>
+      <AccountLayout suppressSidebar>
         <div className="hub-page">
           <div className="hub-empty" style={{ padding: "40px 0" }}>
             You don&rsquo;t have access to this hub.
@@ -87,7 +87,7 @@ export default async function HubLayout({ children, params }: Props) {
   ];
 
   return (
-    <AccountLayout>
+    <AccountLayout suppressSidebar>
       <div className="hub-page">
         <HubHeader
           hubType={hub.type}

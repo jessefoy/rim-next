@@ -10,8 +10,11 @@ import AccountSidebar from "@/components/AccountSidebar";
  */
 export default async function AccountLayout({
   children,
+  suppressSidebar = false,
 }: {
   children: React.ReactNode;
+  /** When true, hides the sidebar and renders content full-width. Used by hub pages. */
+  suppressSidebar?: boolean;
 }) {
   const session = await auth();
   const roles: string[] = session?.user?.roles ?? [];
@@ -36,6 +39,14 @@ export default async function AccountLayout({
       });
       hubLinks = memberships.map((m) => ({ slug: m.hub.slug, name: m.hub.name }));
     }
+  }
+
+  if (suppressSidebar) {
+    return (
+      <div className="ac-layout ac-layout--no-sidebar">
+        <div className="ac-content">{children}</div>
+      </div>
+    );
   }
 
   return (

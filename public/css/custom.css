@@ -3448,6 +3448,9 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   min-height: 100vh;
 }
+.ac-layout--no-sidebar {
+  display: block;
+}
 
 .ac-sidebar {
   width: 220px;
@@ -8668,8 +8671,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ── Layout ── */
-.hub-page { max-width: 920px; margin: 0 auto; padding: 32px 36px 72px; }
-.hub-page--wide { max-width: none; }
+.hub-page { padding: 32px 36px 72px; }
 .hub-content { margin-top: 32px; }
 .hub-section-header { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
 .hub-page__title { font-size: 22px; font-weight: 400; font-family: var(--font-serif); color: var(--rim-text); margin: 0; }
