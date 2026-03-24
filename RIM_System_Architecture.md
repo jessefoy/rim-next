@@ -176,14 +176,35 @@ Someone who is both a Host Team coordinator and a Volunteer Coordination member 
 
 **Hub schema enhancements — session 73:** `HubStatus` enum (ACTIVE/ARCHIVED) with status field on Hub. `HubAppLink` model for hub-to-tool linking. `firstVisitedAt` on HubMember for newcomer welcome tracking. `TaskList`, `Task`, `Subtask` models with `TaskStatus` enum for hub task management.
 
+**Completed since session 73:**
+
+- **Hub admin page (session 74):** `/admin/hubs` — create, edit, archive hubs with app links, coordinator display. Replaces seed-script-only management.
+- **Hub home screen (session 74):** Coordinator-editable home content via `RimProseEditor variant="document"`, app links rendered on home, pinned threads surfaced.
+- **Hub newcomer welcome (session 74):** One-time interstitial on first visit (uses `firstVisitedAt` + `welcomeBody`).
+- **Hub task system (session 74):** Full three-column task UI — rail (lists/filters), task list, detail panel. Lists, tasks, subtasks, assignees, due dates, templates, `RimProseEditor` bodies. Mobile responsive.
+- **Hub sidebar navigation (session 74):** Horizontal tab strip replaced with 220px left sidebar. Identity block, core sections, Tools section (app links with ↗), Hub settings link. Mobile: slide-in drawer via hamburger. `HubNavStrip.tsx` and `HubHeader.tsx` deleted.
+- **Hub context for tools (session 74):** `?hub=` query param appended to all tool links from sidebar. `ToolsContext` reads param client-side via `useSearchParams()`, exposes `hubSlug` to tool pages. Foundation for scoped data.
+
 **What remains:**
 
-- **Hub admin page:** `/admin/hubs` — create, edit, archive hubs. No more managing hubs only through seed scripts.
-- **Hub home screen:** Coordinator-editable home content, app links rendered as cards, pinned threads surfaced.
-- **Hub newcomer welcome:** One-time interstitial on first visit (uses `firstVisitedAt` + `welcomeBody`).
-- **Hub task system UI:** Tasks tab with lists, assignees, due dates, subtasks, templates (schema ready, UI not yet built).
 - **Check-in tools:** Digital check-in per program (phone-first), PDF export, future member self-check-in.
 - **Stakeholder names visibility:** Whether certain stakeholders should see participant names (not just headcount) is a privacy question deferred until a real use case requires it.
+- **Tool home screen cards with live context:** App links on hub home could surface tool-specific counts ("3 new registrations") — needs per-tool API endpoints.
+- **Hub-scoped tool data:** Tools linked from multiple hubs can filter by `hubSlug` context — foundation laid, filtering logic not yet implemented.
+
+---
+
+## The Hub and Tools Model
+
+The conceptual architecture for how hubs and tools relate is documented in **`RIM_Hub_Model.md`**. That document describes:
+
+- The two-layer separation: hubs (team homes) vs. tools (work applications)
+- How tools are connected to hubs via app links
+- The `?hub=` context parameter and scoped data foundation
+- Access control: role-based (tools) vs. membership-based (hubs)
+- The mental model in one sentence
+
+**Claude Code: Read `RIM_Hub_Model.md` before working on any hub-to-tool integration, app link, or scoped data feature.**
 
 ---
 
@@ -198,4 +219,4 @@ This file is part of the closing ritual for any Claude Code session that touches
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org*
-*Working document · March 2026 (updated session 73)*
+*Working document · March 2026 (updated session 74)*
