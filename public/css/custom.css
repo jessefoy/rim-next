@@ -11017,60 +11017,11 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 }
 .btn--ghost:hover { background: var(--rim-bg-accent); opacity: 1; }
 
-/* ── Shared hub action buttons + legacy announcement styles ──── */
-.ann-toolbar { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-bottom: 20px; }
-.ann-compose { background: #fff; border: 1px solid #e0ddd7; border-radius: 10px; padding: 24px; margin-bottom: 24px; }
-.ann-compose__title { font-family: var(--font-serif); font-size: 18px; font-weight: 400; color: #2d3f47; margin: 0 0 20px; }
-.ann-priority-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
-.ann-priority-pill { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1.5px solid var(--rim-rule); background: #fff; color: var(--rim-text-muted); transition: all 0.15s; }
-.ann-priority-pill--active-NORMAL { border-color: var(--rim-mid); background: var(--rim-mid); color: #fff; }
-.ann-priority-pill--active-IMPORTANT { border-color: #c98a1a; background: #fdf3de; color: #7a5210; }
-.ann-priority-pill--active-URGENT { border-color: #b04a3a; background: #fdeae7; color: #7a2a1a; }
-/* Priority segmented toggle (priority-row / priority-btn used by HubAnnouncementsClient) */
-.priority-row { display: flex; gap: 0; border: 1px solid #e0ddd7; border-radius: 6px; overflow: hidden; }
-.priority-btn { padding: 7px 16px; font-size: 13px; font-weight: 500; background: #fff; color: #6b6059; border: none; border-right: 1px solid #e0ddd7; cursor: pointer; font-family: var(--font-sans); line-height: 1; transition: background 0.15s, color 0.15s; }
-.priority-btn:last-child { border-right: none; }
-.priority-btn.on { background: #2d3f47; color: #fff; }
-.priority-btn--imp.on { background: #fdf0d4; color: #b07a18; }
-.priority-btn--urg.on { background: #f5e0d8; color: #c0472a; }
-.ann-list { display: flex; flex-direction: column; gap: 0; }
-.ann-item { background: #fff; border: 1px solid var(--rim-rule); border-radius: 0; padding: 20px 22px; border-bottom: none; }
-.ann-item:first-child { border-radius: 8px 8px 0 0; }
-.ann-item:last-child { border-radius: 0 0 8px 8px; border-bottom: 1px solid var(--rim-rule); }
-.ann-item:only-child { border-radius: 8px; border-bottom: 1px solid var(--rim-rule); }
-.ann-item--imp { border-left: 3px solid #c98a1a; }
-.ann-item--urg { border-left: 3px solid #b04a3a; }
-.ann-item__header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
-.ann-item__title { font-size: 16px; font-weight: 500; font-family: var(--font-serif); color: var(--rim-text); flex: 1; }
-.ann-priority-badge { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
-.ann-priority-badge--NORMAL { display: none; }
-.ann-priority-badge--IMPORTANT { background: #fdf3de; color: #7a5210; }
-.ann-priority-badge--URGENT { background: #fdeae7; color: #7a2a1a; }
-.ann-item__body { font-size: 15px; color: var(--rim-text); line-height: 1.6; white-space: pre-wrap; margin-bottom: 12px; }
-.ann-item__footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
-.ann-item__meta { font-size: 12px; color: var(--rim-text-muted); }
-.ann-item__actions { display: flex; gap: 8px; align-items: center; }
-.ann-item__discussion { font-size: 13px; color: var(--rim-mid); text-decoration: none; }
-.ann-item__discussion:hover { text-decoration: underline; }
-.ann-item__discussion--prompt { font-style: italic; color: var(--rim-text-muted); }
+/* ── Shared hub action buttons ────────────────────────────────── */
 .hub-action-btn { padding: 5px 12px; border: 1.5px solid var(--rim-rule); border-radius: 5px; background: #fff; font-size: 13px; font-weight: 500; color: var(--rim-text); cursor: pointer; white-space: nowrap; }
 .hub-action-btn:hover { border-color: var(--rim-mid); color: var(--rim-mid); }
 .hub-action-btn--del { border-color: #e0b4b4; color: #c44; }
 .hub-action-btn--del:hover { background: #fff0f0; }
-.ann-archived-section { margin-top: 32px; }
-.ann-archived-section__header { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--rim-text-muted); margin-bottom: 12px; }
-.ann-item--archived .ann-item__title { opacity: 0.6; }
-.ann-item__title-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
-.ann-item__disc-link { font-size: 13px; color: var(--rim-mid); text-decoration: none; }
-.ann-item__disc-link:hover { text-decoration: underline; }
-.ann-item__disc-prompt { font-size: 13px; color: var(--rim-text-muted); font-style: italic; text-decoration: none; }
-.ann-item__disc-prompt:hover { text-decoration: underline; color: var(--rim-mid); }
-.ann-coord { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.ann-archive-link { font-size: 13px; color: var(--rim-text-muted); margin-top: 20px; cursor: pointer; }
-.ann-archive-link:hover { color: var(--rim-mid); text-decoration: underline; }
-.pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
-.pill--important { background: #fdf3de; color: #7a5210; }
-.pill--urgent { background: #fdeae7; color: #7a2a1a; }
 
 /* ── Documents (hub-doc-) ─────────────────────────────────────── */
 .hub-doc-container { max-width: 680px; }
@@ -11188,8 +11139,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 
 /* ── Hub tabs — tablet responsive ──────────────────────────── */
 @media (max-width: 768px) {
-  .ann-compose, .hub-conv-compose, .hub-doc-add-form { padding: 20px; }
-  .ann-item { padding: 16px 18px; }
+  .hub-conv-compose, .hub-doc-add-form { padding: 20px; }
   .hub-conv-item { padding: 14px 16px; }
   .hub-conv-post { padding: 14px 16px; }
   .hub-doc-item { padding: 12px 14px; }
@@ -11210,24 +11160,16 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   .hub-action-btn { padding: 10px 14px; min-height: 44px; font-size: 14px; box-sizing: border-box; }
 
   /* Compose forms: tighter padding on narrow viewports */
-  .ann-compose, .hub-conv-compose, .hub-doc-add-form { padding: 16px; }
-  .ann-compose__title, .hub-conv-compose__title, .add-doc-form__title { font-size: 16px; }
+  .hub-conv-compose, .hub-doc-add-form { padding: 16px; }
+  .hub-conv-compose__title, .add-doc-form__title { font-size: 16px; }
 
   /* Form actions: stack on phone */
   .form-actions { flex-direction: column; align-items: stretch; }
   .form-actions .btn,
   .form-actions .btn--ghost { width: 100%; justify-content: center; text-align: center; }
 
-  /* Priority buttons: taller */
-  .priority-btn { padding: 12px 14px; min-height: 44px; font-size: 14px; }
+  /* Conversations — pills */
   .hub-conv-pill { padding: 12px 16px; min-height: 44px; font-size: 14px; }
-
-  /* Announcements */
-  .ann-item { padding: 16px 14px; }
-  .ann-item__footer { flex-direction: column; align-items: flex-start; gap: 10px; }
-  .ann-coord { display: flex; flex-wrap: wrap; gap: 8px; }
-  .ann-item__title { font-size: 15px; }
-  .ann-archive-link { padding: 12px 0; min-height: 44px; display: flex; align-items: center; }
 
   /* Conversations — toolbar */
   .hub-conv-toolbar { flex-wrap: wrap; gap: 10px; }
@@ -13365,7 +13307,6 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .hub-conv-empty-state__title,
 .hub-add-session-form__title,
 .hub-home__greeting,
-.ann-compose__title,
 .add-doc-form__title,
 .hub-conv-compose__title, .hub-conv-thread-hdr__title,
 .ps-form__title, .ps-section__title, .ps-done__title,
@@ -13388,7 +13329,6 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .hub-detail__name,
 .hub-thread-card__title,
 .hub-alert-item__title,
-.ann-item__title,
 .hub-conv-item__title,
 .db2-upcoming__title,
 .db2-hub-card__name,
@@ -16819,18 +16759,7 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 /* Callout block support in program descriptions */
 .prog-description [data-callout] { background: #faf6f0; border-left: 3px solid #c8a060; padding: 16px 20px; margin: 1.6em 0; border-radius: 4px; font-size: 16px; }
 
-/* ── Content Output: announcement (ann-body) ─────────────────────────────── */
-/* Clear, direct team messages. Prose with lists when needed. */
-.ann-item__body { font-family: var(--font-sans); font-size: 15px; color: var(--rim-text); line-height: 1.6; }
-.ann-item__body p { margin: 0 0 0.7em; }
-.ann-item__body p:last-child { margin-bottom: 0; }
-.ann-item__body ul, .ann-item__body ol { margin: 0 0 0.7em 1.4em; padding: 0; }
-.ann-item__body li { margin: 0.2em 0; }
-.ann-item__body a { color: var(--rim-blue); text-decoration: none; }
-.ann-item__body a:hover { text-decoration: underline; }
-.ann-item__body strong { font-weight: 600; }
-
-/* ── Content Output: conversation (cv-body) ──────────────────────────────── */
+/* ── Content Output: conversation ─────────────────────────────────────────── */
 /* Conversational. Minimal. Thoughtful message feel. */
 .hub-conv-post__body { font-family: var(--font-sans); font-size: 15px; color: var(--rim-text); line-height: 1.6; }
 .hub-conv-post__body p { margin: 0 0 0.7em; }

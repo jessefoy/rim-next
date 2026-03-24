@@ -4,41 +4,18 @@ import { useState } from "react";
 
 const ROLE_GROUPS = [
   {
-    label: "System Access",
-    roles: ["ADMIN", "REGISTRAR", "TEACHER", "SUPPORT"],
-  },
-  {
-    label: "Volunteer Teams",
-    roles: [
-      "HOST", "HOST_MANAGER", "VOLUNTEER_COORDINATOR", "NEWSLETTER",
-      "GREETER", "AV_TEAM", "HOUSEKEEPING", "PLANT_CARE",
-      "SANGHA_CARE", "KM_SUPPORT", "SILENT_MEDITATION",
-    ],
-  },
-  {
-    label: "Governance",
-    roles: ["BOARD", "TEACHER_COUNCIL"],
+    label: "System Roles",
+    roles: ["ADMIN", "REGISTRAR", "TEACHER", "SUPPORT", "HOST", "HOST_MANAGER"],
   },
 ];
 
 const ROLE_DESCRIPTIONS: Record<string, string> = {
-  HOST:                  "Google Meet host team — access to Host Hub (schedule, sub board, threads)",
-  HOST_MANAGER:          "Manages host schedule and assignments — full Hub read/write; can also be on rotation",
-  REGISTRAR:             "View and manage registrations, programs, and member profiles",
-  ADMIN:                 "Full access — members, registrations, and all volunteer areas",
-  TEACHER:               "Course Hub access — manages courses and lessons",
-  SUPPORT:               "Support Inbox — shared inbox, thread assignment, reply, internal notes",
-  VOLUNTEER_COORDINATOR: "Coordinates volunteer scheduling and onboarding",
-  NEWSLETTER:            "Creates and sends the community newsletter",
-  GREETER:               "Welcomes newcomers and supports in-person arrivals",
-  AV_TEAM:               "Manages audio/visual setup for in-person and hybrid sessions",
-  HOUSEKEEPING:          "Maintains the physical space (cleaning, setup/teardown)",
-  PLANT_CARE:            "Cares for the center's plants and garden",
-  SANGHA_CARE:           "Reaches out to members who may need support",
-  KM_SUPPORT:            "Facilitates Kalyana Mitta (spiritual friendship) groups",
-  SILENT_MEDITATION:     "Supports the silent meditation program",
-  BOARD:                 "Governance board member",
-  TEACHER_COUNCIL:       "Teacher council member",
+  ADMIN:        "Full access — members, registrations, and all volunteer areas",
+  REGISTRAR:    "View and manage registrations, programs, and member profiles",
+  TEACHER:      "Course Manager tool — manages courses and lessons",
+  SUPPORT:      "Support Inbox tool — shared inbox, thread assignment, reply, internal notes",
+  HOST:         "Host Schedule tool — host sessions, claim substitutions",
+  HOST_MANAGER: "Host Schedule tool + manages schedule and assignments",
 };
 
 interface Props {

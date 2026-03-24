@@ -151,24 +151,12 @@ model User {
 }
 
 enum Role {
-  HOST                 // Zoom host rotation — access to full host hub; can host sessions + claim subs
-  HOST_MANAGER         // manages host schedule and community; full hub read/write; can also be on rotation
-  REGISTRAR            // manages program registrations + Sanity Studio access (no hub access)
+  HOST                 // Zoom host rotation — access to host hub; can host sessions + claim subs
+  HOST_MANAGER         // manages host schedule and community; full hub read/write
+  REGISTRAR            // manages program registrations
   ADMIN                // full access
-  TEACHER              // teacher hub access — manages courses and lessons
+  TEACHER              // course/lesson management via Course Manager tool
   SUPPORT              // support inbox — reads/replies to support@rootedinmindfulness.org
-  // Volunteer team roles — organizational record; hub access driven by HubMember table
-  VOLUNTEER_COORDINATOR
-  NEWSLETTER
-  GREETER
-  AV_TEAM
-  HOUSEKEEPING
-  PLANT_CARE
-  SANGHA_CARE
-  KM_SUPPORT
-  SILENT_MEDITATION
-  BOARD
-  TEACHER_COUNCIL
 }
 
 enum MemberStatus {
