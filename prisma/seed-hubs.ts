@@ -14,7 +14,7 @@ const db = new PrismaClient();
 // created via the admin UI at /admin/hubs when teams are ready to use them.
 const hubs = [
   { slug: "host-team", name: "Hosting Hub",      type: "OPERATIONAL" as const, hasSchedule: true, status: "ACTIVE" as const },
-  { slug: "courses",   name: "Teaching Hub",     type: "OPERATIONAL" as const, status: "ACTIVE" as const },
+  { slug: "courses",   name: "Course Hub",       type: "OPERATIONAL" as const, status: "ACTIVE" as const },
   { slug: "registrar", name: "Registration Hub", type: "OPERATIONAL" as const, status: "ACTIVE" as const, description: "Program registration management and participant support." },
   { slug: "support",   name: "Support Hub",  type: "OPERATIONAL" as const, status: "ACTIVE" as const, description: "Shared inbox for support@rootedinmindfulness.org." },
 ];

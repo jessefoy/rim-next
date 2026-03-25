@@ -10,7 +10,7 @@ const db = new PrismaClient();
 
 const updates = [
   { slug: "host-team", name: "Hosting Hub" },
-  { slug: "courses",   name: "Teaching Hub" },
+  { slug: "courses",   name: "Course Hub" },
   { slug: "registrar", name: "Registration Hub" },
   // "support" is already "Support Hub"
 ];
