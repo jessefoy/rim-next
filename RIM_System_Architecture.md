@@ -221,6 +221,18 @@ The complete architecture for how hubs and tools relate is documented in **`RIM_
 
 ---
 
+## Video Conferencing — LiveKit
+
+Virtual and hybrid programs use **LiveKit Cloud** (Ship tier) for video conferencing, fully replacing Google Meet as of session 76.
+
+**How it works:** Each program with `programFormat = "virtual"` or `"hybrid"` has a `livekitRoom` field (set to the program slug). When a member clicks "Join" on the dashboard, they're taken to `/session/{slug}` — a dedicated full-page video room. The token API (`/api/livekit/token`) generates a JWT with the member's name and identity. If the member is the assigned host (via `HostAssignment`), the token includes `roomAdmin: true` — granting mute, remove, and end-session controls automatically.
+
+**Key files:** `lib/livekit.ts` (server SDK), `app/api/livekit/token/route.ts`, `app/api/livekit/end-session/route.ts`, `components/VideoRoom.tsx`, `app/session/[slug]/page.tsx`.
+
+**No external accounts needed.** Members and hosts join using only their RIM login. No Google accounts, no Zoom accounts, no app downloads. The video room runs in the browser via WebRTC.
+
+**Environment variables:** `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `NEXT_PUBLIC_LIVEKIT_URL` (all set in Vercel).
+
 ## Naming
 
 The system of record for member data is called the **Member Registry**. This is the preferred term in code comments, documentation, and conversation. Avoid "CRM," "CMS," "database," or "People Hub" when referring to this system.
@@ -232,4 +244,4 @@ This file is part of the closing ritual for any Claude Code session that touches
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org*
-*Working document · March 2026 (updated session 75)*
+*Working document · March 2026 (updated session 76)*
