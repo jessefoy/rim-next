@@ -10829,14 +10829,14 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 }
 .vs-room {
   flex: 1;
-  display: flex;
-  align-items: stretch;
   min-height: 0;
+  position: relative;
 }
 .vs-room .vr-container {
-  flex: 1;
-  min-height: 0;
+  position: absolute;
+  inset: 0;
   border-radius: 0;
+  min-height: auto;
 }
 .vs-loading {
   flex: 1;
