@@ -9929,6 +9929,9 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   font-family: var(--font-sans);
 }
 .hub-panel__close:hover { color: var(--rim-text); }
+/* Detail card flush inside slide-in panel */
+.hub-panel .hub-detail { margin-top: 0; border: none; border-radius: 0; box-shadow: none; padding: 0; }
+.hub-panel .hub-detail__name { font-size: 20px; }
 .hub-panel__program { font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--rim-text-muted); margin: 0 0 6px; }
 .hub-panel__date { font-size: 20px; font-weight: 400; font-family: var(--font-serif); color: var(--rim-text); margin: 0 0 16px; }
 .hub-panel__status { margin-bottom: 16px; }
@@ -10280,7 +10283,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   border-bottom: 1px solid #e8e5e0;
 }
 .hub-cal__cell {
-  min-height: 96px;
+  min-height: 88px;
   background: #fff;
   border: 1px solid #f0ede8;
   padding: 8px 9px;
@@ -10312,18 +10315,18 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   margin-bottom: 5px;
 }
 
-/* Event chips — left-stripe style */
+/* Event chips — left-stripe style (compact for secondary calendar view) */
 .hub-cal__event {
   position: relative;
-  border-radius: 6px;
-  padding: 5px 8px 5px 10px;
-  margin-bottom: 4px;
+  border-radius: 5px;
+  padding: 3px 7px 3px 9px;
+  margin-bottom: 3px;
   cursor: pointer;
   border: none;
   border-left: 3.5px solid;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  line-height: 1.3;
+  line-height: 1.25;
   overflow: hidden;
   transition: background 0.12s;
 }
@@ -10594,13 +10597,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 /* (dead conversation rooms/thread card/avatar/empty state CSS removed — session 76) */
 
 /* ── Responsive additions for new classes ── */
-@media (max-width: 640px) {
-  .hub-schedule__filter-row { flex-direction: column; align-items: flex-start; }
-  .hub-schedule__view-toggle { align-self: flex-end; }
-  .hub-schedule__legend { flex-wrap: wrap; gap: 8px; }
-  .hub-list__row { padding: 12px 12px; }
-  /* Calendar uses horizontal scroll below 560px — no cell shrinking needed */
-}
+/* (old 640px responsive block removed — breakpoint now 560px, defined below mini-cal) */
 
 /* (hub-cal override removed — display:block set in main definition above) */
 
@@ -11095,6 +11092,15 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 }
 .hub-lv__card-main:hover { background: #fdfcfb; }
 
+.hub-lv__check {
+  width: 16px;
+  height: 16px;
+  accent-color: #2d3f47;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.hub-lv__card--selected { border-color: #6a8fa0; background: #f5f8fa; }
 .hub-lv__left { flex: 1; min-width: 0; }
 .hub-lv__title {
   font-family: var(--font-serif);
@@ -11304,24 +11310,20 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 
 /* ── Mobile mini-calendar + agenda view ─────────────────────────── */
 
-/* Desktop shows the full grid; mobile shows the mini-cal */
-.hub-cal-mobile { display: none; }
-.hub-cal-wrap--desktop { display: block; }
-
-@media (max-width: 640px) {
-  .hub-cal-wrap--desktop { display: none; }
-  .hub-cal-mobile { display: block; }
+/* Mini-cal is always visible (primary navigation). Full grid calendar is opt-in. */
+@media (max-width: 560px) {
+  .hub-cal-wrap { display: none !important; } /* hide full grid on small screens */
+  .hub-schedule__view-toggle { display: none; }
   .hub-schedule__filter-row { flex-direction: column; align-items: flex-start; }
-  .hub-schedule__view-toggle { display: none; } /* month/list toggle not needed on mobile */
 }
 
-/* Mini-calendar grid */
+/* Mini-calendar grid (always visible — primary date navigation) */
 .hub-mini-cal {
   background: #fff;
   border: 1px solid #e0ddd7;
+  margin-bottom: 20px;
   border-radius: 10px;
   overflow: hidden;
-  margin-bottom: 0;
 }
 .hub-mini-cal__header {
   display: grid;

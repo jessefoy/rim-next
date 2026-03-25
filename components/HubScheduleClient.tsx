@@ -341,9 +341,7 @@ export default function HubScheduleClient({
   apiBase = "/api/host",
 }: Props) {
   const [sessions, setSessions] = useState<Session[]>(initialSessions);
-  const [view, setView] = useState<"calendar" | "list">(() =>
-    typeof window !== "undefined" && window.innerWidth < 640 ? "list" : "calendar"
-  );
+  const [view, setView] = useState<"list" | "calendar">("list");
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
   const [loading, setLoading] = useState(false);
@@ -559,10 +557,20 @@ export default function HubScheduleClient({
     return result;
   }
 
+  // Click a mini-cal day → scroll the card list to that day
+  function scrollToDay(day: number) {
+    setAgendaDay(day);
+    setSelected(null);
+    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    setTimeout(() => {
+      document.querySelector(`[data-date="${dateStr}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
+  }
+
   return (
     <div className="hub-schedule">
 
-      {/* ── Row 1: Filter pills + Calendar/List toggle ── */}
+      {/* ── Row 1: Filter pills + Calendar toggle ── */}
       <div className="hub-schedule__filter-row">
         <div className="hub-schedule__filters">
           {(["all", "mine", "action"] as const).map((f) => (
@@ -577,21 +585,21 @@ export default function HubScheduleClient({
         </div>
         <div className="hub-schedule__view-toggle">
           <button
-            className={`hub-schedule__view-btn${view === "calendar" ? " hub-schedule__view-btn--active" : ""}`}
-            onClick={() => setView("calendar")}
-          >
-            Calendar
-          </button>
-          <button
             className={`hub-schedule__view-btn${view === "list" ? " hub-schedule__view-btn--active" : ""}`}
             onClick={() => setView("list")}
           >
             List
           </button>
+          <button
+            className={`hub-schedule__view-btn${view === "calendar" ? " hub-schedule__view-btn--active" : ""}`}
+            onClick={() => setView("calendar")}
+          >
+            Calendar
+          </button>
         </div>
       </div>
 
-      {/* ── Row 2: Month navigation ── */}
+      {/* ── Month navigation ── */}
       <div className="hub-schedule__month-nav">
         <button className="hub-schedule__nav-btn" onClick={prevMonth} aria-label="Previous month">←</button>
         <div className="hub-schedule__month-center">
@@ -605,145 +613,42 @@ export default function HubScheduleClient({
 
       {loading && <div className="hub-schedule__loading">Loading…</div>}
 
-      {/* ── MOBILE: Mini-calendar + agenda ── */}
+      {/* ── Mini-calendar (ALWAYS visible — primary date navigation) ── */}
       {!loading && (
-        <div className="hub-cal-mobile">
-          <div className="hub-mini-cal">
-            <div className="hub-mini-cal__header">
-              {DAYS.map((d) => <div key={d} className="hub-mini-cal__day-label">{d.charAt(0)}</div>)}
-            </div>
-            <div className="hub-mini-cal__grid">
-              {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-                <div key={`memp-${i}`} className="hub-mini-cal__cell hub-mini-cal__cell--empty" />
-              ))}
-              {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
-                const dots = dotsForDay(day);
-                const isSelected = agendaDay === day;
-                const isTodayDay = isToday(day);
-                return (
-                  <div
-                    key={day}
-                    className={`hub-mini-cal__cell${isSelected ? " hub-mini-cal__cell--selected" : ""}${isTodayDay && !isSelected ? " hub-mini-cal__cell--today" : ""}`}
-                    onClick={() => { setAgendaDay(day); setSelected(null); }}
-                  >
-                    <span className="hub-mini-cal__num">{day}</span>
-                    {dots.length > 0 && (
-                      <div className="hub-mini-cal__dots">
-                        {dots.map((type) => (
-                          <span key={type} className={`hub-mini-cal__dot hub-mini-cal__dot--${type}`} />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+        <div className="hub-mini-cal">
+          <div className="hub-mini-cal__header">
+            {DAYS.map((d) => <div key={d} className="hub-mini-cal__day-label">{d.charAt(0)}</div>)}
           </div>
-
-          {/* Agenda for selected day */}
-          <div className="hub-agenda">
-            <div className="hub-agenda__title">
-              {DAYS[new Date(year, month, agendaDay).getDay()]}, {MONTHS[month]} {agendaDay}
-            </div>
-            {sessionsForDay(agendaDay).length === 0 ? (
-              <div className="hub-agenda__empty">No sessions</div>
-            ) : (
-              sessionsForDay(agendaDay).map((s) => {
-                const isMine = s.hostUserId === currentUserId;
-                const type = isMine ? "mine" : s.status === "claimed" ? "covered" : "needs";
-                const hostLabel = s.status === "unclaimed" ? "Unassigned" : isMine ? "You" : (s.hostName ?? "—");
-                return (
-                  <div key={s.id} className="hub-agenda__item" onClick={() => setSelected(selected?.id === s.id ? null : s)}>
-                    <div className={`hub-agenda__stripe hub-agenda__stripe--${type}`} />
-                    <div className="hub-agenda__body">
-                      <div className="hub-agenda__name">{s.programName}</div>
-                      <div className="hub-agenda__meta">
-                        {s.sessionDate ? fmtTime(s.sessionDate) + " · " : ""}{hostLabel}
-                      </div>
+          <div className="hub-mini-cal__grid">
+            {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+              <div key={`memp-${i}`} className="hub-mini-cal__cell hub-mini-cal__cell--empty" />
+            ))}
+            {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
+              const dots = dotsForDay(day);
+              const isSelected = agendaDay === day;
+              const isTodayDay = isToday(day);
+              return (
+                <div
+                  key={day}
+                  className={`hub-mini-cal__cell${isSelected ? " hub-mini-cal__cell--selected" : ""}${isTodayDay && !isSelected ? " hub-mini-cal__cell--today" : ""}`}
+                  onClick={() => scrollToDay(day)}
+                >
+                  <span className="hub-mini-cal__num">{day}</span>
+                  {dots.length > 0 && (
+                    <div className="hub-mini-cal__dots">
+                      {dots.map((type) => (
+                        <span key={type} className={`hub-mini-cal__dot hub-mini-cal__dot--${type}`} />
+                      ))}
                     </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          {/* Detail panel on mobile */}
-          {selected && (
-            <div className="hub-agenda__detail-wrap">
-              <SessionDetail
-                session={selected}
-                currentUserId={currentUserId}
-                currentUserName={currentUserName}
-                coordinatorName={coordinatorName}
-                onClose={() => setSelected(null)}
-                onClaim={claimSession}
-                onSubRequest={submitSubRequest}
-                onUnclaim={unclaimSession}
-                onClaimSub={claimSub}
-              />
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── CALENDAR VIEW (desktop) ── */}
-      {view === "calendar" && !loading && (
-        <div className="hub-cal-wrap hub-cal-wrap--desktop">
-          <div className="hub-cal">
-            <div className="hub-cal__grid">
-              {DAYS.map((d) => <div key={d} className="hub-cal__day-label">{d}</div>)}
-              {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-                <div key={`empty-${i}`} className="hub-cal__cell hub-cal__cell--empty" />
-              ))}
-              {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
-                const daySessions = sessionsForDay(day);
-                const visible = daySessions.slice(0, MAX_VISIBLE);
-                const overflow = daySessions.length - MAX_VISIBLE;
-                const todayCell = isToday(day);
-                return (
-                  <div key={day} className={`hub-cal__cell${todayCell ? " hub-cal__cell--today" : ""}`}>
-                    <div className={`hub-cal__day-num${todayCell ? " hub-cal__day-num--today" : ""}`}>{day}</div>
-                    {visible.map((s) => {
-                      const inMulti = multiIds.has(s.id);
-                      const isMine  = s.hostUserId === currentUserId;
-                      const evtClass = isMine ? "mine" : (s.status === "claimed" ? "covered" : "needs");
-                      const label = s.hostName
-                        ? `${s.programName} · ${shortName(s.hostName)}`
-                        : s.programName;
-                      return (
-                        <div
-                          key={s.id}
-                          className={`hub-cal__event hub-cal__event--${evtClass}${inMulti ? " hub-cal__event--selected" : ""}`}
-                          onClick={() => setSelected(s)}
-                        >
-                          {s.status !== "claimed" && (
-                            <input
-                              type="checkbox"
-                              className="hub-cal__check"
-                              checked={inMulti}
-                              onChange={() => toggleMulti(s.id, s.status)}
-                              onClick={(e) => e.stopPropagation()}
-                              aria-label={`Select ${s.programName}`}
-                            />
-                          )}
-                          <span className="hub-cal__event-label">{inMulti ? "✓ " + s.programName : label}</span>
-                        </div>
-                      );
-                    })}
-                    {overflow > 0 && (
-                      <div className="hub-cal__more" onClick={() => setView("list")}>
-                        +{overflow} more
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* ── LIST VIEW ── */}
+      {/* ── CARD LIST (primary view — always visible when view=list) ── */}
       {view === "list" && !loading && (
         <div className="hub-lv">
           {filteredSessions.length === 0 ? (
@@ -760,21 +665,39 @@ export default function HubScheduleClient({
                   if (!b.sessionDate) return -1;
                   return new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime();
                 })
-                .map((s) => {
+                .map((s, idx, arr) => {
                   const isMineRow = s.hostUserId === currentUserId;
                   const statusType = isMineRow ? "mine" : (s.status === "claimed" ? "covered" : "needs");
-                  const isExpanded = selected?.id === s.id;
                   const hostLabel = s.status === "unclaimed"
                     ? "Unassigned"
                     : isMineRow
                       ? "You"
                       : s.hostName ?? "—";
+                  const inMulti = multiIds.has(s.id);
+                  // First card for this date gets a data-date anchor for scroll-to
+                  const dateKey = s.sessionDate ? s.sessionDate.slice(0, 10) : "";
+                  const isFirstForDate = idx === 0 || (arr[idx - 1].sessionDate?.slice(0, 10) !== dateKey);
                   return (
-                    <div key={s.id} className={`hub-lv__card hub-lv__card--${statusType}${isExpanded ? " hub-lv__card--expanded" : ""}`}>
+                    <div
+                      key={s.id}
+                      className={`hub-lv__card hub-lv__card--${statusType}${inMulti ? " hub-lv__card--selected" : ""}`}
+                      {...(isFirstForDate && dateKey ? { "data-date": dateKey } : {})}
+                    >
                       <div
                         className="hub-lv__card-main"
-                        onClick={() => setSelected(isExpanded ? null : s)}
+                        onClick={() => setSelected(selected?.id === s.id ? null : s)}
                       >
+                        {/* Multi-select checkbox */}
+                        {s.status !== "claimed" && (
+                          <input
+                            type="checkbox"
+                            className="hub-lv__check"
+                            checked={inMulti}
+                            onChange={() => toggleMulti(s.id, s.status)}
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label={`Select ${s.programName}`}
+                          />
+                        )}
                         <div className="hub-lv__left">
                           <div className="hub-lv__title">{s.programName}</div>
                           <div className="hub-lv__meta">
@@ -820,21 +743,6 @@ export default function HubScheduleClient({
                           )}
                         </div>
                       </div>
-                      {isExpanded && (
-                        <div className="hub-lv__detail">
-                          <SessionDetail
-                            session={s}
-                            currentUserId={currentUserId}
-                            currentUserName={currentUserName}
-                            coordinatorName={coordinatorName}
-                            onClose={() => setSelected(null)}
-                            onClaim={claimSession}
-                            onSubRequest={submitSubRequest}
-                            onUnclaim={unclaimSession}
-                            onClaimSub={claimSub}
-                          />
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -843,7 +751,61 @@ export default function HubScheduleClient({
         </div>
       )}
 
-      {/* ── Legend (below calendar) ── */}
+      {/* ── FULL CALENDAR (secondary view — opt-in, hidden on <560px) ── */}
+      {view === "calendar" && !loading && (
+        <div className="hub-cal-wrap">
+          <div className="hub-cal">
+            <div className="hub-cal__grid">
+              {DAYS.map((d) => <div key={d} className="hub-cal__day-label">{d}</div>)}
+              {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+                <div key={`empty-${i}`} className="hub-cal__cell hub-cal__cell--empty" />
+              ))}
+              {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
+                const daySessions = sessionsForDay(day);
+                const visible = daySessions.slice(0, MAX_VISIBLE);
+                const overflow = daySessions.length - MAX_VISIBLE;
+                const todayCell = isToday(day);
+                return (
+                  <div key={day} className={`hub-cal__cell${todayCell ? " hub-cal__cell--today" : ""}`}>
+                    <div className={`hub-cal__day-num${todayCell ? " hub-cal__day-num--today" : ""}`}>{day}</div>
+                    {visible.map((s) => {
+                      const inMulti = multiIds.has(s.id);
+                      const isMine  = s.hostUserId === currentUserId;
+                      const evtClass = isMine ? "mine" : (s.status === "claimed" ? "covered" : "needs");
+                      return (
+                        <div
+                          key={s.id}
+                          className={`hub-cal__event hub-cal__event--${evtClass}${inMulti ? " hub-cal__event--selected" : ""}`}
+                          onClick={() => setSelected(s)}
+                        >
+                          {s.status !== "claimed" && (
+                            <input
+                              type="checkbox"
+                              className="hub-cal__check"
+                              checked={inMulti}
+                              onChange={() => toggleMulti(s.id, s.status)}
+                              onClick={(e) => e.stopPropagation()}
+                              aria-label={`Select ${s.programName}`}
+                            />
+                          )}
+                          <span className="hub-cal__event-label">{inMulti ? "✓ " + s.programName : s.programName}</span>
+                        </div>
+                      );
+                    })}
+                    {overflow > 0 && (
+                      <div className="hub-cal__more" onClick={() => setView("list")}>
+                        +{overflow} more
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Legend ── */}
       <div className="hub-schedule__legend">
         <div className="hub-schedule__legend-item">
           <span className="hub-legend-swatch hub-legend-swatch--mine" />
@@ -878,19 +840,25 @@ export default function HubScheduleClient({
         />
       )}
 
-      {/* ── Inline session detail — calendar view only (list view renders inline) ── */}
-      {selected && view === "calendar" && (
-        <SessionDetail
-          session={selected}
-          currentUserId={currentUserId}
-          currentUserName={currentUserName}
-          coordinatorName={coordinatorName}
-          onClose={() => setSelected(null)}
-          onClaim={claimSession}
-          onSubRequest={submitSubRequest}
-          onUnclaim={unclaimSession}
-          onClaimSub={claimSub}
-        />
+      {/* ── Slide-in detail panel ── */}
+      {selected && (
+        <>
+          <div className="hub-panel-overlay" onClick={() => setSelected(null)} />
+          <div className="hub-panel">
+            <button className="hub-panel__close" onClick={() => setSelected(null)} aria-label="Close">×</button>
+            <SessionDetail
+              session={selected}
+              currentUserId={currentUserId}
+              currentUserName={currentUserName}
+              coordinatorName={coordinatorName}
+              onClose={() => setSelected(null)}
+              onClaim={claimSession}
+              onSubRequest={submitSubRequest}
+              onUnclaim={unclaimSession}
+              onClaimSub={claimSub}
+            />
+          </div>
+        </>
       )}
 
       <Toast msg={toast} />
