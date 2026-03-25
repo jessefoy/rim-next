@@ -305,6 +305,7 @@ model Program {
   zoomLink            String?
   meetHostAccount     String?
   calendarEventId     String?
+  livekitRoom         String?   // LiveKit room name — replaces zoomLink/meetHostAccount
   startDatetime       DateTime?
   endDatetime         DateTime?
   recurrenceFreq      String?          // "DAILY" | "WEEKLY" | "MONTHLY"

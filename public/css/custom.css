@@ -10896,6 +10896,21 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .hub-doc-edit-footer__right { display: flex; gap: 8px; }
 .hub-doc-item__edit { flex-shrink: 0; }
 
+/* ── LiveKit Video Room (vr- prefix) ──────────────────────────── */
+.vr-container {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  background: #1a1a1a;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.vr-container [data-lk-theme="default"] {
+  --lk-bg: #1a1a1a;
+  --lk-control-bg: #2d2d2d;
+  --lk-border-color: #3a3a3a;
+}
+
 /* ── Members (hub-mem-) ───────────────────────────────────────── */
 .hub-mem-container { max-width: 680px; }
 .hub-mem-section { margin-bottom: 28px; }
