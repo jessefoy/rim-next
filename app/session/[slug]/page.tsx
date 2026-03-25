@@ -9,7 +9,7 @@
  * shows the video conference full-page with a clean header.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 
@@ -27,6 +27,24 @@ export default function SessionPage() {
   const [wsUrl, setWsUrl] = useState<string | null>(null);
   const [programName, setProgramName] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const pageRef = useRef<HTMLDivElement>(null);
+
+  const toggleFullscreen = useCallback(async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await pageRef.current?.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
+  }, []);
 
   useEffect(() => {
     async function init() {
@@ -109,12 +127,15 @@ export default function SessionPage() {
 
   // Ready / Connected
   return (
-    <div className="vs-page">
+    <div className="vs-page" ref={pageRef}>
       <div className="vs-header">
         <button className="vs-header__back" onClick={handleLeave}>
           ← Leave
         </button>
         <span className="vs-header__name">{programName}</span>
+        <button className="vs-header__fullscreen" onClick={toggleFullscreen} title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>
+          {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+        </button>
       </div>
       <div className="vs-room">
         {token && wsUrl && (
