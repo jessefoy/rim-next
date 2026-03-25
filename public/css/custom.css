@@ -11102,9 +11102,11 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .hub-mem-container { max-width: 680px; }
 .hub-mem-section { margin-bottom: 28px; }
 .hub-mem-section__label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--rim-text-muted); margin-bottom: 12px; }
-.hub-mem-list { border: 1px solid var(--rim-rule); border-radius: 8px; overflow: hidden; }
+.hub-mem-list { border: 1px solid var(--rim-rule); border-radius: 8px; overflow: visible; }
 .hub-mem-item { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-bottom: 1px solid var(--rim-rule); background: #fff; }
-.hub-mem-item:last-child { border-bottom: none; }
+.hub-mem-item:first-child { border-radius: 8px 8px 0 0; }
+.hub-mem-item:last-child { border-bottom: none; border-radius: 0 0 8px 8px; }
+.hub-mem-item:only-child { border-radius: 8px; }
 .hub-mem-av { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0; font-family: var(--font-sans); }
 .av--a { background: #39607a; }   /* steel */
 .av--b { background: #5c7a8c; }   /* slate */
