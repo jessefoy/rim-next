@@ -158,12 +158,13 @@ function SessionDetail({
             programId={s.programId}
             programSlug={s.programSlug}
             zoomLink={s.zoomLink}
-            className="hub-detail__meet-link"
+            meetHostAccount={s.meetHostAccount}
+            className="hub-detail__meet-btn"
           >
             Join Google Meet →
           </MeetJoinButton>
           {s.meetHostAccount && (
-            <span className="hub-detail__meet-account">Sign in as {s.meetHostAccount}</span>
+            <span className="hub-detail__meet-account">as {s.meetHostAccount}</span>
           )}
         </div>
       )}

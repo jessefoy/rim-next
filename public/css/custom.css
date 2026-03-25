@@ -11214,21 +11214,30 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .hub-detail__info-label { color: #a09a94; font-weight: 600; }
 .hub-detail__info-sep { color: #d0cdc8; margin: 0 8px; }
 
-/* Meet link */
+/* Meet link — styled as a teal pill button */
 .hub-detail__meet {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 10px;
   margin-bottom: 14px;
   flex-wrap: wrap;
 }
-.hub-detail__meet-link {
-  color: var(--rim-mid);
-  text-decoration: none;
-  font-weight: 600;
+.hub-detail__meet-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  background: #e0f0ed;
+  color: #1a6b5a;
+  border: 1px solid #b8ddd4;
+  border-radius: 6px;
   font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
 }
-.hub-detail__meet-link:hover { text-decoration: underline; }
+.hub-detail__meet-btn:hover { background: #d0e8e3; border-color: #8cc8bb; }
 .hub-detail__meet-account { font-size: 12px; color: var(--rim-text-muted); }
 
 /* Sub note */
