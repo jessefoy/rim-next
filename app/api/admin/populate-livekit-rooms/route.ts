@@ -8,6 +8,10 @@ import { db } from "@/lib/db";
  * ADMIN only. Safe to re-run (skips programs that already have a livekitRoom).
  * Delete this file after running.
  */
+export async function GET() {
+  return POST();
+}
+
 export async function POST() {
   const session = await auth();
   if (!session?.user?.roles?.includes("ADMIN")) {
