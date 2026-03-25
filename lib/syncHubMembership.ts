@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { sendHubWelcomeEmail } from "@/lib/email";
 
 /**
  * Maps system roles to the hub memberships they imply.
@@ -41,7 +42,7 @@ export async function syncHubMembership(userId: string, roles: string[]): Promis
   // Resolve slugs → hub ids in one query
   const managedHubs = await db.hub.findMany({
     where:  { slug: { in: allManagedSlugs } },
-    select: { id: true, slug: true },
+    select: { id: true, slug: true, name: true },
   });
   const hubIdBySlug  = new Map(managedHubs.map((h) => [h.slug, h.id]));
   const hubSlugById  = new Map(managedHubs.map((h) => [h.id,   h.slug]));
@@ -63,15 +64,25 @@ export async function syncHubMembership(userId: string, roles: string[]): Promis
   }
 
   // Upsert: create or update membership for every hub the user should be in
+  // Track newly created memberships so we can send welcome emails
+  const newlyCreatedSlugs: string[] = [];
+
   for (const [slug, config] of targetBySlug) {
     const hubId = hubIdBySlug.get(slug);
     if (!hubId) continue; // hub not seeded yet — skip silently
+
+    const existing = await db.hubMember.findUnique({
+      where: { hubId_userId: { hubId, userId } },
+      select: { id: true },
+    });
 
     await db.hubMember.upsert({
       where:  { hubId_userId: { hubId, userId } },
       create: { hubId, userId, position: config.position, isCoordinator: config.isCoordinator },
       update: { position: config.position, isCoordinator: config.isCoordinator },
     });
+
+    if (!existing) newlyCreatedSlugs.push(slug);
   }
 
   // Delete: remove memberships for managed hubs the user no longer qualifies for
@@ -84,6 +95,25 @@ export async function syncHubMembership(userId: string, roles: string[]): Promis
     const slug = hubSlugById.get(m.hubId);
     if (slug && !targetBySlug.has(slug)) {
       await db.hubMember.delete({ where: { id: m.id } });
+    }
+  }
+
+  // Fire-and-forget: send welcome emails for newly created hub memberships
+  if (newlyCreatedSlugs.length > 0) {
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { email: true, firstName: true },
+    });
+    if (user?.email) {
+      const newHubs = managedHubs.filter((h) => newlyCreatedSlugs.includes(h.slug));
+      for (const hub of newHubs) {
+        sendHubWelcomeEmail({
+          to: user.email,
+          firstName: user.firstName,
+          hubName: hub.name,
+          hubUrl: `https://rim-next.vercel.app/account/hub/${hub.slug}`,
+        }).catch(() => {});
+      }
     }
   }
 }

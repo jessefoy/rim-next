@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { getHubMembership, requireCoordinator } from "@/lib/hubAuth";
+import { sendHubWelcomeEmail } from "@/lib/email";
 
 // GET /api/hub/[slug]/members — list hub members
 export async function GET(
@@ -61,6 +62,16 @@ export async function POST(
     data: { hubId: hub.id, userId },
     include: { user: { select: { firstName: true, lastName: true, preferredName: true, title: true, email: true } } },
   });
+
+  // Fire-and-forget: welcome email to the new hub member
+  if (newMember.user.email) {
+    sendHubWelcomeEmail({
+      to: newMember.user.email,
+      firstName: newMember.user.firstName,
+      hubName: hub.name,
+      hubUrl: `https://rim-next.vercel.app/account/hub/${slug}`,
+    }).catch(() => {});
+  }
 
   return NextResponse.json({
     id:            newMember.id,

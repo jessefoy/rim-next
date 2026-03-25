@@ -15,11 +15,11 @@
     },
     {
       "path": "/api/cron/cleanup-incomplete-accounts",
-      "schedule": "0 15 * * *"
+      "schedule": "0 5 * * *"
     },
     {
       "path": "/api/cron/check-unassigned-hosts",
-      "schedule": "0 16 * * *"
+      "schedule": "0 13 * * *"
     },
     {
       "path": "/api/cron/seed-host-sessions",
@@ -35,7 +35,7 @@
     },
     {
       "path": "/api/cron/drip-release",
-      "schedule": "0 6 * * *"
+      "schedule": "0 12 * * *"
     },
     {
       "path": "/api/cron/task-reminders",

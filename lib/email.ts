@@ -1301,133 +1301,11 @@ export async function sendSubClaimedEmail(data: SubClaimedEmailData): Promise<vo
   });
 }
 
-export interface NewThreadEmailData {
-  to: string;
-  firstName: string | null;
-  authorName: string;
-  threadTitle: string;
-  category: "OPERATIONAL" | "CONTEMPLATION";
-  threadId: string;
-}
+// ── Removed: sendNewThreadEmail + NewThreadEmailData (session 76) ────────────
+// Superseded by sendHubConvNewThreadEmail (generic, any hub). Zero call sites.
 
-/**
- * Sent to all hosts when a new thread is posted in the Hub Conversations area.
- * HARDCODED — not in Email Template Manager.
- *
- * Why hardcoded: includes a categoryLabel derived from the OPERATIONAL/CONTEMPLATION
- * enum — a conditional rendering step the template engine doesn't support yet.
- * Migration candidate once conditional blocks are available.
- *
- * Proposed slug (if migrated): hub-new-thread
- * Variables: firstName, authorName, threadTitle, categoryLabel, threadUrl
- */
-export async function sendNewThreadEmail(data: NewThreadEmailData): Promise<void> {
-  const { to, firstName, authorName, threadTitle, category, threadId } = data;
-  const threadUrl = `${BASE_URL}/account/hub/host-team/conversations/${threadId}`;
-  const greeting = firstName ? `Hi ${firstName},` : "Hello,";
-  const categoryLabel = category === "CONTEMPLATION" ? "Contemplation" : "Operational";
-
-  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>New thread</title></head>
-<body style="margin:0;padding:0;background:#f6f3f0;font-family:'Open Sans',Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f6f3f0;padding:40px 16px;">
-<tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:4px;overflow:hidden;">
-<tr><td style="background:#135274;padding:28px 36px;"><p style="margin:0;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:#c5d8e4;font-family:'Open Sans',Arial,sans-serif;">Rooted In Mindfulness · Host Hub</p></td></tr>
-<tr><td style="padding:36px 36px 28px;">
-<p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">${greeting}</p>
-<p style="margin:0 0 8px;font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#6b6059;font-family:'Open Sans',Arial,sans-serif;">${categoryLabel}</p>
-<p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">
-  <strong>${authorName}</strong> started a new thread: <em>${threadTitle}</em>
-</p>
-<table cellpadding="0" cellspacing="0" style="margin-top:8px;">
-<tr><td style="background:#135274;border-radius:3px;padding:12px 24px;">
-<a href="${threadUrl}" style="font-family:'Open Sans',Arial,sans-serif;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">Read Thread →</a>
-</td></tr></table>
-</td></tr>
-<tr><td style="padding:20px 36px 28px;border-top:1px solid #ede9e5;">
-<p style="margin:0;font-family:'Open Sans',Arial,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">Rooted In Mindfulness · Brookfield, WI</p>
-</td></tr>
-</table></td></tr></table></body></html>`;
-
-  const text = [
-    greeting,
-    "",
-    `${authorName} started a new ${categoryLabel} thread: "${threadTitle}"`,
-    "",
-    `Read it here: ${threadUrl}`,
-    "",
-    "—",
-    "Rooted In Mindfulness · Brookfield, WI",
-  ].join("\n");
-
-  const { error } = await resend.emails.send({
-    from: FROM, to,
-    subject: `New thread: ${threadTitle}`,
-    html, text,
-  });
-  if (error) console.error("[email] sendNewThreadEmail failed:", error);
-}
-
-export interface NewReplyEmailData {
-  to: string;
-  firstName: string | null;
-  replierName: string;
-  threadTitle: string;
-  threadId: string;
-}
-
-/**
- * Sent to all thread participants when a new reply is posted.
- * HARDCODED — not in Email Template Manager.
- *
- * Why hardcoded: simple enough to migrate but was built before the template
- * system. Straightforward candidate — no conditional logic.
- *
- * Proposed slug (if migrated): hub-new-reply
- * Variables: firstName, replierName, threadTitle, threadUrl
- */
-export async function sendNewReplyEmail(data: NewReplyEmailData): Promise<void> {
-  const { to, firstName, replierName, threadTitle, threadId } = data;
-  const threadUrl = `${BASE_URL}/account/hub/host-team/conversations/${threadId}`;
-  const greeting = firstName ? `Hi ${firstName},` : "Hello,";
-
-  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>New reply</title></head>
-<body style="margin:0;padding:0;background:#f6f3f0;font-family:'Open Sans',Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f6f3f0;padding:40px 16px;">
-<tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:4px;overflow:hidden;">
-<tr><td style="background:#135274;padding:28px 36px;"><p style="margin:0;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:#c5d8e4;font-family:'Open Sans',Arial,sans-serif;">Rooted In Mindfulness · Host Hub</p></td></tr>
-<tr><td style="padding:36px 36px 28px;">
-<p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">${greeting}</p>
-<p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">
-  <strong>${replierName}</strong> replied to <em>${threadTitle}</em>.
-</p>
-<table cellpadding="0" cellspacing="0" style="margin-top:8px;">
-<tr><td style="background:#135274;border-radius:3px;padding:12px 24px;">
-<a href="${threadUrl}" style="font-family:'Open Sans',Arial,sans-serif;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">Read Thread →</a>
-</td></tr></table>
-</td></tr>
-<tr><td style="padding:20px 36px 28px;border-top:1px solid #ede9e5;">
-<p style="margin:0;font-family:'Open Sans',Arial,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">Rooted In Mindfulness · Brookfield, WI</p>
-</td></tr>
-</table></td></tr></table></body></html>`;
-
-  const text = [
-    greeting,
-    "",
-    `${replierName} replied to "${threadTitle}".`,
-    "",
-    `Read it here: ${threadUrl}`,
-    "",
-    "—",
-    "Rooted In Mindfulness · Brookfield, WI",
-  ].join("\n");
-
-  const { error } = await resend.emails.send({
-    from: FROM, to,
-    subject: `New reply on: ${threadTitle}`,
-    html, text,
-  });
-  if (error) console.error("[email] sendNewReplyEmail failed:", error);
-}
+// ── Removed: sendNewReplyEmail + NewReplyEmailData (session 76) ──────────────
+// Superseded by sendHubConvNewReplyEmail (generic, any hub). Zero call sites.
 
 // ─── Hub Conversation Notifications (generic, any hub) ───────────────────────
 
@@ -1527,6 +1405,67 @@ export async function sendHubConvNewReplyEmail(data: HubConvNewReplyEmailData): 
     html, text,
   });
   if (error) console.error("[email] sendHubConvNewReplyEmail failed:", error);
+}
+
+// ─── Hub Welcome Email ───────────────────────────────────────────────────────
+
+export interface HubWelcomeEmailData {
+  to: string;
+  firstName: string | null;
+  hubName: string;
+  hubUrl: string;
+}
+
+/**
+ * Sent when a member is added to a hub — either by a coordinator manually
+ * or automatically via syncHubMembership when a role is granted.
+ * Fire-and-forget in both call sites. Errors are logged, never thrown.
+ */
+export async function sendHubWelcomeEmail(data: HubWelcomeEmailData): Promise<void> {
+  const { to, firstName, hubName, hubUrl } = data;
+  const greeting = firstName ? `Hi ${firstName},` : "Hello,";
+
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Welcome</title></head>
+<body style="margin:0;padding:0;background:#f6f3f0;font-family:'Open Sans',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f6f3f0;padding:40px 16px;">
+<tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:4px;overflow:hidden;">
+<tr><td style="background:#135274;padding:28px 36px;"><p style="margin:0;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:#c5d8e4;font-family:'Open Sans',Arial,sans-serif;">Rooted In Mindfulness</p></td></tr>
+<tr><td style="padding:36px 36px 28px;">
+<p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">${greeting}</p>
+<p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">
+  You've been added to <strong>${hubName}</strong>. This is a shared space for your team to stay connected, share updates, and coordinate together.
+</p>
+<table cellpadding="0" cellspacing="0" style="margin-top:8px;">
+<tr><td style="background:#135274;border-radius:3px;padding:12px 24px;">
+<a href="${hubUrl}" style="font-family:'Open Sans',Arial,sans-serif;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">Visit ${hubName} →</a>
+</td></tr></table>
+</td></tr>
+<tr><td style="padding:20px 36px 28px;border-top:1px solid #ede9e5;">
+<p style="margin:0;font-family:'Open Sans',Arial,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">Rooted In Mindfulness · Brookfield, WI</p>
+</td></tr>
+</table></td></tr></table></body></html>`;
+
+  const text = [
+    greeting,
+    "",
+    `You've been added to ${hubName}. This is a shared space for your team to stay connected, share updates, and coordinate together.`,
+    "",
+    `Visit here: ${hubUrl}`,
+    "",
+    "—",
+    "Rooted In Mindfulness · Brookfield, WI",
+  ].join("\n");
+
+  try {
+    const { error } = await resend.emails.send({
+      from: FROM, to,
+      subject: `Welcome to ${hubName}`,
+      html, text,
+    });
+    if (error) console.error("[email] sendHubWelcomeEmail failed:", error);
+  } catch (e) {
+    console.error("[email] sendHubWelcomeEmail threw:", e);
+  }
 }
 
 // ─── Magic link email (authentication) ───────────────────────────────────────
@@ -1732,28 +1671,10 @@ export async function sendReturningAfterAbsenceEmail(
 
 // ─── MISSING REPORT NOTIFICATION ─────────────────────────────────────────────
 // Managed via Email Template Manager — copy lives in DB, not here.
-// Template: "missing-report-alert"
-// Sent by cron /api/cron/missing-reports at 23:00 UTC nightly.
-// One email per missing session report, to each coordinator of the host-team hub.
-
-export interface MissingReportEmailData {
-  to: string;
-  programName: string;
-  sessionDateDisplay: string; // e.g. "Thursday, March 13"
-  assignedHostName: string | null;
-  detailUrl: string; // link to coordinator history detail view
-}
-
-export async function sendMissingReportEmail(data: MissingReportEmailData): Promise<void> {
-  const { to, programName, sessionDateDisplay, assignedHostName, detailUrl } = data;
-  await sendTemplatedEmail("missing-report-alert", to, {
-    programName,
-    sessionDateDisplay,
-    assignedHostName: assignedHostName ?? "tonight's host",
-    detailUrl,
-  });
-  // Note: subject line in the template uses {{programName}} and {{sessionDateDisplay}}.
-}
+// ── Removed: sendMissingReportEmail + MissingReportEmailData (session 76) ────
+// Used "missing-report-alert" template via sendTemplatedEmail. Cron still exists
+// at /api/cron/missing-reports but was calling this with zero active callers.
+// Restore from git history if the missing-reports cron is re-enabled.
 
 // ─── Drip / Scheduled Lesson Release ─────────────────────────────────────────
 

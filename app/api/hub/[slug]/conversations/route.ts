@@ -71,26 +71,33 @@ export async function POST(
     },
   });
 
-  // Fire-and-forget: notify coordinators
+  // Notify coordinators of the new thread (awaited so it completes before
+  // the serverless function exits — the old .then() chain was fire-and-forget
+  // and could be dropped on Vercel before emails were sent).
   const authorName = session.user.name || session.user.email?.split("@")[0] || "Someone";
-  db.hubMember.findMany({
-    where: { hubId: hub.id, isCoordinator: true, userId: { not: session.user.id } },
-    include: { user: { select: { email: true, firstName: true } } },
-  }).then((coords) => {
-    for (const coord of coords) {
-      if (coord.user.email) {
-        sendHubConvNewThreadEmail({
-          to: coord.user.email,
-          firstName: coord.user.firstName,
-          authorName,
-          hubName: hub.name,
-          hubSlug: slug,
-          threadTitle: title.trim(),
-          threadId: thread.id,
-        }).catch(() => {});
-      }
-    }
-  }).catch(() => {});
+  try {
+    const coords = await db.hubMember.findMany({
+      where: { hubId: hub.id, isCoordinator: true, userId: { not: session.user.id } },
+      include: { user: { select: { email: true, firstName: true } } },
+    });
+    await Promise.allSettled(
+      coords
+        .filter((c) => c.user.email)
+        .map((c) =>
+          sendHubConvNewThreadEmail({
+            to: c.user.email!,
+            firstName: c.user.firstName,
+            authorName,
+            hubName: hub.name,
+            hubSlug: slug,
+            threadTitle: title.trim(),
+            threadId: thread.id,
+          })
+        )
+    );
+  } catch {
+    // Notification failure must never block the response
+  }
 
   return NextResponse.json(thread, { status: 201 });
 }
