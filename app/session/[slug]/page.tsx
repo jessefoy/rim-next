@@ -27,6 +27,8 @@ export default function SessionPage() {
   const [wsUrl, setWsUrl] = useState<string | null>(null);
   const [programName, setProgramName] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
+  const [isHost, setIsHost] = useState(false);
+  const [ending, setEnding] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const pageRef = useRef<HTMLDivElement>(null);
 
@@ -66,6 +68,7 @@ export default function SessionPage() {
         const data = await res.json();
         setToken(data.token);
         setWsUrl(data.wsUrl);
+        setIsHost(data.isHost ?? false);
         setProgramName(data.roomName.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()));
         setState("ready");
 
@@ -84,6 +87,19 @@ export default function SessionPage() {
   }, [slug, router]);
 
   function handleLeave() {
+    setState("left");
+  }
+
+  async function handleEndForAll() {
+    if (!confirm("End this session for all participants?")) return;
+    setEnding(true);
+    try {
+      await fetch("/api/livekit/end-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ programSlug: slug }),
+      });
+    } catch {}
     setState("left");
   }
 
@@ -133,6 +149,11 @@ export default function SessionPage() {
           ← Leave
         </button>
         <span className="vs-header__name">{programName}</span>
+        {isHost && (
+          <button className="vs-header__end" onClick={handleEndForAll} disabled={ending}>
+            {ending ? "Ending…" : "End for All"}
+          </button>
+        )}
         <button className="vs-header__fullscreen" onClick={toggleFullscreen} title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>
           {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
         </button>

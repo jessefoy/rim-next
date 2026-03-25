@@ -79,5 +79,6 @@ export async function POST(req: NextRequest) {
     token,
     roomName,
     wsUrl: process.env.NEXT_PUBLIC_LIVEKIT_URL,
+    isHost,
   });
 }

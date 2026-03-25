@@ -3,7 +3,7 @@
  * Server-only (uses API secret).
  */
 
-import { AccessToken } from "livekit-server-sdk";
+import { AccessToken, RoomServiceClient } from "livekit-server-sdk";
 
 const API_KEY = process.env.LIVEKIT_API_KEY!;
 const API_SECRET = process.env.LIVEKIT_API_SECRET!;
@@ -46,9 +46,21 @@ export async function createRoomToken(
  */
 export function roomNameForProgram(slug: string, sessionDate?: string): string {
   if (sessionDate) {
-    // Include date for specificity: "essential-dharma-study-2026-03-25"
     const d = sessionDate.slice(0, 10);
     return `${slug}-${d}`;
   }
   return slug;
+}
+
+/**
+ * End a session by deleting the LiveKit room.
+ * All participants are immediately disconnected.
+ * Requires roomAdmin permission (host/admin).
+ */
+export async function endRoom(roomName: string): Promise<void> {
+  const wsUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL!;
+  // RoomServiceClient needs the HTTP URL, not WebSocket
+  const httpUrl = wsUrl.replace("wss://", "https://");
+  const svc = new RoomServiceClient(httpUrl, API_KEY, API_SECRET);
+  await svc.deleteRoom(roomName);
 }
