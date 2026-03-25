@@ -1839,8 +1839,25 @@ Embedded video conferencing that replaces Google Meet for virtual and hybrid pro
 - **Phase 1 (foundation):** LiveKit Cloud integration, token generation API, VideoRoom component, admin test page. ✅ Complete.
 - **Phase 2 (session page):** Dedicated `/session/[slug]` page, dashboard "Join" links to it, host "End for All" button, fullscreen, session-ended screen. ✅ Complete.
 - **Phase 2 (dashboard embed):** VideoRoomEmbed replaces MeetJoinButton on the member dashboard, fullscreen toggle. Complete.
-- **Phase 3 (host integration):** Host controls, attendance tracking via LiveKit participants. Pending.
-- **Phase 4 (cleanup):** Remove Google Meet infrastructure once LiveKit covers all use cases. Pending.
+- **Phase 3 (host integration):** Emergency host step-in, end-session-for-all. ✅ Complete. Attendance tracking via LiveKit participants still pending.
+- **Phase 4 (cleanup):** Google Meet fully removed. ✅ Complete.
+
+### Emergency Host Step-In
+
+**What it does:** If the assigned host can't make it and there's no time for a normal sub request, any host-team member (HOST, HOST_MANAGER, or ADMIN) can claim host controls mid-session.
+
+**How it works:**
+1. Host-team member joins the session from the dashboard like any other member
+2. They see a green "Step in as Host" button in the session header bar
+3. They click it — brief reconnect (1-2 seconds) — they now have full host controls (mute, remove, end session)
+4. The button disappears once they have host status
+5. The system records "Emergency step-in by [name]" in the HostAssignment notes for coordinator visibility
+
+**Who sees the button:** Anyone with HOST, HOST_MANAGER, or ADMIN role who is NOT already the assigned host for that session. Regular members never see it.
+
+**Key files:** `app/api/livekit/step-in/route.ts`, `app/session/[slug]/page.tsx`
+
+🔧 **Technical notes:** The step-in API upserts the HostAssignment (@@unique on [programSlug, sessionDate]), generates a new JWT with `roomAdmin: true`, and returns it. The client cycles state to force a LiveKit reconnect with the new token. The token API returns `isHostTeam` alongside `isHost` so the session page knows whether to show the button.
 
 ### Who uses it
 
