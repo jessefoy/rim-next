@@ -47,8 +47,6 @@ interface PgProgram {
   id: string;
   name: string;
   slug: string;
-  zoomLink: string | null;
-  meetHostAccount: string | null;
   programFormat: string | null;
   startDatetime: Date | null;
   endDatetime: Date | null;
@@ -125,7 +123,7 @@ export default async function ScheduleToolPage({
         archivedAt: null,
       },
       select: {
-        id: true, name: true, slug: true, zoomLink: true, meetHostAccount: true,
+        id: true, name: true, slug: true,
         programFormat: true, startDatetime: true, endDatetime: true,
         recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true,
       },
@@ -159,8 +157,6 @@ export default async function ScheduleToolPage({
     hostName: string | null;
     subRequestId: string | null;
     subMessage: any;
-    zoomLink: string | null;
-    meetHostAccount: string | null;
     programFormat: string | null;
     programId: string | null;
   }
@@ -199,8 +195,6 @@ export default async function ScheduleToolPage({
             : null,
           subRequestId: openSub?.id ?? null,
           subMessage: openSub?.message ?? null,
-          zoomLink: p.zoomLink ?? null,
-          meetHostAccount: p.meetHostAccount ?? null,
           programFormat: p.programFormat ?? null,
           programId: p.id,
         });
@@ -215,8 +209,6 @@ export default async function ScheduleToolPage({
           hostName: null,
           subRequestId: null,
           subMessage: null,
-          zoomLink: p.zoomLink ?? null,
-          meetHostAccount: p.meetHostAccount ?? null,
           programFormat: p.programFormat ?? null,
           programId: p.id,
         });
@@ -228,8 +220,6 @@ export default async function ScheduleToolPage({
     id: p.id,
     slug: p.slug,
     name: p.name,
-    zoomLink: p.zoomLink ?? null,
-    meetHostAccount: p.meetHostAccount ?? null,
     programFormat: p.programFormat ?? null,
   }));
 

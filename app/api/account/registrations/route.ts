@@ -29,7 +29,7 @@ export async function GET() {
   const slugs = [...new Set(registrations.map((r) => r.programSlug).filter(Boolean))];
   const pgPrograms = await db.program.findMany({
     where: { slug: { in: slugs } },
-    select: { slug: true, dateText: true, locationText: true, zoomLink: true },
+    select: { slug: true, dateText: true, locationText: true },
   });
   const pgMap = Object.fromEntries(pgPrograms.map((p) => [p.slug, p]));
 
@@ -45,7 +45,6 @@ export async function GET() {
       createdAt: r.createdAt,
       dateText: pg?.dateText ?? null,
       locationText: pg?.locationText ?? null,
-      zoomLink: pg?.zoomLink ?? null,
     };
   });
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import MeetJoinButton from "@/components/MeetJoinButton";
 import RimProseEditor from "@/components/RimProseEditor";
 import { renderBlockNoteHtml, extractBlockNoteText } from "@/lib/renderRichContent";
 
@@ -16,17 +15,13 @@ interface Session {
   hostName: string | null;
   subRequestId: string | null;
   subMessage: any;
-  zoomLink: string | null;
-  meetHostAccount: string | null;
   programFormat: string | null;
 }
 
 interface Program {
-  id: string | null;  // Sanity _id
+  id: string | null;
   slug: string;
   name: string;
-  zoomLink: string | null;
-  meetHostAccount: string | null;
   programFormat: string | null;
 }
 
@@ -76,7 +71,7 @@ function shortName(full: string) {
 
 function formatLabel(fmt: string | null) {
   if (!fmt) return null;
-  if (fmt === "virtual") return "Virtual (Zoom)";
+  if (fmt === "virtual") return "Virtual";
   if (fmt === "hybrid") return "Hybrid";
   if (fmt === "in-person") return "In Person";
   return fmt;
@@ -151,23 +146,7 @@ function SessionDetail({
         ))}
       </div>
 
-      {/* Meet link */}
-      {s.zoomLink && s.programId && (
-        <div className="hub-detail__meet">
-          <MeetJoinButton
-            programId={s.programId}
-            programSlug={s.programSlug}
-            zoomLink={s.zoomLink}
-            meetHostAccount={s.meetHostAccount}
-            className="hub-detail__meet-btn"
-          >
-            Join Google Meet →
-          </MeetJoinButton>
-          {s.meetHostAccount && (
-            <span className="hub-detail__meet-account">as {s.meetHostAccount}</span>
-          )}
-        </div>
-      )}
+      {/* Video sessions are joined from the member dashboard */}
 
       {/* Sub note */}
       {s.subMessage && extractBlockNoteText(s.subMessage) && (

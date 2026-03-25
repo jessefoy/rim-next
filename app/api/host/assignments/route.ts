@@ -39,8 +39,6 @@ interface PgProgram {
   id: string;
   name: string;
   slug: string;
-  zoomLink: string | null;
-  meetHostAccount: string | null;
   programFormat: string | null;
   startDatetime: Date | null;
   endDatetime: Date | null;
@@ -136,7 +134,7 @@ export async function GET(request: Request) {
     db.program.findMany({
       where: { programFormat: { in: ["virtual", "hybrid"] }, archivedAt: null },
       select: {
-        id: true, name: true, slug: true, zoomLink: true, meetHostAccount: true,
+        id: true, name: true, slug: true,
         programFormat: true, startDatetime: true, endDatetime: true,
         recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true,
       },
@@ -186,7 +184,6 @@ export async function GET(request: Request) {
             ? (a.user.preferredName || [a.user.firstName, a.user.lastName].filter(Boolean).join(" ") || null)
             : null,
           subRequestId: openSub?.id ?? null, subMessage: openSub?.message ?? null,
-          zoomLink: p.zoomLink ?? null, meetHostAccount: p.meetHostAccount ?? null,
           programFormat: p.programFormat ?? null, programId: p.id,
         });
       } else {
@@ -196,7 +193,6 @@ export async function GET(request: Request) {
           sessionDate: shiftedDate?.toISOString() ?? null,
           status: "unclaimed", hostUserId: null, hostName: null,
           subRequestId: null, subMessage: null,
-          zoomLink: p.zoomLink ?? null, meetHostAccount: p.meetHostAccount ?? null,
           programFormat: p.programFormat ?? null, programId: p.id,
         });
       }

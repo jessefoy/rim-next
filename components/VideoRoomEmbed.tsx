@@ -42,7 +42,7 @@ export default function VideoRoomEmbed({ programSlug, programId, sessionDate, cl
       setWsUrl(data.wsUrl);
       setState("connected");
 
-      // Fire attendance tracking (same as MeetJoinButton — fire-and-forget)
+      // Fire attendance tracking (fire-and-forget)
       fetch("/api/attendance/join", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -282,7 +282,7 @@ const sections = [
       ul([
         "Members can only see series they have access to — there's no 'peek inside' for restricted series",
         "Lesson pages are also access-controlled — a direct link to a lesson requires access to a series that contains that lesson",
-        "Google Meet links are on the dashboard, not on lesson or series pages — this is intentional",
+        "Video session links are on the dashboard, not on lesson or series pages — this is intentional",
         "Members are not automatically unenrolled from a series if their program registration is cancelled — access is additive, not revoked",
       ])
     ),

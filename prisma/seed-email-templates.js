@@ -56,13 +56,13 @@ Rooted In Mindfulness · rootedinmindfulness.org`,
     slug: "host-role-assigned",
     name: "Host Role Assigned",
     description: "Sent when a member is granted the HOST or HOST_MANAGER role.",
-    subject: "You've been added as a Meet host — Rooted In Mindfulness",
+    subject: "You've been added as a session host — Rooted In Mindfulness",
     variables: ["firstName", "hostAreaUrl", "manualUrl"],
     body: `Hi {{firstName}},
 
-You've been added as a **Meet host** for Rooted In Mindfulness. Thank you for taking this on.
+You've been added as a **session host** for Rooted In Mindfulness. Thank you for taking this on.
 
-As a host, you'll be assigned to specific sessions and will open the Google Meet space for participants. Your assignments, sub requests, and host conversations all live in the Host Hub.
+As a host, you'll be assigned to specific sessions and will open the virtual space for participants. Your assignments, sub requests, and host conversations all live in the Host Hub.
 
 **[Go to your Host Hub →]({{hostAreaUrl}})**
 
@@ -137,7 +137,7 @@ Rooted In Mindfulness · rootedinmindfulness.org`,
     name: "Session Reminder",
     description: "Pre-session reminder sent by the nightly cron to registered participants.",
     subject: "A reminder — {{programTitle}}",
-    variables: ["firstName", "programTitle", "dateText", "locationText", "zoomLink", "reminderMessage"],
+    variables: ["firstName", "programTitle", "dateText", "locationText", "reminderMessage", "dashboardUrl"],
     body: `Hi {{firstName}},
 
 This is a friendly reminder about **{{programTitle}}**, coming up soon. We look forward to practicing together.

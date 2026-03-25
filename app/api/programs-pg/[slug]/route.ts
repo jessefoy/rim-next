@@ -8,7 +8,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { centralToUtc } from "@/lib/timezone";
-import { updateCalendarEvent, deleteCalendarEvent } from "@/lib/google-meet";
 
 export async function GET(
   _req: NextRequest,
@@ -107,9 +106,6 @@ export async function PUT(
   if (body.venue !== undefined) data.venue = body.venue;
   if (body.locationText !== undefined) data.locationText = body.locationText || null;
   if (body.locationLink !== undefined) data.locationLink = body.locationLink || null;
-  if (body.zoomLink !== undefined) data.zoomLink = body.zoomLink || null;
-  if (body.meetHostAccount !== undefined) data.meetHostAccount = body.meetHostAccount || null;
-  if (body.calendarEventId !== undefined) data.calendarEventId = body.calendarEventId || null;
   if (body.startDatetime !== undefined) data.startDatetime = centralToUtc(body.startDatetime);
   if (body.endDatetime !== undefined) data.endDatetime = centralToUtc(body.endDatetime);
   if (body.recurrenceFreq !== undefined) data.recurrenceFreq = body.recurrenceFreq || null;
@@ -138,53 +134,10 @@ export async function PUT(
   if (body.removeFromProgramList !== undefined) data.removeFromProgramList = body.removeFromProgramList;
   if (body.hideFromProgramPageList !== undefined) data.hideFromProgramPageList = body.hideFromProgramPageList;
 
-  // Check if we need to sync Google Calendar or clean up Meet link
-  const dateChanged =
-    (body.startDatetime !== undefined && body.startDatetime !== (existing.startDatetime?.toISOString() ?? null)) ||
-    (body.endDatetime !== undefined && body.endDatetime !== (existing.endDatetime?.toISOString() ?? null)) ||
-    (body.name !== undefined && body.name !== existing.name);
-
-  const switchedAwayFromVirtual =
-    body.programFormat !== undefined &&
-    body.programFormat !== "virtual" &&
-    body.programFormat !== "hybrid" &&
-    (existing.programFormat === "virtual" || existing.programFormat === "hybrid");
-
-  // If switching away from virtual, clean up Meet link
-  if (switchedAwayFromVirtual && existing.calendarEventId && existing.meetHostAccount) {
-    try {
-      await deleteCalendarEvent({
-        calendarEventId: existing.calendarEventId,
-        roomEmail: existing.meetHostAccount,
-      });
-    } catch (err) {
-      console.error("[programs-pg PUT] deleteCalendarEvent (format switch) error:", err);
-    }
-    data.zoomLink = null;
-    data.meetHostAccount = null;
-    data.calendarEventId = null;
-  }
-
   const updated = await db.program.update({
     where: { slug },
     data,
   });
-
-  // If dates or name changed and a calendar event exists, sync it
-  if (dateChanged && updated.calendarEventId && updated.meetHostAccount && updated.startDatetime) {
-    try {
-      const endDt = updated.endDatetime ?? new Date(updated.startDatetime.getTime() + 60 * 60 * 1000);
-      await updateCalendarEvent({
-        calendarEventId: updated.calendarEventId,
-        roomEmail: updated.meetHostAccount,
-        title: updated.name,
-        startDatetime: updated.startDatetime.toISOString(),
-        endDatetime: endDt.toISOString(),
-      });
-    } catch (err) {
-      console.error("[programs-pg PUT] updateCalendarEvent error:", err);
-    }
-  }
 
   return NextResponse.json(updated);
 }

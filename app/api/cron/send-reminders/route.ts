@@ -62,7 +62,6 @@ export async function GET(req: NextRequest) {
         }),
         locationText: loc.emailText,
         locationLink: loc.link,
-        zoomLink:     program.zoomLink,
         reminderMessage: program.reminderMessage,
       });
       await db.registration.update({

@@ -614,7 +614,6 @@ export interface ReminderEmailData {
   dateText?: string | null;
   locationText?: string | null;
   locationLink?: string | null;
-  zoomLink?: string | null;
   // Accepts either Tiptap JSON (from Postgres) or Portable Text array (legacy).
   // Tiptap JSON has { type: "doc", content: [...] }. Portable Text is an array of blocks.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -648,7 +647,6 @@ export async function sendReminderEmail(data: ReminderEmailData): Promise<void> 
     programTitle:    data.programTitle,
     dateText:        data.dateText ?? "",
     locationText,
-    zoomLink:        data.zoomLink ?? "",
     reminderMessage,
     dashboardUrl:    `${BASE_URL}/account/dashboard`,
   });

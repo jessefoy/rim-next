@@ -21,7 +21,6 @@ interface VirtualProgram {
   recurrenceInterval: number | null;
   recurrenceDays: string[];
   recurrenceCount: number | null;
-  zoomLink: string | null;
   programFormat: string;
 }
 
@@ -147,7 +146,6 @@ export default async function DashboardPage() {
           recurrenceInterval: true,
           recurrenceDays: true,
           recurrenceCount: true,
-          zoomLink: true,
           programFormat: true,
         },
         orderBy: { sortOrder: "asc" },
@@ -346,7 +344,7 @@ export default async function DashboardPage() {
                   </div>
                   <div className="today-row__right">
                     {s.isRegistered && <span className="today-registered">Registered</span>}
-                    {(s.zoomLink || s.programFormat === "virtual" || s.programFormat === "hybrid") && (
+                    {(s.programFormat === "virtual" || s.programFormat === "hybrid") && (
                       <VideoRoomEmbed
                         programId={s._id}
                         programSlug={s.slug}

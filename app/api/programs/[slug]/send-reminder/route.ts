@@ -53,7 +53,6 @@ export async function POST(
       }),
       locationText: loc.emailText,
       locationLink: loc.link,
-      zoomLink:     pgProgram?.zoomLink,
       reminderMessage: pgProgram?.reminderMessage,
     });
     await db.registration.update({

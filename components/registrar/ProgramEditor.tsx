@@ -11,7 +11,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { upload } from "@vercel/blob/client";
-import CreateMeetButton from "@/components/registrar/CreateMeetButton";
 
 const RimBlockEditor = dynamic(() => import("@/components/RimBlockEditor"), { ssr: false });
 const RimProseEditor = dynamic(() => import("@/components/RimProseEditor"), { ssr: false });
@@ -48,9 +47,6 @@ export interface ProgramData {
   venue: string;
   locationText: string;
   locationLink: string;
-  zoomLink: string;
-  meetHostAccount: string;
-  calendarEventId: string;
   startDatetime: string;
   endDatetime: string;
   recurrenceFreq: string;
@@ -126,7 +122,6 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-  const [showMeetWarning, setShowMeetWarning] = useState(false);
   const [slugTouched, setSlugTouched] = useState(false);
   const [slugLocked, setSlugLocked] = useState(isEditing);
   const [uploading, setUploading] = useState(false);
@@ -247,13 +242,6 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
 
   // ── Save ─────────────────────────────────────────────────────────────────
   async function handleSave() {
-    // Guard: warn if switching away from virtual/hybrid with an active Meet
-    const wasVirtual = initialData?.programFormat === "virtual" || initialData?.programFormat === "hybrid";
-    const nowInPerson = programFormat === "in-person";
-    if (wasVirtual && nowInPerson && initialData?.zoomLink) {
-      setShowMeetWarning(true);
-      return;
-    }
     await doSave();
   }
 
@@ -622,17 +610,6 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
               </label>
             )}
 
-            {/* Google Meet section */}
-            {isVirtual && isEditing && (
-              <div className="pe-meet-section">
-                <CreateMeetButton
-                  programSlug={slug}
-                  existingLink={initialData?.zoomLink ?? null}
-                  existingHostAccount={initialData?.meetHostAccount ?? null}
-                  hasStartDatetime={!!startDatetime}
-                />
-              </div>
-            )}
           </>
         )}
 
@@ -985,37 +962,6 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
         </button>
       </div>
 
-      {/* ── Meet removal confirmation dialog ── */}
-      {showMeetWarning && (
-        <div className="pe-overlay">
-          <div className="pe-dialog">
-            <p className="pe-dialog__text">
-              This program has an active Google Meet link. Switching to In-person will delete
-              the Meet and remove the join link. Any registrants who received the join link
-              will no longer be able to use it. Continue?
-            </p>
-            <div className="pe-dialog__actions">
-              <button
-                type="button"
-                className="pe-btn"
-                onClick={() => setShowMeetWarning(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="pe-btn pe-btn--danger"
-                onClick={() => {
-                  setShowMeetWarning(false);
-                  doSave();
-                }}
-              >
-                Yes, switch to In-person
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

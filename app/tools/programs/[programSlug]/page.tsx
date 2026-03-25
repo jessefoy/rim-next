@@ -8,7 +8,6 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import Link from "next/link";
 import VolunteerTable, { SerializedRegistration } from "@/components/registrar/VolunteerTable";
-import CreateMeetButton from "@/components/registrar/CreateMeetButton";
 import type { RegistrationField } from "@/components/RegistrationForm";
 
 export const dynamic = "force-dynamic";
@@ -36,9 +35,6 @@ export default async function ProgramDetailToolPage({
         programFormat: true,
         startDatetime: true,
         endDatetime: true,
-        zoomLink: true,
-        meetHostAccount: true,
-        calendarEventId: true,
         registrationFields: true,
       },
     }),
@@ -86,17 +82,6 @@ export default async function ProgramDetailToolPage({
           <Link href="/tools/programs" className="vol-back">&larr; Programs</Link>
           <h1 className="vol-header__title">{program.name}</h1>
         </div>
-
-        {(program.programFormat === "virtual" || program.programFormat === "hybrid") && (
-          <div className="vol-meet-section">
-            <CreateMeetButton
-              programSlug={programSlug}
-              existingLink={program.zoomLink ?? null}
-              existingHostAccount={program.meetHostAccount ?? null}
-              hasStartDatetime={!!program.startDatetime}
-            />
-          </div>
-        )}
 
         <VolunteerTable
           initialRegistrations={serialized}

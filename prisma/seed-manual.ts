@@ -147,9 +147,8 @@ const sections = [
       ]),
 
       h2("Video Conferencing"),
-      p("Virtual programs use LiveKit for embedded video conferencing (replacing Google Meet). Members join directly from the dashboard — no external links, no separate accounts. Host permissions are controlled by RIM's auth system via JWT tokens."),
+      p("Virtual programs use LiveKit for embedded video conferencing. Members join directly from the dashboard — no external links, no separate accounts. Host permissions are controlled by RIM's auth system via JWT tokens."),
       p("Important: Video sessions are accessible from the member dashboard only — not in emails, not on the public program page. Members must be logged in. This protects virtual sessions and is good stewardship of dana."),
-      p("LiveKit integration status: Phase 1-2 complete (foundation + dashboard embed). Phase 3 (host controls) and Phase 4 (full Google Meet removal) are pending."),
 
       h2("Things to know"),
       ul([

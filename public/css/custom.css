@@ -3313,132 +3313,8 @@ h1, h2, h3, h4, h5, h6 {
 .vol-action-btn--resend:hover:not(:disabled) {
   border-color: var(--rim-mid); color: var(--rim-mid);
 }
+/* (vol-meet CSS removed — Google Meet replaced by LiveKit) */
 
-/* ── Google Meet section (vol-meet-) ─────────────────────────────────────── */
-
-.vol-meet-section {
-  margin-bottom: 24px;
-}
-
-.vol-meet {
-  background: #f0f4f6;
-  border-radius: 6px;
-  padding: 16px 20px;
-}
-
-.vol-meet__label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--rim-text-muted);
-  margin: 0 0 10px;
-}
-
-.vol-meet__form-row {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.vol-meet__create-btn {
-  padding: 9px 16px;
-  background: var(--rim-blue);
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  font-family: var(--font-sans);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.vol-meet__create-btn:hover { background: var(--rim-mid); }
-
-.vol-meet__cancel-btn {
-  padding: 9px 14px;
-  background: none;
-  color: var(--rim-text-muted);
-  border: 1px solid var(--rim-rule);
-  border-radius: 4px;
-  font-family: var(--font-sans);
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.vol-meet__cancel-btn:hover { border-color: var(--rim-mid); color: var(--rim-mid); }
-
-/* Remove Meet — muted red to signal a destructive action */
-.vol-meet__remove-btn {
-  padding: 5px 12px;
-  background: none;
-  border: 1px solid #d4a89a;
-  border-radius: 4px;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  color: #9e3f2e;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.vol-meet__remove-btn:hover { border-color: #9e3f2e; }
-
-/* Remove confirm button — same destructive palette, filled */
-.vol-meet__remove-confirm-btn {
-  padding: 8px 18px;
-  background: #9e3f2e;
-  border: 1px solid #9e3f2e;
-  border-radius: 4px;
-  font-family: var(--font-sans);
-  font-size: 14px;
-  color: #fff;
-  cursor: pointer;
-}
-
-.vol-meet__remove-confirm-btn:hover { background: #7d3223; border-color: #7d3223; }
-
-.vol-meet__link-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.vol-meet__link {
-  font-size: 14px;
-  color: var(--rim-blue);
-  word-break: break-all;
-}
-
-.vol-meet__link:hover { text-decoration: underline; }
-
-.vol-meet__loading {
-  font-size: 14px;
-  color: var(--rim-text-muted);
-  margin: 0;
-}
-
-.vol-meet__error {
-  margin: 8px 0 0;
-  font-size: 13px;
-  color: #c0392b;
-}
-
-.vol-meet__notice {
-  font-size: 13px;
-  color: var(--rim-text-muted);
-  margin: 0;
-}
-
-.vol-meet__confirm-text {
-  font-size: 14px;
-  color: var(--rim-text);
-  margin: 0 0 12px;
-}
-
-/* ============================================================
    ACCOUNT LAYOUT — sidebar + content shell (ac-)
    Desktop: sticky 220px left sidebar
    Mobile:  horizontal scrollable strip below main nav
@@ -7786,22 +7662,6 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   padding: 64px 0;
 }
 
-/* Also add vol-meet host account display */
-.vol-meet__host-account {
-  font-family: var(--font-sans);
-  font-size: 13px;
-  color: var(--rim-text-muted);
-  margin: 6px 0 0;
-}
-
-.vol-meet__host-account strong {
-  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-  font-size: 12px;
-  color: var(--rim-blue);
-  background: #eaf1f6;
-  padding: 1px 6px;
-  border-radius: 3px;
-}
 
 /* ── Mobile ── */
 @media (max-width: 600px) {

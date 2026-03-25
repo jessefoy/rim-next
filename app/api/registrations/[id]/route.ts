@@ -76,7 +76,6 @@ export async function PATCH(
         }) || undefined,
         locationText: loc.emailText,
         locationLink: loc.link,
-        zoomLink:     pgProgram?.zoomLink,
         reminderMessage: pgProgram?.reminderMessage,
       });
       const updated = await db.registration.update({

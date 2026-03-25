@@ -53,7 +53,7 @@ const HELP = [
     helpText:
       "Pre-session reminder sent by the nightly cron to all registered participants. Sent 24 hours before each session. {{reminderMessage}} is a Portable Text field on the program — it renders as formatted HTML in the email.",
     sanityNote:
-      "{{programTitle}}, {{dateText}}, {{locationText}}, {{zoomLink}}, and {{reminderMessage}} all come from the program record in Sanity Studio. To change them, edit the program there.",
+      "{{programTitle}}, {{dateText}}, {{locationText}}, and {{reminderMessage}} all come from the program record. To change them, edit the program in the Program Manager.",
   },
 ];
 

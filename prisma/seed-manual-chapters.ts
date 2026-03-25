@@ -73,7 +73,7 @@ async function main() {
     {
       slug: "programs",
       title: "Programs",
-      description: "How to create and manage programs — every field explained, plus Google Meet setup for virtual programs.",
+      description: "How to create and manage programs — every field explained, including LiveKit video setup for virtual programs.",
       hubSlug: "registrar",
       order: 3,
       relations: ["registration", "host-hub"],
