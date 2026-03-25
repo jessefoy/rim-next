@@ -282,51 +282,6 @@ function SessionDetail({
   );
 }
 
-// ── Multi-claim modal ─────────────────────────────────────────────────────────
-
-function MultiClaimModal({
-  sessions,
-  onConfirm,
-  onBack,
-  submitting,
-}: {
-  sessions: Session[];
-  onConfirm: () => void;
-  onBack: () => void;
-  submitting: boolean;
-}) {
-  return (
-    <div className="hub-modal-overlay">
-      <div className="hub-modal">
-        <h3 className="hub-modal__title">Confirm your commitments</h3>
-        <p className="hub-modal__body">
-          You&rsquo;re committing to host these {sessions.length} sessions. Your team is counting on you.
-        </p>
-        <div className="hub-modal__session-list">
-          {sessions.map((s) => (
-            <div key={s.id} className="hub-modal__session-row">
-              <span className="hub-dot hub-dot--unclaimed" />
-              <div>
-                <div className="hub-modal__session-name">{s.programName}</div>
-                {s.sessionDate && (
-                  <div className="hub-modal__session-date">{fmtShort(s.sessionDate)}</div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="hub-modal__actions">
-          <button className="hub-btn hub-btn--primary hub-btn--full" onClick={onConfirm} disabled={submitting}>
-            {submitting ? "Claiming…" : "Confirm — I'll host all of these →"}
-          </button>
-          <button className="hub-btn hub-btn--secondary hub-btn--full" onClick={onBack} disabled={submitting}>
-            Back
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -341,14 +296,10 @@ export default function HubScheduleClient({
   apiBase = "/api/host",
 }: Props) {
   const [sessions, setSessions] = useState<Session[]>(initialSessions);
-  const [view, setView] = useState<"list" | "calendar">("list");
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<Session | null>(null);
-  const [multiIds, setMultiIds] = useState<Set<string>>(new Set());
-  const [confirming, setConfirming] = useState(false);
-  const [claiming, setClaiming] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "mine" | "action">("all");
 
@@ -367,7 +318,6 @@ export default function HubScheduleClient({
   const loadMonth = useCallback(async (y: number, m: number) => {
     setLoading(true);
     setSelected(null);
-    setMultiIds(new Set());
     try {
       const monthStr = `${y}-${String(m + 1).padStart(2, "0")}`;
       const res = await fetch(`${apiBase}/assignments?month=${monthStr}`);
@@ -406,37 +356,28 @@ export default function HubScheduleClient({
     loadMonth(t.getFullYear(), t.getMonth());
   }
 
-  // claimOne handles both real assignment ids and synthetic "unassigned::slug::date" ids.
-  // For synthetic ids, POSTs to create+claim the assignment in one shot and returns the real id.
-  async function claimOne(id: string): Promise<{ ok: boolean; newId: string }> {
-    if (id.startsWith("unassigned::")) {
-      const s = sessions.find((s) => s.id === id);
-      const [, programSlug] = id.split("::");
-      const res = await fetch(`${apiBase}/assignments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          programSlug,
-          sessionDate: s?.sessionDate ?? null,
-          action: "claim",
-        }),
-      });
-      if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? "Something went wrong."); }
-      const data = await res.json();
-      return { ok: true, newId: data.id };
-    }
-    const res = await fetch(`${apiBase}/assignments/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "claim" }),
-    });
-    if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? "Something went wrong."); }
-    return { ok: true, newId: id };
-  }
-
   async function claimSession(id: string) {
     try {
-      const { newId } = await claimOne(id);
+      let newId = id;
+      if (id.startsWith("unassigned::")) {
+        const s = sessions.find((s) => s.id === id);
+        const [, programSlug] = id.split("::");
+        const res = await fetch(`${apiBase}/assignments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ programSlug, sessionDate: s?.sessionDate ?? null, action: "claim" }),
+        });
+        if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? "Something went wrong."); }
+        const data = await res.json();
+        newId = data.id;
+      } else {
+        const res = await fetch(`${apiBase}/assignments/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "claim" }),
+        });
+        if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? "Something went wrong."); }
+      }
       setSessions((prev) => prev.map((s) =>
         s.id === id
           ? { ...s, id: newId, status: "claimed", hostUserId: currentUserId, hostName: currentUserName }
@@ -493,34 +434,6 @@ export default function HubScheduleClient({
     showToast("✓ You're covering this session — the original host has been notified.");
   }
 
-  function toggleMulti(id: string, status: string) {
-    if (status === "claimed") return;
-    setMultiIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  }
-
-  async function claimAll() {
-    setClaiming(true);
-    const ids = [...multiIds];
-    try {
-      const results = await Promise.all(ids.map((id) => claimOne(id)));
-      // Build a map from old id -> new id (same for real assignments, new cuid for synthetic)
-      const idMap = new Map(ids.map((oldId, i) => [oldId, results[i].newId]));
-      setSessions((prev) => prev.map((s) => {
-        const newId = idMap.get(s.id);
-        if (!newId) return s;
-        return { ...s, id: newId, status: "claimed", hostUserId: currentUserId, hostName: currentUserName };
-      }));
-      showToast(`✓ ${ids.length} session${ids.length > 1 ? "s" : ""} claimed — team notified.`);
-      setMultiIds(new Set());
-      setConfirming(false);
-      setSelected(null);
-    } catch (e) { showToast(e instanceof Error ? e.message : "Network error. Please try again."); }
-    finally { setClaiming(false); }
-  }
 
   const firstDayOfMonth = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -542,7 +455,6 @@ export default function HubScheduleClient({
     });
 
   const isCurrentMonth = year === today.getFullYear() && month === today.getMonth();
-  const MAX_VISIBLE = 3;
 
   /** Returns up to 3 dot-type strings for a day (one per unique status type) */
   function dotsForDay(day: number) {
@@ -570,33 +482,17 @@ export default function HubScheduleClient({
   return (
     <div className="hub-schedule">
 
-      {/* ── Row 1: Filter pills + Calendar toggle ── */}
-      <div className="hub-schedule__filter-row">
-        <div className="hub-schedule__filters">
-          {(["all", "mine", "action"] as const).map((f) => (
-            <button
-              key={f}
-              className={`hub-schedule__filter-btn${filter === f ? " hub-schedule__filter-btn--active" : ""}`}
-              onClick={() => { setFilter(f); setMultiIds(new Set()); }}
-            >
-              {f === "all" ? "All Sessions" : f === "mine" ? "My Sessions" : "Needs Coverage"}
-            </button>
-          ))}
-        </div>
-        <div className="hub-schedule__view-toggle">
+      {/* ── Filter pills ── */}
+      <div className="hub-schedule__filters">
+        {(["all", "mine", "action"] as const).map((f) => (
           <button
-            className={`hub-schedule__view-btn${view === "list" ? " hub-schedule__view-btn--active" : ""}`}
-            onClick={() => setView("list")}
+            key={f}
+            className={`hub-schedule__filter-btn${filter === f ? " hub-schedule__filter-btn--active" : ""}`}
+            onClick={() => setFilter(f)}
           >
-            List
+            {f === "all" ? "All Sessions" : f === "mine" ? "My Sessions" : "Needs Coverage"}
           </button>
-          <button
-            className={`hub-schedule__view-btn${view === "calendar" ? " hub-schedule__view-btn--active" : ""}`}
-            onClick={() => setView("calendar")}
-          >
-            Calendar
-          </button>
-        </div>
+        ))}
       </div>
 
       {/* ── Month navigation ── */}
@@ -613,7 +509,7 @@ export default function HubScheduleClient({
 
       {loading && <div className="hub-schedule__loading">Loading…</div>}
 
-      {/* ── Mini-calendar (ALWAYS visible — primary date navigation) ── */}
+      {/* ── Mini-calendar (at-a-glance date navigation) ── */}
       {!loading && (
         <div className="hub-mini-cal">
           <div className="hub-mini-cal__header">
@@ -648,8 +544,24 @@ export default function HubScheduleClient({
         </div>
       )}
 
-      {/* ── CARD LIST (primary view — always visible when view=list) ── */}
-      {view === "list" && !loading && (
+      {/* ── Legend ── */}
+      <div className="hub-schedule__legend">
+        <div className="hub-schedule__legend-item">
+          <span className="hub-legend-swatch hub-legend-swatch--mine" />
+          <span>My assignment</span>
+        </div>
+        <div className="hub-schedule__legend-item">
+          <span className="hub-legend-swatch hub-legend-swatch--covered" />
+          <span>Covered</span>
+        </div>
+        <div className="hub-schedule__legend-item">
+          <span className="hub-legend-swatch hub-legend-swatch--needs" />
+          <span>Needs coverage</span>
+        </div>
+      </div>
+
+      {/* ── Session list (click to expand detail inline) ── */}
+      {!loading && (
         <div className="hub-lv">
           {filteredSessions.length === 0 ? (
             <p className="hub-empty">
@@ -673,31 +585,19 @@ export default function HubScheduleClient({
                     : isMineRow
                       ? "You"
                       : s.hostName ?? "—";
-                  const inMulti = multiIds.has(s.id);
-                  // First card for this date gets a data-date anchor for scroll-to
+                  const isExpanded = selected?.id === s.id;
                   const dateKey = s.sessionDate ? s.sessionDate.slice(0, 10) : "";
                   const isFirstForDate = idx === 0 || (arr[idx - 1].sessionDate?.slice(0, 10) !== dateKey);
                   return (
                     <div
                       key={s.id}
-                      className={`hub-lv__card hub-lv__card--${statusType}${inMulti ? " hub-lv__card--selected" : ""}`}
+                      className={`hub-lv__card hub-lv__card--${statusType}${isExpanded ? " hub-lv__card--expanded" : ""}`}
                       {...(isFirstForDate && dateKey ? { "data-date": dateKey } : {})}
                     >
                       <div
                         className="hub-lv__card-main"
-                        onClick={() => setSelected(selected?.id === s.id ? null : s)}
+                        onClick={() => setSelected(isExpanded ? null : s)}
                       >
-                        {/* Multi-select checkbox */}
-                        {s.status !== "claimed" && (
-                          <input
-                            type="checkbox"
-                            className="hub-lv__check"
-                            checked={inMulti}
-                            onChange={() => toggleMulti(s.id, s.status)}
-                            onClick={(e) => e.stopPropagation()}
-                            aria-label={`Select ${s.programName}`}
-                          />
-                        )}
                         <div className="hub-lv__left">
                           <div className="hub-lv__title">{s.programName}</div>
                           <div className="hub-lv__meta">
@@ -743,122 +643,27 @@ export default function HubScheduleClient({
                           )}
                         </div>
                       </div>
+                      {isExpanded && (
+                        <div className="hub-lv__detail">
+                          <SessionDetail
+                            session={s}
+                            currentUserId={currentUserId}
+                            currentUserName={currentUserName}
+                            coordinatorName={coordinatorName}
+                            onClose={() => setSelected(null)}
+                            onClaim={claimSession}
+                            onSubRequest={submitSubRequest}
+                            onUnclaim={unclaimSession}
+                            onClaimSub={claimSub}
+                          />
+                        </div>
+                      )}
                     </div>
                   );
                 })}
             </div>
           )}
         </div>
-      )}
-
-      {/* ── FULL CALENDAR (secondary view — opt-in, hidden on <560px) ── */}
-      {view === "calendar" && !loading && (
-        <div className="hub-cal-wrap">
-          <div className="hub-cal">
-            <div className="hub-cal__grid">
-              {DAYS.map((d) => <div key={d} className="hub-cal__day-label">{d}</div>)}
-              {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-                <div key={`empty-${i}`} className="hub-cal__cell hub-cal__cell--empty" />
-              ))}
-              {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
-                const daySessions = sessionsForDay(day);
-                const visible = daySessions.slice(0, MAX_VISIBLE);
-                const overflow = daySessions.length - MAX_VISIBLE;
-                const todayCell = isToday(day);
-                return (
-                  <div key={day} className={`hub-cal__cell${todayCell ? " hub-cal__cell--today" : ""}`}>
-                    <div className={`hub-cal__day-num${todayCell ? " hub-cal__day-num--today" : ""}`}>{day}</div>
-                    {visible.map((s) => {
-                      const inMulti = multiIds.has(s.id);
-                      const isMine  = s.hostUserId === currentUserId;
-                      const evtClass = isMine ? "mine" : (s.status === "claimed" ? "covered" : "needs");
-                      return (
-                        <div
-                          key={s.id}
-                          className={`hub-cal__event hub-cal__event--${evtClass}${inMulti ? " hub-cal__event--selected" : ""}`}
-                          onClick={() => setSelected(s)}
-                        >
-                          {s.status !== "claimed" && (
-                            <input
-                              type="checkbox"
-                              className="hub-cal__check"
-                              checked={inMulti}
-                              onChange={() => toggleMulti(s.id, s.status)}
-                              onClick={(e) => e.stopPropagation()}
-                              aria-label={`Select ${s.programName}`}
-                            />
-                          )}
-                          <span className="hub-cal__event-label">{inMulti ? "✓ " + s.programName : s.programName}</span>
-                        </div>
-                      );
-                    })}
-                    {overflow > 0 && (
-                      <div className="hub-cal__more" onClick={() => setView("list")}>
-                        +{overflow} more
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Legend ── */}
-      <div className="hub-schedule__legend">
-        <div className="hub-schedule__legend-item">
-          <span className="hub-legend-swatch hub-legend-swatch--mine" />
-          <span>My assignment</span>
-        </div>
-        <div className="hub-schedule__legend-item">
-          <span className="hub-legend-swatch hub-legend-swatch--covered" />
-          <span>Covered</span>
-        </div>
-        <div className="hub-schedule__legend-item">
-          <span className="hub-legend-swatch hub-legend-swatch--needs" />
-          <span>Needs coverage</span>
-        </div>
-      </div>
-
-      {/* ── Multi-select footer ── */}
-      {multiIds.size > 0 && (
-        <div className="hub-multi-footer">
-          <span>Selected <strong>{multiIds.size}</strong> session{multiIds.size > 1 ? "s" : ""}</span>
-          <button className="hub-multi-footer__claim-btn" onClick={() => setConfirming(true)}>Review & Claim →</button>
-          <button className="hub-multi-footer__clear-btn" onClick={() => setMultiIds(new Set())}>Clear</button>
-        </div>
-      )}
-
-      {/* ── Multi-claim confirmation modal ── */}
-      {confirming && (
-        <MultiClaimModal
-          sessions={sessions.filter((s) => multiIds.has(s.id))}
-          onConfirm={claimAll}
-          onBack={() => setConfirming(false)}
-          submitting={claiming}
-        />
-      )}
-
-      {/* ── Slide-in detail panel ── */}
-      {selected && (
-        <>
-          <div className="hub-panel-overlay" onClick={() => setSelected(null)} />
-          <div className="hub-panel">
-            <button className="hub-panel__close" onClick={() => setSelected(null)} aria-label="Close">×</button>
-            <SessionDetail
-              session={selected}
-              currentUserId={currentUserId}
-              currentUserName={currentUserName}
-              coordinatorName={coordinatorName}
-              onClose={() => setSelected(null)}
-              onClaim={claimSession}
-              onSubRequest={submitSubRequest}
-              onUnclaim={unclaimSession}
-              onClaimSub={claimSub}
-            />
-          </div>
-        </>
       )}
 
       <Toast msg={toast} />
