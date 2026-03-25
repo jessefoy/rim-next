@@ -10,6 +10,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { getToolBySlug } from "@/lib/toolRegistry";
 
 interface HubMemberRow {
   isCoordinator: boolean;
@@ -18,6 +19,7 @@ interface HubMemberRow {
 
 interface AppLinkRow {
   id: string;
+  toolSlug: string | null;
   label: string;
   href: string;
   isEnabled: boolean;
@@ -116,9 +118,12 @@ export default function HubSidebar({ hub, navItems, isCoordinator, isAdmin }: Pr
           <div className="hub-sb-group">
             <div className="hub-sb-group-label">Tools</div>
             {enabledAppLinks.map((link) => {
-              const toolHref = link.href.includes("?")
-                ? `${link.href}&hub=${hub.slug}`
-                : `${link.href}?hub=${hub.slug}`;
+              const basePath = link.toolSlug
+                ? (getToolBySlug(link.toolSlug)?.path ?? link.href)
+                : link.href;
+              const toolHref = basePath.includes("?")
+                ? `${basePath}&hub=${hub.slug}`
+                : `${basePath}?hub=${hub.slug}`;
               return (
               <Link
                 key={link.id}

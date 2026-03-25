@@ -52,7 +52,8 @@ export async function POST(req: Request) {
       conversationCategories: ["General"],
       appLinks: appLinks?.length
         ? {
-            create: appLinks.map((link: { label: string; href: string; isEnabled?: boolean }, i: number) => ({
+            create: appLinks.map((link: { toolSlug?: string | null; label: string; href: string; isEnabled?: boolean }, i: number) => ({
+              toolSlug: link.toolSlug ?? null,
               label: link.label,
               href: link.href,
               order: i,

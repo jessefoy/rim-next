@@ -78,7 +78,7 @@ export default async function HubHomePage({
       description={hub.description}
       coordinatorNames={coordinators}
       pinnedThreads={pinnedThreads}
-      appLinks={appLinks.map((l) => ({ label: l.label, href: l.href }))}
+      appLinks={appLinks.map((l) => ({ toolSlug: l.toolSlug ?? null, label: l.label, href: l.href }))}
       homeContentHtml={homeContentHtml}
       homeContentJson={hub.homeContent}
       welcomeHeadline={hub.welcomeHeadline}

@@ -66,8 +66,9 @@ export async function PATCH(
     await db.hubAppLink.deleteMany({ where: { hubId: hub.id } });
     if (appLinks.length > 0) {
       await db.hubAppLink.createMany({
-        data: appLinks.map((link: { label: string; href: string; isEnabled?: boolean }, i: number) => ({
+        data: appLinks.map((link: { toolSlug?: string | null; label: string; href: string; isEnabled?: boolean }, i: number) => ({
           hubId: hub.id,
+          toolSlug: link.toolSlug ?? null,
           label: link.label,
           href: link.href,
           order: i,

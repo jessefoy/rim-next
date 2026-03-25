@@ -49,6 +49,7 @@ export default async function AdminHubEditPage({
     type: hub.type,
     status: hub.status,
     appLinks: hub.appLinks.map((l) => ({
+      toolSlug: l.toolSlug ?? null,
       label: l.label,
       href: l.href,
       isEnabled: l.isEnabled,

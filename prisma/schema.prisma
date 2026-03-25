@@ -1052,6 +1052,7 @@ model Hub {
 model HubAppLink {
   id        String  @id @default(cuid())
   hubId     String
+  toolSlug  String?
   label     String
   href      String
   order     Int     @default(0)

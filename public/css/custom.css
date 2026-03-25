@@ -16460,9 +16460,13 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   display: flex; gap: 10px; align-items: center;
   padding: 8px 0; border-bottom: 1px solid #f0ece8;
 }
-.adm-hubs-applink__fields { display: flex; gap: 8px; flex: 1; }
+.adm-hubs-applink__fields { display: flex; gap: 8px; flex: 1; flex-direction: column; }
+.adm-hubs-applink__tool-name { font-size: 14px; font-weight: 600; color: var(--rim-text); }
+.adm-hubs-applink__tool-desc { font-size: 12px; color: var(--rim-text-muted); }
 .adm-hubs-applink__actions { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
 .adm-hubs-applink__toggle { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--rim-text-muted); cursor: pointer; }
+.adm-hubs-applink__add-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+.adm-hubs-select--inline { max-width: 200px; font-size: 13px; }
 .adm-hubs-btn-icon {
   width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
   border: 1px solid #ddd; border-radius: 4px; background: #fff; cursor: pointer;

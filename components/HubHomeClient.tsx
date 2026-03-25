@@ -8,6 +8,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import RimProseEditor from "@/components/RimProseEditor";
+import { getToolBySlug } from "@/lib/toolRegistry";
 
 interface PinnedThread {
   id: string;
@@ -15,6 +16,7 @@ interface PinnedThread {
 }
 
 interface AppLink {
+  toolSlug: string | null;
   label: string;
   href: string;
 }
@@ -211,12 +213,15 @@ export default function HubHomeClient({
           <div className="hub-home__section-label">Tools</div>
           <div className="hub-home__links">
             {appLinks.map((link, i) => {
-              const isExternal = link.href.startsWith("http");
+              const basePath = link.toolSlug
+                ? (getToolBySlug(link.toolSlug)?.path ?? link.href)
+                : link.href;
+              const isExternal = basePath.startsWith("http");
               const toolHref = isExternal
-                ? link.href
-                : link.href.includes("?")
-                  ? `${link.href}&hub=${slug}`
-                  : `${link.href}?hub=${slug}`;
+                ? basePath
+                : basePath.includes("?")
+                  ? `${basePath}&hub=${slug}`
+                  : `${basePath}?hub=${slug}`;
               return (
                 <a
                   key={i}

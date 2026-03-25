@@ -11,8 +11,10 @@ import { useRouter } from "next/navigation";
 import SlugField from "@/components/SlugField";
 import RimProseEditor from "@/components/RimProseEditor";
 import Link from "next/link";
+import { TOOL_REGISTRY, getToolBySlug } from "@/lib/toolRegistry";
 
 interface AppLink {
+  toolSlug: string | null;
   label: string;
   href: string;
   isEnabled: boolean;
@@ -74,8 +76,17 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug }: Props)
     }
   }
 
-  function addAppLink() {
-    setAppLinks([...appLinks, { label: "", href: "", isEnabled: true }]);
+  const usedToolSlugs = appLinks.map((l) => l.toolSlug).filter(Boolean) as string[];
+  const availableTools = TOOL_REGISTRY.filter((t) => !usedToolSlugs.includes(t.slug));
+
+  function addToolLink(toolSlug: string) {
+    const tool = getToolBySlug(toolSlug);
+    if (!tool) return;
+    setAppLinks([...appLinks, { toolSlug: tool.slug, label: tool.label, href: tool.path, isEnabled: true }]);
+  }
+
+  function addCustomLink() {
+    setAppLinks([...appLinks, { toolSlug: null, label: "", href: "", isEnabled: true }]);
   }
 
   function updateAppLink(index: number, field: keyof AppLink, value: string | boolean) {
@@ -106,7 +117,7 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug }: Props)
       description,
       type,
       status,
-      appLinks: appLinks.filter((l) => l.label && l.href),
+      appLinks: appLinks.filter((l) => l.label && (l.toolSlug || l.href)),
       welcomeHeadline: welcomeHeadline || null,
       welcomeBody: welcomeBody,
     };
@@ -267,71 +278,101 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug }: Props)
         </span>
       </div>
 
-      {/* App Links */}
+      {/* Tools */}
       <div className="adm-hubs-field">
-        <label className="adm-hubs-label">App Links</label>
+        <label className="adm-hubs-label">Tools</label>
         {appLinks.length === 0 && (
-          <p className="adm-hubs-hint">No app links configured. These appear on the hub home screen.</p>
+          <p className="adm-hubs-hint">No tools connected. Add a tool to show it in this hub&apos;s sidebar.</p>
         )}
-        {appLinks.map((link, i) => (
-          <div key={i} className="adm-hubs-applink">
-            <div className="adm-hubs-applink__fields">
-              <input
-                type="text"
-                className="adm-hubs-input adm-hubs-input--half"
-                value={link.label}
-                onChange={(e) => updateAppLink(i, "label", e.target.value)}
-                placeholder="Label"
-              />
-              <input
-                type="text"
-                className="adm-hubs-input adm-hubs-input--half"
-                value={link.href}
-                onChange={(e) => updateAppLink(i, "href", e.target.value)}
-                placeholder="URL or /path"
-              />
+        {appLinks.map((link, i) => {
+          const tool = link.toolSlug ? getToolBySlug(link.toolSlug) : null;
+          return (
+            <div key={i} className="adm-hubs-applink">
+              <div className="adm-hubs-applink__fields">
+                {tool ? (
+                  <>
+                    <div className="adm-hubs-applink__tool-name">{tool.label}</div>
+                    <div className="adm-hubs-applink__tool-desc">{tool.description}</div>
+                  </>
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      className="adm-hubs-input adm-hubs-input--half"
+                      value={link.label}
+                      onChange={(e) => updateAppLink(i, "label", e.target.value)}
+                      placeholder="Label"
+                    />
+                    <input
+                      type="text"
+                      className="adm-hubs-input adm-hubs-input--half"
+                      value={link.href}
+                      onChange={(e) => updateAppLink(i, "href", e.target.value)}
+                      placeholder="URL or /path"
+                    />
+                  </>
+                )}
+              </div>
+              <div className="adm-hubs-applink__actions">
+                <label className="adm-hubs-applink__toggle">
+                  <input
+                    type="checkbox"
+                    checked={link.isEnabled}
+                    onChange={(e) => updateAppLink(i, "isEnabled", e.target.checked)}
+                  />
+                  Enabled
+                </label>
+                <button
+                  type="button"
+                  className="adm-hubs-btn-icon"
+                  onClick={() => moveAppLink(i, -1)}
+                  disabled={i === 0}
+                  title="Move up"
+                >
+                  &uarr;
+                </button>
+                <button
+                  type="button"
+                  className="adm-hubs-btn-icon"
+                  onClick={() => moveAppLink(i, 1)}
+                  disabled={i === appLinks.length - 1}
+                  title="Move down"
+                >
+                  &darr;
+                </button>
+                <button
+                  type="button"
+                  className="adm-hubs-btn-icon adm-hubs-btn-icon--danger"
+                  onClick={() => removeAppLink(i)}
+                  title="Remove"
+                >
+                  &times;
+                </button>
+              </div>
             </div>
-            <div className="adm-hubs-applink__actions">
-              <label className="adm-hubs-applink__toggle">
-                <input
-                  type="checkbox"
-                  checked={link.isEnabled}
-                  onChange={(e) => updateAppLink(i, "isEnabled", e.target.checked)}
-                />
-                Enabled
-              </label>
-              <button
-                type="button"
-                className="adm-hubs-btn-icon"
-                onClick={() => moveAppLink(i, -1)}
-                disabled={i === 0}
-                title="Move up"
-              >
-                &uarr;
-              </button>
-              <button
-                type="button"
-                className="adm-hubs-btn-icon"
-                onClick={() => moveAppLink(i, 1)}
-                disabled={i === appLinks.length - 1}
-                title="Move down"
-              >
-                &darr;
-              </button>
-              <button
-                type="button"
-                className="adm-hubs-btn-icon adm-hubs-btn-icon--danger"
-                onClick={() => removeAppLink(i)}
-                title="Remove"
-              >
-                &times;
-              </button>
-            </div>
-          </div>
-        ))}
-        <button type="button" className="adm-hubs-btn-add" onClick={addAppLink}>
-          + Add link
-        </button>
+          );
+        })}
+        <div className="adm-hubs-applink__add-row">
+          {availableTools.length > 0 && (
+            <select
+              className="adm-hubs-select adm-hubs-select--inline"
+              value=""
+              onChange={(e) => {
+                if (e.target.value) addToolLink(e.target.value);
+              }}
+            >
+              <option value="">+ Add tool…</option>
+              {availableTools.map((t) => (
+                <option key={t.slug} value={t.slug}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          )}
+          <button type="button" className="adm-hubs-btn-add" onClick={addCustomLink}>
+            + Custom link
+          </button>
+        </div>
       </div>
 
       {/* Submit */}
