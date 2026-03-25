@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import {
-  sendFirstTimeAttendeeEmail,
-  sendReturningAfterAbsenceEmail,
-} from "@/lib/email";
-
-const SIX_WEEKS_MS = 6 * 7 * 24 * 60 * 60 * 1000;
 
 // ── CT date utilities (inlined — keep in sync with session/page.tsx) ───────────
 
@@ -120,22 +114,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ id: existing.id });
   }
 
-  // ── New record — compute isNewMember / returningAfterAbsence ─────────────
-  const priorCount = await db.sessionAttendance.count({ where: { userId } });
-  const isNewMember = priorCount === 0;
-
-  let returningAfterAbsence = false;
-  if (!isNewMember) {
-    const lastRecord = await db.sessionAttendance.findFirst({
-      where: { userId },
-      orderBy: { joinedAt: "desc" },
-      select: { joinedAt: true },
-    });
-    if (lastRecord && now.getTime() - lastRecord.joinedAt.getTime() >= SIX_WEEKS_MS) {
-      returningAfterAbsence = true;
-    }
-  }
-
+  // ── New attendance record ────────────────────────────────────────────────
+  // (Attendance email system removed — isNewMember/returningAfterAbsence
+  //  computation and sendFirstTimeAttendeeEmail/sendReturningAfterAbsenceEmail removed.)
   const record = await db.sessionAttendance.create({
     data: {
       userId,
@@ -143,31 +124,8 @@ export async function POST(req: NextRequest) {
       programSlug,
       sessionDate,
       joinedAt: now,
-      isNewMember,
-      returningAfterAbsence,
     },
   });
-
-  // ── Automated emails (disabled by default) ────────────────────────────────
-  // Gated by ENABLE_ATTENDANCE_EMAILS env var. Do not enable until copy is approved.
-  if (process.env.ENABLE_ATTENDANCE_EMAILS === "true") {
-    const user = await db.user.findUnique({
-      where: { id: userId },
-      select: { email: true, firstName: true, preferredName: true },
-    });
-    if (user) {
-      const name = user.preferredName || user.firstName || "there";
-      if (isNewMember) {
-        sendFirstTimeAttendeeEmail({ to: user.email, firstName: name }).catch(
-          (e) => console.error("[attendance/join] first-time email failed:", e)
-        );
-      } else if (returningAfterAbsence) {
-        sendReturningAfterAbsenceEmail({ to: user.email, firstName: name }).catch(
-          (e) => console.error("[attendance/join] returning email failed:", e)
-        );
-      }
-    }
-  }
 
   return NextResponse.json({ id: record.id });
 }

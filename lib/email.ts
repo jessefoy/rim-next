@@ -1626,48 +1626,9 @@ function buildMagicLinkText({ url, isNewUser }: { url: string; isNewUser: boolea
 
 // (post-session notification function removed — feature removed in session 76)
 
-// ─── ATTENDANCE AUTOMATED EMAILS ─────────────────────────────────────────────
-// Managed via Email Template Manager — copy lives in DB, not here.
-// Templates: "first-time-attendee", "returning-after-absence"
-// Controlled by ENABLE_ATTENDANCE_EMAILS=true env var (default: disabled).
-// Fire-and-forget from POST /api/attendance/join.
-
-export interface AttendanceEmailData {
-  to: string;
-  firstName: string;
-  programName?: string;
-  sessionDate?: string;
-}
-
-/**
- * First-time attendee welcome.
- * Trigger: isNewMember = true on a new SessionAttendance record.
- * Template: "first-time-attendee" (must be enabled in /admin/emails before sending)
- */
-export async function sendFirstTimeAttendeeEmail(
-  data: AttendanceEmailData
-): Promise<void> {
-  await sendTemplatedEmail("first-time-attendee", data.to, {
-    firstName:   data.firstName,
-    programName: data.programName ?? "",
-    sessionDate: data.sessionDate ?? "",
-  });
-}
-
-/**
- * Returning after absence.
- * Trigger: returningAfterAbsence = true on a new SessionAttendance record.
- * Template: "returning-after-absence" (must be enabled in /admin/emails before sending)
- */
-export async function sendReturningAfterAbsenceEmail(
-  data: AttendanceEmailData
-): Promise<void> {
-  await sendTemplatedEmail("returning-after-absence", data.to, {
-    firstName:   data.firstName,
-    programName: data.programName ?? "",
-    sessionDate: data.sessionDate ?? "",
-  });
-}
+// ── Removed: Attendance automated emails (sendFirstTimeAttendeeEmail,
+// sendReturningAfterAbsenceEmail, AttendanceEmailData, ENABLE_ATTENDANCE_EMAILS).
+// Attendance recording still works at /api/attendance/join — only emails removed.
 
 // ─── MISSING REPORT NOTIFICATION ─────────────────────────────────────────────
 // Managed via Email Template Manager — copy lives in DB, not here.
