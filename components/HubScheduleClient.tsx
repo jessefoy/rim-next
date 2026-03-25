@@ -690,10 +690,8 @@ export default function HubScheduleClient({
       {view === "calendar" && !loading && (
         <div className="hub-cal-wrap hub-cal-wrap--desktop">
           <div className="hub-cal">
-            <div className="hub-cal__headers">
-              {DAYS.map((d) => <div key={d} className="hub-cal__day-label">{d}</div>)}
-            </div>
             <div className="hub-cal__grid">
+              {DAYS.map((d) => <div key={d} className="hub-cal__day-label">{d}</div>)}
               {Array.from({ length: firstDayOfMonth }).map((_, i) => (
                 <div key={`empty-${i}`} className="hub-cal__cell hub-cal__cell--empty" />
               ))}
@@ -747,24 +745,15 @@ export default function HubScheduleClient({
 
       {/* ── LIST VIEW ── */}
       {view === "list" && !loading && (
-        <div className="hub-sched-list-outer">
-        <div className="hub-sched-list-wrap">
+        <div className="hub-lv">
           {filteredSessions.length === 0 ? (
-            <p className="hub-empty" style={{ padding: "24px 20px" }}>
+            <p className="hub-empty">
               {filter === "mine" ? "You haven't claimed any sessions this month."
                 : filter === "action" ? "No sessions need attention this month."
                 : "No sessions this month."}
             </p>
           ) : (
-            <>
-              <div className="hub-sched-list-head">
-                <div className="hub-sched-list-head-cell">Date</div>
-                <div className="hub-sched-list-head-cell">Program</div>
-                <div className="hub-sched-list-head-cell">Time</div>
-                <div className="hub-sched-list-head-cell">Host</div>
-                <div className="hub-sched-list-head-cell">Status</div>
-                <div className="hub-sched-list-head-cell hub-sched-list-head-cell--right">Action</div>
-              </div>
+            <div className="hub-lv__list">
               {[...filteredSessions]
                 .sort((a, b) => {
                   if (!a.sessionDate) return 1;
@@ -773,36 +762,35 @@ export default function HubScheduleClient({
                 })
                 .map((s) => {
                   const isMineRow = s.hostUserId === currentUserId;
-                  const pillClass = isMineRow ? "mine" : (s.status === "claimed" ? "covered" : "needs");
-                  const pillLabel = isMineRow ? "Your session" : (s.status === "claimed" ? "Covered" : "Needs Coverage");
+                  const statusType = isMineRow ? "mine" : (s.status === "claimed" ? "covered" : "needs");
                   const isExpanded = selected?.id === s.id;
+                  const hostLabel = s.status === "unclaimed"
+                    ? "Unassigned"
+                    : isMineRow
+                      ? "You"
+                      : s.hostName ?? "—";
                   return (
-                    <div key={s.id}>
+                    <div key={s.id} className={`hub-lv__card hub-lv__card--${statusType}${isExpanded ? " hub-lv__card--expanded" : ""}`}>
                       <div
-                        className={`hub-sched-row${isExpanded ? " hub-sched-row--active" : ""}`}
+                        className="hub-lv__card-main"
                         onClick={() => setSelected(isExpanded ? null : s)}
                       >
-                        <div className="hub-sched-row__date">
-                          {s.sessionDate ? fmtShort(s.sessionDate) : "—"}
+                        <div className="hub-lv__left">
+                          <div className="hub-lv__title">{s.programName}</div>
+                          <div className="hub-lv__meta">
+                            {s.sessionDate ? fmtShort(s.sessionDate) : "—"}
+                            {s.sessionDate && <span className="hub-lv__sep">·</span>}
+                            {s.sessionDate ? fmtTime(s.sessionDate) : ""}
+                            <span className="hub-lv__sep">·</span>
+                            <span className={`hub-lv__host${s.status === "unclaimed" ? " hub-lv__host--unassigned" : isMineRow ? " hub-lv__host--mine" : ""}`}>
+                              {hostLabel}
+                            </span>
+                          </div>
                         </div>
-                        <div className="hub-sched-row__title">{s.programName}</div>
-                        <div className="hub-sched-row__time">
-                          {s.sessionDate ? fmtTime(s.sessionDate) : "—"}
-                        </div>
-                        <div className={`hub-sched-row__host${s.status === "unclaimed" ? " hub-sched-row__host--unassigned" : isMineRow ? " hub-sched-row__host--mine" : ""}`}>
-                          {s.status === "unclaimed"
-                            ? "Unassigned"
-                            : isMineRow
-                              ? `You (${s.hostName ?? currentUserName})`
-                              : s.hostName ?? "—"}
-                        </div>
-                        <div>
-                          <span className={`hub-pill hub-pill--${pillClass}`}>{pillLabel}</span>
-                        </div>
-                        <div className="hub-sched-row__action">
+                        <div className="hub-lv__right">
                           {s.status === "unclaimed" && (
                             <button
-                              className="hub-btn hub-btn--claim hub-btn--sm"
+                              className="hub-lv__action-btn hub-lv__action-btn--claim"
                               onClick={(e) => { e.stopPropagation(); claimSession(s.id); }}
                             >
                               Claim
@@ -810,7 +798,7 @@ export default function HubScheduleClient({
                           )}
                           {isMineRow && s.status === "claimed" && (
                             <button
-                              className="hub-btn hub-btn--ghost hub-btn--sm"
+                              className="hub-lv__action-btn hub-lv__action-btn--ghost"
                               onClick={(e) => { e.stopPropagation(); setSelected(s); }}
                             >
                               Request Sub
@@ -818,16 +806,22 @@ export default function HubScheduleClient({
                           )}
                           {s.status === "sub_needed" && !isMineRow && s.subRequestId && (
                             <button
-                              className="hub-btn hub-btn--claim hub-btn--sm"
+                              className="hub-lv__action-btn hub-lv__action-btn--claim"
                               onClick={(e) => { e.stopPropagation(); claimSub(s.id, s.subRequestId!); }}
                             >
                               Cover
                             </button>
                           )}
+                          {isMineRow && s.status === "claimed" && (
+                            <span className="hub-lv__yours">Your session</span>
+                          )}
+                          {!isMineRow && s.status === "claimed" && (
+                            <span className="hub-lv__covered">Covered</span>
+                          )}
                         </div>
                       </div>
                       {isExpanded && (
-                        <div className="hub-sched-row-panel">
+                        <div className="hub-lv__detail">
                           <SessionDetail
                             session={s}
                             currentUserId={currentUserId}
@@ -844,9 +838,8 @@ export default function HubScheduleClient({
                     </div>
                   );
                 })}
-            </>
+            </div>
           )}
-        </div>
         </div>
       )}
 
