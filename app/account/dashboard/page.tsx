@@ -5,8 +5,7 @@ import { db } from "@/lib/db";
 import AccountLayout from "@/components/AccountLayout";
 import SiteBannerStrip from "@/components/SiteBannerStrip";
 import DashboardAutoRefresh from "@/components/DashboardAutoRefresh";
-// VideoRoomEmbed temporarily removed — investigating hydration crash
-// import VideoRoomEmbed from "@/components/VideoRoomEmbed";
+import LazyVideoRoomEmbed from "@/components/LazyVideoRoomEmbed";
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 
 export const metadata = { title: "My Dashboard — Rooted In Mindfulness" };
@@ -345,7 +344,13 @@ export default async function DashboardPage() {
                   </div>
                   <div className="today-row__right">
                     {s.isRegistered && <span className="today-registered">Registered</span>}
-                    {/* VideoRoomEmbed temporarily removed — investigating hydration crash */}
+                    {(s.programFormat === "virtual" || s.programFormat === "hybrid") && (
+                      <LazyVideoRoomEmbed
+                        programId={s._id}
+                        programSlug={s.slug}
+                        className="join-btn"
+                      />
+                    )}
                   </div>
                 </div>
               ))}
