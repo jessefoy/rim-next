@@ -10898,6 +10898,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 
 /* ── LiveKit Video Room (vr- prefix) ──────────────────────────── */
 .vr-container {
+  position: relative;
   width: 100%;
   height: 100%;
   min-height: 400px;
@@ -10905,10 +10906,43 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   border-radius: 12px;
   overflow: hidden;
 }
+.vr-container--fs { border-radius: 0; }
 .vr-container [data-lk-theme="default"] {
   --lk-bg: #1a1a1a;
   --lk-control-bg: #2d2d2d;
   --lk-border-color: #3a3a3a;
+}
+.vr-fullscreen-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 20;
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  width: 36px;
+  height: 36px;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s;
+  opacity: 0.7;
+}
+.vr-fullscreen-btn:hover { opacity: 1; background: rgba(0,0,0,0.7); }
+
+/* Embedded room on dashboard */
+.vre-room {
+  margin-top: 16px;
+  height: 500px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e0ddd7;
+}
+@media (max-width: 640px) {
+  .vre-room { height: 360px; }
 }
 
 /* ── Members (hub-mem-) ───────────────────────────────────────── */

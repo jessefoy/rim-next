@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import AccountLayout from "@/components/AccountLayout";
 import SiteBannerStrip from "@/components/SiteBannerStrip";
 import DashboardAutoRefresh from "@/components/DashboardAutoRefresh";
-import MeetJoinButton from "@/components/MeetJoinButton";
+import VideoRoomEmbed from "@/components/VideoRoomEmbed";
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 
 export const metadata = { title: "My Dashboard — Rooted In Mindfulness" };
@@ -22,6 +22,7 @@ interface VirtualProgram {
   recurrenceDays: string[];
   recurrenceCount: number | null;
   zoomLink: string | null;
+  programFormat: string;
 }
 
 // iCal BYDAY codes indexed by JS getDay() (0=Sun … 6=Sat)
@@ -147,6 +148,7 @@ export default async function DashboardPage() {
           recurrenceDays: true,
           recurrenceCount: true,
           zoomLink: true,
+          programFormat: true,
         },
         orderBy: { sortOrder: "asc" },
       }),
@@ -344,15 +346,12 @@ export default async function DashboardPage() {
                   </div>
                   <div className="today-row__right">
                     {s.isRegistered && <span className="today-registered">Registered</span>}
-                    {s.zoomLink && (
-                      <MeetJoinButton
+                    {(s.zoomLink || s.programFormat === "virtual" || s.programFormat === "hybrid") && (
+                      <VideoRoomEmbed
                         programId={s._id}
                         programSlug={s.slug}
-                        zoomLink={s.zoomLink}
                         className="join-btn"
-                      >
-                        Join
-                      </MeetJoinButton>
+                      />
                     )}
                   </div>
                 </div>
