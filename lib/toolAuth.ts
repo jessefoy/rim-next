@@ -64,3 +64,47 @@ export async function getToolHubContext(hubSlug: string | undefined) {
   });
   return hub;
 }
+
+/**
+ * Get notification recipients from a hub's member list.
+ *
+ * Returns all active (non-archived) members of a hub. Used by notification
+ * code to replace hardcoded role queries. Hub membership is the source of
+ * truth for who should receive alerts and emails for hub-related events.
+ *
+ * Options:
+ *   coordinatorsOnly — only return members with isCoordinator: true
+ *   excludeUserId — exclude a specific user (e.g. the person who triggered the event)
+ *
+ * Usage:
+ *   const recipients = await getHubNotificationRecipients("host-team", { excludeUserId: actor.id });
+ */
+export async function getHubNotificationRecipients(
+  hubSlug: string,
+  options?: { coordinatorsOnly?: boolean; excludeUserId?: string },
+) {
+  const hub = await db.hub.findUnique({
+    where: { slug: hubSlug },
+    include: {
+      members: {
+        where: {
+          ...(options?.coordinatorsOnly ? { isCoordinator: true } : {}),
+          user: { archivedAt: null },
+          ...(options?.excludeUserId ? { NOT: { userId: options.excludeUserId } } : {}),
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              preferredName: true,
+            },
+          },
+        },
+      },
+    },
+  });
+  return hub?.members.map((m) => m.user) ?? [];
+}

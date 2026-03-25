@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { getHubNotificationRecipients } from "@/lib/toolAuth";
 
 // GET /api/cron/check-unassigned-hosts
 // Daily cron — finds virtual programs with a startDatetime within 30 days that
@@ -64,13 +65,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ checked: upcoming.length, alerted: 0 });
   }
 
-  // Managers to notify
-  const managers = await db.user.findMany({
-    where: {
-      roles: { hasSome: ["HOST_MANAGER", "ADMIN"] },
-      archivedAt: null,
-    },
-    select: { id: true },
+  // Coordinators to notify (hub coordinators, not all role holders)
+  const managers = await getHubNotificationRecipients("host-team", {
+    coordinatorsOnly: true,
   });
 
   if (managers.length === 0) {

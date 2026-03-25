@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { getHubNotificationRecipients } from "@/lib/toolAuth";
 
 function hasHubAccess(roles: string[]) {
   return roles.some((r) => ["HOST", "HOST_MANAGER", "ADMIN"].includes(r));
@@ -70,13 +71,8 @@ export async function PATCH(
             })
           : null;
 
-        const recipients = await db.user.findMany({
-          where: {
-            roles: { hasSome: ["HOST", "HOST_MANAGER", "ADMIN"] },
-            archivedAt: null,
-            NOT: { id: session.user.id },
-          },
-          select: { id: true, email: true, firstName: true },
+        const recipients = await getHubNotificationRecipients("host-team", {
+          excludeUserId: session.user.id,
         });
 
         await db.alert.createMany({
@@ -133,13 +129,8 @@ export async function PATCH(
           })
         : null;
 
-      const recipients = await db.user.findMany({
-        where: {
-          roles: { hasSome: ["HOST", "HOST_MANAGER", "ADMIN"] },
-          archivedAt: null,
-          NOT: { id: session.user.id },
-        },
-        select: { id: true, email: true, firstName: true },
+      const recipients = await getHubNotificationRecipients("host-team", {
+        excludeUserId: session.user.id,
       });
 
       await db.alert.createMany({

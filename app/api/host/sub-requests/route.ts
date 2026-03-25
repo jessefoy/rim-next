@@ -6,6 +6,7 @@ import {
   type SubRequestEmailData,
 } from "@/lib/email";
 import { extractTextAsync } from "@/lib/renderRichContentServer";
+import { getHubNotificationRecipients } from "@/lib/toolAuth";
 
 function hasHubAccess(roles: string[]) {
   return roles.some((r) => ["HOST", "HOST_MANAGER", "ADMIN"].includes(r));
@@ -130,13 +131,8 @@ export async function POST(request: Request) {
   // Create alerts + send emails in background
   void (async () => {
     try {
-      const recipientUsers = await db.user.findMany({
-        where: {
-          roles: { hasSome: ["HOST", "HOST_MANAGER", "ADMIN"] },
-          archivedAt: null,
-          ...(assignment.userId ? { NOT: { id: assignment.userId } } : {}),
-        },
-        select: { id: true, email: true, firstName: true },
+      const recipientUsers = await getHubNotificationRecipients("host-team", {
+        excludeUserId: assignment.userId ?? undefined,
       });
       await db.alert.createMany({
         data: recipientUsers.map((u) => ({
