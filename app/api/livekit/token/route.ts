@@ -22,10 +22,11 @@ export async function POST(req: NextRequest) {
   const roles = session.user.roles ?? [];
   const isAdmin = roles.includes("ADMIN");
 
-  // Test mode: ADMIN can join any room name directly (for /admin/livekit-test)
-  if (testRoom && isAdmin) {
-    const userName = session.user.name || "Admin";
-    const token = await createRoomToken(session.user.id, userName, testRoom, true);
+  // Test mode: any authenticated user can join a test room directly
+  // (for /admin/livekit-test — the page itself is admin-gated)
+  if (testRoom) {
+    const userName = session.user.name || "Member";
+    const token = await createRoomToken(session.user.id, userName, testRoom, isAdmin);
     return NextResponse.json({
       token,
       roomName: testRoom,
