@@ -6,8 +6,7 @@
  * Includes a fullscreen toggle.
  */
 
-import { useRef, useState, useCallback } from "react";
-import "@livekit/components-styles";
+import { useRef, useState, useCallback, useEffect } from "react";
 import { LiveKitRoom, VideoConference } from "@livekit/components-react";
 
 interface Props {
@@ -19,6 +18,18 @@ interface Props {
 export default function VideoRoom({ token, wsUrl, onLeave }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Load LiveKit styles only when video room mounts — prevents global CSS leak
+  useEffect(() => {
+    const id = "livekit-styles";
+    if (document.getElementById(id)) return;
+    const link = document.createElement("link");
+    link.id = id;
+    link.rel = "stylesheet";
+    link.href = "/css/livekit-prefabs.css";
+    document.head.appendChild(link);
+    return () => { link.remove(); };
+  }, []);
 
   const toggleFullscreen = useCallback(async () => {
     if (!containerRef.current) return;
