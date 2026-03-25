@@ -18,7 +18,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { programSlug, sessionDate } = await req.json();
+  const { programSlug, sessionDate, testRoom } = await req.json();
+  const roles = session.user.roles ?? [];
+  const isAdmin = roles.includes("ADMIN");
+
+  // Test mode: ADMIN can join any room name directly (for /admin/livekit-test)
+  if (testRoom && isAdmin) {
+    const userName = session.user.name || "Admin";
+    const token = await createRoomToken(session.user.id, userName, testRoom, true);
+    return NextResponse.json({
+      token,
+      roomName: testRoom,
+      wsUrl: process.env.NEXT_PUBLIC_LIVEKIT_URL,
+    });
+  }
+
   if (!programSlug) {
     return NextResponse.json({ error: "programSlug required" }, { status: 400 });
   }
@@ -33,9 +47,6 @@ export async function POST(req: NextRequest) {
   }
 
   // Determine if this user is the assigned host for this session
-  const roles = session.user.roles ?? [];
-  const isAdmin = roles.includes("ADMIN");
-
   let isHost = isAdmin; // ADMIN always gets host controls
 
   if (!isHost) {

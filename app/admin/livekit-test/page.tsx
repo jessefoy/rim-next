@@ -26,7 +26,7 @@ export default function LiveKitTestPage() {
       const res = await fetch("/api/livekit/token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ programSlug: roomName }),
+        body: JSON.stringify({ testRoom: roomName }),
       });
       if (!res.ok) {
         const data = await res.json();
