@@ -10800,6 +10800,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .btn:hover { opacity: 0.88; }
 .btn:disabled { opacity: 0.5; cursor: default; }
 .btn--sm { padding: 6px 14px; font-size: 13px; }
+.btn--xs { padding: 4px 8px; font-size: 12px; }
 .btn--ghost {
   background: transparent;
   color: #6b6059;

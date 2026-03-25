@@ -190,7 +190,7 @@ export default function HubDocumentsClient({
         <div className="hub-doc-cat-new-row">
           <input className="fi" type="text" value={newCat} onChange={(e) => onNewCatChange(e.target.value)}
             placeholder="New category name" />
-          <button type="button" className="btn--ghost" style={{ fontSize: 12, padding: "4px 8px" }}
+          <button type="button" className="btn--ghost btn--xs"
             onClick={() => { onNewCatChange(""); onChange(categories[0] ?? ""); }}>
             Cancel
           </button>
