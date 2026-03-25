@@ -27,12 +27,11 @@ export default async function SeriesListPage() {
 
   return (
     <div className="th-list">
-      <div className="th-list__header" style={{ position: "relative" }}>
-        <h2 className="th-list__title">Series</h2>
+      <div className="th-list__header">
+        <h2 className="th-list__title">Series <ManualHelpIcon manualSlug="course-hub" /></h2>
         <Link href="/tools/learning/new" className="th-btn th-btn--primary">
           New Series
         </Link>
-        <ManualHelpIcon manualSlug="course-hub" />
       </div>
 
       {courses.length === 0 ? (

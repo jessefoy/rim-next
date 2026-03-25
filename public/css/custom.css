@@ -16623,9 +16623,9 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 
 /* ── Manual Help Icon ──────────────────────────────────────────────────────── */
 .mh-icon {
-  position: absolute;
-  top: 12px;
-  right: 12px;
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 8px;
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -18714,10 +18714,10 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
 }
 .tools-nav__left { display: flex; align-items: center; }
 .tools-nav__name {
-  font-family: var(--font-serif);
-  font-size: 18px;
-  font-weight: 400;
-  color: var(--rim-text);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--rim-text-muted);
+  letter-spacing: 0.03em;
 }
 .tools-nav__center { flex: 1; }
 .tools-nav__right { display: flex; align-items: center; }

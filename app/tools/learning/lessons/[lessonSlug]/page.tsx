@@ -6,7 +6,7 @@ import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import LessonEditor from "@/components/LessonEditor";
-import ManualHelpIcon from "@/components/ManualHelpIcon";
+
 import { renderContentBodyAsync } from "@/lib/renderRichContentServer";
 
 export const dynamic = "force-dynamic";
@@ -97,8 +97,7 @@ export default async function EditLessonPage({
   };
 
   return (
-    <div style={{ position: "relative" }}>
-      <ManualHelpIcon manualSlug="course-hub-lessons" />
+    <div>
       <LessonEditor initialData={initialData} isEditing legacyBodyHtml={legacyBodyHtml ?? undefined} />
     </div>
   );

@@ -21,10 +21,10 @@ interface Props {
 
 // Hardcoded hub list — dynamic registry to be built in a future session
 const KNOWN_HUBS: { slug: string; label: string }[] = [
-  { slug: "courses",   label: "Course Hub" },
-  { slug: "host-team", label: "Host Team Hub" },
-  { slug: "registrar", label: "Registrar Hub" },
-  { slug: "support",   label: "Support Inbox" },
+  { slug: "courses",   label: "Teaching Hub" },
+  { slug: "host-team", label: "Hosting Hub" },
+  { slug: "registrar", label: "Registration Hub" },
+  { slug: "support",   label: "Support Hub" },
 ];
 
 function hubLabel(slug: string): string {

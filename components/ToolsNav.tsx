@@ -20,7 +20,9 @@ export default function ToolsNav() {
     <header className="tools-nav">
       <div className="tools-nav__inner">
         <div className="tools-nav__left">
-          <span className="tools-nav__name">{toolName}</span>
+          <Link href={backHref} className="tools-nav__back">
+            &larr; {backLabel}
+          </Link>
         </div>
 
         <div className="tools-nav__center">
@@ -45,9 +47,7 @@ export default function ToolsNav() {
         </div>
 
         <div className="tools-nav__right">
-          <Link href={backHref} className="tools-nav__back">
-            &larr; {backLabel}
-          </Link>
+          <span className="tools-nav__name">{toolName}</span>
         </div>
       </div>
     </header>

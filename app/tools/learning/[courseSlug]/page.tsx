@@ -6,7 +6,7 @@ import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import CourseEditor from "@/components/CourseEditor";
-import ManualHelpIcon from "@/components/ManualHelpIcon";
+
 
 export const dynamic = "force-dynamic";
 
@@ -76,8 +76,7 @@ export default async function EditCoursePage({
   };
 
   return (
-    <div style={{ position: "relative" }}>
-      <ManualHelpIcon manualSlug="course-hub-series" />
+    <div>
       <CourseEditor initialData={initialData} isEditing />
     </div>
   );

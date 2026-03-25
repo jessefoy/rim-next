@@ -11,7 +11,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getToolHubContext } from "@/lib/toolAuth";
 import SupportInboxClient from "@/components/SupportInboxClient";
-import ManualHelpIcon from "@/components/ManualHelpIcon";
+
 
 export const dynamic = "force-dynamic";
 
@@ -78,8 +78,7 @@ export default async function SupportInboxToolPage({
   }
 
   return (
-    <div style={{ position: "relative" }}>
-      <ManualHelpIcon manualSlug="support-inbox" />
+    <div>
       <SupportInboxClient
         currentUserId={session.user.id}
         currentUserName={session.user.name || "You"}

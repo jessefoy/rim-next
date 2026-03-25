@@ -9,7 +9,7 @@ import { db } from "@/lib/db";
 import ProgramsTableClient, {
   type ProgramRow,
 } from "@/components/registrar/ProgramsTableClient";
-import ManualHelpIcon from "@/components/ManualHelpIcon";
+
 
 export const metadata = { title: "Program Manager — Tools" };
 export const dynamic = "force-dynamic";
@@ -84,8 +84,7 @@ export default async function ProgramsToolPage() {
 
   return (
     <div className="vol-page">
-      <div className="vol-content" style={{ position: "relative" }}>
-        <ManualHelpIcon manualSlug="registration" />
+      <div className="vol-content">
         <ProgramsTableClient
           programs={programRows}
           basePath="/tools/programs"
