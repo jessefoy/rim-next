@@ -10,7 +10,7 @@ export default function Nav() {
   const { data: session } = useSession();
   const isLoggedIn = !!session;
   const isAdmin = session?.user?.roles?.includes("ADMIN") ?? false;
-  const isToolsArea = pathname?.startsWith("/tools") ?? false;
+  const isToolsArea = (pathname?.startsWith("/tools") || pathname?.startsWith("/session")) ?? false;
   const isMemberArea =
     (pathname?.startsWith("/account") ?? false) ||
     (pathname?.startsWith("/admin") ?? false);

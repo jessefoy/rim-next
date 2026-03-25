@@ -5,7 +5,6 @@ import { db } from "@/lib/db";
 import AccountLayout from "@/components/AccountLayout";
 import SiteBannerStrip from "@/components/SiteBannerStrip";
 import DashboardAutoRefresh from "@/components/DashboardAutoRefresh";
-import LazyVideoRoomEmbed from "@/components/LazyVideoRoomEmbed";
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 
 export const metadata = { title: "My Dashboard — Rooted In Mindfulness" };
@@ -345,11 +344,9 @@ export default async function DashboardPage() {
                   <div className="today-row__right">
                     {s.isRegistered && <span className="today-registered">Registered</span>}
                     {(s.programFormat === "virtual" || s.programFormat === "hybrid") && (
-                      <LazyVideoRoomEmbed
-                        programId={s._id}
-                        programSlug={s.slug}
-                        className="join-btn"
-                      />
+                      <a href={`/session/${s.slug}`} className="join-btn">
+                        Join
+                      </a>
                     )}
                   </div>
                 </div>

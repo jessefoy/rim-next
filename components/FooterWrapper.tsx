@@ -8,6 +8,7 @@ export default function FooterWrapper() {
     pathname.startsWith("/admin") ||
     pathname.startsWith("/account") ||
     pathname.startsWith("/tools") ||
+    pathname.startsWith("/session") ||
     pathname.startsWith("/lessons/") ||
     pathname.startsWith("/course/");
   if (suppress) return null;
