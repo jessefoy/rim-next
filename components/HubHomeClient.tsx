@@ -159,14 +159,14 @@ export default function HubHomeClient({
           />
           <div className="hub-home__edit-actions">
             <button
-              className="hub-home__save-btn"
+              className="btn"
               onClick={saveHomeContent}
               disabled={savingHome}
             >
               {savingHome ? "Saving..." : "Save"}
             </button>
             <button
-              className="hub-home__cancel-btn"
+              className="btn--ghost"
               onClick={() => {
                 setEditContent(homeContentJson);
                 setEditing(false);

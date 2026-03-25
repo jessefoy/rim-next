@@ -269,7 +269,7 @@ export default function HubConvThreadClient({
                     placeholder="Edit your reply…"
                     variant="compact"
                   />
-                  <div className="form-actions" style={{ justifyContent: "flex-end", gap: 8 }}>
+                  <div className="hub-conv-reply-actions">
                     <button className="btn--ghost" onClick={() => { setEditingReplyId(null); setEditBody(null); }}>
                       Cancel
                     </button>
@@ -337,7 +337,7 @@ export default function HubConvThreadClient({
             placeholder="Add a reply…"
             variant="compact"
           />
-          <div className="form-actions" style={{ justifyContent: "flex-end" }}>
+          <div className="hub-conv-reply-actions">
             <button
               className="btn"
               onClick={postReply}

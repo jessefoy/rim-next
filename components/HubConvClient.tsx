@@ -253,25 +253,28 @@ export default function HubConvClient({
   return (
     <div className="hub-conv-container">
 
-      {/* Toolbar */}
-      <div className="hub-conv-toolbar">
-        <div className="hub-conv-view-pills">
-          <button
-            className={`hub-conv-pill${view === "open" ? " hub-conv-pill--active" : ""}`}
-            onClick={() => setView("open")}
-          >
-            Open
-          </button>
-          <button
-            className={`hub-conv-pill${view === "closed" ? " hub-conv-pill--active" : ""}`}
-            onClick={() => { setView("closed"); loadClosed(); }}
-          >
-            Closed
+      {/* Page header */}
+      <div className="hub-section-header">
+        <h2 className="hub-page__title">Conversations</h2>
+        <div className="hub-page__actions">
+          <div className="hub-conv-view-pills">
+            <button
+              className={`hub-conv-pill${view === "open" ? " hub-conv-pill--active" : ""}`}
+              onClick={() => setView("open")}
+            >
+              Open
+            </button>
+            <button
+              className={`hub-conv-pill${view === "closed" ? " hub-conv-pill--active" : ""}`}
+              onClick={() => { setView("closed"); loadClosed(); }}
+            >
+              Closed
+            </button>
+          </div>
+          <button className="btn btn--sm" onClick={() => setShowCompose((v) => !v)}>
+            + New Topic
           </button>
         </div>
-        <button className="btn btn--sm" onClick={() => setShowCompose((v) => !v)}>
-          + New Topic
-        </button>
       </div>
 
       {/* Category filter */}

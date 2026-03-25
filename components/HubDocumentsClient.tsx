@@ -187,9 +187,9 @@ export default function HubDocumentsClient({
   }) {
     if (value === "__new__" || newCat) {
       return (
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div className="hub-doc-cat-new-row">
           <input className="fi" type="text" value={newCat} onChange={(e) => onNewCatChange(e.target.value)}
-            placeholder="New category name" style={{ flex: 1 }} />
+            placeholder="New category name" />
           <button type="button" className="btn--ghost" style={{ fontSize: 12, padding: "4px 8px" }}
             onClick={() => { onNewCatChange(""); onChange(categories[0] ?? ""); }}>
             Cancel
@@ -209,14 +209,17 @@ export default function HubDocumentsClient({
   return (
     <div className="hub-doc-container">
 
-      {/* Toolbar — all hub members can create */}
-      <div className="hub-doc-toolbar">
-        <a href={`/account/hub/${hubSlug}/documents/new`} className="btn btn--sm">
-          + New Document
-        </a>
-        <button className="btn btn--sm btn--ghost" onClick={() => setShowAdd((v) => !v)}>
-          + Add Link
-        </button>
+      {/* Page header */}
+      <div className="hub-section-header">
+        <h2 className="hub-page__title">Documents</h2>
+        <div className="hub-page__actions">
+          <a href={`/account/hub/${hubSlug}/documents/new`} className="btn btn--sm">
+            + New Document
+          </a>
+          <button className="btn btn--sm btn--ghost" onClick={() => setShowAdd((v) => !v)}>
+            + Add Link
+          </button>
+        </div>
       </div>
 
       {/* Add form */}
@@ -230,14 +233,13 @@ export default function HubDocumentsClient({
           </div>
           <div className="fg">
             <label className="fl">Google Drive URL</label>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div className="hub-doc-url-row">
               <input
                 className="fi"
                 type="url"
                 value={addUrl}
                 onChange={(e) => { setAddUrl(e.target.value); setAddFileType(detectFileType(e.target.value)); }}
                 placeholder="https://docs.google.com/…"
-                style={{ flex: 1 }}
               />
               {addUrl && <span className="hub-doc-type-badge">{addFileType}</span>}
             </div>
@@ -277,7 +279,7 @@ export default function HubDocumentsClient({
                 <div key={doc.id}>
                   {editingId === doc.id ? (
                     /* Inline edit panel */
-                    <div className="hub-doc-add-form" style={{ borderRadius: 0, borderLeft: 0, borderRight: 0 }}>
+                    <div className="hub-doc-add-form hub-doc-edit-inline">
                       <div className="fg">
                         <label className="fl">Label</label>
                         <input className="fi" type="text" value={editLabel} onChange={(e) => setEditLabel(e.target.value)} />
@@ -285,10 +287,9 @@ export default function HubDocumentsClient({
                       {!doc.isNative && (
                         <div className="fg">
                           <label className="fl">Google Drive URL</label>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <div className="hub-doc-url-row">
                             <input className="fi" type="url" value={editUrl}
-                              onChange={(e) => { setEditUrl(e.target.value); setEditFileType(detectFileType(e.target.value)); }}
-                              style={{ flex: 1 }} />
+                              onChange={(e) => { setEditUrl(e.target.value); setEditFileType(detectFileType(e.target.value)); }} />
                             <span className="hub-doc-type-badge">{editFileType}</span>
                           </div>
                         </div>
@@ -306,7 +307,7 @@ export default function HubDocumentsClient({
                           <input className="fi" type="text" value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
                         </div>
                       )}
-                      <div className="form-actions" style={{ justifyContent: "space-between" }}>
+                      <div className="hub-doc-edit-footer">
                         <button
                           className="hub-action-btn hub-action-btn--del"
                           onClick={() => deleteDoc(doc.id)}
@@ -314,7 +315,7 @@ export default function HubDocumentsClient({
                         >
                           {deletingId === doc.id ? "Deleting…" : "Delete"}
                         </button>
-                        <div style={{ display: "flex", gap: 8 }}>
+                        <div className="hub-doc-edit-footer__right">
                           <button className="btn--ghost" onClick={() => setEditingId(null)}>Cancel</button>
                           <button className="btn" onClick={() => updateDoc(doc.id)} disabled={saving}>
                             {saving ? "Saving…" : "Save"}
@@ -325,7 +326,7 @@ export default function HubDocumentsClient({
                   ) : (
                     <div className="hub-doc-item">
                       {!doc.isNative && <span className="hub-doc-type-badge">{doc.fileType}</span>}
-                      {doc.isLocked && <span style={{ fontSize: 13, flexShrink: 0 }} title="Locked by author">🔒</span>}
+                      {doc.isLocked && <span className="hub-doc-item__edit" title="Locked by author">🔒</span>}
                       <div className="hub-doc-item__text">
                         {doc.isNative ? (
                           <a
@@ -351,8 +352,7 @@ export default function HubDocumentsClient({
                       </div>
                       {canEdit(doc) && !doc.isNative && !doc.isLocked && (
                         <button
-                          className="hub-action-btn"
-                          style={{ flexShrink: 0 }}
+                          className="hub-action-btn hub-doc-item__edit"
                           onClick={(e) => { e.stopPropagation(); openEdit(doc); }}
                         >
                           Edit
@@ -361,8 +361,7 @@ export default function HubDocumentsClient({
                       {canEdit(doc) && doc.isNative && (
                         <a
                           href={`/account/hub/${hubSlug}/documents/${doc.id}/edit`}
-                          className="hub-action-btn"
-                          style={{ flexShrink: 0, textDecoration: "none" }}
+                          className="hub-action-btn hub-doc-item__edit"
                         >
                           {doc.isLocked && doc.addedById !== currentUserId ? "View" : "Edit"}
                         </a>

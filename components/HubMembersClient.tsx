@@ -178,14 +178,17 @@ export default function HubMembersClient({ hubSlug, members: initialMembers, isC
   return (
     <div className="hub-mem-container">
 
-      {/* Toolbar */}
-      {isCoordinator && (
-        <div className="hub-mem-toolbar">
-          <button className="btn btn--sm" onClick={() => setShowAddForm((v) => !v)}>
-            + Add Member
-          </button>
-        </div>
-      )}
+      {/* Page header */}
+      <div className="hub-section-header">
+        <h2 className="hub-page__title">Members</h2>
+        {isCoordinator && (
+          <div className="hub-page__actions">
+            <button className="btn btn--sm" onClick={() => setShowAddForm((v) => !v)}>
+              + Add Member
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Add member form */}
       {showAddForm && (
