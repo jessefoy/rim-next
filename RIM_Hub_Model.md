@@ -452,8 +452,8 @@ When should functionality live inside a hub section vs. be extracted to a standa
 - *Pattern:* Tool is the entire workflow. Hub provides team context (who's on support, conversations, shared documents).
 
 **Host Schedule** (from Host Team Hub → `/tools/schedule`)
-- *Why extracted:* Three-screen flow (Schedule → Live Session → Journal). Calendar-based UI. Session management with sub-board integration. Needed sub-nav tabs.
-- *Pattern:* Tool has its own sub-navigation. Hub is where the team coordinates (conversations, tasks, documents).
+- *Why extracted:* Calendar-based UI with mini-cal + card list. Session management with sub-board integration. Originally had sub-nav (Schedule / Live Session / Journal) — Live Session and Journal removed in session 76; will rebuild around LiveKit video conferencing.
+- *Pattern:* Single-page tool (no sub-nav currently). Hub is where the team coordinates (conversations, tasks, documents).
 
 ### The decision rule
 
@@ -614,7 +614,7 @@ Tools should follow these patterns on mobile:
 
 **ToolsNav:** The back link and tool name render in a top bar that works well on mobile without modification.
 
-**Sub-nav tabs:** Tools with sub-navigation (like Host Schedule's Schedule / Live Session / Journal tabs) render as horizontal scrollable tabs.
+**Sub-nav tabs:** Tools with sub-navigation render as horizontal scrollable tabs. (Host Schedule currently has no sub-nav — Live Session and Journal were removed; may return with LiveKit integration.)
 
 **Three-column layouts (Tasks):** On mobile, the Tasks section uses a three-screen flow:
 1. **Lists screen** — shows all task lists (the rail)

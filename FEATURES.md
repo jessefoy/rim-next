@@ -1368,7 +1368,7 @@ The page has two layers separated by a divider:
 | System Overview | What the app is, four core purposes, user types table (5 types: public visitor → admin), key philosophy (programs as front door, meet links dashboard-only) |
 | System Map | 12-row dependency table — each functional area: what it Needs / what it Powers / key Note |
 | Data Flows | Two end-to-end scenarios with numbered steps and area labels: "A new visitor registers for a program" (12 steps) and "A member logs in on a Tuesday morning" (7 steps) |
-| If X Breaks | 8 external dependency cards — each shows the system name (Sanity, Resend, Postgres, Stripe, Google Meet, Vercel Cron, Flodesk, Google OAuth) and what cascades as bullet points with red ✕ markers |
+| If X Breaks | 8 external dependency cards — each shows the system name (Sanity, Resend, Postgres, Stripe, LiveKit, Vercel Cron, Flodesk, Google OAuth) and what cascades as bullet points with red ✕ markers |
 
 **Bottom layer — Feature Detail:**
 
@@ -1377,7 +1377,7 @@ The page has two layers separated by a divider:
 - **What** — plain-English description of the feature
 - **Related to** — bulleted functional relationships (→ prefix)
 
-Areas: 🔐 Auth, 🛡️ Route Protection, 📋 Registration, ✉️ Email, 💰 Dana/Stripe, 📊 Volunteer Tools, 👤 Member Experience, 📚 Course Access, 🛠️ Member Management, ⏰ Scheduling, 🎥 Google Meet, 🗂️ Sanity CMS, 🌐 Public Pages + Admin Tools + Nav.
+Areas: 🔐 Auth, 🛡️ Route Protection, 📋 Registration, ✉️ Email, 💰 Dana/Stripe, 📊 Volunteer Tools, 👤 Member Experience, 📚 Course Access, 🛠️ Member Management, ⏰ Scheduling, 🎥 LiveKit Video, 🗂️ Sanity CMS, 🌐 Public Pages + Admin Tools + Nav.
 
 **Quick-jump nav:** Two rows — "System view" (4 anchors, highlighted in `--rim-blue`) and "Feature areas" (13 area links).
 
@@ -1791,11 +1791,11 @@ Site `<Nav>` returns null for `/tools/*` paths. `FooterWrapper` suppresses foote
 |---|---|---|---|---|
 | Program Manager | `/tools/programs` | REGISTRAR, ADMIN | Registrar Hub | Hub Programs tab (full management) |
 | Support Inbox | `/tools/inbox` | SUPPORT, ADMIN | Support Hub | Hub Inbox + Settings tabs |
-| Host Schedule | `/tools/schedule` | HOST, HOST_MANAGER, ADMIN | Host Team Hub | Hub Schedule + Session tabs |
+| Host Schedule | `/tools/schedule` | HOST, HOST_MANAGER, ADMIN | Host Team Hub | Hub Schedule tab (mini-cal + card list; no sub-nav) |
 
 ### Sub-navigation
 
-Tools can declare sub-navigation items via the `subNav` property in ToolsContext. These render as pill-style links in the ToolsNav center slot with active-state highlighting. Currently used by Host Schedule: Schedule, Live Session, Journal.
+Tools can declare sub-navigation items via the `subNav` property in ToolsContext. These render as pill-style links in the ToolsNav center slot with active-state highlighting. Host Schedule no longer uses sub-nav (Live Session and Journal removed in session 76; schedule tool is now a single page with mini-cal + card list).
 
 ### Key files
 
@@ -1807,11 +1807,7 @@ Tools can declare sub-navigation items via the `subNav` property in ToolsContext
 | `app/tools/programs/[programSlug]/edit/page.tsx` | Edit program |
 | `app/tools/inbox/page.tsx` | Support Inbox (3-column email client) |
 | `app/tools/inbox/settings/page.tsx` | Support settings (Gmail, signatures, templates) |
-| `app/tools/schedule/page.tsx` | Monthly host schedule calendar |
-| `app/tools/schedule/session/page.tsx` | Live session view (6-state machine) |
-| `app/tools/schedule/session/[programSlug]/post/page.tsx` | Post-session report form |
-| `app/tools/schedule/session/history/page.tsx` | Coordinator session history |
-| `app/tools/schedule/session/history/team/page.tsx` | Team session journal |
+| `app/tools/schedule/page.tsx` | Host schedule — mini-cal + card list (redesigned session 76; replaced full grid calendar). Single page, no sub-nav. |
 
 ### Hub stakeholder views
 
@@ -1824,11 +1820,62 @@ When an application is extracted, the hub may retain a simplified read-only view
 
 `ProgramEditor` and `ProgramsTableClient` gained a `basePath` prop — all navigation uses it instead of constructing hub URLs. `hubSlug` kept as optional fallback.
 
-`SessionLiveClient` gained a `basePath` prop — all 4 internal links (journal ×3, coordinator history ×1) use it instead of hub URL construction.
+`SessionLiveClient` removed (session 76). Live Session and Journal features will be rebuilt around LiveKit video conferencing (Phase 3+).
 
 ### CSS prefix
 
 `tools-nav-` for nav chrome, `tools-` for shell layout. Tools reuse their existing CSS prefixes (`vol-`, `si-`, `hub-cal-`, `sv-`, `sh-`, etc.) — the extraction did not change any application-level CSS.
+
+---
+
+## 38. LiveKit Video Conferencing — Phase 1-2 ✅ Built — session 76 (2026-03-25)
+
+### What it does
+
+Embedded video conferencing that replaces Google Meet for virtual and hybrid programs. Members join directly from the dashboard — no separate accounts, no Google login, no meeting links to manage. Host permissions are controlled by RIM's auth system via JWT tokens rather than by which Google account is logged in.
+
+### Status
+
+- **Phase 1 (foundation):** LiveKit Cloud integration, token generation API, VideoRoom component, admin test page. Complete.
+- **Phase 2 (dashboard embed):** VideoRoomEmbed replaces MeetJoinButton on the member dashboard, fullscreen toggle. Complete.
+- **Phase 3 (host integration):** Host controls, attendance tracking via LiveKit participants. Pending.
+- **Phase 4 (cleanup):** Remove Google Meet infrastructure once LiveKit covers all use cases. Pending.
+
+### Who uses it
+
+- **Members** — join virtual sessions from their dashboard via embedded VideoRoom (no external links or accounts needed)
+- **Hosts** — receive `roomAdmin` permission in the JWT token, granting moderator controls
+- **Admins** — test page at `/admin/livekit-test` for verifying room creation and connectivity
+
+### Architecture
+
+Rooms are created on-demand from the program slug (e.g., `thursday-evening-meditation`). LiveKit Cloud (Ship tier, $50/month) handles all media infrastructure. The token API generates short-lived JWTs with identity, room name, and grants (including `roomAdmin` for hosts). No room pre-provisioning needed — rooms exist when the first participant joins and are cleaned up automatically.
+
+### Key files
+
+| File | Purpose |
+|---|---|
+| `lib/livekit.ts` | LiveKit server SDK setup, `createToken()` helper (identity, room, grants including roomAdmin for hosts) |
+| `app/api/livekit/token/route.ts` | POST — generates LiveKit JWT; validates auth, resolves host status from program assignments |
+| `components/VideoRoom.tsx` | Full LiveKit room component (`@livekit/components-react`); audio/video controls, participant grid |
+| `components/VideoRoomEmbed.tsx` | Dashboard embed wrapper — replaces MeetJoinButton; join button → inline VideoRoom with fullscreen toggle |
+| `app/admin/livekit-test/page.tsx` | Admin-only test page for verifying LiveKit connectivity and room creation |
+
+### Technical notes
+
+- **Token grants:** All participants get `canPublish`, `canSubscribe`, `canPublishData`. Hosts (users with HostAssignment for the program) additionally receive `roomAdmin: true` for moderator controls (mute others, remove participants).
+- **Room naming:** Room name = program slug. Deterministic — same program always maps to same room. Multiple sessions of the same program reuse the room name (rooms are ephemeral).
+- **LiveKit Cloud Ship tier:** $50/month base, includes 1,000 participant-minutes. Sufficient for RIM's current virtual program volume.
+- **Fullscreen toggle:** VideoRoomEmbed includes a fullscreen button that expands the video to fill the viewport, with Escape to exit.
+- **Google Meet authuser:** Session 76 also added `authuser=` parameter to Google Meet URLs based on the assigned room account email, ensuring hosts open Meet with the correct Google account. This is a transitional improvement — Google Meet will be fully replaced by LiveKit.
+
+### New env vars
+
+| Variable | Purpose |
+|----------|---------|
+| `LIVEKIT_API_KEY` | LiveKit Cloud API key |
+| `LIVEKIT_API_SECRET` | LiveKit Cloud API secret |
+| `NEXT_PUBLIC_LIVEKIT_URL` | LiveKit Cloud WebSocket URL (e.g., `wss://rim-xxxx.livekit.cloud`) |
 
 ---
 
@@ -1959,6 +2006,8 @@ The app assigns whichever room is free for a given time slot (checking the share
 - `app/api/webhooks/sanity-programs/route.ts` — Sanity webhook handler: HMAC-SHA256 sig verify, operation detection (payload or Sanity query), update/delete routing (no auto-create)
 - `app/api/programs/[slug]/google-meet/route.ts` — POST: orphan-safe Meet creation (deletes old calendar event if exists), writes `zoomLink`/`meetHostAccount`/`calendarEventId` to Sanity, 409 on no room; DELETE: releases calendar event + clears Sanity fields (REGISTRAR/ADMIN)
 - `components/CreateMeetButton.tsx` — "use client" 5-state (idle/loading/done/remove/removing); done state shows link + host account + Remove button; remove shows confirm dialog; `vol-meet-` CSS prefix
+
+> **LiveKit replacement (session 76):** LiveKit Cloud is being integrated as a replacement for Google Meet. Phase 1-2 are complete (foundation + dashboard embed). Google Meet will be gradually phased out as LiveKit features mature. See §38 for details.
 - `app/account/registrar/[slug]/page.tsx` — renders CreateMeetButton only when `programFormat === "virtual" || "hybrid"`
 - `lib/queries.ts` — `hostProgramsQuery` (programFormat in ["virtual","hybrid"] with Meet link, incl. `meetHostAccount`)
 - `app/account/host/page.tsx` — Host Area page (HOST | REGISTRAR | ADMIN access; see §21)
@@ -2603,6 +2652,8 @@ Hosts (HOST role), hub managers (HOST_MANAGER), registrars, and admins. The Sess
 - **Post-session idempotent:** The API uses `upsert` on `SessionReport` — submitting twice updates in place without creating duplicates. The form pre-fills from the existing report if one exists.
 - **Email routing:** GENTLE_FOLLOWUP → Jesse + coordinator; JESSE_ONLY → Jesse only; TECHNICAL_ISSUE → coordinator only; NONE → no email. Recipients consolidated per person (one email with all relevant flags).
 - **Automated emails (built, disabled):** `sendFirstTimeAttendeeEmail()` + `sendReturningAfterAbsenceEmail()` exist in `lib/email.ts` with DRAFT copy. Gated behind `ENABLE_ATTENDANCE_EMAILS=true` env var. Not enabled until copy is approved.
+
+> **Session 76 note:** The Live Session view and Journal features (session history, team journal, post-session forms) were removed (~5,000 lines) as part of the LiveKit migration. These features will be rebuilt with LiveKit's real-time participant tracking instead of the Google Meet attendance model. See §38.
 
 ### New env vars
 
@@ -3561,5 +3612,7 @@ model HubDocument {
 **2026-03-16 (session 58, continued)** — Session tab: finished remaining gaps from the UX redesign brief. (1) meetHostAccount display: Added to States 2 and 3 — shows the Google Meet room account labeled "Room account" in State 2, quiet text below the join button in State 3. (2) State 5 inline form: PostSessionClient now renders inline in State 5 instead of linking to a separate page. Co-host vs primary host routing handled via isCoHost prop derived from SessionProgram flags. (3) End Session stays on page: endSession callback now calls router.refresh() instead of router.push — user stays on the session tab and State 5 appears with the inline form. (4) Coordinator section: Coordinator/Admin users see a muted section below the host cards with missing report indicators and team journal link. Key files: components/SessionLiveClient.tsx, components/PostSessionClient.tsx, app/account/hub/[slug]/session/page.tsx.
 
 **2026-03-24 (session 75)** — Hub/tools integrity pass: hub awareness, notification fix, ToolsNav fix, UI cleanup, system cleanup. **(1) Hub awareness wiring:** Created `getToolHubContext()` in `lib/toolAuth.ts` — tools read `?hub=` from server-side `searchParams` and resolve the full hub record with members. Host Schedule (3 pages) and Support Inbox (2 pages) updated to use dynamic hub context instead of hardcoded slug queries. Falls back to primary hub when no param. **(2) ToolsNav context fix:** Discovered ToolsNav was rendered OUTSIDE ToolsProvider in the outer tools layout — `useToolsContext()` always returned defaults (backLabel: "Dashboard", no subNav). Moved ToolsNav into each tool's per-layout ToolsProvider wrapper. All four tools now show correct back link, sub-nav pills, and tool name. **(3) Notification system fix:** All host-team alerts and emails now use `getHubNotificationRecipients()` (queries hub members) instead of hardcoded role checks. Sub requests, claims, unclaims, and unassigned session cron all updated. `UserToolAccess` grant holders can use the tool but don't receive team notifications unless they're hub members. **(4) ToolsNav layout swap:** Back link moved to left (where users expect navigation), tool name moved to right (muted, secondary). **(5) ManualHelpIcon fix:** Changed from `position: absolute` (colliding with action buttons) to `display: inline-flex` next to page titles. Fixed duplicate `display` property. Removed from sub-pages (editor views). **(6) Hub naming standardization:** Hubs renamed: Course Hub, Hosting Hub, Registration Hub, Support Hub (consistent "X Hub" pattern). Updated DB, seed script, `HubAccessSection`. **(7) System cleanup:** Removed 12 unused hubs (people-team, greeter, av-team, etc.), 11 unused roles (GREETER, AV_TECH, etc.), 4 admin dev pages (roadmap, sitemap, features, ideas), orphaned CSS for deleted AlertStrip. **(8) Course Manager extraction:** `/tools/learning` with Course Manager tool — Series + Lessons sub-nav tabs. `UserToolAccess` model + `hasToolAccess()` shared helper. All tool layouts standardized. **(9) Tool registry:** `lib/toolRegistry.ts` — centralized tool definitions. Hub admin form uses tool picker dropdown instead of free-text URL entry. `toolSlug` column on `HubAppLink`. **(10) Prisma migration fix:** Replaced `prisma migrate deploy` (fails on existing DBs without baseline) with `prisma/migrate.mjs` — idempotent migration runner via `$executeRawUnsafe`. Key files: `lib/toolAuth.ts`, `components/ToolsNav.tsx`, all `app/tools/*/layout.tsx`, `app/api/host/*/route.ts`, `app/api/cron/check-unassigned-hosts/route.ts`, `lib/toolRegistry.ts`, `prisma/migrate.mjs`.
+
+**2026-03-25 (session 76)** — Hub design unification, Host Schedule redesign, LiveKit Phase 1-2, session feature removal. **(1) Hub design unification:** Shared hub headers with consistent spacing, dead CSS cleanup across all hub pages. **(2) Host Schedule redesign:** Replaced full grid calendar with mini-cal + card list as primary view. Cards expand inline for detail (no separate page navigation). Compact chips for assignment status. Unified color system across schedule states. Multi-select removed. Mini-cal status dots enlarged for visibility. **(3) List view rebuild:** Replaced 6-column grid table layout with card rows — better information density and mobile responsiveness. **(4) LiveKit Phase 1 (foundation):** LiveKit Cloud integration — `lib/livekit.ts` (server SDK, `createToken()` with roomAdmin grants for hosts), `app/api/livekit/token/route.ts` (JWT generation API), `components/VideoRoom.tsx` (full room component with `@livekit/components-react`), `app/admin/livekit-test/page.tsx` (admin test page). Ship tier ($50/month). Rooms created on-demand from program slug. **(5) LiveKit Phase 2 (dashboard embed):** `VideoRoomEmbed` replaces `MeetJoinButton` on member dashboard — embedded video with fullscreen toggle. No external links or separate accounts needed. **(6) Removed Live Session + Journal features:** ~5,000 lines removed (SessionLiveClient 6-state machine, PostSessionClient, coordinator history, team journal, attendance flag/join APIs, post-session API). Will rebuild attendance tracking using LiveKit's real-time participant data instead of the Google Meet attendance model. **(7) Google Meet authuser:** Added `authuser=` parameter to Google Meet URLs based on assigned room account email — auto-selects correct Google account for hosts. Transitional improvement before full LiveKit replacement. Key files: `lib/livekit.ts`, `app/api/livekit/token/route.ts`, `components/VideoRoom.tsx`, `components/VideoRoomEmbed.tsx`, `app/tools/schedule/page.tsx`, `public/css/custom.css`.
 
 **2026-03-24 (session 74)** — Hub sidebar redesign, task UI rebuild, hub context, and architecture documentation. **(1) Hub sidebar navigation:** Replaced horizontal `HubNavStrip` tab strip with 220px left sidebar (`HubSidebar.tsx`). Four sections: Identity (type, name, member count, coordinator), Core nav (Home, Conversations, Tasks, Documents, Members — teal active state), Tools (app links with ↗ arrow), Hub settings (coordinator/admin only). Sticky at `top: 90px; height: calc(100vh - 90px)` below site nav. Mobile: slide-in drawer via hamburger in sticky top bar. Deleted `HubHeader.tsx` and `HubNavStrip.tsx`. Hub layout simplified — `hub-shell` flex row replaces `hub-page` + tab strip. CSS prefix: `hub-sb-`, `hub-shell`, `hub-main`. **(2) Account sidebar suppression for hubs:** `AccountLayout` hides `AccountSidebar` when pathname starts with `/account/hub/` — hubs use their own sidebar. `ac-layout--no-sidebar` class applied. **(3) Task UI redesign:** Full rewrite of `HubTasksClient` — three-column desktop layout (rail 220px, task list 380px, detail panel flex). Rail: Views section (My Tasks, Due Soon with counts), Lists section (colored dots, counts, three-dot menus), Templates disclosure, "+ New list". Task list: section dividers (Open/Done), task rows with status pips, checkboxes, metadata (due date chips, subtask pills, assignee avatars). Detail panel: serif title, three-segment status control, four-column fields row, RimProseEditor body, subtasks with progress bar, activity log placeholder. Task cards on white backgrounds with 12px gaps and border-radius on warm hub background. Mobile: three-screen flow (lists → task list → detail) with floating FAB. CSS prefix: `hub-tasks-`. **(4) Hub context for tools:** `HubSidebar` appends `?hub={slug}` to all tool app links. `ToolsContext` reads param client-side via `useSearchParams()` (Suspense-wrapped), exposes `hubSlug` to tool pages via `useToolsContext().hubSlug`. Foundation for scoped data — tools can filter by launching hub. **(5) Hub Model documentation:** Created `RIM_Hub_Model.md` — the conceptual architecture document describing the two-layer model (hubs as team homes, tools as work applications), sidebar structure, tool navigation flow, access control separation (role vs membership), and scoped data pattern. Referenced from `RIM_System_Architecture.md`. Key files: `components/HubSidebar.tsx`, `components/HubTasksClient.tsx`, `components/ToolsContext.tsx`, `app/account/hub/[slug]/layout.tsx`, `RIM_Hub_Model.md`, `public/css/custom.css`.

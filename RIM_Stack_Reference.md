@@ -1,6 +1,6 @@
 # RIM Next — Stack Reference
 
-_Generated 2026-03-11. Last updated 2026-03-24 (session 75)._
+_Generated 2026-03-11. Last updated 2026-03-25 (session 76)._
 
 ---
 
@@ -40,7 +40,8 @@ Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfie
 | Payments | Stripe | test mode (sk_test_* / pk_test_*) |
 | Newsletter | Flodesk | segment `6340e5b00170f97cbdfc4b87` |
 | Donations | GiveButter | account `GcnXeYilkL4lWnr3` |
-| Video | Google Meet | 4 shared room accounts via DWD + Google Calendar API |
+| Video (legacy) | Google Meet | 4 shared room accounts via DWD + Google Calendar API |
+| Video (new) | LiveKit Cloud | Ship tier ($50/month); `livekit-server-sdk`, `@livekit/components-react`, `@livekit/components-styles`, `livekit-client` |
 | Hosting | Vercel | auto-deploy on push to `main` |
 | CSS | Custom design system | `public/css/custom.css` only — never touch webflow CSS files |
 | Rich text editor | BlockNote v0.47.1 | `@blocknote/core`, `@blocknote/react`, `@blocknote/mantine`, `@blocknote/server-util` — replaced Tiptap entirely in session 69. Two components: `RimBlockEditor` (full — Bear-inspired toolbar, image upload, advanced tables, heading hierarchy, document locking, blob cleanup) and `RimProseEditor` (prose). Custom Dharma blocks: VerseQuote, PracticeSuggestion, Callout. Heading CSS injected via `<style>` tag on mount (must target `<h1>`/`<h2>`/`<h3>` tags, not `data-level`). Color token rendering via `BN_TEXT_COLORS`/`BN_BG_COLORS` maps in `renderRichContent.ts`. **Exception:** `MarkdownEditor` (Tiptap + tiptap-markdown, renamed from `RimEditor.tsx` in session 70) is used exclusively by `EmailTemplateEditor` — email template pipeline is markdown → marked() → juice() → Resend. |
@@ -119,6 +120,13 @@ All set in Vercel. Pull locally with `npx vercel env pull .env.local`.
 | `GMAIL_CLIENT_SECRET` | OAuth2 client secret |
 | `GMAIL_REDIRECT_URI` | OAuth2 callback URL (`https://rim-next.vercel.app/api/support/auth/callback`) |
 
+### LiveKit (Video Conferencing)
+| Variable | Purpose |
+|---|---|
+| `LIVEKIT_API_KEY` | LiveKit Cloud API key |
+| `LIVEKIT_API_SECRET` | LiveKit Cloud API secret |
+| `NEXT_PUBLIC_LIVEKIT_URL` | LiveKit Cloud WebSocket URL (public, used by client SDK) |
+
 **Editor standard (updated session 71):** All multi-line rich text fields use **BlockNote JSON** (via `RimBlockEditor` or `RimProseEditor`). `FormattedEditor` and `ContentEditor` removed in session 69. `RimEditor.tsx` renamed to `MarkdownEditor.tsx` — used exclusively for email templates (markdown string pipeline). Full context registry in `RIM_Editor_Design.md`. Pattern: `Json?` DB field → `Prisma.JsonNull` for null writes → `renderFormattedTextAsync()` (server) or `renderBlockNoteHtml()` (client) for display → `extractTextAsync()` for email. **Session 71 additions:** `RimBlockEditor` gained Bear-inspired toolbar, image upload (all users), advanced tables, heading hierarchy (injected CSS), block type selector, document locking, blob cleanup (`lib/blobCleanup.ts`). Renderer (`renderRichContent.ts`) now groups list items into `<ul>`/`<ol>`, renders images as `<figure>`, maps BlockNote color tokens to CSS hex values.
 
 **SlugField component (session 66):** `components/SlugField.tsx` — shared locked-by-default slug input with Unlock/Lock toggle + amber warning. Use for any URL slug field in any editor. Props: `value`, `onChange`, `isEditing`, `warnText?`, `hintText?`. In use: CourseEditor, LessonEditor, MemberDetail (Teacher Profile slug). ProgramEditor uses the same pattern on its own `pe-` classes.
@@ -189,7 +197,7 @@ app/
     learning/         Course Manager — Series + Lessons (TEACHER | ADMIN) — extracted from hub
     programs/         Program Manager (REGISTRAR | ADMIN) — extracted from hub
     inbox/            Support Inbox + Settings (SUPPORT | ADMIN) — extracted from hub
-    schedule/         Host Schedule + Live Session + History (HOST | HOST_MANAGER | ADMIN) — extracted from hub
+    schedule/         Host Schedule — mini-cal + card list (HOST | HOST_MANAGER | ADMIN) — extracted from hub
   admin/
     members/          member management (ADMIN | REGISTRAR)
     households/       household grouping (ADMIN | REGISTRAR)
@@ -252,7 +260,8 @@ Registrar check: `roles.some(r => ["REGISTRAR","ADMIN"].includes(r))`
 | Resend | Magic links + all transactional email | Domain `rootedinmindfulness.org` verified |
 | Stripe | Dana/fee collection via Checkout | Test mode — switch to live before launch |
 | Sanity | Non-program content (teams, glossary, magazine, volunteers) | Programs, courses, lessons migrated to Postgres |
-| Google Meet | Virtual program hosting | DWD via service account; 4 room accounts |
+| Google Meet | Virtual program hosting (legacy) | DWD via service account; 4 room accounts |
+| LiveKit Cloud | Video conferencing (new) | Ship tier ($50/month); token auth via HostAssignment |
 | Google Calendar | Room booking for Meet sessions | Conflict checking on create |
 | Gmail API | Support Inbox — sync threads, send replies | OAuth2 via GmailCredential; support@rootedinmindfulness.org |
 | Flodesk | Newsletter signup | Segment ID in env vars |

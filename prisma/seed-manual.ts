@@ -139,16 +139,17 @@ const sections = [
       p("The program editor is organized into six tabs:"),
       ul([
         "1. Basics — name, tagline, description, format (in-person/virtual), teacher, category",
-        "2. When & Where — start/end datetime, location, recurrence settings, Google Meet integration",
+        "2. When & Where — start/end datetime, location, recurrence settings, video conferencing (LiveKit)",
         "3. Registration — enable registration, capacity, custom questions, waitlist, deadline",
         "4. Emails — confirmation message, reminder date, reminder message",
         "5. Dana — dana mode (none/voluntary/base+dana/fixed) and amounts",
         "6. Settings — sort order, dashboard visibility, archive",
       ]),
 
-      h2("Google Meet"),
-      p("Virtual programs can have a Google Meet link created automatically. Go to the When & Where tab, toggle on 'Virtual', and click 'Create Google Meet'. The link is stored on the program and displayed on the member dashboard — not in emails, not on the public program page."),
-      p("Important: Meet links are intentionally kept off public-facing pages. Members must be logged in to see them. This protects virtual sessions and is good stewardship of dana."),
+      h2("Video Conferencing"),
+      p("Virtual programs use LiveKit for embedded video conferencing (replacing Google Meet). Members join directly from the dashboard — no external links, no separate accounts. Host permissions are controlled by RIM's auth system via JWT tokens."),
+      p("Important: Video sessions are accessible from the member dashboard only — not in emails, not on the public program page. Members must be logged in. This protects virtual sessions and is good stewardship of dana."),
+      p("LiveKit integration status: Phase 1-2 complete (foundation + dashboard embed). Phase 3 (host controls) and Phase 4 (full Google Meet removal) are pending."),
 
       h2("Things to know"),
       ul([

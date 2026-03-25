@@ -103,7 +103,7 @@ async function main() {
     {
       slug: "host-hub",
       title: "Host Community Hub",
-      description: "The Host Community Hub — schedule, sub board, conversations, alerts, and the live session tab.",
+      description: "The Host Community Hub — schedule, sub board, conversations, and alerts.",
       hubSlug: "host-team",
       order: 6,
       relations: ["volunteer-roles", "programs"],
