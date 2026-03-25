@@ -16626,13 +16626,12 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   display: inline-flex;
   vertical-align: middle;
   margin-left: 8px;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   border: 1.5px solid var(--rim-mid);
   color: var(--rim-mid);
   background: transparent;
-  display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-sans);
@@ -18719,7 +18718,7 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
   color: var(--rim-text-muted);
   letter-spacing: 0.03em;
 }
-.tools-nav__center { flex: 1; }
+.tools-nav__center { flex: 1; display: flex; justify-content: center; }
 .tools-nav__right { display: flex; align-items: center; }
 .tools-nav__back {
   font-size: 14px;
