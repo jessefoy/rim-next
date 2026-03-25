@@ -9929,9 +9929,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   font-family: var(--font-sans);
 }
 .hub-panel__close:hover { color: var(--rim-text); }
-/* Detail card flush inside slide-in panel */
-.hub-panel .hub-detail { margin-top: 0; border: none; border-radius: 0; box-shadow: none; padding: 0; }
-.hub-panel .hub-detail__name { font-size: 20px; }
+/* (slide-in panel detail overrides removed — detail is now always inline) */
 .hub-panel__program { font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--rim-text-muted); margin: 0 0 6px; }
 .hub-panel__date { font-size: 20px; font-weight: 400; font-family: var(--font-serif); color: var(--rim-text); margin: 0 0 16px; }
 .hub-panel__status { margin-bottom: 16px; }
@@ -11164,15 +11162,8 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 /* Expanded detail inside card */
 .hub-lv__detail {
   border-top: 1px solid #f0ede8;
-  padding: 0;
-}
-.hub-lv__detail .hub-detail {
-  margin-top: 0;
-  border: none;
-  border-radius: 0;
-  box-shadow: none;
+  padding: 16px 18px 18px;
   background: #fdfcfb;
-  padding: 24px 18px;
 }
 
 /* Mobile: stack action below content */
@@ -11207,94 +11198,101 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   .today-row { flex-wrap: wrap; }
 }
 
-/* ── Hub Schedule — inline detail panel ───────────────────────── */
+/* ── Hub Schedule — inline detail (continuation of card, not a separate card) ── */
 .hub-detail {
-  background: #fff;
-  border: 1px solid #e0ddd7;
-  border-radius: 12px;
-  padding: 28px 32px;
-  margin-top: 20px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  padding: 4px 0 0;
 }
-.hub-detail__title-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-.hub-detail__name {
-  font-family: var(--font-serif);
-  font-size: 24px;
-  font-weight: 400;
-  color: #2d3f47;
-  margin: 0 0 6px;
-}
-.hub-detail__date {
-  font-size: 14px;
-  color: var(--rim-text-muted);
-  line-height: 1.5;
-}
-.hub-detail__cols {
-  display: flex;
-  gap: 36px;
-  flex-wrap: wrap;
-  padding: 18px 0;
-  border-top: 1px solid #f0ede8;
-  border-bottom: 1px solid #f0ede8;
-  margin-bottom: 20px;
-}
-.hub-detail__col {
-  flex: 1;
-  min-width: 120px;
-}
-.hub-detail__col-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #a09a94;
-  margin-bottom: 5px;
-}
-.hub-detail__col-value {
-  font-size: 15px;
+
+/* Info line — compact label:value pairs separated by dots */
+.hub-detail__info {
+  font-size: 13px;
   color: var(--rim-text);
+  line-height: 1.6;
+  margin-bottom: 12px;
 }
-/* Meet link row (below 3-col grid) */
+.hub-detail__info-item { white-space: nowrap; }
+.hub-detail__info-label { color: #a09a94; font-weight: 600; }
+.hub-detail__info-sep { color: #d0cdc8; margin: 0 8px; }
+
+/* Meet link */
 .hub-detail__meet {
   display: flex;
   align-items: baseline;
-  gap: 12px;
-  margin-top: 14px;
+  gap: 10px;
+  margin-bottom: 14px;
   flex-wrap: wrap;
 }
 .hub-detail__meet-link {
   color: var(--rim-mid);
   text-decoration: none;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
 }
 .hub-detail__meet-link:hover { text-decoration: underline; }
-.hub-detail__meet-account {
-  font-size: 12px;
-  color: var(--rim-text-muted);
-}
+.hub-detail__meet-account { font-size: 12px; color: var(--rim-text-muted); }
+
+/* Sub note */
 .hub-detail__sub-msg {
   font-size: 13px;
   color: #7a2020;
   font-style: italic;
   background: #f5e0e0;
-  border-radius: 8px;
-  padding: 10px 14px;
-  margin-bottom: 18px;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 14px;
 }
+
+/* Actions — clear hierarchy */
 .hub-detail__actions {
   display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
   align-items: center;
-  margin-top: 4px;
+  gap: 12px;
+  flex-wrap: wrap;
 }
+.hub-detail__primary-btn {
+  padding: 8px 20px;
+  background: var(--rim-blue);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+.hub-detail__primary-btn:hover { opacity: 0.88; }
+.hub-detail__primary-btn:disabled { opacity: 0.5; cursor: default; }
+.hub-detail__primary-btn--danger { background: #B84040; }
+.hub-detail__secondary-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.hub-detail__link-btn {
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: var(--rim-text-muted);
+  cursor: pointer;
+  padding: 6px 10px;
+  font-family: var(--font-sans);
+  border-radius: 4px;
+  transition: color 0.1s, background 0.1s;
+}
+.hub-detail__link-btn:hover { color: var(--rim-text); background: #f0ede8; }
+
+/* Sub request form + remove warning */
+.hub-detail__form { margin-top: 4px; }
+.hub-detail__form-label { font-size: 13px; font-weight: 600; color: var(--rim-text); margin-bottom: 8px; }
+.hub-detail__form-actions { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+.hub-detail__warn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.hub-detail__warn-text { font-size: 13px; color: #7a2020; }
 
 /* ── Legend swatches — left-stripe bars matching event chip style ── */
 .hub-legend-swatch {

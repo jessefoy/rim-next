@@ -132,108 +132,93 @@ function SessionDetail({
   // Status badge label
   const statusLabel = isUnclaimed ? "Needs Coverage" : isSubNeeded ? "Sub Needed" : null;
 
+  // Info items — only show what the card row didn't already tell you
+  const infoItems: { label: string; value: string }[] = [];
+  infoItems.push({ label: "Host", value: hostDisplay });
+  if (s.programFormat) infoItems.push({ label: "Format", value: formatLabel(s.programFormat)! });
+  if (coordinatorName) infoItems.push({ label: "Coordinator", value: coordinatorName });
+
   return (
     <div className="hub-detail">
-      <div className="hub-detail__top">
-        <div className="hub-detail__title-row">
-          <div>
-            <h3 className="hub-detail__name">{s.programName}</h3>
-            {subtitle && <div className="hub-detail__date">{subtitle}</div>}
-          </div>
-          {statusLabel && (
-            <span className="hub-pill hub-pill--needs">{statusLabel}</span>
-          )}
-        </div>
 
-        {/* Three-column info grid */}
-        <div className="hub-detail__cols">
-          <div className="hub-detail__col">
-            <div className="hub-detail__col-label">Assigned Host</div>
-            <div className="hub-detail__col-value">{hostDisplay}</div>
-          </div>
-          {s.programFormat && (
-            <div className="hub-detail__col">
-              <div className="hub-detail__col-label">Format</div>
-              <div className="hub-detail__col-value">{formatLabel(s.programFormat)}</div>
-            </div>
-          )}
-          {coordinatorName && (
-            <div className="hub-detail__col">
-              <div className="hub-detail__col-label">Coordinator</div>
-              <div className="hub-detail__col-value">{coordinatorName}</div>
-            </div>
-          )}
-        </div>
-
-        {/* Meet link — shown separately below the grid when available */}
-        {s.zoomLink && s.programId && (
-          <div className="hub-detail__meet">
-            <MeetJoinButton
-              programId={s.programId}
-              programSlug={s.programSlug}
-              zoomLink={s.zoomLink}
-              className="hub-detail__meet-link"
-            >
-              Join Google Meet →
-            </MeetJoinButton>
-            {s.meetHostAccount && (
-              <span className="hub-detail__meet-account">Sign in as {s.meetHostAccount}</span>
-            )}
-          </div>
-        )}
-
-        {s.subMessage && extractBlockNoteText(s.subMessage) && (
-          <div className="hub-detail__sub-msg">
-            <strong>Sub note:</strong>
-            <div dangerouslySetInnerHTML={{ __html: renderBlockNoteHtml(s.subMessage) }} />
-          </div>
-        )}
+      {/* Info line — compact, no headers, just label: value pairs */}
+      <div className="hub-detail__info">
+        {infoItems.map((item, i) => (
+          <span key={item.label} className="hub-detail__info-item">
+            {i > 0 && <span className="hub-detail__info-sep">·</span>}
+            <span className="hub-detail__info-label">{item.label}:</span> {item.value}
+          </span>
+        ))}
       </div>
 
-      {/* Actions */}
+      {/* Meet link */}
+      {s.zoomLink && s.programId && (
+        <div className="hub-detail__meet">
+          <MeetJoinButton
+            programId={s.programId}
+            programSlug={s.programSlug}
+            zoomLink={s.zoomLink}
+            className="hub-detail__meet-link"
+          >
+            Join Google Meet →
+          </MeetJoinButton>
+          {s.meetHostAccount && (
+            <span className="hub-detail__meet-account">Sign in as {s.meetHostAccount}</span>
+          )}
+        </div>
+      )}
+
+      {/* Sub note */}
+      {s.subMessage && extractBlockNoteText(s.subMessage) && (
+        <div className="hub-detail__sub-msg">
+          <strong>Note:</strong>
+          <div dangerouslySetInnerHTML={{ __html: renderBlockNoteHtml(s.subMessage) }} />
+        </div>
+      )}
+
+      {/* Actions — clear hierarchy: primary action is prominent, secondary actions are quiet */}
       {!subFormOpen && !removeWarnOpen && (
         <div className="hub-detail__actions">
-          {/* State 1: Needs coverage — Claim as Host + Request Sub + Dismiss */}
           {isUnclaimed && (
-            <button className="hub-btn hub-btn--primary" onClick={() => onClaim(s.id)}>
-              Claim as Host
+            <button className="hub-detail__primary-btn" onClick={() => onClaim(s.id)}>
+              Claim This Session
             </button>
           )}
-          {/* Sub-needed, non-own: Cover This Session */}
           {isSubNeeded && s.subRequestId && !isOwn && (
-            <button className="hub-btn hub-btn--primary" onClick={() => onClaimSub(s.id, s.subRequestId!)}>
+            <button className="hub-detail__primary-btn" onClick={() => onClaimSub(s.id, s.subRequestId!)}>
               Cover This Session
             </button>
           )}
-          {/* Request Sub: unclaimed (notify team) OR own claimed session */}
-          {(isUnclaimed || (isOwn && isClaimed)) && (
-            <button className="hub-btn hub-btn--ghost" onClick={() => setSubFormOpen(true)}>
-              Request Sub
+          <div className="hub-detail__secondary-actions">
+            {(isUnclaimed || (isOwn && isClaimed)) && (
+              <button className="hub-detail__link-btn" onClick={() => setSubFormOpen(true)}>
+                Request Sub
+              </button>
+            )}
+            {isOwn && (
+              <button className="hub-detail__link-btn" onClick={() => setRemoveWarnOpen(true)}>
+                Remove Myself
+              </button>
+            )}
+            <button className="hub-detail__link-btn" onClick={onClose}>
+              Dismiss
             </button>
-          )}
-          {isOwn && (
-            <button className="hub-btn hub-btn--ghost" onClick={() => setRemoveWarnOpen(true)}>
-              Remove Myself
-            </button>
-          )}
-          <button className="hub-btn hub-btn--secondary" onClick={onClose}>
-            Dismiss
-          </button>
+          </div>
         </div>
       )}
 
       {subFormOpen && (
-        <div className="hub-panel__form">
-          <div className="hub-panel__form-label">Add context for your team:</div>
+        <div className="hub-detail__form">
+          <div className="hub-detail__form-label">Add context for your team:</div>
           <RimProseEditor
             value={subMsg}
             onChange={setSubMsg}
             placeholder="Why you need a sub, any handoff notes..."
             variant="compact"
           />
-          <div className="hub-form-actions">
+          <div className="hub-detail__form-actions">
             <button
-              className="hub-btn hub-btn--danger"
+              className="hub-detail__primary-btn"
               disabled={submitting}
               onClick={async () => {
                 setSubmitting(true);
@@ -245,7 +230,7 @@ function SessionDetail({
             >
               {submitting ? "Sending…" : "Send Sub Request"}
             </button>
-            <button className="hub-btn hub-btn--secondary" onClick={() => { setSubFormOpen(false); setSubMsg(""); }}>
+            <button className="hub-detail__link-btn" onClick={() => { setSubFormOpen(false); setSubMsg(""); }}>
               Cancel
             </button>
           </div>
@@ -253,14 +238,11 @@ function SessionDetail({
       )}
 
       {removeWarnOpen && (
-        <div className="hub-panel__warn">
-          <div className="hub-panel__warn-title">Remove yourself?</div>
-          <div className="hub-panel__warn-body">
-            This leaves the session uncovered. The team will be notified.
-          </div>
-          <div className="hub-form-actions">
+        <div className="hub-detail__warn">
+          <span className="hub-detail__warn-text">This leaves the session uncovered. The team will be notified.</span>
+          <div className="hub-detail__form-actions">
             <button
-              className="hub-btn hub-btn--danger"
+              className="hub-detail__primary-btn hub-detail__primary-btn--danger"
               disabled={submitting}
               onClick={async () => {
                 setSubmitting(true);
@@ -270,9 +252,9 @@ function SessionDetail({
                 onClose();
               }}
             >
-              {submitting ? "Removing…" : "Yes, remove me"}
+              {submitting ? "Removing…" : "Yes, Remove Me"}
             </button>
-            <button className="hub-btn hub-btn--secondary" onClick={() => setRemoveWarnOpen(false)}>
+            <button className="hub-detail__link-btn" onClick={() => setRemoveWarnOpen(false)}>
               Cancel
             </button>
           </div>
