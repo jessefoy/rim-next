@@ -7,6 +7,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { ToolsProvider } from "@/components/ToolsContext";
+import ToolsNav from "@/components/ToolsNav";
 import { hasToolAccess } from "@/lib/toolAuth";
 
 export default async function LearningToolLayout({
@@ -53,7 +54,10 @@ export default async function LearningToolLayout({
         { label: "Lessons", href: "/tools/learning/lessons" },
       ],
     }}>
-      {children}
+      <ToolsNav />
+      <div className="tools-content">
+        {children}
+      </div>
     </ToolsProvider>
   );
 }

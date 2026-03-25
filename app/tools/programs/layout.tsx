@@ -7,6 +7,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { ToolsProvider } from "@/components/ToolsContext";
+import ToolsNav from "@/components/ToolsNav";
 import { hasToolAccess } from "@/lib/toolAuth";
 
 export default async function ProgramsToolLayout({
@@ -46,7 +47,10 @@ export default async function ProgramsToolLayout({
 
   return (
     <ToolsProvider value={{ toolName: "Programs", backHref, backLabel }}>
-      {children}
+      <ToolsNav />
+      <div className="tools-content">
+        {children}
+      </div>
     </ToolsProvider>
   );
 }

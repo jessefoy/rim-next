@@ -7,6 +7,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { ToolsProvider } from "@/components/ToolsContext";
+import ToolsNav from "@/components/ToolsNav";
 import { hasToolAccess } from "@/lib/toolAuth";
 
 export default async function ScheduleToolLayout({
@@ -54,7 +55,10 @@ export default async function ScheduleToolLayout({
         { label: "Journal", href: "/tools/schedule/session/history/team" },
       ],
     }}>
-      {children}
+      <ToolsNav />
+      <div className="tools-content">
+        {children}
+      </div>
     </ToolsProvider>
   );
 }

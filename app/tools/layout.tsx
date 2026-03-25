@@ -13,7 +13,6 @@
 
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import ToolsNav from "@/components/ToolsNav";
 
 export default async function ToolsLayout({
   children,
@@ -25,10 +24,7 @@ export default async function ToolsLayout({
 
   return (
     <div className="tools-shell">
-      <ToolsNav />
-      <div className="tools-content">
-        {children}
-      </div>
+      {children}
     </div>
   );
 }
