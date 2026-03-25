@@ -21,7 +21,7 @@ The Member Registry is the authoritative record of every person in the RIM commu
 
 Hubs are team workspaces for RIM's volunteer groups. Each hub serves one team. Members see only the hubs they belong to.
 
-**Current hubs:** Host Team, Course Hub, Registrar Hub, Support Hub (all ACTIVE, OPERATIONAL) + People Team, Greeter Team, AV Team, Housekeeping, Plant Care, Newsletter, Sangha Care, KM Support, Silent Meditation, Volunteer Coordination (OPERATIONAL) + Board and Teacher Council (GOVERNANCE).
+**Current hubs (4):** Hosting Hub (`host-team`), Course Hub (`courses`), Registration Hub (`registrar`), Support Hub (`support`) — all ACTIVE, OPERATIONAL. Unused hubs and governance hubs removed in session 75 cleanup. New hubs can be created from `/admin/hubs`.
 
 **What they are:** Team-centric workspaces. Each hub provides a Home screen (with app links and coordinator content), Conversations (with pinned threads), Tasks, Documents, and a Members tab. Dashboard hub cards show unread badges.
 
@@ -29,10 +29,13 @@ Hubs are team workspaces for RIM's volunteer groups. Each hub serves one team. M
 
 Tools are full-featured staff applications extracted from hubs. They serve one workflow, with their own navigation chrome and sub-pages.
 
-**Current tools:**
+**Current tools (4):**
 - `/tools/programs` — Program Manager (REGISTRAR/ADMIN)
 - `/tools/inbox` — Support Inbox (SUPPORT/ADMIN)
 - `/tools/schedule` — Host Schedule + Live Session + Journal (HOST/HOST_MANAGER/ADMIN)
+- `/tools/learning` — Course Manager: Series + Lessons (TEACHER/ADMIN)
+
+**Tool access:** Role-based (via `hasToolAccess()`) OR individual `UserToolAccess` grants. Tool registry: `lib/toolRegistry.ts`. Hub awareness: `getToolHubContext()` resolves `?hub=` param to hub + members. Notifications: `getHubNotificationRecipients()` queries hub members (not roles).
 
 **The distinction:** Hubs are about the *team*. Tools are about the *work*. When an application inside a hub grows complex enough to need its own navigation, its own sub-pages, and its own UX flow, it is extracted to `/tools/`. The hub keeps a stakeholder view or an app link — but the application itself lives independently.
 
@@ -193,7 +196,7 @@ Someone who is both a Host Team coordinator and a Volunteer Coordination member 
 
 - **Check-in tools:** Digital check-in per program (phone-first), PDF export, future member self-check-in.
 - **Tool home screen cards with live context:** App links on hub home could surface tool-specific counts ("3 new registrations") — needs per-tool API endpoints.
-- **Hub-scoped tool data:** Tools linked from multiple hubs can filter by `hubSlug` context — foundation laid, filtering logic not yet implemented.
+- **Hub-scoped tool data:** Tools read `?hub=` server-side via `getToolHubContext()`. Schedule and Inbox are hub-aware. Program Manager and Course Manager will add hub-scoping when they serve multiple hubs.
 - **Documents page-based unification:** Link documents still use inline forms; native documents use page-based editors. Planned: unify both to page-based creation/editing flow.
 - **Tool access admin UI:** `UserToolAccess` grants currently managed via Neon console. A UI for granting/revoking tool access could be added to the member profile admin page.
 
@@ -229,4 +232,4 @@ This file is part of the closing ritual for any Claude Code session that touches
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org*
-*Working document · March 2026 (updated session 76)*
+*Working document · March 2026 (updated session 75)*

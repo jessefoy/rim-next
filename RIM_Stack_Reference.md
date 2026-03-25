@@ -1,6 +1,6 @@
 # RIM Next — Stack Reference
 
-_Generated 2026-03-11. Last updated 2026-03-24 (session 76)._
+_Generated 2026-03-11. Last updated 2026-03-24 (session 75)._
 
 ---
 
@@ -46,7 +46,9 @@ Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfie
 | Rich text editor | BlockNote v0.47.1 | `@blocknote/core`, `@blocknote/react`, `@blocknote/mantine`, `@blocknote/server-util` — replaced Tiptap entirely in session 69. Two components: `RimBlockEditor` (full — Bear-inspired toolbar, image upload, advanced tables, heading hierarchy, document locking, blob cleanup) and `RimProseEditor` (prose). Custom Dharma blocks: VerseQuote, PracticeSuggestion, Callout. Heading CSS injected via `<style>` tag on mount (must target `<h1>`/`<h2>`/`<h3>` tags, not `data-level`). Color token rendering via `BN_TEXT_COLORS`/`BN_BG_COLORS` maps in `renderRichContent.ts`. **Exception:** `MarkdownEditor` (Tiptap + tiptap-markdown, renamed from `RimEditor.tsx` in session 70) is used exclusively by `EmailTemplateEditor` — email template pipeline is markdown → marked() → juice() → Resend. |
 | Footer suppression | `components/FooterWrapper.tsx` | Newsletter footer suppressed on `/admin/*`, `/account/*`, `/tools/*`, `/lessons/*`, `/course/*` |
 | Hub navigation | `components/HubSidebar.tsx` | Left sidebar (220px, sticky) replaces horizontal tab strip. Identity block + core sections + Tools (app links) + settings. Mobile: slide-in drawer via hamburger. `HubNavStrip.tsx` and `HubHeader.tsx` deleted. |
-| Tools context | `components/ToolsContext.tsx` | React context providing `toolName`, `backHref`, `backLabel`, `subNav`, `hubSlug`. `hubSlug` read from `?hub=` URL param client-side via `useSearchParams()`. Wrapped in Suspense. |
+| Tools context | `components/ToolsContext.tsx` | React context providing `toolName`, `backHref`, `backLabel`, `subNav`, `hubSlug`. `hubSlug` read from `?hub=` URL param client-side via `useSearchParams()`. Wrapped in Suspense. Server-side: `getToolHubContext()` in `lib/toolAuth.ts` resolves hub + members. ToolsNav rendered INSIDE each tool's ToolsProvider (not in outer layout). |
+| Tool auth | `lib/toolAuth.ts` | `hasToolAccess()` (role + UserToolAccess grants), `getToolHubContext()` (hub + members for page data), `getHubNotificationRecipients()` (hub members for alerts/emails). |
+| Tool registry | `lib/toolRegistry.ts` | Centralized tool definitions (slug, label, path, description). Hub admin form uses tool picker dropdown. |
 | Hub/Tools model | `RIM_Hub_Model.md` | Complete hub/tools architecture: lifecycle, tool creation pattern, data scoping, decision tree, core sections, app links, access control matrix, mobile patterns, DB schema reference |
 | File storage | Vercel Blob | `@vercel/blob` + `@vercel/blob/client` — client-side upload pattern (browser → Blob direct, bypasses 4.5 MB serverless limit); max 500 MB; `BLOB_READ_WRITE_TOKEN` env var |
 
