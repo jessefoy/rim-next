@@ -28,6 +28,8 @@ export default function SessionPage() {
   const [programName, setProgramName] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [isHost, setIsHost] = useState(false);
+  const [isHostTeam, setIsHostTeam] = useState(false);
+  const [steppingIn, setSteppingIn] = useState(false);
   const [ending, setEnding] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const pageRef = useRef<HTMLDivElement>(null);
@@ -69,6 +71,7 @@ export default function SessionPage() {
         setToken(data.token);
         setWsUrl(data.wsUrl);
         setIsHost(data.isHost ?? false);
+        setIsHostTeam(data.isHostTeam ?? false);
         setProgramName(data.roomName.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()));
         setState("ready");
 
@@ -88,6 +91,27 @@ export default function SessionPage() {
 
   function handleLeave() {
     setState("left");
+  }
+
+  async function handleStepIn() {
+    setSteppingIn(true);
+    try {
+      const res = await fetch("/api/livekit/step-in", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ programSlug: slug }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setToken(data.token);
+        setWsUrl(data.wsUrl);
+        setIsHost(true);
+        // Force reconnect by cycling state
+        setState("loading");
+        setTimeout(() => setState("ready"), 100);
+      }
+    } catch {}
+    setSteppingIn(false);
   }
 
   async function handleEndForAll() {
@@ -149,6 +173,11 @@ export default function SessionPage() {
           ← Leave
         </button>
         <span className="vs-header__name">{programName}</span>
+        {isHostTeam && !isHost && (
+          <button className="vs-header__stepin" onClick={handleStepIn} disabled={steppingIn}>
+            {steppingIn ? "Connecting…" : "Step in as Host"}
+          </button>
+        )}
         {isHost && (
           <button className="vs-header__end" onClick={handleEndForAll} disabled={ending}>
             {ending ? "Ending…" : "End for All"}

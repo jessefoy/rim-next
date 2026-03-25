@@ -65,6 +65,9 @@ export async function POST(req: NextRequest) {
     if (roles.includes("HOST_MANAGER")) isHost = true;
   }
 
+  // Check if user is on the host team (can step in as emergency host)
+  const isHostTeam = isHost || roles.includes("HOST") || roles.includes("HOST_MANAGER");
+
   const roomName = roomNameForProgram(program.slug, sessionDate);
   const userName = session.user.name || "Member";
 
@@ -80,5 +83,6 @@ export async function POST(req: NextRequest) {
     roomName,
     wsUrl: process.env.NEXT_PUBLIC_LIVEKIT_URL,
     isHost,
+    isHostTeam,
   });
 }

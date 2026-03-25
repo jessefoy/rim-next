@@ -10807,6 +10807,20 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   font-weight: 400;
   flex: 1;
 }
+.vs-header__stepin {
+  background: #2A7B6F;
+  color: #fff;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 5px 12px;
+  border-radius: 5px;
+  font-family: var(--font-sans);
+  transition: opacity 0.12s;
+}
+.vs-header__stepin:hover { opacity: 0.85; }
+.vs-header__stepin:disabled { opacity: 0.5; cursor: default; }
 .vs-header__end {
   background: #B84040;
   color: #fff;
