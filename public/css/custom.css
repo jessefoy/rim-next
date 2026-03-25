@@ -3315,6 +3315,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 /* (vol-meet CSS removed — Google Meet replaced by LiveKit) */
 
+/* ============================================================
    ACCOUNT LAYOUT — sidebar + content shell (ac-)
    Desktop: sticky 220px left sidebar
    Mobile:  horizontal scrollable strip below main nav
