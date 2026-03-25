@@ -11378,13 +11378,13 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .hub-mini-cal__cell--selected .hub-mini-cal__num { color: #fff; font-weight: 700; }
 .hub-mini-cal__dots {
   display: flex;
-  gap: 3px;
+  gap: 4px;
   min-height: 6px;
   align-items: center;
 }
 .hub-mini-cal__dot {
-  width: 5px;
-  height: 5px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
 }
