@@ -49,11 +49,6 @@ export default async function ScheduleToolLayout({
       toolName: "Host Schedule",
       backHref,
       backLabel,
-      subNav: [
-        { label: "Schedule", href: "/tools/schedule" },
-        { label: "Live Session", href: "/tools/schedule/session" },
-        { label: "Journal", href: "/tools/schedule/session/history/team" },
-      ],
     }}>
       <ToolsNav />
       <div className="tools-content">

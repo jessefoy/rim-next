@@ -18,15 +18,7 @@ const FROM = `Rooted In Mindfulness <${process.env.EMAIL_FROM ?? "onboarding@res
 const REGISTRAR_EMAIL =
   process.env.REGISTRAR_EMAIL ?? process.env.EMAIL_FROM ?? "onboarding@resend.dev";
 
-// JESSE_EMAIL — set in Vercel env vars. Used for sensitive post-session flags.
-// Falls back to REGISTRAR_EMAIL if not set.
-const JESSE_EMAIL =
-  process.env.JESSE_EMAIL ?? REGISTRAR_EMAIL;
-
-// HOST_COORDINATOR_EMAIL — set in Vercel env vars. Used for technical issues + gentle follow-up routing.
-// Falls back to REGISTRAR_EMAIL if not set.
-const HOST_COORDINATOR_EMAIL =
-  process.env.HOST_COORDINATOR_EMAIL ?? REGISTRAR_EMAIL;
+// (JESSE_EMAIL + HOST_COORDINATOR_EMAIL removed — post-session feature removed)
 
 // ─── Email template system ───────────────────────────────────────────────────
 
@@ -1695,131 +1687,7 @@ function buildMagicLinkText({ url, isNewUser }: { url: string; isNewUser: boolea
   ].join("\n");
 }
 
-// ─── POST-SESSION NOTIFICATION ───────────────────────────────────────────────
-
-/**
- * Sent to Jesse and/or the host coordinator after a host submits the post-session form.
- * HARDCODED — must stay (complex per-recipient routing).
- *
- * Why must stay: each call sends up to two separate emails to different recipients
- * depending on flag routing rules. One email is personalized to Jesse (private),
- * another to the host coordinator. No single template could handle the per-recipient
- * routing, consolidation of multiple flags into one message, and the dynamic
- * attendee action table. Not a migration candidate.
- *
- * Routing logic:
- *   GENTLE_FOLLOWUP → Jesse + host coordinator
- *   JESSE_ONLY       → Jesse only (private)
- *   TECHNICAL_ISSUE  → host coordinator only
- *   NONE             → no email sent for that flag
- * Also sends if there's a resource to share (routes to registrar/Jesse for review).
- */
-export interface PostSessionFlagItem {
-  name: string;
-  note: string | null;
-  action: string;
-}
-
-export interface PostSessionNotificationData {
-  programSlug: string;
-  sessionDate: Date;
-  hostName: string;
-  flags: PostSessionFlagItem[];
-  reflection: string | null;
-  resourceUrl: string | null;
-  resourceNote: string | null;
-}
-
-export async function sendPostSessionNotification(
-  data: PostSessionNotificationData
-): Promise<void> {
-  const { programSlug, sessionDate, hostName, flags, reflection, resourceUrl, resourceNote } = data;
-
-  const dateStr = sessionDate.toLocaleDateString("en-US", {
-    timeZone: "America/Chicago",
-    weekday: "long", month: "long", day: "numeric",
-  });
-
-  // Determine which flags go to which recipients
-  const forJesse   = flags.filter((f) => f.action === "GENTLE_FOLLOWUP" || f.action === "JESSE_ONLY");
-  const forCoord   = flags.filter((f) => f.action === "GENTLE_FOLLOWUP" || f.action === "TECHNICAL_ISSUE");
-
-  // Build recipient list (deduplicated)
-  const recipients = new Map<string, PostSessionFlagItem[]>();
-
-  if (forJesse.length > 0 || resourceUrl) {
-    recipients.set(JESSE_EMAIL, forJesse);
-  }
-  if (forCoord.length > 0) {
-    const existing = recipients.get(HOST_COORDINATOR_EMAIL) ?? [];
-    recipients.set(HOST_COORDINATOR_EMAIL, [...new Set([...existing, ...forCoord])]);
-  }
-
-  // Send one email per recipient
-  const sends = Array.from(recipients.entries()).map(async ([to, recipientFlags]) => {
-    const flagBlock = recipientFlags.length > 0
-      ? recipientFlags.map((f) => [
-          `<li><strong>${f.name}</strong>${f.note ? ` — ${f.note}` : ""} <em>(${f.action.replace(/_/g, " ").toLowerCase()})</em></li>`,
-        ]).join("")
-      : "";
-
-    const reflectionBlock = reflection
-      ? `<p><strong>Session reflection from ${hostName}:</strong><br>${reflection}</p>`
-      : "";
-
-    const resourceBlock = resourceUrl
-      ? `<p><strong>Resource to share with attendees:</strong><br>
-          ${resourceUrl}${resourceNote ? `<br><em>${resourceNote}</em>` : ""}
-          <br><small>This has not been sent yet — please review and send when ready.</small></p>`
-      : "";
-
-    const html = `
-      <h2 style="font-size:18px;font-weight:600;">Post-session report — ${programSlug}</h2>
-      <p><strong>Date:</strong> ${dateStr} &nbsp; <strong>Host:</strong> ${hostName}</p>
-      ${flagBlock ? `<p><strong>Flagged attendees:</strong></p><ul>${flagBlock}</ul>` : ""}
-      ${reflectionBlock}
-      ${resourceBlock}
-      <p style="color:#888;font-size:12px;margin-top:24px;">
-        Rooted In Mindfulness · rootedinmindfulness.org<br>
-        This notification was generated from the Host Team hub post-session form.
-      </p>
-    `;
-
-    const textParts = [
-      `Post-session report — ${programSlug}`,
-      `Date: ${dateStr}  |  Host: ${hostName}`,
-      "",
-    ];
-    if (recipientFlags.length > 0) {
-      textParts.push("Flagged attendees:");
-      recipientFlags.forEach((f) => {
-        textParts.push(`  • ${f.name}${f.note ? ` — ${f.note}` : ""} (${f.action.replace(/_/g, " ").toLowerCase()})`);
-      });
-      textParts.push("");
-    }
-    if (reflection) textParts.push(`Session reflection from ${hostName}:\n${reflection}`, "");
-    if (resourceUrl) {
-      textParts.push(`Resource to share: ${resourceUrl}`);
-      if (resourceNote) textParts.push(resourceNote);
-      textParts.push("(Not yet sent — please review and send when ready)", "");
-    }
-    textParts.push("—", "Rooted In Mindfulness · rootedinmindfulness.org");
-
-    try {
-      await resend.emails.send({
-        from: FROM,
-        to,
-        subject: `Post-session: ${programSlug} — ${dateStr}`,
-        html,
-        text: textParts.join("\n"),
-      });
-    } catch (e) {
-      console.error(`[email] sendPostSessionNotification to ${to} failed:`, e);
-    }
-  });
-
-  await Promise.all(sends);
-}
+// (post-session notification function removed — feature removed in session 76)
 
 // ─── ATTENDANCE AUTOMATED EMAILS ─────────────────────────────────────────────
 // Managed via Email Template Manager — copy lives in DB, not here.
