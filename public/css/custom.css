@@ -12782,46 +12782,46 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   overflow: hidden;
 }
 
-/* List collapse/expand toggle — thin tab between list and center */
+/* List collapse/expand toggle */
 .si-list-toggle {
-  width: 0;
-  flex-shrink: 0;
-  position: relative;
-  z-index: 6;
   display: none; /* shown via media query on desktop */
-}
-.si-list-toggle__icon {
-  position: absolute;
-  top: 50%;
-  left: -10px;
-  transform: translateY(-50%);
-  width: 20px;
-  height: 48px;
-  display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
-  line-height: 1;
-  color: var(--rim-text-muted);
+  width: 16px;
+  flex-shrink: 0;
   background: var(--rim-bg);
-  border: 1px solid #e8e4de;
-  border-left: none;
-  border-radius: 0 6px 6px 0;
-  opacity: 0;
-  transition: all 0.2s;
+  border: none;
+  border-right: 1px solid #e8e4de;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s;
+  z-index: 6;
 }
-.si-layout:hover .si-list-toggle__icon,
-.si-list-toggle--collapsed .si-list-toggle__icon {
-  opacity: 1;
+.si-list-toggle:hover {
+  background: #e8e4de;
+  width: 20px;
+}
+.si-list-toggle__icon {
+  font-size: 9px;
+  color: var(--rim-text-muted);
+  line-height: 1;
+  transition: color 0.15s;
 }
 .si-list-toggle:hover .si-list-toggle__icon {
-  background: #e8e4de;
   color: var(--rim-text);
-  width: 24px;
 }
-/* When collapsed, position at far left */
+/* When collapsed — more prominent so it's findable */
+.si-list-toggle--collapsed {
+  width: 24px;
+  background: var(--rim-bg);
+  border-right: 1px solid #e8e4de;
+}
+.si-list-toggle--collapsed:hover {
+  width: 28px;
+  background: #e8e4de;
+}
 .si-list-toggle--collapsed .si-list-toggle__icon {
-  left: 0;
+  font-size: 11px;
 }
 
 /* Drag handle between list and center */
@@ -12853,7 +12853,7 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .si-drag-handle:hover::after { opacity: 1; }
 
 @media (min-width: 769px) {
-  .si-list-toggle { display: block; }
+  .si-list-toggle { display: flex; }
 }
 
 /* New Email button */
@@ -13407,38 +13407,55 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 
 /* ── Composer — anchored to bottom ── */
 .si-composer {
-  border-top: 1px solid #e8e4de;
-  background: var(--rim-bg);
+  border-top: 2px solid #d5d0c8;
+  background: #faf9f7;
   flex-shrink: 0;
 }
 
 /* Collapsed prompt */
 .si-composer__prompt {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
   text-align: left;
   font-family: var(--font-sans);
   font-size: 14px;
-  color: var(--rim-text-muted);
-  padding: 12px 20px;
+  color: var(--rim-mid);
+  padding: 14px 20px;
   border: none;
   background: transparent;
   cursor: pointer;
-  transition: background 0.1s;
+  transition: all 0.15s;
 }
-.si-composer__prompt:hover { background: var(--rim-bg-accent); }
+.si-composer__prompt::before {
+  content: "↩";
+  font-size: 16px;
+  color: var(--rim-mid);
+  opacity: 0.6;
+}
+.si-composer__prompt:hover {
+  background: var(--rim-bg-accent);
+  color: var(--rim-text);
+}
+.si-composer__prompt:hover::before {
+  opacity: 1;
+}
 
 /* Expanded reply composer */
-.si-composer__editor { padding: 8px 14px; }
+.si-composer__editor {
+  padding: 12px 16px 8px;
+  border-bottom: 1px solid #eae6e0;
+}
 .si-composer__footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 8px 14px;
+  padding: 10px 16px;
 }
-.si-composer__actions-left { display: flex; gap: 6px; }
-.si-composer__actions-right { display: flex; gap: 10px; }
+.si-composer__actions-left { display: flex; gap: 6px; align-items: center; }
+.si-composer__actions-right { display: flex; gap: 10px; align-items: center; }
 
 /* ── Note composer — appears above timeline, amber throughout ── */
 .si-note-composer {
@@ -13503,7 +13520,14 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 }
 .si-btn:hover { background: var(--rim-bg-accent); }
 .si-btn:disabled { opacity: 0.5; cursor: default; }
-.si-btn--send { background: #3d6b8a; color: #fff; border-color: #3d6b8a; }
+.si-btn--send {
+  background: #3d6b8a;
+  color: #fff;
+  border-color: #3d6b8a;
+  padding: 6px 16px;
+  font-size: 12px;
+  border-radius: 6px;
+}
 .si-btn--send:hover { background: var(--rim-blue); border-color: var(--rim-blue); }
 .si-btn--note { background: var(--color-alert); color: #fff; border-color: var(--color-alert); }
 .si-btn--note:hover { background: #b07316; border-color: #b07316; }
