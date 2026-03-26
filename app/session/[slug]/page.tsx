@@ -189,7 +189,7 @@ export default function SessionPage() {
       </div>
       <div className="vs-room">
         {token && wsUrl && (
-          <VideoRoom token={token} wsUrl={wsUrl} onLeave={handleLeave} />
+          <VideoRoom token={token} wsUrl={wsUrl} isHost={isHost} onLeave={handleLeave} />
         )}
       </div>
     </div>

@@ -14,25 +14,56 @@ import { useEffect } from "react";
 import { LiveKitRoom, VideoConference } from "@livekit/components-react";
 import { RoomOptions, VideoPresets } from "livekit-client";
 
-const roomOptions: RoomOptions = {
-  videoCaptureDefaults: {
-    resolution: VideoPresets.h720.resolution,
-  },
-  publishDefaults: {
-    videoSimulcastLayers: [VideoPresets.h180, VideoPresets.h360],
-    videoCodec: "vp8",
-  },
-  adaptiveStream: true,
-  dynacast: true,
-};
+/**
+ * Room options for high-quality meditation sessions:
+ *
+ * Video: 720p with simulcast (3 layers for adaptive quality)
+ * Audio (host): High-fidelity — noise suppression OFF, echo cancellation OFF,
+ *   auto-gain OFF. This lets meditation bells, singing bowls, and music pass
+ *   through clean and full instead of being clipped as "background noise."
+ * Audio (participant): DTX enabled — during silence, almost no audio bandwidth
+ *   is used. Perfect for 35 people sitting in silent meditation.
+ *
+ * The isHost prop controls whether high-fidelity audio is enabled.
+ * Participants keep default speech-optimized audio (noise suppression ON)
+ * so their background sounds don't leak into the session.
+ */
+function buildRoomOptions(isHost: boolean): RoomOptions {
+  return {
+    videoCaptureDefaults: {
+      resolution: VideoPresets.h720.resolution,
+    },
+    audioCaptureDefaults: isHost
+      ? {
+          autoGainControl: false,
+          echoCancellation: false,
+          noiseSuppression: false,
+        }
+      : {
+          autoGainControl: true,
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
+    publishDefaults: {
+      videoSimulcastLayers: [VideoPresets.h180, VideoPresets.h360],
+      videoCodec: "vp8",
+      dtx: true,
+      ...(isHost ? { audioPreset: { maxBitrate: 128_000 } } : {}),
+    },
+    adaptiveStream: true,
+    dynacast: true,
+  };
+}
 
 interface Props {
   token: string;
   wsUrl: string;
+  isHost?: boolean;
   onLeave?: () => void;
 }
 
-export default function VideoRoom({ token, wsUrl, onLeave }: Props) {
+export default function VideoRoom({ token, wsUrl, isHost = false, onLeave }: Props) {
+  const roomOptions = buildRoomOptions(isHost);
   // Load LiveKit styles only when video room mounts — prevents global CSS leak
   useEffect(() => {
     const id = "livekit-styles";
