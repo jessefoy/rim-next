@@ -813,17 +813,6 @@ export default function SupportInboxClient({
         ref={listRef}
         style={listWidth && !listCollapsed ? { width: listWidth, minWidth: listWidth } : undefined}
       >
-        {/* Collapse toggle */}
-        <button
-          className="si-list-collapse"
-          onClick={() => {
-            setListCollapsed(!listCollapsed);
-            if (listCollapsed) setListWidth(null);
-          }}
-          title={listCollapsed ? "Show thread list" : "Hide thread list"}
-        >
-          {listCollapsed ? "►" : "◄"}
-        </button>
         <div className="si-compose-row">
           <button
             className="si-btn si-btn--compose"
@@ -939,11 +928,25 @@ export default function SupportInboxClient({
       </div>
 
       {/* Drag handle between list and center */}
-      <div
-        className="si-drag-handle"
-        onMouseDown={handleDragStart}
-        title="Drag to resize"
-      />
+      {!listCollapsed && (
+        <div
+          className="si-drag-handle"
+          onMouseDown={handleDragStart}
+          title="Drag to resize"
+        />
+      )}
+
+      {/* List collapse/expand toggle — lives outside the list so it's always accessible */}
+      <button
+        className={`si-list-toggle${listCollapsed ? " si-list-toggle--collapsed" : ""}`}
+        onClick={() => {
+          setListCollapsed(!listCollapsed);
+          if (listCollapsed) setListWidth(null);
+        }}
+        title={listCollapsed ? "Show thread list" : "Hide thread list"}
+      >
+        <span className="si-list-toggle__icon">{listCollapsed ? "►" : "◄"}</span>
+      </button>
 
       {/* ── Center: messages + composer ── */}
       <div className="si-main">

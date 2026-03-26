@@ -12780,42 +12780,49 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   width: 0 !important;
   min-width: 0 !important;
   overflow: hidden;
-  border-right: none;
-}
-.si-layout--list-collapsed .si-list > *:not(.si-list-collapse) {
-  display: none;
-}
-.si-layout--list-collapsed .si-list-collapse {
-  position: absolute;
-  right: -28px;
-  top: 8px;
-  z-index: 5;
-}
-.si-layout--list-collapsed .si-drag-handle {
-  display: none;
 }
 
-/* List collapse toggle */
-.si-list-collapse {
+/* List collapse/expand toggle — thin tab between list and center */
+.si-list-toggle {
+  width: 0;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 6;
+  display: none; /* shown via media query on desktop */
+}
+.si-list-toggle__icon {
   position: absolute;
-  top: 12px;
-  right: -14px;
-  z-index: 5;
+  top: 50%;
+  left: -10px;
+  transform: translateY(-50%);
   width: 20px;
-  height: 28px;
-  display: none; /* hidden on mobile */
+  height: 48px;
+  display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--rim-text-muted);
   background: var(--rim-bg);
   border: 1px solid #e8e4de;
-  border-radius: 0 4px 4px 0;
-  color: var(--rim-text-muted);
-  cursor: pointer;
-  transition: all 0.15s;
-  line-height: 1;
+  border-left: none;
+  border-radius: 0 6px 6px 0;
+  opacity: 0;
+  transition: all 0.2s;
 }
-.si-list-collapse:hover { background: #e8e4de; color: var(--rim-text); }
+.si-layout:hover .si-list-toggle__icon,
+.si-list-toggle--collapsed .si-list-toggle__icon {
+  opacity: 1;
+}
+.si-list-toggle:hover .si-list-toggle__icon {
+  background: #e8e4de;
+  color: var(--rim-text);
+  width: 24px;
+}
+/* When collapsed, position at far left */
+.si-list-toggle--collapsed .si-list-toggle__icon {
+  left: 0;
+}
 
 /* Drag handle between list and center */
 .si-drag-handle {
@@ -12846,7 +12853,7 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .si-drag-handle:hover::after { opacity: 1; }
 
 @media (min-width: 769px) {
-  .si-list-collapse { display: flex; }
+  .si-list-toggle { display: block; }
 }
 
 /* New Email button */
@@ -13715,7 +13722,7 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   .si-sidebar { display: none; }
   .si-sidebar-backdrop { display: none; }
   .si-drag-handle { display: none; }
-  .si-list-collapse { display: none; }
+  .si-list-toggle { display: none !important; }
   .si-list { width: 100% !important; min-width: 0 !important; }
   .si-thread-header { padding: 12px 14px; }
   .si-timeline { padding: 12px 14px; }
