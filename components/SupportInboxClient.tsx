@@ -1527,7 +1527,11 @@ export default function SupportInboxClient({
 
       {/* ── Compose new email modal ── */}
       {composeOpen && (
-        <div className="si-modal-overlay" onClick={handleCancelCompose}>
+        <div
+          className="si-modal-overlay"
+          onMouseDown={(e) => { if (e.target === e.currentTarget) (e.currentTarget as any)._overlayMouseDown = true; }}
+          onMouseUp={(e) => { if (e.target === e.currentTarget && (e.currentTarget as any)._overlayMouseDown) handleCancelCompose(); (e.currentTarget as any)._overlayMouseDown = false; }}
+        >
           <div className="si-modal" onClick={(e) => e.stopPropagation()}>
             <div className="si-modal__header">
               <h3 className="si-modal__title">New Email</h3>
