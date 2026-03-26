@@ -6,7 +6,7 @@
  *
  * Left: thread list (300px fixed, scrolls independently)
  * Center: messages (scrolls) + composer (anchored bottom)
- * Right: sidebar with status, assignment, member context (collapsible)
+ * Right: sidebar with contact, assignment, member context (collapsible overlay)
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -169,9 +169,9 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  OPEN: "#c0392b",
-  CLAIMED: "#2980b9",
-  WAITING: "#e67e22",
+  OPEN: "#b85c44",
+  CLAIMED: "#4a7fa5",
+  WAITING: "#c8882a",
   CLOSED: "#7f8c8d",
 };
 
@@ -181,6 +181,51 @@ const REG_STATUS_LABELS: Record<string, string> = {
   WAITLISTED: "Waitlisted",
   PENDING: "Pending",
 };
+
+// ─── MessageBody — collapses quoted content ─────────────────────────────────
+
+function MessageBody({ html }: { html: string }) {
+  const [showQuoted, setShowQuoted] = useState(false);
+
+  // Detect quoted content: blockquote tags or "On ... wrote:" pattern
+  const blockquoteIdx = html.indexOf("<blockquote");
+  const wrotePattern = /On .+wrote:/;
+  const wroteMatch = html.match(wrotePattern);
+  const wroteIdx = wroteMatch ? html.indexOf(wroteMatch[0]) : -1;
+
+  // Find the earliest split point
+  const splitIdx = [blockquoteIdx, wroteIdx].filter((i) => i > 0).sort((a, b) => a - b)[0];
+
+  if (!splitIdx) {
+    return (
+      <div
+        className="si-message__body"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    );
+  }
+
+  const mainContent = html.slice(0, splitIdx);
+  const quotedContent = html.slice(splitIdx);
+
+  return (
+    <div className="si-message__body">
+      <div dangerouslySetInnerHTML={{ __html: mainContent }} />
+      {!showQuoted && (
+        <button
+          className="si-quote-toggle"
+          onClick={() => setShowQuoted(true)}
+          type="button"
+        >
+          ···
+        </button>
+      )}
+      {showQuoted && (
+        <div dangerouslySetInnerHTML={{ __html: quotedContent }} />
+      )}
+    </div>
+  );
+}
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -204,7 +249,11 @@ export default function SupportInboxClient({
   const [detailLoading, setDetailLoading] = useState(false);
 
   // Sidebar
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // More menu
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
 
   // Reply composer (anchored to bottom of main panel)
   const [replyOpen, setReplyOpen] = useState(false);
@@ -238,9 +287,25 @@ export default function SupportInboxClient({
   const [replyTplOpen, setReplyTplOpen] = useState(false);
   const [composeTplOpen, setComposeTplOpen] = useState(false);
 
+  // Member registrations collapsed in sidebar
+  const [regsExpanded, setRegsExpanded] = useState(false);
+
   const replyEditorRef = useRef<Editor | null>(null);
   const composeEditorRef = useRef<Editor | null>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
+
+  // Close more menu on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+        setMoreMenuOpen(false);
+      }
+    }
+    if (moreMenuOpen) {
+      document.addEventListener("mousedown", handleClick);
+      return () => document.removeEventListener("mousedown", handleClick);
+    }
+  }, [moreMenuOpen]);
 
   // ─── Fetch threads ──────────────────────────────────────────────────────
 
@@ -291,6 +356,7 @@ export default function SupportInboxClient({
     setReplyFileError(null);
     setNoteOpen(false);
     setNoteDraft(null);
+    setMoreMenuOpen(false);
   };
 
   useEffect(() => {
@@ -675,32 +741,41 @@ export default function SupportInboxClient({
 
         <div className="si-toolbar">
           <div className="si-filters">
-            {(["active", "mine", "closed", "all", "trash"] as const).map((f) => (
-              <button
-                key={f}
-                className={`si-pill${filter === f ? " si-pill--active" : ""}${f === "trash" ? " si-pill--trash" : ""}`}
-                onClick={() => setFilter(f)}
-              >
-                {f === "active"
-                  ? "Active"
-                  : f === "mine"
-                    ? "Mine"
-                    : f === "closed"
-                      ? "Closed"
-                      : f === "trash"
-                        ? "Trash"
+            <div className="si-filters__primary">
+              {(["active", "mine", "closed", "all"] as const).map((f) => (
+                <button
+                  key={f}
+                  className={`si-filter-btn${filter === f ? " si-filter-btn--active" : ""}`}
+                  onClick={() => setFilter(f)}
+                >
+                  {f === "active"
+                    ? "Active"
+                    : f === "mine"
+                      ? "Mine"
+                      : f === "closed"
+                        ? "Closed"
                         : "All"}
+                </button>
+              ))}
+            </div>
+            <div className="si-filters__utils">
+              <button
+                className={`si-util-btn${filter === "trash" ? " si-util-btn--active" : ""}`}
+                onClick={() => setFilter("trash")}
+                title="Trash"
+              >
+                🗑
               </button>
-            ))}
+              <button
+                className="si-util-btn"
+                onClick={handleSync}
+                disabled={syncing}
+                title="Sync Gmail"
+              >
+                {syncing ? "…" : "↻"}
+              </button>
+            </div>
           </div>
-          <button
-            className="si-sync-btn"
-            onClick={handleSync}
-            disabled={syncing}
-            title="Sync Gmail"
-          >
-            {syncing ? "Syncing…" : "Sync"}
-          </button>
         </div>
 
         <div className="si-search">
@@ -731,28 +806,38 @@ export default function SupportInboxClient({
             threads.map((t) => (
               <button
                 key={t.id}
-                className={`si-thread-item${selectedId === t.id ? " si-thread-item--selected" : ""}`}
+                className={`si-thread-row${selectedId === t.id ? " si-thread-row--active" : ""}`}
                 onClick={() => selectThread(t.id)}
               >
-                <div className="si-thread-item__top">
-                  <span className="si-thread-item__sender">
-                    {t.senderName || t.senderEmail}
-                  </span>
-                  <span className="si-thread-item__date">
-                    {fmtDate(t.lastMessageAt)}
-                  </span>
-                </div>
-                <div className="si-thread-item__subject">{t.subject}</div>
-                <div className="si-thread-item__bottom">
-                  <span
-                    className="si-status-dot"
-                    style={{ background: STATUS_COLORS[t.status] }}
-                    title={STATUS_LABELS[t.status]}
-                  />
-                  <span className="si-thread-item__snippet">{t.snippet}</span>
-                  <span className="si-thread-item__count">
-                    {t.messageCount}
-                  </span>
+                <div
+                  className="si-thread-row__indicator"
+                  style={{ background: STATUS_COLORS[t.status] }}
+                />
+                <div className="si-thread-row__body">
+                  <div className="si-thread-row__top">
+                    <span className="si-thread-row__sender">
+                      {t.senderName || t.senderEmail}
+                    </span>
+                    <span className="si-thread-row__time">
+                      {fmtDate(t.lastMessageAt)}
+                    </span>
+                  </div>
+                  <div className="si-thread-row__subject">{t.subject}</div>
+                  <div className="si-thread-row__snippet">{t.snippet}</div>
+                  <div className="si-thread-row__chips">
+                    {!t.assignee && (
+                      <span className="si-chip si-chip--unassigned">Unassigned</span>
+                    )}
+                    {t.assignee && (
+                      <span className="si-chip si-chip--assignee">{t.assignee.name}</span>
+                    )}
+                    {t.member && (
+                      <span className="si-chip si-chip--member">Member</span>
+                    )}
+                    {t.messageCount > 1 && (
+                      <span className="si-chip si-chip--count">{t.messageCount}</span>
+                    )}
+                  </div>
                 </div>
               </button>
             ))}
@@ -785,30 +870,173 @@ export default function SupportInboxClient({
 
         {selectedId && !detailLoading && detail && (
           <>
-            {/* Subject header */}
-            <div className="si-subject-bar">
-              <h2 className="si-subject-bar__title">{detail.subject}</h2>
-              <span
-                className="si-status-badge"
-                style={{ background: STATUS_COLORS[detail.status] }}
-              >
-                {STATUS_LABELS[detail.status]}
-              </span>
-              <button
-                className="si-sidebar-toggle"
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                title={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
-              >
-                {sidebarOpen ? "▸" : "◂"}
-              </button>
+            {/* ── Thread header — consolidated status + actions ── */}
+            <div className="si-thread-header">
+              <div className="si-thread-header__meta">
+                <h2 className="si-thread-header__subject">{detail.subject}</h2>
+                <div className="si-thread-header__sender">
+                  {detail.senderName || detail.senderEmail}
+                  {detail.senderName && (
+                    <span className="si-thread-header__email"> · {detail.senderEmail}</span>
+                  )}
+                  <span className="si-thread-header__time"> · {fmtDateTime(detail.lastMessageAt)}</span>
+                </div>
+              </div>
+              <div className="si-thread-header__actions">
+                <span
+                  className="si-status-chip"
+                  data-status={detail.deletedAt ? "DELETED" : detail.status}
+                >
+                  {detail.deletedAt ? "Deleted" : STATUS_LABELS[detail.status]}
+                </span>
+
+                {/* Claim — only when OPEN and unassigned */}
+                {!detail.deletedAt && detail.status === "OPEN" && (
+                  <button
+                    className="si-action-btn si-action-btn--primary"
+                    onClick={() => claimThread(detail.id)}
+                  >
+                    Claim
+                  </button>
+                )}
+
+                {/* Reply — only when not closed/deleted */}
+                {!detail.deletedAt && detail.status !== "CLOSED" && (
+                  <button
+                    className="si-action-btn si-action-btn--primary"
+                    onClick={() => setReplyOpen(true)}
+                  >
+                    Reply
+                  </button>
+                )}
+
+                {/* Close */}
+                {!detail.deletedAt && ["OPEN", "CLAIMED", "WAITING"].includes(detail.status) && (
+                  <button
+                    className="si-action-btn"
+                    onClick={() => updateThread(detail.id, { status: "CLOSED" })}
+                  >
+                    Close
+                  </button>
+                )}
+
+                {/* Reopen */}
+                {!detail.deletedAt && detail.status === "CLOSED" && (
+                  <button
+                    className="si-action-btn"
+                    onClick={() => updateThread(detail.id, { status: "OPEN" })}
+                  >
+                    Reopen
+                  </button>
+                )}
+
+                {/* Trash: Restore */}
+                {detail.deletedAt && (
+                  <button
+                    className="si-action-btn"
+                    onClick={() => handleRestore(detail.id)}
+                  >
+                    Restore
+                  </button>
+                )}
+
+                {/* More menu */}
+                <div className="si-more-wrap" ref={moreMenuRef}>
+                  <button
+                    className="si-action-btn si-action-btn--more"
+                    onClick={() => setMoreMenuOpen(!moreMenuOpen)}
+                  >
+                    ···
+                  </button>
+                  {moreMenuOpen && (
+                    <div className="si-more-menu">
+                      {/* Add Note */}
+                      {!detail.deletedAt && detail.status !== "CLOSED" && (
+                        <button
+                          className="si-more-menu__item"
+                          onClick={() => {
+                            setNoteOpen(!noteOpen);
+                            setMoreMenuOpen(false);
+                          }}
+                        >
+                          {noteOpen ? "Cancel Note" : "Add Note"}
+                        </button>
+                      )}
+
+                      {/* Assignment */}
+                      <div className="si-more-menu__section">
+                        <label className="si-more-menu__label">Assign to</label>
+                        <select
+                          className="si-more-menu__select"
+                          value={detail.assignee?.id ?? ""}
+                          onChange={(e) => {
+                            updateThread(detail.id, {
+                              assignedToId: e.target.value || null,
+                            });
+                            setMoreMenuOpen(false);
+                          }}
+                        >
+                          <option value="">Unassigned</option>
+                          {teamMembers.map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Delete — visually separated */}
+                      {!detail.deletedAt && (
+                        <>
+                          <div className="si-more-menu__divider" />
+                          <button
+                            className="si-more-menu__item si-more-menu__item--danger"
+                            onClick={() => {
+                              handleSoftDelete(detail.id);
+                              setMoreMenuOpen(false);
+                            }}
+                          >
+                            Delete Thread
+                          </button>
+                        </>
+                      )}
+
+                      {/* Permanent delete (admin, trashed threads) */}
+                      {detail.deletedAt && isAdmin && (
+                        <>
+                          <div className="si-more-menu__divider" />
+                          <button
+                            className="si-more-menu__item si-more-menu__item--danger"
+                            onClick={() => {
+                              handlePermanentDelete(detail.id);
+                              setMoreMenuOpen(false);
+                            }}
+                          >
+                            Delete Permanently
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Sidebar toggle */}
+                <button
+                  className="si-sidebar-toggle"
+                  onClick={() => setSidebarOpen(!sidebarOpen)}
+                  title={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+                >
+                  {sidebarOpen ? "◄" : "►"}
+                </button>
+              </div>
             </div>
 
-            {/* Note composer — appears above timeline, completely separate from reply */}
+            {/* Note composer — appears above timeline */}
             {noteOpen && (
               <div className="si-note-composer">
                 <div className="si-note-composer__header">
                   <span className="si-note-composer__label">
-                    🔒 Internal Note — not sent to the member
+                    Internal Note — not sent to the member
                   </span>
                   <button
                     className="si-note-composer__close"
@@ -885,12 +1113,8 @@ export default function SupportInboxClient({
                         {fmtDateTime(entry.sentAt!)}
                       </span>
                     </div>
-                    <div
-                      className="si-message__body"
-                      dangerouslySetInnerHTML={{
-                        __html:
-                          entry.bodyHtml || `<pre>${entry.bodyText}</pre>`,
-                      }}
+                    <MessageBody
+                      html={entry.bodyHtml || `<pre>${entry.bodyText}</pre>`}
                     />
                     {entry.fileAttachments && entry.fileAttachments.length > 0 && (
                       <div className="si-attachments">
@@ -915,7 +1139,7 @@ export default function SupportInboxClient({
               })}
             </div>
 
-            {/* Reply composer — anchored to bottom, only for outbound replies */}
+            {/* Reply composer — anchored to bottom */}
             {detail.status !== "CLOSED" && !detail.deletedAt && (
               <div className="si-composer">
                 {!replyOpen ? (
@@ -1034,164 +1258,66 @@ export default function SupportInboxClient({
         )}
       </div>
 
-      {/* ── Right: sidebar ── */}
-      {selectedId && !detailLoading && detail && (
-        <div className="si-sidebar">
-          {/* Status & Actions */}
-          <div className="si-sidebar__section">
-            <div className="si-sidebar__label">Status</div>
-            <div className="si-sidebar__row">
-              <span
-                className="si-status-badge"
-                style={{ background: detail.deletedAt ? "#95a5a6" : STATUS_COLORS[detail.status] }}
-              >
-                {detail.deletedAt ? "Deleted" : STATUS_LABELS[detail.status]}
-              </span>
-              {!detail.deletedAt && detail.status === "OPEN" && (
-                <button
-                  className="si-btn si-btn--claim"
-                  onClick={() => claimThread(detail.id)}
-                >
-                  Claim
-                </button>
-              )}
-              {!detail.deletedAt && ["OPEN", "CLAIMED", "WAITING"].includes(detail.status) && (
-                <button
-                  className="si-btn si-btn--close"
-                  onClick={() =>
-                    updateThread(detail.id, { status: "CLOSED" })
-                  }
-                >
-                  Close
-                </button>
-              )}
-              {!detail.deletedAt && detail.status === "CLOSED" && (
-                <button
-                  className="si-btn si-btn--reopen"
-                  onClick={() =>
-                    updateThread(detail.id, { status: "OPEN" })
-                  }
-                >
-                  Reopen
-                </button>
-              )}
-            </div>
-
-            {/* Trash actions */}
-            {detail.deletedAt && (
-              <div className="si-sidebar__row" style={{ marginTop: 8 }}>
-                <button
-                  className="si-btn si-btn--reopen"
-                  onClick={() => handleRestore(detail.id)}
-                >
-                  Restore
-                </button>
-                {isAdmin && (
-                  <button
-                    className="si-btn si-btn--danger"
-                    onClick={() => handlePermanentDelete(detail.id)}
-                  >
-                    Delete Permanently
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* Soft delete button — visible when not already deleted */}
-            {!detail.deletedAt && (
-              <div style={{ marginTop: 8 }}>
-                <button
-                  className="si-btn si-btn--small si-btn--danger"
-                  onClick={() => handleSoftDelete(detail.id)}
-                >
-                  Delete Thread
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Add Note — separate from Reply */}
-          {detail.status !== "CLOSED" && !detail.deletedAt && (
+      {/* ── Right: sidebar (overlay on medium screens) ── */}
+      {sidebarOpen && selectedId && !detailLoading && detail && (
+        <>
+          <div className="si-sidebar-backdrop" onClick={() => setSidebarOpen(false)} />
+          <div className="si-sidebar">
+            {/* 1. Contact */}
             <div className="si-sidebar__section">
-              <button
-                className={`si-btn si-btn--add-note${noteOpen ? " si-btn--add-note-active" : ""}`}
-                onClick={() => setNoteOpen(!noteOpen)}
-              >
-                {noteOpen ? "Writing note…" : "＋ Add Note"}
-              </button>
-            </div>
-          )}
-
-          {/* Assignment */}
-          <div className="si-sidebar__section">
-            <div className="si-sidebar__label">Assigned To</div>
-            <select
-              className="si-select"
-              value={detail.assignee?.id ?? ""}
-              onChange={(e) =>
-                updateThread(detail.id, {
-                  assignedToId: e.target.value || null,
-                })
-              }
-            >
-              <option value="">Unassigned</option>
-              {teamMembers.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* From */}
-          <div className="si-sidebar__section">
-            <div className="si-sidebar__label">From</div>
-            <div className="si-sidebar__value">
-              {detail.senderName || detail.senderEmail}
-            </div>
-            {detail.senderName && (
-              <div className="si-sidebar__meta">{detail.senderEmail}</div>
-            )}
-          </div>
-
-          {/* Thread info */}
-          <div className="si-sidebar__section">
-            <div className="si-sidebar__label">Thread</div>
-            <div className="si-sidebar__meta">
-              Created {fmtDateShort(detail.createdAt)}
-            </div>
-            <div className="si-sidebar__meta">
-              Last message {fmtDateShort(detail.lastMessageAt)}
-            </div>
-            <div className="si-sidebar__meta">
-              {detail.timeline.filter((e) => e.type === "message").length}{" "}
-              messages
-            </div>
-          </div>
-
-          {/* Member context */}
-          {detail.member && (
-            <div className="si-sidebar__section">
-              <div className="si-sidebar__label">
-                Member
+              <div className="si-sidebar__label">Contact</div>
+              <div className="si-sidebar__value">
+                {detail.senderName || detail.senderEmail}
+              </div>
+              {detail.senderName && (
+                <div className="si-sidebar__meta">{detail.senderEmail}</div>
+              )}
+              {detail.member ? (
                 <span className="si-member-badge">
                   {detail.member.memberStatus === "ACTIVE"
-                    ? "Active"
+                    ? "Active Member"
                     : detail.member.memberStatus}
                 </span>
-              </div>
-              <div className="si-sidebar__value">{detail.member.name}</div>
-              <div className="si-sidebar__meta">{detail.member.email}</div>
-              <div className="si-sidebar__meta">
-                Since {fmtDateShort(detail.member.memberSince)}
-              </div>
+              ) : (
+                <div className="si-sidebar__meta" style={{ marginTop: 4 }}>Not a member</div>
+              )}
+            </div>
 
-              {detail.member.registrations.length > 0 && (
+            {/* 2. Assignment */}
+            <div className="si-sidebar__section">
+              <div className="si-sidebar__label">Assigned To</div>
+              <select
+                className="si-select"
+                value={detail.assignee?.id ?? ""}
+                onChange={(e) =>
+                  updateThread(detail.id, {
+                    assignedToId: e.target.value || null,
+                  })
+                }
+              >
+                <option value="">Unassigned</option>
+                {teamMembers.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 3. Member context — registrations */}
+            {detail.member && detail.member.registrations.length > 0 && (
+              <div className="si-sidebar__section">
+                <div className="si-sidebar__label">
+                  Registrations
+                </div>
+                <div className="si-sidebar__meta">
+                  Since {fmtDateShort(detail.member.memberSince)}
+                </div>
                 <div className="si-sidebar__regs">
-                  <div className="si-sidebar__sublabel">
-                    Recent Registrations
-                  </div>
-                  {detail.member.registrations.map((r) => (
+                  {(regsExpanded
+                    ? detail.member.registrations
+                    : detail.member.registrations.slice(0, 3)
+                  ).map((r) => (
                     <div key={r.id} className="si-sidebar__reg">
                       <span className="si-sidebar__reg-title">
                         {r.programTitle}
@@ -1204,50 +1330,76 @@ export default function SupportInboxClient({
                       </span>
                     </div>
                   ))}
+                  {detail.member.registrations.length > 3 && !regsExpanded && (
+                    <button
+                      className="si-sidebar__show-more"
+                      onClick={() => setRegsExpanded(true)}
+                    >
+                      Show {detail.member.registrations.length - 3} more
+                    </button>
+                  )}
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
 
-          {!detail.member && (
-            <div className="si-sidebar__section">
-              <div className="si-sidebar__label">Member</div>
-              <div className="si-sidebar__meta">Not a member</div>
-            </div>
-          )}
+            {/* 4. Conversation history */}
+            {detail.contactHistory && detail.contactHistory.length > 0 && (
+              <div className="si-sidebar__section">
+                <div className="si-sidebar__label">
+                  Conversation History
+                </div>
+                <div className="si-sidebar__meta" style={{ marginBottom: 8 }}>
+                  {detail.contactHistory.length} other thread{detail.contactHistory.length === 1 ? "" : "s"}
+                </div>
+                <div className="si-contact-history">
+                  {detail.contactHistory.map((ct) => (
+                    <button
+                      key={ct.id}
+                      className="si-contact-history__item"
+                      onClick={() => selectThread(ct.id)}
+                    >
+                      <span className="si-contact-history__subject">{ct.subject}</span>
+                      <span className="si-contact-history__meta">
+                        <span
+                          className="si-status-dot"
+                          style={{ background: STATUS_COLORS[ct.status] }}
+                          title={STATUS_LABELS[ct.status]}
+                        />
+                        {fmtDate(ct.lastMessageAt)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
-          {/* Contact History */}
-          {detail.contactHistory && detail.contactHistory.length > 0 && (
-            <div className="si-sidebar__section">
-              <div className="si-sidebar__label">
-                Conversation History
+            {/* 5. Thread metadata — de-emphasized */}
+            <div className="si-sidebar__section si-sidebar__section--muted">
+              <div className="si-sidebar__meta">
+                Created {fmtDateShort(detail.createdAt)}
               </div>
-              <div className="si-sidebar__meta" style={{ marginBottom: 8 }}>
-                {detail.contactHistory.length} other thread{detail.contactHistory.length === 1 ? "" : "s"} with{" "}
-                {detail.senderName || detail.senderEmail}
+              <div className="si-sidebar__meta">
+                Last message {fmtDateShort(detail.lastMessageAt)}
               </div>
-              <div className="si-contact-history">
-                {detail.contactHistory.map((ct) => (
-                  <button
-                    key={ct.id}
-                    className="si-contact-history__item"
-                    onClick={() => selectThread(ct.id)}
-                  >
-                    <span className="si-contact-history__subject">{ct.subject}</span>
-                    <span className="si-contact-history__meta">
-                      <span
-                        className="si-status-dot"
-                        style={{ background: STATUS_COLORS[ct.status] }}
-                        title={STATUS_LABELS[ct.status]}
-                      />
-                      {fmtDate(ct.lastMessageAt)}
-                    </span>
-                  </button>
-                ))}
+              <div className="si-sidebar__meta">
+                {detail.timeline.filter((e) => e.type === "message").length}{" "}
+                messages
               </div>
             </div>
-          )}
-        </div>
+
+            {/* 6. Danger zone — delete (trash view only, for sidebar access) */}
+            {detail.deletedAt && isAdmin && (
+              <div className="si-sidebar__section si-sidebar__danger">
+                <button
+                  className="si-sidebar__danger-link"
+                  onClick={() => handlePermanentDelete(detail.id)}
+                >
+                  Delete Permanently
+                </button>
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       {/* ── Compose new email modal ── */}
