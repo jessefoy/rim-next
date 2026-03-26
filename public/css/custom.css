@@ -12767,10 +12767,86 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .si-list {
   width: clamp(320px, 25vw, 400px);
   min-width: 320px;
-  border-right: 1px solid #ddd;
+  border-right: none;
   display: flex;
   flex-direction: column;
   background: var(--rim-bg);
+  position: relative;
+  transition: width 0.2s, min-width 0.2s;
+}
+
+/* Collapsed list */
+.si-layout--list-collapsed .si-list {
+  width: 0 !important;
+  min-width: 0 !important;
+  overflow: hidden;
+  border-right: none;
+}
+.si-layout--list-collapsed .si-list > *:not(.si-list-collapse) {
+  display: none;
+}
+.si-layout--list-collapsed .si-list-collapse {
+  position: absolute;
+  right: -28px;
+  top: 8px;
+  z-index: 5;
+}
+.si-layout--list-collapsed .si-drag-handle {
+  display: none;
+}
+
+/* List collapse toggle */
+.si-list-collapse {
+  position: absolute;
+  top: 12px;
+  right: -14px;
+  z-index: 5;
+  width: 20px;
+  height: 28px;
+  display: none; /* hidden on mobile */
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  background: var(--rim-bg);
+  border: 1px solid #e8e4de;
+  border-radius: 0 4px 4px 0;
+  color: var(--rim-text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  line-height: 1;
+}
+.si-list-collapse:hover { background: #e8e4de; color: var(--rim-text); }
+
+/* Drag handle between list and center */
+.si-drag-handle {
+  width: 5px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: transparent;
+  position: relative;
+  z-index: 3;
+  transition: background 0.15s;
+}
+.si-drag-handle:hover {
+  background: #d0ccc5;
+}
+.si-drag-handle::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 1px;
+  width: 3px;
+  height: 24px;
+  transform: translateY(-50%);
+  border-left: 1px solid #ccc;
+  border-right: 1px solid #ccc;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.si-drag-handle:hover::after { opacity: 1; }
+
+@media (min-width: 769px) {
+  .si-list-collapse { display: flex; }
 }
 
 /* New Email button */
@@ -13095,6 +13171,19 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   font-size: 14px;
   letter-spacing: 2px;
   padding: 5px 8px;
+}
+.si-action-btn--note {
+  background: #fef9eb;
+  border-color: #e8d48b;
+  color: #8b6914;
+}
+.si-action-btn--note:hover {
+  background: #fdf3d7;
+}
+.si-action-btn--note-active {
+  background: #fdf3d7;
+  border-color: #c89220;
+  color: #7a5a10;
 }
 
 /* More menu dropdown */
@@ -13548,6 +13637,56 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 }
 .si-sidebar__show-more:hover { color: var(--rim-blue); }
 
+/* Sidebar notes section */
+.si-sidebar__note-count {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-alert);
+  background: var(--color-alert-bg);
+  padding: 0 5px;
+  border-radius: 8px;
+  line-height: 1.6;
+}
+.si-sidebar__notes {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+}
+.si-sidebar__note-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 4px 8px;
+  background: none;
+  border: 1px solid #e8d48b;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: background 0.1s;
+  width: 100%;
+  text-align: left;
+}
+.si-sidebar__note-row:hover { background: #fef9eb; }
+.si-sidebar__note-author {
+  font-size: 12px;
+  font-weight: 600;
+  color: #7a5a10;
+}
+.si-sidebar__note-date {
+  font-size: 11px;
+  color: var(--rim-text-muted);
+}
+
+/* Note flash animation (click-to-scroll highlight) */
+.si-note--flash {
+  animation: si-flash 1.5s ease-out;
+}
+@keyframes si-flash {
+  0% { outline: 2px solid var(--color-alert); outline-offset: 2px; }
+  100% { outline: 2px solid transparent; outline-offset: 2px; }
+}
+
 /* Sidebar danger zone */
 .si-sidebar__danger {
   border-bottom: none;
@@ -13575,6 +13714,9 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   }
   .si-sidebar { display: none; }
   .si-sidebar-backdrop { display: none; }
+  .si-drag-handle { display: none; }
+  .si-list-collapse { display: none; }
+  .si-list { width: 100% !important; min-width: 0 !important; }
   .si-thread-header { padding: 12px 14px; }
   .si-timeline { padding: 12px 14px; }
 

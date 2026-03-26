@@ -251,6 +251,14 @@ export default function SupportInboxClient({
   // Sidebar
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Left panel collapse + drag resize
+  const [listCollapsed, setListCollapsed] = useState(false);
+  const [listWidth, setListWidth] = useState<number | null>(null);
+  const isDragging = useRef(false);
+  const dragStartX = useRef(0);
+  const dragStartWidth = useRef(0);
+  const listRef = useRef<HTMLDivElement>(null);
+
   // More menu
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
@@ -306,6 +314,51 @@ export default function SupportInboxClient({
       return () => document.removeEventListener("mousedown", handleClick);
     }
   }, [moreMenuOpen]);
+
+  // ─── Drag resize for left panel ─────────────────────────────────────────
+
+  const handleDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+    dragStartX.current = e.clientX;
+    dragStartWidth.current = listRef.current?.offsetWidth ?? 340;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    const handleMove = (ev: MouseEvent) => {
+      if (!isDragging.current) return;
+      const delta = ev.clientX - dragStartX.current;
+      const newWidth = Math.max(200, Math.min(600, dragStartWidth.current + delta));
+      setListWidth(newWidth);
+      if (newWidth <= 200) {
+        setListCollapsed(true);
+      } else {
+        setListCollapsed(false);
+      }
+    };
+
+    const handleUp = () => {
+      isDragging.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      document.removeEventListener("mousemove", handleMove);
+      document.removeEventListener("mouseup", handleUp);
+    };
+
+    document.addEventListener("mousemove", handleMove);
+    document.addEventListener("mouseup", handleUp);
+  }, []);
+
+  // ─── Scroll to note in timeline ─────────────────────────────────────────
+
+  const scrollToNote = useCallback((noteId: string) => {
+    const el = document.getElementById(`note-${noteId}`);
+    if (el && timelineRef.current) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("si-note--flash");
+      setTimeout(() => el.classList.remove("si-note--flash"), 1500);
+    }
+  }, []);
 
   // ─── Fetch threads ──────────────────────────────────────────────────────
 
@@ -722,14 +775,33 @@ export default function SupportInboxClient({
     !sidebarOpen && "si-layout--sidebar-closed",
     sidebarOpen && "si-layout--sidebar-open",
     selectedId && "si-layout--detail-open",
+    listCollapsed && "si-layout--list-collapsed",
   ]
     .filter(Boolean)
     .join(" ");
 
+  // Compute notes for sidebar
+  const notes = detail?.timeline.filter((e) => e.type === "note") ?? [];
+
   return (
     <div className={layoutCls}>
       {/* ── Left: thread list ── */}
-      <div className="si-list">
+      <div
+        className="si-list"
+        ref={listRef}
+        style={listWidth && !listCollapsed ? { width: listWidth, minWidth: listWidth } : undefined}
+      >
+        {/* Collapse toggle */}
+        <button
+          className="si-list-collapse"
+          onClick={() => {
+            setListCollapsed(!listCollapsed);
+            if (listCollapsed) setListWidth(null);
+          }}
+          title={listCollapsed ? "Show thread list" : "Hide thread list"}
+        >
+          {listCollapsed ? "►" : "◄"}
+        </button>
         <div className="si-compose-row">
           <button
             className="si-btn si-btn--compose"
@@ -844,6 +916,13 @@ export default function SupportInboxClient({
         </div>
       </div>
 
+      {/* Drag handle between list and center */}
+      <div
+        className="si-drag-handle"
+        onMouseDown={handleDragStart}
+        title="Drag to resize"
+      />
+
       {/* ── Center: messages + composer ── */}
       <div className="si-main">
         {/* Mobile back button */}
@@ -930,6 +1009,16 @@ export default function SupportInboxClient({
                   </button>
                 )}
 
+                {/* Add Note — promoted, amber styling */}
+                {!detail.deletedAt && detail.status !== "CLOSED" && (
+                  <button
+                    className={`si-action-btn si-action-btn--note${noteOpen ? " si-action-btn--note-active" : ""}`}
+                    onClick={() => setNoteOpen(!noteOpen)}
+                  >
+                    {noteOpen ? "Writing…" : "Add Note"}
+                  </button>
+                )}
+
                 {/* Trash: Restore */}
                 {detail.deletedAt && (
                   <button
@@ -950,19 +1039,6 @@ export default function SupportInboxClient({
                   </button>
                   {moreMenuOpen && (
                     <div className="si-more-menu">
-                      {/* Add Note */}
-                      {!detail.deletedAt && detail.status !== "CLOSED" && (
-                        <button
-                          className="si-more-menu__item"
-                          onClick={() => {
-                            setNoteOpen(!noteOpen);
-                            setMoreMenuOpen(false);
-                          }}
-                        >
-                          {noteOpen ? "Cancel Note" : "Add Note"}
-                        </button>
-                      )}
-
                       {/* Assignment */}
                       <div className="si-more-menu__section">
                         <label className="si-more-menu__label">Assign to</label>
@@ -1078,7 +1154,7 @@ export default function SupportInboxClient({
               {detail.timeline.map((entry) => {
                 if (entry.type === "note") {
                   return (
-                    <div key={entry.id} className="si-note">
+                    <div key={entry.id} id={`note-${entry.id}`} className="si-note">
                       <div className="si-note__header">
                         <span className="si-note__label">Internal Note</span>
                         <span className="si-note__author">
@@ -1304,7 +1380,29 @@ export default function SupportInboxClient({
               </select>
             </div>
 
-            {/* 3. Member context — registrations */}
+            {/* 3. Notes — click to scroll */}
+            {notes.length > 0 && (
+              <div className="si-sidebar__section">
+                <div className="si-sidebar__label">
+                  Notes
+                  <span className="si-sidebar__note-count">{notes.length}</span>
+                </div>
+                <div className="si-sidebar__notes">
+                  {notes.map((n) => (
+                    <button
+                      key={n.id}
+                      className="si-sidebar__note-row"
+                      onClick={() => scrollToNote(n.id)}
+                    >
+                      <span className="si-sidebar__note-author">{n.author?.name}</span>
+                      <span className="si-sidebar__note-date">{fmtDate(n.createdAt!)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 4. Member context — registrations */}
             {detail.member && detail.member.registrations.length > 0 && (
               <div className="si-sidebar__section">
                 <div className="si-sidebar__label">
@@ -1342,7 +1440,7 @@ export default function SupportInboxClient({
               </div>
             )}
 
-            {/* 4. Conversation history */}
+            {/* 5. Conversation history */}
             {detail.contactHistory && detail.contactHistory.length > 0 && (
               <div className="si-sidebar__section">
                 <div className="si-sidebar__label">
@@ -1373,7 +1471,7 @@ export default function SupportInboxClient({
               </div>
             )}
 
-            {/* 5. Thread metadata — de-emphasized */}
+            {/* 6. Thread metadata — de-emphasized */}
             <div className="si-sidebar__section si-sidebar__section--muted">
               <div className="si-sidebar__meta">
                 Created {fmtDateShort(detail.createdAt)}
@@ -1387,7 +1485,7 @@ export default function SupportInboxClient({
               </div>
             </div>
 
-            {/* 6. Danger zone — delete (trash view only, for sidebar access) */}
+            {/* 7. Danger zone — delete (trash view only, for sidebar access) */}
             {detail.deletedAt && isAdmin && (
               <div className="si-sidebar__section si-sidebar__danger">
                 <button
