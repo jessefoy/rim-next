@@ -72,10 +72,16 @@ export async function POST(req: NextRequest) {
     ? await renderFormattedTextAsync(bodyJson)
     : (legacyBodyHtml ?? "");
 
-  // Validate email format
+  // Validate email format — supports comma-separated recipients
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(to)) {
-    return NextResponse.json({ error: "Invalid email address" }, { status: 400 });
+  const recipients = to.split(",").map((e: string) => e.trim()).filter(Boolean);
+  if (recipients.length === 0) {
+    return NextResponse.json({ error: "At least one recipient is required" }, { status: 400 });
+  }
+  for (const addr of recipients) {
+    if (!emailRegex.test(addr)) {
+      return NextResponse.json({ error: `Invalid email address: ${addr}` }, { status: 400 });
+    }
   }
 
   // Get sender's signature
@@ -182,9 +188,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to send" }, { status: 500 });
   }
 
-  // Member matching
+  // Member matching — use first recipient as primary contact
+  const primaryRecipient = recipients[0].toLowerCase();
   const member = await db.user.findUnique({
-    where: { email: to.toLowerCase() },
+    where: { email: primaryRecipient },
     select: { id: true },
   });
 
@@ -194,7 +201,7 @@ export async function POST(req: NextRequest) {
     data: {
       gmailThreadId,
       subject,
-      senderEmail: to.toLowerCase(),
+      senderEmail: primaryRecipient,
       senderName: null,
       memberId: member?.id ?? null,
       assignedToId: session.user.id,
