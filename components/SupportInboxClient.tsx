@@ -278,7 +278,8 @@ export default function SupportInboxClient({
 
   // Compose new email modal
   const [composeOpen, setComposeOpen] = useState(false);
-  const [composeTo, setComposeTo] = useState("");
+  const [composeRecipients, setComposeRecipients] = useState<string[]>([]);
+  const [composeToInput, setComposeToInput] = useState("");
   const [composeSubject, setComposeSubject] = useState("");
   const [composeDraft, setComposeDraft] = useState<any>(null);
   const [composeSending, setComposeSending] = useState(false);
@@ -650,7 +651,7 @@ export default function SupportInboxClient({
   // ─── Compose new email ──────────────────────────────────────────────
 
   const searchContacts = (query: string) => {
-    setComposeTo(query);
+    setComposeToInput(query);
     setContactsOpen(false);
     if (contactSearchTimeout.current) clearTimeout(contactSearchTimeout.current);
     if (query.length < 2) {
@@ -667,10 +668,29 @@ export default function SupportInboxClient({
     }, 250);
   };
 
-  const selectContact = (email: string) => {
-    setComposeTo(email);
+  const addRecipient = (email: string) => {
+    const trimmed = email.trim().toLowerCase();
+    if (trimmed && !composeRecipients.includes(trimmed)) {
+      setComposeRecipients((prev) => [...prev, trimmed]);
+    }
+    setComposeToInput("");
     setContactResults([]);
     setContactsOpen(false);
+  };
+
+  const removeRecipient = (email: string) => {
+    setComposeRecipients((prev) => prev.filter((r) => r !== email));
+  };
+
+  const handleToKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if ((e.key === "Enter" || e.key === "," || e.key === "Tab") && composeToInput.trim()) {
+      e.preventDefault();
+      addRecipient(composeToInput);
+    }
+    // Backspace on empty input removes last recipient
+    if (e.key === "Backspace" && !composeToInput && composeRecipients.length > 0) {
+      setComposeRecipients((prev) => prev.slice(0, -1));
+    }
   };
 
   const handleComposeAddFiles = async (files: FileList | null) => {
@@ -713,7 +733,7 @@ export default function SupportInboxClient({
   };
 
   const handleSendCompose = async () => {
-    if (!composeTo || !composeSubject || !composeDraft) return;
+    if (composeRecipients.length === 0 || !composeSubject || !composeDraft) return;
     if (composeFiles.some((f) => f.uploading)) return;
     if (composeFiles.some((f) => f.error)) {
       setComposeFileError("Remove failed uploads before sending.");
@@ -734,7 +754,7 @@ export default function SupportInboxClient({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        to: composeTo,
+        to: composeRecipients.join(", "),
         subject: composeSubject,
         body: composeDraft,
         attachments: attachments.length > 0 ? attachments : undefined,
@@ -745,7 +765,8 @@ export default function SupportInboxClient({
       const data = await res.json();
       // Reset compose state
       setComposeOpen(false);
-      setComposeTo("");
+      setComposeRecipients([]);
+      setComposeToInput("");
       setComposeSubject("");
       setComposeDraft(null);
       setComposeFiles([]);
@@ -758,9 +779,10 @@ export default function SupportInboxClient({
   };
 
   const handleCancelCompose = () => {
-    if ((composeTo || composeSubject || composeDraft) && !window.confirm("Discard this email?")) return;
+    if ((composeRecipients.length > 0 || composeSubject || composeDraft) && !window.confirm("Discard this email?")) return;
     setComposeOpen(false);
-    setComposeTo("");
+    setComposeRecipients([]);
+    setComposeToInput("");
     setComposeSubject("");
     setComposeDraft(null);
     setComposeFiles([]);
@@ -1516,26 +1538,47 @@ export default function SupportInboxClient({
                 <div className="si-modal__static">{connectedEmail}</div>
               </div>
 
-              {/* To — with typeahead */}
+              {/* To — multi-recipient chip input with typeahead */}
               <div className="si-modal__field">
                 <label className="si-modal__label">To</label>
                 <div className="si-modal__to-wrap">
-                  <input
-                    type="text"
-                    className="si-modal__input"
-                    value={composeTo}
-                    onChange={(e) => searchContacts(e.target.value)}
-                    onBlur={() => setTimeout(() => setContactsOpen(false), 200)}
-                    placeholder="Name or email address"
-                    autoFocus
-                  />
+                  <div className="si-modal__to-chips">
+                    {composeRecipients.map((email) => (
+                      <span key={email} className="si-recipient-chip">
+                        {email}
+                        <button
+                          className="si-recipient-chip__remove"
+                          onClick={() => removeRecipient(email)}
+                          type="button"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                    <input
+                      type="text"
+                      className="si-modal__to-input"
+                      value={composeToInput}
+                      onChange={(e) => searchContacts(e.target.value)}
+                      onKeyDown={handleToKeyDown}
+                      onBlur={() => {
+                        // Add typed email on blur if it looks valid
+                        if (composeToInput.trim() && composeToInput.includes("@")) {
+                          addRecipient(composeToInput);
+                        }
+                        setTimeout(() => setContactsOpen(false), 200);
+                      }}
+                      placeholder={composeRecipients.length === 0 ? "Name or email address" : "Add another…"}
+                      autoFocus
+                    />
+                  </div>
                   {contactsOpen && contactResults.length > 0 && (
                     <div className="si-modal__dropdown">
                       {contactResults.map((c) => (
                         <button
                           key={c.id}
                           className="si-modal__dropdown-item"
-                          onMouseDown={() => selectContact(c.email)}
+                          onMouseDown={() => addRecipient(c.email)}
                         >
                           <span className="si-modal__dropdown-name">{c.name}</span>
                           <span className="si-modal__dropdown-email">{c.email}</span>
@@ -1648,7 +1691,7 @@ export default function SupportInboxClient({
                 <button
                   className="si-btn si-btn--send"
                   onClick={handleSendCompose}
-                  disabled={composeSending || !composeTo || !composeSubject || !composeDraft || composeFiles.some((f) => f.uploading)}
+                  disabled={composeSending || composeRecipients.length === 0 || !composeSubject || !composeDraft || composeFiles.some((f) => f.uploading)}
                 >
                   {composeSending ? "Sending…" : "Send"}
                 </button>

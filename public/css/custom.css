@@ -14087,10 +14087,72 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   border-color: var(--rim-mid);
 }
 
-/* Typeahead dropdown */
+/* Multi-recipient chip input */
 .si-modal__to-wrap {
   position: relative;
 }
+.si-modal__to-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px 8px;
+  border: 1px solid #e8e4de;
+  border-radius: 4px;
+  background: #fff;
+  min-height: 38px;
+  align-items: center;
+  cursor: text;
+}
+.si-modal__to-chips:focus-within {
+  border-color: var(--rim-mid);
+}
+.si-modal__to-input {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--rim-text);
+  flex: 1;
+  min-width: 120px;
+  padding: 2px 4px;
+}
+.si-modal__to-input::placeholder { color: var(--rim-text-muted); }
+.si-recipient-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--rim-text);
+  background: var(--rim-bg-accent);
+  padding: 2px 4px 2px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+.si-recipient-chip__remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--rim-text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  transition: all 0.1s;
+}
+.si-recipient-chip__remove:hover {
+  background: rgba(0,0,0,0.08);
+  color: var(--rim-text);
+}
+
+/* Typeahead dropdown */
 .si-modal__dropdown {
   position: absolute;
   top: 100%;
