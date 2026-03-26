@@ -13335,11 +13335,30 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   overflow-wrap: break-word;
   word-break: break-word;
 }
+/* Force all email HTML descendants to inherit our font */
+.si-message__body * {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+}
+.si-message__body h1,
+.si-message__body h2,
+.si-message__body h3,
+.si-message__body h4 {
+  font-size: 14px !important;
+  font-weight: 600;
+  margin: 12px 0 4px;
+}
 .si-message__body img { max-width: 100%; height: auto; }
 .si-message__body blockquote {
   margin: 8px 0;
   padding-left: 12px;
   border-left: 3px solid #ddd;
+  color: var(--rim-text-muted);
+  font-size: 13px !important;
+}
+.si-message__body blockquote * {
+  font-size: 13px !important;
   color: var(--rim-text-muted);
 }
 .si-message__body table { max-width: 100%; table-layout: fixed; }
@@ -13403,6 +13422,10 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   font-size: 14px;
   line-height: 1.6;
   color: var(--rim-text);
+}
+.si-note__body * {
+  font-family: inherit !important;
+  font-size: inherit !important;
 }
 
 /* ── Composer — anchored to bottom ── */
