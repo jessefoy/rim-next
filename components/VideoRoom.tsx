@@ -4,10 +4,27 @@
  * VideoRoom — LiveKit video conferencing room.
  * Uses @livekit/components-react VideoConference (pre-built UI with
  * controls, fullscreen, chat, screen share — all handled by LiveKit).
+ *
+ * Video quality: 720p default, adaptive bitrate up to 1.5Mbps.
+ * LiveKit's simulcast sends multiple quality layers — participants
+ * with slower connections automatically receive a lower layer.
  */
 
 import { useEffect } from "react";
 import { LiveKitRoom, VideoConference } from "@livekit/components-react";
+import { RoomOptions, VideoPresets } from "livekit-client";
+
+const roomOptions: RoomOptions = {
+  videoCaptureDefaults: {
+    resolution: VideoPresets.h720.resolution,
+  },
+  publishDefaults: {
+    videoSimulcastLayers: [VideoPresets.h180, VideoPresets.h360],
+    videoCodec: "vp8",
+  },
+  adaptiveStream: true,
+  dynacast: true,
+};
 
 interface Props {
   token: string;
@@ -34,6 +51,7 @@ export default function VideoRoom({ token, wsUrl, onLeave }: Props) {
         token={token}
         serverUrl={wsUrl}
         connect={true}
+        options={roomOptions}
         onDisconnected={() => onLeave?.()}
         data-lk-theme="default"
         style={{ height: "100%" }}
