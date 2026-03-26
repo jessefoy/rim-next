@@ -58,12 +58,12 @@ function buildRoomOptions(isHost: boolean): RoomOptions {
 interface Props {
   token: string;
   wsUrl: string;
-  isHost?: boolean;
+  hiFiAudio?: boolean;
   onLeave?: () => void;
 }
 
-export default function VideoRoom({ token, wsUrl, isHost = false, onLeave }: Props) {
-  const roomOptions = buildRoomOptions(isHost);
+export default function VideoRoom({ token, wsUrl, hiFiAudio = false, onLeave }: Props) {
+  const roomOptions = buildRoomOptions(hiFiAudio);
   // Load LiveKit styles only when video room mounts — prevents global CSS leak
   useEffect(() => {
     const id = "livekit-styles";
