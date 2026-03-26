@@ -1364,6 +1364,13 @@ export default function SupportInboxClient({
         <>
           <div className="si-sidebar-backdrop" onClick={() => setSidebarOpen(false)} />
           <div className="si-sidebar">
+            <button
+              className="si-sidebar__close"
+              onClick={() => setSidebarOpen(false)}
+              title="Close sidebar"
+            >
+              ✕
+            </button>
             {/* 1. Contact */}
             <div className="si-sidebar__section">
               <div className="si-sidebar__label">Contact</div>
