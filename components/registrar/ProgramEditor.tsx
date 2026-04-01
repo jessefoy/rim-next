@@ -362,122 +362,136 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
         ))}
       </div>
 
-      <div className="pe-form">
+      {/* ══════════════════════════════════════════════════════════════════
+         TAB 1 — Content
+         ══════════════════════════════════════════════════════════════════ */}
+      {tab === "Content" && (
+        <div className="pe-card">
+          <div className="pe-card__section">
+            <div className="pe-form">
+              <label className="pe-field">
+                <span className="pe-field__label">Name *</span>
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="pe-input" required />
+              </label>
 
-        {/* ══════════════════════════════════════════════════════════════════
-           TAB 1 — Content
-           ══════════════════════════════════════════════════════════════════ */}
-        {tab === "Content" && (
-          <>
-            <label className="pe-field">
-              <span className="pe-field__label">Name *</span>
-              <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="pe-input" required />
-            </label>
+              <label className="pe-field">
+                <span className="pe-field__label">Slug *</span>
+                <div className="pe-slug-row">
+                  <input
+                    type="text"
+                    value={slug}
+                    onChange={(e) => { setSlug(e.target.value); setSlugTouched(true); }}
+                    className="pe-input"
+                    disabled={slugLocked}
+                    required
+                  />
+                  {isEditing && (
+                    <button
+                      type="button"
+                      className="pe-btn pe-btn--small"
+                      onClick={() => setSlugLocked(!slugLocked)}
+                    >
+                      {slugLocked ? "Unlock" : "Lock"}
+                    </button>
+                  )}
+                </div>
+                {isEditing && !slugLocked && (
+                  <span className="pe-field__help pe-field__help--warn">
+                    Changing the slug will break existing links and host assignments.
+                  </span>
+                )}
+              </label>
 
-            <label className="pe-field">
-              <span className="pe-field__label">Slug *</span>
-              <div className="pe-slug-row">
+              <label className="pe-field">
+                <span className="pe-field__label">Tagline</span>
+                <input type="text" value={tagline} onChange={(e) => setTagline(e.target.value)} className="pe-input" />
+              </label>
+
+              <div className="pe-field">
+                <span className="pe-field__label">Program Image</span>
+                {programImage && (
+                  <div className="pe-image-preview">
+                    <img src={programImage} alt="Program" className="pe-image-preview__img" />
+                    <button type="button" className="pe-btn pe-btn--small pe-btn--danger" onClick={() => setProgramImage("")}>
+                      Remove
+                    </button>
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="pe-file-input"
+                  disabled={uploading}
+                />
+                {uploading && <span className="pe-muted">Uploading…</span>}
+              </div>
+            </div>
+          </div>
+
+          <div className="pe-card__section">
+            <div className="pe-form">
+              <div className="pe-field">
+                <span className="pe-field__label">Description</span>
+                <RimBlockEditor
+                  value={description}
+                  onChange={setDescription}
+                  placeholder="Program description…"
+                  minHeight={300}
+                  context="document"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="pe-card__section">
+            <div className="pe-form">
+              <label className="pe-field">
+                <span className="pe-field__label">Pull Quote</span>
+                <input type="text" value={pullQuote} onChange={(e) => setPullQuote(e.target.value)} className="pe-input" />
+              </label>
+
+              <label className="pe-field">
+                <span className="pe-field__label">Pull Quote Source</span>
+                <input type="text" value={pullQuoteSource} onChange={(e) => setPullQuoteSource(e.target.value)} className="pe-input" />
+              </label>
+            </div>
+          </div>
+
+          <div className="pe-card__section">
+            <div className="pe-form">
+              <div className="pe-field">
+                <span className="pe-field__label">Special Notes</span>
+                <span className="pe-field__help">Temporary logistical notices displayed on the program page.</span>
+                <RimProseEditor
+                  value={specialNotes}
+                  onChange={setSpecialNotes}
+                  placeholder="Any temporary notes…"
+                  minHeight={120}
+                />
+              </div>
+
+              <label className="pe-field">
+                <span className="pe-field__label">Teacher / Facilitators</span>
+                <span className="pe-field__help">Comma-separated names.</span>
                 <input
                   type="text"
-                  value={slug}
-                  onChange={(e) => { setSlug(e.target.value); setSlugTouched(true); }}
+                  value={teacherFacilitatorsText}
+                  onChange={(e) => setTeacherFacilitatorsText(e.target.value)}
                   className="pe-input"
-                  disabled={slugLocked}
-                  required
+                  placeholder="Jesse Foy, LoriLee Villwock"
                 />
-                {isEditing && (
-                  <button
-                    type="button"
-                    className="pe-btn pe-btn--small"
-                    onClick={() => setSlugLocked(!slugLocked)}
-                  >
-                    {slugLocked ? "Unlock" : "Lock"}
-                  </button>
-                )}
-              </div>
-              {isEditing && !slugLocked && (
-                <span className="pe-field__help pe-field__help--warn">
-                  Changing the slug will break existing links and host assignments.
-                </span>
-              )}
-            </label>
-
-            <label className="pe-field">
-              <span className="pe-field__label">Tagline</span>
-              <input type="text" value={tagline} onChange={(e) => setTagline(e.target.value)} className="pe-input" />
-            </label>
-
-            <div className="pe-field">
-              <span className="pe-field__label">Program Image</span>
-              {programImage && (
-                <div className="pe-image-preview">
-                  <img src={programImage} alt="Program" className="pe-image-preview__img" />
-                  <button type="button" className="pe-btn pe-btn--small pe-btn--danger" onClick={() => setProgramImage("")}>
-                    Remove
-                  </button>
-                </div>
-              )}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="pe-file-input"
-                disabled={uploading}
-              />
-              {uploading && <span className="pe-muted">Uploading…</span>}
+              </label>
             </div>
-
-            <div className="pe-field">
-              <span className="pe-field__label">Description</span>
-              <RimBlockEditor
-                value={description}
-                onChange={setDescription}
-                placeholder="Program description…"
-                minHeight={300}
-                context="document"
-              />
-            </div>
-
-            <label className="pe-field">
-              <span className="pe-field__label">Pull Quote</span>
-              <input type="text" value={pullQuote} onChange={(e) => setPullQuote(e.target.value)} className="pe-input" />
-            </label>
-
-            <label className="pe-field">
-              <span className="pe-field__label">Pull Quote Source</span>
-              <input type="text" value={pullQuoteSource} onChange={(e) => setPullQuoteSource(e.target.value)} className="pe-input" />
-            </label>
-
-            <div className="pe-field">
-              <span className="pe-field__label">Special Notes</span>
-              <span className="pe-field__help">Temporary logistical notices displayed on the program page.</span>
-              <RimProseEditor
-                value={specialNotes}
-                onChange={setSpecialNotes}
-                placeholder="Any temporary notes…"
-                minHeight={120}
-              />
-            </div>
-
-            <label className="pe-field">
-              <span className="pe-field__label">Teacher / Facilitators</span>
-              <span className="pe-field__help">Comma-separated names.</span>
-              <input
-                type="text"
-                value={teacherFacilitatorsText}
-                onChange={(e) => setTeacherFacilitatorsText(e.target.value)}
-                className="pe-input"
-                placeholder="Jesse Foy, LoriLee Villwock"
-              />
-            </label>
-          </>
-        )}
+          </div>
+        </div>
+      )}
 
         {/* ══════════════════════════════════════════════════════════════════
            TAB 2 — Schedule & Location
            ══════════════════════════════════════════════════════════════════ */}
         {tab === "Schedule" && (
-          <>
+          <div className="pe-card"><div className="pe-form">
             <label className="pe-field">
               <span className="pe-field__label">Category</span>
               <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="pe-select">
@@ -610,14 +624,14 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
               </label>
             )}
 
-          </>
+          </div></div>
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
            TAB 3 — Registration
            ══════════════════════════════════════════════════════════════════ */}
         {tab === "Registration" && (
-          <>
+          <div className="pe-card"><div className="pe-form">
             <label className="pe-checkbox">
               <input
                 type="checkbox"
@@ -756,14 +770,14 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                 minHeight={120}
               />
             </div>
-          </>
+          </div></div>
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
            TAB 4 — Dana
            ══════════════════════════════════════════════════════════════════ */}
         {tab === "Dana" && (
-          <>
+          <div className="pe-card"><div className="pe-form">
             <fieldset className="pe-field">
               <legend className="pe-field__label">Dana Mode</legend>
               <div className="pe-radio-group">
@@ -848,14 +862,14 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                 </label>
               </>
             )}
-          </>
+          </div></div>
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
            TAB 5 — Dashboard
            ══════════════════════════════════════════════════════════════════ */}
         {tab === "Dashboard" && (
-          <>
+          <div className="pe-card"><div className="pe-form">
             <label className="pe-field">
               <span className="pe-field__label">Special Announcement</span>
               <span className="pe-field__help">Bold notice shown on the member dashboard card.</span>
@@ -903,14 +917,14 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                 ))}
               </div>
             </div>
-          </>
+          </div></div>
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
            TAB 6 — Visibility
            ══════════════════════════════════════════════════════════════════ */}
         {tab === "Visibility" && (
-          <>
+          <div className="pe-card"><div className="pe-form">
             <label className="pe-field">
               <span className="pe-field__label">Sort Order</span>
               <input
@@ -938,10 +952,8 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
               />
               Hide from member dashboard program list
             </label>
-          </>
+          </div></div>
         )}
-
-      </div>
 
       {/* ── Actions bar ── */}
       <div className="pe-actions">

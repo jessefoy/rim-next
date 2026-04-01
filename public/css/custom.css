@@ -12060,9 +12060,28 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .th-btn--small { padding: 4px 10px; font-size: 12px; }
 
 /* Editor */
-.th-editor { max-width: 720px; }
+.th-editor { max-width: 740px; }
 .th-editor__header { display: flex; align-items: baseline; gap: 16px; margin-bottom: 24px; }
 .th-editor__title { font-family: var(--font-serif); font-size: 24px; font-weight: 400; margin: 0; }
+
+/* Card containers for CourseEditor */
+.th-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 28px 32px;
+  border: 1px solid #e8e4de;
+  margin-bottom: 16px;
+}
+.th-card__section {
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #eee9e3;
+}
+.th-card__section:last-child {
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom: none;
+}
 .th-link--view { font-size: 14px; color: var(--rim-blue); white-space: nowrap; }
 .th-link--sm { font-size: 13px; font-weight: 400; color: var(--rim-blue); white-space: nowrap; }
 
@@ -12099,7 +12118,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .th-muted { color: var(--rim-text-muted); font-size: 13px; }
 
 /* Actions bar */
-.th-actions { display: flex; gap: 10px; margin-top: 32px; padding-top: 24px; border-top: 1px solid #ede9e5; }
+.th-actions { display: flex; gap: 10px; padding: 20px 32px; background: #fff; border: 1px solid #e8e4de; border-radius: 8px; }
 
 /* Lesson manager (inside course editor) */
 .th-lessons { margin-top: 32px; padding-top: 24px; border-top: 1px solid #ede9e5; }
@@ -12177,33 +12196,62 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
    pe- — Program Editor (Registrar Hub)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-.pe-editor { max-width: 720px; }
+.pe-editor { max-width: 740px; }
 .pe-editor__header { display: flex; align-items: baseline; gap: 16px; margin-bottom: 16px; }
 .pe-editor__title { font-size: 24px; font-family: var(--font-serif); font-weight: 400; margin: 0; }
 .pe-link--view { font-size: 14px; color: var(--rim-mid); }
 .pe-link--view:hover { color: var(--rim-blue); }
 
 /* Messages */
-.pe-msg { padding: 10px 14px; border-radius: 4px; margin-bottom: 16px; font-size: 14px; }
+.pe-msg { padding: 10px 14px; border-radius: 6px; margin-bottom: 16px; font-size: 14px; }
 .pe-msg--error { background: #fef2f2; color: #991b1b; }
 .pe-msg--success { background: #f0fdf4; color: #166534; }
 
 /* Tabs */
-.pe-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--rim-rule); margin-bottom: 24px; overflow-x: auto; }
+.pe-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--rim-rule); margin-bottom: 0; overflow-x: auto; }
 .pe-tabs__tab {
-  padding: 8px 16px;
+  padding: 10px 18px;
   background: none; border: none;
   font-size: 14px; font-family: var(--font-sans);
   color: var(--rim-text-muted);
   cursor: pointer;
   border-bottom: 2px solid transparent;
   white-space: nowrap;
+  transition: color 0.15s;
 }
 .pe-tabs__tab:hover { color: var(--rim-text); }
 .pe-tabs__tab--active { color: var(--rim-blue); border-bottom-color: var(--rim-blue); font-weight: 600; }
 
+/* Card container — wraps each tab's content */
+.pe-card {
+  background: #fff;
+  border-radius: 0 0 8px 8px;
+  padding: 28px 32px;
+  border: 1px solid #e8e4de;
+  border-top: none;
+  margin-bottom: 8px;
+}
+.pe-card__section {
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #eee9e3;
+}
+.pe-card__section:last-child {
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom: none;
+}
+.pe-card__section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rim-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 16px;
+}
+
 /* Form */
-.pe-form { display: flex; flex-direction: column; gap: 20px; }
+.pe-form { display: flex; flex-direction: column; gap: 18px; }
 
 /* Fields */
 .pe-field { display: flex; flex-direction: column; gap: 4px; }
@@ -12311,7 +12359,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .pe-btn--small { padding: 4px 10px; font-size: 12px; }
 
 /* Actions bar */
-.pe-actions { display: flex; gap: 10px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--rim-rule); }
+.pe-actions { display: flex; gap: 10px; padding: 20px 32px; background: #fff; border: 1px solid #e8e4de; border-top: none; border-radius: 0 0 8px 8px; }
 .pe-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 1000; }
 .pe-dialog { background: #fff; border-radius: 8px; padding: 28px 32px; max-width: 440px; width: 90%; }
 .pe-dialog__text { font-size: 15px; line-height: 1.6; margin: 0 0 20px; color: var(--rim-text); }

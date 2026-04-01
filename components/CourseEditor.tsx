@@ -368,6 +368,7 @@ export default function CourseEditor({ basePath = "/tools/learning", lessonBaseP
       {error && <div className="th-msg th-msg--error">{error}</div>}
       {success && <div className="th-msg th-msg--success">Saved</div>}
 
+      <div className="th-card">
       <div className="th-form">
         <label className="th-field">
           <span className="th-field__label">Series Title</span>
@@ -554,10 +555,12 @@ export default function CourseEditor({ basePath = "/tools/learning", lessonBaseP
           Active
         </label>
       </div>
+      </div>
 
       {/* ── Lesson Manager (edit mode) ── */}
       {isEditing && (
-        <div className="th-lessons">
+        <div className="th-card">
+        <div className="th-lessons" style={{ border: 'none', margin: 0, padding: 0 }}>
           <h3 className="th-lessons__title">Lessons</h3>
           <p className="th-lessons__help">
             Drag rows to reorder. Use{" "}
@@ -789,6 +792,7 @@ export default function CourseEditor({ basePath = "/tools/learning", lessonBaseP
               </div>
             )}
           </div>
+        </div>
         </div>
       )}
 
