@@ -420,6 +420,8 @@ export default function CourseEditor({ basePath = "/tools/learning", lessonBaseP
           />
         </label>
 
+        <div className="th-section-break" />
+
         <fieldset className="th-field">
           <legend className="th-field__label">Who can access this series?</legend>
           <label className="th-radio">
@@ -477,6 +479,8 @@ export default function CourseEditor({ basePath = "/tools/learning", lessonBaseP
           />
           Auto-enroll new members (onboarding series)
         </label>
+
+        <div className="th-section-break" />
 
         {/* ── Release Schedule ── */}
         <fieldset className="th-field">
@@ -536,6 +540,8 @@ export default function CourseEditor({ basePath = "/tools/learning", lessonBaseP
             </div>
           )}
         </fieldset>
+
+        <div className="th-section-break" />
 
         <label className="th-checkbox">
           <input

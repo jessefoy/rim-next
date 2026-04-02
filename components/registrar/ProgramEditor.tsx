@@ -777,7 +777,9 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
            TAB 4 — Dana
            ══════════════════════════════════════════════════════════════════ */}
         {tab === "Dana" && (
-          <div className="pe-card"><div className="pe-form">
+          <div className="pe-card">
+            <p className="pe-tab-intro">Control how dana (generosity-based giving) is handled for this program — mode, suggested amounts, and messaging shown during registration.</p>
+            <div className="pe-form">
             <fieldset className="pe-field">
               <legend className="pe-field__label">Dana Mode</legend>
               <div className="pe-radio-group">
@@ -869,7 +871,9 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
            TAB 5 — Dashboard
            ══════════════════════════════════════════════════════════════════ */}
         {tab === "Dashboard" && (
-          <div className="pe-card"><div className="pe-form">
+          <div className="pe-card">
+            <p className="pe-tab-intro">Configure how this program appears on the member dashboard — announcements, arrival guidance, and which days it shows up.</p>
+            <div className="pe-form">
             <label className="pe-field">
               <span className="pe-field__label">Special Announcement</span>
               <span className="pe-field__help">Bold notice shown on the member dashboard card.</span>
@@ -924,7 +928,9 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
            TAB 6 — Visibility
            ══════════════════════════════════════════════════════════════════ */}
         {tab === "Visibility" && (
-          <div className="pe-card"><div className="pe-form">
+          <div className="pe-card">
+            <p className="pe-tab-intro">Control where this program appears in public listings and the member dashboard. Hidden programs remain accessible via direct link.</p>
+            <div className="pe-form">
             <label className="pe-field">
               <span className="pe-field__label">Sort Order</span>
               <input
