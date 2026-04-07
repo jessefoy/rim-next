@@ -1,7 +1,8 @@
 /**
  * /account/hub/[slug] — Hub Home tab (default landing).
  *
- * Shows: hub description, coordinator, pinned threads, home content, app links.
+ * Shows: hub description, coordinator, pinned threads, home content,
+ * and recent activity summary (conversations, tasks, documents).
  * Newcomers (firstVisitedAt is null) see a welcome interstitial first.
  */
 
@@ -32,7 +33,7 @@ export default async function HubHomePage({
   const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
   if (!hub || (!member && !isAdmin)) redirect("/account/dashboard");
 
-  // Update lastVisitedAt (same pattern as conversations page)
+  // Update lastVisitedAt
   if (member) {
     await db.hubMember.update({
       where: { id: member.id },
@@ -47,10 +48,46 @@ export default async function HubHomePage({
     orderBy: { pinnedAt: "desc" },
   });
 
-  // App links
-  const appLinks = await db.hubAppLink.findMany({
-    where: { hubId: hub.id, isEnabled: true },
-    orderBy: { order: "asc" },
+  // Recent conversations (non-pinned, for activity summary)
+  const recentThreads = await db.hubConversationThread.findMany({
+    where: { hubId: hub.id, status: { not: "ARCHIVED" } },
+    select: {
+      id: true,
+      title: true,
+      updatedAt: true,
+      author: { select: { firstName: true, preferredName: true } },
+      _count: { select: { replies: true } },
+    },
+    orderBy: { updatedAt: "desc" },
+    take: 5,
+  });
+
+  // Open tasks (assigned to user or unassigned)
+  const userId = session.user.id;
+  const taskLists = await db.taskList.findMany({
+    where: { hubId: hub.id, isArchived: false },
+    select: { id: true },
+  });
+  const listIds = taskLists.map((l) => l.id);
+  const openTasks = listIds.length > 0
+    ? await db.task.findMany({
+        where: {
+          listId: { in: listIds },
+          status: { not: "DONE" },
+          OR: [{ assigneeId: userId }, { assigneeId: null }],
+        },
+        select: { id: true, title: true, dueDate: true, status: true },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      })
+    : [];
+
+  // Recent documents
+  const recentDocs = await db.hubDocument.findMany({
+    where: { hubId: hub.id },
+    select: { id: true, label: true, updatedAt: true, isNative: true },
+    orderBy: { updatedAt: "desc" },
+    take: 3,
   });
 
   // Coordinator names
@@ -68,7 +105,6 @@ export default async function HubHomePage({
   // Determine if newcomer welcome should show
   const isNewcomer = member ? !member.firstVisitedAt : false;
   const hasWelcomeContent = !!(hub.welcomeBody);
-
   const isCoordinator = (member?.isCoordinator ?? false) || isAdmin;
 
   return (
@@ -78,7 +114,6 @@ export default async function HubHomePage({
       description={hub.description}
       coordinatorNames={coordinators}
       pinnedThreads={pinnedThreads}
-      appLinks={appLinks.map((l) => ({ toolSlug: l.toolSlug ?? null, label: l.label, href: l.href }))}
       homeContentHtml={homeContentHtml}
       homeContentJson={hub.homeContent}
       welcomeHeadline={hub.welcomeHeadline}
@@ -86,6 +121,25 @@ export default async function HubHomePage({
       isNewcomer={isNewcomer}
       hasWelcomeContent={hasWelcomeContent}
       isCoordinator={isCoordinator}
+      recentThreads={recentThreads.map((t) => ({
+        id: t.id,
+        title: t.title,
+        authorName: t.author.preferredName || t.author.firstName || "Someone",
+        replyCount: t._count.replies,
+        updatedAt: t.updatedAt.toISOString(),
+      }))}
+      openTasks={openTasks.map((t) => ({
+        id: t.id,
+        title: t.title,
+        dueDate: t.dueDate?.toISOString() ?? null,
+        status: t.status,
+      }))}
+      recentDocs={recentDocs.map((d) => ({
+        id: d.id,
+        label: d.label,
+        isNative: d.isNative,
+        updatedAt: d.updatedAt.toISOString(),
+      }))}
     />
   );
 }

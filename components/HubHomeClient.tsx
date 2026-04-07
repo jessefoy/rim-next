@@ -1,24 +1,40 @@
 "use client";
 
 /**
- * HubHomeClient — Hub Home tab with optional newcomer welcome interstitial.
+ * HubHomeClient — Hub Home tab with optional newcomer welcome interstitial
+ * and activity summary (recent conversations, tasks, documents).
  * CSS prefix: hub-home-, hub-welcome-
  */
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import RimProseEditor from "@/components/RimProseEditor";
-import { getToolBySlug } from "@/lib/toolRegistry";
 
 interface PinnedThread {
   id: string;
   title: string;
 }
 
-interface AppLink {
-  toolSlug: string | null;
+interface RecentThread {
+  id: string;
+  title: string;
+  authorName: string;
+  replyCount: number;
+  updatedAt: string;
+}
+
+interface OpenTask {
+  id: string;
+  title: string;
+  dueDate: string | null;
+  status: string;
+}
+
+interface RecentDoc {
+  id: string;
   label: string;
-  href: string;
+  isNative: boolean;
+  updatedAt: string;
 }
 
 interface Props {
@@ -27,7 +43,6 @@ interface Props {
   description: string | null;
   coordinatorNames: string[];
   pinnedThreads: PinnedThread[];
-  appLinks: AppLink[];
   homeContentHtml: string;
   homeContentJson: any;
   welcomeHeadline: string | null;
@@ -35,6 +50,21 @@ interface Props {
   isNewcomer: boolean;
   hasWelcomeContent: boolean;
   isCoordinator: boolean;
+  recentThreads: RecentThread[];
+  openTasks: OpenTask[];
+  recentDocs: RecentDoc[];
+}
+
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 export default function HubHomeClient({
@@ -43,7 +73,6 @@ export default function HubHomeClient({
   description,
   coordinatorNames,
   pinnedThreads,
-  appLinks,
   homeContentHtml,
   homeContentJson,
   welcomeHeadline,
@@ -51,6 +80,9 @@ export default function HubHomeClient({
   isNewcomer,
   hasWelcomeContent,
   isCoordinator,
+  recentThreads,
+  openTasks,
+  recentDocs,
 }: Props) {
   const [showWelcome, setShowWelcome] = useState(isNewcomer && hasWelcomeContent);
   const [dismissing, setDismissing] = useState(false);
@@ -64,7 +96,7 @@ export default function HubHomeClient({
     try {
       await fetch(`/api/hubs/${slug}/membership/visited`, { method: "PATCH" });
     } catch {
-      // silently continue — worst case they see it again
+      // silently continue
     }
     setShowWelcome(false);
     setDismissing(false);
@@ -79,11 +111,7 @@ export default function HubHomeClient({
         body: JSON.stringify({ homeContent: editContent }),
       });
       if (res.ok) {
-        // Re-render will happen on next nav; for now update local html
-        // We can't easily re-render server HTML client-side, but the content
-        // is saved. Close the editor and show a success note.
         setEditing(false);
-        // Force a soft refresh to get fresh server-rendered HTML
         window.location.reload();
       }
     } finally {
@@ -125,6 +153,8 @@ export default function HubHomeClient({
     }
   }, [isNewcomer, hasWelcomeContent, slug]);
 
+  const hasActivity = recentThreads.length > 0 || openTasks.length > 0 || recentDocs.length > 0;
+
   // ── Normal Home screen ──
   return (
     <div className="hub-home">
@@ -158,19 +188,12 @@ export default function HubHomeClient({
             minHeight={160}
           />
           <div className="hub-home__edit-actions">
-            <button
-              className="btn"
-              onClick={saveHomeContent}
-              disabled={savingHome}
-            >
+            <button className="btn" onClick={saveHomeContent} disabled={savingHome}>
               {savingHome ? "Saving..." : "Save"}
             </button>
             <button
               className="btn--ghost"
-              onClick={() => {
-                setEditContent(homeContentJson);
-                setEditing(false);
-              }}
+              onClick={() => { setEditContent(homeContentJson); setEditing(false); }}
             >
               Cancel
             </button>
@@ -207,34 +230,71 @@ export default function HubHomeClient({
         </div>
       )}
 
-      {/* App links */}
-      {appLinks.length > 0 && (
-        <div className="hub-home__section">
-          <div className="hub-home__section-label">Tools</div>
-          <div className="hub-home__links">
-            {appLinks.map((link, i) => {
-              const basePath = link.toolSlug
-                ? (getToolBySlug(link.toolSlug)?.path ?? link.href)
-                : link.href;
-              const isExternal = basePath.startsWith("http");
-              const toolHref = isExternal
-                ? basePath
-                : basePath.includes("?")
-                  ? `${basePath}&hub=${slug}`
-                  : `${basePath}?hub=${slug}`;
-              return (
-                <a
-                  key={i}
-                  href={toolHref}
-                  className="hub-home__link-item"
-                  target={isExternal ? "_blank" : undefined}
-                  rel={isExternal ? "noopener noreferrer" : undefined}
+      {/* Activity summary */}
+      {hasActivity && (
+        <div className="hub-home-activity">
+          {/* Recent conversations */}
+          {recentThreads.length > 0 && (
+            <div className="hub-home-activity__card">
+              <div className="hub-home-activity__card-header">
+                <span className="hub-home-activity__card-heading">Recent Conversations</span>
+                <Link href={`/account/hub/${slug}/conversations`} className="hub-home-activity__view-all">
+                  View all
+                </Link>
+              </div>
+              {recentThreads.map((t) => (
+                <Link key={t.id} href={`/account/hub/${slug}/conversations/${t.id}`} className="hub-home-activity__row">
+                  <span className="hub-home-activity__title">{t.title}</span>
+                  <span className="hub-home-activity__meta">
+                    {t.authorName} &middot; {t.replyCount} {t.replyCount === 1 ? "reply" : "replies"} &middot; {relativeTime(t.updatedAt)}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
+
+          {/* Open tasks */}
+          {openTasks.length > 0 && (
+            <div className="hub-home-activity__card">
+              <div className="hub-home-activity__card-header">
+                <span className="hub-home-activity__card-heading">Your Tasks</span>
+                <Link href={`/account/hub/${slug}/tasks`} className="hub-home-activity__view-all">
+                  View all
+                </Link>
+              </div>
+              {openTasks.map((t) => (
+                <div key={t.id} className="hub-home-activity__row">
+                  <span className="hub-home-activity__title">{t.title}</span>
+                  <span className="hub-home-activity__meta">
+                    {t.status === "IN_PROGRESS" ? "In progress" : "Open"}
+                    {t.dueDate && <> &middot; Due {new Date(t.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</>}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Recent documents */}
+          {recentDocs.length > 0 && (
+            <div className="hub-home-activity__card">
+              <div className="hub-home-activity__card-header">
+                <span className="hub-home-activity__card-heading">Recent Documents</span>
+                <Link href={`/account/hub/${slug}/documents`} className="hub-home-activity__view-all">
+                  View all
+                </Link>
+              </div>
+              {recentDocs.map((d) => (
+                <Link
+                  key={d.id}
+                  href={d.isNative ? `/account/hub/${slug}/documents/${d.id}` : `/account/hub/${slug}/documents`}
+                  className="hub-home-activity__row"
                 >
-                  {link.label}
-                </a>
-              );
-            })}
-          </div>
+                  <span className="hub-home-activity__title">{d.label}</span>
+                  <span className="hub-home-activity__meta">{relativeTime(d.updatedAt)}</span>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
