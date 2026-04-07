@@ -3380,6 +3380,7 @@ h1, h2, h3, h4, h5, h6 {
 .ac-content {
   flex: 1;
   min-width: 0;
+  padding: 32px 40px 60px;
 }
 
 /* Mobile: horizontal scroll strip */
@@ -3418,6 +3419,10 @@ h1, h2, h3, h4, h5, h6 {
     margin: 0 6px;
     align-self: center;
     flex-shrink: 0;
+  }
+
+  .ac-content {
+    padding: 24px 20px 48px;
   }
 }
 
@@ -6199,8 +6204,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 ═══════════════════════════════════════════════════ */
 
 .mp-page {
-  padding-top: 48px;
-  padding-bottom: 80px;
+  max-width: 640px;
 }
 
 .mp-heading {
@@ -6427,7 +6431,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   .db-nav { grid-template-columns: 1fr; gap: 12px; }
   .db-nav__card { padding: 20px 18px 16px; }
 
-  .mr-page, .ml-page, .mp-page, .mc-page { padding: 32px 20px 60px; }
+  .mr-page, .ml-page, .mc-page { padding: 32px 20px 60px; }
   .mr-heading, .ml-heading, .mp-heading, .mc-heading { font-size: 26px; }
   .mr-card { padding: 16px 18px; }
   .mr-card__header { flex-direction: column; align-items: flex-start; gap: 8px; }
@@ -6436,14 +6440,12 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   .mp-field__row { grid-template-columns: 1fr; }
 
   /* Dashboard */
-  .db2-wrap { padding: 32px 20px 60px; }
   .db2-greeting__name { font-size: 24px; }
   .db-section { margin-top: 28px; padding-top: 24px; }
 }
 
 @media (max-width: 430px) {
   /* ── Dashboard (db2-) ── */
-  .db2-wrap { padding: 24px 16px 48px; }
   .db2-greeting__name { font-size: 22px; }
   .db2-empty-card { padding: 16px; }
 
@@ -6493,7 +6495,6 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   .ml-item__title { font-size: 15px; }
 
   /* ── My Profile (mp-) ── */
-  .mp-page { padding: 24px 16px 48px; }
   .mp-heading { font-size: 24px; margin-bottom: 24px; }
   /* iOS auto-zoom prevention: inputs must be ≥16px */
   .mp-input { font-size: 16px; }
@@ -8649,8 +8650,8 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 }
 
 /* ── Hub Tab Bar (HubTabBar component, replaces HubSidebar) ── */
-.hub-tabs-wrap { max-width: 100%; }
-.hub-tabs-header { padding: 24px 0 16px; }
+.hub-tabs-wrap { max-width: 840px; }
+.hub-tabs-header { padding: 0 0 16px; }
 .hub-tabs-header__type {
   font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em;
   text-transform: uppercase; color: var(--rim-text-muted); margin-bottom: 4px;
@@ -11154,7 +11155,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .ac-sidebar__section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--rim-text-muted); padding: 10px 12px 2px; }
 
 /* ── Dashboard v2 (db2-) ─────────────────────────────────────── */
-.db2-wrap { max-width: 720px; margin: 0 auto; padding: 40px 32px 80px; }
+.db2-wrap { max-width: 720px; }
 .db2-greeting { margin-bottom: 32px; }
 .db2-greeting__name { font-size: 28px; font-weight: 400; font-family: var(--font-serif); color: #2d3f47; margin: 0 0 4px; }
 .db2-greeting__date { font-size: 13px; color: #7a7068; margin: 0; }
