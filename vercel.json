@@ -6,7 +6,8 @@
     { "source": "/volunteer", "destination": "/account/hub/registrar/programs", "permanent": true },
     { "source": "/account/registrar/:slug", "destination": "/account/hub/registrar/programs/:slug", "permanent": true },
     { "source": "/account/registrar", "destination": "/account/hub/registrar/programs", "permanent": true },
-    { "source": "/account/dashboard-my-registrations", "destination": "/account/programs", "permanent": true }
+    { "source": "/account/dashboard-my-registrations", "destination": "/account/programs", "permanent": true },
+    { "source": "/account/dashboard-my-library", "destination": "/account/courses", "permanent": true }
   ],
   "crons": [
     {

@@ -4,14 +4,14 @@
  * - Auth check: redirect to /login if not authenticated
  * - Hub existence: 404 if hub not found
  * - Membership check: 403 if user is not a hub member
- * - Renders: HubSidebar (left) + main content area (right)
+ * - Renders: AccountSidebar (via AccountLayout) + HubTabBar + content
  */
 
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import AccountLayout from "@/components/AccountLayout";
-import HubSidebar from "@/components/HubSidebar";
+import HubTabBar from "@/components/HubTabBar";
 
 interface Props {
   children: React.ReactNode;
@@ -47,21 +47,16 @@ export default async function HubLayout({ children, params }: Props) {
 
   if (!hasAccess) {
     return (
-      <AccountLayout suppressSidebar>
-        <div className="hub-shell">
-          <div className="hub-main">
-            <div className="hub-main__content">
-              <div className="hub-empty" style={{ padding: "40px 0" }}>
-                You don&rsquo;t have access to this hub.
-              </div>
-            </div>
+      <AccountLayout>
+        <div className="hub-tabs-wrap">
+          <div className="rim-empty" style={{ padding: "40px 0" }}>
+            You don&rsquo;t have access to this hub.
           </div>
         </div>
       </AccountLayout>
     );
   }
 
-  // Build nav items — all hubs get the same 5 core sections
   const base = `/account/hub/${slug}`;
   const isCoordinator = hub.members.some(
     (m) => m.userId === session.user.id && m.isCoordinator
@@ -76,25 +71,19 @@ export default async function HubLayout({ children, params }: Props) {
   ];
 
   return (
-    <AccountLayout suppressSidebar>
-      <div className="hub-shell">
-        <HubSidebar
-          hub={{
-            slug: hub.slug,
-            name: hub.name,
-            type: hub.type as "OPERATIONAL" | "GOVERNANCE" | "COMMUNITY_GROUP",
-            members: hub.members,
-            appLinks: hub.appLinks,
-          }}
-          navItems={navItems}
-          isCoordinator={isCoordinator}
-          isAdmin={isAdmin}
-        />
-        <div className="hub-main">
-          <div className="hub-main__content">
-            {children}
-          </div>
-        </div>
+    <AccountLayout>
+      <HubTabBar
+        slug={hub.slug}
+        hubName={hub.name}
+        hubType={hub.type as "OPERATIONAL" | "GOVERNANCE" | "COMMUNITY_GROUP"}
+        memberCount={hub.members.length}
+        navItems={navItems}
+        appLinks={hub.appLinks}
+        isCoordinator={isCoordinator}
+        isAdmin={isAdmin}
+      />
+      <div className="hub-tabs-content">
+        {children}
       </div>
     </AccountLayout>
   );

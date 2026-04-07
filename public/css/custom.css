@@ -8609,6 +8609,61 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   .hub-sb-backdrop { display: block; }
 }
 
+/* ── Hub Tab Bar (HubTabBar component, replaces HubSidebar) ── */
+.hub-tabs-wrap { max-width: 100%; }
+.hub-tabs-header { padding: 24px 0 16px; }
+.hub-tabs-header__type {
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--rim-text-muted); margin-bottom: 4px;
+}
+.hub-tabs-header__name {
+  font-size: 24px; font-weight: 400; font-family: var(--font-serif);
+  color: #2d3f47; margin: 0 0 4px;
+}
+.hub-tabs-header__meta { font-size: 13px; color: var(--rim-text-muted); }
+
+.hub-tabs-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; padding-bottom: 0;
+  border-bottom: 1px solid var(--rim-rule, #e5e2de);
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+}
+.hub-tabs-bar__tabs { display: flex; gap: 2px; flex-shrink: 0; }
+.hub-tabs-bar__tools { display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-left: auto; padding-bottom: 8px; }
+
+.hub-tabs-tab {
+  padding: 8px 14px; font-size: 14px; font-weight: 500;
+  color: var(--rim-text-muted); text-decoration: none;
+  border-bottom: 2px solid transparent; white-space: nowrap;
+  transition: color 0.1s, border-color 0.1s;
+}
+.hub-tabs-tab:hover { color: var(--rim-text); }
+.hub-tabs-tab--active { color: var(--rim-mid); border-bottom-color: var(--rim-mid); }
+
+.hub-tabs-tool {
+  font-size: 12px; padding: 3px 10px; background: var(--rim-bg, #f6f3f0);
+  border-radius: 12px; color: var(--rim-text-muted); text-decoration: none;
+  white-space: nowrap;
+}
+.hub-tabs-tool:hover { color: var(--rim-text); background: #ece7e1; }
+
+.hub-tabs-settings {
+  font-size: 12px; color: var(--rim-text-muted); text-decoration: none;
+  padding: 3px 8px; white-space: nowrap;
+}
+.hub-tabs-settings:hover { color: var(--rim-mid); }
+
+.hub-tabs-content { padding: 24px 0; }
+
+@media (max-width: 767px) {
+  .hub-tabs-header { padding: 16px 0 12px; }
+  .hub-tabs-header__name { font-size: 20px; }
+  .hub-tabs-bar { gap: 4px; }
+  .hub-tabs-tab { padding: 6px 10px; font-size: 13px; }
+  .hub-tabs-bar__tools { gap: 6px; }
+  .hub-tabs-content { padding: 16px 0; }
+}
+
 /* ── Hub Home (hub-home-) ── */
 .hub-home { display: flex; flex-direction: column; gap: 28px; max-width: 680px; }
 .hub-home__top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
@@ -17515,16 +17570,13 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
    ═══════════════════════════════════════════════════ */
 
 /* Shell */
-.tools-shell { display: flex; flex-direction: column; min-height: 100vh; }
+.tools-shell { display: flex; flex-direction: column; }
 .tools-content { flex: 1; padding: 32px 36px 72px; max-width: 1200px; margin: 0 auto; width: 100%; }
 
 /* Nav bar */
 .tools-nav {
   background: var(--rim-bg);
   border-bottom: 1px solid #ede9e5;
-  position: sticky;
-  top: 0;
-  z-index: 50;
 }
 .tools-nav__inner {
   display: flex;
@@ -17584,3 +17636,25 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
   .tools-nav__subnav { gap: 2px; overflow-x: auto; }
   .tools-nav__subnav-link { font-size: 12px; padding: 4px 8px; white-space: nowrap; }
 }
+
+/* ── 404 Page (nf- prefix) ── */
+.nf-page {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 60vh; text-align: center; padding: 48px 24px;
+}
+.nf-heading {
+  font-family: var(--font-serif); font-size: 36px; font-weight: 400;
+  color: var(--rim-blue, #135274); margin: 0 0 12px;
+}
+.nf-text {
+  font-size: 16px; color: var(--rim-text-muted, #6b6059);
+  margin: 0 0 32px; max-width: 400px; line-height: 1.5;
+}
+.nf-link { font-size: 15px; color: var(--rim-mid, #39607a); text-decoration: underline; }
+.nf-link:hover { color: var(--rim-blue, #135274); }
+
+/* ── Shared empty state (rim-empty) ── */
+.rim-empty { text-align: center; padding: 40px 24px; color: var(--rim-text-muted, #6b6059); font-size: 15px; }
+.rim-empty__text { margin: 0 0 12px; }
+.rim-empty__link { color: var(--rim-mid, #39607a); text-decoration: underline; font-size: 14px; }
+.rim-empty__link:hover { color: var(--rim-blue, #135274); }

@@ -10,10 +10,11 @@ export default function Nav() {
   const { data: session } = useSession();
   const isLoggedIn = !!session;
   const isAdmin = session?.user?.roles?.includes("ADMIN") ?? false;
-  const isToolsArea = (pathname?.startsWith("/tools") || pathname?.startsWith("/session")) ?? false;
+  const isSessionArea = pathname?.startsWith("/session") ?? false;
   const isMemberArea =
     (pathname?.startsWith("/account") ?? false) ||
-    (pathname?.startsWith("/admin") ?? false);
+    (pathname?.startsWith("/admin") ?? false) ||
+    (pathname?.startsWith("/tools") ?? false);
 
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -37,8 +38,8 @@ export default function Nav() {
       ? " nav__link--active"
       : "";
 
-  // Tools area has its own nav — hide the site nav entirely
-  if (isToolsArea) return null;
+  // Video session pages are full-screen — hide the site nav
+  if (isSessionArea) return null;
 
   return (
     <header className="nav">

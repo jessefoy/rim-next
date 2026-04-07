@@ -405,17 +405,7 @@ export default async function DashboardPage() {
           )}
         </div>
 
-        {/* 4. My Account quick links */}
-        <div className="db-section">
-          <p className="db-section__label">My Account</p>
-          <div className="db2-quicklinks">
-            <Link href="/account/dashboard-my-profile" className="db2-quicklink">My Profile</Link>
-            <Link href="/account/programs" className="db2-quicklink">My Registrations</Link>
-            <Link href="/account/courses" className="db2-quicklink">My Courses</Link>
-          </div>
-        </div>
-
-        {/* 5. Onboarding welcome (only if incomplete onboarding series exist) */}
+        {/* 4. Onboarding welcome (only if incomplete onboarding series exist) */}
         {onboardingEnrollments.length > 0 && (
           <div className="db-section">
             <div className="db2-welcome-prompt">

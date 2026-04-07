@@ -38,10 +38,10 @@ interface NavLink {
 }
 
 const MEMBER_LINKS: NavLink[] = [
-  { label: "Dashboard",    href: "/account/dashboard" },
-  { label: "My Programs",  href: "/account/programs" },
-  { label: "My Library",   href: "/account/dashboard-my-library" },
-  { label: "My Profile",   href: "/account/dashboard-my-profile" },
+  { label: "Dashboard",         href: "/account/dashboard" },
+  { label: "My Registrations",  href: "/account/programs" },
+  { label: "My Courses",        href: "/account/courses" },
+  { label: "My Profile",        href: "/account/dashboard-my-profile" },
 ];
 
 export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
