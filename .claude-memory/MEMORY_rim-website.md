@@ -1,5 +1,11 @@
 # RIM Website — Project Memory
 
+## Backup & Sync
+**Claude memory files are backed up to GitHub:** `rim-next/.claude-memory/` directory.
+At the end of every session (or when asked), copy memory files from `~/.claude/projects/` into `rim-next/.claude-memory/`, commit, and push.
+Files backed up: `MEMORY_rim-website.md`, `MEMORY_rim-next.md`, `feedback_editor_standard.md`, `improvements.md`, `pages-inventory.md`.
+Also check both repos (`rim-next`, `rim-website`) for uncommitted changes and push those too.
+
 ## Memory Files
 - `memory/feedback_editor_standard.md` — Editor standard: **RimProseEditor** (BlockNote JSON) for all multi-line communication fields (notes, reflections, messages). **RimBlockEditor** for structured content (documents, descriptions, lessons). **MarkdownEditor** (Tiptap/markdown) for email templates ONLY. Plain textarea is never the standard. See `RIM_Editor_Design.md` for the full context registry.
 
