@@ -23,10 +23,8 @@ interface VirtualProgram {
   programFormat: string;
 }
 
-// iCal BYDAY codes indexed by JS getDay() (0=Sun … 6=Sat)
 const ICAL_DAY = ["SU","MO","TU","WE","TH","FR","SA"];
 
-/** Convert a UTC ISO string to a CT date string "YYYY-MM-DD". */
 function ctDateStr(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", {
     timeZone: "America/Chicago",
@@ -34,46 +32,31 @@ function ctDateStr(iso: string): string {
   }).replace(/(\d+)\/(\d+)\/(\d+)/, "$3-$1-$2");
 }
 
-/** Today's date string "YYYY-MM-DD" in Central Time. */
 function todayCT(): string {
   return ctDateStr(new Date().toISOString());
 }
 
-/** iCal day code for a "YYYY-MM-DD" string (e.g. "2026-03-14" → "SA"). */
 function dateToDayCode(dateStr: string): string {
-  // Parse as noon local to avoid midnight-UTC-rollover issues
   return ICAL_DAY[new Date(dateStr + "T12:00:00").getDay()];
 }
 
-/**
- * Does this virtual program have an occurrence today?
- * Handles single events, weekly (with optional interval), and falls back to
- * exact-date match for monthly/daily (sufficient for RIM's dashboard use case).
- */
 function isOccurrenceToday(p: VirtualProgram, today: string): boolean {
   if (!p.startDatetime) return false;
   const anchor = ctDateStr(p.startDatetime.toISOString());
-  if (anchor > today) return false; // hasn't started yet
-
-  if (!p.recurrenceFreq) return anchor === today; // single event
-
+  if (anchor > today) return false;
+  if (!p.recurrenceFreq) return anchor === today;
   const freq = p.recurrenceFreq.toLowerCase();
   if (freq === "weekly") {
     const days = p.recurrenceDays ?? [];
     if (days.length > 0 && !days.includes(dateToDayCode(today))) return false;
-
     const n = p.recurrenceInterval ?? 1;
     if (n > 1) {
-      // Is today in an "on" week? Count whole weeks since anchor.
       const msPerWeek = 7 * 24 * 60 * 60 * 1000;
       const weeksDiff = Math.round(
-        (new Date(today + "T12:00:00").getTime() - new Date(anchor + "T12:00:00").getTime())
-        / msPerWeek
+        (new Date(today + "T12:00:00").getTime() - new Date(anchor + "T12:00:00").getTime()) / msPerWeek
       );
       if (weeksDiff % n !== 0) return false;
     }
-
-    // Has the series ended?
     if (p.recurrenceCount && p.recurrenceCount >= 2) {
       const daysPerCycle = p.recurrenceDays?.length ?? 1;
       const cyclesNeeded = Math.ceil((p.recurrenceCount - 1) / daysPerCycle);
@@ -82,26 +65,18 @@ function isOccurrenceToday(p: VirtualProgram, today: string): boolean {
         + cyclesNeeded * (p.recurrenceInterval ?? 1) * msPerWeek;
       if (new Date(today + "T12:00:00").getTime() > lastMs) return false;
     }
-
     return true;
   }
-
-  // Monthly / daily — exact match is sufficient for RIM's current programs
   return anchor === today;
 }
 
-/**
- * Shift an anchor ISO datetime to the same wall-clock time on a different CT date.
- * Used so the live/later check works on today's occurrence, not the first occurrence.
- */
 function shiftToToday(anchorISO: string, today: string): Date {
   const anchor = new Date(anchorISO);
   const anchorCTDate = ctDateStr(anchorISO);
   if (anchorCTDate === today) return anchor;
   const msPerDay = 24 * 60 * 60 * 1000;
   const daysDiff = Math.round(
-    (new Date(today + "T12:00:00").getTime() - new Date(anchorCTDate + "T12:00:00").getTime())
-    / msPerDay
+    (new Date(today + "T12:00:00").getTime() - new Date(anchorCTDate + "T12:00:00").getTime()) / msPerDay
   );
   return new Date(anchor.getTime() + daysDiff * msPerDay);
 }
@@ -121,6 +96,14 @@ function fmtTodayFull() {
   });
 }
 
+function timeOfDay(): string {
+  const h = new Date().toLocaleString("en-US", { timeZone: "America/Chicago", hour: "numeric", hour12: false });
+  const hour = parseInt(h, 10);
+  if (hour < 12) return "morning";
+  if (hour < 17) return "afternoon";
+  return "evening";
+}
+
 export default async function DashboardPage() {
   const session = await auth();
   if (!session) redirect("/login");
@@ -128,7 +111,7 @@ export default async function DashboardPage() {
   const userId = session.user.id;
   const today  = todayCT();
 
-  const [allVirtual, upcomingRegistrations, pendingDana, hubMemberships, onboardingEnrollments, seriesEnrollments, activeBanner] =
+  const [allVirtual, upcomingRegistrations, hubMemberships, onboardingEnrollments, seriesEnrollments, activeBanner] =
     await Promise.all([
       db.program.findMany({
         where: {
@@ -136,41 +119,32 @@ export default async function DashboardPage() {
           removeFromProgramList: false,
         },
         select: {
-          id: true,
-          name: true,
-          slug: true,
-          startDatetime: true,
-          endDatetime: true,
-          recurrenceFreq: true,
-          recurrenceInterval: true,
-          recurrenceDays: true,
-          recurrenceCount: true,
+          id: true, name: true, slug: true,
+          startDatetime: true, endDatetime: true,
+          recurrenceFreq: true, recurrenceInterval: true,
+          recurrenceDays: true, recurrenceCount: true,
           programFormat: true,
         },
         orderBy: { sortOrder: "asc" },
       }),
+      // Include donationStatus so we can show dana inline
       db.registration.findMany({
         where: { userId, status: { not: "CANCELLED" } },
         select: {
           id: true,
           programTitle: true,
           programSlug: true,
+          donationStatus: true,
           program: { select: { startDatetime: true } },
         },
         orderBy: { createdAt: "desc" },
         take: 5,
-      }),
-      db.registration.findMany({
-        where: { userId, donationStatus: "PENDING" },
-        select: { id: true, programTitle: true, programSlug: true },
-        orderBy: { createdAt: "desc" },
       }),
       db.hubMember.findMany({
         where: { userId },
         include: { hub: { select: { id: true, slug: true, name: true, type: true } } },
         orderBy: { joinedAt: "asc" },
       }),
-      // Onboarding series: enrolled via ONBOARDING source, not yet completed
       db.seriesEnrollment.findMany({
         where: {
           userId,
@@ -183,7 +157,6 @@ export default async function DashboardPage() {
           course: { select: { id: true, slug: true, title: true } },
         },
       }),
-      // All non-onboarding enrollments for "Your Series" cards
       db.seriesEnrollment.findMany({
         where: {
           userId,
@@ -202,39 +175,30 @@ export default async function DashboardPage() {
         },
         orderBy: { enrolledAt: "desc" },
       }),
-      // Active site banner + dismissal check
       db.siteBanner.findFirst({
         where: { isActive: true },
-        include: {
-          dismissals: { where: { userId } },
-        },
+        include: { dismissals: { where: { userId } } },
       }),
     ]);
 
-  // Fetch lesson progress for the series cards
+  // Series progress
   const seriesLessonIds = [...new Set(seriesEnrollments.flatMap((e) => e.course.lessons.map((l) => l.lessonId)))];
   const seriesProgressRecords = seriesLessonIds.length > 0
-    ? await db.lessonProgress.findMany({
-        where: { userId, lessonId: { in: seriesLessonIds } },
-        select: { lessonId: true },
-      })
+    ? await db.lessonProgress.findMany({ where: { userId, lessonId: { in: seriesLessonIds } }, select: { lessonId: true } })
     : [];
   const completedLessonIdSet = new Set(seriesProgressRecords.map((p) => p.lessonId));
 
-  // Filter to programs with an occurrence today, using recurrence logic
+  // Today's sessions
   const todaySessionsRaw = allVirtual.filter((p) => isOccurrenceToday(p, today));
-
   const now = new Date();
+
   const todaySessions = await Promise.all(
     todaySessionsRaw.map(async (p) => {
       const startIso = p.startDatetime!.toISOString();
-      // Shift anchor datetime to today's occurrence so live/later checks are correct
       const start     = shiftToToday(startIso, today);
       const liveStart = new Date(start.getTime() - 12 * 60 * 1000);
       const endIso    = p.endDatetime?.toISOString() ?? null;
-      const liveEnd   = endIso
-        ? shiftToToday(endIso, today)
-        : new Date(start.getTime() + 90 * 60 * 1000);
+      const liveEnd   = endIso ? shiftToToday(endIso, today) : new Date(start.getTime() + 90 * 60 * 1000);
       const isLive       = now >= liveStart && now <= liveEnd;
       const isLaterToday = !isLive && start > now;
 
@@ -247,29 +211,41 @@ export default async function DashboardPage() {
         isRegistered = !!reg;
       }
 
-      return { ...p, _id: p.id, isLive, isLaterToday, isRegistered, startTimeCT: fmtTimeCT(start.toISOString()), liveStartEpoch: liveStart.getTime() };
+      // Compute countdown for later sessions
+      const minsUntilStart = Math.round((start.getTime() - now.getTime()) / 60000);
+      const minsUntilJoin  = Math.round((liveStart.getTime() - now.getTime()) / 60000);
+      let countdownText = "";
+      if (isLaterToday) {
+        if (minsUntilJoin <= 0) {
+          countdownText = "Join opens now";
+        } else if (minsUntilJoin <= 60) {
+          countdownText = `Join opens in ${minsUntilJoin} min`;
+        } else {
+          countdownText = `Starts at ${fmtTimeCT(start.toISOString())}`;
+        }
+      }
+
+      return {
+        ...p, _id: p.id, isLive, isLaterToday, isRegistered,
+        startTimeCT: fmtTimeCT(start.toISOString()),
+        liveStartEpoch: liveStart.getTime(),
+        liveStartTimeCT: fmtTimeCT(liveStart.toISOString()),
+        countdownText,
+      };
     })
   );
 
   const liveSessions  = todaySessions.filter((s) => s.isLive);
   const laterSessions = todaySessions.filter((s) => s.isLaterToday);
   const showTodayCard = liveSessions.length > 0 || laterSessions.length > 0;
-
-  // Epoch ms values for each Later Today session's live window open time.
-  // Passed to DashboardAutoRefresh so it can fire router.refresh() at the exact moment.
-  const laterEpochs = laterSessions.map((s) => s.liveStartEpoch);
+  const laterEpochs   = laterSessions.map((s) => s.liveStartEpoch);
 
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
 
-  // Admins bypass HubMember — show all hubs on the dashboard card
   const dashboardHubs = isAdmin
-    ? await db.hub.findMany({
-        select: { id: true, slug: true, name: true, type: true },
-        orderBy: { name: "asc" },
-      })
+    ? await db.hub.findMany({ select: { id: true, slug: true, name: true, type: true }, orderBy: { name: "asc" } })
     : hubMemberships.map((m) => m.hub);
 
-  // Compute unread counts per hub (skip for admin — they can check hubs directly)
   const hubUnreadCounts: Record<string, number> = {};
   if (!isAdmin) {
     for (const membership of hubMemberships) {
@@ -284,24 +260,16 @@ export default async function DashboardPage() {
           ],
         },
       });
-
-      // For host-team hub, also count unread alerts
       let unreadAlerts = 0;
       if (membership.hub.slug === "host-team") {
         unreadAlerts = await db.alert.count({
-          where: {
-            userId,
-            read: false,
-            type: { in: ["SUB_REQUEST", "SUB_CLAIMED", "NEW_THREAD", "NEW_REPLY", "UNASSIGNED_SESSION"] },
-          },
+          where: { userId, read: false, type: { in: ["SUB_REQUEST", "SUB_CLAIMED", "NEW_THREAD", "NEW_REPLY", "UNASSIGNED_SESSION"] } },
         });
       }
-
       hubUnreadCounts[membership.hub.id] = unreadThreads + unreadAlerts;
     }
   }
 
-  // Site banner
   const showBanner = activeBanner && activeBanner.dismissals.length === 0;
   const bannerData = showBanner
     ? { id: activeBanner.id, bodyHtml: await renderFormattedTextAsync(activeBanner.body) }
@@ -312,29 +280,34 @@ export default async function DashboardPage() {
     session.user?.email?.split("@")[0] ??
     "there";
 
+  // Contextual greeting summary
+  const pendingDanaCount = upcomingRegistrations.filter((r) => r.donationStatus === "PENDING").length;
+  const sessionCount = liveSessions.length + laterSessions.length;
+  const summaryParts: string[] = [];
+  if (sessionCount > 0) summaryParts.push(`${sessionCount} session${sessionCount > 1 ? "s" : ""} today`);
+  if (pendingDanaCount > 0) summaryParts.push(`${pendingDanaCount} dana offering${pendingDanaCount > 1 ? "s" : ""} to complete`);
+  const summaryLine = summaryParts.length > 0
+    ? `You have ${summaryParts.join(" and ")}.`
+    : fmtTodayFull();
+
   return (
     <AccountLayout>
       <div className="db2-wrap">
 
-        {/* Site-wide banner */}
         <SiteBannerStrip banner={bannerData} />
 
-        {/* 1. Greeting */}
+        {/* Greeting */}
         <div className="db2-greeting">
-          <h1 className="db2-greeting__name">Welcome back, {firstName}.</h1>
-          <p className="db2-greeting__date">{fmtTodayFull()}</p>
+          <h1 className="db2-greeting__name">Good {timeOfDay()}, {firstName}.</h1>
+          <p className="db2-greeting__date">{summaryLine}</p>
         </div>
 
-        {/* 2. Today's Virtual Sessions */}
+        {/* Today's Sessions */}
         {showTodayCard && (
           <div className="db-section">
+            <p className="db-section__label">Today</p>
             <div className="today-card">
-              {/* Auto-refreshes the page when a Later Today session enters its live window */}
               <DashboardAutoRefresh liveStartEpochs={laterEpochs} />
-              <div className="today-card__header">
-                <span className="today-card__heading">Today&apos;s Virtual Sessions</span>
-                <span className="today-card__date">{fmtTodayFull()}</span>
-              </div>
               {liveSessions.map((s) => (
                 <div key={s._id} className="today-row today-row--live">
                   <div className="today-row__left">
@@ -345,67 +318,79 @@ export default async function DashboardPage() {
                     {s.isRegistered && <span className="today-registered">Registered</span>}
                     {(s.programFormat === "virtual" || s.programFormat === "hybrid") && (
                       <a href={`/session/${s.slug}`} className="join-btn">
-                        Join
+                        Join now
                       </a>
                     )}
                   </div>
                 </div>
               ))}
-              {laterSessions.length > 0 && (
-                <>
-                  <div className="today-later-hdr">
-                    <span className="today-later-hdr__label">Later Today</span>
-                    <span className="today-later-hdr__note">Join link appears when the session opens, about 12 minutes before start.</span>
+              {laterSessions.map((s) => (
+                <div key={s._id} className="today-row today-row--later">
+                  <div className="today-row__left">
+                    <span className="today-row__time">{s.startTimeCT}</span>
+                    <span className="today-row__title">{s.name}</span>
                   </div>
-                  {laterSessions.map((s) => (
-                    <div key={s._id} className="today-row today-row--later">
-                      <span className="today-row__time">{s.startTimeCT}</span>
-                      <span className="today-row__title today-row__title--muted">{s.name}</span>
-                      <div className="today-row__right">
-                        {s.isRegistered && <span className="today-registered">Registered</span>}
-                      </div>
-                    </div>
-                  ))}
-                </>
-              )}
+                  <div className="today-row__right">
+                    {s.isRegistered && <span className="today-registered">Registered</span>}
+                    <span className="today-row__countdown">{s.countdownText}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
-        {/* 3. Your Upcoming Programs */}
+        {/* Your Programs (with inline dana status) */}
         <div className="db-section">
-          <p className="db-section__label">Your Upcoming Programs</p>
+          <p className="db-section__label">Your Programs</p>
           {upcomingRegistrations.length === 0 ? (
             <div className="db2-empty-card">
-              <p className="db2-empty-card__text">You have no upcoming programs.</p>
+              <p className="db2-empty-card__text">No upcoming programs yet.</p>
               <Link href="/community-programs" className="db2-empty-card__link">Browse programs →</Link>
             </div>
           ) : (
             <div className="db2-upcoming">
               {upcomingRegistrations.map((r) => {
                 const startDt = r.program?.startDatetime;
+                const hasPendingDana = r.donationStatus === "PENDING";
                 return (
-                  <Link key={r.id} href={`/programs/${r.programSlug}`} className="db2-upcoming__item">
-                    {startDt && (() => {
-                      const d = new Date(startDt);
-                      const mon = d.toLocaleDateString("en-US", { timeZone: "America/Chicago", month: "short" }).toUpperCase();
-                      const day = d.toLocaleDateString("en-US", { timeZone: "America/Chicago", day: "numeric" });
-                      return (
-                        <span className="db2-upcoming__date-block">
-                          <span className="db2-upcoming__date-month">{mon}</span>
-                          <span className="db2-upcoming__date-day">{day}</span>
-                        </span>
-                      );
-                    })()}
-                    <span className="db2-upcoming__title">{r.programTitle}</span>
-                  </Link>
+                  <div key={r.id} className="db2-upcoming__item-wrap">
+                    <Link href={`/programs/${r.programSlug}`} className="db2-upcoming__item">
+                      {startDt && (() => {
+                        const d = new Date(startDt);
+                        const mon = d.toLocaleDateString("en-US", { timeZone: "America/Chicago", month: "short" }).toUpperCase();
+                        const day = d.toLocaleDateString("en-US", { timeZone: "America/Chicago", day: "numeric" });
+                        return (
+                          <span className="db2-upcoming__date-block">
+                            <span className="db2-upcoming__date-month">{mon}</span>
+                            <span className="db2-upcoming__date-day">{day}</span>
+                          </span>
+                        );
+                      })()}
+                      <span className="db2-upcoming__title">{r.programTitle}</span>
+                      <span className="db2-upcoming__status">
+                        {hasPendingDana
+                          ? <span className="db2-chip db2-chip--dana">Dana pending</span>
+                          : <span className="db2-chip db2-chip--registered">Registered</span>
+                        }
+                      </span>
+                    </Link>
+                    {hasPendingDana && (
+                      <div className="db2-upcoming__dana-nudge">
+                        <span>Complete your dana offering for this program.</span>
+                        <Link href={`/programs/${r.programSlug}/register`} className="db2-upcoming__dana-link">
+                          Offer dana →
+                        </Link>
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
           )}
         </div>
 
-        {/* 4. Onboarding welcome (only if incomplete onboarding series exist) */}
+        {/* Onboarding welcome */}
         {onboardingEnrollments.length > 0 && (
           <div className="db-section">
             <div className="db2-welcome-prompt">
@@ -421,7 +406,7 @@ export default async function DashboardPage() {
           </div>
         )}
 
-        {/* 5b. Enrolled series */}
+        {/* Enrolled series */}
         {seriesEnrollments.length > 0 && (
           <div className="db-section">
             <p className="db-section__label">Your Series</p>
@@ -432,8 +417,6 @@ export default async function DashboardPage() {
                 const completedCount = lessons.filter((l) => completedLessonIdSet.has(l.lessonId)).length;
                 const isFullyComplete = enrollment.completedAt != null;
                 const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-
-                // First lesson not yet completed, for "Continue →"
                 const firstIncomplete = lessons.find((l) => !completedLessonIdSet.has(l.lessonId)) as typeof lessons[0] | undefined;
 
                 return (
@@ -468,28 +451,7 @@ export default async function DashboardPage() {
           </div>
         )}
 
-        {/* 6. Pending Dana */}
-        {pendingDana.length > 0 && (
-          <div className="db-section">
-            <div className="db-dana-reminder" style={{ marginTop: 0 }}>
-              <p className="db-dana-reminder__label">Dana Offering Pending</p>
-              <p className="db-dana-reminder__desc">
-                A spot opened up for the following program{pendingDana.length > 1 ? "s" : ""}.
-                Visit the program page to complete your dana offering.
-              </p>
-              <div className="db-dana-reminder__items">
-                {pendingDana.map((r) => (
-                  <Link key={r.id} href={`/programs/${r.programSlug}/register`} className="db-dana-reminder__item">
-                    {r.programTitle}
-                    <span className="db-dana-reminder__arrow">→</span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 7. Your Hubs */}
+        {/* Your Hubs */}
         {dashboardHubs.length > 0 && (
           <div className="db-section">
             <p className="db-section__label">Your Hubs</p>

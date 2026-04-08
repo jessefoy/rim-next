@@ -11204,6 +11204,33 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .today-later-hdr__label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--rim-text-muted); }
 .today-later-hdr__note { font-size: 12px; color: var(--rim-text-muted); font-style: italic; }
 
+/* Countdown text on later-today sessions */
+.today-row__countdown { font-size: 12px; color: var(--rim-text-muted); font-style: italic; white-space: nowrap; }
+
+/* Status chips (inline in program cards) */
+.db2-chip {
+  display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 10px;
+  border-radius: 10px; white-space: nowrap;
+}
+.db2-chip--registered { background: #edf7f2; color: #2d6a4a; }
+.db2-chip--dana { background: #fef3cd; color: #92600a; }
+
+/* Program card wrapper for inline dana */
+.db2-upcoming__item-wrap { border-bottom: 1px solid var(--rim-rule, #e5e2de); }
+.db2-upcoming__item-wrap:last-child { border-bottom: none; }
+.db2-upcoming__status { flex-shrink: 0; margin-left: auto; }
+
+/* Dana nudge inside program card */
+.db2-upcoming__dana-nudge {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 8px 18px 12px; font-size: 13px; color: var(--rim-text-muted);
+  background: #fefbf3;
+}
+.db2-upcoming__dana-link {
+  font-size: 13px; font-weight: 600; color: #92600a; text-decoration: none; white-space: nowrap;
+}
+.db2-upcoming__dana-link:hover { text-decoration: underline; }
+
 /* ── Schedule list view — card-based rows (mobile-friendly) ── */
 .hub-lv { display: flex; flex-direction: column; gap: 0; }
 .hub-lv__list { display: flex; flex-direction: column; gap: 8px; }

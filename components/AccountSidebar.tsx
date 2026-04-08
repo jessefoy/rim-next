@@ -86,8 +86,13 @@ export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
           </>
         )}
 
-        {/* ── Role links ── */}
-        {hasRoleLinks && <div className="ac-sidebar__divider" role="separator" />}
+        {/* ── Staff / Admin links ── */}
+        {hasRoleLinks && (
+          <>
+            <div className="ac-sidebar__divider" role="separator" />
+            <div className="ac-sidebar__section-label">Staff</div>
+          </>
+        )}
 
         {hasRegistrar && (
           <Link href="/admin/members" className={linkClass("/admin/members")}>
@@ -100,9 +105,6 @@ export default function AccountSidebar({ roles, hubLinks = [] }: Props) {
             Households
           </Link>
         )}
-
-        {/* ── Admin-only links ── */}
-        {isAdmin && <div className="ac-sidebar__divider" role="separator" />}
 
         {isAdmin && (
           <Link href="/admin/hubs" className={linkClass("/admin/hubs")}>
