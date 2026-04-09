@@ -3453,6 +3453,12 @@ h1, h2, h3, h4, h5, h6 {
   padding: 40px 48px 80px;
 }
 
+/* ── Universal centered inner container ── */
+.ac-inner {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
 /* ── Mobile: horizontal scroll strip ── */
 @media (max-width: 700px) {
   .ac-layout {
@@ -6292,6 +6298,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 
 .mp-page {
   max-width: 640px;
+  margin: 0 auto;
 }
 
 .mp-heading {
@@ -8737,7 +8744,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 }
 
 /* ── Hub Tab Bar (HubTabBar component, replaces HubSidebar) ── */
-.hub-tabs-wrap { max-width: 840px; margin: 0 auto; }
+.hub-tabs-wrap { max-width: 840px; }
 .hub-tabs-header { padding: 0 0 16px; }
 .hub-tabs-header__type {
   font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em;
@@ -8780,7 +8787,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 }
 .hub-tabs-settings:hover { color: var(--rim-mid); }
 
-.hub-tabs-content { max-width: 840px; margin: 0 auto; padding: 24px 0; }
+.hub-tabs-content { max-width: 840px; padding: 24px 0; }
 
 @media (max-width: 767px) {
   .hub-tabs-header { padding: 16px 0 12px; }
@@ -11241,7 +11248,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 
 
 /* ── Dashboard v2 (db2-) ─────────────────────────────────────── */
-.db2-wrap { max-width: 720px; margin: 0 auto; }
+.db2-wrap { max-width: 720px; margin: 0 auto; } /* narrower than ac-inner — keeps dashboard content compact */
 .db2-greeting { margin-bottom: 32px; }
 .db2-greeting__name { font-size: 28px; font-weight: 400; font-family: var(--font-serif); color: #2d3f47; margin: 0 0 4px; }
 .db2-greeting__date { font-size: 13px; color: #7a7068; margin: 0; }

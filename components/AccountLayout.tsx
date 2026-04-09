@@ -44,7 +44,9 @@ export default async function AccountLayout({
   if (suppressSidebar) {
     return (
       <div className="ac-layout ac-layout--no-sidebar">
-        <div className="ac-content">{children}</div>
+        <div className="ac-content">
+          <div className="ac-inner">{children}</div>
+        </div>
       </div>
     );
   }
@@ -52,7 +54,9 @@ export default async function AccountLayout({
   return (
     <div className="ac-layout">
       <AccountSidebar roles={roles} hubLinks={hubLinks} />
-      <div className="ac-content">{children}</div>
+      <div className="ac-content">
+        <div className="ac-inner">{children}</div>
+      </div>
     </div>
   );
 }

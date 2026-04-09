@@ -89,8 +89,7 @@ export default async function MyProgramsPage() {
 
   return (
     <AccountLayout>
-      <div className="page-wrapper">
-        <div className="lp-content mr-page">
+      <div className="mr-page">
           <h1 className="mr-heading">My Programs</h1>
 
           {registrations.length === 0 ? (
@@ -183,7 +182,6 @@ export default async function MyProgramsPage() {
               </p>
             </>
           )}
-        </div>
       </div>
     </AccountLayout>
   );
