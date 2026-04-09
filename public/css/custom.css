@@ -3317,7 +3317,8 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ============================================================
    ACCOUNT LAYOUT — sidebar + content shell (ac-)
-   Desktop: sticky 220px left sidebar
+   Desktop: sticky left sidebar, 220px expanded / 56px collapsed
+            Collapse state persisted to localStorage
    Mobile:  horizontal scrollable strip below main nav
    ============================================================ */
 
@@ -3329,6 +3330,7 @@ h1, h2, h3, h4, h5, h6 {
   display: block;
 }
 
+/* ── Sidebar shell ── */
 .ac-sidebar {
   width: 220px;
   flex-shrink: 0;
@@ -3336,61 +3338,129 @@ h1, h2, h3, h4, h5, h6 {
   top: 0;
   height: 100vh;
   overflow-y: auto;
-  padding: 48px 16px 48px 28px;
+  overflow-x: hidden;
+  padding: 20px 10px 48px;
   border-right: 1px solid var(--rim-rule);
   background: var(--rim-bg);
+  transition: width 0.2s ease;
 }
 
+.ac-sidebar--collapsed {
+  width: 56px;
+}
+
+/* ── Toggle button ── */
+.ac-sidebar__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: 0 auto 20px;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--rim-text-muted);
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s, color 0.15s;
+}
+.ac-sidebar__toggle:hover {
+  background: var(--rim-bg-accent);
+  color: var(--rim-text);
+}
+.ac-sidebar--collapsed .ac-sidebar__toggle {
+  margin: 0 auto 20px;
+}
+
+/* ── Nav list ── */
 .ac-sidebar__nav {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
+/* ── Individual links ── */
 .ac-sidebar__link {
-  display: block;
-  padding: 10px 14px;
-  font-size: 15px;
-  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 6px;
   font-family: var(--font-sans);
   font-size: 14px;
   font-weight: 500;
   color: var(--rim-text-muted);
   text-decoration: none;
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: background 0.15s, color 0.15s;
 }
-
 .ac-sidebar__link:hover {
   background: var(--rim-bg-accent);
   color: var(--rim-text);
 }
-
 .ac-sidebar__link--active {
   background: var(--rim-bg-accent);
   color: var(--rim-blue);
   font-weight: 600;
 }
 
+/* ── Icon ── */
+.ac-sidebar__icon {
+  flex-shrink: 0;
+}
+
+/* ── Label — hidden when collapsed ── */
+.ac-sidebar__label {
+  opacity: 1;
+  transition: opacity 0.15s ease;
+}
+.ac-sidebar--collapsed .ac-sidebar__label {
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  overflow: hidden;
+}
+
+/* Center icons when collapsed */
+.ac-sidebar--collapsed .ac-sidebar__link {
+  justify-content: center;
+  padding: 9px 0;
+}
+
+/* ── Section labels ── */
+.ac-sidebar__section-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--rim-text-muted);
+  padding: 10px 10px 2px;
+}
+
+/* ── Dividers ── */
 .ac-sidebar__divider {
   height: 1px;
   background: var(--rim-rule);
-  margin: 12px 12px;
+  margin: 10px 6px;
 }
 
+/* ── Content area ── */
 .ac-content {
   flex: 1;
   min-width: 0;
-  padding: 32px 40px 60px;
+  padding: 40px 48px 80px;
 }
 
-/* Mobile: horizontal scroll strip */
+/* ── Mobile: horizontal scroll strip ── */
 @media (max-width: 700px) {
   .ac-layout {
     flex-direction: column;
   }
 
   .ac-sidebar {
-    width: 100%;
+    width: 100% !important;
     height: auto;
     position: static;
     padding: 0;
@@ -3398,25 +3468,42 @@ h1, h2, h3, h4, h5, h6 {
     border-bottom: 1px solid var(--rim-rule);
     overflow-y: visible;
     overflow-x: auto;
+    transition: none;
+  }
+
+  .ac-sidebar__toggle {
+    display: none;
   }
 
   .ac-sidebar__nav {
     flex-direction: row;
     gap: 0;
-    padding: 8px 16px;
+    padding: 6px 12px;
     white-space: nowrap;
   }
 
   .ac-sidebar__link {
-    display: inline-block;
-    font-size: 14px;
-    padding: 10px 14px;
+    display: inline-flex;
+    font-size: 13px;
+    padding: 8px 10px;
+    gap: 6px;
+    white-space: nowrap;
+    overflow: visible;
+  }
+
+  .ac-sidebar__label {
+    opacity: 1 !important;
+    width: auto !important;
+  }
+
+  .ac-sidebar__section-label {
+    display: none;
   }
 
   .ac-sidebar__divider {
     width: 1px;
     height: 20px;
-    margin: 0 6px;
+    margin: 0 4px;
     align-self: center;
     flex-shrink: 0;
   }
@@ -11151,8 +11238,6 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   .hub-main__content { padding: 14px 14px 48px; }
 }
 
-/* ── AccountSidebar section label ──────────────────────────── */
-.ac-sidebar__section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--rim-text-muted); padding: 10px 12px 2px; }
 
 /* ── Dashboard v2 (db2-) ─────────────────────────────────────── */
 .db2-wrap { max-width: 720px; }
