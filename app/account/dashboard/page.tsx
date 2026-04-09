@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { Flame } from "lucide-react";
 import { db } from "@/lib/db";
 import AccountLayout from "@/components/AccountLayout";
 import SiteBannerStrip from "@/components/SiteBannerStrip";
@@ -354,36 +355,28 @@ export default async function DashboardPage() {
                 const startDt = r.program?.startDatetime;
                 const hasPendingDana = r.donationStatus === "PENDING";
                 return (
-                  <div key={r.id} className="db2-upcoming__item-wrap">
-                    <Link href={`/programs/${r.programSlug}`} className="db2-upcoming__item">
-                      {startDt && (() => {
-                        const d = new Date(startDt);
-                        const mon = d.toLocaleDateString("en-US", { timeZone: "America/Chicago", month: "short" }).toUpperCase();
-                        const day = d.toLocaleDateString("en-US", { timeZone: "America/Chicago", day: "numeric" });
-                        return (
-                          <span className="db2-upcoming__date-block">
-                            <span className="db2-upcoming__date-month">{mon}</span>
-                            <span className="db2-upcoming__date-day">{day}</span>
+                  <Link key={r.id} href={`/programs/${r.programSlug}`} className="db2-upcoming__item">
+                    {startDt && (() => {
+                      const d = new Date(startDt);
+                      const mon = d.toLocaleDateString("en-US", { timeZone: "America/Chicago", month: "short" }).toUpperCase();
+                      const day = d.toLocaleDateString("en-US", { timeZone: "America/Chicago", day: "numeric" });
+                      return (
+                        <span className="db2-upcoming__date-block">
+                          <span className="db2-upcoming__date-month">{mon}</span>
+                          <span className="db2-upcoming__date-day">{day}</span>
+                        </span>
+                      );
+                    })()}
+                    <span className="db2-upcoming__title">{r.programTitle}</span>
+                    <span className="db2-upcoming__status">
+                      {hasPendingDana
+                        ? <span title="You're invited to offer dana for this program — a voluntary gift, welcomed with gratitude.">
+                            <Flame size={16} strokeWidth={1.75} className="db2-dana-icon" />
                           </span>
-                        );
-                      })()}
-                      <span className="db2-upcoming__title">{r.programTitle}</span>
-                      <span className="db2-upcoming__status">
-                        {hasPendingDana
-                          ? <span className="db2-chip db2-chip--dana">Dana pending</span>
-                          : <span className="db2-chip db2-chip--registered">Registered</span>
-                        }
-                      </span>
-                    </Link>
-                    {hasPendingDana && (
-                      <div className="db2-upcoming__dana-nudge">
-                        <span>Complete your dana offering for this program.</span>
-                        <Link href={`/programs/${r.programSlug}/register`} className="db2-upcoming__dana-link">
-                          Offer dana →
-                        </Link>
-                      </div>
-                    )}
-                  </div>
+                        : <span className="db2-chip db2-chip--registered">Registered</span>
+                      }
+                    </span>
+                  </Link>
                 );
               })}
             </div>

@@ -5963,10 +5963,10 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   font-family: var(--font-sans);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: #7a7068;
-  margin: 0 0 14px;
+  color: #9b8f85;
+  margin: 0 0 12px;
 }
 
 .db-section__empty {
@@ -11240,7 +11240,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 
 
 /* ── Dashboard v2 (db2-) ─────────────────────────────────────── */
-.db2-wrap { max-width: 720px; }
+.db2-wrap { max-width: 720px; margin: 0 auto; }
 .db2-greeting { margin-bottom: 32px; }
 .db2-greeting__name { font-size: 28px; font-weight: 400; font-family: var(--font-serif); color: #2d3f47; margin: 0 0 4px; }
 .db2-greeting__date { font-size: 13px; color: #7a7068; margin: 0; }
@@ -11298,23 +11298,18 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   border-radius: 10px; white-space: nowrap;
 }
 .db2-chip--registered { background: #edf7f2; color: #2d6a4a; }
-.db2-chip--dana { background: #fef3cd; color: #92600a; }
 
-/* Program card wrapper for inline dana */
-.db2-upcoming__item-wrap { border-bottom: 1px solid var(--rim-rule, #e5e2de); }
-.db2-upcoming__item-wrap:last-child { border-bottom: none; }
-.db2-upcoming__status { flex-shrink: 0; margin-left: auto; }
+/* Program card status column */
+.db2-upcoming__status {
+  flex-shrink: 0;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+}
 
-/* Dana nudge inside program card */
-.db2-upcoming__dana-nudge {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 8px 18px 12px; font-size: 13px; color: var(--rim-text-muted);
-  background: #fefbf3;
-}
-.db2-upcoming__dana-link {
-  font-size: 13px; font-weight: 600; color: #92600a; text-decoration: none; white-space: nowrap;
-}
-.db2-upcoming__dana-link:hover { text-decoration: underline; }
+/* Dana invitation icon */
+.db2-dana-icon { color: #b45309; display: block; }
 
 /* ── Schedule list view — card-based rows (mobile-friendly) ── */
 .hub-lv { display: flex; flex-direction: column; gap: 0; }
