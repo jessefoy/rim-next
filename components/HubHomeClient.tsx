@@ -231,6 +231,9 @@ export default function HubHomeClient({
       )}
 
       {/* Activity summary */}
+      {!hasActivity && (
+        <p className="hub-home-empty">No activity yet. Start a conversation, add a task, or upload a document to get going.</p>
+      )}
       {hasActivity && (
         <div className="hub-home-activity">
           {/* Recent conversations */}
