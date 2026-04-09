@@ -8737,7 +8737,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 }
 
 /* ── Hub Tab Bar (HubTabBar component, replaces HubSidebar) ── */
-.hub-tabs-wrap { max-width: 840px; }
+.hub-tabs-wrap { max-width: 840px; margin: 0 auto; }
 .hub-tabs-header { padding: 0 0 16px; }
 .hub-tabs-header__type {
   font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em;
@@ -8780,7 +8780,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 }
 .hub-tabs-settings:hover { color: var(--rim-mid); }
 
-.hub-tabs-content { padding: 24px 0; }
+.hub-tabs-content { max-width: 840px; margin: 0 auto; padding: 24px 0; }
 
 @media (max-width: 767px) {
   .hub-tabs-header { padding: 16px 0 12px; }
