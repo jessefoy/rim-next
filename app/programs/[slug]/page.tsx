@@ -230,6 +230,50 @@ export default async function ProgramDetailPage({
                 <span className="pg-detail-row__text">{program.danaText}</span>
               </div>
             )}
+
+            {/* ── CTA row — context-aware action ── */}
+            <div className="pg-detail-row pg-detail-row--cta">
+              <span className="pg-detail-row__icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+              </span>
+              <span className="pg-detail-row__text">
+                {useBuiltInForm ? (
+                  /* Registration programs */
+                  registrationClosed ? (
+                    <span className="pg-detail-cta__status">Registration is closed.</span>
+                  ) : existingRegistration?.status === "WAITLISTED" ? (
+                    <span className="pg-detail-cta__status">You&rsquo;re on the waitlist.</span>
+                  ) : existingRegistration ? (
+                    <span className="pg-detail-cta__status">✓ You&rsquo;re registered.</span>
+                  ) : (
+                    <Link href={`/programs/${slug}/register`} className="pg-detail-cta__link">
+                      Register →
+                    </Link>
+                  )
+                ) : (
+                  /* Open programs — no registration */
+                  program.programFormat === "virtual" ? (
+                    session?.user ? (
+                      <Link href="/account/dashboard" className="pg-detail-cta__link">
+                        Join via your Dashboard →
+                      </Link>
+                    ) : (
+                      <Link href="/community-membership" className="pg-detail-cta__link">
+                        Become a Member to Join Online →
+                      </Link>
+                    )
+                  ) : session?.user ? (
+                    <span className="pg-detail-cta__text">
+                      In person: simply arrive · Online: <Link href="/account/dashboard" className="pg-detail-cta__inline-link">via Dashboard</Link>
+                    </span>
+                  ) : (
+                    <span className="pg-detail-cta__text">
+                      In person: simply arrive · Online: <Link href="/community-membership" className="pg-detail-cta__inline-link">become a member</Link>
+                    </span>
+                  )
+                )}
+              </span>
+            </div>
           </section>
         )}
 
@@ -335,14 +379,29 @@ export default async function ProgramDetailPage({
           </div>
         )}
 
-        {/* ── No registration — open program CTA ── */}
+        {/* ── Open program — warm hospitality card ── */}
         {!useBuiltInForm && (
           <div className="pg-cta-card">
-            <h3 className="pg-cta-card__heading">No Registration Required</h3>
-            <p className="pg-cta-card__text">
-              As a RIM community member, you have access to this offering.
-              A zoom link is accessible in your <Link href="/account/dashboard" className="pg-cta-card__link">dashboard</Link>.
-            </p>
+            <h3 className="pg-cta-card__heading">You&rsquo;re Welcome Here</h3>
+            {program.programFormat === "virtual" ? (
+              <p className="pg-cta-card__text">
+                No registration is needed. Community members can join online
+                through their <Link href="/account/dashboard" className="pg-cta-card__link">member dashboard</Link>.
+                {!session?.user && (
+                  <> New here? <Link href="/community-membership" className="pg-cta-card__link">Become a member</Link> to get started.</>
+                )}
+              </p>
+            ) : (
+              <p className="pg-cta-card__text">
+                No registration is needed. You&rsquo;re welcome to simply arrive in person.
+                {program.programFormat === "hybrid" && (
+                  <> To join online, community members can access the link through their <Link href="/account/dashboard" className="pg-cta-card__link">member dashboard</Link>.</>
+                )}
+                {!session?.user && (
+                  <> New here? <Link href="/community-membership" className="pg-cta-card__link">Become a member</Link> to access online offerings.</>
+                )}
+              </p>
+            )}
           </div>
         )}
 
