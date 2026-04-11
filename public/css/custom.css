@@ -211,7 +211,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .rim-footer {
   background-color: #135274;
-  padding: 60px 24px 32px;
+  padding: 100px 24px 40px;
   text-align: center;
 }
 
@@ -1364,7 +1364,7 @@ h1, h2, h3, h4, h5, h6 {
   background-size: cover;
   background-position: center 40%;
   background-repeat: no-repeat;
-  padding: 90px 24px 180px;
+  padding: 90px 24px 90px;
   text-align: center;
   position: relative;
 }
@@ -1438,16 +1438,17 @@ h1, h2, h3, h4, h5, h6 {
   text-align: center;
   position: relative;
   z-index: 2;
+  box-shadow: 1px 1px 20px rgba(116, 116, 116, 0.15);
 }
 
 .pg-quote__text {
   font-family: var(--font-serif);
   font-size: 21px;
-  font-weight: 400;
+  font-weight: 500;
   font-style: normal;
-  line-height: 1.6;
+  line-height: 160%;
   color: var(--rim-text);
-  margin: 0 0 12px;
+  margin: 0 0 10px;
   quotes: none;
   border: none;
   padding: 0;
@@ -1465,8 +1466,8 @@ h1, h2, h3, h4, h5, h6 {
 
 .pg-notes {
   background: var(--rim-bg-accent);
-  border-radius: 6px;
-  padding: 32px 36px;
+  border-radius: 10px;
+  padding: 30px 30px 25px;
   margin-bottom: 52px;
 }
 
@@ -1489,7 +1490,7 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 14px 0;
+  padding: 15px 5px 15px 0;
   border-bottom: 1px solid var(--rim-rule);
 }
 
@@ -1504,9 +1505,9 @@ h1, h2, h3, h4, h5, h6 {
 
 .pg-detail-row__text {
   font-family: var(--font-sans);
-  font-size: 16px;
+  font-size: 17px;
   color: var(--rim-text);
-  line-height: 1.5;
+  line-height: 177%;
 }
 
 .pg-detail-row__link {
@@ -1520,12 +1521,14 @@ h1, h2, h3, h4, h5, h6 {
 /* ── Facilitators section ── */
 
 .pg-facilitators-section {
+  margin-top: 20px;
   margin-bottom: 48px;
 }
 
 .pg-facilitator {
   font-family: var(--font-sans);
-  font-size: 16px;
+  font-size: 17px;
+  font-weight: 500;
   color: var(--rim-text);
 }
 
@@ -1538,8 +1541,9 @@ h1, h2, h3, h4, h5, h6 {
 
 .pg-cta-card {
   background: var(--rim-bg-accent);
-  border-radius: 9px;
-  padding: 32px 36px;
+  border-radius: 10px;
+  padding: 30px 30px 25px;
+  margin-top: 45px;
   margin-bottom: 48px;
 }
 
@@ -1956,7 +1960,7 @@ h1, h2, h3, h4, h5, h6 {
 @media screen and (max-width: 767px) {
   /* Reduce hero padding and card overlap on mobile —
      less room for the effect, smaller overlap still reads well */
-  .pg-hero          { padding: 60px 24px 100px; }
+  .pg-hero          { padding: 30px 24px 60px; }
   .pg-hero__title   { font-size: 32px; }
   .pg-quote         { padding: 28px 24px 24px; margin-top: -100px; }
   .pg-quote__text   { font-size: 18px; }
