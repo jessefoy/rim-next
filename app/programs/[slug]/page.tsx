@@ -78,15 +78,19 @@ export default async function ProgramDetailPage({
   const endIso = program.endDatetime?.toISOString() ?? null;
 
   // ── Time label (always a separate row) ──
-  // Format a time-only label from start/end datetimes: "9:30-10:30 AM"
+  // Format: "9:30-10:30 AM" or "9:30 AM" (if no end time)
   const timeLabel = (() => {
     if (!program.startDatetime) return null;
     const TZ = "America/Chicago";
-    const fmt = (d: Date) => {
-      const mins = new Intl.DateTimeFormat("en-US", { timeZone: TZ, minute: "2-digit" }).format(d);
-      const h = new Intl.DateTimeFormat("en-US", { timeZone: TZ, hour: "numeric", hour12: true }).format(d);
-      return mins === "00" ? h : new Intl.DateTimeFormat("en-US", { timeZone: TZ, hour: "numeric", minute: "2-digit", hour12: true }).format(d);
-    };
+    const fmt = (d: Date) =>
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: TZ,
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      })
+        .format(d)
+        .replace(/:00/, "");  // "9:00 AM" → "9 AM", "9:30 AM" stays
     const start = fmt(program.startDatetime);
     if (!program.endDatetime) return start;
     const end = fmt(program.endDatetime);
