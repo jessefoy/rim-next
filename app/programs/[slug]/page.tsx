@@ -74,47 +74,59 @@ export default async function ProgramDetailPage({
 
   // Resolve location from venue + programFormat
   const location = resolveLocation(program.venue, program.locationText, program.locationLink);
-  const showWhere = program.programFormat !== "virtual" && !!location.text;
   const startIso = program.startDatetime?.toISOString() ?? null;
   const endIso = program.endDatetime?.toISOString() ?? null;
-  const dateLabel = program.dateText || buildDateLabel({
-    startDatetime: startIso,
-    endDatetime: endIso,
-    recurrenceFreq: program.recurrenceFreq,
-    recurrenceInterval: program.recurrenceInterval,
-    recurrenceDays: program.recurrenceDays,
-  });
-  const hasDetails = !!(dateLabel || showWhere || program.danaText);
-  const hasFacilitators = program.teacherFacilitators.length > 0;
-  const hasDescription = !!program.description;
-  const hasSpecialNotes = !!program.specialNotes;
 
-  const descriptionHtml = hasDescription ? await renderContentBodyAsync(program.description) : "";
-  const specialNotesHtml = hasSpecialNotes ? await renderFormattedTextAsync(program.specialNotes) : "";
+  // ── Time label (always a separate row) ──
+  // Format a time-only label from start/end datetimes: "9:30-10:30 AM"
+  const timeLabel = (() => {
+    if (!program.startDatetime) return null;
+    const TZ = "America/Chicago";
+    const fmt = (d: Date) => {
+      const mins = new Intl.DateTimeFormat("en-US", { timeZone: TZ, minute: "2-digit" }).format(d);
+      const h = new Intl.DateTimeFormat("en-US", { timeZone: TZ, hour: "numeric", hour12: true }).format(d);
+      return mins === "00" ? h : new Intl.DateTimeFormat("en-US", { timeZone: TZ, hour: "numeric", minute: "2-digit", hour12: true }).format(d);
+    };
+    const start = fmt(program.startDatetime);
+    if (!program.endDatetime) return start;
+    const end = fmt(program.endDatetime);
+    return `${start}-${end}`;
+  })();
 
-  // Build location display label for the details row
+  // ── Schedule label (day/recurrence pattern, no time) ──
+  const scheduleLabel = (() => {
+    // Manual override → use as-is
+    if (program.dateText) return program.dateText;
+    // Auto-generate from recurrence fields
+    const full = buildDateLabel({
+      startDatetime: startIso,
+      endDatetime: endIso,
+      recurrenceFreq: program.recurrenceFreq,
+      recurrenceInterval: program.recurrenceInterval,
+      recurrenceDays: program.recurrenceDays,
+    });
+    if (!full) return null;
+    // When showing time separately, strip the " · time" portion from auto-generated label
+    if (timeLabel && full.includes(" · ")) return full.split(" · ")[0];
+    return full;
+  })();
+
+  // ── Location label ──
   const locationLabel =
     program.programFormat === "virtual"
       ? `Online (${location.text || "Zoom"}) only`
       : program.programFormat === "hybrid"
         ? `${location.text || "Hybrid"} + Online`
         : location.text;
+  const showLocation = !!(locationLabel);
 
-  // Build a time-only label from start/end if available
-  const timeLabel = (() => {
-    if (!program.startDatetime) return null;
-    const fmt = (d: Date) =>
-      new Intl.DateTimeFormat("en-US", {
-        hour: "numeric",
-        minute: d.getMinutes() ? "2-digit" : undefined,
-        hour12: true,
-        timeZone: "America/Chicago",
-      }).format(d);
-    const start = fmt(program.startDatetime);
-    if (!program.endDatetime) return start;
-    const end = fmt(program.endDatetime);
-    return `${start}-${end}`;
-  })();
+  const hasDetails = !!(scheduleLabel || timeLabel || showLocation || program.danaText);
+  const hasFacilitators = program.teacherFacilitators.length > 0;
+  const hasDescription = !!program.description;
+  const hasSpecialNotes = !!program.specialNotes;
+
+  const descriptionHtml = hasDescription ? await renderContentBodyAsync(program.description) : "";
+  const specialNotesHtml = hasSpecialNotes ? await renderFormattedTextAsync(program.specialNotes) : "";
 
   return (
     <div className="pg-page">
@@ -178,12 +190,12 @@ export default async function ProgramDetailPage({
         {hasDetails && (
           <section className="pg-details-section">
             <h2 className="pg-section-heading">Details:</h2>
-            {dateLabel && (
+            {scheduleLabel && (
               <div className="pg-detail-row">
                 <span className="pg-detail-row__icon" aria-hidden="true">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                 </span>
-                <span className="pg-detail-row__text">{dateLabel}</span>
+                <span className="pg-detail-row__text">{scheduleLabel}</span>
               </div>
             )}
             {timeLabel && (
@@ -194,7 +206,7 @@ export default async function ProgramDetailPage({
                 <span className="pg-detail-row__text">{timeLabel}</span>
               </div>
             )}
-            {(locationLabel || program.programFormat === "virtual") && (
+            {showLocation && (
               <div className="pg-detail-row">
                 <span className="pg-detail-row__icon" aria-hidden="true">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
