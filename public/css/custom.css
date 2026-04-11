@@ -1353,20 +1353,36 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--rim-bg);
 }
 
-/* ── Hero header (placeholder) ──
+/* ── Hero header ──
+   Background image (from programImage) with a semi-transparent
+   teal overlay. Falls back to solid teal when no image is set.
    Extra bottom padding creates a landing zone for the details card
-   to float up into — the card overlaps ~84px into the hero band,
-   so roughly the top third of the card sits in the colored header. */
+   to float up into — the card overlaps ~84px into the hero band. */
 
 .pg-hero {
-  background: #93A2AA;
-  padding: 72px 24px 140px; /* 140px bottom = 56px natural + 84px card overlap */
+  background-color: var(--rim-blue);
+  background-size: cover;
+  background-position: center 40%;
+  background-repeat: no-repeat;
+  padding: 90px 24px 140px;
   text-align: center;
+  position: relative;
+}
+
+/* Semi-transparent overlay — sits between image and text */
+.pg-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(18, 82, 116, 0.78);  /* --rim-blue at ~78% opacity */
+  pointer-events: none;
 }
 
 .pg-hero__inner {
   max-width: var(--reading-width);
   margin: 0 auto;
+  position: relative;
+  z-index: 1;
 }
 
 .pg-hero__category {
@@ -1409,87 +1425,161 @@ h1, h2, h3, h4, h5, h6 {
   margin: 0;
 }
 
-/* ── Details card ──
-   Floats up into the hero header. margin-top: -84px pulls the card
-   so the top third overlaps the colored band. White bg reads cleanly
-   against both the blue-grey header above and the warm parchment below.
-   margin-bottom: 64px creates generous breathing room above the pull quote. */
+/* ── Pull quote card ──
+   Floats up into the hero with negative margin, matching the old
+   Webflow layout. Warm background, centered serif text. */
 
-.pg-details {
+.pg-quote {
   background: #fff;
-  border-radius: 8px;
-  padding: 32px 36px;
-  margin-top: -84px;
-  margin-bottom: 64px;
+  border-radius: 9px;
+  padding: 35px 30px 30px;
+  margin: -120px auto 48px;
+  max-width: 700px;
+  text-align: center;
   position: relative;
   z-index: 2;
 }
 
-.pg-details__row {
+.pg-quote__text {
+  font-family: var(--font-serif);
+  font-size: 21px;
+  font-weight: 400;
+  font-style: italic;
+  line-height: 1.6;
+  color: var(--rim-text);
+  margin: 0 0 12px;
+  quotes: none;
+}
+
+.pg-quote__source {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--rim-text-muted);
+}
+
+/* ── Special Notes callout ──
+   Warm card treatment — visually set apart from the main description. */
+
+.pg-notes {
+  background: var(--rim-bg-accent);
+  border-radius: 6px;
+  padding: 32px 36px;
+  margin-bottom: 52px;
+}
+
+/* ── Details section ──
+   Heading + icon rows with dividers, matching old Webflow structure. */
+
+.pg-details-section {
+  margin-bottom: 48px;
+}
+
+.pg-section-heading {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 400;
+  color: var(--rim-text);
+  margin: 0 0 12px;
+}
+
+.pg-detail-row {
   display: flex;
-  align-items: baseline;
-  gap: 20px;
-  padding: 12px 0;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
   border-bottom: 1px solid var(--rim-rule);
 }
 
-.pg-details__row:first-child { padding-top: 0; }
-.pg-details__row:last-child  { padding-bottom: 0; border-bottom: none; }
+.pg-detail-row:last-child { border-bottom: none; }
 
-.pg-details__label {
-  font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--rim-text-muted);
-  min-width: 52px;
+.pg-detail-row__icon {
   flex-shrink: 0;
+  color: var(--rim-text-muted);
+  display: flex;
+  align-items: center;
 }
 
-.pg-details__value {
+.pg-detail-row__text {
   font-family: var(--font-sans);
   font-size: 16px;
   color: var(--rim-text);
   line-height: 1.5;
 }
 
-.pg-details__link {
+.pg-detail-row__link {
   color: var(--rim-mid);
   text-decoration: none;
   font-size: 14px;
 }
 
-.pg-details__link:hover { color: var(--rim-blue); }
+.pg-detail-row__link:hover { color: var(--rim-blue); }
 
-/* Registration CTA row — sits at bottom of details card */
-.pg-details__row--cta {
-  border-bottom: none;
+/* ── Facilitators section ── */
+
+.pg-facilitators-section {
+  margin-bottom: 48px;
 }
 
-.pg-details__reg-cta {
+.pg-facilitator {
   font-family: var(--font-sans);
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--rim-mid);
-  text-decoration: none;
-  letter-spacing: 0.02em;
+  font-size: 16px;
+  color: var(--rim-text);
 }
 
-.pg-details__reg-cta:hover { color: var(--rim-blue); }
+.pg-facilitator + .pg-facilitator::before {
+  content: ", ";
+}
 
-/* ── Special Notes ──
-   Additional context editors add (location description, schedule notes, etc.).
-   Warm card treatment — visually set apart from the main description
-   without the heavier teal-border treatment of a practice callout. */
+/* ── CTA card ──
+   Bottom registration / open-program card. Warm background. */
 
-.pg-notes {
+.pg-cta-card {
   background: var(--rim-bg-accent);
-  border-radius: 6px;
+  border-radius: 9px;
   padding: 32px 36px;
-  margin-top: 0; /* lp-body margin-bottom provides spacing above */
-  margin-bottom: 52px;
+  margin-bottom: 48px;
 }
+
+.pg-cta-card__heading {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 400;
+  color: var(--rim-text);
+  margin: 0 0 10px;
+}
+
+.pg-cta-card__text {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--rim-text);
+  margin: 0 0 16px;
+}
+
+.pg-cta-card__text:last-child { margin-bottom: 0; }
+
+.pg-cta-card__link {
+  color: var(--rim-blue);
+  text-decoration: underline;
+}
+
+.pg-cta-card__btn {
+  display: inline-block;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--rim-blue);
+  padding: 11px 22px;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+
+.pg-cta-card__btn:hover { opacity: 0.85; color: #fff; }
 
 /* Override lp-body's bottom margin inside the notes card */
 .pg-notes .lp-body {
@@ -1864,12 +1954,13 @@ h1, h2, h3, h4, h5, h6 {
 @media screen and (max-width: 767px) {
   /* Reduce hero padding and card overlap on mobile —
      less room for the effect, smaller overlap still reads well */
-  .pg-hero          { padding: 52px 24px 100px; }
+  .pg-hero          { padding: 60px 24px 100px; }
   .pg-hero__title   { font-size: 32px; }
-  .pg-details       { padding: 24px 20px; margin-top: -56px; }
-  .pg-details__row  { gap: 12px; }
-  .pg-details__label { min-width: 44px; }
+  .pg-quote         { padding: 28px 24px 24px; margin-top: -80px; }
+  .pg-quote__text   { font-size: 18px; }
   .pg-notes         { padding: 24px 20px; }
+  .pg-cta-card      { padding: 24px 20px; }
+  .pg-section-heading { font-size: 24px; }
   .pg-registration__inner { padding: 28px 20px; }
   .pg-form__row     { grid-template-columns: 1fr; gap: 0; }
 }

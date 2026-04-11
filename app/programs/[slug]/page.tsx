@@ -92,11 +92,38 @@ export default async function ProgramDetailPage({
   const descriptionHtml = hasDescription ? await renderContentBodyAsync(program.description) : "";
   const specialNotesHtml = hasSpecialNotes ? await renderFormattedTextAsync(program.specialNotes) : "";
 
+  // Build location display label for the details row
+  const locationLabel =
+    program.programFormat === "virtual"
+      ? `Online (${location.text || "Zoom"}) only`
+      : program.programFormat === "hybrid"
+        ? `${location.text || "Hybrid"} + Online`
+        : location.text;
+
+  // Build a time-only label from start/end if available
+  const timeLabel = (() => {
+    if (!program.startDatetime) return null;
+    const fmt = (d: Date) =>
+      new Intl.DateTimeFormat("en-US", {
+        hour: "numeric",
+        minute: d.getMinutes() ? "2-digit" : undefined,
+        hour12: true,
+        timeZone: "America/Chicago",
+      }).format(d);
+    const start = fmt(program.startDatetime);
+    if (!program.endDatetime) return start;
+    const end = fmt(program.endDatetime);
+    return `${start}-${end}`;
+  })();
+
   return (
     <div className="pg-page">
 
       {/* ── Hero header ── */}
-      <header className="pg-hero">
+      <header
+        className="pg-hero"
+        style={program.programImage ? { backgroundImage: `url(${program.programImage})` } : undefined}
+      >
         <div className="pg-hero__inner">
           {program.category && (
             <Link href="/community-programs" className="pg-hero__category">
@@ -125,156 +152,183 @@ export default async function ProgramDetailPage({
           </div>
         )}
 
-        {/* Details card */}
-        {hasDetails && (
-          <div className="pg-details">
-            {dateLabel && (
-              <div className="pg-details__row">
-                <span className="pg-details__label">Schedule</span>
-                <span className="pg-details__value">{dateLabel}</span>
-              </div>
-            )}
-            {showWhere && (
-              <div className="pg-details__row">
-                <span className="pg-details__label">Where</span>
-                <span className="pg-details__value">
-                  {location.text}
-                  {location.link && (
-                    <a
-                      href={location.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="pg-details__link"
-                    >
-                      {" "}↗
-                    </a>
-                  )}
-                </span>
-              </div>
-            )}
-            {program.danaText && (
-              <div className="pg-details__row">
-                <span className="pg-details__label">Dana</span>
-                <span className="pg-details__value">{program.danaText}</span>
-              </div>
-            )}
-            {/* ── Registration CTA ── */}
-            {useBuiltInForm && (
-              <div className="pg-details__row pg-details__row--cta">
-                <span className="pg-details__label"></span>
-                <div className="pg-register-cta">
-                  {registrationClosed ? (
-                    <span className="pg-register-status">Registration is now closed.</span>
-                  ) : existingRegistration?.donationStatus === "PENDING" ? (
-                    <Link href={`/programs/${slug}/register`} className="pg-register-btn pg-register-btn--secondary">
-                      Complete Dana →
-                    </Link>
-                  ) : existingRegistration?.status === "WAITLISTED" ? (
-                    <span className="pg-register-status">You&rsquo;re on the waitlist.</span>
-                  ) : existingRegistration ? (
-                    <>
-                      <span className="pg-register-status">✓ You&rsquo;re registered.</span>
-                      {startIso && (() => {
-                        const rec = describeRecurrence(
-                          program.recurrenceFreq,
-                          program.recurrenceInterval,
-                          program.recurrenceDays,
-                          program.recurrenceCount,
-                        );
-                        return (
-                          <div className="pg-calendar-links">
-                            <a
-                              href={buildGoogleCalendarUrl({
-                                title: program.name,
-                                startDatetime: startIso,
-                                endDatetime: endIso,
-                                location: location.emailText ?? undefined,
-                                programSlug: slug,
-                                recurrenceFreq: program.recurrenceFreq,
-                                recurrenceInterval: program.recurrenceInterval,
-                                recurrenceDays: program.recurrenceDays,
-                                recurrenceCount: program.recurrenceCount,
-                              })}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="pg-calendar-link"
-                            >
-                              {rec.googleLabel
-                                ? `+ Google Calendar (${rec.googleLabel})`
-                                : `+ Google Calendar`}
-                            </a>
-                            <a
-                              href={buildIcsUrl(slug)}
-                              className="pg-calendar-link"
-                            >
-                              {rec.icsLabel
-                                ? `+ Apple / Outlook (${rec.icsLabel})`
-                                : `+ Apple / Outlook`}
-                            </a>
-                          </div>
-                        );
-                      })()}
-                    </>
-                  ) : spotsRemaining === 0 ? (
-                    <>
-                      <Link href={`/programs/${slug}/register`} className="pg-register-btn">
-                        Join Waitlist →
-                      </Link>
-                      <p className="pg-capacity pg-capacity--full">
-                        This program is fully booked — submitting will add you to the waitlist.
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <Link href={`/programs/${slug}/register`} className="pg-register-btn">
-                        Register →
-                      </Link>
-                      {showLowSpots && (
-                        <p className="pg-capacity pg-capacity--low">
-                          {spotsRemaining} spot{spotsRemaining !== 1 ? "s" : ""} remaining.
-                        </p>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Pull quote */}
+        {/* ── Pull quote card — floats up into hero ── */}
         {program.pullQuote && (
-          <figure className="lp-pullquote">
-            {program.pullQuote}
+          <figure className="pg-quote">
+            <blockquote className="pg-quote__text">{program.pullQuote}</blockquote>
             {program.pullQuoteSource && (
-              <cite className="lp-pullquote__cite">— {program.pullQuoteSource}</cite>
+              <figcaption className="pg-quote__source">~ {program.pullQuoteSource}</figcaption>
             )}
           </figure>
         )}
 
-        {/* Program description — Tiptap JSON rendered to HTML */}
+        {/* ── Program description ── */}
         {hasDescription && (
           <div className="prog-description" dangerouslySetInnerHTML={{ __html: descriptionHtml }} />
         )}
 
-        {/* Special notes */}
+        {/* ── Special notes callout ── */}
         {hasSpecialNotes && (
           <div className="pg-notes">
             <div className="prog-description" dangerouslySetInnerHTML={{ __html: specialNotesHtml }} />
           </div>
         )}
 
-        {/* Facilitators — plain text names from Postgres */}
+        {/* ── Details section ── */}
+        {hasDetails && (
+          <section className="pg-details-section">
+            <h2 className="pg-section-heading">Details:</h2>
+            {dateLabel && (
+              <div className="pg-detail-row">
+                <span className="pg-detail-row__icon" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                </span>
+                <span className="pg-detail-row__text">{dateLabel}</span>
+              </div>
+            )}
+            {timeLabel && (
+              <div className="pg-detail-row">
+                <span className="pg-detail-row__icon" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </span>
+                <span className="pg-detail-row__text">{timeLabel}</span>
+              </div>
+            )}
+            {(locationLabel || program.programFormat === "virtual") && (
+              <div className="pg-detail-row">
+                <span className="pg-detail-row__icon" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                </span>
+                <span className="pg-detail-row__text">
+                  {locationLabel}
+                  {location.link && (
+                    <a href={location.link} target="_blank" rel="noopener noreferrer" className="pg-detail-row__link"> ↗</a>
+                  )}
+                </span>
+              </div>
+            )}
+            {program.danaText && (
+              <div className="pg-detail-row">
+                <span className="pg-detail-row__icon" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                </span>
+                <span className="pg-detail-row__text">{program.danaText}</span>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* ── Facilitators section ── */}
         {hasFacilitators && (
-          <>
-            <hr className="lp-divider" />
-            <p className="lp-label">Facilitators</p>
+          <section className="pg-facilitators-section">
+            <h2 className="pg-section-heading">Facilitators:</h2>
             <div className="pg-facilitators">
               {program.teacherFacilitators.map((name, i) => (
                 <span key={i} className="pg-facilitator">{name}</span>
               ))}
             </div>
-          </>
+          </section>
+        )}
+
+        {/* ── Registration CTA card ── */}
+        {useBuiltInForm && (
+          <div className="pg-cta-card">
+            {registrationClosed ? (
+              <>
+                <h3 className="pg-cta-card__heading">Registration Closed</h3>
+                <p className="pg-cta-card__text">Registration for this program is now closed.</p>
+              </>
+            ) : existingRegistration?.donationStatus === "PENDING" ? (
+              <>
+                <h3 className="pg-cta-card__heading">Complete Your Dana</h3>
+                <p className="pg-cta-card__text">Your registration is confirmed. You can complete your dana offering below.</p>
+                <Link href={`/programs/${slug}/register`} className="pg-cta-card__btn">
+                  Complete Dana →
+                </Link>
+              </>
+            ) : existingRegistration?.status === "WAITLISTED" ? (
+              <>
+                <h3 className="pg-cta-card__heading">On the Waitlist</h3>
+                <p className="pg-cta-card__text">You&rsquo;re on the waitlist. We&rsquo;ll reach out if a spot opens up.</p>
+              </>
+            ) : existingRegistration ? (
+              <>
+                <h3 className="pg-cta-card__heading">You&rsquo;re Registered</h3>
+                <p className="pg-cta-card__text">You&rsquo;re all set for this program.</p>
+                {startIso && (() => {
+                  const rec = describeRecurrence(
+                    program.recurrenceFreq,
+                    program.recurrenceInterval,
+                    program.recurrenceDays,
+                    program.recurrenceCount,
+                  );
+                  return (
+                    <div className="pg-calendar-links">
+                      <a
+                        href={buildGoogleCalendarUrl({
+                          title: program.name,
+                          startDatetime: startIso,
+                          endDatetime: endIso,
+                          location: location.emailText ?? undefined,
+                          programSlug: slug,
+                          recurrenceFreq: program.recurrenceFreq,
+                          recurrenceInterval: program.recurrenceInterval,
+                          recurrenceDays: program.recurrenceDays,
+                          recurrenceCount: program.recurrenceCount,
+                        })}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="pg-calendar-link"
+                      >
+                        {rec.googleLabel
+                          ? `+ Google Calendar (${rec.googleLabel})`
+                          : `+ Google Calendar`}
+                      </a>
+                      <a
+                        href={buildIcsUrl(slug)}
+                        className="pg-calendar-link"
+                      >
+                        {rec.icsLabel
+                          ? `+ Apple / Outlook (${rec.icsLabel})`
+                          : `+ Apple / Outlook`}
+                      </a>
+                    </div>
+                  );
+                })()}
+              </>
+            ) : spotsRemaining === 0 ? (
+              <>
+                <h3 className="pg-cta-card__heading">Program Full</h3>
+                <p className="pg-cta-card__text">This program is fully booked — submitting will add you to the waitlist.</p>
+                <Link href={`/programs/${slug}/register`} className="pg-cta-card__btn">
+                  Join Waitlist →
+                </Link>
+              </>
+            ) : (
+              <>
+                <h3 className="pg-cta-card__heading">Register</h3>
+                <Link href={`/programs/${slug}/register`} className="pg-cta-card__btn">
+                  Register →
+                </Link>
+                {showLowSpots && (
+                  <p className="pg-capacity pg-capacity--low">
+                    {spotsRemaining} spot{spotsRemaining !== 1 ? "s" : ""} remaining.
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── No registration — open program CTA ── */}
+        {!useBuiltInForm && (
+          <div className="pg-cta-card">
+            <h3 className="pg-cta-card__heading">No Registration Required</h3>
+            <p className="pg-cta-card__text">
+              As a RIM community member, you have access to this offering.
+              A zoom link is accessible in your <Link href="/account/dashboard" className="pg-cta-card__link">dashboard</Link>.
+            </p>
+          </div>
         )}
 
       </div>
