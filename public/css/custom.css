@@ -1374,7 +1374,7 @@ h1, h2, h3, h4, h5, h6 {
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(18, 82, 116, 0.78);  /* --rim-blue at ~78% opacity */
+  background: rgba(18, 82, 116, 0.8);
   pointer-events: none;
 }
 
@@ -1444,11 +1444,13 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-serif);
   font-size: 21px;
   font-weight: 400;
-  font-style: italic;
+  font-style: normal;
   line-height: 1.6;
   color: var(--rim-text);
   margin: 0 0 12px;
   quotes: none;
+  border: none;
+  padding: 0;
 }
 
 .pg-quote__source {

@@ -122,7 +122,7 @@ export default async function ProgramDetailPage({
       {/* ── Hero header ── */}
       <header
         className="pg-hero"
-        style={program.programImage ? { backgroundImage: `url(${program.programImage})` } : undefined}
+        style={{ backgroundImage: `url(${program.programImage || "/images/Bodhi-Leaves.jpg"})` }}
       >
         <div className="pg-hero__inner">
           {program.category && (
