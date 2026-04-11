@@ -1365,7 +1365,7 @@ h1, h2, h3, h4, h5, h6 {
   background-size: cover;
   background-position: center 40%;
   background-repeat: no-repeat;
-  padding: 70px 24px 160px;
+  padding: 80px 24px 170px;
   text-align: center;
   position: relative;
 }
@@ -1389,23 +1389,23 @@ h1, h2, h3, h4, h5, h6 {
 .pg-hero__category {
   display: inline-block;
   font-family: var(--font-sans);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: #fff;
+  letter-spacing: 0.08em;
+  text-transform: none;
+  color: #333;
   text-decoration: none;
-  background: rgba(255, 255, 255, 0.2);
+  background: #fafafa;
   border: none;
   border-radius: 100px;
-  padding: 6px 18px;
-  margin-bottom: 16px;
+  padding: 6px 20px;
+  margin-bottom: 20px;
   transition: background 0.15s;
 }
 
 .pg-hero__category:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.3);
+  color: #333;
+  background: #fff;
 }
 
 .pg-hero__title {
@@ -6726,7 +6726,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 24px;
-  height: 90px;
+  height: 100px;
   gap: 8px;
 }
 
@@ -6740,8 +6740,8 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 }
 .nav__brand-name {
   font-family: var(--font-serif);
-  font-size: 19px;
-  font-weight: 500;
+  font-size: 20px;
+  font-weight: 400;
   color: var(--rim-text);
   line-height: 1.2;
 }
