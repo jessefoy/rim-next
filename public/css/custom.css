@@ -1364,7 +1364,7 @@ h1, h2, h3, h4, h5, h6 {
   background-size: cover;
   background-position: center 40%;
   background-repeat: no-repeat;
-  padding: 90px 24px 200px;
+  padding: 90px 24px 80px;
   text-align: center;
   position: relative;
 }
@@ -1397,7 +1397,7 @@ h1, h2, h3, h4, h5, h6 {
   border: 1px solid rgba(255, 255, 255, 0.45);
   border-radius: 100px;
   padding: 5px 16px;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
   transition: color 0.15s, border-color 0.15s;
 }
 
@@ -1412,7 +1412,7 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 400;
   line-height: 1.2;
   color: #fff;
-  margin: 0 0 16px;
+  margin: 0 0 10px;
 }
 
 .pg-hero__tagline {
@@ -1433,7 +1433,7 @@ h1, h2, h3, h4, h5, h6 {
   background: #fff;
   border-radius: 9px;
   padding: 35px 30px 30px;
-  margin: -160px auto 45px;
+  margin: -50px auto 45px;
   max-width: 700px;
   text-align: center;
   position: relative;
@@ -1468,14 +1468,15 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--rim-bg-accent);
   border-radius: 10px;
   padding: 30px 30px 25px;
-  margin-bottom: 52px;
+  margin-top: 5px;
+  margin-bottom: 15px;
 }
 
 /* ── Details section ──
    Heading + icon rows with dividers, matching old Webflow structure. */
 
 .pg-details-section {
-  margin-bottom: 48px;
+  margin-bottom: 15px;
 }
 
 .pg-section-heading {
@@ -1522,7 +1523,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .pg-facilitators-section {
   margin-top: 20px;
-  margin-bottom: 48px;
+  margin-bottom: 15px;
 }
 
 .pg-facilitator {
@@ -1960,9 +1961,9 @@ h1, h2, h3, h4, h5, h6 {
 @media screen and (max-width: 767px) {
   /* Reduce hero padding and card overlap on mobile —
      less room for the effect, smaller overlap still reads well */
-  .pg-hero          { padding: 60px 24px 140px; }
+  .pg-hero          { padding: 60px 24px 60px; }
   .pg-hero__title   { font-size: 32px; }
-  .pg-quote         { padding: 28px 24px 24px; margin-top: -100px; }
+  .pg-quote         { padding: 28px 24px 24px; margin-top: -40px; }
   .pg-quote__text   { font-size: 18px; }
   .pg-notes         { padding: 24px 20px; }
   .pg-cta-card      { padding: 24px 20px; }
@@ -15910,12 +15911,14 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 
 /* ── Content Output: program-description (prog-description) ──────────────── */
 /* Rich program info. Warm, readable, callout support. Separate from lp-body. */
-.prog-description { font-family: var(--font-sans); font-size: 18px; font-weight: 400; line-height: 1.7; color: var(--rim-text); margin-bottom: 40px; }
+.prog-description { font-family: var(--font-sans); font-size: 18px; font-weight: 400; line-height: 1.7; color: var(--rim-text); margin-bottom: 50px; }
 .prog-description p { margin: 0 0 1.6em; }
 .prog-description p:last-child { margin-bottom: 0; }
 .prog-description p:empty { display: none; }
-.prog-description h2 { font-family: var(--font-serif); font-size: 28px; font-weight: 400; color: var(--rim-text); line-height: 1.3; margin: 48px 0 16px; }
-.prog-description h3 { font-family: var(--font-serif); font-size: 22px; font-weight: 400; color: var(--rim-text); line-height: 1.3; margin: 36px 0 12px; }
+.prog-description h2 { font-family: var(--font-serif); font-size: 28px; font-weight: 400; color: var(--rim-text); line-height: 1.3; margin: 40px 0 15px; }
+.prog-description h2:first-child { margin-top: 0; }
+.prog-description h3 { font-family: var(--font-serif); font-size: 22px; font-weight: 400; color: var(--rim-text); line-height: 1.3; margin: 30px 0 12px; }
+.prog-description h3:first-child { margin-top: 0; }
 .prog-description ul, .prog-description ol { margin: 0 0 1.6em 1.6em; padding: 0; }
 .prog-description li { margin: 0.3em 0; }
 .prog-description blockquote { font-family: var(--font-serif); font-size: 20px; font-weight: 400; font-style: italic; line-height: 1.5; color: var(--rim-text); border-left: 3px solid var(--rim-mid); padding: 8px 0 8px 20px; margin: 1.6em 0; }
