@@ -1,0 +1,22 @@
+[
+  {
+    "id": "2026-04-11-001",
+    "title": "Member Program Detail Page",
+    "description": "Create an authenticated /account/programs/[slug] page that serves as a member's personal view of a program they're registered for or have access to. Replaces the current pattern where the dashboard links to the public marketing page. Should include: registration status, Zoom/join link, calendar links (Google/Apple), pending actions (complete dana, update info), program logistics (next session date/time, location). Future: announcements, materials, form updates, host info.",
+    "category": "Member Accounts",
+    "priority": "high",
+    "status": "open",
+    "addedAt": "2026-04-11",
+    "notes": "Dashboard currently links to public /programs/[slug] which is awkward for registered members. This page would be the inside-the-building view vs the storefront window."
+  },
+  {
+    "id": "2026-04-11-002",
+    "title": "Facilitator Profile Links",
+    "description": "Link facilitators on program detail pages to User records with photos and short bios. Currently facilitators are stored as String[] (plain text names) with no avatar or profile link. Requires: connecting facilitator names to User records, displaying teacher profile photos (60px circular), linking to public teacher profile pages where they exist.",
+    "category": "Programs & Sanity",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-04-11",
+    "notes": "Old Webflow site had circular photos next to facilitator names. Data model change needed — may link to existing teacherProfile records."
+  }
+]
