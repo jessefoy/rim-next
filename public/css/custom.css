@@ -29,7 +29,8 @@
   --color-alert-border: #F0C98A;
 
   /* Fonts */
-  --font-serif:       'Libre Baskerville', Baskerville, Georgia, serif;
+  --font-heading:     'quincy-cf', 'Quincycf', Georgia, serif;
+  --font-serif:       'quincy-cf', 'Quincycf', Georgia, serif;
   --font-sans:        'Open Sans', sans-serif;
   --font-source-sans: 'Source Sans 3', 'Open Sans', sans-serif;
 
@@ -1388,31 +1389,33 @@ h1, h2, h3, h4, h5, h6 {
 .pg-hero__category {
   display: inline-block;
   font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.85);
+  color: #fff;
   text-decoration: none;
-  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
   border-radius: 100px;
-  padding: 5px 16px;
+  padding: 6px 18px;
   margin-bottom: 16px;
-  transition: color 0.15s, border-color 0.15s;
+  transition: background 0.15s;
 }
 
 .pg-hero__category:hover {
   color: #fff;
-  border-color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .pg-hero__title {
   font-family: var(--font-serif);
-  font-size: 44px;
-  font-weight: 400;
-  line-height: 1.2;
+  font-size: 52px;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.5px;
   color: #fff;
-  margin: 0 0 10px;
+  margin: 0 0 12px;
 }
 
 .pg-hero__tagline {
@@ -1550,7 +1553,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .pg-cta-card__heading {
   font-family: var(--font-serif);
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 400;
   color: var(--rim-text);
   margin: 0 0 10px;
@@ -1962,7 +1965,7 @@ h1, h2, h3, h4, h5, h6 {
   /* Reduce hero padding and card overlap on mobile —
      less room for the effect, smaller overlap still reads well */
   .pg-hero          { padding: 60px 24px 130px; }
-  .pg-hero__title   { font-size: 32px; }
+  .pg-hero__title   { font-size: 36px; }
   .pg-quote         { padding: 28px 24px 24px; margin-top: -60px; }
   .pg-quote__text   { font-size: 18px; }
   .pg-notes         { padding: 24px 20px; }
@@ -6736,8 +6739,8 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   flex-shrink: 0;
 }
 .nav__brand-name {
-  font-family: 'Quincycf', sans-serif;
-  font-size: 17px;
+  font-family: var(--font-serif);
+  font-size: 19px;
   font-weight: 500;
   color: var(--rim-text);
   line-height: 1.2;
@@ -6754,7 +6757,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 /* Flat nav links */
 .nav__link {
   font-family: var(--font-sans);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
   color: var(--rim-text);
   text-decoration: none;
@@ -6774,7 +6777,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 
 .nav__dropdown-toggle {
   font-family: var(--font-sans);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
   color: var(--rim-text);
   background: none;

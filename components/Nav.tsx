@@ -49,7 +49,7 @@ export default function Nav() {
           <img
             src="/images/Rooted-In-Mindfulness-Logo.png"
             alt="Rooted In Mindfulness"
-            height={40}
+            height={45}
           />
           <span className="nav__brand-name">Rooted In Mindfulness</span>
         </Link>
