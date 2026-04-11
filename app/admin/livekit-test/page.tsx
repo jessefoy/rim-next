@@ -51,7 +51,7 @@ export default function LiveKitTestPage() {
     return (
       <div style={{ padding: 24 }}>
         <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: 14, color: "#6b6059" }}>
+          <span style={{ fontSize: 14, color: "#777" }}>
             Connected to <strong>{roomName}</strong>
           </span>
           <button
@@ -64,7 +64,7 @@ export default function LiveKitTestPage() {
             Leave Room
           </button>
         </div>
-        <div style={{ height: "calc(100vh - 160px)", borderRadius: 12, overflow: "hidden", border: "1px solid #e0ddd7" }}>
+        <div style={{ height: "calc(100vh - 160px)", borderRadius: 12, overflow: "hidden", border: "1px solid #ddd" }}>
           <VideoRoom token={token} wsUrl={wsUrl} onLeave={disconnect} />
         </div>
       </div>
@@ -76,11 +76,11 @@ export default function LiveKitTestPage() {
       <h2 style={{ fontFamily: "var(--font-serif)", fontSize: 22, fontWeight: 400, marginBottom: 8 }}>
         LiveKit Test
       </h2>
-      <p style={{ fontSize: 14, color: "#6b6059", marginBottom: 20 }}>
+      <p style={{ fontSize: 14, color: "#777", marginBottom: 20 }}>
         Open this page in two browser tabs to test video conferencing.
       </p>
       <div style={{ marginBottom: 16 }}>
-        <label style={{ display: "block", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#7a7068", marginBottom: 6 }}>
+        <label style={{ display: "block", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#888", marginBottom: 6 }}>
           Room Name
         </label>
         <input

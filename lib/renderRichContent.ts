@@ -114,7 +114,7 @@ function renderSingleBlock(block: any): string {
       const width = block.props?.previewWidth ? `width="${block.props.previewWidth}"` : ""
       const alignStyle = align === "center" ? "text-align:center" : align === "right" ? "text-align:right" : ""
       const imgTag = `<img src="${url}" alt="${alt}" ${width} style="max-width:100%;border-radius:4px" />`
-      const caption = block.props?.caption ? `<figcaption style="font-size:14px;color:#6b6059;margin-top:4px">${block.props.caption}</figcaption>` : ""
+      const caption = block.props?.caption ? `<figcaption style="font-size:14px;color:#777;margin-top:4px">${block.props.caption}</figcaption>` : ""
       return `<figure style="${alignStyle};margin:16px 0">${imgTag}${caption}</figure>${children}`
     }
     case "table": {

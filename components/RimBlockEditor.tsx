@@ -1140,7 +1140,7 @@ export default function RimBlockEditor({
       }
       /* ── Blockquote ── */
       .rim-block-editor .bn-block-content[data-content-type="quote"] {
-        border-left: 3px solid #ddd8d3 !important;
+        border-left: 3px solid #d5d5d5 !important;
         padding-left: 20px !important;
         color: var(--rim-text-muted) !important;
         font-style: italic !important;

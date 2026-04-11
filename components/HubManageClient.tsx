@@ -47,7 +47,7 @@ const STATUS_LABELS: Record<Assignment["status"], string> = {
   sub_needed: "Sub Needed",
 };
 const STATUS_COLORS: Record<Assignment["status"], string> = {
-  unclaimed: "#6b6059",
+  unclaimed: "#777",
   claimed: "#2d6a2d",
   sub_needed: "#7a4f00",
 };
@@ -539,7 +539,7 @@ export default function HubManageClient({ programs, hostUsers, initialAssignment
               <span className="hub-assign-program-row__name">{p.name}</span>
               <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                 {unclaimedCount > 0 && (
-                  <span style={{ fontSize: 11, color: "#6b6059", background: "var(--rim-bg-accent)", padding: "2px 8px", borderRadius: 10 }}>
+                  <span style={{ fontSize: 11, color: "#777", background: "var(--rim-bg-accent)", padding: "2px 8px", borderRadius: 10 }}>
                     {unclaimedCount} unclaimed
                   </span>
                 )}

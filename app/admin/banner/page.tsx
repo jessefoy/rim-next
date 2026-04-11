@@ -100,7 +100,7 @@ export default function AdminBannerPage() {
         </p>
       )}
 
-      <div style={{ borderTop: "1px solid #e8e3dd", paddingTop: 24 }}>
+      <div style={{ borderTop: "1px solid #ddd", paddingTop: 24 }}>
         <p style={{ fontSize: 11, fontFamily: "var(--font-sans)", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--rim-text-muted)", marginBottom: 6 }}>
           Post New Banner
         </p>

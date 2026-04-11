@@ -11985,7 +11985,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   border: none;
   border-radius: 5px;
   background: transparent;
-  color: #5a5450;
+  color: #666;
   cursor: pointer;
   transition: background 0.1s, color 0.1s;
   flex-shrink: 0;
@@ -12089,7 +12089,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   border-left: 3px solid #d5d5d5;
   margin: 0.6em 0;
   padding-left: 12px;
-  color: var(--rim-text-muted, #5a5450);
+  color: var(--rim-text-muted, #666);
   font-style: italic;
 }
 .re-content .tiptap strong { font-weight: 700; }
@@ -13442,7 +13442,7 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   font-family: var(--font-sans);
   transition: background 0.1s;
 }
-.si-thread-row:hover { background: #f6f3ef; }
+.si-thread-row:hover { background: #f0f0f0; }
 .si-thread-row--active { background: #f0ede8; }
 
 .si-thread-row__indicator {
@@ -15146,7 +15146,7 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   color: #3a607c;
 }
 .crs-toc__icon-wrap--text {
-  background: #ede9e4;
+  background: #eee;
   color: #8a7d74;
 }
 
@@ -17265,7 +17265,7 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
 
 .bear-more-divider {
   height: 1px;
-  background: #f0eeec;
+  background: #f0f0f0;
   margin: 4px 8px;
 }
 
@@ -17400,7 +17400,7 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
 .doc-body ul                    { list-style-type: disc; }
 .doc-body ol                    { list-style-type: decimal; }
 .doc-body li                    { margin-bottom: 6px; }
-.doc-body blockquote            { border-left: 3px solid #ddd8d3; padding-left: 20px; margin: 24px 0; color: var(--rim-text-muted); font-style: italic; }
+.doc-body blockquote            { border-left: 3px solid #d5d5d5; padding-left: 20px; margin: 24px 0; color: var(--rim-text-muted); font-style: italic; }
 .doc-body a                     { color: var(--rim-mid); text-decoration: underline; text-underline-offset: 2px; }
 .doc-body a:hover               { color: var(--rim-blue); }
 .doc-body strong                { font-weight: 800; }
@@ -17501,7 +17501,7 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
   gap: 12px;
 }
 .doc-banner--info {
-  background: #f0eeec;
+  background: #f0f0f0;
   color: var(--rim-text-muted);
 }
 .doc-banner--warning {
@@ -17541,7 +17541,7 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
   transition: background 0.12s, border-color 0.12s;
 }
 .doc-lock-btn:hover {
-  background: #f0eeec;
+  background: #f0f0f0;
 }
 .doc-lock-btn--locked {
   background: #fef3e2;

@@ -34,11 +34,11 @@ h2 { font-family: Georgia, 'Times New Roman', serif; font-size: 22px; font-weigh
 h3 { font-family: Georgia, 'Times New Roman', serif; font-size: 18px; font-weight: 400; line-height: 1.3; margin: 20px 0 8px; color: #135274; }
 ul, ol { margin: 0 0 16px; padding-left: 24px; }
 li { margin: 4px 0; font-size: 16px; line-height: 1.75; color: #333333; }
-blockquote { border-left: 3px solid #c8bcb2; margin: 16px 0; padding: 12px 16px; color: #56504a; }
-blockquote p { color: #56504a; margin: 0; }
+blockquote { border-left: 3px solid #d5d5d5; margin: 16px 0; padding: 12px 16px; color: #666; }
+blockquote p { color: #666; margin: 0; }
 a { color: #135274; text-decoration: none; }
 a:hover { text-decoration: underline; }
-hr { border: none; border-top: 1px solid #ede9e5; margin: 24px 0; }
+hr { border: none; border-top: 1px solid #eee; margin: 24px 0; }
 strong { font-weight: 700; }
 em { font-style: italic; }
 `;
@@ -56,7 +56,7 @@ export function wrapInEmailChrome(bodyHtml: string): string {
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
 </head>
 <body>
-  <div style="background:#f6f3f0;padding:40px 16px;">
+  <div style="background:#f5f5f5;padding:40px 16px;">
     <div style="max-width:600px;margin:0 auto;">
       <div style="background:#135274;padding:24px 36px;border-radius:4px 4px 0 0;">
         <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.8);">Rooted In Mindfulness</p>
@@ -64,8 +64,8 @@ export function wrapInEmailChrome(bodyHtml: string): string {
       <div style="background:#ffffff;padding:36px 36px 28px;">
         ${bodyHtml}
       </div>
-      <div style="background:#ffffff;padding:16px 36px 28px;border-top:1px solid #ede9e5;border-radius:0 0 4px 4px;">
-        <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">Rooted In Mindfulness &middot; Brookfield, WI &middot; <a href="https://rootedinmindfulness.org" style="color:#39607a;text-decoration:none;">rootedinmindfulness.org</a></p>
+      <div style="background:#ffffff;padding:16px 36px 28px;border-top:1px solid #eee;border-radius:0 0 4px 4px;">
+        <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#777;">Rooted In Mindfulness &middot; Brookfield, WI &middot; <a href="https://rootedinmindfulness.org" style="color:#39607a;text-decoration:none;">rootedinmindfulness.org</a></p>
       </div>
     </div>
   </div>
@@ -287,7 +287,7 @@ function buildApprovalHtml({ firstName, programTitle, programUrl, hasDana }: {
   firstName: string; programTitle: string; programUrl: string; hasDana: boolean;
 }): string {
   const danaSection = hasDana ? `
-    <div style="margin:28px 0 0;padding:20px 24px;background:#ede9e5;border-radius:4px;">
+    <div style="margin:28px 0 0;padding:20px 24px;background:#eee;border-radius:4px;">
       <p style="margin:0 0 14px;font-family:Georgia,'Times New Roman',serif;font-size:16px;
                 line-height:1.7;color:#333333;">
         This program includes a dana (generosity) practice. When you&rsquo;re ready,
@@ -313,7 +313,7 @@ function buildApprovalHtml({ firstName, programTitle, programUrl, hasDana }: {
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>Your spot is confirmed</title>
 </head>
-<body style="margin:0;padding:24px 0;background-color:#f6f3f0;font-family:Georgia,'Times New Roman',serif;">
+<body style="margin:0;padding:24px 0;background-color:#f5f5f5;font-family:Georgia,'Times New Roman',serif;">
   <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:6px;overflow:hidden;">
 
     <!-- Header -->
@@ -355,8 +355,8 @@ function buildApprovalHtml({ firstName, programTitle, programUrl, hasDana }: {
     </div>
 
     <!-- Footer -->
-    <div style="padding:20px 36px 28px;border-top:1px solid #ede9e5;">
-      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">
+    <div style="padding:20px 36px 28px;border-top:1px solid #eee;">
+      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#777;">
         Rooted In Mindfulness &middot; Brookfield, WI<br>
         Questions? Reply to this email or visit
         <a href="https://rootedinmindfulness.org" style="color:#39607a;text-decoration:none;">
@@ -407,7 +407,7 @@ function buildCancellationHtml({ registrantName, registrantEmail, programTitle, 
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>Registration cancelled</title>
 </head>
-<body style="margin:0;padding:24px 0;background-color:#f6f3f0;font-family:Georgia,'Times New Roman',serif;">
+<body style="margin:0;padding:24px 0;background-color:#f5f5f5;font-family:Georgia,'Times New Roman',serif;">
   <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:6px;overflow:hidden;">
 
     <!-- Header -->
@@ -428,19 +428,19 @@ function buildCancellationHtml({ registrantName, registrantEmail, programTitle, 
         A registration has been cancelled for <strong>${programTitle}</strong>.
       </p>
       <table role="presentation" cellpadding="0" cellspacing="0"
-             style="margin:0 0 28px;border-left:3px solid #c8bcb2;padding-left:16px;">
+             style="margin:0 0 28px;border-left:3px solid #d5d5d5;padding-left:16px;">
         <tr>
-          <td style="padding:3px 0;font-size:15px;color:#56504a;">
+          <td style="padding:3px 0;font-size:15px;color:#666;">
             <strong>Name:</strong> ${registrantName}
           </td>
         </tr>
         <tr>
-          <td style="padding:3px 0;font-size:15px;color:#56504a;">
+          <td style="padding:3px 0;font-size:15px;color:#666;">
             <strong>Email:</strong> ${registrantEmail}
           </td>
         </tr>
       </table>
-      <p style="margin:0 0 20px;font-size:15px;line-height:1.7;color:#56504a;font-family:Georgia,serif;">
+      <p style="margin:0 0 20px;font-size:15px;line-height:1.7;color:#666;font-family:Georgia,serif;">
         If there are waitlisted members, you may want to offer the spot to the next person.
       </p>
 
@@ -459,8 +459,8 @@ function buildCancellationHtml({ registrantName, registrantEmail, programTitle, 
     </div>
 
     <!-- Footer -->
-    <div style="padding:20px 36px 28px;border-top:1px solid #ede9e5;">
-      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">
+    <div style="padding:20px 36px 28px;border-top:1px solid #eee;">
+      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#777;">
         Rooted In Mindfulness &middot; Brookfield, WI
       </p>
     </div>
@@ -670,13 +670,13 @@ interface BuildParams {
 
 function buildHtml(p: BuildParams): string {
   const detailRows = [
-    p.dateText     ? `<tr><td style="padding:3px 0;font-size:15px;color:#56504a;">📅&nbsp; ${p.dateText}</td></tr>` : "",
-    p.locationText ? `<tr><td style="padding:3px 0;font-size:15px;color:#56504a;">📍&nbsp; ${p.locationText}</td></tr>` : "",
+    p.dateText     ? `<tr><td style="padding:3px 0;font-size:15px;color:#666;">📅&nbsp; ${p.dateText}</td></tr>` : "",
+    p.locationText ? `<tr><td style="padding:3px 0;font-size:15px;color:#666;">📍&nbsp; ${p.locationText}</td></tr>` : "",
   ].filter(Boolean).join("");
 
   const detailsBlock = detailRows
     ? `<table role="presentation" cellpadding="0" cellspacing="0"
-          style="margin:0 0 28px;border-left:3px solid #c8bcb2;padding-left:16px;">
+          style="margin:0 0 28px;border-left:3px solid #d5d5d5;padding-left:16px;">
         ${detailRows}
       </table>`
     : "";
@@ -684,7 +684,7 @@ function buildHtml(p: BuildParams): string {
   // Custom program message — only shown on confirmed (non-waitlisted) registrations
   const customMessageBlock =
     !p.isWaitlisted && p.confirmationMessageHtml
-      ? `<div style="margin:0 0 28px;padding:20px 24px;background:#f6f3f0;border-radius:4px;">
+      ? `<div style="margin:0 0 28px;padding:20px 24px;background:#f5f5f5;border-radius:4px;">
            ${p.confirmationMessageHtml}
          </div>`
       : "";
@@ -693,7 +693,7 @@ function buildHtml(p: BuildParams): string {
   const calendarLinksBlock =
     !p.isWaitlisted && p.googleCalendarUrl
       ? `<p style="margin:0 0 8px;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;
-                  letter-spacing:0.10em;text-transform:uppercase;color:#6b6059;">
+                  letter-spacing:0.10em;text-transform:uppercase;color:#777;">
            Add to calendar
          </p>
          <p style="margin:0 0 28px;">
@@ -740,7 +740,7 @@ function buildHtml(p: BuildParams): string {
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>${p.isWaitlisted ? "You're on the waitlist" : "Registration confirmed"}</title>
 </head>
-<body style="margin:0;padding:24px 0;background-color:#f6f3f0;font-family:Georgia,'Times New Roman',serif;">
+<body style="margin:0;padding:24px 0;background-color:#f5f5f5;font-family:Georgia,'Times New Roman',serif;">
   <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:6px;overflow:hidden;">
 
     <!-- Header -->
@@ -775,8 +775,8 @@ function buildHtml(p: BuildParams): string {
     </div>
 
     <!-- Footer -->
-    <div style="padding:20px 36px 28px;border-top:1px solid #ede9e5;">
-      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">
+    <div style="padding:20px 36px 28px;border-top:1px solid #eee;">
+      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#777;">
         Rooted In Mindfulness &middot; Brookfield, WI<br>
         Questions? Reply to this email or visit
         <a href="https://rootedinmindfulness.org" style="color:#39607a;text-decoration:none;">
@@ -856,7 +856,7 @@ function buildDanaReminderHtml({ firstName, programTitle, registerUrl }: {
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>A gentle reminder — your dana</title>
 </head>
-<body style="margin:0;padding:24px 0;background-color:#f6f3f0;font-family:Georgia,'Times New Roman',serif;">
+<body style="margin:0;padding:24px 0;background-color:#f5f5f5;font-family:Georgia,'Times New Roman',serif;">
   <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:6px;overflow:hidden;">
 
     <!-- Header -->
@@ -882,7 +882,7 @@ function buildDanaReminderHtml({ firstName, programTitle, registerUrl }: {
       </p>
 
       <!-- Dana CTA -->
-      <div style="margin:0 0 28px;padding:20px 24px;background:#ede9e5;border-radius:4px;">
+      <div style="margin:0 0 28px;padding:20px 24px;background:#eee;border-radius:4px;">
         <table role="presentation" cellpadding="0" cellspacing="0">
           <tr>
             <td style="border-radius:4px;background:#39607a;">
@@ -896,15 +896,15 @@ function buildDanaReminderHtml({ firstName, programTitle, registerUrl }: {
         </table>
       </div>
 
-      <p style="margin:0;font-size:15px;line-height:1.75;color:#6b6059;font-family:Georgia,serif;font-style:italic;">
+      <p style="margin:0;font-size:15px;line-height:1.75;color:#777;font-family:Georgia,serif;font-style:italic;">
         Dana is entirely optional — please only complete it if and when it feels right
         for you. Your participation is what matters most.
       </p>
     </div>
 
     <!-- Footer -->
-    <div style="padding:20px 36px 28px;border-top:1px solid #ede9e5;">
-      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">
+    <div style="padding:20px 36px 28px;border-top:1px solid #eee;">
+      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#777;">
         Rooted In Mindfulness &middot; Brookfield, WI<br>
         Questions? Reply to this email or visit
         <a href="https://rootedinmindfulness.org" style="color:#39607a;text-decoration:none;">
@@ -950,7 +950,7 @@ function buildEditRequestHtml({ firstName, programTitle, editUrl }: {
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>Update your responses</title>
 </head>
-<body style="margin:0;padding:24px 0;background-color:#f6f3f0;font-family:Georgia,'Times New Roman',serif;">
+<body style="margin:0;padding:24px 0;background-color:#f5f5f5;font-family:Georgia,'Times New Roman',serif;">
   <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:6px;overflow:hidden;">
 
     <!-- Header -->
@@ -988,14 +988,14 @@ function buildEditRequestHtml({ firstName, programTitle, editUrl }: {
         </tr>
       </table>
 
-      <p style="margin:0;font-size:14px;line-height:1.7;color:#6b6059;font-family:Arial,Helvetica,sans-serif;">
+      <p style="margin:0;font-size:14px;line-height:1.7;color:#777;font-family:Arial,Helvetica,sans-serif;">
         This link is unique to you and expires in 7 days. It can only be used once.
       </p>
     </div>
 
     <!-- Footer -->
-    <div style="padding:20px 36px 28px;border-top:1px solid #ede9e5;">
-      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">
+    <div style="padding:20px 36px 28px;border-top:1px solid #eee;">
+      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#777;">
         Rooted In Mindfulness &middot; Brookfield, WI<br>
         Questions? Reply to this email or visit
         <a href="https://rootedinmindfulness.org" style="color:#39607a;text-decoration:none;">
@@ -1040,7 +1040,7 @@ function buildResponsesUpdatedHtml({ registrantName, programTitle, volunteerUrl 
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>Responses updated</title>
 </head>
-<body style="margin:0;padding:24px 0;background-color:#f6f3f0;font-family:Georgia,'Times New Roman',serif;">
+<body style="margin:0;padding:24px 0;background-color:#f5f5f5;font-family:Georgia,'Times New Roman',serif;">
   <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:6px;overflow:hidden;">
 
     <!-- Header -->
@@ -1077,8 +1077,8 @@ function buildResponsesUpdatedHtml({ registrantName, programTitle, volunteerUrl 
     </div>
 
     <!-- Footer -->
-    <div style="padding:20px 36px 28px;border-top:1px solid #ede9e5;">
-      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">
+    <div style="padding:20px 36px 28px;border-top:1px solid #eee;">
+      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#777;">
         Rooted In Mindfulness &middot; Brookfield, WI
       </p>
     </div>
@@ -1154,8 +1154,8 @@ function buildRoleAssignmentHtml({
   return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>You're a registrar</title></head>
-<body style="margin:0;padding:0;background:#f6f3f0;font-family:'Open Sans',Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f6f3f0;padding:40px 16px;">
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:'Open Sans',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 16px;">
     <tr><td align="center">
       <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:4px;overflow:hidden;">
         <tr>
@@ -1186,13 +1186,13 @@ function buildRoleAssignmentHtml({
                 </td>
               </tr>
             </table>
-            <p style="margin:0;font-size:14px;line-height:1.75;color:#6b6059;font-family:'Open Sans',Arial,sans-serif;">
+            <p style="margin:0;font-size:14px;line-height:1.75;color:#777;font-family:'Open Sans',Arial,sans-serif;">
               If you have any questions, reply to this email or reach out directly. Welcome to the team.
             </p>
           </td>
         </tr>
         <tr>
-          <td style="padding:20px 36px;border-top:1px solid #ede9e5;">
+          <td style="padding:20px 36px;border-top:1px solid #eee;">
             <p style="margin:0;font-size:12px;color:#9b8e85;font-family:'Open Sans',Arial,sans-serif;">Rooted In Mindfulness &middot; Brookfield, WI</p>
           </td>
         </tr>
@@ -1329,8 +1329,8 @@ export async function sendHubConvNewThreadEmail(data: HubConvNewThreadEmailData)
   const greeting = firstName ? `Hi ${firstName},` : "Hello,";
 
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>New conversation</title></head>
-<body style="margin:0;padding:0;background:#f6f3f0;font-family:'Open Sans',Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f6f3f0;padding:40px 16px;">
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:'Open Sans',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 16px;">
 <tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:4px;overflow:hidden;">
 <tr><td style="background:#135274;padding:28px 36px;"><p style="margin:0;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:#c5d8e4;font-family:'Open Sans',Arial,sans-serif;">Rooted In Mindfulness · ${hubName}</p></td></tr>
 <tr><td style="padding:36px 36px 28px;">
@@ -1343,8 +1343,8 @@ export async function sendHubConvNewThreadEmail(data: HubConvNewThreadEmailData)
 <a href="${threadUrl}" style="font-family:'Open Sans',Arial,sans-serif;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">Read Thread →</a>
 </td></tr></table>
 </td></tr>
-<tr><td style="padding:20px 36px 28px;border-top:1px solid #ede9e5;">
-<p style="margin:0;font-family:'Open Sans',Arial,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">Rooted In Mindfulness · Brookfield, WI</p>
+<tr><td style="padding:20px 36px 28px;border-top:1px solid #eee;">
+<p style="margin:0;font-family:'Open Sans',Arial,sans-serif;font-size:12px;line-height:1.6;color:#777;">Rooted In Mindfulness · Brookfield, WI</p>
 </td></tr>
 </table></td></tr></table></body></html>`;
 
@@ -1378,8 +1378,8 @@ export async function sendHubConvNewReplyEmail(data: HubConvNewReplyEmailData): 
   const greeting = firstName ? `Hi ${firstName},` : "Hello,";
 
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>New reply</title></head>
-<body style="margin:0;padding:0;background:#f6f3f0;font-family:'Open Sans',Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f6f3f0;padding:40px 16px;">
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:'Open Sans',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 16px;">
 <tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:4px;overflow:hidden;">
 <tr><td style="background:#135274;padding:28px 36px;"><p style="margin:0;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:#c5d8e4;font-family:'Open Sans',Arial,sans-serif;">Rooted In Mindfulness · ${hubName}</p></td></tr>
 <tr><td style="padding:36px 36px 28px;">
@@ -1392,8 +1392,8 @@ export async function sendHubConvNewReplyEmail(data: HubConvNewReplyEmailData): 
 <a href="${threadUrl}" style="font-family:'Open Sans',Arial,sans-serif;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">Read Thread →</a>
 </td></tr></table>
 </td></tr>
-<tr><td style="padding:20px 36px 28px;border-top:1px solid #ede9e5;">
-<p style="margin:0;font-family:'Open Sans',Arial,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">Rooted In Mindfulness · Brookfield, WI</p>
+<tr><td style="padding:20px 36px 28px;border-top:1px solid #eee;">
+<p style="margin:0;font-family:'Open Sans',Arial,sans-serif;font-size:12px;line-height:1.6;color:#777;">Rooted In Mindfulness · Brookfield, WI</p>
 </td></tr>
 </table></td></tr></table></body></html>`;
 
@@ -1426,8 +1426,8 @@ export async function sendHubWelcomeEmail(data: HubWelcomeEmailData): Promise<vo
   const greeting = firstName ? `Hi ${firstName},` : "Hello,";
 
   const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Welcome</title></head>
-<body style="margin:0;padding:0;background:#f6f3f0;font-family:'Open Sans',Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f6f3f0;padding:40px 16px;">
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:'Open Sans',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 16px;">
 <tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:4px;overflow:hidden;">
 <tr><td style="background:#135274;padding:28px 36px;"><p style="margin:0;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:#c5d8e4;font-family:'Open Sans',Arial,sans-serif;">Rooted In Mindfulness</p></td></tr>
 <tr><td style="padding:36px 36px 28px;">
@@ -1440,8 +1440,8 @@ export async function sendHubWelcomeEmail(data: HubWelcomeEmailData): Promise<vo
 <a href="${hubUrl}" style="font-family:'Open Sans',Arial,sans-serif;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">Visit ${hubName} →</a>
 </td></tr></table>
 </td></tr>
-<tr><td style="padding:20px 36px 28px;border-top:1px solid #ede9e5;">
-<p style="margin:0;font-family:'Open Sans',Arial,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">Rooted In Mindfulness · Brookfield, WI</p>
+<tr><td style="padding:20px 36px 28px;border-top:1px solid #eee;">
+<p style="margin:0;font-family:'Open Sans',Arial,sans-serif;font-size:12px;line-height:1.6;color:#777;">Rooted In Mindfulness · Brookfield, WI</p>
 </td></tr>
 </table></td></tr></table></body></html>`;
 
@@ -1534,7 +1534,7 @@ function buildMagicLinkHtml({ url, isNewUser }: { url: string; isNewUser: boolea
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>${isNewUser ? "Welcome to Rooted In Mindfulness" : "Sign in to Rooted In Mindfulness"}</title>
 </head>
-<body style="margin:0;padding:24px 0;background-color:#f6f3f0;font-family:Georgia,'Times New Roman',serif;">
+<body style="margin:0;padding:24px 0;background-color:#f5f5f5;font-family:Georgia,'Times New Roman',serif;">
   <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:6px;overflow:hidden;">
 
     <!-- Header -->
@@ -1568,14 +1568,14 @@ function buildMagicLinkHtml({ url, isNewUser }: { url: string; isNewUser: boolea
       </table>
 
       <p style="margin:28px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;
-                line-height:1.6;color:#6b6059;">
+                line-height:1.6;color:#777;">
         If you didn&#39;t request this link, you can safely ignore this email.
       </p>
     </div>
 
     <!-- Footer -->
-    <div style="padding:20px 36px 28px;border-top:1px solid #ede9e5;">
-      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#6b6059;">
+    <div style="padding:20px 36px 28px;border-top:1px solid #eee;">
+      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#777;">
         Rooted In Mindfulness &middot; Brookfield, WI<br>
         <a href="https://rootedinmindfulness.org" style="color:#39607a;text-decoration:none;">
           rootedinmindfulness.org
