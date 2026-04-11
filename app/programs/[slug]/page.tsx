@@ -2,7 +2,6 @@ import { db } from "@/lib/db";
 import { auth } from "@/auth";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { buildGoogleCalendarUrl, buildIcsUrl, describeRecurrence } from "@/lib/calendarLinks";
 import { resolveLocation } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
 import { renderContentBodyAsync, renderFormattedTextAsync } from "@/lib/renderRichContentServer";
@@ -289,121 +288,6 @@ export default async function ProgramDetailPage({
           </section>
         )}
 
-        {/* ── Registration CTA card ── */}
-        {useBuiltInForm && (
-          <div className="pg-cta-card">
-            {registrationClosed ? (
-              <>
-                <h3 className="pg-cta-card__heading">Registration Closed</h3>
-                <p className="pg-cta-card__text">Registration for this program is now closed.</p>
-              </>
-            ) : existingRegistration?.donationStatus === "PENDING" ? (
-              <>
-                <h3 className="pg-cta-card__heading">Complete Your Dana</h3>
-                <p className="pg-cta-card__text">Your registration is confirmed. You can complete your dana offering below.</p>
-                <Link href={`/programs/${slug}/register`} className="pg-cta-card__btn">
-                  Complete Dana →
-                </Link>
-              </>
-            ) : existingRegistration?.status === "WAITLISTED" ? (
-              <>
-                <h3 className="pg-cta-card__heading">On the Waitlist</h3>
-                <p className="pg-cta-card__text">You&rsquo;re on the waitlist. We&rsquo;ll reach out if a spot opens up.</p>
-              </>
-            ) : existingRegistration ? (
-              <>
-                <h3 className="pg-cta-card__heading">You&rsquo;re Registered</h3>
-                <p className="pg-cta-card__text">You&rsquo;re all set for this program.</p>
-                {startIso && (() => {
-                  const rec = describeRecurrence(
-                    program.recurrenceFreq,
-                    program.recurrenceInterval,
-                    program.recurrenceDays,
-                    program.recurrenceCount,
-                  );
-                  return (
-                    <div className="pg-calendar-links">
-                      <a
-                        href={buildGoogleCalendarUrl({
-                          title: program.name,
-                          startDatetime: startIso,
-                          endDatetime: endIso,
-                          location: location.emailText ?? undefined,
-                          programSlug: slug,
-                          recurrenceFreq: program.recurrenceFreq,
-                          recurrenceInterval: program.recurrenceInterval,
-                          recurrenceDays: program.recurrenceDays,
-                          recurrenceCount: program.recurrenceCount,
-                        })}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="pg-calendar-link"
-                      >
-                        {rec.googleLabel
-                          ? `+ Google Calendar (${rec.googleLabel})`
-                          : `+ Google Calendar`}
-                      </a>
-                      <a
-                        href={buildIcsUrl(slug)}
-                        className="pg-calendar-link"
-                      >
-                        {rec.icsLabel
-                          ? `+ Apple / Outlook (${rec.icsLabel})`
-                          : `+ Apple / Outlook`}
-                      </a>
-                    </div>
-                  );
-                })()}
-              </>
-            ) : spotsRemaining === 0 ? (
-              <>
-                <h3 className="pg-cta-card__heading">Program Full</h3>
-                <p className="pg-cta-card__text">This program is fully booked — submitting will add you to the waitlist.</p>
-                <Link href={`/programs/${slug}/register`} className="pg-cta-card__btn">
-                  Join Waitlist →
-                </Link>
-              </>
-            ) : (
-              <>
-                <h3 className="pg-cta-card__heading">Register</h3>
-                <Link href={`/programs/${slug}/register`} className="pg-cta-card__btn">
-                  Register →
-                </Link>
-                {showLowSpots && (
-                  <p className="pg-capacity pg-capacity--low">
-                    {spotsRemaining} spot{spotsRemaining !== 1 ? "s" : ""} remaining.
-                  </p>
-                )}
-              </>
-            )}
-          </div>
-        )}
-
-        {/* ── Open program — warm hospitality card ── */}
-        {!useBuiltInForm && (
-          <div className="pg-cta-card">
-            <h3 className="pg-cta-card__heading">You&rsquo;re Welcome Here</h3>
-            {program.programFormat === "virtual" ? (
-              <p className="pg-cta-card__text">
-                No registration is needed. Community members can join online
-                through their <Link href="/account/dashboard" className="pg-cta-card__link">member dashboard</Link>.
-                {!session?.user && (
-                  <> New here? <Link href="/community-membership" className="pg-cta-card__link">Become a member</Link> to get started.</>
-                )}
-              </p>
-            ) : (
-              <p className="pg-cta-card__text">
-                No registration is needed. You&rsquo;re welcome to simply arrive in person.
-                {program.programFormat === "hybrid" && (
-                  <> To join online, community members can access the link through their <Link href="/account/dashboard" className="pg-cta-card__link">member dashboard</Link>.</>
-                )}
-                {!session?.user && (
-                  <> New here? <Link href="/community-membership" className="pg-cta-card__link">Become a member</Link> to access online offerings.</>
-                )}
-              </p>
-            )}
-          </div>
-        )}
 
       </div>
     </div>
