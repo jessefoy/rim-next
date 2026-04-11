@@ -78,8 +78,9 @@ export default async function ProgramDetailPage({
   const endIso = program.endDatetime?.toISOString() ?? null;
 
   // ── Time label (always a separate row) ──
-  // Format: "9:30-10:30 AM" or "9:30 AM" (if no end time)
-  const timeLabel = (() => {
+  // Priority: manual timeText override → computed from startDatetime/endDatetime
+  // Format: "9:30 AM-10:30 AM CT" — always show minutes, always show CT
+  const timeLabel = program.timeText || (() => {
     if (!program.startDatetime) return null;
     const TZ = "America/Chicago";
     const fmt = (d: Date) =>
@@ -88,13 +89,11 @@ export default async function ProgramDetailPage({
         hour: "numeric",
         minute: "2-digit",
         hour12: true,
-      })
-        .format(d)
-        .replace(/:00/, "");  // "9:00 AM" → "9 AM", "9:30 AM" stays
+      }).format(d);
     const start = fmt(program.startDatetime);
-    if (!program.endDatetime) return start;
+    if (!program.endDatetime) return `${start} CT`;
     const end = fmt(program.endDatetime);
-    return `${start}-${end}`;
+    return `${start}-${end} CT`;
   })();
 
   // ── Schedule label (day/recurrence pattern, no time) ──

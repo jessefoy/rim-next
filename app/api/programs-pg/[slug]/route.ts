@@ -102,6 +102,7 @@ export async function PUT(
   if (body.teacherFacilitators !== undefined) data.teacherFacilitators = body.teacherFacilitators;
   if (body.categoryId !== undefined) data.categoryId = body.categoryId || null;
   if (body.dateText !== undefined) data.dateText = body.dateText || null;
+  if (body.timeText !== undefined) data.timeText = body.timeText || null;
   if (body.programFormat !== undefined) data.programFormat = body.programFormat;
   if (body.venue !== undefined) data.venue = body.venue;
   if (body.locationText !== undefined) data.locationText = body.locationText || null;

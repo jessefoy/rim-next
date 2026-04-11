@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
       teacherFacilitators: body.teacherFacilitators ?? [],
       categoryId: body.categoryId || null,
       dateText: body.dateText || null,
+      timeText: body.timeText || null,
       programFormat: body.programFormat || "in-person",
       venue: body.venue || "at-rim",
       locationText: body.locationText || null,

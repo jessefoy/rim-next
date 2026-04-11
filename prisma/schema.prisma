@@ -298,6 +298,7 @@ model Program {
   categoryId          String?
   category            ProgramCategory? @relation(fields: [categoryId], references: [id])
   dateText            String?          // override display label; blank = auto-generated
+  timeText            String?          // override time display (e.g. "7-9 PM"); blank = auto from startDatetime
   programFormat       String           @default("in-person") // "in-person" | "virtual" | "hybrid"
   venue               String           @default("at-rim")    // "at-rim" | "other"
   locationText        String?

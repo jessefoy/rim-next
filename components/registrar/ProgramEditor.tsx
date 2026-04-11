@@ -43,6 +43,7 @@ export interface ProgramData {
   teacherFacilitators: string[];
   categoryId: string;
   dateText: string;
+  timeText: string;
   programFormat: string;
   venue: string;
   locationText: string;
@@ -141,6 +142,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
 
   const [categoryId, setCategoryId] = useState(initialData?.categoryId ?? "");
   const [dateText, setDateText] = useState(initialData?.dateText ?? "");
+  const [timeText, setTimeText] = useState(initialData?.timeText ?? "");
   const [programFormat, setProgramFormat] = useState(initialData?.programFormat ?? "in-person");
   const [venue, setVenue] = useState(initialData?.venue ?? "at-rim");
   const [locationText, setLocationText] = useState(initialData?.locationText ?? "");
@@ -265,6 +267,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
           : [],
         categoryId: categoryId || null,
         dateText,
+        timeText,
         programFormat,
         venue,
         locationText,
@@ -503,9 +506,15 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
             </label>
 
             <label className="pe-field">
-              <span className="pe-field__label">Date & Time Label (override)</span>
+              <span className="pe-field__label">Schedule Label (override)</span>
               <span className="pe-field__help">Leave blank to auto-generate from the schedule fields below.</span>
-              <input type="text" value={dateText} onChange={(e) => setDateText(e.target.value)} className="pe-input" />
+              <input type="text" value={dateText} onChange={(e) => setDateText(e.target.value)} className="pe-input" placeholder="e.g. Every Monday Morning" />
+            </label>
+
+            <label className="pe-field">
+              <span className="pe-field__label">Time Label</span>
+              <span className="pe-field__help">Displayed as a separate row in Details. Leave blank to auto-generate from Start/End times.</span>
+              <input type="text" value={timeText} onChange={(e) => setTimeText(e.target.value)} className="pe-input" placeholder="e.g. 7-9 PM" />
             </label>
 
             <fieldset className="pe-field">

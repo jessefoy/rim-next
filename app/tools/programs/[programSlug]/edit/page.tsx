@@ -50,6 +50,7 @@ export default async function EditProgramToolPage({
     teacherFacilitators: program.teacherFacilitators,
     categoryId: program.categoryId ?? "",
     dateText: program.dateText ?? "",
+    timeText: program.timeText ?? "",
     programFormat: program.programFormat,
     venue: program.venue,
     locationText: program.locationText ?? "",
