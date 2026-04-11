@@ -1522,30 +1522,31 @@ h1, h2, h3, h4, h5, h6 {
 
 .pg-detail-row__link:hover { color: var(--rim-blue); }
 
-/* CTA row in details — slightly different treatment */
-.pg-detail-row--cta { border-bottom: none; padding-top: 18px; }
+/* CTA row in details — same font as other detail rows */
+.pg-detail-row--cta { border-bottom: none; }
 
 .pg-detail-cta__link {
   font-family: var(--font-sans);
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 600;
+  line-height: 177%;
   color: var(--rim-blue);
   text-decoration: none;
-  transition: color 0.15s;
 }
-.pg-detail-cta__link:hover { color: var(--rim-mid); text-decoration: underline; }
+.pg-detail-cta__link:hover { text-decoration: underline; }
 
 .pg-detail-cta__status {
   font-family: var(--font-sans);
-  font-size: 15px;
+  font-size: 17px;
+  line-height: 177%;
   color: var(--rim-text-muted);
 }
 
 .pg-detail-cta__text {
   font-family: var(--font-sans);
-  font-size: 15px;
+  font-size: 17px;
+  line-height: 177%;
   color: var(--rim-text);
-  line-height: 1.6;
 }
 
 .pg-detail-cta__inline-link {

@@ -255,20 +255,20 @@ export default async function ProgramDetailPage({
                   program.programFormat === "virtual" ? (
                     session?.user ? (
                       <Link href="/account/dashboard" className="pg-detail-cta__link">
-                        Join via your Dashboard →
+                        Access Zoom Link in Dashboard →
                       </Link>
                     ) : (
-                      <Link href="/community-membership" className="pg-detail-cta__link">
-                        Become a Member to Join Online →
-                      </Link>
+                      <span className="pg-detail-cta__text">
+                        Members access Zoom via <Link href="/community-membership" className="pg-detail-cta__inline-link">member dashboard</Link>
+                      </span>
                     )
                   ) : session?.user ? (
                     <span className="pg-detail-cta__text">
-                      In person: simply arrive · Online: <Link href="/account/dashboard" className="pg-detail-cta__inline-link">via Dashboard</Link>
+                      Simply arrive in person · <Link href="/account/dashboard" className="pg-detail-cta__inline-link">Zoom link in dashboard</Link>
                     </span>
                   ) : (
                     <span className="pg-detail-cta__text">
-                      In person: simply arrive · Online: <Link href="/community-membership" className="pg-detail-cta__inline-link">become a member</Link>
+                      Simply arrive in person · Members join online via <Link href="/community-membership" className="pg-detail-cta__inline-link">dashboard</Link>
                     </span>
                   )
                 )}
