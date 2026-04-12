@@ -7092,8 +7092,8 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   font-weight: 700;
   letter-spacing: 0.08em;
   color: #fff;
-  background: var(--rim-mid);
-  padding: 7px 16px;
+  background: #c23b3b;
+  padding: 8px 18px;
   border-radius: 9999px;
   text-decoration: none;
   white-space: nowrap;
@@ -7101,7 +7101,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   flex-shrink: 0;
   transition: background 0.15s;
 }
-.nav__donate:hover { background: var(--rim-blue); }
+.nav__donate:hover { background: #a83232; }
 
 /* Hamburger button (hidden on desktop) */
 .nav__hamburger {
