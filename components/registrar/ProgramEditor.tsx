@@ -129,7 +129,7 @@ function CategoryOrderInline({ categories: initial }: { categories: Category[] }
   }
 
   async function deleteCategory(id: string, name: string) {
-    if (!confirm(`Delete "${name}"? Programs in this category will become uncategorized.`)) return;
+    if (!confirm(`Delete "${name}"?`)) return;
     setSaving(true);
     try {
       const res = await fetch("/api/programs-pg/categories", {
@@ -139,6 +139,9 @@ function CategoryOrderInline({ categories: initial }: { categories: Category[] }
       });
       if (res.ok) {
         setItems(items.filter(c => c.id !== id));
+      } else {
+        const data = await res.json();
+        alert(data.error || "Could not delete category.");
       }
     } catch {}
     finally { setSaving(false); }

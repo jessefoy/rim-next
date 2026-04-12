@@ -50,9 +50,14 @@ export async function DELETE(request: NextRequest) {
   const { id } = await request.json();
   if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });
 
-  // Reassign any programs in this category to null before deleting
-  await db.program.updateMany({ where: { categoryId: id }, data: { categoryId: null } });
-  await db.programCategory.delete({ where: { id } });
+  // Check if any programs are assigned to this category
+  const programCount = await db.program.count({ where: { categoryId: id, archivedAt: null } });
+  if (programCount > 0) {
+    return NextResponse.json({
+      error: `This category has ${programCount} program${programCount !== 1 ? "s" : ""} assigned to it. Reassign them to another category first.`,
+    }, { status: 409 });
+  }
 
+  await db.programCategory.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }
