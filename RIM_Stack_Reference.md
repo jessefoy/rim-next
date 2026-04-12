@@ -188,7 +188,8 @@ All set in Vercel. Pull locally with `npx vercel env pull .env.local`.
 app/
   account/
     dashboard/        member home
-    programs/         my registrations
+    programs/         my registrations list
+    programs/[slug]/  member program detail (authenticated — status, join, calendar, dana)
     hub/[slug]/       Multi-hub volunteer workspaces (conversations, tasks, documents, members)
     hub/[slug]/programs/  Registrar Hub stakeholder view (read-only headcount)
     welcome/          onboarding
@@ -196,6 +197,7 @@ app/
   tools/
     learning/         Course Manager — Series + Lessons (TEACHER | ADMIN) — extracted from hub
     programs/         Program Manager (REGISTRAR | ADMIN) — extracted from hub
+    programs/categories/  Category ordering (standalone view; also in ProgramEditor Categories tab)
     inbox/            Support Inbox + Settings (SUPPORT | ADMIN) — extracted from hub
     schedule/         Host Schedule — mini-cal + card list (HOST | HOST_MANAGER | ADMIN) — extracted from hub
   admin/
