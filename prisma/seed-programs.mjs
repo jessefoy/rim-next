@@ -448,37 +448,37 @@ export async function seedPrograms(db) {
     p => !keepSlugs.includes(p.slug) && !PRESERVE_NAMES.some(n => p.name.toLowerCase().includes(n))
   );
 
-  if (toRemove.length > 0) {
-    for (const prog of toRemove) {
-      // Get the program ID for FK cleanup
+  for (const prog of toRemove) {
+    try {
       const full = await db.program.findUnique({ where: { slug: prog.slug }, select: { id: true } });
       if (!full) continue;
 
-      // Delete in FK-safe order (deepest dependencies first)
-      // SubClaim → SubRequest → HostAssignment (FK chain)
-      const assignments = await db.hostAssignment.findMany({ where: { programSlug: prog.slug }, select: { id: true } });
-      if (assignments.length > 0) {
-        const assignmentIds = assignments.map(a => a.id);
-        const subRequests = await db.subRequest.findMany({ where: { assignmentId: { in: assignmentIds } }, select: { id: true } });
-        if (subRequests.length > 0) {
-          await db.subClaim.deleteMany({ where: { requestId: { in: subRequests.map(r => r.id) } } });
-          await db.subRequest.deleteMany({ where: { assignmentId: { in: assignmentIds } } });
-        }
-        await db.hostAssignment.deleteMany({ where: { programSlug: prog.slug } });
-      }
+      // Delete ALL possible FK-dependent records using raw SQL for reliability
+      const pid = full.id;
+      const pslug = prog.slug;
 
-      // Session records (denormalized slug, no FK but tidy up)
-      await db.sessionCoHostReport.deleteMany({ where: { programSlug: prog.slug } });
-      await db.sessionCoHost.deleteMany({ where: { programSlug: prog.slug } });
-      await db.sessionReport.deleteMany({ where: { programSlug: prog.slug } });
+      // SubClaim → SubRequest → HostAssignment chain
+      await db.$executeRawUnsafe(`DELETE FROM sub_claims WHERE "requestId" IN (SELECT id FROM sub_requests WHERE "assignmentId" IN (SELECT id FROM host_assignments WHERE "programSlug" = $1))`, pslug);
+      await db.$executeRawUnsafe(`DELETE FROM sub_requests WHERE "assignmentId" IN (SELECT id FROM host_assignments WHERE "programSlug" = $1)`, pslug);
+      await db.$executeRawUnsafe(`DELETE FROM host_assignments WHERE "programSlug" = $1`, pslug);
 
-      // Direct FK references on programId
-      await db.registration.deleteMany({ where: { programId: full.id } });
-      await db.sessionAttendance.deleteMany({ where: { programId: full.id } });
+      // Session records
+      await db.$executeRawUnsafe(`DELETE FROM session_cohost_reports WHERE "programSlug" = $1`, pslug);
+      await db.$executeRawUnsafe(`DELETE FROM session_cohosts WHERE "programSlug" = $1`, pslug);
+      await db.$executeRawUnsafe(`DELETE FROM session_reports WHERE "programSlug" = $1`, pslug);
+      await db.$executeRawUnsafe(`DELETE FROM session_attendance WHERE "programId" = $1`, pid);
 
-      // Delete the program
-      await db.program.delete({ where: { slug: prog.slug } });
-      console.log(`    Deleted "${prog.name}" and related records.`);
+      // Registrations
+      await db.$executeRawUnsafe(`DELETE FROM registrations WHERE "programId" = $1`, pid);
+
+      // ProgramCourse (should cascade, but be safe)
+      await db.$executeRawUnsafe(`DELETE FROM program_courses WHERE "programId" = $1`, pid);
+
+      // Finally delete the program
+      await db.program.delete({ where: { slug: pslug } });
+      console.log(`    Deleted "${prog.name}" and all related records.`);
+    } catch (err) {
+      console.error(`    ⚠ Could not delete "${prog.name}": ${err.message}`);
     }
   }
 
