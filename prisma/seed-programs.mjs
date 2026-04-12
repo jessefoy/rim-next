@@ -8,17 +8,24 @@
  */
 
 // ── BlockNote JSON helpers ──────────────────────────────────────────────────────
+// Every block needs a unique `id` for isBlockNoteJSON() to recognize the format.
+
+let _id = 0;
+const uid = () => `seed-${++_id}`;
 
 /** Plain paragraph */
 const p = (...parts) => ({
+  id: uid(),
   type: "paragraph",
+  props: {},
   content: parts.flat().map(part =>
-    typeof part === "string" ? { type: "text", text: part } : part
+    typeof part === "string" ? { type: "text", text: part, styles: {} } : part
   ),
+  children: [],
 });
 
 /** Empty paragraph (spacer) */
-const sp = () => ({ type: "paragraph", content: [] });
+const sp = () => ({ id: uid(), type: "paragraph", props: {}, content: [], children: [] });
 
 /** Bold inline text */
 const b = (text) => ({ type: "text", text, styles: { bold: true } });
@@ -27,21 +34,26 @@ const b = (text) => ({ type: "text", text, styles: { bold: true } });
 const i = (text) => ({ type: "text", text, styles: { italic: true } });
 
 /** Regular inline text */
-const t = (text) => ({ type: "text", text });
+const t = (text) => ({ type: "text", text, styles: {} });
 
 /** Heading block */
 const h = (level, text) => ({
+  id: uid(),
   type: "heading",
   props: { level },
-  content: [{ type: "text", text }],
+  content: [{ type: "text", text, styles: {} }],
+  children: [],
 });
 
 /** Bullet list item */
 const li = (...parts) => ({
+  id: uid(),
   type: "bulletListItem",
+  props: {},
   content: parts.flat().map(part =>
-    typeof part === "string" ? { type: "text", text: part } : part
+    typeof part === "string" ? { type: "text", text: part, styles: {} } : part
   ),
+  children: [],
 });
 
 // ── Categories ──────────────────────────────────────────────────────────────────

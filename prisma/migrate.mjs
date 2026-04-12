@@ -56,7 +56,7 @@ async function main() {
   // One-time program seed — check flag to avoid re-running
   const seedFlag = await db.$queryRawUnsafe(`
     SELECT column_name FROM information_schema.columns
-    WHERE table_name = '_migration_flags' AND column_name = 'seed_programs_v3'
+    WHERE table_name = '_migration_flags' AND column_name = 'seed_programs_v4'
   `).catch(() => []);
 
   // Create flag table if missing, then check
@@ -65,12 +65,12 @@ async function main() {
   `).catch(() => {});
 
   const applied = await db.$queryRawUnsafe(`
-    SELECT name FROM "_migration_flags" WHERE name = 'seed_programs_v3'
+    SELECT name FROM "_migration_flags" WHERE name = 'seed_programs_v4'
   `).catch(() => []);
 
   if (applied.length === 0) {
     await seedPrograms(db);
-    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_programs_v3')`);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_programs_v4')`);
     console.log("  ✔ Program seed applied.");
   } else {
     console.log("  ⏭ Program seed already applied.");
