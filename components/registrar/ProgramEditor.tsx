@@ -86,7 +86,45 @@ interface Props {
   categories: Category[];
 }
 
-const TABS = ["Content", "Schedule", "Registration", "Dana", "Dashboard", "Visibility"] as const;
+/* ── Inline category ordering ── */
+function CategoryOrderInline({ categories: initial }: { categories: Category[] }) {
+  const [items, setItems] = useState(initial);
+  const [saving, setSaving] = useState(false);
+
+  async function move(index: number, direction: "up" | "down") {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= items.length) return;
+    const next = [...items];
+    [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+    setItems(next);
+    setSaving(true);
+    try {
+      await fetch("/api/programs-pg/categories/reorder", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderedIds: next.map((c) => c.id) }),
+      });
+    } catch { setItems(items); }
+    finally { setSaving(false); }
+  }
+
+  return (
+    <div className="catord__list" style={{ marginTop: 8 }}>
+      {items.map((cat, i) => (
+        <div key={cat.id} className="catord__row">
+          <div className="catord__arrows">
+            <button type="button" className="catord__arrow" disabled={i === 0 || saving} onClick={() => move(i, "up")}>↑</button>
+            <button type="button" className="catord__arrow" disabled={i === items.length - 1 || saving} onClick={() => move(i, "down")}>↓</button>
+          </div>
+          <span className="catord__name">{cat.name}</span>
+        </div>
+      ))}
+      {saving && <span className="catord__saving">Saving...</span>}
+    </div>
+  );
+}
+
+const TABS = ["Content", "Schedule", "Categories", "Registration", "Dana", "Dashboard", "Visibility"] as const;
 type Tab = (typeof TABS)[number];
 
 const DAY_OPTIONS = [
@@ -496,16 +534,6 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
         {tab === "Schedule" && (
           <div className="pe-card"><div className="pe-form">
             <label className="pe-field">
-              <span className="pe-field__label">Category</span>
-              <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="pe-select">
-                <option value="">— None —</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </label>
-
-            <label className="pe-field">
               <span className="pe-field__label">Schedule Label (override)</span>
               <span className="pe-field__help">Leave blank to auto-generate from the schedule fields below.</span>
               <input type="text" value={dateText} onChange={(e) => setDateText(e.target.value)} className="pe-input" placeholder="e.g. Every Monday Morning" />
@@ -637,7 +665,31 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
-           TAB 3 — Registration
+           TAB — Categories
+           ══════════════════════════════════════════════════════════════════ */}
+        {tab === "Categories" && (
+          <div className="pe-card"><div className="pe-form">
+            <label className="pe-field">
+              <span className="pe-field__label">Program Category</span>
+              <span className="pe-field__help">Assign this program to a category on the programs page.</span>
+              <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="pe-select">
+                <option value="">— None —</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </label>
+
+            <div className="pe-field">
+              <span className="pe-field__label">Category Display Order</span>
+              <span className="pe-field__help">Arrange the order categories appear on the programs page.</span>
+              <CategoryOrderInline categories={categories} />
+            </div>
+          </div></div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════════
+           TAB — Registration
            ══════════════════════════════════════════════════════════════════ */}
         {tab === "Registration" && (
           <div className="pe-card"><div className="pe-form">

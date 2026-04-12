@@ -24,7 +24,7 @@ export default async function EditProgramToolPage({
 
   const [program, categories] = await Promise.all([
     db.program.findUnique({ where: { slug: programSlug } }),
-    db.programCategory.findMany({ orderBy: { name: "asc" } }),
+    db.programCategory.findMany({ orderBy: { sortOrder: "asc" } }),
   ]);
 
   if (!program) {

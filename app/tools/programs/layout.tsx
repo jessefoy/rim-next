@@ -46,15 +46,7 @@ export default async function ProgramsToolLayout({
   }
 
   return (
-    <ToolsProvider value={{
-      toolName: "Programs",
-      backHref,
-      backLabel,
-      subNav: [
-        { label: "Programs", href: "/tools/programs" },
-        { label: "Categories", href: "/tools/programs/categories" },
-      ],
-    }}>
+    <ToolsProvider value={{ toolName: "Programs", backHref, backLabel }}>
       <ToolsNav />
       <div className="tools-content">
         {children}

@@ -16,7 +16,7 @@ export default async function NewProgramToolPage() {
   const session = await auth();
   if (!session) redirect("/login");
 
-  const categories = await db.programCategory.findMany({ orderBy: { name: "asc" } });
+  const categories = await db.programCategory.findMany({ orderBy: { sortOrder: "asc" } });
 
   return (
     <div className="vol-page">
