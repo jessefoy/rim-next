@@ -6,6 +6,7 @@
  */
 
 import { PrismaClient } from "@prisma/client";
+import { seedPrograms } from "./seed-programs.mjs";
 
 const db = new PrismaClient();
 
@@ -51,6 +52,30 @@ async function main() {
   for (const m of migrations) {
     await m.run();
   }
+
+  // One-time program seed — check flag to avoid re-running
+  const seedFlag = await db.$queryRawUnsafe(`
+    SELECT column_name FROM information_schema.columns
+    WHERE table_name = '_migration_flags' AND column_name = 'seed_programs_v1'
+  `).catch(() => []);
+
+  // Create flag table if missing, then check
+  await db.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
+  `).catch(() => {});
+
+  const applied = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'seed_programs_v1'
+  `).catch(() => []);
+
+  if (applied.length === 0) {
+    await seedPrograms(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_programs_v1')`);
+    console.log("  ✔ Program seed applied.");
+  } else {
+    console.log("  ⏭ Program seed already applied.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }
