@@ -403,7 +403,7 @@ export async function seedPrograms(db) {
     const data = {
       ...fields,
       categoryId: categoryMap[categorySlug] ?? null,
-      description: JSON.stringify(description),
+      description: description,
     };
 
     const existing = await db.program.findUnique({ where: { slug } });
