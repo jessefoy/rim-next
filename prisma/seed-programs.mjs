@@ -443,14 +443,27 @@ export async function seedPrograms(db) {
       const full = await db.program.findUnique({ where: { slug: prog.slug }, select: { id: true } });
       if (!full) continue;
 
-      // Delete FK-constrained records first
+      // Delete in FK-safe order (deepest dependencies first)
+      // SubClaim → SubRequest → HostAssignment (FK chain)
+      const assignments = await db.hostAssignment.findMany({ where: { programSlug: prog.slug }, select: { id: true } });
+      if (assignments.length > 0) {
+        const assignmentIds = assignments.map(a => a.id);
+        const subRequests = await db.subRequest.findMany({ where: { assignmentId: { in: assignmentIds } }, select: { id: true } });
+        if (subRequests.length > 0) {
+          await db.subClaim.deleteMany({ where: { requestId: { in: subRequests.map(r => r.id) } } });
+          await db.subRequest.deleteMany({ where: { assignmentId: { in: assignmentIds } } });
+        }
+        await db.hostAssignment.deleteMany({ where: { programSlug: prog.slug } });
+      }
+
+      // Session records (denormalized slug, no FK but tidy up)
+      await db.sessionCoHostReport.deleteMany({ where: { programSlug: prog.slug } });
+      await db.sessionCoHost.deleteMany({ where: { programSlug: prog.slug } });
+      await db.sessionReport.deleteMany({ where: { programSlug: prog.slug } });
+
+      // Direct FK references on programId
       await db.registration.deleteMany({ where: { programId: full.id } });
       await db.sessionAttendance.deleteMany({ where: { programId: full.id } });
-
-      // Clean up denormalized slug-based records (no FK constraint, but tidy)
-      await db.hostAssignment.deleteMany({ where: { programSlug: prog.slug } });
-      await db.subRequest.deleteMany({ where: { programSlug: prog.slug } });
-      await db.sessionReport.deleteMany({ where: { programSlug: prog.slug } });
 
       // Delete the program
       await db.program.delete({ where: { slug: prog.slug } });
