@@ -115,7 +115,7 @@ export default async function MyProgramsPage() {
                       return (
                         <div key={r.id} className="mr-card">
                           <div className="mr-card__header">
-                            <Link href={`/programs/${r.programSlug}`} className="mr-card__title">
+                            <Link href={`/account/programs/${r.programSlug}`} className="mr-card__title">
                               {r.programTitle}
                             </Link>
                             <StatusBadge status={r.status} />
@@ -162,7 +162,7 @@ export default async function MyProgramsPage() {
                     {past.map((r) => (
                       <div key={r.id} className="mr-card mr-card--muted">
                         <div className="mr-card__header">
-                          <Link href={`/programs/${r.programSlug}`} className="mr-card__title">
+                          <Link href={`/account/programs/${r.programSlug}`} className="mr-card__title">
                             {r.programTitle}
                           </Link>
                           <StatusBadge status={r.status} />

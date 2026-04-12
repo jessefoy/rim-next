@@ -355,7 +355,7 @@ export default async function DashboardPage() {
                 const startDt = r.program?.startDatetime;
                 const hasPendingDana = r.donationStatus === "PENDING";
                 return (
-                  <Link key={r.id} href={`/programs/${r.programSlug}`} className="db2-upcoming__item">
+                  <Link key={r.id} href={`/account/programs/${r.programSlug}`} className="db2-upcoming__item">
                     {startDt && (() => {
                       const d = new Date(startDt);
                       const mon = d.toLocaleDateString("en-US", { timeZone: "America/Chicago", month: "short" }).toUpperCase();
