@@ -86,10 +86,12 @@ interface Props {
   categories: Category[];
 }
 
-/* ── Inline category ordering ── */
+/* ── Inline category ordering with add/delete ── */
 function CategoryOrderInline({ categories: initial }: { categories: Category[] }) {
   const [items, setItems] = useState(initial);
   const [saving, setSaving] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [adding, setAdding] = useState(false);
 
   async function move(index: number, direction: "up" | "down") {
     const targetIndex = direction === "up" ? index - 1 : index + 1;
@@ -108,17 +110,68 @@ function CategoryOrderInline({ categories: initial }: { categories: Category[] }
     finally { setSaving(false); }
   }
 
+  async function addCategory() {
+    if (!newName.trim() || adding) return;
+    setAdding(true);
+    try {
+      const res = await fetch("/api/programs-pg/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName.trim() }),
+      });
+      if (res.ok) {
+        const cat = await res.json();
+        setItems([...items, { id: cat.id, slug: cat.slug, name: cat.name }]);
+        setNewName("");
+      }
+    } catch {}
+    finally { setAdding(false); }
+  }
+
+  async function deleteCategory(id: string, name: string) {
+    if (!confirm(`Delete "${name}"? Programs in this category will become uncategorized.`)) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/programs-pg/categories", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      if (res.ok) {
+        setItems(items.filter(c => c.id !== id));
+      }
+    } catch {}
+    finally { setSaving(false); }
+  }
+
   return (
-    <div className="catord__list" style={{ marginTop: 8 }}>
-      {items.map((cat, i) => (
-        <div key={cat.id} className="catord__row">
-          <div className="catord__arrows">
-            <button type="button" className="catord__arrow" disabled={i === 0 || saving} onClick={() => move(i, "up")}>↑</button>
-            <button type="button" className="catord__arrow" disabled={i === items.length - 1 || saving} onClick={() => move(i, "down")}>↓</button>
+    <div style={{ marginTop: 8 }}>
+      <div className="catord__list">
+        {items.map((cat, i) => (
+          <div key={cat.id} className="catord__row">
+            <div className="catord__arrows">
+              <button type="button" className="catord__arrow" disabled={i === 0 || saving} onClick={() => move(i, "up")}>↑</button>
+              <button type="button" className="catord__arrow" disabled={i === items.length - 1 || saving} onClick={() => move(i, "down")}>↓</button>
+            </div>
+            <span className="catord__name">{cat.name}</span>
+            <button type="button" className="catord__delete" onClick={() => deleteCategory(cat.id, cat.name)} disabled={saving}>×</button>
           </div>
-          <span className="catord__name">{cat.name}</span>
-        </div>
-      ))}
+        ))}
+      </div>
+      <div className="catord__add">
+        <input
+          type="text"
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCategory())}
+          placeholder="New category name"
+          className="catord__add-input"
+          disabled={adding}
+        />
+        <button type="button" onClick={addCategory} disabled={adding || !newName.trim()} className="catord__add-btn">
+          {adding ? "Adding..." : "+ Add"}
+        </button>
+      </div>
       {saving && <span className="catord__saving">Saving...</span>}
     </div>
   );

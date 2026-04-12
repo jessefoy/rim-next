@@ -13387,7 +13387,54 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   font-size: 13px;
   color: var(--rim-text-muted);
 }
+.catord__delete {
+  margin-left: auto;
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: var(--rim-text-muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: color 0.1s, background 0.1s;
+}
+.catord__delete:hover { color: #c23b3b; background: #fef2f2; }
+.catord__delete:disabled { opacity: 0.3; cursor: default; }
+
+.catord__add {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.catord__add-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--rim-rule);
+  border-radius: 6px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--rim-text);
+  background: #fff;
+}
+.catord__add-input:focus { border-color: var(--rim-mid); outline: none; }
+.catord__add-btn {
+  padding: 8px 14px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rim-blue);
+  background: none;
+  border: 1px solid var(--rim-blue);
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.1s;
+}
+.catord__add-btn:hover:not(:disabled) { background: #f0f4f7; }
+.catord__add-btn:disabled { opacity: 0.4; cursor: default; }
+
 .catord__saving {
+  display: block;
   font-family: var(--font-sans);
   font-size: 13px;
   color: var(--rim-text-muted);

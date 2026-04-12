@@ -408,6 +408,17 @@ export async function seedPrograms(db) {
   }
   console.log(`    ${CATEGORIES.length} categories upserted.`);
 
+  // Remove old categories not in the seed list
+  const keepCategorySlugs = CATEGORIES.map(c => c.slug);
+  const allCategories = await db.programCategory.findMany({ select: { id: true, slug: true, name: true } });
+  const oldCategories = allCategories.filter(c => !keepCategorySlugs.includes(c.slug));
+  for (const old of oldCategories) {
+    // Reassign any programs on this old category to null
+    await db.program.updateMany({ where: { categoryId: old.id }, data: { categoryId: null } });
+    await db.programCategory.delete({ where: { id: old.id } });
+    console.log(`    Deleted old category "${old.name}" (slug: ${old.slug}).`);
+  }
+
   // 2. Upsert programs
   let created = 0, updated = 0;
   for (const prog of PROGRAMS) {
