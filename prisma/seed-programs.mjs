@@ -420,8 +420,9 @@ export async function seedPrograms(db) {
   // 3. Remove programs not in the seed list (except private teacher)
   const keepSlugs = PROGRAMS.map(p => p.slug);
   const allPrograms = await db.program.findMany({ select: { slug: true, name: true } });
+  const PRESERVE_NAMES = ["private teacher", "sacred clarity", "teacher meeting"];
   const toRemove = allPrograms.filter(
-    p => !keepSlugs.includes(p.slug) && !p.name.toLowerCase().includes("private teacher")
+    p => !keepSlugs.includes(p.slug) && !PRESERVE_NAMES.some(n => p.name.toLowerCase().includes(n))
   );
 
   if (toRemove.length > 0) {
