@@ -59,11 +59,11 @@ const li = (...parts) => ({
 // ── Categories ──────────────────────────────────────────────────────────────────
 
 const CATEGORIES = [
-  { slug: "drop-ins", name: "Drop-Ins: Open Practice and Learning" },
-  { slug: "silent-meditation", name: "Silent Meditation Drop-Ins" },
-  { slug: "classes-courses-workshops", name: "Classes, Courses, and Workshops" },
-  { slug: "community-groups-events", name: "Community Groups & Events" },
-  { slug: "community-service", name: "Community Service" },
+  { slug: "drop-ins", name: "Drop-Ins: Open Practice and Learning", sortOrder: 1 },
+  { slug: "silent-meditation", name: "Silent Meditation Drop-Ins", sortOrder: 2 },
+  { slug: "classes-courses-workshops", name: "Classes, Courses, and Workshops", sortOrder: 3 },
+  { slug: "community-groups-events", name: "Community Groups & Events", sortOrder: 4 },
+  { slug: "community-service", name: "Community Service", sortOrder: 5 },
 ];
 
 // ── Programs ────────────────────────────────────────────────────────────────────
@@ -401,8 +401,8 @@ export async function seedPrograms(db) {
   for (const cat of CATEGORIES) {
     const result = await db.programCategory.upsert({
       where: { slug: cat.slug },
-      update: { name: cat.name },
-      create: { slug: cat.slug, name: cat.name },
+      update: { name: cat.name, sortOrder: cat.sortOrder },
+      create: { slug: cat.slug, name: cat.name, sortOrder: cat.sortOrder },
     });
     categoryMap[cat.slug] = result.id;
   }
@@ -439,13 +439,22 @@ export async function seedPrograms(db) {
 
   if (toRemove.length > 0) {
     for (const prog of toRemove) {
-      // Archive instead of delete — avoids FK constraint issues with
-      // HostAssignment, SessionAttendance, Registration, etc.
-      await db.program.update({
-        where: { slug: prog.slug },
-        data: { archivedAt: new Date(), removeFromProgramList: true, hideFromDashboard: true },
-      });
-      console.log(`    Archived "${prog.name}".`);
+      // Get the program ID for FK cleanup
+      const full = await db.program.findUnique({ where: { slug: prog.slug }, select: { id: true } });
+      if (!full) continue;
+
+      // Delete FK-constrained records first
+      await db.registration.deleteMany({ where: { programId: full.id } });
+      await db.sessionAttendance.deleteMany({ where: { programId: full.id } });
+
+      // Clean up denormalized slug-based records (no FK constraint, but tidy)
+      await db.hostAssignment.deleteMany({ where: { programSlug: prog.slug } });
+      await db.subRequest.deleteMany({ where: { programSlug: prog.slug } });
+      await db.sessionReport.deleteMany({ where: { programSlug: prog.slug } });
+
+      // Delete the program
+      await db.program.delete({ where: { slug: prog.slug } });
+      console.log(`    Deleted "${prog.name}" and related records.`);
     }
   }
 

@@ -31,6 +31,21 @@ const migrations = [
     },
   },
   {
+    name: "add_sort_order_to_program_categories",
+    async run() {
+      const cols = await db.$queryRawUnsafe(`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'program_categories' AND column_name = 'sortOrder'
+      `);
+      if (cols.length === 0) {
+        await db.$executeRawUnsafe(`ALTER TABLE "program_categories" ADD COLUMN "sortOrder" INTEGER NOT NULL DEFAULT 0`);
+        console.log(`  ✔ Applied: ${this.name}`);
+      } else {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+      }
+    },
+  },
+  {
     name: "add_time_text_to_programs",
     async run() {
       const cols = await db.$queryRawUnsafe(`
@@ -56,7 +71,7 @@ async function main() {
   // One-time program seed — check flag to avoid re-running
   const seedFlag = await db.$queryRawUnsafe(`
     SELECT column_name FROM information_schema.columns
-    WHERE table_name = '_migration_flags' AND column_name = 'seed_programs_v5'
+    WHERE table_name = '_migration_flags' AND column_name = 'seed_programs_v6'
   `).catch(() => []);
 
   // Create flag table if missing, then check
@@ -65,12 +80,12 @@ async function main() {
   `).catch(() => {});
 
   const applied = await db.$queryRawUnsafe(`
-    SELECT name FROM "_migration_flags" WHERE name = 'seed_programs_v5'
+    SELECT name FROM "_migration_flags" WHERE name = 'seed_programs_v6'
   `).catch(() => []);
 
   if (applied.length === 0) {
     await seedPrograms(db);
-    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_programs_v5')`);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_programs_v6')`);
     console.log("  ✔ Program seed applied.");
   } else {
     console.log("  ⏭ Program seed already applied.");

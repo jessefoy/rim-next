@@ -18,7 +18,7 @@ export default async function CommunityProgramsPage() {
     }),
     db.programCategory.findMany({
       where: { hideFromProgramsPage: false },
-      orderBy: { name: "asc" },
+      orderBy: { sortOrder: "asc" },
     }),
   ]);
 

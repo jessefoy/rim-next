@@ -274,6 +274,7 @@ model ProgramCategory {
   id                   String    @id @default(cuid())
   slug                 String    @unique
   name                 String
+  sortOrder            Int       @default(0)
   hideFromProgramsPage Boolean   @default(false)
   programs             Program[]
 
