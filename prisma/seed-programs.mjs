@@ -438,19 +438,14 @@ export async function seedPrograms(db) {
   );
 
   if (toRemove.length > 0) {
-    // Don't delete programs that have registrations — just archive them
     for (const prog of toRemove) {
-      const regCount = await db.registration.count({ where: { programSlug: prog.slug } });
-      if (regCount > 0) {
-        await db.program.update({
-          where: { slug: prog.slug },
-          data: { archivedAt: new Date() },
-        });
-        console.log(`    Archived "${prog.name}" (has ${regCount} registrations).`);
-      } else {
-        await db.program.delete({ where: { slug: prog.slug } });
-        console.log(`    Deleted "${prog.name}" (no registrations).`);
-      }
+      // Archive instead of delete — avoids FK constraint issues with
+      // HostAssignment, SessionAttendance, Registration, etc.
+      await db.program.update({
+        where: { slug: prog.slug },
+        data: { archivedAt: new Date(), removeFromProgramList: true, hideFromDashboard: true },
+      });
+      console.log(`    Archived "${prog.name}".`);
     }
   }
 
