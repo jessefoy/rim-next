@@ -765,10 +765,10 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                 {isOpenAccess && isEditing && guestAccessKey && (
                   <div className="pe-open-access-link">
                     <span className="pe-field__label">Guest Link</span>
-                    <div className="pe-open-access-link__row">
-                      <code className="pe-open-access-link__url">
-                        {typeof window !== "undefined" ? `${window.location.origin}/session/${slug}?key=${guestAccessKey}` : `/session/${slug}?key=${guestAccessKey}`}
-                      </code>
+                    <div className="pe-open-access-link__box">
+                      {typeof window !== "undefined" ? `${window.location.origin}/session/${slug}?key=${guestAccessKey}` : `/session/${slug}?key=${guestAccessKey}`}
+                    </div>
+                    <div className="pe-open-access-link__actions">
                       <button
                         type="button"
                         className="pe-btn pe-btn--small"
@@ -778,10 +778,8 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                           setTimeout(() => setCopiedLink(false), 2000);
                         }}
                       >
-                        {copiedLink ? "Copied!" : "Copy"}
+                        {copiedLink ? "Copied!" : "Copy Link"}
                       </button>
-                    </div>
-                    <div className="pe-open-access-link__actions">
                       <button
                         type="button"
                         className="pe-btn pe-btn--small"
@@ -801,8 +799,8 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                       >
                         {resettingKey ? "Resetting…" : "Reset Link"}
                       </button>
-                      <span className="pe-field__help">Generates a new link and invalidates the previous one.</span>
                     </div>
+                    <span className="pe-field__help">Resetting generates a new link and invalidates the previous one.</span>
                   </div>
                 )}
 

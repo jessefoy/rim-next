@@ -13366,14 +13366,13 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 
 /* PE Open Access guest link */
 .pe-open-access-link { margin-top: 8px; }
-.pe-open-access-link__row {
-  display: flex; gap: 8px; align-items: center; margin-top: 4px;
-}
-.pe-open-access-link__url {
-  font-size: 13px; background: #f5f3f0; padding: 8px 12px;
-  border-radius: 6px; flex: 1; word-break: break-all;
-  font-family: var(--font-sans); color: var(--rim-text);
-  border: 1px solid #e0dcd6;
+.pe-open-access-link__box {
+  background: #2d2d2d; color: #e0e0e0;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 12px; line-height: 1.5;
+  padding: 12px 14px; border-radius: 6px;
+  word-break: break-all; margin-top: 4px;
+  user-select: all; cursor: text;
 }
 .pe-open-access-link__actions {
   display: flex; align-items: center; gap: 8px; margin-top: 8px;

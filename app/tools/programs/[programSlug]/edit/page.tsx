@@ -23,7 +23,15 @@ export default async function EditProgramToolPage({
   if (!session) redirect("/login");
 
   const [program, categories] = await Promise.all([
-    db.program.findUnique({ where: { slug: programSlug } }),
+    db.program.findUnique({
+      where: { slug: programSlug },
+      include: {
+        programTeachers: {
+          orderBy: { order: "asc" },
+          include: { user: { select: { id: true, firstName: true, lastName: true, preferredName: true } } },
+        },
+      },
+    }),
     db.programCategory.findMany({ orderBy: { sortOrder: "asc" } }),
   ]);
 
@@ -48,7 +56,7 @@ export default async function EditProgramToolPage({
     pullQuoteSource: program.pullQuoteSource ?? "",
     specialNotes: program.specialNotes,
     teacherFacilitators: program.teacherFacilitators,
-    programTeachers: (program as any).programTeachers?.map((pt: any) => ({
+    programTeachers: program.programTeachers?.map((pt) => ({
       id: pt.user.id,
       firstName: pt.user.preferredName || pt.user.firstName || "",
       lastName: pt.user.lastName || "",
