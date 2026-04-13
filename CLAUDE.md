@@ -19,6 +19,52 @@ RIM's design is rooted in a Dharma principle: **clear seeing is the prerequisite
 
 **When Jesse asks for something or asks your opinion**, think about how it fits the whole — design philosophy, interconnected features, existing patterns. Offer that thinking. Engage as a co-creator, not a task executor.
 
+## Session Opening — Required
+
+When Jesse says **"opening prompt"** (or similar), execute the full opening ritual below.
+
+At the start of every session, before any implementation work:
+
+1. **Read the relevant reference files** per the Design Orientation table above. This is not optional. Do not skim. Do not summarize from memory.
+
+2. **Produce a Connections Map before writing any code.** When Jesse describes what we're working on, your first response must include a map in this format:
+
+```
+## Connections Map: [feature/task name]
+
+Database models touched:
+- [model] — [why]
+
+Routes affected:
+- [route] — [how]
+
+Components involved:
+- [component] — [role in this work]
+
+CSS prefixes/areas:
+- [prefix] — [what changes]
+
+API routes:
+- [route] — [new/modified/read]
+
+Email templates:
+- [template] — [if any]
+
+Other features this connects to:
+- [feature] — [nature of the connection]
+
+Design principles that apply:
+- [principle from RIM_Web_Design_Philosophy.md] — [how it governs this work]
+```
+
+This is not a formality. It is how Jesse verifies that you understand the system before you touch it. If a section has no entries, write "None" — do not omit it. If you're unsure about a connection, say so and ask.
+
+3. **Wait for Jesse to confirm the map before building.** Jesse may see connections you missed. The map is a conversation, not a checklist. Only proceed to implementation after Jesse says the map looks right.
+
+This is the difference between executing tasks and co-creating a system. Jesse should never have to remind you of something that is documented.
+
+---
+
 ## Workflow
 - **Never run a local dev server.** Push to GitHub; Vercel auto-deploys in ~1–2 min.
 - `npm run build` = `prisma generate && next build` — run locally to catch TypeScript errors before pushing.
@@ -95,16 +141,29 @@ When the user says **"remember that we need [X]"**, **"add this to the backlog"*
 
 ## Closing Ritual — "let's document everything"
 
-When the user says **"let's document everything"** (or similar), update ALL of these before ending:
+When Jesse says **"closing prompt"**, **"let's document everything"**, or similar, complete ALL of the following before ending the session. No exceptions.
 
-1. **`FEATURES.md`** — add/update relevant feature section(s) + append session log entry at bottom
-2. **`memory/MEMORY.md`** (project memory file) — prepend session log entry
-3. **`RIM_Stack_Reference.md`** — update if anything changed: new service, new env var, stack version bump, role change, phase change
-4. **`app/admin/manual/page.tsx`** — update any affected chapters (Registration, Programs, Member Accounts, Host Hub, Volunteer Roles). **The manual is not optional.** Writing documentation forces understanding and keeps sessions accountable.
-5. **`app/admin/features/page.tsx`** — update feature cards, system map, data flows, dependency cards
-6. **Memory files** — update `feature-interconnections.md` if new connections were established between features
+1. **Session log** (`session-log.md`) — Add an entry at the top. Include:
+   - What was built or changed
+   - What design decisions were made and why
+   - **What this work connects to** — which existing features, routes, or systems are affected by or related to what was built. This is not optional. The interconnection record is how future sessions stay oriented.
+   - What comes next
 
-Then commit and push all documentation changes together.
+2. **FEATURES.md** — Add or update the relevant feature section(s). If a new feature was built, it gets its own section. If an existing feature was modified, update that section.
+
+3. **RIM_Stack_Reference.md** — Update if anything changed: new dependency, new env var, new tool, version bump, role change, architectural shift.
+
+4. **RIM_System_Architecture.md** — Update if any hub, tool, role, or permission logic changed.
+
+5. **Staff Manual** (`app/admin/manual/page.tsx`) — Update any affected chapters. The manual is not optional. Writing documentation forces understanding.
+
+6. **Feature cards** (`app/admin/features/page.tsx`) — Update feature cards, system map, data flows, dependency cards if relevant.
+
+7. **Backlog** (`data/backlog.json`) — If any new items were identified during the session, add them.
+
+8. **Commit and push all documentation changes together.**
+
+If any of these files do not need updating for this session, say so explicitly. Do not silently skip them.
 
 ## Do Not
 - Run a local dev server

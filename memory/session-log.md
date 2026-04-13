@@ -2,6 +2,39 @@
 
 Each entry records what was accomplished, decisions made, and what to tackle next.
 
+> **Note:** Sessions 56–79 were not logged due to the closing ritual falling out of practice. 
+> The session log resumes with session 80+. The closing ritual has been reinstated 
+> in CLAUDE.md — see "Closing Ritual" section.
+
+---
+
+## Session: 2026-04-13 (session 81)
+
+**Focus:** Documentation reset and verification — no feature work.
+
+### Accomplished this session
+
+1. **Git verification** — Confirmed session 80's commit (`cb555f5 Add Design Orientation protocol to CLAUDE.md`) landed on main. Session 80 updated CLAUDE.md with the Design Orientation protocol and Session Opening ritual but did not create any project-level memory files (the memory files referenced in auto-memory are Claude Code's built-in system at `~/.claude/projects/`, not git-tracked files).
+
+2. **Ghost reference cleanup** — Checked CLAUDE.md for references to `memory/MEMORY.md`, `memory/` directory, `design-principles.md`, `user-jesse.md`, `feature-interconnections.md`, `feedback-engagement.md`. The old closing ritual referenced `memory/MEMORY.md` and `feature-interconnections.md` — Jesse's uncommitted CLAUDE.md changes already replaced the old closing ritual with a new version that removes all ghost references. No additional cleanup needed.
+
+3. **CLAUDE.md closing ritual rewrite** — Jesse's changes replace the old 6-item closing ritual with a new 8-item version. Key changes: session log moved to `session-log.md` (not FEATURES.md), memory file references removed, manual and feature cards explicitly listed, backlog included, "commit and push together" step added, explicit "say so if nothing to update" requirement.
+
+4. **Session log gap acknowledgment** — Added note about sessions 56–79 not being logged.
+
+5. **Pages inventory scoping** — Added scope note to `pages-inventory.md` clarifying it only covers pre-hub CSS migration, not a full route inventory.
+
+6. **Deep analysis of Program Manager** — Before the documentation reset, conducted a complete analysis of `/tools/programs`: all 5 screens, 7 editor tabs, registration management features, API routes, connections to other systems, and UX observations. This analysis will inform the Program Manager UX overhaul (Prompt 2 / SPEC-program-manager-ux.md) and manual writing.
+
+### Connections
+- CLAUDE.md governs every future session's opening and closing rituals
+- Session log is the historical record — the gap note prevents confusion about missing entries
+- Pages inventory connects to the CSS migration effort and the admin sitemap
+
+### Next session
+- Execute SPEC-program-manager-ux.md (Prompt 2) — 9-item UX overhaul of the Program Manager tool
+- Write Program Manager manual section (identified as a gap — most complex tool has no manual entry)
+
 ---
 
 ## Session: 2026-03-15 (session 55)

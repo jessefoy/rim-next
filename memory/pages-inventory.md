@@ -1,5 +1,9 @@
 # Pages Inventory — CSS Migration Status
 
+> **Scope note:** This file tracks CSS migration from Webflow classes to the design system 
+> for pages that existed before the hub/tools build-out. It is NOT a complete route inventory. 
+> For the full site map, see `/admin/sitemap`.
+
 🟢 = Design system only (no Webflow class names). Safe from Webflow CSS conflicts.
 🟠 = Still uses Webflow class names. Depends on normalize.css, webflow.css, rim.webflow.css.
 
