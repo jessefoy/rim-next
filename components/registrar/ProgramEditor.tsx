@@ -467,6 +467,15 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
       }
 
       if (isEditing) {
+        // Update guestAccessKey from response if it was generated
+        const updated = await res.json();
+        if (updated.guestAccessKey && !guestAccessKey) {
+          setGuestAccessKey(updated.guestAccessKey);
+        }
+        // Clear key if open access was disabled
+        if (!isOpenAccess) {
+          setGuestAccessKey("");
+        }
         setSuccess(true);
         setTimeout(() => setSuccess(false), 3000);
         // If slug changed, redirect to new URL
@@ -741,10 +750,10 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                 <span className="pe-field__help">
                   Allow non-members to join this virtual session without a RIM account.
                   When enabled, a shareable guest link is generated. Anyone with the link
-                  can enter their name and join the LiveKit room as a participant.
+                  can enter their name and join the virtual room as a participant.
                   The teacher or host must still have a RIM member account.
                 </span>
-                <label className="pe-toggle" style={{ marginTop: 8 }}>
+                <label className="pe-checkbox">
                   <input
                     type="checkbox"
                     checked={isOpenAccess}
@@ -753,62 +762,58 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                   <span>Enable guest access link</span>
                 </label>
 
-                {isOpenAccess && isEditing && (
-                  <div className="pe-guest-link" style={{ marginTop: 12 }}>
-                    {guestAccessKey ? (
-                      <>
-                        <span className="pe-field__label" style={{ fontSize: 13 }}>Guest Link</span>
-                        <div className="pe-inline-row" style={{ gap: 8, alignItems: "center", marginTop: 4 }}>
-                          <code className="pe-guest-link__url" style={{ fontSize: 13, background: "#f0f0f0", padding: "6px 10px", borderRadius: 4, flex: 1, wordBreak: "break-all" }}>
-                            {typeof window !== "undefined" ? `${window.location.origin}/session/${slug}?key=${guestAccessKey}` : `/session/${slug}?key=${guestAccessKey}`}
-                          </code>
-                          <button
-                            type="button"
-                            className="btn btn--small"
-                            onClick={() => {
-                              navigator.clipboard.writeText(`${window.location.origin}/session/${slug}?key=${guestAccessKey}`);
-                              setCopiedLink(true);
-                              setTimeout(() => setCopiedLink(false), 2000);
-                            }}
-                          >
-                            {copiedLink ? "Copied!" : "Copy"}
-                          </button>
-                        </div>
-                        <div style={{ marginTop: 8 }}>
-                          <button
-                            type="button"
-                            className="btn btn--small btn--muted"
-                            disabled={resettingKey}
-                            onClick={async () => {
-                              if (!confirm("Reset the guest link? The old link will stop working immediately.")) return;
-                              setResettingKey(true);
-                              try {
-                                const res = await fetch(`/api/programs-pg/${slug}/guest-key`, { method: "POST" });
-                                if (res.ok) {
-                                  const data = await res.json();
-                                  setGuestAccessKey(data.guestAccessKey);
-                                }
-                              } catch {}
-                              setResettingKey(false);
-                            }}
-                          >
-                            {resettingKey ? "Resetting…" : "Reset Link"}
-                          </button>
-                          <span className="pe-field__help" style={{ marginLeft: 8, display: "inline" }}>
-                            Generates a new link and invalidates the previous one.
-                          </span>
-                        </div>
-                      </>
-                    ) : (
-                      <p className="pe-field__help">
-                        Save the program to generate the guest access link. The link will appear here after saving.
-                      </p>
-                    )}
+                {isOpenAccess && isEditing && guestAccessKey && (
+                  <div className="pe-open-access-link">
+                    <span className="pe-field__label">Guest Link</span>
+                    <div className="pe-open-access-link__row">
+                      <code className="pe-open-access-link__url">
+                        {typeof window !== "undefined" ? `${window.location.origin}/session/${slug}?key=${guestAccessKey}` : `/session/${slug}?key=${guestAccessKey}`}
+                      </code>
+                      <button
+                        type="button"
+                        className="pe-btn pe-btn--small"
+                        onClick={() => {
+                          navigator.clipboard.writeText(`${window.location.origin}/session/${slug}?key=${guestAccessKey}`);
+                          setCopiedLink(true);
+                          setTimeout(() => setCopiedLink(false), 2000);
+                        }}
+                      >
+                        {copiedLink ? "Copied!" : "Copy"}
+                      </button>
+                    </div>
+                    <div className="pe-open-access-link__actions">
+                      <button
+                        type="button"
+                        className="pe-btn pe-btn--small"
+                        disabled={resettingKey}
+                        onClick={async () => {
+                          if (!confirm("Reset the guest link? The old link will stop working immediately.")) return;
+                          setResettingKey(true);
+                          try {
+                            const res = await fetch(`/api/programs-pg/${slug}/guest-key`, { method: "POST" });
+                            if (res.ok) {
+                              const data = await res.json();
+                              setGuestAccessKey(data.guestAccessKey);
+                            }
+                          } catch {}
+                          setResettingKey(false);
+                        }}
+                      >
+                        {resettingKey ? "Resetting…" : "Reset Link"}
+                      </button>
+                      <span className="pe-field__help">Generates a new link and invalidates the previous one.</span>
+                    </div>
                   </div>
                 )}
 
+                {isOpenAccess && isEditing && !guestAccessKey && (
+                  <p className="pe-field__help">
+                    Save the program to generate the guest access link.
+                  </p>
+                )}
+
                 {isOpenAccess && !isEditing && (
-                  <p className="pe-field__help" style={{ marginTop: 8 }}>
+                  <p className="pe-field__help">
                     The guest link will be generated after the program is created.
                   </p>
                 )}

@@ -13364,6 +13364,21 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   .vol-table__th, .vol-table__td { padding: 8px 6px; }
   .vol-cap__bar { width: 40px; }
 
+/* PE Open Access guest link */
+.pe-open-access-link { margin-top: 8px; }
+.pe-open-access-link__row {
+  display: flex; gap: 8px; align-items: center; margin-top: 4px;
+}
+.pe-open-access-link__url {
+  font-size: 13px; background: #f5f3f0; padding: 8px 12px;
+  border-radius: 6px; flex: 1; word-break: break-all;
+  font-family: var(--font-sans); color: var(--rim-text);
+  border: 1px solid #e0dcd6;
+}
+.pe-open-access-link__actions {
+  display: flex; align-items: center; gap: 8px; margin-top: 8px;
+}
+
 /* PE Teacher selector */
 .pe-teacher-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
 .pe-teacher-tag {
