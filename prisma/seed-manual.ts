@@ -138,8 +138,8 @@ const sections = [
       h2("Program tabs"),
       p("The program editor is organized into six tabs:"),
       ul([
-        "1. Basics — name, tagline, description, format (in-person/virtual), teacher, category",
-        "2. When & Where — start/end datetime, location, recurrence settings, video conferencing (LiveKit)",
+        "1. Content — name, tagline, description, teacher/facilitators (linked accounts), category",
+        "2. Schedule & Location — format, open access (guest link), start/end datetime, location, recurrence",
         "3. Registration — enable registration, capacity, custom questions, waitlist, deadline",
         "4. Emails — confirmation message, reminder date, reminder message",
         "5. Dana — dana mode (none/voluntary/base+dana/fixed) and amounts",
@@ -149,6 +149,13 @@ const sections = [
       h2("Video Conferencing"),
       p("Virtual programs use LiveKit for embedded video conferencing. Members join directly from the dashboard — no external links, no separate accounts. Host permissions are controlled by RIM's auth system via JWT tokens."),
       p("Important: Video sessions are accessible from the member dashboard only — not in emails, not on the public program page. Members must be logged in. This protects virtual sessions and is good stewardship of dana."),
+
+      h2("Open Access (Guest Join)"),
+      p("For collaboration programs (e.g., co-offered with another center), you can enable Open Access on the Schedule & Location tab. This generates a shareable guest link. Non-members visit the link, enter their name, and join the virtual session — no RIM account required."),
+      p("The teacher or host must still have a RIM member account to receive host controls. You can reset the guest link at any time to invalidate old links."),
+
+      h2("Teacher / Facilitator Assignment"),
+      p("Teachers are assigned via the search selector in the Content tab. Teachers must have a member account with teacher attribution enabled (set in Admin > Members). Assigned teachers automatically receive host controls in virtual sessions — no separate host assignment needed. Teacher names on the public program page link to their teacher profile page."),
 
       h2("Things to know"),
       ul([

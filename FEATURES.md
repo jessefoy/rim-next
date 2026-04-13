@@ -49,6 +49,10 @@ Two audiences:
 34. [Hub Documents — Native](#34-hub-documents--native)
 35. [Hub Notification Redesign — Pinned Threads + Unread Indicators](#35-hub-notification-redesign)
 36. [Site-Wide Banner](#36-site-wide-banner)
+37. [Program Registration System — Postgres Migration](#37-program-registration-system--postgres-migration)
+38. [LiveKit Video Conferencing](#38-livekit-video-conferencing--phase-1-2--built--session-76-2026-03-25)
+39. [Open Access — Guest Join for Virtual Programs](#39-open-access--guest-join-for-virtual-programs)
+40. [ProgramTeacher — Linked Teacher Accounts](#40-programteacher--linked-teacher-accounts)
 
 ---
 
@@ -1916,7 +1920,7 @@ Rooms are created on-demand from the program slug (e.g., `thursday-evening-medit
 
 ### Technical notes
 
-- **Token grants:** All participants get `canPublish`, `canSubscribe`, `canPublishData`. Hosts (users with HostAssignment for the program) additionally receive `roomAdmin: true` for moderator controls (mute others, remove participants).
+- **Token grants:** All participants get `canPublish`, `canSubscribe`, `canPublishData`. Hosts (users with HostAssignment for the program, ProgramTeacher assignment, HOST_MANAGER role, or ADMIN role) receive `roomAdmin: true` for moderator controls (mute others, remove participants). Guest tokens (non-members via open access) get participant-level access only — never `roomAdmin`.
 - **Room naming:** Room name = program slug. Deterministic — same program always maps to same room. Multiple sessions of the same program reuse the room name (rooms are ephemeral).
 - **LiveKit Cloud Ship tier:** $50/month base, includes 1,000 participant-minutes. Sufficient for RIM's current virtual program volume.
 - **Fullscreen toggle:** VideoRoomEmbed includes a fullscreen button that expands the video to fill the viewport, with Escape to exit.
@@ -1929,6 +1933,73 @@ Rooms are created on-demand from the program slug (e.g., `thursday-evening-medit
 | `LIVEKIT_API_KEY` | LiveKit Cloud API key |
 | `LIVEKIT_API_SECRET` | LiveKit Cloud API secret |
 | `NEXT_PUBLIC_LIVEKIT_URL` | LiveKit Cloud WebSocket URL (e.g., `wss://rim-xxxx.livekit.cloud`) |
+
+---
+
+## 39. Open Access — Guest Join for Virtual Programs
+
+### What it does
+
+Allows non-members to join virtual sessions without a RIM account. Designed for collaboration programs (e.g., co-offered with the Christine Center) where the teacher opens the session to participants from another community.
+
+### How it works
+
+1. **Admin/Registrar** enables "Open Access" on a virtual or hybrid program in Program Editor → Schedule & Location tab
+2. System auto-generates a `guestAccessKey` (12-char hex string) and displays a shareable guest link
+3. Teacher shares the link with external participants (email, another center's website, etc.)
+4. **Guest** visits `/session/[slug]?key=xxx` → enters their name → joins the LiveKit room as a participant
+5. Guest gets full audio/video but no host controls (can't mute others, remove participants, or end the session)
+6. **Key reset** invalidates old links immediately — useful when a link leaks or a new session cycle starts
+
+### Key files
+
+| File | Purpose |
+|---|---|
+| `app/api/livekit/guest-token/route.ts` | POST — validates guestKey, mints participant-level LiveKit JWT (no auth required) |
+| `app/api/programs-pg/[slug]/guest-key/route.ts` | POST — resets guestAccessKey (REGISTRAR/ADMIN) |
+| `app/session/[slug]/page.tsx` | Detects `?key=` param, shows name entry form for guests |
+| `components/registrar/ProgramEditor.tsx` | Open Access toggle, guest link display with Copy/Reset |
+
+### 🔧 Technical notes
+
+- `isOpenAccess Boolean @default(false)` and `guestAccessKey String?` on Program model
+- Guest identity format: `guest-{timestamp}-{random}` — distinguishable from member user IDs in LiveKit participant list
+- Guest tokens use `createRoomToken()` with `isHost: false` — same function as member tokens, just never elevated
+- No attendance tracking for guests (no user record to link to)
+- The teacher must have a RIM member account to get host controls
+
+---
+
+## 40. ProgramTeacher — Linked Teacher Accounts
+
+### What it does
+
+Links teachers to programs via actual user accounts instead of plain text names. Teachers assigned to a program automatically receive host controls in LiveKit sessions — no separate HostAssignment needed.
+
+### How it works
+
+1. **Admin** enables teacher attribution on a member's profile (Admin → Members → Teacher Attribution section)
+2. **Registrar/Admin** assigns the teacher to a program via the search selector in Program Editor → Content tab
+3. Teacher's name displays on the public program page and links to their `/teachers/[slug]` profile (if public)
+4. When the teacher joins a virtual session, the LiveKit token route detects their ProgramTeacher record and grants `roomAdmin: true`
+
+### Key files
+
+| File | Purpose |
+|---|---|
+| `prisma/schema.prisma` | `ProgramTeacher` model (programId, userId, order) |
+| `app/api/livekit/token/route.ts` | Checks ProgramTeacher for host grant |
+| `app/api/members/search/route.ts` | Teacher search (now also allows REGISTRAR access) |
+| `components/registrar/ProgramEditor.tsx` | Teacher search selector with tags |
+| `app/programs/[slug]/page.tsx` | Public program page — teacher names link to profiles |
+
+### 🔧 Technical notes
+
+- `ProgramTeacher` mirrors `LessonTeacher` pattern — join table with `order` field for display ordering
+- `teacherFacilitators String[]` (plain text) kept as fallback for existing programs not yet migrated to linked accounts
+- Display pages check `programTeachers` first, fall back to `teacherFacilitators` for backward compatibility
+- Host control priority in LiveKit token route: ADMIN → HostAssignment → HOST_MANAGER → ProgramTeacher
+- Multiple hosts supported simultaneously (teacher + host volunteer) — LiveKit `roomAdmin` is not exclusive
 
 ---
 
@@ -3667,6 +3738,8 @@ model HubDocument {
 **2026-03-24 (session 75)** — Hub/tools integrity pass: hub awareness, notification fix, ToolsNav fix, UI cleanup, system cleanup. **(1) Hub awareness wiring:** Created `getToolHubContext()` in `lib/toolAuth.ts` — tools read `?hub=` from server-side `searchParams` and resolve the full hub record with members. Host Schedule (3 pages) and Support Inbox (2 pages) updated to use dynamic hub context instead of hardcoded slug queries. Falls back to primary hub when no param. **(2) ToolsNav context fix:** Discovered ToolsNav was rendered OUTSIDE ToolsProvider in the outer tools layout — `useToolsContext()` always returned defaults (backLabel: "Dashboard", no subNav). Moved ToolsNav into each tool's per-layout ToolsProvider wrapper. All four tools now show correct back link, sub-nav pills, and tool name. **(3) Notification system fix:** All host-team alerts and emails now use `getHubNotificationRecipients()` (queries hub members) instead of hardcoded role checks. Sub requests, claims, unclaims, and unassigned session cron all updated. `UserToolAccess` grant holders can use the tool but don't receive team notifications unless they're hub members. **(4) ToolsNav layout swap:** Back link moved to left (where users expect navigation), tool name moved to right (muted, secondary). **(5) ManualHelpIcon fix:** Changed from `position: absolute` (colliding with action buttons) to `display: inline-flex` next to page titles. Fixed duplicate `display` property. Removed from sub-pages (editor views). **(6) Hub naming standardization:** Hubs renamed: Course Hub, Hosting Hub, Registration Hub, Support Hub (consistent "X Hub" pattern). Updated DB, seed script, `HubAccessSection`. **(7) System cleanup:** Removed 12 unused hubs (people-team, greeter, av-team, etc.), 11 unused roles (GREETER, AV_TECH, etc.), 4 admin dev pages (roadmap, sitemap, features, ideas), orphaned CSS for deleted AlertStrip. **(8) Course Manager extraction:** `/tools/learning` with Course Manager tool — Series + Lessons sub-nav tabs. `UserToolAccess` model + `hasToolAccess()` shared helper. All tool layouts standardized. **(9) Tool registry:** `lib/toolRegistry.ts` — centralized tool definitions. Hub admin form uses tool picker dropdown instead of free-text URL entry. `toolSlug` column on `HubAppLink`. **(10) Prisma migration fix:** Replaced `prisma migrate deploy` (fails on existing DBs without baseline) with `prisma/migrate.mjs` — idempotent migration runner via `$executeRawUnsafe`. Key files: `lib/toolAuth.ts`, `components/ToolsNav.tsx`, all `app/tools/*/layout.tsx`, `app/api/host/*/route.ts`, `app/api/cron/check-unassigned-hosts/route.ts`, `lib/toolRegistry.ts`, `prisma/migrate.mjs`.
 
 **2026-03-25 (session 76)** — Hub design unification, Host Schedule redesign, LiveKit Phase 1-4 (complete), session feature removal, emergency host step-in, high-fidelity audio. **(1) Hub design unification:** Shared hub headers with consistent spacing, dead CSS cleanup across all hub pages. **(2) Host Schedule redesign:** Replaced full grid calendar with mini-cal + card list as primary view. Cards expand inline for detail (no separate page navigation). Compact chips for assignment status. Unified color system across schedule states. Multi-select removed. Mini-cal status dots enlarged for visibility. **(3) List view rebuild:** Replaced 6-column grid table layout with card rows — better information density and mobile responsiveness. **(4) LiveKit Phase 1 (foundation):** LiveKit Cloud integration — `lib/livekit.ts` (server SDK, `createToken()` with roomAdmin grants for hosts), `app/api/livekit/token/route.ts` (JWT generation API), `components/VideoRoom.tsx` (full room component with `@livekit/components-react`), `app/admin/livekit-test/page.tsx` (admin test page). Ship tier ($50/month). Rooms created on-demand from program slug. **(5) LiveKit Phase 2 (dashboard embed):** `VideoRoomEmbed` replaces `MeetJoinButton` on member dashboard — embedded video with fullscreen toggle. No external links or separate accounts needed. **(6) Removed Live Session + Journal features:** ~5,000 lines removed (SessionLiveClient 6-state machine, PostSessionClient, coordinator history, team journal, attendance flag/join APIs, post-session API). Will rebuild attendance tracking using LiveKit's real-time participant data instead of the Google Meet attendance model. **(7) Google Meet authuser:** Added `authuser=` parameter to Google Meet URLs based on assigned room account email — auto-selects correct Google account for hosts. Transitional improvement before full LiveKit replacement. **(8) Dedicated session page:** `app/session/[slug]/page.tsx` — full-page video room (no nav, no footer, just the session). Header with program name, "← Leave" link, "End for All" button (host-only, red, with confirmation), and "Fullscreen" toggle. On disconnect (user or host-ended), shows "Session ended" screen with "Return to Dashboard" button. Replaced the inline `VideoRoomEmbed` on the dashboard — dashboard "Join" button now links to `/session/{slug}`. **(9) End-session API:** `POST /api/livekit/end-session` — uses `RoomServiceClient.deleteRoom()` to instantly disconnect all participants. Auth-gated: only assigned host (via HostAssignment), HOST_MANAGER, or ADMIN. Token API now returns `isHost` flag so session page knows whether to show host controls. **(10) LiveKit room migration:** `POST /api/admin/populate-livekit-rooms` — one-time migration route that sets `livekitRoom = slug` for all virtual/hybrid programs. Also accepts GET for easy browser access. 6 programs populated. **(11) Google Meet full removal:** `CreateMeetButton`, `MeetJoinButton`, `zoomLink`/`meetHostAccount` fields, Google Calendar/Meet API imports all removed. ~200 lines of dead Meet code cleaned up from ProgramEditor, dashboard, email templates. **(12) Attendance email cleanup:** Removed `sendFirstTimeAttendeeEmail`, `sendReturningAttendeeEmail`, and `ENABLE_ATTENDANCE_EMAILS` flag — attendance emails will be rebuilt around LiveKit's real-time participant data in a future session. **(13) Hub member notifications:** Added `sendHubMemberAddedEmail` — transactional email when a member is added to a hub (via coordinator or role sync). New email template `hub-member-added` seeded. Key files: `lib/livekit.ts`, `app/api/livekit/token/route.ts`, `app/api/livekit/end-session/route.ts`, `components/VideoRoom.tsx`, `app/session/[slug]/page.tsx`, `app/tools/schedule/page.tsx`, `public/css/custom.css`.
+
+**2026-04-12 (session 79)** — Open Access guest join + ProgramTeacher linked accounts. **(1) Open Access:** Virtual programs can be flagged as open access — generates a shareable guest link with a key. Non-members visit `/session/[slug]?key=xxx`, enter their name, and join the LiveKit room as a participant (no account required). Key can be reset to invalidate old links. `isOpenAccess Boolean` + `guestAccessKey String?` on Program model. Guest token API (`/api/livekit/guest-token`) validates key, mints participant-level JWT. Program Editor Schedule tab: Open Access fieldset with checkbox, dark code-style link display, Copy Link + Reset Link buttons. CSS: `pe-open-access-link`, `vs-guest-entry` (guest name form). **(2) ProgramTeacher linked accounts:** `ProgramTeacher` join table (programId, userId, order) replaces plain text `teacherFacilitators` for teacher-program linking. Teacher search selector in Program Editor Content tab (mirrors LessonEditor pattern). Teachers assigned via ProgramTeacher automatically get `roomAdmin: true` in LiveKit sessions — no separate HostAssignment needed. Public program page links teacher names to `/teachers/[slug]` profiles. Display falls back to plain text `teacherFacilitators` for unmigrated programs. REGISTRAR role added to `/api/members/search` access. **(3) Host controls cascade:** LiveKit token route now checks: ADMIN → HostAssignment → HOST_MANAGER → ProgramTeacher. Teacher and host volunteer can both be hosts simultaneously (roomAdmin is not exclusive). Teacher can host independently if host volunteer doesn't show. Key files: `app/api/livekit/guest-token/route.ts`, `app/api/livekit/token/route.ts`, `app/api/programs-pg/[slug]/guest-key/route.ts`, `app/session/[slug]/page.tsx`, `components/registrar/ProgramEditor.tsx`, `app/programs/[slug]/page.tsx`, `app/account/programs/[slug]/page.tsx`, `prisma/migrate.mjs`.
 
 **2026-04-12 (session 78)** — Member Program Detail page, program content seed, category ordering, donate button. **(1) Member Program Detail page** (`/account/programs/[slug]`): Authenticated "inside the building" view for members. Shows: program name + status badge, quick info card (schedule, time, location, dana), Join Session button (LiveKit), pending dana callout, calendar links (Google + iCal), special announcement, early arrival message, facilitators, registration details with custom fields + cancel button. Access control: registration programs require active registration (redirects to public page if none), open programs allow any member. Dashboard and My Programs links updated to point here. CSS: `mpd-` prefix. **(2) Public program page CTA:** Registered members see "✓ You're registered. View your program details →" linking to member detail page. **(3) Program content seed:** 13 programs seeded with full BlockNote JSON descriptions written to RIM Writing Guide. 5 categories with sortOrder. Old programs hard-deleted via raw SQL (FK-safe: SubClaim→SubRequest→HostAssignment chain, session records, registrations, attendance). Preserves Sacred Clarity, Teacher Meeting, Private Teacher. **(4) Category sortOrder:** Added `sortOrder Int` to ProgramCategory schema. Community programs page sorts by sortOrder. Categories tab in ProgramEditor with ↑↓ reorder arrows + add new + delete (blocked if programs assigned). API: `PATCH /api/programs-pg/categories/reorder`, `POST/DELETE /api/programs-pg/categories`. **(5) Donate button:** Muted crimson (#c23b3b) for non-profit visibility. **(6) Hero category label:** Changed from filled pill to subtle semi-transparent text — doesn't compete with title. **(7) Quote box centering:** -65px overlap ≈ half of one-line quote height. Centered at hero/body boundary, expands downward for longer quotes. Even spacing: 72px above category = 80px below tagline. Key files: `app/account/programs/[slug]/page.tsx`, `app/programs/[slug]/page.tsx`, `prisma/seed-programs.mjs`, `prisma/migrate.mjs`, `components/registrar/ProgramEditor.tsx`, `app/api/programs-pg/categories/route.ts`, `app/api/programs-pg/categories/reorder/route.ts`, `public/css/custom.css`.
 
