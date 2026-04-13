@@ -190,7 +190,7 @@ function CategoryOrderInline({ categories: initial }: { categories: Category[] }
   );
 }
 
-const TABS = ["Program", "Schedule & Registration", "Dana & Messages", "Display"] as const;
+const TABS = ["Content", "Schedule", "Categories", "Registration", "Dana", "Dashboard", "Visibility"] as const;
 type Tab = (typeof TABS)[number];
 
 const DAY_OPTIONS = [
@@ -223,7 +223,7 @@ function toLocalDatetime(iso: string | null | undefined): string {
 export default function ProgramEditor({ hubSlug, basePath: basePathProp, initialData, isEditing, categories }: Props) {
   const basePath = basePathProp ?? `/account/hub/${hubSlug}/programs`;
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("Program");
+  const [tab, setTab] = useState<Tab>("Content");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -574,7 +574,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
       {/* ══════════════════════════════════════════════════════════════════
          TAB 1 — Content
          ══════════════════════════════════════════════════════════════════ */}
-      {tab === "Program" && (
+      {tab === "Content" && (
         <div className="pe-card">
           <div className="pe-card__section">
             <div className="pe-form">
@@ -734,27 +734,13 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
             </div>
           </div>
 
-          <div className="pe-card__section">
-            <div className="pe-form">
-              <label className="pe-field">
-                <span className="pe-field__label">Category</span>
-                <span className="pe-field__help">Which section this program appears under on the public Programs &amp; Events page. Programs without a category won&rsquo;t appear on that page.</span>
-                <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="pe-select">
-                  <option value="">— None —</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          </div>
         </div>
       )}
 
         {/* ══════════════════════════════════════════════════════════════════
-           TAB 2 — Schedule & Registration
+           TAB 2 — Schedule
            ══════════════════════════════════════════════════════════════════ */}
-        {tab === "Schedule & Registration" && (
+        {tab === "Schedule" && (
           <div className="pe-card"><div className="pe-form">
             <label className="pe-field">
               <span className="pe-field__label">Schedule Label</span>
@@ -802,10 +788,12 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
               <>
                 <label className="pe-field">
                   <span className="pe-field__label">Location Text</span>
+                  <span className="pe-field__help">The venue name and address shown on the program page and in confirmation emails.</span>
                   <input type="text" value={locationText} onChange={(e) => setLocationText(e.target.value)} className="pe-input" />
                 </label>
                 <label className="pe-field">
                   <span className="pe-field__label">Location Link</span>
+                  <span className="pe-field__help">A link to the venue — Google Maps, a website, or directions. Shown as a clickable link on the program page.</span>
                   <input type="url" value={locationLink} onChange={(e) => setLocationLink(e.target.value)} className="pe-input" placeholder="https://…" />
                 </label>
               </>
@@ -957,9 +945,38 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
               </label>
             )}
 
-          {/* ── Registration section ── */}
-          <div className="pe-section-divider" />
+          </div></div>
+        )}
 
+        {/* ══════════════════════════════════════════════════════════════════
+           TAB 3 — Categories
+           ══════════════════════════════════════════════════════════════════ */}
+        {tab === "Categories" && (
+          <div className="pe-card"><div className="pe-form">
+            <label className="pe-field">
+              <span className="pe-field__label">Category</span>
+              <span className="pe-field__help">Which section this program appears under on the public Programs &amp; Events page. Programs without a category won&rsquo;t appear on that page.</span>
+              <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="pe-select">
+                <option value="">— None —</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </label>
+
+            <div className="pe-field">
+              <span className="pe-field__label">Category Display Order</span>
+              <span className="pe-field__help">Arrange the order categories appear on the programs page.</span>
+              <CategoryOrderInline categories={categories} />
+            </div>
+          </div></div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════════
+           TAB 4 — Registration
+           ══════════════════════════════════════════════════════════════════ */}
+        {tab === "Registration" && (
+          <div className="pe-card"><div className="pe-form">
             <div className="pe-field">
               <label className="pe-checkbox">
                 <input
@@ -1112,9 +1129,9 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
-           TAB 3 — Dana & Messages
+           TAB 5 — Dana
            ══════════════════════════════════════════════════════════════════ */}
-        {tab === "Dana & Messages" && (
+        {tab === "Dana" && (
           <div className="pe-card"><div className="pe-form">
             <fieldset className="pe-field">
               <legend className="pe-field__label">Dana Mode</legend>
@@ -1204,10 +1221,14 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                 </label>
               </>
             )}
+          </div></div>
+        )}
 
-            {/* ── Messages section ── */}
-            <div className="pe-section-divider" />
-
+        {/* ══════════════════════════════════════════════════════════════════
+           TAB 6 — Dashboard
+           ══════════════════════════════════════════════════════════════════ */}
+        {tab === "Dashboard" && (
+          <div className="pe-card"><div className="pe-form">
             <label className="pe-field">
               <span className="pe-field__label">Special Announcement</span>
               <span className="pe-field__help">A bold notice shown on this program&rsquo;s dashboard card. Use for urgent or time-sensitive info like a schedule change.</span>
@@ -1229,13 +1250,30 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                 rows={2}
               />
             </label>
+
+            <div className="pe-field">
+              <span className="pe-field__label">Day of Week</span>
+              <span className="pe-field__help">Which days this program meets. Controls the &lsquo;Today&rsquo; badge on dashboard cards and how programs are grouped.</span>
+              <div className="pe-day-grid">
+                {DAY_OPTIONS.map((d) => (
+                  <label key={d.value} className="pe-day-toggle">
+                    <input
+                      type="checkbox"
+                      checked={dayOfWeek.includes(d.value)}
+                      onChange={() => setDayOfWeek(toggleDay(dayOfWeek, d.value))}
+                    />
+                    {d.label}
+                  </label>
+                ))}
+              </div>
+            </div>
           </div></div>
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
-           TAB 4 — Display
+           TAB 7 — Visibility
            ══════════════════════════════════════════════════════════════════ */}
-        {tab === "Display" && (
+        {tab === "Visibility" && (
           <div className="pe-card"><div className="pe-form">
             <label className="pe-field">
               <span className="pe-field__label">Sort Order</span>
@@ -1270,23 +1308,6 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                 Hide from member dashboards
               </label>
               <span className="pe-field__help">When checked, this program won&rsquo;t appear on member dashboards. The program is still accessible by direct link and on the public site.</span>
-            </div>
-
-            <div className="pe-field">
-              <span className="pe-field__label">Day of Week</span>
-              <span className="pe-field__help">Which days this program meets. Controls the &lsquo;Today&rsquo; badge on dashboard cards and how programs are grouped.</span>
-              <div className="pe-day-grid">
-                {DAY_OPTIONS.map((d) => (
-                  <label key={d.value} className="pe-day-toggle">
-                    <input
-                      type="checkbox"
-                      checked={dayOfWeek.includes(d.value)}
-                      onChange={() => setDayOfWeek(toggleDay(dayOfWeek, d.value))}
-                    />
-                    {d.label}
-                  </label>
-                ))}
-              </div>
             </div>
           </div></div>
         )}
