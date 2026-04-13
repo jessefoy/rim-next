@@ -13367,10 +13367,10 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 /* PE Open Access guest link */
 .pe-open-access-link { margin-top: 8px; }
 .pe-open-access-link__box {
-  background: #2d2d2d; color: #e0e0e0;
-  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
-  font-size: 12px; line-height: 1.5;
-  padding: 12px 14px; border-radius: 6px;
+  background: #f5f3f0; color: var(--rim-text);
+  font-family: var(--font-sans); font-size: 13px; line-height: 1.5;
+  padding: 10px 14px; border-radius: 8px;
+  border: 1px solid #e0dcd6;
   word-break: break-all; margin-top: 4px;
   user-select: all; cursor: text;
 }
@@ -13381,25 +13381,26 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 /* PE Teacher selector */
 .pe-teacher-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
 .pe-teacher-tag {
-  display: inline-flex; align-items: center; gap: 4px;
-  background: #f0ebe5; padding: 5px 10px; border-radius: 6px;
-  font-size: 14px; color: var(--rim-text);
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #f5f3f0; padding: 4px 10px; border-radius: 6px;
+  border: 1px solid #e0dcd6;
+  font-size: 13px; color: var(--rim-text);
 }
 .pe-teacher-tag__remove {
   background: none; border: none; cursor: pointer;
-  font-size: 16px; color: var(--rim-text-muted); padding: 0 2px; line-height: 1;
+  font-size: 14px; color: var(--rim-text-muted); padding: 0; line-height: 1;
 }
 .pe-teacher-tag__remove:hover { color: #991b1b; }
 .pe-teacher-results {
-  border: 1px solid #e0dcd6; border-radius: 6px;
+  border: 1px solid #e0dcd6; border-radius: 8px;
   background: #fff; overflow: hidden; margin-top: 4px;
 }
 .pe-teacher-result {
   display: block; width: 100%; text-align: left;
   padding: 8px 12px; border: none; background: none;
-  font-size: 14px; cursor: pointer; color: var(--rim-text);
+  font-size: 13px; cursor: pointer; color: var(--rim-text);
 }
-.pe-teacher-result:hover { background: #f5f2ee; }
+.pe-teacher-result:hover { background: #f5f3f0; }
 .pe-teacher-result + .pe-teacher-result { border-top: 1px solid #f0ebe5; }
 
   /* ProgramEditor */
