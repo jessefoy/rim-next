@@ -7,8 +7,9 @@
  * CSS prefix: pe-
  */
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import dynamic from "next/dynamic";
 import { upload } from "@vercel/blob/client";
 
@@ -189,7 +190,7 @@ function CategoryOrderInline({ categories: initial }: { categories: Category[] }
   );
 }
 
-const TABS = ["Content", "Schedule", "Categories", "Registration", "Dana", "Dashboard", "Visibility"] as const;
+const TABS = ["Program", "Schedule & Registration", "Dana & Messages", "Display"] as const;
 type Tab = (typeof TABS)[number];
 
 const DAY_OPTIONS = [
@@ -222,7 +223,7 @@ function toLocalDatetime(iso: string | null | undefined): string {
 export default function ProgramEditor({ hubSlug, basePath: basePathProp, initialData, isEditing, categories }: Props) {
   const basePath = basePathProp ?? `/account/hub/${hubSlug}/programs`;
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("Content");
+  const [tab, setTab] = useState<Tab>("Program");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -296,6 +297,28 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
   const [resettingKey, setResettingKey] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
+  // ── Unsaved changes tracking ────────────────────────────────────────────
+  const [dirty, setDirty] = useState(false);
+  const [pendingNav, setPendingNav] = useState<string | null>(null);
+
+  const markDirty = useCallback(() => { if (!dirty) setDirty(true); }, [dirty]);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty]);
+
+  /** Wrap navigation — if dirty, show confirmation instead of navigating */
+  function guardedNavigate(href: string) {
+    if (dirty) {
+      setPendingNav(href);
+    } else {
+      router.push(href);
+    }
+  }
+
   // Auto-generate slug from name
   useEffect(() => {
     if (!isEditing && !slugTouched && name) {
@@ -332,10 +355,12 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
     setSelectedTeachers((prev) => [...prev, teacher]);
     setTeacherResults([]);
     setTeacherQuery("");
+    markDirty();
   }
 
   function removeTeacher(id: string) {
     setSelectedTeachers((prev) => prev.filter((t) => t.id !== id));
+    markDirty();
   }
 
   // ── Image upload ─────────────────────────────────────────────────────────
@@ -350,6 +375,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
         handleUploadUrl: "/api/upload",
       });
       setProgramImage(blob.url);
+      markDirty();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
@@ -476,6 +502,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
         if (!isOpenAccess) {
           setGuestAccessKey("");
         }
+        setDirty(false);
         setSuccess(true);
         setTimeout(() => setSuccess(false), 3000);
         // If slug changed, redirect to new URL
@@ -497,7 +524,27 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
   const isVirtual = programFormat === "virtual" || programFormat === "hybrid";
 
   return (
-    <div className="pe-editor">
+    <div className="pe-editor" onChangeCapture={markDirty} onInputCapture={markDirty}>
+      {/* ── Unsaved changes confirmation dialog ── */}
+      {pendingNav && (
+        <div className="pe-overlay" onClick={() => setPendingNav(null)}>
+          <div className="pe-dialog" onClick={(e) => e.stopPropagation()}>
+            <p className="pe-dialog__text">You have unsaved changes. Leave without saving?</p>
+            <div className="pe-dialog__actions">
+              <button className="pe-btn pe-btn--primary" onClick={() => setPendingNav(null)}>
+                Stay on this page
+              </button>
+              <button
+                className="pe-btn"
+                onClick={() => { setDirty(false); router.push(pendingNav); }}
+              >
+                Leave without saving
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="pe-editor__header">
         <h2 className="pe-editor__title">{isEditing ? "Edit Program" : "New Program"}</h2>
         {isEditing && slug && (
@@ -527,17 +574,19 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
       {/* ══════════════════════════════════════════════════════════════════
          TAB 1 — Content
          ══════════════════════════════════════════════════════════════════ */}
-      {tab === "Content" && (
+      {tab === "Program" && (
         <div className="pe-card">
           <div className="pe-card__section">
             <div className="pe-form">
               <label className="pe-field">
                 <span className="pe-field__label">Name *</span>
+                <span className="pe-field__help">The program title. This appears on the public site, in member dashboards, and in all emails.</span>
                 <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="pe-input" required />
               </label>
 
               <label className="pe-field">
                 <span className="pe-field__label">Slug *</span>
+                <span className="pe-field__help">The URL path for this program (e.g. /programs/morning-sit). Changing this after the program is live will break existing links and host assignments.</span>
                 <div className="pe-slug-row">
                   <input
                     type="text"
@@ -566,11 +615,13 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
 
               <label className="pe-field">
                 <span className="pe-field__label">Tagline</span>
+                <span className="pe-field__help">A one-line description shown below the program name on the Programs page and in search results.</span>
                 <input type="text" value={tagline} onChange={(e) => setTagline(e.target.value)} className="pe-input" />
               </label>
 
               <div className="pe-field">
                 <span className="pe-field__label">Program Image</span>
+                <span className="pe-field__help">Shown on the public program page and in the Programs listing. Landscape format works best.</span>
                 {programImage && (
                   <div className="pe-image-preview">
                     <img src={programImage} alt="Program" className="pe-image-preview__img" />
@@ -595,9 +646,10 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
             <div className="pe-form">
               <div className="pe-field">
                 <span className="pe-field__label">Description</span>
+                <span className="pe-field__help">The full program description shown on the public program page. Write for someone who has never been to RIM.</span>
                 <RimBlockEditor
                   value={description}
-                  onChange={setDescription}
+                  onChange={(v: any) => { setDescription(v); markDirty(); }}
                   placeholder="Program description…"
                   minHeight={300}
                   context="document"
@@ -610,11 +662,13 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
             <div className="pe-form">
               <label className="pe-field">
                 <span className="pe-field__label">Pull Quote</span>
+                <span className="pe-field__help">An optional highlighted quote shown on the public program page — something that captures the spirit of this offering.</span>
                 <input type="text" value={pullQuote} onChange={(e) => setPullQuote(e.target.value)} className="pe-input" />
               </label>
 
               <label className="pe-field">
                 <span className="pe-field__label">Pull Quote Source</span>
+                <span className="pe-field__help">Who said the pull quote. Appears below the quote in smaller text.</span>
                 <input type="text" value={pullQuoteSource} onChange={(e) => setPullQuoteSource(e.target.value)} className="pe-input" />
               </label>
             </div>
@@ -624,10 +678,10 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
             <div className="pe-form">
               <div className="pe-field">
                 <span className="pe-field__label">Special Notes</span>
-                <span className="pe-field__help">Temporary logistical notices displayed on the program page.</span>
+                <span className="pe-field__help">Temporary logistical notes shown on the public program page — things like room changes, schedule adjustments, or one-time notices. Remove when no longer relevant.</span>
                 <RimProseEditor
                   value={specialNotes}
-                  onChange={setSpecialNotes}
+                  onChange={(v: any) => { setSpecialNotes(v); markDirty(); }}
                   placeholder="Any temporary notes…"
                   minHeight={120}
                 />
@@ -635,11 +689,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
 
               <div className="pe-field">
                 <span className="pe-field__label">Teacher / Facilitators</span>
-                <span className="pe-field__help">
-                  Search by name to add teachers. Teachers must have a member account
-                  with teacher attribution enabled (set in Admin &gt; Members).
-                  Assigned teachers automatically receive host controls in virtual sessions.
-                </span>
+                <span className="pe-field__help">Search by name to link teachers to this program. Linked teachers automatically get host controls in virtual sessions.</span>
 
                 {selectedTeachers.length > 0 && (
                   <div className="pe-teacher-tags">
@@ -683,28 +733,44 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
               </div>
             </div>
           </div>
+
+          <div className="pe-card__section">
+            <div className="pe-form">
+              <label className="pe-field">
+                <span className="pe-field__label">Category</span>
+                <span className="pe-field__help">Which section this program appears under on the public Programs &amp; Events page. Programs without a category won&rsquo;t appear on that page.</span>
+                <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="pe-select">
+                  <option value="">— None —</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </div>
         </div>
       )}
 
         {/* ══════════════════════════════════════════════════════════════════
-           TAB 2 — Schedule & Location
+           TAB 2 — Schedule & Registration
            ══════════════════════════════════════════════════════════════════ */}
-        {tab === "Schedule" && (
+        {tab === "Schedule & Registration" && (
           <div className="pe-card"><div className="pe-form">
             <label className="pe-field">
-              <span className="pe-field__label">Schedule Label (override)</span>
-              <span className="pe-field__help">Leave blank to auto-generate from the schedule fields below.</span>
+              <span className="pe-field__label">Schedule Label</span>
+              <span className="pe-field__help">How the schedule appears on the public site (e.g. &lsquo;Tuesdays, 7:00&ndash;8:30 PM&rsquo;). Leave blank to auto-generate from the fields below.</span>
               <input type="text" value={dateText} onChange={(e) => setDateText(e.target.value)} className="pe-input" placeholder="e.g. Every Monday Morning" />
             </label>
 
             <label className="pe-field">
               <span className="pe-field__label">Time Label</span>
-              <span className="pe-field__help">Displayed as a separate row in Details. Leave blank to auto-generate from Start/End times.</span>
+              <span className="pe-field__help">The time display (e.g. &lsquo;7:00&ndash;8:30 PM CT&rsquo;). Shown on program cards and in confirmation emails.</span>
               <input type="text" value={timeText} onChange={(e) => setTimeText(e.target.value)} className="pe-input" placeholder="e.g. 7-9 PM" />
             </label>
 
             <fieldset className="pe-field">
               <legend className="pe-field__label">Program Format</legend>
+              <span className="pe-field__help">In-person, virtual, or hybrid. This controls whether a LiveKit video room or a venue address is shown.</span>
               <div className="pe-radio-group">
                 {["in-person", "virtual", "hybrid"].map((val) => (
                   <label key={val} className="pe-radio">
@@ -718,6 +784,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
             {programFormat !== "virtual" && (
               <fieldset className="pe-field">
                 <legend className="pe-field__label">Venue</legend>
+                <span className="pe-field__help">Where the program takes place. &lsquo;At RIM&rsquo; auto-fills the RIM address. &lsquo;Other&rsquo; lets you enter a custom location.</span>
                 <div className="pe-radio-group">
                   <label className="pe-radio">
                     <input type="radio" checked={venue === "at-rim"} onChange={() => setVenue("at-rim")} />
@@ -747,12 +814,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
             {isVirtual && (
               <fieldset className="pe-field">
                 <legend className="pe-field__label">Open Access</legend>
-                <span className="pe-field__help">
-                  Allow non-members to join this virtual session without a RIM account.
-                  When enabled, a shareable guest link is generated. Anyone with the link
-                  can enter their name and join the virtual room as a participant.
-                  The teacher or host must still have a RIM member account.
-                </span>
+                <span className="pe-field__help">Virtual/hybrid only. When enabled, generates a guest link that lets anyone join without registering or logging in. Good for drop-in sessions.</span>
                 <label className="pe-checkbox">
                   <input
                     type="checkbox"
@@ -819,17 +881,19 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
             )}
 
             <label className="pe-field">
-              <span className="pe-field__label">Start Date & Time</span>
+              <span className="pe-field__label">Start Date &amp; Time</span>
+              <span className="pe-field__help">The date range for this program. For single-day events, set both to the same date.</span>
               <input type="datetime-local" value={startDatetime} onChange={(e) => setStartDatetime(e.target.value)} className="pe-input" />
             </label>
 
             <label className="pe-field">
-              <span className="pe-field__label">End Date & Time</span>
+              <span className="pe-field__label">End Date &amp; Time</span>
               <input type="datetime-local" value={endDatetime} onChange={(e) => setEndDatetime(e.target.value)} className="pe-input" />
             </label>
 
             <fieldset className="pe-field">
               <legend className="pe-field__label">Recurrence</legend>
+              <span className="pe-field__help">For repeating programs. Sets the pattern (weekly, daily, etc.) and how many times it occurs.</span>
               <div className="pe-radio-group">
                 <label className="pe-radio">
                   <input type="radio" checked={!recurrenceFreq} onChange={() => setRecurrenceFreq("")} />
@@ -893,58 +957,36 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
               </label>
             )}
 
-          </div></div>
-        )}
-
-        {/* ══════════════════════════════════════════════════════════════════
-           TAB — Categories
-           ══════════════════════════════════════════════════════════════════ */}
-        {tab === "Categories" && (
-          <div className="pe-card"><div className="pe-form">
-            <label className="pe-field">
-              <span className="pe-field__label">Program Category</span>
-              <span className="pe-field__help">Assign this program to a category on the programs page.</span>
-              <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="pe-select">
-                <option value="">— None —</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </label>
+          {/* ── Registration section ── */}
+          <div className="pe-section-divider" />
 
             <div className="pe-field">
-              <span className="pe-field__label">Category Display Order</span>
-              <span className="pe-field__help">Arrange the order categories appear on the programs page.</span>
-              <CategoryOrderInline categories={categories} />
+              <label className="pe-checkbox">
+                <input
+                  type="checkbox"
+                  checked={registrationEnabled}
+                  onChange={(e) => setRegistrationEnabled(e.target.checked)}
+                />
+                Registration enabled
+              </label>
+              <span className="pe-field__help">When checked, the public program page shows a registration form. When unchecked, visitors can read about the program but can&rsquo;t register.</span>
             </div>
-          </div></div>
-        )}
 
-        {/* ══════════════════════════════════════════════════════════════════
-           TAB — Registration
-           ══════════════════════════════════════════════════════════════════ */}
-        {tab === "Registration" && (
-          <div className="pe-card"><div className="pe-form">
-            <label className="pe-checkbox">
-              <input
-                type="checkbox"
-                checked={registrationEnabled}
-                onChange={(e) => setRegistrationEnabled(e.target.checked)}
-              />
-              Registration enabled
-            </label>
-
-            <label className="pe-checkbox">
-              <input
-                type="checkbox"
-                checked={registrationClosed}
-                onChange={(e) => setRegistrationClosed(e.target.checked)}
-              />
-              Registration closed
-            </label>
+            <div className="pe-field">
+              <label className="pe-checkbox">
+                <input
+                  type="checkbox"
+                  checked={registrationClosed}
+                  onChange={(e) => setRegistrationClosed(e.target.checked)}
+                />
+                Registration closed
+              </label>
+              <span className="pe-field__help">Manually closes registration. The page shows a &lsquo;Registration is closed&rsquo; notice instead of the form.</span>
+            </div>
 
             <label className="pe-field">
               <span className="pe-field__label">Capacity</span>
+              <span className="pe-field__help">Maximum number of registered participants. Leave blank for unlimited. When full, new registrations are automatically waitlisted.</span>
               <input
                 type="number"
                 min="1"
@@ -956,6 +998,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
 
             <label className="pe-field">
               <span className="pe-field__label">Registration Deadline</span>
+              <span className="pe-field__help">Registration closes automatically after this date. Leave blank if there&rsquo;s no deadline.</span>
               <input
                 type="datetime-local"
                 value={registrationDeadline}
@@ -967,6 +1010,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
             {/* Custom questions builder */}
             <div className="pe-field">
               <span className="pe-field__label">Custom Questions</span>
+              <span className="pe-field__help">Additional questions shown on the registration form. Answers appear in the registration detail view.</span>
               {registrationFields.map((field, idx) => (
                 <div key={idx} className="pe-reg-field">
                   <div className="pe-reg-field__row">
@@ -1033,10 +1077,10 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
 
             <div className="pe-field">
               <span className="pe-field__label">Confirmation Message</span>
-              <span className="pe-field__help">Custom message included in the confirmation email.</span>
+              <span className="pe-field__help">Shown in the confirmation email after someone registers. Good for logistics like what to bring or how to prepare.</span>
               <RimProseEditor
                 value={confirmationMessage}
-                onChange={setConfirmationMessage}
+                onChange={(v: any) => { setConfirmationMessage(v); markDirty(); }}
                 placeholder="Optional custom message…"
                 minHeight={120}
               />
@@ -1044,7 +1088,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
 
             <label className="pe-field">
               <span className="pe-field__label">Reminder Date</span>
-              <span className="pe-field__help">Reminder emails send at 9am Central on this date.</span>
+              <span className="pe-field__help">When set, a reminder email can be sent to all registered participants on or after this date.</span>
               <input
                 type="datetime-local"
                 value={reminderDate}
@@ -1055,26 +1099,26 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
 
             <div className="pe-field">
               <span className="pe-field__label">Reminder Message</span>
-              <span className="pe-field__help">Custom message included in the reminder email.</span>
+              <span className="pe-field__help">The content of the reminder email. You&rsquo;ll send it manually from the registration detail page — it doesn&rsquo;t send automatically.</span>
               <RimProseEditor
                 value={reminderMessage}
-                onChange={setReminderMessage}
+                onChange={(v: any) => { setReminderMessage(v); markDirty(); }}
                 placeholder="Optional reminder message…"
                 minHeight={120}
               />
             </div>
+
           </div></div>
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
-           TAB 4 — Dana
+           TAB 3 — Dana & Messages
            ══════════════════════════════════════════════════════════════════ */}
-        {tab === "Dana" && (
-          <div className="pe-card">
-            <p className="pe-tab-intro">Control how dana (generosity-based giving) is handled for this program — mode, suggested amounts, and messaging shown during registration.</p>
-            <div className="pe-form">
+        {tab === "Dana & Messages" && (
+          <div className="pe-card"><div className="pe-form">
             <fieldset className="pe-field">
               <legend className="pe-field__label">Dana Mode</legend>
+              <span className="pe-field__help">How donations work for this program. &lsquo;Voluntary&rsquo; lets people give any amount. &lsquo;Base + Dana&rsquo; sets a minimum. &lsquo;Fixed&rsquo; sets an exact amount. &lsquo;None&rsquo; skips the donation step entirely.</span>
               <div className="pe-radio-group">
                 {[
                   { value: "none", label: "None" },
@@ -1092,7 +1136,8 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
 
             {(danaMode === "voluntary" || danaMode === "base_plus_dana") && (
               <label className="pe-field">
-                <span className="pe-field__label">Suggested Dana ($)</span>
+                <span className="pe-field__label">Suggested Amount ($)</span>
+                <span className="pe-field__help">Voluntary mode: a suggested donation amount shown during registration. Participants can change it.</span>
                 <input
                   type="number"
                   min="0"
@@ -1107,6 +1152,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
             {danaMode === "base_plus_dana" && (
               <label className="pe-field">
                 <span className="pe-field__label">Base Amount ($)</span>
+                <span className="pe-field__help">Base + Dana mode: the minimum amount. Participants can add more on top of this.</span>
                 <input
                   type="number"
                   min="0"
@@ -1121,6 +1167,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
             {danaMode === "fixed" && (
               <label className="pe-field">
                 <span className="pe-field__label">Fixed Amount ($)</span>
+                <span className="pe-field__help">Fixed mode: the exact amount charged. Participants cannot change it.</span>
                 <input
                   type="number"
                   min="0"
@@ -1136,7 +1183,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
               <>
                 <label className="pe-field">
                   <span className="pe-field__label">Dana Step Message</span>
-                  <span className="pe-field__help">Shown on the dana step of the registration form.</span>
+                  <span className="pe-field__help">Shown during the donation step of registration. Use this to explain how dana supports RIM.</span>
                   <textarea
                     value={danaMessage}
                     onChange={(e) => setDanaMessage(e.target.value)}
@@ -1147,7 +1194,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
 
                 <label className="pe-field">
                   <span className="pe-field__label">Program Page Dana Note</span>
-                  <span className="pe-field__help">Shown on the public program page.</span>
+                  <span className="pe-field__help">Shown on the public program page near the registration form — a brief note about the dana model for this program.</span>
                   <textarea
                     value={danaText}
                     onChange={(e) => setDanaText(e.target.value)}
@@ -1157,19 +1204,13 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                 </label>
               </>
             )}
-          </div></div>
-        )}
 
-        {/* ══════════════════════════════════════════════════════════════════
-           TAB 5 — Dashboard
-           ══════════════════════════════════════════════════════════════════ */}
-        {tab === "Dashboard" && (
-          <div className="pe-card">
-            <p className="pe-tab-intro">Configure how this program appears on the member dashboard — announcements, arrival guidance, and which days it shows up.</p>
-            <div className="pe-form">
+            {/* ── Messages section ── */}
+            <div className="pe-section-divider" />
+
             <label className="pe-field">
               <span className="pe-field__label">Special Announcement</span>
-              <span className="pe-field__help">Bold notice shown on the member dashboard card.</span>
+              <span className="pe-field__help">A bold notice shown on this program&rsquo;s dashboard card. Use for urgent or time-sensitive info like a schedule change.</span>
               <textarea
                 value={specialAnnouncement}
                 onChange={(e) => setSpecialAnnouncement(e.target.value)}
@@ -1180,7 +1221,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
 
             <label className="pe-field">
               <span className="pe-field__label">Early Arrival Message</span>
-              <span className="pe-field__help">Muted guidance shown on dashboard card.</span>
+              <span className="pe-field__help">A quieter message shown on the dashboard card — things like &lsquo;Please arrive 10 minutes early&rsquo; or &lsquo;Bring a cushion.&rsquo;</span>
               <textarea
                 value={earlyArrivalMessage}
                 onChange={(e) => setEarlyArrivalMessage(e.target.value)}
@@ -1188,19 +1229,52 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                 rows={2}
               />
             </label>
+          </div></div>
+        )}
 
-            <label className="pe-checkbox">
+        {/* ══════════════════════════════════════════════════════════════════
+           TAB 4 — Display
+           ══════════════════════════════════════════════════════════════════ */}
+        {tab === "Display" && (
+          <div className="pe-card"><div className="pe-form">
+            <label className="pe-field">
+              <span className="pe-field__label">Sort Order</span>
+              <span className="pe-field__help">Controls the display order on the public Programs page. Lower numbers appear first.</span>
               <input
-                type="checkbox"
-                checked={hideFromDashboard}
-                onChange={(e) => setHideFromDashboard(e.target.checked)}
+                type="number"
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
+                className="pe-input pe-input--narrow"
               />
-              Hide from member dashboard
             </label>
 
             <div className="pe-field">
+              <label className="pe-checkbox">
+                <input
+                  type="checkbox"
+                  checked={hideFromProgramPageList}
+                  onChange={(e) => setHideFromProgramPageList(e.target.checked)}
+                />
+                Hide from public Programs &amp; Events page
+              </label>
+              <span className="pe-field__help">When checked, this program won&rsquo;t appear on the public Programs &amp; Events listing. It&rsquo;s still accessible by direct URL.</span>
+            </div>
+
+            <div className="pe-field">
+              <label className="pe-checkbox">
+                <input
+                  type="checkbox"
+                  checked={removeFromProgramList}
+                  onChange={(e) => setRemoveFromProgramList(e.target.checked)}
+                />
+                Hide from member dashboards
+              </label>
+              <span className="pe-field__help">When checked, this program won&rsquo;t appear on member dashboards. The program is still accessible by direct link and on the public site.</span>
+            </div>
+
+            <div className="pe-field">
               <span className="pe-field__label">Day of Week</span>
-              <span className="pe-field__help">Drives the &quot;Today&quot; badge and day-based grouping on the dashboard.</span>
+              <span className="pe-field__help">Which days this program meets. Controls the &lsquo;Today&rsquo; badge on dashboard cards and how programs are grouped.</span>
               <div className="pe-day-grid">
                 {DAY_OPTIONS.map((d) => (
                   <label key={d.value} className="pe-day-toggle">
@@ -1217,43 +1291,6 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
           </div></div>
         )}
 
-        {/* ══════════════════════════════════════════════════════════════════
-           TAB 6 — Visibility
-           ══════════════════════════════════════════════════════════════════ */}
-        {tab === "Visibility" && (
-          <div className="pe-card">
-            <p className="pe-tab-intro">Control where this program appears in public listings and the member dashboard. Hidden programs remain accessible via direct link.</p>
-            <div className="pe-form">
-            <label className="pe-field">
-              <span className="pe-field__label">Sort Order</span>
-              <input
-                type="number"
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value)}
-                className="pe-input pe-input--narrow"
-              />
-            </label>
-
-            <label className="pe-checkbox">
-              <input
-                type="checkbox"
-                checked={hideFromProgramPageList}
-                onChange={(e) => setHideFromProgramPageList(e.target.checked)}
-              />
-              Hide from public Programs &amp; Events page
-            </label>
-
-            <label className="pe-checkbox">
-              <input
-                type="checkbox"
-                checked={removeFromProgramList}
-                onChange={(e) => setRemoveFromProgramList(e.target.checked)}
-              />
-              Hide from member dashboard program list
-            </label>
-          </div></div>
-        )}
-
       {/* ── Actions bar ── */}
       <div className="pe-actions">
         <button
@@ -1266,7 +1303,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
         </button>
         <button
           type="button"
-          onClick={() => router.push(basePath)}
+          onClick={() => guardedNavigate(basePath)}
           className="pe-btn"
         >
           Cancel

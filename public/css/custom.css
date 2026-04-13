@@ -2398,6 +2398,13 @@ h1, h2, h3, h4, h5, h6 {
 
 .vol-back:hover { color: var(--rim-blue); }
 
+.vol-header__row { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+.vol-header__edit-link {
+  font-size: 14px; color: var(--rim-mid); text-decoration: none;
+  font-family: var(--font-sans); font-weight: 400;
+}
+.vol-header__edit-link:hover { color: var(--rim-blue); text-decoration: underline; }
+
 /* ── Program cards (landing) ── */
 
 .vol-programs {
@@ -2827,7 +2834,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .vol-detail__link {
   display: block;
-  font-size: 13px;
+  font-size: 15px;
   color: var(--rim-mid);
   text-decoration: none;
   margin-bottom: 3px;
@@ -2847,7 +2854,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .vol-detail__meta-text {
-  font-size: 12px;
+  font-size: 15px;
   color: var(--rim-text-muted);
 }
 
@@ -2883,7 +2890,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .vol-detail__fields dd {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--rim-text);
   margin: 0;
   line-height: 1.5;
@@ -2914,6 +2921,11 @@ h1, h2, h3, h4, h5, h6 {
   flex-direction: column;
   gap: 8px;
   margin-bottom: 20px;
+}
+.vol-detail__notes-wrap .rim-prose-editor-wrap {
+  border: none;
+  padding: 24px;
+  min-height: 80px;
 }
 
 .vol-notes {
@@ -2955,7 +2967,7 @@ h1, h2, h3, h4, h5, h6 {
 .vol-detail__actions-wrap {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 12px;
   padding-top: 16px;
   border-top: 1px solid var(--rim-rule);
 }
@@ -2963,10 +2975,11 @@ h1, h2, h3, h4, h5, h6 {
 /* Full-width action buttons inside the detail panel */
 .vol-action-btn {
   width: 100%;
-  padding: 9px 16px;
+  padding: 11px 16px;
+  min-height: 44px;
   border-radius: 4px;
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s;
@@ -2975,6 +2988,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .vol-action-btn:disabled { opacity: 0.45; cursor: default; }
+
+/* ── Dominant action (state-based emphasis) ── */
+.vol-action-btn--dominant { background: var(--rim-mid); border: none; color: #fff; font-size: 16px; }
+.vol-action-btn--dominant:hover:not(:disabled) { background: var(--rim-blue); }
 
 .vol-action-btn--promote { background: var(--rim-mid); border: none; color: #fff; }
 .vol-action-btn--promote:hover:not(:disabled) { background: var(--rim-blue); }
@@ -3432,6 +3449,18 @@ h1, h2, h3, h4, h5, h6 {
 }
 .vol-reminder-bulk-btn:hover:not(:disabled) { background: var(--rim-mid); color: #fff; }
 .vol-reminder-bulk-btn:disabled { opacity: 0.6; cursor: default; }
+
+.vol-reminder-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.vol-reminder-names-toggle {
+  font-size: 13px; color: var(--rim-mid); background: none; border: none;
+  cursor: pointer; text-decoration: underline; font-family: var(--font-sans);
+}
+.vol-reminder-names-toggle:hover { color: var(--rim-blue); }
+.vol-reminder-names {
+  display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 8px;
+  font-size: 14px; color: var(--rim-text); line-height: 1.6;
+}
+.vol-reminder-name { white-space: nowrap; }
 
 /* Per-row reminder sent indicator and send button */
 .vol-reminder-sent-badge {
@@ -12886,8 +12915,9 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 }
 .pe-tabs__tab {
   padding: 12px 20px;
+  min-height: 44px;
   background: none; border: none;
-  font-size: 14px; font-family: var(--font-sans);
+  font-size: 15px; font-family: var(--font-sans);
   color: var(--rim-text-muted);
   cursor: pointer;
   border-bottom: 2px solid transparent;
@@ -12933,25 +12963,26 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 }
 
 /* ── Form ── */
-.pe-form { display: flex; flex-direction: column; gap: 20px; }
+.pe-form { display: flex; flex-direction: column; gap: 24px; }
 
-/* ── Fields — warm, sentence case ── */
-.pe-field { display: flex; flex-direction: column; gap: 5px; }
+/* ── Fields ── */
+.pe-field { display: flex; flex-direction: column; gap: 4px; }
 .pe-field__label {
-  font-size: 13px; font-weight: 600;
-  color: #4a4540;
+  font-size: 14px; font-weight: 600;
+  color: var(--rim-text);
   text-transform: none;
   letter-spacing: normal;
+  margin-bottom: 0;
 }
-.pe-field__help { font-size: 13px; color: var(--rim-text-muted); line-height: 1.5; }
+.pe-field__help { font-size: 14px; font-weight: 400; color: var(--rim-text-muted); line-height: 1.5; margin-bottom: 4px; }
 .pe-field__help--warn { color: #b45309; }
 
-/* ── Inputs — softer, warmer ── */
+/* ── Inputs ── */
 .pe-input {
-  padding: 10px 14px;
-  border: 1px solid #e0dbd6;
-  border-radius: 8px;
-  font-size: 15px; font-family: var(--font-sans);
+  padding: 10px 12px;
+  border: 1px solid var(--rim-rule);
+  border-radius: 4px;
+  font-size: 16px; font-family: var(--font-sans);
   background: #fff;
   width: 100%; box-sizing: border-box;
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -12961,10 +12992,10 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .pe-input--narrow { max-width: 160px; }
 
 .pe-textarea {
-  padding: 10px 14px;
-  border: 1px solid #e0dbd6;
-  border-radius: 8px;
-  font-size: 15px; font-family: var(--font-sans);
+  padding: 10px 12px;
+  border: 1px solid var(--rim-rule);
+  border-radius: 4px;
+  font-size: 16px; font-family: var(--font-sans);
   background: #fff;
   width: 100%; box-sizing: border-box;
   resize: vertical;
@@ -12973,10 +13004,10 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .pe-textarea:focus { outline: none; border-color: var(--rim-mid); box-shadow: 0 0 0 3px rgba(57,96,122,0.1); }
 
 .pe-select {
-  padding: 10px 14px;
-  border: 1px solid #e0dbd6;
-  border-radius: 8px;
-  font-size: 15px; font-family: var(--font-sans);
+  padding: 10px 12px;
+  border: 1px solid var(--rim-rule);
+  border-radius: 4px;
+  font-size: 16px; font-family: var(--font-sans);
   background: #fff;
   max-width: 320px;
 }
@@ -13066,6 +13097,12 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .pe-btn--danger { color: #991b1b; border-color: #f5cac5; }
 .pe-btn--danger:hover { background: #fef2f2; border-color: #e8a8a0; }
 .pe-btn--small { padding: 5px 12px; font-size: 12px; }
+
+/* ── Section divider (within tab, between conceptual groups) ── */
+.pe-section-divider {
+  margin: 24px 0 0;
+  border-top: 1px solid var(--rim-rule);
+}
 
 /* ── Sticky save bar ── */
 .pe-actions {

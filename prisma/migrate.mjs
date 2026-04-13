@@ -7,6 +7,7 @@
 
 import { PrismaClient } from "@prisma/client";
 import { seedPrograms } from "./seed-programs.mjs";
+import { seedManualProgramManager } from "./seed-manual-program-manager.mjs";
 
 const db = new PrismaClient();
 
@@ -131,6 +132,18 @@ async function main() {
     console.log("  ✔ Program seed applied.");
   } else {
     console.log("  ⏭ Program seed already applied.");
+  }
+
+  // Program Manager manual section — always upsert (idempotent)
+  const manualFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'seed_manual_program_manager_v1'
+  `).catch(() => []);
+
+  if (manualFlag.length === 0) {
+    await seedManualProgramManager(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_manual_program_manager_v1')`);
+  } else {
+    console.log("  ⏭ Program Manager manual already seeded.");
   }
 
   await db.$disconnect();

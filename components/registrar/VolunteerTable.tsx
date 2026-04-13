@@ -108,6 +108,7 @@ export default function VolunteerTable({
   const [resendSent, setResendSent]                   = useState<string | null>(null);
   // Optimistic local tracking — maps reg id → ISO sent timestamp
   const [localReminderSentAt, setLocalReminderSentAt] = useState<Record<string, string>>({});
+  const [showReminderNames, setShowReminderNames] = useState(false);
 
   // ── Counts — APPROVED is bucketed under REGISTERED ──────────────────────────
   const counts: Record<string, number> = { ALL: registrations.length };
@@ -497,20 +498,37 @@ export default function VolunteerTable({
             </span>
           </div>
           {unsentCount > 0 ? (
-            <button
-              className="vol-reminder-bulk-btn"
-              onClick={sendBulkReminder}
-              disabled={bulkReminderSending}
-            >
-              {bulkReminderSending
-                ? "Sending…"
-                : bulkReminderSent !== null
-                  ? `Sent to ${bulkReminderSent} ✓`
-                  : `Send to Remaining ${unsentCount}`}
-            </button>
+            <div className="vol-reminder-actions">
+              <button
+                className="vol-reminder-bulk-btn"
+                onClick={sendBulkReminder}
+                disabled={bulkReminderSending}
+              >
+                {bulkReminderSending
+                  ? "Sending…"
+                  : bulkReminderSent !== null
+                    ? `Sent to ${bulkReminderSent} ✓`
+                    : `Send to Remaining ${unsentCount}`}
+              </button>
+              <button
+                className="vol-reminder-names-toggle"
+                onClick={() => setShowReminderNames(!showReminderNames)}
+              >
+                {showReminderNames ? "Hide names" : "Show names"}
+              </button>
+            </div>
           ) : totalActive > 0 ? (
             <span className="vol-reminder-all-sent">All sent ✓</span>
           ) : null}
+          {showReminderNames && unsentCount > 0 && (
+            <div className="vol-reminder-names">
+              {registrations
+                .filter((r) => (r.status === "REGISTERED" || r.status === "APPROVED") && !getReminderSentAt(r.id))
+                .map((r) => (
+                  <span key={r.id} className="vol-reminder-name">{r.firstName} {r.lastName}</span>
+                ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -764,7 +782,7 @@ export default function VolunteerTable({
                               {/* Dana reminder — shown whenever donation is pending */}
                               {r.donationStatus === "PENDING" && (
                                 <button
-                                  className="vol-action-btn vol-action-btn--reminder"
+                                  className="vol-action-btn vol-action-btn--dominant"
                                   disabled={actionLoading === r.id}
                                   onClick={() => sendDanaReminder(r.id)}
                                 >
@@ -947,7 +965,7 @@ export default function VolunteerTable({
                               {r.status === "CANCELLED" && (
                                 <>
                                   <button
-                                    className="vol-action-btn vol-action-btn--restore"
+                                    className="vol-action-btn vol-action-btn--dominant"
                                     disabled={actionLoading === r.id}
                                     onClick={() => restoreRegistration(r.id)}
                                   >

@@ -80,7 +80,12 @@ export default async function ProgramDetailToolPage({
 
         <div className="vol-header">
           <Link href="/tools/programs" className="vol-back">&larr; Programs</Link>
-          <h1 className="vol-header__title">{program.name}</h1>
+          <div className="vol-header__row">
+            <h1 className="vol-header__title">{program.name}</h1>
+            <Link href={`/tools/programs/${programSlug}/edit`} className="vol-header__edit-link">
+              Edit Program Settings &rarr;
+            </Link>
+          </div>
         </div>
 
         <VolunteerTable
