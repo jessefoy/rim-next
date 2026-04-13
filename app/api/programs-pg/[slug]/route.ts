@@ -22,7 +22,14 @@ export async function GET(
   const { slug } = await params;
   const program = await db.program.findUnique({
     where: { slug },
-    include: { category: true, programCourses: { include: { course: true } } },
+    include: {
+      category: true,
+      programCourses: { include: { course: true } },
+      programTeachers: {
+        orderBy: { order: "asc" },
+        include: { user: { select: { id: true, firstName: true, lastName: true, preferredName: true } } },
+      },
+    },
   });
 
   if (!program) {
@@ -151,6 +158,22 @@ export async function PUT(
     where: { slug },
     data,
   });
+
+  // Handle teacher assignments if provided
+  if (body.teacherIds !== undefined) {
+    const teacherIds: string[] = body.teacherIds ?? [];
+    // Delete existing assignments and recreate in order
+    await db.programTeacher.deleteMany({ where: { programId: updated.id } });
+    if (teacherIds.length > 0) {
+      await db.programTeacher.createMany({
+        data: teacherIds.map((userId: string, index: number) => ({
+          programId: updated.id,
+          userId,
+          order: index,
+        })),
+      });
+    }
+  }
 
   return NextResponse.json(updated);
 }

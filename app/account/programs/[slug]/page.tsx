@@ -51,7 +51,13 @@ export default async function MemberProgramDetailPage({
   const [program, registration] = await Promise.all([
     db.program.findUnique({
       where: { slug },
-      include: { category: true },
+      include: {
+        category: true,
+        programTeachers: {
+          orderBy: { order: "asc" },
+          include: { user: { select: { firstName: true, lastName: true, preferredName: true } } },
+        },
+      },
     }),
     db.registration.findFirst({
       where: {
@@ -131,7 +137,10 @@ export default async function MemberProgramDetailPage({
 
   const isVirtual = program.programFormat === "virtual" || program.programFormat === "hybrid";
   const isInPerson = program.programFormat === "in-person" || program.programFormat === "hybrid";
-  const hasFacilitators = program.teacherFacilitators.length > 0;
+  const teacherDisplayNames = program.programTeachers.length > 0
+    ? program.programTeachers.map((pt) => `${pt.user.preferredName || pt.user.firstName || ""} ${pt.user.lastName || ""}`.trim())
+    : program.teacherFacilitators;
+  const hasFacilitators = teacherDisplayNames.length > 0;
 
   return (
     <AccountLayout>
@@ -245,7 +254,7 @@ export default async function MemberProgramDetailPage({
           <div className="mpd-facilitators">
             <p className="mpd-label">Facilitators</p>
             <p className="mpd-facilitators__names">
-              {program.teacherFacilitators.join(", ")}
+              {teacherDisplayNames.join(", ")}
             </p>
           </div>
         )}

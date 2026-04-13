@@ -48,6 +48,11 @@ export default async function EditProgramToolPage({
     pullQuoteSource: program.pullQuoteSource ?? "",
     specialNotes: program.specialNotes,
     teacherFacilitators: program.teacherFacilitators,
+    programTeachers: (program as any).programTeachers?.map((pt: any) => ({
+      id: pt.user.id,
+      firstName: pt.user.preferredName || pt.user.firstName || "",
+      lastName: pt.user.lastName || "",
+    })) ?? [],
     categoryId: program.categoryId ?? "",
     dateText: program.dateText ?? "",
     timeText: program.timeText ?? "",

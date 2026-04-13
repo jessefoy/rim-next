@@ -63,6 +63,14 @@ export async function POST(req: NextRequest) {
 
     // Also check if user has HOST or HOST_MANAGER role
     if (roles.includes("HOST_MANAGER")) isHost = true;
+
+    // Teachers assigned to this program get host controls
+    if (!isHost) {
+      const programTeacher = await db.programTeacher.findFirst({
+        where: { programId: program.id, userId: session.user.id },
+      });
+      if (programTeacher) isHost = true;
+    }
   }
 
   // Check if user is on the host team (can step in as emergency host)

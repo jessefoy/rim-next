@@ -91,5 +91,17 @@ export async function POST(request: NextRequest) {
     },
   });
 
+  // Handle teacher assignments if provided
+  const teacherIds: string[] = body.teacherIds ?? [];
+  if (teacherIds.length > 0) {
+    await db.programTeacher.createMany({
+      data: teacherIds.map((userId: string, index: number) => ({
+        programId: program.id,
+        userId,
+        order: index,
+      })),
+    });
+  }
+
   return NextResponse.json(program, { status: 201 });
 }

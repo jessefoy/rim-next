@@ -90,6 +90,7 @@ model User {
   isTeacher           Boolean        @default(false)
   teacherProfile      TeacherProfile?
   lessonTeachers      LessonTeacher[]
+  programTeachers     ProgramTeacher[]
 
   // Support inbox notification preference
   supportEmailNotifications Boolean @default(true)
@@ -351,6 +352,7 @@ model Program {
   registrations      Registration[]
   programCourses     ProgramCourse[]
   sessionAttendances SessionAttendance[]
+  programTeachers    ProgramTeacher[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -581,6 +583,19 @@ model LessonTeacher {
 
   @@unique([lessonId, userId])
   @@map("lesson_teachers")
+}
+
+model ProgramTeacher {
+  id        String @id @default(cuid())
+  programId String
+  userId    String
+  order     Int    @default(0)
+
+  program Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([programId, userId])
+  @@map("program_teachers")
 }
 
 model DripNotification {

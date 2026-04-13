@@ -28,7 +28,13 @@ export default async function ProgramDetailPage({
   const [program, session] = await Promise.all([
     db.program.findUnique({
       where: { slug },
-      include: { category: true },
+      include: {
+        category: true,
+        programTeachers: {
+          orderBy: { order: "asc" },
+          include: { user: { select: { firstName: true, lastName: true, preferredName: true, teacherProfile: { select: { slug: true } } } } },
+        },
+      },
     }),
     auth(),
   ]);
@@ -123,7 +129,14 @@ export default async function ProgramDetailPage({
   const showLocation = !!(locationLabel);
 
   const hasDetails = !!(scheduleLabel || timeLabel || showLocation || program.danaText);
-  const hasFacilitators = program.teacherFacilitators.length > 0;
+  // Use programTeachers (linked accounts) first, fall back to plain text
+  const teacherNames = program.programTeachers.length > 0
+    ? program.programTeachers.map((pt) => ({
+        name: `${pt.user.preferredName || pt.user.firstName || ""} ${pt.user.lastName || ""}`.trim(),
+        slug: pt.user.teacherProfile?.slug ?? null,
+      }))
+    : program.teacherFacilitators.map((name) => ({ name, slug: null }));
+  const hasFacilitators = teacherNames.length > 0;
   const hasDescription = !!program.description;
   const hasSpecialNotes = !!program.specialNotes;
 
@@ -285,8 +298,12 @@ export default async function ProgramDetailPage({
           <section className="pg-facilitators-section">
             <h2 className="pg-section-heading">Facilitators:</h2>
             <div className="pg-facilitators">
-              {program.teacherFacilitators.map((name, i) => (
-                <span key={i} className="pg-facilitator">{name}</span>
+              {teacherNames.map((t, i) => (
+                t.slug ? (
+                  <Link key={i} href={`/teachers/${t.slug}`} className="pg-facilitator pg-facilitator--link">{t.name}</Link>
+                ) : (
+                  <span key={i} className="pg-facilitator">{t.name}</span>
+                )
               ))}
             </div>
           </section>

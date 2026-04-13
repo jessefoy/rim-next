@@ -7,10 +7,16 @@
  * CSS prefix: pe-
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { upload } from "@vercel/blob/client";
+
+interface TeacherItem {
+  id: string;
+  firstName: string;
+  lastName: string;
+}
 
 const RimBlockEditor = dynamic(() => import("@/components/RimBlockEditor"), { ssr: false });
 const RimProseEditor = dynamic(() => import("@/components/RimProseEditor"), { ssr: false });
@@ -41,6 +47,7 @@ export interface ProgramData {
   pullQuoteSource: string;
   specialNotes: any;
   teacherFacilitators: string[];
+  programTeachers: { id: string; firstName: string; lastName: string }[];
   categoryId: string;
   dateText: string;
   timeText: string;
@@ -235,6 +242,11 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
   const [teacherFacilitatorsText, setTeacherFacilitatorsText] = useState(
     initialData?.teacherFacilitators?.join(", ") ?? ""
   );
+  const [selectedTeachers, setSelectedTeachers] = useState<TeacherItem[]>(initialData?.programTeachers ?? []);
+  const [teacherQuery, setTeacherQuery] = useState("");
+  const [teacherResults, setTeacherResults] = useState<TeacherItem[]>([]);
+  const [teacherSearching, setTeacherSearching] = useState(false);
+  const teacherDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [categoryId, setCategoryId] = useState(initialData?.categoryId ?? "");
   const [dateText, setDateText] = useState(initialData?.dateText ?? "");
@@ -290,6 +302,41 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
       setSlug(slugify(name));
     }
   }, [name, isEditing, slugTouched]);
+
+  // ── Teacher search ───────────────────────────────────────────────────────
+  useEffect(() => {
+    if (teacherDebounceRef.current) clearTimeout(teacherDebounceRef.current);
+    if (!teacherQuery.trim()) {
+      setTeacherResults([]);
+      return;
+    }
+    teacherDebounceRef.current = setTimeout(async () => {
+      setTeacherSearching(true);
+      try {
+        const res = await fetch(`/api/members/search?q=${encodeURIComponent(teacherQuery)}`);
+        if (res.ok) {
+          const data = await res.json();
+          const mapped: TeacherItem[] = data.map((m: { id: string; firstName: string; lastName: string }) => ({
+            id: m.id,
+            firstName: m.firstName,
+            lastName: m.lastName,
+          }));
+          setTeacherResults(mapped.filter((t) => !selectedTeachers.some((s) => s.id === t.id)));
+        }
+      } catch {}
+      setTeacherSearching(false);
+    }, 300);
+  }, [teacherQuery]);
+
+  function addTeacher(teacher: TeacherItem) {
+    setSelectedTeachers((prev) => [...prev, teacher]);
+    setTeacherResults([]);
+    setTeacherQuery("");
+  }
+
+  function removeTeacher(id: string) {
+    setSelectedTeachers((prev) => prev.filter((t) => t.id !== id));
+  }
 
   // ── Image upload ─────────────────────────────────────────────────────────
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -366,6 +413,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
         teacherFacilitators: teacherFacilitatorsText
           ? teacherFacilitatorsText.split(",").map((s) => s.trim()).filter(Boolean)
           : [],
+        teacherIds: selectedTeachers.map((t) => t.id),
         categoryId: categoryId || null,
         dateText,
         timeText,
@@ -576,17 +624,54 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                 />
               </div>
 
-              <label className="pe-field">
+              <div className="pe-field">
                 <span className="pe-field__label">Teacher / Facilitators</span>
-                <span className="pe-field__help">Comma-separated names.</span>
+                <span className="pe-field__help">
+                  Search by name to add teachers. Teachers must have a member account
+                  with teacher attribution enabled (set in Admin &gt; Members).
+                  Assigned teachers automatically receive host controls in virtual sessions.
+                </span>
+
+                {selectedTeachers.length > 0 && (
+                  <div className="pe-teacher-tags">
+                    {selectedTeachers.map((t) => (
+                      <span key={t.id} className="pe-teacher-tag">
+                        {t.firstName} {t.lastName}
+                        <button
+                          type="button"
+                          className="pe-teacher-tag__remove"
+                          onClick={() => removeTeacher(t.id)}
+                        >
+                          &times;
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
                 <input
                   type="text"
-                  value={teacherFacilitatorsText}
-                  onChange={(e) => setTeacherFacilitatorsText(e.target.value)}
+                  value={teacherQuery}
+                  onChange={(e) => setTeacherQuery(e.target.value)}
                   className="pe-input"
-                  placeholder="Jesse Foy, LoriLee Villwock"
+                  placeholder="Search teachers by name…"
                 />
-              </label>
+                {teacherSearching && <span className="pe-field__help">Searching…</span>}
+                {teacherResults.length > 0 && (
+                  <div className="pe-teacher-results">
+                    {teacherResults.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        className="pe-teacher-result"
+                        onClick={() => addTeacher(t)}
+                      >
+                        {t.firstName} {t.lastName}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

@@ -76,6 +76,32 @@ const migrations = [
       }
     },
   },
+  {
+    name: "create_program_teachers_table",
+    async run() {
+      const tables = await db.$queryRawUnsafe(`
+        SELECT table_name FROM information_schema.tables
+        WHERE table_name = 'program_teachers'
+      `);
+      if (tables.length === 0) {
+        await db.$executeRawUnsafe(`
+          CREATE TABLE "program_teachers" (
+            "id" TEXT NOT NULL DEFAULT gen_random_uuid()::text,
+            "programId" TEXT NOT NULL,
+            "userId" TEXT NOT NULL,
+            "order" INTEGER NOT NULL DEFAULT 0,
+            CONSTRAINT "program_teachers_pkey" PRIMARY KEY ("id"),
+            CONSTRAINT "program_teachers_programId_fkey" FOREIGN KEY ("programId") REFERENCES "programs"("id") ON DELETE CASCADE,
+            CONSTRAINT "program_teachers_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE,
+            CONSTRAINT "program_teachers_programId_userId_key" UNIQUE ("programId", "userId")
+          )
+        `);
+        console.log(`  ✔ Applied: ${this.name}`);
+      } else {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+      }
+    },
+  },
 ];
 
 async function main() {

@@ -1567,6 +1567,11 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--rim-text);
 }
 
+.pg-facilitator--link {
+  text-decoration: none;
+  color: var(--rim-blue, #135274);
+}
+.pg-facilitator--link:hover { text-decoration: underline; }
 .pg-facilitator + .pg-facilitator::before {
   content: ", ";
 }
@@ -13358,6 +13363,30 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   .vol-table { font-size: 12px; }
   .vol-table__th, .vol-table__td { padding: 8px 6px; }
   .vol-cap__bar { width: 40px; }
+
+/* PE Teacher selector */
+.pe-teacher-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+.pe-teacher-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: #f0ebe5; padding: 5px 10px; border-radius: 6px;
+  font-size: 14px; color: var(--rim-text);
+}
+.pe-teacher-tag__remove {
+  background: none; border: none; cursor: pointer;
+  font-size: 16px; color: var(--rim-text-muted); padding: 0 2px; line-height: 1;
+}
+.pe-teacher-tag__remove:hover { color: #991b1b; }
+.pe-teacher-results {
+  border: 1px solid #e0dcd6; border-radius: 6px;
+  background: #fff; overflow: hidden; margin-top: 4px;
+}
+.pe-teacher-result {
+  display: block; width: 100%; text-align: left;
+  padding: 8px 12px; border: none; background: none;
+  font-size: 14px; cursor: pointer; color: var(--rim-text);
+}
+.pe-teacher-result:hover { background: #f5f2ee; }
+.pe-teacher-result + .pe-teacher-result { border-top: 1px solid #f0ebe5; }
 
   /* ProgramEditor */
   .pe-tabs { gap: 0; -webkit-overflow-scrolling: touch; }
