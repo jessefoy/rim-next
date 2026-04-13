@@ -3,26 +3,29 @@
 /**
  * /session/[slug] — Dedicated full-page video session room.
  * Members arrive here from the dashboard "Join" button.
- * Auth-gated: redirects to /login if not authenticated.
+ * Guests arrive via ?key=xxx for open-access programs.
  *
+ * Auth-gated for members; key-gated for guests.
  * The page fetches a LiveKit token, connects to the room, and
  * shows the video conference full-page with a clean header.
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 
 const VideoRoom = dynamic(() => import("@/components/VideoRoom"), { ssr: false });
 
-type State = "loading" | "ready" | "connected" | "error" | "left";
+type State = "loading" | "guest-name" | "ready" | "connected" | "error" | "left";
 
 export default function SessionPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const slug = params.slug as string;
+  const guestKey = searchParams.get("key");
 
-  const [state, setState] = useState<State>("loading");
+  const [state, setState] = useState<State>(guestKey ? "guest-name" : "loading");
   const [token, setToken] = useState<string | null>(null);
   const [wsUrl, setWsUrl] = useState<string | null>(null);
   const [programName, setProgramName] = useState<string>("");
@@ -33,7 +36,10 @@ export default function SessionPage() {
   const [steppingIn, setSteppingIn] = useState(false);
   const [ending, setEnding] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [guestName, setGuestName] = useState("");
+  const [joiningAsGuest, setJoiningAsGuest] = useState(false);
   const pageRef = useRef<HTMLDivElement>(null);
+  const isGuest = !!guestKey;
 
   const toggleFullscreen = useCallback(async () => {
     try {
@@ -51,10 +57,12 @@ export default function SessionPage() {
     return () => document.removeEventListener("fullscreenchange", handler);
   }, []);
 
+  // Member flow: fetch token immediately
   useEffect(() => {
+    if (isGuest) return; // guests go through the name form first
+
     async function init() {
       try {
-        // Fetch token
         const res = await fetch("/api/livekit/token", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -89,7 +97,42 @@ export default function SessionPage() {
       }
     }
     init();
-  }, [slug, router]);
+  }, [slug, router, isGuest]);
+
+  // Guest flow: join after entering name
+  async function handleGuestJoin(e: React.FormEvent) {
+    e.preventDefault();
+    if (!guestName.trim()) return;
+    setJoiningAsGuest(true);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/livekit/guest-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          programSlug: slug,
+          guestKey,
+          guestName: guestName.trim(),
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Unable to join");
+      }
+
+      const data = await res.json();
+      setToken(data.token);
+      setWsUrl(data.wsUrl);
+      setProgramName(data.programName);
+      setState("ready");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong");
+      setState("error");
+    }
+    setJoiningAsGuest(false);
+  }
 
   function handleLeave() {
     setState("left");
@@ -138,15 +181,55 @@ export default function SessionPage() {
     );
   }
 
+  // Guest name entry
+  if (state === "guest-name") {
+    return (
+      <div className="vs-page">
+        <div className="vs-guest-entry">
+          <h2 className="vs-guest-entry__title">Join Session</h2>
+          <p className="vs-guest-entry__subtitle">
+            Enter your name to join the virtual session.
+          </p>
+          <form onSubmit={handleGuestJoin} className="vs-guest-entry__form">
+            <input
+              type="text"
+              className="vs-guest-entry__input"
+              placeholder="Your name"
+              value={guestName}
+              onChange={(e) => setGuestName(e.target.value)}
+              autoFocus
+              required
+              maxLength={60}
+            />
+            <button
+              type="submit"
+              className="vs-guest-entry__btn"
+              disabled={joiningAsGuest || !guestName.trim()}
+            >
+              {joiningAsGuest ? "Joining…" : "Join Session"}
+            </button>
+          </form>
+          {error && <p className="vs-guest-entry__error">{error}</p>}
+        </div>
+      </div>
+    );
+  }
+
   // Error state
   if (state === "error") {
     return (
       <div className="vs-page">
         <div className="vs-message">
           <p className="vs-message__text">{error}</p>
-          <button className="btn" onClick={() => router.push("/account/dashboard")}>
-            Back to Dashboard
-          </button>
+          {isGuest ? (
+            <button className="btn" onClick={() => { setError(null); setState("guest-name"); }}>
+              Try Again
+            </button>
+          ) : (
+            <button className="btn" onClick={() => router.push("/account/dashboard")}>
+              Back to Dashboard
+            </button>
+          )}
         </div>
       </div>
     );
@@ -159,9 +242,15 @@ export default function SessionPage() {
         <div className="vs-message">
           <p className="vs-message__title">Session ended</p>
           <p className="vs-message__text">Thank you for practicing together.</p>
-          <button className="btn" onClick={() => router.push("/account/dashboard")}>
-            Return to Dashboard
-          </button>
+          {isGuest ? (
+            <p className="vs-message__text" style={{ marginTop: 8, color: "#888" }}>
+              You may close this tab.
+            </p>
+          ) : (
+            <button className="btn" onClick={() => router.push("/account/dashboard")}>
+              Return to Dashboard
+            </button>
+          )}
         </div>
       </div>
     );

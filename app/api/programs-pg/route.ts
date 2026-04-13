@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { randomBytes } from "crypto";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { centralToUtc } from "@/lib/timezone";
@@ -85,6 +86,8 @@ export async function POST(request: NextRequest) {
       sortOrder: body.sortOrder != null ? Number(body.sortOrder) : null,
       removeFromProgramList: body.removeFromProgramList ?? false,
       hideFromProgramPageList: body.hideFromProgramPageList ?? false,
+      isOpenAccess: body.isOpenAccess ?? false,
+      guestAccessKey: body.isOpenAccess ? randomBytes(6).toString("hex") : null,
     },
   });
 

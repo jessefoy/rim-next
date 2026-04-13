@@ -75,6 +75,8 @@ export interface ProgramData {
   sortOrder: string;
   removeFromProgramList: boolean;
   hideFromProgramPageList: boolean;
+  isOpenAccess: boolean;
+  guestAccessKey: string;
 }
 
 interface Props {
@@ -277,6 +279,11 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
   const [removeFromProgramList, setRemoveFromProgramList] = useState(initialData?.removeFromProgramList ?? false);
   const [hideFromProgramPageList, setHideFromProgramPageList] = useState(initialData?.hideFromProgramPageList ?? false);
 
+  const [isOpenAccess, setIsOpenAccess] = useState(initialData?.isOpenAccess ?? false);
+  const [guestAccessKey, setGuestAccessKey] = useState(initialData?.guestAccessKey ?? "");
+  const [resettingKey, setResettingKey] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+
   // Auto-generate slug from name
   useEffect(() => {
     if (!isEditing && !slugTouched && name) {
@@ -393,6 +400,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
         sortOrder: sortOrder ? Number(sortOrder) : null,
         removeFromProgramList,
         hideFromProgramPageList,
+        isOpenAccess,
       };
 
       const url = isEditing ? `/api/programs-pg/${initialData?.slug}` : "/api/programs-pg";
@@ -640,6 +648,86 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                   <input type="url" value={locationLink} onChange={(e) => setLocationLink(e.target.value)} className="pe-input" placeholder="https://…" />
                 </label>
               </>
+            )}
+
+            {isVirtual && (
+              <fieldset className="pe-field">
+                <legend className="pe-field__label">Open Access</legend>
+                <span className="pe-field__help">
+                  Allow non-members to join this virtual session without a RIM account.
+                  When enabled, a shareable guest link is generated. Anyone with the link
+                  can enter their name and join the LiveKit room as a participant.
+                  The teacher or host must still have a RIM member account.
+                </span>
+                <label className="pe-toggle" style={{ marginTop: 8 }}>
+                  <input
+                    type="checkbox"
+                    checked={isOpenAccess}
+                    onChange={(e) => setIsOpenAccess(e.target.checked)}
+                  />
+                  <span>Enable guest access link</span>
+                </label>
+
+                {isOpenAccess && isEditing && (
+                  <div className="pe-guest-link" style={{ marginTop: 12 }}>
+                    {guestAccessKey ? (
+                      <>
+                        <span className="pe-field__label" style={{ fontSize: 13 }}>Guest Link</span>
+                        <div className="pe-inline-row" style={{ gap: 8, alignItems: "center", marginTop: 4 }}>
+                          <code className="pe-guest-link__url" style={{ fontSize: 13, background: "#f0f0f0", padding: "6px 10px", borderRadius: 4, flex: 1, wordBreak: "break-all" }}>
+                            {typeof window !== "undefined" ? `${window.location.origin}/session/${slug}?key=${guestAccessKey}` : `/session/${slug}?key=${guestAccessKey}`}
+                          </code>
+                          <button
+                            type="button"
+                            className="btn btn--small"
+                            onClick={() => {
+                              navigator.clipboard.writeText(`${window.location.origin}/session/${slug}?key=${guestAccessKey}`);
+                              setCopiedLink(true);
+                              setTimeout(() => setCopiedLink(false), 2000);
+                            }}
+                          >
+                            {copiedLink ? "Copied!" : "Copy"}
+                          </button>
+                        </div>
+                        <div style={{ marginTop: 8 }}>
+                          <button
+                            type="button"
+                            className="btn btn--small btn--muted"
+                            disabled={resettingKey}
+                            onClick={async () => {
+                              if (!confirm("Reset the guest link? The old link will stop working immediately.")) return;
+                              setResettingKey(true);
+                              try {
+                                const res = await fetch(`/api/programs-pg/${slug}/guest-key`, { method: "POST" });
+                                if (res.ok) {
+                                  const data = await res.json();
+                                  setGuestAccessKey(data.guestAccessKey);
+                                }
+                              } catch {}
+                              setResettingKey(false);
+                            }}
+                          >
+                            {resettingKey ? "Resetting…" : "Reset Link"}
+                          </button>
+                          <span className="pe-field__help" style={{ marginLeft: 8, display: "inline" }}>
+                            Generates a new link and invalidates the previous one.
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="pe-field__help">
+                        Save the program to generate the guest access link. The link will appear here after saving.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {isOpenAccess && !isEditing && (
+                  <p className="pe-field__help" style={{ marginTop: 8 }}>
+                    The guest link will be generated after the program is created.
+                  </p>
+                )}
+              </fieldset>
             )}
 
             <label className="pe-field">

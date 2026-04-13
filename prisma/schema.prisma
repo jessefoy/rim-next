@@ -308,6 +308,8 @@ model Program {
   meetHostAccount     String?
   calendarEventId     String?
   livekitRoom         String?   // LiveKit room name — replaces zoomLink/meetHostAccount
+  isOpenAccess        Boolean   @default(false) // allow non-members to join via guest link
+  guestAccessKey      String?   // random key for guest join URL; reset invalidates old links
   startDatetime       DateTime?
   endDatetime         DateTime?
   recurrenceFreq      String?          // "DAILY" | "WEEKLY" | "MONTHLY"

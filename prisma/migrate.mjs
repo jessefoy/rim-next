@@ -60,6 +60,22 @@ const migrations = [
       }
     },
   },
+  {
+    name: "add_open_access_fields_to_programs",
+    async run() {
+      const cols = await db.$queryRawUnsafe(`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'programs' AND column_name = 'isOpenAccess'
+      `);
+      if (cols.length === 0) {
+        await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN "isOpenAccess" BOOLEAN NOT NULL DEFAULT false`);
+        await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN "guestAccessKey" TEXT`);
+        console.log(`  ✔ Applied: ${this.name}`);
+      } else {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+      }
+    },
+  },
 ];
 
 async function main() {

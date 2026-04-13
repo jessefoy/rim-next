@@ -11466,6 +11466,60 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   color: var(--rim-text-muted);
   margin: 0;
 }
+/* Guest entry form */
+.vs-guest-entry {
+  max-width: 380px;
+  margin: 0 auto;
+  padding: 48px 24px;
+  text-align: center;
+}
+.vs-guest-entry__title {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 500;
+  color: var(--rim-text);
+  margin: 0 0 8px;
+}
+.vs-guest-entry__subtitle {
+  font-size: 15px;
+  color: var(--rim-text-muted, #888);
+  margin: 0 0 24px;
+}
+.vs-guest-entry__form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.vs-guest-entry__input {
+  font-size: 16px;
+  padding: 12px 14px;
+  border: 1px solid #d5d5d5;
+  border-radius: 6px;
+  text-align: center;
+  background: #fff;
+}
+.vs-guest-entry__input:focus {
+  outline: none;
+  border-color: #135274;
+}
+.vs-guest-entry__btn {
+  font-size: 16px;
+  padding: 12px;
+  background: #135274;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+.vs-guest-entry__btn:hover { opacity: 0.9; }
+.vs-guest-entry__btn:disabled { opacity: 0.5; cursor: default; }
+.vs-guest-entry__error {
+  font-size: 14px;
+  color: #c44;
+  margin: 12px 0 0;
+}
+
 @media (max-width: 640px) {
   .vs-header { padding: 10px 16px; }
   .vs-room { padding: 8px; }

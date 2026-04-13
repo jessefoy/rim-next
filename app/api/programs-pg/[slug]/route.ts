@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { randomBytes } from "crypto";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { centralToUtc } from "@/lib/timezone";
@@ -134,6 +135,17 @@ export async function PUT(
   if (body.sortOrder !== undefined) data.sortOrder = body.sortOrder != null ? Number(body.sortOrder) : null;
   if (body.removeFromProgramList !== undefined) data.removeFromProgramList = body.removeFromProgramList;
   if (body.hideFromProgramPageList !== undefined) data.hideFromProgramPageList = body.hideFromProgramPageList;
+  if (body.isOpenAccess !== undefined) {
+    data.isOpenAccess = body.isOpenAccess;
+    // Auto-generate guest key when enabling open access for the first time
+    if (body.isOpenAccess && !existing.guestAccessKey) {
+      data.guestAccessKey = randomBytes(6).toString("hex");
+    }
+    // Clear key when disabling
+    if (!body.isOpenAccess) {
+      data.guestAccessKey = null;
+    }
+  }
 
   const updated = await db.program.update({
     where: { slug },

@@ -82,6 +82,8 @@ export default async function EditProgramToolPage({
     sortOrder: program.sortOrder?.toString() ?? "",
     removeFromProgramList: program.removeFromProgramList,
     hideFromProgramPageList: program.hideFromProgramPageList,
+    isOpenAccess: program.isOpenAccess,
+    guestAccessKey: program.guestAccessKey ?? "",
   };
 
   return (
