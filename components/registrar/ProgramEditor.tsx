@@ -1170,16 +1170,11 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
               />
             </label>
 
-            <label className="pe-field">
+            <div className="pe-field">
               <span className="pe-field__label">Registration Deadline</span>
               <span className="pe-field__help">Registration closes automatically after this date. Leave blank if there&rsquo;s no deadline.</span>
-              <input
-                type="datetime-local"
-                value={registrationDeadline}
-                onChange={(e) => setRegistrationDeadline(e.target.value)}
-                className="pe-input"
-              />
-            </label>
+              <DateTimePicker value={registrationDeadline} onChange={setRegistrationDeadline} />
+            </div>
 
             {/* Custom questions builder */}
             <div className="pe-field">
@@ -1260,16 +1255,11 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
               />
             </div>
 
-            <label className="pe-field">
+            <div className="pe-field">
               <span className="pe-field__label">Reminder Date</span>
               <span className="pe-field__help">When set, a reminder email can be sent to all registered participants on or after this date.</span>
-              <input
-                type="datetime-local"
-                value={reminderDate}
-                onChange={(e) => setReminderDate(e.target.value)}
-                className="pe-input"
-              />
-            </label>
+              <DateTimePicker value={reminderDate} onChange={setReminderDate} />
+            </div>
 
             <div className="pe-field">
               <span className="pe-field__label">Reminder Message</span>
