@@ -13048,6 +13048,45 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 }
 .pe-day-toggle:hover { background: #f5f2ee; border-color: #d0cac3; }
 
+/* ── Date + time picker ── */
+.pe-datetime {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.pe-datetime__date {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--rim-rule);
+  border-radius: 4px;
+  color: var(--rim-text);
+  background: #fff;
+  min-width: 0;
+}
+.pe-datetime__time {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.pe-datetime__select {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  padding: 10px 8px;
+  border: 1px solid var(--rim-rule);
+  border-radius: 4px;
+  color: var(--rim-text);
+  background: #fff;
+  cursor: pointer;
+  appearance: auto;
+}
+.pe-datetime__select--ampm { min-width: 70px; }
+.pe-datetime__colon { font-size: 18px; font-weight: 600; color: var(--rim-text); line-height: 1; }
+@media (max-width: 430px) {
+  .pe-datetime { flex-direction: column; align-items: flex-start; }
+}
+
 /* ── Inline row ── */
 .pe-inline-row { display: flex; align-items: center; gap: 8px; }
 

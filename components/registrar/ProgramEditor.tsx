@@ -96,6 +96,63 @@ interface Props {
   categories: Category[];
 }
 
+/* ── Date + time picker (replaces datetime-local) ─────────────────────────
+   Renders a date input + hour / minute / AM–PM selects.
+   Value and onChange use the same datetime-local string format (YYYY-MM-DDTHH:mm)
+   so the rest of the form and save payload don't change at all.
+   Minutes snap to 15-minute increments. ── */
+function DateTimePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const parse = (v: string) => {
+    if (!v) return { date: "", hour: "7", minute: "00", ampm: "PM" };
+    const [datePart, timePart] = v.split("T");
+    if (!timePart) return { date: datePart ?? "", hour: "7", minute: "00", ampm: "PM" };
+    const [hStr, mStr] = timePart.split(":");
+    const h24 = parseInt(hStr ?? "19", 10);
+    const m = parseInt(mStr ?? "0", 10);
+    const ampm = h24 >= 12 ? "PM" : "AM";
+    const h12 = h24 % 12 || 12;
+    // Snap to nearest 15-minute mark
+    const mSnapped = Math.min(45, Math.round(m / 15) * 15);
+    return { date: datePart ?? "", hour: String(h12), minute: String(mSnapped).padStart(2, "0"), ampm };
+  };
+
+  const { date, hour, minute, ampm } = parse(value);
+
+  const emit = (d: string, h: string, mn: string, ap: string) => {
+    if (!d) { onChange(""); return; }
+    const h12 = parseInt(h, 10);
+    const h24 = ap === "AM" ? (h12 === 12 ? 0 : h12) : (h12 === 12 ? 12 : h12 + 12);
+    onChange(`${d}T${String(h24).padStart(2, "0")}:${mn}`);
+  };
+
+  const HOURS = ["1","2","3","4","5","6","7","8","9","10","11","12"];
+  const MINUTES = ["00","15","30","45"];
+
+  return (
+    <div className="pe-datetime">
+      <input
+        type="date"
+        value={date}
+        onChange={(e) => emit(e.target.value, hour, minute, ampm)}
+        className="pe-datetime__date"
+      />
+      <div className="pe-datetime__time">
+        <select value={hour} onChange={(e) => emit(date, e.target.value, minute, ampm)} className="pe-datetime__select">
+          {HOURS.map((h) => <option key={h} value={h}>{h}</option>)}
+        </select>
+        <span className="pe-datetime__colon">:</span>
+        <select value={minute} onChange={(e) => emit(date, hour, e.target.value, ampm)} className="pe-datetime__select">
+          {MINUTES.map((m) => <option key={m} value={m}>{m}</option>)}
+        </select>
+        <select value={ampm} onChange={(e) => emit(date, hour, minute, e.target.value)} className="pe-datetime__select pe-datetime__select--ampm">
+          <option value="AM">AM</option>
+          <option value="PM">PM</option>
+        </select>
+      </div>
+    </div>
+  );
+}
+
 /* ── Inline category ordering with add/delete ── */
 function CategoryOrderInline({ categories: initial }: { categories: Category[] }) {
   const [items, setItems] = useState(initial);
@@ -968,16 +1025,16 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
               </fieldset>
             )}
 
-            <label className="pe-field">
+            <div className="pe-field">
               <span className="pe-field__label">Start Date &amp; Time</span>
               <span className="pe-field__help">The date range for this program. For single-day events, set both to the same date.</span>
-              <input type="datetime-local" value={startDatetime} onChange={(e) => setStartDatetime(e.target.value)} className="pe-input" />
-            </label>
+              <DateTimePicker value={startDatetime} onChange={setStartDatetime} />
+            </div>
 
-            <label className="pe-field">
+            <div className="pe-field">
               <span className="pe-field__label">End Date &amp; Time</span>
-              <input type="datetime-local" value={endDatetime} onChange={(e) => setEndDatetime(e.target.value)} className="pe-input" />
-            </label>
+              <DateTimePicker value={endDatetime} onChange={setEndDatetime} />
+            </div>
 
             <fieldset className="pe-field">
               <legend className="pe-field__label">Recurrence</legend>
