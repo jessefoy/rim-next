@@ -218,6 +218,90 @@ function toLocalDatetime(iso: string | null | undefined): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+// ─── Schedule auto-generation helpers ────────────────────────────────────────
+
+const DAY_FULL: Record<string, string> = {
+  SU: "Sundays", MO: "Mondays", TU: "Tuesdays", WE: "Wednesdays",
+  TH: "Thursdays", FR: "Fridays", SA: "Saturdays",
+};
+const DAY_ORDER = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+const DAY_ABBR_FROM_INDEX = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+
+/** Derive the time display string from datetime-local values (YYYY-MM-DDTHH:mm). */
+function computeTimeText(start: string, end: string): string {
+  if (!start) return "";
+  const parseTime = (dt: string) => {
+    const t = dt.split("T")[1];
+    if (!t) return null;
+    const [h, m] = t.split(":").map(Number);
+    return { h, m };
+  };
+  const fmt = (h: number, m: number) => {
+    const ampm = h >= 12 ? "PM" : "AM";
+    const h12 = h % 12 || 12;
+    const mStr = m === 0 ? "" : `:${String(m).padStart(2, "0")}`;
+    return { str: `${h12}${mStr}`, ampm };
+  };
+  const s = parseTime(start);
+  if (!s) return "";
+  const { str: sStr, ampm: sAmpm } = fmt(s.h, s.m);
+  if (end) {
+    const e = parseTime(end);
+    if (e) {
+      const { str: eStr, ampm: eAmpm } = fmt(e.h, e.m);
+      if (sAmpm === eAmpm) return `${sStr}–${eStr} ${eAmpm} CT`;
+      return `${sStr} ${sAmpm}–${eStr} ${eAmpm} CT`;
+    }
+  }
+  return `${sStr} ${sAmpm} CT`;
+}
+
+/** Derive the schedule label from recurrence settings and start date. */
+function computeDateText(start: string, freq: string, days: string[], interval: string): string {
+  if (freq === "WEEKLY") {
+    const ordered = [...days].sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b));
+    const names = ordered.map((d) => DAY_FULL[d] ?? d);
+    const prefix = interval && Number(interval) > 1 ? `Every ${interval} weeks: ` : "";
+    if (names.length === 0) return `${prefix}Weekly`;
+    if (names.length === 1) return `${prefix}${names[0]}`;
+    if (names.length === 2) return `${prefix}${names[0]} and ${names[1]}`;
+    const last = names[names.length - 1];
+    return `${prefix}${names.slice(0, -1).join(", ")}, and ${last}`;
+  }
+  if (freq === "DAILY") {
+    const n = Number(interval);
+    return !interval || n <= 1 ? "Daily" : `Every ${n} days`;
+  }
+  if (freq === "MONTHLY") {
+    return "Monthly";
+  }
+  // One-time — derive from start date
+  if (start) {
+    const datePart = start.split("T")[0];
+    if (datePart) {
+      const [y, m, d] = datePart.split("-").map(Number);
+      return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+        month: "long", day: "numeric", year: "numeric",
+      });
+    }
+  }
+  return "";
+}
+
+/** Derive dayOfWeek array from recurrence or start date — never manually set. */
+function deriveDayOfWeek(freq: string, days: string[], start: string): string[] {
+  if (freq === "WEEKLY" && days.length > 0) return days;
+  if (freq === "DAILY") return DAY_ABBR_FROM_INDEX; // every day
+  if (start) {
+    const datePart = start.split("T")[0];
+    if (datePart) {
+      const [y, m, d] = datePart.split("-").map(Number);
+      return [DAY_ABBR_FROM_INDEX[new Date(y, m - 1, d).getDay()]];
+    }
+  }
+  return [];
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function ProgramEditor({ hubSlug, basePath: basePathProp, initialData, isEditing, categories }: Props) {
@@ -325,6 +409,22 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
       setSlug(slugify(name));
     }
   }, [name, isEditing, slugTouched]);
+
+  // Auto-generate Schedule Label whenever it's blank or just cleared
+  useEffect(() => {
+    if (!dateText) {
+      const computed = computeDateText(startDatetime, recurrenceFreq, recurrenceDays, recurrenceInterval);
+      if (computed) setDateText(computed);
+    }
+  }, [dateText, startDatetime, recurrenceFreq, recurrenceDays, recurrenceInterval]);
+
+  // Auto-generate Time Label whenever it's blank or just cleared
+  useEffect(() => {
+    if (!timeText) {
+      const computed = computeTimeText(startDatetime, endDatetime);
+      if (computed) setTimeText(computed);
+    }
+  }, [timeText, startDatetime, endDatetime]);
 
   // ── Teacher search ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -470,7 +570,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
         specialAnnouncement,
         earlyArrivalMessage,
         hideFromDashboard,
-        dayOfWeek,
+        dayOfWeek: deriveDayOfWeek(recurrenceFreq, recurrenceDays, startDatetime),
         sortOrder: sortOrder ? Number(sortOrder) : null,
         removeFromProgramList,
         hideFromProgramPageList,
@@ -744,14 +844,14 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
           <div className="pe-card"><div className="pe-form">
             <label className="pe-field">
               <span className="pe-field__label">Schedule Label</span>
-              <span className="pe-field__help">How the schedule appears on the public site (e.g. &lsquo;Tuesdays, 7:00&ndash;8:30 PM&rsquo;). Leave blank to auto-generate from the fields below.</span>
-              <input type="text" value={dateText} onChange={(e) => setDateText(e.target.value)} className="pe-input" placeholder="e.g. Every Monday Morning" />
+              <span className="pe-field__help">How the schedule appears on the public site — auto-generated from your recurrence and start date. Clear it to regenerate, or type here to override.</span>
+              <input type="text" value={dateText} onChange={(e) => setDateText(e.target.value)} className="pe-input" placeholder="e.g. Tuesdays and Thursdays" />
             </label>
 
             <label className="pe-field">
               <span className="pe-field__label">Time Label</span>
-              <span className="pe-field__help">The time display (e.g. &lsquo;7:00&ndash;8:30 PM CT&rsquo;). Shown on program cards and in confirmation emails.</span>
-              <input type="text" value={timeText} onChange={(e) => setTimeText(e.target.value)} className="pe-input" placeholder="e.g. 7-9 PM" />
+              <span className="pe-field__help">Shown on program cards and in confirmation emails — auto-generated from your start and end times. Clear to regenerate, or type to override.</span>
+              <input type="text" value={timeText} onChange={(e) => setTimeText(e.target.value)} className="pe-input" placeholder="e.g. 7:00–8:30 PM CT" />
             </label>
 
             <fieldset className="pe-field">
@@ -1251,22 +1351,6 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
               />
             </label>
 
-            <div className="pe-field">
-              <span className="pe-field__label">Day of Week</span>
-              <span className="pe-field__help">Which days this program meets. Controls the &lsquo;Today&rsquo; badge on dashboard cards and how programs are grouped.</span>
-              <div className="pe-day-grid">
-                {DAY_OPTIONS.map((d) => (
-                  <label key={d.value} className="pe-day-toggle">
-                    <input
-                      type="checkbox"
-                      checked={dayOfWeek.includes(d.value)}
-                      onChange={() => setDayOfWeek(toggleDay(dayOfWeek, d.value))}
-                    />
-                    {d.label}
-                  </label>
-                ))}
-              </div>
-            </div>
           </div></div>
         )}
 
