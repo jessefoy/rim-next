@@ -1133,26 +1133,30 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                 </label>
 
                 {isOpenAccess && isEditing && guestAccessKey && (
-                  <div className="pe-open-access-link">
-                    <span className="pe-field__label">Guest Link</span>
-                    <div className="pe-open-access-link__box">
-                      {typeof window !== "undefined" ? `${window.location.origin}/session/${slug}?key=${guestAccessKey}` : `/session/${slug}?key=${guestAccessKey}`}
-                    </div>
-                    <div className="pe-open-access-link__actions">
+                  <div className="pe-guest-link">
+                    <span className="pe-guest-link__label">Guest Access Link</span>
+                    <div className="pe-guest-link__row">
+                      <span className="pe-guest-link__url">
+                        {typeof window !== "undefined"
+                          ? `${window.location.origin}/session/${slug}?key=${guestAccessKey}`
+                          : `/session/${slug}?key=${guestAccessKey}`}
+                      </span>
                       <button
                         type="button"
-                        className="pe-btn pe-btn--small"
+                        className={`pe-guest-link__copy${copiedLink ? " pe-guest-link__copy--copied" : ""}`}
                         onClick={() => {
                           navigator.clipboard.writeText(`${window.location.origin}/session/${slug}?key=${guestAccessKey}`);
                           setCopiedLink(true);
                           setTimeout(() => setCopiedLink(false), 2000);
                         }}
                       >
-                        {copiedLink ? "Copied!" : "Copy Link"}
+                        {copiedLink ? "✓ Copied" : "Copy"}
                       </button>
+                    </div>
+                    <div className="pe-guest-link__footer">
                       <button
                         type="button"
-                        className="pe-btn pe-btn--small"
+                        className="pe-guest-link__reset"
                         disabled={resettingKey}
                         onClick={async () => {
                           if (!confirm("Reset the guest link? The old link will stop working immediately.")) return;
@@ -1167,10 +1171,10 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                           setResettingKey(false);
                         }}
                       >
-                        {resettingKey ? "Resetting…" : "Reset Link"}
+                        {resettingKey ? "Resetting…" : "Reset link"}
                       </button>
+                      <span className="pe-guest-link__note">Resetting generates a new link and immediately invalidates the old one.</span>
                     </div>
-                    <span className="pe-field__help">Resetting generates a new link and invalidates the previous one.</span>
                   </div>
                 )}
 

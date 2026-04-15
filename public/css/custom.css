@@ -13685,18 +13685,61 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   .vol-cap__bar { width: 40px; }
 
 /* PE Open Access guest link */
-.pe-open-access-link { margin-top: 8px; }
-.pe-open-access-link__box {
-  background: #f5f3f0; color: var(--rim-text);
-  font-family: var(--font-sans); font-size: 13px; line-height: 1.5;
-  padding: 10px 14px; border-radius: 8px;
-  border: 1px solid #e0dcd6;
-  word-break: break-all; margin-top: 4px;
-  user-select: all; cursor: text;
+/* ── Guest access link card ── */
+.pe-guest-link {
+  margin-top: 12px;
+  padding: 14px 16px;
+  background: #f4f7fa;
+  border-left: 3px solid var(--rim-blue);
+  border-radius: 0 6px 6px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
-.pe-open-access-link__actions {
-  display: flex; align-items: center; gap: 8px; margin-top: 8px;
+.pe-guest-link__label {
+  font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--rim-mid);
 }
+.pe-guest-link__row {
+  display: flex; align-items: stretch;
+  border: 1px solid var(--rim-rule);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
+}
+.pe-guest-link__url {
+  flex: 1; min-width: 0;
+  padding: 9px 12px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  font-size: 13px; color: var(--rim-text);
+  background: transparent; border: none; outline: none;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  cursor: text; user-select: all;
+}
+.pe-guest-link__copy {
+  flex-shrink: 0;
+  padding: 0 16px;
+  background: var(--rim-blue); color: #fff;
+  border: none; border-left: 1px solid rgba(255,255,255,0.15);
+  font-family: var(--font-sans); font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s;
+  white-space: nowrap;
+}
+.pe-guest-link__copy:hover { background: #0e4463; }
+.pe-guest-link__copy--copied { background: #2d6a4f; }
+.pe-guest-link__footer {
+  display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+}
+.pe-guest-link__reset {
+  background: none; border: none; padding: 0;
+  font-family: var(--font-sans); font-size: 13px;
+  color: #888; cursor: pointer; text-decoration: underline;
+  flex-shrink: 0;
+}
+.pe-guest-link__reset:hover { color: var(--rim-text); }
+.pe-guest-link__reset:disabled { opacity: 0.4; cursor: default; }
+.pe-guest-link__note { font-size: 13px; color: var(--rim-text-muted); }
 
 /* PE Teacher selector */
 .pe-teacher-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
