@@ -101,6 +101,65 @@ h1, h2, h3, h4, h5, h6 {
 
 
 /* ═══════════════════════════════════════════════════
+   .rim-content — SHARED BASE FOR ALL EDITOR OUTPUT
+   Add this class alongside every context-specific output class
+   (prog-description, man-body, lp-body, doc-body, crs-desc, etc.).
+   One place to change list treatment, bullet style, or inline
+   formatting and have it affect every rich-text surface.
+
+   Context classes override spacing, sizing, and heading treatment
+   as needed — they come later in this file and win on conflicts.
+
+   When rim.webflow.css is eventually removed, this class becomes a
+   clean design-system foundation rather than a cascade workaround.
+═══════════════════════════════════════════════════ */
+
+/* Unordered lists — custom bullet, no browser disc */
+.rim-content ul {
+  list-style: none;
+  margin: 0 0 1.4em;
+  padding: 0;
+  font-family: inherit; /* beats rim.webflow.css: ul { font-family: Inter } */
+}
+.rim-content ul > li {
+  position: relative;
+  padding-left: 1.1em;
+}
+.rim-content ul > li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--rim-text-muted);
+}
+
+/* Ordered lists */
+.rim-content ol {
+  list-style-type: decimal;
+  margin: 0 0 1.4em;
+  padding-left: 1.4em;
+}
+
+/* List items — explicit font properties beat rim.webflow.css:
+   li { font-family: "Source Sans 3"; line-height: 32px } */
+.rim-content li {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  margin-bottom: 0.4em;
+}
+
+/* Suppress empty BlockNote paragraphs */
+.rim-content p:empty,
+.rim-content p:has(> br:only-child),
+.rim-content p:has(> span:only-child:empty) { display: none; }
+
+/* Inline formatting */
+.rim-content strong { font-weight: 700; }
+.rim-content em { font-style: italic; }
+
+
+/* ═══════════════════════════════════════════════════
    PROGRAM LIST ROW
    Used on community-programs and elsewhere.
    Replaces Webflow's fixed-pixel grid (802px 1fr) with
@@ -16658,8 +16717,8 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .man-body h2 { font-family: var(--font-sans); font-size: 22px; font-weight: 700; color: var(--rim-text); line-height: 1.3; margin: 40px 0 14px; }
 .man-body h3 { font-family: var(--font-sans); font-size: 18px; font-weight: 700; color: var(--rim-text); line-height: 1.3; margin: 32px 0 10px; }
 .man-body h4 { font-family: var(--font-sans); font-size: 15px; font-weight: 700; color: var(--rim-text); line-height: 1.4; margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 0.04em; }
-.man-body ul, .man-body ol { margin: 0 0 1em 1.6em; padding: 0; }
-.man-body li { margin: 0.3em 0; }
+.man-body ul, .man-body ol { margin: 0 0 1em; } /* no margin-left — rim-content handles bullet indent */
+.man-body li { margin-bottom: 0.3em; }
 .man-body blockquote { border-left: 3px solid var(--rim-mid); padding: 8px 0 8px 16px; margin: 1em 0; color: var(--rim-text); font-style: italic; }
 .man-body table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 14px; }
 .man-body table th { background: #f0ece7; font-weight: 600; text-align: left; padding: 8px 12px; border: 1px solid #ddd8d2; font-size: 13px; }
@@ -16678,8 +16737,8 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .hdoc-body h2 { font-family: var(--font-sans); font-size: 22px; font-weight: 600; color: var(--rim-text); line-height: 1.25; margin: 36px 0 12px; }
 .hdoc-body h3 { font-family: var(--font-sans); font-size: 18px; font-weight: 600; color: var(--rim-text); line-height: 1.3; margin: 28px 0 8px; }
 .hdoc-body h4 { font-family: var(--font-sans); font-size: 15px; font-weight: 600; color: var(--rim-text); line-height: 1.4; margin: 20px 0 6px; }
-.hdoc-body ul, .hdoc-body ol { margin: 0 0 0.9em 1.6em; padding: 0; }
-.hdoc-body li { margin: 0.25em 0; }
+.hdoc-body ul, .hdoc-body ol { margin: 0 0 0.9em; } /* no margin-left — rim-content handles bullet indent */
+.hdoc-body li { margin-bottom: 0.25em; }
 .hdoc-body blockquote { border-left: 3px solid #d4cfc9; padding: 6px 0 6px 16px; margin: 0.9em 0; color: var(--rim-text-muted); }
 .hdoc-body table { width: 100%; border-collapse: collapse; margin: 0.9em 0; font-size: 14px; }
 .hdoc-body table th { font-weight: 600; text-align: left; padding: 8px 12px; border-bottom: 2px solid #d4cfc9; font-size: 13px; }
@@ -16699,8 +16758,8 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .prog-description h2:first-child { margin-top: 0; }
 .prog-description h3 { font-family: var(--font-serif); font-size: 22px; font-weight: 400; color: var(--rim-text); line-height: 1.3; margin: 30px 0 12px; }
 .prog-description h3:first-child { margin-top: 0; }
-.prog-description ul, .prog-description ol { margin: 0 0 1.6em 1.6em; padding: 0; }
-.prog-description li { margin: 0.3em 0; }
+.prog-description ul, .prog-description ol { margin: 0 0 1.6em; } /* no margin-left — rim-content handles bullet indent */
+.prog-description li { margin-bottom: 0.3em; }
 .prog-description blockquote { font-family: var(--font-serif); font-size: 20px; font-weight: 400; font-style: italic; line-height: 1.5; color: var(--rim-text); border-left: 3px solid var(--rim-mid); padding: 8px 0 8px 20px; margin: 1.6em 0; }
 .prog-description strong { font-weight: 600; }
 .prog-description a { color: var(--rim-blue); text-decoration: none; }
@@ -18216,10 +18275,12 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
 .doc-body > h3:first-child      { margin-top: 0; }
 .doc-body h2                    { font-family: var(--font-doc); font-size: 24px; font-weight: 700; margin: 48px 0 16px; letter-spacing: -0.01em; line-height: 1.25; }
 .doc-body h3                    { font-family: var(--font-doc); font-size: 20px; font-weight: 600; margin: 36px 0 12px; line-height: 1.3; }
-.doc-body ul, .doc-body ol      { padding-left: 28px; margin: 0 0 20px 4px; }
+.doc-body ul, .doc-body ol      { padding-left: 28px; margin: 0 0 20px; }
 .doc-body ul                    { list-style-type: disc; }
 .doc-body ol                    { list-style-type: decimal; }
 .doc-body li                    { margin-bottom: 6px; }
+/* doc-body keeps browser disc bullets — suppress the rim-content custom bullet */
+.doc-body ul > li::before       { display: none; }
 .doc-body blockquote            { border-left: 3px solid #d5d5d5; padding-left: 20px; margin: 24px 0; color: var(--rim-text-muted); font-style: italic; }
 .doc-body a                     { color: var(--rim-mid); text-decoration: underline; text-underline-offset: 2px; }
 .doc-body a:hover               { color: var(--rim-blue); }

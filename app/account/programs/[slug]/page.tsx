@@ -175,7 +175,7 @@ export default async function MemberProgramDetailPage({
         {registration?.donationStatus === "PENDING" && (
           <div className="mpd-dana">
             {danaMessageHtml
-              ? <div className="mpd-dana__text man-body" dangerouslySetInnerHTML={{ __html: danaMessageHtml }} />
+              ? <div className="mpd-dana__text man-body rim-content" dangerouslySetInnerHTML={{ __html: danaMessageHtml }} />
               : <p className="mpd-dana__text">Please complete your dana offering for this program.</p>
             }
             <Link href={`/programs/${slug}/register`} className="mpd-dana__link">

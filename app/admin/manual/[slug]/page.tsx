@@ -89,7 +89,7 @@ export default async function ManualSectionPage({
       {/* Body */}
       {bodyHtml ? (
         <div
-          className="man-body"
+          className="man-body rim-content"
           dangerouslySetInnerHTML={{ __html: bodyHtml }}
         />
       ) : (

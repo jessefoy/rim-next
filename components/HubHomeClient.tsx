@@ -130,7 +130,7 @@ export default function HubHomeClient({
           )}
           {welcomeBodyHtml && (
             <div
-              className="hub-welcome__body"
+              className="hub-welcome__body rim-content"
               dangerouslySetInnerHTML={{ __html: welcomeBodyHtml }}
             />
           )}
@@ -224,7 +224,7 @@ export default function HubHomeClient({
       {currentHtml && !editing && (
         <div className="hub-home__section">
           <div
-            className="hub-home__content-body"
+            className="hub-home__content-body rim-content"
             dangerouslySetInnerHTML={{ __html: currentHtml }}
           />
         </div>

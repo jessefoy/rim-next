@@ -315,7 +315,7 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
           )}
           {course.description && (
             <div
-              className="crs-desc"
+              className="crs-desc rim-content"
               dangerouslySetInnerHTML={{ __html: descriptionHtml }}
             />
           )}

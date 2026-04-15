@@ -213,7 +213,7 @@ export default function RegistrationForm({
         <div className="pg-dana">
           <p className="pg-dana__eyebrow">Dana</p>
           {program.danaMessageHtml && (
-            <div className="pg-dana__message man-body" dangerouslySetInnerHTML={{ __html: program.danaMessageHtml }} />
+            <div className="pg-dana__message man-body rim-content" dangerouslySetInnerHTML={{ __html: program.danaMessageHtml }} />
           )}
 
           {/* Fixed mode — single set price */}

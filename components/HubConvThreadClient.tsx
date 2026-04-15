@@ -245,7 +245,7 @@ export default function HubConvThreadClient({
       {/* Original post body */}
       <div className="hub-conv-post hub-conv-post--op">
         <div
-          className="hub-conv-post__body"
+          className="hub-conv-post__body rim-content"
           dangerouslySetInnerHTML={{ __html: thread.bodyHtml }}
         />
       </div>
@@ -281,7 +281,7 @@ export default function HubConvThreadClient({
               ) : (
                 <>
                   <div
-                    className="hub-conv-post__body"
+                    className="hub-conv-post__body rim-content"
                     dangerouslySetInnerHTML={{ __html: r.bodyHtml }}
                   />
                   <div className="hub-conv-post__footer">

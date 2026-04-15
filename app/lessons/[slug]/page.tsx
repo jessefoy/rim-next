@@ -399,7 +399,7 @@ export default async function LessonPage({
 
         {/* Body content (Tiptap JSON → HTML) */}
         {bodyHtml && (
-          <div className="lp-body" dangerouslySetInnerHTML={{ __html: bodyHtml }} />
+          <div className="lp-body rim-content" dangerouslySetInnerHTML={{ __html: bodyHtml }} />
         )}
 
         {(hasResources || hasTeachers) && <hr className="lp-divider" />}
