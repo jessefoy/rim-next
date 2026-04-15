@@ -2991,55 +2991,23 @@ h4 { font-size: var(--text-h4); }
   border-color: #fff;
 }
 
-/* Day groups — matches pl-cat spacing */
-.tw-day {
-  margin-bottom: 48px;
-}
-.tw-day:last-of-type {
-  margin-bottom: 0;
-}
+/* Program rows reuse lr-row + pl-cat + pl-list from the programs
+   list page. These are the only overrides needed: */
 
-.tw-day__heading {
-  font-family: var(--font-serif);
-  font-size: var(--text-h2);
-  color: var(--rim-text);
-  margin: 0 0 12px;
-  padding-left: 4px;
-  line-height: var(--lh-heading);
-}
-
-.tw-day__list {
-  display: flex;
-  flex-direction: column;
-}
-
-/* Program rows reuse lr-row cards. These overrides make
-   the rows single-line (name: time | format) and linkable. */
-.tw-row {
-  display: block;
-  background: #fff;
-  border-radius: 6px;
-  padding: 16px 24px;
-  margin-bottom: 10px;
+/* Make the lr-row a clickable link (block-level, no underline) */
+a.tw-row-link {
   text-decoration: none;
-  color: var(--rim-mid);
-  font-family: var(--font-sans);
-  font-size: var(--text-body);
-  line-height: 1.5;
   transition: background 0.12s;
 }
-.tw-row:hover {
-  background: #eee;
+a.tw-row-link:hover {
+  background: #f0f0f0;
 }
 
-.tw-row__name {
-  color: var(--rim-blue);
-  font-weight: 600;
-}
-
-.tw-row__detail {
-  color: var(--rim-mid);
-  font-size: var(--text-small);
+/* Subtle category tag appended to the schedule line */
+.tw-cat-tag {
+  color: var(--rim-text-muted);
+  font-size: var(--text-xs);
+  font-style: italic;
 }
 
 /* Footer note */

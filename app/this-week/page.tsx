@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import Link from "next/link";
 import { formatTimeRange } from "@/lib/dateLabel";
-import { isOccurrenceOnDate, ctDateStr, type ScheduleProgram } from "@/lib/scheduleUtils";
+import { isOccurrenceOnDate, type ScheduleProgram } from "@/lib/scheduleUtils";
 
 export const dynamic = "force-dynamic";
 
@@ -18,9 +18,8 @@ const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Satu
 /** Get Monday of the current week in CT */
 function getMondayOfWeek(offset: number = 0): Date {
   const now = new Date();
-  // Get "today" in CT
   const ctNow = new Date(now.toLocaleString("en-US", { timeZone: TZ }));
-  const day = ctNow.getDay(); // 0=Sun, 1=Mon, ...
+  const day = ctNow.getDay();
   const diffToMonday = day === 0 ? -6 : 1 - day;
   const monday = new Date(ctNow);
   monday.setDate(monday.getDate() + diffToMonday + (offset * 7));
@@ -28,7 +27,6 @@ function getMondayOfWeek(offset: number = 0): Date {
   return monday;
 }
 
-/** Format "YYYY-MM-DD" from a Date (local) */
 function toDateStr(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -36,23 +34,21 @@ function toDateStr(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-/** "April 14" format */
 function formatShortDate(d: Date): string {
   return d.toLocaleDateString("en-US", { month: "long", day: "numeric" });
 }
 
-/** Derive format label from programFormat field */
 function fmtLabel(fmt: string | null): string {
   switch (fmt) {
-    case "virtual":  return "Zoom";
-    case "hybrid":   return "In Person and Zoom";
+    case "virtual":  return "Zoom Only";
+    case "hybrid":   return "In-Person & Zoom";
     case "in-person": return "In-Person";
     default:         return fmt ?? "";
   }
 }
 
-/** Build the time + format string for a program row */
-function buildTimeLabel(program: {
+/** Build schedule subtitle: "9:30-10:30 AM CT | Zoom Only" (no day — we're already grouped by day) */
+function buildScheduleLine(program: {
   timeText: string | null;
   programFormat: string | null;
   startDatetime: Date | null;
@@ -75,7 +71,6 @@ export default async function ThisWeekPage({
   const isNextWeek = week === "next";
   const monday = getMondayOfWeek(isNextWeek ? 1 : 0);
 
-  // Build 7 date strings (Mon–Sun)
   const weekDates: string[] = [];
   for (let i = 0; i < 7; i++) {
     const d = new Date(monday);
@@ -87,19 +82,13 @@ export default async function ThisWeekPage({
   sunday.setDate(sunday.getDate() + 6);
   const dateRange = `${formatShortDate(monday)}–${formatShortDate(sunday)}, ${monday.getFullYear()}`;
 
-  // Query all active programs with schedule fields
   const programs = await db.program.findMany({
     where: { archivedAt: null, hideFromProgramPageList: false },
-    select: {
-      id: true, name: true, slug: true, programFormat: true,
-      startDatetime: true, endDatetime: true, timeText: true,
-      recurrenceFreq: true, recurrenceInterval: true,
-      recurrenceDays: true, recurrenceCount: true,
-    },
+    include: { category: true },
   });
 
   // Group programs by day
-  const dayGroups: { dayName: string; dateStr: string; programs: typeof programs }[] = [];
+  const dayGroups: { dayName: string; programs: typeof programs }[] = [];
   for (let i = 0; i < 7; i++) {
     const dateStr = weekDates[i];
     const dayPrograms = programs
@@ -110,7 +99,7 @@ export default async function ThisWeekPage({
         return a.startDatetime.getTime() - b.startDatetime.getTime();
       });
     if (dayPrograms.length > 0) {
-      dayGroups.push({ dayName: DAY_NAMES[i], dateStr, programs: dayPrograms });
+      dayGroups.push({ dayName: DAY_NAMES[i], programs: dayPrograms });
     }
   }
 
@@ -149,18 +138,24 @@ export default async function ThisWeekPage({
             <p className="tw-empty">No programs scheduled for this week.</p>
           ) : (
             dayGroups.map(({ dayName, programs: dayPrograms }) => (
-              <div key={dayName} className="tw-day">
-                <h2 className="tw-day__heading">{dayName}</h2>
-                <div className="tw-day__list">
+              <div key={dayName} className="pl-cat">
+                <h2 className="pl-cat__heading">{dayName}</h2>
+                <div className="pl-list">
                   {dayPrograms.map((program) => (
                     <Link
                       key={program.id}
                       href={`/programs/${program.slug}`}
-                      className="tw-row"
+                      className="lr-row tw-row-link"
                     >
-                      <strong className="tw-row__name">{program.name}</strong>
-                      <span className="tw-row__sep">: </span>
-                      <span className="tw-row__detail">{buildTimeLabel(program)}</span>
+                      <div className="lr-info">
+                        <p className="lr-name">{program.name}</p>
+                        <p className="lr-schedule">
+                          {buildScheduleLine(program)}
+                          {program.category && (
+                            <span className="tw-cat-tag"> · {program.category.name}</span>
+                          )}
+                        </p>
+                      </div>
                     </Link>
                   ))}
                 </div>
