@@ -160,8 +160,8 @@ h1, h2, h3, h4, h5, h6 {
    li { font-family: "Source Sans 3"; line-height: 32px } */
 .rim-content li {
   font-family: var(--font-sans);
-  font-size: 18px;
-  line-height: 1.7;
+  font-size: 17px;
+  line-height: 1.55;
   margin-bottom: 0.4em;
 }
 
