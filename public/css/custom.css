@@ -6,6 +6,68 @@
 
 
 /* ═══════════════════════════════════════════════════
+   QUINCY CF — self-hosted font
+   Files are in /public/fonts/. No CDN dependency.
+═══════════════════════════════════════════════════ */
+@font-face {
+  font-family: Quincycf;
+  src: url('../fonts/QuincyCF-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: Quincycf;
+  src: url('../fonts/QuincyCF-RegularItalic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: Quincycf;
+  src: url('../fonts/QuincyCF-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: Quincycf;
+  src: url('../fonts/QuincyCF-MediumItalic.woff2') format('woff2');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: Quincycf;
+  src: url('../fonts/QuincyCF-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: Quincycf;
+  src: url('../fonts/QuincyCF-BoldItalic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: Quincycf;
+  src: url('../fonts/QuincyCF-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: Quincycf;
+  src: url('../fonts/QuincyCF-LightItalic.woff2') format('woff2');
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+
+
+/* ═══════════════════════════════════════════════════
    DESIGN TOKENS
    Derived from the RIM newsletter (Flodesk) editorial style.
    Use these variables on all new pages to keep a consistent look.
@@ -37,8 +99,8 @@
   --color-warning-bg:    #fff8ec;
 
   /* Fonts */
-  --font-heading:     'quincy-cf', 'Quincycf', Georgia, serif;
-  --font-serif:       'quincy-cf', 'Quincycf', Georgia, serif;
+  --font-heading:     'Quincycf', Georgia, serif;
+  --font-serif:       'Quincycf', Georgia, serif;
   --font-sans:        'Open Sans', sans-serif;
   --font-source-sans: 'Source Sans 3', 'Open Sans', sans-serif;
   --font-mono:        ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, 'Courier New', monospace;
