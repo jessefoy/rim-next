@@ -361,13 +361,14 @@ h4 { font-size: var(--text-h4); }
    HOMEPAGE — hp-
 ═══════════════════════════════════════════════════ */
 
-/* Hero — full-bleed video with teal overlay */
+/* Hero — full-bleed video, matte panel, dissolves into section below */
 .hp-hero {
   position: relative;
-  min-height: 640px;
+  min-height: 88vh;
   display: flex;
   align-items: center;
-  background-color: var(--rim-blue);
+  justify-content: center;
+  background-color: #1a2b37;
   overflow: hidden;
 }
 .hp-hero__video {
@@ -381,50 +382,92 @@ h4 { font-size: var(--text-h4); }
   object-fit: cover;
   display: block;
 }
+
+/* Overlay: moody at top, dissolves to page white at bottom.
+   This is what creates the "book resting on a white surface" transition. */
 .hp-hero__overlay {
   position: absolute;
   inset: 0;
-  /* Matte dark wash — barely-there, preserves the photo rather than burying it */
-  background: rgba(12, 18, 22, 0.38);
+  background: linear-gradient(
+    180deg,
+    rgba(10, 16, 20, 0.55) 0%,
+    rgba(10, 16, 20, 0.48) 45%,
+    rgba(10, 16, 20, 0.15) 72%,
+    rgba(255, 255, 255, 0.92) 100%
+  );
   z-index: 1;
 }
-.hp-hero .rim-container { position: relative; z-index: 2; }
 
-/* Content panel — matte paper label sitting over the photo */
-.hp-hero__content {
-  display: inline-block;
-  background: rgba(250, 249, 246, 0.94);
-  padding: 56px 64px;
-  max-width: 580px;
-  margin: 80px 0;
+/* Container — pushes panel slightly below center (like the book label in lower half) */
+.hp-hero__container {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  padding-top: 8vh;
 }
+
+/* Panel — matte paper label, centered, compact */
+.hp-hero__content {
+  background: rgba(250, 249, 246, 0.97);
+  padding: 52px 60px;
+  max-width: 480px;
+  width: 100%;
+  text-align: center;
+}
+
+/* Eyebrow — small uppercase category label above the heading */
+.hp-hero__eyebrow {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: var(--text-xxs);
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--rim-text-muted);
+  margin-bottom: 22px;
+}
+
+/* Heading — editorial scale for the panel format */
 .hp-hero__heading {
   font-family: var(--font-serif);
-  font-size: var(--text-hero);
+  font-size: clamp(1.65rem, 3.2vw, 2.1rem);
   font-weight: 400;
   color: var(--rim-text);
-  line-height: 1.2;
-  margin: 0 0 24px;
+  line-height: 1.35;
+  margin: 0 0 22px;
 }
+
+/* Fine rule separating heading from body */
+.hp-hero__heading::after {
+  content: '';
+  display: block;
+  width: 40px;
+  height: 1px;
+  background: var(--rim-rule);
+  margin: 22px auto 0;
+}
+
+/* Description — subtitle scale, muted, compact */
 .hp-hero__desc {
-  font-size: var(--text-body);
-  color: var(--rim-text);
-  line-height: var(--lh-body);
-  margin: 0 0 36px;
+  font-size: var(--text-small);
+  color: var(--rim-text-muted);
+  line-height: 1.65;
+  margin: 0 0 28px;
 }
+
+/* CTA — understated text link, editorial feel */
 .hp-hero__cta {
   display: inline-block;
-  background-color: var(--rim-blue);
-  color: #fff;
   font-family: var(--font-sans);
-  font-size: var(--text-ui);
+  font-size: var(--text-xs);
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
+  color: var(--rim-mid);
   text-decoration: none;
-  padding: 14px 32px;
-  border-radius: 32px;
 }
+.hp-hero__cta:hover { text-decoration: underline; }
 
 /* About section typography spacing */
 .rim-section--white h2     { margin: 0 0 20px; }
@@ -505,16 +548,21 @@ h4 { font-size: var(--text-h4); }
 }
 
 /* Mobile */
+/* About section — reduced top padding; hero dissolves into it */
+.hp-about { padding-top: 64px; }
+
 @media (max-width: 768px) {
-  .hp-hero              { min-height: 520px; }
-  .hp-hero__content     { padding: 40px 36px; margin: 48px 0; max-width: 100%; }
+  .hp-hero              { min-height: 70vh; }
+  .hp-hero__container   { padding-top: 4vh; }
+  .hp-hero__content     { padding: 40px 36px; }
   .hp-community         { grid-template-columns: 1fr; gap: 40px; }
   .hp-community__image  { height: 280px; }
   .hp-categories        { grid-template-columns: 1fr; }
+  .hp-about             { padding-top: 48px; }
 }
 @media (max-width: 430px) {
-  .hp-hero              { min-height: 400px; }
-  .hp-hero__content     { padding: 32px 28px; margin: 32px 0; }
+  .hp-hero              { min-height: 60vh; }
+  .hp-hero__content     { padding: 32px 24px; }
 }
 
 

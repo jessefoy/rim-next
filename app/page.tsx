@@ -23,8 +23,9 @@ export default function HomePage() {
           </video>
         </div>
         <div className="hp-hero__overlay" />
-        <div className="rim-container">
+        <div className="rim-container hp-hero__container">
           <div className="hp-hero__content">
+            <span className="hp-hero__eyebrow">Dharma Community · Brookfield, WI</span>
             <h1 className="hp-hero__heading">
               Awaken your Mind,<br />
               Open your Heart,<br />
@@ -32,19 +33,18 @@ export default function HomePage() {
               Beautify the World.
             </h1>
             <p className="hp-hero__desc">
-              RIM is a modern, welcoming Dharma center grounded in traditional Buddhist wisdom. We offer
-              meditation and mindful living practices in a safe and supportive community—to help one another
-              heal, grow, awaken, and live in ways that benefit yourself, those you love, and our shared world.
+              Meditation and mindful living for a wiser, kinder life —
+              in a generous community grounded in Buddhist wisdom.
             </p>
             <Link href="/community-membership" className="hp-hero__cta">
-              Join us today
+              Join us today →
             </Link>
           </div>
         </div>
       </section>
 
       {/* ── About ───────────────────────────────────────────── */}
-      <section className="rim-section rim-section--white">
+      <section className="rim-section rim-section--white hp-about">
         <div className="rim-container rim-container--narrow">
           <h2>Learn, Practice, and Grow Together.</h2>
           <p>
