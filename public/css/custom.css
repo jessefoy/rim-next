@@ -16759,7 +16759,7 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .prog-description h3 { font-family: var(--font-serif); font-size: 22px; font-weight: 400; color: var(--rim-text); line-height: 1.3; margin: 30px 0 12px; }
 .prog-description h3:first-child { margin-top: 0; }
 .prog-description ul, .prog-description ol { margin: 0 0 1.6em; } /* no margin-left — rim-content handles bullet indent */
-.prog-description li { margin-bottom: 0.3em; }
+.prog-description li { font-size: 16px; line-height: 1.6; margin-bottom: 0.3em; }
 .prog-description blockquote { font-family: var(--font-serif); font-size: 20px; font-weight: 400; font-style: italic; line-height: 1.5; color: var(--rim-text); border-left: 3px solid var(--rim-mid); padding: 8px 0 8px 20px; margin: 1.6em 0; }
 .prog-description strong { font-weight: 600; }
 .prog-description a { color: var(--rim-blue); text-decoration: none; }
