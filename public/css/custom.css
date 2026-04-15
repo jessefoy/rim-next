@@ -2843,11 +2843,12 @@ h4 { font-size: var(--text-h4); }
 
 .pl-hero__title {
   font-family: var(--font-serif);
-  font-size: var(--text-h1);
+  font-size: 52px;
   font-weight: 500;
   color: #fff;
   margin: 0 0 18px;
-  line-height: var(--lh-heading);
+  line-height: 1.15;
+  letter-spacing: -0.5px;
   max-width: 540px;
 }
 
@@ -2902,7 +2903,7 @@ h4 { font-size: var(--text-h4); }
 }
 
 @media (max-width: 430px) {
-  .pl-hero__title { font-size: var(--text-h2); }
+  .pl-hero__title { font-size: 36px; }
   .pl-cat__heading { padding-left: 18px; }
 }
 
@@ -2910,36 +2911,57 @@ h4 { font-size: var(--text-h4); }
 /* ═══════════════════════════════════════════════════
    THIS WEEK PAGE  (tw- prefix)
    /this-week — dynamic weekly schedule from Program data.
+   Hero matches pl-hero (bg image + teal overlay).
+   Program rows reuse lr-row card styling.
 ═══════════════════════════════════════════════════ */
 
-/* Header — centered title + subtitle, matching the weekly email aesthetic */
-.tw-header { text-align: center; }
-.tw-header__inner { max-width: var(--reading-width); }
-
-.tw-header__title {
-  font-family: var(--font-serif);
-  font-size: var(--text-h2);
-  font-weight: 500;
-  color: var(--rim-text);
-  margin: 0 0 10px;
-  line-height: var(--lh-heading);
+/* Hero — same bg/overlay as pl-hero, centered text */
+.tw-hero {
+  background-color: var(--rim-blue);
+  background-image: url('/images/Bodhi-Leaves.jpg');
+  background-size: cover;
+  background-position: center 40%;
+  background-repeat: no-repeat;
+  position: relative;
+  text-align: center;
 }
 
-.tw-header__subtitle {
+.tw-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(18, 82, 116, 0.70);
+  pointer-events: none;
+}
+
+.tw-hero .rim-container { position: relative; z-index: 1; }
+
+.tw-hero__title {
+  font-family: var(--font-serif);
+  font-size: 52px;
+  font-weight: 500;
+  color: #fff;
+  margin: 0 0 14px;
+  line-height: 1.15;
+  letter-spacing: -0.5px;
+}
+
+.tw-hero__subtitle {
   font-family: var(--font-sans);
-  font-size: var(--text-small);
-  color: var(--rim-mid);
+  font-size: var(--text-body);
+  color: rgba(255, 255, 255, 0.75);
   margin: 0 0 6px;
 }
 
-.tw-header__range {
+.tw-hero__range {
   font-family: var(--font-sans);
   font-size: var(--text-small);
-  color: var(--rim-mid);
+  color: rgba(255, 255, 255, 0.6);
   margin: 0 0 28px;
 }
 
-.tw-header__nav {
+/* Week nav pills */
+.tw-hero__nav {
   display: flex;
   justify-content: center;
   gap: 12px;
@@ -2948,27 +2970,28 @@ h4 { font-size: var(--text-h4); }
 .tw-nav-btn {
   display: inline-block;
   padding: 9px 22px;
-  border: 1.5px solid var(--rim-blue);
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
   border-radius: 50px;
   font-family: var(--font-sans);
   font-size: var(--text-small);
   font-weight: 500;
-  color: var(--rim-blue);
+  color: rgba(255, 255, 255, 0.8);
   text-decoration: none;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 .tw-nav-btn:hover {
-  background: var(--rim-blue);
+  border-color: #fff;
   color: #fff;
 }
 .tw-nav-btn--active {
-  background: var(--rim-blue);
-  color: #fff;
+  background: #fff;
+  color: var(--rim-blue);
+  border-color: #fff;
 }
 
-/* Day groups */
+/* Day groups — matches pl-cat spacing */
 .tw-day {
-  margin-bottom: 40px;
+  margin-bottom: 48px;
 }
 .tw-day:last-of-type {
   margin-bottom: 0;
@@ -2986,24 +3009,25 @@ h4 { font-size: var(--text-h4); }
 .tw-day__list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
 }
 
-/* Program row — single-line card matching email format */
+/* Program rows reuse lr-row cards. These overrides make
+   the rows single-line (name: time | format) and linkable. */
 .tw-row {
   display: block;
   background: #fff;
   border-radius: 6px;
-  padding: 14px 20px;
+  padding: 16px 24px;
+  margin-bottom: 10px;
   text-decoration: none;
   color: var(--rim-mid);
   font-family: var(--font-sans);
-  font-size: var(--text-small);
+  font-size: var(--text-body);
   line-height: 1.5;
   transition: background 0.12s;
 }
 .tw-row:hover {
-  background: #f0f0f0;
+  background: #eee;
 }
 
 .tw-row__name {
@@ -3011,12 +3035,9 @@ h4 { font-size: var(--text-h4); }
   font-weight: 600;
 }
 
-.tw-row__sep {
-  color: var(--rim-mid);
-}
-
 .tw-row__detail {
   color: var(--rim-mid);
+  font-size: var(--text-small);
 }
 
 /* Footer note */
@@ -3038,8 +3059,8 @@ h4 { font-size: var(--text-h4); }
 }
 
 @media (max-width: 430px) {
-  .tw-header__title { font-size: var(--text-h3); }
-  .tw-row { padding: 12px 16px; }
+  .tw-hero__title { font-size: var(--text-h2); }
+  .tw-row { padding: 14px 18px; }
 }
 
 

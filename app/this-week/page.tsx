@@ -116,16 +116,16 @@ export default async function ThisWeekPage({
 
   return (
     <>
-      {/* ── Header ───────────────────────────────────────── */}
-      <section className="rim-section rim-section--white tw-header">
-        <div className="rim-container tw-header__inner">
-          <h1 className="tw-header__title">
+      {/* ── Hero ────────────────────────────────────────── */}
+      <section className="tw-hero rim-section">
+        <div className="rim-container">
+          <h1 className="tw-hero__title">
             {isNextWeek ? "Next Week at" : "This Week at"}
             <br />Rooted In Mindfulness
           </h1>
-          <p className="tw-header__subtitle">All Times are Central Time (CT)</p>
-          <p className="tw-header__range">{dateRange}</p>
-          <div className="tw-header__nav">
+          <p className="tw-hero__subtitle">All Times are Central Time (CT)</p>
+          <p className="tw-hero__range">{dateRange}</p>
+          <div className="tw-hero__nav">
             <Link
               href="/this-week"
               className={`tw-nav-btn${!isNextWeek ? " tw-nav-btn--active" : ""}`}
