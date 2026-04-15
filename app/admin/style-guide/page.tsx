@@ -64,117 +64,163 @@ export default function StyleGuidePage() {
 function TypographyTab() {
   return (
     <div>
-      {/* Heading scale */}
+      {/* Token reference */}
+      <section className="sg-section">
+        <h2 className="sg-section-title">Type Scale Tokens — :root</h2>
+        <p className="sg-note">
+          <strong>Use these tokens for all font sizes.</strong> Do not invent px values per component. If a size you need isn't here, add it as a new token. Only named exceptions (hero, editorial long-form) may use values outside this scale.
+        </p>
+        <div className="sg-type-scale">
+          {[
+            { token: "--text-hero",  value: "clamp(2.5rem, 4vw + 1rem, 3.25rem)", use: "Hero titles only" },
+            { token: "--text-h1",    value: "38px", use: "h1 — page titles, section titles" },
+            { token: "--text-h2",    value: "28px", use: "h2 — content headings" },
+            { token: "--text-h3",    value: "24px", use: "h3 — sub-headings" },
+            { token: "--text-h4",    value: "20px", use: "h4 — minor headings, grouped labels" },
+            { token: "--text-body",  value: "18px", use: "p, li, td — all body text" },
+            { token: "--text-small", value: "15px", use: "Captions, timestamps, helper text" },
+            { token: "--text-xs",    value: "13px", use: "Labels, badges, eyebrows" },
+          ].map((row) => (
+            <div key={row.token} className="sg-token-row">
+              <code className="sg-token-name">{row.token}</code>
+              <span className="sg-token-value">{row.value}</span>
+              <span className="sg-token-use">{row.use}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Heading scale — live */}
       <section className="sg-section">
         <h2 className="sg-section-title">Heading Scale — quincy-cf (--font-serif)</h2>
-        <p className="sg-note">All headings inherit font-family and font-weight from the global rule: <code>h1–h6 &#123; font-family: var(--font-serif); font-weight: 400 &#125;</code>. Sizes are set per context (not globally), so these represent common usage patterns.</p>
+        <p className="sg-note">Sizes are locked globally via tokens. Context classes may override spacing (margin) but should not reinvent sizes. <code>lp-body h2: 32px</code> is the only named exception (editorial long-form).</p>
         <div className="sg-type-scale">
           <div className="sg-type-row">
             <div className="sg-type-example">
-              <span style={{ fontFamily: "var(--font-serif)", fontSize: 52, fontWeight: 500, lineHeight: 1.1, color: "var(--rim-text)", display: "block" }}>Page Hero</span>
+              <h1 style={{ margin: 0 }}>H1 — Page Title</h1>
             </div>
-            <code className="sg-code">font-size: 52px / weight: 500 — hero titles</code>
+            <code className="sg-code">var(--text-h1) · 38px · quincy-cf 400</code>
           </div>
           <div className="sg-type-row">
             <div className="sg-type-example">
-              <span style={{ fontFamily: "var(--font-serif)", fontSize: 38, fontWeight: 400, lineHeight: 1.2, color: "var(--rim-text)", display: "block" }}>Section Title (H1 in content)</span>
+              <h2 style={{ margin: 0 }}>H2 — Content Heading</h2>
             </div>
-            <code className="sg-code">font-size: 38px / weight: 400</code>
+            <code className="sg-code">var(--text-h2) · 28px · quincy-cf 400</code>
           </div>
           <div className="sg-type-row">
             <div className="sg-type-example">
-              <span style={{ fontFamily: "var(--font-serif)", fontSize: 28, fontWeight: 400, lineHeight: 1.3, color: "var(--rim-text)", display: "block" }}>Content Heading (H2)</span>
+              <h3 style={{ margin: 0 }}>H3 — Sub-heading</h3>
             </div>
-            <code className="sg-code">font-size: 28px / weight: 400</code>
+            <code className="sg-code">var(--text-h3) · 24px · quincy-cf 400</code>
           </div>
           <div className="sg-type-row">
             <div className="sg-type-example">
-              <span style={{ fontFamily: "var(--font-serif)", fontSize: 22, fontWeight: 400, lineHeight: 1.3, color: "var(--rim-text)", display: "block" }}>Sub-heading (H3)</span>
+              <h4 style={{ margin: 0 }}>H4 — Minor Heading</h4>
             </div>
-            <code className="sg-code">font-size: 22px / weight: 400</code>
+            <code className="sg-code">var(--text-h4) · 20px · quincy-cf 400</code>
           </div>
           <div className="sg-type-row">
             <div className="sg-type-example">
-              <span style={{ fontFamily: "var(--font-sans)", fontSize: 16, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--rim-text-muted)", display: "block" }}>LABEL / EYEBROW</span>
+              <span style={{ fontFamily: "var(--font-sans)", fontSize: "var(--text-xs)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--rim-text-muted)", display: "block" }}>LABEL / EYEBROW</span>
             </div>
-            <code className="sg-code">font-sans / 16px / 600 / uppercase / letter-spacing: 0.04em / muted — section labels</code>
+            <code className="sg-code">var(--text-xs) · 13px · Open Sans 700 · uppercase · letter-spacing: 0.06em</code>
           </div>
         </div>
       </section>
 
       {/* Body text standard */}
       <section className="sg-section">
-        <h2 className="sg-section-title">Body Text Standard — Open Sans (--font-sans)</h2>
+        <h2 className="sg-section-title">Body Text — Open Sans (--font-sans)</h2>
         <p className="sg-note">
-          This is the ground truth for all readable content. <strong>p</strong> and <strong>li</strong> must match this in every way. Set once on <code>body</code> and <code>.rim-content</code>; everything else inherits.
+          The ground truth for all readable content. <strong>p</strong> and <strong>li</strong> must match this in every way. Set once on <code>body</code> and <code>.rim-content</code>; everything inherits.
         </p>
         <div className="sg-example-block">
-          <p style={{ fontFamily: "var(--font-sans)", fontSize: 18, lineHeight: 1.7, color: "var(--rim-text)", margin: 0 }}>
+          <p style={{ fontFamily: "var(--font-sans)", fontSize: "var(--text-body)", lineHeight: "var(--lh-body)", color: "var(--rim-text)", margin: 0 }}>
             Lovingkindness is a practice of deliberately offering warmth — to yourself, to people you love, and even to people you struggle with. It's simpler than it sounds, and the effects are real. Each Monday morning, we practice meditations rooted in the four immeasurables.
           </p>
         </div>
-        <code className="sg-code">font-family: var(--font-sans) · font-size: 18px · line-height: 1.7 · color: var(--rim-text)</code>
+        <code className="sg-code">var(--font-sans) · var(--text-body): 18px · var(--lh-body): 1.7 · var(--rim-text)</code>
       </section>
 
-      {/* p vs li comparison — the critical one */}
+      {/* p vs li comparison */}
       <section className="sg-section">
         <h2 className="sg-section-title">Paragraph vs. List Items — must be identical</h2>
         <p className="sg-note">
-          List items are body text in a list container. Font, size, weight, line-height, and color are identical to <code>p</code>. Only indentation, bullet style, and item spacing differ.
+          List items are body text in a list container. Font, size, weight, line-height, and color are identical to <code>p</code>. Only indentation, bullet style, and item spacing differ. <strong>Never set a different font-size or line-height on li.</strong>
         </p>
         <div className="sg-compare">
           <div className="sg-compare-col">
             <div className="sg-compare-label">Paragraph</div>
-            <p style={{ fontFamily: "var(--font-sans)", fontSize: 18, lineHeight: 1.7, color: "var(--rim-text)", margin: 0 }}>
+            <p style={{ fontFamily: "var(--font-sans)", fontSize: "var(--text-body)", lineHeight: "var(--lh-body)", color: "var(--rim-text)", margin: 0 }}>
               Practice lovingkindness and compassion meditation in a supportive group setting every Monday.
             </p>
           </div>
           <div className="sg-compare-col">
             <div className="sg-compare-label">List item (ul)</div>
             <ul style={{ margin: 0, paddingLeft: "1.5em" }}>
-              <li style={{ fontFamily: "var(--font-sans)", fontSize: 18, lineHeight: 1.7, color: "var(--rim-text)", marginBottom: "0.35em" }}>
+              <li style={{ fontFamily: "var(--font-sans)", fontSize: "var(--text-body)", lineHeight: "var(--lh-body)", color: "var(--rim-text)", marginBottom: "0.35em" }}>
                 Practice lovingkindness and compassion meditation in a supportive group setting.
               </li>
-              <li style={{ fontFamily: "var(--font-sans)", fontSize: 18, lineHeight: 1.7, color: "var(--rim-text)", marginBottom: 0 }}>
+              <li style={{ fontFamily: "var(--font-sans)", fontSize: "var(--text-body)", lineHeight: "var(--lh-body)", color: "var(--rim-text)", marginBottom: 0 }}>
                 Explore different ways of opening the heart, even on hard days.
               </li>
             </ul>
           </div>
         </div>
-        <code className="sg-code">li &#123; font-family: inherit; font-size: inherit; line-height: inherit; &#125; — inherits from body / .rim-content</code>
+        <code className="sg-code">li &#123; font-family: inherit; font-size: inherit; line-height: inherit &#125; — inherits from body / .rim-content</code>
       </section>
 
-      {/* Secondary text */}
+      {/* Text variants */}
       <section className="sg-section">
         <h2 className="sg-section-title">Text Variants</h2>
         <div className="sg-type-scale">
           <div className="sg-type-row">
             <div className="sg-type-example">
-              <span style={{ fontFamily: "var(--font-sans)", fontSize: 18, lineHeight: 1.7, color: "var(--rim-text-quote)", fontStyle: "italic", display: "block" }}>Secondary / quote text — slightly lighter for pull-quotes or supporting copy.</span>
+              <span style={{ fontFamily: "var(--font-sans)", fontSize: "var(--text-body)", lineHeight: "var(--lh-body)", color: "var(--rim-text-quote)", fontStyle: "italic", display: "block" }}>Secondary / quote text — slightly lighter for pull-quotes or supporting copy.</span>
             </div>
-            <code className="sg-code">color: var(--rim-text-quote) · #555555 · italic</code>
+            <code className="sg-code">var(--rim-text-quote) · #555555 · italic · body size</code>
           </div>
           <div className="sg-type-row">
             <div className="sg-type-example">
-              <span style={{ fontFamily: "var(--font-sans)", fontSize: 15, lineHeight: 1.5, color: "var(--rim-text-muted)", display: "block" }}>Muted / caption — labels, timestamps, metadata, helper text.</span>
+              <span style={{ fontFamily: "var(--font-sans)", fontSize: "var(--text-small)", lineHeight: 1.5, color: "var(--rim-text-muted)", display: "block" }}>Muted / caption — labels, timestamps, metadata, helper text.</span>
             </div>
-            <code className="sg-code">color: var(--rim-text-muted) · #666666 · 15px</code>
+            <code className="sg-code">var(--text-small) · 15px · var(--rim-text-muted)</code>
           </div>
           <div className="sg-type-row">
             <div className="sg-type-example">
-              <span style={{ fontFamily: "var(--font-serif)", fontSize: 22, fontWeight: 400, fontStyle: "italic", lineHeight: 1.5, color: "var(--rim-text-quote)", borderLeft: "3px solid var(--rim-mid)", paddingLeft: 20, display: "block" }}>
+              <span style={{ fontFamily: "var(--font-serif)", fontSize: "var(--text-h3)", fontWeight: 400, fontStyle: "italic", lineHeight: 1.5, color: "var(--rim-text-quote)", borderLeft: "3px solid var(--rim-mid)", paddingLeft: 20, display: "block" }}>
                 "A practice of deliberately offering warmth — to yourself, to people you love."
               </span>
             </div>
-            <code className="sg-code">Blockquote — font-serif · 22px · italic · border-left: 3px solid --rim-mid</code>
+            <code className="sg-code">Blockquote — var(--font-serif) · var(--text-h3) · italic · border-left: 3px solid --rim-mid</code>
           </div>
           <div className="sg-type-row">
             <div className="sg-type-example">
-              <span style={{ fontFamily: "var(--font-sans)", fontSize: 18, lineHeight: 1.7, color: "var(--rim-mid)", display: "block" }}>
+              <span style={{ fontFamily: "var(--font-sans)", fontSize: "var(--text-body)", lineHeight: "var(--lh-body)", color: "var(--rim-mid)", display: "block" }}>
                 Link text — uses --rim-mid (#39607a), underline on hover
               </span>
             </div>
             <code className="sg-code">color: var(--rim-mid) · text-decoration: none · hover: underline</code>
+          </div>
+        </div>
+      </section>
+
+      {/* Named exceptions */}
+      <section className="sg-section">
+        <h2 className="sg-section-title">Named Exceptions</h2>
+        <p className="sg-note">These are the <em>only</em> places that use sizes outside the token scale. Every other heading and body text element must use tokens.</p>
+        <div className="sg-type-scale">
+          <div className="sg-type-row">
+            <div className="sg-type-example">
+              <span style={{ fontFamily: "var(--font-serif)", fontSize: "clamp(2.5rem, 4vw + 1rem, 3.25rem)", fontWeight: 500, lineHeight: 1.1, color: "var(--rim-text)", display: "block" }}>Hero Title</span>
+            </div>
+            <code className="sg-code">var(--text-hero) · clamp(2.5rem, 4vw + 1rem, 3.25rem) · ~40–52px fluid · weight 500</code>
+          </div>
+          <div className="sg-type-row">
+            <div className="sg-type-example">
+              <span style={{ fontFamily: "var(--font-serif)", fontSize: 32, fontWeight: 400, lineHeight: 1.3, color: "var(--rim-text)", display: "block" }}>Editorial H2 (lp-body)</span>
+            </div>
+            <code className="sg-code">32px · long-form lesson/article content — more generous than standard --text-h2 (28px)</code>
           </div>
         </div>
       </section>
