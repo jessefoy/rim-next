@@ -2922,10 +2922,18 @@ h1, h2, h3, h4, h5, h6 {
   gap: 8px;
   margin-bottom: 20px;
 }
-.vol-detail__notes-wrap .rim-prose-editor-wrap {
+.vol-detail__notes-wrap .rim-prose-editor {
   border: none;
-  padding: 24px;
+  border-radius: 0;
   min-height: 80px;
+}
+.vol-detail__notes-wrap .rim-prose-editor .bn-editor {
+  padding: 24px !important;
+}
+.vol-detail__notes-wrap .bn-container {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .vol-notes {
@@ -9570,10 +9578,17 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   letter-spacing: 0.08em; color: var(--rim-text-muted);
 }
 .hub-tasks-detail__body { min-height: 120px; padding: 24px; }
+/* Task body editor — panel provides the visual container, editor is borderless */
+.hub-tasks-detail__body .rim-prose-editor {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
 .hub-tasks-detail__body .bn-container,
 .hub-tasks-detail__body .bn-editor,
 .hub-tasks-detail__body [class*="bnEditor"],
-.hub-tasks-detail__body .rte-editor { border: none !important; box-shadow: none !important; }
+.hub-tasks-detail__body .rte-editor { border: none !important; box-shadow: none !important; background: transparent !important; }
 
 /* Bottom two-column */
 .hub-tasks-detail__bottom { display: flex; gap: 24px; }
@@ -12765,13 +12780,20 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 /* Sections */
 .th-section { margin-top: 32px; padding-top: 24px; border-top: 1px solid #f0ebe5; }
 
-/* Rich text editors — subtle inset */
-.th-card .bn-container,
-.th-card .rim-prose-editor-wrap {
+/* Rich text editors — subtle inset on the outer wrapper, transparent inner */
+.th-card .rim-prose-editor,
+.th-card .rim-block-editor {
   background: #faf8f5;
   border: 1px solid #eae5df;
   border-radius: 8px;
   box-shadow: inset 0 1px 3px rgba(0,0,0,0.03);
+  overflow: hidden;
+}
+.th-card .bn-container {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
 .th-section__title { font-family: var(--font-serif); font-size: 18px; font-weight: 400; margin: 0 0 16px; }
 .th-section__help { color: var(--rim-text-muted); font-size: 13px; margin: -8px 0 16px; }
@@ -17838,14 +17860,20 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
   border-radius: 6px;
   overflow: hidden;
 }
-/* Inter for prose editor too */
+/* Font, size, and line-height for all prose editor contexts */
 .rim-prose-editor .bn-editor,
 .rim-prose-editor .bn-default-styles,
 .rim-prose-editor .bn-block-content,
 .rim-prose-editor .bn-inline-content,
 .rim-prose-editor .ProseMirror {
   font-family: var(--font-doc) !important;
+  font-size: 15px !important;
+  line-height: 1.65 !important;
   -webkit-font-smoothing: antialiased;
+}
+/* Padding for document variant (compact overrides this below) */
+.rim-prose-editor:not(.rim-prose-editor--compact) .bn-editor {
+  padding: 10px 12px !important;
 }
 
 /* ── Compact variant — message-sized fields, tighter padding ── */
@@ -17870,6 +17898,33 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
 /* Hide the slash command hint in compact — replace with neutral placeholder */
 .rim-prose-editor--compact .bn-block-default[data-is-empty-and-focused] .bn-inline-content::before {
   content: "Type here…" !important;
+}
+
+/* ── Borderless embedded contexts ────────────────────────────────────────────
+   Editors that live inside an already-styled panel — the panel provides the
+   visual container, so the editor removes its own border + background.
+   Also clears bn-container (inner BlockNote div) to prevent double-box.
+   ── */
+.si-composer__editor .rim-prose-editor,
+.si-note-composer__editor .rim-prose-editor,
+.hub-conv-reply-form .rim-prose-editor,
+.hub-conv-post__edit-form .rim-prose-editor,
+.hub-home__edit-panel .rim-prose-editor,
+.hub-detail__form .rim-prose-editor {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.si-composer__editor .bn-container,
+.si-note-composer__editor .bn-container,
+.hub-conv-reply-form .bn-container,
+.hub-conv-post__edit-form .bn-container,
+.hub-home__edit-panel .bn-container,
+.hub-detail__form .bn-container {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 /* Compact toolbar — custom block-type toggle buttons */
