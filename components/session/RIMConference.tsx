@@ -1,14 +1,15 @@
 "use client";
 
 /**
- * RIMConference — replaces LiveKit's pre-built <VideoConference />.
+ * RIMConference — custom LiveKit conference layout.
  *
- * Uses LiveKit primitives (GridLayout, ControlBar, RoomAudioRenderer) plus
- * our custom components:
- *   - RIMParticipantTile: avatar overlay + signal badges on each tile
- *   - NonverbalToolbar: ✋ ❤️ 🙏 ✓ ✗ signal buttons for all participants
- *   - ParticipantsPanel: host-only sidebar with per-participant mute + raised hand queue
- *   - VideoSettingsPanel: blur, brightness/contrast, avatar upload
+ * - Participant tiles with avatar overlays + signal badges (via RIMParticipantTile)
+ * - Nonverbal toolbar: ✋ ❤️ 🙏 ✓ ✗ for all participants
+ * - Focus/pin layout: hover a tile and click the pin icon to promote one speaker
+ * - Chat sidebar: all participants can chat
+ * - Raised-hand banner: floating indicator at the top of the video area
+ * - Host-only: Participants panel with per-participant mute + raised hand queue
+ * - Video settings: blur, brightness/contrast preview, avatar upload
  */
 
 import { useState, useEffect } from "react";
@@ -19,8 +20,14 @@ import {
   useLocalParticipant,
   useRemoteParticipants,
   useTracks,
+  LayoutContextProvider,
+  useCreateLayoutContext,
+  Chat,
+  FocusLayout,
+  FocusLayoutContainer,
+  CarouselLayout,
 } from "@livekit/components-react";
-import { Track } from "livekit-client";
+import { Track, RoomEvent } from "livekit-client";
 import RIMParticipantTile from "./RIMParticipantTile";
 import NonverbalToolbar from "./NonverbalToolbar";
 import ParticipantsPanel from "./ParticipantsPanel";
@@ -39,15 +46,25 @@ function getMetadata(raw: string | undefined): ParticipantMetadata {
 
 export default function RIMConference({ isHost, programSlug, initialAvatarUrl }: Props) {
   const { localParticipant } = useLocalParticipant();
-  const remoteParticipants = useRemoteParticipants();
+  // updateOnlyOn ensures the component re-renders when metadata changes (for raised hand tracking)
+  const remoteParticipants = useRemoteParticipants({
+    updateOnlyOn: [
+      RoomEvent.ParticipantMetadataChanged,
+      RoomEvent.ParticipantConnected,
+      RoomEvent.ParticipantDisconnected,
+    ],
+  });
+  const layoutContext = useCreateLayoutContext();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatarUrl);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [participantsOpen, setParticipantsOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
-  // Raised hands count — shown on the Participants button badge
-  const raisedHandCount = remoteParticipants.filter(
+  // Raised hands — reactive because of updateOnlyOn above
+  const raisedHands = remoteParticipants.filter(
     (p) => getMetadata(p.metadata).signal === "hand"
-  ).length;
+  );
+  const raisedHandCount = raisedHands.length;
 
   // Seed avatar into local participant metadata on connect
   useEffect(() => {
@@ -66,61 +83,111 @@ export default function RIMConference({ isHost, programSlug, initialAvatarUrl }:
     { onlySubscribed: false }
   );
 
+  // Is a participant/track pinned (focus view active)?
+  const hasPinnedTracks = layoutContext.pin.state && layoutContext.pin.state.length > 0;
+
   return (
-    <div className="rim-conference">
-      {/* Floating toolbar row above the LiveKit control bar */}
-      <div className="rim-conference__toolbar">
-        {isHost && (
+    <LayoutContextProvider value={layoutContext}>
+      <div className="rim-conference">
+
+        {/* Toolbar row — dark, above the video grid */}
+        <div className="rim-conference__toolbar">
+          {isHost && (
+            <button
+              className={`rim-conf-btn${participantsOpen ? " rim-conf-btn--active" : ""}`}
+              onClick={() => setParticipantsOpen((v) => !v)}
+            >
+              👥 Participants
+              {raisedHandCount > 0 && (
+                <span className="rim-conf-btn__badge">{raisedHandCount}</span>
+              )}
+            </button>
+          )}
+          <NonverbalToolbar localParticipant={localParticipant} />
           <button
-            className={`rim-conf-btn${participantsOpen ? " rim-conf-btn--active" : ""}`}
-            onClick={() => setParticipantsOpen((v) => !v)}
+            className={`rim-conf-btn${chatOpen ? " rim-conf-btn--active" : ""}`}
+            onClick={() => setChatOpen((v) => !v)}
+            aria-label="Toggle chat"
           >
-            👥 Participants
-            {raisedHandCount > 0 && (
-              <span className="rim-conf-btn__badge">{raisedHandCount}</span>
-            )}
+            💬 Chat
           </button>
+          <button
+            className={`rim-conf-btn${settingsOpen ? " rim-conf-btn--active" : ""}`}
+            onClick={() => setSettingsOpen((v) => !v)}
+            aria-label="Video settings"
+          >
+            ⚙ Settings
+          </button>
+        </div>
+
+        {/* Raised-hand banner — at-a-glance, visible without opening the panel */}
+        {raisedHandCount > 0 && (
+          <div className="rim-hand-banner">
+            <span>
+              ✋{" "}
+              {raisedHandCount === 1
+                ? `${raisedHands[0].name || raisedHands[0].identity} raised their hand`
+                : `${raisedHandCount} people raised their hand`}
+            </span>
+            {isHost && !participantsOpen && (
+              <button
+                className="rim-hand-banner__open"
+                onClick={() => setParticipantsOpen(true)}
+              >
+                View
+              </button>
+            )}
+          </div>
         )}
-        <NonverbalToolbar localParticipant={localParticipant} />
-        <button
-          className={`rim-conf-btn${settingsOpen ? " rim-conf-btn--active" : ""}`}
-          onClick={() => setSettingsOpen((v) => !v)}
-          aria-label="Video settings"
-        >
-          ⚙ Settings
-        </button>
-      </div>
 
-      {/* Video grid */}
-      <div className="rim-conference__grid">
-        <GridLayout tracks={tracks}>
-          <RIMParticipantTile />
-        </GridLayout>
-      </div>
+        {/* Video grid + optional chat sidebar */}
+        <div className="rim-conference__main">
+          <div className="rim-conference__video">
+            {hasPinnedTracks ? (
+              <FocusLayoutContainer>
+                <CarouselLayout tracks={tracks}>
+                  <RIMParticipantTile />
+                </CarouselLayout>
+                <FocusLayout trackRef={layoutContext.pin.state![0]} />
+              </FocusLayoutContainer>
+            ) : (
+              <GridLayout tracks={tracks}>
+                <RIMParticipantTile />
+              </GridLayout>
+            )}
+          </div>
 
-      {/* LiveKit control bar (mic, cam, screen share, leave) */}
-      <ControlBar />
+          {chatOpen && (
+            <div className="rim-conference__chat">
+              <Chat />
+            </div>
+          )}
+        </div>
 
-      {/* Audio renderer — must be present for remote audio to play */}
-      <RoomAudioRenderer />
+        {/* LiveKit control bar (mic, cam, screen share, leave) */}
+        <ControlBar />
 
-      {/* Overlays */}
-      {isHost && (
-        <ParticipantsPanel
-          open={participantsOpen}
-          onClose={() => setParticipantsOpen(false)}
-          participants={remoteParticipants}
-          programSlug={programSlug}
-          localIdentity={localParticipant?.identity ?? ""}
+        {/* Audio renderer — must be present for remote audio to play */}
+        <RoomAudioRenderer />
+
+        {/* Overlays */}
+        {isHost && (
+          <ParticipantsPanel
+            open={participantsOpen}
+            onClose={() => setParticipantsOpen(false)}
+            participants={remoteParticipants}
+            programSlug={programSlug}
+            localIdentity={localParticipant?.identity ?? ""}
+          />
+        )}
+        <VideoSettingsPanel
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          localParticipant={localParticipant}
+          avatarUrl={avatarUrl}
+          onAvatarChange={setAvatarUrl}
         />
-      )}
-      <VideoSettingsPanel
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        localParticipant={localParticipant}
-        avatarUrl={avatarUrl}
-        onAvatarChange={setAvatarUrl}
-      />
-    </div>
+      </div>
+    </LayoutContextProvider>
   );
 }

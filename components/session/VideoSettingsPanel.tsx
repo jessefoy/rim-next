@@ -5,16 +5,13 @@
  *
  * Controls:
  * - Background blur (via @livekit/track-processors — affects outgoing stream)
- * - Brightness / contrast (via BrightnessProcessor — affects outgoing stream)
+ * - Brightness / contrast (CSS filter on local display — adjusts your preview only)
  * - Presence photo: upload or clear (saves to /api/account/avatar and updates room metadata)
- *
- * Both blur and brightness processors affect what others see of you, not just your preview.
  */
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { upload } from "@vercel/blob/client";
 import type { LocalParticipant, LocalVideoTrack } from "livekit-client";
-import { BrightnessProcessor } from "./BrightnessProcessor";
 import type { ParticipantMetadata } from "./RIMParticipantTile";
 
 interface Props {
@@ -43,9 +40,29 @@ export default function VideoSettingsPanel({ open, onClose, localParticipant, av
   const [contrast, setContrast] = useState(1.0);
   const [uploading, setUploading] = useState(false);
   const [blurLoading, setBlurLoading] = useState(false);
-
-  const brightnessProcessorRef = useRef<BrightnessProcessor | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Inject / update a CSS filter on all video elements in the conference.
+  // This is a local display adjustment — it does not affect what others see of you.
+  useEffect(() => {
+    const id = "rim-video-filter";
+    let style = document.getElementById(id) as HTMLStyleElement | null;
+    if (!style) {
+      style = document.createElement("style");
+      style.id = id;
+      document.head.appendChild(style);
+    }
+    if (brightness === 1.0 && contrast === 1.0) {
+      style.textContent = "";
+    } else {
+      style.textContent = `.rim-conference video { filter: brightness(${brightness}) contrast(${contrast}); }`;
+    }
+  }, [brightness, contrast]);
+
+  // Remove the injected style when the session ends (component unmounts)
+  useEffect(() => {
+    return () => { document.getElementById("rim-video-filter")?.remove(); };
+  }, []);
 
   // --- Blur ---
   const toggleBlur = useCallback(async () => {
@@ -63,6 +80,9 @@ export default function VideoSettingsPanel({ open, onClose, localParticipant, av
       }
     } catch (e) {
       console.error("Blur error:", e);
+      // Recover camera if blur fails to load
+      try { await track.stopProcessor(); } catch {}
+      setBlurEnabled(false);
     }
     setBlurLoading(false);
   }, [blurEnabled, blurStrength, localParticipant]);
@@ -72,40 +92,14 @@ export default function VideoSettingsPanel({ open, onClose, localParticipant, av
     if (blurEnabled) {
       const track = getLocalVideoTrack(localParticipant);
       if (!track) return;
-      const { BackgroundBlur } = await import("@livekit/track-processors");
-      await track.setProcessor(BackgroundBlur(value));
+      try {
+        const { BackgroundBlur } = await import("@livekit/track-processors");
+        await track.setProcessor(BackgroundBlur(value));
+      } catch (e) {
+        console.error("Blur strength update error:", e);
+      }
     }
   }, [blurEnabled, localParticipant]);
-
-  // --- Brightness / Contrast ---
-  const applyBrightness = useCallback(async (b: number, c: number) => {
-    const track = getLocalVideoTrack(localParticipant);
-    if (!track) return;
-    // If values are default (1, 1) and no processor active, skip
-    if (b === 1.0 && c === 1.0 && !brightnessProcessorRef.current) return;
-
-    if (brightnessProcessorRef.current) {
-      brightnessProcessorRef.current.setValues(b, c);
-      if (b === 1.0 && c === 1.0) {
-        await track.stopProcessor();
-        brightnessProcessorRef.current = null;
-      }
-    } else if (b !== 1.0 || c !== 1.0) {
-      const processor = new BrightnessProcessor(b, c);
-      brightnessProcessorRef.current = processor;
-      await track.setProcessor(processor as Parameters<typeof track.setProcessor>[0]);
-    }
-  }, [localParticipant]);
-
-  const handleBrightness = useCallback(async (value: number) => {
-    setBrightness(value);
-    await applyBrightness(value, contrast);
-  }, [applyBrightness, contrast]);
-
-  const handleContrast = useCallback(async (value: number) => {
-    setContrast(value);
-    await applyBrightness(brightness, value);
-  }, [applyBrightness, brightness]);
 
   // --- Avatar upload ---
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -124,7 +118,7 @@ export default function VideoSettingsPanel({ open, onClose, localParticipant, av
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ avatarUrl: url }),
       });
-      // Update in room metadata immediately
+      // Update in room metadata immediately so others see it
       const meta = getMetadata(localParticipant);
       localParticipant.setMetadata(JSON.stringify({ ...meta, avatarUrl: url }));
       onAvatarChange(url);
@@ -187,34 +181,38 @@ export default function VideoSettingsPanel({ open, onClose, localParticipant, av
             )}
           </section>
 
-          {/* Brightness */}
+          {/* Brightness / contrast */}
           <section className="rim-settings__section">
             <div className="rim-settings__label">Brightness &amp; contrast</div>
-            <div className="rim-settings__hint">Helps if you are in a dim room. Adjusts what others see of you.</div>
+            <div className="rim-settings__hint">Adjusts your local display — helpful in a dim room.</div>
             <div className="rim-settings__slider-row">
               <label className="rim-settings__slider-label">Brightness</label>
               <input
                 type="range" min={0.5} max={2.0} step={0.05}
                 value={brightness}
-                onChange={(e) => handleBrightness(Number(e.target.value))}
+                onChange={(e) => setBrightness(Number(e.target.value))}
                 className="rim-settings__slider"
               />
-              <span className="rim-settings__slider-val">{Math.round((brightness - 1) * 100) > 0 ? "+" : ""}{Math.round((brightness - 1) * 100)}%</span>
+              <span className="rim-settings__slider-val">
+                {Math.round((brightness - 1) * 100) > 0 ? "+" : ""}{Math.round((brightness - 1) * 100)}%
+              </span>
             </div>
             <div className="rim-settings__slider-row">
               <label className="rim-settings__slider-label">Contrast</label>
               <input
                 type="range" min={0.5} max={2.0} step={0.05}
                 value={contrast}
-                onChange={(e) => handleContrast(Number(e.target.value))}
+                onChange={(e) => setContrast(Number(e.target.value))}
                 className="rim-settings__slider"
               />
-              <span className="rim-settings__slider-val">{Math.round((contrast - 1) * 100) > 0 ? "+" : ""}{Math.round((contrast - 1) * 100)}%</span>
+              <span className="rim-settings__slider-val">
+                {Math.round((contrast - 1) * 100) > 0 ? "+" : ""}{Math.round((contrast - 1) * 100)}%
+              </span>
             </div>
             {(brightness !== 1 || contrast !== 1) && (
               <button
                 className="rim-settings__reset"
-                onClick={() => { handleBrightness(1.0); handleContrast(1.0); }}
+                onClick={() => { setBrightness(1.0); setContrast(1.0); }}
               >
                 Reset to default
               </button>
