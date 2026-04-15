@@ -28,11 +28,20 @@
   --color-alert-bg:     #FDF6EC;
   --color-alert-border: #F0C98A;
 
+  /* Semantic feedback colors */
+  --color-error:         #c0392b;
+  --color-error-bg:      #fef2f2;
+  --color-success:       #2e7d32;
+  --color-success-bg:    #e8f5e9;
+  --color-warning:       #7a4f00;
+  --color-warning-bg:    #fff8ec;
+
   /* Fonts */
   --font-heading:     'quincy-cf', 'Quincycf', Georgia, serif;
   --font-serif:       'quincy-cf', 'Quincycf', Georgia, serif;
   --font-sans:        'Open Sans', sans-serif;
   --font-source-sans: 'Source Sans 3', 'Open Sans', sans-serif;
+  --font-mono:        ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, 'Courier New', monospace;
 
   /* ── Type scale ─────────────────────────────────────────────
      THE locked scale. Use these tokens everywhere.
@@ -47,9 +56,12 @@
   --text-h2:     28px;
   --text-h3:     24px;
   --text-h4:     20px;
-  --text-body:   18px;  /* p, li, td — all body text */
+  --text-body:   18px;  /* p, li, td — all editorial body text */
   --text-small:  15px;  /* captions, timestamps, helper text */
-  --text-xs:     13px;  /* labels, badges, eyebrows */
+  --text-ui:     14px;  /* admin body text, form inputs, buttons, table cells */
+  --text-xs:     13px;  /* field labels, small links, section help */
+  --text-label:  12px;  /* form help text, slug labels, meta captions */
+  --text-xxs:    11px;  /* badges, table headers, uppercase eyebrow labels */
 
   /* Line heights */
   --lh-heading:  1.3;
