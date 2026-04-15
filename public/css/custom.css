@@ -13076,6 +13076,9 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .pe-template-chip__delete:hover { color: var(--rim-text); }
 .pe-btn--ghost { background: transparent; border: 1px solid var(--rim-rule); color: var(--rim-text); }
 .pe-btn--ghost:hover { background: #f5f5f5; }
+.pe-template-chip--builtin { background: #e8edf2; }
+.pe-template-chip--builtin .pe-template-chip__name { color: #3a5068; }
+.pe-template-bar__restore { background: none; border: none; font-size: 13px; color: var(--rim-blue); cursor: pointer; text-decoration: underline; padding: 0; }
 
 /* ── Date + time picker ── */
 .pe-datetime {

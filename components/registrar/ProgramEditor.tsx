@@ -127,22 +127,34 @@ const DANA_BUILTIN: { name: string; text: string }[] = [
 ];
 
 const DANA_LS_KEY = "rim_dana_templates";
+const DANA_LS_HIDDEN_KEY = "rim_dana_templates_hidden";
 
 function loadDanaTemplates(): { name: string; content: any }[] {
   if (typeof window === "undefined") return [];
   try { return JSON.parse(localStorage.getItem(DANA_LS_KEY) ?? "[]"); }
   catch { return []; }
 }
+function loadHiddenBuiltins(): string[] {
+  if (typeof window === "undefined") return [];
+  try { return JSON.parse(localStorage.getItem(DANA_LS_HIDDEN_KEY) ?? "[]"); }
+  catch { return []; }
+}
 
 function DanaTemplateSelector({ onLoad, value }: { onLoad: (v: any) => void; value: any }) {
   const [saved, setSaved] = useState<{ name: string; content: any }[]>([]);
+  const [hiddenBuiltins, setHiddenBuiltins] = useState<string[]>([]);
   const [showSave, setShowSave] = useState(false);
   const [saveName, setSaveName] = useState("");
   const [lastLoadedName, setLastLoadedName] = useState("");
 
-  useEffect(() => { setSaved(loadDanaTemplates()); }, []);
+  useEffect(() => {
+    setSaved(loadDanaTemplates());
+    setHiddenBuiltins(loadHiddenBuiltins());
+  }, []);
 
   const hasContent = Array.isArray(value) && value.length > 0;
+  const visibleBuiltins = DANA_BUILTIN.filter((t) => !hiddenBuiltins.includes(t.name));
+  const allHidden = visibleBuiltins.length === 0;
 
   function load(content: any, name: string) {
     setLastLoadedName(name);
@@ -160,37 +172,53 @@ function DanaTemplateSelector({ onLoad, value }: { onLoad: (v: any) => void; val
     setShowSave(false);
   }
 
-  function deleteTemplate(name: string) {
+  function deleteCustom(name: string) {
     const updated = saved.filter((t) => t.name !== name);
     localStorage.setItem(DANA_LS_KEY, JSON.stringify(updated));
     setSaved(updated);
   }
 
+  function hideBuiltin(name: string) {
+    const updated = [...hiddenBuiltins, name];
+    localStorage.setItem(DANA_LS_HIDDEN_KEY, JSON.stringify(updated));
+    setHiddenBuiltins(updated);
+  }
+
+  function restoreBuiltins() {
+    localStorage.removeItem(DANA_LS_HIDDEN_KEY);
+    setHiddenBuiltins([]);
+  }
+
+  const hasAnyTemplates = visibleBuiltins.length > 0 || saved.length > 0;
+
   return (
     <div className="pe-template-bar">
+      {/* All templates as chips — click to load, × to delete */}
+      {hasAnyTemplates && (
+        <div className="pe-template-bar__chips">
+          <span className="pe-template-bar__chips-label">Templates — click to load into editor, × to delete:</span>
+          {visibleBuiltins.map((t) => (
+            <span key={t.name} className="pe-template-chip pe-template-chip--builtin">
+              <button type="button" className="pe-template-chip__name" onClick={() => load(textToBlockNote(t.text), t.name)}>{t.name}</button>
+              <button type="button" className="pe-template-chip__delete" onClick={() => hideBuiltin(t.name)} title="Remove this template">×</button>
+            </span>
+          ))}
+          {saved.map((t) => (
+            <span key={t.name} className="pe-template-chip">
+              <button type="button" className="pe-template-chip__name" onClick={() => load(t.content, t.name)}>{t.name}</button>
+              <button type="button" className="pe-template-chip__delete" onClick={() => deleteCustom(t.name)} title="Delete this template">×</button>
+            </span>
+          ))}
+        </div>
+      )}
+      {allHidden && (
+        <div className="pe-template-bar__chips">
+          <button type="button" className="pe-template-bar__restore" onClick={restoreBuiltins}>Restore default templates</button>
+        </div>
+      )}
+
+      {/* Save as template */}
       <div className="pe-template-bar__row">
-        <select
-          className="pe-select pe-template-bar__select"
-          value=""
-          onChange={(e) => {
-            const val = e.target.value;
-            e.target.value = ""; // reset immediately
-            const builtinMatch = DANA_BUILTIN.find((t) => t.name === val);
-            if (builtinMatch) { load(textToBlockNote(builtinMatch.text), builtinMatch.name); return; }
-            const savedMatch = saved.find((t) => t.name === val);
-            if (savedMatch) load(savedMatch.content, savedMatch.name);
-          }}
-        >
-          <option value="" disabled>Load a template…</option>
-          <optgroup label="Built-in">
-            {DANA_BUILTIN.map((t) => <option key={t.name} value={t.name}>{t.name}</option>)}
-          </optgroup>
-          {saved.length > 0 && (
-            <optgroup label="Your saved templates">
-              {saved.map((t) => <option key={t.name} value={t.name}>{t.name}</option>)}
-            </optgroup>
-          )}
-        </select>
         <button
           type="button"
           className="pe-btn pe-btn--small"
@@ -215,28 +243,6 @@ function DanaTemplateSelector({ onLoad, value }: { onLoad: (v: any) => void; val
           />
           <button type="button" className="pe-btn pe-btn--small" onClick={saveTemplate} disabled={!saveName.trim()}>Save</button>
           <button type="button" className="pe-btn pe-btn--small pe-btn--ghost" onClick={() => setShowSave(false)}>Cancel</button>
-        </div>
-      )}
-
-      {saved.length > 0 && (
-        <div className="pe-template-bar__chips">
-          <span className="pe-template-bar__chips-label">Your saved templates — click name to load, × to delete:</span>
-          {saved.map((t) => (
-            <span key={t.name} className="pe-template-chip">
-              <button
-                type="button"
-                className="pe-template-chip__name"
-                onClick={() => load(t.content, t.name)}
-                title={`Load "${t.name}" into the editor`}
-              >{t.name}</button>
-              <button
-                type="button"
-                className="pe-template-chip__delete"
-                onClick={() => deleteTemplate(t.name)}
-                title={`Delete "${t.name}"`}
-              >×</button>
-            </span>
-          ))}
         </div>
       )}
     </div>
