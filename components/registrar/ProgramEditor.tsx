@@ -193,43 +193,21 @@ function DanaTemplateSelector({ onLoad, value }: { onLoad: (v: any) => void; val
 
   return (
     <div className="pe-template-bar">
-      {/* All templates as chips — click to load, × to delete */}
-      {hasAnyTemplates && (
-        <div className="pe-template-bar__chips">
-          <span className="pe-template-bar__chips-label">Templates — click to load into editor, × to delete:</span>
-          {visibleBuiltins.map((t) => (
-            <span key={t.name} className="pe-template-chip pe-template-chip--builtin">
-              <button type="button" className="pe-template-chip__name" onClick={() => load(textToBlockNote(t.text), t.name)}>{t.name}</button>
-              <button type="button" className="pe-template-chip__delete" onClick={() => hideBuiltin(t.name)} title="Remove this template">×</button>
-            </span>
-          ))}
-          {saved.map((t) => (
-            <span key={t.name} className="pe-template-chip">
-              <button type="button" className="pe-template-chip__name" onClick={() => load(t.content, t.name)}>{t.name}</button>
-              <button type="button" className="pe-template-chip__delete" onClick={() => deleteCustom(t.name)} title="Delete this template">×</button>
-            </span>
-          ))}
-        </div>
-      )}
-      {allHidden && (
-        <div className="pe-template-bar__chips">
-          <button type="button" className="pe-template-bar__restore" onClick={restoreBuiltins}>Restore default templates</button>
-        </div>
-      )}
-
-      {/* Save as template */}
-      <div className="pe-template-bar__row">
+      {/* Header: label + save button */}
+      <div className="pe-template-bar__header">
+        <span className="pe-template-bar__label">Templates</span>
         <button
           type="button"
-          className="pe-btn pe-btn--small"
+          className="pe-template-bar__save-btn"
           onClick={() => { setShowSave((s) => !s); setSaveName(lastLoadedName); }}
           disabled={!hasContent}
           title="Save what's currently in the editor as a reusable template"
         >
-          Save as template
+          + Save current
         </button>
       </div>
 
+      {/* Save name input */}
       {showSave && (
         <div className="pe-template-bar__save-row">
           <input
@@ -244,6 +222,27 @@ function DanaTemplateSelector({ onLoad, value }: { onLoad: (v: any) => void; val
           <button type="button" className="pe-btn pe-btn--small" onClick={saveTemplate} disabled={!saveName.trim()}>Save</button>
           <button type="button" className="pe-btn pe-btn--small pe-btn--ghost" onClick={() => setShowSave(false)}>Cancel</button>
         </div>
+      )}
+
+      {/* Chips */}
+      {hasAnyTemplates && (
+        <div className="pe-template-bar__chips">
+          {visibleBuiltins.map((t) => (
+            <span key={t.name} className="pe-template-chip pe-template-chip--builtin">
+              <button type="button" className="pe-template-chip__name" onClick={() => load(textToBlockNote(t.text), t.name)}>{t.name}</button>
+              <button type="button" className="pe-template-chip__delete" onClick={() => hideBuiltin(t.name)} title="Remove">×</button>
+            </span>
+          ))}
+          {saved.map((t) => (
+            <span key={t.name} className="pe-template-chip">
+              <button type="button" className="pe-template-chip__name" onClick={() => load(t.content, t.name)}>{t.name}</button>
+              <button type="button" className="pe-template-chip__delete" onClick={() => deleteCustom(t.name)} title="Delete">×</button>
+            </span>
+          ))}
+        </div>
+      )}
+      {allHidden && (
+        <button type="button" className="pe-template-bar__restore" onClick={restoreBuiltins}>Restore default templates</button>
       )}
     </div>
   );
