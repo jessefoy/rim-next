@@ -1067,34 +1067,41 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
               <input type="text" value={timeText} onChange={(e) => setTimeText(e.target.value)} className="pe-input" placeholder="e.g. 7:00–8:30 PM CT" />
             </label>
 
-            <fieldset className="pe-field">
-              <legend className="pe-field__label">Program Format</legend>
+            <div className="pe-field">
+              <span className="pe-field__label">Program Format</span>
               <span className="pe-field__help">In-person, virtual, or hybrid. This controls whether a LiveKit video room or a venue address is shown.</span>
-              <div className="pe-radio-group">
-                {["in-person", "virtual", "hybrid"].map((val) => (
-                  <label key={val} className="pe-radio">
-                    <input type="radio" checked={programFormat === val} onChange={() => setProgramFormat(val)} />
-                    {val === "in-person" ? "In-person" : val === "virtual" ? "Virtual" : "Hybrid"}
+              <div className="pe-option-cards">
+                {[
+                  { value: "in-person", label: "In-person" },
+                  { value: "virtual", label: "Virtual" },
+                  { value: "hybrid", label: "Hybrid" },
+                ].map((opt) => (
+                  <label key={opt.value} className={`pe-option-card${programFormat === opt.value ? " pe-option-card--active" : ""}`}>
+                    <input type="radio" name="programFormat" checked={programFormat === opt.value} onChange={() => setProgramFormat(opt.value)} />
+                    <span className="pe-option-card__mark" />
+                    {opt.label}
                   </label>
                 ))}
               </div>
-            </fieldset>
+            </div>
 
             {programFormat !== "virtual" && (
-              <fieldset className="pe-field">
-                <legend className="pe-field__label">Venue</legend>
+              <div className="pe-field">
+                <span className="pe-field__label">Venue</span>
                 <span className="pe-field__help">Where the program takes place. &lsquo;At RIM&rsquo; auto-fills the RIM address. &lsquo;Other&rsquo; lets you enter a custom location.</span>
-                <div className="pe-radio-group">
-                  <label className="pe-radio">
-                    <input type="radio" checked={venue === "at-rim"} onChange={() => setVenue("at-rim")} />
-                    At RIM
-                  </label>
-                  <label className="pe-radio">
-                    <input type="radio" checked={venue === "other"} onChange={() => setVenue("other")} />
-                    Other location
-                  </label>
+                <div className="pe-option-cards">
+                  {[
+                    { value: "at-rim", label: "At RIM" },
+                    { value: "other", label: "Other location" },
+                  ].map((opt) => (
+                    <label key={opt.value} className={`pe-option-card${venue === opt.value ? " pe-option-card--active" : ""}`}>
+                      <input type="radio" name="venue" checked={venue === opt.value} onChange={() => setVenue(opt.value)} />
+                      <span className="pe-option-card__mark" />
+                      {opt.label}
+                    </label>
+                  ))}
                 </div>
-              </fieldset>
+              </div>
             )}
 
             {programFormat !== "virtual" && venue === "other" && (
@@ -1192,22 +1199,24 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
               <DateTimePicker value={endDatetime} onChange={setEndDatetime} />
             </div>
 
-            <fieldset className="pe-field">
-              <legend className="pe-field__label">Recurrence</legend>
+            <div className="pe-field">
+              <span className="pe-field__label">Recurrence</span>
               <span className="pe-field__help">For repeating programs. Sets the pattern (weekly, daily, etc.) and how many times it occurs.</span>
-              <div className="pe-radio-group">
-                <label className="pe-radio">
-                  <input type="radio" checked={!recurrenceFreq} onChange={() => setRecurrenceFreq("")} />
-                  None (one-time)
-                </label>
-                {["DAILY", "WEEKLY", "MONTHLY"].map((val) => (
-                  <label key={val} className="pe-radio">
-                    <input type="radio" checked={recurrenceFreq === val} onChange={() => setRecurrenceFreq(val)} />
-                    {val.charAt(0) + val.slice(1).toLowerCase()}
+              <div className="pe-option-cards">
+                {[
+                  { value: "", label: "One-time" },
+                  { value: "DAILY", label: "Daily" },
+                  { value: "WEEKLY", label: "Weekly" },
+                  { value: "MONTHLY", label: "Monthly" },
+                ].map((opt) => (
+                  <label key={opt.value} className={`pe-option-card${recurrenceFreq === opt.value ? " pe-option-card--active" : ""}`}>
+                    <input type="radio" name="recurrenceFreq" checked={recurrenceFreq === opt.value} onChange={() => setRecurrenceFreq(opt.value)} />
+                    <span className="pe-option-card__mark" />
+                    {opt.label}
                   </label>
                 ))}
               </div>
-            </fieldset>
+            </div>
 
             {recurrenceFreq && (
               <label className="pe-field">
@@ -1289,30 +1298,34 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
            TAB 4 — Registration
            ══════════════════════════════════════════════════════════════════ */}
         {tab === "Registration" && (
-          <div className="pe-card"><div className="pe-form">
-            <div className="pe-field">
+          <div className="pe-card">
+          <div className="pe-card__section">
+            <div className="pe-form">
+            <div className="pe-visibility-option">
               <label className="pe-checkbox">
                 <input
                   type="checkbox"
                   checked={registrationEnabled}
                   onChange={(e) => setRegistrationEnabled(e.target.checked)}
                 />
-                Registration enabled
+                <span className="pe-checkbox__label">Registration enabled</span>
               </label>
-              <span className="pe-field__help">When checked, the public program page shows a registration form. When unchecked, visitors can read about the program but can&rsquo;t register.</span>
+              <p className="pe-field__help">When checked, the public program page shows a registration form. When unchecked, visitors can read about the program but can&rsquo;t register.</p>
             </div>
 
-            <div className="pe-field">
+            <div className="pe-visibility-option">
               <label className="pe-checkbox">
                 <input
                   type="checkbox"
                   checked={registrationClosed}
                   onChange={(e) => setRegistrationClosed(e.target.checked)}
                 />
-                Registration closed
+                <span className="pe-checkbox__label">Registration closed</span>
               </label>
-              <span className="pe-field__help">Manually closes registration. The page shows a &lsquo;Registration is closed&rsquo; notice instead of the form.</span>
+              <p className="pe-field__help">Manually closes registration. The page shows a &lsquo;Registration is closed&rsquo; notice instead of the form.</p>
             </div>
+
+            <hr className="pe-section-divider" />
 
             <label className="pe-field">
               <span className="pe-field__label">Capacity</span>
@@ -1428,7 +1441,9 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
               />
             </div>
 
-          </div></div>
+          </div>
+          </div>
+          </div>
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
@@ -1436,23 +1451,24 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
            ══════════════════════════════════════════════════════════════════ */}
         {tab === "Dana" && (
           <div className="pe-card"><div className="pe-form">
-            <fieldset className="pe-field">
-              <legend className="pe-field__label">Dana Mode</legend>
+            <div className="pe-field">
+              <span className="pe-field__label">Dana Mode</span>
               <span className="pe-field__help">How donations work for this program. &lsquo;Voluntary&rsquo; lets people give any amount. &lsquo;Base + Dana&rsquo; sets a minimum. &lsquo;Fixed&rsquo; sets an exact amount. &lsquo;None&rsquo; skips the donation step entirely.</span>
-              <div className="pe-radio-group">
+              <div className="pe-option-cards">
                 {[
                   { value: "none", label: "None" },
                   { value: "voluntary", label: "Voluntary" },
                   { value: "base_plus_dana", label: "Base + Dana" },
                   { value: "fixed", label: "Fixed" },
                 ].map((opt) => (
-                  <label key={opt.value} className="pe-radio">
-                    <input type="radio" checked={danaMode === opt.value} onChange={() => setDanaMode(opt.value)} />
+                  <label key={opt.value} className={`pe-option-card${danaMode === opt.value ? " pe-option-card--active" : ""}`}>
+                    <input type="radio" name="danaMode" checked={danaMode === opt.value} onChange={() => setDanaMode(opt.value)} />
+                    <span className="pe-option-card__mark" />
                     {opt.label}
                   </label>
                 ))}
               </div>
-            </fieldset>
+            </div>
 
             {(danaMode === "voluntary" || danaMode === "base_plus_dana") && (
               <label className="pe-field">
@@ -1540,30 +1556,34 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
            TAB 6 — Dashboard
            ══════════════════════════════════════════════════════════════════ */}
         {tab === "Dashboard" && (
-          <div className="pe-card"><div className="pe-form">
-            <label className="pe-field">
-              <span className="pe-field__label">Special Announcement</span>
-              <span className="pe-field__help">A bold notice shown on this program&rsquo;s dashboard card. Use for urgent or time-sensitive info like a schedule change.</span>
-              <textarea
-                value={specialAnnouncement}
-                onChange={(e) => setSpecialAnnouncement(e.target.value)}
-                className="pe-textarea"
-                rows={2}
-              />
-            </label>
+          <div className="pe-card">
+            <div className="pe-card__section">
+              <p className="pe-tab-intro">These fields control what appears on program cards in the member dashboard. Both are optional — leave blank if not needed.</p>
+              <div className="pe-form">
+                <label className="pe-field">
+                  <span className="pe-field__label">Special Announcement</span>
+                  <span className="pe-field__help">A bold notice shown on this program&rsquo;s dashboard card. Use for urgent or time-sensitive info like a schedule change or room reassignment.</span>
+                  <textarea
+                    value={specialAnnouncement}
+                    onChange={(e) => setSpecialAnnouncement(e.target.value)}
+                    className="pe-textarea"
+                    rows={2}
+                  />
+                </label>
 
-            <label className="pe-field">
-              <span className="pe-field__label">Early Arrival Message</span>
-              <span className="pe-field__help">A quieter message shown on the dashboard card — things like &lsquo;Please arrive 10 minutes early&rsquo; or &lsquo;Bring a cushion.&rsquo;</span>
-              <textarea
-                value={earlyArrivalMessage}
-                onChange={(e) => setEarlyArrivalMessage(e.target.value)}
-                className="pe-textarea"
-                rows={2}
-              />
-            </label>
-
-          </div></div>
+                <label className="pe-field">
+                  <span className="pe-field__label">Early Arrival Message</span>
+                  <span className="pe-field__help">A quieter message shown on the dashboard card — things like &lsquo;Please arrive 10 minutes early&rsquo; or &lsquo;Bring a cushion.&rsquo;</span>
+                  <textarea
+                    value={earlyArrivalMessage}
+                    onChange={(e) => setEarlyArrivalMessage(e.target.value)}
+                    className="pe-textarea"
+                    rows={2}
+                  />
+                </label>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* ══════════════════════════════════════════════════════════════════

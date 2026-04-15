@@ -12963,18 +12963,18 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 }
 
 /* ── Form ── */
-.pe-form { display: flex; flex-direction: column; gap: 24px; }
+.pe-form { display: flex; flex-direction: column; gap: 20px; }
 
 /* ── Fields ── */
-.pe-field { display: flex; flex-direction: column; gap: 4px; }
+.pe-field { display: flex; flex-direction: column; gap: 6px; }
 .pe-field__label {
-  font-size: 14px; font-weight: 600;
+  font-size: 13px; font-weight: 600;
   color: var(--rim-text);
   text-transform: none;
   letter-spacing: normal;
   margin-bottom: 0;
 }
-.pe-field__help { font-size: 14px; font-weight: 400; color: var(--rim-text-muted); line-height: 1.5; margin-bottom: 4px; }
+.pe-field__help { font-size: 13px; font-weight: 400; color: var(--rim-text-muted); line-height: 1.5; margin-bottom: 0; }
 .pe-field__help--warn { color: #b45309; }
 
 /* ── Inputs ── */
@@ -13034,6 +13034,37 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .pe-radio { display: flex; align-items: center; gap: 6px; font-size: 15px; cursor: pointer; }
 .pe-checkbox { display: flex; align-items: center; gap: 8px; font-size: 15px; cursor: pointer; }
 .pe-checkbox--inline { font-size: 13px; }
+
+/* ── Option cards — styled radio group for important exclusive choices ── */
+.pe-option-cards { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
+.pe-option-card {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 14px;
+  background: #faf9f7;
+  border: 1.5px solid var(--rim-rule);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px; font-weight: 500;
+  color: var(--rim-text-muted);
+  user-select: none;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+}
+.pe-option-card:hover { border-color: #adb8bf; background: #f4f2ef; color: var(--rim-text); }
+.pe-option-card--active { border-color: #39607a; background: #eef3f7; color: #1d3d52; font-weight: 600; }
+.pe-option-card input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+.pe-option-card__mark {
+  width: 13px; height: 13px;
+  border: 2px solid #c5cfd6;
+  border-radius: 50%;
+  flex-shrink: 0;
+  position: relative;
+}
+.pe-option-card--active .pe-option-card__mark { border-color: #39607a; }
+.pe-option-card--active .pe-option-card__mark::after {
+  content: ''; position: absolute;
+  inset: 2px; border-radius: 50%;
+  background: #39607a;
+}
 
 /* ── Day grid ── */
 .pe-day-grid { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -13621,6 +13652,8 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   .pe-tabs { gap: 0; -webkit-overflow-scrolling: touch; }
   .pe-tabs__tab { padding: 8px 10px; font-size: 13px; white-space: nowrap; flex-shrink: 0; }
   .pe-radio-group { flex-direction: column; gap: 8px; }
+  .pe-option-cards { flex-direction: column; gap: 6px; }
+  .pe-option-card { width: 100%; }
   .pe-reg-field__row { flex-direction: column; }
   .pe-reg-field__row .pe-select { max-width: 100%; }
   .pe-inline-row { flex-wrap: wrap; }
