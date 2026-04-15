@@ -2890,7 +2890,7 @@ h4 { font-size: var(--text-h4); }
   font-size: var(--text-h2);
   color: var(--rim-text);
   margin: 0 0 16px;
-  padding-left: 24px; /* align with card text (lr-row padding) */
+  padding-left: 4px; /* nearly flush with card edge + hero text */
   line-height: var(--lh-heading);
 }
 
