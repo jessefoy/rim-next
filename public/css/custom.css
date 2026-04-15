@@ -3001,7 +3001,7 @@ h4 { font-size: var(--text-h4); }
 
 .tw-day__heading {
   font-family: var(--font-serif);
-  font-size: var(--text-h3);
+  font-size: var(--text-h2);
   color: var(--rim-text);
   margin: 0 0 12px;
   padding-left: 4px;
