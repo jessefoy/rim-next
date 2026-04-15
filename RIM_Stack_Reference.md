@@ -1,6 +1,6 @@
 # RIM Next — Stack Reference
 
-_Generated 2026-03-11. Last updated 2026-03-25 (session 76, continued)._
+_Generated 2026-03-11. Last updated 2026-04-15 (session 84–85)._
 
 ---
 
@@ -229,7 +229,7 @@ app/
   lessons/[slug]/     lesson pages
 
 components/           shared UI components
-lib/                  utilities (queries, email, dateLabel, locations, etc.)
+lib/                  utilities (queries, email, dateLabel, scheduleUtils, locations, etc.)
 prisma/schema.prisma  database schema
 proxy.ts              route protection (replaces middleware.ts in Next.js 16)
 public/css/custom.css all custom styles (single source of truth — Webflow CSS removed)

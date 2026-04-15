@@ -816,7 +816,8 @@ Shared layout primitives used by all redesigned pages:
 | `hp-` | Homepage |
 | `pl-` | Community programs list page |
 | `pg-` | Program detail pages |
-| `lr-` | ListRow component (shared: programs list, dashboard, course lessons) |
+| `lr-` | ListRow component (shared: programs list, this-week page, dashboard, course lessons) |
+| `tw-` | This Week weekly schedule page (hero elements only; cards reuse `lr-` + `pl-`) |
 | `lp-` | Lesson pages (also shared reading-column utilities used by other 🟢 pages) |
 | `wl-` | Community welcome / onboarding page |
 | `vol-` | Volunteer / registrar admin area |
@@ -1432,7 +1433,9 @@ Areas: 🔐 Auth, 🛡️ Route Protection, 📋 Registration, ✉️ Email, �
 
 ### Desktop nav
 
-**Public mode:** Programs · Get Involved ▾ · Member Area/Hi [Name] ▾ · Donate pill
+**Public mode:** Programs ▾ · Get Involved ▾ · Member Area/Hi [Name] ▾ · Donate pill
+
+The Programs dropdown has two items: "All Programs" → `/community-programs` and "This Week's Schedule" → `/this-week`. Same dropdown pattern as Get Involved and Member Area.
 
 **Member area mode** (`/account/*`, `/admin/*`): My Dashboard · Programs · Admin ▾ (admin-only) · Sign Out · Donate pill
 
@@ -3761,7 +3764,51 @@ model HubDocument {
 
 ---
 
-*Last updated: 2026-03-21 (session 71)*
+*Last updated: 2026-04-15 (session 84–85)*
+
+---
+
+## 41. "This Week at RIM" — Weekly Schedule Page
+
+**What it does:** A public page at `/this-week` that shows all programs happening each week, grouped Monday through Sunday, dynamically generated from the program database. Includes a "Next Week" toggle and a "subject to change" footer. Serves as the digital equivalent of the weekly email newsletter schedule.
+
+**Audience:** Public (no auth required). Linked from the Programs dropdown in the site nav.
+
+### Routes
+- `/this-week` — current week's schedule
+- `/this-week?week=next` — next week's schedule
+
+### Data and logic
+- Queries all active (`archivedAt = null`), visible (`hideFromProgramPageList = false`) programs from Postgres
+- Determines which programs run on each day using `isOccurrenceOnDate()` from `lib/scheduleUtils.ts` — handles weekly/daily/bi-weekly/monthly/one-time recurrence
+- Groups programs Monday–Sunday; skips days with no programs
+- Within each day, sorts by `startDatetime`
+- Week anchor: Monday of current CT week. `?week=next` offsets +7 days.
+
+### Schedule line format
+Each card shows: `timeText` (if set) OR `formatTimeRange(startDatetime, endDatetime)` + " | " + format label ("Zoom Only" / "In-Person & Zoom" / "In-Person") + " · category name"
+
+No day label on each row — programs are already grouped by day.
+
+### Visual design
+- Hero: `tw-hero rim-section` — teal (`--rim-blue`) with bodhi-leaves background + semi-transparent overlay. 52px Quincy CF title (same as programs list page). Date range in Quincy CF `--text-h3`. "This Week / Next Week" toggle pill buttons.
+- Schedule: `rim-section--grey` with `rim-container`. Day headings: `pl-cat__heading` (Quincy CF `--text-h2` 28px). Program cards: `lr-row` with `lr-info`, `lr-name`, `lr-schedule`, and `lr-btn` "Learn More" pill — identical to `/community-programs` cards.
+
+**CSS prefixes:** `tw-` for hero elements only. Cards reuse `lr-` and `pl-` from programs list.
+
+**Key files:**
+- `app/this-week/page.tsx` — server component
+- `lib/scheduleUtils.ts` — shared `isOccurrenceOnDate()` (also used by `/tools/schedule`)
+- `lib/dateLabel.ts` — `formatTimeRange()` exported here
+- `public/css/custom.css` — `tw-hero`, `tw-hero__title`, `tw-hero__subtitle`, `tw-hero__range`, `tw-hero__nav`, `tw-nav-btn`, `tw-footer`, `tw-empty`, `tw-cat-tag`
+
+**Connects to:**
+- `/community-programs` — shares `lr-row` card styles; any ListRow CSS change affects both
+- `/tools/schedule` — shares `lib/scheduleUtils.ts`; any `isOccurrenceOnDate()` change affects both
+- Programs database — quality of schedule display depends on `dateText`/`timeText` being populated (backlog: `2026-04-15-001`)
+- Nav Programs dropdown — "This Week's Schedule" entry links here
+
+*Added: 2026-04-15 (session 84–85)*
 
 ---
 
