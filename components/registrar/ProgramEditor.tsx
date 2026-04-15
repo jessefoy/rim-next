@@ -546,6 +546,31 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
   const [categoryId, setCategoryId] = useState(initialData?.categoryId ?? "");
   const [dateText, setDateText] = useState(initialData?.dateText ?? "");
   const [timeText, setTimeText] = useState(initialData?.timeText ?? "");
+
+  // Track whether the user has manually typed an override for the auto-generated labels.
+  // Initialize by comparing the stored value to what the compute functions would produce.
+  // If they match (or stored is blank), treat as auto-generated → update when dates change.
+  // If they differ, treat as a manual override → don't overwrite.
+  const [dateTextDirty, setDateTextDirty] = useState(() => {
+    const stored = initialData?.dateText ?? "";
+    if (!stored) return false;
+    const computed = computeDateText(
+      initialData?.startDatetime ?? "",
+      initialData?.recurrenceFreq ?? "",
+      initialData?.recurrenceDays ?? [],
+      initialData?.recurrenceInterval ?? ""
+    );
+    return computed !== stored;
+  });
+  const [timeTextDirty, setTimeTextDirty] = useState(() => {
+    const stored = initialData?.timeText ?? "";
+    if (!stored) return false;
+    const computed = computeTimeText(
+      initialData?.startDatetime ?? "",
+      initialData?.endDatetime ?? ""
+    );
+    return computed !== stored;
+  });
   const [programFormat, setProgramFormat] = useState(initialData?.programFormat ?? "in-person");
   const [venue, setVenue] = useState(initialData?.venue ?? "at-rim");
   const [locationText, setLocationText] = useState(initialData?.locationText ?? "");
@@ -622,21 +647,23 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
     }
   }, [name, isEditing, slugTouched]);
 
-  // Auto-generate Schedule Label whenever it's blank or just cleared
+  // Auto-generate Schedule Label whenever dates/recurrence change — unless the user
+  // has manually typed a custom override. Clearing the field resets the dirty flag
+  // (handled in the onChange below), which causes this effect to fire again.
   useEffect(() => {
-    if (!dateText) {
+    if (!dateTextDirty) {
       const computed = computeDateText(startDatetime, recurrenceFreq, recurrenceDays, recurrenceInterval);
       if (computed) setDateText(computed);
     }
-  }, [dateText, startDatetime, recurrenceFreq, recurrenceDays, recurrenceInterval]);
+  }, [dateTextDirty, startDatetime, recurrenceFreq, recurrenceDays, recurrenceInterval]);
 
-  // Auto-generate Time Label whenever it's blank or just cleared
+  // Auto-generate Time Label whenever start/end times change — same dirty-flag pattern.
   useEffect(() => {
-    if (!timeText) {
+    if (!timeTextDirty) {
       const computed = computeTimeText(startDatetime, endDatetime);
       if (computed) setTimeText(computed);
     }
-  }, [timeText, startDatetime, endDatetime]);
+  }, [timeTextDirty, startDatetime, endDatetime]);
 
   // ── Teacher search ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -1063,13 +1090,13 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
             <label className="pe-field">
               <span className="pe-field__label">Schedule Label</span>
               <span className="pe-field__help">How the schedule appears on the public site — auto-generated from your recurrence and start date. Clear it to regenerate, or type here to override.</span>
-              <input type="text" value={dateText} onChange={(e) => setDateText(e.target.value)} className="pe-input" placeholder="e.g. Tuesdays and Thursdays" />
+              <input type="text" value={dateText} onChange={(e) => { setDateText(e.target.value); setDateTextDirty(e.target.value !== ""); markDirty(); }} className="pe-input" placeholder="e.g. Tuesdays and Thursdays" />
             </label>
 
             <label className="pe-field">
               <span className="pe-field__label">Time Label</span>
               <span className="pe-field__help">Shown on program cards and in confirmation emails — auto-generated from your start and end times. Clear to regenerate, or type to override.</span>
-              <input type="text" value={timeText} onChange={(e) => setTimeText(e.target.value)} className="pe-input" placeholder="e.g. 7:00–8:30 PM CT" />
+              <input type="text" value={timeText} onChange={(e) => { setTimeText(e.target.value); setTimeTextDirty(e.target.value !== ""); markDirty(); }} className="pe-input" placeholder="e.g. 7:00–8:30 PM CT" />
             </label>
 
             <div className="pe-field">

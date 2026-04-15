@@ -141,7 +141,7 @@ export async function PUT(
   if (body.dayOfWeek !== undefined) data.dayOfWeek = body.dayOfWeek;
   if (body.sortOrder !== undefined) data.sortOrder = body.sortOrder != null ? Number(body.sortOrder) : null;
   if (body.removeFromProgramList !== undefined) data.removeFromProgramList = body.removeFromProgramList;
-  if (body.dashboardShowAt !== undefined) data.dashboardShowAt = body.dashboardShowAt ? new Date(body.dashboardShowAt) : null;
+  if (body.dashboardShowAt !== undefined) data.dashboardShowAt = centralToUtc(body.dashboardShowAt);
   if (body.hideFromProgramPageList !== undefined) data.hideFromProgramPageList = body.hideFromProgramPageList;
   if (body.isOpenAccess !== undefined) {
     data.isOpenAccess = body.isOpenAccess;
