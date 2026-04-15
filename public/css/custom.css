@@ -159,9 +159,9 @@ h1, h2, h3, h4, h5, h6 {
 /* List items — explicit on every property that rim.webflow.css pollutes:
    li { font-family: "Source Sans 3"; line-height: 32px } */
 .rim-content li {
-  font-family: var(--font-sans);
-  font-size: 17px;
-  line-height: 1.55;
+  font-family: var(--font-sans); /* explicit — beats rim.webflow.css Source Sans 3 override */
+  font-size: inherit;            /* matches body text — same as p */
+  line-height: inherit;          /* matches body text — same as p */
   margin-bottom: 0.4em;
 }
 
