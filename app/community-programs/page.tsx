@@ -82,8 +82,8 @@ export default async function CommunityProgramsPage() {
   return (
     <>
       {/* ── Hero ─────────────────────────────────────────── */}
-      <div className="pl-hero">
-        <div className="pl-hero__inner">
+      <section className="pl-hero rim-section">
+        <div className="rim-container">
           <h1 className="pl-hero__title">Programs and Events</h1>
           <p className="pl-hero__body">
             Sit together, study the teachings, and bring what you find into the rest of your life.
@@ -94,7 +94,7 @@ export default async function CommunityProgramsPage() {
             Learn How to Join Us
           </Link>
         </div>
-      </div>
+      </section>
 
       {/* ── Program Listings ─────────────────────────────── */}
       <section className="rim-section rim-section--grey">
