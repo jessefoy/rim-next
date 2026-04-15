@@ -289,7 +289,7 @@ function ProgramPanel({ program, assignments, hostUsers, onRemove, removingId }:
         <>
           {future.length > 0 && (
             <div style={{ marginBottom: 12 }}>
-              <p className="hub-assign-group__name" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--rim-text-muted)", marginBottom: 6 }}>
+              <p className="hub-assign-group__name" style={{ fontSize: "var(--text-label)", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--rim-text-muted)", marginBottom: 6 }}>
                 Upcoming
               </p>
               <ul className="hub-assign-group__list">
@@ -306,7 +306,7 @@ function ProgramPanel({ program, assignments, hostUsers, onRemove, removingId }:
           )}
           {assignments.filter((a) => !a.sessionDate).length > 0 && (
             <div style={{ marginBottom: 12 }}>
-              <p className="hub-assign-group__name" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--rim-text-muted)", marginBottom: 6 }}>
+              <p className="hub-assign-group__name" style={{ fontSize: "var(--text-label)", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--rim-text-muted)", marginBottom: 6 }}>
                 Standing
               </p>
               <ul className="hub-assign-group__list">
@@ -323,7 +323,7 @@ function ProgramPanel({ program, assignments, hostUsers, onRemove, removingId }:
           )}
           {past.length > 0 && (
             <details style={{ marginBottom: 12 }}>
-              <summary style={{ fontSize: 13, color: "var(--rim-text-muted)", cursor: "pointer", marginBottom: 6 }}>
+              <summary style={{ fontSize: "var(--text-xs)", color: "var(--rim-text-muted)", cursor: "pointer", marginBottom: 6 }}>
                 {past.length} past session{past.length !== 1 ? "s" : ""}
               </summary>
               <ul className="hub-assign-group__list" style={{ marginTop: 6 }}>
@@ -431,7 +431,7 @@ function AssignmentRow({ assignment, onRemove, removingId }: AssignmentRowProps)
           <span className="hub-assign-row__standing">Standing</span>
         )}
         {assignment.status === "sub_needed" && (
-          <span style={{ fontSize: 11, color: "#7a4f00", background: "#fff8ec", border: "1px solid #e8d9b8", padding: "2px 8px", borderRadius: 10 }}>
+          <span style={{ fontSize: "var(--text-xxs)", color: "#7a4f00", background: "#fff8ec", border: "1px solid #e8d9b8", padding: "2px 8px", borderRadius: 10 }}>
             Sub needed
           </span>
         )}
@@ -539,12 +539,12 @@ export default function HubManageClient({ programs, hostUsers, initialAssignment
               <span className="hub-assign-program-row__name">{p.name}</span>
               <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                 {unclaimedCount > 0 && (
-                  <span style={{ fontSize: 11, color: "#777", background: "var(--rim-bg-accent)", padding: "2px 8px", borderRadius: 10 }}>
+                  <span style={{ fontSize: "var(--text-xxs)", color: "var(--rim-text-muted)", background: "var(--rim-bg-accent)", padding: "2px 8px", borderRadius: 10 }}>
                     {unclaimedCount} unclaimed
                   </span>
                 )}
                 {subCount > 0 && (
-                  <span style={{ fontSize: 11, color: "#7a4f00", background: "#fff8ec", border: "1px solid #e8d9b8", padding: "2px 8px", borderRadius: 10 }}>
+                  <span style={{ fontSize: "var(--text-xxs)", color: "#7a4f00", background: "#fff8ec", border: "1px solid #e8d9b8", padding: "2px 8px", borderRadius: 10 }}>
                     {subCount} sub needed
                   </span>
                 )}

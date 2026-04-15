@@ -51,13 +51,13 @@ export default function LiveKitTestPage() {
     return (
       <div style={{ padding: 24 }}>
         <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: 14, color: "#777" }}>
+          <span style={{ fontSize: "var(--text-ui)", color: "var(--rim-text-muted)" }}>
             Connected to <strong>{roomName}</strong>
           </span>
           <button
             onClick={disconnect}
             style={{
-              padding: "6px 14px", fontSize: 13, background: "#B84040", color: "#fff",
+              padding: "6px 14px", fontSize: "var(--text-xs)", background: "var(--color-error)", color: "#fff",
               border: "none", borderRadius: 6, cursor: "pointer",
             }}
           >
@@ -73,14 +73,14 @@ export default function LiveKitTestPage() {
 
   return (
     <div style={{ padding: 24, maxWidth: 480 }}>
-      <h2 style={{ fontFamily: "var(--font-serif)", fontSize: 22, fontWeight: 400, marginBottom: 8 }}>
+      <h2 style={{ fontFamily: "var(--font-serif)", fontSize: "var(--text-h3)", fontWeight: 400, marginBottom: 8 }}>
         LiveKit Test
       </h2>
-      <p style={{ fontSize: 14, color: "#777", marginBottom: 20 }}>
+      <p style={{ fontSize: "var(--text-ui)", color: "var(--rim-text-muted)", marginBottom: 20 }}>
         Open this page in two browser tabs to test video conferencing.
       </p>
       <div style={{ marginBottom: 16 }}>
-        <label style={{ display: "block", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#888", marginBottom: 6 }}>
+        <label style={{ display: "block", fontSize: "var(--text-label)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#888", marginBottom: 6 }}>
           Room Name
         </label>
         <input
@@ -92,7 +92,7 @@ export default function LiveKitTestPage() {
         />
       </div>
       {error && (
-        <p style={{ fontSize: 14, color: "#B84040", marginBottom: 12 }}>{error}</p>
+        <p style={{ fontSize: "var(--text-ui)", color: "var(--color-error)", marginBottom: 12 }}>{error}</p>
       )}
       <button
         onClick={connect}

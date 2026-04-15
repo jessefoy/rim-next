@@ -73,7 +73,7 @@ export default function ManualSectionEditor({
           href="/admin/manual"
           style={{
             fontFamily: "var(--font-sans)",
-            fontSize: 13,
+            fontSize: "var(--text-xs)",
             color: "var(--rim-text-muted)",
             textDecoration: "none",
           }}
@@ -85,7 +85,7 @@ export default function ManualSectionEditor({
           href={`/admin/manual/${slug}`}
           style={{
             fontFamily: "var(--font-sans)",
-            fontSize: 13,
+            fontSize: "var(--text-xs)",
             color: "var(--rim-text-muted)",
             textDecoration: "none",
           }}
@@ -97,7 +97,7 @@ export default function ManualSectionEditor({
       <h1
         style={{
           fontFamily: "var(--font-serif)",
-          fontSize: 24,
+          fontSize: "var(--text-h3)",
           color: "var(--rim-text)",
           marginBottom: 32,
         }}
@@ -126,7 +126,7 @@ export default function ManualSectionEditor({
           <p
             style={{
               fontFamily: "var(--font-sans)",
-              fontSize: 12,
+              fontSize: "var(--text-label)",
               color: "var(--rim-text-muted)",
               margin: "4px 0 0",
             }}
@@ -158,7 +158,7 @@ export default function ManualSectionEditor({
           <p
             style={{
               fontFamily: "var(--font-sans)",
-              fontSize: 12,
+              fontSize: "var(--text-label)",
               color: "var(--rim-text-muted)",
               margin: "4px 0 0",
             }}
@@ -191,8 +191,8 @@ export default function ManualSectionEditor({
             <span
               style={{
                 fontFamily: "var(--font-sans)",
-                fontSize: 14,
-                color: "#2e7d32",
+                fontSize: "var(--text-ui)",
+                color: "var(--color-success)",
               }}
             >
               ✓ Saved
@@ -203,8 +203,8 @@ export default function ManualSectionEditor({
             <span
               style={{
                 fontFamily: "var(--font-sans)",
-                fontSize: 14,
-                color: "#c0392b",
+                fontSize: "var(--text-ui)",
+                color: "var(--color-error)",
               }}
             >
               {error}

@@ -179,7 +179,7 @@ export default function HubDocumentEditor({
               <button
                 type="button"
                 className="btn--ghost"
-                style={{ fontSize: 12, padding: "4px 8px", whiteSpace: "nowrap" }}
+                style={{ fontSize: "var(--text-label)", padding: "4px 8px", whiteSpace: "nowrap" }}
                 onClick={() => { setNewCat(""); setCategory(categories[0] ?? ""); }}
               >
                 Cancel
@@ -231,9 +231,9 @@ export default function HubDocumentEditor({
       </div>
 
       <div className="doc-page__footer" style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        {error && <p style={{ fontFamily: "var(--font-doc)", fontSize: 13, color: "#c0392b", flex: 1, margin: 0 }}>{error}</p>}
+        {error && <p style={{ fontFamily: "var(--font-doc)", fontSize: "var(--text-xs)", color: "var(--color-error)", flex: 1, margin: 0 }}>{error}</p>}
         {locked && (
-          <span style={{ fontFamily: "var(--font-doc)", fontSize: 13, color: "var(--rim-text-muted)", flex: 1, margin: 0 }}>
+          <span style={{ fontFamily: "var(--font-doc)", fontSize: "var(--text-xs)", color: "var(--rim-text-muted)", flex: 1, margin: 0 }}>
             🔒 Locked{isAuthor ? " — only you and admins can edit" : ""}
           </span>
         )}

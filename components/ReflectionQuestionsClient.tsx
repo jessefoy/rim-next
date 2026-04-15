@@ -183,7 +183,7 @@ export default function ReflectionQuestionsClient({
             >
               <div className="ls-question__text">
                 <span className="ls-question__num">{qi + 1}.</span>
-                <span dangerouslySetInnerHTML={{ __html: q.bodyHtml || renderBlockNoteHtml(q.body) }} />
+                <span className="rim-content" dangerouslySetInnerHTML={{ __html: q.bodyHtml || renderBlockNoteHtml(q.body) }} />
               </div>
 
               {answered ? (

@@ -353,7 +353,7 @@ function PillHeadingDropdown() {
         onMouseDown={(e) => { e.preventDefault(); setOpen(!open); }}
         title="Heading"
       >
-        <span style={{ fontWeight: 700, fontSize: 14 }}>H</span>
+        <span style={{ fontWeight: 700, fontSize: "var(--text-ui)" }}>H</span>
         <CaretIcon />
       </button>
       {open && (
@@ -979,7 +979,7 @@ function ToolbarBlockTypeSelect() {
         onMouseDown={(e) => { e.preventDefault(); setOpen(!open); }}
         title="Block type"
       >
-        <span style={{ fontWeight: 700, fontSize: 13, minWidth: 18, textAlign: "center" }}>{label}</span>
+        <span style={{ fontWeight: 700, fontSize: "var(--text-xs)", minWidth: 18, textAlign: "center" }}>{label}</span>
         <CaretIcon />
       </button>
       {open && (

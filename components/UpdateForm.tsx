@@ -42,7 +42,7 @@ export default function UpdateForm({ token, fields, currentCustomFields }: Props
     return (
       <div className="ur-success">
         <p>✓ Your responses have been updated. Thank you!</p>
-        <p style={{ fontSize: "15px", marginTop: "12px", color: "var(--rim-text-muted)" }}>
+        <p style={{ fontSize: "var(--text-small)", marginTop: "12px", color: "var(--rim-text-muted)" }}>
           You can close this page.
         </p>
       </div>
@@ -143,7 +143,7 @@ export default function UpdateForm({ token, fields, currentCustomFields }: Props
       ))}
 
       {error && (
-        <p style={{ color: "#a83232", fontSize: "14px", marginBottom: "16px" }}>{error}</p>
+        <p style={{ color: "var(--color-error)", fontSize: "var(--text-ui)", marginBottom: "16px" }}>{error}</p>
       )}
 
       <button type="submit" className="ur-submit" disabled={submitting}>

@@ -199,7 +199,7 @@ function MessageBody({ html }: { html: string }) {
   if (!splitIdx) {
     return (
       <div
-        className="si-message__body"
+        className="si-message__body rim-content"
         dangerouslySetInnerHTML={{ __html: html }}
       />
     );
@@ -210,7 +210,7 @@ function MessageBody({ html }: { html: string }) {
 
   return (
     <div className="si-message__body">
-      <div dangerouslySetInnerHTML={{ __html: mainContent }} />
+      <div className="rim-content" dangerouslySetInnerHTML={{ __html: mainContent }} />
       {!showQuoted && (
         <button
           className="si-quote-toggle"
@@ -221,7 +221,7 @@ function MessageBody({ html }: { html: string }) {
         </button>
       )}
       {showQuoted && (
-        <div dangerouslySetInnerHTML={{ __html: quotedContent }} />
+        <div className="rim-content" dangerouslySetInnerHTML={{ __html: quotedContent }} />
       )}
     </div>
   );
@@ -1190,7 +1190,7 @@ export default function SupportInboxClient({
                         </span>
                       </div>
                       <div
-                        className="si-note__body"
+                        className="si-note__body rim-content"
                         dangerouslySetInnerHTML={{
                           __html: entry.bodyHtml ?? "",
                         }}

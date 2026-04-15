@@ -375,7 +375,7 @@ export default function SupportSettingsClient({
                   <div className="si-settings__preview">
                     <div className="si-settings__preview-label">Preview</div>
                     <div
-                      className="si-settings__preview-body"
+                      className="si-settings__preview-body rim-content"
                       dangerouslySetInnerHTML={{
                         __html: renderBlockNoteHtml(tplBody),
                       }}

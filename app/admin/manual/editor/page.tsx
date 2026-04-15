@@ -116,7 +116,7 @@ export default function AdminManualPage() {
               />
             </div>
             {error && (
-              <p style={{ color: "#c0392b", fontFamily: "var(--font-sans)", fontSize: 14, marginBottom: 8 }}>
+              <p style={{ color: "var(--color-error)", fontFamily: "var(--font-sans)", fontSize: "var(--text-ui)", marginBottom: 8 }}>
                 {error}
               </p>
             )}
@@ -141,7 +141,7 @@ export default function AdminManualPage() {
           >
             <span className="man2-section__title">{section.title}</span>
             <span className="man2-section__slug">{section.slug}</span>
-            <span style={{ color: "var(--rim-text-muted)", fontSize: 13 }}>
+            <span style={{ color: "var(--rim-text-muted)", fontSize: "var(--text-xs)" }}>
               {expanded.has(section.id) ? "▲" : "▼"}
             </span>
           </div>
@@ -156,7 +156,7 @@ export default function AdminManualPage() {
                   }}
                 />
               ) : (
-                <p style={{ color: "var(--rim-text-muted)", fontFamily: "var(--font-sans)", fontSize: 14, fontStyle: "italic" }}>
+                <p style={{ color: "var(--rim-text-muted)", fontFamily: "var(--font-sans)", fontSize: "var(--text-ui)", fontStyle: "italic" }}>
                   No content yet.
                 </p>
               )}
@@ -167,14 +167,14 @@ export default function AdminManualPage() {
             <a
               href={`/admin/manual/${section.slug}`}
               className="th-btn th-btn--ghost"
-              style={{ fontSize: 13 }}
+              style={{ fontSize: "var(--text-xs)" }}
             >
               View
             </a>
             <a
               href={`/admin/manual/${section.slug}/edit`}
               className="th-btn th-btn--primary"
-              style={{ fontSize: 13 }}
+              style={{ fontSize: "var(--text-xs)" }}
             >
               Edit
             </a>

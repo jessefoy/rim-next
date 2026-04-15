@@ -1164,7 +1164,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                     : `/session/${slug}?key=${guestAccessKey}`;
                   return (
                     <div style={{ marginTop: 12 }}>
-                      <span style={{ display: "block", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#6b8fa3", marginBottom: 6 }}>
+                      <span style={{ display: "block", fontSize: "var(--text-xxs)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#6b8fa3", marginBottom: 6 }}>
                         Guest Access Link
                       </span>
                       {/* URL row */}
@@ -1177,8 +1177,8 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                           style={{
                             flex: 1, minWidth: 0,
                             padding: "9px 12px",
-                            fontFamily: "'SFMono-Regular', Consolas, monospace",
-                            fontSize: 13, color: "#333",
+                            fontFamily: "var(--font-mono)",
+                            fontSize: "var(--text-xs)", color: "#333",
                             border: "none", outline: "none", background: "transparent",
                             boxShadow: "none",
                           }}
@@ -1197,7 +1197,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                             color: "#fff",
                             border: "none",
                             fontFamily: "var(--font-sans)",
-                            fontSize: 13, fontWeight: 600,
+                            fontSize: "var(--text-xs)", fontWeight: 600,
                             cursor: "pointer",
                             whiteSpace: "nowrap",
                             transition: "background 0.15s",
@@ -1225,14 +1225,14 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                           }}
                           style={{
                             background: "none", border: "none", padding: 0,
-                            fontSize: 13, color: "#999", cursor: "pointer",
+                            fontSize: "var(--text-xs)", color: "var(--rim-text-muted)", cursor: "pointer",
                             textDecoration: "underline", fontFamily: "var(--font-sans)",
                             opacity: resettingKey ? 0.5 : 1,
                           }}
                         >
                           {resettingKey ? "Resetting…" : "Reset link"}
                         </button>
-                        <span style={{ fontSize: 13, color: "#999" }}>— invalidates the old link immediately.</span>
+                        <span style={{ fontSize: "var(--text-xs)", color: "var(--rim-text-muted)" }}>— invalidates the old link immediately.</span>
                       </div>
                     </div>
                   );

@@ -152,7 +152,7 @@ function SessionDetail({
       {s.subMessage && extractBlockNoteText(s.subMessage) && (
         <div className="hub-detail__sub-msg">
           <strong>Note:</strong>
-          <div dangerouslySetInnerHTML={{ __html: renderBlockNoteHtml(s.subMessage) }} />
+          <div className="rim-content" dangerouslySetInnerHTML={{ __html: renderBlockNoteHtml(s.subMessage) }} />
         </div>
       )}
 

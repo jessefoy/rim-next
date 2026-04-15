@@ -93,8 +93,8 @@ export default function HubAccessSection({ memberId, memberName, initialAccess }
       {message && (
         <p style={{
           fontFamily: "var(--font-sans)",
-          fontSize: 13,
-          color: message.type === "success" ? "#2d6b4a" : "#c0392b",
+          fontSize: "var(--text-xs)",
+          color: message.type === "success" ? "var(--color-success)" : "var(--color-error)",
           marginBottom: 12,
         }}>
           {message.text}
@@ -115,15 +115,15 @@ export default function HubAccessSection({ memberId, memberName, initialAccess }
               borderBottom: "1px solid var(--rim-bg-accent)",
               flexWrap: "wrap",
             }}>
-              <span style={{ fontFamily: "var(--font-sans)", fontSize: 14, fontWeight: 600, color: "var(--rim-text)", flex: 1 }}>
+              <span style={{ fontFamily: "var(--font-sans)", fontSize: "var(--text-ui)", fontWeight: 600, color: "var(--rim-text)", flex: 1 }}>
                 {hubLabel(record.hubSlug)}
               </span>
-              <span style={{ fontFamily: "var(--font-sans)", fontSize: 13, color: "var(--rim-text-muted)" }}>
+              <span style={{ fontFamily: "var(--font-sans)", fontSize: "var(--text-xs)", color: "var(--rim-text-muted)" }}>
                 since {new Date(record.grantedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
               </span>
               {confirmRevoke === record.hubSlug ? (
                 <span style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                  <span style={{ fontFamily: "var(--font-sans)", fontSize: 13, color: "var(--rim-text)" }}>
+                  <span style={{ fontFamily: "var(--font-sans)", fontSize: "var(--text-xs)", color: "var(--rim-text)" }}>
                     Remove {memberName}&rsquo;s access to {hubLabel(record.hubSlug)}?
                   </span>
                   <button

@@ -74,14 +74,14 @@ export default function AdminBannerPage() {
   return (
     <div className="hub-page" style={{ maxWidth: 600 }}>
       <h1 className="adm-page-title">Site Banner</h1>
-      <p style={{ color: "var(--rim-text-muted)", fontSize: 14, marginBottom: 24 }}>
+      <p style={{ color: "var(--rim-text-muted)", fontSize: "var(--text-ui)", marginBottom: 24 }}>
         Post a single banner visible to all logged-in members at the top of their dashboard.
         Only one banner can be active at a time.
       </p>
 
       {banner ? (
         <div style={{ marginBottom: 32 }}>
-          <p style={{ fontSize: 11, fontFamily: "var(--font-sans)", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--rim-text-muted)", marginBottom: 6 }}>
+          <p style={{ fontSize: "var(--text-xxs)", fontFamily: "var(--font-sans)", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--rim-text-muted)", marginBottom: 6 }}>
             Active Banner
           </p>
           <div className="sb-strip" style={{ borderRadius: 6 }}>
@@ -95,13 +95,13 @@ export default function AdminBannerPage() {
           </div>
         </div>
       ) : (
-        <p style={{ color: "var(--rim-text-muted)", fontSize: 14, marginBottom: 24 }}>
+        <p style={{ color: "var(--rim-text-muted)", fontSize: "var(--text-ui)", marginBottom: 24 }}>
           No active banner.
         </p>
       )}
 
       <div style={{ borderTop: "1px solid #ddd", paddingTop: 24 }}>
-        <p style={{ fontSize: 11, fontFamily: "var(--font-sans)", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--rim-text-muted)", marginBottom: 6 }}>
+        <p style={{ fontSize: "var(--text-xxs)", fontFamily: "var(--font-sans)", textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--rim-text-muted)", marginBottom: 6 }}>
           Post New Banner
         </p>
         <div className="fg">

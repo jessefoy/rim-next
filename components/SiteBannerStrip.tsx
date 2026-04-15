@@ -32,7 +32,7 @@ export default function SiteBannerStrip({ banner }: Props) {
   return (
     <div className="sb-strip">
       <div
-        className="sb-strip__body"
+        className="sb-strip__body rim-content"
         dangerouslySetInnerHTML={{ __html: banner.bodyHtml }}
       />
       <button className="sb-strip__dismiss" onClick={dismiss} aria-label="Dismiss banner">
