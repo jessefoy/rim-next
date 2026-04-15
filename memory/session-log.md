@@ -8,6 +8,36 @@ Each entry records what was accomplished, decisions made, and what to tackle nex
 
 ---
 
+## Session: 2026-04-15 (session 83)
+
+**Focus:** Bug fixes — Schedule/Time Label auto-update, dashboardShowAt timezone, simplify pass.
+
+### Accomplished this session
+
+1. **Schedule Label / Time Label not auto-updating (root cause + fix)**
+   The effects that auto-generate these labels were guarded with `if (!dateText)` / `if (!timeText)` — meaning they only fired when blank. If a program already had labels stored, changing dates or recurrence never updated them. Two-part fix:
+   - Added `dateTextDirty` / `timeTextDirty` boolean state, initialized by comparing the stored label to what the compute functions would produce. If they match (or stored is blank), `dirty = false` → auto-generate stays in sync. If they differ (manual override), `dirty = true` → leave alone.
+   - Explicitly reset dirty flags when the user touches recurrence controls (freq option cards, day checkboxes, interval input) or date pickers. This guarantees labels update whenever the user intentionally changes the settings that drive them, regardless of the initial dirty state. Typing in the label field sets `dirty = true`; clearing it sets `dirty = false` and triggers immediate regeneration.
+
+2. **`dashboardShowAt` timezone bug**
+   PUT and POST routes were using `new Date(body.dashboardShowAt)` — Node.js treats bare ISO strings without timezone as UTC. The "Auto-show on dashboards" time would have been stored 5–6 hours off from what the user intended. Fixed to `centralToUtc(body.dashboardShowAt)`, consistent with all other datetime fields (`startDatetime`, `endDatetime`, `registrationDeadline`, `reminderDate`).
+
+3. **Simplify pass (code review)**
+   - Trimmed the 4-line comment on dirty-flag init to 2 lines
+   - Added `computed !== dateText` / `computed !== timeText` guards before calling setState in the auto-generate effects — avoids queueing a state update when nothing changed
+
+### Connections
+- `components/registrar/ProgramEditor.tsx` — all fixes
+- `app/api/programs-pg/route.ts` + `app/api/programs-pg/[slug]/route.ts` — dashboardShowAt fix
+- Schedule Label / Time Label drive what appears on public program pages and in emails — these being stale would cause display/email inconsistency
+- `dashboardShowAt` connects to the "Auto-show on dashboards" Visibility tab feature — programs would have appeared on dashboards at the wrong time
+
+### Next session
+- Watch for any regressions in label auto-generation for programs with existing custom labels
+- Consider: should `buildDateLabel` in lib/dateLabel.ts be unified with `computeDateText` in ProgramEditor? Currently on different data formats (editor CT strings vs UTC Dates) — requires careful refactor
+
+---
+
 ## Session: 2026-04-14 (session 82)
 
 **Focus:** Program Editor UX design pass — option cards, editor standardization, guest link redesign, Help link, manual.

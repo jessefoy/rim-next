@@ -2057,6 +2057,12 @@ Replaced CSS class–based layout with pure inline styles (immune to global `but
 | `prisma/seed-manual-program-manager.mjs` | Full 7-tab manual rewrite with all current features |
 | `prisma/migrate.mjs` | Migration flag bumped to `seed_manual_program_manager_v3` |
 
+### Bug fixes (session 83, 2026-04-15)
+
+**Schedule Label / Time Label not auto-updating:** Effects were guarded with `if (!dateText)` — labels only regenerated when blank. Fixed with `dateTextDirty` / `timeTextDirty` flags. Flags initialize by comparing stored label to what the compute functions would produce (match = auto-managed; differ = manual override). Recurrence controls (freq, days, interval) and date pickers explicitly reset the flag so labels always update when those settings change. Typing in the label field sets dirty = true; clearing resets it.
+
+**`dashboardShowAt` timezone:** PUT and POST routes used `new Date(body.dashboardShowAt)` — Node.js treats bare ISO strings as UTC, causing a 5–6 hour offset. Fixed to `centralToUtc()` consistent with all other datetime fields.
+
 ---
 
 ## Session Log
