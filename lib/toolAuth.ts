@@ -5,7 +5,11 @@ import { db } from "@/lib/db";
  *
  * Access is granted if the user:
  * 1. Has one of the required roles (or ADMIN), OR
- * 2. Has an individual UserToolAccess grant for this tool
+ * 2. Has an individual UserToolAccess grant for this tool, OR
+ * 3. Is a member of any hub that has this tool linked via HubAppLink
+ *
+ * Pathway 3 is the primary intent: hub membership implies access to that hub's tools.
+ * Pathways 1 and 2 remain as safety nets and for edge-case grants.
  *
  * This is the standard gate for all tools. Every tool layout should use this
  * instead of inline role checks.
@@ -24,7 +28,22 @@ export async function hasToolAccess(
   const grant = await db.userToolAccess.findUnique({
     where: { userId_toolSlug: { userId, toolSlug } },
   });
-  return !!grant;
+  if (grant) return true;
+
+  // Hub membership pathway: if the user is a member of any hub that links to this tool,
+  // they have access. This is the primary grant mechanism — hub coordinators add team
+  // members to a hub and they automatically gain access to that hub's tools.
+  const hubAccess = await db.hubMember.findFirst({
+    where: {
+      userId,
+      hub: {
+        appLinks: {
+          some: { toolSlug, isEnabled: true },
+        },
+      },
+    },
+  });
+  return !!hubAccess;
 }
 
 /**
