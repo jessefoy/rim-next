@@ -40,7 +40,7 @@ function formatTime(date: Date): string {
 }
 
 /** "7pm" or "7–9pm CT" */
-function formatTimeRange(start: Date, end: Date | null): string {
+export function formatTimeRange(start: Date, end: Date | null): string {
   if (!end) return `${formatTime(start)} CT`;
   return `${formatTime(start)}–${formatTime(end)} CT`;
 }
