@@ -2822,7 +2822,7 @@ h4 { font-size: var(--text-h4); }
    consistent horizontal alignment with the listing section. */
 .pl-hero {
   background-color: var(--rim-blue);
-  background-image: url('/images/Bodhi_Leaves-poster-00001.jpg');
+  background-image: url('/images/Bodhi-Leaves.jpg');
   background-size: cover;
   background-position: center 40%;
   background-repeat: no-repeat;
