@@ -239,28 +239,44 @@ const sections = [
         "ADMIN — full access to everything; bypasses all hub membership checks",
       ]),
 
+      h2("How access works"),
+      p("Hub membership is the actual grant. When someone is a member of a hub, they can access that hub's pages and its linked tools. There are two ways to grant hub membership:"),
+      ol([
+        "Assign a role — the system automatically creates hub membership and sends a welcome email.",
+        "Add directly to a hub — a hub coordinator or admin can add someone to a hub from the hub's Members tab. No role required. They get hub access and tool access immediately.",
+      ]),
+      p("Either pathway gives the same result: the person is in the hub and can use its tools."),
+
       h2("Assigning a role"),
       ol([
         "Go to /admin/members and open the member's profile",
         "Scroll to the Roles section",
         "Check the checkbox for the role you want to assign",
-        "Click Save — a welcome email goes out automatically, and hub access is created",
+        "Click Save — a welcome email goes out automatically, and hub membership is created",
       ]),
+
+      h2("Adding someone directly to a hub"),
+      ol([
+        "Go to the hub (e.g. /account/hub/host-team)",
+        "Click the Members tab",
+        "Use the search box to find the member and add them",
+      ]),
+      p("Use this when someone should have access to a hub and its tools but doesn't need (or shouldn't have) a full role assignment. For example: a new host who is still being onboarded, or a volunteer helping temporarily."),
 
       h2("Notification email"),
       p("When a role is assigned, the member receives an email welcoming them to their new role and explaining what they have access to. The email is sent from hello@rootedinmindfulness.org. You can preview the email template at /admin/emails."),
 
       h2("Removing a role"),
-      p("Unchecking a role and saving removes hub access automatically and sends a brief notification email to the member. Their account remains active — only the role is removed."),
+      p("Unchecking a role and saving removes hub membership automatically and sends a brief notification email to the member. Their account remains active — only the role is removed. Note: if someone was also added to the hub directly (without a role), that membership is separate and must be removed from the hub's Members tab."),
 
-      h2("Hub access summary"),
+      h2("Hub and tool access summary"),
       ul([
-        "HOST → host-team hub",
-        "HOST_MANAGER → host-team hub (as coordinator)",
-        "TEACHER → teacher hub (Course Hub / courses hub)",
-        "SUPPORT → support hub",
-        "REGISTRAR → registrar hub",
-        "ADMIN → all hubs, no membership record required",
+        "HOST → Host Community Hub → Host Schedule tool",
+        "HOST_MANAGER → Host Community Hub (as coordinator) → Host Schedule tool",
+        "TEACHER → Courses Hub → Course Manager tool",
+        "SUPPORT → Support Hub → Support Inbox tool",
+        "REGISTRAR → Registrar Hub (as coordinator) → Program Manager tool",
+        "ADMIN → all hubs and all tools, no membership record required",
       ])
     ),
   },
