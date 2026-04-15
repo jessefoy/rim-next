@@ -142,11 +142,7 @@ export default async function ThisWeekPage({
                 <h2 className="pl-cat__heading">{dayName}</h2>
                 <div className="pl-list">
                   {dayPrograms.map((program) => (
-                    <Link
-                      key={program.id}
-                      href={`/programs/${program.slug}`}
-                      className="lr-row tw-row-link"
-                    >
+                    <div key={program.id} className="lr-row">
                       <div className="lr-info">
                         <p className="lr-name">{program.name}</p>
                         <p className="lr-schedule">
@@ -156,7 +152,10 @@ export default async function ThisWeekPage({
                           )}
                         </p>
                       </div>
-                    </Link>
+                      <Link href={`/programs/${program.slug}`} className="lr-btn">
+                        Learn More
+                      </Link>
+                    </div>
                   ))}
                 </div>
               </div>
