@@ -86,7 +86,7 @@ export default async function EditProgramToolPage({
     suggestedDana: program.suggestedDana?.toString() ?? "",
     danaBaseAmount: program.danaBaseAmount?.toString() ?? "",
     danaFixedAmount: program.danaFixedAmount?.toString() ?? "",
-    danaMessage: program.danaMessage ?? "",
+    danaMessage: program.danaMessage ?? null,
     danaText: program.danaText ?? "",
     specialAnnouncement: program.specialAnnouncement ?? "",
     earlyArrivalMessage: program.earlyArrivalMessage ?? "",

@@ -74,7 +74,7 @@ export interface ProgramData {
   suggestedDana: string;
   danaBaseAmount: string;
   danaFixedAmount: string;
-  danaMessage: string;
+  danaMessage: any;
   danaText: string;
   specialAnnouncement: string;
   earlyArrivalMessage: string;
@@ -94,6 +94,148 @@ interface Props {
   initialData?: ProgramData;
   isEditing: boolean;
   categories: Category[];
+}
+
+/* ── Dana message templates ────────────────────────────────────────────────
+   Built-in templates are plain strings converted to BlockNote JSON on load.
+   Custom templates are saved as BlockNote JSON to localStorage.
+   ── */
+
+/** Wrap a plain string in a minimal BlockNote paragraph array. */
+function textToBlockNote(text: string): any[] {
+  return [{
+    id: `t-${Math.random().toString(36).slice(2, 8)}`,
+    type: "paragraph", props: {},
+    content: [{ type: "text", text, styles: {} }],
+    children: [],
+  }];
+}
+
+const DANA_BUILTIN: { name: string; text: string }[] = [
+  {
+    name: "General support",
+    text: "Your dana makes this program possible. RIM is supported entirely by the generosity of our community — teachers, staff, and space are sustained by your offerings. Offer whatever feels right, and know that every amount is deeply appreciated.",
+  },
+  {
+    name: "Teacher support",
+    text: "Dana offered here goes directly to support the teacher. This is an ancient practice of reciprocity — teachings are offered freely, and we give back as we are able. All amounts are welcome.",
+  },
+  {
+    name: "Sliding scale / no one turned away",
+    text: "We offer this program on a sliding scale so it is accessible to everyone. Please offer an amount that reflects both your means and your appreciation for the teaching. No one is turned away for lack of funds.",
+  },
+];
+
+const DANA_LS_KEY = "rim_dana_templates";
+
+function loadDanaTemplates(): { name: string; content: any }[] {
+  if (typeof window === "undefined") return [];
+  try { return JSON.parse(localStorage.getItem(DANA_LS_KEY) ?? "[]"); }
+  catch { return []; }
+}
+
+function DanaTemplateSelector({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+  const [saved, setSaved] = useState<{ name: string; content: any }[]>([]);
+  const [showSave, setShowSave] = useState(false);
+  const [saveName, setSaveName] = useState("");
+
+  useEffect(() => { setSaved(loadDanaTemplates()); }, []);
+
+  const hasContent = Array.isArray(value) && value.length > 0;
+
+  function applyBuiltin(text: string) {
+    if (hasContent && !window.confirm("Replace the current message with this template?")) return;
+    onChange(textToBlockNote(text));
+  }
+
+  function applySaved(content: any) {
+    if (hasContent && !window.confirm("Replace the current message with this template?")) return;
+    onChange(content);
+  }
+
+  function saveTemplate() {
+    const name = saveName.trim();
+    if (!name || !hasContent) return;
+    const base = loadDanaTemplates();
+    const updated = [...base.filter((t) => t.name !== name), { name, content: value }];
+    localStorage.setItem(DANA_LS_KEY, JSON.stringify(updated));
+    setSaved(updated);
+    setSaveName("");
+    setShowSave(false);
+  }
+
+  function deleteTemplate(name: string) {
+    const updated = saved.filter((t) => t.name !== name);
+    localStorage.setItem(DANA_LS_KEY, JSON.stringify(updated));
+    setSaved(updated);
+  }
+
+  return (
+    <div className="pe-template-bar">
+      <div className="pe-template-bar__row">
+        <select
+          className="pe-select pe-template-bar__select"
+          value=""
+          onChange={(e) => {
+            const builtinMatch = DANA_BUILTIN.find((t) => t.name === e.target.value);
+            if (builtinMatch) { applyBuiltin(builtinMatch.text); return; }
+            const savedMatch = saved.find((t) => t.name === e.target.value);
+            if (savedMatch) applySaved(savedMatch.content);
+          }}
+        >
+          <option value="" disabled>Load a template…</option>
+          <optgroup label="Built-in">
+            {DANA_BUILTIN.map((t) => <option key={t.name} value={t.name}>{t.name}</option>)}
+          </optgroup>
+          {saved.length > 0 && (
+            <optgroup label="Your saved templates">
+              {saved.map((t) => <option key={t.name} value={t.name}>{t.name}</option>)}
+            </optgroup>
+          )}
+        </select>
+        <button
+          type="button"
+          className="pe-btn pe-btn--small"
+          onClick={() => { setShowSave((s) => !s); setSaveName(""); }}
+          disabled={!hasContent}
+        >
+          Save as template
+        </button>
+      </div>
+
+      {showSave && (
+        <div className="pe-template-bar__save-row">
+          <input
+            type="text"
+            value={saveName}
+            onChange={(e) => setSaveName(e.target.value)}
+            placeholder="Template name…"
+            className="pe-input pe-template-bar__name-input"
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); saveTemplate(); } }}
+            autoFocus
+          />
+          <button type="button" className="pe-btn pe-btn--small" onClick={saveTemplate} disabled={!saveName.trim()}>Save</button>
+          <button type="button" className="pe-btn pe-btn--small pe-btn--ghost" onClick={() => setShowSave(false)}>Cancel</button>
+        </div>
+      )}
+
+      {saved.length > 0 && (
+        <div className="pe-template-bar__chips">
+          {saved.map((t) => (
+            <span key={t.name} className="pe-template-chip">
+              {t.name}
+              <button
+                type="button"
+                className="pe-template-chip__delete"
+                onClick={() => deleteTemplate(t.name)}
+                title={`Delete "${t.name}"`}
+              >×</button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 /* ── Date + time picker (replaces datetime-local) ─────────────────────────
@@ -421,7 +563,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
   const [suggestedDana, setSuggestedDana] = useState(initialData?.suggestedDana ?? "");
   const [danaBaseAmount, setDanaBaseAmount] = useState(initialData?.danaBaseAmount ?? "");
   const [danaFixedAmount, setDanaFixedAmount] = useState(initialData?.danaFixedAmount ?? "");
-  const [danaMessage, setDanaMessage] = useState(initialData?.danaMessage ?? "");
+  const [danaMessage, setDanaMessage] = useState<any>(initialData?.danaMessage ?? null);
   const [danaText, setDanaText] = useState(initialData?.danaText ?? "");
 
   const [specialAnnouncement, setSpecialAnnouncement] = useState(initialData?.specialAnnouncement ?? "");
@@ -1345,16 +1487,17 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
 
             {danaMode !== "none" && (
               <>
-                <label className="pe-field">
+                <div className="pe-field">
                   <span className="pe-field__label">Dana Step Message</span>
                   <span className="pe-field__help">Shown during the donation step of registration. Use this to explain how dana supports RIM.</span>
-                  <textarea
+                  <DanaTemplateSelector value={danaMessage} onChange={(v) => { setDanaMessage(v); markDirty(); }} />
+                  <RimProseEditor
                     value={danaMessage}
-                    onChange={(e) => setDanaMessage(e.target.value)}
-                    className="pe-textarea"
-                    rows={3}
+                    onChange={(v: any) => { setDanaMessage(v); markDirty(); }}
+                    placeholder="Describe how dana supports RIM and what participants should know…"
+                    minHeight={120}
                   />
-                </label>
+                </div>
 
                 <label className="pe-field">
                   <span className="pe-field__label">Program Page Dana Note</span>

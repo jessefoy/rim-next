@@ -333,7 +333,7 @@ model Program {
   suggestedDana   Float?
   danaBaseAmount  Float?
   danaFixedAmount Float?
-  danaMessage     String?
+  danaMessage     Json?    // BlockNote JSON (RimProseEditor)
   danaText        String?
 
   // ── Dashboard ──────────────────────────────────────────

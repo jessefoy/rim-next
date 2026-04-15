@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import RegistrationForm, { RegistrationField } from "@/components/RegistrationForm";
 import { db } from "@/lib/db";
+import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 
 // Always show fresh data — this page is user-specific
 export const dynamic = "force-dynamic";
@@ -44,7 +45,9 @@ export default async function RegisterPage({
     suggestedDana: pgProgram.suggestedDana,
     danaBaseAmount: pgProgram.danaBaseAmount,
     danaFixedAmount: pgProgram.danaFixedAmount,
-    danaMessage: pgProgram.danaMessage,
+    danaMessageHtml: pgProgram.danaMessage
+      ? await renderFormattedTextAsync(pgProgram.danaMessage).catch(() => "")
+      : null,
     registrationFields: (pgProgram.registrationFields as RegistrationField[] | null) ?? undefined,
     dateText: pgProgram.dateText,
     locationText: pgProgram.locationText,

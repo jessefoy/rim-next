@@ -30,7 +30,7 @@ interface Props {
     suggestedDana?: number | null;   // pre-filled amount for voluntary / extra dana
     danaBaseAmount?: number | null;  // required base fee for base_plus_dana
     danaFixedAmount?: number | null; // set price for fixed mode
-    danaMessage?: string | null;     // CMS-authored message for the dana step
+    danaMessageHtml?: string | null; // Pre-rendered HTML for the dana step message
     registrationFields?: RegistrationField[];
     dateText?: string | null;
     locationText?: string | null;
@@ -212,8 +212,8 @@ export default function RegistrationForm({
 
         <div className="pg-dana">
           <p className="pg-dana__eyebrow">Dana</p>
-          {program.danaMessage && (
-            <p className="pg-dana__message">{program.danaMessage}</p>
+          {program.danaMessageHtml && (
+            <div className="pg-dana__message man-body" dangerouslySetInnerHTML={{ __html: program.danaMessageHtml }} />
           )}
 
           {/* Fixed mode — single set price */}

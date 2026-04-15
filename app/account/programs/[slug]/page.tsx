@@ -7,6 +7,7 @@ import CancelRegistrationButton from "@/components/CancelRegistrationButton";
 import { buildDateLabel } from "@/lib/dateLabel";
 import { resolveLocation } from "@/lib/locations";
 import { buildGoogleCalendarUrl, buildIcsUrl, describeRecurrence } from "@/lib/calendarLinks";
+import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 
 export const dynamic = "force-dynamic";
 
@@ -58,7 +59,7 @@ export default async function MemberProgramDetailPage({
           include: { user: { select: { firstName: true, lastName: true, preferredName: true } } },
         },
       },
-    }),
+    }) as any,
     db.registration.findFirst({
       where: {
         userId: session.user.id,
@@ -75,6 +76,11 @@ export default async function MemberProgramDetailPage({
   if (program.registrationEnabled && !registration) {
     redirect(`/programs/${slug}`);
   }
+
+  // ── Pre-render rich text ──
+  const danaMessageHtml = program.danaMessage
+    ? await renderFormattedTextAsync(program.danaMessage).catch(() => "")
+    : null;
 
   // ── Computed values ──
   const startIso = program.startDatetime?.toISOString() ?? null;
@@ -138,7 +144,7 @@ export default async function MemberProgramDetailPage({
   const isVirtual = program.programFormat === "virtual" || program.programFormat === "hybrid";
   const isInPerson = program.programFormat === "in-person" || program.programFormat === "hybrid";
   const teacherDisplayNames = program.programTeachers.length > 0
-    ? program.programTeachers.map((pt) => `${pt.user.preferredName || pt.user.firstName || ""} ${pt.user.lastName || ""}`.trim())
+    ? program.programTeachers.map((pt: any) => `${pt.user.preferredName || pt.user.firstName || ""} ${pt.user.lastName || ""}`.trim())
     : program.teacherFacilitators;
   const hasFacilitators = teacherDisplayNames.length > 0;
 
@@ -168,9 +174,10 @@ export default async function MemberProgramDetailPage({
         {/* ── Pending dana action ── */}
         {registration?.donationStatus === "PENDING" && (
           <div className="mpd-dana">
-            <p className="mpd-dana__text">
-              {program.danaMessage || "Please complete your dana offering for this program."}
-            </p>
+            {danaMessageHtml
+              ? <div className="mpd-dana__text man-body" dangerouslySetInnerHTML={{ __html: danaMessageHtml }} />
+              : <p className="mpd-dana__text">Please complete your dana offering for this program.</p>
+            }
             <Link href={`/programs/${slug}/register`} className="mpd-dana__link">
               Complete Dana Offering →
             </Link>

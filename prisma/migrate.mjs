@@ -78,6 +78,23 @@ const migrations = [
     },
   },
   {
+    name: "change_dana_message_to_jsonb",
+    async run() {
+      const cols = await db.$queryRawUnsafe(`
+        SELECT data_type FROM information_schema.columns
+        WHERE table_name = 'programs' AND column_name = 'danaMessage' AND data_type = 'text'
+      `);
+      if (cols.length > 0) {
+        // Null out existing plain-text values then convert column type to JSONB
+        await db.$executeRawUnsafe(`UPDATE "programs" SET "danaMessage" = NULL`);
+        await db.$executeRawUnsafe(`ALTER TABLE "programs" ALTER COLUMN "danaMessage" TYPE JSONB USING "danaMessage"::JSONB`);
+        console.log(`  ✔ Applied: ${this.name}`);
+      } else {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+      }
+    },
+  },
+  {
     name: "create_program_teachers_table",
     async run() {
       const tables = await db.$queryRawUnsafe(`
