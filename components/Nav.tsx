@@ -65,12 +65,24 @@ export default function Nav() {
               >
                 My Dashboard
               </Link>
-              <Link
-                href="/community-programs"
-                className={`nav__link${isActive("/community-programs")}`}
-              >
-                Programs
-              </Link>
+              <div className="nav__dropdown">
+                <button className="nav__dropdown-toggle">
+                  Programs
+                  <span className="nav__dropdown-caret" aria-hidden="true">▾</span>
+                </button>
+                <div className="nav__dropdown-panel">
+                  <div className="nav__dropdown-panel-inner">
+                    <Link href="/community-programs" className="nav__dropdown-link">
+                      <div className="nav__dropdown-title">All Programs</div>
+                      <div className="nav__dropdown-desc">Drop-ins, courses, and community groups</div>
+                    </Link>
+                    <Link href="/this-week" className="nav__dropdown-link">
+                      <div className="nav__dropdown-title">This Week&apos;s Schedule</div>
+                      <div className="nav__dropdown-desc">What&apos;s happening day by day</div>
+                    </Link>
+                  </div>
+                </div>
+              </div>
               <Link
                 href="/courses"
                 className={`nav__link${isActive("/courses")}`}
@@ -130,12 +142,24 @@ export default function Nav() {
           ) : (
             /* Public desktop nav */
             <>
-              <Link
-                href="/community-programs"
-                className={`nav__link${isActive("/community-programs")}`}
-              >
-                Programs
-              </Link>
+              <div className="nav__dropdown">
+                <button className="nav__dropdown-toggle">
+                  Programs
+                  <span className="nav__dropdown-caret" aria-hidden="true">▾</span>
+                </button>
+                <div className="nav__dropdown-panel">
+                  <div className="nav__dropdown-panel-inner">
+                    <Link href="/community-programs" className="nav__dropdown-link">
+                      <div className="nav__dropdown-title">All Programs</div>
+                      <div className="nav__dropdown-desc">Drop-ins, courses, and community groups</div>
+                    </Link>
+                    <Link href="/this-week" className="nav__dropdown-link">
+                      <div className="nav__dropdown-title">This Week&apos;s Schedule</div>
+                      <div className="nav__dropdown-desc">What&apos;s happening day by day</div>
+                    </Link>
+                  </div>
+                </div>
+              </div>
               <Link
                 href="/courses"
                 className={`nav__link${isActive("/courses")}`}
@@ -247,7 +271,10 @@ export default function Nav() {
                 My Dashboard
               </Link>
               <Link href="/community-programs" className="nav__mobile-link">
-                Programs
+                All Programs
+              </Link>
+              <Link href="/this-week" className={`nav__mobile-link${isActive("/this-week")}`}>
+                This Week&apos;s Schedule
               </Link>
               <Link href="/courses" className={`nav__mobile-link${isActive("/courses")}`}>
                 Courses
@@ -302,7 +329,13 @@ export default function Nav() {
                 href="/community-programs"
                 className={`nav__mobile-link${isActive("/community-programs")}`}
               >
-                Programs
+                All Programs
+              </Link>
+              <Link
+                href="/this-week"
+                className={`nav__mobile-link${isActive("/this-week")}`}
+              >
+                This Week&apos;s Schedule
               </Link>
               <Link
                 href="/courses"
