@@ -1137,32 +1137,53 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                     ? `${window.location.origin}/session/${slug}?key=${guestAccessKey}`
                     : `/session/${slug}?key=${guestAccessKey}`;
                   return (
-                    <div className="pe-guest-link">
-                      <span className="pe-guest-link__label">Guest Access Link</span>
-                      <div className="pe-guest-link__row">
+                    <div style={{ marginTop: 12 }}>
+                      <span style={{ display: "block", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#6b8fa3", marginBottom: 6 }}>
+                        Guest Access Link
+                      </span>
+                      {/* URL row */}
+                      <div style={{ display: "flex", borderRadius: 6, border: "1px solid #d5d5d5", overflow: "hidden", background: "#fff" }}>
                         <input
                           type="text"
                           readOnly
                           value={guestUrl}
-                          className="pe-guest-link__url"
                           onFocus={(e) => e.target.select()}
+                          style={{
+                            flex: 1, minWidth: 0,
+                            padding: "9px 12px",
+                            fontFamily: "'SFMono-Regular', Consolas, monospace",
+                            fontSize: 13, color: "#333",
+                            border: "none", outline: "none", background: "transparent",
+                            boxShadow: "none",
+                          }}
                         />
                         <button
                           type="button"
-                          className={`pe-guest-link__copy${copiedLink ? " pe-guest-link__copy--copied" : ""}`}
                           onClick={() => {
                             navigator.clipboard.writeText(guestUrl);
                             setCopiedLink(true);
                             setTimeout(() => setCopiedLink(false), 2000);
                           }}
+                          style={{
+                            flexShrink: 0,
+                            padding: "0 18px",
+                            background: copiedLink ? "#2d6a4f" : "#39607a",
+                            color: "#fff",
+                            border: "none",
+                            fontFamily: "var(--font-sans)",
+                            fontSize: 13, fontWeight: 600,
+                            cursor: "pointer",
+                            whiteSpace: "nowrap",
+                            transition: "background 0.15s",
+                          }}
                         >
                           {copiedLink ? "✓ Copied" : "Copy"}
                         </button>
                       </div>
-                      <div className="pe-guest-link__footer">
+                      {/* Reset row */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
                         <button
                           type="button"
-                          className="pe-guest-link__reset"
                           disabled={resettingKey}
                           onClick={async () => {
                             if (!confirm("Reset the guest link? The old link will stop working immediately.")) return;
@@ -1176,10 +1197,16 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                             } catch {}
                             setResettingKey(false);
                           }}
+                          style={{
+                            background: "none", border: "none", padding: 0,
+                            fontSize: 13, color: "#999", cursor: "pointer",
+                            textDecoration: "underline", fontFamily: "var(--font-sans)",
+                            opacity: resettingKey ? 0.5 : 1,
+                          }}
                         >
                           {resettingKey ? "Resetting…" : "Reset link"}
                         </button>
-                        <span className="pe-guest-link__note">Resetting invalidates the old link immediately.</span>
+                        <span style={{ fontSize: 13, color: "#999" }}>— invalidates the old link immediately.</span>
                       </div>
                     </div>
                   );
