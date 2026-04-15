@@ -3596,8 +3596,20 @@ h4 { font-size: var(--text-h4); }
    Mobile:  horizontal scrollable strip below main nav
    ============================================================ */
 
+/* UI font scale — 16px / 1.55 for all product/task interfaces.
+   Applies to /account/*, /tools/*, and /admin/* contexts.
+   Reading content inside these areas (.rim-content) overrides back to
+   var(--text-body) / var(--lh-body) = 18px / 1.7 — editors, manuals,
+   articles, and lessons stay generous regardless of their container. */
 .ac-layout {
   display: flex;
+  min-height: 100vh;
+  font-size: 16px;
+  line-height: 1.55;
+}
+.admin-ui {
+  font-size: 16px;
+  line-height: 1.55;
   min-height: 100vh;
 }
 .ac-layout--no-sidebar {

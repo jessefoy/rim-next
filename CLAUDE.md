@@ -87,9 +87,28 @@ This is the difference between executing tasks and co-creating a system. Jesse s
 - **Never edit** `normalize.css`, `webflow.css`, or `rim.webflow.css` in `public/css/`.
 - All custom styles go in `public/css/custom.css` only.
 - Per-page prefix system: `lp-` lessons, `pg-` programs, `wl-` welcome, `vol-` registrar, `adm-` admin, `db-` dashboard, `mr-` my registrations, `mp-` my profile, `nav-` nav, `man-` manual, `hs-` host area, `hub-` hub components, `hh-` households, `ac-` account layout/sidebar, `ca-` course access.
-- Design tokens in `:root`: `--rim-bg`, `--rim-text`, `--rim-mid`, `--rim-blue`, `--font-serif`, `--font-sans`, `--reading-width`.
+- Design tokens in `:root`: `--rim-bg`, `--rim-text`, `--rim-mid`, `--rim-blue`, `--font-serif`, `--font-sans`, `--reading-width`. Type scale tokens: `--text-hero`, `--text-h1` (38px) through `--text-xs` (13px), `--text-body` (18px), `--lh-body` (1.7), `--lh-heading` (1.3). **Use tokens — never invent raw px values per component.**
 - No box-shadows. No borders unless functionally required.
 - **Mobile-first responsive:** All new UI must work at 360px minimum (primary target 390px). Breakpoints: `@media (max-width: 430px)` for phones, `@media (max-width: 768px)` for tablets. Minimum 44px touch targets on all interactive elements. Minimum 16px font on all inputs/selects (prevents iOS auto-zoom).
+
+## Typography — Two Scales (critical, do not drift from this)
+
+**Public/editorial pages** (programs, lessons, articles, dharma content): generous and spacious.
+- Body: `var(--text-body)` = 18px / `var(--lh-body)` = 1.7
+- Set on `body` globally and on `.rim-content` for all editor output
+
+**Admin/CMS/account/tool interfaces** (`/admin/*`, `/account/*`, `/tools/*`): calm but compact.
+- Body: 16px / 1.55 — set on `.admin-ui` and `.ac-layout` wrappers
+- Reading content inside admin (`.rim-content`) stays 18px — it overrides back up
+
+**Typography rules that never change regardless of context:**
+- `p` and `li` are identical in font-family, font-size, font-weight, line-height, and color
+- `li` uses `font-family: inherit; font-size: inherit; line-height: inherit` — never set a different size on li
+- All font sizes come from tokens — never invent a raw px value per component
+- Headings use the global token scale (h1=38px, h2=28px, h3=24px, h4=20px) — context classes may adjust spacing but not size, except named exceptions (hero: clamp fluid, lp-body h2: 32px editorial)
+- Labels, badges, eyebrows: `var(--text-xs)` = 13px
+- Captions, timestamps, helper text: `var(--text-small)` = 15px
+- Form inputs and selects: `th-input` class at 14px (already set — do not override)
 
 ## Key Files
 - `app/layout.tsx` — root layout (CSS, Nav, Footer, SessionProvider)
