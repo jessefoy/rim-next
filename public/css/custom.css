@@ -13016,13 +13016,66 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .pe-file-input { font-size: 14px; margin-top: 4px; }
 .pe-muted { font-size: 13px; color: var(--rim-text-muted); }
 
-/* ── Rich text editors — subtle inset ── */
-.pe-card .bn-container,
-.pe-card .rim-prose-editor-wrap {
-  background: #faf8f5;
-  border: 1px solid #eae5df;
-  border-radius: 8px;
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.03);
+/* ── Rich text editors in ProgramEditor form context ────────────────────────
+   Both RimBlockEditor and RimProseEditor render:
+     div.rim-[block|prose]-editor  (our wrapper)
+       div.bn-container            (BlockNote root — must NOT have its own border)
+         div.bn-editor             (actual edit area)
+
+   The broken old rule styled .bn-container, creating a nested double-box.
+   Fix: give each *wrapper* proper form-field treatment, make bn-container transparent.
+   ── */
+
+/* Give rim-block-editor a form-field border (rim-prose-editor already has one globally) */
+.pe-card .rim-block-editor {
+  background: #fff;
+  border: 1px solid var(--rim-rule);
+  border-radius: 6px;
+  overflow: hidden;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.pe-card .rim-block-editor:focus-within {
+  border-color: var(--rim-mid);
+  box-shadow: 0 0 0 3px rgba(57,96,122,0.1);
+}
+.pe-card .rim-prose-editor:focus-within {
+  border-color: var(--rim-mid);
+  box-shadow: 0 0 0 3px rgba(57,96,122,0.1);
+}
+
+/* Kill inner bn-container box — it created the nested double-box */
+.pe-card .bn-container {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Form-field font size and line height for all editors inside pe-card */
+.pe-card .rim-prose-editor .bn-editor,
+.pe-card .rim-prose-editor .bn-default-styles,
+.pe-card .rim-prose-editor .bn-block-content,
+.pe-card .rim-prose-editor .bn-inline-content,
+.pe-card .rim-prose-editor .ProseMirror,
+.pe-card .rim-block-editor .bn-editor,
+.pe-card .rim-block-editor .bn-default-styles,
+.pe-card .rim-block-editor .bn-block-content,
+.pe-card .rim-block-editor .bn-inline-content,
+.pe-card .rim-block-editor .ProseMirror {
+  font-size: 15px !important;
+  line-height: 1.65 !important;
+}
+
+/* Padding inside both editors — matches pe-textarea */
+.pe-card .rim-prose-editor .bn-editor,
+.pe-card .rim-block-editor .bn-editor {
+  padding: 10px 12px !important;
+}
+
+/* Tighter block-level spacing in form context */
+.pe-card .rim-block-editor .bn-block-outer,
+.pe-card .rim-prose-editor .bn-block-outer {
+  line-height: 1.65 !important;
 }
 
 /* ── Slug row ── */
