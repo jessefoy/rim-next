@@ -134,7 +134,7 @@ function loadDanaTemplates(): { name: string; content: any }[] {
   catch { return []; }
 }
 
-function DanaTemplateSelector({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+function DanaTemplateSelector({ onLoad, value }: { onLoad: (v: any) => void; value: any }) {
   const [saved, setSaved] = useState<{ name: string; content: any }[]>([]);
   const [showSave, setShowSave] = useState(false);
   const [saveName, setSaveName] = useState("");
@@ -143,14 +143,8 @@ function DanaTemplateSelector({ value, onChange }: { value: any; onChange: (v: a
 
   const hasContent = Array.isArray(value) && value.length > 0;
 
-  function applyBuiltin(text: string) {
-    if (hasContent && !window.confirm("Replace the current message with this template?")) return;
-    onChange(textToBlockNote(text));
-  }
-
-  function applySaved(content: any) {
-    if (hasContent && !window.confirm("Replace the current message with this template?")) return;
-    onChange(content);
+  function load(content: any) {
+    onLoad(content);
   }
 
   function saveTemplate() {
@@ -177,10 +171,12 @@ function DanaTemplateSelector({ value, onChange }: { value: any; onChange: (v: a
           className="pe-select pe-template-bar__select"
           value=""
           onChange={(e) => {
-            const builtinMatch = DANA_BUILTIN.find((t) => t.name === e.target.value);
-            if (builtinMatch) { applyBuiltin(builtinMatch.text); return; }
-            const savedMatch = saved.find((t) => t.name === e.target.value);
-            if (savedMatch) applySaved(savedMatch.content);
+            const val = e.target.value;
+            e.target.value = ""; // reset immediately
+            const builtinMatch = DANA_BUILTIN.find((t) => t.name === val);
+            if (builtinMatch) { load(textToBlockNote(builtinMatch.text)); return; }
+            const savedMatch = saved.find((t) => t.name === val);
+            if (savedMatch) load(savedMatch.content);
           }}
         >
           <option value="" disabled>Load a template…</option>
@@ -198,6 +194,7 @@ function DanaTemplateSelector({ value, onChange }: { value: any; onChange: (v: a
           className="pe-btn pe-btn--small"
           onClick={() => { setShowSave((s) => !s); setSaveName(""); }}
           disabled={!hasContent}
+          title="Save what's currently in the editor as a reusable template"
         >
           Save as template
         </button>
@@ -221,9 +218,15 @@ function DanaTemplateSelector({ value, onChange }: { value: any; onChange: (v: a
 
       {saved.length > 0 && (
         <div className="pe-template-bar__chips">
+          <span className="pe-template-bar__chips-label">Your templates — click to load, edit above, save to update:</span>
           {saved.map((t) => (
             <span key={t.name} className="pe-template-chip">
-              {t.name}
+              <button
+                type="button"
+                className="pe-template-chip__name"
+                onClick={() => load(t.content)}
+                title={`Load "${t.name}" into the editor`}
+              >{t.name}</button>
               <button
                 type="button"
                 className="pe-template-chip__delete"
@@ -564,6 +567,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
   const [danaBaseAmount, setDanaBaseAmount] = useState(initialData?.danaBaseAmount ?? "");
   const [danaFixedAmount, setDanaFixedAmount] = useState(initialData?.danaFixedAmount ?? "");
   const [danaMessage, setDanaMessage] = useState<any>(initialData?.danaMessage ?? null);
+  const [danaEditorKey, setDanaEditorKey] = useState(0);
   const [danaText, setDanaText] = useState(initialData?.danaText ?? "");
 
   const [specialAnnouncement, setSpecialAnnouncement] = useState(initialData?.specialAnnouncement ?? "");
@@ -1490,8 +1494,16 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                 <div className="pe-field">
                   <span className="pe-field__label">Dana Step Message</span>
                   <span className="pe-field__help">Shown during the donation step of registration. Use this to explain how dana supports RIM.</span>
-                  <DanaTemplateSelector value={danaMessage} onChange={(v) => { setDanaMessage(v); markDirty(); }} />
+                  <DanaTemplateSelector
+                    value={danaMessage}
+                    onLoad={(v) => {
+                      setDanaMessage(v);
+                      setDanaEditorKey((k) => k + 1); // remount editor with new content
+                      markDirty();
+                    }}
+                  />
                   <RimProseEditor
+                    key={danaEditorKey}
                     value={danaMessage}
                     onChange={(v: any) => { setDanaMessage(v); markDirty(); }}
                     placeholder="Describe how dana supports RIM and what participants should know…"
