@@ -280,7 +280,8 @@ h4 { font-size: var(--text-h4); }
   min-width: 0;
 }
 
-.lr-name {
+/* Doubled class beats .rim-section--grey p { margin: 0 0 18px } */
+.lr-row .lr-name {
   font-family: var(--font-sans);
   font-size: var(--text-body);
   font-weight: 600;
@@ -295,7 +296,7 @@ h4 { font-size: var(--text-h4); }
   margin-left: 4px;
 }
 
-.lr-schedule {
+.lr-row .lr-schedule {
   font-family: var(--font-sans);
   font-size: var(--text-small);
   color: var(--rim-mid);
@@ -303,7 +304,7 @@ h4 { font-size: var(--text-h4); }
   line-height: 1.5;
 }
 
-.lr-note {
+.lr-row .lr-note {
   font-family: var(--font-sans);
   font-size: var(--text-small);
   font-style: italic;
@@ -311,13 +312,13 @@ h4 { font-size: var(--text-h4); }
   margin: 6px 0 0;
 }
 
-.lr-announcement {
+.lr-row .lr-announcement {
   font-family: var(--font-sans);
   font-size: var(--text-small);
-  color: #7a4f00;
-  background: #fff8ec;
+  color: var(--color-warning);
+  background: var(--color-warning-bg);
   padding: 6px 12px;
-  margin-top: 8px;
+  margin: 8px 0 0;
   line-height: 1.5;
 }
 
