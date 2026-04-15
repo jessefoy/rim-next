@@ -5,19 +5,21 @@
  * Visual reference for the RIM design system.
  * CSS prefix: sg-
  *
- * Tabs: Typography | Colors | Buttons | Forms | Editor Output
+ * Tabs: Typography | Admin UI | Colors | Buttons | Forms | Editor Output | Components
  */
 
 import { useState } from "react";
 
-type Tab = "typography" | "colors" | "buttons" | "forms" | "editor";
+type Tab = "typography" | "admin" | "colors" | "buttons" | "forms" | "editor" | "components";
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: "typography", label: "Typography" },
-  { id: "colors",     label: "Colors" },
-  { id: "buttons",    label: "Buttons" },
-  { id: "forms",      label: "Forms" },
-  { id: "editor",     label: "Editor Output" },
+  { id: "typography",  label: "Typography" },
+  { id: "admin",       label: "Admin UI" },
+  { id: "colors",      label: "Colors" },
+  { id: "buttons",     label: "Buttons" },
+  { id: "forms",       label: "Forms" },
+  { id: "editor",      label: "Editor Output" },
+  { id: "components",  label: "Components" },
 ];
 
 export default function StyleGuidePage() {
@@ -47,11 +49,13 @@ export default function StyleGuidePage() {
       </nav>
 
       <div className="sg-body">
-        {tab === "typography" && <TypographyTab />}
-        {tab === "colors"     && <ColorsTab />}
-        {tab === "buttons"    && <ButtonsTab />}
-        {tab === "forms"      && <FormsTab />}
-        {tab === "editor"     && <EditorTab />}
+        {tab === "typography"  && <TypographyTab />}
+        {tab === "admin"       && <AdminTypographyTab />}
+        {tab === "colors"      && <ColorsTab />}
+        {tab === "buttons"     && <ButtonsTab />}
+        {tab === "forms"       && <FormsTab />}
+        {tab === "editor"      && <EditorTab />}
+        {tab === "components"  && <ComponentsTab />}
       </div>
     </div>
   );
@@ -77,9 +81,12 @@ function TypographyTab() {
             { token: "--text-h2",    value: "28px", use: "h2 — content headings" },
             { token: "--text-h3",    value: "24px", use: "h3 — sub-headings" },
             { token: "--text-h4",    value: "20px", use: "h4 — minor headings, grouped labels" },
-            { token: "--text-body",  value: "18px", use: "p, li, td — all body text" },
+            { token: "--text-body",  value: "18px", use: "p, li, td — all editorial body text" },
             { token: "--text-small", value: "15px", use: "Captions, timestamps, helper text" },
-            { token: "--text-xs",    value: "13px", use: "Labels, badges, eyebrows" },
+            { token: "--text-ui",    value: "14px", use: "Admin body text, form inputs, buttons, table cells" },
+            { token: "--text-xs",    value: "13px", use: "Field labels, small links, section help" },
+            { token: "--text-label", value: "12px", use: "Form help text, slug labels, meta captions" },
+            { token: "--text-xxs",   value: "11px", use: "Badges, table headers, uppercase eyebrow labels" },
           ].map((row) => (
             <div key={row.token} className="sg-token-row">
               <code className="sg-token-name">{row.token}</code>
@@ -245,6 +252,12 @@ const COLOR_TOKENS = [
   { token: "--color-alert",      hex: "#C8821A", label: "Alert amber",       use: "Alert banners, warning text" },
   { token: "--color-alert-bg",   hex: "#FDF6EC", label: "Alert background",  use: "Alert banner fill" },
   { token: "--color-alert-border", hex: "#F0C98A", label: "Alert border",    use: "Alert banner border" },
+  { token: "--color-error",      hex: "#c0392b", label: "Error red",         use: "Error messages, validation failures" },
+  { token: "--color-error-bg",   hex: "#fef2f2", label: "Error background",  use: "Error message fill" },
+  { token: "--color-success",    hex: "#2e7d32", label: "Success green",     use: "Success messages, confirmed status" },
+  { token: "--color-success-bg", hex: "#e8f5e9", label: "Success background", use: "Success message fill" },
+  { token: "--color-warning",    hex: "#7a4f00", label: "Warning brown",     use: "Warning text, pending status" },
+  { token: "--color-warning-bg", hex: "#fff8ec", label: "Warning background", use: "Warning message fill" },
 ];
 
 function ColorsTab() {
@@ -493,6 +506,174 @@ function EditorTab() {
             </div>
           ))}
         </div>
+      </section>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────
+   ADMIN UI TYPOGRAPHY
+───────────────────────────────────────────────────────────── */
+
+function AdminTypographyTab() {
+  return (
+    <div>
+      <section className="sg-section">
+        <h2 className="sg-section-title">Two-Scale System</h2>
+        <p className="sg-note">
+          RIM uses two typography scales. <strong>Editorial</strong> (18px / 1.7) for public dharma content — generous, contemplative, reading-focused. <strong>Admin UI</strong> (16px / 1.55) for backend interfaces — calm but compact, task-oriented. The admin base is set on <code>.admin-ui</code> and <code>.ac-layout</code> wrappers; reading content (<code>.rim-content</code>) overrides back to 18px inside either.
+        </p>
+        <div className="sg-compare">
+          <div className="sg-compare-col">
+            <div className="sg-compare-label">Editorial (18px / 1.7)</div>
+            <p style={{ fontFamily: "var(--font-sans)", fontSize: "var(--text-body)", lineHeight: "var(--lh-body)", color: "var(--rim-text)", margin: 0 }}>
+              Lovingkindness is a practice of deliberately offering warmth — to yourself, to people you love, and even to people you struggle with.
+            </p>
+          </div>
+          <div className="sg-compare-col">
+            <div className="sg-compare-label">Admin UI (16px / 1.55)</div>
+            <p style={{ fontFamily: "var(--font-sans)", fontSize: 16, lineHeight: 1.55, color: "var(--rim-text)", margin: 0 }}>
+              Lovingkindness is a practice of deliberately offering warmth — to yourself, to people you love, and even to people you struggle with.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="sg-section">
+        <h2 className="sg-section-title">Admin Type Scale</h2>
+        <p className="sg-note">Standard sizes inside admin/account/tool interfaces. The wrapper sets 16px as the base; these tokens handle everything below.</p>
+        <div className="sg-type-scale">
+          {[
+            { token: "--text-ui",    px: "14px", desc: "Admin body text, inputs, buttons, table cells", example: "Program registration closes tomorrow at 5 PM." },
+            { token: "--text-xs",    px: "13px", desc: "Field labels, small links, section help text", example: "Last updated 2 hours ago" },
+            { token: "--text-label", px: "12px", desc: "Form help text, slug labels, meta captions", example: "URL-safe identifier, lowercase" },
+            { token: "--text-xxs",   px: "11px", desc: "Badges, table headers, uppercase eyebrow labels", example: "CONFIRMED" },
+          ].map((row) => (
+            <div key={row.token} className="sg-type-row">
+              <div className="sg-type-example">
+                <span style={{ fontFamily: "var(--font-sans)", fontSize: `var(${row.token})`, color: "var(--rim-text)", display: "block" }}>{row.example}</span>
+              </div>
+              <code className="sg-code">{row.token} · {row.px} · {row.desc}</code>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="sg-section">
+        <h2 className="sg-section-title">Semantic Colors</h2>
+        <p className="sg-note">Use these for error, success, and warning states. Never use raw hex for feedback colors.</p>
+        <div className="sg-type-scale">
+          <div className="sg-type-row">
+            <div className="sg-type-example">
+              <div style={{ padding: "10px 14px", borderRadius: 6, fontSize: "var(--text-ui)", background: "var(--color-error-bg)", color: "var(--color-error)", border: "1px solid #fecaca" }}>
+                Registration failed — email is already in use.
+              </div>
+            </div>
+            <code className="sg-code">var(--color-error) + var(--color-error-bg)</code>
+          </div>
+          <div className="sg-type-row">
+            <div className="sg-type-example">
+              <div style={{ padding: "10px 14px", borderRadius: 6, fontSize: "var(--text-ui)", background: "var(--color-success-bg)", color: "var(--color-success)", border: "1px solid #bbf7d0" }}>
+                Changes saved successfully.
+              </div>
+            </div>
+            <code className="sg-code">var(--color-success) + var(--color-success-bg)</code>
+          </div>
+          <div className="sg-type-row">
+            <div className="sg-type-example">
+              <div style={{ padding: "10px 14px", borderRadius: 6, fontSize: "var(--text-ui)", background: "var(--color-warning-bg)", color: "var(--color-warning)", border: "1px solid #e8d9b8" }}>
+                Substitution needed — no host assigned for Monday.
+              </div>
+            </div>
+            <code className="sg-code">var(--color-warning) + var(--color-warning-bg)</code>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────
+   COMPONENTS
+───────────────────────────────────────────────────────────── */
+
+function ComponentsTab() {
+  return (
+    <div>
+      <section className="sg-section">
+        <h2 className="sg-section-title">Tables</h2>
+        <p className="sg-note">Use <code>th-table</code> for all admin tables. Headers are <code>var(--text-xxs)</code> uppercase; cells are <code>var(--text-ui)</code>.</p>
+        <table className="th-table" style={{ maxWidth: 600 }}>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Joined</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Lorilee Johnson</td>
+              <td>Host</td>
+              <td><span className="th-badge th-badge--green">Active</span></td>
+              <td className="th-table__muted">Mar 12, 2026</td>
+            </tr>
+            <tr>
+              <td>David Chen</td>
+              <td>Registrar</td>
+              <td><span className="th-badge th-badge--blue">New</span></td>
+              <td className="th-table__muted">Apr 1, 2026</td>
+            </tr>
+            <tr>
+              <td>Sarah Kim</td>
+              <td>Member</td>
+              <td><span className="th-badge th-badge--muted">Inactive</span></td>
+              <td className="th-table__muted">Jan 5, 2025</td>
+            </tr>
+          </tbody>
+        </table>
+        <code className="sg-code" style={{ marginTop: 12 }}>th-table · th-table__muted · th-badge --green / --blue / --muted</code>
+      </section>
+
+      <section className="sg-section">
+        <h2 className="sg-section-title">Badges</h2>
+        <p className="sg-note"><code>th-badge</code> at <code>var(--text-xxs)</code> (11px). Combine with color modifier.</p>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
+          <span className="th-badge th-badge--green">Active</span>
+          <span className="th-badge th-badge--blue">New</span>
+          <span className="th-badge th-badge--muted">Inactive</span>
+          <span className="th-badge" style={{ background: "var(--color-warning-bg)", color: "var(--color-warning)" }}>Sub Needed</span>
+          <span className="th-badge" style={{ background: "var(--color-error-bg)", color: "var(--color-error)" }}>Error</span>
+        </div>
+        <code className="sg-code">th-badge · th-badge--green / --blue / --muted</code>
+      </section>
+
+      <section className="sg-section">
+        <h2 className="sg-section-title">Messages</h2>
+        <p className="sg-note">Use <code>th-msg</code> for inline feedback. Pair with <code>--error</code> or <code>--success</code>.</p>
+        <div style={{ maxWidth: 500, display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="th-msg th-msg--error">Email address is already registered.</div>
+          <div className="th-msg th-msg--success">Section saved successfully.</div>
+        </div>
+        <code className="sg-code" style={{ marginTop: 12 }}>th-msg · th-msg--error / --success</code>
+      </section>
+
+      <section className="sg-section">
+        <h2 className="sg-section-title">Cards</h2>
+        <p className="sg-note"><code>th-card</code> — warm paper with soft shadow. Used as containers for editors and form sections.</p>
+        <div className="th-card" style={{ maxWidth: 500 }}>
+          <h3 style={{ fontFamily: "var(--font-serif)", fontSize: "var(--text-body)", fontWeight: 400, margin: "0 0 8px" }}>Section Title</h3>
+          <p style={{ fontSize: "var(--text-ui)", color: "var(--rim-text-muted)", margin: 0 }}>Card content goes here. This is the warm paper container used throughout admin pages for grouped content.</p>
+        </div>
+        <code className="sg-code" style={{ marginTop: 12 }}>th-card — warm white gradient, soft shadow, 32px padding</code>
+      </section>
+
+      <section className="sg-section">
+        <h2 className="sg-section-title">Empty States</h2>
+        <p className="sg-note"><code>th-empty</code> for when a list or section has no content.</p>
+        <div className="th-empty">No sections yet. Create one to get started.</div>
+        <code className="sg-code" style={{ marginTop: 12 }}>th-empty — var(--text-small) (15px), var(--rim-text-muted), 24px padding</code>
       </section>
     </div>
   );
