@@ -138,12 +138,14 @@ function DanaTemplateSelector({ onLoad, value }: { onLoad: (v: any) => void; val
   const [saved, setSaved] = useState<{ name: string; content: any }[]>([]);
   const [showSave, setShowSave] = useState(false);
   const [saveName, setSaveName] = useState("");
+  const [lastLoadedName, setLastLoadedName] = useState("");
 
   useEffect(() => { setSaved(loadDanaTemplates()); }, []);
 
   const hasContent = Array.isArray(value) && value.length > 0;
 
-  function load(content: any) {
+  function load(content: any, name: string) {
+    setLastLoadedName(name);
     onLoad(content);
   }
 
@@ -174,9 +176,9 @@ function DanaTemplateSelector({ onLoad, value }: { onLoad: (v: any) => void; val
             const val = e.target.value;
             e.target.value = ""; // reset immediately
             const builtinMatch = DANA_BUILTIN.find((t) => t.name === val);
-            if (builtinMatch) { load(textToBlockNote(builtinMatch.text)); return; }
+            if (builtinMatch) { load(textToBlockNote(builtinMatch.text), builtinMatch.name); return; }
             const savedMatch = saved.find((t) => t.name === val);
-            if (savedMatch) load(savedMatch.content);
+            if (savedMatch) load(savedMatch.content, savedMatch.name);
           }}
         >
           <option value="" disabled>Load a template…</option>
@@ -192,7 +194,7 @@ function DanaTemplateSelector({ onLoad, value }: { onLoad: (v: any) => void; val
         <button
           type="button"
           className="pe-btn pe-btn--small"
-          onClick={() => { setShowSave((s) => !s); setSaveName(""); }}
+          onClick={() => { setShowSave((s) => !s); setSaveName(lastLoadedName); }}
           disabled={!hasContent}
           title="Save what's currently in the editor as a reusable template"
         >
@@ -218,13 +220,13 @@ function DanaTemplateSelector({ onLoad, value }: { onLoad: (v: any) => void; val
 
       {saved.length > 0 && (
         <div className="pe-template-bar__chips">
-          <span className="pe-template-bar__chips-label">Your templates — click to load, edit above, save to update:</span>
+          <span className="pe-template-bar__chips-label">Your saved templates — click name to load, × to delete:</span>
           {saved.map((t) => (
             <span key={t.name} className="pe-template-chip">
               <button
                 type="button"
                 className="pe-template-chip__name"
-                onClick={() => load(t.content)}
+                onClick={() => load(t.content, t.name)}
                 title={`Load "${t.name}" into the editor`}
               >{t.name}</button>
               <button
