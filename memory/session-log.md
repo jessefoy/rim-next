@@ -8,6 +8,52 @@ Each entry records what was accomplished, decisions made, and what to tackle nex
 
 ---
 
+## Session: 2026-04-15 (session 84)
+
+**Focus:** Webflow CSS removal + community programs page redesign.
+
+### Accomplished this session
+
+1. **Removed `webflow.css` and `rim.webflow.css` from `app/layout.tsx`**
+   Both files unlinked. A legacy shim (~230 lines at bottom of `custom.css`) preserves the 25 most-used Webflow utility and component classes for pages not yet redesigned.
+
+2. **Self-hosted Quincy CF fonts**
+   `rim.webflow.css` contained all `@font-face` declarations. Removing it broke heading fonts. Moved all Quincy CF `@font-face` rules to top of `custom.css`, pointing to existing `.woff2` files in `public/fonts/`. Updated `--font-heading` token to use self-hosted name `'Quincycf'`. Removed Adobe Typekit `<link>` tag. Trimmed Google Fonts to just Open Sans.
+
+3. **Page block system: `rim-section` / `rim-container`**
+   Shared layout primitives for all pages. `rim-section` handles vertical padding + background color variants (`--white`, `--grey`, `--teal`). `rim-container` centers content at max-width 1260px with 40px side padding. Also: `rim-two-col`, `rim-grid-3`, `rim-grid-4`.
+
+4. **Homepage redesign** (`app/page.tsx`, `hp-` prefix CSS)
+   Full rebuild with 10 sections using the page block system. Matte panel hero (warm off-white on dark video overlay). Schedule grid, testimonials, teacher bio, tradition, three circles, dana, closing invitation.
+
+5. **Community programs page redesign** (`app/community-programs/page.tsx`, `pl-` prefix CSS)
+   Teal hero with bodhi-leaves background image + overlay (matching pg-hero). Left-aligned text, white pill CTA. Programs grouped by category with Quincy CF headings at `--text-h2`. Schedule subtitles compose `dateText + timeRange + programFormat` for full lines like "Mondays · 9:30–10:30am CT | Zoom Only". Exported `formatTimeRange` from `lib/dateLabel.ts`.
+
+6. **ListRow component redesign** (`components/ListRow.tsx`, `lr-` prefix CSS)
+   Replaced all Webflow class names with `lr-` prefix. Simplified HTML (removed 3 unnecessary wrapper divs). White cards with `border-radius: 6px`, 20px gap, teal pill "Learn More" buttons. Used `.lr-row .lr-name` doubled-class selectors to beat `.rim-section--grey p` specificity.
+
+### Design decisions
+
+- **Hero uses `rim-container`** (not a custom inner div) so its left edge aligns with the listing section. All pages should share the same container for consistent alignment.
+- **Category heading padding-left: 4px** — nearly flush with card edge and hero text, creating a cohesive left boundary.
+- **`buildSubtitle()` prefers `dateText` over `buildDateLabel()`** because recurrence fields aren't populated for most programs. `dateText` has correct recurring labels ("Mondays"); `buildDateLabel()` generates single-event dates without recurrence data.
+- **Legacy shim approach** — rather than touching 15+ unredesigned pages, a block at the bottom of `custom.css` recreates the essential Webflow classes using design tokens. Pages shed these classes during their individual redesigns.
+
+### Connections
+- `app/layout.tsx` — removed 2 CSS `<link>` tags + Adobe Typekit
+- `public/css/custom.css` — `@font-face` declarations, page block system, `hp-` homepage, `pl-` programs list, `lr-` ListRow, legacy shim
+- `app/page.tsx` — full homepage rebuild
+- `app/community-programs/page.tsx` — full redesign
+- `components/ListRow.tsx` — new `lr-` class names, used by community-programs, dashboard, SeriesListItem
+- `lib/dateLabel.ts` — `formatTimeRange()` now exported
+
+### What comes next
+- **Program data:** Re-run seed or update programs through Program Editor to populate `dateText` and `timeText` for all programs (some have empty values → wrong date labels)
+- **Remaining legacy pages:** Donate, Volunteer, Community Membership, Login, Diversity, Kalyana Mitta — each needs a design pass to shed Webflow classes
+- **Mobile responsive testing** on community programs page
+
+---
+
 ## Session: 2026-04-15 (session 83)
 
 **Focus:** Bug fixes — Schedule/Time Label auto-update, dashboardShowAt timezone, simplify pass.

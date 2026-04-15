@@ -18,5 +18,25 @@
     "status": "open",
     "addedAt": "2026-04-11",
     "notes": "Old Webflow site had circular photos next to facilitator names. Data model change needed — may link to existing teacherProfile records."
+  },
+  {
+    "id": "2026-04-15-001",
+    "title": "Program dateText/timeText Data Cleanup",
+    "description": "Some programs in the live database have empty dateText and timeText fields. The seed file has correct values for all 13 programs, but the live DB is out of sync. Without dateText, the community programs page shows specific dates (e.g. 'Tuesday, April 14') instead of recurring labels ('Mondays'). Fix: either re-run the seed (overwrites all program fields) or update dateText/timeText through the Program Editor for each program.",
+    "category": "Programs & Sanity",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-04-15",
+    "notes": "Discovered during community programs page redesign (session 84). The buildSubtitle function works correctly — prefers dateText, appends time from datetime, appends format. Just needs the data populated."
+  },
+  {
+    "id": "2026-04-15-002",
+    "title": "Redesign Remaining Legacy Pages",
+    "description": "~15 pages still reference Webflow class names via the legacy shim. Each needs an individual design pass to replace Webflow classes with prefixed design-system classes. Priority: Donate, Volunteer, Community Membership, Login. Lower priority: Diversity, Kalyana Mitta, Glossary, Magazine Articles.",
+    "category": "CSS & Design",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-04-15",
+    "notes": "Legacy shim at bottom of custom.css can be deleted once all pages are migrated. Homepage and community programs page are done (session 84)."
   }
 ]

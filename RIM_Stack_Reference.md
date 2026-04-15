@@ -43,7 +43,7 @@ Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfie
 | Video (legacy) | Google Meet | 4 shared room accounts via DWD + Google Calendar API |
 | Video (new) | LiveKit Cloud | Ship tier ($50/month); `livekit-server-sdk`, `@livekit/components-react`, `@livekit/components-styles`, `livekit-client` |
 | Hosting | Vercel | auto-deploy on push to `main` |
-| CSS | Custom design system | `public/css/custom.css` only — never touch webflow CSS files |
+| CSS | Custom design system | `public/css/custom.css` only. Webflow CSS removed (session 84). Quincy CF self-hosted via `@font-face`. Legacy shim at bottom of custom.css for ~15 unredesigned pages. |
 | Rich text editor | BlockNote v0.47.1 | `@blocknote/core`, `@blocknote/react`, `@blocknote/mantine`, `@blocknote/server-util` — replaced Tiptap entirely in session 69. Two components: `RimBlockEditor` (full — Bear-inspired toolbar, image upload, advanced tables, heading hierarchy, document locking, blob cleanup) and `RimProseEditor` (prose). Custom Dharma blocks: VerseQuote, PracticeSuggestion, Callout. Heading CSS injected via `<style>` tag on mount (must target `<h1>`/`<h2>`/`<h3>` tags, not `data-level`). Color token rendering via `BN_TEXT_COLORS`/`BN_BG_COLORS` maps in `renderRichContent.ts`. **Exception:** `MarkdownEditor` (Tiptap + tiptap-markdown, renamed from `RimEditor.tsx` in session 70) is used exclusively by `EmailTemplateEditor` — email template pipeline is markdown → marked() → juice() → Resend. |
 | Footer suppression | `components/FooterWrapper.tsx` | Newsletter footer suppressed on `/admin/*`, `/account/*`, `/tools/*`, `/lessons/*`, `/course/*` |
 | Hub navigation | `components/HubSidebar.tsx` | Left sidebar (220px, sticky) replaces horizontal tab strip. Identity block + core sections + Tools (app links) + settings. Mobile: slide-in drawer via hamburger. `HubNavStrip.tsx` and `HubHeader.tsx` deleted. |
@@ -232,7 +232,7 @@ components/           shared UI components
 lib/                  utilities (queries, email, dateLabel, locations, etc.)
 prisma/schema.prisma  database schema
 proxy.ts              route protection (replaces middleware.ts in Next.js 16)
-public/css/custom.css all custom styles (never edit webflow CSS files)
+public/css/custom.css all custom styles (single source of truth — Webflow CSS removed)
 data/backlog.json     feature backlog (surfaced at /admin/ideas)
 ```
 
@@ -280,4 +280,4 @@ Registrar check: `roles.some(r => ["REGISTRAR","ADMIN"].includes(r))`
 
 The Webflow site at `rootedinmindfulness.org` is the live public site. This app is running in parallel at `rim-next.vercel.app` with real data and real members. The goal is a full cutover once CSS migration is complete and all member-facing flows are tested. Stripe is in test mode — switch to live keys before going public.
 
-**CSS migration status:** Two-layer system in progress. Pages marked 🟢 use the design system (`public/css/custom.css` with prefixed classes + CSS vars). Pages marked 🟠 still use raw Webflow classes from imported CSS files. Goal is to delete all three Webflow CSS imports from `app/layout.tsx` once all pages are migrated. See `memory/pages-inventory.md` for current status.
+**CSS migration status:** All three Webflow CSS files removed from `app/layout.tsx` (session 84). Quincy CF fonts self-hosted. A legacy shim at the bottom of `custom.css` preserves ~25 essential Webflow classes for ~15 unredesigned pages. Redesigned pages (homepage, community programs, program detail, lessons, dashboard, etc.) use the design system exclusively. Each remaining page will shed legacy classes during its individual design pass — then the shim gets deleted.

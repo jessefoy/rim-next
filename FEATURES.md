@@ -796,17 +796,28 @@ Each item in `registrationFields`:
 
 | Layer | Status | Notes |
 |---|---|---|
-| 🟠 Webflow | Legacy — being phased out | Uses raw Webflow class names from `rim.webflow.css` |
-| 🟢 Design System | New pages | Prefixed classes + CSS custom properties, zero Webflow dependency |
+| 🟢 Design System | All new pages | Prefixed classes + CSS custom properties, zero Webflow dependency |
+| 🟠 Legacy Shim | ~15 unredesigned pages | Bottom of `custom.css` recreates 25 essential Webflow classes using tokens |
+
+**Webflow CSS files removed (session 84).** `webflow.css` and `rim.webflow.css` are no longer loaded. `normalize.css` was removed in session 83. Quincy CF fonts are now self-hosted via `@font-face` declarations at the top of `custom.css`.
 
 ### Custom CSS file
-All custom styles: `public/css/custom.css`
+All styles: `public/css/custom.css` — single source of truth.
+
+### Page block system
+Shared layout primitives used by all redesigned pages:
+- `rim-section` — full-width row with 96px vertical padding. Variants: `--white`, `--grey`, `--teal`.
+- `rim-container` — max-width 1260px, centered, 40px side padding. All page sections use this for consistent horizontal alignment.
+- `rim-two-col`, `rim-grid-3`, `rim-grid-4` — responsive grid layouts.
 
 ### Page prefixes (🟢 design system pages)
 | Prefix | Page |
 |---|---|
-| `lp-` | Lesson pages (also shared reading-column utilities used by other 🟢 pages) |
+| `hp-` | Homepage |
+| `pl-` | Community programs list page |
 | `pg-` | Program detail pages |
+| `lr-` | ListRow component (shared: programs list, dashboard, course lessons) |
+| `lp-` | Lesson pages (also shared reading-column utilities used by other 🟢 pages) |
 | `wl-` | Community welcome / onboarding page |
 | `vol-` | Volunteer / registrar admin area |
 | `adm-` | Admin member management pages |
@@ -817,7 +828,7 @@ All custom styles: `public/css/custom.css`
 | `ml-` | My Library page |
 | `mp-` | My Profile page |
 | `mc-` | Community Agreements page |
-| `nav-` | Global nav component (🟢 — no Webflow dependency) |
+| `nav-` | Global nav component |
 | `man-` | Staff Reference Manual (`/admin/manual`) |
 
 ### Design tokens (CSS custom properties)
@@ -836,10 +847,10 @@ All custom styles: `public/css/custom.css`
 **Body text:** 18px Open Sans, line-height 1.7. Content width: `--reading-width: 700px`.
 
 **🔧 Technical notes:**
-- Never edit `normalize.css`, `webflow.css`, or `rim.webflow.css`
-- Webflow's `p { font-size: 17px }` is declared (not inherited) — any font-size override on a parent element will not cascade to `<p>`. Set explicitly on the element
-- Never use `<blockquote>` in JSX — Webflow CSS targets it aggressively with styles that break the design system. Use `<div>` or `<figure>` instead
-- CSS specificity ladder for `custom.css` overrides: element (0,0,1) < class (0,1,0) < `.parent .class` (0,2,0) < `.parent tag.class` (0,2,1)
+- All Webflow CSS files have been removed. A legacy shim at the bottom of `custom.css` preserves ~25 essential Webflow classes for unredesigned pages. Delete the shim when all pages are migrated.
+- Quincy CF fonts self-hosted: `@font-face` declarations at top of `custom.css` point to `public/fonts/QuincyCF-*.woff2`. Token: `--font-serif: 'Quincycf', Georgia, serif`.
+- Global `p` margin rules (`.rim-section--grey p { margin: 0 0 18px }`) can override component styles. Use doubled-class selectors (`.lr-row .lr-name`) when components live inside `rim-section` wrappers.
+- CSS specificity ladder: element (0,0,1) < class (0,1,0) < `.parent .class` (0,2,0) < `.parent tag.class` (0,2,1)
 - Quote card uses box-shadow (Webflow match); otherwise no box-shadows in the design system
 
 ---
