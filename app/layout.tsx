@@ -16,8 +16,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="stylesheet" href="/css/webflow.css" />
-        <link rel="stylesheet" href="/css/rim.webflow.css" />
         <link rel="stylesheet" href="/css/custom.css" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
