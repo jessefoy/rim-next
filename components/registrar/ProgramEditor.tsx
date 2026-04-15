@@ -547,10 +547,8 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
   const [dateText, setDateText] = useState(initialData?.dateText ?? "");
   const [timeText, setTimeText] = useState(initialData?.timeText ?? "");
 
-  // Track whether the user has manually typed an override for the auto-generated labels.
-  // Initialize by comparing the stored value to what the compute functions would produce.
-  // If they match (or stored is blank), treat as auto-generated → update when dates change.
-  // If they differ, treat as a manual override → don't overwrite.
+  // Dirty = user typed a custom override. False = keep label in sync with date/recurrence settings.
+  // Initialised by comparing stored value to what the compute functions would produce.
   const [dateTextDirty, setDateTextDirty] = useState(() => {
     const stored = initialData?.dateText ?? "";
     if (!stored) return false;
@@ -647,23 +645,19 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
     }
   }, [name, isEditing, slugTouched]);
 
-  // Auto-generate Schedule Label whenever dates/recurrence change — unless the user
-  // has manually typed a custom override. Clearing the field resets the dirty flag
-  // (handled in the onChange below), which causes this effect to fire again.
   useEffect(() => {
     if (!dateTextDirty) {
       const computed = computeDateText(startDatetime, recurrenceFreq, recurrenceDays, recurrenceInterval);
-      if (computed) setDateText(computed);
+      if (computed && computed !== dateText) setDateText(computed);
     }
-  }, [dateTextDirty, startDatetime, recurrenceFreq, recurrenceDays, recurrenceInterval]);
+  }, [dateTextDirty, startDatetime, recurrenceFreq, recurrenceDays, recurrenceInterval]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-generate Time Label whenever start/end times change — same dirty-flag pattern.
   useEffect(() => {
     if (!timeTextDirty) {
       const computed = computeTimeText(startDatetime, endDatetime);
-      if (computed) setTimeText(computed);
+      if (computed && computed !== timeText) setTimeText(computed);
     }
-  }, [timeTextDirty, startDatetime, endDatetime]);
+  }, [timeTextDirty, startDatetime, endDatetime]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Teacher search ───────────────────────────────────────────────────────
   useEffect(() => {
