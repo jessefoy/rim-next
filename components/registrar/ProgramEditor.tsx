@@ -1132,51 +1132,58 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                   <span>Enable guest access link</span>
                 </label>
 
-                {isOpenAccess && isEditing && guestAccessKey && (
-                  <div className="pe-guest-link">
-                    <span className="pe-guest-link__label">Guest Access Link</span>
-                    <div className="pe-guest-link__row">
-                      <span className="pe-guest-link__url">
-                        {typeof window !== "undefined"
-                          ? `${window.location.origin}/session/${slug}?key=${guestAccessKey}`
-                          : `/session/${slug}?key=${guestAccessKey}`}
-                      </span>
-                      <button
-                        type="button"
-                        className={`pe-guest-link__copy${copiedLink ? " pe-guest-link__copy--copied" : ""}`}
-                        onClick={() => {
-                          navigator.clipboard.writeText(`${window.location.origin}/session/${slug}?key=${guestAccessKey}`);
-                          setCopiedLink(true);
-                          setTimeout(() => setCopiedLink(false), 2000);
-                        }}
-                      >
-                        {copiedLink ? "✓ Copied" : "Copy"}
-                      </button>
+                {isOpenAccess && isEditing && guestAccessKey && (() => {
+                  const guestUrl = typeof window !== "undefined"
+                    ? `${window.location.origin}/session/${slug}?key=${guestAccessKey}`
+                    : `/session/${slug}?key=${guestAccessKey}`;
+                  return (
+                    <div className="pe-guest-link">
+                      <span className="pe-guest-link__label">Guest Access Link</span>
+                      <div className="pe-guest-link__row">
+                        <input
+                          type="text"
+                          readOnly
+                          value={guestUrl}
+                          className="pe-guest-link__url"
+                          onFocus={(e) => e.target.select()}
+                        />
+                        <button
+                          type="button"
+                          className={`pe-guest-link__copy${copiedLink ? " pe-guest-link__copy--copied" : ""}`}
+                          onClick={() => {
+                            navigator.clipboard.writeText(guestUrl);
+                            setCopiedLink(true);
+                            setTimeout(() => setCopiedLink(false), 2000);
+                          }}
+                        >
+                          {copiedLink ? "✓ Copied" : "Copy"}
+                        </button>
+                      </div>
+                      <div className="pe-guest-link__footer">
+                        <button
+                          type="button"
+                          className="pe-guest-link__reset"
+                          disabled={resettingKey}
+                          onClick={async () => {
+                            if (!confirm("Reset the guest link? The old link will stop working immediately.")) return;
+                            setResettingKey(true);
+                            try {
+                              const res = await fetch(`/api/programs-pg/${slug}/guest-key`, { method: "POST" });
+                              if (res.ok) {
+                                const data = await res.json();
+                                setGuestAccessKey(data.guestAccessKey);
+                              }
+                            } catch {}
+                            setResettingKey(false);
+                          }}
+                        >
+                          {resettingKey ? "Resetting…" : "Reset link"}
+                        </button>
+                        <span className="pe-guest-link__note">Resetting invalidates the old link immediately.</span>
+                      </div>
                     </div>
-                    <div className="pe-guest-link__footer">
-                      <button
-                        type="button"
-                        className="pe-guest-link__reset"
-                        disabled={resettingKey}
-                        onClick={async () => {
-                          if (!confirm("Reset the guest link? The old link will stop working immediately.")) return;
-                          setResettingKey(true);
-                          try {
-                            const res = await fetch(`/api/programs-pg/${slug}/guest-key`, { method: "POST" });
-                            if (res.ok) {
-                              const data = await res.json();
-                              setGuestAccessKey(data.guestAccessKey);
-                            }
-                          } catch {}
-                          setResettingKey(false);
-                        }}
-                      >
-                        {resettingKey ? "Resetting…" : "Reset link"}
-                      </button>
-                      <span className="pe-guest-link__note">Resetting generates a new link and immediately invalidates the old one.</span>
-                    </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {isOpenAccess && isEditing && !guestAccessKey && (
                   <p className="pe-field__help">
