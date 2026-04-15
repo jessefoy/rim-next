@@ -117,7 +117,10 @@ export default async function DashboardPage() {
       db.program.findMany({
         where: {
           programFormat: { in: ["virtual", "hybrid"] },
-          removeFromProgramList: false,
+          OR: [
+            { removeFromProgramList: false },
+            { dashboardShowAt: { lte: new Date() } },
+          ],
         },
         select: {
           id: true, name: true, slug: true,

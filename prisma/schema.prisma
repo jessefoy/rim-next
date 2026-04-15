@@ -344,8 +344,9 @@ model Program {
 
   // ── Visibility ─────────────────────────────────────────
   sortOrder              Int?
-  removeFromProgramList  Boolean @default(false)
-  hideFromProgramPageList Boolean @default(false)
+  removeFromProgramList  Boolean   @default(false)
+  dashboardShowAt        DateTime? // if set, auto-shows on dashboards on this date even if removeFromProgramList is true
+  hideFromProgramPageList Boolean  @default(false)
   archivedAt             DateTime?
 
   // ── Relations ──────────────────────────────────────────

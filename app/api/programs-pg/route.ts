@@ -85,6 +85,7 @@ export async function POST(request: NextRequest) {
       dayOfWeek: body.dayOfWeek ?? [],
       sortOrder: body.sortOrder != null ? Number(body.sortOrder) : null,
       removeFromProgramList: body.removeFromProgramList ?? false,
+      dashboardShowAt: body.dashboardShowAt ? new Date(body.dashboardShowAt) : null,
       hideFromProgramPageList: body.hideFromProgramPageList ?? false,
       isOpenAccess: body.isOpenAccess ?? false,
       guestAccessKey: body.isOpenAccess ? randomBytes(6).toString("hex") : null,

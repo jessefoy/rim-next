@@ -82,6 +82,7 @@ export interface ProgramData {
   dayOfWeek: string[];
   sortOrder: string;
   removeFromProgramList: boolean;
+  dashboardShowAt: string;
   hideFromProgramPageList: boolean;
   isOpenAccess: boolean;
   guestAccessKey: string;
@@ -584,6 +585,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
 
   const [sortOrder, setSortOrder] = useState(initialData?.sortOrder ?? "");
   const [removeFromProgramList, setRemoveFromProgramList] = useState(initialData?.removeFromProgramList ?? false);
+  const [dashboardShowAt, setDashboardShowAt] = useState(initialData?.dashboardShowAt ?? "");
   const [hideFromProgramPageList, setHideFromProgramPageList] = useState(initialData?.hideFromProgramPageList ?? false);
 
   const [isOpenAccess, setIsOpenAccess] = useState(initialData?.isOpenAccess ?? false);
@@ -783,6 +785,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
         dayOfWeek: deriveDayOfWeek(recurrenceFreq, recurrenceDays, startDatetime),
         sortOrder: sortOrder ? Number(sortOrder) : null,
         removeFromProgramList,
+        dashboardShowAt: dashboardShowAt || null,
         hideFromProgramPageList,
         isOpenAccess,
       };
@@ -1568,6 +1571,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
            ══════════════════════════════════════════════════════════════════ */}
         {tab === "Visibility" && (
           <div className="pe-card"><div className="pe-form">
+
             <label className="pe-field">
               <span className="pe-field__label">Sort Order</span>
               <span className="pe-field__help">Controls the display order on the public Programs page. Lower numbers appear first.</span>
@@ -1579,29 +1583,52 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
               />
             </label>
 
-            <div className="pe-field">
+            <hr className="pe-section-divider" />
+
+            <div className="pe-visibility-option">
               <label className="pe-checkbox">
                 <input
                   type="checkbox"
                   checked={hideFromProgramPageList}
                   onChange={(e) => setHideFromProgramPageList(e.target.checked)}
                 />
-                Hide from public Programs &amp; Events page
+                <span className="pe-checkbox__label">Hide from public Programs &amp; Events page</span>
               </label>
-              <span className="pe-field__help">When checked, this program won&rsquo;t appear on the public Programs &amp; Events listing. It&rsquo;s still accessible by direct URL.</span>
+              <p className="pe-field__help">This program won&rsquo;t appear on the public listing. Still accessible by direct URL.</p>
             </div>
 
-            <div className="pe-field">
+            <div className="pe-visibility-option">
               <label className="pe-checkbox">
                 <input
                   type="checkbox"
                   checked={removeFromProgramList}
-                  onChange={(e) => setRemoveFromProgramList(e.target.checked)}
+                  onChange={(e) => {
+                    setRemoveFromProgramList(e.target.checked);
+                    if (!e.target.checked) setDashboardShowAt("");
+                  }}
                 />
-                Hide from member dashboards
+                <span className="pe-checkbox__label">Hide from member dashboards</span>
               </label>
-              <span className="pe-field__help">When checked, this program won&rsquo;t appear on member dashboards. The program is still accessible by direct link and on the public site.</span>
+              <p className="pe-field__help">This program won&rsquo;t appear on member dashboards. Still accessible by direct link and on the public site.</p>
+
+              {removeFromProgramList && (
+                <div className="pe-visibility-schedule">
+                  <span className="pe-field__label">Auto-show on dashboards</span>
+                  <p className="pe-field__help">Optional. On this date the program will automatically reappear on member dashboards — no manual action needed.</p>
+                  <DateTimePicker value={dashboardShowAt} onChange={setDashboardShowAt} />
+                  {dashboardShowAt && (
+                    <button
+                      type="button"
+                      className="pe-visibility-schedule__clear"
+                      onClick={() => setDashboardShowAt("")}
+                    >
+                      Clear scheduled date
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
+
           </div></div>
         )}
 

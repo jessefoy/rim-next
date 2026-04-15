@@ -13245,6 +13245,42 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   border-top: 1px solid var(--rim-rule);
 }
 
+/* ── Visibility tab options ── */
+.pe-visibility-option {
+  padding: 16px;
+  border: 1px solid var(--rim-rule);
+  border-radius: 6px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pe-visibility-option + .pe-visibility-option { margin-top: 0; }
+.pe-checkbox__label { font-size: 15px; font-weight: 600; color: var(--rim-text); }
+.pe-visibility-option .pe-field__help { margin: 0; }
+.pe-visibility-option .pe-checkbox { align-items: flex-start; gap: 10px; }
+
+/* ── Dashboard schedule reveal ── */
+.pe-visibility-schedule {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: #f4f7fa;
+  border-left: 3px solid var(--rim-blue);
+  border-radius: 0 6px 6px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pe-visibility-schedule .pe-field__label { font-size: 13px; }
+.pe-visibility-schedule .pe-field__help { margin: 0; }
+.pe-visibility-schedule__clear {
+  background: none; border: none; padding: 0;
+  font-family: var(--font-sans); font-size: 12px;
+  color: #888; cursor: pointer; text-decoration: underline;
+  text-align: left; margin-top: 4px;
+}
+.pe-visibility-schedule__clear:hover { color: var(--rim-text); }
+
 /* ── Sticky save bar ── */
 .pe-actions {
   display: flex; gap: 12px; align-items: center;

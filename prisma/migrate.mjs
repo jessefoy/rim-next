@@ -78,6 +78,21 @@ const migrations = [
     },
   },
   {
+    name: "add_dashboard_show_at_to_programs",
+    async run() {
+      const cols = await db.$queryRawUnsafe(`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'programs' AND column_name = 'dashboardShowAt'
+      `);
+      if (cols.length === 0) {
+        await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN "dashboardShowAt" TIMESTAMPTZ`);
+        console.log(`  ✔ Applied: ${this.name}`);
+      } else {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+      }
+    },
+  },
+  {
     name: "change_dana_message_to_jsonb",
     async run() {
       const cols = await db.$queryRawUnsafe(`
