@@ -16,7 +16,6 @@ import {
   GridLayout,
   ControlBar,
   RoomAudioRenderer,
-  useRoomContext,
   useLocalParticipant,
   useRemoteParticipants,
   useTracks,

@@ -37,11 +37,13 @@ export default function NonverbalToolbar({ localParticipant }: Props) {
 
   // Sync active state from metadata (in case of reconnect)
   useEffect(() => {
+    if (!localParticipant) return;
     const meta = getMetadata(localParticipant);
     setActive(meta.signal ?? null);
   }, [localParticipant]);
 
   function sendSignal(signal: Signal, momentary: boolean) {
+    if (!localParticipant) return;
     if (clearTimer.current) clearTimeout(clearTimer.current);
 
     const meta = getMetadata(localParticipant);

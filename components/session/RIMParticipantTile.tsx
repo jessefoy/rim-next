@@ -8,7 +8,7 @@
  * Must be rendered as a child of GridLayout (provides TrackRefContext + ParticipantContext).
  */
 
-import { ParticipantTile, useTrackRefContext, useParticipantContext } from "@livekit/components-react";
+import { ParticipantTile, useMaybeTrackRefContext, useMaybeParticipantContext } from "@livekit/components-react";
 import { Track } from "livekit-client";
 
 export type Signal = "hand" | "heart" | "namaste" | "yes" | "no" | null;
@@ -36,8 +36,18 @@ function parseMetadata(raw: string | undefined): ParticipantMetadata {
 }
 
 export default function RIMParticipantTile() {
-  const trackRef = useTrackRefContext();
-  const participant = useParticipantContext();
+  const trackRef = useMaybeTrackRefContext();
+  const participant = useMaybeParticipantContext();
+
+  // If context isn't ready yet, render the bare tile with no overlays
+  if (!trackRef || !participant) {
+    return (
+      <div className="rim-tile-wrapper">
+        <ParticipantTile />
+      </div>
+    );
+  }
+
   const meta = parseMetadata(participant.metadata);
 
   // Camera is off if there's no publication or the track is muted
