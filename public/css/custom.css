@@ -270,8 +270,9 @@ h4 { font-size: var(--text-h4); }
   justify-content: space-between;
   gap: 24px;
   background: #fff;
+  border-radius: 6px;
   padding: 20px 24px;
-  margin-bottom: 3px; /* tight card stack */
+  margin-bottom: 10px;
 }
 
 .lr-info {
@@ -2832,7 +2833,7 @@ h4 { font-size: var(--text-h4); }
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(18, 82, 116, 0.78);
+  background: rgba(18, 82, 116, 0.70);
   pointer-events: none;
 }
 
@@ -2893,9 +2894,7 @@ h4 { font-size: var(--text-h4); }
   font-family: var(--font-serif);
   font-size: var(--text-h3);
   color: var(--rim-text);
-  margin: 0 0 0;
-  padding-bottom: 14px;
-  border-bottom: 1px solid #d5d5d5;
+  margin: 0 0 16px;
   line-height: var(--lh-heading);
 }
 
