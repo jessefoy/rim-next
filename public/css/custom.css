@@ -2954,10 +2954,12 @@ h4 { font-size: var(--text-h4); }
 }
 
 .tw-hero__range {
-  font-family: var(--font-sans);
-  font-size: var(--text-small);
-  color: rgba(255, 255, 255, 0.6);
-  margin: 0 0 28px;
+  font-family: var(--font-serif);
+  font-size: var(--text-h3);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0 0 32px;
+  letter-spacing: -0.3px;
 }
 
 /* Week nav pills */
