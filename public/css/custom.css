@@ -302,6 +302,218 @@ h4 { font-size: var(--text-h4); }
 
 
 /* ═══════════════════════════════════════════════════
+   PAGE BLOCK SYSTEM — rim-section / rim-container
+   Shared layout primitives. Use these on all pages.
+   Page-specific classes (pg-, lp-, hp-, etc.) handle
+   unique elements; blocks handle the shell.
+═══════════════════════════════════════════════════ */
+
+/* Section — full-width row with vertical breathing room */
+.rim-section {
+  padding-top: 96px;
+  padding-bottom: 96px;
+}
+.rim-section--white { background-color: #fff; }
+.rim-section--grey  { background-color: var(--rim-bg); }
+.rim-section--teal  {
+  background-color: var(--rim-blue);
+  color: rgba(255,255,255,0.92);
+}
+.rim-section--teal h1,
+.rim-section--teal h2,
+.rim-section--teal h3,
+.rim-section--teal h4 { color: #fff; }
+.rim-section--teal p  { color: rgba(255,255,255,0.88); }
+.rim-section--teal strong { color: #fff; }
+
+/* Container — max-width centered, responsive padding */
+.rim-container {
+  width: 100%;
+  max-width: 1140px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 40px;
+  padding-right: 40px;
+}
+.rim-container--narrow {
+  max-width: var(--reading-width);
+}
+
+/* Two-column grid — equal halves, responsive */
+.rim-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 72px;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .rim-section          { padding-top: 64px; padding-bottom: 64px; }
+  .rim-container        { padding-left: 20px; padding-right: 20px; }
+  .rim-two-col          { grid-template-columns: 1fr; gap: 40px; }
+}
+@media (max-width: 430px) {
+  .rim-section          { padding-top: 48px; padding-bottom: 48px; }
+}
+
+
+/* ═══════════════════════════════════════════════════
+   HOMEPAGE — hp-
+═══════════════════════════════════════════════════ */
+
+/* Hero — full-bleed video with teal overlay */
+.hp-hero {
+  position: relative;
+  min-height: 640px;
+  display: flex;
+  align-items: center;
+  background-color: var(--rim-blue);
+  overflow: hidden;
+}
+.hp-hero__video {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.hp-hero__video video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.hp-hero__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(13, 34, 53, 0.72);
+  z-index: 1;
+}
+.hp-hero .rim-container { position: relative; z-index: 2; }
+.hp-hero__content {
+  max-width: 680px;
+  padding: 80px 0;
+}
+.hp-hero__heading {
+  font-family: var(--font-serif);
+  font-size: var(--text-hero);
+  font-weight: 400;
+  color: #fff;
+  line-height: 1.18;
+  margin: 0 0 28px;
+}
+.hp-hero__desc {
+  font-size: var(--text-body);
+  color: rgba(255,255,255,0.86);
+  line-height: var(--lh-body);
+  margin: 0 0 40px;
+  max-width: 560px;
+}
+.hp-hero__cta {
+  display: inline-block;
+  background-color: #fff;
+  color: var(--rim-blue);
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: 14px 32px;
+  border-radius: 32px;
+}
+
+/* About section typography spacing */
+.rim-section--white h2     { margin: 0 0 20px; }
+.rim-section--white h3     { margin: 40px 0 16px; }
+.rim-section--white p      { margin: 0 0 18px; }
+
+/* Inline link with arrow — used for soft CTAs */
+.hp-link {
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  color: var(--rim-mid);
+  text-decoration: none;
+  font-weight: 500;
+}
+.hp-link:hover { text-decoration: underline; }
+
+/* Community section — image + content two-col */
+.hp-community {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 72px;
+  align-items: start;
+}
+.hp-community__image {
+  height: 520px;
+  background-image: url('/images/Community-Hands-on-Tree.jpg');
+  background-size: cover;
+  background-position: center;
+  border-radius: 3px;
+}
+.hp-community__content h2  { margin: 0 0 20px; }
+.hp-community__content h3  { margin: 36px 0 16px; }
+.hp-community__content p   { margin: 0 0 18px; }
+
+/* Program category links — 2×2 grid */
+.hp-categories {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.hp-category {
+  display: block;
+  padding: 20px 24px;
+  background: #fff;
+  color: var(--rim-blue);
+  font-family: var(--font-serif);
+  font-size: var(--text-h4);
+  font-weight: 400;
+  text-decoration: none;
+  border-radius: 3px;
+  line-height: var(--lh-heading);
+}
+.hp-category:hover {
+  background: var(--rim-bg);
+  color: var(--rim-mid);
+}
+
+/* Dana section spacing */
+.rim-section--teal h2     { margin: 0 0 28px; }
+.rim-section--teal p      { margin: 0 0 18px; }
+.hp-cta-donate {
+  display: inline-block;
+  margin-top: 16px;
+  background-color: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.5);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: 14px 32px;
+  border-radius: 32px;
+}
+.hp-cta-donate:hover {
+  background-color: rgba(255,255,255,0.25);
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .hp-hero              { min-height: 520px; }
+  .hp-hero__content     { padding: 60px 0; }
+  .hp-community         { grid-template-columns: 1fr; gap: 40px; }
+  .hp-community__image  { height: 280px; }
+  .hp-categories        { grid-template-columns: 1fr; }
+}
+@media (max-width: 430px) {
+  .hp-hero              { min-height: 440px; }
+  .hp-hero__content     { padding: 48px 0; }
+}
+
+
+/* ═══════════════════════════════════════════════════
    NAVIGATION DROPDOWNS — SUPERSEDED
    Replaced by the nav- block at the bottom of this file.
    These rules only apply to any remaining Webflow nav
