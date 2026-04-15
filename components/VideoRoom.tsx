@@ -18,9 +18,10 @@ import { RoomOptions, VideoPresets } from "livekit-client";
  * Room options for high-quality meditation sessions:
  *
  * Video: 720p with simulcast (3 layers for adaptive quality)
- * Audio (host): High-fidelity — noise suppression OFF, echo cancellation OFF,
- *   auto-gain OFF. This lets meditation bells, singing bowls, and music pass
- *   through clean and full instead of being clipped as "background noise."
+ * Audio (host): High-fidelity — noise suppression OFF, auto-gain OFF.
+ *   Echo cancellation ON (prevents speaker feedback without affecting bells/music).
+ *   This lets meditation bells, singing bowls, and music pass through clean
+ *   and full instead of being clipped as "background noise."
  * Audio (participant): DTX enabled — during silence, almost no audio bandwidth
  *   is used. Perfect for 35 people sitting in silent meditation.
  *
@@ -36,7 +37,7 @@ function buildRoomOptions(isHost: boolean): RoomOptions {
     audioCaptureDefaults: isHost
       ? {
           autoGainControl: false,
-          echoCancellation: false,
+          echoCancellation: true,
           noiseSuppression: false,
         }
       : {
