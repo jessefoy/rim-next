@@ -16,7 +16,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="stylesheet" href="/css/normalize.css" />
         <link rel="stylesheet" href="/css/webflow.css" />
         <link rel="stylesheet" href="/css/rim.webflow.css" />
         <link rel="stylesheet" href="/css/custom.css" />
