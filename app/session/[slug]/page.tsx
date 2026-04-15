@@ -35,6 +35,8 @@ export default function SessionPage() {
   const [needsHiFiAudio, setNeedsHiFiAudio] = useState(false);
   const [steppingIn, setSteppingIn] = useState(false);
   const [ending, setEnding] = useState(false);
+  const [mutingAll, setMutingAll] = useState(false);
+  const [muteCount, setMuteCount] = useState<number | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [guestName, setGuestName] = useState("");
   const [joiningAsGuest, setJoiningAsGuest] = useState(false);
@@ -159,6 +161,24 @@ export default function SessionPage() {
     setSteppingIn(false);
   }
 
+  async function handleMuteAll() {
+    setMutingAll(true);
+    setMuteCount(null);
+    try {
+      const res = await fetch("/api/livekit/mute-all", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ programSlug: slug }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMuteCount(data.muted);
+        setTimeout(() => setMuteCount(null), 3000);
+      }
+    } catch {}
+    setMutingAll(false);
+  }
+
   async function handleEndForAll() {
     if (!confirm("End this session for all participants?")) return;
     setEnding(true);
@@ -267,6 +287,11 @@ export default function SessionPage() {
         {isHostTeam && !isHost && (
           <button className="vs-header__stepin" onClick={handleStepIn} disabled={steppingIn}>
             {steppingIn ? "Connecting…" : "Step in as Host"}
+          </button>
+        )}
+        {isHost && (
+          <button className="vs-header__mute" onClick={handleMuteAll} disabled={mutingAll}>
+            {mutingAll ? "Muting…" : muteCount !== null ? `Muted ${muteCount}` : "Mute All"}
           </button>
         )}
         {isHost && (

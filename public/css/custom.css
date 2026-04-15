@@ -12244,6 +12244,22 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 }
 .vs-header__stepin:hover { opacity: 0.85; }
 .vs-header__stepin:disabled { opacity: 0.5; cursor: default; }
+.vs-header__mute {
+  background: #4A6FA5;
+  color: #fff;
+  border: none;
+  font-size: var(--text-label);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-family: var(--font-sans);
+  transition: opacity 0.12s;
+  white-space: nowrap;
+  min-width: 72px;
+}
+.vs-header__mute:hover { opacity: 0.85; }
+.vs-header__mute:disabled { opacity: 0.5; cursor: default; }
 .vs-header__end {
   background: #B84040;
   color: #fff;
