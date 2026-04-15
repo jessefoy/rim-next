@@ -97,13 +97,20 @@ body {
   background-color: var(--rim-bg);
 }
 
-/* ── Webflow list reset ──────────────────────────────────────────────────────
-   rim.webflow.css sets bare ul/ol/li rules that break list rendering
-   everywhere: ul { padding-left: 41px }, ol { padding-left: 45px },
+/* ── Webflow element reset ───────────────────────────────────────────────────
+   rim.webflow.css sets bare element rules that pollute the cascade:
+   p  { font-family: "Source Sans 3"; line-height: 32px }
+   ul { padding-left: 41px; font-family: Inter }
+   ol { padding-left: 45px }
    li { margin-left: -20px; margin-bottom: 15px; font-family: "Source Sans 3";
-   font-size: 18px; line-height: 32px }.
-   This reset neutralizes those so lists inherit from the design system.
-   Scoped broadly — every 🟢 area and content container gets clean lists. */
+        font-size: 18px; line-height: 32px }
+   This reset neutralizes ALL of them so elements inherit from the design system. */
+p {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  margin: 0 0 1.2em;
+}
 ul, ol {
   margin-left: 0;
   padding-left: 1.75em;
