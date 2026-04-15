@@ -2863,23 +2863,22 @@ h4 { font-size: var(--text-h4); }
   line-height: var(--lh-body);
 }
 
-/* Outlined pill CTA — white border, white text, transparent fill */
+/* White pill CTA — solid white with dark text */
 .pl-hero__cta {
   display: inline-block;
-  background: transparent;
-  color: #fff;
-  border: 2px solid rgba(255, 255, 255, 0.75);
+  background: #fff;
+  color: var(--rim-text);
+  border: none;
   border-radius: 50px;
   font-family: var(--font-sans);
   font-size: var(--text-small);
   font-weight: 500;
-  padding: 11px 26px;
+  padding: 13px 30px;
   text-decoration: none;
-  transition: border-color 0.15s, background 0.15s;
+  transition: opacity 0.15s;
 }
 .pl-hero__cta:hover {
-  border-color: #fff;
-  background: rgba(255, 255, 255, 0.1);
+  opacity: 0.9;
 }
 
 /* Category groups */

@@ -9,6 +9,42 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
+/** Derive a human-readable format label from the programFormat field. */
+function formatLabel(fmt: string): string {
+  switch (fmt) {
+    case "virtual":  return "Zoom Only";
+    case "hybrid":   return "In-Person & Zoom";
+    case "in-person": return "In-Person";
+    default:         return fmt;
+  }
+}
+
+/** Compose the full schedule subtitle: "Mondays · 9:30–10:30am CT | Zoom Only" */
+function buildSubtitle(program: {
+  dateText: string | null;
+  timeText: string | null;
+  programFormat: string;
+  startDatetime: Date | null;
+  endDatetime: Date | null;
+  recurrenceFreq: string | null;
+  recurrenceInterval: number | null;
+  recurrenceDays: string[];
+}): string | undefined {
+  // Prefer buildDateLabel (structured data with time) over dateText (often incomplete)
+  const dateLabel = buildDateLabel({
+    startDatetime: program.startDatetime?.toISOString() ?? null,
+    endDatetime: program.endDatetime?.toISOString() ?? null,
+    recurrenceFreq: program.recurrenceFreq,
+    recurrenceInterval: program.recurrenceInterval,
+    recurrenceDays: program.recurrenceDays,
+  }) || program.dateText;
+
+  const fmt = formatLabel(program.programFormat);
+
+  if (dateLabel) return `${dateLabel} | ${fmt}`;
+  return fmt || undefined;
+}
+
 export default async function CommunityProgramsPage() {
   const [programs, categories] = await Promise.all([
     db.program.findMany({
@@ -34,7 +70,7 @@ export default async function CommunityProgramsPage() {
             community groups for every stage of practice. No experience needed. No fees.
           </p>
           <Link href="/community-membership" className="pl-hero__cta">
-            New here? Learn how to join us →
+            Learn How to Join Us
           </Link>
         </div>
       </div>
@@ -56,17 +92,7 @@ export default async function CommunityProgramsPage() {
                     <ListRow
                       key={program.id}
                       title={program.name}
-                      subtitle={
-                        program.dateText ||
-                        buildDateLabel({
-                          startDatetime: program.startDatetime?.toISOString() ?? null,
-                          endDatetime: program.endDatetime?.toISOString() ?? null,
-                          recurrenceFreq: program.recurrenceFreq,
-                          recurrenceInterval: program.recurrenceInterval,
-                          recurrenceDays: program.recurrenceDays,
-                        }) ||
-                        undefined
-                      }
+                      subtitle={buildSubtitle(program)}
                       announcement={program.specialAnnouncement ?? undefined}
                       href={`/programs/${program.slug}`}
                       buttonLabel="Learn More"
