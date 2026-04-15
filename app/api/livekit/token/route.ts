@@ -38,6 +38,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "programSlug required" }, { status: 400 });
   }
 
+  // Look up caller's avatar
+  const caller = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { avatarUrl: true },
+  });
+
   // Look up the program
   const program = await db.program.findFirst({
     where: { slug: programSlug },
@@ -97,5 +103,6 @@ export async function POST(req: NextRequest) {
     isHost,
     isHostTeam,
     needsHiFiAudio,
+    avatarUrl: caller?.avatarUrl ?? null,
   });
 }

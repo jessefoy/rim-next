@@ -37,6 +37,7 @@ export default function SessionPage() {
   const [ending, setEnding] = useState(false);
   const [mutingAll, setMutingAll] = useState(false);
   const [muteCount, setMuteCount] = useState<number | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [guestName, setGuestName] = useState("");
   const [joiningAsGuest, setJoiningAsGuest] = useState(false);
@@ -84,6 +85,7 @@ export default function SessionPage() {
         setIsHost(data.isHost ?? false);
         setIsHostTeam(data.isHostTeam ?? false);
         setNeedsHiFiAudio(data.needsHiFiAudio ?? false);
+        setAvatarUrl(data.avatarUrl ?? null);
         setProgramName(data.roomName.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()));
         setState("ready");
 
@@ -305,7 +307,14 @@ export default function SessionPage() {
       </div>
       <div className="vs-room">
         {token && wsUrl && (
-          <VideoRoom token={token} wsUrl={wsUrl} hiFiAudio={needsHiFiAudio} onLeave={handleLeave} />
+          <VideoRoom
+            token={token}
+            wsUrl={wsUrl}
+            isHost={isHost}
+            programSlug={slug}
+            avatarUrl={avatarUrl}
+            onLeave={handleLeave}
+          />
         )}
       </div>
     </div>

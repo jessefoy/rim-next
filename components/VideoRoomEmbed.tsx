@@ -63,7 +63,7 @@ export default function VideoRoomEmbed({ programSlug, programId, sessionDate, cl
   if (state === "connected" && token && wsUrl) {
     return (
       <div className="vre-room">
-        <VideoRoom token={token} wsUrl={wsUrl} onLeave={leave} />
+        <VideoRoom token={token} wsUrl={wsUrl} programSlug={programSlug} onLeave={leave} />
       </div>
     );
   }

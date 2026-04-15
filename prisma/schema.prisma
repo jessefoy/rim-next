@@ -67,6 +67,9 @@ model User {
   // Soft-delete: archived members cannot log in but their records are preserved
   archivedAt    DateTime?
 
+  // Photos
+  avatarUrl       String?  // Presence photo shown in video sessions and on profile; set from profile or in-session
+
   // Extended profile fields
   preferredName   String?
   title           String?     // Display title: "Guiding Teacher", "Program Registrar", etc.

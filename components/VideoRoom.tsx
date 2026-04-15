@@ -2,33 +2,29 @@
 
 /**
  * VideoRoom — LiveKit video conferencing room.
- * Uses @livekit/components-react VideoConference (pre-built UI with
- * controls, fullscreen, chat, screen share — all handled by LiveKit).
+ *
+ * Wraps LiveKitRoom and renders RIMConference, our custom layout that provides:
+ * - Custom participant tiles with avatar overlays and signal badges
+ * - Nonverbal toolbar (✋ ❤️ 🙏 ✓ ✗)
+ * - Host participants panel with per-participant mute and raised hand queue
+ * - Video settings panel: background blur, brightness/contrast, presence photo upload
  *
  * Video quality: 720p default, adaptive bitrate up to 1.5Mbps.
  * LiveKit's simulcast sends multiple quality layers — participants
  * with slower connections automatically receive a lower layer.
+ *
+ * Audio (host): Echo cancellation ON, noise suppression OFF, auto-gain OFF.
+ *   This preserves meditation bells, singing bowls, and music while preventing
+ *   speaker feedback.
+ * Audio (participant): Full speech processing ON.
+ *   DTX enabled — during silence, almost no audio bandwidth is used.
  */
 
 import { useEffect } from "react";
-import { LiveKitRoom, VideoConference } from "@livekit/components-react";
+import { LiveKitRoom } from "@livekit/components-react";
 import { RoomOptions, VideoPresets } from "livekit-client";
+import RIMConference from "./session/RIMConference";
 
-/**
- * Room options for high-quality meditation sessions:
- *
- * Video: 720p with simulcast (3 layers for adaptive quality)
- * Audio (host): High-fidelity — noise suppression OFF, auto-gain OFF.
- *   Echo cancellation ON (prevents speaker feedback without affecting bells/music).
- *   This lets meditation bells, singing bowls, and music pass through clean
- *   and full instead of being clipped as "background noise."
- * Audio (participant): DTX enabled — during silence, almost no audio bandwidth
- *   is used. Perfect for 35 people sitting in silent meditation.
- *
- * The isHost prop controls whether high-fidelity audio is enabled.
- * Participants keep default speech-optimized audio (noise suppression ON)
- * so their background sounds don't leak into the session.
- */
 function buildRoomOptions(isHost: boolean): RoomOptions {
   return {
     videoCaptureDefaults: {
@@ -59,12 +55,15 @@ function buildRoomOptions(isHost: boolean): RoomOptions {
 interface Props {
   token: string;
   wsUrl: string;
-  hiFiAudio?: boolean;
+  isHost?: boolean;
+  programSlug: string;
+  avatarUrl?: string | null;
   onLeave?: () => void;
 }
 
-export default function VideoRoom({ token, wsUrl, hiFiAudio = false, onLeave }: Props) {
-  const roomOptions = buildRoomOptions(hiFiAudio);
+export default function VideoRoom({ token, wsUrl, isHost = false, programSlug, avatarUrl, onLeave }: Props) {
+  const roomOptions = buildRoomOptions(isHost);
+
   // Load LiveKit styles only when video room mounts — prevents global CSS leak
   useEffect(() => {
     const id = "livekit-styles";
@@ -88,7 +87,11 @@ export default function VideoRoom({ token, wsUrl, hiFiAudio = false, onLeave }: 
         data-lk-theme="default"
         style={{ height: "100%" }}
       >
-        <VideoConference />
+        <RIMConference
+          isHost={isHost}
+          programSlug={programSlug}
+          initialAvatarUrl={avatarUrl ?? null}
+        />
       </LiveKitRoom>
     </div>
   );

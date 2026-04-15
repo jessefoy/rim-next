@@ -16,6 +16,7 @@
     "@blocknote/server-util": "^0.47.1",
     "@livekit/components-react": "^2.9.20",
     "@livekit/components-styles": "^1.2.0",
+    "@livekit/track-processors": "^0.7.2",
     "@mantine/core": "^8.3.18",
     "@mantine/hooks": "^8.3.18",
     "@portabletext/react": "^6.0.2",
