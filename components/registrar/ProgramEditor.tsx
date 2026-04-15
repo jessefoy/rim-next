@@ -1261,12 +1261,12 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
             <div className="pe-field">
               <span className="pe-field__label">Start Date &amp; Time</span>
               <span className="pe-field__help">The date range for this program. For single-day events, set both to the same date.</span>
-              <DateTimePicker value={startDatetime} onChange={setStartDatetime} />
+              <DateTimePicker value={startDatetime} onChange={(v) => { setStartDatetime(v); setDateTextDirty(false); setTimeTextDirty(false); markDirty(); }} />
             </div>
 
             <div className="pe-field">
               <span className="pe-field__label">End Date &amp; Time</span>
-              <DateTimePicker value={endDatetime} onChange={setEndDatetime} />
+              <DateTimePicker value={endDatetime} onChange={(v) => { setEndDatetime(v); setTimeTextDirty(false); markDirty(); }} />
             </div>
 
             <div className="pe-field">
@@ -1280,7 +1280,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                   { value: "MONTHLY", label: "Monthly" },
                 ].map((opt) => (
                   <label key={opt.value} className={`pe-option-card${recurrenceFreq === opt.value ? " pe-option-card--active" : ""}`}>
-                    <input type="radio" name="recurrenceFreq" checked={recurrenceFreq === opt.value} onChange={() => setRecurrenceFreq(opt.value)} />
+                    <input type="radio" name="recurrenceFreq" checked={recurrenceFreq === opt.value} onChange={() => { setRecurrenceFreq(opt.value); setDateTextDirty(false); markDirty(); }} />
                     <span className="pe-option-card__mark" />
                     {opt.label}
                   </label>
@@ -1297,7 +1297,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                     min="1"
                     max="52"
                     value={recurrenceInterval}
-                    onChange={(e) => setRecurrenceInterval(e.target.value)}
+                    onChange={(e) => { setRecurrenceInterval(e.target.value); setDateTextDirty(false); markDirty(); }}
                     className="pe-input pe-input--narrow"
                   />
                   <span>{recurrenceFreq === "DAILY" ? "day(s)" : recurrenceFreq === "WEEKLY" ? "week(s)" : "month(s)"}</span>
@@ -1314,7 +1314,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                       <input
                         type="checkbox"
                         checked={recurrenceDays.includes(d.value)}
-                        onChange={() => setRecurrenceDays(toggleDay(recurrenceDays, d.value))}
+                        onChange={() => { setRecurrenceDays(toggleDay(recurrenceDays, d.value)); setDateTextDirty(false); markDirty(); }}
                       />
                       {d.label}
                     </label>
