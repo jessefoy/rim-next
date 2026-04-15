@@ -258,46 +258,110 @@ h4 { font-size: var(--text-h4); }
 
 
 /* ═══════════════════════════════════════════════════
-   PROGRAM LIST ROW
-   Used on community-programs and elsewhere.
-   Replaces Webflow's fixed-pixel grid (802px 1fr) with
-   a clean flexbox layout: info left, button right.
+   lr- LIST ROW
+   Universal list-row card: community programs, dashboard
+   Zoom links, My Library, course lessons (SeriesListItem).
+   Replaces Webflow's programlistblock + related classes.
 ═══════════════════════════════════════════════════ */
 
-.programlistblock {
-  display: flex;           /* override w-layout-grid's display:grid */
+.lr-row {
+  display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  gap: 24px;
+  background: #fff;
+  padding: 20px 24px;
+  margin-bottom: 3px; /* tight card stack */
 }
 
-/* Button column: never shrink, always push to the right */
-.program-links {
+.lr-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.lr-name {
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--rim-text);
+  margin: 0 0 4px;
+  line-height: 1.4;
+}
+
+.lr-badge {
+  font-size: var(--text-small);
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+.lr-schedule {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--rim-mid);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.lr-note {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  font-style: italic;
+  color: var(--rim-mid);
+  margin: 6px 0 0;
+}
+
+.lr-announcement {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: #7a4f00;
+  background: #fff8ec;
+  padding: 6px 12px;
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+.lr-action {
   flex-shrink: 0;
 }
 
-/* Tablet (≤991px): same flex layout, just tighter */
-@media screen and (max-width: 991px) {
-  .programlistblock {
-    gap: 16px;
-  }
+.lr-btn {
+  display: inline-block;
+  padding: 10px 22px;
+  background: transparent;
+  border: 1.5px solid var(--rim-blue);
+  color: var(--rim-blue);
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+  cursor: pointer;
+}
+.lr-btn:hover {
+  background: var(--rim-blue);
+  color: #fff;
+}
+.lr-btn--disabled {
+  opacity: 0.45;
+  cursor: default;
+  border-color: var(--rim-mid);
+  color: var(--rim-mid);
+}
+.lr-btn--disabled:hover {
+  background: transparent;
+  color: var(--rim-mid);
 }
 
-/* Mobile (≤767px): stack vertically, button below info */
-@media screen and (max-width: 767px) {
-  .programlistblock {
+@media (max-width: 430px) {
+  .lr-row {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
+    padding: 16px 18px;
   }
-
-  .program-links {
-    /* On mobile Webflow uses flex-direction: row-reverse which
-       visually reversed the button. With flexbox column stacking
-       we just left-align the button naturally. */
-    justify-content: flex-start;
-    margin-top: 0;
-  }
+  .lr-action { width: 100%; }
+  .lr-btn { width: 100%; text-align: center; }
 }
 
 
@@ -2745,6 +2809,70 @@ h4 { font-size: var(--text-h4); }
   color: #aaa;
   text-align: center;
   line-height: 1.4;
+}
+
+
+/* ═══════════════════════════════════════════════════
+   COMMUNITY PROGRAMS LIST PAGE  (pl- prefix)
+   /community-programs — hero + program listings by category.
+═══════════════════════════════════════════════════ */
+
+/* Hero — uses rim-section--teal as the band; pl- adds text styles */
+.pl-hero__title {
+  font-family: var(--font-serif);
+  font-size: var(--text-h1);
+  color: #fff;
+  margin: 0 0 20px;
+  line-height: var(--lh-heading);
+}
+
+.pl-hero__body {
+  font-size: var(--text-body);
+  color: rgba(255, 255, 255, 0.88);
+  max-width: 640px;
+  margin: 0 0 36px;
+  line-height: var(--lh-body);
+}
+
+.pl-hero__cta {
+  display: inline-block;
+  background: #fff;
+  color: var(--rim-blue);
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  font-weight: 600;
+  padding: 13px 28px;
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+.pl-hero__cta:hover { opacity: 0.88; }
+
+/* Category groups */
+.pl-cat {
+  margin-bottom: 56px;
+}
+.pl-cat:last-child {
+  margin-bottom: 0;
+}
+
+.pl-cat__heading {
+  font-family: var(--font-serif);
+  font-size: var(--text-h3);
+  color: var(--rim-text);
+  margin: 0 0 0;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #d5d5d5;
+  line-height: var(--lh-heading);
+}
+
+.pl-list {
+  display: flex;
+  flex-direction: column;
+  margin-top: 0;
+}
+
+@media (max-width: 430px) {
+  .pl-hero__title { font-size: var(--text-h2); }
 }
 
 

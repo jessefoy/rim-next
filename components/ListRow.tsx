@@ -1,21 +1,21 @@
 import Link from "next/link";
 
 /**
- * ListRow — w-layout-grid programlistblock
+ * ListRow — lr-row
  *
- * The universal list-row card used across the site:
- *   - Community Programs listing
+ * Universal list-row card used across the site:
+ *   - Community Programs listing (/community-programs)
  *   - Dashboard Zoom links
  *   - Dashboard My Library
  *   - Course lesson lists (via SeriesListItem)
  *
  * Props:
- *   title        — bold event/item name (.event-name)
- *   subtitle     — day/time/location text (.text-block-46)
- *   note         — italic pre-session or early-arrival note (.presession-message)
- *   announcement — special announcement block (.special-announcment)
- *   badge        — inline text appended to title (.audio-badge), e.g. " 🎧"
- *   href         — button link; if omitted the button is rendered as a span
+ *   title        — bold event/item name (.lr-name)
+ *   subtitle     — day/time/location text (.lr-schedule)
+ *   note         — italic pre-session or early-arrival note (.lr-note)
+ *   announcement — special announcement block (.lr-announcement)
+ *   badge        — inline text appended to title (.lr-badge), e.g. " 🎧"
+ *   href         — button link; if omitted the button renders as a span
  *   buttonLabel  — button text (default: "Go →")
  *   external     — opens in new tab (for Zoom links)
  *   disabled     — grayed non-clickable button (e.g. "Coming Soon")
@@ -44,7 +44,7 @@ export default function ListRow({
   external = false,
   disabled = false,
 }: ListRowProps) {
-  const btnClass = "program-list-button w-button";
+  const btnClass = disabled ? "lr-btn lr-btn--disabled" : "lr-btn";
 
   const button =
     href && !disabled ? (
@@ -56,35 +56,23 @@ export default function ListRow({
         {buttonLabel}
       </Link>
     ) : (
-      <span className={btnClass} style={{ opacity: 0.5, cursor: "default" }}>
+      <span className={btnClass}>
         {buttonLabel}
       </span>
     );
 
   return (
-    <div className="w-layout-grid programlistblock">
-      <div className="dashboard-list-name-and-date-container">
-        <div className="name-day-and-time-block">
-          <div className="dashboard-title-container">
-            <h1 className="event-name">
-              {title}
-              {badge && <span className="audio-badge">{badge}</span>}
-            </h1>
-          </div>
-          {subtitle && (
-            <div className="dashboard-date-time-container">
-              <div className="text-block-46">{subtitle}</div>
-            </div>
-          )}
-        </div>
-        {note && <h1 className="presession-message">{note}</h1>}
-        {announcement && (
-          <div className="special-program-announcment">
-            <h1 className="special-announcment">{announcement}</h1>
-          </div>
-        )}
+    <div className="lr-row">
+      <div className="lr-info">
+        <p className="lr-name">
+          {title}
+          {badge && <span className="lr-badge">{badge}</span>}
+        </p>
+        {subtitle && <p className="lr-schedule">{subtitle}</p>}
+        {note && <p className="lr-note">{note}</p>}
+        {announcement && <p className="lr-announcement">{announcement}</p>}
       </div>
-      <div className="program-links">{button}</div>
+      <div className="lr-action">{button}</div>
     </div>
   );
 }
