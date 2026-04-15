@@ -2003,6 +2003,62 @@ Links teachers to programs via actual user accounts instead of plain text names.
 
 ---
 
+## 41. Program Editor — Design Pass + Editor Standardization ✅ Built — session 82 (2026-04-14)
+
+### What it does
+
+A visual and interaction design pass across all seven Program Editor tabs, fixing three categories of issues: inconsistent exclusive-choice UI (radio buttons → option cards), broken/inconsistent rich text editor styling throughout the codebase, and a sloppy guest link display in the Schedule tab.
+
+### Option cards (`pe-option-cards`)
+
+Four fieldsets converted from plain radio buttons to card-based selectors:
+
+| Field | Options |
+|---|---|
+| `programFormat` | In-person / Virtual / Hybrid |
+| `venue` | At RIM / Other location |
+| Recurrence | One-time / Daily / Weekly / Monthly |
+| `danaMode` | None / Voluntary / Base + Dana / Fixed |
+
+CSS classes: `.pe-option-cards` (flex row), `.pe-option-card` (individual card), `.pe-option-card--selected` (blue ring + bg tint). Selected state driven by React state (JS class toggle), not CSS `:checked` — the radio input is hidden (`position: absolute; opacity: 0`). Mobile: cards stack to column layout at 430px.
+
+### Registration tab — visibility-card toggles
+
+"Registration enabled" and "Registration closed" checkboxes converted to `pe-visibility-option` card pattern (same as Visibility tab toggles). `<hr className="pe-section-divider">` separates status controls from capacity/deadline fields.
+
+### Rich text editor standardization (global)
+
+Fixed three categories of CSS bugs affecting editors throughout the codebase:
+
+1. **Double-box bug** — `.bn-container` (inner BlockNote div) was receiving border/background, creating a visual border inside the outer `rim-prose-editor` border. Fixed: outer wrapper gets `border: 1px solid var(--rim-rule); border-radius: 8px; overflow: hidden`, inner `.bn-container` gets `border: none; background: transparent`.
+
+2. **Broken selector** — `.rim-prose-editor-wrap` doesn't exist; real class is `.rim-prose-editor`. Fixed in `.th-card` (CourseEditor/LessonEditor) and `.vol-detail__notes-wrap` (VolunteerTable).
+
+3. **Global font inheritance** — `rim-prose-editor .bn-editor` now explicitly sets `font-size: 15px; line-height: 1.65`. Without this it inherits 18px body text.
+
+**Borderless embedded contexts** (no outer border needed — they live inside a pre-styled container): `si-composer__editor`, `hub-conv-reply-form`, `hub-conv-post__edit`, `hub-home__edit-panel`, `hub-tasks-detail__body` — all get `border: none; border-radius: 0; background: transparent` on `rim-prose-editor`.
+
+### Guest link redesign (Schedule tab)
+
+Replaced CSS class–based layout with pure inline styles (immune to global `button` style cascade). Design: warm parchment card (`#f5f3f0`) with left blue accent border, full-width `<input readOnly>` for the URL (click to select all; `flex: 1; min-width: 0` for truncation), Copy button that turns green on success, Reset action as inline text link.
+
+**CSS lesson learned:** global `button { background; color }` rules override class-based rules at the same or lower specificity — inline styles are immune to this and are the correct approach for one-off widgets that aren't meant to be a reusable component.
+
+### Help link in editor header
+
+`? Help` button added to ProgramEditor header alongside "View program page →". Links to `/admin/manual#program-editor` in a new tab. Styled as `pe-btn pe-btn--ghost pe-btn--small`, 13px, `var(--rim-mid)` color.
+
+### Key files
+
+| File | Change |
+|---|---|
+| `components/registrar/ProgramEditor.tsx` | Option cards, Registration toggles, Dashboard section, guest link inline styles, Help link |
+| `public/css/custom.css` | Option card CSS, editor standardization rules, global font fix, broken selector fixes |
+| `prisma/seed-manual-program-manager.mjs` | Full 7-tab manual rewrite with all current features |
+| `prisma/migrate.mjs` | Migration flag bumped to `seed_manual_program_manager_v3` |
+
+---
+
 ## Session Log
 
 | Date | Summary |

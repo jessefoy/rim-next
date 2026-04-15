@@ -8,6 +8,74 @@ Each entry records what was accomplished, decisions made, and what to tackle nex
 
 ---
 
+## Session: 2026-04-14 (session 82)
+
+**Focus:** Program Editor UX design pass — option cards, editor standardization, guest link redesign, Help link, manual.
+
+### Accomplished this session
+
+1. **Program Editor design pass — option cards for exclusive choices**
+   Converted four fieldsets from plain radio buttons to `.pe-option-cards` / `.pe-option-card` cards:
+   - `programFormat` (In-person / Virtual / Hybrid)
+   - `venue` (At RIM / Other location)
+   - Recurrence (One-time / Daily / Weekly / Monthly)
+   - `danaMode` (None / Voluntary / Base + Dana / Fixed)
+   
+   Selected state toggled via JS (`.pe-option-card--selected` class), not CSS `:checked` — the pattern required is selected-state-driven-by-React-state, not DOM state.
+
+2. **Registration tab — visibility-card toggles**
+   Converted "Registration enabled" and "Registration closed" checkboxes to `pe-visibility-option` cards (same pattern as Visibility tab), with section `<hr>` dividers between status and config fields.
+
+3. **Dashboard tab — section grouping**
+   Wrapped the two Dashboard fields in a `pe-card__section` with a `pe-tab-intro` description paragraph explaining the Dashboard card context.
+
+4. **Rich text editor standardization — global fix**
+   - Fixed double-box bug: `.bn-container` (the inner BlockNote div) was receiving border/background, creating a border inside the outer `rim-prose-editor` wrapper. Fixed by targeting the outer wrapper only for border/focus ring, and `border: none; background: transparent` on inner `.bn-container`.
+   - Fixed broken CSS selector `.rim-prose-editor-wrap` (doesn't exist → `.rim-prose-editor`) in `.th-card` and `.vol-detail__notes-wrap` contexts.
+   - Fixed global font: `rim-prose-editor .bn-editor` now explicitly sets `font-size: 15px; line-height: 1.65` so it doesn't inherit 18px body text.
+   - Added `border: none; border-radius: 0; background: transparent` to borderless embedded contexts: `si-composer__editor`, `hub-conv-reply-form`, `hub-conv-post__edit`, `hub-home__edit-panel`, `hub-tasks-detail__body`.
+   - Standard `pe-card` editor rule: `border: 1px solid var(--rim-rule); border-radius: 8px; overflow: hidden` on outer wrapper, `border: none` on `.bn-container`, focus ring via `:focus-within`.
+
+5. **Guest link redesign (Schedule tab)**
+   Replaced the broken CSS-class approach with pure inline styles (immune to cascade). Final design: warm parchment card (`#f5f3f0`) with left blue accent border, monospace URL in readonly input (click to select), Copy button (turns green on success), and Reset link as inline text action. Key CSS issue: global `button` styles override class-based rules — inline styles are the correct solution for one-off widgets.
+
+6. **Help link in editor header**
+   Added `? Help` button to the ProgramEditor header (next to "View program page →") linking to `/admin/manual#program-editor` in a new tab. Styled as ghost/small, muted color.
+
+7. **Program Manager manual — full rewrite**
+   Rewrote `prisma/seed-manual-program-manager.mjs` to document all 7 tabs with every current feature:
+   - Content: Name, Slug (locked), Tagline, Program Image, Description, Pull Quote, Special Notes, Teacher/Facilitators
+   - Schedule: Schedule Label (auto-gen), Time Label (auto-gen), DateTimePicker, Program Format (option cards), Venue (option cards), Start/End datetime, Recurrence (option cards), Open Access guest link (Copy/Reset)
+   - Categories: category dropdown, reorder by ↑↓
+   - Registration: visibility-card toggles, Capacity, Deadline, Custom Questions, Confirmation Message, Reminder Date, Reminder Message
+   - Dana: Dana Mode (option cards), Amounts, Dana Step Message, Template system (built-ins + custom save/load/delete), Program Page Dana Note
+   - Dashboard: Special Announcement, Early Arrival Message
+   - Visibility: Sort Order, Hide from public, Hide from dashboards + Auto-show date
+   - Managing Registrations: stat bar, spot-opened alert, filters, per-row detail, all actions, bulk reminders
+   - Common Situations: 6 scenarios fully documented
+   - Managing Categories: category management page
+   
+   Bumped migration flag to `seed_manual_program_manager_v3`.
+
+### CSS added this session (`custom.css`)
+- `.pe-option-cards`, `.pe-option-card`, `.pe-option-card--selected`, `.pe-option-card__radio`, `.pe-option-card__label`, `.pe-option-card__desc`
+- `pe-form` gap 24→20px, `pe-field` gap 4→6px, `pe-field__help` 14→13px
+- Mobile override: option cards column layout below 430px
+- Global `rim-prose-editor` font rule + double-box fix
+- Removed `.pe-open-access-link` CSS (replaced by inline styles in JSX)
+
+### Connections
+- `ProgramEditor.tsx` — core UI file touched throughout
+- `custom.css` — option card system, editor standardization, removed broken selectors
+- `seed-manual-program-manager.mjs` + `migrate.mjs` — manual content updated and migration flag bumped
+- Rich text fixes cascade to: CourseEditor (`th-card`), LessonEditor (`th-card`), VolunteerTable (`vol-detail__notes-wrap`), Support Inbox composer (`si-composer__editor`), Hub conversations (`hub-conv-reply-form`, `hub-conv-post__edit`), Hub home editor (`hub-home__edit-panel`), Hub task detail (`hub-tasks-detail__body`)
+
+### Next session
+- Watch for any visual regressions in hubs/tools after editor CSS changes
+- Consider whether any other tools need the option-card pattern applied
+
+---
+
 ## Session: 2026-04-13 (session 81)
 
 **Focus:** Documentation reset and verification — no feature work.

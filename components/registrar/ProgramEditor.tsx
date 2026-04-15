@@ -860,11 +860,16 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
 
       <div className="pe-editor__header">
         <h2 className="pe-editor__title">{isEditing ? "Edit Program" : "New Program"}</h2>
-        {isEditing && slug && (
-          <a href={`/programs/${slug}`} target="_blank" rel="noopener noreferrer" className="pe-link pe-link--view">
-            View program page →
-          </a>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 16, marginLeft: "auto" }}>
+          {isEditing && slug && (
+            <a href={`/programs/${slug}`} target="_blank" rel="noopener noreferrer" className="pe-link pe-link--view">
+              View program page →
+            </a>
+          )}
+          <Link href="/admin/manual/program-manager" target="_blank" className="pe-link pe-link--view">
+            Help →
+          </Link>
+        </div>
       </div>
 
       {error && <div className="pe-msg pe-msg--error">{error}</div>}
