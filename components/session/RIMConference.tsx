@@ -159,6 +159,16 @@ export default function RIMConference({ isHost, programSlug, initialAvatarUrl }:
 
           {chatOpen && (
             <div className="rim-conference__chat">
+              <div className="rim-chat-header">
+                <span className="rim-chat-header__title">Chat</span>
+                <button
+                  className="rim-chat-header__close"
+                  onClick={() => setChatOpen(false)}
+                  aria-label="Close chat"
+                >
+                  ✕
+                </button>
+              </div>
               <Chat />
             </div>
           )}

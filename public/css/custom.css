@@ -12422,15 +12422,41 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   flex-direction: column;
   min-height: 0;
 }
-/* Override LiveKit's fixed width and align-items so the chat fills its container */
+/* Our own chat header with a working close button */
+.rim-chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  flex-shrink: 0;
+}
+.rim-chat-header__title {
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  font-weight: 600;
+  color: #eee;
+}
+.rim-chat-header__close {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+.rim-chat-header__close:hover { color: #fff; background: rgba(255,255,255,0.1); }
+/* Override LiveKit's fixed width and hide its built-in header (close button doesn't work with our state) */
 .rim-conference__chat .lk-chat {
   width: 100% !important;
   height: 100%;
   min-height: 0;
   background: #1a1a1a;
   align-items: stretch;
-  grid-template-rows: var(--lk-chat-header-height) 1fr var(--lk-control-bar-height);
+  grid-template-rows: 0 1fr var(--lk-control-bar-height); /* 0 hides LK's header row */
 }
+.rim-conference__chat .lk-chat-header { display: none; }
 /* Ensure messages area scrolls within available space */
 .rim-conference__chat .lk-chat-messages {
   overflow-y: auto;
@@ -12557,25 +12583,18 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   from { transform: scale(0.4); opacity: 0; }
   to   { transform: scale(1);   opacity: 1; }
 }
-/* Pin button — top-right, revealed on hover */
-.rim-tile-pin {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 4;
-  background: rgba(0,0,0,0.55);
-  border: 1px solid rgba(255,255,255,0.2);
-  border-radius: 5px;
-  padding: 4px 7px;
-  color: #eee;
-  font-size: 14px;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.15s, background 0.12s;
-  line-height: 1;
+/* Make LiveKit's built-in pin button larger and more visible on hover */
+.rim-tile-wrapper .lk-focus-toggle-button {
+  padding: 6px 10px;
+  font-size: 16px;
+  background: rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 6px;
+  z-index: 5;
 }
-.rim-tile-wrapper:hover .rim-tile-pin { opacity: 1; }
-.rim-tile-pin:hover { background: rgba(0,0,0,0.75); }
+.rim-tile-wrapper .lk-focus-toggle-button:hover {
+  background: rgba(0,0,0,0.8);
+}
 
 /* ─── Nonverbal signal toolbar ───────────────────────────────── */
 .rim-signals {
