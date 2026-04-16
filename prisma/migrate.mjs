@@ -135,6 +135,21 @@ const migrations = [
       }
     },
   },
+  {
+    name: "add_hide_from_weekly_schedule",
+    async run() {
+      const cols = await db.$queryRawUnsafe(`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'programs' AND column_name = 'hideFromWeeklySchedule'
+      `);
+      if (cols.length === 0) {
+        await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN "hideFromWeeklySchedule" BOOLEAN NOT NULL DEFAULT false`);
+        console.log(`  ✔ Applied: ${this.name}`);
+      } else {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+      }
+    },
+  },
 ];
 
 async function main() {
