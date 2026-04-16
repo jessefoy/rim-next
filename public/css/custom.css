@@ -12417,13 +12417,31 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   flex-shrink: 0;
   background: #1a1a1a;
   border-left: 1px solid rgba(255,255,255,0.1);
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  min-height: 0;
 }
+/* Override LiveKit's fixed width and align-items so the chat fills its container */
 .rim-conference__chat .lk-chat {
+  width: 100% !important;
   height: 100%;
+  min-height: 0;
   background: #1a1a1a;
+  align-items: stretch;
+  grid-template-rows: var(--lk-chat-header-height) 1fr var(--lk-control-bar-height);
+}
+/* Ensure messages area scrolls within available space */
+.rim-conference__chat .lk-chat-messages {
+  overflow-y: auto;
+  align-self: stretch;
+  min-height: 0;
+}
+/* Focus layout: remove the default bottom-bar height deduction
+   since our ControlBar is outside the video container */
+.rim-conference__video .lk-focus-layout-wrapper,
+.rim-conference__video .lk-grid-layout-wrapper {
+  height: 100%;
 }
 @media (max-width: 640px) {
   .rim-conference__chat { width: 100%; position: absolute; inset: 0; z-index: 20; }
@@ -12848,6 +12866,12 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 }
 .rim-settings__avatar-remove:hover { color: #e55; }
 .rim-settings__file-input { display: none; }
+.rim-settings__error {
+  font-size: var(--text-xs);
+  color: #f87;
+  margin: 8px 0 0;
+  font-family: var(--font-sans);
+}
 @media (max-width: 430px) {
   .rim-settings { width: 100%; }
 }

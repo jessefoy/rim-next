@@ -3,19 +3,25 @@
 /**
  * RIMParticipantTile — wraps LiveKit's ParticipantTile with:
  * - Avatar image overlay shown when camera is off
- * - Nonverbal signal badge (hand, heart, namaste, yes, no) — reactive via useParticipantInfo
- * - Pin button (FocusToggle) shown on hover — promotes participant to focus layout
+ * - Nonverbal signal badge (hand, heart, namaste, yes, no) — reactively updated
  *
- * Must be rendered as a child of GridLayout or CarouselLayout
- * (provides TrackRefContext + ParticipantContext).
+ * Participant comes from trackRef.participant, NOT from ParticipantContext.
+ * GridLayout only provides TrackRefContext; it does NOT provide ParticipantContext.
+ * Using useMaybeParticipantContext() here would always return null and fall
+ * through to the early return, so avatars and signals would never render.
+ *
+ * useParticipantInfo({ participant }) subscribes to participantInfoObserver,
+ * which fires on ParticipantEvent.ParticipantMetadataChanged — so signal badges
+ * and the avatar re-render immediately when metadata changes (e.g., hand raise).
+ *
+ * The built-in FocusToggle (pin to speaker view) is part of LiveKit's default
+ * ParticipantTile content and shows on hover automatically. No custom pin needed.
  */
 
 import {
   ParticipantTile,
   useMaybeTrackRefContext,
-  useMaybeParticipantContext,
   useParticipantInfo,
-  FocusToggle,
 } from "@livekit/components-react";
 import { Track } from "livekit-client";
 
@@ -41,9 +47,14 @@ function parseMetadata(raw: string | undefined): ParticipantMetadata {
 
 export default function RIMParticipantTile() {
   const trackRef = useMaybeTrackRefContext();
-  const participant = useMaybeParticipantContext();
-  // useParticipantInfo subscribes to participantInfoObserver — re-renders when metadata changes
-  const { metadata: metadataRaw } = useParticipantInfo();
+  // Get participant directly from the track reference.
+  // GridLayout provides TrackRefContext but NOT ParticipantContext,
+  // so useMaybeParticipantContext() would always return null here.
+  const participant = trackRef?.participant ?? undefined;
+
+  // Reactive metadata: fires whenever this participant's metadata changes
+  // (works for both local participant raising hand and remote participants)
+  const { metadata: metadataRaw } = useParticipantInfo({ participant });
 
   if (!trackRef || !participant) {
     return (
@@ -55,15 +66,17 @@ export default function RIMParticipantTile() {
 
   const meta = parseMetadata(metadataRaw);
 
-  // Camera is off if there's no publication or the track is muted
+  // Camera is off when there's no publication (placeholder) or the track is muted
   const isVideoOff =
     trackRef.source === Track.Source.Camera &&
     (!trackRef.publication || trackRef.publication.isMuted);
 
   return (
     <div className="rim-tile-wrapper">
+      {/* ParticipantTile renders video, name bar, speaking indicator, and
+          the built-in hover-reveal FocusToggle (pin) button */}
       <ParticipantTile />
-      {/* Avatar shown when camera off */}
+      {/* Avatar shown when camera is off — overlays the LiveKit placeholder */}
       {isVideoOff && meta.avatarUrl && (
         <div
           className="rim-tile-avatar"
@@ -77,8 +90,6 @@ export default function RIMParticipantTile() {
           {SIGNAL_EMOJI[meta.signal]}
         </div>
       )}
-      {/* Pin button — hover to reveal, click to enter focus/speaker view */}
-      <FocusToggle trackRef={trackRef} className="rim-tile-pin" />
     </div>
   );
 }
