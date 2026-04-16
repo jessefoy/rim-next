@@ -12544,6 +12544,11 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   width: 100%;
   height: 100%;
 }
+/* Ensure LiveKit's tile fills our wrapper so name bar stays visible */
+.rim-tile-wrapper .lk-participant-tile {
+  width: 100%;
+  height: 100%;
+}
 /* Avatar — centered rounded square like Zoom */
 .rim-tile-avatar {
   position: absolute;
