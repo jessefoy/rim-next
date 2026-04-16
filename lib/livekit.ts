@@ -21,11 +21,13 @@ export async function createRoomToken(
   userName: string,
   roomName: string,
   isHost: boolean,
+  metadata?: string,
 ): Promise<string> {
   const token = new AccessToken(API_KEY, API_SECRET, {
     identity: userId,
     name: userName,
     ttl: "6h",
+    metadata,
   });
   token.addGrant({
     room: roomName,

@@ -89,11 +89,17 @@ export async function POST(req: NextRequest) {
   const roomName = roomNameForProgram(program.slug, sessionDate);
   const userName = session.user.name || "Member";
 
+  // Seed avatar into participant metadata so it's present from the moment they connect
+  const initialMeta = caller?.avatarUrl
+    ? JSON.stringify({ avatarUrl: caller.avatarUrl })
+    : undefined;
+
   const token = await createRoomToken(
     session.user.id,
     userName,
     roomName,
     isHost,
+    initialMeta,
   );
 
   return NextResponse.json({
