@@ -12524,9 +12524,9 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   top: 50%;
   left: 50%;
   transform: translate(-50%, -55%);
-  height: 40%;
+  height: 50%;
   min-height: 80px;
-  max-height: 240px;
+  max-height: 280px;
   aspect-ratio: 1;
   background-size: cover;
   background-position: center;
