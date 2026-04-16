@@ -12561,9 +12561,16 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   z-index: 2;
   pointer-events: none;
 }
-/* Name bar must sit above the avatar overlay */
+/* Name bar — always visible, above avatar overlay */
 .rim-tile-wrapper .lk-participant-metadata {
   z-index: 3;
+  opacity: 1 !important;
+  display: flex !important;
+}
+.rim-tile-wrapper .lk-participant-metadata-item {
+  background: rgba(0,0,0,0.6);
+  padding: 4px 8px;
+  font-size: var(--text-ui);
 }
 /* Hide LiveKit's grey silhouette when our avatar is showing */
 .rim-tile-wrapper--avatar .lk-participant-placeholder {
