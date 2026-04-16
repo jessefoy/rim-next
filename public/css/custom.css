@@ -12518,13 +12518,15 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   width: 100%;
   height: 100%;
 }
-/* Avatar shown when camera off — centered circle over the LiveKit placeholder */
+/* Avatar — centered circle (matches Zoom: ~30% of tile, scales with size) */
 .rim-tile-avatar {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
-  width: min(40%, 120px);
+  transform: translate(-50%, -55%); /* slight upward nudge to clear name bar */
+  width: 30%;
+  min-width: 64px;
+  max-width: 180px;
   aspect-ratio: 1;
   background-size: cover;
   background-position: center;
@@ -12533,18 +12535,26 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   z-index: 2;
   pointer-events: none;
 }
-/* Signal badge — bottom-left of the tile */
+/* Name bar must sit above the avatar overlay */
+.rim-tile-wrapper .lk-participant-metadata {
+  z-index: 3;
+}
+/* Signal badge — bottom-left like Zoom reactions, larger */
 .rim-tile-signal {
   position: absolute;
-  bottom: 34px; /* above participant name bar */
-  left: 8px;
-  font-size: 22px;
-  z-index: 3;
+  bottom: 36px; /* above participant name bar */
+  left: 10px;
+  font-size: 36px;
+  line-height: 1;
+  z-index: 4;
   pointer-events: none;
-  animation: rim-signal-pop 0.2s ease-out;
+  background: rgba(0,0,0,0.5);
+  border-radius: 8px;
+  padding: 4px 6px;
+  animation: rim-signal-pop 0.25s ease-out;
 }
 @keyframes rim-signal-pop {
-  from { transform: scale(0.5); opacity: 0; }
+  from { transform: scale(0.4); opacity: 0; }
   to   { transform: scale(1);   opacity: 1; }
 }
 /* Pin button — top-right, revealed on hover */
