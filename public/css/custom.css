@@ -12583,7 +12583,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 }
 /* Hide LiveKit's grey silhouette when our avatar is showing */
 .rim-tile-wrapper--avatar .lk-participant-placeholder {
-  display: none;
+  display: none !important;
 }
 /* Signal badge — top-left of tile, large */
 .rim-tile-signal {
