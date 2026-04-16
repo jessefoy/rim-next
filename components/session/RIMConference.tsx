@@ -22,6 +22,7 @@ import {
   useTracks,
   LayoutContextProvider,
   useCreateLayoutContext,
+  useStartAudio,
   Chat,
   FocusLayout,
   FocusLayoutContainer,
@@ -175,7 +176,10 @@ export default function RIMConference({ isHost, programSlug, initialAvatarUrl }:
         </div>
 
         {/* LiveKit control bar (mic, cam, screen share, leave) */}
-        <ControlBar />
+        <ControlBar controls={{ screenShare: true, camera: true, microphone: true, leave: true }} />
+
+        {/* Audio playback prompt — Safari blocks audio until user interaction */}
+        <AudioPlaybackPrompt />
 
         {/* Audio renderer — must be present for remote audio to play */}
         <RoomAudioRenderer />
@@ -199,5 +203,28 @@ export default function RIMConference({ isHost, programSlug, initialAvatarUrl }:
         />
       </div>
     </LayoutContextProvider>
+  );
+}
+
+/**
+ * AudioPlaybackPrompt — clear overlay when browser blocks audio.
+ * Safari (and some other browsers) block audio playback until the user
+ * explicitly interacts with the page. This replaces LiveKit's small
+ * "Start Audio" button with a prominent, unmistakable prompt.
+ */
+function AudioPlaybackPrompt() {
+  const { mergedProps, canPlayAudio } = useStartAudio({ props: {} });
+
+  if (canPlayAudio) return null;
+
+  return (
+    <div className="rim-audio-prompt">
+      <button {...mergedProps} className="rim-audio-prompt__btn">
+        🔊 Tap to enable audio
+      </button>
+      <p className="rim-audio-prompt__hint">
+        Your browser requires a tap before audio can play
+      </p>
+    </div>
   );
 }

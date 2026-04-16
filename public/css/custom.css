@@ -12584,6 +12584,44 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   to   { transform: scale(1);   opacity: 1; }
 }
 /* Make LiveKit's built-in pin button larger and more visible on hover */
+/* Hide LiveKit's default Start Audio button — we have our own prompt */
+.rim-conference .lk-start-audio-button { display: none !important; }
+
+/* Audio playback prompt — shown when browser blocks audio (Safari) */
+.rim-audio-prompt {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(0,0,0,0.7);
+  z-index: 30;
+}
+.rim-audio-prompt__btn {
+  font-size: 18px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  padding: 14px 32px;
+  background: #135274;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.rim-audio-prompt__btn:hover { background: #1d6fa0; }
+.rim-audio-prompt__hint {
+  font-size: var(--text-small);
+  color: #aaa;
+  font-family: var(--font-sans);
+  margin: 0;
+}
+
 .rim-tile-wrapper .lk-focus-toggle-button {
   padding: 6px 10px;
   font-size: 16px;
