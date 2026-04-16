@@ -12574,8 +12574,12 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 }
 .rim-tile-wrapper .lk-participant-metadata-item {
   background: rgba(0,0,0,0.6);
-  padding: 4px 8px;
-  font-size: var(--text-ui);
+  padding: 5px 10px;
+  font-size: 16px;
+}
+.rim-tile-wrapper .lk-participant-name {
+  font-size: 16px;
+  font-weight: 500;
 }
 /* Hide LiveKit's grey silhouette when our avatar is showing */
 .rim-tile-wrapper--avatar .lk-participant-placeholder {
