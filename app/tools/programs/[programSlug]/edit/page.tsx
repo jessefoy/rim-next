@@ -96,6 +96,7 @@ export default async function EditProgramToolPage({
     removeFromProgramList: program.removeFromProgramList,
     dashboardShowAt: toCentralDatetime(program.dashboardShowAt),
     hideFromProgramPageList: program.hideFromProgramPageList,
+    hideFromWeeklySchedule: program.hideFromWeeklySchedule,
     isOpenAccess: program.isOpenAccess,
     guestAccessKey: program.guestAccessKey ?? "",
   };

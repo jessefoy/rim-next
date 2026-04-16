@@ -346,11 +346,12 @@ model Program {
   dayOfWeek            String[] // ["MO","TH"] — drives "Today" badge + listing day group
 
   // ── Visibility ─────────────────────────────────────────
-  sortOrder              Int?
-  removeFromProgramList  Boolean   @default(false)
-  dashboardShowAt        DateTime? // if set, auto-shows on dashboards on this date even if removeFromProgramList is true
-  hideFromProgramPageList Boolean  @default(false)
-  archivedAt             DateTime?
+  sortOrder                Int?
+  removeFromProgramList    Boolean   @default(false)
+  dashboardShowAt          DateTime? // if set, auto-shows on dashboards on this date even if removeFromProgramList is true
+  hideFromProgramPageList  Boolean   @default(false)
+  hideFromWeeklySchedule   Boolean   @default(false)
+  archivedAt               DateTime?
 
   // ── Relations ──────────────────────────────────────────
   registrations      Registration[]

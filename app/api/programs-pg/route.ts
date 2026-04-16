@@ -87,6 +87,7 @@ export async function POST(request: NextRequest) {
       removeFromProgramList: body.removeFromProgramList ?? false,
       dashboardShowAt: centralToUtc(body.dashboardShowAt),
       hideFromProgramPageList: body.hideFromProgramPageList ?? false,
+      hideFromWeeklySchedule: body.hideFromWeeklySchedule ?? false,
       isOpenAccess: body.isOpenAccess ?? false,
       guestAccessKey: body.isOpenAccess ? randomBytes(6).toString("hex") : null,
     },

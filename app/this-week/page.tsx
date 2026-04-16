@@ -83,21 +83,39 @@ export default async function ThisWeekPage({
   const dateRange = `${formatShortDate(monday)}–${formatShortDate(sunday)}, ${monday.getFullYear()}`;
 
   const programs = await db.program.findMany({
-    where: { archivedAt: null, hideFromProgramPageList: false },
+    where: { archivedAt: null, hideFromProgramPageList: false, hideFromWeeklySchedule: false },
     include: { category: true },
   });
 
-  // Group programs by day
+  /** Extract time-of-day in minutes from midnight (CT) for sorting */
+  function timeOfDay(p: { startDatetime: Date | null; timeText: string | null }): number {
+    // Prefer startDatetime — convert to CT and extract hours+minutes
+    if (p.startDatetime) {
+      const ct = new Date(p.startDatetime.toLocaleString("en-US", { timeZone: TZ }));
+      return ct.getHours() * 60 + ct.getMinutes();
+    }
+    // Fallback: parse timeText like "7:00 PM" or "9:30-10:30 AM"
+    if (p.timeText) {
+      const m = p.timeText.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+      if (m) {
+        let h = parseInt(m[1], 10);
+        const min = parseInt(m[2], 10);
+        const ampm = m[3].toUpperCase();
+        if (ampm === "PM" && h !== 12) h += 12;
+        if (ampm === "AM" && h === 12) h = 0;
+        return h * 60 + min;
+      }
+    }
+    return 9999; // no time info — sort to bottom
+  }
+
+  // Group programs by day, sorted by time of day within each day
   const dayGroups: { dayName: string; programs: typeof programs }[] = [];
   for (let i = 0; i < 7; i++) {
     const dateStr = weekDates[i];
     const dayPrograms = programs
       .filter((p) => isOccurrenceOnDate(p as ScheduleProgram, dateStr))
-      .sort((a, b) => {
-        if (!a.startDatetime) return 1;
-        if (!b.startDatetime) return -1;
-        return a.startDatetime.getTime() - b.startDatetime.getTime();
-      });
+      .sort((a, b) => timeOfDay(a) - timeOfDay(b));
     if (dayPrograms.length > 0) {
       dayGroups.push({ dayName: DAY_NAMES[i], programs: dayPrograms });
     }

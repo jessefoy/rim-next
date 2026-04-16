@@ -84,6 +84,7 @@ export interface ProgramData {
   removeFromProgramList: boolean;
   dashboardShowAt: string;
   hideFromProgramPageList: boolean;
+  hideFromWeeklySchedule: boolean;
   isOpenAccess: boolean;
   guestAccessKey: string;
 }
@@ -610,6 +611,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
   const [removeFromProgramList, setRemoveFromProgramList] = useState(initialData?.removeFromProgramList ?? false);
   const [dashboardShowAt, setDashboardShowAt] = useState(initialData?.dashboardShowAt ?? "");
   const [hideFromProgramPageList, setHideFromProgramPageList] = useState(initialData?.hideFromProgramPageList ?? false);
+  const [hideFromWeeklySchedule, setHideFromWeeklySchedule] = useState(initialData?.hideFromWeeklySchedule ?? false);
 
   const [isOpenAccess, setIsOpenAccess] = useState(initialData?.isOpenAccess ?? false);
   const [guestAccessKey, setGuestAccessKey] = useState(initialData?.guestAccessKey ?? "");
@@ -808,6 +810,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
         removeFromProgramList,
         dashboardShowAt: dashboardShowAt || null,
         hideFromProgramPageList,
+        hideFromWeeklySchedule,
         isOpenAccess,
       };
 
@@ -1679,6 +1682,18 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                 <span className="pe-checkbox__label">Hide from public Programs &amp; Events page</span>
               </label>
               <p className="pe-field__help">This program won&rsquo;t appear on the public listing. Still accessible by direct URL.</p>
+            </div>
+
+            <div className="pe-visibility-option">
+              <label className="pe-checkbox">
+                <input
+                  type="checkbox"
+                  checked={hideFromWeeklySchedule}
+                  onChange={(e) => setHideFromWeeklySchedule(e.target.checked)}
+                />
+                <span className="pe-checkbox__label">Hide from This Week&rsquo;s Schedule</span>
+              </label>
+              <p className="pe-field__help">This program won&rsquo;t appear on the weekly schedule page. Useful for special events or programs that shouldn&rsquo;t clutter the regular calendar.</p>
             </div>
 
             <div className="pe-visibility-option">

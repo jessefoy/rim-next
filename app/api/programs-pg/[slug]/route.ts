@@ -143,6 +143,7 @@ export async function PUT(
   if (body.removeFromProgramList !== undefined) data.removeFromProgramList = body.removeFromProgramList;
   if (body.dashboardShowAt !== undefined) data.dashboardShowAt = centralToUtc(body.dashboardShowAt);
   if (body.hideFromProgramPageList !== undefined) data.hideFromProgramPageList = body.hideFromProgramPageList;
+  if (body.hideFromWeeklySchedule !== undefined) data.hideFromWeeklySchedule = body.hideFromWeeklySchedule;
   if (body.isOpenAccess !== undefined) {
     data.isOpenAccess = body.isOpenAccess;
     // Auto-generate guest key when enabling open access for the first time
