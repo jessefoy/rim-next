@@ -1848,7 +1848,7 @@ When an application is extracted, the hub may retain a simplified read-only view
 
 ---
 
-## 38. LiveKit Video Conferencing — Phase 1-2 ✅ Built — session 76 (2026-03-25)
+## 38. LiveKit Video Conferencing — Phase 1-4 ✅ Built — sessions 76, 86
 
 ### What it does
 
@@ -1859,8 +1859,8 @@ Embedded video conferencing that replaces Google Meet for virtual and hybrid pro
 - **Phase 1 (foundation):** LiveKit Cloud integration, token generation API, VideoRoom component, admin test page. ✅ Complete.
 - **Phase 2 (session page):** Dedicated `/session/[slug]` page, dashboard "Join" links to it, host "End for All" button, fullscreen, session-ended screen. ✅ Complete.
 - **Phase 2 (dashboard embed):** VideoRoomEmbed replaces MeetJoinButton on the member dashboard, fullscreen toggle. Complete.
-- **Phase 3 (host integration):** Emergency host step-in, end-session-for-all, high-fidelity audio for hosts/teachers. ✅ Complete. Attendance tracking via LiveKit participants still pending.
-- **Phase 4 (cleanup):** Google Meet fully removed. ✅ Complete.
+- **Phase 3 (host integration):** Emergency host step-in, end-session-for-all, high-fidelity audio for hosts/teachers. ✅ Complete.
+- **Phase 4 (session room UI):** Custom RIMConference layout, chat, focus/pin, nonverbal signals, raised-hand banner, presence photos, dark theme, audio prompt. ✅ Complete (session 86).
 - **Phase 5 (recording):** 🔜 Pressing future feature — see below.
 
 ### Emergency Host Step-In
@@ -1912,33 +1912,57 @@ Hosts and teachers automatically receive high-fidelity audio settings: noise sup
 
 **Prerequisites:** Community agreements update, Recording/Lesson model linking, teacher hub "My Recordings" UI, audio player on lesson pages (already exists).
 
+### Session Room UI (Phase 4 — session 86)
+
+Custom `RIMConference` layout replacing LiveKit's default `VideoConference` component:
+
+- **Grid / Focus layout** — default is a responsive grid. Hover any tile → pin button appears top-right. Click to switch to focus/speaker view (pinned large, others in carousel). Click again to return to grid.
+- **Chat sidebar** — 300px dark sidebar, toggled via 💬 Chat button. Our own header with working ✕ close button (LiveKit's built-in close doesn't work with our state management).
+- **Nonverbal signals** — ✋❤️🙏✓✗ buttons in toolbar. Badges appear top-left of the participant tile at 44px with dark pill background. Hand raise is a toggle (persists until clicked again); others auto-clear after 5 seconds.
+- **Raised-hand banner** — yellow strip below toolbar: "✋ [Name] raised their hand." Hosts see a "View" button to open the participants panel. Always visible without opening any panel.
+- **Presence photo** — upload from Settings panel or account settings. Shown as a centered rounded square (50% tile height, 16px border radius) when camera is off. Grey silhouette hidden when photo is present. Baked into JWT metadata so it loads immediately on join.
+- **Participants panel** — host-only slide-in (280px). Shows all remote participants sorted by raised hands first. Per-participant mute button.
+- **Dark header** — `vs-header` uses #1a1a1a to match the video area (was white, which clashed).
+- **Audio playback prompt** — full-screen overlay for Safari/browsers that block audio: "🔊 Tap to enable audio" with explanation. Replaces LiveKit's tiny "Start Audio" pill.
+- **Participant names** — always visible at bottom-left of tile, 16px/500 weight, dark background pill.
+- **Echo cancellation** — hosts: `echoCancellation: true`, `noiseSuppression: false` (preserves bells/music). Participants: full speech processing.
+
 ### Who uses it
 
 - **Members** — join virtual sessions from their dashboard via embedded VideoRoom (no external links or accounts needed)
-- **Hosts** — receive `roomAdmin` permission in the JWT token, granting moderator controls
+- **Hosts** — receive `roomAdmin` permission in the JWT token, granting moderator controls (mute all, per-participant mute, end session, participants panel)
 - **Admins** — test page at `/admin/livekit-test` for verifying room creation and connectivity
 
 ### Architecture
 
-Rooms are created on-demand from the program slug (e.g., `thursday-evening-meditation`). LiveKit Cloud (Ship tier, $50/month) handles all media infrastructure. The token API generates short-lived JWTs with identity, room name, and grants (including `roomAdmin` for hosts). No room pre-provisioning needed — rooms exist when the first participant joins and are cleaned up automatically.
+Rooms are created on-demand from the program slug (e.g., `thursday-evening-meditation`). LiveKit Cloud (Build plan, free) handles all media infrastructure. The token API generates short-lived JWTs with identity, room name, metadata (avatar), and grants (including `roomAdmin` for hosts). No room pre-provisioning needed — rooms exist when the first participant joins and are cleaned up automatically.
 
 ### Key files
 
 | File | Purpose |
 |---|---|
-| `lib/livekit.ts` | LiveKit server SDK setup, `createToken()` helper (identity, room, grants including roomAdmin for hosts) |
-| `app/api/livekit/token/route.ts` | POST — generates LiveKit JWT; validates auth, resolves host status from program assignments |
-| `components/VideoRoom.tsx` | Full LiveKit room component (`@livekit/components-react`); audio/video controls, participant grid |
-| `components/VideoRoomEmbed.tsx` | Dashboard embed wrapper — replaces MeetJoinButton; join button → inline VideoRoom with fullscreen toggle |
+| `lib/livekit.ts` | LiveKit server SDK setup, `createRoomToken()` helper (identity, room, grants, metadata) |
+| `app/api/livekit/token/route.ts` | POST — generates LiveKit JWT; validates auth, resolves host status, seeds avatar into token metadata |
+| `app/api/livekit/mute-all/route.ts` | POST — server-side mute all participants via RoomServiceClient |
+| `app/api/livekit/mute-participant/route.ts` | POST — server-side mute individual participant |
+| `app/api/account/avatar/route.ts` | PATCH — save/clear avatar URL for current user |
+| `components/VideoRoom.tsx` | LiveKitRoom wrapper — role-based audio config, loads livekit-prefabs.css, renders RIMConference |
+| `components/session/RIMConference.tsx` | Custom conference layout: grid/focus, toolbar, chat, raised-hand banner, audio prompt |
+| `components/session/RIMParticipantTile.tsx` | Custom tile: avatar overlay, signal badge, uses trackRef.participant (not context) |
+| `components/session/NonverbalToolbar.tsx` | Signal buttons: hand (toggle), heart/namaste/yes/no (5s momentary) |
+| `components/session/ParticipantsPanel.tsx` | Host-only: participant list, raised hands sorted first, per-participant mute |
+| `components/session/VideoSettingsPanel.tsx` | Settings: presence photo upload only |
+| `components/VideoRoomEmbed.tsx` | Dashboard embed wrapper — join button → inline VideoRoom with fullscreen toggle |
+| `app/session/[slug]/page.tsx` | Dedicated session page: auth/guest flows, header with host controls |
 | `app/admin/livekit-test/page.tsx` | Admin-only test page for verifying LiveKit connectivity and room creation |
 
 ### Technical notes
 
-- **Token grants:** All participants get `canPublish`, `canSubscribe`, `canPublishData`. Hosts (users with HostAssignment for the program, ProgramTeacher assignment, HOST_MANAGER role, or ADMIN role) receive `roomAdmin: true` for moderator controls (mute others, remove participants). Guest tokens (non-members via open access) get participant-level access only — never `roomAdmin`.
-- **Room naming:** Room name = program slug. Deterministic — same program always maps to same room. Multiple sessions of the same program reuse the room name (rooms are ephemeral).
-- **LiveKit Cloud Ship tier:** $50/month base, includes 1,000 participant-minutes. Sufficient for RIM's current virtual program volume.
-- **Fullscreen toggle:** VideoRoomEmbed includes a fullscreen button that expands the video to fill the viewport, with Escape to exit.
-- **Google Meet authuser:** Session 76 also added `authuser=` parameter to Google Meet URLs based on the assigned room account email, ensuring hosts open Meet with the correct Google account. This is a transitional improvement — Google Meet will be fully replaced by LiveKit.
+- **Token grants:** All participants get `canPublish`, `canSubscribe`, `canPublishData`, `canUpdateOwnMetadata`. Hosts receive `roomAdmin: true`. Guest tokens get participant-level access only.
+- **Avatar in JWT metadata:** `createRoomToken()` accepts optional `metadata` param. Token API queries User.avatarUrl and passes `JSON.stringify({ avatarUrl })` into the token. Eliminates the client-side race condition of trying to `setMetadata()` before the participant is fully connected.
+- **trackRef.participant pattern:** GridLayout provides TrackRefContext but NOT ParticipantContext. Custom tile components must use `trackRef.participant` to get the participant object, not `useMaybeParticipantContext()` (which returns null in this context).
+- **Room naming:** Room name = program slug. Deterministic — same program always maps to same room.
+- **LiveKit Cloud Build plan:** Free tier. Sufficient for RIM's current virtual program volume.
 
 ### New env vars
 

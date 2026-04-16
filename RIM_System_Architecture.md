@@ -223,15 +223,19 @@ The complete architecture for how hubs and tools relate is documented in **`RIM_
 
 ## Video Conferencing — LiveKit
 
-Virtual and hybrid programs use **LiveKit Cloud** (Ship tier) for video conferencing, fully replacing Google Meet as of session 76.
+Virtual and hybrid programs use **LiveKit Cloud** (Build plan, free) for video conferencing, fully replacing Google Meet.
 
-**How it works:** Each program with `programFormat = "virtual"` or `"hybrid"` has a `livekitRoom` field (set to the program slug). When a member clicks "Join" on the dashboard, they're taken to `/session/{slug}` — a dedicated full-page video room. The token API (`/api/livekit/token`) generates a JWT with the member's name and identity. If the member is the assigned host (via `HostAssignment`), the token includes `roomAdmin: true` — granting mute, remove, and end-session controls automatically.
+**How it works:** Each program with `programFormat = "virtual"` or `"hybrid"` has a `livekitRoom` field (set to the program slug). When a member clicks "Join" on the dashboard, they're taken to `/session/{slug}` — a dedicated full-page video room with a custom layout (RIMConference). The token API (`/api/livekit/token`) generates a JWT with the member's name, identity, and avatar metadata. If the member is the assigned host (via `HostAssignment`, `ProgramTeacher`, `HOST_MANAGER`, or `ADMIN`), the token includes `roomAdmin: true` — granting mute, remove, and end-session controls automatically.
 
-**Key files:** `lib/livekit.ts` (server SDK), `app/api/livekit/token/route.ts`, `app/api/livekit/end-session/route.ts`, `components/VideoRoom.tsx`, `app/session/[slug]/page.tsx`.
+**Session room features:** Grid/focus layout with pin, chat sidebar, nonverbal signals (✋❤️🙏✓✗), raised-hand banner, presence photos (avatar), host participants panel with per-participant mute, Mute All, End for All, emergency step-in, dark theme, audio playback prompt for Safari.
+
+**Key files:** `lib/livekit.ts` (server SDK), `app/api/livekit/token/route.ts`, `components/VideoRoom.tsx`, `components/session/RIMConference.tsx`, `components/session/RIMParticipantTile.tsx`, `app/session/[slug]/page.tsx`.
 
 **No external accounts needed.** Members and hosts join using only their RIM login. No Google accounts, no Zoom accounts, no app downloads. The video room runs in the browser via WebRTC.
 
 **Environment variables:** `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `NEXT_PUBLIC_LIVEKIT_URL` (all set in Vercel).
+
+**Critical pattern:** Custom tile components must use `trackRef.participant` to get the participant, NOT `useMaybeParticipantContext()`. GridLayout only provides TrackRefContext — ParticipantContext is null at the tile level.
 
 ## Naming
 

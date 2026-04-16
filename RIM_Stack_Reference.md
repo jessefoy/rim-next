@@ -1,6 +1,6 @@
 # RIM Next — Stack Reference
 
-_Generated 2026-03-11. Last updated 2026-04-15 (session 84–85)._
+_Generated 2026-03-11. Last updated 2026-04-15 (session 86)._
 
 ---
 

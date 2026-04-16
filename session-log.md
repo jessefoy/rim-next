@@ -1,5 +1,69 @@
 ---
 
+## 2026-04-15 (session 86) — LiveKit video session comprehensive overhaul
+
+### What was built
+
+Complete rewrite of the virtual session room UI and functionality:
+
+1. **Custom conference layout (RIMConference)** — replaced LiveKit's `<VideoConference>` with a custom layout: `LayoutContextProvider` + `GridLayout`/`FocusLayout` switching, toolbar, chat sidebar, raised-hand banner, participants panel, settings panel.
+
+2. **Chat** — `<Chat />` sidebar (300px, dark) with our own header and working ✕ close button. LiveKit's built-in close dispatched to internal state we don't use, so we hide their header and render our own.
+
+3. **Focus/pin layout** — hover any tile to reveal a pin button (top-right). Click to switch from grid view to focus/speaker view (pinned participant large, others in carousel). Click again to unpin.
+
+4. **Nonverbal signals** — ✋❤️🙏✓✗ buttons in toolbar. Badges render top-left of the participant tile at 44px with dark pill background. Reactive via `useParticipantInfo({ participant })` subscribing to `participantInfoObserver`.
+
+5. **Raised-hand banner** — yellow strip below toolbar showing who has their hand up. Visible without opening the participants panel. Host gets "View" button to open the panel.
+
+6. **Presence photo / avatar** — upload from Settings panel, saved to DB via PATCH /api/account/avatar, broadcast via participant metadata. Server-side: avatar baked into JWT token metadata so it's present on connect (no client-side race condition). Renders as centered rounded square (50% tile height, 16px radius). Grey silhouette hidden when avatar is present.
+
+7. **Dark header** — `vs-header` changed from white (#fff) to dark (#1a1a1a) so it matches the video area. All buttons updated for dark theme.
+
+8. **Audio playback prompt** — Safari blocks audio until user interaction. Replaced LiveKit's cryptic "Start Audio" pill with a full-screen overlay: "🔊 Tap to enable audio" with explanation text.
+
+9. **Echo cancellation** — hosts get `echoCancellation: true` while keeping noiseSuppression off for music quality.
+
+10. **Mute All + per-participant mute** — server-side via RoomServiceClient. Mute All in header, individual mute in participants panel.
+
+11. **Participant name** — forced visible with `!important` overrides, 16px/500 weight, darker background pill. LiveKit tile forced to fill wrapper (width/height 100%).
+
+### What was removed
+
+- Background blur (WASM unreliable in Vercel/Safari)
+- Brightness/contrast processor (canvas approach broken, CSS filter was poor quality)
+- `BrightnessProcessor.ts` is now dead code (could be deleted)
+
+### Design decisions
+
+- **trackRef.participant, not useMaybeParticipantContext()** — GridLayout only provides TrackRefContext, NOT ParticipantContext. This was the root cause of avatars and signals never rendering. Fixed by getting participant directly from the track reference.
+- **Avatar in JWT metadata** — client-side `setMetadata()` had a race condition on connect. Baking it into the token eliminates the timing issue entirely.
+- **Own chat header** — LiveKit's Chat component has an internal close button that dispatches to `layoutContext.widget.state.showChat`, but we manage chat visibility with our own `chatOpen` state. Hiding their header and adding our own was the clean fix.
+- **CSS !important on placeholder hide** — LiveKit's CSS specificity chain for `.lk-participant-placeholder` was too strong for normal selectors. `!important` was necessary.
+
+### What this connects to
+
+- `/session/[slug]` page — the main session page that renders VideoRoom → RIMConference
+- `/api/livekit/token` — now seeds avatarUrl into JWT metadata
+- `/api/livekit/mute-all`, `/api/livekit/mute-participant` — server-side mute APIs
+- `/api/account/avatar` — PATCH endpoint for saving avatar URL
+- `lib/livekit.ts` — `createRoomToken()` now accepts optional metadata parameter
+- `prisma/schema.prisma` — User.avatarUrl field
+- Dashboard "Join" button → `/session/[slug]` flow
+- Host assignment system (determines who gets roomAdmin in token)
+- ProgramTeacher system (also grants roomAdmin)
+
+### What comes next
+
+- Test with multiple participants (most testing was solo)
+- Verify pin/focus layout works with 2+ people
+- Verify raised-hand banner shows for remote participants
+- Add a manual section for "Virtual Sessions" in the Volunteer Manual (DB-driven, needs manual section creation)
+- `BrightnessProcessor.ts` can be deleted (dead code)
+- Consider: auto-pin the speaking participant (active speaker detection)
+
+---
+
 ## 2026-04-15 (session 84–85) — Community Programs redesign + This Week page
 
 ### What was built
