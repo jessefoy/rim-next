@@ -12565,6 +12565,10 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .rim-tile-wrapper .lk-participant-metadata {
   z-index: 3;
 }
+/* Hide LiveKit's grey silhouette when our avatar is showing */
+.rim-tile-wrapper--avatar .lk-participant-placeholder {
+  display: none;
+}
 /* Signal badge — top-left of tile, large */
 .rim-tile-signal {
   position: absolute;

@@ -71,13 +71,15 @@ export default function RIMParticipantTile() {
     trackRef.source === Track.Source.Camera &&
     (!trackRef.publication || trackRef.publication.isMuted);
 
+  const showAvatar = isVideoOff && !!meta.avatarUrl;
+
   return (
-    <div className="rim-tile-wrapper">
+    <div className={`rim-tile-wrapper${showAvatar ? " rim-tile-wrapper--avatar" : ""}`}>
       {/* ParticipantTile renders video, name bar, speaking indicator, and
           the built-in hover-reveal FocusToggle (pin) button */}
       <ParticipantTile />
-      {/* Avatar shown when camera is off — overlays the LiveKit placeholder */}
-      {isVideoOff && meta.avatarUrl && (
+      {/* Avatar shown when camera is off — replaces the LiveKit placeholder */}
+      {showAvatar && (
         <div
           className="rim-tile-avatar"
           style={{ backgroundImage: `url(${meta.avatarUrl})` }}
