@@ -12518,14 +12518,18 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   width: 100%;
   height: 100%;
 }
-/* Avatar shown when camera off — sits above the LiveKit placeholder */
+/* Avatar shown when camera off — centered circle over the LiveKit placeholder */
 .rim-tile-avatar {
   position: absolute;
-  inset: 0;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(40%, 120px);
+  aspect-ratio: 1;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  border-radius: var(--lk-border-radius, 0.5rem);
+  border-radius: 50%;
   z-index: 2;
   pointer-events: none;
 }
