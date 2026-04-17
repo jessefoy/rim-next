@@ -132,6 +132,14 @@ export const EDITOR_ELEMENTS: EditorElement[] = [
     turnIntoOnly: true,
   },
   {
+    id: "heading-1",
+    label: "Heading 1",
+    group: "text",
+    blockType: "heading",
+    blockProps: { level: 1 },
+    availableIn: DOCUMENT_LIKE,
+  },
+  {
     id: "heading-2",
     label: "Heading 2",
     group: "text",
@@ -146,6 +154,14 @@ export const EDITOR_ELEMENTS: EditorElement[] = [
     blockType: "heading",
     blockProps: { level: 3 },
     availableIn: DOCUMENT_AND_LESSON,
+  },
+  {
+    id: "heading-4",
+    label: "Heading 4",
+    group: "text",
+    blockType: "heading",
+    blockProps: { level: 4 },
+    availableIn: DOCUMENT_LIKE,
   },
 
   // ── Lists ─────────────────────────────────────────────────────────────────
@@ -170,15 +186,15 @@ export const EDITOR_ELEMENTS: EditorElement[] = [
     blockType: "checkListItem",
     availableIn: ALL_EXCEPT_MINIMAL,
   },
+
+  // ── Structure ─────────────────────────────────────────────────────────────
   {
     id: "quote",
     label: "Quote",
-    group: "lists",
+    group: "structure",
     blockType: "quote",
     availableIn: ALL_EXCEPT_MINIMAL,
   },
-
-  // ── Structure ─────────────────────────────────────────────────────────────
   {
     id: "code-block",
     label: "Code Block",
@@ -214,6 +230,32 @@ export const EDITOR_ELEMENTS: EditorElement[] = [
   },
   // Attachment element is intentionally deferred — see RIM_Editor_Design.md.
 
+  // ── Callouts (shared across documents, lessons, and email-bound) ─────────
+  {
+    id: "callout-info",
+    label: "Info Callout",
+    group: "callouts",
+    blockType: "callout",
+    blockProps: { variant: "info" },
+    availableIn: [...DOCUMENT_AND_LESSON, ...MESSAGE_WITH_TABLES],
+  },
+  {
+    id: "callout-note",
+    label: "Note Callout",
+    group: "callouts",
+    blockType: "callout",
+    blockProps: { variant: "note" },
+    availableIn: [...DOCUMENT_AND_LESSON, ...MESSAGE_WITH_TABLES],
+  },
+  {
+    id: "callout-warning",
+    label: "Warning Callout",
+    group: "callouts",
+    blockType: "callout",
+    blockProps: { variant: "warning" },
+    availableIn: [...DOCUMENT_AND_LESSON, ...MESSAGE_WITH_TABLES],
+  },
+
   // ── Dharma (Feature tier only) ────────────────────────────────────────────
   {
     id: "verse-quote",
@@ -227,13 +269,6 @@ export const EDITOR_ELEMENTS: EditorElement[] = [
     label: "Practice Suggestion",
     group: "dharma",
     blockType: "practiceSuggestion",
-    availableIn: LESSON_ONLY,
-  },
-  {
-    id: "dharma-callout",
-    label: "Callout",
-    group: "dharma",
-    blockType: "callout",
     availableIn: LESSON_ONLY,
   },
 ];

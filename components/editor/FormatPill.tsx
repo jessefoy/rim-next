@@ -156,9 +156,9 @@ function ParagraphDropdown({
   if (items.length === 0) return null;
 
   const currentLabel =
-    activeBlockType === "heading" && activeLevel === 2 ? "H2"
-    : activeBlockType === "heading" && activeLevel === 3 ? "H3"
-    : "¶";
+    activeBlockType === "heading" && activeLevel >= 1 && activeLevel <= 6
+      ? `H${activeLevel}`
+      : "¶";
 
   return (
     <DropdownButton
@@ -432,18 +432,15 @@ export function FormatPill({ context }: { context: EditorContext }) {
         editor.focus();
         const block = editor.getTextCursorPosition().block;
         const currentType = block.type;
-        const currentLevel =
-          ((block.props as Record<string, unknown>)?.level as number | undefined) ?? 0;
-        const elLevel =
-          ((el.blockProps as Record<string, unknown> | undefined)?.level as
-            | number
-            | undefined) ?? 0;
-        const isAlreadyThisType =
-          currentType === el.blockType &&
-          (el.blockType !== "heading" || currentLevel === elLevel);
+        const currentProps = (block.props ?? {}) as Record<string, unknown>;
+        const elProps = (el.blockProps ?? {}) as Record<string, unknown>;
+        const propsMatch = Object.entries(elProps).every(
+          ([k, v]) => currentProps[k] === v,
+        );
+        const isAlreadyThisType = currentType === el.blockType && propsMatch;
         editor.updateBlock(block, {
           type: (isAlreadyThisType ? "paragraph" : el.blockType) as never,
-          props: (isAlreadyThisType ? {} : (el.blockProps ?? {})) as never,
+          props: (isAlreadyThisType ? {} : elProps) as never,
         });
       } catch {}
     },
@@ -540,6 +537,12 @@ export function FormatPill({ context }: { context: EditorContext }) {
         style="underline"
         label={<u>U</u>}
         active={!!activeStyles.underline}
+        onToggle={toggleStyle}
+      />
+      <StyleButton
+        style="code"
+        label={<code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>{`< >`}</code>}
+        active={!!activeStyles.code}
         onToggle={toggleStyle}
       />
 
