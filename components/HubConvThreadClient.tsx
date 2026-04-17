@@ -494,7 +494,7 @@ export default function HubConvThreadClient({
       {!isClosed ? (
         <div className="hub-conv-replybox">
           <div className="hub-conv-replybox__avatar" aria-hidden="true">
-            {(currentUserName || "?").slice(0, 2).toUpperCase()}
+            {initialsOf({ firstName: null, lastName: null, preferredName: currentUserName })}
           </div>
           <div className="hub-conv-replybox__main">
             <RimProseEditor
