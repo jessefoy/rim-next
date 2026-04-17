@@ -20704,14 +20704,69 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
 .lp-callout-block {
   border-left: 3px solid var(--rim-mid);
   background: #f5f5f3;
-  padding: 10px 14px;
+  padding: 12px 16px;
   border-radius: 4px;
   margin: 8px 0;
 }
 .bn-callout--info,     .lp-callout-block--info     { border-left-color: #0b6e99; background: #eef5fa; }
-.bn-callout--note,     .lp-callout-block--note     { border-left-color: #6b6b6b; background: #f2f2f0; }
+.bn-callout--note,     .lp-callout-block--note     { border-left-color: #c9a227; background: #fbf6e6; }
 .bn-callout--warning,  .lp-callout-block--warning  { border-left-color: #d9730d; background: #fcf3e8; }
-.bn-callout--decision, .lp-callout-block--decision { border-left-color: #6940a5; background: #f1ecf8; }
+.bn-callout--decision, .lp-callout-block--decision { border-left-color: #2e7a57; background: #ebf4ef; }
+
+/* Header row — icon + title (shared) */
+.bn-callout__header,
+.lp-callout-block__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.bn-callout__icon,
+.lp-callout-block__icon {
+  font-size: 16px;
+  line-height: 1;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.bn-callout__icon {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 3px;
+}
+.bn-callout__icon:hover { background: rgba(0, 0, 0, 0.05); }
+.bn-callout__title,
+.lp-callout-block__title {
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--rim-text);
+  line-height: 1.3;
+  margin: 0;
+}
+.bn-callout__title {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 0;
+  outline: none;
+}
+.bn-callout__title::placeholder { color: var(--rim-text-muted); font-weight: 500; }
+
+/* Body — where the inline content lives. Paragraphs inside have no extra margin. */
+.bn-callout__body > p,
+.lp-callout-block__body > p,
+.lp-callout-block > p { margin: 0; }
+.bn-callout__body .bn-inline-content:empty::before {
+  content: "Body";
+  color: var(--rim-text-muted);
+  pointer-events: none;
+}
 
 /* ── Document page wrapper — clean white card on warm bg ── */
 .doc-page {
@@ -20972,16 +21027,8 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
   margin-top: 3px;
 }
 
-/* Callout — editor view */
-.bn-callout {
-  border-radius: 6px;
-  padding: 12px 16px;
-  margin: 8px 0;
-}
-
-.bn-callout--info    { background: #e8f0f6; border-left: 3px solid #2c5a7a; }
-.bn-callout--note    { background: var(--rim-bg-accent); border-left: 3px solid var(--rim-rule); }
-.bn-callout--warning { background: #fdf3e3; border-left: 3px solid #c87c2a; }
+/* Callout — variant styles live with the shared block above (bn-callout /
+   lp-callout-block). Legacy duplicate rules removed. */
 
 
 /* ═══════════════════════════════════════════════════

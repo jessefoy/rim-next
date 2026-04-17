@@ -28,21 +28,14 @@ import {
   TextAlignButton,
   useBlockNoteEditor,
   useEditorSelectionChange,
-  SuggestionMenuController,
 } from "@blocknote/react";
-import { filterSuggestionItems } from "@blocknote/core/extensions";
 import { BlockNoteView } from "@blocknote/mantine";
 import { upload } from "@vercel/blob/client";
 import { RiQuoteText, RiPlantLine, RiInformationLine } from "react-icons/ri";
 import { rimTheme } from "@/lib/blockNoteTheme";
 import { rimBlockSchema } from "@/lib/blockNoteCustomBlocks";
 import { FormatPill } from "@/components/editor/FormatPill";
-import {
-  type EditorContext as RegistryContext,
-  insertElementsForContext,
-  GROUP_LABELS,
-  type EditorElement,
-} from "@/lib/editorRegistry";
+import { type EditorContext as RegistryContext } from "@/lib/editorRegistry";
 
 /* ── Types ─────────────────────────────────────────────────────────────────── */
 
@@ -1183,10 +1176,14 @@ export default function RimBlockEditor({
       .rim-block-editor .bn-block-content[data-content-type="numberedListItem"] {
         margin-bottom: 2px !important;
       }
-      /* ── Blockquote ── */
-      .rim-block-editor .bn-block-content[data-content-type="quote"] {
+      /* ── Blockquote ── BlockNote renders <blockquote> inside the wrapper
+         with its own border-left. Style that inner element only; leave the
+         wrapper alone to avoid doubling the line. */
+      .rim-block-editor .bn-block-content[data-content-type="quote"] > blockquote,
+      .rim-block-editor [data-content-type="quote"] blockquote {
         border-left: 3px solid #d5d5d5 !important;
-        padding-left: 20px !important;
+        padding: 2px 0 2px 20px !important;
+        margin: 0 !important;
         color: var(--rim-text-muted) !important;
         font-style: italic !important;
       }
@@ -1234,66 +1231,9 @@ export default function RimBlockEditor({
         sideMenu={false}
         formattingToolbar={false}
       >
-        {/* Block handle removed — inserts go through the pill's + menu or the
-            slash menu. Jesse reviewed the drag box and asked for it to go. */}
-        {/* Format Pill — single formatting surface (replaces selection bubble + empty-line pill) */}
+        {/* Format Pill — the only formatting surface. No slash menu, no drag
+            handle — the pill is the single entry point for inserts and format. */}
         <FormatPill context={toRegistryContext(context)} />
-        {/* Slash menu — registry-driven. Same items as the pill's + dropdown
-            (structure / media / callouts / dharma). Text and list types live
-            in the pill's ¶ and • dropdowns instead. */}
-        <SuggestionMenuController
-          triggerCharacter="/"
-          getItems={async (query) => {
-            const items = insertElementsForContext(toRegistryContext(context))
-              .filter((el) => el.group !== "text" && el.group !== "lists")
-              .map((el: EditorElement) => ({
-                title: el.label,
-                group: GROUP_LABELS[el.group],
-                onItemClick: () => {
-                  const block = editor.getTextCursorPosition().block;
-                  if (el.blockType === "table") {
-                    const emptyCell = [{ type: "text" as const, text: "", styles: {} }];
-                    const makeRow = (n: number) => ({
-                      cells: Array.from({ length: n }, () => ({
-                        type: "tableCell" as const,
-                        content: emptyCell,
-                        props: { colspan: 1, rowspan: 1 },
-                      })),
-                    });
-                    editor.insertBlocks(
-                      [{
-                        type: "table" as never,
-                        content: {
-                          type: "tableContent" as const,
-                          columnWidths: [undefined, undefined, undefined],
-                          rows: [makeRow(3), makeRow(3), makeRow(3)],
-                        } as never,
-                      }],
-                      block,
-                      "after",
-                    );
-                  } else {
-                    editor.insertBlocks(
-                      [{
-                        type: el.blockType as never,
-                        props: (el.blockProps ?? {}) as never,
-                      }],
-                      block,
-                      "after",
-                    );
-                    setTimeout(() => {
-                      try {
-                        const next = editor.getTextCursorPosition().nextBlock;
-                        if (next) editor.setTextCursorPosition(next, "start");
-                      } catch {}
-                      editor.focus();
-                    }, 50);
-                  }
-                },
-              }));
-            return filterSuggestionItems(items, query);
-          }}
-        />
         {/* Image alignment overlay — shows L/C/R on the image itself */}
         <ImageAlignOverlay />
         {/* Table delete button — × at top-right corner on hover */}

@@ -162,8 +162,12 @@ function renderSingleBlock(block: any): string {
     case "practiceSuggestion":
       return `<div class="lp-callout">${inner}</div>${children}`
     case "callout": {
-      const variant = block.props?.variant ?? "info"
-      return `<div class="lp-callout-block lp-callout-block--${variant}">${inner}</div>${children}`
+      const variant = block.props?.variant ?? "note"
+      const title   = block.props?.title ?? ""
+      const icon    = variant === "decision" ? "✓" : variant === "warning" ? "⚠" : variant === "info" ? "ℹ" : "💡"
+      const titleHtml = title ? `<span class="lp-callout-block__title">${title}</span>` : ""
+      const header = `<div class="lp-callout-block__header"><span class="lp-callout-block__icon" aria-hidden="true">${icon}</span>${titleHtml}</div>`
+      return `<div class="lp-callout-block lp-callout-block--${variant}">${header}<div class="lp-callout-block__body">${inner}</div></div>${children}`
     }
     case "paragraph":
     default:

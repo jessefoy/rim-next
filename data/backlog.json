@@ -38,5 +38,25 @@
     "status": "open",
     "addedAt": "2026-04-15",
     "notes": "Legacy shim at bottom of custom.css can be deleted once all pages are migrated. Homepage and community programs page are done (session 84)."
+  },
+  {
+    "id": "2026-04-17-001",
+    "title": "Admin File Manager — /admin/files",
+    "description": "Build an admin page that shows every file uploaded via editors (Vercel Blob), grouped by where it lives in the app: hub documents, lessons, program descriptions, course descriptions, etc. Should display: total count and storage size, per-file location (which document / hub / program references it), size, upload date, and a clear 'orphans' section — blobs that exist in storage but are not referenced by any DB row. Each orphan gets a Delete button; bulk-delete-orphans for the common case. Also: wrap all content-bearing update/delete API routes in a shared `withContentCleanup()` helper so blob cleanup can't be forgotten when new editor surfaces are added.",
+    "category": "Admin Tools",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-04-17",
+    "notes": "Currently cleanupRemovedBlobs/cleanupAllBlobs is wired only in hub/[slug]/documents and lessons routes. Program descriptions, manual sections, hub announcements, support replies do not clean up attachments on delete, so those can leak. The page would make leaks visible instantly and expose storage cost. Optional follow-up: a weekly cron that auto-sweeps orphans older than 24h."
+  },
+  {
+    "id": "2026-04-17-002",
+    "title": "Rich Callouts — title, icon, and lists inside",
+    "description": "Current Note/Decision callouts are inline-only blocks: a single paragraph of styled text, no lists, no nested content. Rebuild the callout as a container block that supports (1) an explicit title field with a variant icon, (2) full formatted body including bullet/numbered lists and nested paragraphs. Likely requires a custom BlockNote container block with children support, or a wrapper around the built-in toggleable-heading pattern. Design the UI so variant and title are easy to set inline — no separate modal needed.",
+    "category": "CSS & Design",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-04-17",
+    "notes": "Scoped during document-editor buildout. Jesse noted the current boxes feel empty (no icon, no header) and constrain content to a single paragraph. This is a Path B follow-up to the current title+icon iteration."
   }
 ]
