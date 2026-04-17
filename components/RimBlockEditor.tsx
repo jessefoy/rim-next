@@ -30,8 +30,6 @@ import {
   useEditorSelectionChange,
   SuggestionMenuController,
   getDefaultReactSlashMenuItems,
-  SideMenuController,
-  DragHandleButton,
 } from "@blocknote/react";
 import { filterSuggestionItems } from "@blocknote/core/extensions";
 import { BlockNoteView } from "@blocknote/mantine";
@@ -1254,10 +1252,8 @@ export default function RimBlockEditor({
         sideMenu={false}
         formattingToolbar={false}
       >
-        {/* Block handle — drag-only on the left gutter (no + button; pill/slash handle inserts) */}
-        <SideMenuController
-          sideMenu={(props) => <DragHandleButton {...props} />}
-        />
+        {/* Block handle removed — inserts go through the pill's + menu or the
+            slash menu. Jesse reviewed the drag box and asked for it to go. */}
         {/* Format Pill — single formatting surface (replaces selection bubble + empty-line pill) */}
         <FormatPill context={toRegistryContext(context)} />
         {/* Slash menu — tier-filtered. Native menu off; this replaces it. */}

@@ -18986,7 +18986,7 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .hdoc-body h4 { font-family: var(--font-sans); font-size: var(--text-small); font-weight: 600; color: var(--rim-text); line-height: 1.4; margin: 20px 0 6px; }
 .hdoc-body ul, .hdoc-body ol { margin: 0 0 0.9em; } /* no margin-left — rim-content handles bullet indent */
 .hdoc-body li { margin-bottom: 0.25em; }
-.hdoc-body blockquote { border-left: 3px solid #d4cfc9; padding: 6px 0 6px 16px; margin: 0.9em 0; color: var(--rim-text-muted); }
+.hdoc-body blockquote { border-left: 3px solid #d5d5d5; padding: 6px 0 6px 20px; margin: 0.9em 0; color: var(--rim-text-muted); font-style: italic; }
 .hdoc-body table { width: 100%; border-collapse: collapse; margin: 0.9em 0; font-size: var(--text-ui); }
 .hdoc-body table th { font-weight: 600; text-align: left; padding: 8px 12px; border-bottom: 2px solid #d4cfc9; font-size: var(--text-xs); }
 .hdoc-body table td { padding: 8px 12px; border-bottom: 1px solid #e8e4de; vertical-align: top; }

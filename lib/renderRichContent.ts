@@ -154,8 +154,10 @@ function renderSingleBlock(block: any): string {
     }
     case "practiceSuggestion":
       return `<div class="lp-callout">${inner}</div>${children}`
-    case "callout":
-      return `<div class="lp-callout-block">${inner}</div>${children}`
+    case "callout": {
+      const variant = block.props?.variant ?? "info"
+      return `<div class="lp-callout-block lp-callout-block--${variant}">${inner}</div>${children}`
+    }
     case "paragraph":
     default:
       return inner ? `<p${bStyle}>${inner}</p>${children}` : (children || "")
