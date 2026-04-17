@@ -258,6 +258,43 @@ h4 { font-size: var(--text-h4); }
 
 
 /* ═══════════════════════════════════════════════════
+   .rim-content-- SCOPE MODIFIERS
+   Applied alongside .rim-content to declare the publishing surface.
+   Editorial elements (pull quote, practice, reflection, verse, note)
+   render differently per scope: utilitarian in documents, full
+   editorial in lessons and programs.
+
+   Scopes:
+     --document  — staff manual, hub documents, admin surfaces, member
+                   utility (dana message). Open Sans throughout. Editor
+                   ≈ rendered. No decorative marks.
+     --lesson    — lesson pages. Full editorial treatment. Quincy CF
+                   display headings, teal accents, decorative glyphs,
+                   generous whitespace.
+     --program   — program description + special notes + course pages.
+                   Editorial variant — tighter than lesson, calmer.
+═══════════════════════════════════════════════════ */
+
+/* Document scope — internal tool tier. Keep sans throughout; no
+   decorative editorial affordances. Underlying .rim-content base
+   already uses --font-sans so this is a hook for element overrides. */
+.rim-content--document {
+  --rim-scope: document;
+}
+
+/* Lesson scope — full editorial. Marker for element CSS to unlock
+   Quincy CF display, teal accents, and decorative marks. */
+.rim-content--lesson {
+  --rim-scope: lesson;
+}
+
+/* Program scope — editorial variant. Quieter than lesson. */
+.rim-content--program {
+  --rim-scope: program;
+}
+
+
+/* ═══════════════════════════════════════════════════
    lr- LIST ROW
    Universal list-row card: community programs, dashboard
    Zoom links, My Library, course lessons (SeriesListItem).

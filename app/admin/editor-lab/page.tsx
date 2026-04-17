@@ -99,7 +99,7 @@ export default function EditorLabPage() {
           <div className="el-pane__body">
             {bodyHtml ? (
               <div
-                className="hdoc-body rim-content"
+                className="hdoc-body rim-content rim-content--document"
                 dangerouslySetInnerHTML={{ __html: bodyHtml }}
               />
             ) : (

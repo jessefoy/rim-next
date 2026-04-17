@@ -66,7 +66,7 @@ export default async function HubDocumentViewPage({
 
         {bodyHtml ? (
           <div
-            className="doc-body rim-content"
+            className="doc-body rim-content rim-content--document"
             dangerouslySetInnerHTML={{ __html: bodyHtml }}
           />
         ) : (

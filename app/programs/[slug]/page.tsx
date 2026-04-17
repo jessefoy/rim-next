@@ -191,13 +191,13 @@ export default async function ProgramDetailPage({
 
         {/* ── Program description ── */}
         {hasDescription && (
-          <div className="prog-description rim-content" dangerouslySetInnerHTML={{ __html: descriptionHtml }} />
+          <div className="prog-description rim-content rim-content--program" dangerouslySetInnerHTML={{ __html: descriptionHtml }} />
         )}
 
         {/* ── Special notes callout ── */}
         {hasSpecialNotes && (
           <div className="pg-notes">
-            <div className="prog-description rim-content" dangerouslySetInnerHTML={{ __html: specialNotesHtml }} />
+            <div className="prog-description rim-content rim-content--program" dangerouslySetInnerHTML={{ __html: specialNotesHtml }} />
           </div>
         )}
 

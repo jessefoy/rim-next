@@ -75,34 +75,37 @@ const practiceSuggestionFactory = createReactBlockSpec(
   }
 );
 
-// ── Callout (Path B — container) ──────────────────────────────────────────────
-// Titled callout box with a variant icon + title and a block-level body.
-// Container block (content: "none") — children are real blocks, so the body
-// supports paragraphs, lists, numbered steps, nested structure.
+// ── Note (lightweight callout) ────────────────────────────────────────────────
+// The Note element: a compact titled box for observations and decisions inside
+// editorial content. Two variants only — Note and Decision. Practice,
+// Reflection, Verse, and Pull Quote are separate editorial elements with their
+// own visual identities, not variants of this one.
+//
+// Container block (content: "none") — children are real blocks so the body
+// supports paragraphs, lists, steps.
+//
+// Legacy variants (practice, reflection, question, warning, info) remain in
+// the schema so existing content still loads, but the picker offers only the
+// curated pair. Existing documents should be migrated to the new dedicated
+// elements over time.
 //
 // Editor view: bn-callout  |  Rendered output: lp-callout-block
-// Legacy Info and Warning variants stay in the schema for existing content but
-// aren't offered in the picker — the curated set is Note, Decision, Practice
-// Note, Reflection, Question. Warning remains available for now.
 
 import { useState, useRef, useEffect } from "react";
 
 export type CalloutVariant =
   | "note"
   | "decision"
-  | "practice"
-  | "reflection"
-  | "question"
-  | "warning"
-  | "info"; // legacy
+  | "practice"   // legacy — migrate to PracticeSuggestion element
+  | "reflection" // legacy — migrate to Reflection element
+  | "question"   // legacy
+  | "warning"    // legacy
+  | "info";      // legacy
 
+// Curated picker set — only Note and Decision are user-selectable.
 export const CALLOUT_VARIANTS: CalloutVariant[] = [
   "note",
   "decision",
-  "practice",
-  "reflection",
-  "question",
-  "warning",
 ];
 
 export const CALLOUT_ICONS: Record<CalloutVariant, string> = {

@@ -150,7 +150,7 @@ export default function AdminManualPage() {
             <div className="man2-section__body">
               {section.body ? (
                 <div
-                  className="lp-body rim-content"
+                  className="lp-body rim-content rim-content--lesson"
                   dangerouslySetInnerHTML={{
                     __html: renderBlockNoteHtml(section.body),
                   }}
