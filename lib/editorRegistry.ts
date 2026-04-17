@@ -255,6 +255,14 @@ export const EDITOR_ELEMENTS: EditorElement[] = [
     blockProps: { variant: "warning" },
     availableIn: [...DOCUMENT_AND_LESSON, ...MESSAGE_WITH_TABLES],
   },
+  {
+    id: "callout-decision",
+    label: "Decision Callout",
+    group: "callouts",
+    blockType: "callout",
+    blockProps: { variant: "decision" },
+    availableIn: [...DOCUMENT_AND_LESSON, ...MESSAGE_WITH_TABLES],
+  },
 
   // ── Dharma (Feature tier only) ────────────────────────────────────────────
   {

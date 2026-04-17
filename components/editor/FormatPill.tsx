@@ -143,12 +143,18 @@ function ParagraphDropdown({
   context,
   activeBlockType,
   activeLevel,
+  activeToggleable,
   turnInto,
+  toggleCollapsible,
+  clearFormatting,
 }: {
   context: EditorContext;
   activeBlockType: string;
   activeLevel: number;
+  activeToggleable: boolean;
   turnInto: (el: EditorElement) => void;
+  toggleCollapsible: () => void;
+  clearFormatting: () => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -160,13 +166,15 @@ function ParagraphDropdown({
       ? `H${activeLevel}`
       : "¶";
 
+  const onHeading = activeBlockType === "heading";
+
   return (
     <DropdownButton
       label={<span className="fmt-pill__label">{currentLabel}</span>}
       open={open}
       onToggle={() => setOpen(!open)}
       ariaLabel="Paragraph style"
-      active={activeBlockType === "heading"}
+      active={onHeading}
     >
       {items.map((el) => {
         const elLevel = (el.blockProps as { level?: number } | undefined)?.level;
@@ -188,6 +196,34 @@ function ParagraphDropdown({
           </button>
         );
       })}
+      {onHeading && (
+        <>
+          <div className="fmt-pill__menu-divider" />
+          <button
+            type="button"
+            className={`fmt-pill__item${activeToggleable ? " fmt-pill__item--active" : ""}`}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              toggleCollapsible();
+              setOpen(false);
+            }}
+          >
+            {activeToggleable ? "✓ Collapsible" : "Make collapsible"}
+          </button>
+        </>
+      )}
+      <div className="fmt-pill__menu-divider" />
+      <button
+        type="button"
+        className="fmt-pill__item"
+        onMouseDown={(e) => {
+          e.preventDefault();
+          clearFormatting();
+          setOpen(false);
+        }}
+      >
+        Clear formatting
+      </button>
     </DropdownButton>
   );
 }
@@ -284,6 +320,240 @@ function InsertDropdown({
   );
 }
 
+/* ── Color dropdown (text + background palette) ──────────────────────────── */
+
+const COLOR_PALETTE: { name: string; label: string; swatch: string; fg: string; bg: string }[] = [
+  { name: "default", label: "Default",  swatch: "#555555", fg: "inherit",   bg: "transparent" },
+  { name: "gray",    label: "Gray",     swatch: "#9b9a97", fg: "#6b6b6b",   bg: "#ededeb"     },
+  { name: "brown",   label: "Brown",    swatch: "#a57b48", fg: "#6b4a2b",   bg: "#e9dfd5"     },
+  { name: "red",     label: "Red",      swatch: "#e03e3e", fg: "#a22828",   bg: "#fbe4e4"     },
+  { name: "orange",  label: "Orange",   swatch: "#d9730d", fg: "#8a4d08",   bg: "#fbe4c9"     },
+  { name: "yellow",  label: "Yellow",   swatch: "#dfab01", fg: "#8a6b00",   bg: "#fcf4c9"     },
+  { name: "green",   label: "Green",    swatch: "#0f7b6c", fg: "#1a5b50",   bg: "#ddedea"     },
+  { name: "blue",    label: "Blue",     swatch: "#0b6e99", fg: "#1a4b6b",   bg: "#d8e6f2"     },
+  { name: "purple",  label: "Purple",   swatch: "#6940a5", fg: "#4a2d73",   bg: "#e5dcf0"     },
+  { name: "pink",    label: "Pink",     swatch: "#ad1a72", fg: "#7a135a",   bg: "#f5dbed"     },
+];
+
+function ColorDropdown({
+  activeTextColor,
+  activeBgColor,
+  setColor,
+}: {
+  activeTextColor: string;
+  activeBgColor: string;
+  setColor: (kind: "textColor" | "backgroundColor", value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <DropdownButton
+      label={
+        <span
+          className="fmt-pill__label"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 18,
+            height: 18,
+            fontWeight: 600,
+            color: activeTextColor !== "default"
+              ? (COLOR_PALETTE.find((c) => c.name === activeTextColor)?.fg ?? "inherit")
+              : "inherit",
+            background: activeBgColor !== "default"
+              ? (COLOR_PALETTE.find((c) => c.name === activeBgColor)?.bg ?? "transparent")
+              : "transparent",
+            borderRadius: 3,
+          }}
+        >
+          A
+        </span>
+      }
+      open={open}
+      onToggle={() => setOpen(!open)}
+      ariaLabel="Text color"
+    >
+      <div className="fmt-pill__menu-group-label">Text color</div>
+      <div className="fmt-pill__swatches">
+        {COLOR_PALETTE.map((c) => (
+          <button
+            key={`fg-${c.name}`}
+            type="button"
+            className={`fmt-pill__swatch${activeTextColor === c.name ? " fmt-pill__swatch--active" : ""}`}
+            title={c.label}
+            onMouseDown={(e) => { e.preventDefault(); setColor("textColor", c.name); setOpen(false); }}
+          >
+            <span style={{ color: c.name === "default" ? "var(--rim-text)" : c.fg }}>A</span>
+          </button>
+        ))}
+      </div>
+      <div className="fmt-pill__menu-divider" />
+      <div className="fmt-pill__menu-group-label">Highlight</div>
+      <div className="fmt-pill__swatches">
+        {COLOR_PALETTE.map((c) => (
+          <button
+            key={`bg-${c.name}`}
+            type="button"
+            className={`fmt-pill__swatch${activeBgColor === c.name ? " fmt-pill__swatch--active" : ""}`}
+            title={c.label}
+            onMouseDown={(e) => { e.preventDefault(); setColor("backgroundColor", c.name); setOpen(false); }}
+          >
+            <span style={{ background: c.name === "default" ? "transparent" : c.bg, padding: "0 4px", borderRadius: 2 }}>A</span>
+          </button>
+        ))}
+      </div>
+    </DropdownButton>
+  );
+}
+
+/* ── Link button (popover with URL input) ────────────────────────────────── */
+
+function LinkButton({
+  activeHref,
+  createLink,
+  removeLink,
+}: {
+  activeHref: string | null;
+  createLink: (url: string) => void;
+  removeLink: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [url, setUrl] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open) {
+      setUrl(activeHref ?? "");
+      setTimeout(() => inputRef.current?.focus(), 0);
+    }
+  }, [open, activeHref]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    const t = setTimeout(() => document.addEventListener("pointerdown", onDown), 0);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  function commit() {
+    const trimmed = url.trim();
+    if (trimmed) createLink(trimmed); else removeLink();
+    setOpen(false);
+  }
+
+  return (
+    <div className="fmt-pill__dd" ref={ref}>
+      <button
+        type="button"
+        className={`fmt-pill__btn${activeHref ? " fmt-pill__btn--active" : ""}${open ? " fmt-pill__btn--open" : ""}`}
+        onMouseDown={(e) => { e.preventDefault(); setOpen(!open); }}
+        aria-label="Link"
+        title="Link"
+      >
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+          <path d="M6.5 9.5l3-3M5.5 11.5a2.5 2.5 0 010-3.54l1.5-1.5M10.5 4.5a2.5 2.5 0 010 3.54l-1.5 1.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      </button>
+      {open && (
+        <div
+          className="fmt-pill__menu fmt-pill__menu--link"
+          onPointerDown={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.preventDefault()}
+        >
+          <input
+            ref={inputRef}
+            className="fmt-pill__link-input"
+            type="url"
+            placeholder="Paste or type a URL"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); commit(); }
+            }}
+          />
+          <div className="fmt-pill__link-row">
+            <button type="button" className="fmt-pill__btn" onMouseDown={(e) => { e.preventDefault(); commit(); }}>
+              {activeHref ? "Update" : "Apply"}
+            </button>
+            {activeHref && (
+              <button type="button" className="fmt-pill__btn" onMouseDown={(e) => { e.preventDefault(); removeLink(); setOpen(false); }}>
+                Remove
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Align dropdown ──────────────────────────────────────────────────────── */
+
+function AlignDropdown({
+  activeAlign,
+  setAlign,
+}: {
+  activeAlign: string;
+  setAlign: (value: "left" | "center" | "right" | "justify") => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const icon = (a: string) => {
+    const lines: Record<string, number[]> = {
+      left:    [12, 8, 10, 6],
+      center:  [12, 8, 10, 6],
+      right:   [12, 8, 10, 6],
+      justify: [12, 12, 12, 12],
+    };
+    const offsets: Record<string, number> = { left: 2, center: 4, right: 6, justify: 2 };
+    return (
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+        {lines[a].map((w, i) => (
+          <rect
+            key={i}
+            x={a === "center" ? (16 - w) / 2 : a === "right" ? 16 - w - 2 : offsets[a]}
+            y={3 + i * 2.5}
+            width={w}
+            height="1.3"
+            rx="0.5"
+            fill="currentColor"
+          />
+        ))}
+      </svg>
+    );
+  };
+  return (
+    <DropdownButton
+      label={<span className="fmt-pill__label" style={{ display: "inline-flex", alignItems: "center" }}>{icon(activeAlign || "left")}</span>}
+      open={open}
+      onToggle={() => setOpen(!open)}
+      ariaLabel="Alignment"
+    >
+      {(["left", "center", "right", "justify"] as const).map((a) => (
+        <button
+          key={a}
+          type="button"
+          className={`fmt-pill__item${activeAlign === a ? " fmt-pill__item--active" : ""}`}
+          onMouseDown={(e) => { e.preventDefault(); setAlign(a); setOpen(false); }}
+        >
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            {icon(a)}
+            <span style={{ textTransform: "capitalize" }}>{a}</span>
+          </span>
+        </button>
+      ))}
+    </DropdownButton>
+  );
+}
+
 /* ── Inline style button ─────────────────────────────────────────────────── */
 
 function StyleButton({
@@ -322,7 +592,33 @@ export function FormatPill({ context }: { context: EditorContext }) {
   const activeBlockIdRef = useRef<string | null>(null);
   const [activeBlockType, setActiveBlockType] = useState<string>("paragraph");
   const [activeLevel, setActiveLevel] = useState<number>(0);
+  const [activeAlign, setActiveAlign] = useState<string>("left");
+  const [activeToggleable, setActiveToggleable] = useState<boolean>(false);
   const [activeStyles, setActiveStyles] = useState<Record<string, unknown>>({});
+  const [activeHref, setActiveHref] = useState<string | null>(null);
+
+  /* ── Sync state from current block + selection ───────────────────────── */
+
+  const syncFromCursor = useCallback(() => {
+    try {
+      const block = editor.getTextCursorPosition().block;
+      if (!block) return null;
+      const props = (block.props ?? {}) as Record<string, unknown>;
+      setActiveBlockType(block.type);
+      setActiveLevel((props.level as number) ?? 0);
+      setActiveAlign(((props.textAlignment as string) ?? "left"));
+      setActiveToggleable(!!props.isToggleable);
+      setActiveStyles(editor.getActiveStyles() as Record<string, unknown>);
+      try {
+        const href = (editor as unknown as { getSelectedLinkUrl?: () => string | undefined })
+          .getSelectedLinkUrl?.();
+        setActiveHref(href || null);
+      } catch { setActiveHref(null); }
+      return block;
+    } catch {
+      return null;
+    }
+  }, [editor]);
 
   /* ── Positioning ──────────────────────────────────────────────────────── */
 
@@ -342,24 +638,14 @@ export function FormatPill({ context }: { context: EditorContext }) {
   /* ── Track cursor → block + styles ────────────────────────────────────── */
 
   useEditorSelectionChange(() => {
-    try {
-      const block = editor.getTextCursorPosition().block;
-      if (!block) { setVisible(false); return; }
-      setActiveBlockType(block.type);
-      setActiveLevel(((block.props as Record<string, unknown>)?.level as number) ?? 0);
-      setActiveStyles(editor.getActiveStyles() as Record<string, unknown>);
-      if (block.id !== activeBlockIdRef.current) {
-        activeBlockIdRef.current = block.id;
-        reposition(block.id);
-      }
-      // Show only when the pill is actually useful: empty block, active
-      // selection, or an open pill menu. Otherwise get out of the way while
-      // the user is typing.
-      const hasSelection = !!editor.getSelection();
-      setVisible(isBlockEmpty(block) || hasSelection || anyPillMenuOpen());
-    } catch {
-      setVisible(false);
+    const block = syncFromCursor();
+    if (!block) { setVisible(false); return; }
+    if (block.id !== activeBlockIdRef.current) {
+      activeBlockIdRef.current = block.id;
+      reposition(block.id);
     }
+    const hasSelection = !!editor.getSelection();
+    setVisible(isBlockEmpty(block) || hasSelection || anyPillMenuOpen());
   });
 
   /* ── Reposition on scroll/resize ──────────────────────────────────────── */
@@ -382,17 +668,12 @@ export function FormatPill({ context }: { context: EditorContext }) {
     if (!el) return;
 
     const onFocusIn = () => {
-      try {
-        const block = editor.getTextCursorPosition().block;
-        if (!block) return;
-        activeBlockIdRef.current = block.id;
-        setActiveBlockType(block.type);
-        setActiveLevel(((block.props as Record<string, unknown>)?.level as number) ?? 0);
-        setActiveStyles(editor.getActiveStyles() as Record<string, unknown>);
-        reposition(block.id);
-        const hasSelection = !!editor.getSelection();
-        setVisible(isBlockEmpty(block) || hasSelection || anyPillMenuOpen());
-      } catch {}
+      const block = syncFromCursor();
+      if (!block) return;
+      activeBlockIdRef.current = block.id;
+      reposition(block.id);
+      const hasSelection = !!editor.getSelection();
+      setVisible(isBlockEmpty(block) || hasSelection || anyPillMenuOpen());
     };
 
     const onFocusOut = (e: FocusEvent) => {
@@ -410,7 +691,7 @@ export function FormatPill({ context }: { context: EditorContext }) {
       el.removeEventListener("focusin", onFocusIn);
       el.removeEventListener("focusout", onFocusOut);
     };
-  }, [editor, reposition]);
+  }, [editor, reposition, syncFromCursor]);
 
   /* ── Actions ──────────────────────────────────────────────────────────── */
 
@@ -418,6 +699,89 @@ export function FormatPill({ context }: { context: EditorContext }) {
     try {
       editor.focus();
       editor.toggleStyles({ [style]: true } as Record<string, true>);
+      setActiveStyles(editor.getActiveStyles() as Record<string, unknown>);
+    } catch {}
+  }, [editor]);
+
+  const setColor = useCallback(
+    (kind: "textColor" | "backgroundColor", value: string) => {
+      try {
+        editor.focus();
+        // BlockNote applies textColor / backgroundColor via addStyles with the
+        // named palette key as value; clearing uses removeStyles.
+        if (value === "default") {
+          (editor as unknown as { removeStyles: (s: Record<string, string>) => void })
+            .removeStyles({ [kind]: "" });
+        } else {
+          (editor as unknown as { addStyles: (s: Record<string, string>) => void })
+            .addStyles({ [kind]: value });
+        }
+        setActiveStyles(editor.getActiveStyles() as Record<string, unknown>);
+      } catch {}
+    },
+    [editor],
+  );
+
+  const setAlign = useCallback(
+    (value: "left" | "center" | "right" | "justify") => {
+      try {
+        editor.focus();
+        const block = editor.getTextCursorPosition().block;
+        editor.updateBlock(block, {
+          props: { textAlignment: value } as never,
+        });
+        setActiveAlign(value);
+      } catch {}
+    },
+    [editor],
+  );
+
+  const createLink = useCallback(
+    (url: string) => {
+      try {
+        editor.focus();
+        (editor as unknown as { createLink: (u: string) => void }).createLink(url);
+        setActiveHref(url);
+      } catch {}
+    },
+    [editor],
+  );
+
+  const removeLink = useCallback(() => {
+    try {
+      editor.focus();
+      // BlockNote removes a link by creating an empty-url link over the range;
+      // the cleanest programmatic path is to clear the link mark via the
+      // underlying editor's commands.
+      const bn = editor as unknown as {
+        _tiptapEditor?: { commands?: { unsetLink?: () => void } };
+      };
+      bn._tiptapEditor?.commands?.unsetLink?.();
+      setActiveHref(null);
+    } catch {}
+  }, [editor]);
+
+  const toggleCollapsible = useCallback(() => {
+    try {
+      editor.focus();
+      const block = editor.getTextCursorPosition().block;
+      const curr = !!((block.props as Record<string, unknown>)?.isToggleable);
+      editor.updateBlock(block, {
+        props: { isToggleable: !curr } as never,
+      });
+      setActiveToggleable(!curr);
+    } catch {}
+  }, [editor]);
+
+  const clearFormatting = useCallback(() => {
+    try {
+      editor.focus();
+      const keys = ["bold", "italic", "underline", "strike", "code", "textColor", "backgroundColor"];
+      const obj: Record<string, string> = {};
+      for (const k of keys) obj[k] = "";
+      (editor as unknown as { removeStyles: (s: Record<string, string>) => void })
+        .removeStyles(obj);
+      setActiveStyles({});
     } catch {}
   }, [editor]);
 
@@ -511,7 +875,10 @@ export function FormatPill({ context }: { context: EditorContext }) {
         context={context}
         activeBlockType={activeBlockType}
         activeLevel={activeLevel}
+        activeToggleable={activeToggleable}
         turnInto={turnInto}
+        toggleCollapsible={toggleCollapsible}
+        clearFormatting={clearFormatting}
       />
       <ListDropdown
         context={context}
@@ -540,11 +907,31 @@ export function FormatPill({ context }: { context: EditorContext }) {
         onToggle={toggleStyle}
       />
       <StyleButton
+        style="strike"
+        label={<s>S</s>}
+        active={!!activeStyles.strike}
+        onToggle={toggleStyle}
+      />
+      <StyleButton
         style="code"
         label={<code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>{`< >`}</code>}
         active={!!activeStyles.code}
         onToggle={toggleStyle}
       />
+
+      <span className="fmt-pill__sep" />
+
+      <ColorDropdown
+        activeTextColor={(activeStyles.textColor as string) || "default"}
+        activeBgColor={(activeStyles.backgroundColor as string) || "default"}
+        setColor={setColor}
+      />
+      <LinkButton
+        activeHref={activeHref}
+        createLink={createLink}
+        removeLink={removeLink}
+      />
+      <AlignDropdown activeAlign={activeAlign} setAlign={setAlign} />
 
       <span className="fmt-pill__sep" />
 

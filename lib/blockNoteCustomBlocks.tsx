@@ -85,7 +85,7 @@ const calloutFactory = createReactBlockSpec(
     propSchema: {
       variant: {
         default: "info" as const,
-        values: ["info", "note", "warning"] as const,
+        values: ["info", "note", "warning", "decision"] as const,
       },
     },
     content: "inline" as const,

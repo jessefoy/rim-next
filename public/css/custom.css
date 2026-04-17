@@ -20597,6 +20597,71 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
   padding: 6px 10px 2px;
 }
 
+/* Color palette swatches */
+.fmt-pill__swatches {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 2px;
+  padding: 4px 6px 6px;
+}
+.fmt-pill__swatch {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rim-text);
+  padding: 0;
+}
+.fmt-pill__swatch:hover { background: #f3f3f1; }
+.fmt-pill__swatch--active { border-color: var(--rim-blue); }
+
+/* Link popover */
+.fmt-pill__menu--link {
+  min-width: 280px;
+  padding: 8px;
+}
+.fmt-pill__link-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border: 1px solid #d5d5d5;
+  border-radius: 4px;
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  background: #fff;
+  color: var(--rim-text);
+  outline: none;
+}
+.fmt-pill__link-input:focus { border-color: var(--rim-blue); }
+.fmt-pill__link-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+/* ── Callout block variants (editor + rendered) ──────────────────────────── */
+/* Shared base for all four variants. Rendered output uses lp-callout-block. */
+.bn-callout,
+.lp-callout-block {
+  border-left: 3px solid var(--rim-mid);
+  background: #f5f5f3;
+  padding: 10px 14px;
+  border-radius: 4px;
+  margin: 8px 0;
+}
+.bn-callout--info,     .lp-callout-block--info     { border-left-color: #0b6e99; background: #eef5fa; }
+.bn-callout--note,     .lp-callout-block--note     { border-left-color: #6b6b6b; background: #f2f2f0; }
+.bn-callout--warning,  .lp-callout-block--warning  { border-left-color: #d9730d; background: #fcf3e8; }
+.bn-callout--decision, .lp-callout-block--decision { border-left-color: #6940a5; background: #f1ecf8; }
+
 /* ── Document page wrapper — clean white card on warm bg ── */
 .doc-page {
   max-width: 760px;
