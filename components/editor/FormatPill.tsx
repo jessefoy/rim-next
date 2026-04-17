@@ -802,6 +802,21 @@ export function FormatPill({ context }: { context: EditorContext }) {
           ([k, v]) => currentProps[k] === v,
         );
         const isAlreadyThisType = currentType === el.blockType && propsMatch;
+        // Converting into a container callout: move the block's inline content
+        // into a paragraph child so it isn't lost when schema drops it.
+        if (!isAlreadyThisType && el.blockType === "callout") {
+          const inline = Array.isArray((block as any).content)
+            ? (block as any).content
+            : [];
+          editor.updateBlock(block, {
+            type: "callout" as never,
+            props: elProps as never,
+            children: [
+              { type: "paragraph" as never, content: inline as never },
+            ] as never,
+          });
+          return;
+        }
         editor.updateBlock(block, {
           type: (isAlreadyThisType ? "paragraph" : el.blockType) as never,
           props: (isAlreadyThisType ? {} : elProps) as never,
@@ -837,6 +852,28 @@ export function FormatPill({ context }: { context: EditorContext }) {
             block,
             "after",
           );
+        } else if (el.blockType === "callout") {
+          // Container callout — seed with one empty paragraph child so the
+          // body has an editable block ready.
+          editor.insertBlocks(
+            [{
+              type: "callout" as never,
+              props: (el.blockProps ?? {}) as never,
+              children: [{ type: "paragraph" as never }],
+            }],
+            block,
+            "after",
+          );
+          setTimeout(() => {
+            try {
+              const next = editor.getTextCursorPosition().nextBlock;
+              const firstChild = next?.children?.[0];
+              if (firstChild) {
+                editor.setTextCursorPosition(firstChild.id, "start");
+                editor.focus();
+              }
+            } catch {}
+          }, 50);
         } else {
           editor.insertBlocks(
             [{

@@ -85,7 +85,13 @@ function blockStyleAttr(block: any): string {
 function renderSingleBlock(block: any): string {
   if (!block || typeof block !== "object") return ""
   const inner    = Array.isArray(block.content) ? renderInlineContent(block.content) : ""
-  const children = (block.children || []).map(renderSingleBlock).join("")
+  // For container blocks that manage children themselves (callout), group
+  // children through renderBlockNodes so lists get proper <ul>/<ol> wrappers.
+  const childBlocks = Array.isArray(block.children) ? block.children : []
+  const children =
+    block.type === "callout"
+      ? renderBlockNodes(childBlocks)
+      : childBlocks.map(renderSingleBlock).join("")
   const bStyle   = blockStyleAttr(block)
 
   switch (block.type) {
@@ -164,10 +170,17 @@ function renderSingleBlock(block: any): string {
     case "callout": {
       const variant = block.props?.variant ?? "note"
       const title   = block.props?.title ?? ""
-      const icon    = variant === "decision" ? "✓" : variant === "warning" ? "⚠" : variant === "info" ? "ℹ" : "💡"
+      const iconMap: Record<string, string> = {
+        note: "💡", decision: "✓", practice: "🌱", reflection: "❦",
+        question: "?", warning: "⚠", info: "ℹ",
+      }
+      const icon = iconMap[variant] ?? "💡"
       const titleHtml = title ? `<span class="lp-callout-block__title">${title}</span>` : ""
       const header = `<div class="lp-callout-block__header"><span class="lp-callout-block__icon" aria-hidden="true">${icon}</span>${titleHtml}</div>`
-      return `<div class="lp-callout-block lp-callout-block--${variant}">${header}<div class="lp-callout-block__body">${inner}</div></div>${children}`
+      // Body = children (block-level). Legacy inline content falls back into
+      // the body if any is still stored that way.
+      const body = children || inner
+      return `<div class="lp-callout-block lp-callout-block--${variant}">${header}<div class="lp-callout-block__body">${body}</div></div>`
     }
     case "paragraph":
     default:

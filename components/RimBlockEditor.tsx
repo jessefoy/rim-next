@@ -59,6 +59,31 @@ export type EditorContext =
   | "program-description"
   | "default";
 
+/* Migrate legacy callout blocks.
+   Path A stored callout bodies as inline content (single paragraph of marks).
+   Path B is a container — body lives in children. This walks the doc and
+   rewrites any callout with inline content into: empty inline + one paragraph
+   child carrying the old content. Runs once on load. */
+function migrateLegacyCallouts(blocks: any[]): any[] {
+  const walk = (arr: any[]): any[] =>
+    arr.map((b) => {
+      if (!b || typeof b !== "object") return b;
+      const children = Array.isArray(b.children) ? walk(b.children) : [];
+      if (b.type === "callout" && Array.isArray(b.content) && b.content.length > 0) {
+        return {
+          ...b,
+          content: [],
+          children: [
+            { type: "paragraph", content: b.content },
+            ...children,
+          ],
+        };
+      }
+      return { ...b, children };
+    });
+  return walk(blocks);
+}
+
 /* Map this editor's local context prop to the registry's context id. */
 function toRegistryContext(context: EditorContext): RegistryContext {
   switch (context) {
@@ -1091,7 +1116,9 @@ export default function RimBlockEditor({
 }: Props) {
   const hasBlockNoteContent = Array.isArray(value) && value.length > 0;
 
-  // Strip leading empty paragraphs so the document doesn't start with blank lines
+  // Strip leading empty paragraphs so the document doesn't start with blank lines.
+  // Also migrate legacy inline-content callouts into the new container form —
+  // their inline content becomes a single paragraph child.
   const cleanedContent = useMemo(() => {
     if (!hasBlockNoteContent) return undefined;
     let start = 0;
@@ -1102,7 +1129,8 @@ export default function RimBlockEditor({
     ) {
       start++;
     }
-    return start > 0 ? value.slice(start) : value;
+    const trimmed = start > 0 ? value.slice(start) : value;
+    return migrateLegacyCallouts(trimmed);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const editor = useCreateBlockNote(

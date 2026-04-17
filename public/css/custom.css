@@ -20699,34 +20699,62 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
 .rim-content pre code { background: transparent; padding: 0; }
 
 /* ── Callout block variants (editor + rendered) ──────────────────────────── */
-/* Shared base for all four variants. Rendered output uses lp-callout-block. */
-.bn-callout,
+/* Path B: container block. In the editor, each callout lives inside a
+   .bn-block wrapper whose child .bn-block-group holds the body blocks. We
+   style the wrapper so header + body share one visual box. In rendered
+   output, lp-callout-block wraps header + body together. */
+
+/* Variant colors — shared via custom properties so editor wrapper + rendered
+   box can pull from the same source. */
+.bn-block:has(> .bn-block-content[data-content-type="callout"]),
 .lp-callout-block {
-  border-left: 3px solid var(--rim-mid);
-  background: #f5f5f3;
-  padding: 12px 16px;
+  --callout-bg: #f5f5f3;
+  --callout-border: var(--rim-mid);
+  background: var(--callout-bg);
+  border-left: 3px solid var(--callout-border);
   border-radius: 4px;
+  padding: 10px 16px;
   margin: 8px 0;
 }
-.bn-callout--info,     .lp-callout-block--info     { border-left-color: #0b6e99; background: #eef5fa; }
-.bn-callout--note,     .lp-callout-block--note     { border-left-color: #c9a227; background: #fbf6e6; }
-.bn-callout--warning,  .lp-callout-block--warning  { border-left-color: #d9730d; background: #fcf3e8; }
-.bn-callout--decision, .lp-callout-block--decision { border-left-color: #2e7a57; background: #ebf4ef; }
+.bn-block:has(> .bn-block-content[data-content-type="callout"][data-variant="note"]),
+.lp-callout-block--note     { --callout-bg: #fbf6e6; --callout-border: #c9a227; }
+.bn-block:has(> .bn-block-content[data-content-type="callout"][data-variant="decision"]),
+.lp-callout-block--decision { --callout-bg: #ebf4ef; --callout-border: #2e7a57; }
+.bn-block:has(> .bn-block-content[data-content-type="callout"][data-variant="practice"]),
+.lp-callout-block--practice { --callout-bg: #e6f2ef; --callout-border: #2a8f79; }
+.bn-block:has(> .bn-block-content[data-content-type="callout"][data-variant="reflection"]),
+.lp-callout-block--reflection { --callout-bg: #f0ebf6; --callout-border: #7052a8; }
+.bn-block:has(> .bn-block-content[data-content-type="callout"][data-variant="question"]),
+.lp-callout-block--question { --callout-bg: #e6f0f6; --callout-border: #2c5a7a; }
+.bn-block:has(> .bn-block-content[data-content-type="callout"][data-variant="warning"]),
+.lp-callout-block--warning  { --callout-bg: #fcf3e8; --callout-border: #d9730d; }
+.bn-block:has(> .bn-block-content[data-content-type="callout"][data-variant="info"]),
+.lp-callout-block--info     { --callout-bg: #eef5fa; --callout-border: #0b6e99; }
 
-/* Header row — icon + title (shared) */
+/* The callout block's own content area — just the header. Strip BlockNote's
+   default padding so the header sits flush inside the wrapper. */
+.bn-block-content[data-content-type="callout"] {
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Header row — icon + title */
 .bn-callout__header,
 .lp-callout-block__header {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 6px;
+  position: relative;
 }
+.lp-callout-block__header { margin-bottom: 6px; }
+
 .bn-callout__icon,
 .lp-callout-block__icon {
   font-size: 16px;
   line-height: 1;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -20740,6 +20768,7 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
   border-radius: 3px;
 }
 .bn-callout__icon:hover { background: rgba(0, 0, 0, 0.05); }
+
 .bn-callout__title,
 .lp-callout-block__title {
   font-family: var(--font-sans);
@@ -20758,15 +20787,57 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
 }
 .bn-callout__title::placeholder { color: var(--rim-text-muted); font-weight: 500; }
 
-/* Body — where the inline content lives. Paragraphs inside have no extra margin. */
-.bn-callout__body > p,
-.lp-callout-block__body > p,
-.lp-callout-block > p { margin: 0; }
-.bn-callout__body .bn-inline-content:empty::before {
-  content: "Body";
-  color: var(--rim-text-muted);
-  pointer-events: none;
+/* Variant picker popover */
+.bn-callout__picker {
+  position: absolute;
+  top: 28px;
+  left: 0;
+  background: #fff;
+  border: 1px solid var(--rim-rule);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 4px;
+  z-index: 50;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
+.bn-callout__picker-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  color: var(--rim-text);
+  text-align: left;
+  width: 100%;
+}
+.bn-callout__picker-item:hover { background: var(--rim-bg-accent); }
+.bn-callout__picker-item--active { background: var(--rim-bg-accent); font-weight: 600; }
+.bn-callout__picker-icon { font-size: 14px; width: 18px; text-align: center; }
+
+/* Body — children render in .bn-block-group inside the callout wrapper.
+   Tighten spacing so nested paragraphs/lists don't push the box taller than
+   needed, and pull lists back into the inner padding. */
+.bn-block:has(> .bn-block-content[data-content-type="callout"]) > .bn-block-group {
+  padding-left: 32px;
+  margin-top: 4px;
+}
+.bn-block:has(> .bn-block-content[data-content-type="callout"]) > .bn-block-group > .bn-block:last-child {
+  padding-bottom: 0;
+}
+.lp-callout-block__body > p:last-child,
+.lp-callout-block__body > ul:last-child,
+.lp-callout-block__body > ol:last-child { margin-bottom: 0; }
+.lp-callout-block__body > p:first-child,
+.lp-callout-block__body > ul:first-child,
+.lp-callout-block__body > ol:first-child { margin-top: 0; }
 
 /* ── Document page wrapper — clean white card on warm bg ── */
 .doc-page {
