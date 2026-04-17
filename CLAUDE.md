@@ -25,9 +25,11 @@ When Jesse says **"opening prompt"** (or similar), execute the full opening ritu
 
 At the start of every session, before any implementation work:
 
-1. **Read the relevant reference files** per the Design Orientation table above. This is not optional. Do not skim. Do not summarize from memory.
+1. **Read `UP_NEXT.md` in the project root.** This file carries the in-progress context from the last session — what's half-built, what's being tested, what the next concrete step is. Read it before anything else so you can pick up from where Jesse left off instead of starting cold. If `UP_NEXT.md` has active work and Jesse's first message sounds related, resume that thread.
 
-2. **Produce a Connections Map before writing any code.** When Jesse describes what we're working on, your first response must include a map in this format:
+2. **Read the relevant reference files** per the Design Orientation table above. This is not optional. Do not skim. Do not summarize from memory.
+
+3. **Produce a Connections Map before writing any code.** When Jesse describes what we're working on, your first response must include a map in this format:
 
 ```
 ## Connections Map: [feature/task name]
@@ -59,7 +61,7 @@ Design principles that apply:
 
 This is not a formality. It is how Jesse verifies that you understand the system before you touch it. If a section has no entries, write "None" — do not omit it. If you're unsure about a connection, say so and ask.
 
-3. **Wait for Jesse to confirm the map before building.** Jesse may see connections you missed. The map is a conversation, not a checklist. Only proceed to implementation after Jesse says the map looks right.
+4. **Wait for Jesse to confirm the map before building.** Jesse may see connections you missed. The map is a conversation, not a checklist. Only proceed to implementation after Jesse says the map looks right.
 
 This is the difference between executing tasks and co-creating a system. Jesse should never have to remind you of something that is documented.
 
@@ -184,7 +186,9 @@ When Jesse says **"closing prompt"**, **"let's document everything"**, or simila
 
 7. **Backlog** (`data/backlog.json`) — If any new items were identified during the session, add them.
 
-8. **Commit and push all documentation changes together.**
+8. **UP_NEXT.md** — Rewrite the "Active" section to reflect where this session ended. Capture: what was built and is now live, what is open (being tested, half-built, or waiting on Jesse), the next concrete step, and any queued follow-ons. This file is read at the top of the next session's opening ritual — it is how Jesse picks up where we left off without starting cold.
+
+9. **Commit and push all documentation changes together.**
 
 If any of these files do not need updating for this session, say so explicitly. Do not silently skip them.
 
