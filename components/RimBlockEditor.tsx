@@ -30,6 +30,8 @@ import {
   useEditorSelectionChange,
   SuggestionMenuController,
   getDefaultReactSlashMenuItems,
+  SideMenuController,
+  DragHandleButton,
 } from "@blocknote/react";
 import { filterSuggestionItems } from "@blocknote/core/extensions";
 import { BlockNoteView } from "@blocknote/mantine";
@@ -1232,6 +1234,10 @@ export default function RimBlockEditor({
         sideMenu={false}
         formattingToolbar={false}
       >
+        {/* Block handle — drag-only on the left gutter (no + button; pill/slash handle inserts) */}
+        <SideMenuController
+          sideMenu={(props) => <DragHandleButton {...props} />}
+        />
         {/* Selection toolbar — hidden for image/table blocks which have their own controls */}
         <FormattingToolbarController
           formattingToolbar={() => (
