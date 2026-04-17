@@ -29,7 +29,6 @@ import {
   useBlockNoteEditor,
   useEditorSelectionChange,
   SuggestionMenuController,
-  getDefaultReactSlashMenuItems,
 } from "@blocknote/react";
 import { filterSuggestionItems } from "@blocknote/core/extensions";
 import { BlockNoteView } from "@blocknote/mantine";
@@ -38,7 +37,12 @@ import { RiQuoteText, RiPlantLine, RiInformationLine } from "react-icons/ri";
 import { rimTheme } from "@/lib/blockNoteTheme";
 import { rimBlockSchema } from "@/lib/blockNoteCustomBlocks";
 import { FormatPill } from "@/components/editor/FormatPill";
-import type { EditorContext as RegistryContext } from "@/lib/editorRegistry";
+import {
+  type EditorContext as RegistryContext,
+  insertElementsForContext,
+  GROUP_LABELS,
+  type EditorElement,
+} from "@/lib/editorRegistry";
 
 /* ── Types ─────────────────────────────────────────────────────────────────── */
 
@@ -61,42 +65,6 @@ export type EditorContext =
   | "manual"
   | "program-description"
   | "default";
-
-/* ── Tier slash menu allowlists ─────────────────────────────────────────────
- * Filter BlockNote's default slash items by English title (stable within a
- * major version; RIM is English-only). Dharma custom blocks are reached via
- * the empty-line pill today; Phase 5 will unify chrome and add them here too.
- */
-const DOCUMENT_TIER_SLASH_TITLES = new Set<string>([
-  "Paragraph",
-  "Heading 2",
-  "Heading 3",
-  "Bullet List",
-  "Numbered List",
-  "Check List",
-  "Quote",
-  "Code Block",
-  "Table",
-  "Image",
-]);
-
-const FEATURE_TIER_SLASH_TITLES = new Set<string>([
-  "Paragraph",
-  "Heading 2",
-  "Heading 3",
-  "Bullet List",
-  "Numbered List",
-  "Check List",
-  "Quote",
-  "Code Block",
-  "Table",
-  "Image",
-]);
-
-function slashTitlesFor(context: EditorContext): Set<string> {
-  if (context === "lesson") return FEATURE_TIER_SLASH_TITLES;
-  return DOCUMENT_TIER_SLASH_TITLES;
-}
 
 /* Map this editor's local context prop to the registry's context id. */
 function toRegistryContext(context: EditorContext): RegistryContext {
@@ -1238,6 +1206,20 @@ export default function RimBlockEditor({
         padding: 10px 14px !important;
         vertical-align: top !important;
       }
+      /* ── Code block — light surface, readable mono text ── */
+      .rim-block-editor .bn-block-content[data-content-type="codeBlock"],
+      .rim-block-editor .bn-block-content[data-content-type="codeBlock"] pre,
+      .rim-block-editor .bn-block-content[data-content-type="codeBlock"] code {
+        background: #f3f3f1 !important;
+        color: var(--rim-text) !important;
+        font-family: var(--font-mono) !important;
+        font-size: 13px !important;
+        line-height: 1.5 !important;
+      }
+      .rim-block-editor .bn-block-content[data-content-type="codeBlock"] {
+        border-radius: 4px !important;
+        padding: 10px 14px !important;
+      }
     `;
     document.head.appendChild(style);
   }, []);
@@ -1256,14 +1238,60 @@ export default function RimBlockEditor({
             slash menu. Jesse reviewed the drag box and asked for it to go. */}
         {/* Format Pill — single formatting surface (replaces selection bubble + empty-line pill) */}
         <FormatPill context={toRegistryContext(context)} />
-        {/* Slash menu — tier-filtered. Native menu off; this replaces it. */}
+        {/* Slash menu — registry-driven. Same items as the pill's + dropdown
+            (structure / media / callouts / dharma). Text and list types live
+            in the pill's ¶ and • dropdowns instead. */}
         <SuggestionMenuController
           triggerCharacter="/"
           getItems={async (query) => {
-            const allowed = slashTitlesFor(context);
-            const all = getDefaultReactSlashMenuItems(editor);
-            const filtered = all.filter((item) => allowed.has(item.title));
-            return filterSuggestionItems(filtered, query);
+            const items = insertElementsForContext(toRegistryContext(context))
+              .filter((el) => el.group !== "text" && el.group !== "lists")
+              .map((el: EditorElement) => ({
+                title: el.label,
+                group: GROUP_LABELS[el.group],
+                onItemClick: () => {
+                  const block = editor.getTextCursorPosition().block;
+                  if (el.blockType === "table") {
+                    const emptyCell = [{ type: "text" as const, text: "", styles: {} }];
+                    const makeRow = (n: number) => ({
+                      cells: Array.from({ length: n }, () => ({
+                        type: "tableCell" as const,
+                        content: emptyCell,
+                        props: { colspan: 1, rowspan: 1 },
+                      })),
+                    });
+                    editor.insertBlocks(
+                      [{
+                        type: "table" as never,
+                        content: {
+                          type: "tableContent" as const,
+                          columnWidths: [undefined, undefined, undefined],
+                          rows: [makeRow(3), makeRow(3), makeRow(3)],
+                        } as never,
+                      }],
+                      block,
+                      "after",
+                    );
+                  } else {
+                    editor.insertBlocks(
+                      [{
+                        type: el.blockType as never,
+                        props: (el.blockProps ?? {}) as never,
+                      }],
+                      block,
+                      "after",
+                    );
+                    setTimeout(() => {
+                      try {
+                        const next = editor.getTextCursorPosition().nextBlock;
+                        if (next) editor.setTextCursorPosition(next, "start");
+                      } catch {}
+                      editor.focus();
+                    }, 50);
+                  }
+                },
+              }));
+            return filterSuggestionItems(items, query);
           }}
         />
         {/* Image alignment overlay — shows L/C/R on the image itself */}

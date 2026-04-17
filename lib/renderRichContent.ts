@@ -117,6 +117,13 @@ function renderSingleBlock(block: any): string {
       const caption = block.props?.caption ? `<figcaption style="font-size:14px;color:#777;margin-top:4px">${block.props.caption}</figcaption>` : ""
       return `<figure style="${alignStyle};margin:16px 0">${imgTag}${caption}</figure>${children}`
     }
+    case "file": {
+      const url = block.props?.url
+      if (!url) return children || ""
+      const name = block.props?.name || "Download"
+      const caption = block.props?.caption ? `<div class="rim-file__caption">${block.props.caption}</div>` : ""
+      return `<div class="rim-file"><a class="rim-file__link" href="${url}" target="_blank" rel="noopener noreferrer"><span class="rim-file__icon" aria-hidden="true">📎</span><span class="rim-file__name">${name}</span></a>${caption}</div>${children}`
+    }
     case "table": {
       const rows = block.content?.rows || []
       const headerRows = block.content?.headerRows ?? 0

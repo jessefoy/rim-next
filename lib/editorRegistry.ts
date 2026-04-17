@@ -228,7 +228,14 @@ export const EDITOR_ELEMENTS: EditorElement[] = [
     availableIn: DOCUMENT_AND_LESSON,
     insertOnly: true,
   },
-  // Attachment element is intentionally deferred — see RIM_Editor_Design.md.
+  {
+    id: "file",
+    label: "File attachment",
+    group: "media",
+    blockType: "file",
+    availableIn: [...DOCUMENT_AND_LESSON, ...MESSAGE_WITH_TABLES],
+    insertOnly: true,
+  },
 
   // ── Callouts (shared across documents, lessons, and email-bound) ─────────
   {
