@@ -59,32 +59,56 @@ export type EditorContext =
   | "program-description"
   | "default";
 
-/* Migrate legacy editorial containers.
-   Earlier versions stored callout, practiceSuggestion, and reflection bodies
-   as inline content. These are now container blocks with block-level bodies.
-   This walks the doc and rewrites any such block with inline content into
-   empty inline + one paragraph child carrying the old content. Runs once on
-   load. */
+/* Migrate editorial containers and guarantee every one has an editable body.
+
+   Two responsibilities:
+
+   1. Legacy inline → container. Earlier versions of practiceSuggestion and
+      callout stored bodies as inline content. Walk those and move the old
+      content into a paragraph child so it isn't lost.
+
+   2. Seed empty containers. A container with no children renders without a
+      BlockNote blockGroup sibling — no editable body area, and the rendered
+      output is blank. Any container missing children (new from a fresh
+      insert whose body was never touched, a malformed legacy record, etc.)
+      gets one empty paragraph child so it is always editable on load.
+
+   Runs once, on initialContent. */
 function migrateLegacyContainers(blocks: any[]): any[] {
   const walk = (arr: any[]): any[] =>
     arr.map((b) => {
       if (!b || typeof b !== "object") return b;
-      const children = Array.isArray(b.children) ? walk(b.children) : [];
-      if (
-        CONTAINER_BLOCK_TYPES.has(b.type) &&
-        Array.isArray(b.content) &&
-        b.content.length > 0
-      ) {
-        return {
-          ...b,
-          content: [],
-          children: [
-            { type: "paragraph", content: b.content },
-            ...children,
-          ],
-        };
+      const walkedChildren = Array.isArray(b.children) ? walk(b.children) : [];
+
+      if (CONTAINER_BLOCK_TYPES.has(b.type)) {
+        // Strip any stray inline content — "none" schema rejects it.
+        const { content: legacyContent, ...rest } = b;
+        const legacyInline =
+          Array.isArray(legacyContent) && legacyContent.length > 0
+            ? legacyContent
+            : null;
+
+        // Legacy inline content → move into paragraph child.
+        if (legacyInline) {
+          return {
+            ...rest,
+            children: [
+              { type: "paragraph", content: legacyInline },
+              ...walkedChildren,
+            ],
+          };
+        }
+        // Container has no body → seed an empty paragraph so it is editable.
+        if (walkedChildren.length === 0) {
+          return {
+            ...rest,
+            children: [{ type: "paragraph" }],
+          };
+        }
+        return { ...rest, children: walkedChildren };
       }
-      return { ...b, children };
+
+      return { ...b, children: walkedChildren };
     });
   return walk(blocks);
 }
