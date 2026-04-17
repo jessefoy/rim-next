@@ -20457,6 +20457,145 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
   flex-shrink: 0;
 }
 
+/* ── FormatPill — the single formatting surface (all editor tiers) ──────────
+   See RIM_Editor_Design.md → "Editor Chrome — One Consistent Surface" and
+   components/editor/FormatPill.tsx. One design everywhere; what varies per
+   surface is which controls are present, not how they look.
+   ──────────────────────────────────────────────────────────────────────── */
+.fmt-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: #fff;
+  border: 1px solid #e0dcd8;
+  border-radius: 24px;
+  padding: 4px 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  animation: fmt-pill-fade-in-above 0.12s ease;
+  font-family: var(--font-sans);
+}
+.fmt-pill--flipped {
+  animation: fmt-pill-fade-in-below 0.12s ease;
+}
+
+@keyframes fmt-pill-fade-in-above {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fmt-pill-fade-in-below {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fmt-pill__btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  color: var(--rim-text-muted);
+  height: 32px;
+  min-width: 32px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border-radius: 8px;
+  transition: background 0.12s, color 0.12s;
+  line-height: 1;
+}
+.fmt-pill__btn--dd {
+  min-width: auto;
+  padding: 0 8px;
+}
+.fmt-pill__btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--rim-text);
+}
+.fmt-pill__btn--active,
+.fmt-pill__btn--open {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--rim-mid);
+}
+
+.fmt-pill__label {
+  font-size: var(--text-ui);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.fmt-pill__sep {
+  width: 1px;
+  height: 18px;
+  background: #e0dcd8;
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+/* Dropdown wrapper — relative so the menu anchors under its button */
+.fmt-pill__dd {
+  position: relative;
+  display: inline-flex;
+}
+
+/* Dropdown menu */
+.fmt-pill__menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 200px;
+  background: #fff;
+  border: 1px solid #e0dcd8;
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  z-index: 1;
+  animation: fmt-pill-menu-in 0.1s ease;
+}
+@keyframes fmt-pill-menu-in {
+  from { opacity: 0; transform: translateY(-2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fmt-pill__item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  color: var(--rim-text);
+  padding: 7px 10px;
+  border-radius: 6px;
+  line-height: 1.3;
+}
+.fmt-pill__item:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+.fmt-pill__item--active {
+  color: var(--rim-mid);
+  font-weight: 500;
+}
+
+.fmt-pill__menu-divider {
+  height: 1px;
+  background: #eee;
+  margin: 4px 2px;
+}
+
+.fmt-pill__menu-group-label {
+  font-family: var(--font-sans);
+  font-size: var(--text-xxs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--rim-text-muted);
+  padding: 6px 10px 2px;
+}
+
 /* ── Document page wrapper — clean white card on warm bg ── */
 .doc-page {
   max-width: 760px;

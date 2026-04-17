@@ -39,6 +39,8 @@ import { upload } from "@vercel/blob/client";
 import { RiQuoteText, RiPlantLine, RiInformationLine } from "react-icons/ri";
 import { rimTheme } from "@/lib/blockNoteTheme";
 import { rimBlockSchema } from "@/lib/blockNoteCustomBlocks";
+import { FormatPill } from "@/components/editor/FormatPill";
+import type { EditorContext as RegistryContext } from "@/lib/editorRegistry";
 
 /* ── Types ─────────────────────────────────────────────────────────────────── */
 
@@ -96,6 +98,19 @@ const FEATURE_TIER_SLASH_TITLES = new Set<string>([
 function slashTitlesFor(context: EditorContext): Set<string> {
   if (context === "lesson") return FEATURE_TIER_SLASH_TITLES;
   return DOCUMENT_TIER_SLASH_TITLES;
+}
+
+/* Map this editor's local context prop to the registry's context id. */
+function toRegistryContext(context: EditorContext): RegistryContext {
+  switch (context) {
+    case "lesson": return "lesson";
+    case "manual": return "manual";
+    case "program-description": return "program-description";
+    case "document":
+    case "default":
+    default:
+      return "hub-document";
+  }
 }
 
 /* ── Portal dropdown — renders at document.body to escape overflow:hidden ── */
@@ -1238,12 +1253,8 @@ export default function RimBlockEditor({
         <SideMenuController
           sideMenu={(props) => <DragHandleButton {...props} />}
         />
-        {/* Selection toolbar — hidden for image/table blocks which have their own controls */}
-        <FormattingToolbarController
-          formattingToolbar={() => (
-            <ConditionalFormattingToolbar context={context} />
-          )}
-        />
+        {/* Format Pill — single formatting surface (replaces selection bubble + empty-line pill) */}
+        <FormatPill context={toRegistryContext(context)} />
         {/* Slash menu — tier-filtered. Native menu off; this replaces it. */}
         <SuggestionMenuController
           triggerCharacter="/"
@@ -1254,8 +1265,6 @@ export default function RimBlockEditor({
             return filterSuggestionItems(filtered, query);
           }}
         />
-        {/* Empty line — full Bear pill */}
-        <EmptyLinePill context={context} />
         {/* Image alignment overlay — shows L/C/R on the image itself */}
         <ImageAlignOverlay />
         {/* Table delete button — × at top-right corner on hover */}
