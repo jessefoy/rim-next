@@ -37,7 +37,25 @@ import { rimBlockSchema } from "@/lib/blockNoteCustomBlocks";
 
 /* ── Types ─────────────────────────────────────────────────────────────────── */
 
-export type EditorContext = "lesson" | "document" | "default";
+/**
+ * Editor context — the registry entry this mount represents.
+ * Drives which custom blocks are offered (lesson gets dharma blocks; others
+ * do not). See RIM_Editor_Design.md for the full tier / context mapping.
+ *
+ * - "lesson"              — Feature tier (contemplative). Enables VerseQuote,
+ *                           PracticeSuggestion, dharma Callout.
+ * - "document"            — Document tier, generic working doc (hub documents,
+ *                           hub welcome, hub home).
+ * - "manual"              — Document tier, staff manual sections.
+ * - "program-description" — Document tier, program detail body.
+ * - "default"             — Fallback; behaves like "document".
+ */
+export type EditorContext =
+  | "lesson"
+  | "document"
+  | "manual"
+  | "program-description"
+  | "default";
 
 /* ── Portal dropdown — renders at document.body to escape overflow:hidden ── */
 

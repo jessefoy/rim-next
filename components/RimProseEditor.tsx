@@ -1,17 +1,34 @@
 "use client";
 
 /**
- * RimProseEditor — prose editor for notes, messages, descriptions, and short fields.
+ * RimProseEditor — the Message-tier engine (Tier 1).
  *
- * Uses the same rimBlockSchema as RimBlockEditor (one schema, two toolbars).
- * Any fix or block type added to the full editor is available here automatically.
+ * Drives every conversational surface: conversations, announcements, tasks,
+ * support replies, admin/household/volunteer notes, lesson notes,
+ * reflection-question prompts, site banner, schedule sub-messages, and
+ * program message fields. See RIM_Editor_Design.md for the full context
+ * registry.
+ *
+ * Shares rimBlockSchema with RimBlockEditor; the difference is the toolbar
+ * configuration and the tier's block allowlist — not a different engine.
  *
  * Props:
- *   variant    — "document" (default): full formatting toolbar, standard padding.
- *                "compact": selection-only floating toolbar with contextual formatting
- *                (B/I/U/Link + H2/H3 + Bullet/Ordered/Quote), reduced padding.
- *                For message compose fields.
- *   minimal    — when true, shows only Bold + Italic + Link in the formatting toolbar
+ *   variant    — Toolbar density within the Message tier. Does NOT select a
+ *                tier — the engine is always Message here; variant only
+ *                changes how much chrome is visible.
+ *                "document" (default): always-visible formatting toolbar,
+ *                    standard padding. Used for longer message surfaces
+ *                    (announcement composer, support reply, admin notes).
+ *                "compact": selection-only floating toolbar, reduced padding.
+ *                    Used for inline message composers (conversation reply,
+ *                    task body, comment fields).
+ *                The name "document" is a legacy carryover from before the
+ *                tier system; it describes toolbar density, not Tier 2
+ *                Document. Phase 5 of the editor redesign will unify chrome
+ *                across tiers and retire this prop.
+ *   minimal    — when true, shows only Bold + Italic + Link in the toolbar.
+ *                For fields where even lists feel like too much (e.g.
+ *                reflection-question prompts).
  *   legacyHtml — pre-rendered HTML from server (Tiptap JSON → HTML).
  *                Imported into BlockNote on mount when value is null/empty.
  *

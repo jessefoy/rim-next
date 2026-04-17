@@ -994,7 +994,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                   onChange={(v: any) => { setDescription(v); markDirty(); }}
                   placeholder="Program description…"
                   minHeight={300}
-                  context="document"
+                  context="program-description"
                 />
               </div>
             </div>
