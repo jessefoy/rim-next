@@ -7,7 +7,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { ToolsProvider } from "@/components/ToolsContext";
-import ToolsNav from "@/components/ToolsNav";
+import WorkspaceShell from "@/components/WorkspaceShell";
 import { hasToolAccess } from "@/lib/toolAuth";
 
 export default async function InboxToolLayout({
@@ -46,10 +46,7 @@ export default async function InboxToolLayout({
 
   return (
     <ToolsProvider value={{ toolName: "Support Inbox", backHref, backLabel }}>
-      <ToolsNav />
-      <div className="tools-content">
-        {children}
-      </div>
+      <WorkspaceShell variant="wide">{children}</WorkspaceShell>
     </ToolsProvider>
   );
 }

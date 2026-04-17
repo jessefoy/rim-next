@@ -1,16 +1,16 @@
 /**
- * Tools layout — shared shell for all /tools/* routes.
+ * Tools outer layout — auth gate only.
  *
- * Architecture decision: Props flow via ToolsContext (React context).
- * Each tool subdirectory has its own layout that wraps children in
- * <ToolsProvider> with tool-specific config (name, back link).
- * This outer layout provides auth gating and wraps in AccountLayout
- * so the sidebar is visible.
+ * Each specific tool (schedule, inbox, programs, learning) wraps its content
+ * in <WorkspaceShell> via its own layout. WorkspaceShell decides between the
+ * hub sidebar (when ?hub=<slug> is present) and the thin ToolsNav chrome.
+ *
+ * We do NOT wrap in AccountLayout here — tools are their own workspace and
+ * the outer AccountSidebar would duplicate navigation.
  */
 
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import AccountLayout from "@/components/AccountLayout";
 
 export default async function ToolsLayout({
   children,
@@ -20,11 +20,5 @@ export default async function ToolsLayout({
   const session = await auth();
   if (!session) redirect("/login");
 
-  return (
-    <AccountLayout>
-      <div className="tools-shell">
-        {children}
-      </div>
-    </AccountLayout>
-  );
+  return <div className="tools-shell">{children}</div>;
 }

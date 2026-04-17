@@ -1,14 +1,41 @@
 "use client";
 
 /**
- * HubHomeClient — Hub Home tab with optional newcomer welcome interstitial
- * and activity summary (recent conversations, tasks, documents).
- * CSS prefix: hub-home-, hub-welcome-
+ * HubHomeClient — Hub Home screen (session 87 redesign).
+ *
+ * Shape:
+ *   ┌─────────────────────────────────────────────┐
+ *   │  [Greeting] (small)                         │
+ *   │  [State sentence] (h2, plain-language)      │
+ *   │                                             │
+ *   │  ┌───────────────────────────────────────┐  │
+ *   │  │  Primary work card                    │  │  ← visually dominant
+ *   │  │  (tool name · count · "Open tool →")  │  │    for tool hubs
+ *   │  └───────────────────────────────────────┘  │
+ *   │                                             │
+ *   │  [Pinned threads] (if any)                  │
+ *   │                                             │
+ *   │  [Activity rail: convs · your tasks · docs] │
+ *   │                                             │
+ *   │  [Orientation block] (if homeContent set)   │
+ *   └─────────────────────────────────────────────┘
+ *
+ * Coordinator home-content editor has moved to /admin/hubs/[slug]/edit.
+ * Hub description + coordinator names have moved to the workspace sidebar.
+ *
+ * CSS prefix: hub-home-
  */
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import RimProseEditor from "@/components/RimProseEditor";
+import { useSearchParams } from "next/navigation";
+
+interface PrimaryTool {
+  label: string;
+  path: string;
+  count: number;
+  label_short: string;
+}
 
 interface PinnedThread {
   id: string;
@@ -40,19 +67,17 @@ interface RecentDoc {
 interface Props {
   slug: string;
   hubName: string;
-  description: string | null;
-  coordinatorNames: string[];
-  pinnedThreads: PinnedThread[];
-  homeContentHtml: string;
-  homeContentJson: any;
+  stateSentence: string;
+  primaryTool: PrimaryTool | null;
   welcomeHeadline: string | null;
   welcomeBodyHtml: string;
   isNewcomer: boolean;
   hasWelcomeContent: boolean;
-  isCoordinator: boolean;
+  pinnedThreads: PinnedThread[];
   recentThreads: RecentThread[];
   openTasks: OpenTask[];
   recentDocs: RecentDoc[];
+  homeContentHtml: string;
 }
 
 function relativeTime(iso: string): string {
@@ -67,29 +92,31 @@ function relativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+function greeting(): string {
+  const h = new Date().getHours();
+  if (h < 5) return "Good evening";
+  if (h < 12) return "Good morning";
+  if (h < 18) return "Good afternoon";
+  return "Good evening";
+}
+
 export default function HubHomeClient({
   slug,
   hubName,
-  description,
-  coordinatorNames,
-  pinnedThreads,
-  homeContentHtml,
-  homeContentJson,
+  stateSentence,
+  primaryTool,
   welcomeHeadline,
   welcomeBodyHtml,
   isNewcomer,
   hasWelcomeContent,
-  isCoordinator,
+  pinnedThreads,
   recentThreads,
   openTasks,
   recentDocs,
+  homeContentHtml,
 }: Props) {
   const [showWelcome, setShowWelcome] = useState(isNewcomer && hasWelcomeContent);
   const [dismissing, setDismissing] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [editContent, setEditContent] = useState<any>(homeContentJson);
-  const [savingHome, setSavingHome] = useState(false);
-  const [currentHtml, setCurrentHtml] = useState(homeContentHtml);
 
   async function dismissWelcome() {
     setDismissing(true);
@@ -102,43 +129,26 @@ export default function HubHomeClient({
     setDismissing(false);
   }
 
-  async function saveHomeContent() {
-    setSavingHome(true);
-    try {
-      const res = await fetch(`/api/hubs/${slug}/home`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ homeContent: editContent }),
-      });
-      if (res.ok) {
-        setEditing(false);
-        window.location.reload();
-      }
-    } finally {
-      setSavingHome(false);
+  // Fire visited if newcomer but no welcome content
+  useEffect(() => {
+    if (isNewcomer && !hasWelcomeContent) {
+      fetch(`/api/hubs/${slug}/membership/visited`, { method: "PATCH" }).catch(() => {});
     }
-  }
+  }, [isNewcomer, hasWelcomeContent, slug]);
 
-  // ── Welcome interstitial ──
   if (showWelcome) {
     return (
       <div className="hub-welcome">
         <div className="hub-welcome__card">
           <h1 className="hub-welcome__title">Welcome to {hubName}</h1>
-          {welcomeHeadline && (
-            <p className="hub-welcome__headline">{welcomeHeadline}</p>
-          )}
+          {welcomeHeadline && <p className="hub-welcome__headline">{welcomeHeadline}</p>}
           {welcomeBodyHtml && (
             <div
               className="hub-welcome__body rim-content"
               dangerouslySetInnerHTML={{ __html: welcomeBodyHtml }}
             />
           )}
-          <button
-            className="hub-welcome__btn"
-            onClick={dismissWelcome}
-            disabled={dismissing}
-          >
+          <button className="hub-welcome__btn" onClick={dismissWelcome} disabled={dismissing}>
             {dismissing ? "Loading..." : "Go to hub \u2192"}
           </button>
         </div>
@@ -146,66 +156,24 @@ export default function HubHomeClient({
     );
   }
 
-  // ── If newcomer but no welcome content, fire visited API silently ──
-  useEffect(() => {
-    if (isNewcomer && !hasWelcomeContent) {
-      fetch(`/api/hubs/${slug}/membership/visited`, { method: "PATCH" }).catch(() => {});
-    }
-  }, [isNewcomer, hasWelcomeContent, slug]);
-
-  const hasActivity = recentThreads.length > 0 || openTasks.length > 0 || recentDocs.length > 0;
-
-  // ── Normal Home screen ──
   return (
     <div className="hub-home">
-      <div className="hub-home__top">
-        <div className="hub-home__top-text">
-          {description && (
-            <p className="hub-home__description">{description}</p>
-          )}
-          {coordinatorNames.length > 0 && (
-            <p className="hub-home__coordinator">
-              Coordinated by {coordinatorNames.join(", ")}
-            </p>
-          )}
-        </div>
-        {isCoordinator && !editing && (
-          <button className="hub-home__edit-btn" onClick={() => setEditing(true)}>
-            Edit home
-          </button>
-        )}
-      </div>
+      {/* ── State sentence ── */}
+      <header className="hub-home__header">
+        <div className="hub-home__greeting">{greeting()}.</div>
+        <h2 className="hub-home__state">{stateSentence}</h2>
+      </header>
 
-      {/* Edit panel (coordinator only) */}
-      {editing && (
-        <div className="hub-home__edit-panel">
-          <div className="hub-home__edit-label">Home Content</div>
-          <RimProseEditor
-            value={editContent}
-            onChange={setEditContent}
-            variant="document"
-            placeholder="Add orientation notes, important links, or team info..."
-            minHeight={160}
-          />
-          <div className="hub-home__edit-actions">
-            <button className="btn" onClick={saveHomeContent} disabled={savingHome}>
-              {savingHome ? "Saving..." : "Save"}
-            </button>
-            <button
-              className="btn--ghost"
-              onClick={() => { setEditContent(homeContentJson); setEditing(false); }}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
+      {/* ── Primary work card ── */}
+      {primaryTool && (
+        <PrimaryToolCard tool={primaryTool} hubSlug={slug} />
       )}
 
-      {/* Pinned threads */}
+      {/* ── Pinned ── */}
       {pinnedThreads.length > 0 && (
-        <div className="hub-home__section">
+        <section className="hub-home__section">
           <div className="hub-home__section-label">Pinned</div>
-          <ul className="hub-home__pinned-list">
+          <ul className="hub-home__pinned">
             {pinnedThreads.map((t) => (
               <li key={t.id}>
                 <Link
@@ -217,89 +185,164 @@ export default function HubHomeClient({
               </li>
             ))}
           </ul>
-        </div>
+        </section>
       )}
 
-      {/* Home content (rendered) */}
-      {currentHtml && !editing && (
-        <div className="hub-home__section">
-          <div
-            className="hub-home__content-body rim-content"
-            dangerouslySetInnerHTML={{ __html: currentHtml }}
-          />
-        </div>
-      )}
-
-      {/* Activity summary */}
-      {!hasActivity && (
-        <p className="hub-home-empty">No activity yet. Start a conversation, add a task, or upload a document to get going.</p>
-      )}
-      {hasActivity && (
-        <div className="hub-home-activity">
-          {/* Recent conversations */}
-          {recentThreads.length > 0 && (
-            <div className="hub-home-activity__card">
-              <div className="hub-home-activity__card-header">
-                <span className="hub-home-activity__card-heading">Recent Conversations</span>
-                <Link href={`/account/hub/${slug}/conversations`} className="hub-home-activity__view-all">
-                  View all
-                </Link>
-              </div>
-              {recentThreads.map((t) => (
-                <Link key={t.id} href={`/account/hub/${slug}/conversations/${t.id}`} className="hub-home-activity__row">
-                  <span className="hub-home-activity__title">{t.title}</span>
-                  <span className="hub-home-activity__meta">
-                    {t.authorName} &middot; {t.replyCount} {t.replyCount === 1 ? "reply" : "replies"} &middot; {relativeTime(t.updatedAt)}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          )}
-
-          {/* Open tasks */}
+      {/* ── Activity rail ── */}
+      {(recentThreads.length > 0 || openTasks.length > 0 || recentDocs.length > 0) && (
+        <section className="hub-home__activity">
           {openTasks.length > 0 && (
-            <div className="hub-home-activity__card">
-              <div className="hub-home-activity__card-header">
-                <span className="hub-home-activity__card-heading">Your Tasks</span>
-                <Link href={`/account/hub/${slug}/tasks`} className="hub-home-activity__view-all">
-                  View all
-                </Link>
-              </div>
+            <ActivityCard
+              heading="Your tasks"
+              viewAllHref={`/account/hub/${slug}/tasks`}
+            >
               {openTasks.map((t) => (
-                <div key={t.id} className="hub-home-activity__row">
-                  <span className="hub-home-activity__title">{t.title}</span>
-                  <span className="hub-home-activity__meta">
-                    {t.status === "IN_PROGRESS" ? "In progress" : "Open"}
-                    {t.dueDate && <> &middot; Due {new Date(t.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</>}
-                  </span>
-                </div>
+                <ActivityRow
+                  key={t.id}
+                  title={t.title}
+                  meta={
+                    (t.status === "IN_PROGRESS" ? "In progress" : "Open") +
+                    (t.dueDate
+                      ? " · Due " +
+                        new Date(t.dueDate).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                        })
+                      : "")
+                  }
+                />
               ))}
-            </div>
+            </ActivityCard>
           )}
 
-          {/* Recent documents */}
-          {recentDocs.length > 0 && (
-            <div className="hub-home-activity__card">
-              <div className="hub-home-activity__card-header">
-                <span className="hub-home-activity__card-heading">Recent Documents</span>
-                <Link href={`/account/hub/${slug}/documents`} className="hub-home-activity__view-all">
-                  View all
-                </Link>
-              </div>
-              {recentDocs.map((d) => (
-                <Link
-                  key={d.id}
-                  href={d.isNative ? `/account/hub/${slug}/documents/${d.id}` : `/account/hub/${slug}/documents`}
-                  className="hub-home-activity__row"
-                >
-                  <span className="hub-home-activity__title">{d.label}</span>
-                  <span className="hub-home-activity__meta">{relativeTime(d.updatedAt)}</span>
-                </Link>
+          {recentThreads.length > 0 && (
+            <ActivityCard
+              heading="Recent conversations"
+              viewAllHref={`/account/hub/${slug}/conversations`}
+            >
+              {recentThreads.map((t) => (
+                <ActivityRow
+                  key={t.id}
+                  href={`/account/hub/${slug}/conversations/${t.id}`}
+                  title={t.title}
+                  meta={`${t.authorName} · ${t.replyCount} ${
+                    t.replyCount === 1 ? "reply" : "replies"
+                  } · ${relativeTime(t.updatedAt)}`}
+                />
               ))}
-            </div>
+            </ActivityCard>
           )}
-        </div>
+
+          {recentDocs.length > 0 && (
+            <ActivityCard
+              heading="Recent documents"
+              viewAllHref={`/account/hub/${slug}/documents`}
+            >
+              {recentDocs.map((d) => (
+                <ActivityRow
+                  key={d.id}
+                  href={
+                    d.isNative
+                      ? `/account/hub/${slug}/documents/${d.id}`
+                      : `/account/hub/${slug}/documents`
+                  }
+                  title={d.label}
+                  meta={relativeTime(d.updatedAt)}
+                />
+              ))}
+            </ActivityCard>
+          )}
+        </section>
+      )}
+
+      {/* ── Orientation ── */}
+      {homeContentHtml && (
+        <section className="hub-home__orientation">
+          <div className="hub-home__section-label">Orientation</div>
+          <div
+            className="hub-home__orientation-body rim-content"
+            dangerouslySetInnerHTML={{ __html: homeContentHtml }}
+          />
+        </section>
       )}
     </div>
   );
+}
+
+/* ─────────────────────────  Primary tool card  ───────────────────────── */
+
+function PrimaryToolCard({ tool, hubSlug }: { tool: PrimaryTool; hubSlug: string }) {
+  // useSearchParams ensures the link receives the current hub context on nav
+  const searchParams = useSearchParams();
+  const currentHub = searchParams.get("hub") ?? hubSlug;
+  const href = tool.path + (tool.path.includes("?") ? "&" : "?") + `hub=${currentHub}`;
+
+  const hasWork = tool.count > 0;
+
+  return (
+    <Link href={href} className={`hub-home-card${hasWork ? " hub-home-card--active" : ""}`}>
+      <div className="hub-home-card__inner">
+        <div className="hub-home-card__label">Your primary workspace</div>
+        <div className="hub-home-card__headline">{tool.label}</div>
+        {hasWork ? (
+          <div className="hub-home-card__count">
+            <span className="hub-home-card__count-num">{tool.count}</span>
+            <span className="hub-home-card__count-word">{tool.label_short}</span>
+          </div>
+        ) : (
+          <div className="hub-home-card__quiet">Nothing needs review right now.</div>
+        )}
+        <div className="hub-home-card__cta">Open {tool.label} →</div>
+      </div>
+    </Link>
+  );
+}
+
+/* ─────────────────────────  Activity bits  ───────────────────────── */
+
+function ActivityCard({
+  heading,
+  viewAllHref,
+  children,
+}: {
+  heading: string;
+  viewAllHref: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="hub-home-act">
+      <div className="hub-home-act__head">
+        <span className="hub-home-act__heading">{heading}</span>
+        <Link href={viewAllHref} className="hub-home-act__view">
+          View all
+        </Link>
+      </div>
+      <div className="hub-home-act__body">{children}</div>
+    </div>
+  );
+}
+
+function ActivityRow({
+  href,
+  title,
+  meta,
+}: {
+  href?: string;
+  title: string;
+  meta: string;
+}) {
+  const inner = (
+    <>
+      <span className="hub-home-act__title">{title}</span>
+      <span className="hub-home-act__meta">{meta}</span>
+    </>
+  );
+  if (href) {
+    return (
+      <Link href={href} className="hub-home-act__row">
+        {inner}
+      </Link>
+    );
+  }
+  return <div className="hub-home-act__row">{inner}</div>;
 }

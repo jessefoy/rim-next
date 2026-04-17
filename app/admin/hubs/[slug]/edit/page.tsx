@@ -61,6 +61,7 @@ export default async function AdminHubEditPage({
     })),
     welcomeHeadline: hub.welcomeHeadline ?? "",
     welcomeBody: hub.welcomeBody,
+    homeContent: hub.homeContent,
   };
 
   return (

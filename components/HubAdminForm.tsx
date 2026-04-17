@@ -36,6 +36,7 @@ interface HubData {
   coordinators: CoordinatorInfo[];
   welcomeHeadline: string;
   welcomeBody: any;
+  homeContent: any;
 }
 
 interface Props {
@@ -62,6 +63,7 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug }: Props)
   const [appLinks, setAppLinks] = useState<AppLink[]>(initialData?.appLinks ?? []);
   const [welcomeHeadline, setWelcomeHeadline] = useState(initialData?.welcomeHeadline ?? "");
   const [welcomeBody, setWelcomeBody] = useState<any>(initialData?.welcomeBody ?? null);
+  const [homeContent, setHomeContent] = useState<any>(initialData?.homeContent ?? null);
   const coordinators = initialData?.coordinators ?? [];
 
   const [saving, setSaving] = useState(false);
@@ -120,6 +122,7 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug }: Props)
       appLinks: appLinks.filter((l) => l.label && (l.toolSlug || l.href)),
       welcomeHeadline: welcomeHeadline || null,
       welcomeBody: welcomeBody,
+      homeContent: homeContent,
     };
 
     try {
@@ -275,6 +278,21 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug }: Props)
         />
         <span className="adm-hubs-hint">
           Orientation text shown once to new members on first visit.
+        </span>
+      </div>
+
+      {/* Hub Home orientation (shown on every visit, bottom of Home) */}
+      <div className="adm-hubs-field">
+        <label className="adm-hubs-label">Hub Home Orientation</label>
+        <RimProseEditor
+          value={homeContent}
+          onChange={setHomeContent}
+          variant="document"
+          placeholder="Optional orientation block shown at the bottom of this hub's Home..."
+          minHeight={120}
+        />
+        <span className="adm-hubs-hint">
+          Long-lived context for this hub — shown beneath the activity rail on Home. Leave blank to hide.
         </span>
       </div>
 

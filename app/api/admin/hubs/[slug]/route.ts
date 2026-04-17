@@ -46,7 +46,7 @@ export async function PATCH(
 
   const { slug } = await params;
   const body = await req.json();
-  const { name, slug: newSlug, description, type, status, appLinks, welcomeHeadline, welcomeBody } = body;
+  const { name, slug: newSlug, description, type, status, appLinks, welcomeHeadline, welcomeBody, homeContent } = body;
 
   const hub = await db.hub.findUnique({ where: { slug } });
   if (!hub) {
@@ -88,6 +88,7 @@ export async function PATCH(
       ...(status !== undefined && { status }),
       ...(welcomeHeadline !== undefined && { welcomeHeadline: welcomeHeadline || null }),
       ...(welcomeBody !== undefined && { welcomeBody }),
+      ...(homeContent !== undefined && { homeContent }),
     },
     include: {
       appLinks: { orderBy: { order: "asc" } },
