@@ -3725,7 +3725,15 @@ Three-column split-pane email client:
 - `@blocknote/core/style.css` is NOT imported — only `@blocknote/mantine/style.css`. Core heading rules (`font-size: var(--level)`) are unused; our injected `<style>` tag handles all heading sizing.
 - Leading empty paragraphs in saved content are stripped on load via `cleanedContent` memo.
 
-*Added: 2026-03-19 (session 69). Updated: 2026-03-21 (session 71)*
+*Added: 2026-03-19 (session 69). Updated: 2026-03-21 (session 71), 2026-04-17 (session 87)*
+
+**Session 87 additions — FormatPill, Element Registry, scope modifiers, five dharma elements:**
+- **FormatPill + Element Registry:** `lib/editorRegistry.ts` is the single source of truth for every insertable or convertible block. One floating pill replaces per-surface chrome; the pill's `+` menu, the slash menu, and the block-handle "Turn into" all read the registry. Adding a new element is one entry that lists every context it belongs to.
+- **Scope modifier system:** every rendered-output wrapper now carries three classes — `rim-content`, `rim-content--{scope}`, and its context class. The scope modifier (`--document`, `--lesson`, `--program`) lets shared `.rim-el-*` element styles produce different treatments per tier without duplicating class trees. See `RIM_Editor_Design.md` → "WYSIWYG Parity Contract" for the three-class wrapper.
+- **Callouts reduced to Note + Decision:** picker exposes only the two kept variants. Legacy variants (`info`, `warning`, `practice`, `reflection`-as-variant) still deserialize for archived content.
+- **Five distinct editorial elements (dharma group):** `pullQuote`, `verseQuote`, `practiceSuggestion` (container), `reflection` (container), `callout` (container). All scoped to `[lesson, program-description]`. The three container blocks use `content: "none"` + `children` for block-level body.
+- **Defensive container-body seeding:** `RimBlockEditor` runs `migrateLegacyContainers` on load — strips stray `content` fields from `"none"` blocks, migrates legacy inline content into a paragraph child, and seeds an empty `{ type: "paragraph" }` child onto any container with no children. Without this, BlockNote emits no `blockGroup` sibling and the container renders as uneditable chrome.
+- Key files: `lib/editorRegistry.ts`, `lib/blockNoteCustomBlocks.tsx`, `components/editor/FormatPill.tsx`, `components/RimBlockEditor.tsx`, `lib/renderRichContent.ts`, `public/css/custom.css` (lines ~20800–21500 cover `bn-*` editor view and `rim-el-*` rendered output).
 
 ---
 

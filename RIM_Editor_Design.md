@@ -83,16 +83,18 @@ Every rich text surface in RIM belongs to one of three tiers. The tier is a desi
 
 **Allowed blocks:**
 - Everything in Tier 2 (Document)
-- **VerseQuote** — contemplative verse with optional attribution; serif italic with left-rule and warm background
-- **PracticeSuggestion** — a practice invitation; teal-tinted box with "Practice" label badge
-- **Callout** (dharma) — warm amber callout for important lesson notes
+- **Pull Quote** — inline single-quote block with optional attribution; visual pause for a line worth sitting with
+- **Verse Quote** — inline single-quote block rendered in serif italic; for scripture, poetry, canonical passages
+- **Practice Suggestion** — container block with "PRACTICE" eyebrow, title, and block-level body; a practice invitation
+- **Reflection** — container block with italic question lead-in and block-level body; for prompts that invite sitting with
+- **Note / Decision** (Callout) — container block, either a neutral Note or a decision-flagging Decision
 
 **Excluded:**
 - H1 (page title only)
 
-**Currently used in:** Lessons only. If a future feature develops its own contemplative voice (e.g., retreat reflections, dharma talk transcripts), it joins this tier.
+**Currently used in:** Lessons and program descriptions. Pull Quote / Verse Quote / Practice / Reflection are scoped to `[lesson, program-description]`; Note / Decision are available across lessons, program descriptions, and email-bound surfaces.
 
-**Implementation engine:** `RimBlockEditor` with `context="lesson"`.
+**Implementation engine:** `RimBlockEditor` with `context="lesson"` or `context="program-description"`.
 
 ---
 
@@ -149,19 +151,19 @@ Every editor, regardless of tier, uses the same interaction patterns. Users lear
 ```
 
 **Groups** (render order in the picker):
-- `text` — paragraph, H2, H3
-- `lists` — bullet, numbered, check, quote
-- `structure` — table, divider, code block
-- `media` — image, video, attachment *(attachment added in a later phase)*
-- `callouts` — InfoCallout (neutral), dharma Callout (warm)
-- `dharma` — VerseQuote, PracticeSuggestion
+- `text` — paragraph, H1–H4
+- `lists` — bullet list, numbered list, checklist
+- `structure` — quote, code block, table, divider
+- `media` — image, file attachment
+- `callouts` — Note, Decision *(both map to the `callout` block, differentiated by the `variant` prop)*
+- `dharma` — Pull Quote, Verse Quote, Practice Suggestion, Reflection
 
 **Context allowlists** flow from each surface's tier and voice:
-- `hub-document`, `hub-welcome`, `hub-home` — text + lists + structure + media + callouts (InfoCallout only)
-- `manual`, `program-description` — same as hub-document
-- `lesson` — everything (the only context that gets `dharma` group)
-- `support-reply`, `program-message-*` — lists + structure (table only) + media (link + attachment); no headings, no dharma, no callouts
-- Message-tier surfaces — lists + structure (quote, code, table); no headings, no media, no callouts, no dharma
+- `hub-document`, `hub-welcome`, `hub-home`, `manual` — text + lists + structure + media + callouts (Note, Decision)
+- `program-description` — same as hub-document, plus the full `dharma` group (Pull Quote, Verse Quote, Practice Suggestion, Reflection)
+- `lesson` — everything, including all `dharma` elements
+- `support-reply`, `program-message-*` — lists + structure (code, table) + media (file attachment) + callouts (Note, Decision); no headings, no dharma, no images
+- Message-tier surfaces (hub-announcement, hub-conversation, hub-task, etc.) — lists + structure (quote, code); no headings, no media, no dharma
 
 **When adding a new element:**
 1. Define the custom block in `lib/blockNoteCustomBlocks.tsx` (if new).
@@ -180,9 +182,19 @@ Every editor, regardless of tier, uses the same interaction patterns. Users lear
 The editor view and the rendered view must match. A writer sees what the reader will see.
 
 **The technique:**
-1. The editor's content-editable root is wrapped in `<div class="rim-content [context-class]">` — the same wrapper the rendered page uses.
+1. The editor's content-editable root is wrapped in `<div class="rim-content rim-content--[scope] [context-class]">` — the same three-class wrapper the rendered page uses.
 2. Editor-only affordances (placeholder, cursor, selection highlight, drag handle, slash menu, empty-line pill, block handle, top toolbar) are scoped to selectors narrow enough not to touch content rendering — they hang off `.ProseMirror`, never off content block tags.
 3. Context CSS is written once and consumed by both surfaces. No separate "editor theme" CSS.
+
+**The three-class wrapper:**
+```html
+<div class="rim-content rim-content--{scope} {context-class}">…</div>
+```
+- `rim-content` — shared base: font stack, list rhythm, paragraph spacing, safe defaults.
+- `rim-content--document` / `rim-content--lesson` / `rim-content--program` — the **scope modifier**. Declares the surface's design voice. One element (e.g. `.rim-el-practice`) can read these and produce utilitarian treatment in documents, full editorial in lessons, and a middle register in programs — without duplicating class trees.
+- `{context-class}` — the per-surface tuning (`lp-body`, `prog-description`, `hdoc-body`, `man-body`, etc.). This is where heading sizes, column width, and context-specific overrides live.
+
+Scope modifiers are the hinge point. They let a shared element library (`.rim-el-*`) be reused across tiers, with the scope class deciding how bold or how quiet that element reads.
 
 **The rule:**
 - If a block looks visibly different in edit vs. view, it is a bug.
@@ -371,11 +383,12 @@ Table styling
 - Document / Feature: full styling, headers, borders
 - Message: simpler styling, no heavy borders — tables in messages should feel calm
 
-Custom block rendering
-- VerseQuote: serif italic, left-rule, warm background, attribution in small caps (Feature only)
-- PracticeSuggestion: teal-tinted box, "Practice" label badge (Feature only)
-- Dharma Callout: warm amber (Feature only)
-- InfoCallout: neutral blue-grey, "Note" or "Tip" prefix (Document only)
+Custom block rendering (keyed by scope modifier — the rendered output uses shared `.rim-el-*` classes that read `.rim-content--document/--lesson/--program` for tier-specific treatment)
+- Pull Quote: small indented left-rule quote in document scope; centered large serif pull quote in lesson / program scope
+- Verse Quote: serif italic with left-rule + attribution (all scopes; size tuned per scope)
+- Practice Suggestion: teal-tinted box with "PRACTICE" eyebrow; sans title in document scope, serif Quincy CF title in lesson / program scope
+- Reflection: italic question lead-in + block-level body; hairline rules above and below (all scopes)
+- Note / Decision (Callout): neutral Note vs green-flagged Decision; same chrome across scopes, tuned spacing per tier
 
 **The rule:**
 Output CSS lives in `custom.css` under a comment header matching the context name. It is written when the context is first built and updated as the design evolves. It is never borrowed from another context.
@@ -392,12 +405,18 @@ Custom blocks (the BlockNote side) live in `lib/blockNoteCustomBlocks.tsx`. Each
 The registry (`lib/editorRegistry.ts`) sits on top — the registry is what the UI reads to decide which custom blocks to offer where. Adding a custom block is two files: the BlockNote definition, and the registry entry.
 
 **Current custom blocks:**
-- `verseQuote` — contemplative verse, optional attribution *(Feature tier)*
-- `practiceSuggestion` — practice invitation *(Feature tier)*
-- `callout` — dharma-flavored warm callout *(Feature tier)*
-- `infoCallout` — neutral note/tip box *(Document tier)*
+- `pullQuote` — inline single-quote block with attribution prop *(dharma group; lesson + program-description)*
+- `verseQuote` — inline single-quote block, serif italic, with attribution prop *(dharma group; lesson + program-description)*
+- `practiceSuggestion` — container block with title prop and block-level body *(dharma group; lesson + program-description)*
+- `reflection` — container block with italic question prop and block-level body *(dharma group; lesson + program-description)*
+- `callout` — container block with `variant` prop (Note or Decision) and title prop *(callouts group; document + lesson + email-bound)*
 
-**Never** reuse a custom block type name that already exists — the type string is stored in the database permanently.
+**Container blocks** (`callout`, `practiceSuggestion`, `reflection`) use BlockNote's `content: "none"` schema + `children` for their block-level body. `lib/blockNoteCustomBlocks.tsx` exports `CONTAINER_BLOCK_TYPES` — renderer, migration, and insert logic all key off this set. On load, `RimBlockEditor` runs a defensive migration (`migrateLegacyContainers`) that:
+- Strips stray `content` fields from any "none"-content block (would fail Prosemirror's `createChecked`).
+- Converts legacy inline content into a `{ type: "paragraph", content: [...] }` child.
+- Seeds an empty `{ type: "paragraph" }` child onto any container with no children (without this, BlockNote emits no `blockGroup` sibling and the container renders as uneditable chrome).
+
+**Never** reuse a custom block type name that already exists — the type string is stored in the database permanently. Legacy callout variants (`info`, `warning`, `practice`, `reflection` as variant strings) still deserialize for archived content even though the picker now exposes only Note and Decision.
 
 ---
 

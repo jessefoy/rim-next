@@ -52,11 +52,21 @@
   {
     "id": "2026-04-17-002",
     "title": "Rich Callouts — container blocks with preset variants",
-    "description": "Rebuild the callout as a container block (BlockNote spec with children) so the body supports lists, numbered steps, and nested paragraphs — not just inline marks. Keep variants as a curated preset list (no user-picked icons) so each variant carries a consistent meaning. Proposed preset set: Note (💡 amber, general tips), Decision (✓ green, recorded decisions), Practice Note (🌱 teal, contemplative practice instructions), Reflection (❦ purple, pause/inquiry prompts), Question (? blue, open inquiry), Warning (⚠ orange, caution). Variant picker is a small popover on the header icon — not a modal. Body is edited inline; no separate editor surface. Migration: existing Note/Decision callouts keep their variant and title; inline content wraps into a single paragraph child. Info/Warning legacy variants stay readable but are dropped from the picker.",
+    "description": "Rebuild the callout as a container block (BlockNote spec with children) so the body supports lists, numbered steps, and nested paragraphs — not just inline marks. Keep variants as a curated preset list (no user-picked icons) so each variant carries a consistent meaning.",
     "category": "CSS & Design",
     "priority": "medium",
+    "status": "done",
+    "addedAt": "2026-04-17",
+    "notes": "Built in session 87 — but not as a single six-variant Callout. Split into five distinct editorial elements: Pull Quote, Verse Quote, Practice Suggestion (container), Reflection (container), and Note/Decision Callout (container). Rationale: each role deserves its own visual vocabulary, not a shared box with different accent colors. Container-body pattern (content: none + children) and defensive migration seeding are in place for all three container blocks."
+  },
+  {
+    "id": "2026-04-17-003",
+    "title": "Migrate Program specialNotes into inline Note block",
+    "description": "The Program model has a separate specialNotes field that renders as its own section on the public program page. Now that Note is a first-class editorial element inside the program description editor, specialNotes is redundant — the author can place a Note block inline at whatever point in the description is most relevant. Migrate existing specialNotes content into a Note block appended to the description body, then drop the separate field from the model and its rendering surface on the program page.",
+    "category": "Programs & Sanity",
+    "priority": "low",
     "status": "open",
     "addedAt": "2026-04-17",
-    "notes": "Scoped during document-editor buildout (session 87). Scope chosen: container content + curated presets (Path B-a), not user-configurable icons (Path B-b). Rationale: dharma-rooted restraint — named types reinforce meaning; user-picked icons drift. Confirm the preset list with Jesse before implementation; Practice Note and Reflection are the dharma-specific additions worth keeping even if the document tier doesn't strictly need them."
+    "notes": "Raised by Jesse during session 87. Requires a one-time migration script to fold specialNotes into description.body as a trailing Note block, plus removing the specialNotes field from the Program Editor Content tab and from app/programs/[slug]/page.tsx. No urgency — current display still works."
   }
 ]
