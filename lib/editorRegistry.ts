@@ -238,33 +238,20 @@ export const EDITOR_ELEMENTS: EditorElement[] = [
   },
 
   // ── Callouts (shared across documents, lessons, and email-bound) ─────────
-  {
-    id: "callout-info",
-    label: "Info Callout",
-    group: "callouts",
-    blockType: "callout",
-    blockProps: { variant: "info" },
-    availableIn: [...DOCUMENT_AND_LESSON, ...MESSAGE_WITH_TABLES],
-  },
+  // Note variants (info, warning) exist in the block schema for legacy content
+  // but are intentionally not offered here — Jesse kept only Note + Decision
+  // as the two meaningful callout roles.
   {
     id: "callout-note",
-    label: "Note Callout",
+    label: "Note",
     group: "callouts",
     blockType: "callout",
     blockProps: { variant: "note" },
     availableIn: [...DOCUMENT_AND_LESSON, ...MESSAGE_WITH_TABLES],
   },
   {
-    id: "callout-warning",
-    label: "Warning Callout",
-    group: "callouts",
-    blockType: "callout",
-    blockProps: { variant: "warning" },
-    availableIn: [...DOCUMENT_AND_LESSON, ...MESSAGE_WITH_TABLES],
-  },
-  {
     id: "callout-decision",
-    label: "Decision Callout",
+    label: "Decision",
     group: "callouts",
     blockType: "callout",
     blockProps: { variant: "decision" },
