@@ -44,10 +44,29 @@ import {
   BasicTextStyleButton,
   CreateLinkButton,
   BlockTypeSelect,
+  SuggestionMenuController,
+  getDefaultReactSlashMenuItems,
 } from "@blocknote/react";
+import { filterSuggestionItems } from "@blocknote/core/extensions";
 import { BlockNoteView } from "@blocknote/mantine";
 import { rimTheme } from "@/lib/blockNoteTheme";
 import { rimBlockSchema } from "@/lib/blockNoteCustomBlocks";
+
+/* ── Message tier allowlist ─────────────────────────────────────────────────
+ * Slash menu items permitted in Message-tier surfaces per RIM_Editor_Design.md.
+ * Filter by title (English); BlockNote's built-in titles are stable within a
+ * major version and RIM is English-only. Dharma custom blocks and headings
+ * are deliberately excluded.
+ */
+const MESSAGE_TIER_SLASH_TITLES = new Set<string>([
+  "Paragraph",
+  "Bullet List",
+  "Numbered List",
+  "Check List",
+  "Quote",
+  "Code Block",
+  "Table",
+]);
 
 interface Props {
   value: any;
@@ -107,6 +126,20 @@ export default function RimProseEditor({
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Message-tier slash menu: filter to allowed block types.
+  const messageTierSlashMenu = (
+    <SuggestionMenuController
+      triggerCharacter="/"
+      getItems={async (query) => {
+        const all = getDefaultReactSlashMenuItems(editor);
+        const filtered = all.filter((item) =>
+          MESSAGE_TIER_SLASH_TITLES.has(item.title)
+        );
+        return filterSuggestionItems(filtered, query);
+      }}
+    />
+  );
+
   // Compact variant: selection-only floating toolbar with full formatting
   if (isCompact) {
     return (
@@ -122,12 +155,13 @@ export default function RimProseEditor({
           <FormattingToolbarController
             formattingToolbar={CompactFormattingToolbar}
           />
+          {messageTierSlashMenu}
         </BlockNoteView>
       </div>
     );
   }
 
-  // Minimal variant: reduced toolbar
+  // Minimal variant: reduced toolbar (no slash menu — field is too small)
   if (minimal) {
     return (
       <div className="rim-prose-editor" style={{ minHeight: effectiveMinHeight }}>
@@ -162,7 +196,9 @@ export default function RimProseEditor({
         onChange={(editor) => onChange(editor.document)}
         slashMenu={false}
         sideMenu={false}
-      />
+      >
+        {messageTierSlashMenu}
+      </BlockNoteView>
     </div>
   );
 }

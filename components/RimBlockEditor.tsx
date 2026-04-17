@@ -28,7 +28,10 @@ import {
   TextAlignButton,
   useBlockNoteEditor,
   useEditorSelectionChange,
+  SuggestionMenuController,
+  getDefaultReactSlashMenuItems,
 } from "@blocknote/react";
+import { filterSuggestionItems } from "@blocknote/core/extensions";
 import { BlockNoteView } from "@blocknote/mantine";
 import { upload } from "@vercel/blob/client";
 import { RiQuoteText, RiPlantLine, RiInformationLine } from "react-icons/ri";
@@ -56,6 +59,42 @@ export type EditorContext =
   | "manual"
   | "program-description"
   | "default";
+
+/* ── Tier slash menu allowlists ─────────────────────────────────────────────
+ * Filter BlockNote's default slash items by English title (stable within a
+ * major version; RIM is English-only). Dharma custom blocks are reached via
+ * the empty-line pill today; Phase 5 will unify chrome and add them here too.
+ */
+const DOCUMENT_TIER_SLASH_TITLES = new Set<string>([
+  "Paragraph",
+  "Heading 2",
+  "Heading 3",
+  "Bullet List",
+  "Numbered List",
+  "Check List",
+  "Quote",
+  "Code Block",
+  "Table",
+  "Image",
+]);
+
+const FEATURE_TIER_SLASH_TITLES = new Set<string>([
+  "Paragraph",
+  "Heading 2",
+  "Heading 3",
+  "Bullet List",
+  "Numbered List",
+  "Check List",
+  "Quote",
+  "Code Block",
+  "Table",
+  "Image",
+]);
+
+function slashTitlesFor(context: EditorContext): Set<string> {
+  if (context === "lesson") return FEATURE_TIER_SLASH_TITLES;
+  return DOCUMENT_TIER_SLASH_TITLES;
+}
 
 /* ── Portal dropdown — renders at document.body to escape overflow:hidden ── */
 
@@ -1198,6 +1237,16 @@ export default function RimBlockEditor({
           formattingToolbar={() => (
             <ConditionalFormattingToolbar context={context} />
           )}
+        />
+        {/* Slash menu — tier-filtered. Native menu off; this replaces it. */}
+        <SuggestionMenuController
+          triggerCharacter="/"
+          getItems={async (query) => {
+            const allowed = slashTitlesFor(context);
+            const all = getDefaultReactSlashMenuItems(editor);
+            const filtered = all.filter((item) => allowed.has(item.title));
+            return filterSuggestionItems(filtered, query);
+          }}
         />
         {/* Empty line — full Bear pill */}
         <EmptyLinePill context={context} />
