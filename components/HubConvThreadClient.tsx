@@ -304,10 +304,16 @@ export default function HubConvThreadClient({
             <span>{thread.title}</span>
           </h1>
         )}
-        <div className="hub-conv-thread__head-meta">
-          <span>Started by {displayName(thread.author)} · {relativeTime(thread.createdAt)}</span>
-          {isClosed && <span className="hub-conv-thread__closed">Closed</span>}
-        </div>
+        {(thread.replies.length > 0 || isClosed) && (
+          <div className="hub-conv-thread__head-meta">
+            {thread.replies.length > 0 && (
+              <span>
+                {thread.replies.length} {thread.replies.length === 1 ? "reply" : "replies"}
+              </span>
+            )}
+            {isClosed && <span className="hub-conv-thread__closed">Closed</span>}
+          </div>
+        )}
         {isCoordinator && editingId !== "op" && (
           <div className="hub-conv-thread__menu-wrap" ref={menuRef}>
             <button

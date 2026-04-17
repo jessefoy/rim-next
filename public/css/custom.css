@@ -12818,12 +12818,13 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   font-weight: 600;
 }
 .hub-conv-post__you {
-  padding: 1px 7px;
+  padding: 1px 8px;
   border-radius: 999px;
-  background: var(--rim-bg);
+  background: #e8eef1;
   font-size: var(--text-xxs);
-  color: var(--rim-text-muted);
-  font-weight: 500;
+  color: var(--rim-blue);
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 .hub-conv-post__dot { opacity: 0.5; }
 .hub-conv-post__edited { font-style: italic; }
@@ -12964,28 +12965,28 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   gap: 28px;
 }
 
-/* Reply composer */
+/* Reply composer — flat, matches the post stream */
 .hub-conv-replybox {
   display: flex;
   gap: 14px;
-  padding: 18px;
-  background: #fff;
-  border: 1px solid var(--rim-rule);
-  border-radius: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rim-rule);
+  margin-top: 8px;
 }
 .hub-conv-replybox__avatar {
   flex-shrink: 0;
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: var(--rim-bg);
-  color: var(--rim-text-muted);
+  background: var(--rim-mid);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: var(--font-sans);
   font-size: var(--text-xs);
   font-weight: 600;
+  opacity: 0.9;
 }
 .hub-conv-replybox__main {
   flex: 1;
@@ -12994,9 +12995,27 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   flex-direction: column;
   gap: 10px;
 }
+.hub-conv-replybox__label {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--rim-text-muted);
+  font-weight: 500;
+  margin-top: 10px;
+}
 .hub-conv-replybox__actions {
   display: flex;
   justify-content: flex-end;
+}
+
+/* Make the embedded editor feel at home in the stream (not a big white form) */
+.hub-conv-replybox .rim-prose-editor {
+  border: 1px solid var(--rim-rule);
+  border-radius: 8px;
+  background: #fff;
+  transition: border-color 0.15s;
+}
+.hub-conv-replybox .rim-prose-editor:focus-within {
+  border-color: var(--rim-mid);
 }
 
 .hub-conv-thread__closed-note {
@@ -20136,7 +20155,6 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
    ── */
 .si-composer__editor .rim-prose-editor,
 .si-note-composer__editor .rim-prose-editor,
-.hub-conv-replybox .rim-prose-editor,
 .hub-conv-compose__editor .rim-prose-editor,
 .hub-conv-post__edit-form .rim-prose-editor,
 .hub-detail__form .rim-prose-editor {
@@ -20147,7 +20165,6 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
 }
 .si-composer__editor .bn-container,
 .si-note-composer__editor .bn-container,
-.hub-conv-replybox .bn-container,
 .hub-conv-compose__editor .bn-container,
 .hub-conv-post__edit-form .bn-container,
 .hub-detail__form .bn-container {
