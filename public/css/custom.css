@@ -18980,6 +18980,7 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .hdoc-body { font-family: var(--font-sans); font-size: var(--text-small); color: var(--rim-text); line-height: 1.65; }
 .hdoc-body p { margin: 0 0 0.9em; }
 .hdoc-body p:last-child { margin-bottom: 0; }
+.hdoc-body h1 { font-family: var(--font-sans); font-size: 28px; font-weight: 700; color: var(--rim-text); line-height: 1.2; margin: 40px 0 14px; letter-spacing: -0.01em; }
 .hdoc-body h2 { font-family: var(--font-sans); font-size: 22px; font-weight: 600; color: var(--rim-text); line-height: 1.25; margin: 36px 0 12px; }
 .hdoc-body h3 { font-family: var(--font-sans); font-size: var(--text-body); font-weight: 600; color: var(--rim-text); line-height: 1.3; margin: 28px 0 8px; }
 .hdoc-body h4 { font-family: var(--font-sans); font-size: var(--text-small); font-weight: 600; color: var(--rim-text); line-height: 1.4; margin: 20px 0 6px; }

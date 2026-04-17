@@ -1192,9 +1192,14 @@ export default function RimBlockEditor({
         font-size: 20px !important; line-height: 1.3 !important;
         margin-top: 16px !important; margin-bottom: 4px !important;
       }
+      .rim-block-editor .bn-block-content[data-content-type="heading"] h4 {
+        font-size: 17px !important; line-height: 1.35 !important;
+        margin-top: 14px !important; margin-bottom: 2px !important;
+      }
       .rim-block-editor .bn-block-content[data-content-type="heading"] h1,
       .rim-block-editor .bn-block-content[data-content-type="heading"] h2,
-      .rim-block-editor .bn-block-content[data-content-type="heading"] h3 {
+      .rim-block-editor .bn-block-content[data-content-type="heading"] h3,
+      .rim-block-editor .bn-block-content[data-content-type="heading"] h4 {
         font-family: var(--font-doc) !important;
         font-weight: 700 !important;
         letter-spacing: -0.01em !important;
