@@ -33,6 +33,39 @@ import {
 const PILL_HEIGHT = 44;
 const PILL_GAP = 8;
 
+/* ── Visibility helpers ──────────────────────────────────────────────────── */
+
+/**
+ * The pill is only useful in two moments:
+ *   - the block is empty (user is about to write; wants to pick a block type
+ *     or a style to start in);
+ *   - text is selected (user wants to format the selection).
+ * During active typing on a populated block, the pill gets out of the way.
+ * This matches the Bear / Notion model — the pill is an affordance, not a
+ * persistent chrome strip hanging over the content.
+ */
+function isBlockEmpty(block: unknown): boolean {
+  try {
+    const b = block as { content?: unknown } | null | undefined;
+    if (!b) return false;
+    const c = b.content;
+    if (c === undefined || c === null) return true;
+    if (!Array.isArray(c)) return false; // image/table/divider — not text-bearing
+    if (c.length === 0) return true;
+    if (
+      c.length === 1 &&
+      (c[0] as { type?: string; text?: string }).type === "text" &&
+      !(c[0] as { text?: string }).text
+    ) return true;
+    return false;
+  } catch { return false; }
+}
+
+function anyPillMenuOpen(): boolean {
+  return typeof document !== "undefined"
+    && !!document.querySelector(".fmt-pill__menu");
+}
+
 /* ── Icons ───────────────────────────────────────────────────────────────── */
 
 function CaretIcon() {
@@ -110,12 +143,12 @@ function ParagraphDropdown({
   context,
   activeBlockType,
   activeLevel,
-  setBlockType,
+  turnInto,
 }: {
   context: EditorContext;
   activeBlockType: string;
   activeLevel: number;
-  setBlockType: (type: string, props?: Record<string, unknown>) => void;
+  turnInto: (el: EditorElement) => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -136,9 +169,10 @@ function ParagraphDropdown({
       active={activeBlockType === "heading"}
     >
       {items.map((el) => {
+        const elLevel = (el.blockProps as { level?: number } | undefined)?.level;
         const isActive =
           el.blockType === activeBlockType &&
-          (!el.blockProps?.level || el.blockProps.level === activeLevel);
+          (elLevel === undefined || elLevel === activeLevel);
         return (
           <button
             key={el.id}
@@ -146,7 +180,7 @@ function ParagraphDropdown({
             className={`fmt-pill__item${isActive ? " fmt-pill__item--active" : ""}`}
             onMouseDown={(e) => {
               e.preventDefault();
-              setBlockType(el.blockType, el.blockProps);
+              turnInto(el);
               setOpen(false);
             }}
           >
@@ -163,11 +197,11 @@ function ParagraphDropdown({
 function ListDropdown({
   context,
   activeBlockType,
-  setBlockType,
+  turnInto,
 }: {
   context: EditorContext;
   activeBlockType: string;
-  setBlockType: (type: string, props?: Record<string, unknown>) => void;
+  turnInto: (el: EditorElement) => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -191,7 +225,7 @@ function ListDropdown({
           className={`fmt-pill__item${activeBlockType === el.blockType ? " fmt-pill__item--active" : ""}`}
           onMouseDown={(e) => {
             e.preventDefault();
-            setBlockType(el.blockType, el.blockProps);
+            turnInto(el);
             setOpen(false);
           }}
         >
@@ -318,7 +352,11 @@ export function FormatPill({ context }: { context: EditorContext }) {
         activeBlockIdRef.current = block.id;
         reposition(block.id);
       }
-      setVisible(true);
+      // Show only when the pill is actually useful: empty block, active
+      // selection, or an open pill menu. Otherwise get out of the way while
+      // the user is typing.
+      const hasSelection = !!editor.getSelection();
+      setVisible(isBlockEmpty(block) || hasSelection || anyPillMenuOpen());
     } catch {
       setVisible(false);
     }
@@ -346,14 +384,14 @@ export function FormatPill({ context }: { context: EditorContext }) {
     const onFocusIn = () => {
       try {
         const block = editor.getTextCursorPosition().block;
-        if (block) {
-          activeBlockIdRef.current = block.id;
-          setActiveBlockType(block.type);
-          setActiveLevel(((block.props as Record<string, unknown>)?.level as number) ?? 0);
-          setActiveStyles(editor.getActiveStyles() as Record<string, unknown>);
-          reposition(block.id);
-          setVisible(true);
-        }
+        if (!block) return;
+        activeBlockIdRef.current = block.id;
+        setActiveBlockType(block.type);
+        setActiveLevel(((block.props as Record<string, unknown>)?.level as number) ?? 0);
+        setActiveStyles(editor.getActiveStyles() as Record<string, unknown>);
+        reposition(block.id);
+        const hasSelection = !!editor.getSelection();
+        setVisible(isBlockEmpty(block) || hasSelection || anyPillMenuOpen());
       } catch {}
     };
 
@@ -383,12 +421,30 @@ export function FormatPill({ context }: { context: EditorContext }) {
     } catch {}
   }, [editor]);
 
-  const setBlockType = useCallback(
-    (type: string, props?: Record<string, unknown>) => {
+  /**
+   * Toggle a block into the chosen type — or back to paragraph if it's
+   * already that type. Matches the Bear / Notion pattern: clicking "Bullet
+   * List" on a bullet list turns it back into a paragraph.
+   */
+  const turnInto = useCallback(
+    (el: EditorElement) => {
       try {
         editor.focus();
         const block = editor.getTextCursorPosition().block;
-        editor.updateBlock(block, { type: type as never, props: props as never });
+        const currentType = block.type;
+        const currentLevel =
+          ((block.props as Record<string, unknown>)?.level as number | undefined) ?? 0;
+        const elLevel =
+          ((el.blockProps as Record<string, unknown> | undefined)?.level as
+            | number
+            | undefined) ?? 0;
+        const isAlreadyThisType =
+          currentType === el.blockType &&
+          (el.blockType !== "heading" || currentLevel === elLevel);
+        editor.updateBlock(block, {
+          type: (isAlreadyThisType ? "paragraph" : el.blockType) as never,
+          props: (isAlreadyThisType ? {} : (el.blockProps ?? {})) as never,
+        });
       } catch {}
     },
     [editor],
@@ -458,12 +514,12 @@ export function FormatPill({ context }: { context: EditorContext }) {
         context={context}
         activeBlockType={activeBlockType}
         activeLevel={activeLevel}
-        setBlockType={setBlockType}
+        turnInto={turnInto}
       />
       <ListDropdown
         context={context}
         activeBlockType={activeBlockType}
-        setBlockType={setBlockType}
+        turnInto={turnInto}
       />
 
       <span className="fmt-pill__sep" />
