@@ -96,24 +96,82 @@ Every rich text surface in RIM belongs to one of three tiers. The tier is a desi
 
 ---
 
-## Editor Chrome — Consistent Across All Tiers
+## Editor Chrome — One Consistent Surface
 
-Every editor, regardless of tier, uses the same interaction patterns. Users learn these once and use them everywhere.
+Every editor, regardless of tier, uses the same interaction patterns. Users learn the pill once and use it everywhere. What varies per surface is *which elements are offered*, never how the chrome looks.
 
-**Five surfaces, layered:**
+**Three surfaces:**
 
-1. **Selection bubble** — appears above selected text. Inline formatting only: bold, italic, underline, link, align (where applicable). Never shows block-insert actions.
-2. **Empty-line pill** — appears at the left edge of any empty paragraph block. Opens a block picker. Notion/Medium pattern.
-3. **Slash menu** — typing `/` anywhere opens the block picker, filtered to the current tier. Power-user shortcut for the same inserts as the empty-line pill.
-4. **Block handle** — hover-reveals on the left of each block. Offers: drag to reorder, delete, duplicate, turn-into.
-5. **Focus-revealed top toolbar** — appears when the editor has focus; disappears when it loses focus. Persistent actions that don't require a selection: block type selector, insert menu (image, table, divider, callout), undo, redo. Never duplicates the selection bubble's inline actions.
+1. **Format Pill** — a single floating toolbar. Appears above the current block whenever the editor has focus. Moves only when the cursor enters a new block (not on every keystroke). Flips below when near viewport bottom. Contains:
+   - `[Paragraph ▾]` — paragraph / H2 / H3 *(H1 reserved for page titles)*
+   - `[List ▾]` — bullet / numbered / checklist / quote
+   - `B I U S` — bold / italic / underline / strikethrough
+   - `[Color ▾]` — text color
+   - `[Link]` — create / edit link
+   - `[Align ▾]` — left / center / right *(where applicable)*
+   - `[+ Insert ▾]` — element picker, filtered by context
+
+   Which controls render is context-dependent — a Message-tier surface with no headings omits the Paragraph dropdown; a Minimal surface only shows `B I [Link]`.
+
+2. **Slash menu** — typing `/` opens the same Insert dropdown that the pill's `+` opens. Keyboard shortcut, identical list, identical order.
+
+3. **Block handle** — hover the left gutter of any block. Offers:
+   - Drag to reorder
+   - *Turn into ▸* — convert block type (reads from the Element Registry)
+   - Duplicate
+   - Delete
 
 **Rules:**
-- If a placeholder says "Press `/` for commands", the slash menu must work. No broken affordances.
-- Empty-line pill and slash menu offer the same block set — two paths to one action.
-- Top toolbar does not duplicate the selection bubble. Inline formatting is in the bubble only.
-- The block handle's hover area is narrow (left gutter) — does not appear on hover of the block body.
-- Focus-revealed toolbar animates in softly (opacity + 4px translate) so it doesn't jolt the page.
+- **One pill design, everywhere.** Visual parity across tiers is absolute.
+- **No separate selection bubble.** The pill absorbs that job. Inline formatting lives on the pill.
+- **Pill `+` and slash menu read the same registry.** Two paths, one list.
+- The block handle's hover zone is the narrow left gutter only.
+- If a pill button for a block type isn't registered for this context, it is hidden — never shown disabled.
+
+---
+
+## Element Registry
+
+`lib/editorRegistry.ts` is the single source of truth for every insertable or convertible block. Adding a new element is one registry entry — the pill, slash menu, and block-handle "Turn into" menu all surface it automatically in every context where it's allowed.
+
+**Entry shape:**
+```ts
+{
+  id: "verse-quote",
+  label: "Verse Quote",
+  icon: <QuoteIcon />,
+  group: "dharma",                         // for grouping in the picker
+  blockType: "verseQuote",                 // BlockNote block type
+  insert: (editor) => { /* insert logic */ },
+  turnInto?: (editor, block) => { /* conversion logic */ },
+  availableIn: ["lesson"],                 // context allowlist
+}
+```
+
+**Groups** (render order in the picker):
+- `text` — paragraph, H2, H3
+- `lists` — bullet, numbered, check, quote
+- `structure` — table, divider, code block
+- `media` — image, video, attachment *(attachment added in a later phase)*
+- `callouts` — InfoCallout (neutral), dharma Callout (warm)
+- `dharma` — VerseQuote, PracticeSuggestion
+
+**Context allowlists** flow from each surface's tier and voice:
+- `hub-document`, `hub-welcome`, `hub-home` — text + lists + structure + media + callouts (InfoCallout only)
+- `manual`, `program-description` — same as hub-document
+- `lesson` — everything (the only context that gets `dharma` group)
+- `support-reply`, `program-message-*` — lists + structure (table only) + media (link + attachment); no headings, no dharma, no callouts
+- Message-tier surfaces — lists + structure (quote, code, table); no headings, no media, no callouts, no dharma
+
+**When adding a new element:**
+1. Define the custom block in `lib/blockNoteCustomBlocks.tsx` (if new).
+2. Add one entry to `lib/editorRegistry.ts` listing every context in `availableIn[]`.
+3. Write output CSS for each context that hosts it.
+4. Verify in the Editor Lab.
+
+**Never:**
+- Build a bespoke per-tier pill or insert menu. Always go through the registry.
+- Add an element to a context without writing the output CSS for that context.
 
 ---
 
@@ -324,28 +382,22 @@ Output CSS lives in `custom.css` under a comment header matching the context nam
 
 ---
 
-## The Custom Block System
+## Custom Blocks — BlockNote Implementation Layer
 
-Custom blocks are defined in `lib/blockNoteCustomBlocks.tsx`.
-
-**Current blocks:**
-- `verseQuote` — contemplative verse, optional attribution (Feature tier)
-- `practiceSuggestion` — practice invitation (Feature tier)
-- `callout` — dharma-flavored warm callout (Feature tier)
-- `infoCallout` — neutral note/tip box (Document tier) *(add during Phase 3 if not yet present)*
-
-**Each block has:**
+Custom blocks (the BlockNote side) live in `lib/blockNoteCustomBlocks.tsx`. Each custom block has:
 - An editor render (what you see while writing — must match the output)
 - A `toExternalHTML` render (what gets stored/exported)
-- A CSS class that maps to the output tier
+- A CSS class that maps to the output surface's `rim-content [context]` wrapper
 
-**When adding a new custom block:**
-1. Decide which tier(s) it belongs to
-2. Define it in `blockNoteCustomBlocks.tsx`
-3. Add it to the appropriate schema (per tier)
-4. Write editor-view CSS (inherits through the `rim-content [context]` wrapper — no separate `bn-` theme CSS)
-5. Register it in this document under the tier(s) it belongs to
-6. Never reuse a custom block type name that already exists — the type string is stored in the database permanently
+The registry (`lib/editorRegistry.ts`) sits on top — the registry is what the UI reads to decide which custom blocks to offer where. Adding a custom block is two files: the BlockNote definition, and the registry entry.
+
+**Current custom blocks:**
+- `verseQuote` — contemplative verse, optional attribution *(Feature tier)*
+- `practiceSuggestion` — practice invitation *(Feature tier)*
+- `callout` — dharma-flavored warm callout *(Feature tier)*
+- `infoCallout` — neutral note/tip box *(Document tier)*
+
+**Never** reuse a custom block type name that already exists — the type string is stored in the database permanently.
 
 ---
 
