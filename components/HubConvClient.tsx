@@ -55,15 +55,20 @@ interface Props {
 }
 
 function displayName(u: ThreadAuthor) {
-  return u.preferredName || [u.firstName, u.lastName].filter(Boolean).join(" ") || "Someone";
+  const first = u.preferredName || u.firstName;
+  const full = [first, u.lastName].filter(Boolean).join(" ");
+  return full || u.preferredName || u.firstName || u.lastName || "Someone";
 }
 
 function initialsOf(u: ThreadAuthor) {
-  const name = displayName(u);
+  if (u.firstName && u.lastName) {
+    return (u.firstName[0] + u.lastName[0]).toUpperCase();
+  }
+  const name = u.preferredName || u.firstName || u.lastName || "";
+  if (!name) return "?";
   const parts = name.split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return parts[0].slice(0, 2).toUpperCase();
 }
 
 function relativeTime(iso: string) {

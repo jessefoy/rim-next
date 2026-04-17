@@ -12878,8 +12878,22 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 
 .hub-conv-post__body {
-  /* Body text delegated to .rim-content */
+  /* Compact team-chat scale — overrides .rim-content editorial default */
 }
+.hub-conv-thread .rim-content,
+.hub-conv-post__body,
+.hub-conv-post__body.rim-content {
+  font-size: 15px;
+  line-height: 1.55;
+}
+.hub-conv-thread .rim-content p,
+.hub-conv-post__body p { margin: 0 0 0.7em; }
+.hub-conv-thread .rim-content p:last-child,
+.hub-conv-post__body p:last-child { margin-bottom: 0; }
+.hub-conv-thread .rim-content h2,
+.hub-conv-post__body h2 { font-size: 18px; line-height: 1.35; }
+.hub-conv-thread .rim-content h3,
+.hub-conv-post__body h3 { font-size: 16px; line-height: 1.4; }
 .hub-conv-post__edit-form {
   display: flex;
   flex-direction: column;
