@@ -12674,7 +12674,7 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .hub-conv-thread {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 20px;
   max-width: 760px;
   margin: 0 auto;
   padding: 8px 0 64px;
@@ -12773,14 +12773,38 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 .hub-conv-menu__item:hover { background: var(--rim-bg); }
 
-/* Post (OP + each reply) */
+/* Post (OP + each reply) — flat, with hairline rhythm on replies */
 .hub-conv-post {
   display: flex;
   gap: 14px;
+  padding: 24px 0;
+  border-top: 1px solid var(--rim-rule);
+}
+
+/* Original post — subtle white card, flat, no shadow */
+.hub-conv-post--op {
+  padding: 22px 24px;
+  background: #fff;
+  border: 1px solid var(--rim-rule);
+  border-radius: 10px;
+}
+.hub-conv-post--op::before {
+  content: "Original post";
+  position: absolute;
+  left: 24px;
+  top: -9px;
+  padding: 0 8px;
+  background: var(--rim-bg);
+  font-family: var(--font-sans);
+  font-size: var(--text-xxs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--rim-text-muted);
 }
 .hub-conv-post--op {
-  padding-bottom: 28px;
-  border-bottom: 1px solid var(--rim-rule);
+  position: relative;
+  margin-top: 8px;
 }
 .hub-conv-post__avatar {
   flex-shrink: 0;
@@ -12958,20 +12982,19 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 .hub-conv-react-pop__btn:hover { background: var(--rim-bg); }
 
-/* Replies container */
+/* Replies container — hairlines do the rhythm, no gap between posts */
 .hub-conv-thread__replies {
   display: flex;
   flex-direction: column;
-  gap: 28px;
 }
+.hub-conv-thread__replies .hub-conv-post:first-child { border-top: none; }
 
 /* Reply composer — flat, matches the post stream */
 .hub-conv-replybox {
   display: flex;
   gap: 14px;
-  padding-top: 12px;
-  border-top: 1px solid var(--rim-rule);
-  margin-top: 8px;
+  padding-top: 20px;
+  border-top: 2px solid var(--rim-rule);
 }
 .hub-conv-replybox__avatar {
   flex-shrink: 0;

@@ -22,6 +22,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Pin, X, Plus, MessageSquare } from "lucide-react";
 import RimProseEditor from "./RimProseEditor";
+import { avatarColorFor } from "@/lib/avatarColor";
 
 interface ThreadAuthor {
   firstName: string | null;
@@ -237,6 +238,7 @@ export default function HubConvClient({
     const summary = thread.replyCount > 0
       ? `${thread.replyCount} ${thread.replyCount === 1 ? "reply" : "replies"} · ${relativeTime(thread.updatedAt)}`
       : `Started ${relativeTime(thread.createdAt)}`;
+    const inits = initialsOf(thread.author);
 
     return (
       <div className={`hub-conv-row${thread.isPinned ? " hub-conv-row--pinned" : ""}${unread ? " hub-conv-row--unread" : ""}`}>
@@ -244,7 +246,13 @@ export default function HubConvClient({
           href={`/account/hub/${hubSlug}/conversations/${thread.id}`}
           className="hub-conv-row__link"
         >
-          <div className="hub-conv-avatar" aria-hidden="true">{initialsOf(thread.author)}</div>
+          <div
+            className="hub-conv-avatar"
+            aria-hidden="true"
+            style={{ background: avatarColorFor(inits) }}
+          >
+            {inits}
+          </div>
           <div className="hub-conv-row__body">
             <div className="hub-conv-row__title-line">
               {thread.isPinned && <Pin size={13} className="hub-conv-row__pin" aria-label="Pinned" />}

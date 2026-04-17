@@ -87,10 +87,10 @@ export default async function HubConvThreadPage({
     createdAt: thread.createdAt.toISOString(),
   };
 
-  const userName =
-    session.user.name ||
-    session.user.email?.split("@")[0] ||
-    "";
+  const currentUser = await db.user.findUnique({
+    where:  { id: session.user.id },
+    select: { firstName: true, lastName: true, preferredName: true },
+  });
 
   return (
     <HubConvThreadClient
@@ -98,7 +98,11 @@ export default async function HubConvThreadPage({
       initialThread={serialized}
       isCoordinator={isCoordinator}
       currentUserId={session.user.id}
-      currentUserName={userName}
+      currentUser={{
+        firstName:     currentUser?.firstName ?? null,
+        lastName:      currentUser?.lastName ?? null,
+        preferredName: currentUser?.preferredName ?? null,
+      }}
     />
   );
 }

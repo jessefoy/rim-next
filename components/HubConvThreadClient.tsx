@@ -17,6 +17,7 @@ import Link from "next/link";
 import { ArrowLeft, Pin, Pencil, MoreHorizontal, SmilePlus } from "lucide-react";
 import RimProseEditor from "@/components/RimProseEditor";
 import { renderBlockNoteHtml } from "@/lib/renderRichContent";
+import { avatarColorFor } from "@/lib/avatarColor";
 
 interface PersonName {
   firstName: string | null;
@@ -56,7 +57,7 @@ interface Props {
   initialThread: Thread;
   isCoordinator: boolean;
   currentUserId: string;
-  currentUserName: string;
+  currentUser: PersonName;
 }
 
 const ALLOWED_EMOJIS = ["👍", "❤️", "🙏", "💡", "😊"] as const;
@@ -107,7 +108,7 @@ export default function HubConvThreadClient({
   initialThread,
   isCoordinator,
   currentUserId,
-  currentUserName,
+  currentUser,
 }: Props) {
   const [thread, setThread] = useState<Thread>(initialThread);
   const [replyBody, setReplyBody] = useState<any>(null);
@@ -154,11 +155,7 @@ export default function HubConvThreadClient({
         body:      reply.body,
         bodyHtml:  renderBlockNoteHtml(reply.body),
         authorId:  reply.authorId,
-        author: {
-          firstName:     null,
-          lastName:      null,
-          preferredName: currentUserName,
-        },
+        author:    currentUser,
         edited:    false,
         editedAt:  null,
         reactions: {},
@@ -346,7 +343,13 @@ export default function HubConvThreadClient({
 
       {/* Original post */}
       <article className="hub-conv-post hub-conv-post--op">
-        <div className="hub-conv-post__avatar" aria-hidden="true">{initialsOf(thread.author)}</div>
+        <div
+          className="hub-conv-post__avatar"
+          aria-hidden="true"
+          style={{ background: avatarColorFor(initialsOf(thread.author)) }}
+        >
+          {initialsOf(thread.author)}
+        </div>
         <div className="hub-conv-post__main">
           <div className="hub-conv-post__header">
             <span className="hub-conv-post__author">{displayName(thread.author)}</span>
@@ -399,9 +402,16 @@ export default function HubConvThreadClient({
             const isAuthor = r.authorId === currentUserId;
             const isEditing = editingId === r.id;
             const reactions = Object.entries(r.reactions).filter(([, n]) => n > 0);
+            const replyInits = initialsOf(r.author);
             return (
               <article key={r.id} className="hub-conv-post">
-                <div className="hub-conv-post__avatar" aria-hidden="true">{initialsOf(r.author)}</div>
+                <div
+                  className="hub-conv-post__avatar"
+                  aria-hidden="true"
+                  style={{ background: avatarColorFor(replyInits) }}
+                >
+                  {replyInits}
+                </div>
                 <div className="hub-conv-post__main">
                   <div className="hub-conv-post__header">
                     <span className="hub-conv-post__author">{displayName(r.author)}</span>
@@ -499,8 +509,12 @@ export default function HubConvThreadClient({
       {/* Reply composer */}
       {!isClosed ? (
         <div className="hub-conv-replybox">
-          <div className="hub-conv-replybox__avatar" aria-hidden="true">
-            {initialsOf({ firstName: null, lastName: null, preferredName: currentUserName })}
+          <div
+            className="hub-conv-replybox__avatar"
+            aria-hidden="true"
+            style={{ background: avatarColorFor(initialsOf(currentUser)) }}
+          >
+            {initialsOf(currentUser)}
           </div>
           <div className="hub-conv-replybox__main">
             <RimProseEditor
