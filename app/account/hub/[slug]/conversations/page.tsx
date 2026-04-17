@@ -28,6 +28,8 @@ export default async function HubConversationsPage({
   const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
   if (!hub || (!member && !isAdmin)) redirect("/account/dashboard");
 
+  const priorLastVisitedAt = member?.lastVisitedAt?.toISOString() ?? null;
+
   if (member) {
     await db.hubMember.update({
       where: { id: member.id },
@@ -84,6 +86,7 @@ export default async function HubConversationsPage({
       isCoordinator={isCoordinator}
       currentUserId={session.user.id}
       currentUserName={userName}
+      lastVisitedAt={priorLastVisitedAt}
     />
   );
 }

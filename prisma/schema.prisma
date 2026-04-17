@@ -1199,6 +1199,8 @@ model HubConversationThread {
   status               String    @default("OPEN")
   isPinned             Boolean   @default(false)
   pinnedAt             DateTime?
+  edited               Boolean   @default(false)
+  editedAt             DateTime?
 
   hub           Hub               @relation(fields: [hubId], references: [id])
   author        User              @relation(fields: [authorId], references: [id], onDelete: Cascade)

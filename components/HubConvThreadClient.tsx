@@ -1,12 +1,20 @@
 "use client";
 
 /**
- * HubConvThreadClient — Thread detail + replies for all hubs.
+ * HubConvThreadClient — Thread detail + replies.
  * CSS prefix: hub-conv- (shared with conversation list)
+ *
+ * Design:
+ *   - Each post (original + replies) is a "card" with avatar + author + timestamp
+ *   - Authors can edit their own posts inline (pencil on hover)
+ *   - Coordinator actions (pin/close) collapsed into a "…" menu in the header
+ *   - Reactions are clickable chips; aggregate chip appears below the body
+ *   - Generous spacing between posts
  */
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { ArrowLeft, Pin, Pencil, MoreHorizontal, SmilePlus } from "lucide-react";
 import RimProseEditor from "@/components/RimProseEditor";
 import { renderBlockNoteHtml } from "@/lib/renderRichContent";
 
@@ -35,6 +43,8 @@ interface Thread {
   bodyHtml: string;
   status: string;
   isPinned: boolean;
+  edited: boolean;
+  editedAt: string | null;
   authorId: string;
   author: PersonName;
   replies: Reply[];
@@ -49,39 +59,48 @@ interface Props {
   currentUserName: string;
 }
 
+const ALLOWED_EMOJIS = ["👍", "❤️", "🙏", "💡", "😊"] as const;
+
 function displayName(u: PersonName) {
-  return u.preferredName || [u.firstName, u.lastName].filter(Boolean).join(" ") || "Unknown";
+  return u.preferredName || [u.firstName, u.lastName].filter(Boolean).join(" ") || "Someone";
+}
+
+function initialsOf(u: PersonName) {
+  const name = displayName(u);
+  const parts = name.split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
 function relativeTime(iso: string) {
   const d = new Date(iso);
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 2) return "just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffHrs = Math.floor(diffMs / 3600000);
-  if (diffHrs < 24) return `${diffHrs}h ago`;
-  const diffDays = Math.floor(diffMs / 86400000);
-  if (diffDays < 7) return `${diffDays}d ago`;
+  const diff = Date.now() - d.getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-/** Check if JSON has meaningful content — handles both Tiptap and BlockNote JSON */
 function hasContent(json: any): boolean {
   if (!json) return false;
-  if (Array.isArray(json)) return json.some((b: any) => b.content?.some((c: any) => c.text?.trim()));
-  function extractText(node: any): string {
-    if (!node) return "";
-    if (typeof node === "string") return node;
-    if (node.text) return node.text;
-    if (node.content) return node.content.map(extractText).join(" ");
-    return "";
+  if (Array.isArray(json)) {
+    const extract = (n: any): string => {
+      if (!n) return "";
+      if (typeof n === "string") return n;
+      if (n.text) return n.text;
+      if (n.content) return (n.content as any[]).map(extract).join(" ");
+      if (n.children) return (n.children as any[]).map(extract).join(" ");
+      return "";
+    };
+    return json.map(extract).join(" ").trim().length > 0;
   }
-  return extractText(json).trim().length > 0;
+  return false;
 }
-
-const ALLOWED_EMOJIS = ["👍", "❤️", "🙏", "💡", "😊"] as const;
 
 export default function HubConvThreadClient({
   hubSlug,
@@ -93,11 +112,29 @@ export default function HubConvThreadClient({
   const [thread, setThread] = useState<Thread>(initialThread);
   const [replyBody, setReplyBody] = useState<any>(null);
   const [saving, setSaving] = useState(false);
-  const [editingReplyId, setEditingReplyId] = useState<string | null>(null);
+
+  // Editing state — single flag keyed by "op" or reply id
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [editBody, setEditBody] = useState<any>(null);
+  const [editTitle, setEditTitle] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
 
+  // "…" menu toggle for thread-level actions
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    }
+    if (menuOpen) document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [menuOpen]);
+
+  // Reaction picker popover per-reply
+  const [reactionOpenFor, setReactionOpenFor] = useState<string | null>(null);
+
   const isClosed = thread.status !== "OPEN";
+  const canEditOp = thread.authorId === currentUserId || isCoordinator;
 
   async function postReply() {
     if (!hasContent(replyBody)) return;
@@ -133,6 +170,47 @@ export default function HubConvThreadClient({
     setSaving(false);
   }
 
+  function startEditOp() {
+    setEditingId("op");
+    setEditTitle(thread.title);
+    setEditBody(thread.body);
+  }
+
+  function startEditReply(r: Reply) {
+    setEditingId(r.id);
+    setEditBody(r.body);
+    setEditTitle("");
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditBody(null);
+    setEditTitle("");
+  }
+
+  async function saveOpEdit() {
+    if (!hasContent(editBody) || !editTitle.trim()) return;
+    setSavingEdit(true);
+    const res = await fetch(`/api/hub/${hubSlug}/conversations/${thread.id}`, {
+      method:  "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ action: "edit", title: editTitle.trim(), body: editBody }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setThread((prev) => ({
+        ...prev,
+        title:    updated.title,
+        body:     updated.body,
+        bodyHtml: renderBlockNoteHtml(updated.body),
+        edited:   true,
+        editedAt: updated.editedAt,
+      }));
+      cancelEdit();
+    }
+    setSavingEdit(false);
+  }
+
   async function saveReplyEdit(replyId: string) {
     if (!hasContent(editBody)) return;
     setSavingEdit(true);
@@ -154,13 +232,13 @@ export default function HubConvThreadClient({
             : r
         ),
       }));
-      setEditingReplyId(null);
-      setEditBody(null);
+      cancelEdit();
     }
     setSavingEdit(false);
   }
 
   async function react(replyId: string, emoji: string) {
+    setReactionOpenFor(null);
     const res = await fetch(
       `/api/hub/${hubSlug}/conversations/${thread.id}/replies/${replyId}/react`,
       {
@@ -181,174 +259,265 @@ export default function HubConvThreadClient({
   }
 
   async function setStatus(status: string) {
+    setMenuOpen(false);
     const res = await fetch(`/api/hub/${hubSlug}/conversations/${thread.id}`, {
       method:  "PATCH",
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ status }),
     });
-    if (res.ok) {
-      setThread((prev) => ({ ...prev, status }));
-    }
+    if (res.ok) setThread((prev) => ({ ...prev, status }));
   }
 
   async function togglePin() {
+    setMenuOpen(false);
     const action = thread.isPinned ? "unpin" : "pin";
     const res = await fetch(`/api/hub/${hubSlug}/conversations/${thread.id}`, {
       method:  "PATCH",
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ action }),
     });
-    if (res.ok) {
-      setThread((prev) => ({ ...prev, isPinned: !prev.isPinned }));
-    }
-  }
-
-  function startEdit(reply: Reply) {
-    setEditingReplyId(reply.id);
-    setEditBody(reply.body);
+    if (res.ok) setThread((prev) => ({ ...prev, isPinned: !prev.isPinned }));
   }
 
   return (
-    <div className="hub-conv-container">
-
+    <div className="hub-conv-thread">
       {/* Back link */}
-      <div className="hub-conv-back">
-        <Link href={`/account/hub/${hubSlug}/conversations`} className="hub-conv-back__link">
-          ← Conversations
-        </Link>
-      </div>
+      <Link href={`/account/hub/${hubSlug}/conversations`} className="hub-conv-thread__back">
+        <ArrowLeft size={15} />
+        <span>Conversations</span>
+      </Link>
 
-      {/* Thread header */}
-      <div className="hub-conv-thread-hdr">
-        <div className="hub-conv-thread-hdr__title">
-          {thread.isPinned && <span className="hub-conv-pin-badge">📌</span>}
-          {thread.title}
+      {/* Thread header: title + meta + coordinator menu */}
+      <header className="hub-conv-thread__head">
+        {editingId === "op" ? (
+          <input
+            className="hub-conv-thread__title-input"
+            type="text"
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            placeholder="Topic title"
+            autoFocus
+          />
+        ) : (
+          <h1 className="hub-conv-thread__title">
+            {thread.isPinned && <Pin size={16} className="hub-conv-thread__pin" aria-label="Pinned" />}
+            <span>{thread.title}</span>
+          </h1>
+        )}
+        <div className="hub-conv-thread__head-meta">
+          <span>Started by {displayName(thread.author)} · {relativeTime(thread.createdAt)}</span>
+          {isClosed && <span className="hub-conv-thread__closed">Closed</span>}
         </div>
-        <div className="hub-conv-thread-hdr__meta">
-          {relativeTime(thread.createdAt)} · {displayName(thread.author)}
-          {isClosed && <span className="hub-conv-status-badge hub-conv-status-badge--closed"> · Closed</span>}
-        </div>
-        {isCoordinator && (
-          <div className="hub-conv-thread-hdr__actions">
-            <button className="hub-action-btn" onClick={togglePin}>
-              {thread.isPinned ? "Unpin" : "Pin this thread 📌"}
+        {isCoordinator && editingId !== "op" && (
+          <div className="hub-conv-thread__menu-wrap" ref={menuRef}>
+            <button
+              className="hub-conv-iconbtn"
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-label="Thread actions"
+              aria-expanded={menuOpen}
+            >
+              <MoreHorizontal size={18} />
             </button>
-            {isClosed ? (
-              <button className="hub-action-btn" onClick={() => setStatus("OPEN")}>Reopen</button>
-            ) : (
-              <button className="hub-action-btn" onClick={() => setStatus("CLOSED")}>Close thread</button>
+            {menuOpen && (
+              <div className="hub-conv-menu" role="menu">
+                <button className="hub-conv-menu__item" onClick={togglePin} role="menuitem">
+                  {thread.isPinned ? "Unpin thread" : "Pin to top"}
+                </button>
+                {isClosed ? (
+                  <button className="hub-conv-menu__item" onClick={() => setStatus("OPEN")} role="menuitem">
+                    Reopen thread
+                  </button>
+                ) : (
+                  <button className="hub-conv-menu__item" onClick={() => setStatus("CLOSED")} role="menuitem">
+                    Close thread
+                  </button>
+                )}
+              </div>
             )}
           </div>
         )}
-      </div>
+      </header>
 
-      {/* Original post body */}
-      <div className="hub-conv-post hub-conv-post--op">
-        <div
-          className="hub-conv-post__body rim-content"
-          dangerouslySetInnerHTML={{ __html: thread.bodyHtml }}
-        />
-      </div>
+      {/* Original post */}
+      <article className="hub-conv-post hub-conv-post--op">
+        <div className="hub-conv-post__avatar" aria-hidden="true">{initialsOf(thread.author)}</div>
+        <div className="hub-conv-post__main">
+          <div className="hub-conv-post__header">
+            <span className="hub-conv-post__author">{displayName(thread.author)}</span>
+            <span className="hub-conv-post__dot">·</span>
+            <span className="hub-conv-post__time">{relativeTime(thread.createdAt)}</span>
+            {thread.edited && <span className="hub-conv-post__edited">(edited)</span>}
+            {canEditOp && editingId !== "op" && (
+              <button
+                className="hub-conv-post__edit"
+                onClick={startEditOp}
+                aria-label="Edit post"
+              >
+                <Pencil size={13} />
+                <span>Edit</span>
+              </button>
+            )}
+          </div>
+          {editingId === "op" ? (
+            <div className="hub-conv-post__edit-form">
+              <RimProseEditor
+                value={editBody}
+                onChange={setEditBody}
+                placeholder="Edit your post…"
+                variant="compact"
+              />
+              <div className="hub-conv-post__edit-actions">
+                <button className="btn--ghost" onClick={cancelEdit}>Cancel</button>
+                <button
+                  className="btn btn--sm"
+                  onClick={saveOpEdit}
+                  disabled={savingEdit || !editTitle.trim() || !hasContent(editBody)}
+                >
+                  {savingEdit ? "Saving…" : "Save changes"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div
+              className="hub-conv-post__body rim-content"
+              dangerouslySetInnerHTML={{ __html: thread.bodyHtml }}
+            />
+          )}
+        </div>
+      </article>
 
       {/* Replies */}
       {thread.replies.length > 0 && (
-        <div className="hub-conv-replies">
-          {thread.replies.map((r) => (
-            <div key={r.id} className={`hub-conv-post${r.authorId === currentUserId ? " hub-conv-post--mine" : ""}`}>
-              <div className="hub-conv-post__author">
-                {displayName(r.author)}
-                {r.authorId === currentUserId && <em className="hub-conv-post__you"> (you)</em>}
-                {r.edited && <span className="hub-conv-post__edited"> · edited</span>}
-              </div>
-
-              {editingReplyId === r.id ? (
-                <div className="hub-conv-post__edit-form">
-                  <RimProseEditor
-                    value={editBody}
-                    onChange={setEditBody}
-                    placeholder="Edit your reply…"
-                    variant="compact"
-                  />
-                  <div className="hub-conv-reply-actions">
-                    <button className="btn--ghost" onClick={() => { setEditingReplyId(null); setEditBody(null); }}>
-                      Cancel
-                    </button>
-                    <button className="btn btn--sm" onClick={() => saveReplyEdit(r.id)} disabled={savingEdit}>
-                      {savingEdit ? "Saving…" : "Save"}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div
-                    className="hub-conv-post__body rim-content"
-                    dangerouslySetInnerHTML={{ __html: r.bodyHtml }}
-                  />
-                  <div className="hub-conv-post__footer">
-                    <span className="hub-conv-post__date">{relativeTime(r.createdAt)}</span>
-
-                    {/* Reactions display */}
-                    {Object.entries(r.reactions).filter(([, count]) => count > 0).length > 0 && (
-                      <span className="hub-conv-reactions">
-                        {Object.entries(r.reactions).filter(([, count]) => count > 0).map(([emoji, count]) => (
-                          <button
-                            key={emoji}
-                            className="hub-conv-reaction"
-                            onClick={() => react(r.id, emoji)}
-                          >
-                            {emoji} {count}
-                          </button>
-                        ))}
-                      </span>
+        <div className="hub-conv-thread__replies">
+          {thread.replies.map((r) => {
+            const isAuthor = r.authorId === currentUserId;
+            const isEditing = editingId === r.id;
+            const reactions = Object.entries(r.reactions).filter(([, n]) => n > 0);
+            return (
+              <article key={r.id} className="hub-conv-post">
+                <div className="hub-conv-post__avatar" aria-hidden="true">{initialsOf(r.author)}</div>
+                <div className="hub-conv-post__main">
+                  <div className="hub-conv-post__header">
+                    <span className="hub-conv-post__author">{displayName(r.author)}</span>
+                    {isAuthor && <span className="hub-conv-post__you">you</span>}
+                    <span className="hub-conv-post__dot">·</span>
+                    <span className="hub-conv-post__time">{relativeTime(r.createdAt)}</span>
+                    {r.edited && <span className="hub-conv-post__edited">(edited)</span>}
+                    {isAuthor && !isEditing && (
+                      <button
+                        className="hub-conv-post__edit"
+                        onClick={() => startEditReply(r)}
+                        aria-label="Edit reply"
+                      >
+                        <Pencil size={13} />
+                        <span>Edit</span>
+                      </button>
                     )}
-
-                    {/* Actions */}
-                    <span className="hub-conv-post__actions">
-                      {ALLOWED_EMOJIS.map((emoji) => (
-                        <button
-                          key={emoji}
-                          className="hub-conv-reaction-btn"
-                          onClick={() => react(r.id, emoji)}
-                          title={`React with ${emoji}`}
-                        >
-                          {emoji}
-                        </button>
-                      ))}
-                      {r.authorId === currentUserId && (
-                        <button className="hub-conv-edit-btn" onClick={() => startEdit(r)}>
-                          Edit
-                        </button>
-                      )}
-                    </span>
                   </div>
-                </>
-              )}
-            </div>
-          ))}
+
+                  {isEditing ? (
+                    <div className="hub-conv-post__edit-form">
+                      <RimProseEditor
+                        value={editBody}
+                        onChange={setEditBody}
+                        placeholder="Edit your reply…"
+                        variant="compact"
+                      />
+                      <div className="hub-conv-post__edit-actions">
+                        <button className="btn--ghost" onClick={cancelEdit}>Cancel</button>
+                        <button
+                          className="btn btn--sm"
+                          onClick={() => saveReplyEdit(r.id)}
+                          disabled={savingEdit || !hasContent(editBody)}
+                        >
+                          {savingEdit ? "Saving…" : "Save"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div
+                        className="hub-conv-post__body rim-content"
+                        dangerouslySetInnerHTML={{ __html: r.bodyHtml }}
+                      />
+                      <div className="hub-conv-post__footer">
+                        {reactions.length > 0 && (
+                          <div className="hub-conv-post__reactions">
+                            {reactions.map(([emoji, count]) => (
+                              <button
+                                key={emoji}
+                                className="hub-conv-reaction"
+                                onClick={() => react(r.id, emoji)}
+                                aria-label={`React with ${emoji}`}
+                              >
+                                <span>{emoji}</span>
+                                <span className="hub-conv-reaction__count">{count}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        <div className="hub-conv-post__react-wrap">
+                          <button
+                            className="hub-conv-post__react-btn"
+                            onClick={() => setReactionOpenFor(reactionOpenFor === r.id ? null : r.id)}
+                            aria-label="Add reaction"
+                            aria-expanded={reactionOpenFor === r.id}
+                          >
+                            <SmilePlus size={15} />
+                          </button>
+                          {reactionOpenFor === r.id && (
+                            <div className="hub-conv-react-pop" role="menu">
+                              {ALLOWED_EMOJIS.map((emoji) => (
+                                <button
+                                  key={emoji}
+                                  className="hub-conv-react-pop__btn"
+                                  onClick={() => react(r.id, emoji)}
+                                  aria-label={`React with ${emoji}`}
+                                >
+                                  {emoji}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </article>
+            );
+          })}
         </div>
       )}
 
-      {/* Reply form */}
+      {/* Reply composer */}
       {!isClosed ? (
-        <div className="hub-conv-reply-form">
-          <RimProseEditor
-            value={replyBody}
-            onChange={setReplyBody}
-            placeholder="Add a reply…"
-            variant="compact"
-          />
-          <div className="hub-conv-reply-actions">
-            <button
-              className="btn"
-              onClick={postReply}
-              disabled={saving || !hasContent(replyBody)}
-            >
-              {saving ? "Posting…" : "Reply"}
-            </button>
+        <div className="hub-conv-replybox">
+          <div className="hub-conv-replybox__avatar" aria-hidden="true">
+            {(currentUserName || "?").slice(0, 2).toUpperCase()}
+          </div>
+          <div className="hub-conv-replybox__main">
+            <RimProseEditor
+              value={replyBody}
+              onChange={setReplyBody}
+              placeholder="Write a reply…"
+              variant="compact"
+            />
+            <div className="hub-conv-replybox__actions">
+              <button
+                className="btn"
+                onClick={postReply}
+                disabled={saving || !hasContent(replyBody)}
+              >
+                {saving ? "Posting…" : "Post reply"}
+              </button>
+            </div>
           </div>
         </div>
       ) : (
-        <p className="hub-conv-closed-note">This conversation is closed. No new replies.</p>
+        <p className="hub-conv-thread__closed-note">
+          This conversation is closed — no new replies can be added.
+        </p>
       )}
     </div>
   );

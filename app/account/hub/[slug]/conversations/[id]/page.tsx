@@ -61,6 +61,8 @@ export default async function HubConvThreadPage({
     bodyHtml: await renderFormattedTextAsync(thread.body),
     status:   thread.status,
     isPinned: thread.isPinned,
+    edited:   thread.edited,
+    editedAt: thread.editedAt?.toISOString() ?? null,
     authorId: thread.authorId,
     author: {
       firstName:     thread.author.firstName,

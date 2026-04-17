@@ -12,6 +12,7 @@
  *   TEAM  — Home, Conversations, Tasks, Documents, Members (with badges)
  *
  * Mobile: slide-in drawer opened by a hamburger bar at the top.
+ * Desktop: collapsible icon rail (persisted in localStorage).
  *
  * CSS prefix: hub-ws-
  */
@@ -28,6 +29,8 @@ import {
   Briefcase,
   Settings,
   ChevronLeft,
+  ChevronsLeft,
+  ChevronsRight,
   Menu,
   X,
 } from "lucide-react";
@@ -64,6 +67,19 @@ const TYPE_LABEL: Record<string, string> = {
   COMMUNITY_GROUP: "Community Group",
 };
 
+const COLLAPSE_KEY = "rim-hub-sidebar-collapsed";
+
+function firstNameOnly(fullName: string) {
+  return fullName.split(/\s+/).filter(Boolean)[0] ?? fullName;
+}
+
+function coordinatorSummary(names: string[]): string {
+  if (names.length === 0) return "";
+  const firsts = names.map(firstNameOnly);
+  if (firsts.length <= 2) return firsts.join(" & ");
+  return `${firsts.slice(0, 2).join(", ")} +${firsts.length - 2} more`;
+}
+
 export default function HubWorkspaceSidebar({
   hub,
   tools,
@@ -73,15 +89,28 @@ export default function HubWorkspaceSidebar({
 }: Props) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
-  // Close drawer on route change (mobile)
   useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
+    try {
+      const stored = localStorage.getItem(COLLAPSE_KEY);
+      if (stored === "1") setCollapsed(true);
+    } catch {}
+  }, []);
+
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
+
+  function toggleCollapsed() {
+    setCollapsed((v) => {
+      const next = !v;
+      try { localStorage.setItem(COLLAPSE_KEY, next ? "1" : "0"); } catch {}
+      return next;
+    });
+  }
 
   const base = `/account/hub/${hub.slug}`;
   const teamItems = [
-    { label: "Home",          href: base,                    icon: Home,         badge: 0 },
+    { label: "Home",          href: base,                    icon: Home,          badge: 0 },
     { label: "Conversations", href: `${base}/conversations`, icon: MessageSquare, badge: navCounts.conversations ?? 0 },
     { label: "Tasks",         href: `${base}/tasks`,         icon: CheckSquare,   badge: navCounts.tasks ?? 0 },
     { label: "Documents",     href: `${base}/documents`,     icon: FileText,      badge: 0 },
@@ -101,6 +130,12 @@ export default function HubWorkspaceSidebar({
     const qs = path.includes("?") ? `&hub=${hub.slug}` : `?hub=${hub.slug}`;
     return path + qs;
   }
+
+  const coordSummary = coordinatorSummary(hub.coordinatorNames);
+  const metaLine = [
+    coordSummary,
+    `${hub.memberCount} ${hub.memberCount === 1 ? "member" : "members"}`,
+  ].filter(Boolean).join(" · ");
 
   return (
     <>
@@ -126,8 +161,13 @@ export default function HubWorkspaceSidebar({
       )}
 
       <nav
-        className={`hub-ws-sidebar${mobileOpen ? " hub-ws-sidebar--open" : ""}`}
+        className={[
+          "hub-ws-sidebar",
+          mobileOpen && "hub-ws-sidebar--open",
+          collapsed && "hub-ws-sidebar--collapsed",
+        ].filter(Boolean).join(" ")}
         aria-label="Hub navigation"
+        data-collapsed={collapsed ? "true" : "false"}
       >
         {/* Identity */}
         <div className="hub-ws-identity">
@@ -138,17 +178,31 @@ export default function HubWorkspaceSidebar({
           >
             <X size={18} strokeWidth={1.75} />
           </button>
-          <div className="hub-ws-identity__type">{TYPE_LABEL[hub.type] ?? hub.type}</div>
-          <div className="hub-ws-identity__name">{hub.name}</div>
-          {hub.coordinatorNames.length > 0 && (
-            <div className="hub-ws-identity__meta">
-              Coordinated by {hub.coordinatorNames.join(", ")}
+          <button
+            className="hub-ws-collapse"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-pressed={collapsed}
+            onClick={toggleCollapsed}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed
+              ? <ChevronsRight size={15} strokeWidth={1.75} />
+              : <ChevronsLeft size={15} strokeWidth={1.75} />}
+          </button>
+          {collapsed ? (
+            <div className="hub-ws-identity__mark" aria-label={hub.name}>
+              {hub.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "H"}
             </div>
+          ) : (
+            <>
+              <div className="hub-ws-identity__type">{TYPE_LABEL[hub.type] ?? hub.type}</div>
+              <div className="hub-ws-identity__name">{hub.name}</div>
+              {metaLine && <div className="hub-ws-identity__meta">{metaLine}</div>}
+            </>
           )}
-          <div className="hub-ws-identity__meta">
-            {hub.memberCount} {hub.memberCount === 1 ? "member" : "members"}
-          </div>
         </div>
+
+        <div className="hub-ws-divider" aria-hidden="true" />
 
         {/* WORK group */}
         {tools.length > 0 && (
@@ -161,6 +215,7 @@ export default function HubWorkspaceSidebar({
                   key={tool.slug}
                   href={toolHref(tool.path)}
                   className={`hub-ws-link hub-ws-link--primary${active ? " hub-ws-link--active" : ""}`}
+                  title={collapsed ? tool.label : undefined}
                 >
                   <Briefcase size={18} strokeWidth={1.75} className="hub-ws-link__icon" />
                   <span className="hub-ws-link__label">{tool.label}</span>
@@ -184,6 +239,7 @@ export default function HubWorkspaceSidebar({
                 key={item.href}
                 href={item.href}
                 className={`hub-ws-link${active ? " hub-ws-link--active" : ""}`}
+                title={collapsed ? item.label : undefined}
               >
                 <item.icon size={18} strokeWidth={1.75} className="hub-ws-link__icon" />
                 <span className="hub-ws-link__label">{item.label}</span>
@@ -196,12 +252,20 @@ export default function HubWorkspaceSidebar({
         {/* Footer: settings + back */}
         <div className="hub-ws-footer">
           {(isCoordinator || isAdmin) && (
-            <Link href={`/admin/hubs/${hub.slug}/edit`} className="hub-ws-footer__link">
+            <Link
+              href={`/admin/hubs/${hub.slug}/edit`}
+              className="hub-ws-footer__link"
+              title={collapsed ? "Hub settings" : undefined}
+            >
               <Settings size={16} strokeWidth={1.75} />
               <span>Hub settings</span>
             </Link>
           )}
-          <Link href="/account/dashboard" className="hub-ws-footer__link">
+          <Link
+            href="/account/dashboard"
+            className="hub-ws-footer__link"
+            title={collapsed ? "Back to dashboard" : undefined}
+          >
             <ChevronLeft size={16} strokeWidth={1.75} />
             <span>Back to dashboard</span>
           </Link>
