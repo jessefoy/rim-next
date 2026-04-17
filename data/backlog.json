@@ -51,12 +51,12 @@
   },
   {
     "id": "2026-04-17-002",
-    "title": "Rich Callouts — title, icon, and lists inside",
-    "description": "Current Note/Decision callouts are inline-only blocks: a single paragraph of styled text, no lists, no nested content. Rebuild the callout as a container block that supports (1) an explicit title field with a variant icon, (2) full formatted body including bullet/numbered lists and nested paragraphs. Likely requires a custom BlockNote container block with children support, or a wrapper around the built-in toggleable-heading pattern. Design the UI so variant and title are easy to set inline — no separate modal needed.",
+    "title": "Rich Callouts — container blocks with preset variants",
+    "description": "Rebuild the callout as a container block (BlockNote spec with children) so the body supports lists, numbered steps, and nested paragraphs — not just inline marks. Keep variants as a curated preset list (no user-picked icons) so each variant carries a consistent meaning. Proposed preset set: Note (💡 amber, general tips), Decision (✓ green, recorded decisions), Practice Note (🌱 teal, contemplative practice instructions), Reflection (❦ purple, pause/inquiry prompts), Question (? blue, open inquiry), Warning (⚠ orange, caution). Variant picker is a small popover on the header icon — not a modal. Body is edited inline; no separate editor surface. Migration: existing Note/Decision callouts keep their variant and title; inline content wraps into a single paragraph child. Info/Warning legacy variants stay readable but are dropped from the picker.",
     "category": "CSS & Design",
     "priority": "medium",
     "status": "open",
     "addedAt": "2026-04-17",
-    "notes": "Scoped during document-editor buildout. Jesse noted the current boxes feel empty (no icon, no header) and constrain content to a single paragraph. This is a Path B follow-up to the current title+icon iteration."
+    "notes": "Scoped during document-editor buildout (session 87). Scope chosen: container content + curated presets (Path B-a), not user-configurable icons (Path B-b). Rationale: dharma-rooted restraint — named types reinforce meaning; user-picked icons drift. Confirm the preset list with Jesse before implementation; Practice Note and Reflection are the dharma-specific additions worth keeping even if the document tier doesn't strictly need them."
   }
 ]
