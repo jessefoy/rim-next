@@ -26,6 +26,7 @@ import {
   MapPin,
   Megaphone,
   Globe,
+  FlaskConical,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
@@ -67,6 +68,7 @@ const STAFF_LINKS: (NavLink & { adminOnly?: boolean; registrarOk?: boolean })[] 
   { label: "Manual",     href: "/admin/manual",     icon: FileText,  adminOnly: true   },
   { label: "Roadmap",    href: "/admin/roadmap",    icon: MapPin,    adminOnly: true   },
   { label: "Banner",     href: "/admin/banner",     icon: Megaphone, adminOnly: true   },
+  { label: "Editor Lab", href: "/admin/editor-lab", icon: FlaskConical, adminOnly: true },
 ];
 
 const STORAGE_KEY = "ac-sidebar-collapsed";
