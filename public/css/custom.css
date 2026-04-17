@@ -20876,6 +20876,381 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
 .lp-callout-block__body > ul:first-child,
 .lp-callout-block__body > ol:first-child { margin-top: 0; }
 
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   EDITORIAL ELEMENTS — Pull Quote, Practice Suggestion, Reflection, Verse
+   Each element has its own visual identity. Styling is scoped so that
+   documents get a utilitarian treatment (Open Sans, no decorative marks)
+   while lessons and programs get full editorial treatment (Quincy CF,
+   teal accents, generous whitespace). The BlockNote editor view mirrors
+   the document tier so editing is calm and predictable regardless of
+   where the document will publish.
+═══════════════════════════════════════════════════════════════════════════ */
+
+
+/* ──── Pull Quote ────────────────────────────────────────────────────────── */
+/* Inline-content block. Oversized centered quote with optional attribution.
+   "Moment of pause" — no box, just typography and whitespace.          */
+
+/* Editor view — calm / utilitarian (matches document tier) */
+.bn-pull-quote {
+  display: block;
+  padding: 12px 0;
+  text-align: center;
+}
+.bn-pull-quote__mark {
+  display: block;
+  font-family: var(--font-serif);
+  font-size: 32px;
+  line-height: 1;
+  color: var(--rim-blue);
+  margin-bottom: -4px;
+}
+.bn-pull-quote__text {
+  font-family: var(--font-sans);
+  font-size: 20px;
+  line-height: 1.5;
+  color: var(--rim-text);
+  min-height: 1.5em;
+  outline: none;
+}
+.bn-pull-quote__text:empty::before {
+  content: "A line worth pausing on…";
+  color: var(--rim-text-muted);
+  font-style: italic;
+}
+.bn-pull-quote__attribution {
+  display: block;
+  margin: 8px auto 0;
+  width: 60%;
+  max-width: 320px;
+  border: none;
+  background: transparent;
+  text-align: center;
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--rim-text-muted);
+  font-style: italic;
+  outline: none;
+}
+.bn-pull-quote__attribution::placeholder { color: var(--rim-text-muted); }
+
+/* Rendered base — shared defaults */
+.rim-el-pull-quote {
+  margin: 32px auto;
+  text-align: center;
+  max-width: 620px;
+}
+.rim-el-pull-quote__mark { display: none; }
+.rim-el-pull-quote__text {
+  font-family: var(--font-sans);
+  font-size: 20px;
+  line-height: 1.5;
+  color: var(--rim-text);
+}
+.rim-el-pull-quote__text p { margin: 0; }
+.rim-el-pull-quote__attribution {
+  display: block;
+  margin-top: 10px;
+  font-style: italic;
+  font-size: var(--text-small);
+  color: var(--rim-text-muted);
+}
+
+/* Document scope — utilitarian */
+.rim-content--document .rim-el-pull-quote {
+  margin: 20px 0;
+  text-align: left;
+  padding-left: 16px;
+  border-left: 2px solid var(--rim-rule);
+  max-width: none;
+}
+.rim-content--document .rim-el-pull-quote__text { font-size: 17px; }
+
+/* Lesson + Program scope — full editorial */
+.rim-content--lesson .rim-el-pull-quote,
+.rim-content--program .rim-el-pull-quote {
+  margin: 48px auto;
+  padding: 16px 0;
+}
+.rim-content--lesson .rim-el-pull-quote__mark,
+.rim-content--program .rim-el-pull-quote__mark {
+  display: block;
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 56px;
+  line-height: 0.6;
+  color: var(--rim-blue);
+  margin-bottom: 12px;
+}
+.rim-content--lesson .rim-el-pull-quote__text,
+.rim-content--program .rim-el-pull-quote__text {
+  font-family: var(--font-serif);
+  font-size: 30px;
+  line-height: 1.35;
+  font-weight: 400;
+  color: var(--rim-text);
+}
+.rim-content--program .rim-el-pull-quote { margin: 36px auto; max-width: 560px; }
+.rim-content--program .rim-el-pull-quote__text { font-size: 26px; }
+
+
+/* ──── Practice Suggestion ───────────────────────────────────────────────── */
+/* Container block. "PRACTICE" eyebrow + title + block-level body.         */
+
+/* Editor view — uses :has() to style .bn-block wrapper around the practice
+   element so header + body share one visual container. */
+.bn-block:has(> .bn-block-content[data-content-type="practiceSuggestion"]) {
+  background: #edf5f3;
+  border-left: 3px solid #2a8f79;
+  border-radius: 4px;
+  padding: 12px 16px;
+  margin: 12px 0;
+}
+.bn-block-content[data-content-type="practiceSuggestion"] {
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+}
+.bn-practice__header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.bn-practice__eyebrow {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #2a8f79;
+  flex-shrink: 0;
+}
+.bn-practice__title {
+  flex: 1;
+  min-width: 200px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  outline: none;
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--rim-text);
+  line-height: 1.3;
+}
+.bn-practice__title::placeholder { color: var(--rim-text-muted); font-weight: 500; }
+
+/* Body — children render in .bn-block-group */
+.bn-block:has(> .bn-block-content[data-content-type="practiceSuggestion"]) > .bn-block-group {
+  padding-left: 0;
+  margin-top: 8px;
+}
+.bn-block:has(> .bn-block-content[data-content-type="practiceSuggestion"]) > .bn-block-group > .bn-block:last-child {
+  padding-bottom: 0;
+}
+
+/* Rendered base */
+.rim-el-practice {
+  background: #edf5f3;
+  border-left: 3px solid #2a8f79;
+  border-radius: 4px;
+  padding: 14px 18px;
+  margin: 20px 0;
+}
+.rim-el-practice__header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.rim-el-practice__eyebrow {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #2a8f79;
+  flex-shrink: 0;
+}
+.rim-el-practice__title {
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--rim-text);
+}
+.rim-el-practice__body > *:first-child { margin-top: 0; }
+.rim-el-practice__body > *:last-child  { margin-bottom: 0; }
+
+/* Lesson + Program scope — full editorial (Quincy CF title, more room) */
+.rim-content--lesson .rim-el-practice,
+.rim-content--program .rim-el-practice {
+  padding: 18px 22px;
+  margin: 28px 0;
+}
+.rim-content--lesson .rim-el-practice__title,
+.rim-content--program .rim-el-practice__title {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 400;
+}
+
+
+/* ──── Reflection ────────────────────────────────────────────────────────── */
+/* Container block. Italic question lead-in + block-level body.            */
+/* No box — just hairline rules above and below.                           */
+
+/* Editor view */
+.bn-block:has(> .bn-block-content[data-content-type="reflection"]) {
+  border-top: 1px solid var(--rim-rule);
+  border-bottom: 1px solid var(--rim-rule);
+  padding: 14px 0;
+  margin: 16px 0;
+}
+.bn-block-content[data-content-type="reflection"] {
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+}
+.bn-reflection__question {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0;
+  outline: none;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--rim-text);
+  line-height: 1.4;
+}
+.bn-reflection__question::placeholder {
+  color: var(--rim-text-muted);
+  font-style: italic;
+}
+.bn-block:has(> .bn-block-content[data-content-type="reflection"]) > .bn-block-group {
+  padding-left: 0;
+  margin-top: 8px;
+}
+.bn-block:has(> .bn-block-content[data-content-type="reflection"]) > .bn-block-group > .bn-block:last-child {
+  padding-bottom: 0;
+}
+
+/* Rendered base */
+.rim-el-reflection {
+  border-top: 1px solid var(--rim-rule);
+  border-bottom: 1px solid var(--rim-rule);
+  padding: 18px 0;
+  margin: 28px 0;
+}
+.rim-el-reflection__question {
+  font-family: var(--font-sans);
+  font-size: 18px;
+  font-style: italic;
+  line-height: 1.4;
+  color: var(--rim-text);
+  margin-bottom: 10px;
+}
+.rim-el-reflection__body > *:first-child { margin-top: 0; }
+.rim-el-reflection__body > *:last-child  { margin-bottom: 0; }
+
+/* Lesson + Program scope — full editorial */
+.rim-content--lesson .rim-el-reflection,
+.rim-content--program .rim-el-reflection {
+  padding: 28px 0;
+  margin: 40px 0;
+}
+.rim-content--lesson .rim-el-reflection__question,
+.rim-content--program .rim-el-reflection__question {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-style: italic;
+  line-height: 1.4;
+  color: var(--rim-text);
+  margin-bottom: 14px;
+}
+.rim-content--program .rim-el-reflection__question { font-size: 21px; }
+
+
+/* ──── Verse Quote (refined) ─────────────────────────────────────────────── */
+/* Inline single-line content + optional attribution. Reverent / external. */
+/* The existing .lp-verse-quote base stays; .rim-el-verse layers on top.   */
+
+.rim-el-verse {
+  margin: 24px auto;
+  text-align: center;
+  max-width: 560px;
+}
+.rim-el-verse__text {
+  font-family: var(--font-sans);
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--rim-text);
+}
+.rim-el-verse__text p { margin: 0; }
+.rim-el-verse__attribution {
+  display: block;
+  margin-top: 8px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rim-text-muted);
+  font-style: normal;
+}
+
+/* Document scope — utilitarian */
+.rim-content--document .rim-el-verse {
+  margin: 16px 0;
+  text-align: left;
+  padding-left: 16px;
+  border-left: 2px solid var(--rim-rule);
+  max-width: none;
+}
+
+/* Lesson + Program scope — full editorial */
+.rim-content--lesson .rim-el-verse,
+.rim-content--program .rim-el-verse {
+  margin: 36px auto;
+}
+.rim-content--lesson .rim-el-verse__text,
+.rim-content--program .rim-el-verse__text {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--rim-text);
+}
+.rim-content--program .rim-el-verse__text { font-size: 20px; }
+
+
+/* ──── Note (rim-el-note — new class on existing callout) ────────────────── */
+/* Document scope — tighten the callout so it reads as internal annotation. */
+
+.rim-content--document .rim-el-note {
+  margin: 12px 0;
+  padding: 8px 12px;
+  font-size: var(--text-ui);
+  line-height: 1.5;
+}
+.rim-content--document .rim-el-note .lp-callout-block__title {
+  font-size: var(--text-ui);
+}
+
+/* Lesson + Program scope — editorial title treatment */
+.rim-content--lesson .rim-el-note .lp-callout-block__title,
+.rim-content--program .rim-el-note .lp-callout-block__title {
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  font-weight: 600;
+}
+
+
 /* ── Document page wrapper — clean white card on warm bg ── */
 .doc-page {
   max-width: 760px;
@@ -21113,27 +21488,8 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
   padding: 2px 0;
 }
 
-/* Practice Suggestion — editor view */
-.bn-practice-suggestion {
-  background: #e8f4f0;
-  border-radius: 6px;
-  padding: 12px 16px;
-  margin: 8px 0;
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-}
-
-.bn-practice-suggestion__label {
-  font-family: var(--font-sans);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--rim-mid);
-  white-space: nowrap;
-  margin-top: 3px;
-}
+/* Practice Suggestion is now a container block; editor-view CSS lives with
+   the other editorial elements above (.bn-practice / .rim-el-practice). */
 
 /* Callout — variant styles live with the shared block above (bn-callout /
    lp-callout-block). Legacy duplicate rules removed. */

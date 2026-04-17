@@ -258,20 +258,37 @@ export const EDITOR_ELEMENTS: EditorElement[] = [
     availableIn: [...DOCUMENT_AND_LESSON, ...MESSAGE_WITH_TABLES],
   },
 
-  // ── Dharma (Feature tier only) ────────────────────────────────────────────
+  // ── Dharma (editorial elements — lesson + program-description) ───────────
+  // Five distinct elements, each with its own visual identity. Pull Quote and
+  // Verse Quote are inline single-quote blocks; Practice Suggestion and
+  // Reflection are container blocks with block-level bodies.
+  {
+    id: "pull-quote",
+    label: "Pull Quote",
+    group: "dharma",
+    blockType: "pullQuote",
+    availableIn: [...LESSON_ONLY, "program-description"],
+  },
   {
     id: "verse-quote",
     label: "Verse Quote",
     group: "dharma",
     blockType: "verseQuote",
-    availableIn: LESSON_ONLY,
+    availableIn: [...LESSON_ONLY, "program-description"],
   },
   {
     id: "practice-suggestion",
     label: "Practice Suggestion",
     group: "dharma",
     blockType: "practiceSuggestion",
-    availableIn: LESSON_ONLY,
+    availableIn: [...LESSON_ONLY, "program-description"],
+  },
+  {
+    id: "reflection",
+    label: "Reflection",
+    group: "dharma",
+    blockType: "reflection",
+    availableIn: [...LESSON_ONLY, "program-description"],
   },
 ];
 

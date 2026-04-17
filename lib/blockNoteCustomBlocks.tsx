@@ -1,19 +1,76 @@
 "use client";
 
 /**
- * Custom Dharma block types for BlockNote.
- * These replace VerseQuote, PracticeSuggestion, and Callout from lib/tiptap-extensions.ts.
+ * Custom editorial blocks for BlockNote.
  *
- * Each block's toExternalHTML maps to the existing lp- CSS classes so rendered
- * output matches the existing lesson page design.
+ * Five distinct editorial elements. Each one has its own visual identity —
+ * they are NOT variants of a single callout component. Each is a container
+ * block (with the exception of Pull Quote and Verse which hold a single
+ * line of inline content).
+ *
+ *   Pull Quote          — oversized centered serif, decorative teal mark.
+ *   Practice Suggestion — "PRACTICE" eyebrow, serif title, block-level body.
+ *   Reflection          — italic question lead-in, block-level body.
+ *   Verse Quote         — smaller centered serif, optional attribution.
+ *   Note (callout)      — compact titled box; Note + Decision variants.
+ *
+ * Rendered output is scoped by the .rim-content--{scope} class at the
+ * wrapper. Document scope gets utilitarian treatment (Open Sans, no
+ * decorative flourishes, editor ≈ rendered). Lesson and program scopes
+ * get full editorial treatment (Quincy CF display, teal accents).
  */
 
 import { BlockNoteSchema, defaultBlockSpecs } from "@blocknote/core";
 import { createReactBlockSpec } from "@blocknote/react";
+import { useState, useRef, useEffect } from "react";
 
-// ── Verse Quote ──────────────────────────────────────────────────────────────
-// Inline-content block with an optional attribution line.
-// Editor view: bn-verse-quote  |  Rendered output: lp-verse-quote
+// ─────────────────────────────────────────────────────────────────────────────
+// Pull Quote
+// Inline single-line content + optional attribution. No body.
+// Editor view: bn-pull-quote  |  Rendered: rim-el-pull-quote
+// ─────────────────────────────────────────────────────────────────────────────
+
+const pullQuoteFactory = createReactBlockSpec(
+  {
+    type: "pullQuote" as const,
+    propSchema: {
+      attribution: { default: "" },
+    },
+    content: "inline" as const,
+  },
+  {
+    render: ({ block, editor, contentRef }) => (
+      <div className="bn-pull-quote">
+        <span className="bn-pull-quote__mark" aria-hidden="true">“</span>
+        <div className="bn-pull-quote__text" ref={contentRef} />
+        <input
+          className="bn-pull-quote__attribution"
+          placeholder="— Attribution (optional)"
+          value={block.props.attribution}
+          onChange={(e) =>
+            editor.updateBlock(block, {
+              props: { attribution: e.target.value },
+            })
+          }
+        />
+      </div>
+    ),
+    toExternalHTML: ({ block, contentRef }) => (
+      <div
+        className="rim-el-pull-quote"
+        data-attribution={block.props.attribution}
+      >
+        <div ref={contentRef} />
+      </div>
+    ),
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Verse Quote
+// Inline single-line content + optional attribution. Reverent / external.
+// Editor view: bn-verse-quote  |  Rendered: rim-el-verse (legacy: lp-verse-quote)
+// ─────────────────────────────────────────────────────────────────────────────
 
 const verseQuoteFactory = createReactBlockSpec(
   {
@@ -41,7 +98,7 @@ const verseQuoteFactory = createReactBlockSpec(
     ),
     toExternalHTML: ({ block, contentRef }) => (
       <div
-        className="lp-verse-quote"
+        className="rim-el-verse lp-verse-quote"
         data-attribution={block.props.attribution}
       >
         <div ref={contentRef} />
@@ -50,48 +107,133 @@ const verseQuoteFactory = createReactBlockSpec(
   }
 );
 
-// ── Practice Suggestion ───────────────────────────────────────────────────────
-// Inline-content block with a "Practice" label badge.
-// Editor view: bn-practice-suggestion  |  Rendered output: lp-callout
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared helper — focus first child in a container block (creating one if
+// missing). Used on insert and when the header input receives Enter/ArrowDown.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function focusContainerBody(editor: any, blockId: string) {
+  const current = editor.getBlock(blockId);
+  if (!current) return;
+  if (!current.children || current.children.length === 0) {
+    editor.updateBlock(current, {
+      children: [{ type: "paragraph" as never }],
+    } as never);
+  }
+  setTimeout(() => {
+    const updated = editor.getBlock(blockId);
+    const firstChild = updated?.children?.[0];
+    if (firstChild) {
+      editor.setTextCursorPosition(firstChild.id, "start");
+      editor.focus();
+    }
+  }, 0);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Practice Suggestion
+// Container block — "PRACTICE" eyebrow + serif title + block-level body.
+// Body supports paragraphs, lists, numbered steps.
+// Editor view: bn-practice  |  Rendered: rim-el-practice
+// ─────────────────────────────────────────────────────────────────────────────
 
 const practiceSuggestionFactory = createReactBlockSpec(
   {
     type: "practiceSuggestion" as const,
-    propSchema: {},
-    content: "inline" as const,
+    propSchema: {
+      title: { default: "" },
+    },
+    content: "none" as const,
   },
   {
-    render: ({ contentRef }) => (
-      <div className="bn-practice-suggestion">
-        <span className="bn-practice-suggestion__label">Practice</span>
-        <div ref={contentRef} />
+    render: ({ block, editor }) => (
+      <div className="bn-practice" contentEditable={false}>
+        <div className="bn-practice__header">
+          <span className="bn-practice__eyebrow">Practice</span>
+          <input
+            className="bn-practice__title"
+            placeholder="Title (optional)"
+            value={block.props.title}
+            onChange={(e) =>
+              editor.updateBlock(block, { props: { title: e.target.value } })
+            }
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === "ArrowDown") {
+                e.preventDefault();
+                focusContainerBody(editor, block.id);
+              }
+            }}
+          />
+        </div>
       </div>
     ),
-    toExternalHTML: ({ contentRef }) => (
-      <div className="lp-callout">
-        <div ref={contentRef} />
-      </div>
-    ),
+    toExternalHTML: ({ block }) => {
+      const title = block.props.title;
+      return (
+        <div className="rim-el-practice">
+          <div className="rim-el-practice__header">
+            <span className="rim-el-practice__eyebrow">Practice</span>
+            {title ? (
+              <span className="rim-el-practice__title">{title}</span>
+            ) : null}
+          </div>
+        </div>
+      );
+    },
   }
 );
 
-// ── Note (lightweight callout) ────────────────────────────────────────────────
-// The Note element: a compact titled box for observations and decisions inside
-// editorial content. Two variants only — Note and Decision. Practice,
-// Reflection, Verse, and Pull Quote are separate editorial elements with their
-// own visual identities, not variants of this one.
-//
-// Container block (content: "none") — children are real blocks so the body
-// supports paragraphs, lists, steps.
-//
-// Legacy variants (practice, reflection, question, warning, info) remain in
-// the schema so existing content still loads, but the picker offers only the
-// curated pair. Existing documents should be migrated to the new dedicated
-// elements over time.
-//
-// Editor view: bn-callout  |  Rendered output: lp-callout-block
+// ─────────────────────────────────────────────────────────────────────────────
+// Reflection
+// Container block — italic question lead-in + block-level body.
+// Editor view: bn-reflection  |  Rendered: rim-el-reflection
+// ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useRef, useEffect } from "react";
+const reflectionFactory = createReactBlockSpec(
+  {
+    type: "reflection" as const,
+    propSchema: {
+      question: { default: "" },
+    },
+    content: "none" as const,
+  },
+  {
+    render: ({ block, editor }) => (
+      <div className="bn-reflection" contentEditable={false}>
+        <input
+          className="bn-reflection__question"
+          placeholder="A question worth sitting with…"
+          value={block.props.question}
+          onChange={(e) =>
+            editor.updateBlock(block, { props: { question: e.target.value } })
+          }
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === "ArrowDown") {
+              e.preventDefault();
+              focusContainerBody(editor, block.id);
+            }
+          }}
+        />
+      </div>
+    ),
+    toExternalHTML: ({ block }) => {
+      const question = block.props.question;
+      return (
+        <div className="rim-el-reflection">
+          {question ? (
+            <div className="rim-el-reflection__question">{question}</div>
+          ) : null}
+        </div>
+      );
+    },
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Note (callout)
+// Titled box with Note / Decision variants. Legacy variants stay in schema.
+// Editor view: bn-callout  |  Rendered: lp-callout-block (legacy) + rim-el-note
+// ─────────────────────────────────────────────────────────────────────────────
 
 export type CalloutVariant =
   | "note"
@@ -170,24 +312,6 @@ const calloutFactory = createReactBlockSpec(
         setPickerOpen(false);
       };
 
-      const focusBody = () => {
-        const current = editor.getBlock(block.id);
-        if (!current) return;
-        if (current.children.length === 0) {
-          editor.updateBlock(block, {
-            children: [{ type: "paragraph" as never }],
-          } as never);
-        }
-        setTimeout(() => {
-          const updated = editor.getBlock(block.id);
-          const firstChild = updated?.children[0];
-          if (firstChild) {
-            editor.setTextCursorPosition(firstChild.id, "start");
-            editor.focus();
-          }
-        }, 0);
-      };
-
       return (
         <div
           className={`bn-callout bn-callout--${variant}`}
@@ -236,7 +360,7 @@ const calloutFactory = createReactBlockSpec(
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === "ArrowDown") {
                   e.preventDefault();
-                  focusBody();
+                  focusContainerBody(editor, block.id);
                 }
               }}
             />
@@ -249,7 +373,7 @@ const calloutFactory = createReactBlockSpec(
       const title = block.props.title;
       const icon = CALLOUT_ICONS[variant] ?? CALLOUT_ICONS.note;
       return (
-        <div className={`lp-callout-block lp-callout-block--${variant}`}>
+        <div className={`lp-callout-block lp-callout-block--${variant} rim-el-note rim-el-note--${variant}`}>
           <div className="lp-callout-block__header">
             <span className="lp-callout-block__icon" aria-hidden="true">
               {icon}
@@ -264,15 +388,19 @@ const calloutFactory = createReactBlockSpec(
   }
 );
 
-// ── Exported specs (pre-called factories) ────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Exported specs
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const customBlockSpecs = {
+  pullQuote: pullQuoteFactory(),
   verseQuote: verseQuoteFactory(),
   practiceSuggestion: practiceSuggestionFactory(),
+  reflection: reflectionFactory(),
   callout: calloutFactory(),
 };
 
-// Full editor schema: all default blocks + custom Dharma blocks
+// Full editor schema: all default blocks + custom editorial blocks.
 export const rimBlockSchema = BlockNoteSchema.create({
   blockSpecs: {
     ...defaultBlockSpecs,
@@ -280,7 +408,7 @@ export const rimBlockSchema = BlockNoteSchema.create({
   },
 });
 
-// Prose schema: paragraph + lists + quote only — no headings, no custom blocks
+// Prose schema: paragraph + lists + quote only — no headings, no custom blocks.
 export const rimProseSchema = BlockNoteSchema.create({
   blockSpecs: {
     paragraph:         defaultBlockSpecs.paragraph,
@@ -289,3 +417,10 @@ export const rimProseSchema = BlockNoteSchema.create({
     quote:             defaultBlockSpecs.quote,
   },
 });
+
+/** The set of container block types (content: "none" with children). */
+export const CONTAINER_BLOCK_TYPES = new Set<string>([
+  "callout",
+  "practiceSuggestion",
+  "reflection",
+]);

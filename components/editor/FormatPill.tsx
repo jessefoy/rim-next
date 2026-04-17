@@ -29,6 +29,7 @@ import {
   GROUP_LABELS,
   type EditorElement,
 } from "@/lib/editorRegistry";
+import { CONTAINER_BLOCK_TYPES } from "@/lib/blockNoteCustomBlocks";
 
 const PILL_HEIGHT = 44;
 const PILL_GAP = 8;
@@ -802,14 +803,15 @@ export function FormatPill({ context }: { context: EditorContext }) {
           ([k, v]) => currentProps[k] === v,
         );
         const isAlreadyThisType = currentType === el.blockType && propsMatch;
-        // Converting into a container callout: move the block's inline content
-        // into a paragraph child so it isn't lost when schema drops it.
-        if (!isAlreadyThisType && el.blockType === "callout") {
+        // Converting into a container editorial element (callout / practice /
+        // reflection): move the block's inline content into a paragraph child
+        // so it isn't lost when the schema drops it.
+        if (!isAlreadyThisType && CONTAINER_BLOCK_TYPES.has(el.blockType)) {
           const inline = Array.isArray((block as any).content)
             ? (block as any).content
             : [];
           editor.updateBlock(block, {
-            type: "callout" as never,
+            type: el.blockType as never,
             props: elProps as never,
             children: [
               { type: "paragraph" as never, content: inline as never },
@@ -852,12 +854,12 @@ export function FormatPill({ context }: { context: EditorContext }) {
             block,
             "after",
           );
-        } else if (el.blockType === "callout") {
-          // Container callout — seed with one empty paragraph child so the
-          // body has an editable block ready.
+        } else if (CONTAINER_BLOCK_TYPES.has(el.blockType)) {
+          // Container editorial element — seed with one empty paragraph child
+          // so the body has an editable block ready, then focus it.
           editor.insertBlocks(
             [{
-              type: "callout" as never,
+              type: el.blockType as never,
               props: (el.blockProps ?? {}) as never,
               children: [{ type: "paragraph" as never }],
             }],

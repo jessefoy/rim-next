@@ -33,7 +33,7 @@ import { BlockNoteView } from "@blocknote/mantine";
 import { upload } from "@vercel/blob/client";
 import { RiQuoteText, RiPlantLine, RiInformationLine } from "react-icons/ri";
 import { rimTheme } from "@/lib/blockNoteTheme";
-import { rimBlockSchema } from "@/lib/blockNoteCustomBlocks";
+import { rimBlockSchema, CONTAINER_BLOCK_TYPES } from "@/lib/blockNoteCustomBlocks";
 import { FormatPill } from "@/components/editor/FormatPill";
 import { type EditorContext as RegistryContext } from "@/lib/editorRegistry";
 
@@ -59,17 +59,22 @@ export type EditorContext =
   | "program-description"
   | "default";
 
-/* Migrate legacy callout blocks.
-   Path A stored callout bodies as inline content (single paragraph of marks).
-   Path B is a container — body lives in children. This walks the doc and
-   rewrites any callout with inline content into: empty inline + one paragraph
-   child carrying the old content. Runs once on load. */
-function migrateLegacyCallouts(blocks: any[]): any[] {
+/* Migrate legacy editorial containers.
+   Earlier versions stored callout, practiceSuggestion, and reflection bodies
+   as inline content. These are now container blocks with block-level bodies.
+   This walks the doc and rewrites any such block with inline content into
+   empty inline + one paragraph child carrying the old content. Runs once on
+   load. */
+function migrateLegacyContainers(blocks: any[]): any[] {
   const walk = (arr: any[]): any[] =>
     arr.map((b) => {
       if (!b || typeof b !== "object") return b;
       const children = Array.isArray(b.children) ? walk(b.children) : [];
-      if (b.type === "callout" && Array.isArray(b.content) && b.content.length > 0) {
+      if (
+        CONTAINER_BLOCK_TYPES.has(b.type) &&
+        Array.isArray(b.content) &&
+        b.content.length > 0
+      ) {
         return {
           ...b,
           content: [],
@@ -1130,7 +1135,7 @@ export default function RimBlockEditor({
       start++;
     }
     const trimmed = start > 0 ? value.slice(start) : value;
-    return migrateLegacyCallouts(trimmed);
+    return migrateLegacyContainers(trimmed);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const editor = useCreateBlockNote(

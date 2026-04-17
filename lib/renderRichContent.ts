@@ -82,14 +82,16 @@ function blockStyleAttr(block: any): string {
   return styles.length > 0 ? ` style="${styles.join(";")}"` : ""
 }
 
+const CONTAINER_TYPES = new Set(["callout", "practiceSuggestion", "reflection"])
+
 function renderSingleBlock(block: any): string {
   if (!block || typeof block !== "object") return ""
   const inner    = Array.isArray(block.content) ? renderInlineContent(block.content) : ""
-  // For container blocks that manage children themselves (callout), group
-  // children through renderBlockNodes so lists get proper <ul>/<ol> wrappers.
+  // For container blocks that manage children themselves, group children
+  // through renderBlockNodes so lists get proper <ul>/<ol> wrappers.
   const childBlocks = Array.isArray(block.children) ? block.children : []
   const children =
-    block.type === "callout"
+    CONTAINER_TYPES.has(block.type)
       ? renderBlockNodes(childBlocks)
       : childBlocks.map(renderSingleBlock).join("")
   const bStyle   = blockStyleAttr(block)
@@ -160,13 +162,31 @@ function renderSingleBlock(block: any): string {
       }
       return `<table><tbody>${html}</tbody></table>${children}`
     }
-    // Custom Dharma blocks
+    // Custom editorial blocks
+    case "pullQuote": {
+      const attr = block.props?.attribution
+      const body = inner
+      const attrHtml = attr ? `<cite class="rim-el-pull-quote__attribution">${attr}</cite>` : ""
+      return `<div class="rim-el-pull-quote"><span class="rim-el-pull-quote__mark" aria-hidden="true">&ldquo;</span><div class="rim-el-pull-quote__text">${body}</div>${attrHtml}</div>`
+    }
     case "verseQuote": {
       const attr = block.props?.attribution
-      return `<div class="lp-verse-quote">${inner}${attr ? `<cite>${attr}</cite>` : ""}</div>${children}`
+      const attrHtml = attr ? `<cite class="rim-el-verse__attribution">${attr}</cite>` : ""
+      return `<div class="rim-el-verse lp-verse-quote"><div class="rim-el-verse__text">${inner}</div>${attrHtml}</div>${children}`
     }
-    case "practiceSuggestion":
-      return `<div class="lp-callout">${inner}</div>${children}`
+    case "practiceSuggestion": {
+      const title = block.props?.title ?? ""
+      const titleHtml = title ? `<span class="rim-el-practice__title">${title}</span>` : ""
+      // Body = container children. Legacy inline content falls back.
+      const body = children || (inner ? `<p>${inner}</p>` : "")
+      return `<div class="rim-el-practice"><div class="rim-el-practice__header"><span class="rim-el-practice__eyebrow">Practice</span>${titleHtml}</div><div class="rim-el-practice__body">${body}</div></div>`
+    }
+    case "reflection": {
+      const question = block.props?.question ?? ""
+      const qHtml = question ? `<div class="rim-el-reflection__question">${question}</div>` : ""
+      const body = children || (inner ? `<p>${inner}</p>` : "")
+      return `<div class="rim-el-reflection">${qHtml}<div class="rim-el-reflection__body">${body}</div></div>`
+    }
     case "callout": {
       const variant = block.props?.variant ?? "note"
       const title   = block.props?.title ?? ""
@@ -180,7 +200,7 @@ function renderSingleBlock(block: any): string {
       // Body = children (block-level). Legacy inline content falls back into
       // the body if any is still stored that way.
       const body = children || inner
-      return `<div class="lp-callout-block lp-callout-block--${variant}">${header}<div class="lp-callout-block__body">${body}</div></div>`
+      return `<div class="lp-callout-block lp-callout-block--${variant} rim-el-note rim-el-note--${variant}">${header}<div class="lp-callout-block__body">${body}</div></div>`
     }
     case "paragraph":
     default:
