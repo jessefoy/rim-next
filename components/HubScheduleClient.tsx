@@ -124,7 +124,7 @@ function SessionDetail({
   coordinatorName?: string;
   onClose: () => void;
   onClaim: (id: string) => void;
-  onSubRequest: (id: string, message: string) => void;
+  onSubRequest: (id: string, message: any) => Promise<boolean>;
   onUnclaim: (id: string) => void;
   onClaimSub: (id: string, subRequestId: string) => void;
 }) {
@@ -215,10 +215,15 @@ function SessionDetail({
               disabled={submitting}
               onClick={async () => {
                 setSubmitting(true);
-                await onSubRequest(s.id, subMsg);
-                setSubmitting(false);
-                setSubFormOpen(false);
-                setSubMsg("");
+                try {
+                  const ok = await onSubRequest(s.id, subMsg);
+                  if (ok) {
+                    setSubFormOpen(false);
+                    setSubMsg(null);
+                  }
+                } finally {
+                  setSubmitting(false);
+                }
               }}
             >
               {submitting ? "Sending…" : "Send request to team"}
@@ -361,17 +366,32 @@ export default function HubScheduleClient({
     } catch (e) { showToast(e instanceof Error ? e.message : "Network error. Please try again."); }
   }
 
-  async function submitSubRequest(assignmentId: string, message: string) {
-    const res = await fetch(`${apiBase}/sub-requests`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ assignmentId, message: message.trim() || null }),
-    });
-    if (!res.ok) { const d = await res.json(); showToast(d.error ?? "Something went wrong."); return; }
+  async function submitSubRequest(assignmentId: string, message: any): Promise<boolean> {
+    // Normalize message: send null if the BlockNote doc is empty or only whitespace.
+    const text = extractBlockNoteText(message).trim();
+    const messagePayload = text ? message : null;
+
+    try {
+      const res = await fetch(`${apiBase}/sub-requests`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assignmentId, message: messagePayload }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        showToast(d.error ?? "Something went wrong.");
+        return false;
+      }
+    } catch {
+      showToast("Network error. Please try again.");
+      return false;
+    }
+
     setSessions((prev) => prev.map((s) =>
-      s.id === assignmentId ? { ...s, status: "sub_needed", subMessage: message.trim() || null } : s
+      s.id === assignmentId ? { ...s, status: "sub_needed", subMessage: messagePayload } : s
     ));
     showToast("Request sent — the team has been notified.");
+    return true;
   }
 
   async function unclaimSession(id: string) {
