@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import RimProseEditor from "@/components/RimProseEditor";
 import { renderBlockNoteHtml, extractBlockNoteText } from "@/lib/renderRichContent";
 
 interface Session {
   id: string;
-  programId: string | null;  // Sanity _id
+  programId: string | null;
   programSlug: string;
   programName: string;
   sessionDate: string | null;
@@ -29,10 +29,10 @@ interface Props {
   initialSessions: Session[];
   programs: Program[];
   initialYear: number;
-  initialMonth: number; // 0-indexed
+  initialMonth: number;
   currentUserId: string;
   currentUserName: string;
-  coordinatorName?: string; // Hub coordinator (optional — shown in session detail)
+  coordinatorName?: string;
   apiBase?: string;
 }
 
@@ -55,18 +55,29 @@ function fmtTime(iso: string) {
   });
 }
 
-function fmtShort(iso: string) {
+function fmtDayLong(year: number, month: number, day: number) {
+  return new Date(year, month, day).toLocaleDateString("en-US", {
+    weekday: "long", month: "long", day: "numeric",
+  });
+}
+
+function fmtDayHeader(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", {
-    weekday: "short", month: "short", day: "numeric",
+    weekday: "long", month: "short", day: "numeric",
     timeZone: "America/Chicago",
   });
 }
 
-/** "Jesse Foy" → "Jesse F." */
-function shortName(full: string) {
-  const parts = full.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0];
-  return `${parts[0]} ${parts[parts.length - 1][0]}.`;
+function fmtTimeOnly(iso: string) {
+  return new Date(iso).toLocaleTimeString("en-US", {
+    hour: "numeric", minute: "2-digit", timeZone: "America/Chicago",
+  });
+}
+
+/** "Private Teacher Meetings" → "Private Teach…" for narrow pills */
+function pillLabel(name: string, max: number = 18) {
+  if (name.length <= max) return name;
+  return name.slice(0, max - 1).trimEnd() + "…";
 }
 
 function formatLabel(fmt: string | null) {
@@ -75,6 +86,15 @@ function formatLabel(fmt: string | null) {
   if (fmt === "hybrid") return "Hybrid";
   if (fmt === "in-person") return "In Person";
   return fmt;
+}
+
+function statusKey(
+  s: Session,
+  currentUserId: string,
+): "mine" | "covered" | "needs" {
+  if (s.hostUserId === currentUserId) return "mine";
+  if (s.status === "claimed") return "covered";
+  return "needs";
 }
 
 function Toast({ msg }: { msg: string | null }) {
@@ -110,33 +130,25 @@ function SessionDetail({
   const [removeWarnOpen, setRemoveWarnOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const isOwn      = s.hostUserId === currentUserId;
+  const isOwn       = s.hostUserId === currentUserId;
   const isUnclaimed = s.status === "unclaimed";
   const isSubNeeded = s.status === "sub_needed";
   const isClaimed   = s.status === "claimed";
 
   const hostDisplay = isSubNeeded
-    ? (s.hostName ? `${s.hostName} (needs sub)` : "Needs sub")
-    : s.hostName ?? "None — open for coverage";
+    ? (s.hostName ? `${s.hostName} — asking for someone to cover` : "Asking for someone to cover")
+    : isUnclaimed
+    ? "No host yet"
+    : s.hostName ?? "—";
 
-  // Subtitle: date · time CT · format
-  const subtitle = s.sessionDate
-    ? [fmtDate(s.sessionDate), fmtTime(s.sessionDate) + " CT", formatLabel(s.programFormat)].filter(Boolean).join(" · ")
-    : null;
-
-  // Status badge label
-  const statusLabel = isUnclaimed ? "Needs Coverage" : isSubNeeded ? "Sub Needed" : null;
-
-  // Info items — only show what the card row didn't already tell you
-  const infoItems: { label: string; value: string }[] = [];
-  infoItems.push({ label: "Host", value: hostDisplay });
+  const infoItems: { label: string; value: string }[] = [
+    { label: "Host", value: hostDisplay },
+  ];
   if (s.programFormat) infoItems.push({ label: "Format", value: formatLabel(s.programFormat)! });
   if (coordinatorName) infoItems.push({ label: "Coordinator", value: coordinatorName });
 
   return (
     <div className="hub-detail">
-
-      {/* Info line — compact, no headers, just label: value pairs */}
       <div className="hub-detail__info">
         {infoItems.map((item, i) => (
           <span key={item.label} className="hub-detail__info-item">
@@ -146,42 +158,38 @@ function SessionDetail({
         ))}
       </div>
 
-      {/* Video sessions are joined from the member dashboard */}
-
-      {/* Sub note */}
       {s.subMessage && extractBlockNoteText(s.subMessage) && (
         <div className="hub-detail__sub-msg">
-          <strong>Note:</strong>
+          <strong>A note from the current host:</strong>
           <div className="rim-content" dangerouslySetInnerHTML={{ __html: renderBlockNoteHtml(s.subMessage) }} />
         </div>
       )}
 
-      {/* Actions — clear hierarchy: primary action is prominent, secondary actions are quiet */}
       {!subFormOpen && !removeWarnOpen && (
         <div className="hub-detail__actions">
           {isUnclaimed && (
             <button className="hub-detail__primary-btn" onClick={() => onClaim(s.id)}>
-              Claim This Session
+              I'll host this session
             </button>
           )}
           {isSubNeeded && s.subRequestId && !isOwn && (
             <button className="hub-detail__primary-btn" onClick={() => onClaimSub(s.id, s.subRequestId!)}>
-              Cover This Session
+              I can cover this session
             </button>
           )}
           <div className="hub-detail__secondary-actions">
-            {(isUnclaimed || (isOwn && isClaimed)) && (
+            {isOwn && isClaimed && (
               <button className="hub-detail__link-btn" onClick={() => setSubFormOpen(true)}>
-                Request Sub
+                Ask someone to cover for me
               </button>
             )}
             {isOwn && (
               <button className="hub-detail__link-btn" onClick={() => setRemoveWarnOpen(true)}>
-                Remove Myself
+                Remove myself
               </button>
             )}
             <button className="hub-detail__link-btn" onClick={onClose}>
-              Dismiss
+              Close
             </button>
           </div>
         </div>
@@ -189,11 +197,11 @@ function SessionDetail({
 
       {subFormOpen && (
         <div className="hub-detail__form">
-          <div className="hub-detail__form-label">Add context for your team:</div>
+          <div className="hub-detail__form-label">Share any context for the team:</div>
           <RimProseEditor
             value={subMsg}
             onChange={setSubMsg}
-            placeholder="Why you need a sub, any handoff notes..."
+            placeholder="A short note about why you're asking for a sub, anything the replacement should know…"
             variant="compact"
           />
           <div className="hub-detail__form-actions">
@@ -208,7 +216,7 @@ function SessionDetail({
                 setSubMsg("");
               }}
             >
-              {submitting ? "Sending…" : "Send Sub Request"}
+              {submitting ? "Sending…" : "Send request to team"}
             </button>
             <button className="hub-detail__link-btn" onClick={() => { setSubFormOpen(false); setSubMsg(""); }}>
               Cancel
@@ -219,7 +227,7 @@ function SessionDetail({
 
       {removeWarnOpen && (
         <div className="hub-detail__warn">
-          <span className="hub-detail__warn-text">This leaves the session uncovered. The team will be notified.</span>
+          <span className="hub-detail__warn-text">This will leave the session without a host. The team will be notified.</span>
           <div className="hub-detail__form-actions">
             <button
               className="hub-detail__primary-btn hub-detail__primary-btn--danger"
@@ -232,7 +240,7 @@ function SessionDetail({
                 onClose();
               }}
             >
-              {submitting ? "Removing…" : "Yes, Remove Me"}
+              {submitting ? "Removing…" : "Yes, remove me"}
             </button>
             <button className="hub-detail__link-btn" onClick={() => setRemoveWarnOpen(false)}>
               Cancel
@@ -263,14 +271,13 @@ export default function HubScheduleClient({
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<Session | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [filter, setFilter] = useState<"all" | "mine" | "action">("all");
 
-  // Mobile agenda: which day is selected in the mini-calendar
-  const [agendaDay, setAgendaDay] = useState<number>(() => {
-    const t = new Date();
-    if (t.getFullYear() === initialYear && t.getMonth() === initialMonth) return t.getDate();
-    return 1;
-  });
+  // Calendar day selection (null = show whole month)
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+
+  // Single toggle (replaces the 3-way filter pill row)
+  const [showMineOnly, setShowMineOnly] = useState(false);
+  const [showNeedsOnly, setShowNeedsOnly] = useState(false);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -280,11 +287,11 @@ export default function HubScheduleClient({
   const loadMonth = useCallback(async (y: number, m: number) => {
     setLoading(true);
     setSelected(null);
+    setSelectedDay(null);
     try {
       const monthStr = `${y}-${String(m + 1).padStart(2, "0")}`;
       const res = await fetch(`${apiBase}/assignments?month=${monthStr}`);
       if (!res.ok) return;
-      // API now returns fully merged sessions (program occurrences + assignments)
       const data: Session[] = await res.json();
       setSessions(data);
     } catch {
@@ -294,27 +301,22 @@ export default function HubScheduleClient({
     }
   }, [apiBase]);
 
-  function resetAgendaDay(y: number, m: number) {
-    const t = new Date();
-    setAgendaDay(y === t.getFullYear() && m === t.getMonth() ? t.getDate() : 1);
-  }
-
   function prevMonth() {
     const m = month === 0 ? 11 : month - 1;
     const y = month === 0 ? year - 1 : year;
-    setYear(y); setMonth(m); loadMonth(y, m); resetAgendaDay(y, m);
+    setYear(y); setMonth(m); loadMonth(y, m);
   }
 
   function nextMonth() {
     const m = month === 11 ? 0 : month + 1;
     const y = month === 11 ? year + 1 : year;
-    setYear(y); setMonth(m); loadMonth(y, m); resetAgendaDay(y, m);
+    setYear(y); setMonth(m); loadMonth(y, m);
   }
 
   function goToToday() {
     const t = new Date();
     setYear(t.getFullYear()); setMonth(t.getMonth());
-    setAgendaDay(t.getDate());
+    setSelectedDay(null);
     loadMonth(t.getFullYear(), t.getMonth());
   }
 
@@ -350,7 +352,7 @@ export default function HubScheduleClient({
           ? { ...s, id: newId, status: "claimed", hostUserId: currentUserId, hostName: currentUserName }
           : s
       );
-      showToast("✓ Session claimed — team notified.");
+      showToast("✓ You're hosting — the team has been notified.");
     } catch (e) { showToast(e instanceof Error ? e.message : "Network error. Please try again."); }
   }
 
@@ -364,7 +366,7 @@ export default function HubScheduleClient({
     setSessions((prev) => prev.map((s) =>
       s.id === assignmentId ? { ...s, status: "sub_needed", subMessage: message.trim() || null } : s
     ));
-    showToast("Sub request sent — team notified by email and dashboard alert.");
+    showToast("Request sent — the team has been notified.");
   }
 
   async function unclaimSession(id: string) {
@@ -377,7 +379,7 @@ export default function HubScheduleClient({
     setSessions((prev) => prev.map((s) =>
       s.id === id ? { ...s, status: "unclaimed", hostUserId: null, hostName: null, subRequestId: null, subMessage: null } : s
     ));
-    showToast("You've been removed. The session is now unclaimed.");
+    showToast("You've been removed. This session now needs a host.");
   }
 
   async function claimSub(assignmentId: string, subRequestId: string) {
@@ -396,6 +398,7 @@ export default function HubScheduleClient({
     showToast("✓ You're covering this session — the original host has been notified.");
   }
 
+  // ── Derived ─────────────────────────────────────────────────────────────────
 
   const firstDayOfMonth = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -403,58 +406,112 @@ export default function HubScheduleClient({
   const isToday = (day: number) =>
     today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
 
-  const filteredSessions = sessions.filter((s) => {
-    if (filter === "mine")   return s.hostUserId === currentUserId;
-    if (filter === "action") return s.status === "unclaimed" || s.status === "sub_needed";
-    return true;
-  });
+  const isCurrentMonth = year === today.getFullYear() && month === today.getMonth();
 
-  const sessionsForDay = (day: number) =>
-    filteredSessions.filter((s) => {
+  // Month-level counts — always based on all sessions, ignoring toggles (so the status line is stable)
+  const needsCount = useMemo(
+    () => sessions.filter((s) => s.status !== "claimed" || s.subRequestId).length,
+    [sessions],
+  );
+  const mineCount = useMemo(
+    () => sessions.filter((s) => s.hostUserId === currentUserId).length,
+    [sessions, currentUserId],
+  );
+  const totalCount = sessions.length;
+
+  // Apply toggle filters (but not day filter — that's applied separately for the list view)
+  const toggleFilteredSessions = useMemo(() => sessions.filter((s) => {
+    if (showMineOnly  && s.hostUserId !== currentUserId) return false;
+    if (showNeedsOnly && !(s.status !== "claimed" || s.subRequestId)) return false;
+    return true;
+  }), [sessions, showMineOnly, showNeedsOnly, currentUserId]);
+
+  const sessionsForDay = useCallback((day: number) =>
+    toggleFilteredSessions.filter((s) => {
       if (!s.sessionDate) return false;
       const d = new Date(s.sessionDate);
       return d.getFullYear() === year && d.getMonth() === month && d.getDate() === day;
+    }), [toggleFilteredSessions, year, month]);
+
+  // Sessions to render in the list: filter to selectedDay if one is selected
+  const listSessions = useMemo(() => {
+    const base = selectedDay === null
+      ? toggleFilteredSessions
+      : sessionsForDay(selectedDay);
+    return [...base].sort((a, b) => {
+      if (!a.sessionDate) return 1;
+      if (!b.sessionDate) return -1;
+      return new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime();
     });
+  }, [toggleFilteredSessions, selectedDay, sessionsForDay]);
 
-  const isCurrentMonth = year === today.getFullYear() && month === today.getMonth();
-
-  /** Returns up to 3 dot-type strings for a day (one per unique status type) */
-  function dotsForDay(day: number) {
-    const ds = sessionsForDay(day);
-    const seen = new Set<string>();
-    const result: string[] = [];
-    for (const s of ds) {
-      const type = s.hostUserId === currentUserId ? "mine" : s.status === "claimed" ? "covered" : "needs";
-      if (!seen.has(type)) { seen.add(type); result.push(type); }
-      if (result.length === 3) break;
-    }
-    return result;
-  }
-
-  // Click a mini-cal day → scroll the card list to that day
-  function scrollToDay(day: number) {
-    setAgendaDay(day);
+  function onDayClick(day: number) {
     setSelected(null);
-    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    setTimeout(() => {
-      document.querySelector(`[data-date="${dateStr}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 50);
+    setSelectedDay((prev) => (prev === day ? null : day));
   }
+
+  // Group list sessions by date string (YYYY-MM-DD) for date headers
+  const groupedList = useMemo(() => {
+    const map = new Map<string, Session[]>();
+    for (const s of listSessions) {
+      const key = s.sessionDate ? s.sessionDate.slice(0, 10) : "unscheduled";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(s);
+    }
+    return Array.from(map.entries());
+  }, [listSessions]);
 
   return (
     <div className="hub-schedule">
 
-      {/* ── Filter pills ── */}
-      <div className="hub-schedule__filters">
-        {(["all", "mine", "action"] as const).map((f) => (
-          <button
-            key={f}
-            className={`hub-schedule__filter-btn${filter === f ? " hub-schedule__filter-btn--active" : ""}`}
-            onClick={() => setFilter(f)}
-          >
-            {f === "all" ? "All Sessions" : f === "mine" ? "My Sessions" : "Needs Coverage"}
-          </button>
-        ))}
+      {/* ── Status sentence with interactive filter counts ── */}
+      <div className="hub-sched-status">
+        <p className="hub-sched-status__line">
+          {needsCount > 0 ? (
+            <>
+              <button
+                type="button"
+                className={`hub-sched-status__pill hub-sched-status__pill--needs${showNeedsOnly ? " hub-sched-status__pill--active" : ""}`}
+                onClick={() => { setShowNeedsOnly((v) => !v); setShowMineOnly(false); }}
+                aria-pressed={showNeedsOnly}
+              >
+                {needsCount} {needsCount === 1 ? "session" : "sessions"} need a host
+              </button>
+              {" "}this month.
+            </>
+          ) : (
+            <>All sessions this month have a host.</>
+          )}
+          {" "}
+          {mineCount > 0 ? (
+            <>
+              You're hosting{" "}
+              <button
+                type="button"
+                className={`hub-sched-status__pill hub-sched-status__pill--mine${showMineOnly ? " hub-sched-status__pill--active" : ""}`}
+                onClick={() => { setShowMineOnly((v) => !v); setShowNeedsOnly(false); }}
+                aria-pressed={showMineOnly}
+              >
+                {mineCount}
+              </button>
+              .
+            </>
+          ) : (
+            <>You haven't claimed any sessions yet.</>
+          )}
+          {(showMineOnly || showNeedsOnly) && (
+            <>
+              {" "}
+              <button
+                type="button"
+                className="hub-sched-status__clear"
+                onClick={() => { setShowMineOnly(false); setShowNeedsOnly(false); }}
+              >
+                Show all {totalCount}
+              </button>
+            </>
+          )}
+        </p>
       </div>
 
       {/* ── Month navigation ── */}
@@ -471,32 +528,68 @@ export default function HubScheduleClient({
 
       {loading && <div className="hub-schedule__loading">Loading…</div>}
 
-      {/* ── Mini-calendar (at-a-glance date navigation) ── */}
+      {/* ── Calendar with event pills ── */}
       {!loading && (
-        <div className="hub-mini-cal">
-          <div className="hub-mini-cal__header">
-            {DAYS.map((d) => <div key={d} className="hub-mini-cal__day-label">{d.charAt(0)}</div>)}
+        <div className="hub-cal2">
+          <div className="hub-cal2__header">
+            {DAYS.map((d) => <div key={d} className="hub-cal2__day-label">{d.charAt(0)}</div>)}
           </div>
-          <div className="hub-mini-cal__grid">
+          <div className="hub-cal2__grid">
             {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-              <div key={`memp-${i}`} className="hub-mini-cal__cell hub-mini-cal__cell--empty" />
+              <div key={`memp-${i}`} className="hub-cal2__cell hub-cal2__cell--empty" />
             ))}
             {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
-              const dots = dotsForDay(day);
-              const isSelected = agendaDay === day;
+              const daySessions = sessionsForDay(day);
+              const isSelected = selectedDay === day;
               const isTodayDay = isToday(day);
+              const visible = daySessions.slice(0, 3);
+              const overflow = daySessions.length - visible.length;
               return (
                 <div
                   key={day}
-                  className={`hub-mini-cal__cell${isSelected ? " hub-mini-cal__cell--selected" : ""}${isTodayDay && !isSelected ? " hub-mini-cal__cell--today" : ""}`}
-                  onClick={() => scrollToDay(day)}
+                  className={[
+                    "hub-cal2__cell",
+                    isSelected ? "hub-cal2__cell--selected" : "",
+                    isTodayDay && !isSelected ? "hub-cal2__cell--today" : "",
+                    daySessions.length === 0 ? "hub-cal2__cell--empty-day" : "",
+                  ].filter(Boolean).join(" ")}
+                  onClick={() => onDayClick(day)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onDayClick(day); } }}
                 >
-                  <span className="hub-mini-cal__num">{day}</span>
-                  {dots.length > 0 && (
-                    <div className="hub-mini-cal__dots">
-                      {dots.map((type) => (
-                        <span key={type} className={`hub-mini-cal__dot hub-mini-cal__dot--${type}`} />
-                      ))}
+                  <span className="hub-cal2__num">{day}</span>
+                  {daySessions.length > 0 && (
+                    <div className="hub-cal2__events">
+                      {visible.map((s) => {
+                        const type = statusKey(s, currentUserId);
+                        return (
+                          <span
+                            key={s.id}
+                            className={`hub-cal2__event hub-cal2__event--${type}`}
+                            title={s.programName}
+                          >
+                            <span className="hub-cal2__event-label">{pillLabel(s.programName)}</span>
+                          </span>
+                        );
+                      })}
+                      {overflow > 0 && (
+                        <span className="hub-cal2__event-more">+{overflow} more</span>
+                      )}
+                    </div>
+                  )}
+                  {/* Mobile-only status strip (small dots/bars) */}
+                  {daySessions.length > 0 && (
+                    <div className="hub-cal2__bars" aria-hidden="true">
+                      {visible.map((s) => {
+                        const type = statusKey(s, currentUserId);
+                        return (
+                          <span
+                            key={`b-${s.id}`}
+                            className={`hub-cal2__bar hub-cal2__bar--${type}`}
+                          />
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -506,123 +599,124 @@ export default function HubScheduleClient({
         </div>
       )}
 
-      {/* ── Legend ── */}
-      <div className="hub-schedule__legend">
-        <div className="hub-schedule__legend-item">
-          <span className="hub-legend-swatch hub-legend-swatch--mine" />
-          <span>My assignment</span>
+      {/* ── Day filter banner (shown when a day is selected) ── */}
+      {selectedDay !== null && (
+        <div className="hub-sched-dayfilter">
+          <span className="hub-sched-dayfilter__text">
+            Showing <strong>{listSessions.length}</strong> {listSessions.length === 1 ? "session" : "sessions"} on {fmtDayLong(year, month, selectedDay)}
+          </span>
+          <button
+            type="button"
+            className="hub-sched-dayfilter__clear"
+            onClick={() => setSelectedDay(null)}
+          >
+            Show whole month →
+          </button>
         </div>
-        <div className="hub-schedule__legend-item">
-          <span className="hub-legend-swatch hub-legend-swatch--covered" />
-          <span>Covered</span>
-        </div>
-        <div className="hub-schedule__legend-item">
-          <span className="hub-legend-swatch hub-legend-swatch--needs" />
-          <span>Needs coverage</span>
-        </div>
-      </div>
+      )}
 
-      {/* ── Session list (click to expand detail inline) ── */}
+      {/* ── Session list ── */}
       {!loading && (
         <div className="hub-lv">
-          {filteredSessions.length === 0 ? (
+          {listSessions.length === 0 ? (
             <p className="hub-empty">
-              {filter === "mine" ? "You haven't claimed any sessions this month."
-                : filter === "action" ? "No sessions need attention this month."
+              {selectedDay !== null
+                ? "Nothing scheduled that day."
+                : showMineOnly
+                ? "You haven't claimed any sessions this month."
+                : showNeedsOnly
+                ? "Every session this month has a host."
                 : "No sessions this month."}
             </p>
           ) : (
             <div className="hub-lv__list">
-              {[...filteredSessions]
-                .sort((a, b) => {
-                  if (!a.sessionDate) return 1;
-                  if (!b.sessionDate) return -1;
-                  return new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime();
-                })
-                .map((s, idx, arr) => {
-                  const isMineRow = s.hostUserId === currentUserId;
-                  const statusType = isMineRow ? "mine" : (s.status === "claimed" ? "covered" : "needs");
-                  const hostLabel = s.status === "unclaimed"
-                    ? "Unassigned"
-                    : isMineRow
-                      ? "You"
-                      : s.hostName ?? "—";
-                  const isExpanded = selected?.id === s.id;
-                  const dateKey = s.sessionDate ? s.sessionDate.slice(0, 10) : "";
-                  const isFirstForDate = idx === 0 || (arr[idx - 1].sessionDate?.slice(0, 10) !== dateKey);
-                  return (
-                    <div
-                      key={s.id}
-                      className={`hub-lv__card hub-lv__card--${statusType}${isExpanded ? " hub-lv__card--expanded" : ""}`}
-                      {...(isFirstForDate && dateKey ? { "data-date": dateKey } : {})}
-                    >
-                      <div
-                        className="hub-lv__card-main"
-                        onClick={() => setSelected(isExpanded ? null : s)}
-                      >
-                        <div className="hub-lv__left">
-                          <div className="hub-lv__title">{s.programName}</div>
-                          <div className="hub-lv__meta">
-                            {s.sessionDate ? fmtShort(s.sessionDate) : "—"}
-                            {s.sessionDate && <span className="hub-lv__sep">·</span>}
-                            {s.sessionDate ? fmtTime(s.sessionDate) : ""}
-                            <span className="hub-lv__sep">·</span>
-                            <span className={`hub-lv__host${s.status === "unclaimed" ? " hub-lv__host--unassigned" : isMineRow ? " hub-lv__host--mine" : ""}`}>
-                              {hostLabel}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="hub-lv__right">
-                          {s.status === "unclaimed" && (
-                            <button
-                              className="hub-lv__action-btn hub-lv__action-btn--claim"
-                              onClick={(e) => { e.stopPropagation(); claimSession(s.id); }}
-                            >
-                              Claim
-                            </button>
-                          )}
-                          {isMineRow && s.status === "claimed" && (
-                            <button
-                              className="hub-lv__action-btn hub-lv__action-btn--ghost"
-                              onClick={(e) => { e.stopPropagation(); setSelected(s); }}
-                            >
-                              Request Sub
-                            </button>
-                          )}
-                          {s.status === "sub_needed" && !isMineRow && s.subRequestId && (
-                            <button
-                              className="hub-lv__action-btn hub-lv__action-btn--claim"
-                              onClick={(e) => { e.stopPropagation(); claimSub(s.id, s.subRequestId!); }}
-                            >
-                              Cover
-                            </button>
-                          )}
-                          {isMineRow && s.status === "claimed" && (
-                            <span className="hub-lv__yours">Your session</span>
-                          )}
-                          {!isMineRow && s.status === "claimed" && (
-                            <span className="hub-lv__covered">Covered</span>
-                          )}
-                        </div>
+              {groupedList.map(([dateKey, daySessions]) => {
+                const showGroupHeader = selectedDay === null && dateKey !== "unscheduled";
+                return (
+                  <div key={dateKey} className="hub-lv__group" data-date={dateKey}>
+                    {showGroupHeader && daySessions[0].sessionDate && (
+                      <div className="hub-lv__group-header">
+                        {fmtDayHeader(daySessions[0].sessionDate)}
                       </div>
-                      {isExpanded && (
-                        <div className="hub-lv__detail">
-                          <SessionDetail
-                            session={s}
-                            currentUserId={currentUserId}
-                            currentUserName={currentUserName}
-                            coordinatorName={coordinatorName}
-                            onClose={() => setSelected(null)}
-                            onClaim={claimSession}
-                            onSubRequest={submitSubRequest}
-                            onUnclaim={unclaimSession}
-                            onClaimSub={claimSub}
-                          />
+                    )}
+                    {daySessions.map((s) => {
+                      const type = statusKey(s, currentUserId);
+                      const isMineRow = type === "mine";
+                      const isSubNeeded = s.status === "sub_needed";
+                      const isExpanded = selected?.id === s.id;
+                      return (
+                        <div
+                          key={s.id}
+                          className={`hub-lv__card hub-lv__card--${type}${isExpanded ? " hub-lv__card--expanded" : ""}`}
+                        >
+                          <div
+                            className="hub-lv__card-main"
+                            onClick={() => setSelected(isExpanded ? null : s)}
+                          >
+                            <div className="hub-lv__left">
+                              <div className="hub-lv__title">{s.programName}</div>
+                              <div className="hub-lv__meta">
+                                {s.sessionDate && <>{fmtTimeOnly(s.sessionDate)}</>}
+                                {s.programFormat && (
+                                  <>
+                                    <span className="hub-lv__sep">·</span>
+                                    {formatLabel(s.programFormat)}
+                                  </>
+                                )}
+                                <span className="hub-lv__sep">·</span>
+                                {type === "needs" ? (
+                                  <span className="hub-lv__host hub-lv__host--needs">No host yet</span>
+                                ) : isSubNeeded ? (
+                                  <span className="hub-lv__host hub-lv__host--needs">
+                                    {s.hostName ? `${s.hostName} needs a sub` : "Needs a sub"}
+                                  </span>
+                                ) : isMineRow ? (
+                                  <span className="hub-lv__host hub-lv__host--mine">You're hosting</span>
+                                ) : (
+                                  <span className="hub-lv__host">Hosted by {s.hostName ?? "—"}</span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="hub-lv__right">
+                              {type === "needs" && !isSubNeeded && (
+                                <button
+                                  className="hub-lv__action-btn hub-lv__action-btn--primary"
+                                  onClick={(e) => { e.stopPropagation(); claimSession(s.id); }}
+                                >
+                                  I'll host
+                                </button>
+                              )}
+                              {isSubNeeded && !isMineRow && s.subRequestId && (
+                                <button
+                                  className="hub-lv__action-btn hub-lv__action-btn--primary"
+                                  onClick={(e) => { e.stopPropagation(); claimSub(s.id, s.subRequestId!); }}
+                                >
+                                  I can cover
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          {isExpanded && (
+                            <div className="hub-lv__detail">
+                              <SessionDetail
+                                session={s}
+                                currentUserId={currentUserId}
+                                currentUserName={currentUserName}
+                                coordinatorName={coordinatorName}
+                                onClose={() => setSelected(null)}
+                                onClaim={claimSession}
+                                onSubRequest={submitSubRequest}
+                                onUnclaim={unclaimSession}
+                                onClaimSub={claimSub}
+                              />
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
+                      );
+                    })}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
