@@ -31,10 +31,6 @@
       "schedule": "0 23 * * *"
     },
     {
-      "path": "/api/cron/support-sync",
-      "schedule": "*/5 * * * *"
-    },
-    {
       "path": "/api/cron/drip-release",
       "schedule": "0 12 * * *"
     },
