@@ -14132,21 +14132,26 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   overflow: hidden;
   transition: border-color 0.12s;
 }
-.hub-lv__card--mine     { border-left-color: var(--rim-blue); }
-.hub-lv__card--covered  { border-left-color: #c4bfb8; }
-.hub-lv__card--needs    { border-left-color: #2a8f79; }
-.hub-lv__card--expanded { border-color: var(--rim-blue); }
+.hub-lv__card--mine       { border-left-color: var(--rim-blue); }
+.hub-lv__card--covered    { border-left-color: #c4bfb8; }
+.hub-lv__card--needs-host { border-left-color: #2a8f79; }
+.hub-lv__card--needs-sub  { border-left-color: #b88c4a; }
+.hub-lv__card--expanded   { border-color: var(--rim-blue); }
 
+/* List spacing: 8px between cards within a date group, 20px between groups.
+   Header spacing lives on the group-header (padding-top) so the gap between
+   a card and the next group's header is consistent with the rest. */
+.hub-lv__list { display: flex; flex-direction: column; gap: 8px; }
 .hub-lv__group { display: flex; flex-direction: column; gap: 8px; }
-.hub-lv__group + .hub-lv__group { margin-top: 16px; }
 .hub-lv__group-header {
   font-size: var(--text-xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--rim-text-muted);
-  padding: 4px 2px 2px;
+  padding: 12px 2px 2px;
 }
+.hub-lv__group:first-child .hub-lv__group-header { padding-top: 2px; }
 
 .hub-lv__card-main {
   display: flex;
@@ -14187,7 +14192,8 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .hub-lv__sep { margin: 0 6px; color: #d0cdc8; }
 .hub-lv__host { color: #4a4740; }
 .hub-lv__host--unassigned { color: #a09a94; font-style: italic; }
-.hub-lv__host--needs { color: #1e5d50; font-weight: 600; }
+.hub-lv__host--needs-host { color: #1e5d50; font-weight: 600; }
+.hub-lv__host--needs-sub  { color: #7a5818; font-weight: 600; }
 .hub-lv__host--mine { font-weight: 600; color: var(--rim-blue); }
 
 .hub-lv__right {
@@ -14231,6 +14237,12 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   transition: background 0.12s;
 }
 .hub-lv__action-btn--primary:hover { background: #237663; }
+.hub-lv__action-btn--sub {
+  background: #b88c4a;
+  color: #fff;
+  transition: background 0.12s;
+}
+.hub-lv__action-btn--sub:hover { background: #9e7538; }
 /* Legacy — retained so stored variants still render, but unused by new layout */
 .hub-lv__action-btn--claim { background: #2a8f79; color: #fff; }
 .hub-lv__action-btn--claim:hover { background: #237663; }
@@ -14608,10 +14620,15 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   white-space: nowrap;
   min-width: 0;
 }
-.hub-cal2__event--needs {
+.hub-cal2__event--needs-host {
   background: #edf5f3;
   border-left-color: #2a8f79;
   color: #1e5d50;
+}
+.hub-cal2__event--needs-sub {
+  background: #f5ebd7;
+  border-left-color: #b88c4a;
+  color: #7a5818;
 }
 .hub-cal2__event--mine {
   background: rgba(19, 82, 116, 0.10);
@@ -14637,9 +14654,10 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   border-radius: 2px;
   display: inline-block;
 }
-.hub-cal2__bar--needs   { background: #2a8f79; }
-.hub-cal2__bar--mine    { background: var(--rim-blue); }
-.hub-cal2__bar--covered { background: #c4bfb8; }
+.hub-cal2__bar--needs-host { background: #2a8f79; }
+.hub-cal2__bar--needs-sub  { background: #b88c4a; }
+.hub-cal2__bar--mine       { background: var(--rim-blue); }
+.hub-cal2__bar--covered    { background: #c4bfb8; }
 
 @media (max-width: 768px) {
   .hub-cal2__grid { grid-auto-rows: minmax(64px, auto); }
@@ -14659,6 +14677,34 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   .hub-cal2__grid { grid-auto-rows: minmax(52px, auto); }
   .hub-cal2__bar { width: 12px; }
 }
+
+/* ── Legend (color key for the calendar + list) ── */
+.hub-sched-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  align-items: center;
+  padding: 4px 0 16px;
+  font-size: var(--text-xs);
+  color: var(--rim-text-muted);
+}
+.hub-sched-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.hub-sched-legend__swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  border-left: 3px solid transparent;
+}
+.hub-sched-legend__swatch--needs-host { background: #edf5f3; border-left-color: #2a8f79; }
+.hub-sched-legend__swatch--needs-sub  { background: #f5ebd7; border-left-color: #b88c4a; }
+.hub-sched-legend__swatch--mine       { background: rgba(19, 82, 116, 0.12); border-left-color: var(--rim-blue); }
+.hub-sched-legend__swatch--covered    { background: #f4f2ef; border-left-color: #c4bfb8; }
 
 /* ── Day filter banner ── */
 .hub-sched-dayfilter {

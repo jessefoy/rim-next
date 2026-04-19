@@ -88,13 +88,16 @@ function formatLabel(fmt: string | null) {
   return fmt;
 }
 
+type StatusKey = "mine" | "covered" | "needs-host" | "needs-sub";
+
 function statusKey(
   s: Session,
   currentUserId: string,
-): "mine" | "covered" | "needs" {
+): StatusKey {
   if (s.hostUserId === currentUserId) return "mine";
-  if (s.status === "claimed") return "covered";
-  return "needs";
+  if (s.status === "sub_needed") return "needs-sub";
+  if (s.status === "unclaimed")   return "needs-host";
+  return "covered";
 }
 
 function Toast({ msg }: { msg: string | null }) {
@@ -135,7 +138,9 @@ function SessionDetail({
   const isSubNeeded = s.status === "sub_needed";
   const isClaimed   = s.status === "claimed";
 
-  const hostDisplay = isSubNeeded
+  const hostDisplay = isOwn
+    ? (isSubNeeded ? "You — asking for someone to cover" : "You")
+    : isSubNeeded
     ? (s.hostName ? `${s.hostName} — asking for someone to cover` : "Asking for someone to cover")
     : isUnclaimed
     ? "No host yet"
@@ -599,6 +604,28 @@ export default function HubScheduleClient({
         </div>
       )}
 
+      {/* ── Legend — decodes the four statuses at a glance ── */}
+      {!loading && (
+        <div className="hub-sched-legend" aria-label="Calendar color legend">
+          <span className="hub-sched-legend__item">
+            <span className="hub-sched-legend__swatch hub-sched-legend__swatch--needs-host" aria-hidden="true" />
+            No host yet
+          </span>
+          <span className="hub-sched-legend__item">
+            <span className="hub-sched-legend__swatch hub-sched-legend__swatch--needs-sub" aria-hidden="true" />
+            Needs a sub
+          </span>
+          <span className="hub-sched-legend__item">
+            <span className="hub-sched-legend__swatch hub-sched-legend__swatch--mine" aria-hidden="true" />
+            You're hosting
+          </span>
+          <span className="hub-sched-legend__item">
+            <span className="hub-sched-legend__swatch hub-sched-legend__swatch--covered" aria-hidden="true" />
+            Covered
+          </span>
+        </div>
+      )}
+
       {/* ── Day filter banner (shown when a day is selected) ── */}
       {selectedDay !== null && (
         <div className="hub-sched-dayfilter">
@@ -664,21 +691,23 @@ export default function HubScheduleClient({
                                   </>
                                 )}
                                 <span className="hub-lv__sep">·</span>
-                                {type === "needs" ? (
-                                  <span className="hub-lv__host hub-lv__host--needs">No host yet</span>
-                                ) : isSubNeeded ? (
-                                  <span className="hub-lv__host hub-lv__host--needs">
+                                {type === "needs-host" ? (
+                                  <span className="hub-lv__host hub-lv__host--needs-host">No host yet</span>
+                                ) : type === "needs-sub" ? (
+                                  <span className="hub-lv__host hub-lv__host--needs-sub">
                                     {s.hostName ? `${s.hostName} needs a sub` : "Needs a sub"}
                                   </span>
                                 ) : isMineRow ? (
-                                  <span className="hub-lv__host hub-lv__host--mine">You're hosting</span>
+                                  <span className="hub-lv__host hub-lv__host--mine">
+                                    {isSubNeeded ? "You're hosting — sub requested" : "You're hosting"}
+                                  </span>
                                 ) : (
                                   <span className="hub-lv__host">Hosted by {s.hostName ?? "—"}</span>
                                 )}
                               </div>
                             </div>
                             <div className="hub-lv__right">
-                              {type === "needs" && !isSubNeeded && (
+                              {type === "needs-host" && (
                                 <button
                                   className="hub-lv__action-btn hub-lv__action-btn--primary"
                                   onClick={(e) => { e.stopPropagation(); claimSession(s.id); }}
@@ -686,9 +715,9 @@ export default function HubScheduleClient({
                                   I'll host
                                 </button>
                               )}
-                              {isSubNeeded && !isMineRow && s.subRequestId && (
+                              {type === "needs-sub" && s.subRequestId && (
                                 <button
-                                  className="hub-lv__action-btn hub-lv__action-btn--primary"
+                                  className="hub-lv__action-btn hub-lv__action-btn--sub"
                                   onClick={(e) => { e.stopPropagation(); claimSub(s.id, s.subRequestId!); }}
                                 >
                                   I can cover
