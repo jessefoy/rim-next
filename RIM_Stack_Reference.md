@@ -1,6 +1,6 @@
 # RIM Next — Stack Reference
 
-_Generated 2026-03-11. Last updated 2026-04-15 (session 86)._
+_Generated 2026-03-11. Last updated 2026-04-19 (session 88)._
 
 ---
 
@@ -34,7 +34,7 @@ Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfie
 | Language | TypeScript | strict |
 | Auth | NextAuth v5 | `^5.0.0-beta.30` — magic link via Resend, no passwords |
 | Database ORM | Prisma | `^5.22.0` |
-| Database | Neon (Postgres) | project `ep-super-pine-ai6ujd7t`, db `neondb` |
+| Database | Neon (Postgres) | project `ep-super-pine-ai6ujd7t`, db `neondb`. **Plan: Launch** (via Vercel Marketplace, metered $0.106/CU-hr + $0.35/GB-mo). Upgraded from Free on 2026-04-19 (session 88) after the 5-min Gmail sync cron blew the 100 CU-hr/mo Free cap and took the site offline. |
 | CMS | Sanity v3 | project `xxgvfpjf`, dataset `production` |
 | Email | Resend | transactional + magic links |
 | Payments | Stripe | test mode (sk_test_* / pk_test_*) |
@@ -63,6 +63,8 @@ Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfie
 - To run DB migration: `set -a && source .env.local && set +a && npx prisma db push`
 - Route protection: `proxy.ts` (not `middleware.ts` — Next.js 16 naming)
 - `params` is `Promise<{slug}>` in App Router — must `await params` before destructuring.
+- **Mobile viewport:** `app/layout.tsx` exports `viewport: Viewport` with `width: "device-width", initialScale: 1`. Required — without it mobile browsers render every route at ~980px desktop width and silently ignore every `@media (max-width: 768px)` rule. Do not remove. (Added session 88 after the whole platform was discovered to be rendering as desktop-scaled on phones since inception.)
+- **Cron rules-of-thumb:** Neon Free-tier compute = 100 CU-hrs/mo ≈ 24/7 active time of a `.25 CU` compute. A cron firing more than hourly will keep the endpoint continuously active and exhaust the cap. Use hourly (or less frequent) for DB-hitting crons; if real-time syncing is required, upgrade the plan or use a manual-sync UI pattern.
 
 ---
 

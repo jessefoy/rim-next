@@ -68,5 +68,35 @@
     "status": "open",
     "addedAt": "2026-04-17",
     "notes": "Raised by Jesse during session 87. Requires a one-time migration script to fold specialNotes into description.body as a trailing Note block, plus removing the specialNotes field from the Program Editor Content tab and from app/programs/[slug]/page.tsx. No urgency — current display still works."
+  },
+  {
+    "id": "2026-04-19-001",
+    "title": "Add shortName field to Program model",
+    "description": "The Host Schedule calendar shows up to three program-name pills per day cell at ~12px font in ~110px-wide cells. Names longer than ~18 characters truncate with an ellipsis (e.g. 'Private Teacher Meetings' becomes 'Private Teach…'). Add an optional `shortName` field to the Program model so admins can set a readable abbreviation ('Private Teacher', 'Silent Meditation', 'Awakening'). The calendar pill display would use `shortName || name` with existing truncation as a fallback.",
+    "category": "Programs & Sanity",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-04-19",
+    "notes": "Raised during session 88 Host Schedule redesign. Fields to update: Prisma Program model (new optional String), prisma/migrate.mjs (new idempotent migration), Program Editor Content tab (new input), `pillLabel()` function in `components/HubScheduleClient.tsx` (prefer shortName when present). No schema dependency since field is optional."
+  },
+  {
+    "id": "2026-04-19-002",
+    "title": "Restore support-sync cron when Support Inbox launches to volunteers",
+    "description": "The /api/cron/support-sync entry was removed from vercel.json during session 88 to stop it running every 5 minutes (which was keeping Neon compute continuously active and blew the Free-tier compute cap). The manual ↻ sync button in /tools/inbox is sufficient until volunteers staff the inbox. When the Support Inbox launches for real, restore the cron at a sane cadence: 15 or 30 minutes is likely fine — volunteers don't need real-time polling, and hourly would be invisible. The route file /api/cron/support-sync/route.ts still exists — just add the entry back to vercel.json.",
+    "category": "Email & Notifications",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-04-19",
+    "notes": "After restoring, watch Neon compute usage for a few days to confirm it stays under the monthly cap on Launch plan. At */15 * * * *, DB-hit frequency drops 4x — compute should mostly stay scaled-to-zero between hits."
+  },
+  {
+    "id": "2026-04-19-003",
+    "title": "Mobile audit for remaining hub tools and pages",
+    "description": "Session 88 discovered that app/layout.tsx was missing a viewport meta tag — every route on the site had been rendering at ~980px desktop width on mobile and ignoring every @media (max-width: 768px) rule in custom.css. Viewport meta is now in place, which means existing mobile styles finally fire. Host Schedule got a focused mobile-friendliness pass (44px touch targets, iOS 16px input fix, chrome compression, two-tap confirm). Other hub tools and internal hub pages need the same treatment: /tools/inbox, /tools/programs, /tools/learning, /account/hub/[slug]/conversations, /tasks, /documents, /members. Public pages (homepage, /community-programs, /this-week, /teachers, /courses, /programs/[slug], /lessons/[slug]) should also be re-tested — they weren't using their mobile styles either.",
+    "category": "CSS & Design",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-04-19",
+    "notes": "Pattern to apply per tool: 44px touch targets on buttons/links, 16px font on text inputs (.fi/.ft/.fs already fixed globally at <768px), chrome compression for short viewports, defensive max-width on cards. Use the hub-schedule CSS block (~11915 in custom.css) as a reference pattern."
   }
 ]
