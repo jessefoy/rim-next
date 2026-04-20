@@ -1,8 +1,13 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import RimProseEditor from "@/components/RimProseEditor";
 import { renderBlockNoteHtml, extractBlockNoteText } from "@/lib/renderRichContent";
+
+/** Confirmation timeout (ms) — a primary action button stays 'armed' this long
+    before reverting to its idle label. Short enough that an accidental arm is
+    harmless; long enough that an intentional confirm feels easy. */
+const CONFIRM_MS = 4000;
 
 interface Session {
   id: string;
@@ -134,6 +139,21 @@ function SessionDetail({
   const [subMsg, setSubMsg] = useState<any>(null);
   const [removeWarnOpen, setRemoveWarnOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [confirming, setConfirming] = useState<"host" | "sub" | null>(null);
+  const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function armConfirm(kind: "host" | "sub") {
+    setConfirming(kind);
+    if (confirmTimer.current) clearTimeout(confirmTimer.current);
+    confirmTimer.current = setTimeout(() => setConfirming(null), CONFIRM_MS);
+  }
+  function clearConfirm() {
+    setConfirming(null);
+    if (confirmTimer.current) clearTimeout(confirmTimer.current);
+  }
+  useEffect(() => () => {
+    if (confirmTimer.current) clearTimeout(confirmTimer.current);
+  }, []);
 
   const isOwn       = s.hostUserId === currentUserId;
   const isUnclaimed = s.status === "unclaimed";
@@ -175,14 +195,48 @@ function SessionDetail({
       {!subFormOpen && !removeWarnOpen && (
         <div className="hub-detail__actions">
           {isUnclaimed && (
-            <button className="hub-detail__primary-btn hub-detail__primary-btn--host" onClick={() => onClaim(s.id)}>
-              I'll host this session
-            </button>
+            confirming === "host" ? (
+              <div className="hub-detail__confirm">
+                <button
+                  className="hub-detail__primary-btn hub-detail__primary-btn--host hub-detail__primary-btn--confirming"
+                  onClick={() => { clearConfirm(); onClaim(s.id); }}
+                >
+                  Tap again to confirm
+                </button>
+                <button className="hub-detail__link-btn" onClick={clearConfirm}>
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                className="hub-detail__primary-btn hub-detail__primary-btn--host"
+                onClick={() => armConfirm("host")}
+              >
+                I'll host this session
+              </button>
+            )
           )}
           {isSubNeeded && s.subRequestId && !isOwn && (
-            <button className="hub-detail__primary-btn hub-detail__primary-btn--sub" onClick={() => onClaimSub(s.id, s.subRequestId!)}>
-              I can cover this session
-            </button>
+            confirming === "sub" ? (
+              <div className="hub-detail__confirm">
+                <button
+                  className="hub-detail__primary-btn hub-detail__primary-btn--sub hub-detail__primary-btn--confirming"
+                  onClick={() => { clearConfirm(); onClaimSub(s.id, s.subRequestId!); }}
+                >
+                  Tap again to confirm
+                </button>
+                <button className="hub-detail__link-btn" onClick={clearConfirm}>
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                className="hub-detail__primary-btn hub-detail__primary-btn--sub"
+                onClick={() => armConfirm("sub")}
+              >
+                I can cover this session
+              </button>
+            )
           )}
           <div className="hub-detail__secondary-actions">
             {isOwn && isClaimed && (
@@ -283,6 +337,23 @@ export default function HubScheduleClient({
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<Session | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+
+  // Card-level confirmation state: tracks which session+kind is 'armed' for a
+  // second-tap commit. Only one at a time. Auto-reverts after CONFIRM_MS.
+  const [cardConfirm, setCardConfirm] = useState<{ id: string; kind: "host" | "sub" } | null>(null);
+  const cardConfirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function armCardConfirm(id: string, kind: "host" | "sub") {
+    setCardConfirm({ id, kind });
+    if (cardConfirmTimer.current) clearTimeout(cardConfirmTimer.current);
+    cardConfirmTimer.current = setTimeout(() => setCardConfirm(null), CONFIRM_MS);
+  }
+  function clearCardConfirm() {
+    setCardConfirm(null);
+    if (cardConfirmTimer.current) clearTimeout(cardConfirmTimer.current);
+  }
+  useEffect(() => () => {
+    if (cardConfirmTimer.current) clearTimeout(cardConfirmTimer.current);
+  }, []);
 
   // Calendar day selection (null = show whole month)
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
@@ -713,7 +784,10 @@ export default function HubScheduleClient({
                         >
                           <div
                             className="hub-lv__card-main"
-                            onClick={() => setSelected(isExpanded ? null : s)}
+                            onClick={() => {
+                              clearCardConfirm();
+                              setSelected(isExpanded ? null : s);
+                            }}
                           >
                             <div className="hub-lv__left">
                               <div className="hub-lv__title">
@@ -747,21 +821,58 @@ export default function HubScheduleClient({
                               </div>
                             </div>
                             <div className="hub-lv__right">
-                              {type === "needs-host" && (
-                                <button
-                                  className="hub-lv__action-btn hub-lv__action-btn--primary"
-                                  onClick={(e) => { e.stopPropagation(); claimSession(s.id); }}
-                                >
-                                  I'll host
-                                </button>
+                              {/* Card-level primary is suppressed when the detail panel is
+                                  expanded, so only one primary action is ever on screen
+                                  at once. */}
+                              {!isExpanded && type === "needs-host" && (
+                                cardConfirm?.id === s.id && cardConfirm?.kind === "host" ? (
+                                  <div className="hub-lv__confirm">
+                                    <button
+                                      className="hub-lv__action-btn hub-lv__action-btn--confirming"
+                                      onClick={(e) => { e.stopPropagation(); clearCardConfirm(); claimSession(s.id); }}
+                                    >
+                                      Tap to confirm
+                                    </button>
+                                    <button
+                                      className="hub-lv__confirm-cancel"
+                                      onClick={(e) => { e.stopPropagation(); clearCardConfirm(); }}
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    className="hub-lv__action-btn hub-lv__action-btn--primary"
+                                    onClick={(e) => { e.stopPropagation(); armCardConfirm(s.id, "host"); }}
+                                  >
+                                    I'll host
+                                  </button>
+                                )
                               )}
-                              {type === "needs-sub" && s.subRequestId && (
-                                <button
-                                  className="hub-lv__action-btn hub-lv__action-btn--sub"
-                                  onClick={(e) => { e.stopPropagation(); claimSub(s.id, s.subRequestId!); }}
-                                >
-                                  I can cover
-                                </button>
+                              {!isExpanded && type === "needs-sub" && s.subRequestId && (
+                                cardConfirm?.id === s.id && cardConfirm?.kind === "sub" ? (
+                                  <div className="hub-lv__confirm">
+                                    <button
+                                      className="hub-lv__action-btn hub-lv__action-btn--confirming-sub"
+                                      onClick={(e) => { e.stopPropagation(); clearCardConfirm(); claimSub(s.id, s.subRequestId!); }}
+                                    >
+                                      Tap to confirm
+                                    </button>
+                                    <button
+                                      className="hub-lv__confirm-cancel"
+                                      onClick={(e) => { e.stopPropagation(); clearCardConfirm(); }}
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    className="hub-lv__action-btn hub-lv__action-btn--sub"
+                                    onClick={(e) => { e.stopPropagation(); armCardConfirm(s.id, "sub"); }}
+                                  >
+                                    I can cover
+                                  </button>
+                                )
                               )}
                             </div>
                           </div>

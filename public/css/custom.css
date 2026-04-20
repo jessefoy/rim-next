@@ -14327,6 +14327,53 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   transition: background 0.12s;
 }
 .hub-lv__action-btn--sub:hover { background: #a13c18; }
+/* Armed-confirm state — darker and includes 'Tap to confirm' text.
+   A simple progress bar underneath shows the 4-second auto-revert timer. */
+.hub-lv__action-btn--confirming {
+  background: #8a5208;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+.hub-lv__action-btn--confirming-sub {
+  background: #7a2e10;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+.hub-lv__action-btn--confirming::after,
+.hub-lv__action-btn--confirming-sub::after {
+  content: "";
+  position: absolute;
+  left: 0; bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.55);
+  transform-origin: left center;
+  animation: hub-lv-confirm-countdown 4s linear forwards;
+}
+@keyframes hub-lv-confirm-countdown {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+.hub-lv__confirm {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  min-width: 0;
+}
+.hub-lv__confirm-cancel {
+  background: none;
+  border: none;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--rim-text-muted);
+  cursor: pointer;
+  padding: 4px 0;
+  text-align: center;
+}
+.hub-lv__confirm-cancel:hover { color: var(--rim-text); text-decoration: underline; }
 /* Legacy — retained so stored variants still render, but unused by new layout */
 .hub-lv__action-btn--claim { background: #d9840f; color: #fff; }
 .hub-lv__action-btn--claim:hover { background: #b56b05; }
@@ -14571,6 +14618,31 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .hub-detail__primary-btn--host:hover { background: #b56b05; }
 .hub-detail__primary-btn--sub { background: #c44a20; }
 .hub-detail__primary-btn--sub:hover { background: #a13c18; }
+/* Confirming state — darker, with a 4s countdown bar underneath. Same
+   visual rule as the card-level confirming button; consistency matters. */
+.hub-detail__primary-btn--confirming {
+  position: relative;
+  overflow: hidden;
+}
+.hub-detail__primary-btn--host.hub-detail__primary-btn--confirming { background: #8a5208; }
+.hub-detail__primary-btn--sub.hub-detail__primary-btn--confirming  { background: #7a2e10; }
+.hub-detail__primary-btn--confirming::after {
+  content: "";
+  position: absolute;
+  left: 0; bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.55);
+  transform-origin: left center;
+  animation: hub-lv-confirm-countdown 4s linear forwards;
+}
+.hub-detail__confirm {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 0;
+}
 .hub-detail__primary-btn:disabled { opacity: 0.5; cursor: default; }
 .hub-detail__primary-btn--danger { background: #B84040; }
 .hub-detail__secondary-actions {
