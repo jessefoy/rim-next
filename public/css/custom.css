@@ -10306,6 +10306,15 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 }
 
 @media (max-width: 900px) {
+  /* Switch the layout from a flex row to a block stack on mobile so the
+     fixed-position sidebar is unambiguously out of flow — no browser quirk
+     where a flex container reserves space for a position:fixed child. */
+  .hub-ws-layout {
+    display: block;
+  }
+  .hub-ws-main {
+    width: 100%;
+  }
   .hub-ws-sidebar {
     position: fixed;
     top: 0; left: 0;
