@@ -377,17 +377,15 @@ function AsideEditorView({ block, editor }: { block: any; editor: any }) {
                   editor.updateBlock(block, { props: { customColor: localCustomColor } });
                 }
               }}
-              /* Stop keyboard events from bubbling to ProseMirror, which
-                 otherwise interprets each keystroke as a document edit and
-                 moves the selection out of the input. Enter commits + blurs. */
+              /* Stop key events from reaching ProseMirror at the NATIVE
+                 level — React's synthetic stopPropagation doesn't stop
+                 native DOM listeners. nativeEvent.stopImmediatePropagation
+                 prevents ProseMirror from receiving the event at all. */
               onKeyDown={(e) => {
-                e.stopPropagation();
+                e.nativeEvent.stopImmediatePropagation();
                 if (e.key === "Enter") (e.target as HTMLInputElement).blur();
               }}
-              onKeyUp={(e) => e.stopPropagation()}
-              onKeyPress={(e) => e.stopPropagation()}
-              onBeforeInput={(e) => e.stopPropagation()}
-              onInput={(e) => e.stopPropagation()}
+              onKeyUp={(e) => e.nativeEvent.stopImmediatePropagation()}
               onMouseDown={(e) => e.stopPropagation()}
               spellCheck={false}
             />
@@ -412,9 +410,11 @@ function AsideEditorView({ block, editor }: { block: any; editor: any }) {
           ))}
         </div>
 
-        {/* Title input — local state, commit on blur. All keyboard events
-            stopPropagation so ProseMirror doesn't interpret keystrokes as
-            document input (which was yanking focus after the first char). */}
+        {/* Title input — local state, commit on blur.
+            nativeEvent.stopImmediatePropagation blocks key events from
+            reaching ProseMirror's native DOM listeners. React's synthetic
+            stopPropagation isn't enough because ProseMirror uses native
+            addEventListener, not React. */}
         <input
           className="bn-aside__title-input"
           placeholder="Title (optional)"
@@ -427,7 +427,7 @@ function AsideEditorView({ block, editor }: { block: any; editor: any }) {
             }
           }}
           onKeyDown={(e) => {
-            e.stopPropagation();
+            e.nativeEvent.stopImmediatePropagation();
             if (e.key === "Enter" || e.key === "ArrowDown") {
               e.preventDefault();
               if (localTitle !== (block.props.title ?? "")) {
@@ -436,10 +436,7 @@ function AsideEditorView({ block, editor }: { block: any; editor: any }) {
               focusContainerBody(editor, block.id);
             }
           }}
-          onKeyUp={(e) => e.stopPropagation()}
-          onKeyPress={(e) => e.stopPropagation()}
-          onBeforeInput={(e) => e.stopPropagation()}
-          onInput={(e) => e.stopPropagation()}
+          onKeyUp={(e) => e.nativeEvent.stopImmediatePropagation()}
           onMouseDown={(e) => e.stopPropagation()}
         />
 
