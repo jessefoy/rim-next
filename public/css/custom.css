@@ -14137,12 +14137,43 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   transition: border-color 0.15s, background 0.15s;
 }
 .hub-lv__card:hover { border-color: var(--rim-mid); }
-.hub-lv__card--mine       { border-left-color: var(--rim-blue); }
-.hub-lv__card--mine-sub   { border-left-color: var(--rim-blue); background: #fdf0ec; }
-.hub-lv__card--covered    { border-left-color: #5a9960; }
-.hub-lv__card--needs-host { border-left-color: #d9840f; }
-.hub-lv__card--needs-sub  { border-left-color: #c44a20; }
-.hub-lv__card--expanded   { border-color: var(--rim-blue); }
+
+/* Whole-card border picks up a light tint of the state color so the left
+   stripe feels part of the card, not a sticker. The stripe carries the
+   saturated accent; the other three sides carry a washed version of it. */
+.hub-lv__card--needs-host {
+  border-color: #ecd9a6;
+  border-left-color: #d9840f;
+}
+.hub-lv__card--needs-host:hover { border-color: #d9840f; }
+
+.hub-lv__card--needs-sub {
+  border-color: #f0c8b8;
+  border-left-color: #c44a20;
+}
+.hub-lv__card--needs-sub:hover { border-color: #c44a20; }
+
+.hub-lv__card--covered {
+  border-color: #c7ddc9;
+  border-left-color: #5a9960;
+}
+.hub-lv__card--covered:hover { border-color: #5a9960; }
+
+.hub-lv__card--mine {
+  border-color: #c9d8e0;
+  border-left-color: var(--rim-blue);
+}
+.hub-lv__card--mine:hover { border-color: var(--rim-blue); }
+
+/* mine-sub — blue stripe (still yours), red tint everywhere else (urgent). */
+.hub-lv__card--mine-sub {
+  border-color: #f0c8b8;
+  border-left-color: var(--rim-blue);
+  background: #fdf0ec;
+}
+.hub-lv__card--mine-sub:hover { border-color: #c44a20; }
+
+.hub-lv__card--expanded { border-color: var(--rim-blue); }
 
 /* List spacing: 8px between cards within a date group, 20px between groups.
    Header spacing lives on the group-header (padding-top) so the gap between
