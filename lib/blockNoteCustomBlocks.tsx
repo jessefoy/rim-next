@@ -10,7 +10,11 @@
  *   Reflection          — italic question lead-in, block-level body.
  *   Verse Quote         — smaller centered serif, optional attribution.
  *   Note (callout)      — compact titled box; Note + Decision variants.
- *   Aside (callout)     — shaded box with optional heading title; universal design element.
+ *   Aside (callout)     — pure structural wrapper. Same formatting as the
+ *                         main editor (paragraphs, headings, lists), just
+ *                         wrapped in a shaded container. No controls, no
+ *                         chrome — color is determined by the render
+ *                         context (.rim-content--document, etc.) via CSS.
  *
  * Rendered output is scoped by the .rim-content--{scope} class at the
  * wrapper. Document scope gets utilitarian treatment (Open Sans, no
@@ -21,20 +25,6 @@
 import { BlockNoteSchema, defaultBlockSpecs } from "@blocknote/core";
 import { createReactBlockSpec } from "@blocknote/react";
 import { useState, useRef, useEffect } from "react";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Aside color presets
-// ─────────────────────────────────────────────────────────────────────────────
-
-export const ASIDE_BG_COLORS = {
-  neutral: "#eeeeee",
-  teal:    "#deeef5",
-  warm:    "#f5ede0",
-} as const;
-
-function resolveAsideBg(bgColor: string, _customColor?: string): string {
-  return (ASIDE_BG_COLORS as Record<string, string>)[bgColor] ?? "#eeeeee";
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Pull Quote
@@ -287,17 +277,17 @@ export const CALLOUT_LABELS: Record<CalloutVariant, string> = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Aside editor view
+// Aside editor view — pure structural wrapper, no chrome.
 //
-// Background approach: JS adds .bn-block--aside class + sets --aside-bg on the
-// .bn-block ancestor (which wraps both controls and the BlockNote-rendered
-// children block-group). This bypasses any data-variant attribute dependency.
+// The render function emits only a zero-height contentEditable=false marker
+// so CSS (.bn-block:has(> .bn-block-content > .bn-callout--aside)) can apply
+// the shaded background to the .bn-block ancestor. Children render in the
+// normal BlockNote block-group sibling and behave like any other content —
+// same formatting, same navigation, same keyboard shortcuts. Backspace at
+// position 0 of the first child unwraps the aside (standard container
+// behavior across rich text editors).
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Aside editor view — no controls at all. The shaded background
-// (from .bn-callout--aside CSS) is the only visual indicator. The
-// aside's color and treatment are determined by the rendered scope
-// class (program / lesson / document), not by per-block settings.
 function AsideEditorView() {
   return (
     <div className="bn-callout bn-callout--aside" contentEditable={false} />
