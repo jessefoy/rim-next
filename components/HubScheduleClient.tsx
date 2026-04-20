@@ -88,13 +88,15 @@ function formatLabel(fmt: string | null) {
   return fmt;
 }
 
-type StatusKey = "mine" | "covered" | "needs-host" | "needs-sub";
+type StatusKey = "mine" | "mine-sub" | "covered" | "needs-host" | "needs-sub";
 
 function statusKey(
   s: Session,
   currentUserId: string,
 ): StatusKey {
-  if (s.hostUserId === currentUserId) return "mine";
+  if (s.hostUserId === currentUserId) {
+    return s.status === "sub_needed" ? "mine-sub" : "mine";
+  }
   if (s.status === "sub_needed") return "needs-sub";
   if (s.status === "unclaimed")   return "needs-host";
   return "covered";
@@ -371,6 +373,7 @@ export default function HubScheduleClient({
     const text = extractBlockNoteText(message).trim();
     const messagePayload = text ? message : null;
 
+    let newSubRequestId: string | null = null;
     try {
       const res = await fetch(`${apiBase}/sub-requests`, {
         method: "POST",
@@ -382,15 +385,24 @@ export default function HubScheduleClient({
         showToast(d.error ?? "Something went wrong.");
         return false;
       }
+      const data = await res.json().catch(() => ({}));
+      newSubRequestId = data?.id ?? null;
     } catch {
       showToast("Network error. Please try again.");
       return false;
     }
 
     setSessions((prev) => prev.map((s) =>
-      s.id === assignmentId ? { ...s, status: "sub_needed", subMessage: messagePayload } : s
+      s.id === assignmentId
+        ? { ...s, status: "sub_needed", subRequestId: newSubRequestId, subMessage: messagePayload }
+        : s
     ));
-    showToast("Request sent — the team has been notified.");
+    setSelected((cur) =>
+      cur?.id === assignmentId
+        ? { ...cur, status: "sub_needed", subRequestId: newSubRequestId, subMessage: messagePayload }
+        : cur
+    );
+    showToast("Sub request sent — the team has been notified.");
     return true;
   }
 
@@ -640,6 +652,10 @@ export default function HubScheduleClient({
             You're hosting
           </span>
           <span className="hub-sched-legend__item">
+            <span className="hub-sched-legend__swatch hub-sched-legend__swatch--mine-sub" aria-hidden="true" />
+            You asked for a sub
+          </span>
+          <span className="hub-sched-legend__item">
             <span className="hub-sched-legend__swatch hub-sched-legend__swatch--covered" aria-hidden="true" />
             Covered
           </span>
@@ -688,8 +704,7 @@ export default function HubScheduleClient({
                     )}
                     {daySessions.map((s) => {
                       const type = statusKey(s, currentUserId);
-                      const isMineRow = type === "mine";
-                      const isSubNeeded = s.status === "sub_needed";
+                      const isMineRow = type === "mine" || type === "mine-sub";
                       const isExpanded = selected?.id === s.id;
                       return (
                         <div
@@ -701,7 +716,12 @@ export default function HubScheduleClient({
                             onClick={() => setSelected(isExpanded ? null : s)}
                           >
                             <div className="hub-lv__left">
-                              <div className="hub-lv__title">{s.programName}</div>
+                              <div className="hub-lv__title">
+                                {s.programName}
+                                {type === "mine-sub" && (
+                                  <span className="hub-lv__chip hub-lv__chip--sub">Sub requested</span>
+                                )}
+                              </div>
                               <div className="hub-lv__meta">
                                 {s.sessionDate && <>{fmtTimeOnly(s.sessionDate)}</>}
                                 {s.programFormat && (
@@ -717,10 +737,10 @@ export default function HubScheduleClient({
                                   <span className="hub-lv__host hub-lv__host--needs-sub">
                                     {s.hostName ? `${s.hostName} needs a sub` : "Needs a sub"}
                                   </span>
+                                ) : type === "mine-sub" ? (
+                                  <span className="hub-lv__host hub-lv__host--mine">Asking the team to cover</span>
                                 ) : isMineRow ? (
-                                  <span className="hub-lv__host hub-lv__host--mine">
-                                    {isSubNeeded ? "You're hosting — sub requested" : "You're hosting"}
-                                  </span>
+                                  <span className="hub-lv__host hub-lv__host--mine">You're hosting</span>
                                 ) : (
                                   <span className="hub-lv__host">Hosted by {s.hostName ?? "—"}</span>
                                 )}
