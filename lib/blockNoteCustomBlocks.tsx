@@ -337,38 +337,29 @@ function AsideEditorView({ block, editor }: { block: any; editor: any }) {
               aria-label={`${color} background`}
             />
           ))}
-          {/* Custom swatch — clicking it opens the native color picker.
-              The swatch itself shows the chosen custom color (or a
-              rainbow-style gradient if no custom color has been picked). */}
-          <button
-            type="button"
+          {/* Custom swatch — a <label> wraps the native color input so that
+              clicking the swatch naturally delegates to the input and opens
+              the browser's native color picker as a genuine user gesture.
+              Calling input.click() from JS after preventDefault is blocked
+              by modern browsers as "not a user gesture". */}
+          <label
             className={`bn-aside__swatch bn-aside__swatch--custom${bgColor === "custom" ? " bn-aside__swatch--active" : ""}`}
             style={bgColor === "custom" && customColor ? { backgroundColor: customColor } : undefined}
             title="Custom color"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              // Set the variant to custom if not already, then open picker.
-              if (bgColor !== "custom") {
-                editor.updateBlock(block, { props: { bgColor: "custom", customColor: customColor || "#eeeeee" } });
-              }
-              // Trigger the hidden color input.
-              setTimeout(() => colorInputRef.current?.click(), 0);
-            }}
             aria-label="Custom background color"
-          />
-          {/* Hidden native color input — opens OS color picker.
-              onChange fires when the user confirms a color. */}
-          <input
-            ref={colorInputRef}
-            type="color"
-            className="bn-aside__color-native"
-            value={customColor || "#eeeeee"}
-            onChange={(e) => {
-              editor.updateBlock(block, { props: { bgColor: "custom", customColor: e.target.value } });
-            }}
-            aria-hidden="true"
-            tabIndex={-1}
-          />
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <input
+              ref={colorInputRef}
+              type="color"
+              className="bn-aside__color-native"
+              value={customColor || "#eeeeee"}
+              onChange={(e) => {
+                editor.updateBlock(block, { props: { bgColor: "custom", customColor: e.target.value } });
+              }}
+              tabIndex={-1}
+            />
+          </label>
         </div>
       </div>
     </div>

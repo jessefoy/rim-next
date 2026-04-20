@@ -21570,16 +21570,25 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
 .bn-aside__swatch--custom {
   background: linear-gradient(135deg, #deeef5 50%, #f5ede0 50%);
 }
-/* Hidden native color input — opens OS color picker when the custom
-   swatch is clicked. Not visible in the UI itself. */
+/* Hidden native color input — nested inside the custom swatch <label>.
+   Clicking the label delegates to the input and opens the OS color
+   picker as a genuine user gesture. The input itself is fully covered
+   by the label so it's invisible but still receives the click. */
+.bn-aside__swatch--custom {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
 .bn-aside__color-native {
   position: absolute;
-  width: 0;
-  height: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   opacity: 0;
-  pointer-events: none;
+  cursor: pointer;
   border: 0;
   padding: 0;
+  background: transparent;
 }
 
 

@@ -1246,6 +1246,13 @@ export default function RimBlockEditor({
         font-size: var(--text-h4) !important; line-height: var(--lh-heading) !important;
         margin-top: 16px !important; margin-bottom: 4px !important;
       }
+      /* First block (and first block inside any container) has no top
+         margin — no gap above the first line, or above the first block
+         inside an aside/container block. */
+      html body .rim-block-editor .bn-block-outer:first-child [data-content-type="heading"],
+      html body .rim-block-editor .bn-block-group > .bn-block-outer:first-child [data-content-type="heading"] {
+        margin-top: 0 !important;
+      }
       .rim-block-editor .bn-block-content[data-content-type="heading"] h1,
       .rim-block-editor .bn-block-content[data-content-type="heading"] h2,
       .rim-block-editor .bn-block-content[data-content-type="heading"] h3,
