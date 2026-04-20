@@ -309,15 +309,17 @@ function AsideEditorView({ block, editor }: { block: any; editor: any }) {
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Re-apply the aside class + background on EVERY render.
-  // BlockNote rewrites the .bn-block element's attributes on its own
-  // re-renders, which was clobbering our class/style additions when props
-  // changed. useLayoutEffect with no deps runs after every render and wins
-  // that race.
+  // Set the dynamic --aside-bg variable on the .bn-block ancestor.
+  // Visual identity (background, padding, removed left-border) comes from
+  // CSS using :has(> .bn-block-content > .bn-callout--aside), which doesn't
+  // need JS. Only the dynamic color needs JS, since CSS variables cascade
+  // downward only (a descendant can't feed its inline value to an ancestor).
+  // useLayoutEffect runs after every render, so the variable updates when
+  // the color prop changes — even if BlockNote clobbers other attributes
+  // on re-render.
   useLayoutEffect(() => {
     const bnBlock = containerRef.current?.closest(".bn-block") as HTMLElement | null;
     if (!bnBlock) return;
-    bnBlock.classList.add("bn-block--aside");
     bnBlock.style.setProperty("--aside-bg", resolvedBg);
   });
 

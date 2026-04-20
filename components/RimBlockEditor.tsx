@@ -1204,26 +1204,40 @@ export default function RimBlockEditor({
   // so we must target the actual HTML heading tags directly.
   useEffect(() => {
     const id = "rim-heading-overrides";
-    if (document.getElementById(id)) return;
-    const style = document.createElement("style");
-    style.id = id;
+    // Always update textContent — don't skip when the tag exists, because
+    // the tag may carry stale rules from a previous visit in an SPA
+    // session. Find-or-create, then always write the latest rules.
+    let style = document.getElementById(id) as HTMLStyleElement | null;
+    if (!style) {
+      style = document.createElement("style");
+      style.id = id;
+      document.head.appendChild(style);
+    }
     style.textContent = `
       /* Editor heading sizes — match the design-system token scale that
          rendered output uses (see CLAUDE.md typography table).
-         h1=38, h2=28, h3=24, h4=20. */
-      .rim-block-editor .bn-block-content[data-content-type="heading"] h1 {
+         h1=38, h2=28, h3=24, h4=20.
+         Target multiple BlockNote DOM shapes: the <h1>/<h2>/<h3>/<h4> tag,
+         the [data-level] wrapper, and the inline-content child. High-
+         specificity "html body" prefix ensures we beat BlockNote's own
+         !important rules if any. */
+      html body .rim-block-editor [data-content-type="heading"][data-level="1"],
+      html body .rim-block-editor .bn-block-content[data-content-type="heading"] h1 {
         font-size: var(--text-h1) !important; line-height: var(--lh-heading) !important;
         margin-top: 28px !important; margin-bottom: 10px !important;
       }
-      .rim-block-editor .bn-block-content[data-content-type="heading"] h2 {
+      html body .rim-block-editor [data-content-type="heading"][data-level="2"],
+      html body .rim-block-editor .bn-block-content[data-content-type="heading"] h2 {
         font-size: var(--text-h2) !important; line-height: var(--lh-heading) !important;
         margin-top: 24px !important; margin-bottom: 8px !important;
       }
-      .rim-block-editor .bn-block-content[data-content-type="heading"] h3 {
+      html body .rim-block-editor [data-content-type="heading"][data-level="3"],
+      html body .rim-block-editor .bn-block-content[data-content-type="heading"] h3 {
         font-size: var(--text-h3) !important; line-height: var(--lh-heading) !important;
         margin-top: 20px !important; margin-bottom: 6px !important;
       }
-      .rim-block-editor .bn-block-content[data-content-type="heading"] h4 {
+      html body .rim-block-editor [data-content-type="heading"][data-level="4"],
+      html body .rim-block-editor .bn-block-content[data-content-type="heading"] h4 {
         font-size: var(--text-h4) !important; line-height: var(--lh-heading) !important;
         margin-top: 16px !important; margin-bottom: 4px !important;
       }
