@@ -337,7 +337,7 @@ function ToolbarMoreMenu({ context = "default" as EditorContext }) {
   ];
 
   const insertItems = useMemo(() => {
-    const items: { label: string; icon?: React.ReactNode; type: string }[] = [];
+    const items: { label: string; icon?: React.ReactNode; type: string; props?: Record<string, any> }[] = [];
     items.push({ label: "Table", type: "table" });
     items.push({ label: "Image", type: "image" });
     if (context === "lesson") {
@@ -347,6 +347,7 @@ function ToolbarMoreMenu({ context = "default" as EditorContext }) {
         { label: "Callout", icon: <RiInformationLine size={15} />, type: "callout" },
       );
     }
+    items.push({ label: "Aside", icon: <RiInformationLine size={15} />, type: "callout", props: { variant: "aside" } });
     return items;
   }, [context]);
 
@@ -388,7 +389,7 @@ function ToolbarMoreMenu({ context = "default" as EditorContext }) {
               onMouseDown={(e) => {
                 e.preventDefault();
                 if (item.type === "table") insertTable();
-                else insertBlockAfter(item.type);
+                else insertBlockAfter(item.type, item.props);
               }}
             >
               {item.icon && <span className="bear-more-icon">{item.icon}</span>}
@@ -532,10 +533,12 @@ function PillContextMenu({ context, onAction }: { context: EditorContext; onActi
   const close = useCallback(() => setOpen(false), []);
   useClickOutside(ref, open, close);
 
-  function insertBlockAfter(type: string) {
+  function insertBlockAfter(type: string, props?: Record<string, any>) {
     try {
       const block = editor.getTextCursorPosition().block;
-      editor.insertBlocks([{ type: type as any }], block, "after");
+      const spec: Record<string, any> = { type: type as any };
+      if (props) spec.props = props;
+      editor.insertBlocks([spec as any], block, "after");
       setTimeout(() => {
         try {
           const next = editor.getTextCursorPosition().nextBlock;
@@ -549,7 +552,7 @@ function PillContextMenu({ context, onAction }: { context: EditorContext; onActi
   }
 
   const insertItems = useMemo(() => {
-    const items: { label: string; icon?: React.ReactNode; type: string }[] = [];
+    const items: { label: string; icon?: React.ReactNode; type: string; props?: Record<string, any> }[] = [];
     if (context === "lesson") {
       items.push(
         { label: "Verse Quote", icon: <RiQuoteText size={15} />, type: "verseQuote" },
@@ -557,6 +560,7 @@ function PillContextMenu({ context, onAction }: { context: EditorContext; onActi
         { label: "Callout", icon: <RiInformationLine size={15} />, type: "callout" },
       );
     }
+    items.push({ label: "Aside", icon: <RiInformationLine size={15} />, type: "callout", props: { variant: "aside" } });
     return items;
   }, [context]);
 
@@ -575,7 +579,7 @@ function PillContextMenu({ context, onAction }: { context: EditorContext; onActi
         <div className="bear-more-dropdown" onPointerDown={(e) => e.stopPropagation()}>
           {insertItems.map((item) => (
             <button key={item.label} type="button" className="bear-more-item"
-              onMouseDown={(e) => { e.preventDefault(); insertBlockAfter(item.type); }}>
+              onMouseDown={(e) => { e.preventDefault(); insertBlockAfter(item.type, item.props); }}>
               {item.icon && <span className="bear-more-icon">{item.icon}</span>}
               {item.label}
             </button>
