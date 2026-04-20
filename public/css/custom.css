@@ -20627,9 +20627,12 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
    Rendered HTML output uses the existing lp- classes.
 ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Design token ── */
+/* ── Design token ──
+   Editor and document-tier output both use Open Sans (RIM Sans).
+   --font-doc is kept as an alias for --font-sans so the many editor-chrome
+   rules below don't need to be rewritten individually. */
 :root {
-  --font-doc: 'Inter', sans-serif;
+  --font-doc: 'Open Sans', sans-serif;
 }
 
 /* ── Editor shells ── */
