@@ -261,7 +261,7 @@ export async function DELETE(
   }
 
   // Cascade handles: Account, Session, CourseAccess, UserMembership, AttendanceRecord,
-  // HubMember, Alerts, SubClaim, HubConversationThread/Reply, HubDocument, SessionReport.
+  // HubMember, Alerts, SubClaim, HubConversationThread/Reply, HubDocument.
   // Registration uses SetNull (records preserved, userId cleared).
   // HostAssignment uses SetNull (slot becomes unclaimed).
   await db.user.delete({ where: { id } });

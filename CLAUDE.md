@@ -11,7 +11,7 @@ RIM's design is rooted in a Dharma principle: **clear seeing is the prerequisite
 | Any UI, CSS, or page work | `RIM_Web_Design_Philosophy.md` + existing patterns in `custom.css` for that area |
 | Hub, tool, or sidebar work | `RIM_System_Architecture.md` + `RIM_Hub_Model.md` |
 | Role, permission, or member data | `RIM_Role_Design.md` + `RIM_System_Architecture.md` |
-| Editor, content, or rich text | `RIM_Editor_Design.md` |
+| Editor, text field, block, or rich content work | `RIM_Editor_Types.md` — canonical reference. Supersedes the older `RIM_Editor_Design.md`. |
 | New feature of any kind | `FEATURES.md` — check what already exists and what it connects to |
 | Program-related changes | Trace the full program ecosystem (registration, hosts, teachers, LiveKit, dana, pages, dashboard) |
 
@@ -179,6 +179,8 @@ When Jesse says **"closing prompt"**, **"let's document everything"**, or simila
 3. **RIM_Stack_Reference.md** — Update if anything changed: new dependency, new env var, new tool, version bump, role change, architectural shift.
 
 4. **RIM_System_Architecture.md** — Update if any hub, tool, role, or permission logic changed.
+
+4a. **RIM_Editor_Types.md** — Update if any editor surface, block, or placement changed. New blocks go into the Block Library section; new placements go into the Placement Registry. If an editor surface changed type or wrapper class, update the registry entry. The doc must match the code at session end — no drift.
 
 5. **Staff Manual** (`app/admin/manual/page.tsx`) — Update any affected chapters. The manual is not optional. Writing documentation forces understanding.
 

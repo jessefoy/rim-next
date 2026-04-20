@@ -272,7 +272,7 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug }: Props)
         <RimProseEditor
           value={welcomeBody}
           onChange={setWelcomeBody}
-          variant="document"
+          variant="dense"
           placeholder="Orientation content for new hub members..."
           minHeight={120}
         />
@@ -287,7 +287,7 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug }: Props)
         <RimProseEditor
           value={homeContent}
           onChange={setHomeContent}
-          variant="document"
+          variant="dense"
           placeholder="Optional orientation block shown at the bottom of this hub's Home..."
           minHeight={120}
         />

@@ -1,6 +1,6 @@
 # RIM Next — Stack Reference
 
-_Generated 2026-03-11. Last updated 2026-04-19 (session 88)._
+_Generated 2026-03-11. Last updated 2026-04-20 (session 89)._
 
 ---
 
@@ -129,7 +129,7 @@ All set in Vercel. Pull locally with `npx vercel env pull .env.local`.
 | `LIVEKIT_API_SECRET` | LiveKit Cloud API secret |
 | `NEXT_PUBLIC_LIVEKIT_URL` | LiveKit Cloud WebSocket URL (public, used by client SDK) |
 
-**Editor standard (updated session 71):** All multi-line rich text fields use **BlockNote JSON** (via `RimBlockEditor` or `RimProseEditor`). `FormattedEditor` and `ContentEditor` removed in session 69. `RimEditor.tsx` renamed to `MarkdownEditor.tsx` — used exclusively for email templates (markdown string pipeline). Full context registry in `RIM_Editor_Design.md`. Pattern: `Json?` DB field → `Prisma.JsonNull` for null writes → `renderFormattedTextAsync()` (server) or `renderBlockNoteHtml()` (client) for display → `extractTextAsync()` for email. **Session 71 additions:** `RimBlockEditor` gained Bear-inspired toolbar, image upload (all users), advanced tables, heading hierarchy (injected CSS), block type selector, document locking, blob cleanup (`lib/blobCleanup.ts`). Renderer (`renderRichContent.ts`) now groups list items into `<ul>`/`<ol>`, renders images as `<figure>`, maps BlockNote color tokens to CSS hex values.
+**Editor standard (reorganized session 89 — canonical reference is now `RIM_Editor_Types.md`):** All multi-line rich text fields use **BlockNote JSON** (via `RimBlockEditor` or `RimProseEditor`). `RimEditor.tsx` is `MarkdownEditor.tsx` — used exclusively for email templates (acknowledged outlier). **Four editor types** (Document, Page Designer, Message, Form Field) — chosen by author purpose, not by tier. **Template data** (structured fields queried for features) stays as DB fields; **authored content** lives in an editor. The **Page Designer** composes its content from design-element blocks (Pull Quote, Practice Suggestion, Reflection, Note, with SpecialNote / Announcement / EarlyArrival / DanaInvitation planned for Stage 2d). Full type definitions and placement registry in `RIM_Editor_Types.md`. Registry at `lib/editorRegistry.ts` — `EditorType`, `EditorPlacement`, `PLACEMENT_TYPE` map. Pattern: `Json?` DB field → `Prisma.JsonNull` for null writes → `renderFormattedTextAsync()` (server) or `renderBlockNoteHtml()` (client) for display → `extractTextAsync()` for email. `RimBlockEditor` has Bear-inspired toolbar, image upload, advanced tables, heading hierarchy, block type selector, document locking, blob cleanup (`lib/blobCleanup.ts`). `RimProseEditor` has `variant` prop (`"dense"` default or `"compact"` inline) and `minimal` for Form Field placements.
 
 **SlugField component (session 66):** `components/SlugField.tsx` — shared locked-by-default slug input with Unlock/Lock toggle + amber warning. Use for any URL slug field in any editor. Props: `value`, `onChange`, `isEditing`, `warnText?`, `hintText?`. In use: CourseEditor, LessonEditor, MemberDetail (Teacher Profile slug). ProgramEditor uses the same pattern on its own `pe-` classes.
 

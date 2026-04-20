@@ -1626,9 +1626,8 @@ function buildMagicLinkText({ url, isNewUser }: { url: string; isNewUser: boolea
 
 // (post-session notification function removed — feature removed in session 76)
 
-// ── Removed: Attendance automated emails (sendFirstTimeAttendeeEmail,
-// sendReturningAfterAbsenceEmail, AttendanceEmailData, ENABLE_ATTENDANCE_EMAILS).
-// Attendance recording still works at /api/attendance/join — only emails removed.
+// ── Removed: Attendance automated emails + SessionAttendance recording itself
+// (session 89 — abandoned session-reflection module dropped pre-launch).
 
 // ─── MISSING REPORT NOTIFICATION ─────────────────────────────────────────────
 // Managed via Email Template Manager — copy lives in DB, not here.

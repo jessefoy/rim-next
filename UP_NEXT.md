@@ -4,41 +4,82 @@
 
 ---
 
-## Active: Mobile rollout + Host Schedule verification (session 88, 2026-04-19)
+## Active: Editor system reorg — Stage 2d (session 89 closed, 2026-04-20)
 
-Session 88 was a big one — it started with the whole site offline and ended with a fully redesigned Host Schedule, a permanent fix for mobile rendering across the entire platform, and the Neon database moved to a paid plan. All commits are pushed. Open items are verification + downstream cleanup.
+Session 89 was a structural reorg of how authored content is modeled across the platform. A new canonical reference (`RIM_Editor_Types.md`) was established, the editor registry was rewritten around four editor types, the abandoned session-reflection module was deleted, and several Sanity surfaces were cleaned up. All foundational / non-user-visible work is done. The high-value work — making the Page Designer pattern real via custom design blocks that replace hard-coded template fields — is Stage 2d and is the next session's focus.
 
-### What was built and is now live
+### Required reading for this session (before writing any code)
 
-- **Neon upgrade + cron removal.** Site went offline at session open (Free-tier compute cap blown by a 5-min Gmail sync cron). Upgraded to Neon Launch via Vercel Marketplace (metered, no flat fee). Removed the 5-min cron from `vercel.json` — the manual `↻` sync button in `/tools/inbox` is the sole sync path until the feature launches. See backlog `2026-04-19-002` for when to restore.
-- **Host Schedule redesign.** `/tools/schedule` rebuilt end-to-end: interactive status sentence (clickable counts that filter), event-pill calendar with color semantics (orange = no host, red = sub needed, green = covered, blue = yours), today-circle marker, day-click filters the list below, five-swatch legend, card titles conform to Messages Hub spec (`var(--text-h4)` 20px serif), distinct mine-sub state (amber "Sub requested" chip), card borders tinted in state color, plain-language copy throughout ("I'll host this session", "Ask someone to cover for me").
-- **Sub-request submit bug fixed.** `submitSubRequest` was calling `.trim()` on BlockNote JSON → button stuck on "Sending…" forever and POST never reached server. Now handles rich content properly, returns `Promise<boolean>`, captures the returned `subRequestId`, keeps `selected` in sync.
-- **Sitewide viewport meta fix.** `app/layout.tsx` was missing `export const viewport: Viewport = { width: "device-width", initialScale: 1 }`. Mobile browsers had been rendering every route at ~980px desktop width and silently ignoring every mobile media query *since the app was built*. The fix affects every page on the site.
-- **Host Schedule mobile pass.** 44px touch targets on every button, iOS 16px anti-zoom on `.fi`/`.ft`/`.fs` at `<768px`, chrome compression, thicker calendar bars, full-width card buttons on mobile stack, `.hub-ws-layout` switched to block at `<=900px` (defensive against position-fixed sidebar quirks).
-- **Two-tap confirmation pattern.** Primary action buttons (card-level and detail-level) now require arm-then-commit. First tap darkens the button, shows "Tap to confirm" + 4s countdown bar at the top + 1.2s brightness pulse + Cancel link. Second tap commits; inactivity or Cancel reverts. Only one primary button on screen at a time (card-level hides when detail expands).
-- **Horizontal overflow lockdown.** `html { overflow-x: hidden }` + `body { overflow-x: clip; max-width: 100% }`. Card titles get `overflow-wrap: anywhere`.
+1. **`RIM_Editor_Types.md`** — the canonical reference. Four editor types, template-vs-content distinction, output destinations, block library concept, four-phase block creation procedure, placement registry. This document supersedes the older `RIM_Editor_Design.md`.
+2. **`editor-audit/05-public-content.md`** — final Stage 1 sweep; has the full Stage 2 plan summarized at the bottom.
+3. **`editor-audit/01-prisma-fields.md` §F** — the specific fields being sunset into blocks (the exact migration list).
+4. **`lib/editorRegistry.ts`** — the four-type model lives here. Note the `EditorType`, `EditorPlacement`, and `PLACEMENT_TYPE` constructs.
+5. **`lib/blockNoteCustomBlocks.tsx`** — existing custom blocks (Pull Quote, Verse Quote, Practice Suggestion, Reflection, Callout). New blocks follow this pattern.
 
-### Open at session close
+### What's already done (shipped in session 89)
 
-1. **Verify Host Schedule on Jesse's phone.** After the latest deploy, the calendar should render at phone width, the 2-tap confirm should work, the "Ask someone to cover for me" flow should succeed (no stuck "Sending…"), the sub-request should visually change the card to mine-sub state. Jesse was testing these throughout the session; confirmation after the final commit (`446f8b2`) is the last piece.
-2. **Mobile audit for the rest of the platform.** Viewport meta now fires mobile styles sitewide for the first time. Some pages may suddenly look broken because they've always rendered as desktop-scaled on phones. Candidates: `/tools/inbox`, `/tools/programs`, `/tools/learning`, `/account/hub/[slug]/conversations` / `/tasks` / `/documents` / `/members`, public pages (homepage, `/community-programs`, `/this-week`, `/teachers`, `/courses`, `/programs/[slug]`, `/lessons/[slug]`). See backlog `2026-04-19-003`.
-3. **Off-center / horizontal shift.** Jesse mentioned content felt slightly off-center on the phone screenshot even after the overflow lockdown. Defensive rules are in place but may need further chasing if he still sees it. Specific culprit likely a long program name or grid rounding; `overflow-wrap: anywhere` + `min-width: 0` on titles should already cover the most common case.
+- `RIM_Editor_Types.md` created, `CLAUDE.md` Design Orientation + Closing Ritual updated to gate it.
+- Five audit sweep docs in `editor-audit/` classifying every authored-content surface.
+- `lib/editorRegistry.ts` rewritten to four-type model; `variant="document"` renamed to `variant="dense"` across `RimProseEditor` + three callers; `hub-announcement` removed.
+- Five new placements declared (registry-only, awaiting schema/UI wiring): `support-note`, `support-template`, `sub-claim-message`, `teacher-bio`, `course-completion-note`.
+- Abandoned session module deleted: `SessionAttendance`, `SessionReport`, `SessionCoHost`, `SessionCoHostReport` models + `PostSessionAction` enum + all User/Program relations + `/api/attendance/join` route + the two fetch callers + stale comments. Migration added to drop tables on deploy.
+- Sanity cleanup: `/team/[slug]`, `/magazine-articles/[slug]`, `components/TeacherList.tsx`, dead queries in `lib/queries.ts`, volunteer-positions "Current Volunteers" section all removed.
+- Historical one-time migration scripts deleted (`migrate-programs-from-sanity.ts`, `migrate-to-blocknote.ts`).
 
-### Queued follow-ons (from backlog)
+### Stage 2d — next session scope
 
-- `2026-04-19-001` — Add `shortName` to `Program` so calendar pills can show readable abbreviations without truncation.
-- `2026-04-19-002` — Restore `support-sync` cron when the Support Inbox launches to volunteers (at 15 or 30 min cadence, not 5 min).
-- `2026-04-19-003` — Mobile audit for remaining tool and hub pages now that viewport meta is live.
-- `2026-04-17-003` — Migrate Program `specialNotes` into an inline Note block (carried from session 87).
+Done carefully. This is where the Page Designer pattern goes from promise to reality. Jesse wants to design each new block together through the four-phase procedure (see `RIM_Editor_Types.md` § Block Creation Procedure) rather than batch-building. Expect multiple sessions before the Page Designer is fully populated.
 
-### Key files to reference
+**Suggested order:**
 
-- `components/HubScheduleClient.tsx` — the redesigned tool. Status sentence, calendar, list, SessionDetail all in one file. Two-tap confirm state at both the outer component (`cardConfirm`) and the SessionDetail (`confirming`).
-- `public/css/custom.css` — lines ~11915 onward for hub-schedule, hub-cal2, hub-sched-status/legend/dayfilter; line ~14125 for hub-lv cards; line ~14260 for hub-detail.
-- `app/layout.tsx` — now exports `viewport: Viewport`. Do not remove.
-- `vercel.json` — `/api/cron/support-sync` entry deliberately absent; restore when volunteers staff the inbox.
-- `prisma/schema.prisma` — untouched this session. `HostAssignment`, `Program`, `SubRequest`, `HubMember` all unchanged; the redesign is cosmetic over existing data.
-- `RIM_Web_Design_Philosophy.md` — "Designing for real users under pressure" is the principle driving the two-tap confirm and the larger touch targets. Keep this as the reference for future tool redesigns.
+1. **Start with SpecialNote.** This is the most concrete example of the pattern — it replaces the current `Program.specialNotes` rendering slot one-for-one. Designing SpecialNote sets the template for the rest. Do the four phases in conversation:
+   - Phase 1 — Proposal: working name, visual identity, placement that needs it (program-description), author fields (probably title optional + body), any overlap with existing Callout block.
+   - Phase 2 — Design: how it renders in each scope (`rim-content--program` primarily; possibly `rim-content--lesson` if lessons want it too). Decide `availableIn`.
+   - Phase 3 — Implementation: definition in `lib/blockNoteCustomBlocks.tsx`, entry in `lib/editorRegistry.ts` (Dharma or a new group?), CSS in `custom.css`.
+   - Phase 4 — Review + lock-in: verify in `/admin/editor-lab`, verify in a real program preview, commit, add to Block Library Roster in `RIM_Editor_Types.md`.
+
+2. **Migrate `Program.specialNotes` into SpecialNote blocks.** Data migration script: read existing `specialNotes` JSON, wrap as a SpecialNote block, prepend or append inside `Program.description`. Remove the separate render slot (`.pg-notes`) from `app/programs/[slug]/page.tsx` and the member program page. Deprecate the field in schema (keep for one release for safety, remove in the next).
+
+3. **Schema promotions** — `TeacherProfile.bio: String? → Json?` and `Course.completionNote: String? → Json?`. Each requires:
+   - Schema change in `prisma/schema.prisma`
+   - Migration in `prisma/migrate.mjs` that converts existing string values to BlockNote paragraph blocks: `[{ type: "paragraph", content: [{ type: "text", text: oldValue, styles: {} }] }]`
+   - Component swap: `components/member-sections/TeacherSection.tsx` and `components/CourseEditor.tsx` — textarea → `RimProseEditor` variant="compact"
+   - Render update on public pages: `app/teachers/[slug]/page.tsx`, `app/teachers/page.tsx` (bio excerpt becomes `extractBlockNoteText(profile.bio).slice(0, 160)`), `components/MarkCompleteButton.tsx`
+   - CSS wrappers: `rim-content tp-body` and `rim-content crs-completion-note`
+
+4. **Additional Page Designer blocks** — through the same four-phase procedure:
+   - **Announcement** (replaces `Program.specialAnnouncement` — currently plain textarea)
+   - **EarlyArrival** or generic **PracticalInfo** (replaces `Program.earlyArrivalMessage`)
+   - **DanaInvitation** (replaces on-page `Program.danaMessage`; email version stays a Message field)
+   - **ProgramPullQuote**: confirm the existing `pullQuote` custom block covers `Program.pullQuote` + `Program.pullQuoteSource`; migrate if so.
+   - Lesson-side: the existing Pull Quote / Verse Quote blocks should absorb `Lesson.headerQuote` + `Lesson.quoteSource`; Reflection block absorbs `Lesson.reflectionPrompt`. Verify fit; add a prompt-only Reflection variant if needed.
+
+5. **SubClaim.message UI** — small feature. Add an optional message field to the claim confirmation dialog (`components/HubScheduleClient.tsx` — the "I can cover this session" two-tap confirm), POST through the existing claim API route. The `SubClaim.message` schema field already exists; just needs the form wire-up.
+
+6. **Sanity migrations** — the two remaining Sanity types move to Postgres:
+   - **`glossary` → `GlossaryTerm`** — template data: `name`, `slug`, `pali`, `sanskrit`, `synonyms`. Add `body: Json?` as Page Designer. New route `/glossary/[slug]` reads from Postgres. Migration script pulls from Sanity, converts Portable Text to BlockNote JSON (reuse logic pattern from `migrate-programs-from-sanity.ts` in git history). Output wrapper: `rim-content rim-content--glossary gloss-body`. Delete `glossary*` queries from `lib/queries.ts` post-migration.
+   - **`volunteerPositions` → `VolunteerPosition`** — template data: `name`, `slug`, `isOpen`, `currentVolunteers` (FK to User). Add `positionDescription: Json?` as Message. Restore the "Current Volunteers" section on the page, linking to `/teachers/[slug]` for users with TeacherProfile. Output wrapper: `rim-content vp-body`. Delete `volunteerPosition*` queries from `lib/queries.ts` post-migration.
+
+7. **Terminal code-level gate** (do last, once placements are stable) — build `<EditorField type="..." placement="..." />` wrapper component that wraps `RimBlockEditor` or `RimProseEditor` internally, picking the right engine/variant based on type. The wrapper refuses to mount (compile error + runtime error) if the placement isn't in `PLACEMENT_TYPE`. Migrate all current usages to the wrapper. This is what makes the registry a genuine compile-time gate, not a polite request.
+
+### Things the opening ritual should know
+
+- **Nothing is broken.** Build passes, typecheck passes, all editors function identically to session 88. Foundational work only.
+- **Nothing is ambiguous.** Every sunset field, every promotion, every migration is documented in `editor-audit/01-prisma-fields.md` § F and § E.
+- **Every new block requires the four-phase procedure.** Do not skip straight to implementation. The block brief conversation is the valuable part — it's how Jesse and Claude co-design rather than drift.
+- **Every new block goes into the Block Library Roster** in `RIM_Editor_Types.md`. That roster is the visual commitment record.
+- **If code and `RIM_Editor_Types.md` disagree, the code is wrong.** Fix the code to match the doc, not the other way around.
+
+### Files to keep in mind
+
+- `RIM_Editor_Types.md` — canonical reference, read first
+- `CLAUDE.md` — gates the canonical doc; closing ritual requires updating `RIM_Editor_Types.md` when editor code changes
+- `lib/editorRegistry.ts` — four-type model, placement registry
+- `lib/blockNoteCustomBlocks.tsx` — where new blocks get defined
+- `public/css/custom.css` — where new output wrappers and block styles go
+- `prisma/schema.prisma` — schema promotions land here; migrations in `prisma/migrate.mjs`
+- `app/admin/editor-lab/page.tsx` — verification surface for new blocks
+- `editor-audit/` — the five inventory sweeps (01–05)
 
 ---
 

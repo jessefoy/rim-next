@@ -116,9 +116,6 @@ model User {
   hostAssignments HostAssignment[]   @relation("HostAssignments")
   subClaims       SubClaim[]         @relation("SubClaims")
   alerts          Alert[]            @relation("Alerts")
-  // Session attendance
-  sessionAttendances SessionAttendance[]
-  sessionReports     SessionReport[]
   // Hub system
   hubMemberships  HubMember[]
   hubDocuments       HubDocument[] @relation("HubDocumentAuthor")
@@ -133,9 +130,6 @@ model User {
   supportNotes       SupportNote[]     @relation("NoteAuthor")
   supportSignature   SupportSignature?
   supportTemplates   SupportTemplate[] @relation("TemplateCreator")
-  // Session co-hosting
-  sessionCoHosts       SessionCoHost[]       @relation("SessionCoHosts")
-  sessionCoHostReports SessionCoHostReport[] @relation("SessionCoHostReports")
   // Hub access grants
   hubAccess            UserHubAccess[]
   hubAccessGranted     UserHubAccess[]       @relation("HubAccessGranter")
@@ -356,7 +350,6 @@ model Program {
   // ── Relations ──────────────────────────────────────────
   registrations      Registration[]
   programCourses     ProgramCourse[]
-  sessionAttendances SessionAttendance[]
   programTeachers    ProgramTeacher[]
 
   createdAt DateTime @default(now())
@@ -890,100 +883,6 @@ enum AlertType {
   SUPPORT_NEW_NOTE   // support team: internal note added to your assigned thread
   TASK_ASSIGNED      // hub member: task assigned to you
   TASK_DUE_TOMORROW  // hub member: task due tomorrow
-}
-
-// ─── SESSION ATTENDANCE ───────────────────────────────────────────────────────
-// Records when a logged-in member clicks a Meet link from within their account session.
-// isNewMember and returningAfterAbsence are computed at record creation time.
-// Surfaced as a scoped projection in the Host Team hub — not in the Member Registry.
-// programId is a Sanity _id string — no local FK relation.
-
-model SessionAttendance {
-  id                    String            @id @default(cuid())
-  userId                String
-  programId             String?           // Postgres Program.id (migrated from Sanity _id)
-  program               Program?          @relation(fields: [programId], references: [id])
-  programSlug           String            // stable slug — kept as denormalized join key
-  sessionDate           DateTime?         // CT midnight for the session date — always set by API; nullable for migration safety
-  joinedAt              DateTime          @default(now())
-  leftEarly             Boolean           @default(false)
-  isNewMember           Boolean           @default(false)
-  returningAfterAbsence Boolean           @default(false)
-  flaggedByHost         Boolean           @default(false)
-  postSessionNote       Json?     // BlockNote JSON (RimProseEditor)
-  postSessionAction     PostSessionAction @default(NONE)
-  actionRouted          Boolean           @default(false)
-  createdAt             DateTime          @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, programSlug, sessionDate])
-  @@index([programSlug])
-  @@index([userId])
-  @@index([programSlug, joinedAt])
-  @@map("session_attendance")
-}
-
-// One record per session per date. Created/updated on post-session form submission.
-// Holds session-level data: host reflection and optional resource for attendees.
-// sessionDate is always stored as midnight CT — normalized consistently on every write.
-
-model SessionReport {
-  id                      String    @id @default(cuid())
-  programSlug             String    // Sanity slug
-  sessionDate             DateTime  // Date of session — stored as midnight CT
-  hostId                  String    // FK → User (host who submitted)
-  submittedByAssignedHost Boolean?  // null = no assignment; true = submitter matched; false = someone else submitted
-  reflection              Json?     // BlockNote JSON (RimProseEditor)
-  resourceUrl             String?   // URL or text to share with all attendees
-  resourceNote            String?   // Brief description of the resource
-  resourceRouted          Boolean   @default(false)  // Set when resource has been sent to support/registrar
-  submittedAt             DateTime  @default(now())
-  sessionEndedAt          DateTime? // Set when a host clicks "Close session" — hard cutoff for join window
-
-  host User @relation(fields: [hostId], references: [id], onDelete: Cascade)
-
-  @@unique([programSlug, sessionDate])
-  @@map("session_reports")
-}
-
-enum PostSessionAction {
-  NONE
-  GENTLE_FOLLOWUP
-  JESSE_ONLY
-  TECHNICAL_ISSUE
-}
-
-// Self-marked co-hosts for a session.
-// Any Host Team member can tap "I'm also hosting this" in States 2 or 3.
-// Records them for the live view and queues a reflection prompt after the session.
-model SessionCoHost {
-  id          String   @id @default(cuid())
-  programSlug String
-  sessionDate DateTime // CT midnight for the session date
-  userId      String
-  user        User     @relation("SessionCoHosts", fields: [userId], references: [id], onDelete: Cascade)
-  isPrimary   Boolean  @default(false) // true when no HostAssignment existed at time of self-mark
-  createdAt   DateTime @default(now())
-
-  @@unique([programSlug, sessionDate, userId])
-  @@map("session_cohosts")
-}
-
-// Reflection submitted by a co-host after a session.
-// Separate from SessionReport (which is the primary host's full report).
-// Both appear in the team journal.
-model SessionCoHostReport {
-  id          String   @id @default(cuid())
-  programSlug String
-  sessionDate DateTime // CT midnight for the session date
-  userId      String
-  user        User     @relation("SessionCoHostReports", fields: [userId], references: [id], onDelete: Cascade)
-  reflection  Json?    // BlockNote JSON (RimProseEditor)
-  submittedAt DateTime @default(now())
-
-  @@unique([programSlug, sessionDate, userId])
-  @@map("session_cohost_reports")
 }
 
 // ─── HUB ACCESS (person-level) ────────────────────────────────────────────────

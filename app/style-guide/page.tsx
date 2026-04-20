@@ -1,16 +1,10 @@
 import DanaSection from "@/components/DanaSection";
-import TeacherList from "@/components/TeacherList";
 import MemberGate from "@/components/MemberGate";
 import SeriesListItem from "@/components/SeriesListItem";
 import ListRow from "@/components/ListRow";
 import Link from "next/link";
 
 export const metadata = { title: "Style Guide — Rooted In Mindfulness" };
-
-const mockTeachers = [
-  { name: "Bhikkhu Bodhi", slug: { current: "bhikkhu-bodhi" } },
-  { name: "Tara Brach", slug: { current: "tara-brach" } },
-];
 
 const colors = [
   { hex: "#39607a", name: "Primary Teal",   usage: "Buttons, links, active nav" },
@@ -103,40 +97,6 @@ export default function StyleGuidePage() {
             </p>
             <div className="sg-component-preview sg-component-preview--grey">
               <DanaSection />
-            </div>
-          </div>
-
-          {/* ── TeacherList — lesson ── */}
-          <div className="sg-component">
-            <div className="sg-component-header">
-              <code className="sg-component-name">&lt;TeacherList /&gt;</code>
-              <span className="sg-component-tag">variant=&quot;lesson&quot;</span>
-              <span className="sg-component-path">components/TeacherList.tsx</span>
-            </div>
-            <p className="sg-component-desc">
-              Teacher attribution rows with <code>image-11</code> photo class and "By " prefix text.
-              Used on lesson pages inside <code>.content-container.centered</code> after the lesson body text.
-              Photo shown when <code>bioPicture.asset.url</code> is present (mock below has no photo).
-            </p>
-            <div className="sg-component-preview">
-              <TeacherList teachers={mockTeachers} variant="lesson" />
-            </div>
-          </div>
-
-          {/* ── TeacherList — program ── */}
-          <div className="sg-component">
-            <div className="sg-component-header">
-              <code className="sg-component-name">&lt;TeacherList /&gt;</code>
-              <span className="sg-component-tag">variant=&quot;program&quot;</span>
-              <span className="sg-component-path">components/TeacherList.tsx</span>
-            </div>
-            <p className="sg-component-desc">
-              Facilitator rows with 35×35 <code>facilitator</code> photo class. No "By" prefix.
-              Used on program detail pages under the "Facilitators:" heading inside
-              <code>.registration-details-section</code>.
-            </p>
-            <div className="sg-component-preview">
-              <TeacherList teachers={mockTeachers} variant="program" />
             </div>
           </div>
 

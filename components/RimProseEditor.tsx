@@ -1,34 +1,30 @@
 "use client";
 
 /**
- * RimProseEditor — the Message-tier engine (Tier 1).
+ * RimProseEditor — the Message type engine.
  *
- * Drives every conversational surface: conversations, announcements, tasks,
- * support replies, admin/household/volunteer notes, lesson notes,
- * reflection-question prompts, site banner, schedule sub-messages, and
- * program message fields. See RIM_Editor_Design.md for the full context
- * registry.
+ * Drives every Message-type placement: conversations, tasks, support replies,
+ * admin / household / volunteer notes, lesson notes, site banner, schedule
+ * sub-messages, program message fields, hub welcome/home, and more. See
+ * `RIM_Editor_Types.md` (project root) for the canonical type definitions
+ * and `lib/editorRegistry.ts` for the placement list.
  *
  * Shares rimBlockSchema with RimBlockEditor; the difference is the toolbar
- * configuration and the tier's block allowlist — not a different engine.
+ * configuration and the Message-type block allowlist — not a different engine.
  *
  * Props:
- *   variant    — Toolbar density within the Message tier. Does NOT select a
- *                tier — the engine is always Message here; variant only
+ *   variant    — Toolbar density within the Message type. Does NOT select a
+ *                type — the editor is always Message here; variant only
  *                changes how much chrome is visible.
- *                "document" (default): always-visible formatting toolbar,
+ *                "dense" (default): always-visible formatting toolbar,
  *                    standard padding. Used for longer message surfaces
- *                    (announcement composer, support reply, admin notes).
+ *                    (hub welcome/home, task body, support reply, admin notes).
  *                "compact": selection-only floating toolbar, reduced padding.
  *                    Used for inline message composers (conversation reply,
- *                    task body, comment fields).
- *                The name "document" is a legacy carryover from before the
- *                tier system; it describes toolbar density, not Tier 2
- *                Document. Phase 5 of the editor redesign will unify chrome
- *                across tiers and retire this prop.
+ *                    subtask body, comment fields).
  *   minimal    — when true, shows only Bold + Italic + Link in the toolbar.
- *                For fields where even lists feel like too much (e.g.
- *                reflection-question prompts).
+ *                Use for Form Field placements (e.g. reflection-question prompts)
+ *                where even lists feel like too much.
  *   legacyHtml — pre-rendered HTML from server (Tiptap JSON → HTML).
  *                Imported into BlockNote on mount when value is null/empty.
  *
@@ -56,13 +52,13 @@ import { BlockNoteView } from "@blocknote/mantine";
 import { rimTheme } from "@/lib/blockNoteTheme";
 import { rimBlockSchema } from "@/lib/blockNoteCustomBlocks";
 
-/* ── Message tier allowlist ─────────────────────────────────────────────────
- * Slash menu items permitted in Message-tier surfaces per RIM_Editor_Design.md.
+/* ── Message type allowlist ─────────────────────────────────────────────────
+ * Slash menu items permitted in Message-type placements per RIM_Editor_Types.md.
  * Filter by title (English); BlockNote's built-in titles are stable within a
  * major version and RIM is English-only. Dharma custom blocks and headings
  * are deliberately excluded.
  */
-const MESSAGE_TIER_SLASH_TITLES = new Set<string>([
+const MESSAGE_TYPE_SLASH_TITLES = new Set<string>([
   "Paragraph",
   "Bullet List",
   "Numbered List",
@@ -78,7 +74,7 @@ interface Props {
   placeholder?: string;
   minHeight?: number;
   minimal?: boolean;         // strips toolbar to Bold + Italic + Link only
-  variant?: "document" | "compact"; // compact = message-sized fields, selection-only toolbar
+  variant?: "dense" | "compact"; // compact = message-sized fields, selection-only toolbar
   legacyHtml?: string;       // pre-rendered HTML for Tiptap → BlockNote import on mount
 }
 
@@ -86,12 +82,12 @@ interface Props {
 /* Uses only BlockNote built-in components — custom components inside
    FormattingToolbar cause client-side crashes (see commit 59a02ae).        */
 
-/* ── Message-tier empty-line pill ───────────────────────────────────────────
- * Minimal pill for Message tier: a single "+" button on empty paragraphs
- * that opens a dropdown of tier-appropriate inserts (lists, quote, code,
- * table). No headings, no images — those are Document/Feature only.
+/* ── Message-type empty-line pill ───────────────────────────────────────────
+ * Minimal pill for Message type: a single "+" button on empty paragraphs
+ * that opens a dropdown of type-appropriate inserts (lists, quote, code,
+ * table). No headings, no images — those are Document / Page Designer only.
  * Uses the same bear-* CSS classes as RimBlockEditor's pill for visual
- * parity. Mounted only for the "document" variant (large message surfaces).
+ * parity. Mounted only for the "dense" variant (large message surfaces).
  */
 
 const MESSAGE_PILL_HEIGHT = 40;
@@ -275,7 +271,7 @@ export default function RimProseEditor({
   onChange,
   minHeight,
   minimal = false,
-  variant = "document",
+  variant = "dense",
   legacyHtml,
 }: Props) {
   const isCompact = variant === "compact";
@@ -307,7 +303,7 @@ export default function RimProseEditor({
       getItems={async (query) => {
         const all = getDefaultReactSlashMenuItems(editor);
         const filtered = all.filter((item) =>
-          MESSAGE_TIER_SLASH_TITLES.has(item.title)
+          MESSAGE_TYPE_SLASH_TITLES.has(item.title)
         );
         return filterSuggestionItems(filtered, query);
       }}
@@ -361,7 +357,7 @@ export default function RimProseEditor({
     );
   }
 
-  // Document variant (default): full toolbar + block handle + empty-line pill
+  // Dense variant (default): full toolbar + block handle + empty-line pill
   return (
     <div className="rim-prose-editor" style={{ minHeight: effectiveMinHeight }}>
       <BlockNoteView

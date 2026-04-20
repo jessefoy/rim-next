@@ -41,13 +41,6 @@ export default function VideoRoomEmbed({ programSlug, programId, sessionDate, cl
       setToken(data.token);
       setWsUrl(data.wsUrl);
       setState("connected");
-
-      // Fire attendance tracking (fire-and-forget)
-      fetch("/api/attendance/join", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ programId, programSlug }),
-      }).catch(() => {});
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
       setState("error");

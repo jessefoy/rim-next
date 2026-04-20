@@ -88,13 +88,6 @@ export default function SessionPage() {
         setAvatarUrl(data.avatarUrl ?? null);
         setProgramName(data.roomName.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()));
         setState("ready");
-
-        // Fire attendance tracking
-        fetch("/api/attendance/join", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ programId: slug, programSlug: slug }),
-        }).catch(() => {});
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong");
         setState("error");

@@ -735,7 +735,7 @@ function TaskDetail({
           <RimProseEditor
             value={task.body}
             onChange={(json) => onBodyChange(task.id, json)}
-            variant="document"
+            variant="dense"
             placeholder="Add notes, details, or context…"
             minHeight={120}
           />

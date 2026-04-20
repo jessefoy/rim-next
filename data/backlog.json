@@ -61,13 +61,53 @@
   },
   {
     "id": "2026-04-17-003",
-    "title": "Migrate Program specialNotes into inline Note block",
-    "description": "The Program model has a separate specialNotes field that renders as its own section on the public program page. Now that Note is a first-class editorial element inside the program description editor, specialNotes is redundant — the author can place a Note block inline at whatever point in the description is most relevant. Migrate existing specialNotes content into a Note block appended to the description body, then drop the separate field from the model and its rendering surface on the program page.",
+    "title": "Migrate Program specialNotes into SpecialNote block",
+    "description": "Part of Stage 2d of the editor reorg (session 89). Program.specialNotes becomes a SpecialNote block inserted inline in Program.description. Field sunset, separate .pg-notes render slot removed. Data migration converts existing specialNotes JSON to a SpecialNote block appended to description.",
     "category": "Programs & Sanity",
+    "priority": "medium",
+    "status": "in-progress",
+    "addedAt": "2026-04-17",
+    "notes": "Superseded by the Stage 2d block-migration plan in UP_NEXT.md. SpecialNote is the first block we'll design together through the four-phase procedure in RIM_Editor_Types.md. Once that block exists, this migration becomes the template for Program.specialAnnouncement, Program.earlyArrivalMessage, Program.pullQuote pair, on-page Program.danaMessage, Lesson.headerQuote pair, and Lesson.reflectionPrompt."
+  },
+  {
+    "id": "2026-04-20-001",
+    "title": "<EditorField> terminal gate wrapper",
+    "description": "After Stage 2d settles, build an <EditorField type='...' placement='...' /> wrapper that refuses to mount when placement is not in PLACEMENT_TYPE. Internally picks RimBlockEditor or RimProseEditor (with variant) based on type. All existing direct RimProseEditor / RimBlockEditor usages migrate to this wrapper. Makes the editor registry a compile-time + runtime gate rather than a polite request.",
+    "category": "Admin Tools",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-04-20",
+    "notes": "Terminal piece of the editor reorg started in session 89. Referenced in RIM_Editor_Types.md and working-together-design-systems memory. Do this once placements stabilize through Stage 2d — not before, since a wrapper built on moving placements has to be rebuilt."
+  },
+  {
+    "id": "2026-04-20-002",
+    "title": "Migrate Sanity glossary to Postgres GlossaryTerm (Page Designer)",
+    "description": "Part of Stage 2d. Glossary moves from Sanity to Postgres. Template data: name, slug, pali, sanskrit, synonyms. New body: Json? field as Page Designer — third Page Designer placement after program-description and lesson. Jesse noted the fields themselves may be modified during migration (etymology, relatedTerms, firstAppearance, etc.) — design that as part of the migration session.",
+    "category": "Programs & Sanity",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-04-20",
+    "notes": "Output wrapper: rim-content rim-content--glossary gloss-body. Migration script follows the pattern used for programs (session 50/54) and lessons (session 72-78): Portable Text → BlockNote JSON with custom block conversions. Remove glossary* queries from lib/queries.ts after migration."
+  },
+  {
+    "id": "2026-04-20-003",
+    "title": "Migrate Sanity volunteerPositions to Postgres VolunteerPosition (Message)",
+    "description": "Part of Stage 2d. volunteerPositions moves from Sanity to Postgres. Template data: name, slug, isOpen, currentVolunteers (FK to User). positionDescription: Json? as Message editor. Current Volunteers section returns on the page, linking to /teachers/[slug] for users with TeacherProfile.",
+    "category": "Admin Tools",
     "priority": "low",
     "status": "open",
-    "addedAt": "2026-04-17",
-    "notes": "Raised by Jesse during session 87. Requires a one-time migration script to fold specialNotes into description.body as a trailing Note block, plus removing the specialNotes field from the Program Editor Content tab and from app/programs/[slug]/page.tsx. No urgency — current display still works."
+    "addedAt": "2026-04-20",
+    "notes": "Output wrapper: rim-content vp-body. The 'Current Volunteers' section was removed from /volunteer-positions/[slug] in session 89 (it linked to the deleted Sanity teams pages); it returns post-migration with Postgres User relations. Remove volunteerPosition* queries from lib/queries.ts after migration."
+  },
+  {
+    "id": "2026-04-20-004",
+    "title": "SubClaim.message UI in host schedule claim flow",
+    "description": "The SubClaim.message schema field exists but has no UI. Add an optional message textarea / RimProseEditor variant=compact to the 'I can cover this session' two-tap confirm in HubScheduleClient. Message POSTs through the existing claim API route, gets embedded in the sub-claimed notification email to the original host. Registered as sub-claim-message placement in session 89.",
+    "category": "Admin Tools",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-04-20",
+    "notes": "Small feature — schema and email template are already wired. Only missing piece is the form field on the claim confirmation dialog. Registered placement sub-claim-message exists in lib/editorRegistry.ts with type=message."
   },
   {
     "id": "2026-04-19-001",

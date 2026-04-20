@@ -52,21 +52,10 @@ export default async function VolunteerPositionPage({ params }: { params: Promis
             <PortableText value={position.positionDescription as any} />
           </div>
         )}
-
-        {position.currentVolunteers && position.currentVolunteers.length > 0 && (
-          <div className="current-volunteers">
-            <h3 className="details-header">Current Volunteers</h3>
-            {position.currentVolunteers.map((volunteer) => (
-              <Link
-                key={volunteer.slug.current}
-                href={`/team/${volunteer.slug.current}`}
-                className="teacher-container w-inline-block"
-              >
-                <div className="facilitator-name underline">{volunteer.name}</div>
-              </Link>
-            ))}
-          </div>
-        )}
+        {/* "Current Volunteers" section removed in session 89 —
+           it linked to the deleted Sanity `teams` pages. When this page
+           migrates to Postgres in Stage 2d, currentVolunteers will resolve
+           to User records and link to /teachers/[slug] where applicable. */}
       </div>
     </div>
   );

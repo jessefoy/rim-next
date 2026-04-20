@@ -166,6 +166,28 @@ const migrations = [
       }
     },
   },
+  {
+    // Session-reflection module abandoned in session 89 (pre-launch). Dropping
+    // all associated tables and enum; will be rebuilt from scratch if/when
+    // attendance tracking is revisited. See RIM_Editor_Types.md rewrite notes.
+    name: "drop_session_reflection_module",
+    async run() {
+      const tables = await db.$queryRawUnsafe(`
+        SELECT table_name FROM information_schema.tables
+        WHERE table_name IN ('session_attendance', 'session_reports', 'session_cohosts', 'session_cohost_reports')
+      `);
+      if (tables.length === 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+      await db.$executeRawUnsafe(`DROP TABLE IF EXISTS "session_cohost_reports" CASCADE`);
+      await db.$executeRawUnsafe(`DROP TABLE IF EXISTS "session_cohosts" CASCADE`);
+      await db.$executeRawUnsafe(`DROP TABLE IF EXISTS "session_reports" CASCADE`);
+      await db.$executeRawUnsafe(`DROP TABLE IF EXISTS "session_attendance" CASCADE`);
+      await db.$executeRawUnsafe(`DROP TYPE IF EXISTS "PostSessionAction"`);
+      console.log(`  ✔ Applied: ${this.name}`);
+    },
+  },
 ];
 
 async function main() {
