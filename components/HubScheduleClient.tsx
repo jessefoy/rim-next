@@ -175,12 +175,12 @@ function SessionDetail({
       {!subFormOpen && !removeWarnOpen && (
         <div className="hub-detail__actions">
           {isUnclaimed && (
-            <button className="hub-detail__primary-btn" onClick={() => onClaim(s.id)}>
+            <button className="hub-detail__primary-btn hub-detail__primary-btn--host" onClick={() => onClaim(s.id)}>
               I'll host this session
             </button>
           )}
           {isSubNeeded && s.subRequestId && !isOwn && (
-            <button className="hub-detail__primary-btn" onClick={() => onClaimSub(s.id, s.subRequestId!)}>
+            <button className="hub-detail__primary-btn hub-detail__primary-btn--sub" onClick={() => onClaimSub(s.id, s.subRequestId!)}>
               I can cover this session
             </button>
           )}

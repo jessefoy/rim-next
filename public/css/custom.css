@@ -14130,17 +14130,18 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 
 .hub-lv__card {
   background: #fff;
-  border: 1px solid #e8e5e0;
-  border-left: 3.5px solid #e8e5e0;
+  border: 1px solid var(--rim-rule);
+  border-left: 3px solid var(--rim-rule);
   border-radius: 10px;
   overflow: hidden;
-  transition: border-color 0.12s;
+  transition: border-color 0.15s, background 0.15s;
 }
+.hub-lv__card:hover { border-color: var(--rim-mid); }
 .hub-lv__card--mine       { border-left-color: var(--rim-blue); }
-.hub-lv__card--mine-sub   { border-left-color: var(--rim-blue); background: #fdf7ea; }
-.hub-lv__card--covered    { border-left-color: #c4bfb8; }
-.hub-lv__card--needs-host { border-left-color: #2a8f79; }
-.hub-lv__card--needs-sub  { border-left-color: #b88c4a; }
+.hub-lv__card--mine-sub   { border-left-color: var(--rim-blue); background: #fdf0ec; }
+.hub-lv__card--covered    { border-left-color: #5a9960; }
+.hub-lv__card--needs-host { border-left-color: #d9840f; }
+.hub-lv__card--needs-sub  { border-left-color: #c44a20; }
 .hub-lv__card--expanded   { border-color: var(--rim-blue); }
 
 /* List spacing: 8px between cards within a date group, 20px between groups.
@@ -14179,12 +14180,15 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 .hub-lv__card--selected { border-color: #6a8fa0; background: #f5f8fa; }
 .hub-lv__left { flex: 1; min-width: 0; }
+/* Card title — conforms to Messages Hub pattern (hub-conv-row__title):
+   serif, h4 size, 400 weight, 1.3 line-height. */
 .hub-lv__title {
   font-family: var(--font-serif);
-  font-size: var(--text-small);
+  font-size: var(--text-h4);
   font-weight: 400;
-  color: #2d3f47;
-  margin-bottom: 4px;
+  color: var(--rim-text);
+  line-height: 1.3;
+  margin-bottom: 6px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -14203,23 +14207,25 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   white-space: nowrap;
 }
 .hub-lv__chip--sub {
-  background: #f5ebd7;
-  color: #7a5818;
-  border: 1px solid #e5d4a5;
+  background: #fbe9e3;
+  color: #7a2e10;
+  border: 1px solid #f0c8b8;
 }
 .hub-lv__meta {
+  font-family: var(--font-sans);
   font-size: var(--text-xs);
-  color: #8a8680;
+  color: var(--rim-text-muted);
+  line-height: 1.4;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0;
 }
 .hub-lv__sep { margin: 0 6px; color: #d0cdc8; }
-.hub-lv__host { color: #4a4740; }
+.hub-lv__host { color: var(--rim-text-muted); }
 .hub-lv__host--unassigned { color: #a09a94; font-style: italic; }
-.hub-lv__host--needs-host { color: #1e5d50; font-weight: 600; }
-.hub-lv__host--needs-sub  { color: #7a5818; font-weight: 600; }
+.hub-lv__host--needs-host { color: #7a4a08; font-weight: 600; }
+.hub-lv__host--needs-sub  { color: #7a2e10; font-weight: 600; }
 .hub-lv__host--mine { font-weight: 600; color: var(--rim-blue); }
 
 .hub-lv__right {
@@ -14258,21 +14264,23 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   min-height: 36px;
 }
 .hub-lv__action-btn:hover { opacity: 1; }
+/* 'I'll host' — orange, matches the unclaimed state color. */
 .hub-lv__action-btn--primary {
-  background: #2a8f79;
+  background: #d9840f;
   color: #fff;
   transition: background 0.12s;
 }
-.hub-lv__action-btn--primary:hover { background: #237663; }
+.hub-lv__action-btn--primary:hover { background: #b56b05; }
+/* 'I can cover' — red, matches the sub-needed urgent state. */
 .hub-lv__action-btn--sub {
-  background: #b88c4a;
+  background: #c44a20;
   color: #fff;
   transition: background 0.12s;
 }
-.hub-lv__action-btn--sub:hover { background: #9e7538; }
+.hub-lv__action-btn--sub:hover { background: #a13c18; }
 /* Legacy — retained so stored variants still render, but unused by new layout */
-.hub-lv__action-btn--claim { background: #2a8f79; color: #fff; }
-.hub-lv__action-btn--claim:hover { background: #237663; }
+.hub-lv__action-btn--claim { background: #d9840f; color: #fff; }
+.hub-lv__action-btn--claim:hover { background: #b56b05; }
 .hub-lv__action-btn--ghost { background: transparent; color: var(--rim-text-muted); border: 1.5px solid var(--rim-rule); }
 .hub-lv__action-btn--ghost:hover { background: var(--rim-bg-accent); color: var(--rim-text); opacity: 1; }
 
@@ -14377,7 +14385,7 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 .hub-detail__primary-btn {
   padding: 8px 20px;
-  background: #2a8f79;
+  background: #d9840f;
   color: #fff;
   border: none;
   border-radius: 6px;
@@ -14387,7 +14395,12 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   cursor: pointer;
   transition: background 0.12s;
 }
-.hub-detail__primary-btn:hover { background: #237663; }
+.hub-detail__primary-btn:hover { background: #b56b05; }
+/* Modifiers — keep visual cohesion with the state color */
+.hub-detail__primary-btn--host { background: #d9840f; }
+.hub-detail__primary-btn--host:hover { background: #b56b05; }
+.hub-detail__primary-btn--sub { background: #c44a20; }
+.hub-detail__primary-btn--sub:hover { background: #a13c18; }
 .hub-detail__primary-btn:disabled { opacity: 0.5; cursor: default; }
 .hub-detail__primary-btn--danger { background: #B84040; }
 .hub-detail__secondary-actions {
@@ -14540,9 +14553,11 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   cursor: pointer;
   transition: background 0.1s, border-color 0.1s;
 }
-.hub-sched-status__pill--needs { background: #edf5f3; color: #1e5d50; border-color: #d3e6df; }
+/* Orange — 'needs a host' (includes both unclaimed and sub-needed totals). */
+.hub-sched-status__pill--needs { background: #fbf1dc; color: #7a4a08; border-color: #ecd9a6; }
 .hub-sched-status__pill--needs:hover,
-.hub-sched-status__pill--needs.hub-sched-status__pill--active { background: #d7ebe4; border-color: #2a8f79; }
+.hub-sched-status__pill--needs.hub-sched-status__pill--active { background: #f5e5c2; border-color: #d9840f; }
+/* Blue — your commitments. */
 .hub-sched-status__pill--mine { background: rgba(19, 82, 116, 0.10); color: var(--rim-blue); border-color: rgba(19, 82, 116, 0.18); }
 .hub-sched-status__pill--mine:hover,
 .hub-sched-status__pill--mine.hub-sched-status__pill--active { background: rgba(19, 82, 116, 0.18); border-color: var(--rim-blue); }
@@ -14661,34 +14676,37 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   white-space: nowrap;
   min-width: 0;
 }
+/* Orange — unclaimed, no host yet. Standing need, not urgent. */
 .hub-cal2__event--needs-host {
-  background: #edf5f3;
-  border-left-color: #2a8f79;
-  color: #1e5d50;
+  background: #fbf1dc;
+  border-left-color: #d9840f;
+  color: #7a4a08;
 }
+/* Red — sub needed. Someone stepping back; urgent. */
 .hub-cal2__event--needs-sub {
-  background: #f5ebd7;
-  border-left-color: #b88c4a;
-  color: #7a5818;
+  background: #fbe9e3;
+  border-left-color: #c44a20;
+  color: #7a2e10;
 }
+/* Blue — your commitment. */
 .hub-cal2__event--mine {
   background: rgba(19, 82, 116, 0.10);
   border-left-color: var(--rim-blue);
   color: var(--rim-blue);
   font-weight: 600;
 }
-/* Your session, sub requested — amber background shows you've asked for help,
-   blue left-border preserves the 'this is still yours' signal. */
+/* Red bg + blue border — your commitment, sub requested. Yours AND urgent. */
 .hub-cal2__event--mine-sub {
-  background: #f5ebd7;
+  background: #fbe9e3;
   border-left-color: var(--rim-blue);
-  color: #7a5818;
+  color: #7a2e10;
   font-weight: 600;
 }
+/* Green — covered, settled. Soft cue; nothing to do. */
 .hub-cal2__event--covered {
-  background: #f4f2ef;
-  border-left-color: #c4bfb8;
-  color: var(--rim-text-muted);
+  background: #ebf3ec;
+  border-left-color: #5a9960;
+  color: #3d6746;
 }
 .hub-cal2__event-more {
   font-size: var(--text-label);
@@ -14703,11 +14721,11 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   border-radius: 2px;
   display: inline-block;
 }
-.hub-cal2__bar--needs-host { background: #2a8f79; }
-.hub-cal2__bar--needs-sub  { background: #b88c4a; }
+.hub-cal2__bar--needs-host { background: #d9840f; }
+.hub-cal2__bar--needs-sub  { background: #c44a20; }
 .hub-cal2__bar--mine       { background: var(--rim-blue); }
-.hub-cal2__bar--mine-sub   { background: linear-gradient(90deg, var(--rim-blue) 40%, #b88c4a 40%); }
-.hub-cal2__bar--covered    { background: #c4bfb8; }
+.hub-cal2__bar--mine-sub   { background: linear-gradient(90deg, var(--rim-blue) 40%, #c44a20 40%); }
+.hub-cal2__bar--covered    { background: #5a9960; }
 
 @media (max-width: 768px) {
   .hub-cal2__grid { grid-auto-rows: minmax(64px, auto); }
@@ -14751,11 +14769,11 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   flex-shrink: 0;
   border-left: 3px solid transparent;
 }
-.hub-sched-legend__swatch--needs-host { background: #edf5f3; border-left-color: #2a8f79; }
-.hub-sched-legend__swatch--needs-sub  { background: #f5ebd7; border-left-color: #b88c4a; }
+.hub-sched-legend__swatch--needs-host { background: #fbf1dc; border-left-color: #d9840f; }
+.hub-sched-legend__swatch--needs-sub  { background: #fbe9e3; border-left-color: #c44a20; }
 .hub-sched-legend__swatch--mine       { background: rgba(19, 82, 116, 0.12); border-left-color: var(--rim-blue); }
-.hub-sched-legend__swatch--mine-sub   { background: #f5ebd7; border-left-color: var(--rim-blue); }
-.hub-sched-legend__swatch--covered    { background: #f4f2ef; border-left-color: #c4bfb8; }
+.hub-sched-legend__swatch--mine-sub   { background: #fbe9e3; border-left-color: var(--rim-blue); }
+.hub-sched-legend__swatch--covered    { background: #ebf3ec; border-left-color: #5a9960; }
 
 /* ── Day filter banner ── */
 .hub-sched-dayfilter {
