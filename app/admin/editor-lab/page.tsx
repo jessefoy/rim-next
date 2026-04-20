@@ -25,6 +25,14 @@ const SAMPLE_DOCUMENT: any[] = [
   { type: "numberedListItem", content: [{ type: "text", text: "Complete the orientation video", styles: {} }] },
   { type: "numberedListItem", content: [{ type: "text", text: "Shadow an experienced volunteer at one session", styles: {} }] },
   { type: "numberedListItem", content: [{ type: "text", text: "Meet with your coordinator to set expectations", styles: {} }] },
+  {
+    type: "callout",
+    props: { variant: "aside", title: "A note for new volunteers", bgColor: "neutral", customColor: "" },
+    content: [],
+    children: [
+      { type: "paragraph", content: [{ type: "text", text: "This is an Aside block — a universal shaded container for notes, caveats, or anything worth calling out. Use the color swatches to change the background, or enter a custom hex. The title is optional.", styles: {} }] },
+    ],
+  },
   { type: "heading", props: { level: 3 }, content: [{ type: "text", text: "Key contacts", styles: {} }] },
   { type: "paragraph", content: [{ type: "text", text: "Example quote from the RIM charter:", styles: {} }] },
   { type: "heading", props: { level: 4 }, content: [{ type: "text", text: "Further reading", styles: {} }] },

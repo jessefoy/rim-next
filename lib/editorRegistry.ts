@@ -343,6 +343,14 @@ export const EDITOR_ELEMENTS: EditorElement[] = [
     blockProps: { variant: "decision" },
     availableIn: [...DOCUMENT_LIKE, ...MESSAGE_WITH_TABLES],
   },
+  {
+    id: "callout-aside",
+    label: "Aside",
+    group: "callouts",
+    blockType: "callout",
+    blockProps: { variant: "aside" },
+    availableIn: DOCUMENT_LIKE,
+  },
 
   // ── Dharma (design blocks for Page Designer placements only) ─────────────
   // Pull Quote and Verse Quote are inline single-quote blocks; Practice
