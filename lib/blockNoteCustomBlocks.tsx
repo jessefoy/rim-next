@@ -20,7 +20,7 @@
 
 import { BlockNoteSchema, defaultBlockSpecs } from "@blocknote/core";
 import { createReactBlockSpec } from "@blocknote/react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Aside color presets
@@ -308,32 +308,18 @@ function AsideEditorView({ block, editor }: { block: any; editor: any }) {
   const resolvedBg  = resolveAsideBg(bgColor, customColor);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const bnBlockRef   = useRef<HTMLElement | null>(null);
 
-  // Mount/unmount — add class and set initial color on .bn-block ancestor.
-  useEffect(() => {
+  // Re-apply the aside class + background on EVERY render.
+  // BlockNote rewrites the .bn-block element's attributes on its own
+  // re-renders, which was clobbering our class/style additions when props
+  // changed. useLayoutEffect with no deps runs after every render and wins
+  // that race.
+  useLayoutEffect(() => {
     const bnBlock = containerRef.current?.closest(".bn-block") as HTMLElement | null;
     if (!bnBlock) return;
-    bnBlockRef.current = bnBlock;
     bnBlock.classList.add("bn-block--aside");
     bnBlock.style.setProperty("--aside-bg", resolvedBg);
-    return () => {
-      bnBlock.classList.remove("bn-block--aside");
-      bnBlock.style.removeProperty("--aside-bg");
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Color change — update --aside-bg whenever the swatch/hex changes.
-  useEffect(() => {
-    const bnBlock =
-      bnBlockRef.current ??
-      (containerRef.current?.closest(".bn-block") as HTMLElement | null);
-    if (bnBlock) {
-      bnBlockRef.current = bnBlock;
-      bnBlock.style.setProperty("--aside-bg", resolvedBg);
-    }
-  }, [resolvedBg]);
+  });
 
   return (
     <div className="bn-callout bn-callout--aside" contentEditable={false} ref={containerRef}>

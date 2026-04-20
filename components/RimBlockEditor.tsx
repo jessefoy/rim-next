@@ -1208,21 +1208,24 @@ export default function RimBlockEditor({
     const style = document.createElement("style");
     style.id = id;
     style.textContent = `
+      /* Editor heading sizes — match the design-system token scale that
+         rendered output uses (see CLAUDE.md typography table).
+         h1=38, h2=28, h3=24, h4=20. */
       .rim-block-editor .bn-block-content[data-content-type="heading"] h1 {
-        font-size: 32px !important; line-height: 1.2 !important;
-        margin-top: 24px !important; margin-bottom: 8px !important;
+        font-size: var(--text-h1) !important; line-height: var(--lh-heading) !important;
+        margin-top: 28px !important; margin-bottom: 10px !important;
       }
       .rim-block-editor .bn-block-content[data-content-type="heading"] h2 {
-        font-size: 24px !important; line-height: 1.25 !important;
-        margin-top: 20px !important; margin-bottom: 6px !important;
+        font-size: var(--text-h2) !important; line-height: var(--lh-heading) !important;
+        margin-top: 24px !important; margin-bottom: 8px !important;
       }
       .rim-block-editor .bn-block-content[data-content-type="heading"] h3 {
-        font-size: 20px !important; line-height: 1.3 !important;
-        margin-top: 16px !important; margin-bottom: 4px !important;
+        font-size: var(--text-h3) !important; line-height: var(--lh-heading) !important;
+        margin-top: 20px !important; margin-bottom: 6px !important;
       }
       .rim-block-editor .bn-block-content[data-content-type="heading"] h4 {
-        font-size: 17px !important; line-height: 1.35 !important;
-        margin-top: 14px !important; margin-bottom: 2px !important;
+        font-size: var(--text-h4) !important; line-height: var(--lh-heading) !important;
+        margin-top: 16px !important; margin-bottom: 4px !important;
       }
       .rim-block-editor .bn-block-content[data-content-type="heading"] h1,
       .rim-block-editor .bn-block-content[data-content-type="heading"] h2,
