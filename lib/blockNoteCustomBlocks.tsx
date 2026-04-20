@@ -325,7 +325,10 @@ function AsideEditorView({ block, editor }: { block: any; editor: any }) {
     <div className="bn-callout bn-callout--aside" contentEditable={false} ref={containerRef}>
       <div className="bn-aside__controls">
 
-        {/* Color swatches */}
+        {/* Color swatches.
+            onMouseDown (not onClick) with preventDefault — ProseMirror
+            swallows onClick on contentEditable=false blocks. This matches
+            the button pattern used everywhere else in RimBlockEditor. */}
         <div className="bn-aside__swatches">
           {(["neutral", "teal", "warm"] as const).map((color) => (
             <button
@@ -334,10 +337,10 @@ function AsideEditorView({ block, editor }: { block: any; editor: any }) {
               className={`bn-aside__swatch${bgColor === color ? " bn-aside__swatch--active" : ""}`}
               style={{ backgroundColor: ASIDE_BG_COLORS[color] }}
               title={color.charAt(0).toUpperCase() + color.slice(1)}
-              onClick={() =>
-                editor.updateBlock(block, { props: { bgColor: color, customColor: "" } })
-              }
-              onMouseDown={(e) => e.preventDefault()}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                editor.updateBlock(block, { props: { bgColor: color, customColor: "" } });
+              }}
               aria-label={`${color} background`}
             />
           ))}
@@ -345,8 +348,10 @@ function AsideEditorView({ block, editor }: { block: any; editor: any }) {
             type="button"
             className={`bn-aside__swatch bn-aside__swatch--custom${bgColor === "custom" ? " bn-aside__swatch--active" : ""}`}
             title="Custom color"
-            onClick={() => editor.updateBlock(block, { props: { bgColor: "custom" } })}
-            onMouseDown={(e) => e.preventDefault()}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              editor.updateBlock(block, { props: { bgColor: "custom" } });
+            }}
             aria-label="Custom background color"
           />
           {bgColor === "custom" && (
@@ -358,13 +363,13 @@ function AsideEditorView({ block, editor }: { block: any; editor: any }) {
               onChange={(e) =>
                 editor.updateBlock(block, { props: { customColor: e.target.value } })
               }
-              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
               spellCheck={false}
             />
           )}
         </div>
 
-        {/* Heading level toggle */}
+        {/* Heading level toggle — same onMouseDown pattern as swatches */}
         <div className="bn-aside__level-btns">
           {(["h2", "h3", "h4"] as const).map((lvl) => (
             <button
@@ -372,8 +377,10 @@ function AsideEditorView({ block, editor }: { block: any; editor: any }) {
               type="button"
               className={`bn-aside__level-btn${titleLevel === lvl ? " bn-aside__level-btn--active" : ""}`}
               title={`Title as ${lvl.toUpperCase()}`}
-              onClick={() => editor.updateBlock(block, { props: { titleLevel: lvl } })}
-              onMouseDown={(e) => e.preventDefault()}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                editor.updateBlock(block, { props: { titleLevel: lvl } });
+              }}
             >
               {lvl.toUpperCase()}
             </button>
