@@ -150,9 +150,19 @@ body {
 /* Prevent accidental horizontal scroll on mobile when any descendant
    overshoots the viewport by a few pixels (long program names, grid
    rounding, 100vw children sitting inside padded containers, etc.).
-   Vertical scroll still works; this only kills horizontal. */
-html, body {
+   Vertical scroll still works; this only kills horizontal.
+   overflow-x: hidden on html = universal support (clips reliably, does
+   not break position:sticky inside body because html is the ICB and
+   body is the scroll container).
+   overflow-x: clip on body = newer Safari/Chrome, preserves sticky
+   better when nested containers use overflow-x. Both together cover
+   the full browser matrix. */
+html {
+  overflow-x: hidden;
+}
+body {
   overflow-x: clip;
+  max-width: 100%;
 }
 
 /* ── Global element defaults ─────────────────────────────────────────────── */
@@ -14327,34 +14337,44 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   transition: background 0.12s;
 }
 .hub-lv__action-btn--sub:hover { background: #a13c18; }
-/* Armed-confirm state — darker and includes 'Tap to confirm' text.
-   A simple progress bar underneath shows the 4-second auto-revert timer. */
+/* Armed-confirm state — darker base color, subtle pulse, a visible
+   countdown bar at the top of the button. The pulse + the bar together
+   make the armed state obvious on any screen size. Dual indicators
+   are intentional: the bar reads as elapsed/remaining time, the pulse
+   reads as 'something is happening right now.' */
 .hub-lv__action-btn--confirming {
   background: #8a5208;
   color: #fff;
   position: relative;
   overflow: hidden;
+  animation: hub-lv-confirm-pulse 1.2s ease-in-out infinite;
 }
 .hub-lv__action-btn--confirming-sub {
   background: #7a2e10;
   color: #fff;
   position: relative;
   overflow: hidden;
+  animation: hub-lv-confirm-pulse 1.2s ease-in-out infinite;
 }
 .hub-lv__action-btn--confirming::after,
 .hub-lv__action-btn--confirming-sub::after {
   content: "";
   position: absolute;
-  left: 0; bottom: 0;
-  height: 3px;
+  left: 0; top: 0;
+  height: 5px;
   width: 100%;
-  background: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.9);
   transform-origin: left center;
   animation: hub-lv-confirm-countdown 4s linear forwards;
+  pointer-events: none;
 }
 @keyframes hub-lv-confirm-countdown {
   from { transform: scaleX(1); }
   to   { transform: scaleX(0); }
+}
+@keyframes hub-lv-confirm-pulse {
+  0%, 100% { filter: brightness(1); }
+  50%      { filter: brightness(1.15); }
 }
 .hub-lv__confirm {
   display: inline-flex;
@@ -14365,15 +14385,27 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 .hub-lv__confirm-cancel {
   background: none;
-  border: none;
+  border: 1px solid transparent;
   font-family: var(--font-sans);
-  font-size: var(--text-xs);
+  font-size: var(--text-ui);
   color: var(--rim-text-muted);
   cursor: pointer;
-  padding: 4px 0;
+  padding: 8px 12px;
+  min-height: 40px;
   text-align: center;
+  border-radius: 6px;
 }
-.hub-lv__confirm-cancel:hover { color: var(--rim-text); text-decoration: underline; }
+.hub-lv__confirm-cancel:hover {
+  color: var(--rim-text);
+  background: var(--rim-bg-accent);
+}
+
+@media (max-width: 768px) {
+  .hub-lv__confirm-cancel {
+    min-height: 44px;
+    padding: 10px 14px;
+  }
+}
 /* Legacy — retained so stored variants still render, but unused by new layout */
 .hub-lv__action-btn--claim { background: #d9840f; color: #fff; }
 .hub-lv__action-btn--claim:hover { background: #b56b05; }
@@ -14618,23 +14650,25 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .hub-detail__primary-btn--host:hover { background: #b56b05; }
 .hub-detail__primary-btn--sub { background: #c44a20; }
 .hub-detail__primary-btn--sub:hover { background: #a13c18; }
-/* Confirming state — darker, with a 4s countdown bar underneath. Same
-   visual rule as the card-level confirming button; consistency matters. */
+/* Confirming state — dark base, pulse, thick top bar for the 4s countdown.
+   Mirrors the card-level confirming button exactly; consistency matters. */
 .hub-detail__primary-btn--confirming {
   position: relative;
   overflow: hidden;
+  animation: hub-lv-confirm-pulse 1.2s ease-in-out infinite;
 }
 .hub-detail__primary-btn--host.hub-detail__primary-btn--confirming { background: #8a5208; }
 .hub-detail__primary-btn--sub.hub-detail__primary-btn--confirming  { background: #7a2e10; }
 .hub-detail__primary-btn--confirming::after {
   content: "";
   position: absolute;
-  left: 0; bottom: 0;
-  height: 3px;
+  left: 0; top: 0;
+  height: 5px;
   width: 100%;
-  background: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.9);
   transform-origin: left center;
   animation: hub-lv-confirm-countdown 4s linear forwards;
+  pointer-events: none;
 }
 .hub-detail__confirm {
   display: flex;
