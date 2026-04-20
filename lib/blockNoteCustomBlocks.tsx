@@ -309,14 +309,23 @@ function AsideEditorView({ block, editor }: { block: any; editor: any }) {
 
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Local state for text inputs. Every call to editor.updateBlock triggers
+  // BlockNote to re-render the block, which causes ProseMirror to move the
+  // selection — kicking focus out of the input after one keystroke. To
+  // avoid that, inputs track a local string and only commit to the block's
+  // props on blur. Syncing back from block.props handles external updates
+  // (undo/redo, loads) while the input isn't focused.
+  const [localTitle,       setLocalTitle]       = useState<string>(block.props.title ?? "");
+  const [localCustomColor, setLocalCustomColor] = useState<string>(customColor);
+
+  useEffect(() => { setLocalTitle(block.props.title ?? ""); }, [block.props.title]);
+  useEffect(() => { setLocalCustomColor(customColor); }, [customColor]);
+
   // Set the dynamic --aside-bg variable on the .bn-block ancestor.
   // Visual identity (background, padding, removed left-border) comes from
   // CSS using :has(> .bn-block-content > .bn-callout--aside), which doesn't
   // need JS. Only the dynamic color needs JS, since CSS variables cascade
   // downward only (a descendant can't feed its inline value to an ancestor).
-  // useLayoutEffect runs after every render, so the variable updates when
-  // the color prop changes — even if BlockNote clobbers other attributes
-  // on re-render.
   useLayoutEffect(() => {
     const bnBlock = containerRef.current?.closest(".bn-block") as HTMLElement | null;
     if (!bnBlock) return;
@@ -361,10 +370,14 @@ function AsideEditorView({ block, editor }: { block: any; editor: any }) {
               type="text"
               className="bn-aside__hex-input"
               placeholder="#eeeeee"
-              value={customColor}
-              onChange={(e) =>
-                editor.updateBlock(block, { props: { customColor: e.target.value } })
-              }
+              value={localCustomColor}
+              onChange={(e) => setLocalCustomColor(e.target.value)}
+              onBlur={() => {
+                if (localCustomColor !== customColor) {
+                  editor.updateBlock(block, { props: { customColor: localCustomColor } });
+                }
+              }}
+              onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
               onMouseDown={(e) => e.stopPropagation()}
               spellCheck={false}
             />
@@ -389,18 +402,25 @@ function AsideEditorView({ block, editor }: { block: any; editor: any }) {
           ))}
         </div>
 
-        {/* Title input */}
+        {/* Title input — local state, commit on blur. Prevents ProseMirror
+            from stealing focus after each keystroke. */}
         <input
           className="bn-aside__title-input"
           placeholder="Title (optional)"
-          value={block.props.title}
+          value={localTitle}
           style={{ fontSize: ASIDE_FONT_SIZE[titleLevel] ?? "var(--text-h4)" }}
-          onChange={(e) =>
-            editor.updateBlock(block, { props: { title: e.target.value } })
-          }
+          onChange={(e) => setLocalTitle(e.target.value)}
+          onBlur={() => {
+            if (localTitle !== (block.props.title ?? "")) {
+              editor.updateBlock(block, { props: { title: localTitle } });
+            }
+          }}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === "ArrowDown") {
               e.preventDefault();
+              if (localTitle !== (block.props.title ?? "")) {
+                editor.updateBlock(block, { props: { title: localTitle } });
+              }
               focusContainerBody(editor, block.id);
             }
           }}
