@@ -27,11 +27,11 @@ const SAMPLE_DOCUMENT: any[] = [
   { type: "numberedListItem", content: [{ type: "text", text: "Meet with your coordinator to set expectations", styles: {} }] },
   {
     type: "callout",
-    props: { variant: "aside", bgColor: "neutral", customColor: "" },
+    props: { variant: "aside" },
     content: [],
     children: [
       { type: "heading", props: { level: 4 }, content: [{ type: "text", text: "A note for new volunteers", styles: {} }] },
-      { type: "paragraph", content: [{ type: "text", text: "This is an Aside block — a universal shaded container for notes, caveats, or anything worth calling out. Use the color swatches to change the background, or pick a custom color. For a title, just add a heading block inside.", styles: {} }] },
+      { type: "paragraph", content: [{ type: "text", text: "This is an Aside block — a universal shaded container for notes, caveats, or anything worth calling out. For a title, add a heading block inside. The background color is determined by where it appears (document, lesson, program).", styles: {} }] },
     ],
   },
   { type: "heading", props: { level: 3 }, content: [{ type: "text", text: "Key contacts", styles: {} }] },

@@ -192,20 +192,13 @@ function renderSingleBlock(block: any): string {
       const title   = block.props?.title ?? ""
       const body    = children || inner
 
-      // Aside — universal shaded container. No icon, no baked-in title
-      // (author puts a heading block inside if they want one), dynamic
-      // background from bgColor / customColor. Mirrors toExternalHTML in
-      // lib/blockNoteCustomBlocks.tsx.
+      // Aside — universal shaded container. No icon, no baked-in title.
+      // Author puts a heading block inside for the title. Color treatment
+      // is determined by the rendered scope class on the wrapper
+      // (.rim-content--document, .rim-content--lesson, .rim-content--program)
+      // — not by a per-block prop. Mirrors toExternalHTML.
       if (variant === "aside") {
-        const bgColor     = block.props?.bgColor ?? "neutral"
-        const customColor = block.props?.customColor ?? ""
-        const ASIDE_BG: Record<string, string> = {
-          neutral: "#eeeeee", teal: "#deeef5", warm: "#f5ede0",
-        }
-        const bg = bgColor === "custom"
-          ? (customColor || "#eeeeee")
-          : (ASIDE_BG[bgColor] ?? "#eeeeee")
-        return `<div class="rim-el-note rim-el-note--aside" style="--aside-bg:${bg}">${body}</div>`
+        return `<div class="rim-el-note rim-el-note--aside">${body}</div>`
       }
 
       const iconMap: Record<string, string> = {

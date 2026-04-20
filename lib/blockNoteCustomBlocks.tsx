@@ -32,8 +32,7 @@ export const ASIDE_BG_COLORS = {
   warm:    "#f5ede0",
 } as const;
 
-function resolveAsideBg(bgColor: string, customColor: string): string {
-  if (bgColor === "custom") return customColor || "#eeeeee";
+function resolveAsideBg(bgColor: string, _customColor?: string): string {
   return (ASIDE_BG_COLORS as Record<string, string>)[bgColor] ?? "#eeeeee";
 }
 
@@ -295,74 +294,13 @@ export const CALLOUT_LABELS: Record<CalloutVariant, string> = {
 // children block-group). This bypasses any data-variant attribute dependency.
 // ─────────────────────────────────────────────────────────────────────────────
 
-function AsideEditorView({ block, editor }: { block: any; editor: any }) {
-  const bgColor     = (block.props.bgColor     as string) || "neutral";
-  const customColor = (block.props.customColor as string) || "";
-  const resolvedBg  = resolveAsideBg(bgColor, customColor);
-
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // Set the dynamic --aside-bg variable on the .bn-block ancestor — only
-  // when resolvedBg changes. Running every render caused ProseMirror's
-  // MutationObserver to see a style mutation and steal focus.
-  useEffect(() => {
-    const bnBlock = containerRef.current?.closest(".bn-block") as HTMLElement | null;
-    if (!bnBlock) return;
-    bnBlock.style.setProperty("--aside-bg", resolvedBg);
-  }, [resolvedBg]);
-
-  // Native color input is hidden; custom swatch clicks trigger it.
-  const colorInputRef = useRef<HTMLInputElement>(null);
-
+// Aside editor view — no controls at all. The shaded background
+// (from .bn-callout--aside CSS) is the only visual indicator. The
+// aside's color and treatment are determined by the rendered scope
+// class (program / lesson / document), not by per-block settings.
+function AsideEditorView() {
   return (
-    <div className="bn-callout bn-callout--aside" contentEditable={false} ref={containerRef}>
-      <div className="bn-aside__controls">
-
-        {/* Preset swatches + custom picker.
-            Title is gone — users put a heading block inside the aside
-            instead (H2/H3/H4 as the first child). That's simpler and more
-            flexible than a separate titled input. */}
-        <div className="bn-aside__swatches">
-          {(["neutral", "teal", "warm"] as const).map((color) => (
-            <button
-              key={color}
-              type="button"
-              className={`bn-aside__swatch${bgColor === color ? " bn-aside__swatch--active" : ""}`}
-              style={{ backgroundColor: ASIDE_BG_COLORS[color] }}
-              title={color.charAt(0).toUpperCase() + color.slice(1)}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                editor.updateBlock(block, { props: { bgColor: color, customColor: "" } });
-              }}
-              aria-label={`${color} background`}
-            />
-          ))}
-          {/* Custom swatch — a <label> wraps the native color input so that
-              clicking the swatch naturally delegates to the input and opens
-              the browser's native color picker as a genuine user gesture.
-              Calling input.click() from JS after preventDefault is blocked
-              by modern browsers as "not a user gesture". */}
-          <label
-            className={`bn-aside__swatch bn-aside__swatch--custom${bgColor === "custom" ? " bn-aside__swatch--active" : ""}`}
-            style={bgColor === "custom" && customColor ? { backgroundColor: customColor } : undefined}
-            title="Custom color"
-            aria-label="Custom background color"
-            onMouseDown={(e) => e.stopPropagation()}
-          >
-            <input
-              ref={colorInputRef}
-              type="color"
-              className="bn-aside__color-native"
-              value={customColor || "#eeeeee"}
-              onChange={(e) => {
-                editor.updateBlock(block, { props: { bgColor: "custom", customColor: e.target.value } });
-              }}
-              tabIndex={-1}
-            />
-          </label>
-        </div>
-      </div>
-    </div>
+    <div className="bn-callout bn-callout--aside" contentEditable={false} />
   );
 }
 
@@ -388,13 +326,6 @@ const calloutFactory = createReactBlockSpec(
         ] as const,
       },
       title: { default: "" },
-      // Aside-specific props — bgColor drives which swatch / preset,
-      // customColor holds the raw hex when bgColor === "custom".
-      bgColor: {
-        default: "neutral" as const,
-        values: ["neutral", "teal", "warm", "custom"] as const,
-      },
-      customColor: { default: "" },
     },
     content: "none" as const,
   },
@@ -415,9 +346,10 @@ const calloutFactory = createReactBlockSpec(
         return () => document.removeEventListener("mousedown", onDocDown);
       }, [pickerOpen]);
 
-      // Aside has its own polished editor UI
+      // Aside has no controls — just a structural marker. Background
+      // comes from CSS based on the render context.
       if (variant === "aside") {
-        return <AsideEditorView block={block} editor={editor} />;
+        return <AsideEditorView />;
       }
 
       const pickVariant = (next: CalloutVariant) => {
@@ -484,20 +416,11 @@ const calloutFactory = createReactBlockSpec(
     toExternalHTML: ({ block }) => {
       const variant    = block.props.variant as CalloutVariant;
 
-      // Aside — no icon, no baked-in title (use a heading block inside
-      // instead), dynamic background. Children render as a sibling block-
-      // group and pick up the same background via --aside-bg.
+      // Aside — universal shaded container. No icon, no title. Color
+      // determined by the context scope class on the render wrapper
+      // (.rim-content--document, .rim-content--lesson, etc).
       if (variant === "aside") {
-        const bg = resolveAsideBg(
-          block.props.bgColor as string,
-          block.props.customColor as string,
-        );
-        return (
-          <div
-            className="rim-el-note rim-el-note--aside"
-            style={{ "--aside-bg": bg } as any}
-          />
-        );
+        return <div className="rim-el-note rim-el-note--aside" />;
       }
 
       const title = block.props.title;

@@ -21517,78 +21517,30 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
 /* ── Aside variant — editor view ────────────────────────────────────────── */
 /* Target the .bn-block ancestor via :has() on our rendered .bn-callout--aside
    class. This gives us the same specificity as the generic callout rule
-   above, so our !important declarations are decisive.
-   The dynamic --aside-bg CSS variable is set on the .bn-block ancestor by
-   JS (useLayoutEffect in AsideEditorView), since CSS variables cascade
-   downward only — a descendant's inline style can't be read by its ancestor. */
+   above, so our !important declarations are decisive. Background is a
+   neutral gray by default; context-specific overrides can live in scope
+   rules for program / lesson / document editors. */
 
 .bn-block:has(> .bn-block-content > .bn-callout--aside) {
   border-left: none !important;
-  background: var(--aside-bg, #eeeeee) !important;
+  background: #eeeeee !important;
   border-radius: 6px !important;
   padding: 0 !important;
   margin: 12px 0 !important;
 }
 .bn-callout--aside {
-  padding: 14px 20px 6px;
+  /* No controls anymore — just a zero-height marker. Children render as a
+     sibling block-group and pick up the gray background via the :has rule
+     above. */
+  padding: 0;
+  min-height: 0;
 }
 .bn-block:has(> .bn-block-content > .bn-callout--aside) > .bn-block-group {
-  padding: 4px 20px 14px !important;
+  padding: 16px 20px !important;
   margin-top: 0 !important;
 }
 .bn-block:has(> .bn-block-content > .bn-callout--aside) > .bn-block-group > .bn-block:last-child {
   padding-bottom: 0 !important;
-}
-
-/* Controls row — color swatches + title input */
-.bn-aside__controls {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.bn-aside__swatches {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-shrink: 0;
-}
-.bn-aside__swatch {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(0, 0, 0, 0.1);
-  cursor: pointer;
-  padding: 0;
-  flex-shrink: 0;
-  transition: outline 0.1s;
-  background: transparent;
-}
-.bn-aside__swatch--active {
-  outline: 2px solid var(--rim-text);
-  outline-offset: 2px;
-}
-.bn-aside__swatch--custom {
-  background: linear-gradient(135deg, #deeef5 50%, #f5ede0 50%);
-}
-/* Hidden native color input — nested inside the custom swatch <label>.
-   Clicking the label delegates to the input and opens the OS color
-   picker as a genuine user gesture. The input itself is fully covered
-   by the label so it's invisible but still receives the click. */
-.bn-aside__swatch--custom {
-  position: relative;
-  overflow: hidden;
-  cursor: pointer;
-}
-.bn-aside__color-native {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  cursor: pointer;
-  border: 0;
-  padding: 0;
-  background: transparent;
 }
 
 
@@ -21968,37 +21920,24 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
 
 
 /* ──── Aside (rim-el-note--aside) ───────────────────────────────────────── */
-/* Universal design element — shaded box, optional serif title, body text.
-   Uses --aside-bg CSS custom property set via inline style at render time.  */
+/* Universal shaded container. Default is neutral gray. Context scopes
+   (.rim-content--lesson, .rim-content--program, etc.) can override the
+   background to match their own palette. Title is a heading block nested
+   inside — picks up the scope's own heading styles, no special class. */
 
 .rim-el-note--aside {
-  background: var(--aside-bg, var(--rim-bg-accent));
+  background: #eeeeee;
   border-radius: 6px;
-  padding: 30px 20px;
-  margin: 1.5em 5px;
+  padding: 24px 20px;
+  margin: 1.5em 0;
 }
-.rim-el-note--aside .rim-el-aside__title {
-  font-family: var(--font-sans);
-  font-weight: 600;
-  margin: 0 0 14px;
-  line-height: 1.3;
-  color: var(--rim-text);
-}
-.rim-el-note--aside > p:last-child,
-.rim-el-note--aside > ul:last-child,
-.rim-el-note--aside > ol:last-child { margin-bottom: 0; }
-.rim-el-note--aside > p:first-child,
-.rim-el-note--aside > ul:first-child,
-.rim-el-note--aside > ol:first-child { margin-top: 0; }
+.rim-el-note--aside > *:first-child { margin-top: 0; }
+.rim-el-note--aside > *:last-child  { margin-bottom: 0; }
 
-/* Override the general .rim-el-note document-scope rule for aside */
+/* Document scope — slightly tighter */
 .rim-content--document .rim-el-note--aside {
-  padding: 16px;
+  padding: 16px 20px;
   margin: 0.75em 0;
-  font-size: inherit;
-}
-.rim-content--document .rim-el-note--aside .rim-el-aside__title {
-  margin-bottom: 8px;
 }
 
 /* ── Document page wrapper — clean white card on warm bg ── */
