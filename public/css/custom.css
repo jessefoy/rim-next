@@ -14322,12 +14322,133 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   background: #fdfcfb;
 }
 
-/* Mobile: stack action below content */
+/* Mobile: stack action below content; full-width button = bigger tap target. */
 @media (max-width: 480px) {
-  .hub-lv__card-main { flex-direction: column; align-items: flex-start; gap: 10px; }
-  .hub-lv__right { align-self: flex-start; }
+  .hub-lv__card-main { flex-direction: column; align-items: stretch; gap: 10px; }
+  .hub-lv__right { align-self: stretch; justify-content: stretch; }
+  .hub-lv__action-btn { width: 100%; text-align: center; }
   .hub-lv__detail .hub-detail { padding: 20px 14px; }
   .hub-lv__detail .hub-detail__cols { gap: 20px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE — Host Schedule + shared hub chrome at <768px
+   - 44px touch-target minimum on every interactive control (per design rule
+     for users under cognitive load)
+   - 16px form-input font to prevent iOS auto-zoom on focus
+   - Compressed chrome so the content isn't buried below headers on short
+     viewports (iPhone SE et al.)
+═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Shell chrome — less vertical real estate at the top */
+  .hub-ws-toolhead {
+    padding: 14px 20px 0;
+  }
+  .hub-ws-toolhead__name {
+    font-size: 18px;
+    margin: 0 0 10px;
+  }
+  .hub-ws-content {
+    padding: 16px 16px 48px;
+  }
+  .hub-ws-mobilebar__btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* Status sentence — bigger inline pill tap area */
+  .hub-sched-status {
+    margin-bottom: 14px;
+  }
+  .hub-sched-status__pill {
+    padding: 6px 14px;
+    border-radius: 22px;
+  }
+
+  /* Month nav — 44px square buttons */
+  .hub-schedule__month-nav {
+    margin-top: 8px;
+    margin-bottom: 10px;
+  }
+  .hub-schedule__nav-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    font-size: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .hub-schedule__month {
+    font-size: var(--text-h4);
+  }
+  .hub-schedule__today-btn {
+    padding: 8px 14px;
+    font-size: var(--text-xs);
+    min-height: 36px;
+  }
+
+  /* Calendar — slightly thicker bars for legibility */
+  .hub-cal2__bar {
+    width: 14px;
+    height: 4px;
+    border-radius: 2px;
+  }
+
+  /* Day filter banner — tappable escape link */
+  .hub-sched-dayfilter__clear {
+    min-height: 44px;
+    padding: 10px 14px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* List action buttons — full 44px minimum height */
+  .hub-lv__action-btn {
+    min-height: 44px;
+    padding: 12px 20px;
+    font-size: var(--text-ui);
+  }
+
+  /* Detail panel actions — 44px everywhere */
+  .hub-detail__primary-btn {
+    min-height: 44px;
+    padding: 12px 22px;
+  }
+  .hub-detail__link-btn {
+    min-height: 44px;
+    padding: 12px 14px;
+    font-size: var(--text-ui);
+  }
+  .hub-detail__actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .hub-detail__primary-btn,
+  .hub-detail__primary-btn--host,
+  .hub-detail__primary-btn--sub,
+  .hub-detail__primary-btn--danger {
+    width: 100%;
+  }
+  .hub-detail__secondary-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 4px 6px;
+  }
+
+  /* Form inputs — 16px minimum to prevent iOS zoom-on-focus */
+  .fi, .ft, .fs {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 430px) {
+  .hub-ws-content { padding: 14px 14px 48px; }
+  .hub-schedule__month { font-size: 20px; }
+  .hub-cal2__cell { padding: 4px 3px 6px; }
+  /* Legend wraps more tightly on narrow phones */
+  .hub-sched-legend { gap: 6px 14px; }
 }
 
 /* ── Inline list panel (HubScheduleClient list view) ───────── */
