@@ -377,7 +377,17 @@ function AsideEditorView({ block, editor }: { block: any; editor: any }) {
                   editor.updateBlock(block, { props: { customColor: localCustomColor } });
                 }
               }}
-              onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+              /* Stop keyboard events from bubbling to ProseMirror, which
+                 otherwise interprets each keystroke as a document edit and
+                 moves the selection out of the input. Enter commits + blurs. */
+              onKeyDown={(e) => {
+                e.stopPropagation();
+                if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+              }}
+              onKeyUp={(e) => e.stopPropagation()}
+              onKeyPress={(e) => e.stopPropagation()}
+              onBeforeInput={(e) => e.stopPropagation()}
+              onInput={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
               spellCheck={false}
             />
@@ -402,8 +412,9 @@ function AsideEditorView({ block, editor }: { block: any; editor: any }) {
           ))}
         </div>
 
-        {/* Title input — local state, commit on blur. Prevents ProseMirror
-            from stealing focus after each keystroke. */}
+        {/* Title input — local state, commit on blur. All keyboard events
+            stopPropagation so ProseMirror doesn't interpret keystrokes as
+            document input (which was yanking focus after the first char). */}
         <input
           className="bn-aside__title-input"
           placeholder="Title (optional)"
@@ -416,6 +427,7 @@ function AsideEditorView({ block, editor }: { block: any; editor: any }) {
             }
           }}
           onKeyDown={(e) => {
+            e.stopPropagation();
             if (e.key === "Enter" || e.key === "ArrowDown") {
               e.preventDefault();
               if (localTitle !== (block.props.title ?? "")) {
@@ -424,6 +436,11 @@ function AsideEditorView({ block, editor }: { block: any; editor: any }) {
               focusContainerBody(editor, block.id);
             }
           }}
+          onKeyUp={(e) => e.stopPropagation()}
+          onKeyPress={(e) => e.stopPropagation()}
+          onBeforeInput={(e) => e.stopPropagation()}
+          onInput={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
         />
 
       </div>

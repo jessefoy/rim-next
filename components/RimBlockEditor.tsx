@@ -1217,27 +1217,32 @@ export default function RimBlockEditor({
       /* Editor heading sizes — match the design-system token scale that
          rendered output uses (see CLAUDE.md typography table).
          h1=38, h2=28, h3=24, h4=20.
-         Target multiple BlockNote DOM shapes: the <h1>/<h2>/<h3>/<h4> tag,
-         the [data-level] wrapper, and the inline-content child. High-
-         specificity "html body" prefix ensures we beat BlockNote's own
-         !important rules if any. */
+         Target every possible DOM target BlockNote uses: the [data-level]
+         wrapper, the inner <h*> tag, AND the .bn-inline-content span.
+         BlockNote likely puts its em-based sizing on .bn-inline-content,
+         which is why wrapper-only rules didn't bite. "html body" prefix
+         guarantees we beat BlockNote's own rules on specificity. */
       html body .rim-block-editor [data-content-type="heading"][data-level="1"],
-      html body .rim-block-editor .bn-block-content[data-content-type="heading"] h1 {
+      html body .rim-block-editor [data-content-type="heading"][data-level="1"] h1,
+      html body .rim-block-editor [data-content-type="heading"][data-level="1"] .bn-inline-content {
         font-size: var(--text-h1) !important; line-height: var(--lh-heading) !important;
         margin-top: 28px !important; margin-bottom: 10px !important;
       }
       html body .rim-block-editor [data-content-type="heading"][data-level="2"],
-      html body .rim-block-editor .bn-block-content[data-content-type="heading"] h2 {
+      html body .rim-block-editor [data-content-type="heading"][data-level="2"] h2,
+      html body .rim-block-editor [data-content-type="heading"][data-level="2"] .bn-inline-content {
         font-size: var(--text-h2) !important; line-height: var(--lh-heading) !important;
         margin-top: 24px !important; margin-bottom: 8px !important;
       }
       html body .rim-block-editor [data-content-type="heading"][data-level="3"],
-      html body .rim-block-editor .bn-block-content[data-content-type="heading"] h3 {
+      html body .rim-block-editor [data-content-type="heading"][data-level="3"] h3,
+      html body .rim-block-editor [data-content-type="heading"][data-level="3"] .bn-inline-content {
         font-size: var(--text-h3) !important; line-height: var(--lh-heading) !important;
         margin-top: 20px !important; margin-bottom: 6px !important;
       }
       html body .rim-block-editor [data-content-type="heading"][data-level="4"],
-      html body .rim-block-editor .bn-block-content[data-content-type="heading"] h4 {
+      html body .rim-block-editor [data-content-type="heading"][data-level="4"] h4,
+      html body .rim-block-editor [data-content-type="heading"][data-level="4"] .bn-inline-content {
         font-size: var(--text-h4) !important; line-height: var(--lh-heading) !important;
         margin-top: 16px !important; margin-bottom: 4px !important;
       }
