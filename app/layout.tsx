@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Nav from "@/components/Nav";
 import FooterWrapper from "@/components/FooterWrapper";
 import SessionProvider from "@/components/SessionProvider";
@@ -6,6 +6,14 @@ import SessionProvider from "@/components/SessionProvider";
 export const metadata: Metadata = {
   title: "Rooted In Mindfulness",
   description: "Community Insight Meditation Center — Brookfield, WI",
+};
+
+/** Viewport — required so mobile browsers render at the device's actual
+    width instead of the ~980px "desktop" default. Without this, every
+    media query in custom.css is silently ignored on phones. */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
