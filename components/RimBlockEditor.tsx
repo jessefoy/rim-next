@@ -347,7 +347,7 @@ function ToolbarMoreMenu({ context = "default" as EditorContext }) {
         { label: "Callout", icon: <RiInformationLine size={15} />, type: "callout" },
       );
     }
-    items.push({ label: "Aside", icon: <RiInformationLine size={15} />, type: "callout", props: { variant: "aside" } });
+    items.push({ label: "Aside", type: "callout", props: { variant: "aside" } });
     return items;
   }, [context]);
 
@@ -529,6 +529,7 @@ function PillBlockTypeDropdown() {
 function PillContextMenu({ context, onAction }: { context: EditorContext; onAction?: () => void }) {
   const editor = useBlockNoteEditor();
   const [open, setOpen] = useState(false);
+  const [flipUp, setFlipUp] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const close = useCallback(() => setOpen(false), []);
   useClickOutside(ref, open, close);
@@ -560,7 +561,7 @@ function PillContextMenu({ context, onAction }: { context: EditorContext; onActi
         { label: "Callout", icon: <RiInformationLine size={15} />, type: "callout" },
       );
     }
-    items.push({ label: "Aside", icon: <RiInformationLine size={15} />, type: "callout", props: { variant: "aside" } });
+    items.push({ label: "Aside", type: "callout", props: { variant: "aside" } });
     return items;
   }, [context]);
 
@@ -570,13 +571,20 @@ function PillContextMenu({ context, onAction }: { context: EditorContext; onActi
     <div className="bear-more-wrap" ref={ref} style={{ position: "relative" }}>
       <button
         className={`bear-pill__btn${open ? " bear-pill__btn--active" : ""}`}
-        onMouseDown={(e) => { e.preventDefault(); setOpen(!open); }}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          if (!open && ref.current) {
+            const rect = ref.current.getBoundingClientRect();
+            setFlipUp(window.innerHeight - rect.bottom < 220);
+          }
+          setOpen(!open);
+        }}
         title="Special blocks"
       >
         ⋯
       </button>
       {open && (
-        <div className="bear-more-dropdown" onPointerDown={(e) => e.stopPropagation()}>
+        <div className={`bear-more-dropdown${flipUp ? " bear-more-dropdown--up" : ""}`} onPointerDown={(e) => e.stopPropagation()}>
           {insertItems.map((item) => (
             <button key={item.label} type="button" className="bear-more-item"
               onMouseDown={(e) => { e.preventDefault(); insertBlockAfter(item.type, item.props); }}>

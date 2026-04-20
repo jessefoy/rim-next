@@ -10,7 +10,7 @@
  *   Reflection          — italic question lead-in, block-level body.
  *   Verse Quote         — smaller centered serif, optional attribution.
  *   Note (callout)      — compact titled box; Note + Decision variants.
- *   Aside (callout)     — shaded box with optional title; universal design element.
+ *   Aside (callout)     — shaded box with optional heading title; universal design element.
  *
  * Rendered output is scoped by the .rim-content--{scope} class at the
  * wrapper. Document scope gets utilitarian treatment (Open Sans, no
@@ -36,6 +36,12 @@ function resolveAsideBg(bgColor: string, customColor: string): string {
   if (bgColor === "custom") return customColor || "#eeeeee";
   return (ASIDE_BG_COLORS as Record<string, string>)[bgColor] ?? "#eeeeee";
 }
+
+const ASIDE_FONT_SIZE: Record<string, string> = {
+  h2: "var(--text-h2)",
+  h3: "var(--text-h3)",
+  h4: "var(--text-h4)",
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Pull Quote
@@ -288,26 +294,52 @@ export const CALLOUT_LABELS: Record<CalloutVariant, string> = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Aside editor view — extracted component so it can use its own hooks cleanly.
+// Aside editor view
+//
+// Background approach: JS adds .bn-block--aside class + sets --aside-bg on the
+// .bn-block ancestor (which wraps both controls and the BlockNote-rendered
+// children block-group). This bypasses any data-variant attribute dependency.
 // ─────────────────────────────────────────────────────────────────────────────
 
 function AsideEditorView({ block, editor }: { block: any; editor: any }) {
-  const bgColor  = (block.props.bgColor  as string) || "neutral";
+  const bgColor     = (block.props.bgColor     as string) || "neutral";
   const customColor = (block.props.customColor as string) || "";
-  const resolvedBg = resolveAsideBg(bgColor, customColor);
+  const titleLevel  = (block.props.titleLevel  as string) || "h4";
+  const resolvedBg  = resolveAsideBg(bgColor, customColor);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const bnBlockRef   = useRef<HTMLElement | null>(null);
 
-  // Apply dynamic background to the .bn-block wrapper (which spans both the
-  // controls strip and the BlockNote-rendered children block-group).
+  // Mount/unmount — add class and set initial color on .bn-block ancestor.
   useEffect(() => {
     const bnBlock = containerRef.current?.closest(".bn-block") as HTMLElement | null;
-    if (bnBlock) bnBlock.style.setProperty("--aside-bg", resolvedBg);
+    if (!bnBlock) return;
+    bnBlockRef.current = bnBlock;
+    bnBlock.classList.add("bn-block--aside");
+    bnBlock.style.setProperty("--aside-bg", resolvedBg);
+    return () => {
+      bnBlock.classList.remove("bn-block--aside");
+      bnBlock.style.removeProperty("--aside-bg");
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Color change — update --aside-bg whenever the swatch/hex changes.
+  useEffect(() => {
+    const bnBlock =
+      bnBlockRef.current ??
+      (containerRef.current?.closest(".bn-block") as HTMLElement | null);
+    if (bnBlock) {
+      bnBlockRef.current = bnBlock;
+      bnBlock.style.setProperty("--aside-bg", resolvedBg);
+    }
   }, [resolvedBg]);
 
   return (
     <div className="bn-callout bn-callout--aside" contentEditable={false} ref={containerRef}>
       <div className="bn-aside__controls">
+
+        {/* Color swatches */}
         <div className="bn-aside__swatches">
           {(["neutral", "teal", "warm"] as const).map((color) => (
             <button
@@ -345,10 +377,29 @@ function AsideEditorView({ block, editor }: { block: any; editor: any }) {
             />
           )}
         </div>
+
+        {/* Heading level toggle */}
+        <div className="bn-aside__level-btns">
+          {(["h2", "h3", "h4"] as const).map((lvl) => (
+            <button
+              key={lvl}
+              type="button"
+              className={`bn-aside__level-btn${titleLevel === lvl ? " bn-aside__level-btn--active" : ""}`}
+              title={`Title as ${lvl.toUpperCase()}`}
+              onClick={() => editor.updateBlock(block, { props: { titleLevel: lvl } })}
+              onMouseDown={(e) => e.preventDefault()}
+            >
+              {lvl.toUpperCase()}
+            </button>
+          ))}
+        </div>
+
+        {/* Title input */}
         <input
           className="bn-aside__title-input"
           placeholder="Title (optional)"
           value={block.props.title}
+          style={{ fontSize: ASIDE_FONT_SIZE[titleLevel] ?? "var(--text-h4)" }}
           onChange={(e) =>
             editor.updateBlock(block, { props: { title: e.target.value } })
           }
@@ -359,6 +410,7 @@ function AsideEditorView({ block, editor }: { block: any; editor: any }) {
             }
           }}
         />
+
       </div>
     </div>
   );
@@ -386,11 +438,16 @@ const calloutFactory = createReactBlockSpec(
         ] as const,
       },
       title: { default: "" },
+      // Aside-specific props
       bgColor: {
         default: "neutral" as const,
         values: ["neutral", "teal", "warm", "custom"] as const,
       },
       customColor: { default: "" },
+      titleLevel: {
+        default: "h4" as const,
+        values: ["h2", "h3", "h4"] as const,
+      },
     },
     content: "none" as const,
   },
@@ -478,22 +535,25 @@ const calloutFactory = createReactBlockSpec(
       );
     },
     toExternalHTML: ({ block }) => {
-      const variant = block.props.variant as CalloutVariant;
+      const variant    = block.props.variant as CalloutVariant;
 
-      // Aside — no icon, dynamic background, optional serif title
+      // Aside — no icon, dynamic background, optional heading title
       if (variant === "aside") {
-        const title    = block.props.title as string;
-        const bg       = resolveAsideBg(
+        const title      = block.props.title as string;
+        const titleLevel = (block.props.titleLevel as string) || "h4";
+        const bg         = resolveAsideBg(
           block.props.bgColor as string,
           block.props.customColor as string,
         );
+        // Dynamic heading tag for the title
+        const TitleTag = titleLevel as "h2" | "h3" | "h4";
         return (
           <div
             className="rim-el-note rim-el-note--aside"
             style={{ "--aside-bg": bg } as any}
           >
             {title ? (
-              <div className="rim-el-aside__title">{title}</div>
+              <TitleTag className="rim-el-aside__title">{title}</TitleTag>
             ) : null}
           </div>
         );
