@@ -192,24 +192,20 @@ function renderSingleBlock(block: any): string {
       const title   = block.props?.title ?? ""
       const body    = children || inner
 
-      // Aside — universal shaded container. No icon, optional heading-tag
-      // title, dynamic background from bgColor / customColor props. Must
-      // mirror toExternalHTML in lib/blockNoteCustomBlocks.tsx.
+      // Aside — universal shaded container. No icon, no baked-in title
+      // (author puts a heading block inside if they want one), dynamic
+      // background from bgColor / customColor. Mirrors toExternalHTML in
+      // lib/blockNoteCustomBlocks.tsx.
       if (variant === "aside") {
         const bgColor     = block.props?.bgColor ?? "neutral"
         const customColor = block.props?.customColor ?? ""
-        const titleLevel  = block.props?.titleLevel ?? "h4"
         const ASIDE_BG: Record<string, string> = {
           neutral: "#eeeeee", teal: "#deeef5", warm: "#f5ede0",
         }
         const bg = bgColor === "custom"
           ? (customColor || "#eeeeee")
           : (ASIDE_BG[bgColor] ?? "#eeeeee")
-        const titleTag = ["h2", "h3", "h4"].includes(titleLevel) ? titleLevel : "h4"
-        const titleHtml = title
-          ? `<${titleTag} class="rim-el-aside__title">${title}</${titleTag}>`
-          : ""
-        return `<div class="rim-el-note rim-el-note--aside" style="--aside-bg:${bg}">${titleHtml}${body}</div>`
+        return `<div class="rim-el-note rim-el-note--aside" style="--aside-bg:${bg}">${body}</div>`
       }
 
       const iconMap: Record<string, string> = {

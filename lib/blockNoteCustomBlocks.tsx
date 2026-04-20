@@ -20,7 +20,7 @@
 
 import { BlockNoteSchema, defaultBlockSpecs } from "@blocknote/core";
 import { createReactBlockSpec } from "@blocknote/react";
-import { useState, useRef, useEffect, useLayoutEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Aside color presets
@@ -36,12 +36,6 @@ function resolveAsideBg(bgColor: string, customColor: string): string {
   if (bgColor === "custom") return customColor || "#eeeeee";
   return (ASIDE_BG_COLORS as Record<string, string>)[bgColor] ?? "#eeeeee";
 }
-
-const ASIDE_FONT_SIZE: Record<string, string> = {
-  h2: "var(--text-h2)",
-  h3: "var(--text-h3)",
-  h4: "var(--text-h4)",
-};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Pull Quote
@@ -304,42 +298,30 @@ export const CALLOUT_LABELS: Record<CalloutVariant, string> = {
 function AsideEditorView({ block, editor }: { block: any; editor: any }) {
   const bgColor     = (block.props.bgColor     as string) || "neutral";
   const customColor = (block.props.customColor as string) || "";
-  const titleLevel  = (block.props.titleLevel  as string) || "h4";
   const resolvedBg  = resolveAsideBg(bgColor, customColor);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Local state for text inputs. Every call to editor.updateBlock triggers
-  // BlockNote to re-render the block, which causes ProseMirror to move the
-  // selection — kicking focus out of the input after one keystroke. To
-  // avoid that, inputs track a local string and only commit to the block's
-  // props on blur. Syncing back from block.props handles external updates
-  // (undo/redo, loads) while the input isn't focused.
-  const [localTitle,       setLocalTitle]       = useState<string>(block.props.title ?? "");
-  const [localCustomColor, setLocalCustomColor] = useState<string>(customColor);
-
-  useEffect(() => { setLocalTitle(block.props.title ?? ""); }, [block.props.title]);
-  useEffect(() => { setLocalCustomColor(customColor); }, [customColor]);
-
-  // Set the dynamic --aside-bg variable on the .bn-block ancestor.
-  // Visual identity (background, padding, removed left-border) comes from
-  // CSS using :has(> .bn-block-content > .bn-callout--aside), which doesn't
-  // need JS. Only the dynamic color needs JS, since CSS variables cascade
-  // downward only (a descendant can't feed its inline value to an ancestor).
-  useLayoutEffect(() => {
+  // Set the dynamic --aside-bg variable on the .bn-block ancestor — only
+  // when resolvedBg changes. Running every render caused ProseMirror's
+  // MutationObserver to see a style mutation and steal focus.
+  useEffect(() => {
     const bnBlock = containerRef.current?.closest(".bn-block") as HTMLElement | null;
     if (!bnBlock) return;
     bnBlock.style.setProperty("--aside-bg", resolvedBg);
-  });
+  }, [resolvedBg]);
+
+  // Native color input is hidden; custom swatch clicks trigger it.
+  const colorInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className="bn-callout bn-callout--aside" contentEditable={false} ref={containerRef}>
       <div className="bn-aside__controls">
 
-        {/* Color swatches.
-            onMouseDown (not onClick) with preventDefault — ProseMirror
-            swallows onClick on contentEditable=false blocks. This matches
-            the button pattern used everywhere else in RimBlockEditor. */}
+        {/* Preset swatches + custom picker.
+            Title is gone — users put a heading block inside the aside
+            instead (H2/H3/H4 as the first child). That's simpler and more
+            flexible than a separate titled input. */}
         <div className="bn-aside__swatches">
           {(["neutral", "teal", "warm"] as const).map((color) => (
             <button
@@ -355,91 +337,39 @@ function AsideEditorView({ block, editor }: { block: any; editor: any }) {
               aria-label={`${color} background`}
             />
           ))}
+          {/* Custom swatch — clicking it opens the native color picker.
+              The swatch itself shows the chosen custom color (or a
+              rainbow-style gradient if no custom color has been picked). */}
           <button
             type="button"
             className={`bn-aside__swatch bn-aside__swatch--custom${bgColor === "custom" ? " bn-aside__swatch--active" : ""}`}
+            style={bgColor === "custom" && customColor ? { backgroundColor: customColor } : undefined}
             title="Custom color"
             onMouseDown={(e) => {
               e.preventDefault();
-              editor.updateBlock(block, { props: { bgColor: "custom" } });
+              // Set the variant to custom if not already, then open picker.
+              if (bgColor !== "custom") {
+                editor.updateBlock(block, { props: { bgColor: "custom", customColor: customColor || "#eeeeee" } });
+              }
+              // Trigger the hidden color input.
+              setTimeout(() => colorInputRef.current?.click(), 0);
             }}
             aria-label="Custom background color"
           />
-          {bgColor === "custom" && (
-            <input
-              type="text"
-              className="bn-aside__hex-input"
-              placeholder="#eeeeee"
-              value={localCustomColor}
-              onChange={(e) => setLocalCustomColor(e.target.value)}
-              onBlur={() => {
-                if (localCustomColor !== customColor) {
-                  editor.updateBlock(block, { props: { customColor: localCustomColor } });
-                }
-              }}
-              /* Stop key events from reaching ProseMirror at the NATIVE
-                 level — React's synthetic stopPropagation doesn't stop
-                 native DOM listeners. nativeEvent.stopImmediatePropagation
-                 prevents ProseMirror from receiving the event at all. */
-              onKeyDown={(e) => {
-                e.nativeEvent.stopImmediatePropagation();
-                if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-              }}
-              onKeyUp={(e) => e.nativeEvent.stopImmediatePropagation()}
-              onMouseDown={(e) => e.stopPropagation()}
-              spellCheck={false}
-            />
-          )}
+          {/* Hidden native color input — opens OS color picker.
+              onChange fires when the user confirms a color. */}
+          <input
+            ref={colorInputRef}
+            type="color"
+            className="bn-aside__color-native"
+            value={customColor || "#eeeeee"}
+            onChange={(e) => {
+              editor.updateBlock(block, { props: { bgColor: "custom", customColor: e.target.value } });
+            }}
+            aria-hidden="true"
+            tabIndex={-1}
+          />
         </div>
-
-        {/* Heading level toggle — same onMouseDown pattern as swatches */}
-        <div className="bn-aside__level-btns">
-          {(["h2", "h3", "h4"] as const).map((lvl) => (
-            <button
-              key={lvl}
-              type="button"
-              className={`bn-aside__level-btn${titleLevel === lvl ? " bn-aside__level-btn--active" : ""}`}
-              title={`Title as ${lvl.toUpperCase()}`}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                editor.updateBlock(block, { props: { titleLevel: lvl } });
-              }}
-            >
-              {lvl.toUpperCase()}
-            </button>
-          ))}
-        </div>
-
-        {/* Title input — local state, commit on blur.
-            nativeEvent.stopImmediatePropagation blocks key events from
-            reaching ProseMirror's native DOM listeners. React's synthetic
-            stopPropagation isn't enough because ProseMirror uses native
-            addEventListener, not React. */}
-        <input
-          className="bn-aside__title-input"
-          placeholder="Title (optional)"
-          value={localTitle}
-          style={{ fontSize: ASIDE_FONT_SIZE[titleLevel] ?? "var(--text-h4)" }}
-          onChange={(e) => setLocalTitle(e.target.value)}
-          onBlur={() => {
-            if (localTitle !== (block.props.title ?? "")) {
-              editor.updateBlock(block, { props: { title: localTitle } });
-            }
-          }}
-          onKeyDown={(e) => {
-            e.nativeEvent.stopImmediatePropagation();
-            if (e.key === "Enter" || e.key === "ArrowDown") {
-              e.preventDefault();
-              if (localTitle !== (block.props.title ?? "")) {
-                editor.updateBlock(block, { props: { title: localTitle } });
-              }
-              focusContainerBody(editor, block.id);
-            }
-          }}
-          onKeyUp={(e) => e.nativeEvent.stopImmediatePropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
-        />
-
       </div>
     </div>
   );
@@ -467,16 +397,13 @@ const calloutFactory = createReactBlockSpec(
         ] as const,
       },
       title: { default: "" },
-      // Aside-specific props
+      // Aside-specific props — bgColor drives which swatch / preset,
+      // customColor holds the raw hex when bgColor === "custom".
       bgColor: {
         default: "neutral" as const,
         values: ["neutral", "teal", "warm", "custom"] as const,
       },
       customColor: { default: "" },
-      titleLevel: {
-        default: "h4" as const,
-        values: ["h2", "h3", "h4"] as const,
-      },
     },
     content: "none" as const,
   },
@@ -566,25 +493,19 @@ const calloutFactory = createReactBlockSpec(
     toExternalHTML: ({ block }) => {
       const variant    = block.props.variant as CalloutVariant;
 
-      // Aside — no icon, dynamic background, optional heading title
+      // Aside — no icon, no baked-in title (use a heading block inside
+      // instead), dynamic background. Children render as a sibling block-
+      // group and pick up the same background via --aside-bg.
       if (variant === "aside") {
-        const title      = block.props.title as string;
-        const titleLevel = (block.props.titleLevel as string) || "h4";
-        const bg         = resolveAsideBg(
+        const bg = resolveAsideBg(
           block.props.bgColor as string,
           block.props.customColor as string,
         );
-        // Dynamic heading tag for the title
-        const TitleTag = titleLevel as "h2" | "h3" | "h4";
         return (
           <div
             className="rim-el-note rim-el-note--aside"
             style={{ "--aside-bg": bg } as any}
-          >
-            {title ? (
-              <TitleTag className="rim-el-aside__title">{title}</TitleTag>
-            ) : null}
-          </div>
+          />
         );
       }
 
