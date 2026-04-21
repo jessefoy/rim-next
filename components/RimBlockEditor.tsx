@@ -28,14 +28,20 @@ import {
   TextAlignButton,
   useBlockNoteEditor,
   useEditorSelectionChange,
+  SuggestionMenuController,
 } from "@blocknote/react";
+import { filterSuggestionItems } from "@blocknote/core/extensions";
 import { BlockNoteView } from "@blocknote/mantine";
 import { upload } from "@vercel/blob/client";
-import { RiQuoteText, RiPlantLine, RiInformationLine } from "react-icons/ri";
 import { rimTheme } from "@/lib/blockNoteTheme";
 import { rimBlockSchema, CONTAINER_BLOCK_TYPES } from "@/lib/blockNoteCustomBlocks";
 import { FormatPill } from "@/components/editor/FormatPill";
-import { type EditorContext as RegistryContext } from "@/lib/editorRegistry";
+import {
+  type EditorContext as RegistryContext,
+  type EditorElement,
+  insertElementsForContext,
+  GROUP_LABELS,
+} from "@/lib/editorRegistry";
 
 /* ── Types ─────────────────────────────────────────────────────────────────── */
 
@@ -124,6 +130,88 @@ function toRegistryContext(context: EditorContext): RegistryContext {
     default:
       return "hub-document";
   }
+}
+
+/* ── Shared insert logic ───────────────────────────────────────────────────
+   Drives both the pill menu and the slash menu. Takes an EditorElement from
+   editorRegistry and inserts a fresh block at the cursor.
+
+   Behavior:
+   - If the current block is an empty paragraph, REPLACE it so the new block
+     doesn't leave behind a stranded empty line above.
+   - Container blocks (callout, practiceSuggestion, reflection) get seeded
+     with a starter paragraph child so the cursor has somewhere to land.
+   - Cursor is moved inside the container (or to the new block otherwise)
+     once BlockNote has committed the change.
+*/
+function insertElementAtCursor(editor: any, el: EditorElement): void {
+  try {
+    const block = editor.getTextCursorPosition().block;
+    const spec: Record<string, any> = { type: el.blockType as any };
+    if (el.blockProps) spec.props = el.blockProps;
+    if (CONTAINER_BLOCK_TYPES.has(el.blockType)) {
+      spec.children = [{ type: "paragraph" }];
+    }
+    const currentIsEmpty =
+      block.type === "paragraph" &&
+      (!Array.isArray(block.content) || block.content.length === 0);
+    if (currentIsEmpty) {
+      editor.replaceBlocks([block], [spec as any]);
+    } else {
+      editor.insertBlocks([spec as any], block, "after");
+    }
+    setTimeout(() => {
+      try {
+        const fresh = currentIsEmpty
+          ? editor.getTextCursorPosition().block
+          : editor.getTextCursorPosition().nextBlock;
+        if (CONTAINER_BLOCK_TYPES.has(el.blockType)) {
+          const firstChild = fresh?.children?.[0];
+          if (firstChild) editor.setTextCursorPosition(firstChild.id, "start");
+        } else if (fresh) {
+          editor.setTextCursorPosition(fresh.id, "start");
+        }
+      } catch {}
+      editor.focus();
+    }, 50);
+  } catch (err) {
+    console.error("insertElementAtCursor failed:", err);
+  }
+}
+
+/* Build a memoized list of insertable elements for the given registry
+   context. Used by both menus as the single source of truth. */
+function useInsertElements(registryCtx: RegistryContext): EditorElement[] {
+  return useMemo(() => insertElementsForContext(registryCtx), [registryCtx]);
+}
+
+/* Slash-menu suggestion controller. Reads the same registry the pill menu
+   uses, so slash and pill always show the same options for the same
+   context. Items conform to DefaultReactSuggestionItem (title, aliases,
+   group, onItemClick) so BlockNote's default Mantine UI renders them. */
+function RimSlashMenu({ registryCtx }: { registryCtx: RegistryContext }) {
+  const editor = useBlockNoteEditor();
+  const elements = useInsertElements(registryCtx);
+
+  const getItems = useCallback(
+    async (query: string) => {
+      const items = elements.map((el) => ({
+        title: el.label,
+        aliases: [el.id, el.label.toLowerCase()],
+        group: GROUP_LABELS[el.group],
+        onItemClick: () => insertElementAtCursor(editor, el),
+      }));
+      return filterSuggestionItems(items, query);
+    },
+    [elements, editor],
+  );
+
+  return (
+    <SuggestionMenuController
+      triggerCharacter="/"
+      getItems={getItems}
+    />
+  );
 }
 
 /* ── Portal dropdown — renders at document.body to escape overflow:hidden ── */
@@ -360,20 +448,12 @@ function ToolbarMoreMenu({ context = "default" as EditorContext }) {
     { label: "Paragraph", type: "paragraph", match: activeBlock === "paragraph" },
   ];
 
-  const insertItems = useMemo(() => {
-    const items: { label: string; icon?: React.ReactNode; type: string; props?: Record<string, any> }[] = [];
-    items.push({ label: "Table", type: "table" });
-    items.push({ label: "Image", type: "image" });
-    if (context === "lesson") {
-      items.push(
-        { label: "Verse Quote", icon: <RiQuoteText size={15} />, type: "verseQuote" },
-        { label: "Practice Suggestion", icon: <RiPlantLine size={15} />, type: "practiceSuggestion" },
-        { label: "Callout", icon: <RiInformationLine size={15} />, type: "callout" },
-      );
-    }
-    items.push({ label: "Aside", type: "callout", props: { variant: "aside" } });
-    return items;
-  }, [context]);
+  // Registry-driven insert items. Same source of truth as the slash menu
+  // and the pill's ⋯ — "what's available here" lives in editorRegistry.ts.
+  const insertElements = useMemo(
+    () => insertElementsForContext(toRegistryContext(context)),
+    [context],
+  );
 
   const btnRef = useRef<HTMLButtonElement>(null);
 
@@ -405,19 +485,19 @@ function ToolbarMoreMenu({ context = "default" as EditorContext }) {
             </button>
           ))}
           <div className="bear-more-divider" />
-          {insertItems.map((item) => (
+          {insertElements.map((el) => (
             <button
-              key={item.label}
+              key={el.id}
               type="button"
               className="bear-more-item"
               onMouseDown={(e) => {
                 e.preventDefault();
-                if (item.type === "table") insertTable();
-                else insertBlockAfter(item.type, item.props);
+                if (el.blockType === "table") insertTable();
+                else insertElementAtCursor(editor, el);
+                setOpen(false);
               }}
             >
-              {item.icon && <span className="bear-more-icon">{item.icon}</span>}
-              {item.label}
+              {el.label}
             </button>
           ))}
         </PortalDropdown>
@@ -558,56 +638,23 @@ function PillContextMenu({ context, onAction }: { context: EditorContext; onActi
   const close = useCallback(() => setOpen(false), []);
   useClickOutside(ref, open, close);
 
-  function insertBlockAfter(type: string, props?: Record<string, any>) {
-    try {
-      const block = editor.getTextCursorPosition().block;
-      const spec: Record<string, any> = { type: type as any };
-      if (props) spec.props = props;
-      if (CONTAINER_BLOCK_TYPES.has(type)) {
-        spec.children = [{ type: "paragraph" }];
-      }
-      const currentIsEmpty =
-        block.type === "paragraph" &&
-        (!Array.isArray(block.content) || block.content.length === 0);
-      if (currentIsEmpty) {
-        editor.replaceBlocks([block], [spec as any]);
-      } else {
-        editor.insertBlocks([spec as any], block, "after");
-      }
-      setTimeout(() => {
-        try {
-          if (CONTAINER_BLOCK_TYPES.has(type)) {
-            const fresh = currentIsEmpty
-              ? editor.getTextCursorPosition().block
-              : editor.getTextCursorPosition().nextBlock;
-            const firstChild = fresh?.children?.[0];
-            if (firstChild) editor.setTextCursorPosition(firstChild.id, "start");
-          } else {
-            const next = editor.getTextCursorPosition().nextBlock;
-            if (next) editor.setTextCursorPosition(next, "start");
-          }
-        } catch {}
-        editor.focus();
-      }, 50);
-    } catch {}
-    setOpen(false);
-    onAction?.();
+  // Registry-driven. Same elements the slash menu surfaces, same source of
+  // truth. Grouped by category (Text / Lists / Structure / Media / …) with
+  // dividers for readability.
+  const insertElements = useMemo(
+    () => insertElementsForContext(toRegistryContext(context)),
+    [context],
+  );
+
+  if (insertElements.length === 0) return null;
+
+  // Group adjacent elements by category so we can render dividers between.
+  const grouped: EditorElement[][] = [];
+  for (const el of insertElements) {
+    const last = grouped[grouped.length - 1];
+    if (last && last[0].group === el.group) last.push(el);
+    else grouped.push([el]);
   }
-
-  const insertItems = useMemo(() => {
-    const items: { label: string; icon?: React.ReactNode; type: string; props?: Record<string, any> }[] = [];
-    if (context === "lesson") {
-      items.push(
-        { label: "Verse Quote", icon: <RiQuoteText size={15} />, type: "verseQuote" },
-        { label: "Practice Suggestion", icon: <RiPlantLine size={15} />, type: "practiceSuggestion" },
-        { label: "Callout", icon: <RiInformationLine size={15} />, type: "callout" },
-      );
-    }
-    items.push({ label: "Aside", type: "callout", props: { variant: "aside" } });
-    return items;
-  }, [context]);
-
-  if (insertItems.length === 0) return null;
 
   return (
     <div className="bear-more-wrap" ref={ref} style={{ position: "relative" }}>
@@ -621,18 +668,31 @@ function PillContextMenu({ context, onAction }: { context: EditorContext; onActi
           }
           setOpen(!open);
         }}
-        title="Special blocks"
+        title="Insert block"
       >
         ⋯
       </button>
       {open && (
         <div className={`bear-more-dropdown${flipUp ? " bear-more-dropdown--up" : ""}`} onPointerDown={(e) => e.stopPropagation()}>
-          {insertItems.map((item) => (
-            <button key={item.label} type="button" className="bear-more-item"
-              onMouseDown={(e) => { e.preventDefault(); insertBlockAfter(item.type, item.props); }}>
-              {item.icon && <span className="bear-more-icon">{item.icon}</span>}
-              {item.label}
-            </button>
+          {grouped.map((group, i) => (
+            <div key={group[0].group}>
+              {i > 0 && <div className="bear-more-divider" />}
+              {group.map((el) => (
+                <button
+                  key={el.id}
+                  type="button"
+                  className="bear-more-item"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    insertElementAtCursor(editor, el);
+                    setOpen(false);
+                    onAction?.();
+                  }}
+                >
+                  {el.label}
+                </button>
+              ))}
+            </div>
           ))}
         </div>
       )}
@@ -1369,11 +1429,14 @@ export default function RimBlockEditor({
         editor={editor}
         theme={rimTheme}
         onChange={(editor) => onChange(editor.document)}
+        slashMenu={false}
         sideMenu={false}
         formattingToolbar={false}
       >
-        {/* Format Pill — the only formatting surface. No slash menu, no drag
-            handle — the pill is the single entry point for inserts and format. */}
+        {/* Custom slash menu — reads from editorRegistry, same items as the
+            pill's ⋯ for the same context. One source of truth, two surfaces. */}
+        <RimSlashMenu registryCtx={toRegistryContext(context)} />
+        {/* Format Pill — block-level insert + inline formatting. */}
         <FormatPill context={toRegistryContext(context)} />
         {/* Image alignment overlay — shows L/C/R on the image itself */}
         <ImageAlignOverlay />
