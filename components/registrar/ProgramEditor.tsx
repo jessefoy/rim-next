@@ -46,7 +46,6 @@ export interface ProgramData {
   description: any;
   pullQuote: string;
   pullQuoteSource: string;
-  specialNotes: any;
   teacherFacilitators: string[];
   programTeachers: { id: string; firstName: string; lastName: string }[];
   categoryId: string;
@@ -534,7 +533,6 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
   const [description, setDescription] = useState<any>(initialData?.description ?? null);
   const [pullQuote, setPullQuote] = useState(initialData?.pullQuote ?? "");
   const [pullQuoteSource, setPullQuoteSource] = useState(initialData?.pullQuoteSource ?? "");
-  const [specialNotes, setSpecialNotes] = useState<any>(initialData?.specialNotes ?? null);
   const [teacherFacilitatorsText, setTeacherFacilitatorsText] = useState(
     initialData?.teacherFacilitators?.join(", ") ?? ""
   );
@@ -770,7 +768,6 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
         description,
         pullQuote,
         pullQuoteSource,
-        specialNotes,
         teacherFacilitators: teacherFacilitatorsText
           ? teacherFacilitatorsText.split(",").map((s) => s.trim()).filter(Boolean)
           : [],
@@ -1018,17 +1015,6 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
 
           <div className="pe-card__section">
             <div className="pe-form">
-              <div className="pe-field">
-                <span className="pe-field__label">Special Notes</span>
-                <span className="pe-field__help">Temporary logistical notes shown on the public program page — things like room changes, schedule adjustments, or one-time notices. Remove when no longer relevant.</span>
-                <RimProseEditor
-                  value={specialNotes}
-                  onChange={(v: any) => { setSpecialNotes(v); markDirty(); }}
-                  placeholder="Any temporary notes…"
-                  minHeight={120}
-                />
-              </div>
-
               <div className="pe-field">
                 <span className="pe-field__label">Teacher / Facilitators</span>
                 <span className="pe-field__help">Search by name to link teachers to this program. Linked teachers automatically get host controls in virtual sessions.</span>

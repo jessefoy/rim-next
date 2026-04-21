@@ -188,6 +188,82 @@ const migrations = [
       console.log(`  ✔ Applied: ${this.name}`);
     },
   },
+  {
+    // Session 91 — fold Program.specialNotes into Program.description as an
+    // Aside block. The specialNotes field was a separate top-level slot
+    // rendered above the description; with the Aside block shipped in
+    // session 90 (callout variant "aside"), authors can place the callout
+    // inline inside the description itself. Migration preserves data by
+    // wrapping each program's specialNotes (stored as BlockNote JSON, a
+    // prose-only document from RimProseEditor) as the children of a new
+    // Aside block and PREPENDING it to the description array. specialNotes
+    // is then nulled. The schema field is kept for one release as a safety
+    // net; removal will come in a later migration.
+    name: "fold_special_notes_into_description_as_aside",
+    async run() {
+      // Guard: has the flag been recorded before?
+      const flag = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags" WHERE name = 'fold_special_notes_into_description_as_aside_v1'
+      `).catch(() => []);
+      if (flag.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      // Pull every program that has a non-empty specialNotes value.
+      const programs = await db.program.findMany({
+        where: { specialNotes: { not: null } },
+        select: { id: true, slug: true, description: true, specialNotes: true },
+      });
+
+      let migrated = 0;
+      for (const p of programs) {
+        const notesBlocks = Array.isArray(p.specialNotes) ? p.specialNotes : null;
+        // Skip if the JSON doesn't look like BlockNote blocks (empty array,
+        // null, or non-array shape). Null the field either way to clean up.
+        if (!notesBlocks || notesBlocks.length === 0) {
+          await db.program.update({
+            where: { id: p.id },
+            data: { specialNotes: null },
+          });
+          continue;
+        }
+
+        // Build an Aside block whose children are the existing notes blocks.
+        // Each BlockNote block needs an id — BlockNote sets these on load,
+        // but we need to pre-populate so Prisma stores a valid document.
+        const { randomUUID } = await import("node:crypto");
+        const asideBlock = {
+          id: randomUUID(),
+          type: "callout",
+          props: { variant: "aside" },
+          content: [],
+          children: notesBlocks.map((b) => ({
+            ...b,
+            id: b?.id ?? randomUUID(),
+          })),
+        };
+
+        const existingDescription = Array.isArray(p.description) ? p.description : [];
+        const newDescription = [asideBlock, ...existingDescription];
+
+        await db.program.update({
+          where: { id: p.id },
+          data: {
+            description: newDescription,
+            specialNotes: null,
+          },
+        });
+        console.log(`    ↪ ${p.slug}: wrapped specialNotes as Aside, prepended to description`);
+        migrated++;
+      }
+
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('fold_special_notes_into_description_as_aside_v1')
+      `);
+      console.log(`  ✔ Applied: ${this.name} (${migrated} programs migrated)`);
+    },
+  },
 ];
 
 async function main() {

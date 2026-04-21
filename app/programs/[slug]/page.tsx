@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { resolveLocation } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
-import { renderContentBodyAsync, renderFormattedTextAsync } from "@/lib/renderRichContentServer";
+import { renderContentBodyAsync } from "@/lib/renderRichContentServer";
 
 export const dynamic = "force-dynamic";
 
@@ -138,10 +138,7 @@ export default async function ProgramDetailPage({
     : program.teacherFacilitators.map((name) => ({ name, slug: null }));
   const hasFacilitators = teacherNames.length > 0;
   const hasDescription = !!program.description;
-  const hasSpecialNotes = !!program.specialNotes;
-
   const descriptionHtml = hasDescription ? await renderContentBodyAsync(program.description) : "";
-  const specialNotesHtml = hasSpecialNotes ? await renderFormattedTextAsync(program.specialNotes) : "";
 
   return (
     <div className="pg-page">
@@ -192,13 +189,6 @@ export default async function ProgramDetailPage({
         {/* ── Program description ── */}
         {hasDescription && (
           <div className="prog-description rim-content rim-content--program" dangerouslySetInnerHTML={{ __html: descriptionHtml }} />
-        )}
-
-        {/* ── Special notes callout ── */}
-        {hasSpecialNotes && (
-          <div className="pg-notes">
-            <div className="prog-description rim-content rim-content--program" dangerouslySetInnerHTML={{ __html: specialNotesHtml }} />
-          </div>
         )}
 
         {/* ── Details section ── */}

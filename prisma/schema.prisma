@@ -290,7 +290,7 @@ model Program {
   description         Json?            // BlockNote JSON (RimBlockEditor)
   pullQuote           String?
   pullQuoteSource     String?
-  specialNotes        Json?            // BlockNote JSON (RimProseEditor)
+  specialNotes        Json?            // DEPRECATED (session 91) — content migrated into description as Aside block by the fold_special_notes_into_description_as_aside migration. Field kept for one release as safety net; remove in a later migration. Do not write new data to this field.
   teacherFacilitators String[]         // plain text names
 
   // ── Schedule & Location ────────────────────────────────

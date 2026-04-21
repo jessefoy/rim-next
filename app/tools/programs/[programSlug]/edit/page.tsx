@@ -54,7 +54,6 @@ export default async function EditProgramToolPage({
     description: program.description,
     pullQuote: program.pullQuote ?? "",
     pullQuoteSource: program.pullQuoteSource ?? "",
-    specialNotes: program.specialNotes,
     teacherFacilitators: program.teacherFacilitators,
     programTeachers: program.programTeachers?.map((pt) => ({
       id: pt.user.id,

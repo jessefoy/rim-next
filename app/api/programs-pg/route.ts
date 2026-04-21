@@ -50,7 +50,6 @@ export async function POST(request: NextRequest) {
       description: body.description || undefined,
       pullQuote: body.pullQuote || null,
       pullQuoteSource: body.pullQuoteSource || null,
-      specialNotes: body.specialNotes || undefined,
       teacherFacilitators: body.teacherFacilitators ?? [],
       categoryId: body.categoryId || null,
       dateText: body.dateText || null,

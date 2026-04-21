@@ -2099,13 +2099,9 @@ h4 { font-size: var(--text-h4); }
 /* ── Special Notes callout ──
    Warm card treatment — visually set apart from the main description. */
 
-.pg-notes {
-  background: var(--rim-bg-accent);
-  border-radius: 10px;
-  padding: 30px 30px 25px;
-  margin-top: 5px;
-  margin-bottom: 15px;
-}
+/* .pg-notes removed in session 91 — special notes are now an Aside
+   block inside the description. The Aside's styling lives in the
+   .rim-el-note--aside rules below. */
 
 /* ── Details section ──
    Heading + icon rows with dividers, matching old Webflow structure. */
@@ -2261,10 +2257,6 @@ h4 { font-size: var(--text-h4); }
 
 .pg-cta-card__btn:hover { opacity: 0.85; color: #fff; }
 
-/* Override lp-body's bottom margin inside the notes card */
-.pg-notes .lp-body {
-  margin-bottom: 0;
-}
 
 /* ── Registration section ──
    Auth-gated. Warm card containing instructions + optional Fillout form. */
@@ -2638,7 +2630,6 @@ h4 { font-size: var(--text-h4); }
   .pg-hero__title   { font-size: 36px; }
   .pg-quote         { padding: 28px 24px 24px; margin-top: -50px; }
   .pg-quote__text   { font-size: var(--text-body); }
-  .pg-notes         { padding: 24px 20px; }
   .pg-cta-card      { padding: 24px 20px; }
   .pg-section-heading { font-size: var(--text-h3); }
   .pg-registration__inner { padding: 28px 20px; }
