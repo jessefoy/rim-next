@@ -40,6 +40,7 @@ import {
   type EditorContext as RegistryContext,
   type EditorElement,
   insertElementsForContext,
+  groupElements,
   GROUP_LABELS,
 } from "@/lib/editorRegistry";
 
@@ -471,6 +472,7 @@ function ToolbarMoreMenu({ context = "default" as EditorContext }) {
       </button>
       {open && (
         <PortalDropdown anchorRef={btnRef} onPointerDown={(e) => e.stopPropagation()}>
+          <div className="bear-more-label">Turn into</div>
           {blockItems.map((item) => (
             <button
               key={item.label}
@@ -484,21 +486,27 @@ function ToolbarMoreMenu({ context = "default" as EditorContext }) {
               {item.label}
             </button>
           ))}
-          <div className="bear-more-divider" />
-          {insertElements.map((el) => (
-            <button
-              key={el.id}
-              type="button"
-              className="bear-more-item"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                if (el.blockType === "table") insertTable();
-                else insertElementAtCursor(editor, el);
-                setOpen(false);
-              }}
-            >
-              {el.label}
-            </button>
+          {groupElements(insertElements).map(({ group, items }) => (
+            <div key={group}>
+              <div className="bear-more-label bear-more-label--with-rule">
+                {GROUP_LABELS[group]}
+              </div>
+              {items.map((el) => (
+                <button
+                  key={el.id}
+                  type="button"
+                  className="bear-more-item"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    if (el.blockType === "table") insertTable();
+                    else insertElementAtCursor(editor, el);
+                    setOpen(false);
+                  }}
+                >
+                  {el.label}
+                </button>
+              ))}
+            </div>
           ))}
         </PortalDropdown>
       )}
@@ -676,7 +684,9 @@ function PillContextMenu({ context, onAction }: { context: EditorContext; onActi
         <div className={`bear-more-dropdown${flipUp ? " bear-more-dropdown--up" : ""}`} onPointerDown={(e) => e.stopPropagation()}>
           {grouped.map((group, i) => (
             <div key={group[0].group}>
-              {i > 0 && <div className="bear-more-divider" />}
+              <div className={`bear-more-label${i > 0 ? " bear-more-label--with-rule" : ""}`}>
+                {GROUP_LABELS[group[0].group]}
+              </div>
               {group.map((el) => (
                 <button
                   key={el.id}
