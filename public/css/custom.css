@@ -21059,42 +21059,43 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
   margin: 4px 8px;
 }
 
-/* Section labels inside pill dropdowns. Match the slash-menu label style:
-   bold, UI size, Open Sans. The --with-rule modifier adds a thin divider
-   above the label so sections separate cleanly (used for every label
-   except the first in a menu). */
+/* Section labels inside pill dropdowns. Classic "eyebrow" treatment:
+   small uppercase, muted color, medium weight. The --with-rule modifier
+   adds a thin divider line above the label so sections separate cleanly
+   (used for every label except the first in a menu). The same style is
+   mirrored to the slash menu's Mantine label class below so both menus
+   look identical. */
 .bear-more-label {
   font-family: var(--font-sans);
-  font-size: var(--text-ui);
-  font-weight: 700;
-  color: var(--rim-text);
-  padding: 10px 12px 6px;
+  font-size: var(--text-xxs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--rim-text-muted);
+  padding: 10px 12px 4px;
   user-select: none;
   cursor: default;
 }
 .bear-more-label--with-rule {
   border-top: 1px solid var(--rim-rule);
   margin-top: 4px;
+  padding-top: 10px;
 }
 
 /* ── Slash menu (BlockNote SuggestionMenuController via Mantine) ────────
    Overrides BlockNote's default Mantine slash menu styling so group
-   headers read clearly in the RIM editor. Spec:
-   - Bold, regular (var(--text-ui)=14px) section labels
-   - Divider line above each section (except the first) for clear separation
-   - Slightly tighter padding so the menu reads more like our pill dropdown
-*/
+   headers match the pill menu's eyebrow labels exactly: small uppercase
+   muted text, with a divider line above each section after the first. */
 html body .bn-mantine .bn-suggestion-menu-label {
   font-family: var(--font-sans) !important;
-  font-size: var(--text-ui) !important;
-  font-weight: 700 !important;
-  color: var(--rim-text) !important;
-  letter-spacing: 0 !important;
-  text-transform: none !important;
-  padding: 10px 12px 6px !important;
+  font-size: var(--text-xxs) !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+  color: var(--rim-text-muted) !important;
+  padding: 10px 12px 4px !important;
 }
 /* Divider line above each section label, but NOT above the first one */
-html body .bn-mantine .bn-suggestion-menu-label + * ~ .bn-suggestion-menu-label,
 html body .bn-mantine .bn-suggestion-menu-item + .bn-suggestion-menu-label {
   border-top: 1px solid var(--rim-rule) !important;
   margin-top: 4px !important;
