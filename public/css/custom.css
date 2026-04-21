@@ -20660,9 +20660,12 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-/* Editor container: no padding (the card provides it) */
+/* Editor container: no horizontal padding (the card provides it).
+   A small padding-bottom preserves a click zone at the end of the
+   document even when the trailing empty paragraph is collapsed — see
+   the "Smart trailing-line collapse" rule further down. */
 .rim-block-editor .bn-editor {
-  padding: 0 !important;
+  padding: 0 0 32px !important;
 }
 /* Block-level spacing — generous like Bear */
 .rim-block-editor .bn-block-outer {
@@ -21608,6 +21611,104 @@ html body .bn-mantine .bn-mt-suggestion-menu-item-subtitle {
 }
 .bn-block:has(> .bn-block-content > .bn-callout--aside) > .bn-block-group > .bn-block:last-child {
   padding-bottom: 0 !important;
+}
+
+/* ── Smart trailing-line collapse ───────────────────────────────────────
+   BlockNote always appends an empty paragraph at the end of the document
+   so users can keep typing after the last block. That's good UX for text
+   flow, but it visually breaks the "finished" look of design blocks
+   (aside, callout, image, table) when they're the last content.
+
+   Rule: when the last .bn-block-outer is preceded by a visual container
+   block, collapse that last empty paragraph's height to zero. The
+   paragraph still exists in the DOM (cursor can still land in it), and
+   the editor's padding-bottom keeps a click zone below the container so
+   the user can click to add content after.
+
+   Trade-off: fewer visual cues that "you can keep typing." The editor's
+   bottom padding + the still-clickable collapsed paragraph together
+   preserve functionality; only the visible blank line goes away. */
+.rim-block-editor
+  .bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type="callout"])
+  + .bn-block-outer:last-child,
+.rim-block-editor
+  .bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type="image"])
+  + .bn-block-outer:last-child,
+.rim-block-editor
+  .bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type="table"])
+  + .bn-block-outer:last-child,
+.rim-block-editor
+  .bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type="practiceSuggestion"])
+  + .bn-block-outer:last-child,
+.rim-block-editor
+  .bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type="reflection"])
+  + .bn-block-outer:last-child {
+  min-height: 0 !important;
+  margin: 0 !important;
+}
+.rim-block-editor
+  .bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type="callout"])
+  + .bn-block-outer:last-child
+  > .bn-block,
+.rim-block-editor
+  .bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type="image"])
+  + .bn-block-outer:last-child
+  > .bn-block,
+.rim-block-editor
+  .bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type="table"])
+  + .bn-block-outer:last-child
+  > .bn-block,
+.rim-block-editor
+  .bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type="practiceSuggestion"])
+  + .bn-block-outer:last-child
+  > .bn-block,
+.rim-block-editor
+  .bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type="reflection"])
+  + .bn-block-outer:last-child
+  > .bn-block {
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.rim-block-editor
+  .bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type="callout"])
+  + .bn-block-outer:last-child
+  > .bn-block
+  > .bn-block-content[data-content-type="paragraph"],
+.rim-block-editor
+  .bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type="image"])
+  + .bn-block-outer:last-child
+  > .bn-block
+  > .bn-block-content[data-content-type="paragraph"],
+.rim-block-editor
+  .bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type="table"])
+  + .bn-block-outer:last-child
+  > .bn-block
+  > .bn-block-content[data-content-type="paragraph"],
+.rim-block-editor
+  .bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type="practiceSuggestion"])
+  + .bn-block-outer:last-child
+  > .bn-block
+  > .bn-block-content[data-content-type="paragraph"],
+.rim-block-editor
+  .bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type="reflection"])
+  + .bn-block-outer:last-child
+  > .bn-block
+  > .bn-block-content[data-content-type="paragraph"] {
+  min-height: 0 !important;
+  height: 0;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible; /* keep cursor visible when focused */
+}
+/* When the user clicks/focuses into the collapsed paragraph, restore
+   normal line height so the cursor has vertical space. */
+.rim-block-editor
+  .bn-block-outer:last-child
+  > .bn-block
+  > .bn-block-content[data-content-type="paragraph"]:focus-within {
+  min-height: 1.5em !important;
+  height: auto;
 }
 /* Children inside an aside inherit the editor body size. BlockNote's
    default nested-block CSS can shrink font-size inside a .bn-block-group;
