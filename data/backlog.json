@@ -1,5 +1,15 @@
 [
   {
+    "id": "2026-04-21-001",
+    "title": "Dedup Aside blocks in migrated program descriptions",
+    "description": "The session-91 fold_special_notes_into_description_as_aside migration prepended an Aside to each program's description, but at least one program (Awakening The Heart) already contained a manually-added Aside from session-90 testing — producing two identical Aside boxes on the public page. Need a one-time dedup migration that walks each program's description, detects consecutive or identical Aside blocks (by comparing normalized child content), and removes the duplicates. Low risk: only acts on programs with the duplication pattern. Also worth adding as a forward-guard in future field-sunset migrations: scan the destination field for an existing matching block before prepending, so this pattern can't recur for Announcement / EarlyArrival / DanaInvitation / etc.",
+    "category": "Programs & Sanity",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-04-21",
+    "notes": "Interim fix available: authors can manually delete the duplicate Aside in the Program Editor's Content tab. Dedup migration only needed if the duplication turns out to affect several programs."
+  },
+  {
     "id": "2026-04-11-001",
     "title": "Member Program Detail Page",
     "description": "Create an authenticated /account/programs/[slug] page that serves as a member's personal view of a program they're registered for or have access to. Replaces the current pattern where the dashboard links to the public marketing page. Should include: registration status, Zoom/join link, calendar links (Google/Apple), pending actions (complete dana, update info), program logistics (next session date/time, location). Future: announcements, materials, form updates, host info.",

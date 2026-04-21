@@ -68,9 +68,26 @@ CSS `:has()` rule added that collapses the trailing empty paragraph to zero heig
 
 ### What comes next
 
-The Aside is the template for the rest of Stage 2d's blocks. The next ones in line — per `UP_NEXT.md` — are SpecialNote (replaces `Program.specialNotes`), Announcement, EarlyArrival, and DanaInvitation. Each goes through the same four-phase design conversation. The pure-structure aside is the model: custom props only when genuinely needed; CSS handles visuals scoped by context; BlockNote's native container pattern unmodified.
+The Aside is the template for the rest of Stage 2d's blocks. The next ones in line — per `UP_NEXT.md` — are Announcement (replaces `Program.specialAnnouncement`), EarlyArrival / PracticalInfo (replaces `Program.earlyArrivalMessage`), and DanaInvitation (replaces on-page `Program.danaMessage`). Each goes through the same four-phase design conversation. The pure-structure aside is the model: custom props only when genuinely needed; CSS handles visuals scoped by context; BlockNote's native container pattern unmodified.
 
-Next session's opening ritual should read this session's log entry, check `/admin/editor-lab` for the aside in action, and pick up Stage 2d block design from SpecialNote.
+Next session's opening ritual should read this session's log entry, check `/admin/editor-lab` for the aside in action, and pick up Stage 2d block design from the next field sunset.
+
+### Addendum — specialNotes sunset (same day, after closing ritual)
+
+After the main session closed, Jesse said we could remove the Special Notes box from the program page and editor since the Aside now covers that use case. This kicked off the first concrete application of the sunset pattern the four-type model was designed to enable.
+
+**What shipped:**
+- `prisma/migrate.mjs` — new migration `fold_special_notes_into_description_as_aside` reads every program with non-empty `specialNotes`, wraps those blocks as the children of a new Aside, prepends the Aside to `description`, and nulls `specialNotes`. Flag-gated, idempotent.
+- `app/programs/[slug]/page.tsx` — removed the `.pg-notes` render slot, `hasSpecialNotes` check, and the now-unused `renderFormattedTextAsync` import.
+- `components/registrar/ProgramEditor.tsx` — removed `specialNotes` from the `ProgramData` interface, the `useState`, the save payload, and the entire Special Notes `RimProseEditor` field.
+- `app/api/programs-pg/route.ts` + `[slug]/route.ts` — stopped accepting `body.specialNotes` on create/update.
+- `app/tools/programs/[programSlug]/edit/page.tsx` — removed `specialNotes` from the initialData mapping.
+- `public/css/custom.css` — removed `.pg-notes` rules (regular and mobile breakpoint).
+- `prisma/schema.prisma` — added a DEPRECATED comment on the `specialNotes` field. Kept for one release as a safety net; removal comes in a later migration.
+
+**Pattern established:** each remaining field sunset (`specialAnnouncement`, `earlyArrivalMessage`, `danaMessage`, lesson quote/prompt fields, etc.) follows the same mechanical steps — data migration that wraps existing content as the appropriate block and prepends/appends into the destination field; render slot removed from the public page; editor field removed; API routes updated; schema comment marks the field deprecated; keep for one release. Roughly 30 minutes per field, verifiable deploy-to-deploy.
+
+**Known issue discovered post-deploy:** the Awakening The Heart program showed two identical Asides on the public page — one from the migration prepend, one from an earlier manual edit (presumably session-90 testing of the Aside block on this program). The duplicate-Aside cleanup is deferred as a backlog item so the fix is captured but not rushed. Proposed fix: a one-time dedup migration that walks each description and removes consecutive-or-identical Aside blocks. Also proposed as future-guard: subsequent field-sunset migrations should scan for an existing matching block before prepending, to prevent this pattern from recurring.
 
 ---
 

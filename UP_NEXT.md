@@ -8,25 +8,32 @@
 
 Stage 2d's first concrete block landed: **Aside**, a pure-structural shaded container. The journey through it triggered a deeper consolidation — the editor's pill menu and slash menu were rewired to share a single source of truth (`lib/editorRegistry.ts`), typography was aligned between editor and rendered output, and a smart trailing-empty-line collapse was added to keep design blocks looking clean at the bottom of a document. Every remaining Stage 2d block should follow the Aside's pattern: pure structure, no chrome, visuals scoped by context.
 
-### What session 90 shipped
+### What session 90 + post-close addendum shipped
 
 - **Aside block** — callout variant `aside` as a pure-structural wrapper. No controls in its render function, no per-instance props. Children are the content; CSS `:has()` applies the shading; color is determined by render context (document / lesson / program). Added to the Block Library Roster in `RIM_Editor_Types.md`.
 - **Menu unification** — both pill ⋯ menu and slash `/` menu now read from `insertElementsForContext(registryContext)`. Shared `insertElementAtCursor` helper drives all inserts (smart empty-line replacement + container seeding). Custom `RimSlashMenu` component via BlockNote's `SuggestionMenuController` using `filterSuggestionItems` from `@blocknote/core/extensions`.
 - **Typography alignment** — `--font-doc` redefined as Open Sans (was Inter), editor heading sizes aligned to token scale (h1=38/h2=28/h3=24/h4=20), editor body size aligned to `var(--text-body)` = 18px, first-heading margin zeroed, aside child font explicitly `var(--text-body)`.
 - **Uppercase eyebrow section labels** with thin dividers — identical styling across slash and pill menus.
 - **Smart trailing-line collapse** — CSS `:has()` rule hides the trailing empty paragraph when it follows a container block (aside/callout/image/table/etc). Editor gained 32px padding-bottom for click zone. Rendered output was already clean (renderer filters empty paragraphs).
+- **`Program.specialNotes` sunset** (addendum after close) — first concrete application of the field-sunset pattern. Data migration folds existing specialNotes content into `description` as an Aside block. Public render slot + editor field + API support all removed. Schema field marked deprecated; kept one release as safety net.
 
 ### What comes next
 
-Stage 2d continues with the next blocks, each designed through the four-phase procedure (see `RIM_Editor_Types.md` § Block Creation Procedure). The Aside is now the model: keep `render()` empty when possible, let BlockNote handle containers natively, CSS by context.
+Stage 2d continues with the next blocks, each designed through the four-phase procedure (see `RIM_Editor_Types.md` § Block Creation Procedure). The Aside is now the model: keep `render()` empty when possible, let BlockNote handle containers natively, CSS by context. The specialNotes sunset established the mechanical pattern for the rest.
 
-1. **SpecialNote** — replaces `Program.specialNotes`. Four-phase conversation, then implement, then migrate existing data.
-2. **Migrate `Program.specialNotes`** to SpecialNote blocks once the block exists. Data migration in `prisma/migrate.mjs`: read existing JSON, wrap as a SpecialNote block, prepend/append into `Program.description`. Remove the `.pg-notes` render slot from `app/programs/[slug]/page.tsx` and the member program page. Deprecate the field in schema (keep one release, remove next).
-3. **Schema promotions** — `TeacherProfile.bio: String? → Json?` and `Course.completionNote: String? → Json?`.
-4. **Additional Page Designer blocks** — Announcement (replaces `Program.specialAnnouncement`), EarlyArrival / PracticalInfo (replaces `Program.earlyArrivalMessage`), DanaInvitation (replaces on-page `Program.danaMessage`; email version stays a Message). Verify existing `pullQuote` covers `Program.pullQuote` + `Program.pullQuoteSource`; verify existing Pull/Verse/Reflection absorb the lesson-side hard-coded slots.
-5. **SubClaim.message UI** — small feature, existing schema field.
-6. **Sanity migrations** — glossary → `GlossaryTerm`, volunteerPositions → `VolunteerPosition`.
-7. **Terminal code-level gate** — `<EditorField type="..." placement="..." />` wrapper that refuses to mount without a registered placement.
+1. **Announcement block** — replaces `Program.specialAnnouncement` (currently a textarea → plain render). Four-phase conversation, implement, migrate per the specialNotes pattern.
+2. **EarlyArrival / PracticalInfo block** — replaces `Program.earlyArrivalMessage`.
+3. **DanaInvitation block** — replaces on-page `Program.danaMessage`; email version of dana stays a Message field (different editor type).
+4. **Verify / migrate `Program.pullQuote` + `Program.pullQuoteSource`** into the existing `pullQuote` custom block. Same migration pattern — wrap existing strings as a pullQuote block, prepend/append to description, deprecate fields.
+5. **Lesson-side absorptions** — existing Pull Quote / Verse Quote / Reflection blocks should cover `Lesson.headerQuote` + `Lesson.quoteSource` + `Lesson.reflectionPrompt`. Verify fit; add a prompt-only Reflection variant if needed. Migrate per the same pattern.
+6. **Schema promotions** — `TeacherProfile.bio: String? → Json?` and `Course.completionNote: String? → Json?`. Each needs a schema change, migration converting string to BlockNote paragraph, component swap textarea→RimProseEditor, render-site update, CSS wrapper registration.
+7. **SubClaim.message UI** — small feature, existing schema field; add to claim confirmation dialog.
+8. **Sanity migrations** — glossary → `GlossaryTerm` model with `body: Json?` (Page Designer), volunteerPositions → `VolunteerPosition` model with `positionDescription: Json?` (Message).
+9. **Terminal code-level gate** — `<EditorField type="..." placement="..." />` wrapper that refuses to mount without a registered placement.
+
+### Known deferred issue
+
+- **Duplicate Aside blocks in migrated program descriptions.** At least one program (Awakening The Heart) had a manually-added Aside in its description from session-90 testing; the specialNotes migration prepended another, producing two identical Asides. Logged in `data/backlog.json`. Proposed fix: one-time dedup migration that walks each description and removes consecutive-or-identical Aside blocks. Also proposed forward-guard: future field-sunset migrations scan the destination field for an existing matching block before prepending.
 
 ### Session 90's design principles to carry forward
 
