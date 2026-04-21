@@ -21059,6 +21059,54 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
   margin: 4px 8px;
 }
 
+/* ── Slash menu (BlockNote SuggestionMenuController via Mantine) ────────
+   Overrides BlockNote's default Mantine slash menu styling so group
+   headers read clearly in the RIM editor. Spec:
+   - Bold, regular (var(--text-ui)=14px) section labels
+   - Divider line above each section (except the first) for clear separation
+   - Slightly tighter padding so the menu reads more like our pill dropdown
+*/
+html body .bn-mantine .bn-suggestion-menu-label {
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-ui) !important;
+  font-weight: 700 !important;
+  color: var(--rim-text) !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  padding: 10px 12px 6px !important;
+}
+/* Divider line above each section label, but NOT above the first one */
+html body .bn-mantine .bn-suggestion-menu-label + * ~ .bn-suggestion-menu-label,
+html body .bn-mantine .bn-suggestion-menu-item + .bn-suggestion-menu-label {
+  border-top: 1px solid var(--rim-rule) !important;
+  margin-top: 4px !important;
+  padding-top: 10px !important;
+}
+/* Menu items — more compact, our sans font, matched to pill dropdown feel */
+html body .bn-mantine .bn-suggestion-menu-item {
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-ui) !important;
+  font-weight: 500 !important;
+  color: var(--rim-text) !important;
+  height: auto !important;
+  padding: 8px 12px !important;
+}
+/* Hide the built-in icon/section slot — our items are text-only */
+html body .bn-mantine .bn-suggestion-menu-item .bn-mt-suggestion-menu-item-section {
+  display: none !important;
+}
+/* Title / subtitle typography inside each item */
+html body .bn-mantine .bn-mt-suggestion-menu-item-title {
+  font-family: var(--font-sans) !important;
+  font-size: var(--text-ui) !important;
+  font-weight: 500 !important;
+  color: var(--rim-text) !important;
+  line-height: 1.4 !important;
+}
+html body .bn-mantine .bn-mt-suggestion-menu-item-subtitle {
+  display: none !important;
+}
+
 /* ── Empty-line floating pill ──────────────────────────────────────── */
 .bear-float {
   animation: bear-fade-in-below 0.12s ease;
