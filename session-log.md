@@ -1,5 +1,79 @@
 ---
 
+## 2026-04-20 (session 90) — Aside block, editor menu unification, typography alignment
+
+### The scope
+
+Stage 2d first concrete block. Session began with a four-phase design conversation for an Aside block — the "universal shaded container" element — and ended with a fully unified editor chrome system. The Aside was the vehicle; the real work was realizing that the editor's menu/typography/interaction surfaces had drifted apart and needed to be reassembled around `lib/editorRegistry.ts` as the single source of truth.
+
+### The Aside block journey
+
+The four-phase procedure ran through it properly: brief → design → implement → review. Initial implementation gave the Aside custom controls — color swatches, title input, heading-level selector, native color picker — and each one became a surface for ProseMirror to fight with. onClick events got swallowed by contentEditable=false blocks. Text inputs lost focus after one keystroke because ProseMirror's native keyboard listeners reclaimed selection. A native color picker produced saturated palette colors instead of design-system tints. CSS specificity battles between the generic callout rule and the aside-specific rule.
+
+Nine distinct bugs chased over several hours. Classic "multiple drift points" signal — fighting the tool rather than working with it. After stepping back with Jesse, agreed to strip the block to its essence: a pure structural wrapper. The final Aside is:
+
+- **`content: "none"` container block** with children rendered as BlockNote's normal block-group sibling
+- **No controls, no chrome, no per-instance props** — the render function returns a zero-height marker div, that's all
+- **Shading applied via CSS `:has()`** — `.bn-block:has(> .bn-block-content > .bn-callout--aside)` with the same specificity as the generic callout rule it needs to override
+- **Color determined by context**, not per-block — future CSS rules scoped by `rim-content--program`, `rim-content--lesson`, etc. can override the gray default. "We will render the element according to the design that it is associated with" (Jesse's words).
+- **Title is just an H-tag inside** as the first child. No separate title field. Same block vocabulary for authors throughout.
+
+Trade-off accepted: backspace at position 0 of the first child unwraps the aside. This is standard container behavior across every rich text editor (Notion, Craft, Bear, Obsidian). Documented, not fixed.
+
+### Menu unification — single source of truth
+
+With the aside simplified, the session turned to a drift Jesse noticed: the pill ⋯ menu and the slash `/` menu showed different block lists in the same context. Classic divergence — two hardcoded arrays maintained separately. Root cause: `lib/editorRegistry.ts` was set up as a single source of truth during session 89 but wasn't actually wired into the UI.
+
+Rewired in this session:
+
+- **New shared helper** `insertElementAtCursor(editor, element)` in `components/RimBlockEditor.tsx` — drives all inserts with smart behavior (replace empty line → don't leave stranded empty paragraphs; seed container blocks with a starter paragraph; place cursor inside).
+- **Pill menu's `insertItems`** replaced with `insertElementsForContext(registryContext)`. Both `ToolbarMoreMenu` and `PillContextMenu` read from the registry. Items grouped by category (Text / Lists / Structure / Media / Callouts / Dharma) with dividers.
+- **Slash menu implemented** via BlockNote's `SuggestionMenuController`. Custom `<RimSlashMenu>` component feeds it `insertElementsForContext(...)` through `getItems`. Fuzzy filtering works out of the box via `filterSuggestionItems` from `@blocknote/core/extensions`. Group labels come from `GROUP_LABELS`.
+- **Visual styling unified** across slash and pill: uppercase "eyebrow" section labels at `var(--text-xxs)` / `font-weight: 600` / `var(--rim-text-muted)` with thin `border-top` dividers between sections. Identical treatment on both menus.
+
+Result: adding a new block to RIM going forward is one registry entry. Both menus pick it up per its `availableIn` list. No more divergent lists to maintain.
+
+### Typography alignment between editor and rendered output
+
+Multiple typography drift points addressed:
+
+- **`--font-doc` redefined** from `'Inter'` to `'Open Sans'`. The editor's separate font token was the reason the editor read visibly different from the rest of the site. One change flipped 15+ editor-chrome selectors.
+- **Editor heading sizes** aligned to design-system tokens (`var(--text-h1)` = 38, `--text-h2` = 28, `--text-h3` = 24, `--text-h4` = 20). Previous hardcoded values (H1=32, H2=24, H3=20) from session 71 had drifted below the token scale. The injected `<style>` tag's guard (`if (document.getElementById(id)) return`) was also the cause of one pass of visible bugs — a stale tag persisted across SPA navigations. Changed to find-or-create-and-overwrite so heading rules always refresh.
+- **Editor body size** aligned to `var(--text-body)` = 18px (was 16px), matching rendered output.
+- **First-heading top margin** zeroed out so the document's first line sits flush and nested container's first block doesn't gain a gap.
+- **Aside child font size** explicitly forced to `var(--text-body)` — BlockNote's default nested-block CSS was shrinking text inside `.bn-block-group`.
+
+### Smart trailing-empty-line collapse
+
+BlockNote always appends an empty paragraph at the end of the document so users can type after the last block. That's good UX for prose flow but visually broke the "finished" look when the last real block was a design element (aside / callout / image / table). Jesse flagged this as breaking the even-box aesthetic.
+
+CSS `:has()` rule added that collapses the trailing empty paragraph to zero height when it follows a container block. The paragraph still exists in the DOM (cursor can still land there), and a new 32px `padding-bottom` on the editor preserves a clickable zone. Rendered output was already clean (`renderBlockNoteHtml` filters empty paragraphs); the fix is purely editor-surface.
+
+### Design decisions that matter
+
+1. **Pure-structure aside.** No custom chrome in the block's render function. BlockNote's native container pattern handles editing; CSS handles the visual. "Fewer but flexible blocks" in practice.
+2. **Color by context, not by instance.** The aside's color is determined by where it appears (document vs lesson vs program), via scope class CSS, not by a per-block prop. Authors don't choose colors; designers do, once.
+3. **Single source of truth for insertable blocks.** `editorRegistry.ts` drives both menus. Any future menu surface (keyboard shortcuts, drag handles, command palette) plugs into the same source.
+4. **Accept standard rich-text conventions.** Backspace unwraps containers at position 0. That's how every editor works. Documented, not fought.
+5. **Invisible functional elements.** Trailing empty paragraph stays for usability but goes visually dark when it would break layout. The editor can look different from the render; what ships is clean.
+
+### What this work connects to
+
+- **`lib/editorRegistry.ts`** — now genuinely the single source of truth for insertable blocks. Four-type model from session 89 is finally being used.
+- **`components/RimBlockEditor.tsx`** — got `insertElementAtCursor`, `RimSlashMenu`, `useInsertElements`, and registry-driven menu logic. Removed hardcoded icon imports, dead `insertBlockAfter` bodies replaced by the shared helper.
+- **`lib/blockNoteCustomBlocks.tsx`** — aside variant added as a pure-structure block; `ASIDE_BG_COLORS` and `resolveAsideBg` added then removed as the design simplified. Other callout variants unchanged.
+- **`lib/renderRichContent.ts`** — aside case added to client-side renderer; output is `<div class="rim-el-note rim-el-note--aside">${body}</div>`.
+- **`public/css/custom.css`** — new rules for `.rim-el-note--aside`, `.bn-callout--aside` via `:has()`, `.bear-more-label`, `.bn-suggestion-menu-label`, smart trailing-line collapse.
+- **`app/admin/editor-lab/page.tsx`** — sample document updated: aside now contains an H4 + paragraph as children, no separate title prop.
+
+### What comes next
+
+The Aside is the template for the rest of Stage 2d's blocks. The next ones in line — per `UP_NEXT.md` — are SpecialNote (replaces `Program.specialNotes`), Announcement, EarlyArrival, and DanaInvitation. Each goes through the same four-phase design conversation. The pure-structure aside is the model: custom props only when genuinely needed; CSS handles visuals scoped by context; BlockNote's native container pattern unmodified.
+
+Next session's opening ritual should read this session's log entry, check `/admin/editor-lab` for the aside in action, and pick up Stage 2d block design from SpecialNote.
+
+---
+
 ## 2026-04-20 (session 89) — Editor system full reorg: four-type model, canonical reference, audit sweeps, registry rewrite, abandoned-module deletion
 
 ### The scope shift

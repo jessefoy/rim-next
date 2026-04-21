@@ -4,9 +4,37 @@
 
 ---
 
-## Active: Editor system reorg — Stage 2d (session 89 closed, 2026-04-20)
+## Active: Editor system reorg — Stage 2d, Aside block shipped (session 90 closed, 2026-04-20)
 
-Session 89 was a structural reorg of how authored content is modeled across the platform. A new canonical reference (`RIM_Editor_Types.md`) was established, the editor registry was rewritten around four editor types, the abandoned session-reflection module was deleted, and several Sanity surfaces were cleaned up. All foundational / non-user-visible work is done. The high-value work — making the Page Designer pattern real via custom design blocks that replace hard-coded template fields — is Stage 2d and is the next session's focus.
+Stage 2d's first concrete block landed: **Aside**, a pure-structural shaded container. The journey through it triggered a deeper consolidation — the editor's pill menu and slash menu were rewired to share a single source of truth (`lib/editorRegistry.ts`), typography was aligned between editor and rendered output, and a smart trailing-empty-line collapse was added to keep design blocks looking clean at the bottom of a document. Every remaining Stage 2d block should follow the Aside's pattern: pure structure, no chrome, visuals scoped by context.
+
+### What session 90 shipped
+
+- **Aside block** — callout variant `aside` as a pure-structural wrapper. No controls in its render function, no per-instance props. Children are the content; CSS `:has()` applies the shading; color is determined by render context (document / lesson / program). Added to the Block Library Roster in `RIM_Editor_Types.md`.
+- **Menu unification** — both pill ⋯ menu and slash `/` menu now read from `insertElementsForContext(registryContext)`. Shared `insertElementAtCursor` helper drives all inserts (smart empty-line replacement + container seeding). Custom `RimSlashMenu` component via BlockNote's `SuggestionMenuController` using `filterSuggestionItems` from `@blocknote/core/extensions`.
+- **Typography alignment** — `--font-doc` redefined as Open Sans (was Inter), editor heading sizes aligned to token scale (h1=38/h2=28/h3=24/h4=20), editor body size aligned to `var(--text-body)` = 18px, first-heading margin zeroed, aside child font explicitly `var(--text-body)`.
+- **Uppercase eyebrow section labels** with thin dividers — identical styling across slash and pill menus.
+- **Smart trailing-line collapse** — CSS `:has()` rule hides the trailing empty paragraph when it follows a container block (aside/callout/image/table/etc). Editor gained 32px padding-bottom for click zone. Rendered output was already clean (renderer filters empty paragraphs).
+
+### What comes next
+
+Stage 2d continues with the next blocks, each designed through the four-phase procedure (see `RIM_Editor_Types.md` § Block Creation Procedure). The Aside is now the model: keep `render()` empty when possible, let BlockNote handle containers natively, CSS by context.
+
+1. **SpecialNote** — replaces `Program.specialNotes`. Four-phase conversation, then implement, then migrate existing data.
+2. **Migrate `Program.specialNotes`** to SpecialNote blocks once the block exists. Data migration in `prisma/migrate.mjs`: read existing JSON, wrap as a SpecialNote block, prepend/append into `Program.description`. Remove the `.pg-notes` render slot from `app/programs/[slug]/page.tsx` and the member program page. Deprecate the field in schema (keep one release, remove next).
+3. **Schema promotions** — `TeacherProfile.bio: String? → Json?` and `Course.completionNote: String? → Json?`.
+4. **Additional Page Designer blocks** — Announcement (replaces `Program.specialAnnouncement`), EarlyArrival / PracticalInfo (replaces `Program.earlyArrivalMessage`), DanaInvitation (replaces on-page `Program.danaMessage`; email version stays a Message). Verify existing `pullQuote` covers `Program.pullQuote` + `Program.pullQuoteSource`; verify existing Pull/Verse/Reflection absorb the lesson-side hard-coded slots.
+5. **SubClaim.message UI** — small feature, existing schema field.
+6. **Sanity migrations** — glossary → `GlossaryTerm`, volunteerPositions → `VolunteerPosition`.
+7. **Terminal code-level gate** — `<EditorField type="..." placement="..." />` wrapper that refuses to mount without a registered placement.
+
+### Session 90's design principles to carry forward
+
+- **Don't add render chrome to container blocks.** BlockNote handles `content: "none"` with children natively. Every time we added a title input, color picker, or heading selector to a block's render, we created a surface for ProseMirror to fight with. Keep custom props to the absolute minimum needed; prefer child blocks for structure the author controls.
+- **Color is determined by context, not by instance.** Design-element styling belongs in scope class CSS (`rim-content--lesson`, `rim-content--program`). Authors don't choose colors; designers do, once per context.
+- **`editorRegistry.ts` is the single source of truth.** Any new insertion surface (menus, keyboard shortcuts, drag handles) reads from it. Any new block gets one registry entry with `availableIn`.
+- **Accept standard rich-text conventions.** Backspace unwraps containers at position 0. That's universal. Don't fight it; document it.
+- **Editor UI can look different from rendered output.** Affordances (trailing empty lines, placeholders, hover cues) belong to the editor surface and don't need to match the public render. What ships is what matters; `renderBlockNoteHtml` handles the cleanup.
 
 ### Required reading for this session (before writing any code)
 

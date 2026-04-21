@@ -212,7 +212,55 @@ A new block enters the library through a four-phase process. This is a design co
 
 *The authoritative list of blocks currently in the library. Updated whenever a block is added or modified. Each entry: name · one-sentence visual identity · fields · scopes (availableIn) · date added.*
 
-*(Populated during Stage 2d. Initial entries will migrate the existing custom blocks: Pull Quote, Verse Quote, Practice Suggestion, Reflection, Callout — Note and Decision variants.)*
+#### Aside (callout variant: `aside`)
+- **Visual identity:** Neutral shaded rectangle wrapping child blocks. No icon, no border, no baked-in title. Title, if wanted, is an author-added heading block inside (H2/H3/H4). Color is determined by the render scope class — document scope gets a flat gray; lesson/program scopes can override via CSS.
+- **Fields:** None. Pure structural wrapper. `children: []` holds the authored content (headings, paragraphs, lists).
+- **Scopes (`availableIn`):** `DOCUMENT_LIKE` — `hub-document`, `manual`, `program-description`, `lesson`.
+- **Editor chrome:** None. The `render()` function returns a zero-height `contentEditable={false}` marker div. BlockNote renders the children as a normal block-group sibling; the shaded background comes from CSS `:has()` on the ancestor `.bn-block`. Backspace at position 0 of the first child unwraps the container — standard rich-text container behavior.
+- **Output class:** `rim-el-note rim-el-note--aside`.
+- **Added:** 2026-04-20 (session 90).
+
+#### Callout — Note variant (callout variant: `note`)
+- **Visual identity:** Titled box with a 💡 icon. Compact, used for "aside information worth surfacing." Warm beige tint.
+- **Fields:** `title: String` (optional).
+- **Scopes:** `DOCUMENT_LIKE` + `MESSAGE_WITH_TABLES`.
+- **Output class:** `lp-callout-block lp-callout-block--note rim-el-note rim-el-note--note`.
+- **Added:** pre-Stage 2d (migrated into roster 2026-04-20).
+
+#### Callout — Decision variant (callout variant: `decision`)
+- **Visual identity:** Titled box with a ✓ icon. Marks a concluded decision. Teal-green tint.
+- **Fields:** `title: String` (optional).
+- **Scopes:** `DOCUMENT_LIKE` + `MESSAGE_WITH_TABLES`.
+- **Output class:** `lp-callout-block lp-callout-block--decision rim-el-note rim-el-note--decision`.
+- **Added:** pre-Stage 2d (migrated into roster 2026-04-20).
+
+#### Pull Quote (block: `pullQuote`)
+- **Visual identity:** Oversized centered serif quote with decorative teal mark. Dramatic, page-scale.
+- **Fields:** `attribution: String` (optional). Content is a single inline string.
+- **Scopes:** `DHARMA_BLOCKS_ALLOWED` — `program-description`, `lesson`.
+- **Output class:** `rim-el-pull-quote`.
+- **Added:** pre-Stage 2d (migrated into roster 2026-04-20).
+
+#### Verse Quote (block: `verseQuote`)
+- **Visual identity:** Smaller centered serif quote, reverent. Used for canonical or external dharma text.
+- **Fields:** `attribution: String` (optional). Content is a single inline string.
+- **Scopes:** `DHARMA_BLOCKS_ALLOWED` — `program-description`, `lesson`.
+- **Output class:** `rim-el-verse lp-verse-quote`.
+- **Added:** pre-Stage 2d (migrated into roster 2026-04-20).
+
+#### Practice Suggestion (block: `practiceSuggestion`)
+- **Visual identity:** "PRACTICE" eyebrow + serif title + block-level body. Contemplative invitation.
+- **Fields:** `title: String` (optional). Body is children (paragraphs, lists).
+- **Scopes:** `DHARMA_BLOCKS_ALLOWED` — `program-description`, `lesson`.
+- **Output class:** `rim-el-practice`.
+- **Added:** pre-Stage 2d (migrated into roster 2026-04-20).
+
+#### Reflection (block: `reflection`)
+- **Visual identity:** Italic question lead-in + block-level body. Invites sitting with the question.
+- **Fields:** `question: String` (optional). Body is children.
+- **Scopes:** `DHARMA_BLOCKS_ALLOWED` — `program-description`, `lesson`.
+- **Output class:** `rim-el-reflection`.
+- **Added:** pre-Stage 2d (migrated into roster 2026-04-20).
 
 ### Blocks modify when used
 
