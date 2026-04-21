@@ -21542,6 +21542,14 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
 .bn-block:has(> .bn-block-content > .bn-callout--aside) > .bn-block-group > .bn-block:last-child {
   padding-bottom: 0 !important;
 }
+/* Children inside an aside inherit the editor body size. BlockNote's
+   default nested-block CSS can shrink font-size inside a .bn-block-group;
+   we want the aside's content to read the same as the main document. */
+.bn-block:has(> .bn-block-content > .bn-callout--aside) > .bn-block-group .bn-block-content,
+.bn-block:has(> .bn-block-content > .bn-callout--aside) > .bn-block-group .bn-inline-content {
+  font-size: var(--text-body) !important;
+  line-height: var(--lh-body) !important;
+}
 
 
 

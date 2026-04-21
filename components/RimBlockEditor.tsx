@@ -285,11 +285,35 @@ function ToolbarMoreMenu({ context = "default" as EditorContext }) {
       const block = editor.getTextCursorPosition().block;
       const spec: Record<string, any> = { type: type as any };
       if (props) spec.props = props;
-      editor.insertBlocks([spec as any], block, "after");
+      // Container blocks need a starter child so the cursor has a place
+      // to land and the user isn't stuck with a truly empty container.
+      if (CONTAINER_BLOCK_TYPES.has(type)) {
+        spec.children = [{ type: "paragraph" }];
+      }
+      // If the current block is an empty paragraph, REPLACE it so we don't
+      // leave behind an empty line above the new block.
+      const currentIsEmpty =
+        block.type === "paragraph" &&
+        (!Array.isArray(block.content) || block.content.length === 0);
+      if (currentIsEmpty) {
+        editor.replaceBlocks([block], [spec as any]);
+      } else {
+        editor.insertBlocks([spec as any], block, "after");
+      }
       setTimeout(() => {
         try {
-          const next = editor.getTextCursorPosition().nextBlock;
-          if (next) editor.setTextCursorPosition(next, "start");
+          // For containers, land in the first child. Otherwise, land on the
+          // block itself.
+          if (CONTAINER_BLOCK_TYPES.has(type)) {
+            const fresh = currentIsEmpty
+              ? editor.getTextCursorPosition().block
+              : editor.getTextCursorPosition().nextBlock;
+            const firstChild = fresh?.children?.[0];
+            if (firstChild) editor.setTextCursorPosition(firstChild.id, "start");
+          } else {
+            const next = editor.getTextCursorPosition().nextBlock;
+            if (next) editor.setTextCursorPosition(next, "start");
+          }
         } catch {}
         editor.focus();
       }, 50);
@@ -539,11 +563,29 @@ function PillContextMenu({ context, onAction }: { context: EditorContext; onActi
       const block = editor.getTextCursorPosition().block;
       const spec: Record<string, any> = { type: type as any };
       if (props) spec.props = props;
-      editor.insertBlocks([spec as any], block, "after");
+      if (CONTAINER_BLOCK_TYPES.has(type)) {
+        spec.children = [{ type: "paragraph" }];
+      }
+      const currentIsEmpty =
+        block.type === "paragraph" &&
+        (!Array.isArray(block.content) || block.content.length === 0);
+      if (currentIsEmpty) {
+        editor.replaceBlocks([block], [spec as any]);
+      } else {
+        editor.insertBlocks([spec as any], block, "after");
+      }
       setTimeout(() => {
         try {
-          const next = editor.getTextCursorPosition().nextBlock;
-          if (next) editor.setTextCursorPosition(next, "start");
+          if (CONTAINER_BLOCK_TYPES.has(type)) {
+            const fresh = currentIsEmpty
+              ? editor.getTextCursorPosition().block
+              : editor.getTextCursorPosition().nextBlock;
+            const firstChild = fresh?.children?.[0];
+            if (firstChild) editor.setTextCursorPosition(firstChild.id, "start");
+          } else {
+            const next = editor.getTextCursorPosition().nextBlock;
+            if (next) editor.setTextCursorPosition(next, "start");
+          }
         } catch {}
         editor.focus();
       }, 50);
@@ -1327,7 +1369,6 @@ export default function RimBlockEditor({
         editor={editor}
         theme={rimTheme}
         onChange={(editor) => onChange(editor.document)}
-        slashMenu={false}
         sideMenu={false}
         formattingToolbar={false}
       >
