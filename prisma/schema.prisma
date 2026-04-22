@@ -80,6 +80,7 @@ model User {
   memberStatus    MemberStatus @default(ACTIVE)
   firstVisitDate  DateTime?
   adminNotes      Json?             // BlockNote JSON (RimProseEditor)
+  bio             Json?             // BlockNote JSON — personal description, separate from any role
   tags            String[]     @default([])
   // Viewer-level section access grants — sections this person can view on other member profiles
   // without holding the team role. Admin-assigned. Example values: "admin-notes", "care-notes"
@@ -144,6 +145,8 @@ model User {
   tasksCreated         Task[]                 @relation("TaskCreatedBy")
   subtasksAssigned     Subtask[]              @relation("SubtaskAssignee")
   subtasksCreated      Subtask[]              @relation("SubtaskCreatedBy")
+  // Role profiles — self-authored descriptions of the role(s) this user holds
+  roleProfiles         RoleProfile[]
 
   @@map("users")
 }
@@ -567,6 +570,32 @@ model TeacherProfile {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("teacher_profiles")
+}
+
+// ─── ROLE PROFILES ───────────────────────────────────────────────────────────
+// Self-authored descriptions of each role a user holds. A person may hold
+// multiple roles (Founder + Guiding Teacher, Registrar + Support, etc.) and
+// can write a separate description for each. RoleProfile.title is the
+// person's own name for the role; description is a BlockNote Message.
+// roleKey is the canonical identifier (e.g. "virtual-host-coordinator") used
+// by Hub.featuredRoles to resolve "whoever holds this role" references.
+
+model RoleProfile {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String                              // e.g. "Virtual Host Coordinator"
+  description Json?                               // BlockNote JSON (RimProseEditor)
+  roleKey     String?                             // canonical key — see lib/roleKeys.ts
+  isPrimary   Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, roleKey])                     // one profile per user per keyed role
+  @@index([userId])
+  @@index([roleKey])
+  @@map("role_profiles")
 }
 
 // Many-to-many: Lesson ↔ User (member flagged as teacher)

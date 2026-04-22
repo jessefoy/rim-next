@@ -2,6 +2,8 @@ import React from "react";
 import CoreRecordSection from "@/components/member-sections/CoreRecordSection";
 import HouseholdSection from "@/components/HouseholdSection";
 import AdminNotesSection from "@/components/member-sections/AdminNotesSection";
+import BioSection from "@/components/member-sections/BioSection";
+import RoleProfilesSection, { AdminRoleProfile } from "@/components/member-sections/RoleProfilesSection";
 import RolesSection from "@/components/member-sections/RolesSection";
 import HubAccessSection from "@/components/HubAccessSection";
 import TeacherSection from "@/components/member-sections/TeacherSection";
@@ -25,6 +27,8 @@ export type SerializedMember = {
   firstVisitDate: string | null;
   adminNotes: unknown;
   legacyAdminNotesHtml: string | null;
+  bio: unknown;
+  roleProfiles: AdminRoleProfile[];
   tags: string[];
   sectionGrants: string[];
   roles: string[];
@@ -119,6 +123,23 @@ export const MEMBER_SECTIONS: MemberSection[] = [
         memberId={member.id}
         initialNotes={member.adminNotes}
         legacyAdminNotesHtml={member.legacyAdminNotesHtml ?? undefined}
+      />
+    ),
+  },
+  {
+    id: "bio",
+    allowedRoles: ["ADMIN"],
+    render: ({ member }) => (
+      <BioSection memberId={member.id} initialBio={member.bio} />
+    ),
+  },
+  {
+    id: "role-profiles",
+    allowedRoles: ["ADMIN"],
+    render: ({ member }) => (
+      <RoleProfilesSection
+        memberId={member.id}
+        initialProfiles={member.roleProfiles}
       />
     ),
   },

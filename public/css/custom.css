@@ -7694,6 +7694,243 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   background: var(--rim-mid);
 }
 
+.mp-section__hint {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--rim-text-muted);
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+
+/* ── Save row (shared by About me + My roles inline edits) ── */
+
+.mp-save {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.mp-save__btn {
+  padding: 10px 22px;
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  font-weight: 600;
+  color: #fff;
+  background: var(--rim-blue);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+  min-height: 44px;
+}
+
+.mp-save__btn:hover:not(:disabled) { background: var(--rim-mid); }
+.mp-save__btn:disabled { opacity: 0.55; cursor: default; }
+
+.mp-save__success {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--color-success);
+}
+
+.mp-save__error {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--color-error);
+  margin: 0 0 8px;
+}
+
+/* ── About me (bio + presence photo) ── */
+
+.mp-bio__avatar-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.mp-bio__avatar {
+  flex: 0 0 auto;
+}
+
+.mp-bio__avatar-preview {
+  width: 96px;
+  height: 96px;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--rim-bg-accent);
+  border-radius: 8px;
+}
+
+.mp-bio__avatar-empty {
+  width: 96px;
+  height: 96px;
+  border-radius: 8px;
+  background: var(--rim-bg-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--rim-text-muted);
+}
+
+.mp-bio__avatar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mp-bio__avatar-btn {
+  padding: 8px 16px;
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  font-weight: 600;
+  color: var(--rim-blue);
+  background: #fff;
+  border: 1px solid var(--rim-rule);
+  border-radius: 6px;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.mp-bio__avatar-btn:hover:not(:disabled) { border-color: var(--rim-mid); }
+.mp-bio__avatar-btn:disabled { opacity: 0.55; cursor: default; }
+
+.mp-bio__avatar-remove {
+  padding: 6px 12px;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--rim-text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.mp-bio__avatar-remove:hover { color: var(--color-error); }
+
+.mp-bio__file-input { display: none; }
+
+.mp-bio__editor {
+  margin-top: 8px;
+}
+
+/* ── My roles ── */
+
+.mp-roles__empty {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--rim-text-muted);
+  margin: 0 0 16px;
+}
+
+.mp-roles__list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mp-role {
+  border: 1px solid var(--rim-rule);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.mp-role--new { border-style: dashed; }
+
+.mp-role__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 12px 4px 4px;
+}
+
+.mp-role__toggle {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  min-height: 44px;
+  font-family: var(--font-sans);
+}
+
+.mp-role__title {
+  font-size: var(--text-ui);
+  font-weight: 600;
+  color: var(--rim-text);
+}
+
+.mp-role__tag {
+  font-size: var(--text-xxs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rim-text-muted);
+  padding: 3px 8px;
+  background: var(--rim-bg-accent);
+  border-radius: 4px;
+}
+
+.mp-role__delete {
+  padding: 6px 10px;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--rim-text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.mp-role__delete:hover:not(:disabled) { color: var(--color-error); }
+.mp-role__delete:disabled { opacity: 0.4; cursor: default; }
+
+.mp-role__body {
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--rim-rule);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mp-role--new .mp-role__body { border-top: none; }
+
+.mp-role__cancel {
+  padding: 8px 14px;
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  color: var(--rim-text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.mp-role__cancel:hover { color: var(--rim-text); }
+
+.mp-roles__add {
+  padding: 10px 16px;
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  font-weight: 600;
+  color: var(--rim-blue);
+  background: transparent;
+  border: 1px dashed var(--rim-rule);
+  border-radius: 6px;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.mp-roles__add:hover { border-color: var(--rim-mid); color: var(--rim-mid); }
+
 /* ═══════════════════════════════════════════════════
    COMMUNITY AGREEMENTS PAGE  (mc- prefix)
    /account/dashboard-member-care-agreements

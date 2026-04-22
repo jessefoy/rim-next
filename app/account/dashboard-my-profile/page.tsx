@@ -3,6 +3,8 @@ import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import AccountLayout from "@/components/AccountLayout";
+import AboutMeSection from "@/components/account/AboutMeSection";
+import MyRolesSection from "@/components/account/MyRolesSection";
 
 export const metadata = { title: "My Profile — Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
@@ -27,7 +29,7 @@ export default async function MyProfilePage({
   const userId = session.user.id;
   const roles: string[] = session.user.roles ?? [];
 
-  const [user, household, hubMemberships] = await Promise.all([
+  const [user, household, hubMemberships, roleProfiles] = await Promise.all([
     db.user.findUnique({ where: { id: userId } }),
     db.householdMember.findUnique({
       where: { userId },
@@ -48,7 +50,20 @@ export default async function MyProfilePage({
       include: { hub: { select: { slug: true, name: true } } },
       orderBy: { joinedAt: "asc" },
     }),
+    db.roleProfile.findMany({
+      where: { userId },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    }),
   ]);
+
+  const serializedRoleProfiles = roleProfiles.map((p) => ({
+    id: p.id,
+    title: p.title,
+    description: p.description,
+    roleKey: p.roleKey,
+    isPrimary: p.isPrimary,
+    sortOrder: p.sortOrder,
+  }));
 
   const { saved } = await searchParams;
 
@@ -167,6 +182,15 @@ export default async function MyProfilePage({
             </p>
           </div>
         </section>
+
+        {/* About me — avatar + bio */}
+        <AboutMeSection
+          initialBio={user?.bio ?? null}
+          initialAvatarUrl={user?.avatarUrl ?? null}
+        />
+
+        {/* My roles — RoleProfile records */}
+        <MyRolesSection initialProfiles={serializedRoleProfiles} />
 
         {/* Household */}
         {household && (
