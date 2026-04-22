@@ -9,6 +9,7 @@ import { PrismaClient } from "@prisma/client";
 import { seedPrograms } from "./seed-programs.mjs";
 import { seedManualProgramManager } from "./seed-manual-program-manager.mjs";
 import { seedManualHostHubTeamManagement } from "./seed-manual-host-hub-team-management.mjs";
+import { seedHostHubHomeContent } from "./seed-host-hub-home-content.mjs";
 
 const db = new PrismaClient();
 
@@ -389,6 +390,18 @@ async function main() {
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_manual_host_hub_team_management_v1')`);
   } else {
     console.log("  ⏭ Host Hub Team Management manual already seeded.");
+  }
+
+  // Host Hub home content (welcomeBody + homeContent) — idempotent via flag
+  const hostHubHomeFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'seed_host_hub_home_content_v1'
+  `).catch(() => []);
+
+  if (hostHubHomeFlag.length === 0) {
+    await seedHostHubHomeContent(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_host_hub_home_content_v1')`);
+  } else {
+    console.log("  ⏭ Host Hub home content already seeded.");
   }
 
   await db.$disconnect();

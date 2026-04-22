@@ -42,7 +42,42 @@ A small, load-light batch sitting between two bigger phases. Three concrete piec
 
 ### What comes next
 
-Phase 5 — role-adaptive Hub Home. Coordinator and host views diverge. Coordinator sees attention items (pending new hosts, unassigned programs in the next 30 days, unclaimed sub requests, new conversation threads since their last visit), a prose-authored team directory (per the Phase 1 revert decision — role descriptions are content, not a data model), quick links, and a coordinator notes area. Host sees welcome content, pinned threads, a roster of teammates with photos and bios, troubleshooting guidance, and quick links. Coordinator/admin toggle to preview the host view, session-scoped. Host Hub-specific for now — generalization to other hubs waits until Course Hub or Registration Hub needs its own attention view.
+Phase 5 — role-adaptive Hub Home. Shipped in this same session after the summarization (below).
+
+### Phase 5 — role-adaptive Hub Home (shipped same day)
+
+**What shipped.** The `/account/hub/host-team` route now branches at the page level: coordinators (and admins) land on a coordinator shell; everyone else on a host shell. A session-scoped toggle lets coordinators preview the host view without leaving the page — not persisted, resets on refresh. Other hubs continue to use the generic `HubHomeClient`; the new `HostHubHomeClient` is Host Hub-specific as the spec intends.
+
+**Coordinator view.** Four attention-list sections, each hidden when empty, with an "Everything's handled" fallback when all four are empty: pending new hosts (HubMember `joinedAt` within 7 days), unassigned virtual/hybrid programs in the next 30 days (reuses the cron query shape in `check-unassigned-hosts`), unclaimed sub requests (SubRequest `status = OPEN`), and new conversation threads created since the coordinator's `lastVisitedAt` watermark. Each card has a heading, a hint line, and a "view all" link pointing to the relevant tool or tab. Below the attention block: the team directory renders `hub.homeContent` (coordinator-authored prose, per the Phase 1 revert — role descriptions are content, not schema); a quick-links block with the four surfaces coordinators touch most (schedule, members, conversations, team-management manual chapter); a coordinator notes placeholder that points at Documents for now.
+
+**Host view.** Welcome block renders `hub.welcomeBody` (reusing the field that already drove the welcome interstitial). Pinned threads list. Team roster grid — one card per other ACTIVE member, with avatar (falls back to initials), name + coordinator badge when applicable, title line (prefers `HubMember.position` over `User.title`), and rendered `User.bio` HTML. Troubleshooting block: three static paragraphs covering the common wrinkles — stale auth state, needing coverage, and escalating something. Host-side quick links to schedule, conversations, documents, and the presence-photo settings page.
+
+**Placeholder content seed.** New `prisma/seed-host-hub-home-content.mjs` seeds `welcomeBody` (host-view welcome) and `homeContent` (coordinator-view team directory) on the `host-team` Hub, behind flag `seed_host_hub_home_content_v1`. Write-only-if-null — never overwrites coordinator edits. Both blocks are BlockNote JSON built with the same `h/p/sp/b` helpers used for the manual chapter seed.
+
+**Design decisions that matter.**
+
+1. *Attention items are Host-Hub-specific for now.* No shared attention-items abstraction. When a second hub (Course or Registration) asks for its own attention view, refactor the cross-cutting pieces (watermark, empty-state rendering, card primitives). Generalizing preemptively on one data point is speculative.
+2. *Toggle state is React state, not URL.* Preview-as-host is ephemeral by design — a coordinator should not be able to accidentally bookmark a "host preview" URL and return later thinking it's their real view. Session-scoped component state resets on refresh, which is exactly the wanted semantics.
+3. *Host view always fetches even for coordinators.* So the toggle works without a round-trip. The cost is one extra query pass on the coordinator side; the benefit is the toggle feels instant and never diverges from what a host actually sees.
+4. *Team directory is `hub.homeContent`, not a new field.* Per the Phase 1 revert, there is no RoleProfile model. Reusing `homeContent` for team-directory prose keeps the content model honest: coordinators edit Hub Home content via the existing editor at `/admin/hubs/[slug]/edit` and that content renders here.
+5. *Host roster does not filter on hostingCapability.* Paused members still appear — with an intent future-iteration to badge them visibly. Hiding them would make the team look smaller than it is and conflict with the Phase 3 rule that "paused means on-team-but-not-active," which matters for social continuity.
+6. *Coordinator notes area is a placeholder pointing at Documents.* Adding a new `Hub.coordinatorNotes` field is its own decision — it forces questions about editor surface, audit, and versioning. Punted honestly rather than half-built.
+
+### Phase 5 connections
+
+- **Host Hub Phase 3 (authority model)** — `isCoordinator` + `HubMember.isCoordinator` drive the view split. Attention items filter on `HubMember.status = ACTIVE` (pending new hosts) and implicitly inherit the Phase 3 rules for who-counts-as-team.
+- **`HubMember.lastVisitedAt`** — drives the "new conversations since last visit" attention section. Already updated-before-render by the existing Hub Home logic; we snapshot `priorLastVisitedAt` before the update so the watermark is stable across the page's queries.
+- **`Hub.welcomeBody` + `Hub.homeContent`** — two existing fields repurposed as the host-view welcome and the coordinator-view team directory respectively. No schema changes. Coordinator edits continue to flow through `/admin/hubs/[slug]/edit`.
+- **Phase 4 (schedule)** — unrelated directly, but the new coordinator "Unassigned virtual/hybrid programs" attention card deep-links into `/tools/programs/[slug]` (for configuration) and `/tools/schedule` (for assignment) in the exact same way the Phase 4 diagnostic panel does.
+- **Manual chapter (`host-hub-team-management`)** — the coordinator quick-links block links directly to `/admin/manual/host-hub-team-management`, making the playbook one click away from the place a coordinator actually works.
+
+### What comes next (post-Phase 5)
+
+The Host Hub Rework spec is now substantively delivered across Phases 1 → 5. Remaining open threads are small and specific:
+
+- Visual cue on the schedule for paused or hosting-revoked assignees (deferred from Phase 4).
+- Dedicated inline editor for a Hub-level coordinator notes area (deferred from Phase 5 sub-step 2 — the placeholder currently points at Documents).
+- Editor/block work from session 90's queue (Stage 2d blocks, `TeacherProfile.bio` + `Course.completionNote` schema promotions, terminal `<EditorField>` code-level gate).
 
 ---
 

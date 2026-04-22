@@ -2234,6 +2234,68 @@ Managerial takeover is a real operation the platform needs to express clearly. M
 
 ---
 
+## 44. Host Hub — Role-adaptive Hub Home ✅ Built — session 93 Phase 5 (2026-04-22)
+
+### What it does
+
+`/account/hub/host-team` branches at the page level. Coordinators (and admins) see a coordinator shell; everyone else sees a host shell. A session-scoped "Viewing as" toggle lets coordinators preview the host view without leaving the page — not persisted, resets on refresh. Other hubs continue to flow through the generic `HubHomeClient` — this is Host Hub-specific by intent.
+
+### Coordinator view
+
+**Attention items.** Four lists, each hidden when empty, with an "Everything's handled" fallback when all four are empty:
+
+| Section | Source | Rule |
+|---|---|---|
+| Pending new hosts | `HubMember` | `joinedAt` within 7 days, status ACTIVE |
+| Unassigned virtual/hybrid programs | `Program` + `HostAssignment` | Format = virtual or hybrid, `startDatetime` within 30 days, no standing assignment (sessionDate null) |
+| Unclaimed sub requests | `SubRequest` | `status = OPEN` |
+| New conversations | `HubConversationThread` | `createdAt` greater than coordinator's `lastVisitedAt` watermark |
+
+Each card has a heading, a one-line hint, and a "view all" link pointing at the relevant tool or tab. Empty state: a single soft-green panel, `--color-success-bg`.
+
+**Team directory.** Renders `hub.homeContent` as BlockNote-derived HTML. Per the Phase 1 revert, role descriptions are coordinator-authored prose, not a schema model. Edits continue to flow through `/admin/hubs/[slug]/edit`.
+
+**Quick links.** Four hard-coded links covering the surfaces coordinators touch most: schedule, members tab, conversations tab, team-management manual chapter.
+
+**Coordinator notes.** Placeholder block pointing coordinators at the Documents tool. A real editable hub-level notes area is deferred — adding the field forces editor + audit decisions.
+
+### Host view
+
+**Welcome.** Renders `hub.welcomeBody` (the same field that drives the welcome interstitial for first-time visitors). Seed script populates it with placeholder prose the coordinator can rewrite.
+
+**Pinned threads.** Up to 5 `isPinned: true, status: OPEN` threads.
+
+**Team roster.** Grid of cards — one per other ACTIVE member. Each card: avatar (falls back to initials), name + Coordinator badge if applicable, title line (`HubMember.position` preferred, else `User.title`), and rendered `User.bio` HTML. No filter on `hostingCapability` — paused members still appear; surfacing their state visibly is a future iteration.
+
+**If something goes wrong.** Three-paragraph static troubleshooting block covering stale auth in a session, filing a sub request for coverage, and escalating via Conversations.
+
+**Quick links.** Four host-relevant links: personal schedule, conversations, documents, presence-photo settings.
+
+### Toggle
+
+Session-scoped React state on `HostHubHomeClient`. Coordinators and admins see a compact "Viewing as — Coordinator | Host (preview)" control; toggling switches the rendered view without a round-trip. All host-side data is fetched even for coordinators so the toggle feels instant.
+
+### Placeholder content seed
+
+`prisma/seed-host-hub-home-content.mjs` — write-only-if-null upsert on `hub.welcomeBody` and `hub.homeContent` for the `host-team` hub. Flagged via `seed_host_hub_home_content_v1` in `_migration_flags`. Never overwrites coordinator edits; safe to re-run.
+
+### Why this shape
+
+- **Attention items are Host-Hub-specific for now.** When a second hub asks for an attention view, the card primitives + empty-state pattern get extracted. Designing a generic abstraction on a sample size of one is speculative.
+- **Toggle is React state, not URL.** A coordinator should not be able to bookmark a "host preview" URL and return later thinking it's their real view. Component state resets on refresh, which matches the intent.
+- **Team directory = `hub.homeContent`.** Reusing the existing field honors the Phase 1 revert: there is no RoleProfile model, role descriptions are content.
+- **Roster includes paused members.** Hiding them would make the team look smaller than it is and contradict the Phase 3 semantics ("paused means on-team-but-not-active"). A visible paused indicator is tracked as a follow-on.
+
+### Key files
+
+- `app/account/hub/[slug]/page.tsx` — host-team branch + `loadHostHubAttention()` + `loadHostHubHostView()`
+- `components/HostHubHomeClient.tsx` — role-adaptive home component (coordinator + host + toggle)
+- `prisma/seed-host-hub-home-content.mjs` — placeholder content seed
+- `prisma/migrate.mjs` — new flag `seed_host_hub_home_content_v1`
+- `public/css/custom.css` — `hub-home-toggle-*`, `hub-home-coord-*`, `hub-home-host-*`, `hub-home-att-*`
+
+---
+
 ## Session Log
 
 | Date | Summary |
