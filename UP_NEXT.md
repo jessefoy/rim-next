@@ -4,60 +4,76 @@
 
 ---
 
-## Active: Host Hub Rework — Phase 3 shipped, Phase 1 reverted, Phase 2 skipped (session 92, 2026-04-22)
+## Active: Host Hub Phase 5 — Role-adaptive Hub Home (queued, not yet started) (session 93 closing, 2026-04-22)
 
-Phase 3 makes **hub membership the authority** for team state that used to be derived only from system roles. Coordinators can now pause a member, restrict hosting capability, disable hub notifications, or mark a member inactive — all without touching the global Role[]. This is the dimmer switch that replaces the old on/off role-strip.
+Phases 3 and 4 of the Host Hub Rework are both shipped. Phase 5 is the next phase and has a spec but no code yet.
 
-### What session 92 shipped (Phase 3)
+### What Phase 5 is
 
-- `HubMemberStatus` enum (ACTIVE / PAUSED / INACTIVE) + 6 coordinator-owned fields on HubMember (`hostingCapability`, `communicationsEnabled`, `pausedAt`, `pausedById`, `pauseNote`, `coordinatorNote`). Idempotent migration `add_hub_member_authority_fields`.
-- `lib/hubMemberAuth.ts` — `getEffectiveHostingCapability(userId, hubSlug, fallback)` + `canReceiveHubNotifications(userId, hubSlug, fallback)`. HubMember record authoritative when present; falls through to `fallback` when absent.
-- `syncHubMembership` refactored — sync writes only identity + role-derived fields, never touches coordinator-owned state, and **never deletes** records on role revoke.
-- `getHubNotificationRecipients` now filters by `status === "ACTIVE" && communicationsEnabled`.
-- LiveKit gates: token, step-in, mute-participant, mute-all all pass tentative role/assignment grants through `getEffectiveHostingCapability("host-team", tentative)`.
-- Host-team gates: sub-requests (GET + POST), sub-request claim, host assignments (GET + POST self-claim + manager-assign target validation), post-claim team notifications.
-- Hub members API: path renamed `[memberId]` → `[userId]`. POST accepts initial `position` + `isCoordinator`. PATCH accepts all coordinator-owned fields with a destructive-action warning flow (409 + `force: true, releaseAssignments?` on upcoming HostAssignments). DELETE tightened to **ADMIN-only** (coordinators set status INACTIVE instead).
-- `HubMembersClient` rewritten — per-member editor panel, status badges (Paused/Inactive), flags ("Hosting restricted", "Notifications off"), pause note display, warning dialog for destructive actions. Non-coordinator viewers see read-only roster. Groupings: Coordinators / Members / Paused / Inactive.
-- Member picker guardrails — min 3 chars, archived + non-ACTIVE excluded, existing hub members excluded, max 20 sorted by name.
-- `hub-mem-editor-*` + `hub-mem-dialog-*` + status badge CSS added.
+Hub Home shows different content based on the viewer's role. The Host Hub is the first hub to get this treatment — generalization to other hubs waits until Course Hub or Registration Hub asks for their own attention view.
 
-### What was reverted from Phase 1
+**Coordinator view:**
+- Attention items (see below)
+- Team directory — coordinator-authored prose in the Hub Home editor, *not* a structured component. Per the Phase 1 revert decision, role descriptions live as BlockNote content the coordinator writes and updates manually. Seed with placeholder prose based on the draft role statements from the original spec conversation.
+- Quick links
+- Coordinator notes area
 
-The `RoleProfile` layer (role-description model, MyRolesSection, admin section, role-profile API routes, role-profile editor placement, `lib/roleKeys.ts`, seed) was dropped. Role descriptions live as coordinator-authored Hub Home content instead. The `User.bio` field + BlockNote avatar + admin BioSection + `user-bio` editor placement all remain.
+**Host view:**
+- Welcome content (seed with the draft Host description from the spec)
+- Pinned threads
+- Team roster with photos and bios
+- Troubleshooting guidance
+- Quick links
 
-### What Phase 2 was supposed to be
+**Toggle:** coordinators and admins can preview the host view. Session-scoped, resets on refresh.
 
-Empty settings shell for hub-scoped preferences. Skipped — empty scaffolding is the same mistake Phase 1 stepped back from. Will build when a real setting exists.
+### Coordinator attention items (Host Hub-specific)
 
-### What comes next
+Implement each as its own section; hide the section entirely when its list is empty. If *all* sections are empty, show a single "Everything's handled" message.
 
-There is no specific next phase committed. Possibilities:
+1. **Pending new hosts** — `HubMember` records added in the last 7 days. Useful for onboarding follow-up.
+2. **Unassigned virtual/hybrid programs in the next 30 days** — reuse the existing cron query (there's already a job that computes this for the `UNASSIGNED_SESSION` alerts). Don't duplicate the logic.
+3. **Unclaimed sub requests** — `SubRequest` where `status = OPEN`.
+4. **New conversation threads since coordinator's last visit** — use `HubMember.lastVisitedAt` as the watermark. Count threads created after that timestamp.
 
-- **Phase 4 — Hub-scoped preferences (deferred from Phase 2)**: only if a real setting needs a home. Not speculative.
-- **Hub home surfaces for the new state**: the coordinator notes and pause notes are written but not yet surfaced on Hub Home or on a roster dashboard. If paused members + their notes should appear prominently somewhere beyond the Members tab, design the surface first.
-- **Program Schedule display of paused hosts**: `HubScheduleClient` and the Host Team surfaces don't yet render a visual cue on assignments where the assigned host has their hosting capability revoked or is paused. Consider adding a "hosting revoked" flag to the session card when that's the case.
-- **Editor/block work from session 90's queue**: all of the Stage 2d blocks (Announcement, EarlyArrival, DanaInvitation, etc.) remain open, plus the `TeacherProfile.bio` + `Course.completionNote` schema promotions and the terminal `<EditorField>` code-level gate.
+Keep this Host Hub-specific for now. When a second hub needs an attention view, refactor shared pieces (watermark, section empty-state rendering). Don't generalize preemptively.
+
+### Suggested sub-step order
+
+1. **Role detection + view split** — figure out from the viewer's `HubMember` + roles whether to render coordinator or host view. Get the skeleton of both views rendering before filling in sections. Verify: a coordinator sees the coordinator shell; a host sees the host shell; an ADMIN defaults to coordinator.
+2. **Coordinator view sections** — attention items first (four lists + empty state), then quick links + coordinator notes area.
+3. **Host view sections** — welcome content (BlockNote prose), pinned threads, team roster (read from `HubMember` + `User.bio` + `User.avatarUrl`), troubleshooting guidance, quick links.
+4. **Toggle** — coordinator-only "Preview as host" button. Session-scoped (URL query param or client state), not persisted. Visual indicator while previewing.
+5. **Seed placeholder content** — initial BlockNote JSON for the host-view welcome block and the coordinator-authored team directory. Use the draft role statements from the original spec conversation.
+
+### What sits behind Phase 5
+
+- **Host Hub Phase 3 (session 92)** — hub membership is authoritative for team state. Phase 5 consumes this: coordinator detection comes from `HubMember.isCoordinator`; the team roster reads `HubMember` records; the "pending new hosts" list is a query over `HubMember.createdAt`.
+- **Host Hub Phase 4 (session 93)** — no direct dependency. Phase 4's reassign-to-self action and diagnostic panel live on `/tools/schedule`, not Hub Home.
 
 ### Things the opening ritual should know
 
-- **Nothing is broken.** Build passes. All existing host/LiveKit/notification flows continue to work for users who have a HubMember record with ACTIVE status. Users who only hold a role and have no hub record fall through the legacy gate unchanged.
 - **Hub membership is authoritative when it exists.** If gating a new surface on hosting or hub notifications, pass the tentative role-based decision as the third arg to `getEffectiveHostingCapability` / `canReceiveHubNotifications`. Do not re-implement the pattern.
 - **No-delete is the policy.** Never call `db.hubMember.delete()` outside the ADMIN-only DELETE route. Revoking a role preserves the HubMember record and its coordinator-owned state.
-- **Destructive actions get a confirmation flow, not a silent permission strip.** If a new surface can revoke hosting or pause a member with upcoming commitments, mirror the 409 + `force: true` pattern used on PATCH `/api/hub/[slug]/members/[userId]`.
+- **Destructive actions get a confirmation flow.** The 409 + `force: true` pattern on `app/api/hub/[slug]/members/[userId]/route.ts` is the template.
+- **Team directory is prose, not schema.** Per the Phase 1 revert: role descriptions are BlockNote content the coordinator writes in Hub Home. There is no `RoleProfile` model — do not try to resurrect one.
 
 ### Files to keep in mind
 
 - `RIM_System_Architecture.md § Hub Membership as Authority` — the canonical doc for this model
-- `lib/hubMemberAuth.ts` — the two helpers
+- `lib/hubMemberAuth.ts` — the two permission helpers
 - `lib/syncHubMembership.ts` — sync policy (no-delete, field ownership)
-- `lib/toolAuth.ts` — notification recipient filter
-- `app/api/hub/[slug]/members/[userId]/route.ts` — warning-flow template for any similar destructive endpoint
-- `components/HubMembersClient.tsx` — coordinator control surface template
+- `lib/toolAuth.ts` — notification recipient filter (`getHubNotificationRecipients`)
+- `components/HubMembersClient.tsx` — coordinator control surface pattern
+- `components/HubScheduleClient.tsx` — `<ProgramDiagnostics>` and reassign flow (Phase 4, for reference when building similar manager-only affordances)
+- `app/api/host/assignments/reassign/route.ts` — the pattern for HOST_MANAGER/ADMIN-only mutation endpoints
 
 ### Known issues / deferred
 
-- **Manual chapter** for coordinators managing hub members still needs updating — ManualSection content is DB-backed, edited at `/admin/manual/editor`. The chapter should cover: the three status values (ACTIVE/PAUSED/INACTIVE) and what dimming a member actually does; the distinction between pausing a member and revoking hosting capability; communications toggle for hub notifications; the destructive-action confirmation flow ("X has upcoming assignments — keep or release?"); and the policy that coordinators set INACTIVE rather than delete (ADMIN-only hard remove).
-- **Session log + FEATURES §42** record the full change set. `RIM_Stack_Reference.md` has a one-paragraph summary in the Active Roles section.
+- **Manual chapter** for coordinators managing hub members is live (`slug: host-hub-team-management`, from session 93) — verify at `/admin/manual/host-hub-team-management` after the next deploy has run the migration.
+- **Feature cards page** was removed from the closing ritual in CLAUDE.md this session — the file `app/admin/features/page.tsx` doesn't exist and isn't planned. If we build a feature inventory page later, add the step back.
+- **Schedule display of paused hosts** — `HubScheduleClient` still renders assignments without a visual cue for paused hosts or hosts with capability revoked. Deferred; consider a "hosting revoked" flag on the session card when the assigned user no longer has effective hosting.
+- **Editor/block work from session 90's queue** — Stage 2d blocks (Announcement, EarlyArrival, DanaInvitation, etc.) remain open, plus the `TeacherProfile.bio` + `Course.completionNote` schema promotions and the terminal `<EditorField>` code-level gate.
 
 ---
 

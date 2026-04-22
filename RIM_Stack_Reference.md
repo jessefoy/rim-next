@@ -212,7 +212,6 @@ app/
     manual/           staff reference manual
     roadmap/          planned work tracker
     sitemap/          site architecture
-    features/         feature inventory
     ideas/            backlog (data/backlog.json)
   api/
     account/          member-facing APIs (registrations, alerts, reactivate)
@@ -222,7 +221,7 @@ app/
     programs-pg/      program CRUD + google-meet + send-reminder
     programs/         legacy (ical only)
     registrations/    registration CRUD + email
-    host/             hub APIs (assignments, sub-requests, threads, replies)
+    host/             hub APIs (assignments, assignments/reassign, sub-requests, threads, replies)
     support/          support inbox APIs (threads, compose, reply, notes, templates, settings, sync, auth)
     stripe/           checkout + webhook
     cron/             scheduled jobs (reminders, unassigned-host check, support-sync)

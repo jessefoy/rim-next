@@ -1,5 +1,51 @@
 ---
 
+## 2026-04-22 (session 93) — Host Hub Phase 4, team-management manual chapter, ritual cleanup
+
+### The scope
+
+A small, load-light batch sitting between two bigger phases. Three concrete pieces:
+
+1. A new staff manual chapter for the Host Hub's coordinator — the first piece of documentation authored specifically for the Virtual Host Coordinator role. Covers the authority model, the three statuses, pause semantics, and the hub-membership-is-authority rule in plain English.
+2. Phase 4 of the Host Hub Rework — two small additions on the Schedule tool session detail panel for Host Managers and Admins: a program setup diagnostic and a reassign-to-self action. No schema changes, no permission model changes.
+3. Closing-ritual cleanup — the feature-cards step in CLAUDE.md referenced `app/admin/features/page.tsx`, which has never been built. Removed the step so the ritual stays true to the code.
+
+### What shipped
+
+**Manual chapter — `host-hub-team-management`.** A new `ManualSection` seeded idempotently through `prisma/migrate.mjs` via the flag `seed_manual_host_hub_team_management_v1`. Body built in `prisma/seed-manual-host-hub-team-management.mjs` as BlockNote JSON using the same `h/p/li/ni/sp` helpers as the Program Manager seed. Chapter covers: the coordinator's authority (add, pause, remove — with the ADMIN-only carve-out for hard deletion), the three statuses (Active / Paused / Inactive) and what each means operationally, the three pause settings (hosting capability, communications, pause note) with recommended defaults, the hub-membership-is-authority rule explained in non-technical terms, what syncs automatically vs. what the coordinator owns, and which things belong to the registrar or ADMIN instead. Renders at `/admin/manual/host-hub-team-management` once the next deploy runs the migration.
+
+**Program setup diagnostic panel — `components/HubScheduleClient.tsx`.** When the viewer is a Host Manager or Admin, the expanded session detail now renders a `<ProgramDiagnostics>` block between the sub-message and the actions row. Four read-only checks: program format is virtual or hybrid (error), `livekitRoom` is configured (error), an occurrence is scheduled for the session date (error), a host is assigned (warning, not error — that's the normal state the rest of the tool is designed around). When everything passes, the panel stays visible but collapses to "All checks pass." Failed checks render with a hint that program configuration belongs to the registrar and two inline links: the Program Manager (`/tools/programs/[slug]`) and the public page. Styling uses `--color-error-bg` / `--color-warning-bg` / `--color-success-bg` so the panel's background communicates the overall state at a glance. The Schedule page (`app/tools/schedule/page.tsx`) now reads `livekitRoom` from each program and passes it through in the session payload; the GET `/api/host/assignments?month=` endpoint does the same so client-side month navigation stays consistent.
+
+**Reassign-to-self action — `app/api/host/assignments/reassign/route.ts`.** New `POST` endpoint, HOST_MANAGER/ADMIN only. Body: `{ programSlug, sessionDate, currentAssignmentId? }`. Flow: cancel any open sub-requests on the existing assignment, delete it, create a fresh assignment owned by the requester. Notifies the previously-assigned host (if any) with an `UNASSIGNED_SESSION`-typed alert and the rest of the Host Team (routed through `getHubNotificationRecipients("host-team", { excludeUserId: newHostId })` so paused members and those with communications disabled are correctly excluded). On the client, the action appears in the session detail's secondary actions as "Reassign this session to me" whenever the viewer is a manager and isn't already the assigned host. Confirmation dialog explains what will happen — previous host gets removed, open sub-request gets cancelled. Uses the existing `hub-detail__warn` pattern.
+
+**Ritual cleanup — `CLAUDE.md`.** Step 6 (feature cards) removed from the closing ritual. Steps renumbered 6–8. Rationale: the referenced file doesn't exist, so the step was inert at best and misleading at worst. If we decide to build a feature inventory page later, we add the step back — the ritual should reflect the code as it actually is, not as it might someday be.
+
+### Design decisions that matter
+
+1. **Diagnostic as a second lens on the session, not a separate surface.** Rendering the panel inline in the existing detail view (instead of on a new admin tool) keeps a Host Manager in the same motion: they open a session to understand it; the diagnostic is part of that understanding. Matches the Dharma-rooted design principle of clear seeing without context-switching.
+
+2. **Warnings vs. errors.** "No host yet" is a warning, not an error, because it's the normal state the whole schedule tool is built to help fix. The diagnostic distinguishes configuration problems (which the coordinator can't resolve and should route to the registrar) from coverage gaps (which they're actively working on).
+
+3. **Reassign-to-self is delete-then-create, not userId mutation.** Swapping `userId` in place would carry an inflight sub-request forward onto the new host, which doesn't make sense semantically. Fresh assignment + explicit cancel of the old sub-request models the managerial override cleanly. Previously-assigned host gets one clear notification rather than two ambiguous ones.
+
+4. **Reassign-to-self, not reassign-to-anyone.** Managerial takeover of a session is a real operation; managerial assignment-to-someone-else is a policy question this codebase has deliberately not answered (the sub-request system is how coverage transfers happen). Keeping this phase's action narrowly scoped avoids pretending that scope is settled.
+
+5. **Feature-cards step removal instead of preservation-as-comment.** Leaving a breadcrumb ("feature inventory page not currently built") would have kept the ritual pointing at a non-thing. Cleaner to remove and rebuild if needed — the code-as-written is what we're really ritualizing around.
+
+### What this work connects to
+
+- **Staff manual infrastructure** — first chapter authored for a hub coordinator role rather than a platform tool. Sits alongside the Program Manager chapter (`slug: "program-manager"`) and follows the same seed + flag pattern, confirming that pattern is now the standard way to add manual content.
+- **Host Hub Rework Phase 3** — the manual chapter and the diagnostic panel both depend on the Phase 3 authority model. The chapter explains it in user terms; the diagnostic and reassign flow assume it (effective-hosting gates still run on the underlying routes).
+- **Program Manager** — the diagnostic panel routes coordinators to `/tools/programs/[slug]` for configuration issues. The Program Manager chapter remains the written reference for what they'll see there.
+- **LiveKit session flow** — the diagnostic's `livekitRoom` check is a pre-flight read on the same field LiveKit token generation relies on. A session where the diagnostic reports missing LiveKit config will also fail to connect; the diagnostic surfaces it before the participant sees the failure.
+- **Hub notification authority** — the reassign endpoint's post-action alerts route through `getHubNotificationRecipients`, so the Phase 3 policy ("paused/inactive/communications-disabled members don't receive hub notifications") is enforced here too without the endpoint having to know the rules.
+
+### What comes next
+
+Phase 5 — role-adaptive Hub Home. Coordinator and host views diverge. Coordinator sees attention items (pending new hosts, unassigned programs in the next 30 days, unclaimed sub requests, new conversation threads since their last visit), a prose-authored team directory (per the Phase 1 revert decision — role descriptions are content, not a data model), quick links, and a coordinator notes area. Host sees welcome content, pinned threads, a roster of teammates with photos and bios, troubleshooting guidance, and quick links. Coordinator/admin toggle to preview the host view, session-scoped. Host Hub-specific for now — generalization to other hubs waits until Course Hub or Registration Hub needs its own attention view.
+
+---
+
 ## 2026-04-22 (session 92) — Host Hub Rework Phase 3: Hub membership as authority
 
 ### The scope

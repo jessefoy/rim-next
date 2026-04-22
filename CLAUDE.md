@@ -184,13 +184,11 @@ When Jesse says **"closing prompt"**, **"let's document everything"**, or simila
 
 5. **Staff Manual** (`app/admin/manual/page.tsx`) — Update any affected chapters. The manual is not optional. Writing documentation forces understanding.
 
-6. **Feature cards** (`app/admin/features/page.tsx`) — Update feature cards, system map, data flows, dependency cards if relevant.
+6. **Backlog** (`data/backlog.json`) — If any new items were identified during the session, add them.
 
-7. **Backlog** (`data/backlog.json`) — If any new items were identified during the session, add them.
+7. **UP_NEXT.md** — Rewrite the "Active" section to reflect where this session ended. Capture: what was built and is now live, what is open (being tested, half-built, or waiting on Jesse), the next concrete step, and any queued follow-ons. This file is read at the top of the next session's opening ritual — it is how Jesse picks up where we left off without starting cold.
 
-8. **UP_NEXT.md** — Rewrite the "Active" section to reflect where this session ended. Capture: what was built and is now live, what is open (being tested, half-built, or waiting on Jesse), the next concrete step, and any queued follow-ons. This file is read at the top of the next session's opening ritual — it is how Jesse picks up where we left off without starting cold.
-
-9. **Commit and push all documentation changes together.**
+8. **Commit and push all documentation changes together.**
 
 If any of these files do not need updating for this session, say so explicitly. Do not silently skip them.
 

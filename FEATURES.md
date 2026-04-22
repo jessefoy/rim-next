@@ -2183,6 +2183,57 @@ Path renamed from `[memberId]` (HubMember.id cuid) to `[userId]` to match the na
 
 ---
 
+## 43. Schedule Tool — Program Diagnostic + Reassign-to-Self ✅ Built — session 93 Phase 4 (2026-04-22)
+
+### What it does
+
+Two Host Manager / Admin–only additions on the session detail panel of the Host Schedule (`/tools/schedule`). Both live inside the existing expanded-card detail; no new page or route surface.
+
+### Program setup diagnostic panel
+
+Renders between the sub-message and the actions row when the viewer is HOST_MANAGER or ADMIN. Four read-only checks against the program powering the session:
+
+| Check | Level | Trigger |
+|---|---|---|
+| Program format is virtual or hybrid | error | `programFormat` not in `{"virtual","hybrid"}` |
+| LiveKit room configured | error | `livekitRoom` null or empty |
+| Occurrence scheduled | error | `sessionDate` null |
+| Host assigned | warning | `hostUserId` null |
+
+Panel background encodes the state: `--color-success-bg` when all checks pass, `--color-warning-bg` when the only failures are warnings, `--color-error-bg` when any error is present. Failed error-level checks render a hint pointing at the registrar ("Program configuration is managed by the registrar") with inline links to `/tools/programs/[slug]` (Program Manager) and `/programs/[slug]` (public page). "No host assigned" is always a warning because the whole schedule tool is built around resolving that state.
+
+### Reassign-to-self action
+
+Appears in the session detail's secondary actions as **"Reassign this session to me"** when the viewer is HOST_MANAGER or ADMIN and isn't already the assigned host. Clicking opens the standard `hub-detail__warn` confirmation panel explaining the side effects: the previously-assigned host will be removed, any open sub request on the session will be cancelled, and affected parties will be notified.
+
+On confirm, POST `/api/host/assignments/reassign`:
+
+- Cancels any `SubRequest` with `status: OPEN` on the existing `HostAssignment`
+- Deletes the existing `HostAssignment` (if one exists)
+- Creates a fresh `HostAssignment` owned by the requester
+- Notifies the previously-assigned host (if any) with an `UNASSIGNED_SESSION` alert
+- Notifies the rest of the Host Team (excluding the new host *and* the previous host, to avoid duplicate alerts) with a `SUB_REQUEST` alert
+
+All team notifications route through `getHubNotificationRecipients("host-team", { excludeUserId: newHostId })` so Phase 3's authority rules apply: paused/inactive/communications-disabled members are correctly excluded.
+
+### Why this action is scoped to "self"
+
+Managerial takeover is a real operation the platform needs to express clearly. Managerial assignment-to-someone-else is a policy question the sub-request system already answers — coverage transfers happen through the sub-request flow. Keeping reassign narrowly scoped to the manager themselves avoids re-opening that design space.
+
+### Payload changes
+
+- `Program.livekitRoom` is now selected by the schedule page and the GET `/api/host/assignments?month=` endpoint, then passed through in each session payload. Client uses it for the diagnostic's LiveKit check.
+
+### Key files
+
+- `app/api/host/assignments/reassign/route.ts` — new POST endpoint, HOST_MANAGER/ADMIN only
+- `app/api/host/assignments/route.ts` — GET adds `livekitRoom` to session payload
+- `app/tools/schedule/page.tsx` — selects `livekitRoom`, passes `isHostManager` prop
+- `components/HubScheduleClient.tsx` — `<ProgramDiagnostics>` component + `reassignToSelf` handler + reassign confirmation dialog
+- `public/css/custom.css` — `hub-diag-*` styles + `hub-detail__link-btn--manager`
+
+---
+
 ## Session Log
 
 | Date | Summary |
