@@ -1,15 +1,22 @@
 /**
- * rim-connect.js v2
+ * rim-connect.js v3
  * Populates Webflow elements with data from RIM Next API endpoints.
  *
- * LIST pages (programs listing):
+ * FLAT LIST (simple program list):
  *   data-rim-list="{collection}"         — container; fetches array and clones template
  *   data-rim-item                         — item template (cloned per result)
+ *
+ * GROUPED LIST (programs grouped by category):
+ *   data-rim-group-list="{collection}"   — outer container
+ *   data-rim-group-item                  — category template (cloned per category)
+ *   data-rim-group-field="{path}"        — field on the category template (e.g. "name")
+ *   data-rim-items                       — program list wrapper inside the category template
+ *   data-rim-item                        — program template inside data-rim-items
  *
  * DETAIL pages (single program):
  *   data-rim-page="{collection}"         — on <body> or any wrapper; reads ?slug= from URL
  *
- * Field binding (works inside both list items and detail pages):
+ * Field binding (works everywhere):
  *   data-rim-field="{path}"              — sets textContent (dot notation: "category.name")
  *   data-rim-html="{path}"              — sets innerHTML (for rich text / descriptionHtml)
  *   data-rim-href="{template}"           — sets href; [fieldName] tokens replaced with values
@@ -17,7 +24,7 @@
  *   data-rim-show="{path}"              — shows element only when field is truthy
  *   data-rim-hide="{path}"              — hides element when field is truthy
  *
- * State elements (inside data-rim-list containers):
+ * State elements (inside data-rim-list or data-rim-group-list containers):
  *   data-rim-state="loading|empty|error" — shown/hidden automatically
  */
 
@@ -159,6 +166,88 @@
       });
   }
 
+  // ── Grouped list pages ───────────────────────────────────────────────────────
+
+  function renderGroupedList(container, groups) {
+    var groupTemplate = container.querySelector("[data-rim-group-item]");
+    if (!groupTemplate) return;
+
+    container.querySelectorAll("[data-rim-group-clone]").forEach(function (el) {
+      el.parentNode.removeChild(el);
+    });
+
+    if (groups.length === 0) {
+      showState(container, "empty");
+      return;
+    }
+
+    hideAllStates(container);
+
+    groups.forEach(function (group) {
+      var groupClone = groupTemplate.cloneNode(true);
+      groupClone.removeAttribute("data-rim-group-item");
+      groupClone.setAttribute("data-rim-group-clone", "");
+      groupClone.style.display = "";
+
+      // Populate category-level fields
+      groupClone.querySelectorAll("[data-rim-group-field]").forEach(function (el) {
+        var path = el.getAttribute("data-rim-group-field");
+        var val = get(group, path);
+        el.textContent = val != null ? String(val) : "";
+      });
+
+      // Find the program list wrapper inside this category clone
+      var itemsWrapper = groupClone.querySelector("[data-rim-items]");
+      var programTemplate = itemsWrapper
+        ? itemsWrapper.querySelector("[data-rim-item]")
+        : groupClone.querySelector("[data-rim-item]");
+
+      if (programTemplate) {
+        programTemplate.style.display = "none";
+        var programs = group.programs || [];
+        programs.forEach(function (program) {
+          var progClone = programTemplate.cloneNode(true);
+          progClone.removeAttribute("data-rim-item");
+          progClone.setAttribute("data-rim-clone", "");
+          progClone.style.display = "";
+          populateFields(progClone, program);
+          var parent = itemsWrapper || programTemplate.parentNode;
+          parent.appendChild(progClone);
+        });
+      }
+
+      container.appendChild(groupClone);
+    });
+  }
+
+  function initGroupedList(container) {
+    var collection = container.getAttribute("data-rim-group-list");
+    var url = ENDPOINTS[collection];
+    if (!url) {
+      console.warn("rim-connect: no endpoint for grouped collection \"" + collection + "\"");
+      return;
+    }
+
+    var groupTemplate = container.querySelector("[data-rim-group-item]");
+    if (groupTemplate) groupTemplate.style.display = "none";
+
+    showState(container, "loading");
+
+    fetch(url)
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      })
+      .then(function (data) {
+        var groups = data.grouped || [];
+        renderGroupedList(container, groups);
+      })
+      .catch(function (err) {
+        console.error("rim-connect: grouped fetch failed for \"" + collection + "\"", err);
+        showState(container, "error");
+      });
+  }
+
   // ── Detail pages ─────────────────────────────────────────────────────────────
 
   function initPage(el) {
@@ -193,6 +282,7 @@
 
   function init() {
     document.querySelectorAll("[data-rim-list]").forEach(initList);
+    document.querySelectorAll("[data-rim-group-list]").forEach(initGroupedList);
     document.querySelectorAll("[data-rim-page]").forEach(initPage);
   }
 

@@ -46,21 +46,32 @@ export async function GET() {
     }),
   ]);
 
+  const mappedPrograms = programs.map((p) => ({
+    id: p.id,
+    slug: p.slug,
+    name: p.name,
+    tagline: p.tagline,
+    programImage: p.programImage,
+    programFormat: p.programFormat,
+    scheduleLabel: buildSubtitle(p),
+    category: p.category,
+    registrationEnabled: p.registrationEnabled,
+    specialAnnouncement: p.specialAnnouncement,
+    danaText: p.danaText,
+  }));
+
+  // Grouped by category — categories with no programs are excluded
+  const grouped = categories
+    .map((cat) => ({
+      ...cat,
+      programs: mappedPrograms.filter((p) => p.category?.id === cat.id),
+    }))
+    .filter((g) => g.programs.length > 0);
+
   const payload = {
-    programs: programs.map((p) => ({
-      id: p.id,
-      slug: p.slug,
-      name: p.name,
-      tagline: p.tagline,
-      programImage: p.programImage,
-      programFormat: p.programFormat,
-      scheduleLabel: buildSubtitle(p),
-      category: p.category,
-      registrationEnabled: p.registrationEnabled,
-      specialAnnouncement: p.specialAnnouncement,
-      danaText: p.danaText,
-    })),
+    programs: mappedPrograms,
     categories,
+    grouped,
   };
 
   return NextResponse.json(payload, { headers: CORS });
