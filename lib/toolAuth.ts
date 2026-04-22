@@ -87,9 +87,10 @@ export async function getToolHubContext(hubSlug: string | undefined) {
 /**
  * Get notification recipients from a hub's member list.
  *
- * Returns all active (non-archived) members of a hub. Used by notification
- * code to replace hardcoded role queries. Hub membership is the source of
- * truth for who should receive alerts and emails for hub-related events.
+ * Respects hub-membership authority (Phase 3):
+ *   - Only status === "ACTIVE" members are included.
+ *   - Only members with communicationsEnabled === true are included.
+ *   - Archived users are excluded.
  *
  * Options:
  *   coordinatorsOnly — only return members with isCoordinator: true
@@ -107,6 +108,8 @@ export async function getHubNotificationRecipients(
     include: {
       members: {
         where: {
+          status: "ACTIVE",
+          communicationsEnabled: true,
           ...(options?.coordinatorsOnly ? { isCoordinator: true } : {}),
           user: { archivedAt: null },
           ...(options?.excludeUserId ? { NOT: { userId: options.excludeUserId } } : {}),

@@ -7,9 +7,12 @@ import {
 } from "@/lib/email";
 import { extractTextAsync } from "@/lib/renderRichContentServer";
 import { getHubNotificationRecipients } from "@/lib/toolAuth";
+import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
 
-function hasHubAccess(roles: string[]) {
-  return roles.some((r) => ["HOST", "HOST_MANAGER", "ADMIN"].includes(r));
+async function hasEffectiveHostAccess(userId: string, roles: string[]): Promise<boolean> {
+  if (roles.includes("ADMIN")) return true;
+  const tentative = roles.includes("HOST") || roles.includes("HOST_MANAGER");
+  return getEffectiveHostingCapability(userId, "host-team", tentative);
 }
 
 // GET /api/host/sub-requests — all OPEN sub requests (visible to all hub members)
@@ -18,7 +21,7 @@ export async function GET() {
   if (!session?.user?.id) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
-  if (!hasHubAccess(session.user.roles ?? [])) {
+  if (!(await hasEffectiveHostAccess(session.user.id, session.user.roles ?? []))) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -68,7 +71,7 @@ export async function POST(request: Request) {
   if (!session?.user?.id) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
-  if (!hasHubAccess(session.user.roles ?? [])) {
+  if (!(await hasEffectiveHostAccess(session.user.id, session.user.roles ?? []))) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 

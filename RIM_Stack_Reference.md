@@ -257,6 +257,8 @@ Teacher check: `roles.some(r => ["TEACHER","ADMIN"].includes(r))`
 Support check: `roles.some(r => ["SUPPORT","ADMIN"].includes(r))`
 Registrar check: `roles.some(r => ["REGISTRAR","ADMIN"].includes(r))`
 
+**Hub membership as authority (session 92 Phase 3):** for hosting and hub communications, a HubMember record is authoritative when it exists — coordinator-owned `status`, `hostingCapability`, and `communicationsEnabled` fields override the legacy role check. Use `getEffectiveHostingCapability(userId, hubSlug, fallback)` and `canReceiveHubNotifications(userId, hubSlug, fallback)` in `lib/hubMemberAuth.ts` when gating host/LiveKit/notification surfaces. ADMIN bypasses. If no HubMember record exists, the helpers fall through to the passed role-based fallback. `syncHubMembership` no longer deletes records on role revoke; hard removal is ADMIN-only via `DELETE /api/hub/[slug]/members/[userId]`.
+
 ---
 
 ## Key External Integrations

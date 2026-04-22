@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { RoomServiceClient } from "livekit-server-sdk";
 import { roomNameForProgram } from "@/lib/livekit";
+import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
 
 /**
  * POST /api/livekit/mute-all
@@ -26,9 +27,9 @@ export async function POST(req: NextRequest) {
 
   const roles = session.user.roles ?? [];
   const isAdmin = roles.includes("ADMIN");
-  let isHost = isAdmin;
+  let tentativeHost = isAdmin;
 
-  if (!isHost) {
+  if (!tentativeHost) {
     const program = await db.program.findFirst({
       where: { slug: programSlug },
       select: { id: true },
@@ -41,16 +42,20 @@ export async function POST(req: NextRequest) {
           ...(sessionDate ? { sessionDate: new Date(sessionDate) } : {}),
         },
       });
-      if (assignment) isHost = true;
-      if (roles.includes("HOST_MANAGER")) isHost = true;
-      if (!isHost) {
+      if (assignment) tentativeHost = true;
+      if (roles.includes("HOST_MANAGER")) tentativeHost = true;
+      if (!tentativeHost) {
         const programTeacher = await db.programTeacher.findFirst({
           where: { programId: program.id, userId: session.user.id },
         });
-        if (programTeacher) isHost = true;
+        if (programTeacher) tentativeHost = true;
       }
     }
   }
+
+  const isHost = isAdmin
+    ? true
+    : await getEffectiveHostingCapability(session.user.id, "host-team", tentativeHost);
 
   if (!isHost) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

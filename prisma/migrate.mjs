@@ -299,6 +299,42 @@ const migrations = [
       }
     },
   },
+  {
+    // Session 92 Phase 3 — Hub membership as authority for team state.
+    // Adds HubMemberStatus enum + coordinator-owned fields on hub_members:
+    //   status, hostingCapability, communicationsEnabled, pausedAt, pausedById,
+    //   pauseNote, coordinatorNote. These decouple team state from system roles
+    //   so coordinators can pause, restrict hosting, or silence notifications
+    //   without touching the member's global Role[].
+    name: "add_hub_member_authority_fields",
+    async run() {
+      const cols = await db.$queryRawUnsafe(`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'hub_members' AND column_name = 'status'
+      `);
+      if (cols.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+      // Enum
+      await db.$executeRawUnsafe(`
+        DO $$ BEGIN
+          CREATE TYPE "HubMemberStatus" AS ENUM ('ACTIVE', 'PAUSED', 'INACTIVE');
+        EXCEPTION
+          WHEN duplicate_object THEN null;
+        END $$
+      `);
+      // Columns
+      await db.$executeRawUnsafe(`ALTER TABLE "hub_members" ADD COLUMN "status" "HubMemberStatus" NOT NULL DEFAULT 'ACTIVE'`);
+      await db.$executeRawUnsafe(`ALTER TABLE "hub_members" ADD COLUMN "hostingCapability" BOOLEAN NOT NULL DEFAULT true`);
+      await db.$executeRawUnsafe(`ALTER TABLE "hub_members" ADD COLUMN "communicationsEnabled" BOOLEAN NOT NULL DEFAULT true`);
+      await db.$executeRawUnsafe(`ALTER TABLE "hub_members" ADD COLUMN "pausedAt" TIMESTAMP(3)`);
+      await db.$executeRawUnsafe(`ALTER TABLE "hub_members" ADD COLUMN "pausedById" TEXT`);
+      await db.$executeRawUnsafe(`ALTER TABLE "hub_members" ADD COLUMN "pauseNote" TEXT`);
+      await db.$executeRawUnsafe(`ALTER TABLE "hub_members" ADD COLUMN "coordinatorNote" TEXT`);
+      console.log(`  ✔ Applied: ${this.name}`);
+    },
+  },
 ];
 
 async function main() {

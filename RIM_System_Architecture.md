@@ -173,6 +173,31 @@ Someone who is both a Host Team coordinator and a Volunteer Coordination member 
 
 ---
 
+## Hub Membership as Authority (session 92, Phase 3)
+
+**Principle:** when a HubMember record exists for a user in a hub, that record is authoritative for team state — hosting capability, communications, pause status. The coordinator owns these fields and can restrict them without touching the member's global Role[].
+
+Previously, hosting permission (LiveKit admin grants, sub-request claims, HostAssignment eligibility) was computed only from system roles. That meant the only way to temporarily stop someone from hosting was to strip their HOST role — which also pulled them out of the Host Team hub entirely and sent them back through onboarding when they returned. The new model gives coordinators a dimmer switch: pause a member, disable hosting, or turn off notifications, all without touching roles.
+
+**Field ownership on HubMember:**
+- Sync-owned (written by `syncHubMembership` on role changes): `hubId`, `userId`, `position`, `isCoordinator`, `joinedAt`
+- Coordinator-owned (written only via `/api/hub/[slug]/members/[userId]` PATCH): `status` (ACTIVE/PAUSED/INACTIVE), `hostingCapability`, `communicationsEnabled`, `pausedAt`, `pausedById`, `pauseNote`, `coordinatorNote`
+- Member-owned: `firstVisitedAt`, `lastVisitedAt`
+
+**Permission rule:** `lib/hubMemberAuth.ts` provides `getEffectiveHostingCapability(userId, hubSlug, fallbackAllowed)` and `canReceiveHubNotifications(userId, hubSlug, fallbackAllowed)`. If a HubMember record exists, it is authoritative: `status === "ACTIVE" && hostingCapability/communicationsEnabled`. If no record exists, the helpers fall through to the provided `fallbackAllowed` — typically a role check. This preserves the legacy role gate for edge cases (teachers who have no host-team membership, etc.) while making hub-owned state the primary authority.
+
+**Gated surfaces:**
+- LiveKit: `/api/livekit/token`, `/api/livekit/step-in`, `/api/livekit/mute-participant`, `/api/livekit/mute-all`
+- Sub-requests: `/api/host/sub-requests` (GET, POST), `/api/host/sub-requests/[id]/claim`
+- Host assignments: `/api/host/assignments` (GET, POST self-claim, POST manager-assign target check, post-claim team notifications)
+- Notifications: `getHubNotificationRecipients` filters by `status === "ACTIVE" && communicationsEnabled === true`
+
+**No-delete policy on role revoke:** `syncHubMembership` never deletes HubMember records. If someone's HOST role is revoked, their HubMember stays — coordinator-owned state (pause notes, capability flags) is preserved. Coordinators use `status = INACTIVE` to restrict access while keeping that state. Hard removal (`DELETE /api/hub/[slug]/members/[userId]`) is ADMIN-only and is reserved for cleanup (wrong member added, archived account, etc.).
+
+**Destructive-action warning flow:** When a coordinator pauses a member or revokes hosting capability in the host-team hub, the PATCH endpoint checks for upcoming HostAssignments. If any exist, the response is 409 with `{ requiresConfirmation: true, upcomingAssignments: [...] }`. The client shows the list and asks the coordinator to confirm. Resubmit with `force: true` (and optionally `releaseAssignments: true` to null out the user's upcoming assignments, returning them to the unclaimed pool).
+
+---
+
 ## What's Next
 
 **Tools extraction — complete (session 73):** Three full applications extracted from hub tabs to `/tools/*`: Program Manager → `/tools/programs`, Support Inbox → `/tools/inbox`, Host Schedule → `/tools/schedule`. Each tool has its own nav chrome, role gate, and back link to its associated hub. Hub tabs simplified — only team-centric tabs remain (Home, Conversations, Tasks, Documents, Members, plus course-specific tabs for Course Hub and stakeholder Programs tab for Registrar Hub). This establishes the three-layer architecture: Member Registry (canonical authority) → Hubs (team workspaces) → Tools (operational applications).

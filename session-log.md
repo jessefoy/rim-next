@@ -1,5 +1,65 @@
 ---
 
+## 2026-04-22 (session 92) — Host Hub Rework Phase 3: Hub membership as authority
+
+### The scope
+
+Phase 3 is the load-bearing phase of the Host Hub Rework spec: change how hosting permissions and hub notifications are computed platform-wide, so that hub membership — not the global Role[] — is the authority for team state. Coordinators get a dimmer switch: pause a member, restrict hosting, disable notifications, mark inactive. Role revocation no longer strips anyone from a hub.
+
+This replaces the old binary on/off pattern where removing HOST_TEAM_MEMBER deleted the HubMember record and any coordinator-authored context with it. Field ownership is now layered:
+
+- **Sync-owned** (written by `syncHubMembership`): `hubId`, `userId`, `position`, `isCoordinator`
+- **Coordinator-owned** (written only through the hub members API): `status`, `hostingCapability`, `communicationsEnabled`, `pausedAt`, `pausedById`, `pauseNote`, `coordinatorNote`
+- **Member-owned** (written by the user's own hub interactions): `firstVisitedAt`, `lastVisitedAt`
+
+### What shipped
+
+**Schema + migration.** `HubMemberStatus` enum (ACTIVE/PAUSED/INACTIVE) and 6 new coordinator-owned columns on HubMember. Idempotent migration `add_hub_member_authority_fields` with `information_schema` guard and `DO $$ ... EXCEPTION WHEN duplicate_object` for the enum.
+
+**Two helpers — `lib/hubMemberAuth.ts`.** `getEffectiveHostingCapability(userId, hubSlug, fallback)` and `canReceiveHubNotifications(userId, hubSlug, fallback)`. When a HubMember record exists it is authoritative; when absent, the tentative role/assignment decision is used as fallback. This preserves legacy paths (teachers with no host-team membership; one-off HostAssignments; pre-migration users) while making hub authority primary.
+
+**Sync policy rewrite — `lib/syncHubMembership.ts`.** Create path sets only sync-owned fields. Update path sets only sync-owned fields. The delete-loop that used to run on role revocation was removed entirely. Explicit comment: hard removal now requires the ADMIN-only DELETE.
+
+**Notification gate — `lib/toolAuth.ts`.** `getHubNotificationRecipients` filters by `status === "ACTIVE" && communicationsEnabled`. Role-based `db.user.findMany` recipient queries elsewhere in the codebase were replaced with this helper so all hub notifications go through the same gate.
+
+**LiveKit gates.** `token`, `step-in`, `mute-participant`, `mute-all` — all four routes now run the tentative role/assignment decision through `getEffectiveHostingCapability(userId, "host-team", tentative)`. ADMIN always bypasses.
+
+**Host-team gates.** Sub-requests (GET+POST), sub-request claim, host assignments (GET+POST self-claim + manager-assign target validation), and post-claim team notifications. A local `hasEffectiveHostAccess(userId, roles)` helper sits in the two routes that mix admin/registrar/host-team checks with hub authority.
+
+**Hub members API.** Path renamed `[memberId]` → `[userId]`. POST accepts initial `position` + `isCoordinator` and checks `archivedAt: null` on the target. PATCH accepts all coordinator-owned fields with a destructive-action confirmation flow: if a change would revoke hosting (status transitioning away from ACTIVE, or hostingCapability flipping to false on host-team) and the member has upcoming HostAssignments, the endpoint returns 409 `{ requiresConfirmation, reason, upcomingAssignments }`. The client then resubmits with `force: true, releaseAssignments?: true`. On release, upcoming HostAssignment.userId is nulled (the slot reopens). DELETE is now ADMIN-only — coordinators set status INACTIVE instead.
+
+**Coordinator UI — `components/HubMembersClient.tsx`.** Full rewrite. Per-member editor panel with status select, coordinator checkbox, hosting-capability toggle (host-team only), communications toggle, pause note, coordinator note. Status badges (Paused / Inactive), flags ("Hosting restricted" / "Notifications off"), pause-note display. Non-coordinator viewers see a read-only roster. Sections group by Coordinators / Members / Paused / Inactive. Confirmation dialog lists up to 10 upcoming assignments with "Proceed (keep assignments)" and "Proceed and release assignments" buttons.
+
+**Member picker guardrails.** `search/route.ts` — min 3 chars, `archivedAt: null`, `memberStatus: "ACTIVE"`, existing hub members excluded, `preferredName` included in search, results capped at 20 and sorted by name.
+
+**CSS.** `hub-mem-editor-*`, `hub-mem-dialog-*`, status-badge variants, paused/inactive dimming — all added to `custom.css` using design tokens (`var(--color-warning-bg)`, etc.).
+
+### Design decisions that matter
+
+1. **Hub membership is authoritative when it exists.** This is the new permission rule for all hub-gated surfaces. `getEffectiveHostingCapability(userId, hubSlug, fallback)` is the one helper to call; do not re-implement the pattern. ADMIN always bypasses before the helper runs.
+
+2. **No-delete on role revoke.** The sync function never calls `db.hubMember.delete()`. Coordinator-authored context (notes, pause history, hosting restrictions) survives role changes. Hard removal is ADMIN-only and explicit.
+
+3. **Destructive actions get a confirmation flow, not a silent permission strip.** Any coordinator action that would revoke hosting from a member with upcoming HostAssignments returns 409 and requires `force: true` to proceed. The client surfaces what's at stake (upcoming sessions) and offers "release assignments" as a deliberate side effect.
+
+4. **Empty scaffolding was the mistake of Phase 1.** Phase 2 was an empty hub settings shell — skipped for the same reason. Will build when a real setting needs a home.
+
+5. **`User.bio` stays; role descriptions don't.** Phase 1's `RoleProfile` layer was reverted in the prior session; this session built on the surviving pieces (User.bio, BlockNote avatar, BioSection, `user-bio` editor placement). Role descriptions belong in coordinator-authored Hub Home content, not a separate model.
+
+### What this work connects to
+
+- **LiveKit video sessions** — host/host-team grants now gate through hub authority. A teacher/assignment host with no HubMember record still works via fallback; a paused host-team member loses hosting cleanly.
+- **Sub-request flow** — creation, claim, and post-claim team notifications all route through the hub authority helpers. If you're paused you won't receive the notification or be allowed to claim.
+- **Host assignments** — self-claim and manager-assign target validation check effective hosting. Manager-assign surfaces a friendlier error ("X is paused or has hosting restricted") when validation fails.
+- **Program Schedule / Host Team surfaces** — still render assignments without a visual cue for paused hosts. This is a known gap, queued in UP_NEXT.
+- **HostAssignment.userId nullable release** — reuses existing nullable-userId semantics. An upcoming assignment with no userId is the existing "open" state that the sub-request flow already understands.
+
+### What comes next
+
+Nothing is committed for the next phase. Possibilities captured in UP_NEXT: a deferred Phase 4 (hub-scoped preferences, only when a real setting exists); hub-home surfaces for paused members and their notes; a "hosting revoked" flag on schedule cards; the still-open Stage 2d editor blocks from session 90's queue. Also pending: the staff manual chapter on coordinators managing hub members needs a real pass covering the status/hosting/communications distinctions and the destructive-action flow — ManualSection content is DB-backed, so that happens in `/admin/manual/editor`, not in source.
+
+---
+
 ## 2026-04-20 (session 90) — Aside block, editor menu unification, typography alignment
 
 ### The scope

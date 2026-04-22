@@ -2103,6 +2103,86 @@ Replaced CSS class–based layout with pure inline styles (immune to global `but
 
 ---
 
+## 42. Hub Membership as Authority ✅ Built — session 92 Phase 3 (2026-04-22)
+
+### What it does
+
+Makes HubMember records the source of truth for team state that used to be derived only from system roles. Coordinators can now pause a member, restrict their hosting capability, turn off their hub notifications, or mark them inactive — all without touching the member's global Role[]. This is the "dimmer switch" that replaces the old on/off role-strip.
+
+### Field ownership on HubMember
+
+- **Sync-owned** (`syncHubMembership` on role changes): `hubId`, `userId`, `position`, `isCoordinator`, `joinedAt`
+- **Coordinator-owned** (Members tab, PATCH endpoint only): `status` (ACTIVE/PAUSED/INACTIVE), `hostingCapability`, `communicationsEnabled`, `pausedAt`, `pausedById`, `pauseNote`, `coordinatorNote`
+- **Member-owned**: `firstVisitedAt`, `lastVisitedAt`
+
+### Permission model
+
+`lib/hubMemberAuth.ts` exposes two helpers:
+
+- `getEffectiveHostingCapability(userId, hubSlug, fallbackAllowed)` — `true` when the HubMember has `status === "ACTIVE" && hostingCapability`. Falls through to `fallbackAllowed` if no HubMember record exists (preserves legacy role-gated paths for teachers, one-off HostAssignments, etc.).
+- `canReceiveHubNotifications(userId, hubSlug, fallbackAllowed)` — same shape, gated on `status && communicationsEnabled`.
+
+ADMIN always bypasses (treated as always capable in any hub).
+
+### Gated surfaces
+
+- **LiveKit:** `/api/livekit/token`, `/api/livekit/step-in`, `/api/livekit/mute-participant`, `/api/livekit/mute-all` — all route through `getEffectiveHostingCapability(userId, "host-team", tentative)` where `tentative` is the pre-existing role/assignment check.
+- **Sub-requests:** `/api/host/sub-requests` (GET list, POST create), `/api/host/sub-requests/[id]/claim` — paused/inactive hosts cannot see or claim.
+- **Host assignments:** `/api/host/assignments` GET list, POST self-claim, POST manager-assign target validation, and the `notifyTeamClaimed` recipient query — all via the hub authority.
+- **Notifications:** `getHubNotificationRecipients` in `lib/toolAuth.ts` filters `status === "ACTIVE" && communicationsEnabled === true`.
+
+### No-delete policy on role revoke
+
+`syncHubMembership` no longer deletes HubMember records when a role is revoked. Coordinator-owned state (pause notes, capability flags) would otherwise be silently lost. To restrict access, use `status = INACTIVE`. Hard removal (`DELETE /api/hub/[slug]/members/[userId]`) is ADMIN-only and reserved for cleanup.
+
+### Destructive-action warning flow
+
+Pausing a member or revoking hosting capability on the host-team hub returns 409 `{ requiresConfirmation: true, upcomingAssignments: [...] }` if the member has upcoming HostAssignments. The Members tab shows the list and asks the coordinator to confirm. Resubmit with `force: true` to proceed; optionally `releaseAssignments: true` to null out the user's upcoming assignments (return them to the unclaimed pool).
+
+### Members tab controls
+
+`HubMembersClient` (`components/HubMembersClient.tsx`) renders a per-member editor panel for coordinators. Fields exposed:
+
+- Position (free text)
+- Coordinator (checkbox, disabled on self)
+- Status (ACTIVE / PAUSED / INACTIVE, disabled on self)
+- Can host sessions (host-team only)
+- Receives hub notifications
+- Pause note (shown under name when paused)
+- Coordinator note (private)
+
+Members are grouped into Coordinators / Members / Paused / Inactive. Non-coordinator viewers see a read-only roster.
+
+### Member picker guardrails
+
+`/api/hub/[slug]/members/search` — minimum 3 characters, excludes archived accounts, excludes `memberStatus !== "ACTIVE"`, excludes members already in the hub, max 20 results, sorted by name.
+
+### Permission gating on the hub members API
+
+- **POST** `/api/hub/[slug]/members` — coordinator-or-ADMIN. Accepts `userId`, `position?`, `isCoordinator?`.
+- **PATCH** `/api/hub/[slug]/members/[userId]` — coordinator-or-ADMIN. Accepts any subset of editable fields + `force` + `releaseAssignments`.
+- **DELETE** `/api/hub/[slug]/members/[userId]` — ADMIN-only. Hard removal for cleanup.
+
+Path renamed from `[memberId]` (HubMember.id cuid) to `[userId]` to match the natural key.
+
+### Key files
+
+- `prisma/schema.prisma` — `HubMemberStatus` enum + 7 new fields on HubMember
+- `prisma/migrate.mjs` — `add_hub_member_authority_fields` migration
+- `lib/hubMemberAuth.ts` — authority helpers
+- `lib/syncHubMembership.ts` — sync preserves records on role revoke
+- `lib/toolAuth.ts` — `getHubNotificationRecipients` filters by authority
+- `app/api/hub/[slug]/members/route.ts` — POST extended
+- `app/api/hub/[slug]/members/[userId]/route.ts` — renamed + PATCH warning flow + ADMIN-only DELETE
+- `app/api/hub/[slug]/members/search/route.ts` — guardrails
+- `app/api/livekit/{token,step-in,mute-participant,mute-all}/route.ts` — gated
+- `app/api/host/{sub-requests/*,assignments}/route.ts` — gated
+- `components/HubMembersClient.tsx` — editor panel + warning dialog
+- `app/account/hub/[slug]/members/page.tsx` — serializes new fields
+- `public/css/custom.css` — `hub-mem-editor-*`, `hub-mem-dialog-*`, status badges
+
+---
+
 ## Session Log
 
 | Date | Summary |

@@ -14118,6 +14118,35 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .hub-mem-confirm p { margin: 0 0 12px; font-size: var(--text-ui); color: var(--rim-text); }
 .hub-mem-confirm__actions { display: flex; gap: 8px; justify-content: flex-end; }
 
+/* Phase 3 — coordinator controls + status badges */
+.hub-mem-av--img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+.hub-mem-item.hub-mem-status--paused { opacity: 0.85; background: #fafaf7; }
+.hub-mem-item.hub-mem-status--inactive { opacity: 0.55; }
+.hub-mem-badge { display: inline-block; margin-left: 8px; padding: 1px 6px; border-radius: 3px; font-size: var(--text-xxs); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+.hub-mem-badge--paused { background: var(--color-warning-bg); color: var(--color-warning); }
+.hub-mem-badge--inactive { background: #eee; color: #777; }
+.hub-mem-item__flag { font-size: var(--text-xs); color: var(--rim-text-muted); margin-top: 3px; }
+.hub-mem-item__note { font-size: var(--text-xs); color: var(--rim-text-muted); margin-top: 3px; font-style: italic; }
+.hub-mem-item__actions { display: flex; gap: 6px; margin-left: 8px; }
+.hub-mem-item__edit-btn { background: none; border: 1px solid var(--rim-rule); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: var(--text-xs); color: var(--rim-text); }
+.hub-mem-item__edit-btn:hover { background: var(--rim-mid); }
+
+.hub-mem-editor { grid-column: 1 / -1; padding: 16px; margin-top: 8px; background: #fafafa; border-radius: 8px; border: 1px solid var(--rim-rule); display: flex; flex-direction: column; gap: 12px; }
+.hub-mem-editor__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.hub-mem-editor__field { display: flex; flex-direction: column; gap: 4px; font-size: var(--text-xs); color: var(--rim-text); }
+.hub-mem-editor__field > span { font-weight: 600; font-size: var(--text-label); text-transform: uppercase; letter-spacing: 0.06em; color: var(--rim-text-muted); }
+.hub-mem-editor__check { display: flex; align-items: center; gap: 8px; font-size: var(--text-ui); color: var(--rim-text); }
+.hub-mem-editor__check input { width: 16px; height: 16px; }
+.hub-mem-editor__actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+.hub-mem-dialog { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.hub-mem-dialog__panel { background: #fff; border-radius: 10px; padding: 24px; max-width: 520px; width: 100%; max-height: 80vh; overflow-y: auto; }
+.hub-mem-dialog__panel h3 { margin: 0 0 8px; font-size: var(--text-h4); }
+.hub-mem-dialog__lede { font-size: var(--text-ui); color: var(--rim-text); margin-bottom: 12px; }
+.hub-mem-dialog__list { margin: 8px 0 16px; padding-left: 20px; font-size: var(--text-ui); }
+.hub-mem-dialog__list li { margin-bottom: 4px; }
+.hub-mem-dialog__actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+
 /* ── Hub tabs — tablet responsive ──────────────────────────── */
 @media (max-width: 768px) {
   .hub-conv-compose, .hub-doc-add-form { padding: 20px; }

@@ -32,7 +32,7 @@ export default async function HubMembersPage({
 
   const members = await db.hubMember.findMany({
     where:   { hubId: hub.id },
-    include: { user: { select: { firstName: true, lastName: true, preferredName: true, title: true, email: true } } },
+    include: { user: { select: { firstName: true, lastName: true, preferredName: true, title: true, email: true, avatarUrl: true } } },
     orderBy: [{ isCoordinator: "desc" }, { joinedAt: "asc" }],
   });
 
@@ -41,13 +41,21 @@ export default async function HubMembersPage({
     userId:        m.userId,
     isCoordinator: m.isCoordinator,
     position:      m.position,
-    createdAt:     m.joinedAt.toISOString(),
+    status:        m.status,
+    hostingCapability:     m.hostingCapability,
+    communicationsEnabled: m.communicationsEnabled,
+    pausedAt:        m.pausedAt?.toISOString() ?? null,
+    pausedById:      m.pausedById,
+    pauseNote:       m.pauseNote,
+    coordinatorNote: m.coordinatorNote,
+    joinedAt:        m.joinedAt.toISOString(),
     user: {
       firstName:     m.user.firstName,
       lastName:      m.user.lastName,
       preferredName: m.user.preferredName,
       title:         m.user.title,
       email:         m.user.email,
+      avatarUrl:     m.user.avatarUrl,
     },
   }));
 
@@ -56,6 +64,7 @@ export default async function HubMembersPage({
       hubSlug={slug}
       members={serialized}
       isCoordinator={isCoordinator}
+      isAdmin={isAdmin}
       currentUserId={session.user.id}
     />
   );

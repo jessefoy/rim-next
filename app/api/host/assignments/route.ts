@@ -1,12 +1,16 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
+import { getHubNotificationRecipients } from "@/lib/toolAuth";
 
 function isManager(roles: string[]) {
   return roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
 }
 
-function hasHubAccess(roles: string[]) {
-  return roles.some((r) => ["HOST", "HOST_MANAGER", "ADMIN"].includes(r));
+async function hasEffectiveHostAccess(userId: string, roles: string[]): Promise<boolean> {
+  if (roles.includes("ADMIN")) return true;
+  const tentative = roles.includes("HOST") || roles.includes("HOST_MANAGER");
+  return getEffectiveHostingCapability(userId, "host-team", tentative);
 }
 
 // ── Date helpers (duplicated from schedule/page.tsx — same logic) ─────────────
@@ -91,7 +95,7 @@ export async function GET(request: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
   const roles = session.user.roles ?? [];
-  if (!hasHubAccess(roles)) {
+  if (!(await hasEffectiveHostAccess(session.user.id, roles))) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -213,7 +217,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
   const roles = session.user.roles ?? [];
-  if (!hasHubAccess(roles)) {
+  if (!(await hasEffectiveHostAccess(session.user.id, roles))) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -267,7 +271,9 @@ export async function POST(request: Request) {
     );
   }
 
-  // If assigning a specific user (manager only), verify hub access
+  // If assigning a specific user (manager only), verify they can host.
+  // Hub authority applies: a member whose host-team capability is revoked
+  // or who is paused/inactive cannot be assigned, even if the HOST role is present.
   if (assignedUserId && assignedUserId !== session.user.id) {
     const targetUser = await db.user.findUnique({
       where: { id: assignedUserId },
@@ -276,9 +282,9 @@ export async function POST(request: Request) {
     if (!targetUser) {
       return Response.json({ error: "User not found" }, { status: 404 });
     }
-    if (!hasHubAccess(targetUser.roles)) {
+    if (!(await hasEffectiveHostAccess(assignedUserId, targetUser.roles))) {
       return Response.json(
-        { error: "This member does not have the Host role. Assign the Host role first." },
+        { error: "This member can't host right now — they are paused, inactive, or have had hosting revoked on the Host Team." },
         { status: 422 }
       );
     }
@@ -336,13 +342,10 @@ async function notifyTeamClaimed(
       ? sessionDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
       : null;
 
-    const recipients = await db.user.findMany({
-      where: {
-        roles: { hasSome: ["HOST", "HOST_MANAGER", "ADMIN"] },
-        archivedAt: null,
-        NOT: { id: claimerId },
-      },
-      select: { id: true },
+    // Route notifications through the hub authority so paused members and
+    // those with communications disabled are excluded.
+    const recipients = await getHubNotificationRecipients("host-team", {
+      excludeUserId: claimerId,
     });
 
     await db.alert.createMany({

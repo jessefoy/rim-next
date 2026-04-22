@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { createRoomToken, roomNameForProgram } from "@/lib/livekit";
+import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
 
 /**
  * POST /api/livekit/step-in
@@ -22,12 +23,16 @@ export async function POST(req: NextRequest) {
   }
 
   const roles = session.user.roles ?? [];
-  const isHostTeam =
-    roles.includes("HOST") ||
-    roles.includes("HOST_MANAGER") ||
-    roles.includes("ADMIN");
+  const isAdmin = roles.includes("ADMIN");
+  const tentativeHostTeam = isAdmin || roles.includes("HOST") || roles.includes("HOST_MANAGER");
 
-  if (!isHostTeam) {
+  // Respect hub authority: a host-team HubMember record can revoke the grant
+  // even if the system role is still present. ADMIN bypasses.
+  const canStepIn = isAdmin
+    ? true
+    : await getEffectiveHostingCapability(session.user.id, "host-team", tentativeHostTeam);
+
+  if (!canStepIn) {
     return NextResponse.json(
       { error: "Only host team members can step in" },
       { status: 403 },

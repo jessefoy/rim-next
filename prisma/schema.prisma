@@ -1048,13 +1048,29 @@ model Subtask {
   @@map("subtasks")
 }
 
+enum HubMemberStatus {
+  ACTIVE
+  PAUSED
+  INACTIVE
+}
+
 model HubMember {
   id            String    @id @default(cuid())
   hubId         String
   userId        String
+  // Sync-owned: identity + role-derived
   position      String?   // e.g. "Virtual Host Coordinator" — free text label
   isCoordinator Boolean   @default(false)
   joinedAt      DateTime  @default(now())
+  // Coordinator-owned: team state
+  status                HubMemberStatus @default(ACTIVE)
+  hostingCapability     Boolean         @default(true)  // For host-team: whether this member can receive LiveKit admin grants
+  communicationsEnabled Boolean         @default(true)  // Whether this member gets hub notifications
+  pausedAt              DateTime?
+  pausedById            String?
+  pauseNote             String?
+  coordinatorNote       String?
+  // Member-owned
   lastVisitedAt  DateTime? // for unread dot tracking on dashboard hub cards
   firstVisitedAt DateTime? // for newcomer welcome interstitial (Phase 2c)
 

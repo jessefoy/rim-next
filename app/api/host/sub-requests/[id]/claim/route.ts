@@ -6,10 +6,7 @@ import {
   type SubClaimedEmailData,
 } from "@/lib/email";
 import { extractTextAsync } from "@/lib/renderRichContentServer";
-
-function hasHubAccess(roles: string[]) {
-  return roles.some((r) => ["HOST", "HOST_MANAGER", "ADMIN"].includes(r));
-}
+import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
 
 // POST /api/host/sub-requests/[id]/claim — claim an open sub request
 // Body: { message? }
@@ -22,7 +19,13 @@ export async function POST(
   if (!session?.user?.id) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
-  if (!hasHubAccess(session.user.roles ?? [])) {
+  const roles = session.user.roles ?? [];
+  const isAdmin = roles.includes("ADMIN");
+  const tentativeHost = isAdmin || roles.includes("HOST") || roles.includes("HOST_MANAGER");
+  const canClaim = isAdmin
+    ? true
+    : await getEffectiveHostingCapability(session.user.id, "host-team", tentativeHost);
+  if (!canClaim) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 

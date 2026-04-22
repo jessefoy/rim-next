@@ -23,18 +23,37 @@ export async function GET(
 
   const url = new URL(req.url);
   const q = url.searchParams.get("q")?.trim() ?? "";
-  if (q.length < 2) return NextResponse.json([]);
+  if (q.length < 3) return NextResponse.json([]);
+
+  // Exclude users already in the hub and archived accounts.
+  const existingUserIds = (
+    await db.hubMember.findMany({
+      where: { hubId: hub.id },
+      select: { userId: true },
+    })
+  ).map((m) => m.userId);
 
   const users = await db.user.findMany({
     where: {
+      archivedAt: null,
+      memberStatus: "ACTIVE",
+      id: { notIn: existingUserIds },
       OR: [
-        { firstName: { contains: q, mode: "insensitive" } },
-        { lastName:  { contains: q, mode: "insensitive" } },
-        { email:     { contains: q, mode: "insensitive" } },
+        { firstName:     { contains: q, mode: "insensitive" } },
+        { lastName:      { contains: q, mode: "insensitive" } },
+        { preferredName: { contains: q, mode: "insensitive" } },
+        { email:         { contains: q, mode: "insensitive" } },
       ],
     },
-    select: { id: true, firstName: true, lastName: true, email: true },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      preferredName: true,
+      email: true,
+    },
     take: 20,
+    orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
   });
 
   return NextResponse.json(users);
