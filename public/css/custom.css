@@ -7702,7 +7702,7 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   line-height: 1.5;
 }
 
-/* ── Save row (shared by About me + My roles inline edits) ── */
+/* ── Save row (shared by About me inline edits) ── */
 
 .mp-save {
   display: flex;
@@ -7816,120 +7816,6 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
 .mp-bio__editor {
   margin-top: 8px;
 }
-
-/* ── My roles ── */
-
-.mp-roles__empty {
-  font-family: var(--font-sans);
-  font-size: var(--text-small);
-  color: var(--rim-text-muted);
-  margin: 0 0 16px;
-}
-
-.mp-roles__list {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.mp-role {
-  border: 1px solid var(--rim-rule);
-  border-radius: 6px;
-  background: #fff;
-}
-
-.mp-role--new { border-style: dashed; }
-
-.mp-role__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 4px 12px 4px 4px;
-}
-
-.mp-role__toggle {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  text-align: left;
-  min-height: 44px;
-  font-family: var(--font-sans);
-}
-
-.mp-role__title {
-  font-size: var(--text-ui);
-  font-weight: 600;
-  color: var(--rim-text);
-}
-
-.mp-role__tag {
-  font-size: var(--text-xxs);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--rim-text-muted);
-  padding: 3px 8px;
-  background: var(--rim-bg-accent);
-  border-radius: 4px;
-}
-
-.mp-role__delete {
-  padding: 6px 10px;
-  font-family: var(--font-sans);
-  font-size: var(--text-xs);
-  color: var(--rim-text-muted);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-}
-
-.mp-role__delete:hover:not(:disabled) { color: var(--color-error); }
-.mp-role__delete:disabled { opacity: 0.4; cursor: default; }
-
-.mp-role__body {
-  padding: 12px 16px 16px;
-  border-top: 1px solid var(--rim-rule);
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.mp-role--new .mp-role__body { border-top: none; }
-
-.mp-role__cancel {
-  padding: 8px 14px;
-  font-family: var(--font-sans);
-  font-size: var(--text-ui);
-  color: var(--rim-text-muted);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-}
-
-.mp-role__cancel:hover { color: var(--rim-text); }
-
-.mp-roles__add {
-  padding: 10px 16px;
-  font-family: var(--font-sans);
-  font-size: var(--text-ui);
-  font-weight: 600;
-  color: var(--rim-blue);
-  background: transparent;
-  border: 1px dashed var(--rim-rule);
-  border-radius: 6px;
-  cursor: pointer;
-  min-height: 44px;
-}
-
-.mp-roles__add:hover { border-color: var(--rim-mid); color: var(--rim-mid); }
 
 /* ═══════════════════════════════════════════════════
    COMMUNITY AGREEMENTS PAGE  (mc- prefix)

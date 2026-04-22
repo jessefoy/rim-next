@@ -57,9 +57,6 @@ export default async function AdminMemberDetailPage({
           orderBy: { grantedAt: "asc" },
           select: { hubSlug: true, grantedAt: true },
         },
-        roleProfiles: {
-          orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-        },
         household: {
           select: {
             isPrimary: true,
@@ -129,14 +126,6 @@ export default async function AdminMemberDetailPage({
     adminNotes: user.adminNotes,
     legacyAdminNotesHtml: legacyAdminNotesHtml,
     bio: user.bio,
-    roleProfiles: user.roleProfiles.map((p) => ({
-      id: p.id,
-      title: p.title,
-      description: p.description,
-      roleKey: p.roleKey,
-      isPrimary: p.isPrimary,
-      sortOrder: p.sortOrder,
-    })),
     tags: user.tags,
     sectionGrants: user.sectionGrants,
     roles: user.roles,

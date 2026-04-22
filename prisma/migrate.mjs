@@ -8,7 +8,6 @@
 import { PrismaClient } from "@prisma/client";
 import { seedPrograms } from "./seed-programs.mjs";
 import { seedManualProgramManager } from "./seed-manual-program-manager.mjs";
-import { seedRoleProfiles } from "./seed-role-profiles.mjs";
 
 const db = new PrismaClient();
 
@@ -266,11 +265,9 @@ const migrations = [
     },
   },
   {
-    // Session 92 — Host Hub Rework Phase 1: bio + role profiles.
-    // Adds `bio` JSONB column to users (personal description, Message-type
-    // BlockNote) and the `role_profiles` table (self-authored per-role
-    // descriptions). See lib/roleKeys.ts for the canonical role key set.
-    name: "add_user_bio_and_role_profiles",
+    // Session 92 — Host Hub Rework Phase 1: add `bio` JSONB to users
+    // (personal description, Message-type BlockNote).
+    name: "add_user_bio",
     async run() {
       const bioCols = await db.$queryRawUnsafe(`
         SELECT column_name FROM information_schema.columns
@@ -278,35 +275,25 @@ const migrations = [
       `);
       if (bioCols.length === 0) {
         await db.$executeRawUnsafe(`ALTER TABLE "users" ADD COLUMN "bio" JSONB`);
+        console.log(`  ✔ Applied: ${this.name}`);
+      } else {
+        console.log(`  ⏭ Already applied: ${this.name}`);
       }
-
+    },
+  },
+  {
+    // Session 92 revert — the role_profiles table was briefly introduced in
+    // Phase 1 but is being dropped. Role descriptions live as coordinator-
+    // authored Hub Home content instead.
+    name: "drop_role_profiles",
+    async run() {
       const tables = await db.$queryRawUnsafe(`
         SELECT table_name FROM information_schema.tables
         WHERE table_name = 'role_profiles'
       `);
-      if (tables.length === 0) {
-        await db.$executeRawUnsafe(`
-          CREATE TABLE "role_profiles" (
-            "id" TEXT NOT NULL,
-            "userId" TEXT NOT NULL,
-            "title" TEXT NOT NULL,
-            "description" JSONB,
-            "roleKey" TEXT,
-            "isPrimary" BOOLEAN NOT NULL DEFAULT false,
-            "sortOrder" INTEGER NOT NULL DEFAULT 0,
-            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            "updatedAt" TIMESTAMP(3) NOT NULL,
-            CONSTRAINT "role_profiles_pkey" PRIMARY KEY ("id"),
-            CONSTRAINT "role_profiles_userId_fkey" FOREIGN KEY ("userId")
-              REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE
-          )
-        `);
-        await db.$executeRawUnsafe(`CREATE INDEX "role_profiles_userId_idx" ON "role_profiles"("userId")`);
-        await db.$executeRawUnsafe(`CREATE INDEX "role_profiles_roleKey_idx" ON "role_profiles"("roleKey")`);
-        await db.$executeRawUnsafe(`CREATE UNIQUE INDEX "role_profiles_userId_roleKey_key" ON "role_profiles"("userId", "roleKey")`);
+      if (tables.length > 0) {
+        await db.$executeRawUnsafe(`DROP TABLE "role_profiles" CASCADE`);
         console.log(`  ✔ Applied: ${this.name}`);
-      } else if (bioCols.length === 0) {
-        console.log(`  ✔ Applied: ${this.name} (bio column only)`);
       } else {
         console.log(`  ⏭ Already applied: ${this.name}`);
       }
@@ -354,11 +341,6 @@ async function main() {
   } else {
     console.log("  ⏭ Program Manager manual already seeded.");
   }
-
-  // Role profiles for Jesse — idempotent, safe to re-run every build.
-  await seedRoleProfiles(db).catch((err) => {
-    console.warn("  ⚠ seedRoleProfiles failed:", err?.message ?? err);
-  });
 
   await db.$disconnect();
   console.log("Migrations complete.");

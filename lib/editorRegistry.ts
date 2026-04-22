@@ -52,9 +52,8 @@ export type EditorPlacement =
   // Message type — promotions (Stage 2d — schema change pending)
   | "teacher-bio"               // TeacherProfile.bio (String? → Json? pending)
   | "course-completion-note"    // Course.completionNote (String? → Json? pending)
-  // Message type — user + role self-description (Host Hub Rework, Phase 1)
-  | "user-bio"                  // User.bio — personal description shown alongside role
-  | "role-profile-description"  // RoleProfile.description — self-authored role description
+  // Message type — personal bio (Host Hub Rework, Phase 1)
+  | "user-bio"                  // User.bio — personal description shown on member profile
   // Message type — short prose
   | "course-description"
   | "site-banner"
@@ -96,7 +95,6 @@ export const PLACEMENT_TYPE: Record<EditorPlacement, EditorType> = {
   "course-completion-note": "message",
   // Message — user + role self-description (Host Hub Rework Phase 1)
   "user-bio": "message",
-  "role-profile-description": "message",
   // Message — short prose
   "course-description": "message",
   "site-banner": "message",
@@ -172,7 +170,6 @@ const MESSAGE_PLACEMENTS: EditorPlacement[] = [
   "volunteer-note",
   "teacher-bio",
   "user-bio",
-  "role-profile-description",
 ];
 
 const FORM_FIELD_PLACEMENTS: EditorPlacement[] = [
