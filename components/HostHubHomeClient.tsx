@@ -328,7 +328,7 @@ function HostView({
       {teamRoster.length > 0 && (
         <section className="hub-home__section">
           <div className="hub-home__section-label">Your team</div>
-          <div className="hub-home-host__roster">
+          <div className="hub-roster">
             {teamRoster.map((m) => (
               <RosterCard key={m.id} member={m} />
             ))}
@@ -394,38 +394,35 @@ function RosterCard({ member }: { member: RosterMember }) {
       .toUpperCase() || "·";
 
   return (
-    <div className="hub-home-host__roster-card">
-      <div className="hub-home-host__roster-head">
-        {member.avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={member.avatarUrl}
-            alt=""
-            className="hub-home-host__roster-avatar"
-          />
-        ) : (
-          <div className="hub-home-host__roster-avatar hub-home-host__roster-avatar--placeholder">
-            {initials}
-          </div>
-        )}
-        <div className="hub-home-host__roster-id">
-          <div className="hub-home-host__roster-name">
-            {member.name}
-            {member.isCoordinator && (
-              <span className="hub-home-host__roster-badge">Coordinator</span>
-            )}
-          </div>
-          {member.title && (
-            <div className="hub-home-host__roster-title">{member.title}</div>
+    <div className="hub-roster-card">
+      <div
+        className={`hub-roster-card__avatar${member.avatarUrl ? "" : " hub-roster-card__avatar--placeholder"}`}
+        style={
+          member.avatarUrl
+            ? { backgroundImage: `url(${encodeURI(member.avatarUrl)})` }
+            : undefined
+        }
+        aria-hidden="true"
+      >
+        {member.avatarUrl ? null : initials}
+      </div>
+      <div className="hub-roster-card__body">
+        <div className="hub-roster-card__name">
+          {member.name}
+          {member.isCoordinator && (
+            <span className="hub-roster-card__badge">Coordinator</span>
           )}
         </div>
+        {member.title && (
+          <div className="hub-roster-card__title">{member.title}</div>
+        )}
+        {member.bioHtml && (
+          <div
+            className="hub-roster-card__bio rim-content"
+            dangerouslySetInnerHTML={{ __html: member.bioHtml }}
+          />
+        )}
       </div>
-      {member.bioHtml && (
-        <div
-          className="hub-home-host__roster-bio rim-content"
-          dangerouslySetInnerHTML={{ __html: member.bioHtml }}
-        />
-      )}
     </div>
   );
 }

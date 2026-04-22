@@ -34,19 +34,17 @@ const h = (level, text) => ({
 });
 
 const welcomeBody = [
-  h(2, "Welcome to the Host team"),
+  h(2, "Welcome"),
   p(
-    "Hosts are the people who open each session, settle it, hold the container, and send it off. You're the first face a newcomer sees and the last one a departing meditator remembers. Thank you for doing this work.",
+    "Hosting is part of practice. The technical work of opening a session — letting people in, getting the sound working, watching the time — and the relational work of holding a container for others to settle are not two different things. They arrive together. The care we give to the microphone is the same care we give to the newcomer who appears on screen for the first time.",
   ),
   sp(),
   p(
-    "This hub is your home base. The schedule tool shows your upcoming sessions. Conversations is where the team works out anything that comes up. Coordinators manage the team from here — if you need coverage, need to step back for a stretch, or need to raise something, this is where to do it.",
+    "This isn't a task we volunteer for on top of our practice. It is practice. Showing up for other people to sit with — attending to what they need to arrive, stay, and leave — asks exactly the kind of clear, unhurried attention the cushion asks for. When the two feel continuous rather than separate, the work gets lighter.",
   ),
   sp(),
   p(
-    "If you're new: take a look around. Read the pinned threads below. Scroll down to see who else is on the team. The ",
-    b("If something goes wrong"),
-    " block covers the common wrinkles.",
+    "This hub is the team's home base. Your schedule, conversations with the rest of the team, coverage when you need it, and the people you're doing this alongside are all here. If you're new, read the pinned threads, scroll down to see who else is on the team, and don't hesitate to raise anything in conversations — a coordinator will see it.",
   ),
 ];
 
