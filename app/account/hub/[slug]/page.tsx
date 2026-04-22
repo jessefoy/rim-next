@@ -74,9 +74,12 @@ export default async function HubHomePage({
         hubName={hub.name}
         viewerRole={isCoordinator ? "coordinator" : "host"}
         canToggle={isCoordinator}
+        canEditContent={isCoordinator}
         coordinatorAttention={coordinatorAttention}
         teamDirectoryHtml={teamDirectoryHtml}
+        teamDirectoryJson={isCoordinator ? (hub.homeContent ?? null) : null}
         welcomeHtml={welcomeHtml}
+        welcomeJson={isCoordinator ? (hub.welcomeBody ?? null) : null}
         pinnedThreads={hostData.pinnedThreads}
         teamRoster={hostData.teamRoster}
       />

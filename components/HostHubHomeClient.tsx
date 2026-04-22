@@ -3,20 +3,31 @@
 /**
  * HostHubHomeClient — role-adaptive Hub Home for the Host Hub (Phase 5).
  *
- * The Host Hub is the first hub to get two distinct Home views:
+ * Two distinct Home views:
  *   - Coordinator view: attention items, team directory (prose), quick links,
  *     coordinator notes.
  *   - Host view: welcome content, pinned threads, team roster, troubleshooting,
  *     quick links.
  *
  * Coordinators (and admins) can toggle into the host view to preview what
- * hosts see. The toggle is session-scoped — it does not persist.
+ * hosts see. Coordinators also have inline edit-in-place affordances on the
+ * two authored sections (Welcome and Team directory) that swap the rendered
+ * HTML for a BlockNote editor.
  *
  * CSS prefix: hub-home- (shared) + hub-home-coord- / hub-home-host- variants.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+
+const RimBlockEditor = dynamic(() => import("@/components/RimBlockEditor"), {
+  ssr: false,
+  loading: () => (
+    <div className="hub-home__editor-loading">Loading editor…</div>
+  ),
+});
 
 export interface CoordinatorAttention {
   newHosts: Array<{ id: string; userId: string; name: string; joinedAt: string }>;
@@ -40,14 +51,19 @@ export interface RosterMember {
   bioHtml: string;
 }
 
+type EditableField = "welcomeBody" | "homeContent";
+
 interface Props {
   slug: string;
   hubName: string;
   viewerRole: "coordinator" | "host";
   canToggle: boolean;
+  canEditContent: boolean;
   coordinatorAttention: CoordinatorAttention | null;
   teamDirectoryHtml: string;
+  teamDirectoryJson: unknown;
   welcomeHtml: string;
+  welcomeJson: unknown;
   pinnedThreads: PinnedThread[];
   teamRoster: RosterMember[];
 }
@@ -57,14 +73,19 @@ export default function HostHubHomeClient({
   hubName,
   viewerRole,
   canToggle,
+  canEditContent,
   coordinatorAttention,
   teamDirectoryHtml,
+  teamDirectoryJson,
   welcomeHtml,
+  welcomeJson,
   pinnedThreads,
   teamRoster,
 }: Props) {
   const [previewAsHost, setPreviewAsHost] = useState(false);
   const activeView = canToggle && previewAsHost ? "host" : viewerRole;
+
+  const [editingField, setEditingField] = useState<EditableField | null>(null);
 
   return (
     <div className="hub-home">
@@ -96,14 +117,22 @@ export default function HostHubHomeClient({
           hubName={hubName}
           attention={coordinatorAttention}
           teamDirectoryHtml={teamDirectoryHtml}
+          teamDirectoryJson={teamDirectoryJson}
+          canEditContent={canEditContent}
+          editingField={editingField}
+          setEditingField={setEditingField}
         />
       ) : (
         <HostView
           slug={slug}
           hubName={hubName}
           welcomeHtml={welcomeHtml}
+          welcomeJson={welcomeJson}
           pinnedThreads={pinnedThreads}
           teamRoster={teamRoster}
+          canEditContent={canEditContent}
+          editingField={editingField}
+          setEditingField={setEditingField}
         />
       )}
     </div>
@@ -117,11 +146,19 @@ function CoordinatorView({
   hubName,
   attention,
   teamDirectoryHtml,
+  teamDirectoryJson,
+  canEditContent,
+  editingField,
+  setEditingField,
 }: {
   slug: string;
   hubName: string;
   attention: CoordinatorAttention | null;
   teamDirectoryHtml: string;
+  teamDirectoryJson: unknown;
+  canEditContent: boolean;
+  editingField: EditableField | null;
+  setEditingField: (f: EditableField | null) => void;
 }) {
   const allEmpty =
     !attention ||
@@ -129,6 +166,8 @@ function CoordinatorView({
       attention.unassignedPrograms.length === 0 &&
       attention.openSubs.length === 0 &&
       attention.newThreads.length === 0);
+
+  const editingTeamDirectory = editingField === "homeContent";
 
   return (
     <div className="hub-home-coord">
@@ -227,15 +266,40 @@ function CoordinatorView({
       </section>
 
       {/* ── Team directory (hub.homeContent) ── */}
-      {teamDirectoryHtml && (
-        <section className="hub-home__section">
-          <div className="hub-home__section-label">Team directory</div>
+      <section className="hub-home__section">
+        <SectionLabel
+          label="Team directory"
+          canEdit={canEditContent && !editingTeamDirectory && editingField === null}
+          onEdit={() => setEditingField("homeContent")}
+        />
+        {editingTeamDirectory ? (
+          <InlineBlockEditor
+            slug={slug}
+            field="homeContent"
+            initialValue={teamDirectoryJson}
+            placeholder="Describe who does what on this team — roles, responsibilities, how the shape of things stands today."
+            onDone={() => setEditingField(null)}
+          />
+        ) : teamDirectoryHtml ? (
           <div
             className="hub-home__orientation-body rim-content"
             dangerouslySetInnerHTML={{ __html: teamDirectoryHtml }}
           />
-        </section>
-      )}
+        ) : (
+          <div className="hub-home__empty-content">
+            No team directory yet.{" "}
+            {canEditContent && (
+              <button
+                type="button"
+                className="hub-home__empty-action"
+                onClick={() => setEditingField("homeContent")}
+              >
+                Add one
+              </button>
+            )}
+          </div>
+        )}
+      </section>
 
       {/* ── Quick links ── */}
       <section className="hub-home__section">
@@ -281,15 +345,25 @@ function HostView({
   slug,
   hubName,
   welcomeHtml,
+  welcomeJson,
   pinnedThreads,
   teamRoster,
+  canEditContent,
+  editingField,
+  setEditingField,
 }: {
   slug: string;
   hubName: string;
   welcomeHtml: string;
+  welcomeJson: unknown;
   pinnedThreads: PinnedThread[];
   teamRoster: RosterMember[];
+  canEditContent: boolean;
+  editingField: EditableField | null;
+  setEditingField: (f: EditableField | null) => void;
 }) {
+  const editingWelcome = editingField === "welcomeBody";
+
   return (
     <div className="hub-home-host">
       <header className="hub-home__header">
@@ -297,15 +371,40 @@ function HostView({
         <h2 className="hub-home__state">{hubName}</h2>
       </header>
 
-      {welcomeHtml && (
-        <section className="hub-home__section">
-          <div className="hub-home__section-label">Welcome</div>
+      <section className="hub-home__section">
+        <SectionLabel
+          label="Welcome"
+          canEdit={canEditContent && !editingWelcome && editingField === null}
+          onEdit={() => setEditingField("welcomeBody")}
+        />
+        {editingWelcome ? (
+          <InlineBlockEditor
+            slug={slug}
+            field="welcomeBody"
+            initialValue={welcomeJson}
+            placeholder="Welcome hosts to the team — what this work is, and what they can expect here."
+            onDone={() => setEditingField(null)}
+          />
+        ) : welcomeHtml ? (
           <div
             className="hub-home__orientation-body rim-content"
             dangerouslySetInnerHTML={{ __html: welcomeHtml }}
           />
-        </section>
-      )}
+        ) : (
+          <div className="hub-home__empty-content">
+            No welcome content yet.{" "}
+            {canEditContent && (
+              <button
+                type="button"
+                className="hub-home__empty-action"
+                onClick={() => setEditingField("welcomeBody")}
+              >
+                Add one
+              </button>
+            )}
+          </div>
+        )}
+      </section>
 
       {pinnedThreads.length > 0 && (
         <section className="hub-home__section">
@@ -422,6 +521,150 @@ function RosterCard({ member }: { member: RosterMember }) {
             dangerouslySetInnerHTML={{ __html: member.bioHtml }}
           />
         )}
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────  Section label w/ edit  ───────────────────────── */
+
+function SectionLabel({
+  label,
+  canEdit,
+  onEdit,
+}: {
+  label: string;
+  canEdit: boolean;
+  onEdit: () => void;
+}) {
+  return (
+    <div className="hub-home__section-label hub-home__section-label--with-action">
+      <span>{label}</span>
+      {canEdit && (
+        <button
+          type="button"
+          className="hub-home__edit-link"
+          onClick={onEdit}
+          aria-label={`Edit ${label}`}
+        >
+          Edit
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────  Inline editor  ───────────────────────── */
+
+type SaveState = "idle" | "saving" | "saved" | "error";
+
+function InlineBlockEditor({
+  slug,
+  field,
+  initialValue,
+  placeholder,
+  onDone,
+}: {
+  slug: string;
+  field: EditableField;
+  initialValue: unknown;
+  placeholder: string;
+  onDone: () => void;
+}) {
+  const router = useRouter();
+
+  // Normalize the initial value into a stable JSON string for dirty detection.
+  const initialJson = JSON.stringify(initialValue ?? null);
+  const [value, setValue] = useState<unknown>(initialValue ?? undefined);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const isDirty = JSON.stringify(value ?? null) !== initialJson;
+
+  // Warn on navigation with unsaved changes.
+  useEffect(() => {
+    if (!isDirty) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [isDirty]);
+
+  async function handleSave() {
+    setSaveState("saving");
+    setErrorMsg(null);
+    try {
+      const res = await fetch(`/api/hubs/${slug}/home`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: value ?? null }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error ?? `Save failed (${res.status})`);
+      }
+      setSaveState("saved");
+      router.refresh();
+      // Give the "Saved" affordance a beat to be seen, then close.
+      setTimeout(() => {
+        onDone();
+      }, 600);
+    } catch (err) {
+      setSaveState("error");
+      setErrorMsg(err instanceof Error ? err.message : "Save failed");
+    }
+  }
+
+  function handleCancel() {
+    if (isDirty) {
+      const ok = window.confirm(
+        "Discard your unsaved changes to this section?",
+      );
+      if (!ok) return;
+    }
+    onDone();
+  }
+
+  const saving = saveState === "saving";
+
+  return (
+    <div className="hub-home__inline-editor">
+      <div className="hub-home__inline-editor-surface">
+        <RimBlockEditor
+          value={value}
+          onChange={setValue}
+          placeholder={placeholder}
+          minHeight={240}
+          context="document"
+        />
+      </div>
+      <div className="hub-home__inline-editor-footer">
+        {errorMsg && (
+          <span className="hub-home__inline-editor-error">{errorMsg}</span>
+        )}
+        {saveState === "saved" && (
+          <span className="hub-home__inline-editor-saved">Saved</span>
+        )}
+        <div className="hub-home__inline-editor-actions">
+          <button
+            type="button"
+            className="hub-home__inline-editor-cancel"
+            onClick={handleCancel}
+            disabled={saving}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="hub-home__inline-editor-save"
+            onClick={handleSave}
+            disabled={saving || !isDirty}
+          >
+            {saving ? "Saving…" : "Save"}
+          </button>
+        </div>
       </div>
     </div>
   );

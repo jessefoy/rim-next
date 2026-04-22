@@ -10822,6 +10822,79 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .hub-home-host__quicklinks a { color: var(--rim-blue); font-weight: 600; }
 .hub-home-host__quicklinks span { color: var(--rim-text-muted); }
 
+/* ── Hub Home inline edit (coordinator-only edit-in-place) ──
+   Subtle "Edit" link beside section labels, a paneled editor surface, and a
+   compact footer with Cancel / Save. Avoids decoration per design philosophy:
+   the affordance reads as a text link, not a button competing for attention. */
+.hub-home__section-label--with-action {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+}
+.hub-home__edit-link {
+  appearance: none; background: transparent; border: 0; padding: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-xxs); font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--rim-text-muted);
+  cursor: pointer;
+  transition: color 0.12s;
+}
+.hub-home__edit-link:hover,
+.hub-home__edit-link:focus-visible { color: var(--rim-blue); outline: none; }
+
+.hub-home__empty-content {
+  font-size: var(--text-small); color: var(--rim-text-muted);
+  font-style: italic;
+}
+.hub-home__empty-action {
+  appearance: none; background: transparent; border: 0; padding: 0;
+  font: inherit; color: var(--rim-blue); cursor: pointer;
+  text-decoration: underline; font-style: normal;
+}
+
+.hub-home__inline-editor {
+  display: flex; flex-direction: column; gap: 10px;
+}
+.hub-home__inline-editor-surface {
+  background: #fff;
+  border: 1px solid var(--rim-rule);
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+.hub-home__inline-editor-footer {
+  display: flex; align-items: center; gap: 12px;
+  font-size: var(--text-xs);
+}
+.hub-home__inline-editor-error { color: var(--color-error); flex: 1 1 auto; }
+.hub-home__inline-editor-saved { color: var(--color-success); flex: 1 1 auto; }
+.hub-home__inline-editor-actions {
+  display: flex; gap: 8px; margin-left: auto;
+}
+.hub-home__inline-editor-cancel,
+.hub-home__inline-editor-save {
+  appearance: none; font: inherit;
+  padding: 7px 14px; border-radius: 6px;
+  font-size: var(--text-ui); font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.hub-home__inline-editor-cancel {
+  background: transparent; border: 1px solid var(--rim-rule); color: var(--rim-text);
+}
+.hub-home__inline-editor-cancel:hover:not(:disabled) { border-color: var(--rim-mid); }
+.hub-home__inline-editor-save {
+  background: var(--rim-blue); border: 1px solid var(--rim-blue); color: #fff;
+}
+.hub-home__inline-editor-save:hover:not(:disabled) { filter: brightness(0.95); }
+.hub-home__inline-editor-cancel:disabled,
+.hub-home__inline-editor-save:disabled {
+  opacity: 0.55; cursor: not-allowed;
+}
+
+.hub-home__editor-loading {
+  font-size: var(--text-small); color: var(--rim-text-muted);
+  padding: 24px; text-align: center;
+}
+
 /* ── Hub Welcome Interstitial (hub-welcome-) ── */
 .hub-welcome {
   display: flex; align-items: center; justify-content: center;

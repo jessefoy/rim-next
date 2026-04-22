@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 
-/** PATCH /api/hubs/[slug]/home — update hub home content (coordinator or admin) */
+/**
+ * PATCH /api/hubs/[slug]/home — update hub home content (coordinator or admin).
+ *
+ * Accepts `welcomeBody` and/or `homeContent` (BlockNote JSON). Each is optional;
+ * only present keys are written. Passing `null` explicitly clears a field.
+ */
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ slug: string }> },
@@ -28,12 +33,26 @@ export async function PATCH(
   }
 
   const body = await req.json();
-  const { homeContent } = body;
+
+  // Build update data with only the fields the caller sent. Fields are Prisma
+  // Json? — mirrors the original homeContent-only write shape.
+  const hasWelcome = Object.prototype.hasOwnProperty.call(body, "welcomeBody");
+  const hasHome = Object.prototype.hasOwnProperty.call(body, "homeContent");
+  if (!hasWelcome && !hasHome) {
+    return NextResponse.json({ error: "No fields to update." }, { status: 400 });
+  }
 
   const updated = await db.hub.update({
     where: { slug },
-    data: { homeContent: homeContent ?? null },
+    data: {
+      ...(hasWelcome ? { welcomeBody: body.welcomeBody ?? null } : {}),
+      ...(hasHome ? { homeContent: body.homeContent ?? null } : {}),
+    },
   });
 
-  return NextResponse.json({ ok: true, homeContent: updated.homeContent });
+  return NextResponse.json({
+    ok: true,
+    welcomeBody: updated.welcomeBody,
+    homeContent: updated.homeContent,
+  });
 }
