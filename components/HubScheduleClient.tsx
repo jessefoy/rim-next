@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import Link from "next/link";
 import RimProseEditor from "@/components/RimProseEditor";
 import { renderBlockNoteHtml, extractBlockNoteText } from "@/lib/renderRichContent";
 
@@ -21,6 +22,7 @@ interface Session {
   subRequestId: string | null;
   subMessage: any;
   programFormat: string | null;
+  livekitRoom?: string | null;
 }
 
 interface Program {
@@ -38,6 +40,7 @@ interface Props {
   currentUserId: string;
   currentUserName: string;
   coordinatorName?: string;
+  isHostManager?: boolean;
   apiBase?: string;
 }
 
@@ -119,25 +122,30 @@ function SessionDetail({
   currentUserId,
   currentUserName,
   coordinatorName,
+  isHostManager = false,
   onClose,
   onClaim,
   onSubRequest,
   onUnclaim,
   onClaimSub,
+  onReassignToSelf,
 }: {
   session: Session;
   currentUserId: string;
   currentUserName: string;
   coordinatorName?: string;
+  isHostManager?: boolean;
   onClose: () => void;
   onClaim: (id: string) => void;
   onSubRequest: (id: string, message: any) => Promise<boolean>;
   onUnclaim: (id: string) => void;
   onClaimSub: (id: string, subRequestId: string) => void;
+  onReassignToSelf: (session: Session) => Promise<boolean>;
 }) {
   const [subFormOpen, setSubFormOpen] = useState(false);
   const [subMsg, setSubMsg] = useState<any>(null);
   const [removeWarnOpen, setRemoveWarnOpen] = useState(false);
+  const [reassignWarnOpen, setReassignWarnOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [confirming, setConfirming] = useState<"host" | "sub" | null>(null);
   const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -192,7 +200,11 @@ function SessionDetail({
         </div>
       )}
 
-      {!subFormOpen && !removeWarnOpen && (
+      {isHostManager && (
+        <ProgramDiagnostics session={s} />
+      )}
+
+      {!subFormOpen && !removeWarnOpen && !reassignWarnOpen && (
         <div className="hub-detail__actions">
           {isUnclaimed && (
             confirming === "host" ? (
@@ -247,6 +259,14 @@ function SessionDetail({
             {isOwn && (
               <button className="hub-detail__link-btn" onClick={() => setRemoveWarnOpen(true)}>
                 Remove myself
+              </button>
+            )}
+            {isHostManager && !isOwn && (
+              <button
+                className="hub-detail__link-btn hub-detail__link-btn--manager"
+                onClick={() => setReassignWarnOpen(true)}
+              >
+                Reassign this session to me
               </button>
             )}
             <button className="hub-detail__link-btn" onClick={onClose}>
@@ -314,6 +334,116 @@ function SessionDetail({
           </div>
         </div>
       )}
+
+      {reassignWarnOpen && (
+        <div className="hub-detail__warn">
+          <span className="hub-detail__warn-text">
+            {s.hostUserId
+              ? `This will remove ${s.hostName ?? "the current host"} from this session and assign you instead. ${s.hostName ?? "They"} will be notified. Any open sub request on this session will be cancelled.`
+              : "This will assign you to this session."}
+          </span>
+          <div className="hub-detail__form-actions">
+            <button
+              className="hub-detail__primary-btn hub-detail__primary-btn--danger"
+              disabled={submitting}
+              onClick={async () => {
+                setSubmitting(true);
+                const ok = await onReassignToSelf(s);
+                setSubmitting(false);
+                if (ok) {
+                  setReassignWarnOpen(false);
+                }
+              }}
+            >
+              {submitting ? "Reassigning…" : "Yes, reassign to me"}
+            </button>
+            <button className="hub-detail__link-btn" onClick={() => setReassignWarnOpen(false)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Program diagnostics (HOST_MANAGER/ADMIN only) ─────────────────────────────
+
+function ProgramDiagnostics({ session: s }: { session: Session }) {
+  const isVirtualOrHybrid =
+    s.programFormat === "virtual" || s.programFormat === "hybrid";
+  const hasLivekit = Boolean(s.livekitRoom && s.livekitRoom.trim().length > 0);
+  const hasOccurrence = Boolean(s.sessionDate);
+  const hasHost = Boolean(s.hostUserId);
+
+  type Check = { ok: boolean; level: "error" | "warning"; message: string };
+  const checks: Check[] = [
+    {
+      ok: isVirtualOrHybrid,
+      level: "error",
+      message: "Program format is not virtual or hybrid.",
+    },
+    {
+      ok: hasLivekit,
+      level: "error",
+      message: "No LiveKit room configured on this program.",
+    },
+    {
+      ok: hasOccurrence,
+      level: "error",
+      message: "No occurrence scheduled — program has no start datetime or recurrence.",
+    },
+    {
+      ok: hasHost,
+      level: "warning",
+      message: "No host is assigned to this session yet.",
+    },
+  ];
+
+  const failed = checks.filter((c) => !c.ok);
+  const allGood = failed.length === 0;
+  const programEditUrl = `/tools/programs/${s.programSlug}`;
+  const programPublicUrl = `/programs/${s.programSlug}`;
+
+  return (
+    <div className={`hub-diag hub-diag--${allGood ? "ok" : failed.some((c) => c.level === "error") ? "error" : "warn"}`}>
+      <div className="hub-diag__header">
+        <span className="hub-diag__label">Program setup</span>
+        <Link
+          href={programEditUrl}
+          className="hub-diag__link"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Open in Program Manager →
+        </Link>
+      </div>
+      {allGood ? (
+        <p className="hub-diag__ok">All checks pass for this session.</p>
+      ) : (
+        <ul className="hub-diag__list">
+          {failed.map((c, i) => (
+            <li key={i} className={`hub-diag__item hub-diag__item--${c.level}`}>
+              <span className="hub-diag__bullet" aria-hidden="true">
+                {c.level === "error" ? "✕" : "!"}
+              </span>
+              <span className="hub-diag__msg">{c.message}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {failed.some((c) => c.level === "error") && (
+        <p className="hub-diag__hint">
+          Program configuration is managed by the registrar. Contact them, or{" "}
+          <Link href={programEditUrl} target="_blank" rel="noreferrer" className="hub-diag__inline-link">
+            open the Program Manager
+          </Link>
+          {" "}·{" "}
+          <Link href={programPublicUrl} target="_blank" rel="noreferrer" className="hub-diag__inline-link">
+            view public page
+          </Link>.
+        </p>
+      )}
     </div>
   );
 }
@@ -329,6 +459,7 @@ export default function HubScheduleClient({
   currentUserId,
   currentUserName,
   coordinatorName,
+  isHostManager = false,
   apiBase = "/api/host",
 }: Props) {
   const [sessions, setSessions] = useState<Session[]>(initialSessions);
@@ -504,6 +635,57 @@ export default function HubScheduleClient({
     ));
     setSelected(null);
     showToast("✓ You're covering this session — the original host has been notified.");
+  }
+
+  async function reassignToSelf(s: Session): Promise<boolean> {
+    try {
+      const res = await fetch(`${apiBase}/assignments/reassign`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          programSlug: s.programSlug,
+          sessionDate: s.sessionDate,
+          currentAssignmentId: s.id.startsWith("unassigned::") ? null : s.id,
+        }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        showToast(d.error ?? "Something went wrong.");
+        return false;
+      }
+      const data = await res.json();
+      setSessions((prev) => prev.map((row) =>
+        row.id === s.id
+          ? {
+              ...row,
+              id: data.id,
+              status: "claimed",
+              hostUserId: currentUserId,
+              hostName: currentUserName,
+              subRequestId: null,
+              subMessage: null,
+            }
+          : row
+      ));
+      setSelected((cur) =>
+        cur?.id === s.id
+          ? {
+              ...cur,
+              id: data.id,
+              status: "claimed",
+              hostUserId: currentUserId,
+              hostName: currentUserName,
+              subRequestId: null,
+              subMessage: null,
+            }
+          : cur
+      );
+      showToast("✓ Reassigned — you're hosting this session.");
+      return true;
+    } catch {
+      showToast("Network error. Please try again.");
+      return false;
+    }
   }
 
   // ── Derived ─────────────────────────────────────────────────────────────────
@@ -883,11 +1065,13 @@ export default function HubScheduleClient({
                                 currentUserId={currentUserId}
                                 currentUserName={currentUserName}
                                 coordinatorName={coordinatorName}
+                                isHostManager={isHostManager}
                                 onClose={() => setSelected(null)}
                                 onClaim={claimSession}
                                 onSubRequest={submitSubRequest}
                                 onUnclaim={unclaimSession}
                                 onClaimSub={claimSub}
+                                onReassignToSelf={reassignToSelf}
                               />
                             </div>
                           )}

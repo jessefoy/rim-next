@@ -14852,6 +14852,85 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 .hub-detail__warn-text { font-size: var(--text-xs); color: #7a2020; }
 
+.hub-detail__link-btn--manager {
+  color: var(--rim-blue);
+}
+.hub-detail__link-btn--manager:hover {
+  color: var(--rim-blue);
+  background: #e8edf2;
+}
+
+/* ── Program diagnostics panel (HOST_MANAGER/ADMIN only) ── */
+.hub-diag {
+  margin: 10px 0 6px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #f5f5f5;
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: var(--rim-text);
+}
+.hub-diag--ok { background: var(--color-success-bg); }
+.hub-diag--warn { background: var(--color-warning-bg); }
+.hub-diag--error { background: var(--color-error-bg); }
+.hub-diag__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.hub-diag__label {
+  font-size: var(--text-xxs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--rim-text-muted);
+}
+.hub-diag__link {
+  font-size: var(--text-xs);
+  color: var(--rim-blue);
+  text-decoration: none;
+}
+.hub-diag__link:hover { text-decoration: underline; }
+.hub-diag__ok {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-success);
+}
+.hub-diag__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.hub-diag__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.hub-diag__item--error .hub-diag__bullet { color: var(--color-error); }
+.hub-diag__item--warning .hub-diag__bullet { color: var(--color-warning); }
+.hub-diag__bullet {
+  font-weight: 700;
+  width: 14px;
+  flex-shrink: 0;
+  text-align: center;
+}
+.hub-diag__msg { flex: 1; }
+.hub-diag__hint {
+  margin: 8px 0 0;
+  font-size: var(--text-xs);
+  color: var(--rim-text-muted);
+}
+.hub-diag__inline-link {
+  color: var(--rim-blue);
+  text-decoration: none;
+}
+.hub-diag__inline-link:hover { text-decoration: underline; }
+
 /* ── Legend swatches — left-stripe bars matching event chip style ── */
 .hub-legend-swatch {
   display: inline-block;

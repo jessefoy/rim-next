@@ -8,6 +8,7 @@
 import { PrismaClient } from "@prisma/client";
 import { seedPrograms } from "./seed-programs.mjs";
 import { seedManualProgramManager } from "./seed-manual-program-manager.mjs";
+import { seedManualHostHubTeamManagement } from "./seed-manual-host-hub-team-management.mjs";
 
 const db = new PrismaClient();
 
@@ -376,6 +377,18 @@ async function main() {
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_manual_program_manager_v3')`);
   } else {
     console.log("  ⏭ Program Manager manual already seeded.");
+  }
+
+  // Host Hub Team Management manual section — idempotent via flag
+  const hostHubManualFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'seed_manual_host_hub_team_management_v1'
+  `).catch(() => []);
+
+  if (hostHubManualFlag.length === 0) {
+    await seedManualHostHubTeamManagement(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_manual_host_hub_team_management_v1')`);
+  } else {
+    console.log("  ⏭ Host Hub Team Management manual already seeded.");
   }
 
   await db.$disconnect();

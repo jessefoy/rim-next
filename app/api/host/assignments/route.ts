@@ -50,6 +50,7 @@ interface PgProgram {
   recurrenceInterval: number | null;
   recurrenceDays: string[];
   recurrenceCount: number | null;
+  livekitRoom?: string | null;
 }
 
 function isOccurrenceOnDate(p: PgProgram, dateStr: string): boolean {
@@ -141,6 +142,7 @@ export async function GET(request: Request) {
         id: true, name: true, slug: true,
         programFormat: true, startDatetime: true, endDatetime: true,
         recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true,
+        livekitRoom: true,
       },
       orderBy: { sortOrder: "asc" },
     }),
@@ -189,6 +191,7 @@ export async function GET(request: Request) {
             : null,
           subRequestId: openSub?.id ?? null, subMessage: openSub?.message ?? null,
           programFormat: p.programFormat ?? null, programId: p.id,
+          livekitRoom: p.livekitRoom ?? null,
         });
       } else {
         sessions.push({
@@ -198,6 +201,7 @@ export async function GET(request: Request) {
           status: "unclaimed", hostUserId: null, hostName: null,
           subRequestId: null, subMessage: null,
           programFormat: p.programFormat ?? null, programId: p.id,
+          livekitRoom: p.livekitRoom ?? null,
         });
       }
     }

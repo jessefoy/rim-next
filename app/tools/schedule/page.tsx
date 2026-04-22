@@ -33,6 +33,9 @@ export default async function ScheduleToolPage({
   const session = await auth();
   if (!session) redirect("/login");
 
+  const roles = session.user.roles ?? [];
+  const isHostManager = roles.includes("HOST_MANAGER") || roles.includes("ADMIN");
+
   // Fetch hub context (members, coordinator) from ?hub= param or fall back to host-team
   const { hub: hubSlug } = await searchParams;
   const hubContext = await getToolHubContext(hubSlug || "host-team");
@@ -60,6 +63,7 @@ export default async function ScheduleToolPage({
         id: true, name: true, slug: true,
         programFormat: true, startDatetime: true, endDatetime: true,
         recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true,
+        livekitRoom: true,
       },
       orderBy: { sortOrder: "asc" },
     }),
@@ -93,6 +97,7 @@ export default async function ScheduleToolPage({
     subMessage: any;
     programFormat: string | null;
     programId: string | null;
+    livekitRoom: string | null;
   }
 
   const sessions: SessionItem[] = [];
@@ -131,6 +136,7 @@ export default async function ScheduleToolPage({
           subMessage: openSub?.message ?? null,
           programFormat: p.programFormat ?? null,
           programId: p.id,
+          livekitRoom: p.livekitRoom ?? null,
         });
       } else {
         sessions.push({
@@ -145,6 +151,7 @@ export default async function ScheduleToolPage({
           subMessage: null,
           programFormat: p.programFormat ?? null,
           programId: p.id,
+          livekitRoom: p.livekitRoom ?? null,
         });
       }
     }
@@ -167,6 +174,7 @@ export default async function ScheduleToolPage({
         currentUserId={session.user.id}
         currentUserName={session.user.name || session.user.email?.split("@")[0] || ""}
         coordinatorName={coordinatorName}
+        isHostManager={isHostManager}
         apiBase="/api/host"
       />
     </div>
