@@ -10662,6 +10662,40 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   font-size: var(--text-label); color: var(--rim-text-muted);
 }
 
+/* ── Hub Home role toggle (coordinator-only preview-as-host) — Phase 5 ── */
+.hub-home-toggle {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 12px; background: #fafaf9;
+  border-radius: 8px; align-self: flex-start;
+}
+.hub-home-toggle__label {
+  font-size: var(--text-xxs); font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.12em; color: var(--rim-text-muted);
+}
+.hub-home-toggle__pills { display: inline-flex; gap: 2px; }
+.hub-home-toggle__pill {
+  font-family: var(--font-sans); font-size: var(--text-xs); font-weight: 500;
+  padding: 6px 12px; border: none; background: transparent;
+  color: var(--rim-text-muted); cursor: pointer; border-radius: 6px;
+  transition: background 0.12s, color 0.12s;
+}
+.hub-home-toggle__pill:hover { color: var(--rim-text); }
+.hub-home-toggle__pill.is-active {
+  background: var(--rim-blue); color: #fff;
+}
+
+/* Shell placeholders (removed as each sub-step fills content) */
+.hub-home-coord__placeholder,
+.hub-home-host__placeholder {
+  font-size: var(--text-small); color: var(--rim-text-muted);
+  font-style: italic;
+  padding: 12px 14px; background: #fafaf9; border-radius: 6px;
+}
+.hub-home__debug {
+  font-family: var(--font-mono); font-size: var(--text-xxs);
+  color: var(--rim-text-muted); opacity: 0.5;
+}
+
 /* ── Hub Welcome Interstitial (hub-welcome-) ── */
 .hub-welcome {
   display: flex; align-items: center; justify-content: center;

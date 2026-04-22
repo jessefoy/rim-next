@@ -17,6 +17,7 @@ import { getHubMembership } from "@/lib/hubAuth";
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import { getHubContext } from "@/lib/hubContext";
 import HubHomeClient from "@/components/HubHomeClient";
+import HostHubHomeClient from "@/components/HostHubHomeClient";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,21 @@ export default async function HubHomePage({
       where: { id: member.id },
       data: { lastVisitedAt: new Date() },
     });
+  }
+
+  // Host Hub: role-adaptive home (Phase 5). Coordinators (and admins) see a
+  // different shell than hosts, with a session-scoped toggle to preview the
+  // host view. Other hubs continue to use the generic HubHomeClient below.
+  if (slug === "host-team") {
+    const isCoordinator = (member?.isCoordinator ?? false) || isAdmin;
+    return (
+      <HostHubHomeClient
+        slug={slug}
+        hubName={hub.name}
+        viewerRole={isCoordinator ? "coordinator" : "host"}
+        canToggle={isCoordinator}
+      />
+    );
   }
 
   const ctx = await getHubContext(hub.slug, hub.id, session.user.id, priorLastVisitedAt);
