@@ -1,70 +1,13 @@
 import { db } from "@/lib/db";
 import Link from "next/link";
 import ListRow from "@/components/ListRow";
-import { buildDateLabel, formatTimeRange } from "@/lib/dateLabel";
+import { buildSubtitle } from "@/lib/programUtils";
 
 export const metadata = {
   title: "Programs and Events — Rooted In Mindfulness",
 };
 
 export const dynamic = "force-dynamic";
-
-/** Derive a human-readable format label from the programFormat field. */
-function fmtLabel(fmt: string): string {
-  switch (fmt) {
-    case "virtual":  return "Zoom Only";
-    case "hybrid":   return "In-Person & Zoom";
-    case "in-person": return "In-Person";
-    default:         return fmt;
-  }
-}
-
-/**
- * Compose the full schedule subtitle.
- * Strategy:
- *   1. dateText has correct recurring labels ("Mondays", "Every Tuesday Morning")
- *      — prefer it for the day/pattern part
- *   2. Add time range from startDatetime/endDatetime (structured data)
- *   3. Always append programFormat label
- *
- * Result: "Mondays · 9:30–10:30am CT | Zoom Only"
- */
-function buildSubtitle(program: {
-  dateText: string | null;
-  timeText: string | null;
-  programFormat: string;
-  startDatetime: Date | null;
-  endDatetime: Date | null;
-  recurrenceFreq: string | null;
-  recurrenceInterval: number | null;
-  recurrenceDays: string[];
-}): string | undefined {
-  const fmt = fmtLabel(program.programFormat);
-
-  // If dateText is set, use it + add time from datetime fields
-  if (program.dateText) {
-    let label = program.dateText;
-    // Append time range if we have structured datetime (dateText usually only has the day)
-    if (program.startDatetime) {
-      const timeStr = program.timeText
-        || formatTimeRange(program.startDatetime, program.endDatetime);
-      label += ` · ${timeStr}`;
-    }
-    return `${label} | ${fmt}`;
-  }
-
-  // No dateText — use fully auto-generated label (includes day + time)
-  const autoLabel = buildDateLabel({
-    startDatetime: program.startDatetime?.toISOString() ?? null,
-    endDatetime: program.endDatetime?.toISOString() ?? null,
-    recurrenceFreq: program.recurrenceFreq,
-    recurrenceInterval: program.recurrenceInterval,
-    recurrenceDays: program.recurrenceDays,
-  });
-
-  if (autoLabel) return `${autoLabel} | ${fmt}`;
-  return fmt || undefined;
-}
 
 export default async function CommunityProgramsPage() {
   const [programs, categories] = await Promise.all([
@@ -113,7 +56,7 @@ export default async function CommunityProgramsPage() {
                     <ListRow
                       key={program.id}
                       title={program.name}
-                      subtitle={buildSubtitle(program)}
+                      subtitle={buildSubtitle(program) ?? undefined}
                       announcement={program.specialAnnouncement ?? undefined}
                       href={`/programs/${program.slug}`}
                       buttonLabel="Learn More"
