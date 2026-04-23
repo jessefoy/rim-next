@@ -278,6 +278,20 @@
       });
   }
 
+  // ── Base styles ──────────────────────────────────────────────────────────────
+  // Injected once so templates and state elements don't need display:none in
+  // the designer. JS inline styles (showState, renderList) override as needed.
+
+  (function injectStyles() {
+    var style = document.createElement("style");
+    style.textContent = [
+      "[data-rim-item],",
+      "[data-rim-group-item],",
+      "[data-rim-state] { display: none !important; }",
+    ].join(" ");
+    document.head.appendChild(style);
+  })();
+
   // ── Init ─────────────────────────────────────────────────────────────────────
 
   function init() {
