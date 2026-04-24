@@ -127,6 +127,14 @@ export async function GET(
     (program.registrationDeadline && new Date(program.registrationDeadline) < new Date())
   );
 
+  // CTA state flags (public — no auth needed)
+  // Authenticated states (registered / waitlisted / "access Zoom") are layered
+  // in later via an authenticated endpoint + rim-connect.js merge.
+  const showRegister = !!program.registrationEnabled && !registrationClosed;
+  const showClosed = !!program.registrationEnabled && registrationClosed;
+  const showVirtualPrompt = !program.registrationEnabled && program.programFormat === "virtual";
+  const showInPersonPrompt = !program.registrationEnabled && program.programFormat !== "virtual";
+
   // Description → HTML
   const descriptionHtml = program.description
     ? await renderContentBodyAsync(program.description)
@@ -157,6 +165,10 @@ export async function GET(
     registrationEnabled: program.registrationEnabled,
     registrationClosed,
     registrationUrl: `https://rim-next.vercel.app/programs/${program.slug}/register`,
+    showRegister,
+    showClosed,
+    showVirtualPrompt,
+    showInPersonPrompt,
     specialAnnouncement: program.specialAnnouncement,
     category: program.category,
     teachers,
