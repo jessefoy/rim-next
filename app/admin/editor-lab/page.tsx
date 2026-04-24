@@ -27,14 +27,10 @@ const SAMPLE_HTML = `
   <li>Meet with your coordinator to set expectations</li>
 </ol>
 
-<p data-variant="aside" class="rim-el-aside">
-  <strong>A note for new volunteers:</strong> this is an Aside — a universal shaded container for notes or caveats. It's a regular paragraph with the <code>aside</code> variant applied. CSS does the rest.
-</p>
-
 <h3>Key contacts</h3>
-<p>Example quote from the RIM charter:</p>
+<p>Reach out to your coordinator for scheduling questions or to flag any concerns.</p>
 
-<blockquote data-variant="body-quote" class="rim-el-body-quote">
+<blockquote>
   <p>We come here to practice clear seeing — which is the prerequisite for wise and compassionate response.</p>
 </blockquote>
 
@@ -83,10 +79,9 @@ export default function EditorLabPage() {
       <header className="el-header">
         <h1 className="el-title">Editor Lab — TipTap Prototype</h1>
         <p className="el-subtitle">
-          Testing a Webflow-style rich-text paradigm: standard HTML output,
-          inline formatting via bubble menu, block-level variants (Aside,
-          Practice, Body Quote, etc.) applied as classes — no custom
-          block types. Storage is plain HTML.
+          Minimal rich text editor — the Webflow paradigm. Standard text
+          formatting only (headings, bold/italic, lists, links, quote,
+          divider). Output: plain HTML.
         </p>
       </header>
 
