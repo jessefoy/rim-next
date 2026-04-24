@@ -2,9 +2,7 @@
 
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
-import Underline from "@tiptap/extension-underline";
 
 /**
  * Minimal TipTap editor — the Webflow paradigm.
@@ -22,9 +20,9 @@ export default function TiptapEditor({
 }) {
   const editor = useEditor({
     extensions: [
-      StarterKit,
-      Underline,
-      Link.configure({ openOnClick: false, autolink: true }),
+      StarterKit.configure({
+        link: { openOnClick: false, autolink: true },
+      }),
       Placeholder.configure({ placeholder }),
     ],
     content: value || "",
