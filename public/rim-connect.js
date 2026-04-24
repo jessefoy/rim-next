@@ -315,8 +315,20 @@
       "[data-rim-item],",
       "[data-rim-group-item],",
       "[data-rim-state] { display: none !important; }",
-      "[data-rim-page]:not([data-rim-ready]) { opacity: 0; }",
-      "[data-rim-page] { transition: opacity 180ms ease; }",
+      "[data-rim-page]:not([data-rim-ready]) [data-rim-field],",
+      "[data-rim-page]:not([data-rim-ready]) [data-rim-html],",
+      "[data-rim-page]:not([data-rim-ready]) [data-rim-href],",
+      "[data-rim-page]:not([data-rim-ready]) [data-rim-src],",
+      "[data-rim-page]:not([data-rim-ready]) [data-rim-bg],",
+      "[data-rim-page]:not([data-rim-ready]) [data-rim-show],",
+      "[data-rim-page]:not([data-rim-ready]) [data-rim-hide] { opacity: 0; }",
+      "[data-rim-page] [data-rim-field],",
+      "[data-rim-page] [data-rim-html],",
+      "[data-rim-page] [data-rim-href],",
+      "[data-rim-page] [data-rim-src],",
+      "[data-rim-page] [data-rim-bg],",
+      "[data-rim-page] [data-rim-show],",
+      "[data-rim-page] [data-rim-hide] { transition: opacity 180ms ease; }",
     ].join(" ");
     document.head.appendChild(style);
   })();
