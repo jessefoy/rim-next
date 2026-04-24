@@ -28,7 +28,6 @@ export default function TiptapEditor({
       Placeholder.configure({ placeholder }),
     ],
     content: value || "",
-    immediatelyRender: false,
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
     editorProps: {
       attributes: {
@@ -37,12 +36,11 @@ export default function TiptapEditor({
     },
   });
 
-  if (!editor) return <div className="tt-loading">Loading editor…</div>;
-
   const isActive = (name: string, attrs?: Record<string, unknown>) =>
-    editor.isActive(name, attrs);
+    editor ? editor.isActive(name, attrs) : false;
 
   const promptLink = () => {
+    if (!editor) return;
     const prev = editor.getAttributes("link").href;
     const url = window.prompt("Link URL", prev || "https://");
     if (url === null) return;
@@ -65,6 +63,7 @@ export default function TiptapEditor({
 
   return (
     <div className="tt-wrap">
+      {editor && (
       <div className="tt-toolbar">
         <select
           className="tt-select"
@@ -174,6 +173,7 @@ export default function TiptapEditor({
           ─
         </button>
       </div>
+      )}
 
       <EditorContent editor={editor} />
     </div>
