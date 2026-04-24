@@ -298,7 +298,7 @@
 
     // Safety: if anything stalls for 3s, reveal anyway so the user is never
     // stuck on a blank page. Cleared on success/error.
-    var safety = setTimeout(reveal, 3000);
+    var safety = setTimeout(reveal, 1500);
 
     var collection = el.getAttribute("data-rim-page");
     var base = ENDPOINTS[collection];
