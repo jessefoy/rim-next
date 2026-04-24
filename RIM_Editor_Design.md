@@ -1,4 +1,15 @@
-# RIM Editor Design
+# RIM Editor Design — ARCHIVED
+
+> ⚠️ **This document is archived. It has been superseded by [`RIM_Editor_Types.md`](RIM_Editor_Types.md), which is now the canonical reference for the editor system (block library, placement registry, surface types, wrapper classes).**
+>
+> Kept only for historical context and to preserve the original design rationale. Do not update this file. Do not cite it as current. If something here contradicts `RIM_Editor_Types.md` or the code, `RIM_Editor_Types.md` and the code win.
+
+---
+
+**Original content below — preserved as written. May contain references to patterns that have since evolved.**
+
+---
+
 **How content is written, stored, and displayed across the platform**
 
 Claude Code: Read this file before working on any editor component, content rendering, display page, or CSS that touches rich text output. This document is the contract. The code follows this file — not the other way around. If code and this file disagree, the code is wrong and should be corrected.

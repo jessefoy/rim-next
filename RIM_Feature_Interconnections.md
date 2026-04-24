@@ -146,7 +146,7 @@ The canonical record of every person. ADMIN and REGISTRAR only.
 | **Document locking** | Author lock + ADMIN override + presence heartbeat for hub documents |
 | **Heading CSS** | Injected via `<style>` tag on mount. Must target `<h1>`/`<h2>`/`<h3>` tags, not `data-level` |
 
-**If you're touching any editor or content display:** Read `RIM_Editor_Design.md` first.
+**If you're touching any editor or content display:** Read `RIM_Editor_Types.md` first.
 
 ---
 

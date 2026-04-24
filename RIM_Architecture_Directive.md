@@ -142,16 +142,9 @@ Document every new endpoint in FEATURES.md — URL, method, auth requirement, re
 
 ## Session protocol for Claude Code
 
-**At the start of every session, read these files in order before doing anything else:**
+The runtime opening-ritual order is defined in `CLAUDE.md` (the "Session Opening — Required" section). **`CLAUDE.md` is authoritative for what Claude reads at session start**; this directive is authoritative for the architectural policy that reading applies.
 
-1. This file (`RIM_Architecture_Directive.md`) — the authoritative current plan
-2. `FEATURES.md` — what exists, what's built, what's new
-3. `RIM_Stack_Reference.md` — technology, services, environment
-4. `RIM_System_Architecture.md` — structural relationships
-5. `RIM_Role_Design.md` — roles, hubs, permissions
-6. `RIM_Web_Design_Philosophy.md` — design intent
-
-If a later file contradicts this directive, **this directive wins.** Flag the contradiction and ask Jesse before proceeding.
+If a later file contradicts this directive on an architectural question, **this directive wins.** Flag the contradiction and ask Jesse before proceeding.
 
 ---
 

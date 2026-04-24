@@ -1,4 +1,16 @@
-# RIM Architecture Pivot — Headless Webflow + RIM Next
+# RIM Architecture Pivot — Headless Webflow + RIM Next — ARCHIVED
+
+> ⚠️ **This document is archived historical context.** It records the April 2026 decision memo when the Webflow-primary architecture was still being scoped. The architecture is now policy, documented in [`RIM_Architecture_Directive.md`](RIM_Architecture_Directive.md).
+>
+> As of session 94 (2026-04-24), the pivot is committed, not tentative. The Directive is authoritative. This file is kept only to preserve the original decision's framing and rationale.
+>
+> **Do not read this as part of the opening ritual.** It is not required reading. Read the Directive instead.
+
+---
+
+**Original content below — preserved as written.**
+
+---
 
 **Date:** April 2026
 **Status:** Decided, in transition
