@@ -294,14 +294,22 @@
   // ── Detail pages ─────────────────────────────────────────────────────────────
 
   function initPage(el) {
+    var reveal = function () { el.classList.add("rim-ready"); };
+
+    // Safety: if anything stalls for 3s, reveal anyway so the user is never
+    // stuck on a blank page. Cleared on success/error.
+    var safety = setTimeout(reveal, 3000);
+
     var collection = el.getAttribute("data-rim-page");
     var base = ENDPOINTS[collection];
     if (!base) {
       console.warn("rim-connect: no endpoint for page collection \"" + collection + "\"");
+      clearTimeout(safety); reveal();
       return;
     }
     if (!_slug) {
       console.warn("rim-connect: no ?slug= in URL for data-rim-page");
+      clearTimeout(safety); reveal();
       return;
     }
 
@@ -316,8 +324,11 @@
         });
 
     promise
-      .then(function (item) { populateFields(el, item); })
-      .catch(function (err) { console.error("rim-connect: page fetch failed", err); });
+      .then(function (item) { populateFields(el, item); clearTimeout(safety); reveal(); })
+      .catch(function (err) {
+        console.error("rim-connect: page fetch failed", err);
+        clearTimeout(safety); reveal();
+      });
   }
 
   // ── Base styles ──────────────────────────────────────────────────────────────
@@ -330,6 +341,8 @@
       "[data-rim-item],",
       "[data-rim-group-item],",
       "[data-rim-state] { display: none !important; }",
+      "[data-rim-page] { opacity: 0; transition: opacity 200ms ease-out; }",
+      "[data-rim-page].rim-ready { opacity: 1; }",
     ].join(" ");
     document.head.appendChild(style);
   })();
