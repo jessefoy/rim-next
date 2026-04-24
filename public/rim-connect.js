@@ -22,6 +22,9 @@
  *   data-rim-href="{template}"           — sets href; [fieldName] tokens replaced with values
  *   data-rim-src="{path}"               — sets src attribute
  *   data-rim-bg="{path}"                — sets inline background-image: url(...)
+ *                                         Adds background-size:cover, center, no-repeat.
+ *                                         Pair with data-rim-bg-overlay="{css-color}" to
+ *                                         layer a colored scrim (e.g. "rgba(18,82,116,0.8)")
  *   data-rim-show="{path}"              — shows element only when field is truthy
  *   data-rim-hide="{path}"              — hides element when field is truthy
  *
@@ -88,13 +91,22 @@
     });
 
     // data-rim-bg — inline background-image (overrides CSS when field is set)
+    function applyBg(el, val) {
+      if (!val) return;
+      var safe = String(val).replace(/'/g, "\\'");
+      var overlay = el.getAttribute("data-rim-bg-overlay");
+      el.style.backgroundImage = overlay
+        ? "linear-gradient(" + overlay + "," + overlay + "), url('" + safe + "')"
+        : "url('" + safe + "')";
+      el.style.backgroundSize = "cover";
+      el.style.backgroundPosition = "center";
+      el.style.backgroundRepeat = "no-repeat";
+    }
     root.querySelectorAll("[data-rim-bg]").forEach(function (el) {
-      var val = get(item, el.getAttribute("data-rim-bg"));
-      if (val) el.style.backgroundImage = "url('" + String(val).replace(/'/g, "\\'") + "')";
+      applyBg(el, get(item, el.getAttribute("data-rim-bg")));
     });
     if (root.hasAttribute && root.hasAttribute("data-rim-bg")) {
-      var bg = get(item, root.getAttribute("data-rim-bg"));
-      if (bg) root.style.backgroundImage = "url('" + String(bg).replace(/'/g, "\\'") + "')";
+      applyBg(root, get(item, root.getAttribute("data-rim-bg")));
     }
 
     // data-rim-show — visible only when field is truthy
