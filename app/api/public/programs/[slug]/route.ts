@@ -156,6 +156,7 @@ export async function GET(
     danaText: program.danaText,
     registrationEnabled: program.registrationEnabled,
     registrationClosed,
+    registrationUrl: `https://rim-next.vercel.app/programs/${program.slug}/register`,
     specialAnnouncement: program.specialAnnouncement,
     category: program.category,
     teachers,

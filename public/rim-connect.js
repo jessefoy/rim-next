@@ -21,6 +21,7 @@
  *   data-rim-html="{path}"              — sets innerHTML (for rich text / descriptionHtml)
  *   data-rim-href="{template}"           — sets href; [fieldName] tokens replaced with values
  *   data-rim-src="{path}"               — sets src attribute
+ *   data-rim-bg="{path}"                — sets inline background-image: url(...)
  *   data-rim-show="{path}"              — shows element only when field is truthy
  *   data-rim-hide="{path}"              — hides element when field is truthy
  *
@@ -85,6 +86,16 @@
         el.style.display = "none";
       }
     });
+
+    // data-rim-bg — inline background-image (overrides CSS when field is set)
+    root.querySelectorAll("[data-rim-bg]").forEach(function (el) {
+      var val = get(item, el.getAttribute("data-rim-bg"));
+      if (val) el.style.backgroundImage = "url('" + String(val).replace(/'/g, "\\'") + "')";
+    });
+    if (root.hasAttribute && root.hasAttribute("data-rim-bg")) {
+      var bg = get(item, root.getAttribute("data-rim-bg"));
+      if (bg) root.style.backgroundImage = "url('" + String(bg).replace(/'/g, "\\'") + "')";
+    }
 
     // data-rim-show — visible only when field is truthy
     root.querySelectorAll("[data-rim-show]").forEach(function (el) {
