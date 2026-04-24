@@ -98,6 +98,7 @@ export default async function EditProgramToolPage({
     hideFromWeeklySchedule: program.hideFromWeeklySchedule,
     isOpenAccess: program.isOpenAccess,
     guestAccessKey: program.guestAccessKey ?? "",
+    programNotes: program.programNotes ?? null,
   };
 
   return (

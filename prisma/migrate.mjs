@@ -337,6 +337,24 @@ const migrations = [
       console.log(`  ✔ Applied: ${this.name}`);
     },
   },
+  {
+    // Session 94 — Webflow Program Detail page: new programNotes field for
+    // additional program context shown in the "Program Notes" section.
+    // Separate from description (BlockNote) and specialAnnouncement (dashboard text).
+    name: "add_program_notes_column",
+    async run() {
+      const cols = await db.$queryRawUnsafe(`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'programs' AND column_name = 'programNotes'
+      `);
+      if (cols.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+      await db.$executeRawUnsafe(`ALTER TABLE "programs" ADD COLUMN "programNotes" JSONB`);
+      console.log(`  ✔ Applied: ${this.name}`);
+    },
+  },
 ];
 
 async function main() {

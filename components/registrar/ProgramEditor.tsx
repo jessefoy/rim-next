@@ -46,6 +46,7 @@ export interface ProgramData {
   description: any;
   pullQuote: string;
   pullQuoteSource: string;
+  programNotes: any;
   teacherFacilitators: string[];
   programTeachers: { id: string; firstName: string; lastName: string }[];
   categoryId: string;
@@ -533,6 +534,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
   const [description, setDescription] = useState<any>(initialData?.description ?? null);
   const [pullQuote, setPullQuote] = useState(initialData?.pullQuote ?? "");
   const [pullQuoteSource, setPullQuoteSource] = useState(initialData?.pullQuoteSource ?? "");
+  const [programNotes, setProgramNotes] = useState<any>(initialData?.programNotes ?? null);
   const [teacherFacilitatorsText, setTeacherFacilitatorsText] = useState(
     initialData?.teacherFacilitators?.join(", ") ?? ""
   );
@@ -768,6 +770,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
         description,
         pullQuote,
         pullQuoteSource,
+        programNotes,
         teacherFacilitators: teacherFacilitatorsText
           ? teacherFacilitatorsText.split(",").map((s) => s.trim()).filter(Boolean)
           : [],
@@ -1010,6 +1013,20 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                 <span className="pe-field__help">Who said the pull quote. Appears below the quote in smaller text.</span>
                 <input type="text" value={pullQuoteSource} onChange={(e) => setPullQuoteSource(e.target.value)} className="pe-input" />
               </label>
+            </div>
+          </div>
+
+          <div className="pe-card__section">
+            <div className="pe-form">
+              <div className="pe-field">
+                <span className="pe-field__label">Program Notes</span>
+                <span className="pe-field__help">Additional notes shown on the public program detail page — scheduling context, accessibility info, what to bring, etc.</span>
+                <RimProseEditor
+                  value={programNotes}
+                  onChange={(v: any) => { setProgramNotes(v); markDirty(); }}
+                  placeholder="Program notes…"
+                />
+              </div>
             </div>
           </div>
 

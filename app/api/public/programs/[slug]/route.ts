@@ -33,6 +33,7 @@ export async function GET(
       pullQuote: true,
       pullQuoteSource: true,
       description: true,
+      programNotes: true,
       programFormat: true,
       venue: true,
       locationText: true,
@@ -131,6 +132,11 @@ export async function GET(
     ? await renderContentBodyAsync(program.description)
     : null;
 
+  // Program notes → HTML
+  const programNotesHtml = program.programNotes
+    ? await renderContentBodyAsync(program.programNotes)
+    : null;
+
   const payload = {
     id: program.id,
     slug: program.slug,
@@ -140,6 +146,7 @@ export async function GET(
     pullQuote: program.pullQuote,
     pullQuoteSource: program.pullQuoteSource,
     descriptionHtml,
+    programNotesHtml,
     programFormat: program.programFormat,
     formatLabel,
     scheduleLabel,
