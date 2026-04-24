@@ -127,13 +127,18 @@ export async function GET(
     (program.registrationDeadline && new Date(program.registrationDeadline) < new Date())
   );
 
-  // CTA state flags (public — no auth needed)
-  // Authenticated states (registered / waitlisted / "access Zoom") are layered
-  // in later via an authenticated endpoint + rim-connect.js merge.
-  const showRegister = !!program.registrationEnabled && !registrationClosed;
-  const showClosed = !!program.registrationEnabled && registrationClosed;
-  const showVirtualPrompt = !program.registrationEnabled && program.programFormat === "virtual";
-  const showInPersonPrompt = !program.registrationEnabled && program.programFormat !== "virtual";
+  // CTA: one HTML fragment covering all guest/public states.
+  // Authenticated variants (registered / waitlisted / "access Zoom") will be
+  // layered in later by rim-connect.js merging an authenticated endpoint.
+  const registrationUrl = `https://rim-next.vercel.app/programs/${program.slug}/register`;
+  const membershipUrl = "https://www.rootedinmindfulness.org/community-membership";
+  const ctaHtml = program.registrationEnabled
+    ? registrationClosed
+      ? `Registration is closed.`
+      : `<a href="${registrationUrl}">Register &rarr;</a>`
+    : program.programFormat === "virtual"
+      ? `Members access Zoom via <a href="${membershipUrl}">member dashboard</a>`
+      : `Simply arrive in person &middot; Members join online via <a href="${membershipUrl}">dashboard</a>`;
 
   // Description → HTML
   const descriptionHtml = program.description
@@ -164,11 +169,8 @@ export async function GET(
     danaText: program.danaText,
     registrationEnabled: program.registrationEnabled,
     registrationClosed,
-    registrationUrl: `https://rim-next.vercel.app/programs/${program.slug}/register`,
-    showRegister,
-    showClosed,
-    showVirtualPrompt,
-    showInPersonPrompt,
+    registrationUrl,
+    ctaHtml,
     specialAnnouncement: program.specialAnnouncement,
     category: program.category,
     teachers,
