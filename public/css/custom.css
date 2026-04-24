@@ -23760,3 +23760,201 @@ input.w-button { -webkit-appearance: button; }
   font-family: var(--font-mono);
   font-size: var(--text-label);
 }
+
+/* ═══════════════════════════════════════════════════
+   TipTap prototype (editor lab)
+   tt- prefix = TipTap editor chrome (toolbar, bubble menu, editor area)
+   ═══════════════════════════════════════════════════ */
+
+.tt-wrap {
+  border: 1px solid var(--rim-rule, #d5d5d5);
+  border-radius: 6px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.tt-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 10px;
+  background: #fafafa;
+  border-bottom: 1px solid var(--rim-rule, #d5d5d5);
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+}
+
+.tt-sep {
+  width: 1px;
+  align-self: stretch;
+  background: var(--rim-rule, #d5d5d5);
+  margin: 2px 6px;
+}
+
+.tt-group-label {
+  font-size: var(--text-xs);
+  color: var(--rim-text-muted);
+  padding: 0 6px 0 2px;
+}
+
+.tt-btn {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--rim-text);
+  padding: 5px 9px;
+  border-radius: 4px;
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--text-ui);
+  line-height: 1;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.tt-btn:hover {
+  background: #eee;
+}
+
+.tt-btn.is-active {
+  background: var(--rim-blue, #135274);
+  color: #fff;
+  border-color: var(--rim-blue, #135274);
+}
+
+.tt-btn--ghost {
+  color: var(--rim-text-muted);
+}
+
+.tt-select {
+  appearance: none;
+  border: 1px solid var(--rim-rule, #d5d5d5);
+  background: #fff;
+  color: var(--rim-text);
+  padding: 5px 26px 5px 9px;
+  border-radius: 4px;
+  font: inherit;
+  font-size: var(--text-ui);
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path fill='%23777' d='M6 8.5L2 4.5h8z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 10px;
+}
+
+.tt-bubble {
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  background: #1a1a1a;
+  border-radius: 5px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+.tt-bubble .tt-btn {
+  color: rgba(255, 255, 255, 0.85);
+  padding: 4px 8px;
+}
+
+.tt-bubble .tt-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.tt-bubble .tt-btn.is-active {
+  background: #fff;
+  color: #1a1a1a;
+  border-color: #fff;
+}
+
+.tt-editor {
+  padding: 20px 24px;
+  min-height: 360px;
+  outline: none;
+}
+
+.tt-editor.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--rim-text-muted);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.tt-loading {
+  padding: 30px;
+  color: var(--rim-text-muted);
+  text-align: center;
+}
+
+.el-raw {
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  background: #1a1a1a;
+  color: #e0e0e0;
+  padding: 14px 16px;
+  border-radius: 4px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ── TipTap variant defaults ──
+   Lightweight block-level variants applied as classes on p/blockquote/
+   heading. These match Webflow's "apply class" model — same underlying
+   tag, different visual treatment. Prototype styles; real project styles
+   will refine and merge with existing .rim-el-* families. */
+
+.rim-content [data-variant="aside"] {
+  background: #f3ede3;
+  border-left: 3px solid var(--rim-blue, #135274);
+  padding: 18px 22px;
+  border-radius: 4px;
+  margin: 1.2em 0;
+}
+
+.rim-content [data-variant="practice"] {
+  background: #eaf2f6;
+  border-left: 3px solid var(--rim-blue, #135274);
+  padding: 18px 22px;
+  border-radius: 4px;
+  margin: 1.2em 0;
+  font-style: italic;
+}
+
+.rim-content [data-variant="body-quote"] {
+  border-left: 2px solid var(--rim-blue, #135274);
+  padding: 6px 0 6px 22px;
+  margin: 1.4em 0;
+  font-family: var(--font-serif);
+  font-size: 22px;
+  line-height: 1.5;
+  color: var(--rim-text);
+  background: transparent;
+}
+
+.rim-content [data-variant="body-quote"] p { margin: 0.4em 0; }
+
+.rim-content [data-variant="verse"] {
+  text-align: center;
+  font-family: var(--font-serif);
+  font-size: 19px;
+  line-height: 1.7;
+  color: var(--rim-text);
+  margin: 1.6em auto;
+  max-width: 520px;
+  padding: 12px 0;
+}
+
+.rim-content [data-variant="pull"] {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  line-height: 1.3;
+  color: var(--rim-blue, #135274);
+  text-align: center;
+  margin: 1.6em auto;
+  max-width: 640px;
+  padding: 18px 0;
+  border-top: 1px solid var(--rim-rule, #d5d5d5);
+  border-bottom: 1px solid var(--rim-rule, #d5d5d5);
+}

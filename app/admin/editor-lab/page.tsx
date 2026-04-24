@@ -2,123 +2,143 @@
 
 /**
  * Editor Lab — /admin/editor-lab
- * Admin-only development workspace for the rich text editor system.
- * CSS prefix: el-
+ * TipTap prototype replacing the old BlockNote-based RimBlockEditor.
+ * CSS prefix: el- (layout) + tt- (editor chrome)
  *
- * Currently focused exclusively on the Document-tier editor (RimBlockEditor),
- * which is the flagship surface. Once this is perfected, the other tiers
- * (Message, Feature, Email) will inherit from it and be reintroduced.
+ * Storage is plain HTML (localStorage), not BlockNote JSON. This is the
+ * paradigm we're testing: rich-text-as-HTML, Webflow-like, portable.
  */
 
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
-import { renderBlockNoteHtml } from "@/lib/renderRichContent";
 
-const RimBlockEditor = dynamic(() => import("@/components/RimBlockEditor"), { ssr: false });
+const TiptapEditor = dynamic(() => import("@/components/TiptapEditor"), { ssr: false });
 
-const STORAGE_KEY = "el-content-document";
+const STORAGE_KEY = "el-tiptap-html";
 
-const SAMPLE_DOCUMENT: any[] = [
-  { type: "heading", props: { level: 1 }, content: [{ type: "text", text: "Volunteer onboarding guide", styles: {} }] },
-  { type: "paragraph", content: [{ type: "text", text: "This document walks new volunteers through their first month. Review with your coordinator.", styles: {} }] },
-  { type: "heading", props: { level: 2 }, content: [{ type: "text", text: "Week one", styles: {} }] },
-  { type: "numberedListItem", content: [{ type: "text", text: "Complete the orientation video", styles: {} }] },
-  { type: "numberedListItem", content: [{ type: "text", text: "Shadow an experienced volunteer at one session", styles: {} }] },
-  { type: "numberedListItem", content: [{ type: "text", text: "Meet with your coordinator to set expectations", styles: {} }] },
-  {
-    type: "callout",
-    props: { variant: "aside" },
-    content: [],
-    children: [
-      { type: "heading", props: { level: 4 }, content: [{ type: "text", text: "A note for new volunteers", styles: {} }] },
-      { type: "paragraph", content: [{ type: "text", text: "This is an Aside block — a universal shaded container for notes, caveats, or anything worth calling out. For a title, add a heading block inside. The background color is determined by where it appears (document, lesson, program).", styles: {} }] },
-    ],
-  },
-  { type: "heading", props: { level: 3 }, content: [{ type: "text", text: "Key contacts", styles: {} }] },
-  { type: "paragraph", content: [{ type: "text", text: "Example quote from the RIM charter:", styles: {} }] },
-  { type: "heading", props: { level: 4 }, content: [{ type: "text", text: "Further reading", styles: {} }] },
-];
+const SAMPLE_HTML = `
+<h1>Volunteer onboarding guide</h1>
+<p>This document walks new volunteers through their first month. Review with your coordinator.</p>
+
+<h2>Week one</h2>
+<ol>
+  <li>Complete the orientation video</li>
+  <li>Shadow an experienced volunteer at one session</li>
+  <li>Meet with your coordinator to set expectations</li>
+</ol>
+
+<p data-variant="aside" class="rim-el-aside">
+  <strong>A note for new volunteers:</strong> this is an Aside — a universal shaded container for notes or caveats. It's a regular paragraph with the <code>aside</code> variant applied. CSS does the rest.
+</p>
+
+<h3>Key contacts</h3>
+<p>Example quote from the RIM charter:</p>
+
+<blockquote data-variant="body-quote" class="rim-el-body-quote">
+  <p>We come here to practice clear seeing — which is the prerequisite for wise and compassionate response.</p>
+</blockquote>
+
+<h4>Further reading</h4>
+<p>Check the <a href="/admin/manual">staff manual</a> or reach out to your coordinator.</p>
+`.trim();
 
 export default function EditorLabPage() {
   const [mounted, setMounted] = useState(false);
-  const [content, setContent] = useState<any>(null);
+  const [html, setHtml] = useState("");
 
   useEffect(() => {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      try { setContent(JSON.parse(raw)); } catch { /* ignore */ }
-    }
+    if (raw) setHtml(raw);
     setMounted(true);
   }, []);
 
-  function update(value: any) {
-    setContent(value);
-    if (value) localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+  function update(value: string) {
+    setHtml(value);
+    localStorage.setItem(STORAGE_KEY, value);
   }
 
   function loadSample() {
-    update(SAMPLE_DOCUMENT);
+    localStorage.setItem(STORAGE_KEY, SAMPLE_HTML);
     window.location.reload();
   }
 
   function clear() {
     localStorage.removeItem(STORAGE_KEY);
-    setContent(null);
+    setHtml("");
     window.location.reload();
   }
 
-  const bodyHtml = content ? renderBlockNoteHtml(content) : "";
-
   if (!mounted) {
-    return <div className="el-page"><div className="el-header"><h1 className="el-title">Editor Lab</h1></div></div>;
+    return (
+      <div className="el-page">
+        <div className="el-header">
+          <h1 className="el-title">Editor Lab</h1>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="el-page">
       <header className="el-header">
-        <h1 className="el-title">Editor Lab — Document</h1>
+        <h1 className="el-title">Editor Lab — TipTap Prototype</h1>
         <p className="el-subtitle">
-          Focused development workspace for the Document-tier editor (RimBlockEditor).
-          This is the flagship surface. Once it's perfected, Message, Feature, and Email
-          tiers will inherit from it.
+          Testing a Webflow-style rich-text paradigm: standard HTML output,
+          inline formatting via bubble menu, block-level variants (Aside,
+          Practice, Body Quote, etc.) applied as classes — no custom
+          block types. Storage is plain HTML.
         </p>
       </header>
 
       <div className="el-actions">
-        <button className="btn btn--sm" onClick={loadSample}>Load sample content</button>
-        <button className="btn btn--sm btn--ghost" onClick={clear}>Clear</button>
+        <button className="btn btn--sm" onClick={loadSample}>
+          Load sample content
+        </button>
+        <button className="btn btn--sm btn--ghost" onClick={clear}>
+          Clear
+        </button>
       </div>
 
       <div className="el-split">
         <section className="el-pane" aria-label="Editor">
           <div className="el-pane__label">Editor</div>
           <div className="el-pane__body">
-            <RimBlockEditor
-              key={`document-${mounted}`}
-              value={content}
+            <TiptapEditor
+              value={html}
               onChange={update}
-              placeholder="Start typing, or press / for commands…"
-              context="document"
+              placeholder="Start typing. Select text for inline formatting."
             />
           </div>
         </section>
 
         <section className="el-pane" aria-label="Rendered output">
-          <div className="el-pane__label">Rendered output — <code>hdoc-body rim-content</code></div>
+          <div className="el-pane__label">
+            Rendered output — <code>rim-content rim-content--document</code>
+          </div>
           <div className="el-pane__body">
-            {bodyHtml ? (
+            {html ? (
               <div
-                className="hdoc-body rim-content rim-content--document"
-                dangerouslySetInnerHTML={{ __html: bodyHtml }}
+                className="rim-content rim-content--document"
+                dangerouslySetInnerHTML={{ __html: html }}
               />
             ) : (
               <div className="el-placeholder">
-                <p>Start writing, or click <strong>Load sample content</strong> to populate.</p>
+                <p>
+                  Start writing, or click <strong>Load sample content</strong> to
+                  populate.
+                </p>
               </div>
             )}
           </div>
         </section>
       </div>
+
+      <section className="el-pane" aria-label="Raw HTML output">
+        <div className="el-pane__label">Raw HTML (what would be stored)</div>
+        <div className="el-pane__body">
+          <pre className="el-raw">{html || "(empty)"}</pre>
+        </div>
+      </section>
     </div>
   );
 }
