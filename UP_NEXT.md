@@ -4,50 +4,56 @@
 
 ---
 
-## Active: nothing in flight — Host Hub Rework fully shipped (session 93 closing, 2026-04-22)
+## Active: Program Detail in Webflow — next session's first task (session 94 closing, 2026-04-24)
 
-The Host Hub Rework spec is now substantively delivered across Phases 1 → 5. The next session can either pick up one of the small open threads below or start on a new initiative.
+The Webflow-primary architecture is **committed** as of session 94, not tentative. No more porting Webflow designs into the Next.js `/programs/[slug]` route. The next session starts with Jesse designing Program Detail directly in Webflow, using `data-rim-*` bindings to the existing `/api/public/programs/[slug]` endpoint.
 
-### What went live in session 93
+### What's already in place
 
-- **Phase 4 (Schedule)** — Program diagnostic panel + reassign-to-self action (HOST_MANAGER/ADMIN only) on the session detail in `HubScheduleClient`.
-- **Phase 5 (role-adaptive Hub Home)** — `/account/hub/host-team` branches at the page level. Coordinators land on a coordinator shell with four attention-list sections (pending new hosts, unassigned programs, unclaimed sub requests, new conversations) plus team-directory prose + quick links + coordinator-notes placeholder. Hosts land on a welcome + pinned + roster + troubleshooting + quick-links shell. Coordinators get a session-scoped toggle to preview the host view.
-- **Manual chapter** — `host-hub-team-management` seeded, reachable at `/admin/manual/host-hub-team-management` after the next deploy.
-- **Placeholder content** — `prisma/seed-host-hub-home-content.mjs` seeds `Hub.welcomeBody` and `Hub.homeContent` with initial prose, write-only-if-null.
+- **API:** `/api/public/programs/[slug]` returns every field needed for the public detail page. Cache policy: `s-maxage=300, stale-while-revalidate=86400`, explicit `CDN-Cache-Control` + `Vercel-CDN-Cache-Control` headers, ~115ms cached response times.
+- **`rim-connect.js` v3:** detail-page support via `data-rim-page="programs"` + field/html/href/bg/src/show/hide bindings. Hide-until-populated: `[data-rim-page]` containers fade in when data arrives (120ms transition), with a 1500ms safety timeout.
+- **Webflow site-wide head code:** preconnect + inline hide-style + `rim-connect.js` script tag. Placed once in Site Settings → Custom Code → Head Code; no page-level custom code needed for data bindings.
+- **Webflow field reference:** `RIM_Webflow_Fields.md` at project root documents every `data-rim-*` attribute and the payload shape. Keep that updated when the API adds fields.
 
-### Small open threads (pickable, not required)
+### What's unresolved — decide before building the CTA
 
-- **Schedule display of paused hosts** — `HubScheduleClient` still renders assignments without a visual cue when the assigned host is paused or has `hostingCapability = false`. Consider a "hosting revoked / paused" marker on the session card when the assigned user no longer has effective hosting.
-- **Coordinator notes area (dedicated editor)** — Phase 5 currently renders a placeholder pointing at Documents. A real implementation would need a field (`Hub.coordinatorNotes Json?` is the natural shape), a coordinator-only editor surface, and a decision on audit/versioning. Not started — the placeholder is honest, not blocking.
-- **Editor/block work from session 90's queue** — Stage 2d blocks (Announcement, EarlyArrival, DanaInvitation, etc.), the `TeacherProfile.bio` + `Course.completionNote` schema promotions, and the terminal `<EditorField>` code-level gate.
-- **Duplicate-Aside backlog item** — see session 90 closing. Editor allows inserting an Aside immediately after another Aside; product question is whether that's ever intended.
+The one genuinely hard piece on the Program Detail page is the **auth-aware CTA**. The current `/api/public/programs/[slug]` endpoint returns a `ctaHtml` string for guests only (Register / Members access Zoom / Simply arrive). For a signed-in viewer, it should reflect: "You're registered →", "Pending dana →", "Join session →", "Waitlisted", etc. Options:
 
-### If starting Phase 5-adjacent work, the bits worth remembering
+1. **Second endpoint — `/api/member/programs/[slug]`** — reads the NextAuth cookie, returns member-specific CTA HTML. `rim-connect.js` merges it client-side over the public CTA. Requires cookie scoping to work cross-domain (`.rootedinmindfulness.org` once domains are settled; during transition on `rim-next.vercel.app`, cross-origin cookies are the tricky part).
+2. **Next.js-hosted CTA embed** — a tiny iframe or `<script>` from RIM Next that renders just the CTA block, using the existing session flow. Works today, no cross-domain cookie work, but feels heavier.
 
-- **The view split lives at the page level, not in `HubHomeClient`.** `app/account/hub/[slug]/page.tsx` has a `slug === "host-team"` branch that fetches both coordinator and host data in parallel and renders `HostHubHomeClient`. Other hubs still flow through the generic `HubHomeClient`.
-- **`HostHubHomeClient.tsx` carries both views.** The coordinator/host toggle is a local `useState` (session-scoped). Preserve that — don't move it to a URL param.
-- **Attention items are Host-Hub-specific.** When a second hub asks for an attention view, refactor the card primitives (`AttentionCard`, `AttentionRow`) + empty-state pattern into shared pieces. Don't generalize preemptively on a sample size of one.
-- **Team directory = `hub.homeContent`.** Per the Phase 1 revert, role descriptions are prose, not a `RoleProfile` model. Coordinators edit via `/admin/hubs/[slug]/edit`. Any attempt to add a structured team-directory component is a regression on that decision — read the Phase 1 revert notes before going there.
-- **Roster reads live data.** Names, titles, avatars, and bios come from `HubMember` + `User` at request time. No caching layer in front of it. `HubMember.position` wins over `User.title` when both are set.
-- **Placeholder content never overwrites coordinator edits.** The `seed-host-hub-home-content.mjs` upsert is write-only-if-null. Deploys do not clobber.
+Jesse and Claude should pick one before the next Program Detail session starts.
 
-### Permanent reminders from earlier phases (still true)
+### Starting point for the next Program Detail session
 
-- **Hub membership is authoritative when it exists.** If gating a new surface on hosting or hub notifications, pass the tentative role-based decision as the third arg to `getEffectiveHostingCapability` / `canReceiveHubNotifications`.
-- **No-delete is the policy.** Never call `db.hubMember.delete()` outside the ADMIN-only DELETE route. Revoking a role preserves the HubMember record and its coordinator-owned state.
-- **Destructive actions get a confirmation flow.** The 409 + `force: true` pattern on `app/api/hub/[slug]/members/[userId]/route.ts` is the template.
+1. Confirm the CTA approach (option 1 vs option 2 above).
+2. Jesse begins designing the Webflow Program Detail from scratch. No visual reference to the Next.js version — the Next.js page exists only as a data preview until the Webflow version ships.
+3. For each field Jesse wires up, verify it exists in the API payload. If not, extend the API + this file's field reference together.
+4. Test with at least three programs of different types (drop-in, registration-required, hybrid, virtual) to catch CTA branching.
+5. Once shipped, delete `app/programs/[slug]/page.tsx` — this is the cutover moment for that one surface.
 
-### Files worth keeping in mind if the next task touches the Host Hub
+### Small open threads from session 93 (still pickable, still not required)
 
-- `RIM_System_Architecture.md § Hub Membership as Authority` — canonical doc for the permission model.
-- `lib/hubMemberAuth.ts` — the two permission helpers.
-- `lib/syncHubMembership.ts` — sync policy (no-delete, field ownership).
-- `lib/toolAuth.ts` — notification recipient filter (`getHubNotificationRecipients`).
-- `components/HubMembersClient.tsx` — coordinator control surface pattern.
-- `components/HubScheduleClient.tsx` — `<ProgramDiagnostics>` + reassign flow (Phase 4).
-- `components/HostHubHomeClient.tsx` — role-adaptive Hub Home (Phase 5).
-- `app/account/hub/[slug]/page.tsx` — the host-team page-level branch + attention-item queries.
-- `app/api/host/assignments/reassign/route.ts` — HOST_MANAGER/ADMIN-only mutation template.
+- **Schedule display of paused hosts** — `HubScheduleClient` still renders assignments without a visual cue when the assigned host is paused or has `hostingCapability = false`. Consider a marker on the session card.
+- **Coordinator notes area (dedicated editor)** — Phase 5 placeholder points at Documents. Real implementation would need a `Hub.coordinatorNotes Json?` field + coordinator-only editor surface.
+- **Editor/block work from session 90's queue** — Stage 2d blocks (Announcement, EarlyArrival, DanaInvitation, etc.), `TeacherProfile.bio` + `Course.completionNote` schema promotions, terminal `<EditorField>` code-level gate.
+- **Duplicate-Aside backlog item** — Editor allows inserting an Aside immediately after another Aside; product question whether that's ever intended.
+
+### Permanent reminders (still true)
+
+- **Webflow-primary for public/member-facing surfaces.** Do not tune `app/programs/[slug]/page.tsx` or other Webflow-destined pages in the Next.js CSS. Changes go to the API + `rim-connect.js` + Webflow.
+- **API cache policy.** `/api/public/*` endpoints default to `s-maxage=300, stale-while-revalidate=86400` plus explicit `CDN-Cache-Control` + `Vercel-CDN-Cache-Control` headers. Copy from the programs routes if adding a new one.
+- **`[data-rim-page]` is invisible until `.rim-ready`.** If building a new Webflow detail page, the wrapper element must carry `data-rim-page="collection"`. The fade-in is automatic.
+- **Hub membership is authoritative when it exists.** (from session 93)
+- **No-delete policy.** Never call `db.hubMember.delete()` outside the ADMIN-only route. (from session 93)
+
+### Files worth keeping in mind for the next task
+
+- `RIM_Architecture_Directive.md` — the policy.
+- `RIM_Webflow_Fields.md` — attribute + payload reference.
+- `public/rim-connect.js` — the bridge (v3).
+- `app/api/public/programs/[slug]/route.ts` — the endpoint + cache template.
+- `app/api/public/programs/route.ts` — list endpoint + grouped `?grouped=1` variant.
 
 ---
 

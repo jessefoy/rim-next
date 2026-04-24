@@ -52,6 +52,8 @@ Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfie
 | Tool registry | `lib/toolRegistry.ts` | Centralized tool definitions (slug, label, path, description). Hub admin form uses tool picker dropdown. |
 | Hub/Tools model | `RIM_Hub_Model.md` | Complete hub/tools architecture: lifecycle, tool creation pattern, data scoping, decision tree, core sections, app links, access control matrix, mobile patterns, DB schema reference |
 | File storage | Vercel Blob | `@vercel/blob` + `@vercel/blob/client` — client-side upload pattern (browser → Blob direct, bypasses 4.5 MB serverless limit); max 500 MB; `BLOB_READ_WRITE_TOKEN` env var |
+| Webflow bridge | `public/rim-connect.js` (v3) | Populates `data-rim-*` attributes on Webflow pages from `/api/public/*` endpoints. Served from `https://rim-next.vercel.app/rim-connect.js`. Site-wide head code lives in Webflow Site Settings → Custom Code → Head Code (preconnect + hide-style + script tag). `[data-rim-page]` containers fade in when populated (opacity 0 → 1, 120ms) to eliminate placeholder flash. See `RIM_Webflow_Fields.md` for attribute + payload reference. |
+| Public API cache policy | `/api/public/*` route handlers | Default headers: `Cache-Control: public, s-maxage=300, stale-while-revalidate=86400`, plus explicit `CDN-Cache-Control` + `Vercel-CDN-Cache-Control` copies of the same value. The explicit CDN headers are required — Vercel sanitizes the browser `Cache-Control` and drops `s-maxage` by default. Template: `app/api/public/programs/[slug]/route.ts`. |
 
 ---
 

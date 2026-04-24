@@ -1,5 +1,57 @@
 ---
 
+## 2026-04-24 (session 94) — Webflow architecture committed + rim-connect v3 performance work
+
+### The pivot is no longer tentative — it's committed
+
+We started this session by trying (again) to port the Webflow Program Detail design into the Next.js `/programs/[slug]` route using Webflow as a visual spec. The usual loop happened: port, eyeball-tune, spot drift, iterate. By mid-session it was clear the spec-to-code pipeline isn't going to get better for visual surfaces no matter how much we tighten it.
+
+We considered three options and picked one: **Webflow is the primary surface for every public/member-facing page. RIM Next is the backend + bridge.** Jesse designs directly in Webflow; we extend the API + `rim-connect.js` to cover whatever the design needs. The `RIM_Architecture_Directive.md` already described this shape as the target; today it became policy rather than experiment.
+
+The decision point was a real blocker: the page felt unprofessional on first load — a visible flash of Webflow template placeholders before `rim-connect.js` populated them. Jesse was ready to abandon the whole pivot over it. Before throwing out the architecture, we measured and fixed.
+
+### What shipped
+
+**API caching on `/api/public/programs` and `/api/public/programs/[slug]`.** Bumped `s-maxage` from 60 → 300 and `stale-while-revalidate` from 300 → 86400. Added explicit `CDN-Cache-Control` and `Vercel-CDN-Cache-Control` headers to ensure Vercel's edge respects them independent of the sanitized browser-facing `Cache-Control`. Before: cold miss ~415ms, cached hit ~155ms. After: cold miss ~180ms, cached hit ~115ms. Most visitors now hit the CDN edge in that range. First-visitor-per-URL cold misses still pay the database round-trip, but the 5-minute window + 1-day stale-while-revalidate means the miss is rare in practice.
+
+**`rim-connect.js` v3 — hide-until-populated for detail pages.** New behavior: `[data-rim-page]` containers start at `opacity: 0` with a 120ms transition, and the script adds a `.rim-ready` class once `populateFields` completes (or errors, or hits a 1500ms safety timeout). Turns "flash of Webflow placeholder text" into "brief fade-in." The hide rule is also available inline in Webflow's site-wide `<head>` so it applies before the script itself loads — eliminates the race where the script is still fetching while the body has already painted placeholders.
+
+**Webflow site-wide head code (Jesse applied, not code-committed here).** Consolidated every page's custom code into Site Settings → Custom Code → Head Code:
+- `<link rel="preconnect">` + `<link rel="dns-prefetch">` to `rim-next.vercel.app` (DNS + TLS warmup).
+- Inline `<style>` block for `[data-rim-page]` hide/reveal — placed above the rim-connect script tag so the rule applies regardless of script-load timing.
+- Memberstack scripts in existing order.
+- `rim-connect.js` script tag last.
+
+Page-level custom code for `data-rim-*` handling is now removed. One place to update going forward.
+
+### Design decisions that matter
+
+1. **Measure before pivoting an architecture.** When Jesse said "a few seconds" of delay and asked if we should abandon the pivot, the honest answer was "I don't know — let me measure." The real numbers (~115ms cached, ~180ms cold) told a different story than the frustrated perception. That turned a potential architecture reversal into a 30-minute performance tuning session. Rule for future: when a user reports a performance feeling, measure before validating the feeling.
+
+2. **The flash was a race, not a speed problem.** Even at 115ms response times, the user was seeing placeholder content before the data arrived because the browser had already painted the body. The fix wasn't to make the fetch faster — it was to hide the container until the fetch completed. Different problem than I initially framed.
+
+3. **Inline the hide CSS in Webflow's `<head>`, don't inject from JS.** Script-injected CSS fails in the race where the script itself is still loading. Inline CSS in site-wide head applies at HTML parse time, before any body element renders. This is belt-and-suspenders with the script-side injection — both are now in place, but the inline rule is what guarantees zero flash.
+
+4. **Site-wide head is the right home for `rim-connect.js` and its support code.** The script is idempotent across pages (exits silently when no `data-rim-*` attributes are present), so there's no cost to it running everywhere. Single place to update; no chance of forgetting a page.
+
+5. **The commit is about the pipeline, not about any one page.** We did not finish the Program Detail Webflow build in this session. We stopped trying to finish it in RIM Next. The next session starts with Jesse designing Program Detail from scratch in Webflow, with `data-rim-*` bindings to the existing API. Any drift from "what it should look like" is now a Webflow adjustment, not a CSS tuning pass in `custom.css`.
+
+### What this work connects to
+
+- **`RIM_Architecture_Directive.md`** — today's decision confirms what the directive already described. The "tentative" language in the memory file is now stale; the pivot is policy.
+- **Next.js `/programs/[slug]`, `/programs/[slug]/register`, `/account/programs/[slug]`** — public program page is now slated for Webflow. The Next.js version continues to render (it was used as Jesse's visual reference during this session), but should not receive further visual tuning. Registration flow and member-side program detail stay in RIM Next.
+- **API conventions (`/api/public/*`)** — the caching pattern used here is the template for every future Webflow-read endpoint. Explicit `CDN-Cache-Control` + `Vercel-CDN-Cache-Control` alongside the browser Cache-Control, with `s-maxage=300, stale-while-revalidate=86400` as the default. New endpoints should follow this shape unless there's a reason not to.
+- **`rim-connect.js`** — v3's detail-page hide-until-populated sets a precedent. Future bindings (list states, grouped lists, auth-aware CTAs) should follow the same principle: the wrapper element stays invisible until data arrives, rather than rendering placeholders that swap.
+- **Auth-aware CTAs on Webflow pages** — the one genuinely hard piece still ahead. Current `rim-connect.js` v3 handles public data only. Registration state ("Register" vs "You're registered" vs "Pending dana" vs "Join session") depends on the viewer's session. Options: (a) a second endpoint `/api/member/programs/[slug]` that reads the NextAuth cookie and returns member-specific CTA HTML, merged client-side; (b) small Next.js-hosted iframe/embed for the CTA block alone. Decision deferred to the next Program Detail session.
+
+### What comes next
+
+Next session: Jesse designs Program Detail in Webflow (from scratch — not as a port of the Next.js version). We cover each field and interaction with `data-rim-*` bindings, extending `rim-connect.js` or adding API endpoints as needed. The hard piece is the auth-aware CTA — we decide the approach before building.
+
+Everything else on the Host Hub / Phase 5-adjacent backlog from session 93 carries forward unchanged.
+
+---
+
 ## 2026-04-22 (session 93) — Host Hub Phase 4, team-management manual chapter, ritual cleanup
 
 ### The scope

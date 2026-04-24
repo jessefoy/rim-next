@@ -193,10 +193,10 @@ export default async function ProgramDetailPage({
           <div className="prog-description rim-content rim-content--program" dangerouslySetInnerHTML={{ __html: descriptionHtml }} />
         )}
 
-        {/* ── Program notes (tan card) ── */}
+        {/* ── Program notes (tan card) ──
+            Heading is authored inside the rich text — don't add one here. */}
         {hasProgramNotes && (
           <section className="pg-notes">
-            <h3 className="pg-notes__heading">Program Notes</h3>
             <div className="rim-content rim-content--program" dangerouslySetInnerHTML={{ __html: programNotesHtml }} />
           </section>
         )}
