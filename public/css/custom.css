@@ -23872,6 +23872,15 @@ input.w-button { -webkit-appearance: button; }
   outline: none;
 }
 
+.tt-editor.ProseMirror p {
+  margin: 0 0 1em;
+}
+
+.tt-editor.ProseMirror p:empty::before,
+.rim-content p:empty::before {
+  content: "\00a0";
+}
+
 .tt-editor.ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   color: var(--rim-text-muted);
