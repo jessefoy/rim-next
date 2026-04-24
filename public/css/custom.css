@@ -264,10 +264,9 @@ h4 { font-size: var(--text-h4); }
   margin-bottom: 0.4em;
 }
 
-/* Suppress empty BlockNote paragraphs */
-.rim-content p:empty,
-.rim-content p:has(> br:only-child),
-.rim-content p:has(> span:only-child:empty) { display: none; }
+/* Empty paragraphs render as visible line breaks (TipTap output).
+   Legacy BlockNote-suppression rule removed — empty paragraphs from
+   rich text are now intentional and should take a line of height. */
 
 /* Inline formatting */
 .rim-content strong { font-weight: 700; }
