@@ -6,14 +6,7 @@ Quick reference for wiring Webflow elements to RIM Next data using `rim-connect.
 
 ## How it works
 
-Every Webflow page that uses live data needs:
-1. A `<script>` tag in **Page Settings → Before `</body>`**
-2. `data-rim-*` attributes on elements in the designer
-
-**Script tag (same for every page):**
-```html
-<script src="https://rim-next.vercel.app/rim-connect.js" defer></script>
-```
+Every Webflow page that uses live data needs `data-rim-*` attributes on elements in the designer. That's it — the script tag is already loaded site-wide from **Site Settings → Custom Code → Head Code**. No per-page setup required.
 
 ---
 
@@ -27,6 +20,7 @@ Every Webflow page that uses live data needs:
 | `data-rim-field="fieldName"` | Any text element | Sets text content from a field |
 | `data-rim-html="fieldName"` | A **Div Block** only | Sets inner HTML (use for rich text / description) |
 | `data-rim-href="/path/[slug]"` | A Link element | Sets the href; `[fieldName]` tokens are replaced |
+| `data-rim-bg="fieldName"` | Any element | Sets `background-image: url(...)` on the element |
 | `data-rim-src="fieldName"` | An Image element | Sets the image src |
 | `data-rim-show="fieldName"` | Any element | Visible only when that field has a value |
 | `data-rim-hide="fieldName"` | Any element | Hidden when that field has a value |
@@ -38,8 +32,8 @@ Every Webflow page that uses live data needs:
 
 ## Programs Listing Page (`/community-programs`)
 
-**Body or wrapper:** no special attribute needed  
-**List container:** `data-rim-list="programs"`  
+**Body or wrapper:** no special attribute needed
+**List container:** `data-rim-list="programs"`
 **Item template:** `data-rim-item` on the card div
 
 ### Fields available inside `data-rim-item`
@@ -71,66 +65,79 @@ Div  [data-rim-list="programs"]
 
 ## Program Detail Page (`/program-detail`)
 
-**URL pattern:** `/program-detail?slug=monday-sitting-group`  
-**Links from listing:** set `data-rim-href` to `/program-detail?slug=[slug]`  
+**Status: live.** Webflow page ID `69e985cd8cdb73f2540a9b47`, published at `/untitled/program-detail`.
+
+**URL pattern:** `/program-detail?slug=monday-sitting-group`
+**Links from listing:** set `data-rim-href` to `/program-detail?slug=[slug]`
 **Body or outer wrapper:** `data-rim-page="programs"`
 
-### Hero
+### What's currently wired (as of 2026-04-24)
 
-| What | Attribute | Value | Element |
-|---|---|---|---|
-| Background image | `data-rim-src` | `programImage` | Image |
-| Category label | `data-rim-field` | `category.name` | Text |
-| Program name | `data-rim-field` | `name` | Heading H1 |
-| Tagline | `data-rim-field` | `tagline` | Text Block |
-| Tagline wrapper | `data-rim-show` | `tagline` | Div |
+Confirmed by reading the published HTML. If the Webflow page is re-audited, update this section to match.
 
-### Pull Quote *(wrap section in a Div with `data-rim-show="pullQuote"`)*
+**Hero**
 
-| What | Attribute | Value | Element |
-|---|---|---|---|
-| Section wrapper | `data-rim-show` | `pullQuote` | Div |
-| Quote text | `data-rim-field` | `pullQuote` | Text Block |
-| Quote source | `data-rim-field` | `pullQuoteSource` | Text |
+| What | Attribute | Value |
+|---|---|---|
+| Background image | `data-rim-bg` | `programImage` |
+| Category label | `data-rim-field` | `category.name` |
+| Program name | `data-rim-field` | `name` |
+| Tagline | `data-rim-field` + `data-rim-show` wrapper | `tagline` |
 
-### Description *(rich text — must be a Div Block, not a Text Block)*
+**Pull Quote**
 
-| What | Attribute | Value | Element |
-|---|---|---|---|
-| Section wrapper | `data-rim-show` | `descriptionHtml` | Div |
-| Description body | `data-rim-html` | `descriptionHtml` | **Div Block** |
+| What | Attribute | Value |
+|---|---|---|
+| Section wrapper | `data-rim-show` | `pullQuote` |
+| Quote text | `data-rim-field` | `pullQuote` |
+| Quote source | `data-rim-field` | `pullQuoteSource` |
 
-### Details
+**Description** *(Div Block, not Text Block)*
 
-| What | Attribute | Value | Element |
-|---|---|---|---|
-| Schedule (day pattern) | `data-rim-field` | `scheduleLabel` | Text |
-| Time | `data-rim-field` | `timeLabel` | Text |
-| Location | `data-rim-field` | `locationLabel` | Text |
-| Map link | `data-rim-href` | `[locationLink]` | Link |
-| Map link wrapper | `data-rim-show` | `locationLink` | Div |
-| Format | `data-rim-field` | `formatLabel` | Text |
-| Dana note | `data-rim-field` | `danaText` | Text Block |
-| Dana wrapper | `data-rim-show` | `danaText` | Div |
+| What | Attribute | Value |
+|---|---|---|
+| Description body | `data-rim-html` | `descriptionHtml` |
 
-### Facilitators
+*No `data-rim-show` wrapper — renders always. Programs without a description will show an empty block.*
 
-| What | Attribute | Value | Element |
-|---|---|---|---|
-| Section wrapper | `data-rim-show` | `teacherNames` | Div |
-| Teacher names | `data-rim-field` | `teacherNames` | Text Block |
+**Program Notes** *(Div Block, not Text Block)*
 
-### Registration
+| What | Attribute | Value |
+|---|---|---|
+| Section wrapper | `data-rim-show` | `programNotesHtml` |
+| Notes body | `data-rim-html` | `programNotesHtml` |
 
-| What | Attribute | Value | Element |
-|---|---|---|---|
-| Register button | `data-rim-show` | `registrationEnabled` | Link Block |
-| Register link | `data-rim-href` | `/programs/[slug]/register` | Link Block |
-| Closed notice | `data-rim-show` | `registrationClosed` | Div |
-| Announcement | `data-rim-field` | `specialAnnouncement` | Text Block |
-| Announcement wrapper | `data-rim-show` | `specialAnnouncement` | Div |
+**Details**
 
-### All detail page fields (complete list)
+| What | Attribute | Value |
+|---|---|---|
+| Schedule (day pattern) | `data-rim-field` | `scheduleLabel` |
+| Time | `data-rim-field` | `timeLabel` |
+| Location | `data-rim-field` + `data-rim-show` wrapper | `locationLabel` |
+| Dana note | `data-rim-field` + `data-rim-show` wrapper | `danaText` |
+
+**CTA** *(single-element drop-in — Div Block with `data-rim-html`)*
+
+| What | Attribute | Value |
+|---|---|---|
+| CTA wrapper | `data-rim-show` | `ctaHtml` |
+| CTA body | `data-rim-html` | `ctaHtml` |
+
+`ctaHtml` is one prebuilt HTML fragment covering all guest states: register link / "Registration is closed" / "Members access Zoom via dashboard" / "Simply arrive in person · Members join online via dashboard". Simpler than wiring a register button + closed notice + membership note separately.
+
+### Fields the API returns but Webflow isn't using yet
+
+Available if you want to add them in a future pass:
+
+| Field | Intended use | How to wire |
+|---|---|---|
+| `locationLink` | Google Maps URL for in-person venues | `data-rim-href="[locationLink]"` on a Link + `data-rim-show="locationLink"` on a wrapper |
+| `formatLabel` | "In-Person" / "Zoom Only" / "In-Person & Zoom" | `data-rim-field="formatLabel"` on a Text element |
+| `teacherNames` | Comma-separated list of facilitators | `data-rim-field="teacherNames"` + `data-rim-show="teacherNames"` on a section wrapper |
+| `specialAnnouncement` | One-off notice for a program | `data-rim-field="specialAnnouncement"` + `data-rim-show="specialAnnouncement"` on a banner |
+| `teachers` | Array of `{ name, slug }` for custom per-teacher rendering | Not supported by v3 list rendering inside detail pages — would require an API change or a second fetch |
+
+### Complete field inventory (what `/api/public/programs/[slug]` returns)
 
 | Field | Value | Notes |
 |---|---|---|
@@ -138,10 +145,11 @@ Div  [data-rim-list="programs"]
 | `slug` | e.g. `monday-sitting-group` | Used in URLs |
 | `name` | Program title | Always present |
 | `tagline` | Short description | Optional |
-| `programImage` | URL or null | Image src |
+| `programImage` | URL or null | Image src / bg |
 | `pullQuote` | Quote text | Optional |
 | `pullQuoteSource` | Attribution | Optional |
 | `descriptionHtml` | HTML string | Optional — use `data-rim-html` |
+| `programNotesHtml` | HTML string | Optional — use `data-rim-html` |
 | `programFormat` | `in-person` / `virtual` / `hybrid` | Raw value |
 | `formatLabel` | `In-Person` / `Zoom Only` / `In-Person & Zoom` | Human-readable |
 | `scheduleLabel` | e.g. `Mondays` | Day/pattern only, no time |
@@ -151,6 +159,8 @@ Div  [data-rim-list="programs"]
 | `danaText` | Dana/donation note | Optional |
 | `registrationEnabled` | true / false | |
 | `registrationClosed` | true / false | Includes deadline check |
+| `registrationUrl` | Full register URL | Explicit URL if needed separately |
+| `ctaHtml` | HTML string | One-element drop-in covering all guest states |
 | `specialAnnouncement` | Text or null | Optional |
 | `category.name` | Category name | Optional |
 | `category.slug` | Category slug | Optional |
@@ -166,4 +176,17 @@ Div  [data-rim-list="programs"]
 | `https://rim-next.vercel.app/api/public/programs` | All visible programs + categories |
 | `https://rim-next.vercel.app/api/public/programs/[slug]` | Single program detail |
 
-Both endpoints are public, CORS-enabled, and cached for 60 seconds.
+Both endpoints are public, CORS-enabled, and cached for 5 minutes (`s-maxage=300, stale-while-revalidate=86400`).
+
+---
+
+## How to audit what's actually wired
+
+If you want to re-verify the Webflow page against this doc, the fastest path is:
+
+```bash
+curl -sL "https://www.rootedinmindfulness.org/untitled/program-detail" \
+  | grep -oE 'data-rim-[a-z]+="[^"]*"' | sort -u
+```
+
+That's the authoritative list of what ships to visitors.

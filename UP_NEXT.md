@@ -4,33 +4,45 @@
 
 ---
 
-## Active: Program Detail in Webflow — next session's first task (session 94 closing, 2026-04-24)
+## Active: Program Detail live in Webflow — CTA and cleanup pending (2026-04-24)
 
-The Webflow-primary architecture is **committed** as of session 94, not tentative. No more porting Webflow designs into the Next.js `/programs/[slug]` route. The next session starts with Jesse designing Program Detail directly in Webflow, using `data-rim-*` bindings to the existing `/api/public/programs/[slug]` endpoint.
+Jesse rebuilt the Program Detail page in Webflow between sessions and wired the `data-rim-*` bindings per [RIM_Webflow_Fields.md](RIM_Webflow_Fields.md). The page is live and fetching from `/api/public/programs/[slug]`. The Webflow-primary architecture is **committed** (session 94) — no more porting Webflow designs into the Next.js `/programs/[slug]` route.
 
-### What's already in place
+### What's wired (audited from published HTML 2026-04-24)
 
-- **API:** `/api/public/programs/[slug]` returns every field needed for the public detail page. Cache policy: `s-maxage=300, stale-while-revalidate=86400`, explicit `CDN-Cache-Control` + `Vercel-CDN-Cache-Control` headers, ~115ms cached response times.
-- **`rim-connect.js` v3:** detail-page support via `data-rim-page="programs"` + field/html/href/bg/src/show/hide bindings. Hide-until-populated: `[data-rim-page]` containers fade in when data arrives (120ms transition), with a 1500ms safety timeout.
-- **Webflow site-wide head code:** preconnect + inline hide-style + `rim-connect.js` script tag. Placed once in Site Settings → Custom Code → Head Code; no page-level custom code needed for data bindings.
-- **Webflow field reference:** `RIM_Webflow_Fields.md` at project root documents every `data-rim-*` attribute and the payload shape. Keep that updated when the API adds fields.
+- **Hero:** `programImage` (bg), `category.name`, `name`, `tagline` (+ show)
+- **Pull quote:** `pullQuote` (+ show), `pullQuoteSource`
+- **Description:** `descriptionHtml` (Div Block + `data-rim-html`, no show wrapper)
+- **Program notes:** `programNotesHtml` (+ show) — wired, rich-text
+- **Details:** `scheduleLabel`, `timeLabel`, `locationLabel` (+ show), `danaText` (+ show)
+- **CTA:** `ctaHtml` (+ show) — one-element drop-in, covers all guest states (register / closed / "simply arrive" / members access)
 
-### What's unresolved — decide before building the CTA
+Full attribute list and field inventory in [RIM_Webflow_Fields.md](RIM_Webflow_Fields.md).
 
-The one genuinely hard piece on the Program Detail page is the **auth-aware CTA**. The current `/api/public/programs/[slug]` endpoint returns a `ctaHtml` string for guests only (Register / Members access Zoom / Simply arrive). For a signed-in viewer, it should reflect: "You're registered →", "Pending dana →", "Join session →", "Waitlisted", etc. Options:
+### Fields the API returns but aren't placed on the page yet
 
-1. **Second endpoint — `/api/member/programs/[slug]`** — reads the NextAuth cookie, returns member-specific CTA HTML. `rim-connect.js` merges it client-side over the public CTA. Requires cookie scoping to work cross-domain (`.rootedinmindfulness.org` once domains are settled; during transition on `rim-next.vercel.app`, cross-origin cookies are the tricky part).
-2. **Next.js-hosted CTA embed** — a tiny iframe or `<script>` from RIM Next that renders just the CTA block, using the existing session flow. Works today, no cross-domain cookie work, but feels heavier.
+Optional additions for a future pass:
 
-Jesse and Claude should pick one before the next Program Detail session starts.
+- **`locationLink`** — map link href for in-person venues (currently no map link on page)
+- **`formatLabel`** — explicit "In-Person" / "Zoom Only" / "In-Person & Zoom" row (format is implied by `locationLabel` today)
+- **`teacherNames`** — facilitators section (comma-separated string)
+- **`specialAnnouncement`** — one-off announcement banner
+
+### What's unresolved — the auth-aware CTA
+
+The current `/api/public/programs/[slug]` endpoint returns guest-only CTA logic. For a signed-in viewer, the CTA should reflect "You're registered →", "Pending dana →", "Join session →", "Waitlisted", etc. Options:
+
+1. **Second endpoint — `/api/member/programs/[slug]`** — reads the NextAuth cookie, returns member-specific CTA HTML. `rim-connect.js` merges it client-side over the public CTA. Requires cookie scoping (`.rootedinmindfulness.org`) to work cross-domain.
+2. **Next.js-hosted CTA embed** — a tiny iframe or `<script>` from RIM Next that renders just the CTA block. Works today, no cross-domain cookie work, but feels heavier.
+
+Pick one before building.
 
 ### Starting point for the next Program Detail session
 
 1. Confirm the CTA approach (option 1 vs option 2 above).
-2. Jesse begins designing the Webflow Program Detail from scratch. No visual reference to the Next.js version — the Next.js page exists only as a data preview until the Webflow version ships.
-3. For each field Jesse wires up, verify it exists in the API payload. If not, extend the API + this file's field reference together.
-4. Test with at least three programs of different types (drop-in, registration-required, hybrid, virtual) to catch CTA branching.
-5. Once shipped, delete `app/programs/[slug]/page.tsx` — this is the cutover moment for that one surface.
+2. Implement chosen approach and wire it into the Webflow page.
+3. Test with at least three programs of different types (drop-in, registration-required, hybrid, virtual) to catch CTA branching.
+4. Once verified across auth states, delete `app/programs/[slug]/page.tsx` — the cutover moment for that surface.
 
 ### Small open threads from session 93 (still pickable, still not required)
 
@@ -47,7 +59,7 @@ Jesse and Claude should pick one before the next Program Detail session starts.
 - **Hub membership is authoritative when it exists.** (from session 93)
 - **No-delete policy.** Never call `db.hubMember.delete()` outside the ADMIN-only route. (from session 93)
 
-### Files worth keeping in mind for the next task
+### Files worth keeping in mind
 
 - `RIM_Architecture_Directive.md` — the policy.
 - `RIM_Webflow_Fields.md` — attribute + payload reference.

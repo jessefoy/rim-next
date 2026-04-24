@@ -1,5 +1,40 @@
 ---
 
+## 2026-04-24 (session 95) — Program Detail Webflow audit + doc sync
+
+### What prompted this session
+
+A gap was discovered between sessions: Jesse rebuilt the Program Detail page in Webflow after session 94 closed, but the docs (UP_NEXT, field reference, memory) still framed that work as "next session's first task." A new Claude session picked up cold and didn't know Program Detail was already live.
+
+### What I did
+
+1. **Ritual docs audit + cleanup** — reviewed the five ritual documents for efficiency and clarity. Archived `RIM_Editor_Design.md` (superseded by `RIM_Editor_Types.md`) and `RIM_Architecture_Pivot.md` (superseded by `RIM_Architecture_Directive.md`) with banners on both. Fixed a read-order conflict where the Directive duplicated the opening-ritual sequence from CLAUDE.md (Directive now defers to CLAUDE.md).
+
+2. **Audited what Jesse actually wired in Webflow.** Used the Webflow Data API to find the Program Detail page (ID `69e985cd8cdb73f2540a9b47`, published at `/untitled/program-detail`), then `curl` + grep on the published HTML to enumerate every `data-rim-*` attribute. Result: 20 bindings across 14 fields. Two of them (`programNotesHtml`, `ctaHtml`) were not in the field-reference doc at all — Jesse wired them anyway. Four fields the reference lists (`locationLink`, `formatLabel`, `teacherNames`, `specialAnnouncement`) aren't placed on the page.
+
+3. **Updated the docs to match reality.** `RIM_Webflow_Fields.md` rewritten to (a) mark Program Detail as live, (b) document the audited attribute set, (c) move the four unused-but-available fields into a separate "available" section, (d) add `programNotesHtml`, `ctaHtml`, `registrationUrl` to the field inventory, (e) add a `data-rim-bg` attribute row to the vocabulary table (was being used but undocumented), (f) add a `curl | grep` recipe for re-auditing. UP_NEXT rewritten to reflect "live — CTA and cleanup pending" instead of "pending."
+
+### Design decisions that matter
+
+- **Audit by reading shipped HTML, not by asking.** Jesse couldn't remember which attributes he wired where, and fairly — the field reference doc was how he did it, but he didn't cross-check it against the final page. The authoritative source is the HTML that ships to visitors. `curl | grep -oE 'data-rim-[a-z]+="[^"]*"' | sort -u` is the one-liner that keeps the doc honest.
+- **Accept that Jesse improved on the doc.** He wired `ctaHtml` (the single-element drop-in) instead of the register-button + closed-notice + membership-note trio the reference described, and wired `programNotesHtml` even though it wasn't in the doc. The doc now matches what's on the page, not what was planned.
+- **"Available but not yet placed" is a useful category.** Four fields are ready in the API but aren't on the Webflow page. Worth distinguishing from fields that don't exist — if Jesse decides he wants a map link or facilitator row later, the data is already shipping.
+
+### What this work connects to
+
+- **`/api/public/programs/[slug]`** — the endpoint the page consumes. No schema change today, but the inventory in `RIM_Webflow_Fields.md` is now the canonical list of what it returns.
+- **`rim-connect.js` v3** — used as-is. `data-rim-bg` was being used on the page, confirming that attribute works end-to-end even though the doc hadn't listed it.
+- **Webflow site-wide head code** — unchanged. The Program Detail page relies on the site-level script, preconnect, and hide-style from session 94.
+- **Auth-aware CTA (still deferred)** — `ctaHtml` covers guest states only. A member-specific variant ("You're registered →", "Pending dana →", "Join session →") is still the open architectural question; tracked in UP_NEXT with the two options (member endpoint vs Next.js embed).
+
+### What comes next
+
+- Jesse decides whether to add `teacherNames` / `specialAnnouncement` / `locationLink` / `formatLabel` to the page, or leave them off.
+- Pick the auth-aware CTA approach before the next Program Detail session.
+- Once the CTA works across auth states, delete `app/programs/[slug]/page.tsx` — the formal cutover for that surface.
+
+---
+
 ## 2026-04-24 (session 94) — Webflow architecture committed + rim-connect v3 performance work
 
 ### The pivot is no longer tentative — it's committed
