@@ -23874,9 +23874,9 @@ input.w-button { -webkit-appearance: button; }
 
 .tt-editor.ProseMirror p {
   margin: 0 0 1em;
+  min-height: 1.7em;
 }
 
-.tt-editor.ProseMirror p:empty::before,
 .rim-content p:empty::before {
   content: "\00a0";
 }
