@@ -4,12 +4,14 @@ import { resolveLocation } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
 import { renderContentBodyAsync } from "@/lib/renderRichContentServer";
 
-export const revalidate = 60;
+export const revalidate = 300;
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET",
-  "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+  "Cache-Control": "public, s-maxage=300, stale-while-revalidate=86400",
+  "CDN-Cache-Control": "public, s-maxage=300, stale-while-revalidate=86400",
+  "Vercel-CDN-Cache-Control": "public, s-maxage=300, stale-while-revalidate=86400",
 };
 
 export async function OPTIONS() {
