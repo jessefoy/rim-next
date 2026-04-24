@@ -297,9 +297,11 @@
       })
       .then(function (item) {
         populateFields(el, item);
+        el.setAttribute("data-rim-ready", "");
       })
       .catch(function (err) {
         console.error("rim-connect: page fetch failed", err);
+        el.setAttribute("data-rim-ready", "");
       });
   }
 
@@ -313,6 +315,8 @@
       "[data-rim-item],",
       "[data-rim-group-item],",
       "[data-rim-state] { display: none !important; }",
+      "[data-rim-page]:not([data-rim-ready]) { opacity: 0; }",
+      "[data-rim-page] { transition: opacity 180ms ease; }",
     ].join(" ");
     document.head.appendChild(style);
   })();
