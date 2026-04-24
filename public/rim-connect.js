@@ -44,6 +44,24 @@
     programs: BASE_URL + "/api/public/programs",
   };
 
+  // ── Early fetch ──────────────────────────────────────────────────────────────
+  // Kick off the detail fetch the moment the script loads, without waiting for
+  // DOMContentLoaded. Script placed in site <head> can overlap network with
+  // HTML parsing; later initPage awaits this same promise.
+
+  var _slug = (function () {
+    try { return new URLSearchParams(window.location.search).get("slug"); }
+    catch (e) { return null; }
+  })();
+
+  var _detailPromise = _slug
+    ? fetch(ENDPOINTS.programs + "/" + encodeURIComponent(_slug))
+        .then(function (res) {
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          return res.json();
+        })
+    : null;
+
   // ── Utilities ────────────────────────────────────────────────────────────────
 
   function get(obj, path) {
@@ -282,27 +300,24 @@
       console.warn("rim-connect: no endpoint for page collection \"" + collection + "\"");
       return;
     }
-
-    // Read slug from ?slug= query param
-    var slug = new URLSearchParams(window.location.search).get("slug");
-    if (!slug) {
+    if (!_slug) {
       console.warn("rim-connect: no ?slug= in URL for data-rim-page");
       return;
     }
 
-    fetch(base + "/" + encodeURIComponent(slug))
-      .then(function (res) {
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        return res.json();
-      })
-      .then(function (item) {
-        populateFields(el, item);
-        el.setAttribute("data-rim-ready", "");
-      })
-      .catch(function (err) {
-        console.error("rim-connect: page fetch failed", err);
-        el.setAttribute("data-rim-ready", "");
-      });
+    // Use the promise started at script load time — the fetch has been
+    // running in parallel with HTML parsing, so by the time we get here
+    // the response is usually ready or close to it.
+    var promise = collection === "programs" && _detailPromise
+      ? _detailPromise
+      : fetch(base + "/" + encodeURIComponent(_slug)).then(function (res) {
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          return res.json();
+        });
+
+    promise
+      .then(function (item) { populateFields(el, item); })
+      .catch(function (err) { console.error("rim-connect: page fetch failed", err); });
   }
 
   // ── Base styles ──────────────────────────────────────────────────────────────
@@ -315,20 +330,6 @@
       "[data-rim-item],",
       "[data-rim-group-item],",
       "[data-rim-state] { display: none !important; }",
-      "[data-rim-page]:not([data-rim-ready]) [data-rim-field],",
-      "[data-rim-page]:not([data-rim-ready]) [data-rim-html],",
-      "[data-rim-page]:not([data-rim-ready]) [data-rim-href],",
-      "[data-rim-page]:not([data-rim-ready]) [data-rim-src],",
-      "[data-rim-page]:not([data-rim-ready]) [data-rim-bg],",
-      "[data-rim-page]:not([data-rim-ready]) [data-rim-show],",
-      "[data-rim-page]:not([data-rim-ready]) [data-rim-hide] { opacity: 0; }",
-      "[data-rim-page] [data-rim-field],",
-      "[data-rim-page] [data-rim-html],",
-      "[data-rim-page] [data-rim-href],",
-      "[data-rim-page] [data-rim-src],",
-      "[data-rim-page] [data-rim-bg],",
-      "[data-rim-page] [data-rim-show],",
-      "[data-rim-page] [data-rim-hide] { transition: opacity 180ms ease; }",
     ].join(" ");
     document.head.appendChild(style);
   })();
