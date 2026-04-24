@@ -139,6 +139,8 @@ export default async function ProgramDetailPage({
   const hasFacilitators = teacherNames.length > 0;
   const hasDescription = !!program.description;
   const descriptionHtml = hasDescription ? await renderContentBodyAsync(program.description) : "";
+  const hasProgramNotes = !!program.programNotes;
+  const programNotesHtml = hasProgramNotes ? await renderContentBodyAsync(program.programNotes) : "";
 
   return (
     <div className="pg-page">
@@ -191,14 +193,22 @@ export default async function ProgramDetailPage({
           <div className="prog-description rim-content rim-content--program" dangerouslySetInnerHTML={{ __html: descriptionHtml }} />
         )}
 
+        {/* ── Program notes (tan card) ── */}
+        {hasProgramNotes && (
+          <section className="pg-notes">
+            <h3 className="pg-notes__heading">Program Notes</h3>
+            <div className="rim-content rim-content--program" dangerouslySetInnerHTML={{ __html: programNotesHtml }} />
+          </section>
+        )}
+
         {/* ── Details section ── */}
         {hasDetails && (
           <section className="pg-details-section">
-            <h2 className="pg-section-heading">Details:</h2>
+            <h3 className="pg-section-heading">Details:</h3>
             {scheduleLabel && (
               <div className="pg-detail-row">
                 <span className="pg-detail-row__icon" aria-hidden="true">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                 </span>
                 <span className="pg-detail-row__text">{scheduleLabel}</span>
               </div>
@@ -206,7 +216,7 @@ export default async function ProgramDetailPage({
             {timeLabel && (
               <div className="pg-detail-row">
                 <span className="pg-detail-row__icon" aria-hidden="true">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 </span>
                 <span className="pg-detail-row__text">{timeLabel}</span>
               </div>
@@ -214,7 +224,7 @@ export default async function ProgramDetailPage({
             {showLocation && (
               <div className="pg-detail-row">
                 <span className="pg-detail-row__icon" aria-hidden="true">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                 </span>
                 <span className="pg-detail-row__text">
                   {locationLabel}
@@ -227,7 +237,7 @@ export default async function ProgramDetailPage({
             {program.danaText && (
               <div className="pg-detail-row">
                 <span className="pg-detail-row__icon" aria-hidden="true">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                 </span>
                 <span className="pg-detail-row__text">{program.danaText}</span>
               </div>
@@ -236,7 +246,7 @@ export default async function ProgramDetailPage({
             {/* ── CTA row — context-aware action ── */}
             <div className="pg-detail-row pg-detail-row--cta">
               <span className="pg-detail-row__icon" aria-hidden="true">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
               </span>
               <span className="pg-detail-row__text">
                 {useBuiltInForm ? (
@@ -286,7 +296,7 @@ export default async function ProgramDetailPage({
         {/* ── Facilitators section ── */}
         {hasFacilitators && (
           <section className="pg-facilitators-section">
-            <h2 className="pg-section-heading">Facilitators:</h2>
+            <h3 className="pg-section-heading">Facilitators:</h3>
             <div className="pg-facilitators">
               {teacherNames.map((t, i) => (
                 t.slug ? (

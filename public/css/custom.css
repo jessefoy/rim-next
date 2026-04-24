@@ -1998,7 +1998,7 @@ h4 { font-size: var(--text-h4); }
   background-size: cover;
   background-position: center 40%;
   background-repeat: no-repeat;
-  padding: 72px 24px 145px;
+  padding: 120px 24px 200px;
   text-align: center;
   position: relative;
 }
@@ -2022,21 +2022,20 @@ h4 { font-size: var(--text-h4); }
 .pg-hero__category {
   display: inline-block;
   font-family: var(--font-sans);
-  font-size: var(--text-xxs);
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.55);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rim-text);
   text-decoration: none;
-  background: none;
+  background: #f4eeeb;
   border: none;
-  padding: 0;
-  margin-bottom: 14px;
-  transition: color 0.15s;
+  padding: 10px 15px 9px;
+  border-radius: 24px;
+  margin-bottom: 15px;
+  transition: background-color 0.15s;
 }
 
 .pg-hero__category:hover {
-  color: rgba(255, 255, 255, 0.85);
+  background: #ece3de;
 }
 
 .pg-hero__title {
@@ -2051,12 +2050,11 @@ h4 { font-size: var(--text-h4); }
 
 .pg-hero__tagline {
   font-family: var(--font-sans);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.75);
-  margin: 0;
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.9);
+  margin: -8px 0 0;
 }
 
 /* ── Pull quote card ──
@@ -2067,7 +2065,7 @@ h4 { font-size: var(--text-h4); }
   background: #fff;
   border-radius: 9px;
   padding: 35px 30px 30px;
-  margin: -65px auto 45px;
+  margin: -160px auto 45px;
   max-width: 700px;
   text-align: center;
   position: relative;
@@ -2098,9 +2096,24 @@ h4 { font-size: var(--text-h4); }
 /* ── Special Notes callout ──
    Warm card treatment — visually set apart from the main description. */
 
-/* .pg-notes removed in session 91 — special notes are now an Aside
-   block inside the description. The Aside's styling lives in the
-   .rim-el-note--aside rules below. */
+/* ── Program notes — tan card ──
+   Reintroduced to match Webflow's "Additional Program Noted" block.
+   Visually set apart from the description for supplementary context. */
+
+.pg-notes {
+  background: #f4eeeb;
+  border-radius: 10px;
+  padding: 30px 30px 25px;
+  margin: 5px 0 15px;
+}
+
+.pg-notes__heading {
+  font-family: var(--font-serif);
+  font-size: var(--text-h4);
+  font-weight: 500;
+  color: var(--rim-text);
+  margin: 0 0 10px;
+}
 
 /* ── Details section ──
    Heading + icon rows with dividers, matching old Webflow structure. */
