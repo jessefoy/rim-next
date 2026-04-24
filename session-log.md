@@ -33,6 +33,23 @@ A gap was discovered between sessions: Jesse rebuilt the Program Detail page in 
 - Pick the auth-aware CTA approach before the next Program Detail session.
 - Once the CTA works across auth states, delete `app/programs/[slug]/page.tsx` — the formal cutover for that surface.
 
+### Part two — Programs listing audit + folder-slug fix + cache debugging
+
+After the Program Detail audit wrapped, Jesse moved on to the Webflow Programs listing page and a few details emerged that are worth capturing:
+
+- **Navigator renames are manual.** Jesse asked whether the Webflow MCP could rename Navigator labels (e.g. "Section" → "Programs Hero") as we'd done in a prior session. It cannot. None of `element_tool`, `style_tool`, or `element_builder` expose Navigator-label renaming — that's an internal Designer property you set by double-clicking. I proposed a rename list for him to apply manually. Add to the permanent reminders so we don't promise it again.
+- **"Learn More" 404 root cause: folder slug.** The listing's Learn More link pointed to `/rim-next/program-detail?slug=...` but the live page was publishing at `/untitled/program-detail` — the folder slug was still "untitled" from Webflow's default. Jesse renamed the folder slug to `rim-next`. After a republish the detail page publishes at `/rim-next/program-detail` and the links resolve.
+- **Browser cache on 404 responses is aggressively sticky.** After the republish, `curl` confirmed `HTTP 200` server-side, but Jesse's regular browser kept showing "Page not found" even after multiple hard refreshes. Incognito loaded immediately. Cause: Cloudflare + disk cache of the stale 404 response, keyed to the URL. Hard refresh only re-requests the current page's resources — it doesn't evict the cached 404 for a sibling URL. The fix is DevTools → Application → Clear site data, or working with DevTools open and "Disable cache" checked. Important: this is **not** related to the session-94 perf work. `rim-connect.js` caches API JSON at Vercel's edge and fades in the page body — it doesn't cache HTML or register a service worker.
+- **Naming lint on the listing page.** The Programs listing page slug is `Programs` with a capital P → it publishes to `/rim-next/Programs`. Most URL setups are case-sensitive. Not broken today, but worth lowercasing before it bites.
+
+### What comes next for the weekly view (next session)
+
+Jesse will design the weekly schedule page in Webflow. Prep work on the Next.js side:
+
+1. Build `/api/public/programs/weekly` — returns next-7-days (or `?week=next`) grouped by weekday. Reuse `lib/scheduleUtils.ts::isOccurrenceOnDate()`. Copy cache headers from the existing programs endpoints.
+2. Decide whether to ship via the existing `data-rim-group-list` primitive (already in `rim-connect.js` v3) or a new `data-rim-weekly-list` primitive. Default to grouped-list.
+3. Jesse duplicates the Programs listing page in Webflow as `weekly-schedule`, points the grouped-list at the new endpoint, restyles.
+
 ---
 
 ## 2026-04-24 (session 94) — Webflow architecture committed + rim-connect v3 performance work
