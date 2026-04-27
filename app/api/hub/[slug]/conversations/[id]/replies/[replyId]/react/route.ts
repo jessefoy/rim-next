@@ -4,7 +4,44 @@ import { getHubMembership } from "@/lib/hubAuth";
 
 const ALLOWED_EMOJIS = ["👍", "❤️", "🙏", "💡", "😊"];
 
-/** POST /api/hub/[slug]/conversations/[id]/replies/[replyId]/react — add emoji reaction */
+/**
+ * Reactions are stored as JSON on HubConversationReply.reactions.
+ *
+ * Shape (current): { "🙏": ["userId1", "userId2"], "❤️": ["userId3"] }
+ * Shape (legacy):  { "🙏": 3, "❤️": 1 }   ← old count-only format
+ *
+ * The legacy shape was the original implementation: it counted clicks but
+ * didn't track WHO reacted, so toggling and per-user state were impossible
+ * (and the same person could react infinitely). Anywhere we read reactions,
+ * we normalize: a numeric value becomes [] (the count is preserved, but no
+ * user can "own" a legacy reaction — they're treated as anonymous, kept for
+ * historical totals only and surfaced via a normalize helper on the client).
+ */
+type LegacyReactions = Record<string, number | string[]>;
+
+function readReactions(value: unknown): Record<string, string[]> {
+  if (!value || typeof value !== "object") return {};
+  const raw = value as LegacyReactions;
+  const out: Record<string, string[]> = {};
+  for (const [emoji, val] of Object.entries(raw)) {
+    if (Array.isArray(val)) {
+      out[emoji] = val.filter((v): v is string => typeof v === "string");
+    } else if (typeof val === "number" && val > 0) {
+      // Legacy: discard the count (no user info to migrate). Reactions in
+      // the new format start fresh; the lost counts are a one-time cost.
+      out[emoji] = [];
+    }
+  }
+  return out;
+}
+
+/**
+ * POST /api/hub/[slug]/conversations/[id]/replies/[replyId]/react
+ *
+ * Toggles the requesting user's reaction with the given emoji on the reply.
+ * If they're already reacting with that emoji, the reaction is removed.
+ * Otherwise it's added. One reaction per user per emoji per reply.
+ */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ slug: string; id: string; replyId: string }> }
@@ -32,13 +69,28 @@ export async function POST(
     return Response.json({ error: "Not found" }, { status: 404 });
   }
 
-  const current = (reply.reactions as Record<string, number>) ?? {};
-  const updated = { ...current, [emoji]: (current[emoji] ?? 0) + 1 };
+  const reactions = readReactions(reply.reactions);
+  const current = reactions[emoji] ?? [];
+  const userId = session.user.id;
+  const hasReacted = current.includes(userId);
+
+  if (hasReacted) {
+    // Toggle off
+    const next = current.filter((id) => id !== userId);
+    if (next.length === 0) {
+      delete reactions[emoji];
+    } else {
+      reactions[emoji] = next;
+    }
+  } else {
+    // Toggle on
+    reactions[emoji] = [...current, userId];
+  }
 
   await db.hubConversationReply.update({
     where: { id: replyId },
-    data: { reactions: updated },
+    data: { reactions },
   });
 
-  return Response.json({ reactions: updated });
+  return Response.json({ reactions });
 }

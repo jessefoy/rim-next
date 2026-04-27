@@ -1135,6 +1135,66 @@ Rooted In Mindfulness · Brookfield, WI`,
     },
   },
   {
+    // Session 96 — Sangha-friendly conversation categories for the host-team
+    // hub. Replaces the schema default ["General"] with a set that fits the
+    // kinds of conversation a hosting community has: questions, practice
+    // insights from sessions, difficulties (asking for support), tips, and
+    // coordinator announcements.
+    //
+    // Only updates if the hub currently has the exact default ["General"] —
+    // preserves any customization a coordinator has already made.
+    //
+    // Other hubs keep their own categories. This is hub-specific seeding;
+    // the conversations feature itself is hub-agnostic.
+    name: "seed_host_team_conversation_categories",
+    async run() {
+      const flag = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags"
+        WHERE name = 'seed_host_team_conversation_categories_v1'
+      `).catch(() => []);
+      if (flag.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      const hub = await db.hub.findUnique({
+        where: { slug: "host-team" },
+        select: { id: true, conversationCategories: true },
+      });
+      if (!hub) {
+        console.log(`  ⏭ host-team hub not found — skipping`);
+      } else {
+        const current = hub.conversationCategories ?? [];
+        const isDefault = current.length === 1 && current[0] === "General";
+        if (isDefault) {
+          await db.hub.update({
+            where: { id: hub.id },
+            data: {
+              conversationCategories: [
+                "Question",
+                "Practice insight",
+                "Difficulty",
+                "Tip",
+                "Announcement",
+              ],
+            },
+          });
+          console.log(`  ✔ Updated host-team conversation categories`);
+        } else {
+          console.log(`  ⏭ host-team hub already has custom categories — preserving`);
+        }
+      }
+
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
+      `).catch(() => {});
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('seed_host_team_conversation_categories_v1')
+      `);
+      console.log(`  ✔ Applied: ${this.name}`);
+    },
+  },
+  {
     // Session 96 — Schedule tool rebuild: sub-request emails carry a
     // {{coverUrl}} deep link that opens the schedule page with the cover
     // confirmation modal pre-opened. The DB-stored email template needs

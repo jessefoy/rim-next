@@ -33,7 +33,8 @@ interface Reply {
   author: PersonName;
   edited: boolean;
   editedAt: string | null;
-  reactions: Record<string, number>;
+  /** Map of emoji → list of user IDs who've reacted with it. */
+  reactions: Record<string, string[]>;
   createdAt: string;
 }
 
@@ -406,7 +407,9 @@ export default function HubConvThreadClient({
           {thread.replies.map((r) => {
             const isAuthor = r.authorId === currentUserId;
             const isEditing = editingId === r.id;
-            const reactions = Object.entries(r.reactions).filter(([, n]) => n > 0);
+            // Reactions render with: emoji, count (number of users), and a
+            // visual cue if the viewer is among the reactors. Click toggles.
+            const reactions = Object.entries(r.reactions).filter(([, users]) => users.length > 0);
             const replyInits = initialsOf(r.author);
             return (
               <article key={r.id} className="hub-conv-post">
@@ -464,17 +467,25 @@ export default function HubConvThreadClient({
                       <div className="hub-conv-post__footer">
                         {reactions.length > 0 && (
                           <div className="hub-conv-post__reactions">
-                            {reactions.map(([emoji, count]) => (
-                              <button
-                                key={emoji}
-                                className="hub-conv-reaction"
-                                onClick={() => react(r.id, emoji)}
-                                aria-label={`React with ${emoji}`}
-                              >
-                                <span>{emoji}</span>
-                                <span className="hub-conv-reaction__count">{count}</span>
-                              </button>
-                            ))}
+                            {reactions.map(([emoji, users]) => {
+                              const youReacted = users.includes(currentUserId);
+                              return (
+                                <button
+                                  key={emoji}
+                                  className={`hub-conv-reaction${youReacted ? " hub-conv-reaction--mine" : ""}`}
+                                  onClick={() => react(r.id, emoji)}
+                                  aria-pressed={youReacted}
+                                  aria-label={
+                                    youReacted
+                                      ? `Remove your ${emoji} reaction`
+                                      : `Add ${emoji} reaction`
+                                  }
+                                >
+                                  <span>{emoji}</span>
+                                  <span className="hub-conv-reaction__count">{users.length}</span>
+                                </button>
+                              );
+                            })}
                           </div>
                         )}
                         <div className="hub-conv-post__react-wrap">

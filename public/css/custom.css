@@ -13220,6 +13220,20 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   border-color: var(--rim-blue);
   background: #f0f7fa;
 }
+/* "Mine" — the viewer is one of the reactors. Visually distinct so it's
+   immediately clear what you've already acknowledged. Tap toggles off. */
+.hub-conv-reaction--mine {
+  background: rgba(19, 82, 116, 0.12);
+  border-color: var(--rim-blue);
+  color: var(--rim-blue);
+  font-weight: 600;
+}
+.hub-conv-reaction--mine:hover {
+  background: rgba(19, 82, 116, 0.18);
+}
+.hub-conv-reaction--mine .hub-conv-reaction__count {
+  color: var(--rim-blue);
+}
 .hub-conv-reaction__count {
   font-size: var(--text-xxs);
   color: var(--rim-text-muted);

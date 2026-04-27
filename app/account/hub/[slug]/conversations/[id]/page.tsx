@@ -11,6 +11,30 @@ import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Reactions on HubConversationReply.reactions can be in two shapes:
+ *   - New (per-user):  { "🙏": ["userId1", "userId2"], "❤️": ["userId3"] }
+ *   - Legacy (count):  { "🙏": 3, "❤️": 1 }
+ *
+ * The legacy shape predates per-user tracking. We normalize to the new
+ * shape on read so the client always gets a Record<emoji, userId[]>. Legacy
+ * counts can't be migrated (no user info to assign), so they become empty
+ * arrays — the lost counts are a one-time cost paid by the legacy shape.
+ */
+function normalizeReactions(value: unknown): Record<string, string[]> {
+  if (!value || typeof value !== "object") return {};
+  const raw = value as Record<string, unknown>;
+  const out: Record<string, string[]> = {};
+  for (const [emoji, val] of Object.entries(raw)) {
+    if (Array.isArray(val)) {
+      out[emoji] = val.filter((v): v is string => typeof v === "string");
+    } else if (typeof val === "number" && val > 0) {
+      out[emoji] = [];
+    }
+  }
+  return out;
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -81,7 +105,10 @@ export default async function HubConvThreadPage({
       },
       edited:    r.edited,
       editedAt:  r.editedAt?.toISOString() ?? null,
-      reactions: (r.reactions as Record<string, number>) ?? {},
+      // Reactions: normalize legacy count shape ({emoji: 3}) to user-array
+      // shape ({emoji: ["uid1", "uid2", ...]}). Legacy counts are dropped —
+      // they had no user info, so toggle behavior couldn't honor them.
+      reactions: normalizeReactions(r.reactions),
       createdAt: r.createdAt.toISOString(),
     }))),
     createdAt: thread.createdAt.toISOString(),
