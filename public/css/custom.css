@@ -15061,6 +15061,50 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   margin: 0;
 }
 
+/* Past sessions — collapsible, muted, no actions */
+.hs-past {
+  border-top: 1px solid var(--rim-rule);
+  padding-top: 14px;
+  margin-top: 8px;
+}
+.hs-past__summary {
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--rim-text-muted);
+  list-style: none;
+  padding: 6px 0;
+  user-select: none;
+}
+.hs-past__summary::-webkit-details-marker { display: none; }
+.hs-past__summary::before {
+  content: "▶";
+  display: inline-block;
+  margin-right: 8px;
+  font-size: 9px;
+  color: var(--rim-text-muted);
+  transition: transform 0.12s;
+}
+.hs-past[open] > .hs-past__summary::before { transform: rotate(90deg); }
+.hs-past__summary:hover { color: var(--rim-text); }
+.hs-past__content {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Past row — muted; no left-border accent regardless of state */
+.hs-row--past {
+  background: #fafaf9;
+  border-left-color: transparent !important;
+  opacity: 0.85;
+}
+.hs-row--past .hs-row__date,
+.hs-row--past .hs-row__name { color: var(--rim-mid); }
+.hs-row--past .hs-row__status--needs,
+.hs-row--past .hs-row__status--asking { color: var(--rim-text-muted); font-weight: 500; }
+
 /* Modal — explicit, calm confirmation */
 .hs-modal-backdrop {
   position: fixed;

@@ -278,6 +278,7 @@ function HsModal({ kind, session, onConfirm, onCancel, submitting }: ModalProps)
 interface RowProps {
   session: Session;
   kind: RowKind;
+  isPast: boolean;
   onTake: (s: Session) => void;
   onCover: (s: Session) => void;
   onAskCover: (s: Session) => void;
@@ -287,7 +288,7 @@ interface RowProps {
 }
 
 function HsRow({
-  session, kind,
+  session, kind, isPast,
   onTake, onCover, onAskCover, onCancelRequest, onReassign,
   isHostManager,
 }: RowProps) {
@@ -295,48 +296,60 @@ function HsRow({
   const timeStr = fmtTime(session.sessionDate);
   const fmt = fmtFormat(session.programFormat);
 
-  const showManagerReassign = isHostManager &&
-    (kind === "needs-host" || kind === "needs-sub" || kind === "covered");
+  // Reassign is only useful when no other action is offered (covered rows).
+  // On needs-host / needs-sub / mine, the existing action accomplishes the
+  // same thing for a manager.
+  const showManagerReassign = isHostManager && kind === "covered" && !isPast;
 
   let statusEl: React.ReactNode = null;
   let actionEl: React.ReactNode = null;
 
   switch (kind) {
     case "needs-host":
-      statusEl = <span className="hs-row__status hs-row__status--needs">Needs a host</span>;
-      actionEl = (
-        <button className="lr-btn lr-btn--host" onClick={() => onTake(session)}>
-          Yes, I can host
-        </button>
-      );
+      statusEl = <span className="hs-row__status hs-row__status--needs">{isPast ? "No host (missed)" : "Needs a host"}</span>;
+      if (!isPast) {
+        actionEl = (
+          <button className="lr-btn lr-btn--host" onClick={() => onTake(session)}>
+            Yes, I can host
+          </button>
+        );
+      }
       break;
     case "needs-sub":
       statusEl = (
         <span className="hs-row__status hs-row__status--needs">
-          {session.hostName ? `${session.hostName} needs help` : "Needs a sub"}
+          {isPast
+            ? "Sub never claimed"
+            : (session.hostName ? `${session.hostName} needs help` : "Needs a sub")}
         </span>
       );
-      actionEl = (
-        <button className="lr-btn lr-btn--host" onClick={() => onCover(session)}>
-          Yes, I can cover
-        </button>
-      );
+      if (!isPast) {
+        actionEl = (
+          <button className="lr-btn lr-btn--host" onClick={() => onCover(session)}>
+            Yes, I can cover
+          </button>
+        );
+      }
       break;
     case "mine":
       statusEl = <span className="hs-row__status hs-row__status--mine">You're hosting</span>;
-      actionEl = (
-        <button className="hs-row__quiet" onClick={() => onAskCover(session)}>
-          Ask the team to cover
-        </button>
-      );
+      if (!isPast) {
+        actionEl = (
+          <button className="hs-row__quiet" onClick={() => onAskCover(session)}>
+            Ask the team to cover
+          </button>
+        );
+      }
       break;
     case "mine-asking":
       statusEl = <span className="hs-row__status hs-row__status--asking">You asked for cover</span>;
-      actionEl = (
-        <button className="hs-row__quiet" onClick={() => onCancelRequest(session)}>
-          Cancel my request
-        </button>
-      );
+      if (!isPast) {
+        actionEl = (
+          <button className="hs-row__quiet" onClick={() => onCancelRequest(session)}>
+            Cancel my request
+          </button>
+        );
+      }
       break;
     case "covered":
       statusEl = (
@@ -348,7 +361,7 @@ function HsRow({
   }
 
   return (
-    <div className={`hs-row hs-row--${kind}`}>
+    <div className={`hs-row hs-row--${kind}${isPast ? " hs-row--past" : ""}`}>
       <div className="hs-row__when">
         <div className="hs-row__date">{dateShort}</div>
         <div className="hs-row__time">{timeStr}</div>
@@ -624,54 +637,68 @@ export default function HubScheduleClient({
   const isCurrentMonth = year === today.getFullYear() && month === today.getMonth();
   const todayMs = useMemo(() => getTodayStart().getTime(), []);
 
-  // Filter past sessions when viewing the current month
-  const upcoming = useMemo(() => {
-    if (!isCurrentMonth) return sessions;
-    return sessions.filter(s => {
-      if (!s.sessionDate) return true;
-      return new Date(s.sessionDate).getTime() >= todayMs;
-    });
-  }, [sessions, isCurrentMonth, todayMs]);
+  const isPast = useCallback((s: Session) => {
+    if (!s.sessionDate) return false;
+    return new Date(s.sessionDate).getTime() < todayMs;
+  }, [todayMs]);
 
-  // Counts for filter pills (against the upcoming dataset, not the current filter)
+  // Counts: "needs" excludes past (those gaps can't be filled anymore).
+  // "All" / "mine" / "my-requests" reflect the full month including past
+  // — that's the dataset the user is looking at.
   const counts = useMemo(() => {
-    let needs = 0, mine = 0, myReq = 0;
-    for (const s of upcoming) {
+    let all = 0, needs = 0, mine = 0, myReq = 0;
+    for (const s of sessions) {
+      all++;
       const isMine = s.hostUserId === currentUserId;
       if (isMine) {
         mine++;
         if (s.subRequestId) myReq++;
       } else if (s.status !== "claimed" || s.subRequestId) {
-        needs++;
+        if (!isPast(s)) needs++;
       }
     }
-    return { all: upcoming.length, needs, mine, myReq };
-  }, [upcoming, currentUserId]);
+    return { all, needs, mine, myReq };
+  }, [sessions, currentUserId, isPast]);
 
-  // Apply active filter
+  // Apply active filter. "Needs help" excludes past.
   const filteredSessions = useMemo(() => {
-    if (filter === "all") return upcoming;
+    if (filter === "all") return sessions;
     if (filter === "needs") {
-      return upcoming.filter(s =>
-        s.hostUserId !== currentUserId && (s.status !== "claimed" || s.subRequestId)
+      return sessions.filter(s =>
+        s.hostUserId !== currentUserId &&
+        (s.status !== "claimed" || s.subRequestId) &&
+        !isPast(s)
       );
     }
     if (filter === "mine") {
-      return upcoming.filter(s => s.hostUserId === currentUserId);
+      return sessions.filter(s => s.hostUserId === currentUserId);
     }
     if (filter === "my-requests") {
-      return upcoming.filter(s => s.hostUserId === currentUserId && s.subRequestId);
+      return sessions.filter(s => s.hostUserId === currentUserId && s.subRequestId);
     }
-    return upcoming;
-  }, [upcoming, filter, currentUserId]);
+    return sessions;
+  }, [sessions, filter, currentUserId, isPast]);
 
-  const buckets = useMemo(() => bucketByWeek(filteredSessions), [filteredSessions]);
+  // When viewing the current month, split past from upcoming.
+  // Past goes into a collapsible "Earlier this month" section at the bottom.
+  // For other months, all sessions render in-flow.
+  const upcomingSessions = useMemo(() =>
+    isCurrentMonth ? filteredSessions.filter(s => !isPast(s)) : filteredSessions,
+    [filteredSessions, isCurrentMonth, isPast],
+  );
+  const pastSessions = useMemo(() =>
+    isCurrentMonth ? filteredSessions.filter(isPast) : [],
+    [filteredSessions, isCurrentMonth, isPast],
+  );
+
+  const upcomingBuckets = useMemo(() => bucketByWeek(upcomingSessions), [upcomingSessions]);
+  const pastBuckets = useMemo(() => bucketByWeek(pastSessions), [pastSessions]);
 
   const monthLabel = `${MONTHS[month]} ${year}`;
 
   const emptyMsg = (() => {
     if (filteredSessions.length > 0) return null;
-    if (filter === "all") return `No sessions ${isCurrentMonth ? "left this month" : `in ${MONTHS[month]}`}.`;
+    if (filter === "all") return `No sessions in ${MONTHS[month]}.`;
     if (filter === "needs") return "Everything is covered. Thank you, team.";
     if (filter === "mine") return "You're not hosting anything here.";
     if (filter === "my-requests") return "You haven't asked the team to cover any sessions.";
@@ -745,26 +772,71 @@ export default function HubScheduleClient({
           <p className="hs-allset__heading">{emptyMsg}</p>
         </div>
       ) : (
-        buckets.map(b => (
-          <section key={b.weekStartMs} className="hs-week">
-            <header className="hs-week__header">
-              <h2 className="hs-week__label">{b.label}</h2>
-              <span className="hs-week__count">
-                {b.sessions.length} {b.sessions.length === 1 ? "session" : "sessions"}
-              </span>
-            </header>
-            <div className="hs-week__list">
-              {b.sessions.map(s => (
-                <HsRow
-                  key={s.id}
-                  session={s}
-                  kind={rowKind(s, currentUserId)}
-                  {...rowHandlers}
-                />
-              ))}
+        <>
+          {upcomingBuckets.map(b => (
+            <section key={b.weekStartMs} className="hs-week">
+              <header className="hs-week__header">
+                <h2 className="hs-week__label">{b.label}</h2>
+                <span className="hs-week__count">
+                  {b.sessions.length} {b.sessions.length === 1 ? "session" : "sessions"}
+                </span>
+              </header>
+              <div className="hs-week__list">
+                {b.sessions.map(s => (
+                  <HsRow
+                    key={s.id}
+                    session={s}
+                    kind={rowKind(s, currentUserId)}
+                    isPast={false}
+                    {...rowHandlers}
+                  />
+                ))}
+              </div>
+            </section>
+          ))}
+
+          {/* Earlier this month — collapsed by default for current-month views */}
+          {pastBuckets.length > 0 && (
+            <details className="hs-past">
+              <summary className="hs-past__summary">
+                Earlier this month — {pastSessions.length}{" "}
+                {pastSessions.length === 1 ? "session" : "sessions"}
+              </summary>
+              <div className="hs-past__content">
+                {pastBuckets.map(b => (
+                  <section key={b.weekStartMs} className="hs-week">
+                    <header className="hs-week__header">
+                      <h2 className="hs-week__label">{b.label}</h2>
+                      <span className="hs-week__count">
+                        {b.sessions.length} {b.sessions.length === 1 ? "session" : "sessions"}
+                      </span>
+                    </header>
+                    <div className="hs-week__list">
+                      {b.sessions.map(s => (
+                        <HsRow
+                          key={s.id}
+                          session={s}
+                          kind={rowKind(s, currentUserId)}
+                          isPast
+                          {...rowHandlers}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            </details>
+          )}
+
+          {/* If only past content exists in current month, show a hint */}
+          {upcomingBuckets.length === 0 && pastBuckets.length > 0 && isCurrentMonth && (
+            <div className="hs-allset">
+              <p className="hs-allset__heading">
+                Nothing left this month. The next sessions are in {MONTHS[(month + 1) % 12]}.
+              </p>
             </div>
-          </section>
-        ))
+          )}
+        </>
       )}
 
       <HsModal
