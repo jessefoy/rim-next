@@ -11,6 +11,7 @@ import { seedManualProgramManager } from "./seed-manual-program-manager.mjs";
 import { seedManualHostHubTeamManagement } from "./seed-manual-host-hub-team-management.mjs";
 import { seedManualHostSchedule } from "./seed-manual-host-schedule.mjs";
 import { seedHostHubHomeContent } from "./seed-host-hub-home-content.mjs";
+import { seedHostHubOnboardingDocs } from "./seed-host-hub-onboarding-docs.mjs";
 
 const db = new PrismaClient();
 
@@ -1202,6 +1203,21 @@ async function main() {
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_manual_host_schedule_v1')`);
   } else {
     console.log("  ⏭ Host Schedule manual already seeded.");
+  }
+
+  // Host Hub onboarding documents (Your First Time Hosting, etc.) — native
+  // HubDocuments scoped to the host-team hub. The seed is idempotent at the
+  // record level (upserts by hub + label) so re-running just updates the
+  // body content. The migration flag prevents re-running unless we want to.
+  const hostOnboardingDocsFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'seed_host_hub_onboarding_docs_v1'
+  `).catch(() => []);
+
+  if (hostOnboardingDocsFlag.length === 0) {
+    await seedHostHubOnboardingDocs(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_host_hub_onboarding_docs_v1')`);
+  } else {
+    console.log("  ⏭ Host Hub onboarding docs already seeded.");
   }
 
   await db.$disconnect();
