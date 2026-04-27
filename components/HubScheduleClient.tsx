@@ -113,11 +113,16 @@ function getWeekStart(date: Date): Date {
   ct.setHours(0, 0, 0, 0);
   return ct;
 }
-function getWeekLabel(weekStart: Date, todayWeekStart: Date): string {
-  const diffDays = Math.round((weekStart.getTime() - todayWeekStart.getTime()) / 86400000);
-  if (diffDays === 0) return "This week";
-  if (diffDays === 7) return "Next week";
-  if (diffDays === -7) return "Last week";
+function getWeekLabel(weekStart: Date, todayWeekStart: Date, isCurrentMonth: boolean): string {
+  // Relative labels only when the user is in their "now" frame (current month).
+  // For any other month, use absolute date labels — relative labels are
+  // misleading once you've navigated away from today.
+  if (isCurrentMonth) {
+    const diffDays = Math.round((weekStart.getTime() - todayWeekStart.getTime()) / 86400000);
+    if (diffDays === 0) return "This week";
+    if (diffDays === 7) return "Next week";
+    if (diffDays === -7) return "Last week";
+  }
   return `Week of ${weekStart.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
 }
 
@@ -136,7 +141,7 @@ interface Bucket {
   sessions: Session[];
 }
 
-function bucketByWeek(sessions: Session[]): Bucket[] {
+function bucketByWeek(sessions: Session[], isCurrentMonth: boolean): Bucket[] {
   const todayWS = getWeekStart(new Date());
   const map = new Map<number, Session[]>();
   for (const s of sessions) {
@@ -154,7 +159,7 @@ function bucketByWeek(sessions: Session[]): Bucket[] {
     .sort((a, b) => a[0] - b[0])
     .map(([ws, list]) => ({
       weekStartMs: ws,
-      label: getWeekLabel(new Date(ws), todayWS),
+      label: getWeekLabel(new Date(ws), todayWS, isCurrentMonth),
       sessions: list.slice().sort(sortByDate),
     }));
 }
@@ -718,8 +723,8 @@ export default function HubScheduleClient({
     [filteredSessions, isCurrentMonth, isPast],
   );
 
-  const upcomingBuckets = useMemo(() => bucketByWeek(upcomingSessions), [upcomingSessions]);
-  const pastBuckets = useMemo(() => bucketByWeek(pastSessions), [pastSessions]);
+  const upcomingBuckets = useMemo(() => bucketByWeek(upcomingSessions, isCurrentMonth), [upcomingSessions, isCurrentMonth]);
+  const pastBuckets = useMemo(() => bucketByWeek(pastSessions, isCurrentMonth), [pastSessions, isCurrentMonth]);
 
   const monthLabel = `${MONTHS[month]} ${year}`;
 
