@@ -42,6 +42,7 @@
 
   var ENDPOINTS = {
     programs: BASE_URL + "/api/public/programs",
+    "programs-weekly": BASE_URL + "/api/public/programs/weekly",
   };
 
   // ── Early fetch ──────────────────────────────────────────────────────────────
