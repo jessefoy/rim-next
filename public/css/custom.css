@@ -14816,6 +14816,103 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   .hub-lv__detail .hub-detail__cols { gap: 20px; }
 }
 
+/* ═══════════════════════════════════════════════════
+   HOST SCHEDULE — Session List  (hs- prefix)
+   Adopts lr-row + pl-cat visual language.
+   Day groups use pl-cat + pl-cat__heading.
+   Session cards extend lr-row with hs-row modifiers.
+═══════════════════════════════════════════════════ */
+
+.hs-group { margin-bottom: 32px; }
+.hs-group:last-child { margin-bottom: 0; }
+.hs-group .pl-cat__heading { font-size: var(--text-h3); margin-bottom: 12px; }
+
+.hs-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: border-color 0.15s;
+}
+.hs-row__main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px 24px;
+}
+
+.hs-row--needs-host { border-color: #ecd9a6; border-left-color: #d9840f; }
+.hs-row--needs-host:hover { border-color: #d9840f; }
+.hs-row--needs-sub  { border-color: #f0c8b8; border-left-color: #c44a20; }
+.hs-row--needs-sub:hover  { border-color: #c44a20; }
+.hs-row--mine       { border-color: #c9d8e0; border-left-color: var(--rim-blue); }
+.hs-row--mine:hover { border-color: var(--rim-blue); }
+.hs-row--mine-sub   { border-color: #f0c8b8; border-left-color: var(--rim-blue); }
+.hs-row--mine-sub:hover { border-color: #c44a20; }
+.hs-row--expanded { border-color: var(--rim-blue) !important; border-left-color: var(--rim-blue) !important; }
+
+.hs-detail {
+  padding: 0 24px 20px;
+  border-top: 1px solid #f0eeec;
+  background: #fdfcfb;
+  border-radius: 0 0 6px 6px;
+}
+
+.hs-status--needs-host { color: #7a4a08; font-weight: 600; }
+.hs-status--needs-sub  { color: #7a2e10; font-weight: 600; }
+.hs-status--mine       { color: var(--rim-blue); font-weight: 600; }
+
+.lr-btn--host { background: #d9840f; }
+.lr-btn--host:hover { background: #b56b05; opacity: 1; color: #fff; }
+.lr-btn--sub { background: #c44a20; }
+.lr-btn--sub:hover { background: #a13c18; opacity: 1; color: #fff; }
+.lr-btn--confirming {
+  position: relative;
+  overflow: hidden;
+  animation: hub-lv-confirm-pulse 1.2s ease-in-out infinite;
+}
+.lr-btn--confirming::after {
+  content: "";
+  position: absolute;
+  left: 0; top: 0;
+  height: 4px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.9);
+  transform-origin: left center;
+  animation: hub-lv-confirm-countdown 4s linear forwards;
+  pointer-events: none;
+}
+
+.hs-confirm {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  min-width: 0;
+}
+.hs-cancel-btn {
+  background: none;
+  border: none;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--rim-mid);
+  cursor: pointer;
+  padding: 0 2px;
+  text-align: center;
+  text-decoration: underline;
+}
+.hs-cancel-btn:hover { color: var(--rim-text); }
+
+@media (max-width: 480px) {
+  .hs-row__main { flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px 18px; }
+  .hs-row .lr-action { width: 100%; }
+  .hs-row .lr-btn { width: 100%; text-align: center; }
+  .hs-detail { padding: 0 18px 16px; }
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    MOBILE — Host Schedule + shared hub chrome at <768px
    - 44px touch-target minimum on every interactive control (per design rule

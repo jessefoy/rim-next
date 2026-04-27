@@ -933,7 +933,7 @@ export default function HubScheduleClient({
 
       {/* ── Session list ── */}
       {!loading && (
-        <div className="hub-lv">
+        <div className="hs-list">
           {listSessions.length === 0 ? (
             <p className="hub-empty">
               {selectedDay !== null
@@ -945,16 +945,16 @@ export default function HubScheduleClient({
                 : "No sessions this month."}
             </p>
           ) : (
-            <div className="hub-lv__list">
-              {groupedList.map(([dateKey, daySessions]) => {
-                const showGroupHeader = selectedDay === null && dateKey !== "unscheduled";
-                return (
-                  <div key={dateKey} className="hub-lv__group" data-date={dateKey}>
-                    {showGroupHeader && daySessions[0].sessionDate && (
-                      <div className="hub-lv__group-header">
-                        {fmtDayHeader(daySessions[0].sessionDate)}
-                      </div>
-                    )}
+            groupedList.map(([dateKey, daySessions]) => {
+              const showGroupHeader = selectedDay === null && dateKey !== "unscheduled";
+              return (
+                <div key={dateKey} className="pl-cat hs-group" data-date={dateKey}>
+                  {showGroupHeader && daySessions[0].sessionDate && (
+                    <h2 className="pl-cat__heading">
+                      {fmtDayHeader(daySessions[0].sessionDate)}
+                    </h2>
+                  )}
+                  <div className="pl-list">
                     {daySessions.map((s) => {
                       const type = statusKey(s, currentUserId);
                       const isMineRow = type === "mine" || type === "mine-sub";
@@ -962,61 +962,53 @@ export default function HubScheduleClient({
                       return (
                         <div
                           key={s.id}
-                          className={`hub-lv__card hub-lv__card--${type}${isExpanded ? " hub-lv__card--expanded" : ""}`}
+                          className={`lr-row hs-row hs-row--${type}${isExpanded ? " hs-row--expanded" : ""}`}
                         >
                           <div
-                            className="hub-lv__card-main"
+                            className="hs-row__main"
                             onClick={() => {
                               clearCardConfirm();
                               setSelected(isExpanded ? null : s);
                             }}
                           >
-                            <div className="hub-lv__left">
-                              <div className="hub-lv__title">
+                            <div className="lr-info">
+                              <p className="lr-name">
                                 {s.programName}
                                 {type === "mine-sub" && (
                                   <span className="hub-lv__chip hub-lv__chip--sub">Sub requested</span>
                                 )}
-                              </div>
-                              <div className="hub-lv__meta">
+                              </p>
+                              <p className="lr-schedule">
                                 {s.sessionDate && <>{fmtTimeOnly(s.sessionDate)}</>}
-                                {s.programFormat && (
-                                  <>
-                                    <span className="hub-lv__sep">·</span>
-                                    {formatLabel(s.programFormat)}
-                                  </>
-                                )}
-                                <span className="hub-lv__sep">·</span>
+                                {s.programFormat && <> · {formatLabel(s.programFormat)}</>}
+                                {" · "}
                                 {type === "needs-host" ? (
-                                  <span className="hub-lv__host hub-lv__host--needs-host">No host yet</span>
+                                  <span className="hs-status hs-status--needs-host">No host yet</span>
                                 ) : type === "needs-sub" ? (
-                                  <span className="hub-lv__host hub-lv__host--needs-sub">
+                                  <span className="hs-status hs-status--needs-sub">
                                     {s.hostName ? `${s.hostName} needs a sub` : "Needs a sub"}
                                   </span>
                                 ) : type === "mine-sub" ? (
-                                  <span className="hub-lv__host hub-lv__host--mine">Asking the team to cover</span>
+                                  <span className="hs-status hs-status--mine">Asking the team to cover</span>
                                 ) : isMineRow ? (
-                                  <span className="hub-lv__host hub-lv__host--mine">You're hosting</span>
+                                  <span className="hs-status hs-status--mine">You're hosting</span>
                                 ) : (
-                                  <span className="hub-lv__host">Hosted by {s.hostName ?? "—"}</span>
+                                  <>Hosted by {s.hostName ?? "—"}</>
                                 )}
-                              </div>
+                              </p>
                             </div>
-                            <div className="hub-lv__right">
-                              {/* Card-level primary is suppressed when the detail panel is
-                                  expanded, so only one primary action is ever on screen
-                                  at once. */}
+                            <div className="lr-action">
                               {!isExpanded && type === "needs-host" && (
                                 cardConfirm?.id === s.id && cardConfirm?.kind === "host" ? (
-                                  <div className="hub-lv__confirm">
+                                  <div className="hs-confirm">
                                     <button
-                                      className="hub-lv__action-btn hub-lv__action-btn--confirming"
+                                      className="lr-btn lr-btn--host lr-btn--confirming"
                                       onClick={(e) => { e.stopPropagation(); clearCardConfirm(); claimSession(s.id); }}
                                     >
                                       Tap to confirm
                                     </button>
                                     <button
-                                      className="hub-lv__confirm-cancel"
+                                      className="hs-cancel-btn"
                                       onClick={(e) => { e.stopPropagation(); clearCardConfirm(); }}
                                     >
                                       Cancel
@@ -1024,7 +1016,7 @@ export default function HubScheduleClient({
                                   </div>
                                 ) : (
                                   <button
-                                    className="hub-lv__action-btn hub-lv__action-btn--primary"
+                                    className="lr-btn lr-btn--host"
                                     onClick={(e) => { e.stopPropagation(); armCardConfirm(s.id, "host"); }}
                                   >
                                     I'll host
@@ -1033,15 +1025,15 @@ export default function HubScheduleClient({
                               )}
                               {!isExpanded && type === "needs-sub" && s.subRequestId && (
                                 cardConfirm?.id === s.id && cardConfirm?.kind === "sub" ? (
-                                  <div className="hub-lv__confirm">
+                                  <div className="hs-confirm">
                                     <button
-                                      className="hub-lv__action-btn hub-lv__action-btn--confirming-sub"
+                                      className="lr-btn lr-btn--sub lr-btn--confirming"
                                       onClick={(e) => { e.stopPropagation(); clearCardConfirm(); claimSub(s.id, s.subRequestId!); }}
                                     >
                                       Tap to confirm
                                     </button>
                                     <button
-                                      className="hub-lv__confirm-cancel"
+                                      className="hs-cancel-btn"
                                       onClick={(e) => { e.stopPropagation(); clearCardConfirm(); }}
                                     >
                                       Cancel
@@ -1049,7 +1041,7 @@ export default function HubScheduleClient({
                                   </div>
                                 ) : (
                                   <button
-                                    className="hub-lv__action-btn hub-lv__action-btn--sub"
+                                    className="lr-btn lr-btn--sub"
                                     onClick={(e) => { e.stopPropagation(); armCardConfirm(s.id, "sub"); }}
                                   >
                                     I can cover
@@ -1059,7 +1051,7 @@ export default function HubScheduleClient({
                             </div>
                           </div>
                           {isExpanded && (
-                            <div className="hub-lv__detail">
+                            <div className="hs-detail">
                               <SessionDetail
                                 session={s}
                                 currentUserId={currentUserId}
@@ -1079,9 +1071,9 @@ export default function HubScheduleClient({
                       );
                     })}
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })
           )}
         </div>
       )}
