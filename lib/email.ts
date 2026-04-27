@@ -405,125 +405,17 @@ export interface RoleAssignmentEmailData {
 
 /**
  * Sent to a member when they are granted the REGISTRAR role.
- * HARDCODED — not in Email Template Manager.
- *
- * Why hardcoded: predates the template system; otherwise a straightforward
- * migration candidate. Note: sendHostRoleAssignmentEmail (same data shape) IS
- * managed — this one was not migrated alongside it in session 36.
- *
- * Proposed slug (if migrated): registrar-role-assigned
- * Variables: firstName, dashboardUrl, manualUrl
- *
- * Tells them what the role means, where to go, and where to find help.
- * Fire-and-forget — errors are caught and logged.
+ * Managed via Email Template Manager — template: "registrar-role-assigned"
+ * Fire-and-forget — errors caught inside sendTemplatedEmail.
  */
 export async function sendRoleAssignmentEmail(data: RoleAssignmentEmailData): Promise<void> {
-  const { to, firstName } = data;
-  const dashboardUrl = `${BASE_URL}/volunteer`;
-  const manualUrl    = `${BASE_URL}/admin/manual`;
-
-  const { error } = await resend.emails.send({
-    from:    FROM,
-    to,
-    subject: "You've been added as a registrar — Rooted In Mindfulness",
-    html:    buildRoleAssignmentHtml({ firstName, dashboardUrl, manualUrl }),
-    text:    buildRoleAssignmentText({ firstName, dashboardUrl, manualUrl }),
+  await sendTemplatedEmail("registrar-role-assigned", data.to, {
+    firstName:    data.firstName,
+    dashboardUrl: `${BASE_URL}/volunteer`,
+    manualUrl:    `${BASE_URL}/admin/manual`,
   });
-  if (error) {
-    console.error("[email] Failed to send role assignment notification:", error);
-  }
 }
 
-function buildRoleAssignmentHtml({
-  firstName,
-  dashboardUrl,
-  manualUrl,
-}: {
-  firstName: string | null;
-  dashboardUrl: string;
-  manualUrl: string;
-}): string {
-  const greeting = firstName ? `Hi ${firstName},` : "Hello,";
-  return `<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>You're a registrar</title></head>
-<body style="margin:0;padding:0;background:#f5f5f5;font-family:'Open Sans',Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 16px;">
-    <tr><td align="center">
-      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:4px;overflow:hidden;">
-        <tr>
-          <td style="background:#135274;padding:28px 36px;">
-            <p style="margin:0;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:#c5d8e4;font-family:'Open Sans',Arial,sans-serif;">Rooted In Mindfulness</p>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:36px 36px 28px;">
-            <p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">${greeting}</p>
-            <p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">
-              You've been added as a <strong>registrar</strong> for Rooted In Mindfulness. This means you can now view and manage program registrations — approve and cancel spots, promote people from the waitlist, send reminders, and export attendee lists.
-            </p>
-            <p style="margin:0 0 28px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">
-              Two things to bookmark: your <strong>Registrations dashboard</strong> where you'll do your day-to-day work, and the <strong>Staff Manual</strong> — a plain-English guide to every part of the system. Start with the manual if anything is unclear.
-            </p>
-            <table cellpadding="0" cellspacing="0" style="margin-bottom:12px;">
-              <tr>
-                <td style="border-radius:3px;background:#135274;">
-                  <a href="${dashboardUrl}" style="display:inline-block;padding:12px 24px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;font-family:'Open Sans',Arial,sans-serif;">Go to Registrations &#8594;</a>
-                </td>
-              </tr>
-            </table>
-            <table cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
-              <tr>
-                <td style="border-radius:3px;border:1.5px solid #39607a;">
-                  <a href="${manualUrl}" style="display:inline-block;padding:11px 24px;font-size:15px;font-weight:600;color:#39607a;text-decoration:none;font-family:'Open Sans',Arial,sans-serif;">Read the Staff Manual &#8594;</a>
-                </td>
-              </tr>
-            </table>
-            <p style="margin:0;font-size:14px;line-height:1.75;color:#777;font-family:'Open Sans',Arial,sans-serif;">
-              If you have any questions, reply to this email or reach out directly. Welcome to the team.
-            </p>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:20px 36px;border-top:1px solid #eee;">
-            <p style="margin:0;font-size:12px;color:#9b8e85;font-family:'Open Sans',Arial,sans-serif;">Rooted In Mindfulness &middot; Brookfield, WI</p>
-          </td>
-        </tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
-}
-
-function buildRoleAssignmentText({
-  firstName,
-  dashboardUrl,
-  manualUrl,
-}: {
-  firstName: string | null;
-  dashboardUrl: string;
-  manualUrl: string;
-}): string {
-  const greeting = firstName ? `Hi ${firstName},` : "Hello,";
-  return [
-    greeting,
-    "",
-    "You've been added as a registrar for Rooted In Mindfulness.",
-    "",
-    "This means you can now view and manage program registrations — approve and cancel spots, promote people from the waitlist, send reminders, and export attendee lists.",
-    "",
-    "Two things to bookmark:",
-    `  Registrations dashboard: ${dashboardUrl}`,
-    `  Staff Manual (start here for guidance): ${manualUrl}`,
-    "",
-    "If you have any questions, reply to this email or reach out directly. Welcome to the team.",
-    "",
-    "—",
-    "Rooted In Mindfulness · Brookfield, WI",
-    "rootedinmindfulness.org",
-  ].join("\n");
-}
 
 // ─── Host role assignment notification (to new Meet host) ────────────────────
 
@@ -624,38 +516,13 @@ export interface HubConvNewThreadEmailData {
  * Works for any hub — not hardcoded to a specific hub.
  */
 export async function sendHubConvNewThreadEmail(data: HubConvNewThreadEmailData): Promise<void> {
-  const { to, firstName, authorName, hubName, hubSlug, threadTitle, threadId } = data;
-  const threadUrl = `${BASE_URL}/account/hub/${hubSlug}/conversations/${threadId}`;
-  const greeting = firstName ? `Hi ${firstName},` : "Hello,";
-
-  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>New conversation</title></head>
-<body style="margin:0;padding:0;background:#f5f5f5;font-family:'Open Sans',Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 16px;">
-<tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:4px;overflow:hidden;">
-<tr><td style="background:#135274;padding:28px 36px;"><p style="margin:0;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:#c5d8e4;font-family:'Open Sans',Arial,sans-serif;">Rooted In Mindfulness · ${hubName}</p></td></tr>
-<tr><td style="padding:36px 36px 28px;">
-<p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">${greeting}</p>
-<p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">
-  <strong>${authorName}</strong> started a new conversation: <em>${threadTitle}</em>
-</p>
-<table cellpadding="0" cellspacing="0" style="margin-top:8px;">
-<tr><td style="background:#135274;border-radius:3px;padding:12px 24px;">
-<a href="${threadUrl}" style="font-family:'Open Sans',Arial,sans-serif;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">Read Thread →</a>
-</td></tr></table>
-</td></tr>
-<tr><td style="padding:20px 36px 28px;border-top:1px solid #eee;">
-<p style="margin:0;font-family:'Open Sans',Arial,sans-serif;font-size:12px;line-height:1.6;color:#777;">Rooted In Mindfulness · Brookfield, WI</p>
-</td></tr>
-</table></td></tr></table></body></html>`;
-
-  const text = [greeting, "", `${authorName} started a new conversation in ${hubName}: "${threadTitle}"`, "", `Read it here: ${threadUrl}`].join("\n");
-
-  const { error } = await resend.emails.send({
-    from: FROM, to,
-    subject: `New conversation in ${hubName}: ${threadTitle}`,
-    html, text,
+  await sendTemplatedEmail("hub-conv-new-thread", data.to, {
+    firstName:   data.firstName,
+    authorName:  data.authorName,
+    hubName:     data.hubName,
+    threadTitle: data.threadTitle,
+    threadUrl:   `${BASE_URL}/account/hub/${data.hubSlug}/conversations/${data.threadId}`,
   });
-  if (error) console.error("[email] sendHubConvNewThreadEmail failed:", error);
 }
 
 export interface HubConvNewReplyEmailData {
@@ -673,38 +540,13 @@ export interface HubConvNewReplyEmailData {
  * Works for any hub — not hardcoded to a specific hub.
  */
 export async function sendHubConvNewReplyEmail(data: HubConvNewReplyEmailData): Promise<void> {
-  const { to, firstName, replierName, hubName, hubSlug, threadTitle, threadId } = data;
-  const threadUrl = `${BASE_URL}/account/hub/${hubSlug}/conversations/${threadId}`;
-  const greeting = firstName ? `Hi ${firstName},` : "Hello,";
-
-  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>New reply</title></head>
-<body style="margin:0;padding:0;background:#f5f5f5;font-family:'Open Sans',Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 16px;">
-<tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:4px;overflow:hidden;">
-<tr><td style="background:#135274;padding:28px 36px;"><p style="margin:0;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:#c5d8e4;font-family:'Open Sans',Arial,sans-serif;">Rooted In Mindfulness · ${hubName}</p></td></tr>
-<tr><td style="padding:36px 36px 28px;">
-<p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">${greeting}</p>
-<p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">
-  <strong>${replierName}</strong> replied to <em>${threadTitle}</em>.
-</p>
-<table cellpadding="0" cellspacing="0" style="margin-top:8px;">
-<tr><td style="background:#135274;border-radius:3px;padding:12px 24px;">
-<a href="${threadUrl}" style="font-family:'Open Sans',Arial,sans-serif;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">Read Thread →</a>
-</td></tr></table>
-</td></tr>
-<tr><td style="padding:20px 36px 28px;border-top:1px solid #eee;">
-<p style="margin:0;font-family:'Open Sans',Arial,sans-serif;font-size:12px;line-height:1.6;color:#777;">Rooted In Mindfulness · Brookfield, WI</p>
-</td></tr>
-</table></td></tr></table></body></html>`;
-
-  const text = [greeting, "", `${replierName} replied to "${threadTitle}" in ${hubName}.`, "", `Read it here: ${threadUrl}`].join("\n");
-
-  const { error } = await resend.emails.send({
-    from: FROM, to,
-    subject: `New reply in ${hubName}: ${threadTitle}`,
-    html, text,
+  await sendTemplatedEmail("hub-conv-new-reply", data.to, {
+    firstName:   data.firstName,
+    replierName: data.replierName,
+    hubName:     data.hubName,
+    threadTitle: data.threadTitle,
+    threadUrl:   `${BASE_URL}/account/hub/${data.hubSlug}/conversations/${data.threadId}`,
   });
-  if (error) console.error("[email] sendHubConvNewReplyEmail failed:", error);
 }
 
 // ─── Hub Welcome Email ───────────────────────────────────────────────────────
@@ -722,50 +564,11 @@ export interface HubWelcomeEmailData {
  * Fire-and-forget in both call sites. Errors are logged, never thrown.
  */
 export async function sendHubWelcomeEmail(data: HubWelcomeEmailData): Promise<void> {
-  const { to, firstName, hubName, hubUrl } = data;
-  const greeting = firstName ? `Hi ${firstName},` : "Hello,";
-
-  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Welcome</title></head>
-<body style="margin:0;padding:0;background:#f5f5f5;font-family:'Open Sans',Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 16px;">
-<tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:4px;overflow:hidden;">
-<tr><td style="background:#135274;padding:28px 36px;"><p style="margin:0;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:#c5d8e4;font-family:'Open Sans',Arial,sans-serif;">Rooted In Mindfulness</p></td></tr>
-<tr><td style="padding:36px 36px 28px;">
-<p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">${greeting}</p>
-<p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,'Times New Roman',serif;">
-  You've been added to <strong>${hubName}</strong>. This is a shared space for your team to stay connected, share updates, and coordinate together.
-</p>
-<table cellpadding="0" cellspacing="0" style="margin-top:8px;">
-<tr><td style="background:#135274;border-radius:3px;padding:12px 24px;">
-<a href="${hubUrl}" style="font-family:'Open Sans',Arial,sans-serif;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">Visit ${hubName} →</a>
-</td></tr></table>
-</td></tr>
-<tr><td style="padding:20px 36px 28px;border-top:1px solid #eee;">
-<p style="margin:0;font-family:'Open Sans',Arial,sans-serif;font-size:12px;line-height:1.6;color:#777;">Rooted In Mindfulness · Brookfield, WI</p>
-</td></tr>
-</table></td></tr></table></body></html>`;
-
-  const text = [
-    greeting,
-    "",
-    `You've been added to ${hubName}. This is a shared space for your team to stay connected, share updates, and coordinate together.`,
-    "",
-    `Visit here: ${hubUrl}`,
-    "",
-    "—",
-    "Rooted In Mindfulness · Brookfield, WI",
-  ].join("\n");
-
-  try {
-    const { error } = await resend.emails.send({
-      from: FROM, to,
-      subject: `Welcome to ${hubName}`,
-      html, text,
-    });
-    if (error) console.error("[email] sendHubWelcomeEmail failed:", error);
-  } catch (e) {
-    console.error("[email] sendHubWelcomeEmail threw:", e);
-  }
+  await sendTemplatedEmail("hub-welcome", data.to, {
+    firstName: data.firstName,
+    hubName:   data.hubName,
+    hubUrl:    data.hubUrl,
+  });
 }
 
 // ─── Magic link email (authentication) ───────────────────────────────────────

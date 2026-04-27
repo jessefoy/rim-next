@@ -266,6 +266,88 @@ Just a gentle note that your dana offering for **{{programTitle}}** is still pen
 ---
 Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`,
   },
+
+  // ── 11. Registrar role assigned ──────────────────────────────────────────────
+  // Sent to a member when they are granted the REGISTRAR role.
+  {
+    slug: "registrar-role-assigned",
+    name: "Registrar Role Assigned",
+    description: "Sent to a member when they are granted the REGISTRAR role.",
+    enabled: true,
+    subject: "You've been added as a registrar — Rooted In Mindfulness",
+    variables: ["firstName", "dashboardUrl", "manualUrl"],
+    body: `{{#if firstName}}Hi {{firstName}},{{else}}Hello,{{/if}}
+
+You've been added as a **registrar** for Rooted In Mindfulness. This means you can now view and manage program registrations — approve and cancel spots, promote people from the waitlist, send reminders, and export attendee lists.
+
+Two things to bookmark: your **Registrations dashboard** where you'll do your day-to-day work, and the **Staff Manual** — a plain-English guide to every part of the system. Start with the manual if anything is unclear.
+
+**[Go to Registrations →]({{dashboardUrl}})**
+
+**[Read the Staff Manual →]({{manualUrl}})**
+
+If you have any questions, reply to this email or reach out directly. Welcome to the team.
+
+---
+Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`,
+  },
+
+  // ── 12. Hub conversation: new thread ─────────────────────────────────────────
+  // Sent to hub coordinators when a new conversation thread is created.
+  {
+    slug: "hub-conv-new-thread",
+    name: "Hub Conversation: New Thread",
+    description: "Sent to hub coordinators when a new conversation thread is created.",
+    enabled: true,
+    subject: "New conversation in {{hubName}}: {{threadTitle}}",
+    variables: ["firstName", "authorName", "hubName", "threadTitle", "threadUrl"],
+    body: `{{#if firstName}}Hi {{firstName}},{{else}}Hello,{{/if}}
+
+**{{authorName}}** started a new conversation in {{hubName}}: *{{threadTitle}}*
+
+**[Read Thread →]({{threadUrl}})**
+
+---
+Rooted In Mindfulness · Brookfield, WI`,
+  },
+
+  // ── 13. Hub conversation: new reply ──────────────────────────────────────────
+  // Sent to thread participants when a new reply is posted.
+  {
+    slug: "hub-conv-new-reply",
+    name: "Hub Conversation: New Reply",
+    description: "Sent to thread participants when a new reply is posted.",
+    enabled: true,
+    subject: "New reply in {{hubName}}: {{threadTitle}}",
+    variables: ["firstName", "replierName", "hubName", "threadTitle", "threadUrl"],
+    body: `{{#if firstName}}Hi {{firstName}},{{else}}Hello,{{/if}}
+
+**{{replierName}}** replied to *{{threadTitle}}* in {{hubName}}.
+
+**[Read Thread →]({{threadUrl}})**
+
+---
+Rooted In Mindfulness · Brookfield, WI`,
+  },
+
+  // ── 14. Hub welcome ──────────────────────────────────────────────────────────
+  // Sent when a member is added to a hub.
+  {
+    slug: "hub-welcome",
+    name: "Hub Welcome",
+    description: "Sent when a member is added to a hub (by a coordinator or via syncHubMembership).",
+    enabled: true,
+    subject: "Welcome to {{hubName}}",
+    variables: ["firstName", "hubName", "hubUrl"],
+    body: `{{#if firstName}}Hi {{firstName}},{{else}}Hello,{{/if}}
+
+You've been added to **{{hubName}}**. This is a shared space for your team to stay connected, share updates, and coordinate together.
+
+**[Visit {{hubName}} →]({{hubUrl}})**
+
+---
+Rooted In Mindfulness · Brookfield, WI`,
+  },
 ];
 
 async function main() {

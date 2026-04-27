@@ -625,6 +625,114 @@ Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`,
     },
   },
   {
+    // Session 96 — Migrate hub-related emails into the template manager.
+    // Four templates: registrar-role-assigned, hub-conv-new-thread,
+    // hub-conv-new-reply, hub-welcome. After this runs, all four are
+    // visible at /admin/emails for preview/edit.
+    name: "seed_hub_email_templates",
+    async run() {
+      const flag = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags"
+        WHERE name = 'seed_hub_email_templates_v1'
+      `).catch(() => []);
+      if (flag.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      const templates = [
+        {
+          slug: "registrar-role-assigned",
+          name: "Registrar Role Assigned",
+          description: "Sent to a member when they are granted the REGISTRAR role.",
+          enabled: true,
+          subject: "You've been added as a registrar — Rooted In Mindfulness",
+          variables: ["firstName", "dashboardUrl", "manualUrl"],
+          body: `{{#if firstName}}Hi {{firstName}},{{else}}Hello,{{/if}}
+
+You've been added as a **registrar** for Rooted In Mindfulness. This means you can now view and manage program registrations — approve and cancel spots, promote people from the waitlist, send reminders, and export attendee lists.
+
+Two things to bookmark: your **Registrations dashboard** where you'll do your day-to-day work, and the **Staff Manual** — a plain-English guide to every part of the system. Start with the manual if anything is unclear.
+
+**[Go to Registrations →]({{dashboardUrl}})**
+
+**[Read the Staff Manual →]({{manualUrl}})**
+
+If you have any questions, reply to this email or reach out directly. Welcome to the team.
+
+---
+Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`,
+        },
+        {
+          slug: "hub-conv-new-thread",
+          name: "Hub Conversation: New Thread",
+          description: "Sent to hub coordinators when a new conversation thread is created.",
+          enabled: true,
+          subject: "New conversation in {{hubName}}: {{threadTitle}}",
+          variables: ["firstName", "authorName", "hubName", "threadTitle", "threadUrl"],
+          body: `{{#if firstName}}Hi {{firstName}},{{else}}Hello,{{/if}}
+
+**{{authorName}}** started a new conversation in {{hubName}}: *{{threadTitle}}*
+
+**[Read Thread →]({{threadUrl}})**
+
+---
+Rooted In Mindfulness · Brookfield, WI`,
+        },
+        {
+          slug: "hub-conv-new-reply",
+          name: "Hub Conversation: New Reply",
+          description: "Sent to thread participants when a new reply is posted.",
+          enabled: true,
+          subject: "New reply in {{hubName}}: {{threadTitle}}",
+          variables: ["firstName", "replierName", "hubName", "threadTitle", "threadUrl"],
+          body: `{{#if firstName}}Hi {{firstName}},{{else}}Hello,{{/if}}
+
+**{{replierName}}** replied to *{{threadTitle}}* in {{hubName}}.
+
+**[Read Thread →]({{threadUrl}})**
+
+---
+Rooted In Mindfulness · Brookfield, WI`,
+        },
+        {
+          slug: "hub-welcome",
+          name: "Hub Welcome",
+          description: "Sent when a member is added to a hub (by a coordinator or via syncHubMembership).",
+          enabled: true,
+          subject: "Welcome to {{hubName}}",
+          variables: ["firstName", "hubName", "hubUrl"],
+          body: `{{#if firstName}}Hi {{firstName}},{{else}}Hello,{{/if}}
+
+You've been added to **{{hubName}}**. This is a shared space for your team to stay connected, share updates, and coordinate together.
+
+**[Visit {{hubName}} →]({{hubUrl}})**
+
+---
+Rooted In Mindfulness · Brookfield, WI`,
+        },
+      ];
+
+      let count = 0;
+      for (const t of templates) {
+        await db.emailTemplate.upsert({
+          where: { slug: t.slug },
+          update: { name: t.name, description: t.description, subject: t.subject, body: t.body, variables: t.variables, enabled: t.enabled },
+          create: t,
+        });
+        count++;
+      }
+
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
+      `).catch(() => {});
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('seed_hub_email_templates_v1')
+      `);
+      console.log(`  ✔ Applied: ${this.name} (${count} templates upserted)`);
+    },
+  },
+  {
     // Session 96 — Schedule tool rebuild: sub-request emails carry a
     // {{coverUrl}} deep link that opens the schedule page with the cover
     // confirmation modal pre-opened. The DB-stored email template needs
