@@ -10576,6 +10576,114 @@ details[open] > .pg-form__agreements-summary::after { content: " ↑"; }
   letter-spacing: 0.12em; color: var(--rim-text-muted);
 }
 
+/* ── "Our offerings this month" panel (hh-month) ──────────────────────────
+   Sangha-friendly visibility into team contribution. Shown above both
+   coordinator and host views on the host hub home. Tone: collective,
+   warm, no leaderboard energy. */
+.hh-month {
+  background: #fff;
+  border: 1px solid var(--rim-rule);
+  border-radius: 10px;
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.hh-month__heading {
+  font-family: var(--font-serif);
+  font-size: var(--text-h4);
+  font-weight: 500;
+  color: var(--rim-text);
+  line-height: var(--lh-heading);
+}
+.hh-month__summary {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--rim-mid);
+  line-height: 1.6;
+  margin: 0;
+}
+.hh-month__summary strong { color: var(--rim-text); font-weight: 600; }
+
+.hh-month__group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #f0ede8;
+}
+.hh-month__group:first-of-type { border-top: none; padding-top: 0; }
+.hh-month__group-label {
+  font-family: var(--font-sans);
+  font-size: var(--text-xxs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rim-text-muted);
+}
+.hh-month__pills {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.hh-month__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px 5px 12px;
+  border-radius: 20px;
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  background: rgba(19, 82, 116, 0.08);
+  color: var(--rim-text);
+}
+.hh-month__pill-name { font-weight: 500; }
+.hh-month__pill-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  padding: 0 7px;
+  background: #fff;
+  border-radius: 12px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--rim-blue);
+}
+.hh-month__pill--coord .hh-month__pill-name::after {
+  content: " ★";
+  color: #d9840f;
+  font-size: var(--text-xs);
+}
+/* Quiet pills — for "Available, not yet on the schedule." Lighter tone so
+   that being on this list never reads as a callout, just context. */
+.hh-month__pills--quiet { gap: 5px; }
+.hh-month__pill--quiet {
+  background: transparent;
+  border: 1px solid #ebe8e3;
+  color: var(--rim-mid);
+  padding: 4px 12px;
+}
+
+.hh-month__cta {
+  align-self: flex-start;
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--rim-blue);
+  text-decoration: none;
+  padding-top: 4px;
+}
+.hh-month__cta:hover { text-decoration: underline; }
+
+@media (max-width: 480px) {
+  .hh-month { padding: 18px 18px; }
+  .hh-month__pill { font-size: var(--text-xs); }
+}
+
 /* Pinned threads list */
 .hub-home__pinned { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .hub-home__pinned-link {

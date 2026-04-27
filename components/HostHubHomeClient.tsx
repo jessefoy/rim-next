@@ -51,6 +51,14 @@ export interface RosterMember {
   bioHtml: string;
 }
 
+export interface ThisMonthGlance {
+  monthLabel: string;
+  totalSessions: number;
+  openSessions: number;
+  hostingMembers: Array<{ userId: string; name: string; count: number; isCoordinator: boolean }>;
+  availableMembers: Array<{ userId: string; name: string; count: number; isCoordinator: boolean }>;
+}
+
 type EditableField = "welcomeBody" | "homeContent";
 
 interface Props {
@@ -66,6 +74,7 @@ interface Props {
   welcomeJson: unknown;
   pinnedThreads: PinnedThread[];
   teamRoster: RosterMember[];
+  thisMonth: ThisMonthGlance;
 }
 
 export default function HostHubHomeClient({
@@ -81,6 +90,7 @@ export default function HostHubHomeClient({
   welcomeJson,
   pinnedThreads,
   teamRoster,
+  thisMonth,
 }: Props) {
   const [previewAsHost, setPreviewAsHost] = useState(false);
   const activeView = canToggle && previewAsHost ? "host" : viewerRole;
@@ -121,6 +131,7 @@ export default function HostHubHomeClient({
           canEditContent={canEditContent}
           editingField={editingField}
           setEditingField={setEditingField}
+          thisMonth={thisMonth}
         />
       ) : (
         <HostView
@@ -133,9 +144,86 @@ export default function HostHubHomeClient({
           canEditContent={canEditContent}
           editingField={editingField}
           setEditingField={setEditingField}
+          thisMonth={thisMonth}
         />
       )}
     </div>
+  );
+}
+
+/* ────────────────────  Our offerings this month panel  ──────────────────────
+   Shown above both the Coordinator and Host views. Sangha-friendly framing:
+   work is collective ("we're holding"), participation is celebrated, and
+   members not yet on the schedule are described as "available" — not absent.
+   Splitting the list (hosting / available) keeps "0" out of any name's row.
+─────────────────────────────────────────────────────────────────────────── */
+
+function ThisMonthGlancePanel({ data }: { data: ThisMonthGlance }) {
+  if (data.totalSessions === 0 && data.hostingMembers.length === 0 && data.availableMembers.length === 0) {
+    return null;
+  }
+
+  const hostingCount = data.hostingMembers.length;
+  const sessionsLabel = data.totalSessions === 1 ? "session" : "sessions";
+  const hostsLabel = hostingCount === 1 ? "host" : "hosts";
+
+  return (
+    <section className="hh-month">
+      <div className="hh-month__heading">Our offerings this month</div>
+
+      <p className="hh-month__summary">
+        <strong>{data.totalSessions}</strong>{" "}
+        {data.totalSessions === 1 ? "session" : "sessions"} in {data.monthLabel} ·{" "}
+        <strong>{hostingCount}</strong> {hostsLabel} contributing
+        {data.openSessions > 0 && (
+          <>
+            {" "}· <strong>{data.openSessions}</strong> still {data.openSessions === 1 ? "needs" : "need"} a host
+          </>
+        )}
+        .
+      </p>
+
+      {data.hostingMembers.length > 0 && (
+        <div className="hh-month__group">
+          <div className="hh-month__group-label">Hosting</div>
+          <ul className="hh-month__pills">
+            {data.hostingMembers.map((m) => (
+              <li
+                key={m.userId}
+                className={`hh-month__pill${m.isCoordinator ? " hh-month__pill--coord" : ""}`}
+              >
+                <span className="hh-month__pill-name">{m.name}</span>
+                <span className="hh-month__pill-count" aria-label={`${m.count} ${m.count === 1 ? sessionsLabel : "sessions"}`}>
+                  {m.count}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {data.availableMembers.length > 0 && (
+        <div className="hh-month__group">
+          <div className="hh-month__group-label">Available, not yet on the schedule</div>
+          <ul className="hh-month__pills hh-month__pills--quiet">
+            {data.availableMembers.map((m) => (
+              <li
+                key={m.userId}
+                className={`hh-month__pill hh-month__pill--quiet${m.isCoordinator ? " hh-month__pill--coord" : ""}`}
+              >
+                <span className="hh-month__pill-name">{m.name}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {data.openSessions > 0 && (
+        <Link href="/tools/schedule" className="hh-month__cta">
+          See the schedule →
+        </Link>
+      )}
+    </section>
   );
 }
 
@@ -150,6 +238,7 @@ function CoordinatorView({
   canEditContent,
   editingField,
   setEditingField,
+  thisMonth,
 }: {
   slug: string;
   hubName: string;
@@ -159,6 +248,7 @@ function CoordinatorView({
   canEditContent: boolean;
   editingField: EditableField | null;
   setEditingField: (f: EditableField | null) => void;
+  thisMonth: ThisMonthGlance;
 }) {
   const allEmpty =
     !attention ||
@@ -175,6 +265,8 @@ function CoordinatorView({
         <div className="hub-home__greeting">Coordinator view</div>
         <h2 className="hub-home__state">{hubName}</h2>
       </header>
+
+      <ThisMonthGlancePanel data={thisMonth} />
 
       {/* ── Attention items ── */}
       <section className="hub-home__section">
@@ -351,6 +443,7 @@ function HostView({
   canEditContent,
   editingField,
   setEditingField,
+  thisMonth,
 }: {
   slug: string;
   hubName: string;
@@ -361,6 +454,7 @@ function HostView({
   canEditContent: boolean;
   editingField: EditableField | null;
   setEditingField: (f: EditableField | null) => void;
+  thisMonth: ThisMonthGlance;
 }) {
   const editingWelcome = editingField === "welcomeBody";
 
@@ -370,6 +464,8 @@ function HostView({
         <div className="hub-home__greeting">Welcome</div>
         <h2 className="hub-home__state">{hubName}</h2>
       </header>
+
+      <ThisMonthGlancePanel data={thisMonth} />
 
       <section className="hub-home__section">
         <SectionLabel
