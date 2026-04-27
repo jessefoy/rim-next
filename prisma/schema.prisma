@@ -140,11 +140,6 @@ model User {
   dripNotifications    DripNotification[]
   siteBannersCreated   SiteBanner[]          @relation("SiteBannerCreator")
   siteBannerDismissals SiteBannerDismissal[] @relation("SiteBannerDismissal")
-  taskListsCreated     TaskList[]             @relation("TaskListCreatedBy")
-  tasksAssigned        Task[]                 @relation("TaskAssignee")
-  tasksCreated         Task[]                 @relation("TaskCreatedBy")
-  subtasksAssigned     Subtask[]              @relation("SubtaskAssignee")
-  subtasksCreated      Subtask[]              @relation("SubtaskCreatedBy")
 
   @@map("users")
 }
@@ -883,8 +878,6 @@ enum AlertType {
   SUPPORT_ASSIGNED   // support team: thread assigned to you
   SUPPORT_NEW_REPLY  // support team: new reply on your assigned thread
   SUPPORT_NEW_NOTE   // support team: internal note added to your assigned thread
-  TASK_ASSIGNED      // hub member: task assigned to you
-  TASK_DUE_TOMORROW  // hub member: task due tomorrow
 }
 
 // ─── HUB ACCESS (person-level) ────────────────────────────────────────────────
@@ -936,11 +929,6 @@ enum HubStatus {
   ARCHIVED
 }
 
-enum TaskStatus {
-  OPEN
-  IN_PROGRESS
-  DONE
-}
 
 enum HubDocumentFileType {
   DOC
@@ -970,7 +958,6 @@ model Hub {
   documents     HubDocument[]
   threads       HubConversationThread[]
   appLinks      HubAppLink[]
-  taskLists     TaskList[]
 
   @@map("hubs")
 }
@@ -989,65 +976,6 @@ model HubAppLink {
   @@map("hub_app_links")
 }
 
-model TaskList {
-  id          String   @id @default(cuid())
-  hubId       String
-  name        String
-  description String?
-  isArchived  Boolean  @default(false)
-  isTemplate  Boolean  @default(false)
-  order       Int      @default(0)
-  createdById String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  hub         Hub      @relation(fields: [hubId], references: [id], onDelete: Cascade)
-  createdBy   User     @relation("TaskListCreatedBy", fields: [createdById], references: [id])
-  tasks       Task[]
-
-  @@map("task_lists")
-}
-
-model Task {
-  id          String     @id @default(cuid())
-  listId      String
-  title       String
-  body        Json?
-  assigneeId  String?
-  dueDate     DateTime?
-  status      TaskStatus @default(OPEN)
-  order       Int        @default(0)
-  createdById String
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-
-  list        TaskList   @relation(fields: [listId], references: [id], onDelete: Cascade)
-  assignee    User?      @relation("TaskAssignee", fields: [assigneeId], references: [id])
-  createdBy   User       @relation("TaskCreatedBy", fields: [createdById], references: [id])
-  subtasks    Subtask[]
-
-  @@map("tasks")
-}
-
-model Subtask {
-  id          String     @id @default(cuid())
-  taskId      String
-  title       String
-  body        Json?
-  assigneeId  String?
-  dueDate     DateTime?
-  status      TaskStatus @default(OPEN)
-  order       Int        @default(0)
-  createdById String
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-
-  task        Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  assignee    User?      @relation("SubtaskAssignee", fields: [assigneeId], references: [id])
-  createdBy   User       @relation("SubtaskCreatedBy", fields: [createdById], references: [id])
-
-  @@map("subtasks")
-}
 
 enum HubMemberStatus {
   ACTIVE

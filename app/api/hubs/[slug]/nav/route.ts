@@ -75,7 +75,6 @@ export async function GET(
     tools,
     navCounts: {
       conversations: ctx.conversationsUnread,
-      tasks: ctx.tasksForYou,
     },
     isCoordinator: (member?.isCoordinator ?? false) || isAdmin,
     isAdmin,

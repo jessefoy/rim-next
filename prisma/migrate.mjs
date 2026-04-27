@@ -1195,6 +1195,77 @@ Rooted In Mindfulness · Brookfield, WI`,
     },
   },
   {
+    // Session 96 — Remove the Tasks feature from hubs entirely. The
+    // TaskList / Task / Subtask data model and UI have been removed; this
+    // migration drops the tables, the TaskStatus enum, and the
+    // TASK_ASSIGNED / TASK_DUE_TOMORROW values from the AlertType enum.
+    //
+    // Postgres can't drop enum values that are still referenced; the steps:
+    //   1. Delete any existing alerts of those types
+    //   2. Recreate AlertType without the two task values, swap columns over
+    //   3. Drop subtasks → tasks → task_lists (FK order)
+    //   4. Drop TaskStatus enum
+    name: "remove_tasks_feature",
+    async run() {
+      const flag = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags"
+        WHERE name = 'remove_tasks_feature_v1'
+      `).catch(() => []);
+      if (flag.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      // 1. Delete any existing TASK_* alerts (no UI to view them anyway).
+      await db.$executeRawUnsafe(`
+        DELETE FROM "alerts"
+        WHERE "type"::text IN ('TASK_ASSIGNED', 'TASK_DUE_TOMORROW')
+      `).catch(() => {});
+
+      // 2. Drop TASK_* values from AlertType. Postgres approach: rename
+      //    the old enum, create a new one without the values, alter the
+      //    column to use the new type, drop the old type.
+      await db.$executeRawUnsafe(`
+        DO $$
+        BEGIN
+          IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'AlertType') THEN
+            ALTER TYPE "AlertType" RENAME TO "AlertType_old";
+            CREATE TYPE "AlertType" AS ENUM (
+              'SUB_REQUEST',
+              'SUB_CLAIMED',
+              'NEW_THREAD',
+              'NEW_REPLY',
+              'UNASSIGNED_SESSION',
+              'SUPPORT_ASSIGNED',
+              'SUPPORT_NEW_REPLY',
+              'SUPPORT_NEW_NOTE'
+            );
+            ALTER TABLE "alerts"
+              ALTER COLUMN "type" TYPE "AlertType"
+              USING "type"::text::"AlertType";
+            DROP TYPE "AlertType_old";
+          END IF;
+        END$$;
+      `);
+
+      // 3. Drop the task tables (FK order matters)
+      await db.$executeRawUnsafe(`DROP TABLE IF EXISTS "subtasks" CASCADE`);
+      await db.$executeRawUnsafe(`DROP TABLE IF EXISTS "tasks" CASCADE`);
+      await db.$executeRawUnsafe(`DROP TABLE IF EXISTS "task_lists" CASCADE`);
+
+      // 4. Drop the TaskStatus enum (no longer referenced)
+      await db.$executeRawUnsafe(`DROP TYPE IF EXISTS "TaskStatus"`);
+
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
+      `).catch(() => {});
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('remove_tasks_feature_v1')
+      `);
+      console.log(`  ✔ Applied: ${this.name}`);
+    },
+  },
+  {
     // Session 96 — Schedule tool rebuild: sub-request emails carry a
     // {{coverUrl}} deep link that opens the schedule page with the cover
     // confirmation modal pre-opened. The DB-stored email template needs

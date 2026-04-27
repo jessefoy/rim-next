@@ -9,7 +9,7 @@
  *
  * Two groups:
  *   WORK  — the hub's primary tool (with badge count)
- *   TEAM  — Home, Conversations, Tasks, Documents, Members (with badges)
+ *   TEAM  — Home, Conversations, Documents, Members (with badges)
  *
  * Mobile: slide-in drawer opened by a hamburger bar at the top.
  * Desktop: collapsible icon rail (persisted in localStorage).
@@ -23,7 +23,6 @@ import { usePathname } from "next/navigation";
 import {
   Home,
   MessageSquare,
-  CheckSquare,
   FileText,
   Users,
   Briefcase,
@@ -44,7 +43,6 @@ export interface SidebarTool {
 
 export interface SidebarNavCounts {
   conversations?: number;
-  tasks?: number;
 }
 
 interface Props {
@@ -112,7 +110,6 @@ export default function HubWorkspaceSidebar({
   const teamItems = [
     { label: "Home",          href: base,                    icon: Home,          badge: 0 },
     { label: "Conversations", href: `${base}/conversations`, icon: MessageSquare, badge: navCounts.conversations ?? 0 },
-    { label: "Tasks",         href: `${base}/tasks`,         icon: CheckSquare,   badge: navCounts.tasks ?? 0 },
     { label: "Documents",     href: `${base}/documents`,     icon: FileText,      badge: 0 },
     { label: "Members",       href: `${base}/members`,       icon: Users,         badge: 0 },
   ];

@@ -50,13 +50,6 @@ interface RecentThread {
   updatedAt: string;
 }
 
-interface OpenTask {
-  id: string;
-  title: string;
-  dueDate: string | null;
-  status: string;
-}
-
 interface RecentDoc {
   id: string;
   label: string;
@@ -75,7 +68,6 @@ interface Props {
   hasWelcomeContent: boolean;
   pinnedThreads: PinnedThread[];
   recentThreads: RecentThread[];
-  openTasks: OpenTask[];
   recentDocs: RecentDoc[];
   homeContentHtml: string;
 }
@@ -111,7 +103,6 @@ export default function HubHomeClient({
   hasWelcomeContent,
   pinnedThreads,
   recentThreads,
-  openTasks,
   recentDocs,
   homeContentHtml,
 }: Props) {
@@ -189,32 +180,8 @@ export default function HubHomeClient({
       )}
 
       {/* ── Activity rail ── */}
-      {(recentThreads.length > 0 || openTasks.length > 0 || recentDocs.length > 0) && (
+      {(recentThreads.length > 0 || recentDocs.length > 0) && (
         <section className="hub-home__activity">
-          {openTasks.length > 0 && (
-            <ActivityCard
-              heading="Your tasks"
-              viewAllHref={`/account/hub/${slug}/tasks`}
-            >
-              {openTasks.map((t) => (
-                <ActivityRow
-                  key={t.id}
-                  title={t.title}
-                  meta={
-                    (t.status === "IN_PROGRESS" ? "In progress" : "Open") +
-                    (t.dueDate
-                      ? " · Due " +
-                        new Date(t.dueDate).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        })
-                      : "")
-                  }
-                />
-              ))}
-            </ActivityCard>
-          )}
-
           {recentThreads.length > 0 && (
             <ActivityCard
               heading="Recent conversations"

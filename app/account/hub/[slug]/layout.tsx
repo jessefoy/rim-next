@@ -96,7 +96,6 @@ export default async function HubLayout({ children, params }: Props) {
         tools={tools}
         navCounts={{
           conversations: ctx.conversationsUnread,
-          tasks: ctx.tasksForYou,
         }}
         isCoordinator={isCoordinator}
         isAdmin={isAdmin}

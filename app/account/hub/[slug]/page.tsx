@@ -102,25 +102,6 @@ export default async function HubHomePage({
     take: 4,
   });
 
-  // Open tasks assigned to the viewer
-  const taskLists = await db.taskList.findMany({
-    where: { hubId: hub.id, isArchived: false },
-    select: { id: true },
-  });
-  const listIds = taskLists.map((l) => l.id);
-  const openTasks = listIds.length > 0
-    ? await db.task.findMany({
-        where: {
-          listId: { in: listIds },
-          status: { not: "DONE" },
-          assigneeId: session.user.id,
-        },
-        select: { id: true, title: true, dueDate: true, status: true },
-        orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
-        take: 4,
-      })
-    : [];
-
   // Recent documents
   const recentDocs = await db.hubDocument.findMany({
     where: { hubId: hub.id },
@@ -161,12 +142,6 @@ export default async function HubHomePage({
         authorName: t.author.preferredName || t.author.firstName || "Someone",
         replyCount: t._count.replies,
         updatedAt: t.updatedAt.toISOString(),
-      }))}
-      openTasks={openTasks.map((t) => ({
-        id: t.id,
-        title: t.title,
-        dueDate: t.dueDate?.toISOString() ?? null,
-        status: t.status,
       }))}
       recentDocs={recentDocs.map((d) => ({
         id: d.id,

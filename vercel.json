@@ -33,10 +33,6 @@
     {
       "path": "/api/cron/drip-release",
       "schedule": "0 12 * * *"
-    },
-    {
-      "path": "/api/cron/task-reminders",
-      "schedule": "0 14 * * *"
     }
   ]
 }

@@ -21,8 +21,6 @@ export interface HubContext {
   stateSentence: string;
   /** Non-archived conversation threads updated since the viewer's last visit. */
   conversationsUnread: number;
-  /** Tasks assigned to the viewer that are not DONE. */
-  tasksForYou: number;
 }
 
 const NEUTRAL_SENTENCE = "Nothing needs your attention right now.";
@@ -37,17 +35,15 @@ export async function getHubContext(
   userId: string,
   lastVisitedAt: Date | null,
 ): Promise<HubContext> {
-  const [primary, conversationsUnread, tasksForYou] = await Promise.all([
+  const [primary, conversationsUnread] = await Promise.all([
     getPrimaryToolContext(hubSlug, userId),
     countUnreadConversations(hubId, userId, lastVisitedAt),
-    countOpenTasksForUser(hubId, userId),
   ]);
 
   const stateSentence = buildStateSentence({
     primaryCount: primary.primaryCount,
     primaryLabel: primary.primaryLabel,
     conversationsUnread,
-    tasksForYou,
   });
 
   return {
@@ -56,7 +52,6 @@ export async function getHubContext(
     primaryLabel: primary.primaryLabel,
     stateSentence,
     conversationsUnread,
-    tasksForYou,
   };
 }
 
@@ -143,39 +138,18 @@ async function countUnreadConversations(
   });
 }
 
-async function countOpenTasksForUser(hubId: string, userId: string): Promise<number> {
-  const lists = await db.taskList.findMany({
-    where: { hubId, isArchived: false },
-    select: { id: true },
-  });
-  if (lists.length === 0) return 0;
-  return db.task.count({
-    where: {
-      listId: { in: lists.map((l) => l.id) },
-      status: { not: "DONE" },
-      assigneeId: userId,
-    },
-  });
-}
-
 /* ─────────────────────────  State sentence composition  ───────────────────────── */
 
 function buildStateSentence(parts: {
   primaryCount: number;
   primaryLabel: string;
   conversationsUnread: number;
-  tasksForYou: number;
 }): string {
-  const { primaryCount, primaryLabel, conversationsUnread, tasksForYou } = parts;
+  const { primaryCount, primaryLabel, conversationsUnread } = parts;
   const fragments: string[] = [];
 
   if (primaryCount > 0 && primaryLabel) {
     fragments.push(`${primaryCount} ${primaryLabel}`);
-  }
-  if (tasksForYou > 0) {
-    fragments.push(
-      `${tasksForYou} ${plural(tasksForYou, "task assigned to you", "tasks assigned to you")}`,
-    );
   }
   if (conversationsUnread > 0) {
     fragments.push(
@@ -185,8 +159,7 @@ function buildStateSentence(parts: {
 
   if (fragments.length === 0) return NEUTRAL_SENTENCE;
   if (fragments.length === 1) return capitalize(fragments[0]) + ".";
-  if (fragments.length === 2) return `${capitalize(fragments[0])} and ${fragments[1]}.`;
-  return `${capitalize(fragments[0])}, ${fragments[1]}, and ${fragments[2]}.`;
+  return `${capitalize(fragments[0])} and ${fragments[1]}.`;
 }
 
 function capitalize(s: string) {
