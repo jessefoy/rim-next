@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { Resend } from "resend";
+import { sendVolunteerInterestEmail } from "@/lib/email";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
@@ -15,24 +15,12 @@ export default async function VolunteerPage({
 
   async function handleVolunteerForm(formData: FormData) {
     "use server";
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    const firstName = formData.get("firstName") as string;
-    const lastName = formData.get("lastName") as string;
-    const email = formData.get("email") as string;
-    const phone = formData.get("phone") as string;
-    const interests = formData.get("interests") as string;
-
-    await resend.emails.send({
-      from: process.env.EMAIL_FROM!,
-      to: "hello@rootedinmindfulness.org",
-      subject: "New Volunteer Interest Submission",
-      html: `
-        <h2>New Volunteer Interest</h2>
-        <p><strong>Name:</strong> ${firstName} ${lastName}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Phone:</strong> ${phone}</p>
-        <p><strong>Interests &amp; Talents:</strong><br>${interests?.replace(/\n/g, "<br>")}</p>
-      `,
+    await sendVolunteerInterestEmail({
+      firstName: formData.get("firstName") as string,
+      lastName:  formData.get("lastName") as string,
+      email:     formData.get("email") as string,
+      phone:     formData.get("phone") as string | null,
+      interests: formData.get("interests") as string,
     });
     redirect("/volunteerism/volunteer?submitted=true");
   }

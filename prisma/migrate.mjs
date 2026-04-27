@@ -733,6 +733,84 @@ Rooted In Mindfulness · Brookfield, WI`,
     },
   },
   {
+    // Session 96 — Migrate form-submission emails into the template manager.
+    // Two templates: volunteer-interest-internal and kalyana-application-internal.
+    // Both go to the team inbox (hello@rootedinmindfulness.org) when members
+    // submit the corresponding public forms. Recipient address lives in
+    // lib/email.ts (TEAM_EMAIL constant).
+    name: "seed_form_submission_email_templates",
+    async run() {
+      const flag = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags"
+        WHERE name = 'seed_form_submission_email_templates_v1'
+      `).catch(() => []);
+      if (flag.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      const templates = [
+        {
+          slug: "volunteer-interest-internal",
+          name: "Volunteer Interest Submission (internal)",
+          description: "Sent to the team inbox when a member submits the volunteer interest form at /volunteerism/volunteer.",
+          enabled: true,
+          subject: "New volunteer interest submission",
+          variables: ["firstName", "lastName", "email", "phone", "interests"],
+          body: `## New volunteer interest
+
+> **Name:** {{firstName}} {{lastName}}
+> **Email:** {{email}}{{#if phone}}
+> **Phone:** {{phone}}{{/if}}
+
+### Interests and talents
+
+{{interests}}
+
+---
+Submitted via /volunteerism/volunteer`,
+        },
+        {
+          slug: "kalyana-application-internal",
+          name: "Kalyana Mitta Application (internal)",
+          description: "Sent to the team inbox when a member applies to start a Kalyana Mitta group at /kalyana-mitta/kalyana-mitta-group-application.",
+          enabled: true,
+          subject: "New Kalyana Mitta Group Application",
+          variables: ["firstName", "lastName", "email", "idea"],
+          body: `## New Kalyana Mitta Group Application
+
+> **Name:** {{firstName}} {{lastName}}
+> **Email:** {{email}}
+
+### Group idea
+
+{{idea}}
+
+---
+Submitted via /kalyana-mitta/kalyana-mitta-group-application`,
+        },
+      ];
+
+      let count = 0;
+      for (const t of templates) {
+        await db.emailTemplate.upsert({
+          where: { slug: t.slug },
+          update: { name: t.name, description: t.description, subject: t.subject, body: t.body, variables: t.variables, enabled: t.enabled },
+          create: t,
+        });
+        count++;
+      }
+
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
+      `).catch(() => {});
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('seed_form_submission_email_templates_v1')
+      `);
+      console.log(`  ✔ Applied: ${this.name} (${count} templates upserted)`);
+    },
+  },
+  {
     // Session 96 — Schedule tool rebuild: sub-request emails carry a
     // {{coverUrl}} deep link that opens the schedule page with the cover
     // confirmation modal pre-opened. The DB-stored email template needs

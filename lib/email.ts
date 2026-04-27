@@ -18,6 +18,10 @@ const FROM = `Rooted In Mindfulness <${process.env.EMAIL_FROM ?? "onboarding@res
 const REGISTRAR_EMAIL =
   process.env.REGISTRAR_EMAIL ?? process.env.EMAIL_FROM ?? "onboarding@resend.dev";
 
+// TEAM_EMAIL — the general team inbox. Used by public-form submission notifications
+// (volunteer interest, Kalyana Mitta application, etc.). Configurable via env var.
+const TEAM_EMAIL = process.env.TEAM_EMAIL ?? "hello@rootedinmindfulness.org";
+
 // (JESSE_EMAIL + HOST_COORDINATOR_EMAIL removed — post-session feature removed)
 
 // ─── Email template system ───────────────────────────────────────────────────
@@ -568,6 +572,52 @@ export async function sendHubWelcomeEmail(data: HubWelcomeEmailData): Promise<vo
     firstName: data.firstName,
     hubName:   data.hubName,
     hubUrl:    data.hubUrl,
+  });
+}
+
+// ─── Public form submission notifications (to TEAM_EMAIL) ────────────────────
+
+export interface VolunteerInterestEmailData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string | null;
+  interests: string;
+}
+
+/**
+ * Sent to TEAM_EMAIL when a member submits the volunteer interest form.
+ * Managed via Email Template Manager — template: "volunteer-interest-internal"
+ * Fire-and-forget — errors caught inside sendTemplatedEmail.
+ */
+export async function sendVolunteerInterestEmail(data: VolunteerInterestEmailData): Promise<void> {
+  await sendTemplatedEmail("volunteer-interest-internal", TEAM_EMAIL, {
+    firstName: data.firstName,
+    lastName:  data.lastName,
+    email:     data.email,
+    phone:     data.phone ?? "",
+    interests: data.interests,
+  });
+}
+
+export interface KalyanaApplicationEmailData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  idea: string;
+}
+
+/**
+ * Sent to TEAM_EMAIL when a member submits the Kalyana Mitta group application.
+ * Managed via Email Template Manager — template: "kalyana-application-internal"
+ * Fire-and-forget — errors caught inside sendTemplatedEmail.
+ */
+export async function sendKalyanaApplicationEmail(data: KalyanaApplicationEmailData): Promise<void> {
+  await sendTemplatedEmail("kalyana-application-internal", TEAM_EMAIL, {
+    firstName: data.firstName,
+    lastName:  data.lastName,
+    email:     data.email,
+    idea:      data.idea,
   });
 }
 

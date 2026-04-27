@@ -348,6 +348,51 @@ You've been added to **{{hubName}}**. This is a shared space for your team to st
 ---
 Rooted In Mindfulness · Brookfield, WI`,
   },
+
+  // ── 15. Volunteer interest (internal) ────────────────────────────────────────
+  // Sent to the team inbox when a member submits the volunteer interest form.
+  {
+    slug: "volunteer-interest-internal",
+    name: "Volunteer Interest Submission (internal)",
+    description: "Sent to the team inbox when a member submits the volunteer interest form at /volunteerism/volunteer.",
+    enabled: true,
+    subject: "New volunteer interest submission",
+    variables: ["firstName", "lastName", "email", "phone", "interests"],
+    body: `## New volunteer interest
+
+> **Name:** {{firstName}} {{lastName}}
+> **Email:** {{email}}{{#if phone}}
+> **Phone:** {{phone}}{{/if}}
+
+### Interests and talents
+
+{{interests}}
+
+---
+Submitted via /volunteerism/volunteer`,
+  },
+
+  // ── 16. Kalyana Mitta application (internal) ────────────────────────────────
+  // Sent to the team inbox when a member submits the Kalyana Mitta group application.
+  {
+    slug: "kalyana-application-internal",
+    name: "Kalyana Mitta Application (internal)",
+    description: "Sent to the team inbox when a member applies to start a Kalyana Mitta group at /kalyana-mitta/kalyana-mitta-group-application.",
+    enabled: true,
+    subject: "New Kalyana Mitta Group Application",
+    variables: ["firstName", "lastName", "email", "idea"],
+    body: `## New Kalyana Mitta Group Application
+
+> **Name:** {{firstName}} {{lastName}}
+> **Email:** {{email}}
+
+### Group idea
+
+{{idea}}
+
+---
+Submitted via /kalyana-mitta/kalyana-mitta-group-application`,
+  },
 ];
 
 async function main() {

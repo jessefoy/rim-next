@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { Resend } from "resend";
+import { sendKalyanaApplicationEmail } from "@/lib/email";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
@@ -15,22 +15,11 @@ export default async function KalyanaApplicationPage({
 
   async function handleApplication(formData: FormData) {
     "use server";
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    const firstName = formData.get("firstName") as string;
-    const lastName = formData.get("lastName") as string;
-    const email = formData.get("email") as string;
-    const idea = formData.get("idea") as string;
-
-    await resend.emails.send({
-      from: process.env.EMAIL_FROM!,
-      to: "hello@rootedinmindfulness.org",
-      subject: "New Kalyana Mitta Group Application",
-      html: `
-        <h2>New Kalyana Mitta Group Application</h2>
-        <p><strong>Name:</strong> ${firstName} ${lastName}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Group Idea:</strong><br>${idea?.replace(/\n/g, "<br>")}</p>
-      `,
+    await sendKalyanaApplicationEmail({
+      firstName: formData.get("firstName") as string,
+      lastName:  formData.get("lastName") as string,
+      email:     formData.get("email") as string,
+      idea:      formData.get("idea") as string,
     });
     redirect("/kalyana-mitta/kalyana-mitta-group-application?submitted=true");
   }
