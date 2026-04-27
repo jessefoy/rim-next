@@ -2,11 +2,8 @@
  * One-time seed: create the managed EmailTemplate records.
  * Run with: set -a && source .env.local && set +a && node prisma/seed-email-templates.js
  *
- * Templates that are wired up to current code paths are seeded with
- * enabled: true. Orphaned templates (from the retired post-session
- * reflection module — first-time-attendee, returning-after-absence,
- * missing-report-alert) stay disabled by default; remove them once
- * their associated workflows are confirmed not coming back.
+ * All seeded templates are wired up to current code paths and seeded
+ * with enabled: true.
  *
  * Bodies are markdown — rendered to HTML by marked at send time.
  * Slugs are permanent identifiers — never rename.
@@ -16,47 +13,7 @@ const { PrismaClient } = require("@prisma/client");
 const db = new PrismaClient();
 
 const TEMPLATES = [
-  // ── 1. First-time attendee welcome ──────────────────────────────────────────
-  {
-    slug: "first-time-attendee",
-    name: "First-Time Attendee Welcome",
-    description: "Sent after a member's first recorded session attendance.",
-    subject: "Welcome to your first session at Rooted In Mindfulness, {{firstName}}",
-    variables: ["firstName", "programName", "sessionDate"],
-    body: `Hi {{firstName}},
-
-It was wonderful to have you with us{{#if sessionDate}} on {{sessionDate}}{{/if}} for **{{programName}}**. Welcome to Rooted In Mindfulness.
-
-We hope you felt at home. Please know you're always welcome to return — we sit together regularly, and there's always a place for you here.
-
-With warmth,
-The RIM Host Team
-
----
-Rooted In Mindfulness · rootedinmindfulness.org`,
-  },
-
-  // ── 2. Returning after absence ───────────────────────────────────────────────
-  {
-    slug: "returning-after-absence",
-    name: "Returning After Absence",
-    description: "Sent when a member attends a session after a 6+ week gap.",
-    subject: "Good to have you back, {{firstName}}",
-    variables: ["firstName", "programName", "sessionDate"],
-    body: `Hi {{firstName}},
-
-It was lovely to have you back with us for **{{programName}}**. We're glad you're here.
-
-However long the gap, there's always a seat for you in this community.
-
-With warmth,
-The RIM Host Team
-
----
-Rooted In Mindfulness · rootedinmindfulness.org`,
-  },
-
-  // ── 3. Host role assigned ────────────────────────────────────────────────────
+  // ── 1. Host role assigned ────────────────────────────────────────────────────
   {
     slug: "host-role-assigned",
     name: "Host Role Assigned",
@@ -82,24 +39,7 @@ Welcome to the team. Reach out any time if you have questions.
 Rooted In Mindfulness · rootedinmindfulness.org`,
   },
 
-  // ── 4. Missing session report alert ─────────────────────────────────────────
-  {
-    slug: "missing-report-alert",
-    name: "Missing Session Report",
-    description: "Nightly cron alert to coordinators when no post-session report was filed.",
-    subject: "No session report filed — {{programName}}, {{sessionDateDisplay}}",
-    variables: ["programName", "sessionDateDisplay", "assignedHostName", "detailUrl"],
-    body: `Just a heads up — no post-session report was submitted for **{{programName}}** tonight ({{sessionDateDisplay}}).
-
-If everything went smoothly and nothing needs follow-up, no action is needed. If you'd like to follow up with {{assignedHostName}}, their report link is below.
-
-**[View session in coordinator history →]({{detailUrl}})**
-
----
-Rooted In Mindfulness · rootedinmindfulness.org`,
-  },
-
-  // ── 5. Sub request posted ────────────────────────────────────────────────────
+  // ── 2. Sub request posted ────────────────────────────────────────────────────
   {
     slug: "sub-request-posted",
     name: "Sub Request Posted",
@@ -121,7 +61,7 @@ Or [view the full schedule]({{hubUrl}}) to see other ways to help.
 Rooted In Mindfulness · rootedinmindfulness.org`,
   },
 
-  // ── 6. Sub request claimed ───────────────────────────────────────────────────
+  // ── 3. Sub request claimed ───────────────────────────────────────────────────
   {
     slug: "sub-request-claimed",
     name: "Sub Request Claimed",
@@ -141,7 +81,7 @@ Your sub request for **{{programName}}**{{sessionDate}} has been covered — **{
 Rooted In Mindfulness · rootedinmindfulness.org`,
   },
 
-  // ── 7. Session reminder ──────────────────────────────────────────────────────
+  // ── 4. Session reminder ──────────────────────────────────────────────────────
   {
     slug: "session-reminder",
     name: "Session Reminder",

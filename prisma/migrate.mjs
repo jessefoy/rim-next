@@ -356,6 +356,37 @@ const migrations = [
     },
   },
   {
+    // Session 96 — Delete orphan email templates. These three were seeded
+    // for the post-session reflection module (session 76) and the early
+    // attendance-tracking flows. Both code paths were removed and the
+    // templates have no callers in lib/email.ts.
+    name: "delete_orphan_email_templates",
+    async run() {
+      const flag = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags"
+        WHERE name = 'delete_orphan_email_templates_v1'
+      `).catch(() => []);
+      if (flag.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      const result = await db.emailTemplate.deleteMany({
+        where: {
+          slug: { in: ["first-time-attendee", "returning-after-absence", "missing-report-alert"] },
+        },
+      });
+
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
+      `).catch(() => {});
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('delete_orphan_email_templates_v1')
+      `);
+      console.log(`  ✔ Applied: ${this.name} (${result.count} orphan templates removed)`);
+    },
+  },
+  {
     // Session 96 — Templates default to enabled:false (intentional safety
     // gate so seed installs don't immediately start sending). The five
     // production templates below are required for live RIM workflows;
