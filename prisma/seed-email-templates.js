@@ -99,14 +99,16 @@ Rooted In Mindfulness · rootedinmindfulness.org`,
     name: "Sub Request Posted",
     description: "Sent to all hosts when a host posts a sub request.",
     subject: "Sub needed: {{programName}}{{sessionDate}}",
-    variables: ["firstName", "requesterName", "programName", "sessionDate", "message", "hubUrl"],
+    variables: ["firstName", "requesterName", "programName", "sessionDate", "message", "hubUrl", "coverUrl"],
     body: `Hi {{firstName}},
 
 **{{requesterName}}** needs a sub for **{{programName}}**{{sessionDate}}.
 
 {{message}}
 
-**[View Sub Board →]({{hubUrl}})**
+**[Cover this session →]({{coverUrl}})**
+
+Or [view the full schedule]({{hubUrl}}) to see other ways to help.
 
 ---
 Rooted In Mindfulness · rootedinmindfulness.org`,

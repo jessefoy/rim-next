@@ -355,6 +355,60 @@ const migrations = [
       console.log(`  ✔ Applied: ${this.name}`);
     },
   },
+  {
+    // Session 96 — Schedule tool rebuild: sub-request emails carry a
+    // {{coverUrl}} deep link that opens the schedule page with the cover
+    // confirmation modal pre-opened. The DB-stored email template needs
+    // the new variable + a "Cover this session →" button. Idempotent:
+    // upserts and records a flag so it only runs once per environment.
+    name: "update_sub_request_posted_template_with_cover_url",
+    async run() {
+      const flag = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags"
+        WHERE name = 'update_sub_request_posted_template_with_cover_url_v1'
+      `).catch(() => []);
+      if (flag.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      const newVariables = ["firstName", "requesterName", "programName", "sessionDate", "message", "hubUrl", "coverUrl"];
+      const newBody = `Hi {{firstName}},
+
+**{{requesterName}}** needs a sub for **{{programName}}**{{sessionDate}}.
+
+{{message}}
+
+**[Cover this session →]({{coverUrl}})**
+
+Or [view the full schedule]({{hubUrl}}) to see other ways to help.
+
+---
+Rooted In Mindfulness · rootedinmindfulness.org`;
+
+      await db.emailTemplate.upsert({
+        where: { slug: "sub-request-posted" },
+        update: { variables: newVariables, body: newBody },
+        create: {
+          slug: "sub-request-posted",
+          name: "Sub Request Posted",
+          description: "Sent to all hosts when a host posts a sub request.",
+          subject: "Sub needed: {{programName}}{{sessionDate}}",
+          variables: newVariables,
+          body: newBody,
+        },
+      });
+
+      // Ensure flag table exists, then record this migration's flag.
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
+      `).catch(() => {});
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('update_sub_request_posted_template_with_cover_url_v1')
+      `);
+      console.log(`  ✔ Applied: ${this.name}`);
+    },
+  },
 ];
 
 async function main() {
