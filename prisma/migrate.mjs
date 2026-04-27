@@ -950,6 +950,121 @@ Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`,
     },
   },
   {
+    // Session 96 — Organize email templates into groups in /admin/emails,
+    // and add helpText warnings to the auth-critical and support-team
+    // templates so admins understand the consequences of changes.
+    //
+    // Group keys are numerically prefixed (01-auth, 02-registrations, …)
+    // to control display order; the EmailTemplate index page sorts by
+    // `group` ascending. The user-visible label is `groupLabel`.
+    //
+    // helpText is rendered above the subject line in the per-template
+    // editor — visible whenever an admin opens a template to edit.
+    name: "organize_email_templates_with_groups_and_helptext",
+    async run() {
+      const flag = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags"
+        WHERE name = 'organize_email_templates_with_groups_and_helptext_v1'
+      `).catch(() => []);
+      if (flag.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      // Centralized mapping. Each entry: { slug, group, groupLabel, helpText? }
+      const ORG = [
+        // ─── 01 · Sign-in & Authentication (CRITICAL) ───────────────────
+        {
+          slug: "magic-link-new-user",
+          group: "01-auth",
+          groupLabel: "Sign-in & Authentication",
+          helpText:
+            "⚠️ CRITICAL — required for new-account sign-up.\n\n" +
+            "Sent automatically by NextAuth when a first-time visitor enters their email address. If this template is disabled, OR if the {{url}} variable is removed from the body, sign-up breaks immediately for everyone — new visitors can't complete account creation.\n\n" +
+            "SAFE to edit: subject line, greeting, body copy, link/button label.\n\n" +
+            "DO NOT: disable the \"Enabled\" toggle, remove or rename {{url}}, or remove the link/button entirely.\n\n" +
+            "If sign-up appears broken: confirm this template is Enabled and the body still contains {{url}}.",
+        },
+        {
+          slug: "magic-link-returning",
+          group: "01-auth",
+          groupLabel: "Sign-in & Authentication",
+          helpText:
+            "⚠️ CRITICAL — required for member sign-in.\n\n" +
+            "Sent automatically by NextAuth when an existing member enters their email address. If this template is disabled, OR if the {{url}} variable is removed from the body, sign-in breaks immediately for everyone — members can't access their accounts.\n\n" +
+            "SAFE to edit: subject line, greeting, body copy, link/button label.\n\n" +
+            "DO NOT: disable the \"Enabled\" toggle, remove or rename {{url}}, or remove the link/button entirely.\n\n" +
+            "If sign-in appears broken: confirm this template is Enabled and the body still contains {{url}}.",
+        },
+
+        // ─── 02 · Registrations ─────────────────────────────────────────
+        { slug: "registration-confirmation",        group: "02-registrations", groupLabel: "Registrations" },
+        { slug: "waitlist-approval",                group: "02-registrations", groupLabel: "Registrations" },
+        { slug: "edit-request",                     group: "02-registrations", groupLabel: "Registrations" },
+        { slug: "dana-reminder",                    group: "02-registrations", groupLabel: "Registrations" },
+        { slug: "registration-cancelled-internal",  group: "02-registrations", groupLabel: "Registrations" },
+        { slug: "responses-updated-internal",       group: "02-registrations", groupLabel: "Registrations" },
+
+        // ─── 03 · Session Reminders ─────────────────────────────────────
+        { slug: "session-reminder",                 group: "03-sessions",      groupLabel: "Session Reminders" },
+
+        // ─── 04 · Host Team ─────────────────────────────────────────────
+        { slug: "host-role-assigned",               group: "04-hosts",         groupLabel: "Host Team" },
+        { slug: "sub-request-posted",               group: "04-hosts",         groupLabel: "Host Team" },
+        { slug: "sub-request-claimed",              group: "04-hosts",         groupLabel: "Host Team" },
+
+        // ─── 05 · Hubs & Onboarding ─────────────────────────────────────
+        { slug: "registrar-role-assigned",          group: "05-hubs",          groupLabel: "Hubs & Onboarding" },
+        { slug: "hub-welcome",                      group: "05-hubs",          groupLabel: "Hubs & Onboarding" },
+        { slug: "hub-conv-new-thread",              group: "05-hubs",          groupLabel: "Hubs & Onboarding" },
+        { slug: "hub-conv-new-reply",               group: "05-hubs",          groupLabel: "Hubs & Onboarding" },
+
+        // ─── 06 · Support Inbox (IMPORTANT) ─────────────────────────────
+        {
+          slug: "support-notification",
+          group: "06-support",
+          groupLabel: "Support Inbox",
+          helpText:
+            "Important — keeps the support team in the loop.\n\n" +
+            "Sent to a support team member when a thread has activity: thread assigned to them, a new reply from a member, or a new internal note from a teammate. The same template is used for all three event types — the {{message}} variable carries the event-specific text, built in lib/supportNotify.ts.\n\n" +
+            "If disabled, the support team will still see in-app alerts at /tools/inbox, but they won't receive email notifications. Most people rely on email to know when there's a new reply, so disabling will likely slow response times.\n\n" +
+            "The {{message}} variable contains text like \"New reply from Sarah on 'Question about registration'\" — it's required for the email to make sense. Don't remove it.",
+        },
+
+        // ─── 07 · Public Forms ──────────────────────────────────────────
+        { slug: "volunteer-interest-internal",      group: "07-forms",         groupLabel: "Public Forms" },
+        { slug: "kalyana-application-internal",     group: "07-forms",         groupLabel: "Public Forms" },
+
+        // ─── 08 · Courses ───────────────────────────────────────────────
+        { slug: "drip-lesson-available",            group: "08-courses",       groupLabel: "Courses" },
+      ];
+
+      let count = 0;
+      for (const entry of ORG) {
+        const data = {
+          group: entry.group,
+          groupLabel: entry.groupLabel,
+          ...(entry.helpText !== undefined ? { helpText: entry.helpText } : {}),
+        };
+        // Use updateMany so missing slugs are silently skipped (won't error
+        // if a template isn't present in this environment for any reason).
+        const result = await db.emailTemplate.updateMany({
+          where: { slug: entry.slug },
+          data,
+        });
+        count += result.count;
+      }
+
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
+      `).catch(() => {});
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('organize_email_templates_with_groups_and_helptext_v1')
+      `);
+      console.log(`  ✔ Applied: ${this.name} (${count} templates organized)`);
+    },
+  },
+  {
     // Session 96 — Schedule tool rebuild: sub-request emails carry a
     // {{coverUrl}} deep link that opens the schedule page with the cover
     // confirmation modal pre-opened. The DB-stored email template needs
