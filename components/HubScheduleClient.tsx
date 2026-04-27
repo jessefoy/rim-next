@@ -63,6 +63,14 @@ function fmtDateLong(iso: string | null): string {
   });
 }
 
+function fmtDateShort(iso: string | null): string {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString("en-US", {
+    weekday: "short", month: "short", day: "numeric",
+    timeZone: "America/Chicago",
+  });
+}
+
 function fmtTime(iso: string | null): string {
   if (!iso) return "";
   return new Date(iso).toLocaleTimeString("en-US", {
@@ -75,6 +83,60 @@ function fmtFormat(fmt: string | null): string | null {
   if (fmt === "hybrid") return "In-person and virtual";
   if (fmt === "in-person") return "In person";
   return null;
+}
+
+/** Returns CT-midnight Date for the Monday of the current week. */
+function getThisMonday(): Date {
+  const TZ = "America/Chicago";
+  const ctNow = new Date(new Date().toLocaleString("en-US", { timeZone: TZ }));
+  const dayOfWeek = ctNow.getDay();
+  const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const monday = new Date(ctNow);
+  monday.setDate(monday.getDate() + diffToMonday);
+  monday.setHours(0, 0, 0, 0);
+  return monday;
+}
+
+/** CT-midnight for the start of today. */
+function getToday(): Date {
+  const TZ = "America/Chicago";
+  const ctNow = new Date(new Date().toLocaleString("en-US", { timeZone: TZ }));
+  ctNow.setHours(0, 0, 0, 0);
+  return ctNow;
+}
+
+interface Bucket {
+  key: string;
+  label: string;
+  sessions: Session[];
+  primary: boolean; // primary = full cards; secondary = compact
+}
+
+/** Group sessions by relative time. Only buckets when viewing the current month. */
+function bucketSessions(sessions: Session[], isCurrentMonth: boolean): Bucket[] {
+  if (!isCurrentMonth) {
+    if (sessions.length === 0) return [];
+    return [{ key: "all", label: "", sessions, primary: false }];
+  }
+  const monday = getThisMonday();
+  const nextMondayMs = monday.getTime() + 7 * 24 * 60 * 60 * 1000;
+  const weekAfterMs = monday.getTime() + 14 * 24 * 60 * 60 * 1000;
+
+  const thisWeek: Session[] = [];
+  const nextWeek: Session[] = [];
+  const later: Session[] = [];
+  for (const s of sessions) {
+    if (!s.sessionDate) { later.push(s); continue; }
+    const ms = new Date(s.sessionDate).getTime();
+    if (ms < nextMondayMs) thisWeek.push(s);
+    else if (ms < weekAfterMs) nextWeek.push(s);
+    else later.push(s);
+  }
+  const buckets: Bucket[] = [];
+  if (thisWeek.length > 0) buckets.push({ key: "this-week", label: "This week", sessions: thisWeek, primary: true });
+  if (nextWeek.length > 0) buckets.push({ key: "next-week", label: "Next week", sessions: nextWeek, primary: false });
+  if (later.length > 0)    buckets.push({ key: "later", label: "Later this month", sessions: later, primary: false });
+  return buckets;
 }
 
 function Toast({ msg }: { msg: string | null }) {
@@ -197,21 +259,73 @@ type CardKind = "needs" | "yours" | "yours-asking" | "covered";
 interface CardProps {
   session: Session;
   kind: CardKind;
+  compact?: boolean;
   onTake: (s: Session) => void;
   onAskCover: (s: Session) => void;
   onReassign: (s: Session) => void;
   isHostManager: boolean;
 }
 
-function HsCard({ session, kind, onTake, onAskCover, onReassign, isHostManager }: CardProps) {
-  const dateStr = fmtDateLong(session.sessionDate);
+function HsCard({ session, kind, compact = false, onTake, onAskCover, onReassign, isHostManager }: CardProps) {
+  const dateLong = fmtDateLong(session.sessionDate);
+  const dateShort = fmtDateShort(session.sessionDate);
   const timeStr = fmtTime(session.sessionDate);
   const fmt = fmtFormat(session.programFormat);
+  const showManager = isHostManager && (kind === "needs" || kind === "covered");
 
+  // Compact: horizontal row, scannable, smaller action.
+  if (compact) {
+    return (
+      <div className={`hs-card hs-card--compact hs-card--${kind}`}>
+        <div className="hs-card__main">
+          <div className="hs-card__when-line">
+            {dateShort}
+            {timeStr && <> · <span className="hs-card__time">{timeStr}</span></>}
+          </div>
+          <div className="hs-card__what-line">
+            <span className="hs-card__name">{session.programName}</span>
+            {fmt && <span className="hs-card__format"> · {fmt}</span>}
+          </div>
+        </div>
+        <div className="hs-card__do hs-card__do--compact">
+          {kind === "needs" && (
+            <button
+              className="lr-btn lr-btn--host"
+              onClick={() => onTake(session)}
+            >
+              Yes, I can host
+            </button>
+          )}
+          {kind === "yours" && (
+            <button className="hs-card__quiet" onClick={() => onAskCover(session)}>
+              Ask the team to cover
+            </button>
+          )}
+          {kind === "yours-asking" && (
+            <span className="hs-card__status hs-card__status--asking">
+              Waiting for a sub
+            </span>
+          )}
+          {kind === "covered" && session.hostName && (
+            <span className="hs-card__status hs-card__status--covered">
+              {session.hostName}
+            </span>
+          )}
+          {showManager && (
+            <button className="hs-card__manager" onClick={() => onReassign(session)}>
+              Reassign to me
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Full card: vertical, generous, big action — used for urgent (this-week) needs.
   return (
     <div className={`hs-card hs-card--${kind}`}>
       <div className="hs-card__when">
-        <div className="hs-card__date">{dateStr}</div>
+        <div className="hs-card__date">{dateLong}</div>
         <div className="hs-card__time">{timeStr}</div>
       </div>
       <div className="hs-card__what">
@@ -253,7 +367,7 @@ function HsCard({ session, kind, onTake, onAskCover, onReassign, isHostManager }
           </div>
         )}
       </div>
-      {isHostManager && (kind === "needs" || kind === "covered") && (
+      {showManager && (
         <button className="hs-card__manager" onClick={() => onReassign(session)}>
           Reassign to me
         </button>
@@ -450,6 +564,7 @@ export default function HubScheduleClient({
 
   const today = new Date();
   const isCurrentMonth = year === today.getFullYear() && month === today.getMonth();
+  const todayMs = useMemo(() => getToday().getTime(), []);
 
   const sortByDate = (a: Session, b: Session) => {
     if (!a.sessionDate) return 1;
@@ -457,23 +572,37 @@ export default function HubScheduleClient({
     return new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime();
   };
 
+  // For the current month, filter out sessions that already happened.
+  // For other months, show everything (historical or future).
+  const visibleSessions = useMemo(() => {
+    if (!isCurrentMonth) return sessions;
+    return sessions.filter(s => {
+      if (!s.sessionDate) return true;
+      return new Date(s.sessionDate).getTime() >= todayMs;
+    });
+  }, [sessions, isCurrentMonth, todayMs]);
+
   const yours = useMemo(() =>
-    sessions.filter(s => s.hostUserId === currentUserId).slice().sort(sortByDate),
-    [sessions, currentUserId],
+    visibleSessions.filter(s => s.hostUserId === currentUserId).slice().sort(sortByDate),
+    [visibleSessions, currentUserId],
   );
   const needs = useMemo(() =>
-    sessions.filter(s =>
+    visibleSessions.filter(s =>
       (s.status !== "claimed" || s.subRequestId) &&
       s.hostUserId !== currentUserId
     ).slice().sort(sortByDate),
-    [sessions, currentUserId],
+    [visibleSessions, currentUserId],
   );
   const covered = useMemo(() =>
-    sessions.filter(s =>
+    visibleSessions.filter(s =>
       s.status === "claimed" && !s.subRequestId && s.hostUserId !== currentUserId
     ).slice().sort(sortByDate),
-    [sessions, currentUserId],
+    [visibleSessions, currentUserId],
   );
+
+  const needsBuckets = useMemo(() => bucketSessions(needs, isCurrentMonth), [needs, isCurrentMonth]);
+  const yoursBuckets = useMemo(() => bucketSessions(yours, isCurrentMonth), [yours, isCurrentMonth]);
+  const coveredBuckets = useMemo(() => bucketSessions(covered, isCurrentMonth), [covered, isCurrentMonth]);
 
   const cardHandlers = {
     onTake: openTake,
@@ -503,43 +632,31 @@ export default function HubScheduleClient({
         <p className="hs-loading">Loading…</p>
       ) : (
         <>
-          {/* Yours */}
-          {yours.length > 0 && (
-            <section className="hs-section">
-              <h2 className="hs-section__heading">
-                You're hosting {yours.length}{" "}
-                {yours.length === 1 ? "session" : "sessions"} {periodPhrase}.
-              </h2>
-              <div className="hs-cards">
-                {yours.map(s => (
-                  <HsCard
-                    key={s.id}
-                    session={s}
-                    kind={s.subRequestId ? "yours-asking" : "yours"}
-                    {...cardHandlers}
-                  />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Needs */}
-          {needs.length > 0 && (
+          {/* Needs — primary section, the hub's purpose */}
+          {needs.length > 0 ? (
             <section className="hs-section">
               <h2 className="hs-section__heading">
                 {needs.length}{" "}
-                {needs.length === 1 ? "session needs" : "sessions need"} a host.
+                {needs.length === 1 ? "session needs" : "sessions need"} a host {periodPhrase}.
               </h2>
-              <div className="hs-cards">
-                {needs.map(s => (
-                  <HsCard key={s.id} session={s} kind="needs" {...cardHandlers} />
-                ))}
-              </div>
+              {needsBuckets.map(bucket => (
+                <div key={bucket.key} className="hs-bucket">
+                  {bucket.label && <h3 className="hs-bucket__label">{bucket.label}</h3>}
+                  <div className="hs-cards">
+                    {bucket.sessions.map(s => (
+                      <HsCard
+                        key={s.id}
+                        session={s}
+                        kind="needs"
+                        compact={!bucket.primary}
+                        {...cardHandlers}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
             </section>
-          )}
-
-          {/* All set */}
-          {yours.length === 0 && needs.length === 0 && (
+          ) : (
             <div className="hs-allset">
               <p className="hs-allset__heading">
                 All sessions {periodPhrase} have a host.
@@ -550,6 +667,32 @@ export default function HubScheduleClient({
             </div>
           )}
 
+          {/* Yours — secondary section, all compact */}
+          {yours.length > 0 && (
+            <section className="hs-section hs-section--secondary">
+              <h2 className="hs-section__heading hs-section__heading--small">
+                You're hosting {yours.length}{" "}
+                {yours.length === 1 ? "session" : "sessions"} {periodPhrase}.
+              </h2>
+              {yoursBuckets.map(bucket => (
+                <div key={bucket.key} className="hs-bucket">
+                  {bucket.label && <h3 className="hs-bucket__label">{bucket.label}</h3>}
+                  <div className="hs-cards">
+                    {bucket.sessions.map(s => (
+                      <HsCard
+                        key={s.id}
+                        session={s}
+                        kind={s.subRequestId ? "yours-asking" : "yours"}
+                        compact
+                        {...cardHandlers}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </section>
+          )}
+
           {/* Manager: covered sessions, collapsed */}
           {isHostManager && covered.length > 0 && (
             <section className="hs-section hs-section--minor">
@@ -558,15 +701,18 @@ export default function HubScheduleClient({
                 onClick={() => setShowAllOthers(v => !v)}
                 aria-expanded={showAllOthers}
               >
-                {showAllOthers ? "Hide" : "Show"} all other sessions ({covered.length})
+                {showAllOthers ? "Hide" : "Show"} sessions already covered ({covered.length})
               </button>
-              {showAllOthers && (
-                <div className="hs-cards">
-                  {covered.map(s => (
-                    <HsCard key={s.id} session={s} kind="covered" {...cardHandlers} />
-                  ))}
+              {showAllOthers && coveredBuckets.map(bucket => (
+                <div key={bucket.key} className="hs-bucket">
+                  {bucket.label && <h3 className="hs-bucket__label">{bucket.label}</h3>}
+                  <div className="hs-cards">
+                    {bucket.sessions.map(s => (
+                      <HsCard key={s.id} session={s} kind="covered" compact {...cardHandlers} />
+                    ))}
+                  </div>
                 </div>
-              )}
+              ))}
             </section>
           )}
         </>
