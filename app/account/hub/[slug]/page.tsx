@@ -51,43 +51,29 @@ export default async function HubHomePage({
     });
   }
 
-  // Host Hub: role-adaptive home (Phase 5). Coordinators (and admins) see a
-  // different shell than hosts, with a session-scoped toggle to preview the
-  // host view. Other hubs continue to use the generic HubHomeClient below.
+  // Host Hub: single unified home (one view for everyone). Coordinators have
+  // an inline edit affordance on the welcome message; nothing else differs.
+  // Below the welcome are two informational panels:
+  //   - "Our offerings this month"  — team contribution + open coverage
+  //   - "What's new"                — recent conversations / docs / members
   if (slug === "host-team") {
     const isCoordinator = (member?.isCoordinator ?? false) || isAdmin;
 
-    let coordinatorAttention = null;
-    let teamDirectoryHtml = "";
-    if (isCoordinator) {
-      coordinatorAttention = await loadHostHubAttention(hub.id, priorLastVisitedAt);
-      teamDirectoryHtml = await renderFormattedTextAsync(hub.homeContent);
-    }
-
-    // Host-view data — always fetched so coordinators can preview the host view
-    // via the in-page toggle without a round-trip.
-    const hostData = await loadHostHubHostView(hub.id, session.user.id);
-    const welcomeHtml = await renderFormattedTextAsync(hub.welcomeBody);
-
-    // "Our offerings this month" — collective visibility, shown to both
-    // coordinators and hosts. Built from existing program + assignment data.
-    const thisMonth = await loadHostHubThisMonth(hub.id);
+    const [welcomeHtml, thisMonth, recent] = await Promise.all([
+      renderFormattedTextAsync(hub.welcomeBody),
+      loadHostHubThisMonth(hub.id),
+      loadHostHubRecent(hub.id),
+    ]);
 
     return (
       <HostHubHomeClient
         slug={slug}
         hubName={hub.name}
-        viewerRole={isCoordinator ? "coordinator" : "host"}
-        canToggle={isCoordinator}
         canEditContent={isCoordinator}
-        coordinatorAttention={coordinatorAttention}
-        teamDirectoryHtml={teamDirectoryHtml}
-        teamDirectoryJson={isCoordinator ? (hub.homeContent ?? null) : null}
         welcomeHtml={welcomeHtml}
         welcomeJson={isCoordinator ? (hub.welcomeBody ?? null) : null}
-        pinnedThreads={hostData.pinnedThreads}
-        teamRoster={hostData.teamRoster}
         thisMonth={thisMonth}
+        recent={recent}
       />
     );
   }
@@ -194,193 +180,12 @@ export default async function HubHomePage({
 }
 
 /**
- * Host Hub — coordinator attention data.
- *
- * Four lists that tell a coordinator what needs follow-up. Hub-specific for
- * now (see UP_NEXT.md / Phase 5 spec). Generalize when a second hub asks for
- * its own attention view.
- */
-async function loadHostHubAttention(hubId: string, priorLastVisitedAt: Date | null) {
-  const now = new Date();
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-
-  // 1. Pending new hosts — HubMember joined in the last 7 days.
-  const newHosts = await db.hubMember.findMany({
-    where: {
-      hubId,
-      joinedAt: { gte: sevenDaysAgo },
-      status: "ACTIVE",
-    },
-    select: {
-      id: true,
-      joinedAt: true,
-      user: {
-        select: { id: true, firstName: true, lastName: true, preferredName: true },
-      },
-    },
-    orderBy: { joinedAt: "desc" },
-  });
-
-  // 2. Unassigned virtual/hybrid programs in the next 30 days.
-  // Mirrors app/api/cron/check-unassigned-hosts logic — "standing" assignment
-  // means sessionDate is null (covers all occurrences of a recurring program).
-  const upcomingPrograms = await db.program.findMany({
-    where: {
-      programFormat: { in: ["virtual", "hybrid"] },
-      startDatetime: { gte: now, lte: in30Days },
-    },
-    select: { id: true, name: true, slug: true, startDatetime: true },
-    orderBy: { startDatetime: "asc" },
-  });
-  const assignedSlugs = upcomingPrograms.length === 0
-    ? new Set<string>()
-    : await db.hostAssignment
-        .findMany({
-          where: {
-            programSlug: { in: upcomingPrograms.map((p) => p.slug) },
-            sessionDate: null,
-          },
-          select: { programSlug: true },
-          distinct: ["programSlug"],
-        })
-        .then((rows) => new Set(rows.map((r) => r.programSlug)));
-  const unassignedPrograms = upcomingPrograms.filter((p) => !assignedSlugs.has(p.slug));
-
-  // 3. Unclaimed sub requests — any OPEN regardless of program.
-  const openSubs = await db.subRequest.findMany({
-    where: { status: "OPEN" },
-    select: {
-      id: true,
-      programSlug: true,
-      sessionDate: true,
-      createdAt: true,
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  // 4. New conversation threads since the coordinator's last visit.
-  const newThreads = priorLastVisitedAt
-    ? await db.hubConversationThread.findMany({
-        where: {
-          hubId,
-          status: { not: "ARCHIVED" },
-          createdAt: { gt: priorLastVisitedAt },
-        },
-        select: {
-          id: true,
-          title: true,
-          createdAt: true,
-          author: { select: { firstName: true, preferredName: true } },
-        },
-        orderBy: { createdAt: "desc" },
-      })
-    : [];
-
-  return {
-    newHosts: newHosts.map((m) => ({
-      id: m.id,
-      userId: m.user.id,
-      name:
-        m.user.preferredName ||
-        [m.user.firstName, m.user.lastName].filter(Boolean).join(" ") ||
-        "New member",
-      joinedAt: m.joinedAt.toISOString(),
-    })),
-    unassignedPrograms: unassignedPrograms.map((p) => ({
-      slug: p.slug,
-      name: p.name,
-      startDatetime: p.startDatetime?.toISOString() ?? null,
-    })),
-    openSubs: openSubs.map((s) => ({
-      id: s.id,
-      programSlug: s.programSlug,
-      sessionDate: s.sessionDate?.toISOString() ?? null,
-      createdAt: s.createdAt.toISOString(),
-    })),
-    newThreads: newThreads.map((t) => ({
-      id: t.id,
-      title: t.title,
-      authorName: t.author.preferredName || t.author.firstName || "Someone",
-      createdAt: t.createdAt.toISOString(),
-    })),
-  };
-}
-
-/**
- * Host Hub — host-view data (pinned threads + team roster).
- *
- * The roster lists every ACTIVE hub member except the viewer themselves. The
- * host view intentionally does not filter on hostingCapability — someone who
- * is paused is still part of the team and should still be visible on the
- * directory. Paused state is surfaced in the badge instead.
- */
-async function loadHostHubHostView(hubId: string, viewerId: string) {
-  const [pinned, roster] = await Promise.all([
-    db.hubConversationThread.findMany({
-      where: { hubId, isPinned: true, status: "OPEN" },
-      select: { id: true, title: true },
-      orderBy: { pinnedAt: "desc" },
-      take: 5,
-    }),
-    db.hubMember.findMany({
-      where: { hubId, status: "ACTIVE", userId: { not: viewerId } },
-      select: {
-        id: true,
-        isCoordinator: true,
-        position: true,
-        status: true,
-        user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            preferredName: true,
-            title: true,
-            avatarUrl: true,
-            bio: true,
-          },
-        },
-      },
-      orderBy: [{ isCoordinator: "desc" }, { joinedAt: "asc" }],
-    }),
-  ]);
-
-  return {
-    pinnedThreads: pinned,
-    teamRoster: await Promise.all(
-      roster.map(async (m) => ({
-        id: m.id,
-        userId: m.user.id,
-        name:
-          m.user.preferredName ||
-          [m.user.firstName, m.user.lastName].filter(Boolean).join(" ") ||
-          "Team member",
-        title: m.position || m.user.title || null,
-        avatarUrl: m.user.avatarUrl,
-        isCoordinator: m.isCoordinator,
-        bioHtml: await renderFormattedTextAsync(m.user.bio),
-      })),
-    ),
-  };
-}
-
-/**
  * Compute "Our offerings this month" panel data for the host hub home.
- *
  * Replicates the schedule tool's occurrence computation (every virtual/hybrid
  * program × every day in the current month, filtered through recurrence rules)
- * and rolls up into team-level aggregates:
- *
- *   - totalSessions: count of all session occurrences this month
- *   - openSessions:  count of occurrences with no assigned host OR with an
- *                    open sub request
- *   - hostingMembers: active host-team members who are hosting at least one
- *                     session this month, with their count, sorted by count desc
- *   - availableMembers: active host-team members not yet hosting this month
- *
- * Sangha-friendly framing: "available" emphasizes presence/willingness rather
- * than absence; the split list avoids putting "0" next to a member's name.
+ * and rolls up into team-level aggregates. Sangha-friendly framing: "available"
+ * emphasizes presence/willingness rather than absence; the split list avoids
+ * putting "0" next to a member's name.
  */
 async function loadHostHubThisMonth(hubId: string) {
   const now = new Date();
@@ -479,5 +284,93 @@ async function loadHostHubThisMonth(hubId: string) {
     openSessions,
     hostingMembers,
     availableMembers,
+  };
+}
+
+/**
+ * "What's new" — recent activity in the host hub for the home panel.
+ *
+ * Three streams of recent change, capped to keep the panel small:
+ *   - Conversations: threads created OR with the latest reply in the last 14 days
+ *   - Documents:     hub documents created or updated in the last 14 days
+ *   - Members:       hub members who joined in the last 14 days
+ *
+ * Sangha-friendly framing: "what's new" frames this as community pulse,
+ * not a feed of stuff to action. Recently-changed conversations may need
+ * a glance; new members are introductions, not work.
+ */
+async function loadHostHubRecent(hubId: string) {
+  const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+
+  const [threads, documents, newMembers] = await Promise.all([
+    db.hubConversationThread.findMany({
+      where: {
+        hubId,
+        status: "OPEN",
+        OR: [
+          { createdAt: { gte: fourteenDaysAgo } },
+          { updatedAt: { gte: fourteenDaysAgo } },
+        ],
+      },
+      select: {
+        id: true,
+        title: true,
+        createdAt: true,
+        updatedAt: true,
+        author: { select: { firstName: true, lastName: true, preferredName: true } },
+        _count: { select: { replies: true } },
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 5,
+    }),
+    db.hubDocument.findMany({
+      where: {
+        hubId,
+        OR: [
+          { createdAt: { gte: fourteenDaysAgo } },
+          { updatedAt: { gte: fourteenDaysAgo } },
+        ],
+      },
+      select: { id: true, label: true, isNative: true, createdAt: true, updatedAt: true },
+      orderBy: { updatedAt: "desc" },
+      take: 5,
+    }),
+    db.hubMember.findMany({
+      where: { hubId, status: "ACTIVE", joinedAt: { gte: fourteenDaysAgo } },
+      select: {
+        id: true,
+        joinedAt: true,
+        user: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
+      },
+      orderBy: { joinedAt: "desc" },
+      take: 5,
+    }),
+  ]);
+
+  function nameFor(p: { firstName: string | null; lastName: string | null; preferredName: string | null }) {
+    return p.preferredName || [p.firstName, p.lastName].filter(Boolean).join(" ") || "Someone";
+  }
+
+  return {
+    threads: threads.map((t) => ({
+      id: t.id,
+      title: t.title,
+      authorName: nameFor(t.author),
+      replyCount: t._count.replies,
+      createdAt: t.createdAt.toISOString(),
+      updatedAt: t.updatedAt.toISOString(),
+    })),
+    documents: documents.map((d) => ({
+      id: d.id,
+      label: d.label,
+      isNative: d.isNative,
+      createdAt: d.createdAt.toISOString(),
+      updatedAt: d.updatedAt.toISOString(),
+    })),
+    newMembers: newMembers.map((m) => ({
+      userId: m.user.id,
+      name: nameFor(m.user),
+      joinedAt: m.joinedAt.toISOString(),
+    })),
   };
 }
