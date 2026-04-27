@@ -46,6 +46,20 @@ export default async function ScheduleToolPage({
     .filter(Boolean) as string[];
   const coordinatorName = coordinators.length > 0 ? coordinators[0] : undefined;
 
+  // Serialize the full member list for the client's member-picker dropdown.
+  // Includes everyone in the host-team hub (active members), so volunteers
+  // can view any teammate's schedule the same way a coordinator would.
+  const teamMembers = (hubContext?.members ?? [])
+    .map((m) => ({
+      id: m.user.id,
+      displayName:
+        m.user.preferredName ||
+        [m.user.firstName, m.user.lastName].filter(Boolean).join(" ") ||
+        "Unnamed",
+      isCoordinator: m.isCoordinator,
+    }))
+    .sort((a, b) => a.displayName.localeCompare(b.displayName));
+
   const now = new Date();
   const year  = now.getFullYear();
   const month = now.getMonth();
@@ -169,6 +183,7 @@ export default async function ScheduleToolPage({
       <HubScheduleClient
         initialSessions={sessions}
         programs={serializedPrograms}
+        teamMembers={teamMembers}
         initialYear={year}
         initialMonth={month}
         currentUserId={session.user.id}

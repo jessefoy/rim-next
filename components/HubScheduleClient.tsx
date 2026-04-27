@@ -40,9 +40,16 @@ interface Program {
   programFormat: string | null;
 }
 
+interface TeamMember {
+  id: string;
+  displayName: string;
+  isCoordinator: boolean;
+}
+
 interface Props {
   initialSessions: Session[];
   programs: Program[];
+  teamMembers: TeamMember[];
   initialYear: number;
   initialMonth: number;
   currentUserId: string;
@@ -386,7 +393,7 @@ function HsRow({
 // ── Main ────────────────────────────────────────────────────
 
 export default function HubScheduleClient({
-  initialSessions, initialYear, initialMonth, currentUserId, currentUserName,
+  initialSessions, teamMembers, initialYear, initialMonth, currentUserId, currentUserName,
   isHostManager = false, apiBase = "/api/host",
 }: Props) {
   const router = useRouter();
@@ -398,8 +405,23 @@ export default function HubScheduleClient({
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey>("all");
+  const [selectedMemberId, setSelectedMemberId] = useState<string>(currentUserId);
+  const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
   const [modal, setModal] = useState<{ kind: ModalKind; session: Session | null }>({ kind: null, session: null });
   const [modalSubmitting, setModalSubmitting] = useState(false);
+
+  // Close dropdown on outside click
+  const memberPillRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!memberDropdownOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (memberPillRef.current && !memberPillRef.current.contains(e.target as Node)) {
+        setMemberDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [memberDropdownOpen]);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -643,48 +665,46 @@ export default function HubScheduleClient({
   }, [todayMs]);
 
   // Counts:
-  //   "needs" and "my-requests" exclude past — those are actionable counts,
-  //   and a past session can't be hosted or have its request fulfilled.
-  //   "All" and "mine" reflect the full month including past — that's the
-  //   dataset the user is looking at.
+  //   When viewing the current month, ALL pill counts exclude past sessions
+  //   — past sessions appear in the "Earlier this month" collapsible at the
+  //   bottom, not in the active counts.
+  //   For other months, every session in that month counts (the user
+  //   navigated there intentionally to see that month's data).
+  //   "Mine" counts the selected member (defaults to self).
   const counts = useMemo(() => {
     let all = 0, needs = 0, mine = 0, myReq = 0;
     for (const s of sessions) {
-      all++;
-      const isMine = s.hostUserId === currentUserId;
       const past = isPast(s);
-      if (isMine) {
-        mine++;
-        if (s.subRequestId && !past) myReq++;
-      } else if (s.status !== "claimed" || s.subRequestId) {
-        if (!past) needs++;
-      }
+      if (isCurrentMonth && past) continue;
+      all++;
+      const isSelectedMembers = s.hostUserId === selectedMemberId;
+      const isMine = s.hostUserId === currentUserId;
+      if (isSelectedMembers) mine++;
+      if (isMine && s.subRequestId) myReq++;
+      if (!isMine && (s.status !== "claimed" || s.subRequestId)) needs++;
     }
     return { all, needs, mine, myReq };
-  }, [sessions, currentUserId, isPast]);
+  }, [sessions, currentUserId, selectedMemberId, isPast, isCurrentMonth]);
 
-  // Apply active filter. "Needs help" and "My requests" exclude past.
+  // Apply active filter. "Mine" filter scopes to selectedMemberId.
   const filteredSessions = useMemo(() => {
     if (filter === "all") return sessions;
     if (filter === "needs") {
       return sessions.filter(s =>
         s.hostUserId !== currentUserId &&
-        (s.status !== "claimed" || s.subRequestId) &&
-        !isPast(s)
+        (s.status !== "claimed" || s.subRequestId)
       );
     }
     if (filter === "mine") {
-      return sessions.filter(s => s.hostUserId === currentUserId);
+      return sessions.filter(s => s.hostUserId === selectedMemberId);
     }
     if (filter === "my-requests") {
       return sessions.filter(s =>
-        s.hostUserId === currentUserId &&
-        s.subRequestId &&
-        !isPast(s)
+        s.hostUserId === currentUserId && s.subRequestId
       );
     }
     return sessions;
-  }, [sessions, filter, currentUserId, isPast]);
+  }, [sessions, filter, currentUserId, selectedMemberId]);
 
   // When viewing the current month, split past from upcoming.
   // Past goes into a collapsible "Earlier this month" section at the bottom.
@@ -751,15 +771,73 @@ export default function HubScheduleClient({
         >
           Needs help <span className="hs-filter__count">{counts.needs}</span>
         </button>
-        <button
-          role="tab"
-          aria-selected={filter === "mine"}
-          className={`hs-filter${filter === "mine" ? " hs-filter--active" : ""}`}
-          onClick={() => setFilter("mine")}
-        >
-          Mine <span className="hs-filter__count">{counts.mine}</span>
-        </button>
-        {counts.myReq > 0 && (
+
+        {/* Member-picker pill — defaults to "Mine" (self), can switch to any
+            host-team member. Body click = activate filter, arrow = open list. */}
+        <div className="hs-filter-group" ref={memberPillRef}>
+          <button
+            role="tab"
+            aria-selected={filter === "mine"}
+            className={`hs-filter hs-filter--member${filter === "mine" ? " hs-filter--active" : ""}`}
+            onClick={() => {
+              setFilter("mine");
+              setMemberDropdownOpen(false);
+            }}
+          >
+            <span className="hs-filter__label">
+              {selectedMemberId === currentUserId
+                ? "Mine"
+                : (teamMembers.find(m => m.id === selectedMemberId)?.displayName ?? "Member")}
+            </span>
+            <span className="hs-filter__count">{counts.mine}</span>
+          </button>
+          <button
+            type="button"
+            className={`hs-filter__caret${filter === "mine" ? " hs-filter__caret--active" : ""}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              setMemberDropdownOpen(v => !v);
+            }}
+            aria-label="Choose a team member"
+            aria-expanded={memberDropdownOpen}
+          >
+            ▾
+          </button>
+          {memberDropdownOpen && (
+            <div className="hs-member-menu" role="menu">
+              <button
+                role="menuitem"
+                className={`hs-member-menu__item${selectedMemberId === currentUserId ? " hs-member-menu__item--active" : ""}`}
+                onClick={() => {
+                  setSelectedMemberId(currentUserId);
+                  setFilter("mine");
+                  setMemberDropdownOpen(false);
+                }}
+              >
+                Mine
+              </button>
+              {teamMembers.length > 0 && <div className="hs-member-menu__divider" />}
+              {teamMembers.map(m => (
+                <button
+                  key={m.id}
+                  role="menuitem"
+                  className={`hs-member-menu__item${selectedMemberId === m.id ? " hs-member-menu__item--active" : ""}`}
+                  onClick={() => {
+                    setSelectedMemberId(m.id);
+                    setFilter("mine");
+                    setMemberDropdownOpen(false);
+                  }}
+                >
+                  {m.displayName}
+                  {m.isCoordinator && <span className="hs-member-menu__star" aria-label="coordinator"> ★</span>}
+                  {m.id === currentUserId && <span className="hs-member-menu__you"> (you)</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {selectedMemberId === currentUserId && counts.myReq > 0 && (
           <button
             role="tab"
             aria-selected={filter === "my-requests"}
