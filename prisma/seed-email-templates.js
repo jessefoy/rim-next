@@ -414,6 +414,53 @@ Submitted via /kalyana-mitta/kalyana-mitta-group-application`,
 ---
 Rooted In Mindfulness Support`,
   },
+
+  // ── 18. Magic link — new user ────────────────────────────────────────────────
+  // ⚠️ CRITICAL — required for sign-up. If this template is disabled or
+  // missing, NextAuth fails new-account creation. The send call uses
+  // throwOnFailure:true so the user sees "Please try again" rather than
+  // a silent failure.
+  {
+    slug: "magic-link-new-user",
+    name: "Magic Link — New User",
+    description: "⚠️ CRITICAL: required for sign-up. Sent by NextAuth when a first-time visitor enters their email. Disabling this template breaks new-account creation.",
+    enabled: true,
+    subject: "Welcome to Rooted In Mindfulness — your link to join",
+    variables: ["url"],
+    body: `## You're joining the community
+
+We're glad you're here.
+
+Click the button below to complete your account and step into the Rooted In Mindfulness community. This link is for you only and expires in 24 hours.
+
+**[Complete my account →]({{url}})**
+
+If you didn't request this link, you can safely ignore this email.
+
+---
+Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`,
+  },
+
+  // ── 19. Magic link — returning user ──────────────────────────────────────────
+  // ⚠️ CRITICAL — required for sign-in. Same warning as above.
+  {
+    slug: "magic-link-returning",
+    name: "Magic Link — Returning User",
+    description: "⚠️ CRITICAL: required for sign-in. Sent by NextAuth when an existing member enters their email. Disabling this template breaks sign-in.",
+    enabled: true,
+    subject: "Your sign-in link — Rooted In Mindfulness",
+    variables: ["url"],
+    body: `## Your sign-in link
+
+Click the button below to sign in to your account. This link expires in 24 hours.
+
+**[Sign in →]({{url}})**
+
+If you didn't request this link, you can safely ignore this email.
+
+---
+Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`,
+  },
 ];
 
 async function main() {

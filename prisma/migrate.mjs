@@ -872,6 +872,84 @@ Rooted In Mindfulness Support`,
     },
   },
   {
+    // Session 96 — Migrate magic-link emails into the template manager.
+    // Two templates: magic-link-new-user and magic-link-returning. Both are
+    // CRITICAL for authentication; sendMagicLinkEmail uses throwOnFailure
+    // so a missing or disabled template surfaces an error to NextAuth
+    // (which shows "Please try again" to the user) rather than silently
+    // dropping the sign-in attempt.
+    name: "seed_magic_link_email_templates",
+    async run() {
+      const flag = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags"
+        WHERE name = 'seed_magic_link_email_templates_v1'
+      `).catch(() => []);
+      if (flag.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      const templates = [
+        {
+          slug: "magic-link-new-user",
+          name: "Magic Link — New User",
+          description: "⚠️ CRITICAL: required for sign-up. Sent by NextAuth when a first-time visitor enters their email. Disabling this template breaks new-account creation.",
+          enabled: true,
+          subject: "Welcome to Rooted In Mindfulness — your link to join",
+          variables: ["url"],
+          body: `## You're joining the community
+
+We're glad you're here.
+
+Click the button below to complete your account and step into the Rooted In Mindfulness community. This link is for you only and expires in 24 hours.
+
+**[Complete my account →]({{url}})**
+
+If you didn't request this link, you can safely ignore this email.
+
+---
+Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`,
+        },
+        {
+          slug: "magic-link-returning",
+          name: "Magic Link — Returning User",
+          description: "⚠️ CRITICAL: required for sign-in. Sent by NextAuth when an existing member enters their email. Disabling this template breaks sign-in.",
+          enabled: true,
+          subject: "Your sign-in link — Rooted In Mindfulness",
+          variables: ["url"],
+          body: `## Your sign-in link
+
+Click the button below to sign in to your account. This link expires in 24 hours.
+
+**[Sign in →]({{url}})**
+
+If you didn't request this link, you can safely ignore this email.
+
+---
+Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`,
+        },
+      ];
+
+      let count = 0;
+      for (const t of templates) {
+        await db.emailTemplate.upsert({
+          where: { slug: t.slug },
+          update: { name: t.name, description: t.description, subject: t.subject, body: t.body, variables: t.variables, enabled: t.enabled },
+          create: t,
+        });
+        count++;
+      }
+
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
+      `).catch(() => {});
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('seed_magic_link_email_templates_v1')
+      `);
+      console.log(`  ✔ Applied: ${this.name} (${count} templates upserted)`);
+    },
+  },
+  {
     // Session 96 — Schedule tool rebuild: sub-request emails carry a
     // {{coverUrl}} deep link that opens the schedule page with the cover
     // confirmation modal pre-opened. The DB-stored email template needs
