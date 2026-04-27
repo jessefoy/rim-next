@@ -40,6 +40,7 @@
     "@vercel/blob": "^2.3.1",
     "google-auth-library": "^10.6.1",
     "googleapis": "^171.4.0",
+    "handlebars": "^4.7.9",
     "juice": "^11.1.1",
     "livekit-client": "^2.18.0",
     "livekit-server-sdk": "^2.15.0",

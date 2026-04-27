@@ -356,6 +356,25 @@ const migrations = [
     },
   },
   {
+    // Session 96 — EmailTemplate.textBody column. Optional plain-text body
+    // for the templated-email engine. Improves deliverability (Gmail/Outlook
+    // spam scoring favors multipart messages) and accessibility (screen
+    // readers and text-only mail clients).
+    name: "add_email_template_text_body",
+    async run() {
+      const cols = await db.$queryRawUnsafe(`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'email_templates' AND column_name = 'textBody'
+      `);
+      if (cols.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+      await db.$executeRawUnsafe(`ALTER TABLE "email_templates" ADD COLUMN "textBody" TEXT`);
+      console.log(`  ✔ Applied: ${this.name}`);
+    },
+  },
+  {
     // Session 96 — Delete orphan email templates. These three were seeded
     // for the post-session reflection module (session 76) and the early
     // attendance-tracking flows. Both code paths were removed and the

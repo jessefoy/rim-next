@@ -75,15 +75,46 @@ export function wrapInEmailChrome(bodyHtml: string): string {
 
 /**
  * Render a markdown template body to fully inlined HTML ready for email delivery.
- * Same function used at send time AND in the admin preview modal — guarantees
- * what Jesse sees in preview is pixel-identical to what recipients receive.
+ *
+ * Pipeline:
+ *   1. Compile body with Handlebars (variable substitution + conditionals + loops)
+ *   2. Render markdown → HTML via marked
+ *   3. Wrap in RIM brand chrome (header bar + card + footer)
+ *   4. Inline CSS via juice for email-client compatibility
+ *
+ * Same function used at send time AND in the admin preview modal —
+ * guarantees what Jesse sees in preview is pixel-identical to what
+ * recipients receive.
+ *
+ * Variables can be a flat record of strings (legacy callers) or any
+ * Handlebars-compatible context (objects, arrays, booleans for {{#if}}).
  */
-export async function renderTemplateToHtml(markdown: string): Promise<string> {
+export async function renderTemplateToHtml(
+  markdown: string,
+  variables: Record<string, unknown> = {},
+): Promise<string> {
   const { marked } = await import("marked");
   const juice = (await import("juice")).default;
-  const bodyHtml = await marked(markdown);
+  const Handlebars = (await import("handlebars")).default;
+  const compiled = Handlebars.compile(markdown, { noEscape: true })(variables);
+  const bodyHtml = await marked(compiled);
   const wrapped = wrapInEmailChrome(bodyHtml);
   return juice(wrapped, { extraCss: EMAIL_BASE_CSS, removeStyleTags: true });
+}
+
+/**
+ * Render the plain-text fallback for an email.
+ * If a textBody template is provided, compile it with Handlebars.
+ * Otherwise, derive a readable text version from the markdown body source.
+ */
+export async function renderTemplateToText(
+  markdownBody: string,
+  textBody: string | null,
+  variables: Record<string, unknown> = {},
+): Promise<string> {
+  const Handlebars = (await import("handlebars")).default;
+  const source = textBody && textBody.trim().length > 0 ? textBody : markdownBody;
+  return Handlebars.compile(source, { noEscape: true })(variables);
 }
 
 /**
@@ -97,33 +128,56 @@ export async function renderTemplateToHtml(markdown: string): Promise<string> {
  *
  * Errors are caught and logged — a failed templated email must never throw.
  */
+export interface TemplatedEmailOptions {
+  /**
+   * If true, the function rethrows on send failure instead of swallowing.
+   * Used for emails where the caller must surface delivery errors
+   * (e.g. NextAuth magic link).
+   */
+  throwOnFailure?: boolean;
+
+  /**
+   * Optional file attachments passed straight through to Resend.
+   * Each entry is { filename, content }. content can be a string
+   * (e.g., for .ics calendar files) or a Buffer.
+   */
+  attachments?: { filename: string; content: string | Buffer }[];
+}
+
 export async function sendTemplatedEmail(
   slug: string,
   to: string,
-  variables: Record<string, string>
+  variables: Record<string, unknown>,
+  options: TemplatedEmailOptions = {},
 ): Promise<void> {
   try {
     const template = await db.emailTemplate.findUnique({ where: { slug } });
     if (!template || !template.enabled) return;
 
-    let subject = template.subject;
-    let body    = template.body;
-    for (const [key, value] of Object.entries(variables)) {
-      subject = subject.replaceAll(`{{${key}}}`, value);
-      body    = body.replaceAll(`{{${key}}}`, value);
-    }
-
-    const html = await renderTemplateToHtml(body);
+    const Handlebars = (await import("handlebars")).default;
+    const subject = Handlebars.compile(template.subject, { noEscape: true })(variables);
+    const html    = await renderTemplateToHtml(template.body, variables);
+    const text    = await renderTemplateToText(template.body, template.textBody, variables);
 
     const { error } = await resend.emails.send({
       from: FROM,
       to,
       subject,
       html,
+      text,
+      ...(options.attachments && options.attachments.length > 0
+        ? { attachments: options.attachments }
+        : {}),
     });
-    if (error) console.error(`[email] sendTemplatedEmail(${slug}) failed:`, error);
+    if (error) {
+      console.error(`[email] sendTemplatedEmail(${slug}) failed:`, error);
+      if (options.throwOnFailure) {
+        throw new Error(`Failed to send ${slug} email: ${error.message ?? "unknown error"}`);
+      }
+    }
   } catch (e) {
     console.error(`[email] sendTemplatedEmail(${slug}) threw:`, e);
+    if (options.throwOnFailure) throw e;
   }
 }
 

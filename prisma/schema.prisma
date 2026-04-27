@@ -1156,6 +1156,9 @@ model EmailTemplate {
   description String
   subject     String
   body        String   @db.Text
+  // Optional plain-text fallback for better deliverability + accessibility.
+  // If null, sendTemplatedEmail derives a text version from the markdown body.
+  textBody    String?  @db.Text
   enabled     Boolean  @default(false)
   variables   String[]
 
