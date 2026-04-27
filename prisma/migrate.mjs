@@ -9,6 +9,7 @@ import { PrismaClient } from "@prisma/client";
 import { seedPrograms } from "./seed-programs.mjs";
 import { seedManualProgramManager } from "./seed-manual-program-manager.mjs";
 import { seedManualHostHubTeamManagement } from "./seed-manual-host-hub-team-management.mjs";
+import { seedManualHostSchedule } from "./seed-manual-host-schedule.mjs";
 import { seedHostHubHomeContent } from "./seed-host-hub-home-content.mjs";
 
 const db = new PrismaClient();
@@ -1183,6 +1184,24 @@ async function main() {
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_host_hub_home_content_v1')`);
   } else {
     console.log("  ⏭ Host Hub home content already seeded.");
+  }
+
+  // Host Schedule manual section — written for the average host volunteer.
+  // Seeds the new section AND bumps the order on the two sections that
+  // would otherwise collide with order=7. Idempotent via flag.
+  const hostScheduleManualFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'seed_manual_host_schedule_v1'
+  `).catch(() => []);
+
+  if (hostScheduleManualFlag.length === 0) {
+    await seedManualHostSchedule(db);
+    // Push down the sections that previously occupied 7/8 to make room.
+    // updateMany is a no-op when the rows are already at the target order.
+    await db.manualSection.updateMany({ where: { slug: "support-inbox" },    data: { order: 8 } });
+    await db.manualSection.updateMany({ where: { slug: "volunteer-roles" },  data: { order: 9 } });
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_manual_host_schedule_v1')`);
+  } else {
+    console.log("  ⏭ Host Schedule manual already seeded.");
   }
 
   await db.$disconnect();

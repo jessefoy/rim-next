@@ -748,6 +748,16 @@ export default function HubScheduleClient({
 
   return (
     <div className="hs-page">
+      {/* Help link — opens the manual section in a new tab */}
+      <a
+        href="/admin/manual/host-schedule"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="hs-help-link"
+      >
+        New here? <span className="hs-help-link__cta">Read how the schedule works →</span>
+      </a>
+
       {/* Month nav */}
       <div className="hs-monthnav">
         <button className="hs-monthnav__btn" onClick={prevMonth} aria-label="Previous month">←</button>
