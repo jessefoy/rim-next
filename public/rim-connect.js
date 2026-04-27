@@ -264,6 +264,31 @@
     });
   }
 
+  // Populate top-level fields (e.g. weekRangeLabel, weekTitle) on elements
+  // that are NOT inside any list container, plus toggle is-active class on
+  // [data-rim-active-when] elements based on a boolean expression.
+  function populateMeta(data) {
+    var skip = function (el) {
+      return el.closest("[data-rim-group-list], [data-rim-list]");
+    };
+
+    document.querySelectorAll("[data-rim-field]").forEach(function (el) {
+      if (skip(el)) return;
+      var val = get(data, el.getAttribute("data-rim-field"));
+      el.textContent = val != null ? String(val) : "";
+    });
+
+    document.querySelectorAll("[data-rim-active-when]").forEach(function (el) {
+      var expr = el.getAttribute("data-rim-active-when").trim();
+      var negate = expr.charAt(0) === "!";
+      var key = negate ? expr.slice(1).trim() : expr;
+      var val = !!get(data, key);
+      var active = negate ? !val : val;
+      if (active) el.classList.add("is-active");
+      else el.classList.remove("is-active");
+    });
+  }
+
   function initGroupedList(container) {
     var collection = container.getAttribute("data-rim-group-list");
     var url = ENDPOINTS[collection];
@@ -272,17 +297,25 @@
       return;
     }
 
+    // Forward known query params (currently just ?week=next)
+    var weekParam = (function () {
+      try { return new URLSearchParams(window.location.search).get("week"); }
+      catch (e) { return null; }
+    })();
+    var fetchUrl = url + (weekParam === "next" ? "?week=next" : "");
+
     var groupTemplate = container.querySelector("[data-rim-group-item]");
     if (groupTemplate) groupTemplate.style.display = "none";
 
     showState(container, "loading");
 
-    fetch(url)
+    fetch(fetchUrl)
       .then(function (res) {
         if (!res.ok) throw new Error("HTTP " + res.status);
         return res.json();
       })
       .then(function (data) {
+        populateMeta(data);
         var groups = data.grouped || [];
         renderGroupedList(container, groups);
       })

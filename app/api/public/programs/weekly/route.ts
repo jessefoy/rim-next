@@ -120,6 +120,8 @@ export async function GET(req: Request) {
   const weekStart = weekDates[0];
   const weekEnd = weekDates[6];
   const weekRangeLabel = `${formatShortDate(monday)}–${formatShortDate(sunday)}, ${monday.getFullYear()}`;
+  const weekHeadingPrefix = isNext ? "Next Week at" : "This Week at";
+  const weekTitle = `${weekHeadingPrefix} Rooted In Mindfulness`;
 
   const programs = await db.program.findMany({
     where: {
@@ -198,6 +200,8 @@ export async function GET(req: Request) {
     weekStart,
     weekEnd,
     weekRangeLabel,
+    weekHeadingPrefix,
+    weekTitle,
     grouped,
   };
 
