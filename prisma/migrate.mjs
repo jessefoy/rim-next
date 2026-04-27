@@ -811,6 +811,67 @@ Submitted via /kalyana-mitta/kalyana-mitta-group-application`,
     },
   },
   {
+    // Session 96 — Migrate support-notification email into the template
+    // manager. One template covers all three event types (assigned, new
+    // reply, new note); the message body is composed in lib/supportNotify.ts
+    // before sending. Alert creation + 5-minute dedup logic stays where
+    // it is.
+    name: "seed_support_notification_email_template",
+    async run() {
+      const flag = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags"
+        WHERE name = 'seed_support_notification_email_template_v1'
+      `).catch(() => []);
+      if (flag.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      await db.emailTemplate.upsert({
+        where: { slug: "support-notification" },
+        update: {
+          name: "Support Notification",
+          description: "Sent to a support team member when a thread is assigned to them, gets a new reply, or gets a new internal note. Same email used for all three event types — alert-creation and dedup happen in lib/supportNotify.ts.",
+          enabled: true,
+          subject: "[RIM Support] {{threadSubject}}",
+          variables: ["firstName", "message", "threadUrl"],
+          body: `{{#if firstName}}Hi {{firstName}},{{else}}Hello,{{/if}}
+
+{{message}}
+
+**[View this thread →]({{threadUrl}})**
+
+---
+Rooted In Mindfulness Support`,
+        },
+        create: {
+          slug: "support-notification",
+          name: "Support Notification",
+          description: "Sent to a support team member when a thread is assigned to them, gets a new reply, or gets a new internal note. Same email used for all three event types — alert-creation and dedup happen in lib/supportNotify.ts.",
+          enabled: true,
+          subject: "[RIM Support] {{threadSubject}}",
+          variables: ["firstName", "message", "threadUrl"],
+          body: `{{#if firstName}}Hi {{firstName}},{{else}}Hello,{{/if}}
+
+{{message}}
+
+**[View this thread →]({{threadUrl}})**
+
+---
+Rooted In Mindfulness Support`,
+        },
+      });
+
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
+      `).catch(() => {});
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('seed_support_notification_email_template_v1')
+      `);
+      console.log(`  ✔ Applied: ${this.name}`);
+    },
+  },
+  {
     // Session 96 — Schedule tool rebuild: sub-request emails carry a
     // {{coverUrl}} deep link that opens the schedule page with the cover
     // confirmation modal pre-opened. The DB-stored email template needs

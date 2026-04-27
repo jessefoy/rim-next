@@ -3,13 +3,15 @@
  *
  * Creates in-app Alert records and sends email notifications
  * for support thread events (assignment, new reply, new note).
+ *
+ * Email body is rendered via the template manager — slug "support-notification".
+ * Alert-creation + 5-minute dedup logic stays here.
  */
 
 import { db } from "@/lib/db";
-import { Resend } from "resend";
+import { sendTemplatedEmail } from "@/lib/email";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM = `Rooted In Mindfulness <${process.env.EMAIL_FROM ?? "onboarding@resend.dev"}>`;
+const BASE_URL = process.env.NEXTAUTH_URL ?? "https://rim-next.vercel.app";
 
 interface NotifyOpts {
   threadId: string;
@@ -19,7 +21,7 @@ interface NotifyOpts {
   /** The user who performed the action (do NOT notify them about their own action). */
   actorId?: string;
   type: "SUPPORT_ASSIGNED" | "SUPPORT_NEW_REPLY" | "SUPPORT_NEW_NOTE";
-  /** Short message for the in-app alert. */
+  /** Short message for the in-app alert and email body. */
   message: string;
 }
 
@@ -69,20 +71,13 @@ export async function notifySupport(opts: NotifyOpts): Promise<void> {
 
     if (!user || !user.supportEmailNotifications) return;
 
-    // Send email notification
-    await resend.emails.send({
-      from: FROM,
-      to: user.email,
-      subject: `[RIM Support] ${threadSubject}`,
-      text: [
-        `Hi ${user.firstName || "there"},`,
-        "",
-        message,
-        "",
-        `View this thread: ${process.env.NEXTAUTH_URL ?? "https://rim-next.vercel.app"}${linkUrl}`,
-        "",
-        "— Rooted in Mindfulness Support",
-      ].join("\n"),
+    // Send email notification — body, subject, and chrome live in the
+    // "support-notification" template at /admin/emails.
+    await sendTemplatedEmail("support-notification", user.email, {
+      firstName:     user.firstName,
+      message,
+      threadSubject,
+      threadUrl:     `${BASE_URL}${linkUrl}`,
     });
   } catch (err: any) {
     // Never throw — fire-and-forget

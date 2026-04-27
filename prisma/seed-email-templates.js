@@ -393,6 +393,27 @@ Submitted via /volunteerism/volunteer`,
 ---
 Submitted via /kalyana-mitta/kalyana-mitta-group-application`,
   },
+
+  // ── 17. Support notification ─────────────────────────────────────────────────
+  // Sent to the assigned user when a support thread has activity (new reply,
+  // new note, or assignment). Deduped + alert-creation logic lives in
+  // lib/supportNotify.ts; this template just renders the email body.
+  {
+    slug: "support-notification",
+    name: "Support Notification",
+    description: "Sent to a support team member when a thread is assigned to them, gets a new reply, or gets a new internal note. Same email used for all three event types — alert-creation and dedup happen in lib/supportNotify.ts.",
+    enabled: true,
+    subject: "[RIM Support] {{threadSubject}}",
+    variables: ["firstName", "message", "threadUrl"],
+    body: `{{#if firstName}}Hi {{firstName}},{{else}}Hello,{{/if}}
+
+{{message}}
+
+**[View this thread →]({{threadUrl}})**
+
+---
+Rooted In Mindfulness Support`,
+  },
 ];
 
 async function main() {
