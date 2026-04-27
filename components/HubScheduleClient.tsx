@@ -257,7 +257,7 @@ function SessionDetail({
               </button>
             )}
             {isOwn && (
-              <button className="hub-detail__link-btn" onClick={() => setRemoveWarnOpen(true)}>
+              <button className="hub-detail__link-btn hub-detail__link-btn--remove" onClick={() => setRemoveWarnOpen(true)}>
                 Remove myself
               </button>
             )}
@@ -269,7 +269,7 @@ function SessionDetail({
                 Reassign this session to me
               </button>
             )}
-            <button className="hub-detail__link-btn" onClick={onClose}>
+            <button className="hub-detail__link-btn hub-detail__link-btn--close" onClick={onClose}>
               Close
             </button>
           </div>

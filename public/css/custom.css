@@ -15059,15 +15059,15 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 
 /* ── Hub Schedule — inline detail (continuation of card, not a separate card) ── */
 .hub-detail {
-  padding: 4px 0 0;
+  padding: 16px 0 4px;
 }
 
 /* Info line — compact label:value pairs separated by dots */
 .hub-detail__info {
-  font-size: var(--text-xs);
+  font-size: var(--text-small);
   color: var(--rim-text);
   line-height: 1.6;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 .hub-detail__info-item { white-space: nowrap; }
 .hub-detail__info-label { color: #a09a94; font-weight: 600; }
@@ -15118,13 +15118,13 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   flex-wrap: wrap;
 }
 .hub-detail__primary-btn {
-  padding: 8px 20px;
+  padding: 10px 22px;
   background: #d9840f;
   color: #fff;
   border: none;
-  border-radius: 6px;
-  font-size: var(--text-ui);
-  font-weight: 600;
+  border-radius: 50px;
+  font-size: var(--text-small);
+  font-weight: 500;
   font-family: var(--font-sans);
   cursor: pointer;
   transition: background 0.12s;
@@ -15167,20 +15167,32 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .hub-detail__secondary-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
+  flex-wrap: wrap;
+  border-top: 1px solid #eeece8;
+  padding-top: 12px;
+  margin-top: 6px;
 }
 .hub-detail__link-btn {
   background: none;
   border: none;
-  font-size: var(--text-xs);
+  font-size: var(--text-small);
   color: var(--rim-text-muted);
   cursor: pointer;
-  padding: 6px 10px;
+  padding: 7px 12px;
   font-family: var(--font-sans);
   border-radius: 4px;
   transition: color 0.1s, background 0.1s;
 }
 .hub-detail__link-btn:hover { color: var(--rim-text); background: #f0ede8; }
+.hub-detail__link-btn--remove { color: var(--color-error); }
+.hub-detail__link-btn--remove:hover { color: var(--color-error); background: var(--color-error-bg); }
+.hub-detail__link-btn--close {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: #c0bdb8;
+}
+.hub-detail__link-btn--close:hover { color: var(--rim-mid); background: none; }
 
 /* Sub request form + remove warning */
 .hub-detail__form { margin-top: 4px; }
