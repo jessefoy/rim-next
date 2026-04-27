@@ -356,6 +356,49 @@ const migrations = [
     },
   },
   {
+    // Session 96 — Templates default to enabled:false (intentional safety
+    // gate so seed installs don't immediately start sending). The five
+    // production templates below are required for live RIM workflows;
+    // only `missing-report-alert` stays disabled (the post-session
+    // reflection module was retired in session 76).
+    //
+    // This migration is idempotent — flag prevents re-running, but it
+    // will not re-disable a template that an admin has chosen to turn
+    // off via the admin UI. It only enables; never disables.
+    name: "enable_active_email_templates",
+    async run() {
+      const flag = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags"
+        WHERE name = 'enable_active_email_templates_v1'
+      `).catch(() => []);
+      if (flag.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      const slugs = [
+        "host-role-assigned",
+        "sub-request-posted",
+        "sub-request-claimed",
+        "session-reminder",
+        "drip-lesson-available",
+      ];
+
+      const result = await db.emailTemplate.updateMany({
+        where: { slug: { in: slugs } },
+        data: { enabled: true },
+      });
+
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
+      `).catch(() => {});
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('enable_active_email_templates_v1')
+      `);
+      console.log(`  ✔ Applied: ${this.name} (${result.count} templates enabled)`);
+    },
+  },
+  {
     // Session 96 — Schedule tool rebuild: sub-request emails carry a
     // {{coverUrl}} deep link that opens the schedule page with the cover
     // confirmation modal pre-opened. The DB-stored email template needs

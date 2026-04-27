@@ -1,8 +1,13 @@
 /**
- * One-time seed: create the 7 managed EmailTemplate records.
+ * One-time seed: create the managed EmailTemplate records.
  * Run with: set -a && source .env.local && set +a && node prisma/seed-email-templates.js
  *
- * All templates start with enabled: false.
+ * Templates that are wired up to current code paths are seeded with
+ * enabled: true. Orphaned templates (from the retired post-session
+ * reflection module — first-time-attendee, returning-after-absence,
+ * missing-report-alert) stay disabled by default; remove them once
+ * their associated workflows are confirmed not coming back.
+ *
  * Bodies are markdown — rendered to HTML by marked at send time.
  * Slugs are permanent identifiers — never rename.
  */
@@ -56,6 +61,7 @@ Rooted In Mindfulness · rootedinmindfulness.org`,
     slug: "host-role-assigned",
     name: "Host Role Assigned",
     description: "Sent when a member is granted the HOST or HOST_MANAGER role.",
+    enabled: true,
     subject: "You've been added as a session host — Rooted In Mindfulness",
     variables: ["firstName", "hostAreaUrl", "manualUrl"],
     body: `Hi {{firstName}},
@@ -98,6 +104,7 @@ Rooted In Mindfulness · rootedinmindfulness.org`,
     slug: "sub-request-posted",
     name: "Sub Request Posted",
     description: "Sent to all hosts when a host posts a sub request.",
+    enabled: true,
     subject: "Sub needed: {{programName}}{{sessionDate}}",
     variables: ["firstName", "requesterName", "programName", "sessionDate", "message", "hubUrl", "coverUrl"],
     body: `Hi {{firstName}},
@@ -119,6 +126,7 @@ Rooted In Mindfulness · rootedinmindfulness.org`,
     slug: "sub-request-claimed",
     name: "Sub Request Claimed",
     description: "Sent to the requesting host when another host claims their sub.",
+    enabled: true,
     subject: "Sub covered: {{programName}}{{sessionDate}}",
     variables: ["firstName", "claimerName", "programName", "sessionDate", "message", "hubUrl"],
     body: `Hi {{firstName}},
@@ -138,6 +146,7 @@ Rooted In Mindfulness · rootedinmindfulness.org`,
     slug: "session-reminder",
     name: "Session Reminder",
     description: "Pre-session reminder sent by the nightly cron to registered participants.",
+    enabled: true,
     subject: "A reminder — {{programTitle}}",
     variables: ["firstName", "programTitle", "dateText", "locationText", "reminderMessage", "dashboardUrl"],
     body: `Hi {{firstName}},
