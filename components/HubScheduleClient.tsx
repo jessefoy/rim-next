@@ -1,18 +1,20 @@
 "use client";
 
 /**
- * Host schedule — volunteer-friendly view.
- * Designed for low-tech, overwhelmed users (60+ volunteers).
+ * Host schedule — team agenda view with filters.
  *
  * Architecture:
- * - No calendar grid. Two clear sections: "You're hosting" and "Needs a host."
- * - One primary action label: "Yes, I can host this."
- * - One secondary action on owned sessions: "Ask the team to cover."
- * - Explicit confirmation modals (not silent two-tap toggles).
- * - Manager extras (reassign, see all sessions) live behind a quiet toggle.
+ * - Default view shows the team's full upcoming schedule (collective awareness first).
+ * - Filter pills narrow to: All / Needs help / Mine / My requests.
+ * - Agenda rows grouped by week (this week, next week, week of X).
+ * - One unified row design for every state — color accent + status text differs.
+ * - Responsive: 4-column grid on desktop, stacked on phone.
+ * - Email deep links: ?action=take|cover|cancel&id=… opens the matching modal.
+ * - Cancel cover request: if I asked for help and changed my mind, undo it.
  */
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import RimProseEditor from "@/components/RimProseEditor";
 import { extractBlockNoteText } from "@/lib/renderRichContent";
 
@@ -50,93 +52,104 @@ interface Props {
   apiBase?: string;
 }
 
+const TZ = "America/Chicago";
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ];
 
+type FilterKey = "all" | "needs" | "mine" | "my-requests";
+type RowKind = "needs-host" | "needs-sub" | "mine" | "mine-asking" | "covered";
+
+// ── Formatters ──────────────────────────────────────────────
+
 function fmtDateLong(iso: string | null): string {
   if (!iso) return "";
   return new Date(iso).toLocaleDateString("en-US", {
-    weekday: "long", month: "long", day: "numeric",
-    timeZone: "America/Chicago",
+    weekday: "long", month: "long", day: "numeric", timeZone: TZ,
   });
 }
-
 function fmtDateShort(iso: string | null): string {
   if (!iso) return "";
   return new Date(iso).toLocaleDateString("en-US", {
-    weekday: "short", month: "short", day: "numeric",
-    timeZone: "America/Chicago",
+    weekday: "short", month: "short", day: "numeric", timeZone: TZ,
   });
 }
-
 function fmtTime(iso: string | null): string {
   if (!iso) return "";
   return new Date(iso).toLocaleTimeString("en-US", {
-    hour: "numeric", minute: "2-digit", timeZone: "America/Chicago",
+    hour: "numeric", minute: "2-digit", timeZone: TZ,
   });
 }
-
-function fmtFormat(fmt: string | null): string | null {
+function fmtFormat(fmt: string | null): string {
   if (fmt === "virtual") return "Virtual";
   if (fmt === "hybrid") return "In-person and virtual";
   if (fmt === "in-person") return "In person";
-  return null;
+  return "";
 }
 
-/** Returns CT-midnight Date for the Monday of the current week. */
-function getThisMonday(): Date {
-  const TZ = "America/Chicago";
-  const ctNow = new Date(new Date().toLocaleString("en-US", { timeZone: TZ }));
-  const dayOfWeek = ctNow.getDay();
-  const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-  const monday = new Date(ctNow);
-  monday.setDate(monday.getDate() + diffToMonday);
-  monday.setHours(0, 0, 0, 0);
-  return monday;
+// ── Time helpers ────────────────────────────────────────────
+
+function getCtNow(): Date {
+  return new Date(new Date().toLocaleString("en-US", { timeZone: TZ }));
+}
+function getTodayStart(): Date {
+  const ct = getCtNow();
+  ct.setHours(0, 0, 0, 0);
+  return ct;
+}
+function getWeekStart(date: Date): Date {
+  const ct = new Date(date.toLocaleString("en-US", { timeZone: TZ }));
+  const dow = ct.getDay();
+  const diff = dow === 0 ? -6 : 1 - dow;
+  ct.setDate(ct.getDate() + diff);
+  ct.setHours(0, 0, 0, 0);
+  return ct;
+}
+function getWeekLabel(weekStart: Date, todayWeekStart: Date): string {
+  const diffDays = Math.round((weekStart.getTime() - todayWeekStart.getTime()) / 86400000);
+  if (diffDays === 0) return "This week";
+  if (diffDays === 7) return "Next week";
+  if (diffDays === -7) return "Last week";
+  return `Week of ${weekStart.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
 }
 
-/** CT-midnight for the start of today. */
-function getToday(): Date {
-  const TZ = "America/Chicago";
-  const ctNow = new Date(new Date().toLocaleString("en-US", { timeZone: TZ }));
-  ctNow.setHours(0, 0, 0, 0);
-  return ctNow;
+function rowKind(s: Session, currentUserId: string): RowKind {
+  if (s.hostUserId === currentUserId) {
+    return s.subRequestId ? "mine-asking" : "mine";
+  }
+  if (s.status === "sub_needed") return "needs-sub";
+  if (s.status === "unclaimed" || !s.hostUserId) return "needs-host";
+  return "covered";
 }
 
 interface Bucket {
-  key: string;
+  weekStartMs: number;
   label: string;
   sessions: Session[];
-  primary: boolean; // primary = full cards; secondary = compact
 }
 
-/** Group sessions by relative time. Only buckets when viewing the current month. */
-function bucketSessions(sessions: Session[], isCurrentMonth: boolean): Bucket[] {
-  if (!isCurrentMonth) {
-    if (sessions.length === 0) return [];
-    return [{ key: "all", label: "", sessions, primary: false }];
-  }
-  const monday = getThisMonday();
-  const nextMondayMs = monday.getTime() + 7 * 24 * 60 * 60 * 1000;
-  const weekAfterMs = monday.getTime() + 14 * 24 * 60 * 60 * 1000;
-
-  const thisWeek: Session[] = [];
-  const nextWeek: Session[] = [];
-  const later: Session[] = [];
+function bucketByWeek(sessions: Session[]): Bucket[] {
+  const todayWS = getWeekStart(new Date());
+  const map = new Map<number, Session[]>();
   for (const s of sessions) {
-    if (!s.sessionDate) { later.push(s); continue; }
-    const ms = new Date(s.sessionDate).getTime();
-    if (ms < nextMondayMs) thisWeek.push(s);
-    else if (ms < weekAfterMs) nextWeek.push(s);
-    else later.push(s);
+    if (!s.sessionDate) continue;
+    const ws = getWeekStart(new Date(s.sessionDate)).getTime();
+    if (!map.has(ws)) map.set(ws, []);
+    map.get(ws)!.push(s);
   }
-  const buckets: Bucket[] = [];
-  if (thisWeek.length > 0) buckets.push({ key: "this-week", label: "This week", sessions: thisWeek, primary: true });
-  if (nextWeek.length > 0) buckets.push({ key: "next-week", label: "Next week", sessions: nextWeek, primary: false });
-  if (later.length > 0)    buckets.push({ key: "later", label: "Later this month", sessions: later, primary: false });
-  return buckets;
+  const sortByDate = (a: Session, b: Session) => {
+    if (!a.sessionDate) return 1;
+    if (!b.sessionDate) return -1;
+    return new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime();
+  };
+  return Array.from(map.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([ws, list]) => ({
+      weekStartMs: ws,
+      label: getWeekLabel(new Date(ws), todayWS),
+      sessions: list.slice().sort(sortByDate),
+    }));
 }
 
 function Toast({ msg }: { msg: string | null }) {
@@ -144,9 +157,9 @@ function Toast({ msg }: { msg: string | null }) {
   return <div className="hub-toast">{msg}</div>;
 }
 
-// ── Confirmation modal ──────────────────────────────────────
+// ── Modal ───────────────────────────────────────────────────
 
-type ModalKind = "take" | "ask-cover" | "reassign" | null;
+type ModalKind = "take" | "cover" | "ask-cover" | "cancel-request" | "reassign" | null;
 
 interface ModalProps {
   kind: ModalKind;
@@ -159,7 +172,6 @@ interface ModalProps {
 function HsModal({ kind, session, onConfirm, onCancel, submitting }: ModalProps) {
   const [coverNote, setCoverNote] = useState<any>(null);
 
-  // Reset note when modal opens for a new session
   useEffect(() => {
     if (kind === "ask-cover") setCoverNote(null);
   }, [kind, session?.id]);
@@ -173,25 +185,30 @@ function HsModal({ kind, session, onConfirm, onCancel, submitting }: ModalProps)
   let body: React.ReactNode = "";
   let primaryLabel = "";
   let extraInput: React.ReactNode = null;
+  let cancelLabel = "Not yet";
 
   if (kind === "take") {
     title = "Confirm hosting";
     body = (
-      <>
-        You'll host <strong>{session.programName}</strong> on{" "}
-        <strong>{dateStr}</strong> at <strong>{timeStr}</strong>. The team
-        will be notified.
-      </>
+      <>You'll host <strong>{session.programName}</strong> on{" "}
+      <strong>{dateStr}</strong> at <strong>{timeStr}</strong>. The team
+      will be notified.</>
     );
     primaryLabel = "Yes, I'll host this";
+  } else if (kind === "cover") {
+    title = "Confirm covering";
+    body = (
+      <>You'll cover for <strong>{session.hostName ?? "the original host"}</strong>{" "}
+      on <strong>{dateStr}</strong> for <strong>{session.programName}</strong>.
+      They'll be notified that you're stepping in.</>
+    );
+    primaryLabel = "Yes, I'll cover this";
   } else if (kind === "ask-cover") {
     title = "Ask the team to cover";
     body = (
-      <>
-        Let your teammates know you can't make <strong>{dateStr}</strong> for{" "}
-        <strong>{session.programName}</strong>. They'll receive an email and
-        someone may step in.
-      </>
+      <>Let your teammates know you can't make <strong>{dateStr}</strong> for{" "}
+      <strong>{session.programName}</strong>. They'll receive an email and
+      someone may step in.</>
     );
     primaryLabel = "Send to the team";
     extraInput = (
@@ -205,22 +222,26 @@ function HsModal({ kind, session, onConfirm, onCancel, submitting }: ModalProps)
         />
       </div>
     );
+  } else if (kind === "cancel-request") {
+    title = "Cancel your request?";
+    body = (
+      <>You'll go back to hosting <strong>{session.programName}</strong> on{" "}
+      <strong>{dateStr}</strong> yourself. The team will know your request
+      is closed.</>
+    );
+    primaryLabel = "Yes, cancel the request";
+    cancelLabel = "Keep the request";
   } else if (kind === "reassign") {
     title = "Reassign to yourself";
     body = session.hostUserId
       ? (
-        <>
-          This will remove <strong>{session.hostName ?? "the current host"}</strong>{" "}
-          from <strong>{session.programName}</strong> on{" "}
-          <strong>{dateStr}</strong> and assign you instead. They will be
-          notified. Any open request to the team will be closed.
-        </>
+        <>This will remove <strong>{session.hostName ?? "the current host"}</strong>{" "}
+        from <strong>{session.programName}</strong> on <strong>{dateStr}</strong>{" "}
+        and assign you. They will be notified. Any open cover request will be closed.</>
       )
       : (
-        <>
-          This will assign you to <strong>{session.programName}</strong> on{" "}
-          <strong>{dateStr}</strong>.
-        </>
+        <>This will assign you to <strong>{session.programName}</strong> on{" "}
+        <strong>{dateStr}</strong>.</>
       );
     primaryLabel = "Yes, reassign to me";
   }
@@ -244,7 +265,7 @@ function HsModal({ kind, session, onConfirm, onCancel, submitting }: ModalProps)
             onClick={onCancel}
             disabled={submitting}
           >
-            Not yet
+            {cancelLabel}
           </button>
         </div>
       </div>
@@ -252,151 +273,119 @@ function HsModal({ kind, session, onConfirm, onCancel, submitting }: ModalProps)
   );
 }
 
-// ── Session card ────────────────────────────────────────────
+// ── Agenda row ──────────────────────────────────────────────
 
-type CardKind = "needs" | "yours" | "yours-asking" | "covered";
-
-interface CardProps {
+interface RowProps {
   session: Session;
-  kind: CardKind;
-  compact?: boolean;
+  kind: RowKind;
   onTake: (s: Session) => void;
+  onCover: (s: Session) => void;
   onAskCover: (s: Session) => void;
+  onCancelRequest: (s: Session) => void;
   onReassign: (s: Session) => void;
   isHostManager: boolean;
 }
 
-function HsCard({ session, kind, compact = false, onTake, onAskCover, onReassign, isHostManager }: CardProps) {
-  const dateLong = fmtDateLong(session.sessionDate);
+function HsRow({
+  session, kind,
+  onTake, onCover, onAskCover, onCancelRequest, onReassign,
+  isHostManager,
+}: RowProps) {
   const dateShort = fmtDateShort(session.sessionDate);
   const timeStr = fmtTime(session.sessionDate);
   const fmt = fmtFormat(session.programFormat);
-  const showManager = isHostManager && (kind === "needs" || kind === "covered");
 
-  // Compact: horizontal row, scannable, smaller action.
-  if (compact) {
-    return (
-      <div className={`hs-card hs-card--compact hs-card--${kind}`}>
-        <div className="hs-card__main">
-          <div className="hs-card__when-line">
-            {dateShort}
-            {timeStr && <> · <span className="hs-card__time">{timeStr}</span></>}
-          </div>
-          <div className="hs-card__what-line">
-            <span className="hs-card__name">{session.programName}</span>
-            {fmt && <span className="hs-card__format"> · {fmt}</span>}
-          </div>
-        </div>
-        <div className="hs-card__do hs-card__do--compact">
-          {kind === "needs" && (
-            <button
-              className="lr-btn lr-btn--host"
-              onClick={() => onTake(session)}
-            >
-              Yes, I can host
-            </button>
-          )}
-          {kind === "yours" && (
-            <button className="hs-card__quiet" onClick={() => onAskCover(session)}>
-              Ask the team to cover
-            </button>
-          )}
-          {kind === "yours-asking" && (
-            <span className="hs-card__status hs-card__status--asking">
-              Waiting for a sub
-            </span>
-          )}
-          {kind === "covered" && session.hostName && (
-            <span className="hs-card__status hs-card__status--covered">
-              {session.hostName}
-            </span>
-          )}
-          {showManager && (
-            <button className="hs-card__manager" onClick={() => onReassign(session)}>
-              Reassign to me
-            </button>
-          )}
-        </div>
-      </div>
-    );
+  const showManagerReassign = isHostManager &&
+    (kind === "needs-host" || kind === "needs-sub" || kind === "covered");
+
+  let statusEl: React.ReactNode = null;
+  let actionEl: React.ReactNode = null;
+
+  switch (kind) {
+    case "needs-host":
+      statusEl = <span className="hs-row__status hs-row__status--needs">Needs a host</span>;
+      actionEl = (
+        <button className="lr-btn lr-btn--host" onClick={() => onTake(session)}>
+          Yes, I can host
+        </button>
+      );
+      break;
+    case "needs-sub":
+      statusEl = (
+        <span className="hs-row__status hs-row__status--needs">
+          {session.hostName ? `${session.hostName} needs help` : "Needs a sub"}
+        </span>
+      );
+      actionEl = (
+        <button className="lr-btn lr-btn--host" onClick={() => onCover(session)}>
+          Yes, I can cover
+        </button>
+      );
+      break;
+    case "mine":
+      statusEl = <span className="hs-row__status hs-row__status--mine">You're hosting</span>;
+      actionEl = (
+        <button className="hs-row__quiet" onClick={() => onAskCover(session)}>
+          Ask the team to cover
+        </button>
+      );
+      break;
+    case "mine-asking":
+      statusEl = <span className="hs-row__status hs-row__status--asking">You asked for cover</span>;
+      actionEl = (
+        <button className="hs-row__quiet" onClick={() => onCancelRequest(session)}>
+          Cancel my request
+        </button>
+      );
+      break;
+    case "covered":
+      statusEl = (
+        <span className="hs-row__status hs-row__status--covered">
+          Hosted by {session.hostName ?? "—"}
+        </span>
+      );
+      break;
   }
 
-  // Full card: vertical, generous, big action — used for urgent (this-week) needs.
   return (
-    <div className={`hs-card hs-card--${kind}`}>
-      <div className="hs-card__when">
-        <div className="hs-card__date">{dateLong}</div>
-        <div className="hs-card__time">{timeStr}</div>
+    <div className={`hs-row hs-row--${kind}`}>
+      <div className="hs-row__when">
+        <div className="hs-row__date">{dateShort}</div>
+        <div className="hs-row__time">{timeStr}</div>
       </div>
-      <div className="hs-card__what">
-        <h3 className="hs-card__name">{session.programName}</h3>
-        {fmt && <div className="hs-card__format">{fmt}</div>}
+      <div className="hs-row__what">
+        <div className="hs-row__name">{session.programName}</div>
+        {fmt && <div className="hs-row__format">{fmt}</div>}
       </div>
-      <div className="hs-card__do">
-        {kind === "needs" && (
-          <button
-            className="lr-btn lr-btn--host hs-card__primary"
-            onClick={() => onTake(session)}
-          >
-            Yes, I can host this
+      <div className="hs-row__who">{statusEl}</div>
+      <div className="hs-row__do">
+        {actionEl}
+        {showManagerReassign && (
+          <button className="hs-row__manager" onClick={() => onReassign(session)}>
+            Reassign to me
           </button>
         )}
-        {kind === "yours" && (
-          <>
-            <div className="hs-card__status hs-card__status--yours">
-              You're hosting
-            </div>
-            <button className="hs-card__quiet" onClick={() => onAskCover(session)}>
-              Can't make it? Ask the team to cover
-            </button>
-          </>
-        )}
-        {kind === "yours-asking" && (
-          <>
-            <div className="hs-card__status hs-card__status--asking">
-              You asked the team to cover
-            </div>
-            <p className="hs-card__quiet-note">
-              Waiting for a teammate to step in.
-            </p>
-          </>
-        )}
-        {kind === "covered" && session.hostName && (
-          <div className="hs-card__status hs-card__status--covered">
-            Hosted by {session.hostName}
-          </div>
-        )}
       </div>
-      {showManager && (
-        <button className="hs-card__manager" onClick={() => onReassign(session)}>
-          Reassign to me
-        </button>
-      )}
     </div>
   );
 }
 
-// ── Main component ──────────────────────────────────────────
+// ── Main ────────────────────────────────────────────────────
 
 export default function HubScheduleClient({
-  initialSessions,
-  initialYear,
-  initialMonth,
-  currentUserId,
-  currentUserName,
-  isHostManager = false,
-  apiBase = "/api/host",
+  initialSessions, initialYear, initialMonth, currentUserId, currentUserName,
+  isHostManager = false, apiBase = "/api/host",
 }: Props) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [sessions, setSessions] = useState<Session[]>(initialSessions);
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const [showAllOthers, setShowAllOthers] = useState(false);
-
-  const [modal, setModal] = useState<{ kind: ModalKind; session: Session | null }>({
-    kind: null, session: null,
-  });
+  const [filter, setFilter] = useState<FilterKey>("all");
+  const [modal, setModal] = useState<{ kind: ModalKind; session: Session | null }>({ kind: null, session: null });
   const [modalSubmitting, setModalSubmitting] = useState(false);
 
   const showToast = (msg: string) => {
@@ -419,6 +408,55 @@ export default function HubScheduleClient({
     }
   }, [apiBase]);
 
+  // ── Deep-link handling ──
+  // ?action=take&id=<sessionId>     — open take modal
+  // ?action=cover&id=<subRequestId> — open cover modal
+  // ?action=cancel&id=<subRequestId>— open cancel modal (own request only)
+  const deepLinkHandled = useRef(false);
+  useEffect(() => {
+    if (deepLinkHandled.current) return;
+    const action = searchParams.get("action");
+    const id = searchParams.get("id");
+    if (!action || !id) return;
+    deepLinkHandled.current = true;
+
+    if (action === "take") {
+      const s = sessions.find(x => x.id === id);
+      if (s) {
+        if (s.hostUserId === currentUserId) {
+          showToast("You're already hosting this session.");
+        } else if (s.status === "claimed" && !s.subRequestId) {
+          showToast("This session already has a host.");
+        } else {
+          setModal({ kind: "take", session: s });
+        }
+      } else {
+        showToast("We couldn't find that session.");
+      }
+    } else if (action === "cover") {
+      const s = sessions.find(x => x.subRequestId === id);
+      if (s) setModal({ kind: "cover", session: s });
+      else showToast("This request is no longer open.");
+    } else if (action === "cancel") {
+      const s = sessions.find(x => x.subRequestId === id);
+      if (s && s.hostUserId === currentUserId) {
+        setModal({ kind: "cancel-request", session: s });
+      } else {
+        showToast("That request is no longer active.");
+      }
+    }
+  }, [searchParams, sessions, currentUserId]);
+
+  function clearDeepLinkParams() {
+    if (searchParams.get("action") || searchParams.get("id")) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("action");
+      params.delete("id");
+      const qs = params.toString();
+      router.replace(qs ? `?${qs}` : window.location.pathname, { scroll: false });
+    }
+  }
+
   function prevMonth() {
     const m = month === 0 ? 11 : month - 1;
     const y = month === 0 ? year - 1 : year;
@@ -437,32 +475,10 @@ export default function HubScheduleClient({
 
   // ── API actions ──
 
-  async function takeSession(s: Session, isReassign: boolean) {
-    if (isReassign) {
-      const res = await fetch(`${apiBase}/assignments/reassign`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          programSlug: s.programSlug,
-          sessionDate: s.sessionDate,
-          currentAssignmentId: s.id.startsWith("unassigned::") ? null : s.id,
-        }),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error ?? "Something went wrong.");
-      }
-      const data = await res.json();
-      setSessions(prev => prev.map(row => row.id === s.id
-        ? { ...row, id: data.id, status: "claimed", hostUserId: currentUserId, hostName: currentUserName, subRequestId: null, subMessage: null }
-        : row
-      ));
-      return;
-    }
+  async function takeSession(s: Session) {
     if (s.id.startsWith("unassigned::")) {
       const res = await fetch(`${apiBase}/assignments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ programSlug: s.programSlug, sessionDate: s.sessionDate, action: "claim" }),
       });
       if (!res.ok) {
@@ -476,26 +492,8 @@ export default function HubScheduleClient({
       ));
       return;
     }
-    // claim a sub on someone else's session, or take a directly-unclaimed assignment
-    if (s.status === "sub_needed" && s.subRequestId && s.hostUserId !== currentUserId) {
-      const res = await fetch(`${apiBase}/sub-requests/${s.subRequestId}/claim`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error ?? "Something went wrong.");
-      }
-      setSessions(prev => prev.map(row => row.id === s.id
-        ? { ...row, status: "claimed", hostUserId: currentUserId, hostName: currentUserName, subRequestId: null, subMessage: null }
-        : row
-      ));
-      return;
-    }
     const res = await fetch(`${apiBase}/assignments/${s.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "claim" }),
     });
     if (!res.ok) {
@@ -508,13 +506,27 @@ export default function HubScheduleClient({
     ));
   }
 
+  async function coverSession(s: Session) {
+    if (!s.subRequestId) throw new Error("This request is no longer open.");
+    const res = await fetch(`${apiBase}/sub-requests/${s.subRequestId}/claim`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      throw new Error(d.error ?? "Something went wrong.");
+    }
+    setSessions(prev => prev.map(row => row.id === s.id
+      ? { ...row, status: "claimed", hostUserId: currentUserId, hostName: currentUserName, subRequestId: null, subMessage: null }
+      : row
+    ));
+  }
+
   async function askForCover(s: Session, message: any) {
     const text = extractBlockNoteText(message ?? null).trim();
     const messagePayload = text ? message : null;
-
     const res = await fetch(`${apiBase}/sub-requests`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ assignmentId: s.id, message: messagePayload }),
     });
     if (!res.ok) {
@@ -528,14 +540,53 @@ export default function HubScheduleClient({
     ));
   }
 
-  // ── Modal handlers ──
+  async function cancelRequest(s: Session) {
+    if (!s.subRequestId) throw new Error("No request to cancel.");
+    const res = await fetch(`${apiBase}/sub-requests/${s.subRequestId}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+    });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      throw new Error(d.error ?? "Something went wrong.");
+    }
+    setSessions(prev => prev.map(row => row.id === s.id
+      ? { ...row, status: "claimed", subRequestId: null, subMessage: null }
+      : row
+    ));
+  }
+
+  async function reassign(s: Session) {
+    const res = await fetch(`${apiBase}/assignments/reassign`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        programSlug: s.programSlug,
+        sessionDate: s.sessionDate,
+        currentAssignmentId: s.id.startsWith("unassigned::") ? null : s.id,
+      }),
+    });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      throw new Error(d.error ?? "Something went wrong.");
+    }
+    const data = await res.json();
+    setSessions(prev => prev.map(row => row.id === s.id
+      ? { ...row, id: data.id, status: "claimed", hostUserId: currentUserId, hostName: currentUserName, subRequestId: null, subMessage: null }
+      : row
+    ));
+  }
+
+  // ── Modal openers ──
 
   function openTake(s: Session) { setModal({ kind: "take", session: s }); }
+  function openCover(s: Session) { setModal({ kind: "cover", session: s }); }
   function openAskCover(s: Session) { setModal({ kind: "ask-cover", session: s }); }
+  function openCancelRequest(s: Session) { setModal({ kind: "cancel-request", session: s }); }
   function openReassign(s: Session) { setModal({ kind: "reassign", session: s }); }
+
   function closeModal() {
     if (modalSubmitting) return;
     setModal({ kind: null, session: null });
+    clearDeepLinkParams();
   }
 
   async function handleConfirm(extra?: any) {
@@ -543,16 +594,23 @@ export default function HubScheduleClient({
     setModalSubmitting(true);
     try {
       if (modal.kind === "take") {
-        await takeSession(modal.session, false);
-        showToast("Thank you — you're hosting. The team has been notified.");
+        await takeSession(modal.session);
+        showToast("You're hosting. The team has been notified.");
+      } else if (modal.kind === "cover") {
+        await coverSession(modal.session);
+        showToast("You're covering this session. The original host has been notified.");
       } else if (modal.kind === "ask-cover") {
         await askForCover(modal.session, extra);
         showToast("Done. The team will help find a replacement.");
+      } else if (modal.kind === "cancel-request") {
+        await cancelRequest(modal.session);
+        showToast("Request cancelled. You're back to hosting this session.");
       } else if (modal.kind === "reassign") {
-        await takeSession(modal.session, true);
+        await reassign(modal.session);
         showToast("Reassigned to you.");
       }
       setModal({ kind: null, session: null });
+      clearDeepLinkParams();
     } catch (e) {
       showToast(e instanceof Error ? e.message : "Something went wrong.");
     } finally {
@@ -564,17 +622,10 @@ export default function HubScheduleClient({
 
   const today = new Date();
   const isCurrentMonth = year === today.getFullYear() && month === today.getMonth();
-  const todayMs = useMemo(() => getToday().getTime(), []);
+  const todayMs = useMemo(() => getTodayStart().getTime(), []);
 
-  const sortByDate = (a: Session, b: Session) => {
-    if (!a.sessionDate) return 1;
-    if (!b.sessionDate) return -1;
-    return new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime();
-  };
-
-  // For the current month, filter out sessions that already happened.
-  // For other months, show everything (historical or future).
-  const visibleSessions = useMemo(() => {
+  // Filter past sessions when viewing the current month
+  const upcoming = useMemo(() => {
     if (!isCurrentMonth) return sessions;
     return sessions.filter(s => {
       if (!s.sessionDate) return true;
@@ -582,37 +633,59 @@ export default function HubScheduleClient({
     });
   }, [sessions, isCurrentMonth, todayMs]);
 
-  const yours = useMemo(() =>
-    visibleSessions.filter(s => s.hostUserId === currentUserId).slice().sort(sortByDate),
-    [visibleSessions, currentUserId],
-  );
-  const needs = useMemo(() =>
-    visibleSessions.filter(s =>
-      (s.status !== "claimed" || s.subRequestId) &&
-      s.hostUserId !== currentUserId
-    ).slice().sort(sortByDate),
-    [visibleSessions, currentUserId],
-  );
-  const covered = useMemo(() =>
-    visibleSessions.filter(s =>
-      s.status === "claimed" && !s.subRequestId && s.hostUserId !== currentUserId
-    ).slice().sort(sortByDate),
-    [visibleSessions, currentUserId],
-  );
+  // Counts for filter pills (against the upcoming dataset, not the current filter)
+  const counts = useMemo(() => {
+    let needs = 0, mine = 0, myReq = 0;
+    for (const s of upcoming) {
+      const isMine = s.hostUserId === currentUserId;
+      if (isMine) {
+        mine++;
+        if (s.subRequestId) myReq++;
+      } else if (s.status !== "claimed" || s.subRequestId) {
+        needs++;
+      }
+    }
+    return { all: upcoming.length, needs, mine, myReq };
+  }, [upcoming, currentUserId]);
 
-  const needsBuckets = useMemo(() => bucketSessions(needs, isCurrentMonth), [needs, isCurrentMonth]);
-  const yoursBuckets = useMemo(() => bucketSessions(yours, isCurrentMonth), [yours, isCurrentMonth]);
-  const coveredBuckets = useMemo(() => bucketSessions(covered, isCurrentMonth), [covered, isCurrentMonth]);
+  // Apply active filter
+  const filteredSessions = useMemo(() => {
+    if (filter === "all") return upcoming;
+    if (filter === "needs") {
+      return upcoming.filter(s =>
+        s.hostUserId !== currentUserId && (s.status !== "claimed" || s.subRequestId)
+      );
+    }
+    if (filter === "mine") {
+      return upcoming.filter(s => s.hostUserId === currentUserId);
+    }
+    if (filter === "my-requests") {
+      return upcoming.filter(s => s.hostUserId === currentUserId && s.subRequestId);
+    }
+    return upcoming;
+  }, [upcoming, filter, currentUserId]);
 
-  const cardHandlers = {
+  const buckets = useMemo(() => bucketByWeek(filteredSessions), [filteredSessions]);
+
+  const monthLabel = `${MONTHS[month]} ${year}`;
+
+  const emptyMsg = (() => {
+    if (filteredSessions.length > 0) return null;
+    if (filter === "all") return `No sessions ${isCurrentMonth ? "left this month" : `in ${MONTHS[month]}`}.`;
+    if (filter === "needs") return "Everything is covered. Thank you, team.";
+    if (filter === "mine") return "You're not hosting anything here.";
+    if (filter === "my-requests") return "You haven't asked the team to cover any sessions.";
+    return null;
+  })();
+
+  const rowHandlers = {
     onTake: openTake,
+    onCover: openCover,
     onAskCover: openAskCover,
+    onCancelRequest: openCancelRequest,
     onReassign: openReassign,
     isHostManager,
   };
-
-  const monthLabel = `${MONTHS[month]} ${year}`;
-  const periodPhrase = isCurrentMonth ? "this month" : `in ${MONTHS[month]}`;
 
   return (
     <div className="hs-page">
@@ -622,100 +695,76 @@ export default function HubScheduleClient({
         <h1 className="hs-monthnav__label">{monthLabel}</h1>
         <button className="hs-monthnav__btn" onClick={nextMonth} aria-label="Next month">→</button>
         {!isCurrentMonth && (
-          <button className="hs-monthnav__today" onClick={goToCurrentMonth}>
-            This month
+          <button className="hs-monthnav__today" onClick={goToCurrentMonth}>This month</button>
+        )}
+      </div>
+
+      {/* Filter pills */}
+      <div className="hs-filters" role="tablist" aria-label="Filter sessions">
+        <button
+          role="tab"
+          aria-selected={filter === "all"}
+          className={`hs-filter${filter === "all" ? " hs-filter--active" : ""}`}
+          onClick={() => setFilter("all")}
+        >
+          All <span className="hs-filter__count">{counts.all}</span>
+        </button>
+        <button
+          role="tab"
+          aria-selected={filter === "needs"}
+          className={`hs-filter${filter === "needs" ? " hs-filter--active" : ""}`}
+          onClick={() => setFilter("needs")}
+        >
+          Needs help <span className="hs-filter__count">{counts.needs}</span>
+        </button>
+        <button
+          role="tab"
+          aria-selected={filter === "mine"}
+          className={`hs-filter${filter === "mine" ? " hs-filter--active" : ""}`}
+          onClick={() => setFilter("mine")}
+        >
+          Mine <span className="hs-filter__count">{counts.mine}</span>
+        </button>
+        {counts.myReq > 0 && (
+          <button
+            role="tab"
+            aria-selected={filter === "my-requests"}
+            className={`hs-filter${filter === "my-requests" ? " hs-filter--active" : ""}`}
+            onClick={() => setFilter("my-requests")}
+          >
+            My requests <span className="hs-filter__count">{counts.myReq}</span>
           </button>
         )}
       </div>
 
+      {/* Body */}
       {loading ? (
         <p className="hs-loading">Loading…</p>
+      ) : emptyMsg ? (
+        <div className="hs-allset">
+          <p className="hs-allset__heading">{emptyMsg}</p>
+        </div>
       ) : (
-        <>
-          {/* Needs — primary section, the hub's purpose */}
-          {needs.length > 0 ? (
-            <section className="hs-section">
-              <h2 className="hs-section__heading">
-                {needs.length}{" "}
-                {needs.length === 1 ? "session needs" : "sessions need"} a host {periodPhrase}.
-              </h2>
-              {needsBuckets.map(bucket => (
-                <div key={bucket.key} className="hs-bucket">
-                  {bucket.label && <h3 className="hs-bucket__label">{bucket.label}</h3>}
-                  <div className="hs-cards">
-                    {bucket.sessions.map(s => (
-                      <HsCard
-                        key={s.id}
-                        session={s}
-                        kind="needs"
-                        compact={!bucket.primary}
-                        {...cardHandlers}
-                      />
-                    ))}
-                  </div>
-                </div>
+        buckets.map(b => (
+          <section key={b.weekStartMs} className="hs-week">
+            <header className="hs-week__header">
+              <h2 className="hs-week__label">{b.label}</h2>
+              <span className="hs-week__count">
+                {b.sessions.length} {b.sessions.length === 1 ? "session" : "sessions"}
+              </span>
+            </header>
+            <div className="hs-week__list">
+              {b.sessions.map(s => (
+                <HsRow
+                  key={s.id}
+                  session={s}
+                  kind={rowKind(s, currentUserId)}
+                  {...rowHandlers}
+                />
               ))}
-            </section>
-          ) : (
-            <div className="hs-allset">
-              <p className="hs-allset__heading">
-                All sessions {periodPhrase} have a host.
-              </p>
-              <p className="hs-allset__sub">
-                Thank you for being part of this team.
-              </p>
             </div>
-          )}
-
-          {/* Yours — secondary section, all compact */}
-          {yours.length > 0 && (
-            <section className="hs-section hs-section--secondary">
-              <h2 className="hs-section__heading hs-section__heading--small">
-                You're hosting {yours.length}{" "}
-                {yours.length === 1 ? "session" : "sessions"} {periodPhrase}.
-              </h2>
-              {yoursBuckets.map(bucket => (
-                <div key={bucket.key} className="hs-bucket">
-                  {bucket.label && <h3 className="hs-bucket__label">{bucket.label}</h3>}
-                  <div className="hs-cards">
-                    {bucket.sessions.map(s => (
-                      <HsCard
-                        key={s.id}
-                        session={s}
-                        kind={s.subRequestId ? "yours-asking" : "yours"}
-                        compact
-                        {...cardHandlers}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </section>
-          )}
-
-          {/* Manager: covered sessions, collapsed */}
-          {isHostManager && covered.length > 0 && (
-            <section className="hs-section hs-section--minor">
-              <button
-                className="hs-collapse-toggle"
-                onClick={() => setShowAllOthers(v => !v)}
-                aria-expanded={showAllOthers}
-              >
-                {showAllOthers ? "Hide" : "Show"} sessions already covered ({covered.length})
-              </button>
-              {showAllOthers && coveredBuckets.map(bucket => (
-                <div key={bucket.key} className="hs-bucket">
-                  {bucket.label && <h3 className="hs-bucket__label">{bucket.label}</h3>}
-                  <div className="hs-cards">
-                    {bucket.sessions.map(s => (
-                      <HsCard key={s.id} session={s} kind="covered" compact {...cardHandlers} />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </section>
-          )}
-        </>
+          </section>
+        ))
       )}
 
       <HsModal

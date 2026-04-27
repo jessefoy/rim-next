@@ -1256,12 +1256,18 @@ export interface SubRequestEmailData {
   programName: string;
   sessionDate: string | null; // formatted date string, or null for standing
   message: string | null;
+  subRequestId: string;       // for deep-link "Cover this session" button
 }
 
 /**
  * Sent to all hosts when a sub request is posted.
  * Managed via Email Template Manager — template: "sub-request-posted"
  * Fire-and-forget — errors caught inside sendTemplatedEmail.
+ *
+ * Template variables:
+ *   {{coverUrl}} — deep link that opens the schedule with the cover modal
+ *                  pre-opened on the right session. Recipient confirms in one tap.
+ *   {{hubUrl}}   — fallback link to the schedule page
  */
 export async function sendSubRequestEmail(data: SubRequestEmailData): Promise<void> {
   const sessionLabel = data.sessionDate ? ` on ${data.sessionDate}` : "";
@@ -1272,6 +1278,7 @@ export async function sendSubRequestEmail(data: SubRequestEmailData): Promise<vo
     sessionDate:   sessionLabel,
     message:       data.message ?? "",
     hubUrl:        `${BASE_URL}/tools/schedule`,
+    coverUrl:      `${BASE_URL}/tools/schedule?action=cover&id=${data.subRequestId}`,
   });
 }
 

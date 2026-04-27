@@ -137,12 +137,13 @@ export async function POST(request: Request) {
       const recipientUsers = await getHubNotificationRecipients("host-team", {
         excludeUserId: assignment.userId ?? undefined,
       });
+      const coverLink = `/tools/schedule?action=cover&id=${subRequest.id}`;
       await db.alert.createMany({
         data: recipientUsers.map((u) => ({
           userId: u.id,
           type: "SUB_REQUEST" as const,
           message: `${requesterName} needs a sub${sessionLabel ? ` on ${sessionLabel}` : ""} for ${assignment.programSlug}`,
-          linkUrl: "/tools/schedule",
+          linkUrl: coverLink,
         })),
         skipDuplicates: true,
       });
@@ -157,6 +158,7 @@ export async function POST(request: Request) {
             programName: assignment.programSlug,
             sessionDate: sessionLabel,
             message: messageText,
+            subRequestId: subRequest.id,
           } as SubRequestEmailData)
         )
       );
