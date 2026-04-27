@@ -642,25 +642,28 @@ export default function HubScheduleClient({
     return new Date(s.sessionDate).getTime() < todayMs;
   }, [todayMs]);
 
-  // Counts: "needs" excludes past (those gaps can't be filled anymore).
-  // "All" / "mine" / "my-requests" reflect the full month including past
-  // — that's the dataset the user is looking at.
+  // Counts:
+  //   "needs" and "my-requests" exclude past — those are actionable counts,
+  //   and a past session can't be hosted or have its request fulfilled.
+  //   "All" and "mine" reflect the full month including past — that's the
+  //   dataset the user is looking at.
   const counts = useMemo(() => {
     let all = 0, needs = 0, mine = 0, myReq = 0;
     for (const s of sessions) {
       all++;
       const isMine = s.hostUserId === currentUserId;
+      const past = isPast(s);
       if (isMine) {
         mine++;
-        if (s.subRequestId) myReq++;
+        if (s.subRequestId && !past) myReq++;
       } else if (s.status !== "claimed" || s.subRequestId) {
-        if (!isPast(s)) needs++;
+        if (!past) needs++;
       }
     }
     return { all, needs, mine, myReq };
   }, [sessions, currentUserId, isPast]);
 
-  // Apply active filter. "Needs help" excludes past.
+  // Apply active filter. "Needs help" and "My requests" exclude past.
   const filteredSessions = useMemo(() => {
     if (filter === "all") return sessions;
     if (filter === "needs") {
@@ -674,7 +677,11 @@ export default function HubScheduleClient({
       return sessions.filter(s => s.hostUserId === currentUserId);
     }
     if (filter === "my-requests") {
-      return sessions.filter(s => s.hostUserId === currentUserId && s.subRequestId);
+      return sessions.filter(s =>
+        s.hostUserId === currentUserId &&
+        s.subRequestId &&
+        !isPast(s)
+      );
     }
     return sessions;
   }, [sessions, filter, currentUserId, isPast]);
