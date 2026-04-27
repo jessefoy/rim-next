@@ -98,15 +98,6 @@ export async function POST(
       const requester = subRequest.assignment.user;
       if (!requester) return;
 
-      await db.alert.create({
-        data: {
-          userId: requester.id,
-          type: "SUB_CLAIMED",
-          message: `${claimerName} will cover your session${sessionLabel ? ` on ${sessionLabel}` : ""}`,
-          linkUrl: "/tools/schedule",
-        },
-      });
-
       await sendSubClaimedEmail({
         to: requester.email,
         firstName: requester.firstName,

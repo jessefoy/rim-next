@@ -259,7 +259,6 @@ export async function POST(request: Request) {
         data: { userId: session.user.id, assignedBy: session.user.id },
         include: { user: { select: { id: true, firstName: true, lastName: true, preferredName: true } } },
       });
-      void notifyTeamClaimed(session.user.id, updated.programSlug, updated.sessionDate);
       return Response.json({
         id: updated.id, programSlug: updated.programSlug,
         sessionDate: updated.sessionDate?.toISOString() ?? null,
@@ -307,10 +306,6 @@ export async function POST(request: Request) {
     },
   });
 
-  if (action === "claim" && assignment.userId) {
-    void notifyTeamClaimed(session.user.id, assignment.programSlug, assignment.sessionDate);
-  }
-
   return Response.json({
     id: assignment.id,
     programSlug: assignment.programSlug,
@@ -325,43 +320,3 @@ export async function POST(request: Request) {
   });
 }
 
-// ── Notification helper ───────────────────────────────────────────────────────
-
-async function notifyTeamClaimed(
-  claimerId: string,
-  programSlug: string,
-  sessionDate: Date | null
-) {
-  try {
-    const claimer = await db.user.findUnique({
-      where: { id: claimerId },
-      select: { firstName: true, lastName: true, email: true },
-    });
-    const claimerName =
-      [claimer?.firstName, claimer?.lastName].filter(Boolean).join(" ") ||
-      claimer?.email ||
-      "Someone";
-
-    const sessionLabel = sessionDate
-      ? sessionDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
-      : null;
-
-    // Route notifications through the hub authority so paused members and
-    // those with communications disabled are excluded.
-    const recipients = await getHubNotificationRecipients("host-team", {
-      excludeUserId: claimerId,
-    });
-
-    await db.alert.createMany({
-      data: recipients.map((u) => ({
-        userId: u.id,
-        type: "SUB_REQUEST" as const,
-        message: `${claimerName} claimed${sessionLabel ? ` the ${sessionLabel}` : " a"} session for ${programSlug}`,
-        linkUrl: "/tools/schedule",
-      })),
-      skipDuplicates: true,
-    });
-  } catch (e) {
-    console.error("[assignments/notifyTeamClaimed] error:", e);
-  }
-}

@@ -1,6 +1,5 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { getHubNotificationRecipients } from "@/lib/toolAuth";
 
 function isManager(roles: string[]) {
   return roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
@@ -82,13 +81,6 @@ export async function POST(request: Request) {
     },
   });
 
-  void notifyReassignment({
-    newHostId: session.user.id,
-    previousUserId,
-    programSlug: created.programSlug,
-    sessionDate: created.sessionDate,
-  });
-
   return Response.json({
     id: created.id,
     programSlug: created.programSlug,
@@ -103,64 +95,3 @@ export async function POST(request: Request) {
   });
 }
 
-async function notifyReassignment({
-  newHostId,
-  previousUserId,
-  programSlug,
-  sessionDate,
-}: {
-  newHostId: string;
-  previousUserId: string | null;
-  programSlug: string;
-  sessionDate: Date | null;
-}) {
-  try {
-    const newHost = await db.user.findUnique({
-      where: { id: newHostId },
-      select: { firstName: true, lastName: true, preferredName: true, email: true },
-    });
-    const newHostName =
-      newHost?.preferredName ||
-      [newHost?.firstName, newHost?.lastName].filter(Boolean).join(" ") ||
-      newHost?.email ||
-      "A host manager";
-
-    const sessionLabel = sessionDate
-      ? sessionDate.toLocaleDateString("en-US", {
-          weekday: "short",
-          month: "short",
-          day: "numeric",
-        })
-      : null;
-
-    const alerts: { userId: string; type: "UNASSIGNED_SESSION" | "SUB_REQUEST"; message: string; linkUrl: string }[] = [];
-
-    if (previousUserId && previousUserId !== newHostId) {
-      alerts.push({
-        userId: previousUserId,
-        type: "UNASSIGNED_SESSION",
-        message: `${newHostName} reassigned${sessionLabel ? ` the ${sessionLabel}` : " a"} session for ${programSlug} to themselves.`,
-        linkUrl: "/tools/schedule",
-      });
-    }
-
-    const recipients = await getHubNotificationRecipients("host-team", {
-      excludeUserId: newHostId,
-    });
-    for (const r of recipients) {
-      if (r.id === previousUserId) continue;
-      alerts.push({
-        userId: r.id,
-        type: "SUB_REQUEST",
-        message: `${newHostName} took over${sessionLabel ? ` the ${sessionLabel}` : " a"} session for ${programSlug}.`,
-        linkUrl: "/tools/schedule",
-      });
-    }
-
-    if (alerts.length > 0) {
-      await db.alert.createMany({ data: alerts, skipDuplicates: true });
-    }
-  } catch (e) {
-    console.error("[assignments/reassign] notification error:", e);
-  }
-}

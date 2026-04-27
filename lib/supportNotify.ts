@@ -1,11 +1,12 @@
 /**
  * Support inbox notification helpers.
  *
- * Creates in-app Alert records and sends email notifications
- * for support thread events (assignment, new reply, new note).
+ * Sends email notifications for support thread events (assignment, new
+ * reply, new note). Email body is rendered via the template manager —
+ * slug "support-notification".
  *
- * Email body is rendered via the template manager — slug "support-notification".
- * Alert-creation + 5-minute dedup logic stays here.
+ * Previously also wrote in-app Alert records for a bell UI that was never
+ * built. The alert system was removed; email now carries all signal.
  */
 
 import { db } from "@/lib/db";
@@ -20,50 +21,22 @@ interface NotifyOpts {
   recipientId: string;
   /** The user who performed the action (do NOT notify them about their own action). */
   actorId?: string;
+  /** Event type — informational only now that alerts are gone. */
   type: "SUPPORT_ASSIGNED" | "SUPPORT_NEW_REPLY" | "SUPPORT_NEW_NOTE";
-  /** Short message for the in-app alert and email body. */
+  /** Short message describing the event. Renders into the email body. */
   message: string;
 }
 
 /**
- * Create an in-app alert + optionally send email notification.
- * Deduplicates: won't create if same type+thread alert exists within 5 minutes.
- * Never throws — fire-and-forget safe.
+ * Send a support thread notification email. Never throws — fire-and-forget.
  */
 export async function notifySupport(opts: NotifyOpts): Promise<void> {
   try {
-    const { threadId, threadSubject, recipientId, actorId, type, message } = opts;
+    const { threadId, threadSubject, recipientId, actorId, message } = opts;
 
     // Don't notify the actor about their own action
     if (actorId && recipientId === actorId) return;
 
-    // Dedup: suppress duplicate alerts for the same thread+type within 5 minutes.
-    // Note: in high-volume scenarios (many emails arriving rapidly) some alerts
-    // may be suppressed — acceptable trade-off to prevent notification spam.
-    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
-    const existing = await db.alert.findFirst({
-      where: {
-        userId: recipientId,
-        type,
-        linkUrl: { contains: threadId },
-        createdAt: { gte: fiveMinAgo },
-      },
-    });
-    if (existing) return;
-
-    const linkUrl = `/tools/inbox?thread=${threadId}`;
-
-    // Create in-app alert
-    await db.alert.create({
-      data: {
-        userId: recipientId,
-        type,
-        message,
-        linkUrl,
-      },
-    });
-
-    // Check if user wants email notifications
     const user = await db.user.findUnique({
       where: { id: recipientId },
       select: { email: true, supportEmailNotifications: true, firstName: true },
@@ -71,16 +44,13 @@ export async function notifySupport(opts: NotifyOpts): Promise<void> {
 
     if (!user || !user.supportEmailNotifications) return;
 
-    // Send email notification — body, subject, and chrome live in the
-    // "support-notification" template at /admin/emails.
     await sendTemplatedEmail("support-notification", user.email, {
       firstName:     user.firstName,
       message,
       threadSubject,
-      threadUrl:     `${BASE_URL}${linkUrl}`,
+      threadUrl:     `${BASE_URL}/tools/inbox?thread=${threadId}`,
     });
   } catch (err: any) {
-    // Never throw — fire-and-forget
     console.error("[supportNotify]", err.message);
   }
 }

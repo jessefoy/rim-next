@@ -1319,6 +1319,33 @@ Rooted In Mindfulness · rootedinmindfulness.org`;
       console.log(`  ✔ Applied: ${this.name}`);
     },
   },
+  {
+    // Session 96 — Remove the alerts module entirely. The bell UI was
+    // never built; email carries all signal now. Drop the alerts table
+    // and the AlertType enum.
+    name: "remove_alerts_module",
+    async run() {
+      const flag = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags"
+        WHERE name = 'remove_alerts_module_v1'
+      `).catch(() => []);
+      if (flag.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      await db.$executeRawUnsafe(`DROP TABLE IF EXISTS "alerts" CASCADE`);
+      await db.$executeRawUnsafe(`DROP TYPE IF EXISTS "AlertType"`);
+
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
+      `).catch(() => {});
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('remove_alerts_module_v1')
+      `);
+      console.log(`  ✔ Applied: ${this.name}`);
+    },
+  },
 ];
 
 async function main() {

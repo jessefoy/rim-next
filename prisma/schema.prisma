@@ -116,7 +116,6 @@ model User {
   household       HouseholdMember?
   hostAssignments HostAssignment[]   @relation("HostAssignments")
   subClaims       SubClaim[]         @relation("SubClaims")
-  alerts          Alert[]            @relation("Alerts")
   // Hub system
   hubMemberships  HubMember[]
   hubDocuments       HubDocument[] @relation("HubDocumentAuthor")
@@ -851,33 +850,6 @@ model AppSetting {
   updatedAt DateTime @updatedAt
 
   @@map("app_settings")
-}
-
-// ─── SITE-WIDE ALERTS ────────────────────────────────────────────────────────
-// First consumer: host hub. Other modules will add AlertType values as needed.
-
-model Alert {
-  id        String    @id @default(cuid())
-  userId    String
-  user      User      @relation("Alerts", fields: [userId], references: [id], onDelete: Cascade)
-  type      AlertType
-  message   String
-  linkUrl   String?
-  read      Boolean   @default(false)
-  createdAt DateTime  @default(now())
-
-  @@map("alerts")
-}
-
-enum AlertType {
-  SUB_REQUEST        // all hub members: someone needs a sub
-  SUB_CLAIMED        // original requester only: your sub was claimed
-  NEW_THREAD         // all hub members: new thread posted
-  NEW_REPLY          // thread author + prior repliers: new reply on a thread you're in
-  UNASSIGNED_SESSION // HOST_MANAGER + ADMIN: program within 30 days has no host assigned
-  SUPPORT_ASSIGNED   // support team: thread assigned to you
-  SUPPORT_NEW_REPLY  // support team: new reply on your assigned thread
-  SUPPORT_NEW_NOTE   // support team: internal note added to your assigned thread
 }
 
 // ─── HUB ACCESS (person-level) ────────────────────────────────────────────────

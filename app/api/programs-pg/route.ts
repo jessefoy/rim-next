@@ -122,18 +122,6 @@ export async function POST(request: NextRequest) {
             ? "Virtual"
             : "In-person and virtual";
 
-        // Create alert records first so the in-app bell shows it for hosts
-        // who don't have email enabled.
-        await db.alert.createMany({
-          data: recipients.map((u) => ({
-            userId: u.id,
-            type: "UNASSIGNED_SESSION" as const,
-            message: `New program: ${program.name}. May need host coverage on its upcoming sessions.`,
-            linkUrl: "/tools/schedule",
-          })),
-          skipDuplicates: true,
-        });
-
         await Promise.all(
           recipients.map((u) =>
             sendNewProgramNeedsHostEmail({

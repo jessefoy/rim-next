@@ -264,13 +264,7 @@ export default async function DashboardPage() {
           ],
         },
       });
-      let unreadAlerts = 0;
-      if (membership.hub.slug === "host-team") {
-        unreadAlerts = await db.alert.count({
-          where: { userId, read: false, type: { in: ["SUB_REQUEST", "SUB_CLAIMED", "NEW_THREAD", "NEW_REPLY", "UNASSIGNED_SESSION"] } },
-        });
-      }
-      hubUnreadCounts[membership.hub.id] = unreadThreads + unreadAlerts;
+      hubUnreadCounts[membership.hub.id] = unreadThreads;
     }
   }
 

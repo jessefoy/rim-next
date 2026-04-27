@@ -131,21 +131,11 @@ export async function POST(request: Request) {
       })
     : null;
 
-  // Create alerts + send emails in background
+  // Send emails in background
   void (async () => {
     try {
       const recipientUsers = await getHubNotificationRecipients("host-team", {
         excludeUserId: assignment.userId ?? undefined,
-      });
-      const coverLink = `/tools/schedule?action=cover&id=${subRequest.id}`;
-      await db.alert.createMany({
-        data: recipientUsers.map((u) => ({
-          userId: u.id,
-          type: "SUB_REQUEST" as const,
-          message: `${requesterName} needs a sub${sessionLabel ? ` on ${sessionLabel}` : ""} for ${assignment.programSlug}`,
-          linkUrl: coverLink,
-        })),
-        skipDuplicates: true,
       });
 
       const messageText = message ? (await extractTextAsync(message as any) || null) : null;

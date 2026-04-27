@@ -19,10 +19,6 @@
       "schedule": "0 5 * * *"
     },
     {
-      "path": "/api/cron/check-unassigned-hosts",
-      "schedule": "0 13 * * *"
-    },
-    {
       "path": "/api/cron/seed-host-sessions",
       "schedule": "0 2 * * *"
     },

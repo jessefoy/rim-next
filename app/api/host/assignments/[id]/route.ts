@@ -1,6 +1,5 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { getHubNotificationRecipients } from "@/lib/toolAuth";
 
 function hasHubAccess(roles: string[]) {
   return roles.some((r) => ["HOST", "HOST_MANAGER", "ADMIN"].includes(r));
@@ -46,49 +45,10 @@ export async function PATCH(
         { status: 409 }
       );
     }
-    const updated = await db.hostAssignment.update({
+    await db.hostAssignment.update({
       where: { id },
       data: { userId: session.user.id, assignedBy: session.user.id },
     });
-
-    // Background: notify all hub members
-    void (async () => {
-      try {
-        const claimer = await db.user.findUnique({
-          where: { id: session.user.id },
-          select: { firstName: true, lastName: true, email: true },
-        });
-        const claimerName =
-          [claimer?.firstName, claimer?.lastName].filter(Boolean).join(" ") ||
-          claimer?.email ||
-          "Someone";
-
-        const sessionLabel = updated.sessionDate
-          ? updated.sessionDate.toLocaleDateString("en-US", {
-              weekday: "short",
-              month: "short",
-              day: "numeric",
-            })
-          : null;
-
-        const recipients = await getHubNotificationRecipients("host-team", {
-          excludeUserId: session.user.id,
-        });
-
-        await db.alert.createMany({
-          data: recipients.map((u) => ({
-            userId: u.id,
-            type: "SUB_REQUEST" as const, // reuse generic type — distinct message
-            message: `${claimerName} claimed${sessionLabel ? ` the ${sessionLabel}` : " a"} session for ${updated.programSlug}`,
-            linkUrl: "/tools/schedule",
-          })),
-          skipDuplicates: true,
-        });
-      } catch (e) {
-        console.error("[assignments/claim] notification error:", e);
-      }
-    })();
-
     return Response.json({ ok: true, status: "claimed" });
   }
 
@@ -108,44 +68,6 @@ export async function PATCH(
     where: { id },
     data: { userId: null },
   });
-
-  // Background: notify all hub members
-  void (async () => {
-    try {
-      const requester = await db.user.findUnique({
-        where: { id: session.user.id },
-        select: { firstName: true, lastName: true, email: true },
-      });
-      const requesterName =
-        [requester?.firstName, requester?.lastName].filter(Boolean).join(" ") ||
-        requester?.email ||
-        "Someone";
-
-      const sessionLabel = assignment.sessionDate
-        ? assignment.sessionDate.toLocaleDateString("en-US", {
-            weekday: "short",
-            month: "short",
-            day: "numeric",
-          })
-        : null;
-
-      const recipients = await getHubNotificationRecipients("host-team", {
-        excludeUserId: session.user.id,
-      });
-
-      await db.alert.createMany({
-        data: recipients.map((u) => ({
-          userId: u.id,
-          type: "UNASSIGNED_SESSION" as const,
-          message: `${requesterName} removed themselves from${sessionLabel ? ` the ${sessionLabel}` : " a"} session for ${assignment.programSlug}`,
-          linkUrl: "/tools/schedule",
-        })),
-        skipDuplicates: true,
-      });
-    } catch (e) {
-      console.error("[assignments/unclaim] notification error:", e);
-    }
-  })();
 
   return Response.json({ ok: true, status: "unclaimed" });
 }
