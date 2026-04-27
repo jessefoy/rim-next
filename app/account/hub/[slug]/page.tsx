@@ -53,16 +53,14 @@ export default async function HubHomePage({
 
   // Host Hub: single unified home (one view for everyone). Coordinators have
   // an inline edit affordance on the welcome message; nothing else differs.
-  // Below the welcome are two informational panels:
-  //   - "Our offerings this month"  — team contribution + open coverage
-  //   - "What's new"                — recent conversations / docs / members
+  // Below the welcome is the "Our offerings this month" panel — team
+  // contribution + open coverage at a glance.
   if (slug === "host-team") {
     const isCoordinator = (member?.isCoordinator ?? false) || isAdmin;
 
-    const [welcomeHtml, thisMonth, recent] = await Promise.all([
+    const [welcomeHtml, thisMonth] = await Promise.all([
       renderFormattedTextAsync(hub.welcomeBody),
       loadHostHubThisMonth(hub.id),
-      loadHostHubRecent(hub.id),
     ]);
 
     return (
@@ -73,7 +71,6 @@ export default async function HubHomePage({
         welcomeHtml={welcomeHtml}
         welcomeJson={isCoordinator ? (hub.welcomeBody ?? null) : null}
         thisMonth={thisMonth}
-        recent={recent}
       />
     );
   }
@@ -262,90 +259,3 @@ async function loadHostHubThisMonth(hubId: string) {
   };
 }
 
-/**
- * "What's new" — recent activity in the host hub for the home panel.
- *
- * Three streams of recent change, capped to keep the panel small:
- *   - Conversations: threads created OR with the latest reply in the last 14 days
- *   - Documents:     hub documents created or updated in the last 14 days
- *   - Members:       hub members who joined in the last 14 days
- *
- * Sangha-friendly framing: "what's new" frames this as community pulse,
- * not a feed of stuff to action. Recently-changed conversations may need
- * a glance; new members are introductions, not work.
- */
-async function loadHostHubRecent(hubId: string) {
-  const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
-
-  const [threads, documents, newMembers] = await Promise.all([
-    db.hubConversationThread.findMany({
-      where: {
-        hubId,
-        status: "OPEN",
-        OR: [
-          { createdAt: { gte: fourteenDaysAgo } },
-          { updatedAt: { gte: fourteenDaysAgo } },
-        ],
-      },
-      select: {
-        id: true,
-        title: true,
-        createdAt: true,
-        updatedAt: true,
-        author: { select: { firstName: true, lastName: true, preferredName: true } },
-        _count: { select: { replies: true } },
-      },
-      orderBy: { updatedAt: "desc" },
-      take: 5,
-    }),
-    db.hubDocument.findMany({
-      where: {
-        hubId,
-        OR: [
-          { createdAt: { gte: fourteenDaysAgo } },
-          { updatedAt: { gte: fourteenDaysAgo } },
-        ],
-      },
-      select: { id: true, label: true, isNative: true, createdAt: true, updatedAt: true },
-      orderBy: { updatedAt: "desc" },
-      take: 5,
-    }),
-    db.hubMember.findMany({
-      where: { hubId, status: "ACTIVE", joinedAt: { gte: fourteenDaysAgo } },
-      select: {
-        id: true,
-        joinedAt: true,
-        user: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
-      },
-      orderBy: { joinedAt: "desc" },
-      take: 5,
-    }),
-  ]);
-
-  function nameFor(p: { firstName: string | null; lastName: string | null; preferredName: string | null }) {
-    return p.preferredName || [p.firstName, p.lastName].filter(Boolean).join(" ") || "Someone";
-  }
-
-  return {
-    threads: threads.map((t) => ({
-      id: t.id,
-      title: t.title,
-      authorName: nameFor(t.author),
-      replyCount: t._count.replies,
-      createdAt: t.createdAt.toISOString(),
-      updatedAt: t.updatedAt.toISOString(),
-    })),
-    documents: documents.map((d) => ({
-      id: d.id,
-      label: d.label,
-      isNative: d.isNative,
-      createdAt: d.createdAt.toISOString(),
-      updatedAt: d.updatedAt.toISOString(),
-    })),
-    newMembers: newMembers.map((m) => ({
-      userId: m.user.id,
-      name: nameFor(m.user),
-      joinedAt: m.joinedAt.toISOString(),
-    })),
-  };
-}

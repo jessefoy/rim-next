@@ -7,12 +7,11 @@
  *   1. Header (greeting + hub name)
  *   2. Welcome message — coordinator-editable, read-only for everyone else
  *   3. "Our offerings this month" panel
- *   4. "What's new" panel (recent conversations / docs / members)
  *
  * Everything else (pinned threads, team roster, troubleshooting, quick links,
  * tasks) was removed in favor of the navigation links in the sidebar.
  *
- * CSS prefix: hub-home- (shared chrome) + hh-month / hh-recent (panels).
+ * CSS prefix: hub-home- (shared chrome) + hh-month (panel).
  */
 
 import { useState } from "react";
@@ -35,29 +34,6 @@ export interface ThisMonthGlance {
   availableMembers: Array<{ userId: string; name: string; count: number; isCoordinator: boolean }>;
 }
 
-export interface RecentActivity {
-  threads: Array<{
-    id: string;
-    title: string;
-    authorName: string;
-    replyCount: number;
-    createdAt: string;
-    updatedAt: string;
-  }>;
-  documents: Array<{
-    id: string;
-    label: string;
-    isNative: boolean;
-    createdAt: string;
-    updatedAt: string;
-  }>;
-  newMembers: Array<{
-    userId: string;
-    name: string;
-    joinedAt: string;
-  }>;
-}
-
 interface Props {
   slug: string;
   hubName: string;
@@ -65,7 +41,6 @@ interface Props {
   welcomeHtml: string;
   welcomeJson: unknown;
   thisMonth: ThisMonthGlance;
-  recent: RecentActivity;
 }
 
 export default function HostHubHomeClient({
@@ -75,7 +50,6 @@ export default function HostHubHomeClient({
   welcomeHtml,
   welcomeJson,
   thisMonth,
-  recent,
 }: Props) {
   const [editingWelcome, setEditingWelcome] = useState(false);
 
@@ -122,8 +96,6 @@ export default function HostHubHomeClient({
       </section>
 
       <ThisMonthGlancePanel data={thisMonth} />
-
-      <RecentActivityPanel slug={slug} data={recent} />
     </div>
   );
 }
@@ -199,103 +171,6 @@ function ThisMonthGlancePanel({ data }: { data: ThisMonthGlance }) {
         <Link href="/tools/schedule" className="hh-month__cta">
           See the schedule →
         </Link>
-      )}
-    </section>
-  );
-}
-
-/* ───────────────────────  What's new panel  ─────────────────────────────────
-   Recent activity in the hub: conversations updated or created in the last
-   14 days, hub docs added or edited recently, and new members. Sangha tone:
-   community pulse, not a feed of stuff to action. */
-
-function RecentActivityPanel({
-  slug,
-  data,
-}: {
-  slug: string;
-  data: RecentActivity;
-}) {
-  const empty =
-    data.threads.length === 0 &&
-    data.documents.length === 0 &&
-    data.newMembers.length === 0;
-  if (empty) return null;
-
-  return (
-    <section className="hh-recent">
-      <div className="hh-recent__heading">What&rsquo;s new</div>
-
-      {data.threads.length > 0 && (
-        <div className="hh-recent__group">
-          <div className="hh-recent__group-label">Conversations</div>
-          <ul className="hh-recent__list">
-            {data.threads.map((t) => {
-              const wasCreated = t.createdAt === t.updatedAt;
-              const verb = wasCreated ? "started" : "active";
-              return (
-                <li key={t.id} className="hh-recent__item">
-                  <Link
-                    href={`/account/hub/${slug}/conversations/${t.id}`}
-                    className="hh-recent__title"
-                  >
-                    {t.title}
-                  </Link>
-                  <div className="hh-recent__meta">
-                    {wasCreated ? `${t.authorName} ${verb}` : verb}
-                    {t.replyCount > 0 && ` · ${t.replyCount} ${t.replyCount === 1 ? "reply" : "replies"}`}
-                    {" · "}
-                    {relativeTime(t.updatedAt)}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
-
-      {data.documents.length > 0 && (
-        <div className="hh-recent__group">
-          <div className="hh-recent__group-label">Documents</div>
-          <ul className="hh-recent__list">
-            {data.documents.map((d) => {
-              const wasCreated = d.createdAt === d.updatedAt;
-              const docHref = d.isNative
-                ? `/account/hub/${slug}/documents/${d.id}`
-                : `/account/hub/${slug}/documents`;
-              return (
-                <li key={d.id} className="hh-recent__item">
-                  <Link href={docHref} className="hh-recent__title">
-                    {d.label}
-                  </Link>
-                  <div className="hh-recent__meta">
-                    {wasCreated ? "added" : "updated"}
-                    {" · "}
-                    {relativeTime(d.updatedAt)}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
-
-      {data.newMembers.length > 0 && (
-        <div className="hh-recent__group">
-          <div className="hh-recent__group-label">New members</div>
-          <ul className="hh-recent__list">
-            {data.newMembers.map((m) => (
-              <li key={m.userId} className="hh-recent__item">
-                <span className="hh-recent__title hh-recent__title--plain">
-                  {m.name}
-                </span>
-                <div className="hh-recent__meta">
-                  joined · {relativeTime(m.joinedAt)}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
       )}
     </section>
   );
@@ -388,18 +263,3 @@ function InlineBlockEditor({
   );
 }
 
-function relativeTime(iso: string): string {
-  const then = new Date(iso).getTime();
-  const now = Date.now();
-  const diffMs = now - then;
-  const diffMins = Math.floor(diffMs / 60000);
-  if (diffMins < 1) return "just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  const diffHrs = Math.floor(diffMins / 60);
-  if (diffHrs < 24) return `${diffHrs}h ago`;
-  const diffDays = Math.floor(diffHrs / 24);
-  if (diffDays === 1) return "yesterday";
-  if (diffDays < 7) return `${diffDays}d ago`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
