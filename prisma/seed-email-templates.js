@@ -488,6 +488,31 @@ If you didn't request this link, you can safely ignore this email.
 Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`,
   },
 
+  // ── 20. New program needs host ──────────────────────────────────────────────
+  // Sent to all active host-team members when a new virtual/hybrid program
+  // is created. Lets the team and the coordinator know there's a new program
+  // that may need host coverage going forward.
+  {
+    slug: "new-program-needs-host",
+    name: "New Program Needs a Host",
+    description: "Sent to active host-team members when a new virtual or hybrid program is created. Heads-up that a new program may need host coverage on its upcoming sessions.",
+    enabled: true,
+    group: "04-hosts",
+    groupLabel: "Host Team",
+    subject: "New program added: {{programName}}",
+    variables: ["firstName", "programName", "programFormat", "scheduleUrl"],
+    body: `{{#if firstName}}Hi {{firstName}},{{else}}Hello,{{/if}}
+
+A new program has just been added: **{{programName}}** ({{programFormat}}).
+
+If you'd like to host one of its upcoming sessions, you can take it from the Host Schedule.
+
+**[View the schedule →]({{scheduleUrl}})**
+
+---
+Rooted In Mindfulness · Brookfield, WI`,
+  },
+
   // ── 19. Magic link — returning user ──────────────────────────────────────────
   // ⚠️ CRITICAL — required for sign-in. Same warning as above.
   {

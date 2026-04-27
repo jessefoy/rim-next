@@ -509,6 +509,28 @@ export async function sendSubClaimedEmail(data: SubClaimedEmailData): Promise<vo
   });
 }
 
+export interface NewProgramNeedsHostEmailData {
+  to: string;
+  firstName: string | null;
+  programName: string;
+  programFormat: string; // "Virtual" or "In-person and virtual"
+}
+
+/**
+ * Sent to active host-team members when a new virtual or hybrid program
+ * is created. Heads-up that a new program may need host coverage.
+ * Managed via Email Template Manager — template: "new-program-needs-host"
+ * Fire-and-forget — errors caught inside sendTemplatedEmail.
+ */
+export async function sendNewProgramNeedsHostEmail(data: NewProgramNeedsHostEmailData): Promise<void> {
+  await sendTemplatedEmail("new-program-needs-host", data.to, {
+    firstName:     data.firstName,
+    programName:   data.programName,
+    programFormat: data.programFormat,
+    scheduleUrl:   `${BASE_URL}/tools/schedule`,
+  });
+}
+
 // ── Removed: sendNewThreadEmail + NewThreadEmailData (session 76) ────────────
 // Superseded by sendHubConvNewThreadEmail (generic, any hub). Zero call sites.
 

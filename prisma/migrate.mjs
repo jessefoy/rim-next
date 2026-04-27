@@ -1067,6 +1067,74 @@ Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`,
     },
   },
   {
+    // Session 96 — New "new-program-needs-host" email template. Sent to
+    // active host-team members when a virtual/hybrid program is created,
+    // so the team and the coordinator know about new sessions that may
+    // need host coverage.
+    name: "seed_new_program_needs_host_template",
+    async run() {
+      const flag = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags"
+        WHERE name = 'seed_new_program_needs_host_template_v1'
+      `).catch(() => []);
+      if (flag.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      await db.emailTemplate.upsert({
+        where: { slug: "new-program-needs-host" },
+        update: {
+          name: "New Program Needs a Host",
+          description: "Sent to active host-team members when a new virtual or hybrid program is created. Heads-up that a new program may need host coverage on its upcoming sessions.",
+          enabled: true,
+          group: "04-hosts",
+          groupLabel: "Host Team",
+          subject: "New program added: {{programName}}",
+          variables: ["firstName", "programName", "programFormat", "scheduleUrl"],
+          body: `{{#if firstName}}Hi {{firstName}},{{else}}Hello,{{/if}}
+
+A new program has just been added: **{{programName}}** ({{programFormat}}).
+
+If you'd like to host one of its upcoming sessions, you can take it from the Host Schedule.
+
+**[View the schedule →]({{scheduleUrl}})**
+
+---
+Rooted In Mindfulness · Brookfield, WI`,
+        },
+        create: {
+          slug: "new-program-needs-host",
+          name: "New Program Needs a Host",
+          description: "Sent to active host-team members when a new virtual or hybrid program is created. Heads-up that a new program may need host coverage on its upcoming sessions.",
+          enabled: true,
+          group: "04-hosts",
+          groupLabel: "Host Team",
+          subject: "New program added: {{programName}}",
+          variables: ["firstName", "programName", "programFormat", "scheduleUrl"],
+          body: `{{#if firstName}}Hi {{firstName}},{{else}}Hello,{{/if}}
+
+A new program has just been added: **{{programName}}** ({{programFormat}}).
+
+If you'd like to host one of its upcoming sessions, you can take it from the Host Schedule.
+
+**[View the schedule →]({{scheduleUrl}})**
+
+---
+Rooted In Mindfulness · Brookfield, WI`,
+        },
+      });
+
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
+      `).catch(() => {});
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('seed_new_program_needs_host_template_v1')
+      `);
+      console.log(`  ✔ Applied: ${this.name}`);
+    },
+  },
+  {
     // Session 96 — Schedule tool rebuild: sub-request emails carry a
     // {{coverUrl}} deep link that opens the schedule page with the cover
     // confirmation modal pre-opened. The DB-stored email template needs

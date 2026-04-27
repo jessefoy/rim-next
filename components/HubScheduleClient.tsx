@@ -31,7 +31,12 @@ interface Session {
   subMessage: any;
   programFormat: string | null;
   livekitRoom?: string | null;
+  /** ISO timestamp when the program was created. Drives the NEW badge. */
+  programCreatedAt?: string | null;
 }
+
+/** Programs created within this many days show a NEW badge on schedule cards. */
+const NEW_PROGRAM_DAYS = 14;
 
 interface Program {
   id: string | null;
@@ -372,6 +377,17 @@ function HsRow({
       break;
   }
 
+  // "NEW" badge: program was created within the last NEW_PROGRAM_DAYS.
+  // Helps the coordinator (and hosts) notice new offerings that may need
+  // attention or volunteers without scrolling through filters. Disappears
+  // automatically — no manual dismissal needed.
+  const isNewProgram = (() => {
+    if (!session.programCreatedAt) return false;
+    const ms = new Date(session.programCreatedAt).getTime();
+    if (Number.isNaN(ms)) return false;
+    return Date.now() - ms < NEW_PROGRAM_DAYS * 24 * 60 * 60 * 1000;
+  })();
+
   return (
     <div className={`hs-row hs-row--${kind}${isPast ? " hs-row--past" : ""}`}>
       <div className="hs-row__when">
@@ -379,7 +395,10 @@ function HsRow({
         <div className="hs-row__time">{timeStr}</div>
       </div>
       <div className="hs-row__what">
-        <div className="hs-row__name">{session.programName}</div>
+        <div className="hs-row__name">
+          {session.programName}
+          {isNewProgram && !isPast && <span className="hs-row__new-badge" aria-label="New program">NEW</span>}
+        </div>
         {fmt && <div className="hs-row__format">{fmt}</div>}
       </div>
       <div className="hs-row__who">{statusEl}</div>

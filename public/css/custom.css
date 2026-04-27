@@ -14584,6 +14584,26 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   font-size: var(--text-body);
   font-weight: 500;
   color: var(--rim-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+/* NEW badge — for sessions belonging to programs created in the last 14 days.
+   Calm visual treatment; the orange left-border still does the heavy lifting
+   for "needs attention" — this is just an additional subtle cue. */
+.hs-row__new-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-sans);
+  font-size: var(--text-xxs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(19, 82, 116, 0.10);
+  color: var(--rim-blue);
+  border: 1px solid rgba(19, 82, 116, 0.22);
 }
 .hs-row__format {
   font-family: var(--font-sans);

@@ -8,6 +8,8 @@ import { randomBytes } from "crypto";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { centralToUtc } from "@/lib/timezone";
+import { sendNewProgramNeedsHostEmail } from "@/lib/email";
+import { getHubNotificationRecipients } from "@/lib/toolAuth";
 
 export async function GET() {
   const session = await auth();
@@ -102,6 +104,50 @@ export async function POST(request: NextRequest) {
         order: index,
       })),
     });
+  }
+
+  // Notify the host team when a new virtual/hybrid program lands.
+  // In-person programs don't need host coverage on the LiveKit side, so we
+  // only fire for virtual/hybrid. Recipients exclude the registrar who
+  // created it (no point notifying yourself). Fire-and-forget; failure here
+  // never blocks the program-create response.
+  if (program.programFormat === "virtual" || program.programFormat === "hybrid") {
+    void (async () => {
+      try {
+        const recipients = await getHubNotificationRecipients("host-team", {
+          excludeUserId: session.user.id,
+        });
+        const formatLabel =
+          program.programFormat === "virtual"
+            ? "Virtual"
+            : "In-person and virtual";
+
+        // Create alert records first so the in-app bell shows it for hosts
+        // who don't have email enabled.
+        await db.alert.createMany({
+          data: recipients.map((u) => ({
+            userId: u.id,
+            type: "UNASSIGNED_SESSION" as const,
+            message: `New program: ${program.name}. May need host coverage on its upcoming sessions.`,
+            linkUrl: "/tools/schedule",
+          })),
+          skipDuplicates: true,
+        });
+
+        await Promise.all(
+          recipients.map((u) =>
+            sendNewProgramNeedsHostEmail({
+              to: u.email,
+              firstName: u.firstName,
+              programName: program.name,
+              programFormat: formatLabel,
+            }),
+          ),
+        );
+      } catch (e) {
+        console.error("[programs-pg] new-program notification error:", e);
+      }
+    })();
   }
 
   return NextResponse.json(program, { status: 201 });

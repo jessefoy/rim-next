@@ -77,7 +77,7 @@ export default async function ScheduleToolPage({
         id: true, name: true, slug: true,
         programFormat: true, startDatetime: true, endDatetime: true,
         recurrenceFreq: true, recurrenceInterval: true, recurrenceDays: true, recurrenceCount: true,
-        livekitRoom: true,
+        livekitRoom: true, createdAt: true,
       },
       orderBy: { sortOrder: "asc" },
     }),
@@ -112,6 +112,8 @@ export default async function ScheduleToolPage({
     programFormat: string | null;
     programId: string | null;
     livekitRoom: string | null;
+    /** ISO string of the program's createdAt — drives the "NEW" badge on cards. */
+    programCreatedAt: string | null;
   }
 
   const sessions: SessionItem[] = [];
@@ -151,6 +153,7 @@ export default async function ScheduleToolPage({
           programFormat: p.programFormat ?? null,
           programId: p.id,
           livekitRoom: p.livekitRoom ?? null,
+          programCreatedAt: p.createdAt?.toISOString() ?? null,
         });
       } else {
         sessions.push({
@@ -166,6 +169,7 @@ export default async function ScheduleToolPage({
           programFormat: p.programFormat ?? null,
           programId: p.id,
           livekitRoom: p.livekitRoom ?? null,
+          programCreatedAt: p.createdAt?.toISOString() ?? null,
         });
       }
     }
