@@ -20,7 +20,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Pin, X, Plus, MessageSquare } from "lucide-react";
+import { Pin, X, Plus, MessageSquare, Pencil, Trash2, Check } from "lucide-react";
 import RimProseEditor from "./RimProseEditor";
 import { avatarColorFor } from "@/lib/avatarColor";
 
@@ -95,6 +95,42 @@ function hasContent(json: any): boolean {
   return extractText(json).trim().length > 0;
 }
 
+function AddCategoryForm({
+  onAdd,
+  busy,
+}: {
+  onAdd: (name: string) => Promise<string | null>;
+  busy: boolean;
+}) {
+  const [draft, setDraft] = useState("");
+  return (
+    <form
+      className="hub-conv-manage__add"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        const added = await onAdd(draft);
+        if (added) setDraft("");
+      }}
+    >
+      <input
+        className="hub-conv-manage__input"
+        type="text"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        placeholder="Add a category"
+        maxLength={40}
+      />
+      <button
+        type="submit"
+        className="btn--ghost hub-conv-manage__addbtn"
+        disabled={busy || !draft.trim()}
+      >
+        Add
+      </button>
+    </form>
+  );
+}
+
 export default function HubConvClient({
   hubSlug,
   initialThreads,
@@ -108,6 +144,7 @@ export default function HubConvClient({
   const newTopicParam = searchParams.get("newTopic") ?? "";
 
   const [threads, setThreads] = useState<Thread[]>(initialThreads);
+  const [categoryList, setCategoryList] = useState<string[]>(categories);
   const [showCompose, setShowCompose] = useState(!!newTopicParam);
   const [title, setTitle] = useState(newTopicParam);
   const [body, setBody] = useState<any>(null);
@@ -117,13 +154,97 @@ export default function HubConvClient({
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
   const [loadingClosed, setLoadingClosed] = useState(false);
   const [closedThreads, setClosedThreads] = useState<Thread[] | null>(null);
+  const [showManage, setShowManage] = useState(false);
+  const [renamingCat, setRenamingCat] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft] = useState("");
+  const [catError, setCatError] = useState<string | null>(null);
+  const [catBusy, setCatBusy] = useState(false);
 
   const titleRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (showCompose) titleRef.current?.focus();
   }, [showCompose]);
 
-  const hasMultipleCategories = categories.length > 1;
+  const hasMultipleCategories = categoryList.length > 1;
+
+  async function addCategory(name: string): Promise<string | null> {
+    const trimmed = name.trim();
+    if (!trimmed) return null;
+    setCatBusy(true);
+    setCatError(null);
+    const res = await fetch(`/api/hub/${hubSlug}/categories`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ name: trimmed }),
+    });
+    setCatBusy(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setCatError(data?.error ?? "Could not add category");
+      return null;
+    }
+    const data = await res.json();
+    setCategoryList(data.categories);
+    return trimmed;
+  }
+
+  async function renameCategory(oldName: string, newName: string) {
+    const trimmed = newName.trim();
+    if (!trimmed || trimmed === oldName) {
+      setRenamingCat(null);
+      return;
+    }
+    setCatBusy(true);
+    setCatError(null);
+    const res = await fetch(`/api/hub/${hubSlug}/categories`, {
+      method:  "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ oldName, newName: trimmed }),
+    });
+    setCatBusy(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setCatError(data?.error ?? "Could not rename category");
+      return;
+    }
+    const data = await res.json();
+    setCategoryList(data.categories);
+    setRenamingCat(null);
+    // Reflect rename on threads in view
+    const remap = (t: Thread) =>
+      t.category === oldName ? { ...t, category: trimmed } : t;
+    setThreads((prev) => prev.map(remap));
+    setClosedThreads((prev) => prev ? prev.map(remap) : null);
+    if (filterCategory === oldName) setFilterCategory(trimmed);
+    if (composeCategory === oldName) setComposeCategory(trimmed);
+  }
+
+  async function deleteCategory(name: string) {
+    if (!window.confirm(
+      `Delete "${name}"? Any topics in this category will move to a remaining category.`,
+    )) return;
+    setCatBusy(true);
+    setCatError(null);
+    const res = await fetch(
+      `/api/hub/${hubSlug}/categories?name=${encodeURIComponent(name)}`,
+      { method: "DELETE" },
+    );
+    setCatBusy(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setCatError(data?.error ?? "Could not delete category");
+      return;
+    }
+    const data = await res.json();
+    setCategoryList(data.categories);
+    const reassigned: string = data.reassignedTo;
+    const remap = (t: Thread) =>
+      t.category === name ? { ...t, category: reassigned } : t;
+    setThreads((prev) => prev.map(remap));
+    setClosedThreads((prev) => prev ? prev.map(remap) : null);
+    if (filterCategory === name) setFilterCategory(null);
+    if (composeCategory === name) setComposeCategory(data.categories[0] ?? "General");
+  }
   const visitedAt = lastVisitedAt ? new Date(lastVisitedAt).getTime() : 0;
 
   const displayed = view === "open" ? threads : (closedThreads ?? []);
@@ -346,24 +467,121 @@ export default function HubConvClient({
         </div>
       </header>
 
-      {/* Category filter */}
-      {hasMultipleCategories && (
-        <div className="hub-conv__filter">
-          <button
-            className={`hub-conv-chip${!filterCategory ? " hub-conv-chip--active" : ""}`}
-            onClick={() => setFilterCategory(null)}
-          >
-            All
-          </button>
-          {categories.map((cat) => (
+      {/* Category filter + manage */}
+      <div className="hub-conv__filter">
+        {hasMultipleCategories && (
+          <>
             <button
-              key={cat}
-              className={`hub-conv-chip${filterCategory === cat ? " hub-conv-chip--active" : ""}`}
-              onClick={() => setFilterCategory(cat)}
+              className={`hub-conv-chip${!filterCategory ? " hub-conv-chip--active" : ""}`}
+              onClick={() => setFilterCategory(null)}
             >
-              {cat}
+              All
             </button>
-          ))}
+            {categoryList.map((cat) => (
+              <button
+                key={cat}
+                className={`hub-conv-chip${filterCategory === cat ? " hub-conv-chip--active" : ""}`}
+                onClick={() => setFilterCategory(cat)}
+              >
+                {cat}
+              </button>
+            ))}
+          </>
+        )}
+        <button
+          className="hub-conv-chip hub-conv-chip--ghost"
+          onClick={() => { setShowManage((v) => !v); setCatError(null); setRenamingCat(null); }}
+          aria-label="Manage categories"
+          aria-expanded={showManage}
+          title="Manage categories"
+        >
+          <Pencil size={13} aria-hidden="true" />
+          <span>Manage</span>
+        </button>
+      </div>
+
+      {/* Manage categories panel */}
+      {showManage && (
+        <div className="hub-conv-manage">
+          <div className="hub-conv-manage__head">
+            <span className="hub-conv-manage__title">Categories</span>
+            <button
+              className="hub-conv-manage__close"
+              onClick={() => { setShowManage(false); setRenamingCat(null); setCatError(null); }}
+              aria-label="Close"
+            >
+              <X size={16} />
+            </button>
+          </div>
+          {catError && <div className="hub-conv-manage__err">{catError}</div>}
+          <ul className="hub-conv-manage__list">
+            {categoryList.map((cat) => (
+              <li key={cat} className="hub-conv-manage__row">
+                {renamingCat === cat ? (
+                  <>
+                    <input
+                      className="hub-conv-manage__input"
+                      type="text"
+                      value={renameDraft}
+                      autoFocus
+                      onChange={(e) => setRenameDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") renameCategory(cat, renameDraft);
+                        if (e.key === "Escape") setRenamingCat(null);
+                      }}
+                      maxLength={40}
+                    />
+                    <button
+                      className="hub-conv-iconbtn"
+                      onClick={() => renameCategory(cat, renameDraft)}
+                      disabled={catBusy}
+                      title="Save"
+                      aria-label="Save"
+                    >
+                      <Check size={15} />
+                    </button>
+                    <button
+                      className="hub-conv-iconbtn"
+                      onClick={() => setRenamingCat(null)}
+                      title="Cancel"
+                      aria-label="Cancel"
+                    >
+                      <X size={15} />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span className="hub-conv-manage__name">{cat}</span>
+                    <button
+                      className="hub-conv-iconbtn"
+                      onClick={() => { setRenamingCat(cat); setRenameDraft(cat); setCatError(null); }}
+                      title="Rename"
+                      aria-label={`Rename ${cat}`}
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    {isCoordinator && categoryList.length > 1 && (
+                      <button
+                        className="hub-conv-iconbtn"
+                        onClick={() => deleteCategory(cat)}
+                        disabled={catBusy}
+                        title="Delete"
+                        aria-label={`Delete ${cat}`}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+          <AddCategoryForm onAdd={addCategory} busy={catBusy} />
+          {!isCoordinator && (
+            <p className="hub-conv-manage__note">
+              Anyone on the team can add or rename categories. Coordinators can also delete.
+            </p>
+          )}
         </div>
       )}
 
@@ -388,17 +606,27 @@ export default function HubConvClient({
             onChange={(e) => setTitle(e.target.value)}
             placeholder="What would you like to discuss?"
           />
-          {hasMultipleCategories && (
-            <select
-              className="hub-conv-compose__cat"
-              value={composeCategory}
-              onChange={(e) => setComposeCategory(e.target.value)}
-            >
-              {categories.map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          )}
+          <select
+            className="hub-conv-compose__cat"
+            value={composeCategory}
+            onChange={async (e) => {
+              const val = e.target.value;
+              if (val === "__add__") {
+                const name = window.prompt("New category name");
+                if (name) {
+                  const added = await addCategory(name);
+                  if (added) setComposeCategory(added);
+                }
+                return;
+              }
+              setComposeCategory(val);
+            }}
+          >
+            {categoryList.map((cat) => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+            <option value="__add__">+ Add new category…</option>
+          </select>
           <div className="hub-conv-compose__editor">
             <RimProseEditor
               value={body}

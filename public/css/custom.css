@@ -12775,6 +12775,111 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   border-color: var(--rim-text);
 }
 .hub-conv-chip--active:hover { color: #fff; }
+.hub-conv-chip--ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  background: transparent;
+  border-color: transparent;
+  color: var(--rim-text-muted);
+}
+.hub-conv-chip--ghost:hover {
+  background: #fff;
+  border-color: var(--rim-rule);
+}
+
+/* ── Manage categories panel ── */
+.hub-conv-manage {
+  background: #fff;
+  border: 1px solid var(--rim-rule);
+  border-radius: 12px;
+  padding: 14px 18px 16px;
+  margin-top: 10px;
+  margin-bottom: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.hub-conv-manage__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.hub-conv-manage__title {
+  font-family: var(--font-sans);
+  font-size: var(--text-xxs);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--rim-text-muted);
+}
+.hub-conv-manage__close {
+  background: transparent;
+  border: 0;
+  color: var(--rim-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+}
+.hub-conv-manage__close:hover { color: var(--rim-text); }
+.hub-conv-manage__err {
+  font-size: var(--text-xs);
+  color: var(--color-error);
+  background: var(--color-error-bg);
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+.hub-conv-manage__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.hub-conv-manage__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--rim-rule);
+}
+.hub-conv-manage__row:last-child { border-bottom: 0; }
+.hub-conv-manage__name {
+  flex: 1;
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  color: var(--rim-text);
+}
+.hub-conv-manage__input {
+  flex: 1;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  padding: 6px 10px;
+  border: 1px solid var(--rim-rule);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--rim-text);
+}
+.hub-conv-manage__input:focus {
+  outline: none;
+  border-color: var(--rim-blue);
+}
+.hub-conv-manage__add {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+}
+.hub-conv-manage__addbtn {
+  flex-shrink: 0;
+}
+.hub-conv-manage__note {
+  font-size: var(--text-xs);
+  color: var(--rim-text-muted);
+  margin: 4px 0 0;
+}
 
 /* ── Compose card (inline "new topic") ── */
 .hub-conv-compose {
