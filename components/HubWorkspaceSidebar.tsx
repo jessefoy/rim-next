@@ -107,8 +107,12 @@ export default function HubWorkspaceSidebar({
   }
 
   const base = `/account/hub/${hub.slug}`;
-  const teamItems = [
-    { label: "Home",          href: base,                    icon: Home,          badge: 0 },
+  // Single flat nav. Tools (Schedule, Inbox, Programs, etc.) appear right
+  // under Home so the most-used surface is at the top of the list. Below
+  // are the universal hub features. No Work/Team section split — for hubs
+  // with one tool the divider was visual overhead.
+  const homeItem = { label: "Home", href: base, icon: Home, badge: 0 };
+  const otherItems = [
     { label: "Conversations", href: `${base}/conversations`, icon: MessageSquare, badge: navCounts.conversations ?? 0 },
     { label: "Documents",     href: `${base}/documents`,     icon: FileText,      badge: 0 },
     { label: "Members",       href: `${base}/members`,       icon: Users,         badge: 0 },
@@ -201,34 +205,44 @@ export default function HubWorkspaceSidebar({
 
         <div className="hub-ws-divider" aria-hidden="true" />
 
-        {/* WORK group */}
-        {tools.length > 0 && (
-          <div className="hub-ws-group">
-            <div className="hub-ws-group__label">Work</div>
-            {tools.map((tool) => {
-              const active = isToolActive(tool.path);
-              return (
-                <Link
-                  key={tool.slug}
-                  href={toolHref(tool.path)}
-                  className={`hub-ws-link hub-ws-link--primary${active ? " hub-ws-link--active" : ""}`}
-                  title={collapsed ? tool.label : undefined}
-                >
-                  <Briefcase size={18} strokeWidth={1.75} className="hub-ws-link__icon" />
-                  <span className="hub-ws-link__label">{tool.label}</span>
-                  {tool.badgeCount !== undefined && tool.badgeCount > 0 && (
-                    <span className="hub-ws-badge hub-ws-badge--primary">{tool.badgeCount}</span>
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-        )}
-
-        {/* TEAM group */}
+        {/* Single flat nav: Home → tools → universal features */}
         <div className="hub-ws-group">
-          <div className="hub-ws-group__label">Team</div>
-          {teamItems.map((item) => {
+          {/* Home */}
+          {(() => {
+            const active = isActive(homeItem.href, true);
+            return (
+              <Link
+                href={homeItem.href}
+                className={`hub-ws-link${active ? " hub-ws-link--active" : ""}`}
+                title={collapsed ? homeItem.label : undefined}
+              >
+                <homeItem.icon size={18} strokeWidth={1.75} className="hub-ws-link__icon" />
+                <span className="hub-ws-link__label">{homeItem.label}</span>
+              </Link>
+            );
+          })()}
+
+          {/* Tools — sit immediately under Home as primary work links */}
+          {tools.map((tool) => {
+            const active = isToolActive(tool.path);
+            return (
+              <Link
+                key={tool.slug}
+                href={toolHref(tool.path)}
+                className={`hub-ws-link hub-ws-link--primary${active ? " hub-ws-link--active" : ""}`}
+                title={collapsed ? tool.label : undefined}
+              >
+                <Briefcase size={18} strokeWidth={1.75} className="hub-ws-link__icon" />
+                <span className="hub-ws-link__label">{tool.label}</span>
+                {tool.badgeCount !== undefined && tool.badgeCount > 0 && (
+                  <span className="hub-ws-badge hub-ws-badge--primary">{tool.badgeCount}</span>
+                )}
+              </Link>
+            );
+          })}
+
+          {/* Universal hub features */}
+          {otherItems.map((item) => {
             const exact = item.href === base;
             const active = isActive(item.href, exact);
             return (

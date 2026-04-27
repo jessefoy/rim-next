@@ -767,16 +767,6 @@ export default function HubScheduleClient({
 
   return (
     <div className="hs-page">
-      {/* Help link — opens the manual section in a new tab */}
-      <a
-        href="/admin/manual/host-schedule"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="hs-help-link"
-      >
-        New here? <span className="hs-help-link__cta">Read how the schedule works →</span>
-      </a>
-
       {/* Month nav */}
       <div className="hs-monthnav">
         <button className="hs-monthnav__btn" onClick={prevMonth} aria-label="Previous month">←</button>
@@ -881,6 +871,20 @@ export default function HubScheduleClient({
             My requests <span className="hs-filter__count">{counts.myReq}</span>
           </button>
         )}
+
+        {/* Help — opens the manual chapter in a new tab. Sits at the end of
+            the filter row so it's discoverable without competing for visual
+            weight. The system's standard ManualHelpIcon ("?") convention. */}
+        <a
+          href="/admin/manual/host-schedule"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hs-help-icon"
+          title="How the schedule works"
+          aria-label="How the schedule works (opens in a new tab)"
+        >
+          ?
+        </a>
       </div>
 
       {/* Body */}
