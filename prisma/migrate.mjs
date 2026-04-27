@@ -449,6 +449,182 @@ const migrations = [
     },
   },
   {
+    // Session 96 — Migrate program/registration emails into the template
+    // manager. Six templates: registration-confirmation, waitlist-approval,
+    // registration-cancelled-internal, responses-updated-internal,
+    // edit-request, dana-reminder. After this runs, all six are visible at
+    // /admin/emails for preview/edit, and lib/email.ts uses sendTemplatedEmail
+    // for them instead of hand-written HTML builders.
+    name: "seed_program_registration_email_templates",
+    async run() {
+      const flag = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags"
+        WHERE name = 'seed_program_registration_email_templates_v1'
+      `).catch(() => []);
+      if (flag.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      const templates = [
+        {
+          slug: "registration-confirmation",
+          name: "Registration Confirmation",
+          description: "Sent when a member registers for a program (confirmed or waitlisted).",
+          enabled: true,
+          subject: "{{#if isWaitlisted}}You're on the waitlist — {{programTitle}}{{else}}You're registered — {{programTitle}}{{/if}}",
+          variables: ["firstName", "programTitle", "programUrl", "isWaitlisted", "waitlistPosition", "dateText", "locationText", "confirmationMessageHtml", "googleCalendarUrl", "icsUrl"],
+          body: `Hi {{firstName}},
+
+{{#if isWaitlisted}}
+You're on the waitlist for **{{programTitle}}**.{{#if waitlistPosition}} You're currently **#{{waitlistPosition}}** in line.{{/if}}
+
+If a spot opens up, we'll email you right away.
+{{else}}
+You're registered for **{{programTitle}}**. We look forward to practicing together.
+
+{{#if dateText}}📅 {{dateText}}{{/if}}
+{{#if locationText}}📍 {{locationText}}{{/if}}
+
+{{#if confirmationMessageHtml}}
+{{confirmationMessageHtml}}
+{{/if}}
+
+{{#if googleCalendarUrl}}
+**Add to calendar:** [Google Calendar]({{googleCalendarUrl}}){{#if icsUrl}} · [Apple / Outlook (.ics)]({{icsUrl}}){{/if}}
+{{/if}}
+{{/if}}
+
+**[View Program Details →]({{programUrl}})**
+
+---
+Rooted In Mindfulness · rootedinmindfulness.org`,
+        },
+        {
+          slug: "waitlist-approval",
+          name: "Waitlist Approval",
+          description: "Sent when a registrar promotes a waitlisted member to confirmed.",
+          enabled: true,
+          subject: "Your spot is confirmed — {{programTitle}}",
+          variables: ["firstName", "programTitle", "programUrl", "hasDana"],
+          body: `## Your spot is confirmed
+
+Hi {{firstName}},
+
+Good news — a spot has opened up and you've been confirmed for **{{programTitle}}**. We look forward to practicing together.
+
+**[View Program Details →]({{programUrl}})**
+
+{{#if hasDana}}
+---
+
+This program includes a dana (generosity) practice. When you're ready, you can make your offering from the program page.
+
+**[Complete Dana Offering →]({{programUrl}})**
+{{/if}}
+
+---
+Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`,
+        },
+        {
+          slug: "registration-cancelled-internal",
+          name: "Registration Cancelled (internal)",
+          description: "Sent to the registrar when a registration is cancelled.",
+          enabled: true,
+          subject: "Registration cancelled — {{registrantName}} ({{programTitle}})",
+          variables: ["registrantName", "registrantEmail", "programTitle", "volunteerUrl"],
+          body: `## Registration Cancelled
+
+A registration has been cancelled for **{{programTitle}}**.
+
+> **Name:** {{registrantName}}
+> **Email:** {{registrantEmail}}
+
+If there are waitlisted members, you may want to offer the spot to the next person.
+
+**[View Registrations →]({{volunteerUrl}})**
+
+---
+Rooted In Mindfulness · Brookfield, WI`,
+        },
+        {
+          slug: "responses-updated-internal",
+          name: "Responses Updated (internal)",
+          description: "Sent to the registrar when a registrant submits their self-service response update.",
+          enabled: true,
+          subject: "{{registrantName}} updated their responses — {{programTitle}}",
+          variables: ["registrantName", "programTitle", "volunteerUrl"],
+          body: `## Responses Updated
+
+**{{registrantName}}** has updated their registration responses for **{{programTitle}}**.
+
+**[View Registration →]({{volunteerUrl}})**
+
+---
+Rooted In Mindfulness · Brookfield, WI`,
+        },
+        {
+          slug: "edit-request",
+          name: "Self-Service Edit Request",
+          description: "Sent when a registrar invites a registrant to update their own responses. The link contains a single-use 7-day token.",
+          enabled: true,
+          subject: "Update your responses — {{programTitle}}",
+          variables: ["firstName", "programTitle", "editUrl"],
+          body: `## Update your responses
+
+Hi {{firstName}},
+
+Your registrar has invited you to review and update your registration responses for **{{programTitle}}**. Click below to open your pre-filled form.
+
+**[Update My Responses →]({{editUrl}})**
+
+This link is unique to you and expires in 7 days. It can only be used once.
+
+---
+Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`,
+        },
+        {
+          slug: "dana-reminder",
+          name: "Dana Reminder",
+          description: "Gentle reminder sent to a member whose dana offering is still pending.",
+          enabled: true,
+          subject: "A gentle reminder — your dana for {{programTitle}}",
+          variables: ["firstName", "programTitle", "registerUrl"],
+          body: `## A gentle reminder
+
+Hi {{firstName}},
+
+Just a gentle note that your dana offering for **{{programTitle}}** is still pending. Whenever you feel moved to, you can complete it here:
+
+**[Complete Your Dana Offering →]({{registerUrl}})**
+
+*Dana is entirely optional — please only complete it if and when it feels right for you. Your participation is what matters most.*
+
+---
+Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`,
+        },
+      ];
+
+      let count = 0;
+      for (const t of templates) {
+        await db.emailTemplate.upsert({
+          where: { slug: t.slug },
+          update: { name: t.name, description: t.description, subject: t.subject, body: t.body, variables: t.variables, enabled: t.enabled },
+          create: t,
+        });
+        count++;
+      }
+
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
+      `).catch(() => {});
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('seed_program_registration_email_templates_v1')
+      `);
+      console.log(`  ✔ Applied: ${this.name} (${count} templates upserted)`);
+    },
+  },
+  {
     // Session 96 — Schedule tool rebuild: sub-request emails carry a
     // {{coverUrl}} deep link that opens the schedule page with the cover
     // confirmation modal pre-opened. The DB-stored email template needs

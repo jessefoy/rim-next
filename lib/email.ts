@@ -202,54 +202,24 @@ export interface RegistrationEmailData {
 
 /**
  * Send a registration confirmation or waitlist email.
- * HARDCODED — not in Email Template Manager.
- *
- * Why hardcoded: .ics calendar file attachment (Resend `attachments` field),
- * conditional Google Calendar + Apple/Outlook links, inline Portable Text HTML
- * for confirmationMessage, and two divergent layouts (confirmed vs. waitlisted)
- * that would require complex template logic. Migrate only if the template engine
- * gains first-class attachment and conditional block support.
- *
- * Proposed slug (if migrated): registration-confirmation
- * Variables: firstName, programTitle, programUrl, dateText, locationText,
- *            confirmationMessageHtml, googleCalendarUrl, icsUrl, waitlistPosition
- *
- * Errors are caught and logged — a failed email must never fail the registration.
+ * Managed via Email Template Manager — template: "registration-confirmation"
+ * Fire-and-forget — errors caught inside sendTemplatedEmail.
  */
 export async function sendRegistrationEmail(data: RegistrationEmailData): Promise<void> {
-  const {
-    to, firstName, programTitle, programSlug,
-    status, waitlistPosition, dateText, locationText,
-  } = data;
-
+  const { to, firstName, programTitle, programSlug, status, waitlistPosition, dateText, locationText } = data;
   const isWaitlisted = status === "WAITLISTED";
-  const programUrl   = `${BASE_URL}/programs/${programSlug}`;
-
-  const subject = isWaitlisted
-    ? `You're on the waitlist — ${programTitle}`
-    : `You're registered — ${programTitle}`;
-
-  const params: BuildParams = {
-    firstName, programTitle, programUrl,
-    isWaitlisted, waitlistPosition,
-    dateText, locationText,
-    confirmationMessageHtml: data.confirmationMessageHtml,
-    confirmationMessageText: data.confirmationMessageText,
-    googleCalendarUrl: data.googleCalendarUrl,
-    icsUrl: data.icsUrl,
-  };
-
-  // Resend v4+ returns { data, error } instead of throwing — check both.
-  const { error } = await resend.emails.send({
-    from:    FROM,
-    to,
-    subject,
-    html:    buildHtml(params),
-    text:    buildText(params),
+  await sendTemplatedEmail("registration-confirmation", to, {
+    firstName,
+    programTitle,
+    programUrl: `${BASE_URL}/programs/${programSlug}`,
+    isWaitlisted,
+    waitlistPosition: waitlistPosition ?? null,
+    dateText: dateText ?? "",
+    locationText: locationText ?? "",
+    confirmationMessageHtml: data.confirmationMessageHtml ?? "",
+    googleCalendarUrl: data.googleCalendarUrl ?? "",
+    icsUrl: data.icsUrl ?? "",
   });
-  if (error) {
-    console.error("[email] Failed to send registration confirmation:", error);
-  }
 }
 
 // ─── Waitlist approval email ─────────────────────────────────────────────────
@@ -264,36 +234,17 @@ export interface ApprovalEmailData {
 
 /**
  * Sent when a registrar promotes someone from WAITLISTED → APPROVED.
- * HARDCODED — not in Email Template Manager.
- *
- * Why hardcoded: conditional dana section that alters the email layout depending
- * on whether the program has a dana mode. Straightforward candidate for migration
- * once the template engine supports conditional blocks.
- *
- * Proposed slug (if migrated): waitlist-approval
- * Variables: firstName, programTitle, programUrl, danaUrl (conditional)
- *
- * When the program has a dana practice, includes a section with a link to complete the offering.
- * Errors are caught and logged — must never fail the status update.
+ * Managed via Email Template Manager — template: "waitlist-approval"
+ * Fire-and-forget — errors caught inside sendTemplatedEmail.
  */
 export async function sendApprovalEmail(data: ApprovalEmailData): Promise<void> {
   const { to, firstName, programTitle, programSlug, danaMode } = data;
-  // Dana link goes to the dedicated register page so the member lands directly
-  // on the dana step without scrolling past program content.
-  const programUrl = `${BASE_URL}/programs/${programSlug}/register`;
-  const hasDana = !!danaMode && danaMode !== "none";
-
-  // Resend v4+ returns { data, error } instead of throwing — check both.
-  const { error } = await resend.emails.send({
-    from:    FROM,
-    to,
-    subject: `Your spot is confirmed — ${programTitle}`,
-    html:    buildApprovalHtml({ firstName, programTitle, programUrl, hasDana }),
-    text:    buildApprovalText({ firstName, programTitle, programUrl, hasDana }),
+  await sendTemplatedEmail("waitlist-approval", to, {
+    firstName,
+    programTitle,
+    programUrl: `${BASE_URL}/programs/${programSlug}/register`,
+    hasDana: !!danaMode && danaMode !== "none",
   });
-  if (error) {
-    console.error("[email] Failed to send approval confirmation:", error);
-  }
 }
 
 // ─── Cancellation notification email (to registrar) ─────────────────────────
@@ -307,239 +258,20 @@ export interface CancellationNotificationData {
 
 /**
  * Sent to the registrar when any registration is cancelled (by staff or by the member).
- * HARDCODED — not in Email Template Manager.
- *
- * Why hardcoded: recipient is REGISTRAR_EMAIL (env var), not the registrant.
- * Staff-facing operational notification — lower priority for template migration.
- *
- * Proposed slug (if migrated): registration-cancelled
- * Variables: registrantName, registrantEmail, programTitle, volunteerUrl
- *
- * Uses REGISTRAR_EMAIL env var. Errors are caught and logged.
+ * Managed via Email Template Manager — template: "registration-cancelled-internal"
+ * Recipient is REGISTRAR_EMAIL (env var), not the registrant.
+ * Fire-and-forget — errors caught inside sendTemplatedEmail.
  */
 export async function sendCancellationNotificationEmail(
   data: CancellationNotificationData
 ): Promise<void> {
   const { registrantName, registrantEmail, programTitle, programSlug } = data;
-  const volunteerUrl = `${BASE_URL}/account/hub/registrar/programs/${programSlug}`;
-
-  const { error } = await resend.emails.send({
-    from:    FROM,
-    to:      REGISTRAR_EMAIL,
-    subject: `Registration cancelled — ${registrantName} (${programTitle})`,
-    html:    buildCancellationHtml({ registrantName, registrantEmail, programTitle, volunteerUrl }),
-    text:    buildCancellationText({ registrantName, registrantEmail, programTitle, volunteerUrl }),
+  await sendTemplatedEmail("registration-cancelled-internal", REGISTRAR_EMAIL, {
+    registrantName,
+    registrantEmail,
+    programTitle,
+    volunteerUrl: `${BASE_URL}/account/hub/registrar/programs/${programSlug}`,
   });
-  if (error) {
-    console.error("[email] Failed to send cancellation notification:", error);
-  }
-}
-
-// ─── Email builders ──────────────────────────────────────────────────────────
-
-function buildApprovalHtml({ firstName, programTitle, programUrl, hasDana }: {
-  firstName: string; programTitle: string; programUrl: string; hasDana: boolean;
-}): string {
-  const danaSection = hasDana ? `
-    <div style="margin:28px 0 0;padding:20px 24px;background:#eee;border-radius:4px;">
-      <p style="margin:0 0 14px;font-family:Georgia,'Times New Roman',serif;font-size:16px;
-                line-height:1.7;color:#333333;">
-        This program includes a dana (generosity) practice. When you&rsquo;re ready,
-        you can make your offering from the program page.
-      </p>
-      <table role="presentation" cellpadding="0" cellspacing="0">
-        <tr>
-          <td style="border-radius:4px;background:#39607a;">
-            <a href="${programUrl}"
-               style="display:inline-block;padding:10px 20px;font-family:Arial,Helvetica,sans-serif;
-                      font-size:13px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:4px;">
-              Complete Dana Offering
-            </a>
-          </td>
-        </tr>
-      </table>
-    </div>` : "";
-
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Your spot is confirmed</title>
-</head>
-<body style="margin:0;padding:24px 0;background-color:#f5f5f5;font-family:Georgia,'Times New Roman',serif;">
-  <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:6px;overflow:hidden;">
-
-    <!-- Header -->
-    <div style="background:#135274;padding:24px 36px;">
-      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;
-                letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.75);">
-        Rooted In Mindfulness
-      </p>
-    </div>
-
-    <!-- Body -->
-    <div style="padding:36px 36px 28px;">
-      <h1 style="margin:0 0 24px;font-family:Georgia,'Times New Roman',serif;font-size:26px;
-                 font-weight:400;line-height:1.3;color:#135274;">
-        Your spot is confirmed
-      </h1>
-      <p style="margin:0 0 16px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,serif;">
-        Hi ${firstName},
-      </p>
-      <p style="margin:0 0 28px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,serif;">
-        Good news — a spot has opened up and you&#39;ve been confirmed for
-        <strong>${programTitle}</strong>. We look forward to practicing together.
-      </p>
-
-      <!-- CTA -->
-      <table role="presentation" cellpadding="0" cellspacing="0">
-        <tr>
-          <td style="border-radius:4px;background:#135274;">
-            <a href="${programUrl}"
-               style="display:inline-block;padding:12px 24px;font-family:Arial,Helvetica,sans-serif;
-                      font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:4px;">
-              View Program Details
-            </a>
-          </td>
-        </tr>
-      </table>
-
-      ${danaSection}
-    </div>
-
-    <!-- Footer -->
-    <div style="padding:20px 36px 28px;border-top:1px solid #eee;">
-      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#777;">
-        Rooted In Mindfulness &middot; Brookfield, WI<br>
-        Questions? Reply to this email or visit
-        <a href="https://rootedinmindfulness.org" style="color:#39607a;text-decoration:none;">
-          rootedinmindfulness.org
-        </a>
-      </p>
-    </div>
-
-  </div>
-</body>
-</html>`;
-}
-
-function buildApprovalText({ firstName, programTitle, programUrl, hasDana }: {
-  firstName: string; programTitle: string; programUrl: string; hasDana: boolean;
-}): string {
-  const lines = [
-    `Hi ${firstName},`,
-    "",
-    `Good news — a spot has opened up and you've been confirmed for ${programTitle}.`,
-    "We look forward to practicing together.",
-    "",
-    `View program details: ${programUrl}`,
-  ];
-
-  if (hasDana) {
-    lines.push(
-      "",
-      "─",
-      "Dana Practice",
-      "This program includes a dana (generosity) practice.",
-      "When you're ready, visit the program page to complete your offering:",
-      programUrl,
-    );
-  }
-
-  lines.push("", "—", "Rooted In Mindfulness · Brookfield, WI", "rootedinmindfulness.org");
-  return lines.join("\n");
-}
-
-function buildCancellationHtml({ registrantName, registrantEmail, programTitle, volunteerUrl }: {
-  registrantName: string; registrantEmail: string; programTitle: string; volunteerUrl: string;
-}): string {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Registration cancelled</title>
-</head>
-<body style="margin:0;padding:24px 0;background-color:#f5f5f5;font-family:Georgia,'Times New Roman',serif;">
-  <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:6px;overflow:hidden;">
-
-    <!-- Header -->
-    <div style="background:#135274;padding:24px 36px;">
-      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;
-                letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.75);">
-        Rooted In Mindfulness — Registrar Notification
-      </p>
-    </div>
-
-    <!-- Body -->
-    <div style="padding:36px 36px 28px;">
-      <h1 style="margin:0 0 24px;font-family:Georgia,'Times New Roman',serif;font-size:22px;
-                 font-weight:400;line-height:1.3;color:#135274;">
-        Registration Cancelled
-      </h1>
-      <p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,serif;">
-        A registration has been cancelled for <strong>${programTitle}</strong>.
-      </p>
-      <table role="presentation" cellpadding="0" cellspacing="0"
-             style="margin:0 0 28px;border-left:3px solid #d5d5d5;padding-left:16px;">
-        <tr>
-          <td style="padding:3px 0;font-size:15px;color:#666;">
-            <strong>Name:</strong> ${registrantName}
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:3px 0;font-size:15px;color:#666;">
-            <strong>Email:</strong> ${registrantEmail}
-          </td>
-        </tr>
-      </table>
-      <p style="margin:0 0 20px;font-size:15px;line-height:1.7;color:#666;font-family:Georgia,serif;">
-        If there are waitlisted members, you may want to offer the spot to the next person.
-      </p>
-
-      <!-- CTA -->
-      <table role="presentation" cellpadding="0" cellspacing="0">
-        <tr>
-          <td style="border-radius:4px;background:#135274;">
-            <a href="${volunteerUrl}"
-               style="display:inline-block;padding:12px 24px;font-family:Arial,Helvetica,sans-serif;
-                      font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:4px;">
-              View Registrations
-            </a>
-          </td>
-        </tr>
-      </table>
-    </div>
-
-    <!-- Footer -->
-    <div style="padding:20px 36px 28px;border-top:1px solid #eee;">
-      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#777;">
-        Rooted In Mindfulness &middot; Brookfield, WI
-      </p>
-    </div>
-
-  </div>
-</body>
-</html>`;
-}
-
-function buildCancellationText({ registrantName, registrantEmail, programTitle, volunteerUrl }: {
-  registrantName: string; registrantEmail: string; programTitle: string; volunteerUrl: string;
-}): string {
-  return [
-    `Registration Cancelled — ${programTitle}`,
-    "",
-    `Name: ${registrantName}`,
-    `Email: ${registrantEmail}`,
-    "",
-    "If there are waitlisted members, you may want to offer the spot to the next person.",
-    "",
-    `View registrations: ${volunteerUrl}`,
-    "",
-    "—",
-    "Rooted In Mindfulness · Brookfield, WI",
-  ].join("\n");
 }
 
 // ─── Self-service edit request email (to registrant) ─────────────────────────
@@ -553,32 +285,17 @@ export interface EditRequestEmailData {
 
 /**
  * Sent by a registrar to invite a registrant to update their own responses.
- * HARDCODED — not in Email Template Manager.
- *
- * Why hardcoded: includes a single-use token in the edit URL. The token is
- * generated at send time and cannot be pre-stored in a template variable.
- * Good migration candidate — token could be a variable in the template body.
- *
- * Proposed slug (if migrated): edit-request
- * Variables: firstName, programTitle, editUrl (contains single-use token)
- *
- * The token is single-use and expires after 7 days.
- * Errors are caught and logged — must never fail the request.
+ * Managed via Email Template Manager — template: "edit-request"
+ * The link contains a single-use token that expires after 7 days.
+ * Fire-and-forget — errors caught inside sendTemplatedEmail.
  */
 export async function sendEditRequestEmail(data: EditRequestEmailData): Promise<void> {
   const { to, firstName, programTitle, token } = data;
-  const editUrl = `${BASE_URL}/update/${token}`;
-
-  const { error } = await resend.emails.send({
-    from:    FROM,
-    to,
-    subject: `Update your responses — ${programTitle}`,
-    html:    buildEditRequestHtml({ firstName, programTitle, editUrl }),
-    text:    buildEditRequestText({ firstName, programTitle, editUrl }),
+  await sendTemplatedEmail("edit-request", to, {
+    firstName,
+    programTitle,
+    editUrl: `${BASE_URL}/update/${token}`,
   });
-  if (error) {
-    console.error("[email] Failed to send edit request:", error);
-  }
 }
 
 // ─── Responses-updated notification email (to registrar) ─────────────────────
@@ -591,30 +308,17 @@ export interface ResponsesUpdatedEmailData {
 
 /**
  * Sent to REGISTRAR_EMAIL when a registrant submits their self-service response update.
- * HARDCODED — not in Email Template Manager.
- *
- * Why hardcoded: recipient is REGISTRAR_EMAIL (env var), not the registrant.
- * Staff-facing operational notification — lower priority for template migration.
- *
- * Proposed slug (if migrated): responses-updated
- * Variables: registrantName, programTitle, volunteerUrl
- *
- * Errors are caught and logged.
+ * Managed via Email Template Manager — template: "responses-updated-internal"
+ * Recipient is REGISTRAR_EMAIL (env var), not the registrant.
+ * Fire-and-forget — errors caught inside sendTemplatedEmail.
  */
 export async function sendResponsesUpdatedEmail(data: ResponsesUpdatedEmailData): Promise<void> {
   const { registrantName, programTitle, programSlug } = data;
-  const volunteerUrl = `${BASE_URL}/account/hub/registrar/programs/${programSlug}`;
-
-  const { error } = await resend.emails.send({
-    from:    FROM,
-    to:      REGISTRAR_EMAIL,
-    subject: `${registrantName} updated their responses — ${programTitle}`,
-    html:    buildResponsesUpdatedHtml({ registrantName, programTitle, volunteerUrl }),
-    text:    buildResponsesUpdatedText({ registrantName, programTitle, volunteerUrl }),
+  await sendTemplatedEmail("responses-updated-internal", REGISTRAR_EMAIL, {
+    registrantName,
+    programTitle,
+    volunteerUrl: `${BASE_URL}/account/hub/registrar/programs/${programSlug}`,
   });
-  if (error) {
-    console.error("[email] Failed to send responses-updated notification:", error);
-  }
 }
 
 // ─── Dana reminder email (to registrant) ─────────────────────────────────────
@@ -628,31 +332,16 @@ export interface DanaReminderEmailData {
 
 /**
  * Sent by a registrar to a member whose donationStatus is PENDING.
- * HARDCODED — not in Email Template Manager (future candidate).
- *
- * Why hardcoded: currently a straightforward template — no conditional logic or
- * attachments. Good candidate for migration once the dana workflow is stable.
- *
- * Proposed slug (if migrated): dana-reminder
- * Variables: firstName, programTitle, registerUrl
- *
- * Gentle reminder with a direct link to the /register page dana step.
- * Errors are caught and logged — must never fail the request.
+ * Managed via Email Template Manager — template: "dana-reminder"
+ * Fire-and-forget — errors caught inside sendTemplatedEmail.
  */
 export async function sendDanaReminderEmail(data: DanaReminderEmailData): Promise<void> {
   const { to, firstName, programTitle, programSlug } = data;
-  const registerUrl = `${BASE_URL}/programs/${programSlug}/register`;
-
-  const { error } = await resend.emails.send({
-    from:    FROM,
-    to,
-    subject: `A gentle reminder — your dana for ${programTitle}`,
-    html:    buildDanaReminderHtml({ firstName, programTitle, registerUrl }),
-    text:    buildDanaReminderText({ firstName, programTitle, registerUrl }),
+  await sendTemplatedEmail("dana-reminder", to, {
+    firstName,
+    programTitle,
+    registerUrl: `${BASE_URL}/programs/${programSlug}/register`,
   });
-  if (error) {
-    console.error("[email] Failed to send dana reminder:", error);
-  }
 }
 
 // ─── Program reminder email (to registrant) ──────────────────────────────────
@@ -706,456 +395,6 @@ export async function sendReminderEmail(data: ReminderEmailData): Promise<void> 
   });
 }
 
-// ─── Internal helpers (registration confirmation / waitlist) ─────────────────
-
-interface BuildParams {
-  firstName: string;
-  programTitle: string;
-  programUrl: string;
-  isWaitlisted: boolean;
-  waitlistPosition?: number | null;
-  dateText?: string | null;
-  locationText?: string | null;
-  confirmationMessageHtml?: string;
-  confirmationMessageText?: string;
-  googleCalendarUrl?: string;
-  icsUrl?: string;
-}
-
-function buildHtml(p: BuildParams): string {
-  const detailRows = [
-    p.dateText     ? `<tr><td style="padding:3px 0;font-size:15px;color:#666;">📅&nbsp; ${p.dateText}</td></tr>` : "",
-    p.locationText ? `<tr><td style="padding:3px 0;font-size:15px;color:#666;">📍&nbsp; ${p.locationText}</td></tr>` : "",
-  ].filter(Boolean).join("");
-
-  const detailsBlock = detailRows
-    ? `<table role="presentation" cellpadding="0" cellspacing="0"
-          style="margin:0 0 28px;border-left:3px solid #d5d5d5;padding-left:16px;">
-        ${detailRows}
-      </table>`
-    : "";
-
-  // Custom program message — only shown on confirmed (non-waitlisted) registrations
-  const customMessageBlock =
-    !p.isWaitlisted && p.confirmationMessageHtml
-      ? `<div style="margin:0 0 28px;padding:20px 24px;background:#f5f5f5;border-radius:4px;">
-           ${p.confirmationMessageHtml}
-         </div>`
-      : "";
-
-  // Add-to-calendar links — only shown on confirmed registrations when startDatetime is set
-  const calendarLinksBlock =
-    !p.isWaitlisted && p.googleCalendarUrl
-      ? `<p style="margin:0 0 8px;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;
-                  letter-spacing:0.10em;text-transform:uppercase;color:#777;">
-           Add to calendar
-         </p>
-         <p style="margin:0 0 28px;">
-           <a href="${p.googleCalendarUrl}"
-              style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#39607a;text-decoration:none;">
-             Google Calendar
-           </a>
-           ${p.icsUrl ? `&nbsp;&middot;&nbsp;<a href="${p.icsUrl}"
-              style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#39607a;text-decoration:none;">
-             Apple / Outlook (.ics)
-           </a>` : ""}
-         </p>`
-      : "";
-
-  const bodyHtml = p.isWaitlisted
-    ? `<p style="margin:0 0 16px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,serif;">
-         Hi ${p.firstName},
-       </p>
-       <p style="margin:0 0 16px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,serif;">
-         You&#39;re on the waitlist for <strong>${p.programTitle}</strong>.${
-           p.waitlistPosition
-             ? ` You&#39;re currently <strong>#${p.waitlistPosition}</strong> in line.`
-             : ""
-         }
-       </p>
-       <p style="margin:0 0 28px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,serif;">
-         If a spot opens up, we&#39;ll email you right away.
-       </p>`
-    : `<p style="margin:0 0 16px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,serif;">
-         Hi ${p.firstName},
-       </p>
-       <p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,serif;">
-         You&#39;re registered for <strong>${p.programTitle}</strong>.
-         We look forward to practicing together.
-       </p>
-       ${detailsBlock}
-       ${customMessageBlock}
-       ${calendarLinksBlock}`;
-
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>${p.isWaitlisted ? "You're on the waitlist" : "Registration confirmed"}</title>
-</head>
-<body style="margin:0;padding:24px 0;background-color:#f5f5f5;font-family:Georgia,'Times New Roman',serif;">
-  <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:6px;overflow:hidden;">
-
-    <!-- Header -->
-    <div style="background:#135274;padding:24px 36px;">
-      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;
-                letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.75);">
-        Rooted In Mindfulness
-      </p>
-    </div>
-
-    <!-- Body -->
-    <div style="padding:36px 36px 28px;">
-      <h1 style="margin:0 0 24px;font-family:Georgia,'Times New Roman',serif;font-size:26px;
-                 font-weight:400;line-height:1.3;color:#135274;">
-        ${p.isWaitlisted ? "You&#39;re on the waitlist" : "Registration confirmed"}
-      </h1>
-
-      ${bodyHtml}
-
-      <!-- CTA — table wrapper ensures correct rendering in Outlook -->
-      <table role="presentation" cellpadding="0" cellspacing="0">
-        <tr>
-          <td style="border-radius:4px;background:#135274;">
-            <a href="${p.programUrl}"
-               style="display:inline-block;padding:12px 24px;font-family:Arial,Helvetica,sans-serif;
-                      font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:4px;">
-              View Program Details
-            </a>
-          </td>
-        </tr>
-      </table>
-    </div>
-
-    <!-- Footer -->
-    <div style="padding:20px 36px 28px;border-top:1px solid #eee;">
-      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#777;">
-        Rooted In Mindfulness &middot; Brookfield, WI<br>
-        Questions? Reply to this email or visit
-        <a href="https://rootedinmindfulness.org" style="color:#39607a;text-decoration:none;">
-          rootedinmindfulness.org
-        </a>
-      </p>
-    </div>
-
-  </div>
-</body>
-</html>`;
-}
-
-function buildText(p: BuildParams): string {
-  const details = [
-    p.dateText     ? `When: ${p.dateText}`         : "",
-    p.locationText ? `Location: ${p.locationText}` : "",
-  ].filter(Boolean).join("\n");
-
-  if (p.isWaitlisted) {
-    return [
-      `Hi ${p.firstName},`,
-      "",
-      `You're on the waitlist for ${p.programTitle}.${
-        p.waitlistPosition ? ` You're currently #${p.waitlistPosition} in line.` : ""
-      }`,
-      "",
-      "If a spot opens up, we'll email you right away.",
-      "",
-      `View program details: ${p.programUrl}`,
-      "",
-      "—",
-      "Rooted In Mindfulness · Brookfield, WI",
-      "rootedinmindfulness.org",
-    ].join("\n");
-  }
-
-  const customMessageLines =
-    p.confirmationMessageText?.trim()
-      ? ["─", p.confirmationMessageText.trim(), ""]
-      : [];
-
-  const calendarLines = p.googleCalendarUrl
-    ? [
-        "Add to calendar:",
-        `  Google Calendar: ${p.googleCalendarUrl}`,
-        ...(p.icsUrl ? [`  Apple / Outlook: ${p.icsUrl}`] : []),
-        "",
-      ]
-    : [];
-
-  return [
-    `Hi ${p.firstName},`,
-    "",
-    `You're registered for ${p.programTitle}. We look forward to practicing together.`,
-    "",
-    ...(details ? [details, ""] : []),
-    ...customMessageLines,
-    ...calendarLines,
-    `View program details: ${p.programUrl}`,
-    "",
-    "—",
-    "Rooted In Mindfulness · Brookfield, WI",
-    "rootedinmindfulness.org",
-  ].join("\n");
-}
-
-// ─── Dana reminder builders ───────────────────────────────────────────────────
-
-function buildDanaReminderHtml({ firstName, programTitle, registerUrl }: {
-  firstName: string; programTitle: string; registerUrl: string;
-}): string {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>A gentle reminder — your dana</title>
-</head>
-<body style="margin:0;padding:24px 0;background-color:#f5f5f5;font-family:Georgia,'Times New Roman',serif;">
-  <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:6px;overflow:hidden;">
-
-    <!-- Header -->
-    <div style="background:#135274;padding:24px 36px;">
-      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;
-                letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.75);">
-        Rooted In Mindfulness
-      </p>
-    </div>
-
-    <!-- Body -->
-    <div style="padding:36px 36px 28px;">
-      <h1 style="margin:0 0 24px;font-family:Georgia,'Times New Roman',serif;font-size:26px;
-                 font-weight:400;line-height:1.3;color:#135274;">
-        A gentle reminder
-      </h1>
-      <p style="margin:0 0 16px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,serif;">
-        Hi ${firstName},
-      </p>
-      <p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,serif;">
-        Just a gentle note that your dana offering for <strong>${programTitle}</strong>
-        is still pending. Whenever you feel moved to, you can complete it here:
-      </p>
-
-      <!-- Dana CTA -->
-      <div style="margin:0 0 28px;padding:20px 24px;background:#eee;border-radius:4px;">
-        <table role="presentation" cellpadding="0" cellspacing="0">
-          <tr>
-            <td style="border-radius:4px;background:#39607a;">
-              <a href="${registerUrl}"
-                 style="display:inline-block;padding:10px 20px;font-family:Arial,Helvetica,sans-serif;
-                        font-size:13px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:4px;">
-                Complete Your Dana Offering
-              </a>
-            </td>
-          </tr>
-        </table>
-      </div>
-
-      <p style="margin:0;font-size:15px;line-height:1.75;color:#777;font-family:Georgia,serif;font-style:italic;">
-        Dana is entirely optional — please only complete it if and when it feels right
-        for you. Your participation is what matters most.
-      </p>
-    </div>
-
-    <!-- Footer -->
-    <div style="padding:20px 36px 28px;border-top:1px solid #eee;">
-      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#777;">
-        Rooted In Mindfulness &middot; Brookfield, WI<br>
-        Questions? Reply to this email or visit
-        <a href="https://rootedinmindfulness.org" style="color:#39607a;text-decoration:none;">
-          rootedinmindfulness.org
-        </a>
-      </p>
-    </div>
-
-  </div>
-</body>
-</html>`;
-}
-
-function buildDanaReminderText({ firstName, programTitle, registerUrl }: {
-  firstName: string; programTitle: string; registerUrl: string;
-}): string {
-  return [
-    `Hi ${firstName},`,
-    "",
-    `Just a gentle note that your dana offering for ${programTitle} is still pending.`,
-    "",
-    "Whenever you feel moved to, you can complete it here:",
-    registerUrl,
-    "",
-    "Dana is entirely optional — please only complete it if and when it feels right",
-    "for you. Your participation is what matters most.",
-    "",
-    "—",
-    "Rooted In Mindfulness · Brookfield, WI",
-    "rootedinmindfulness.org",
-  ].join("\n");
-}
-
-// ─── Edit request builders ────────────────────────────────────────────────────
-
-function buildEditRequestHtml({ firstName, programTitle, editUrl }: {
-  firstName: string; programTitle: string; editUrl: string;
-}): string {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Update your responses</title>
-</head>
-<body style="margin:0;padding:24px 0;background-color:#f5f5f5;font-family:Georgia,'Times New Roman',serif;">
-  <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:6px;overflow:hidden;">
-
-    <!-- Header -->
-    <div style="background:#135274;padding:24px 36px;">
-      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;
-                letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.75);">
-        Rooted In Mindfulness
-      </p>
-    </div>
-
-    <!-- Body -->
-    <div style="padding:36px 36px 28px;">
-      <h1 style="margin:0 0 24px;font-family:Georgia,'Times New Roman',serif;font-size:26px;
-                 font-weight:400;line-height:1.3;color:#135274;">
-        Update your responses
-      </h1>
-      <p style="margin:0 0 16px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,serif;">
-        Hi ${firstName},
-      </p>
-      <p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,serif;">
-        Your registrar has invited you to review and update your registration responses for
-        <strong>${programTitle}</strong>. Click below to open your pre-filled form.
-      </p>
-
-      <!-- CTA -->
-      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
-        <tr>
-          <td style="border-radius:4px;background:#39607a;">
-            <a href="${editUrl}"
-               style="display:inline-block;padding:12px 24px;font-family:Arial,Helvetica,sans-serif;
-                      font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:4px;">
-              Update My Responses
-            </a>
-          </td>
-        </tr>
-      </table>
-
-      <p style="margin:0;font-size:14px;line-height:1.7;color:#777;font-family:Arial,Helvetica,sans-serif;">
-        This link is unique to you and expires in 7 days. It can only be used once.
-      </p>
-    </div>
-
-    <!-- Footer -->
-    <div style="padding:20px 36px 28px;border-top:1px solid #eee;">
-      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#777;">
-        Rooted In Mindfulness &middot; Brookfield, WI<br>
-        Questions? Reply to this email or visit
-        <a href="https://rootedinmindfulness.org" style="color:#39607a;text-decoration:none;">
-          rootedinmindfulness.org
-        </a>
-      </p>
-    </div>
-
-  </div>
-</body>
-</html>`;
-}
-
-function buildEditRequestText({ firstName, programTitle, editUrl }: {
-  firstName: string; programTitle: string; editUrl: string;
-}): string {
-  return [
-    `Hi ${firstName},`,
-    "",
-    `Your registrar has invited you to review and update your registration responses for ${programTitle}.`,
-    "",
-    "Update your responses here:",
-    editUrl,
-    "",
-    "This link is unique to you, expires in 7 days, and can only be used once.",
-    "",
-    "—",
-    "Rooted In Mindfulness · Brookfield, WI",
-    "rootedinmindfulness.org",
-  ].join("\n");
-}
-
-// ─── Responses-updated notification builders ──────────────────────────────────
-
-function buildResponsesUpdatedHtml({ registrantName, programTitle, volunteerUrl }: {
-  registrantName: string; programTitle: string; volunteerUrl: string;
-}): string {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Responses updated</title>
-</head>
-<body style="margin:0;padding:24px 0;background-color:#f5f5f5;font-family:Georgia,'Times New Roman',serif;">
-  <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:6px;overflow:hidden;">
-
-    <!-- Header -->
-    <div style="background:#135274;padding:24px 36px;">
-      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;
-                letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.75);">
-        Rooted In Mindfulness — Registrar Notification
-      </p>
-    </div>
-
-    <!-- Body -->
-    <div style="padding:36px 36px 28px;">
-      <h1 style="margin:0 0 24px;font-family:Georgia,'Times New Roman',serif;font-size:22px;
-                 font-weight:400;line-height:1.3;color:#135274;">
-        Responses Updated
-      </h1>
-      <p style="margin:0 0 20px;font-size:16px;line-height:1.75;color:#333333;font-family:Georgia,serif;">
-        <strong>${registrantName}</strong> has updated their registration responses for
-        <strong>${programTitle}</strong>.
-      </p>
-
-      <!-- CTA -->
-      <table role="presentation" cellpadding="0" cellspacing="0">
-        <tr>
-          <td style="border-radius:4px;background:#135274;">
-            <a href="${volunteerUrl}"
-               style="display:inline-block;padding:12px 24px;font-family:Arial,Helvetica,sans-serif;
-                      font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:4px;">
-              View Registration
-            </a>
-          </td>
-        </tr>
-      </table>
-    </div>
-
-    <!-- Footer -->
-    <div style="padding:20px 36px 28px;border-top:1px solid #eee;">
-      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#777;">
-        Rooted In Mindfulness &middot; Brookfield, WI
-      </p>
-    </div>
-
-  </div>
-</body>
-</html>`;
-}
-
-function buildResponsesUpdatedText({ registrantName, programTitle, volunteerUrl }: {
-  registrantName: string; programTitle: string; volunteerUrl: string;
-}): string {
-  return [
-    `Responses Updated — ${programTitle}`,
-    "",
-    `${registrantName} has updated their registration responses.`,
-    "",
-    `View registration: ${volunteerUrl}`,
-    "",
-    "—",
-    "Rooted In Mindfulness · Brookfield, WI",
-  ].join("\n");
-}
 
 // ─── Role assignment notification (to new registrar) ─────────────────────────
 
