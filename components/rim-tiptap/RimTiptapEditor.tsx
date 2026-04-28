@@ -213,17 +213,6 @@ function Toolbar({ editor, variant }: { editor: Editor; variant: RimTiptapVarian
     }
   }
 
-  function setLink() {
-    const previous = editor.getAttributes("link").href;
-    const url = window.prompt("URL", previous ?? "https://");
-    if (url === null) return;
-    if (url === "") {
-      editor.chain().focus().extendMarkRange("link").unsetLink().run();
-      return;
-    }
-    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
-  }
-
   // Heading dropdown label reflects current state
   const headingLabel =
     editor.isActive("heading", { level: 2 }) ? "H2" :
@@ -269,16 +258,9 @@ function Toolbar({ editor, variant }: { editor: Editor; variant: RimTiptapVarian
         </>
       )}
 
-      {/* Inline formatting */}
-      <TBtn editor={editor} cmd={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="Bold" icon={Bold} />
-      <TBtn editor={editor} cmd={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive("italic")} title="Italic" icon={Italic} />
-      <TBtn editor={editor} cmd={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive("underline")} title="Underline" icon={UIcon} />
-      <TBtn editor={editor} cmd={() => editor.chain().focus().toggleStrike().run()} active={editor.isActive("strike")} title="Strikethrough" icon={Strikethrough} />
-      <TBtn editor={editor} cmd={() => editor.chain().focus().toggleCode().run()} active={editor.isActive("code")} title="Inline code" icon={Code} />
-      <TSep />
-      <TBtn editor={editor} cmd={setLink} active={editor.isActive("link")} title="Link" icon={LinkIcon} />
-
-      <TSep />
+      {/* Block-level toggles (lists + quote). Inline marks (B/I/U/S/Code/Link)
+          are handled by the selection bubble menu — keeping them out of the
+          top toolbar reduces clutter and avoids duplicating discovery paths. */}
       <TBtn editor={editor} cmd={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive("bulletList")} title="Bullet list" icon={List} />
       <TBtn editor={editor} cmd={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive("orderedList")} title="Numbered list" icon={ListOrdered} />
       <TBtn editor={editor} cmd={() => editor.chain().focus().toggleTaskList().run()} active={editor.isActive("taskList")} title="Checklist" icon={CheckSquare} />
