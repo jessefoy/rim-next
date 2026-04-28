@@ -8,12 +8,17 @@
  */
 
 import { useState, useEffect } from "react";
-import RimProseEditor from "@/components/RimProseEditor";
-import { renderBlockNoteHtml, extractBlockNoteText } from "@/lib/renderRichContent";
+import dynamic from "next/dynamic";
+import { renderBlockNoteHtml } from "@/lib/renderRichContent";
+
+const RimTiptapEditor = dynamic(
+  () => import("@/components/rim-tiptap/RimTiptapEditor"),
+  { ssr: false, loading: () => <div style={{ minHeight: 80 }} /> },
+);
 
 interface Banner {
   id: string;
-  body: any; // BlockNote JSON
+  body: any; // HTML string or legacy BlockNote JSON
   bodyHtml: string;
   createdAt: string;
 }
@@ -21,7 +26,7 @@ interface Banner {
 export default function AdminBannerPage() {
   const [banner, setBanner] = useState<Banner | null>(null);
   const [loading, setLoading] = useState(true);
-  const [body, setBody] = useState<any>(null);
+  const [body, setBody] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -38,10 +43,9 @@ export default function AdminBannerPage() {
       });
   }, []);
 
-  /** Check if BlockNote JSON has meaningful content */
-  function hasContent(json: any): boolean {
-    if (!json) return false;
-    return extractBlockNoteText(json).trim().length > 0;
+  /** Check if the editor has meaningful content (HTML strip + trim). */
+  function hasContent(html: string): boolean {
+    return html.replace(/<[^>]+>/g, "").trim().length > 0;
   }
 
   async function postBanner() {
@@ -58,7 +62,7 @@ export default function AdminBannerPage() {
         ...data.banner,
         bodyHtml: renderBlockNoteHtml(data.banner.body),
       });
-      setBody(null);
+      setBody("");
     }
     setSaving(false);
   }
@@ -105,11 +109,11 @@ export default function AdminBannerPage() {
           Post New Banner
         </p>
         <div className="fg">
-          <RimProseEditor
+          <RimTiptapEditor
             value={body}
             onChange={setBody}
             placeholder="e.g. Tonight's meditation is cancelled due to weather."
-            variant="compact"
+            variant="message"
           />
         </div>
         <div className="form-actions" style={{ justifyContent: "flex-end" }}>

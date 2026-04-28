@@ -14,7 +14,13 @@
  */
 
 import { useState } from "react";
-import RimProseEditor from "./RimProseEditor";
+import dynamic from "next/dynamic";
+import { isHtmlString } from "@/lib/renderRichContent";
+
+const RimTiptapEditor = dynamic(
+  () => import("@/components/rim-tiptap/RimTiptapEditor"),
+  { ssr: false, loading: () => <div style={{ minHeight: 100 }} /> },
+);
 import { renderBlockNoteHtml } from "@/lib/renderRichContent";
 
 interface TemplateData {
@@ -72,7 +78,7 @@ export default function SupportSettingsClient({
   const [tplEditing, setTplEditing] = useState<string | null>(null); // template id or "new"
   const [tplName, setTplName] = useState("");
   const [tplSubject, setTplSubject] = useState("");
-  const [tplBody, setTplBody] = useState<any>(null);
+  const [tplBody, setTplBody] = useState<string>("");
   const [tplSaving, setTplSaving] = useState(false);
   const [tplDeleting, setTplDeleting] = useState<string | null>(null);
 
@@ -142,21 +148,21 @@ export default function SupportSettingsClient({
     setTplEditing("new");
     setTplName("");
     setTplSubject("");
-    setTplBody(null);
+    setTplBody("");
   };
 
   const startEditTemplate = (t: TemplateData) => {
     setTplEditing(t.id);
     setTplName(t.name);
     setTplSubject(t.subject);
-    setTplBody(t.body);
+    setTplBody(isHtmlString(t.body) ? t.body : (renderBlockNoteHtml(t.body) || ""));
   };
 
   const cancelTemplateEdit = () => {
     setTplEditing(null);
     setTplName("");
     setTplSubject("");
-    setTplBody(null);
+    setTplBody("");
   };
 
   const handleSaveTemplate = async () => {
@@ -362,16 +368,16 @@ export default function SupportSettingsClient({
                 </label>
 
                 <label className="si-settings__label">Body</label>
-                <RimProseEditor
+                <RimTiptapEditor
                   key={`tpl-${tplEditing}`}
                   value={tplBody}
                   onChange={setTplBody}
                   placeholder="Write the template body…"
-                  minHeight={160}
+                  variant="message"
                 />
 
                 {/* Preview */}
-                {tplBody && (
+                {tplBody.replace(/<[^>]+>/g, "").trim().length > 0 && (
                   <div className="si-settings__preview">
                     <div className="si-settings__preview-label">Preview</div>
                     <div

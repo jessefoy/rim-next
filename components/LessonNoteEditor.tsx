@@ -1,17 +1,26 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import RimProseEditor from "@/components/RimProseEditor";
+import dynamic from "next/dynamic";
+import { isHtmlString, renderBlockNoteHtml } from "@/lib/renderRichContent";
+
+const RimTiptapEditor = dynamic(
+  () => import("@/components/rim-tiptap/RimTiptapEditor"),
+  { ssr: false, loading: () => <div style={{ minHeight: 80 }} /> },
+);
 
 interface Props {
   lessonSlug: string;
-  initialBody: object | null;
+  initialBody: unknown;
 }
 
 type SaveStatus = "idle" | "saving" | "saved";
 
 export default function LessonNoteEditor({ lessonSlug, initialBody }: Props) {
-  const [body, setBody] = useState<object | null>(initialBody);
+  const [body, setBody] = useState<string>(() => {
+    if (isHtmlString(initialBody)) return initialBody;
+    return renderBlockNoteHtml(initialBody) || "";
+  });
   const [status, setStatus] = useState<SaveStatus>("idle");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fadeRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -23,7 +32,7 @@ export default function LessonNoteEditor({ lessonSlug, initialBody }: Props) {
     };
   }, []);
 
-  function handleChange(value: object | null) {
+  function handleChange(value: string) {
     setBody(value);
     setStatus("saving");
 
@@ -51,11 +60,11 @@ export default function LessonNoteEditor({ lessonSlug, initialBody }: Props) {
   return (
     <div className="ls-notes-wrap">
       <p className="ls-notes-label">Your notes</p>
-      <RimProseEditor
+      <RimTiptapEditor
         value={body}
         onChange={handleChange}
         placeholder="Write anything that came up while reading or listening…"
-        variant="compact"
+        variant="message"
       />
       {status !== "idle" && (
         <p className={`ls-note-status${status === "saved" ? " ls-note-status--saved" : ""}`}>

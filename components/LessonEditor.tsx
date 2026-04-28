@@ -11,7 +11,8 @@ import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
 import dynamic from "next/dynamic";
 import { isHtmlString, renderBlockNoteHtml } from "@/lib/renderRichContent";
-import RimProseEditor from "@/components/RimProseEditor";
+// Reflection-question editor — short body text. Uses the same dynamic
+// RimTiptapEditor as the lesson body, but with variant=minimal.
 
 const RimTiptapEditor = dynamic(
   () => import("@/components/rim-tiptap/RimTiptapEditor"),
@@ -35,7 +36,7 @@ interface QuestionOption {
 
 interface ReflectionQuestion {
   id?: string;
-  body: any; // Tiptap JSON
+  body: any; // HTML string going forward; legacy rows may still be BlockNote JSON
   sortOrder: number;
   options: QuestionOption[];
 }
@@ -284,8 +285,13 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
     setQuestions((prev) => prev.filter((_, i) => i !== idx).map((q, i) => ({ ...q, sortOrder: i })));
   }
 
-  function updateQuestionBody(idx: number, body: any) {
+  function updateQuestionBody(idx: number, body: string) {
     setQuestions((prev) => prev.map((q, i) => (i === idx ? { ...q, body } : q)));
+  }
+
+  function questionBodyForEditor(value: unknown): string {
+    if (isHtmlString(value)) return value;
+    return renderBlockNoteHtml(value) || "";
   }
 
   function moveQuestion(idx: number, dir: -1 | 1) {
@@ -565,12 +571,12 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
               </button>
             </div>
             <div style={{ marginBottom: 16 }}>
-              <RimProseEditor
+              <RimTiptapEditor
                 key={qi}
-                value={q.body}
+                value={questionBodyForEditor(q.body)}
                 onChange={(body) => updateQuestionBody(qi, body)}
                 placeholder="Question text…"
-                minHeight={80}
+                variant="minimal"
               />
             </div>
             <div className="th-question-block__options">

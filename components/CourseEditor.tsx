@@ -7,7 +7,13 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import RimProseEditor from "@/components/RimProseEditor";
+import dynamic from "next/dynamic";
+import { isHtmlString, renderBlockNoteHtml } from "@/lib/renderRichContent";
+
+const RimTiptapEditor = dynamic(
+  () => import("@/components/rim-tiptap/RimTiptapEditor"),
+  { ssr: false, loading: () => <div style={{ minHeight: 100 }} /> },
+);
 import ManualHelpIcon from "@/components/ManualHelpIcon";
 import SlugField from "@/components/SlugField";
 
@@ -113,7 +119,11 @@ export default function CourseEditor({ basePath = "/tools/learning", lessonBaseP
   const [title, setTitle] = useState(initialData?.title ?? "");
   const [slug, setSlug] = useState(initialData?.slug ?? "");
   const [subheading, setSubheading] = useState(initialData?.subheading ?? "");
-  const [description, setDescription] = useState<any>(initialData?.description ?? null);
+  const [description, setDescription] = useState<string>(() => {
+    const v = initialData?.description;
+    if (isHtmlString(v)) return v;
+    return renderBlockNoteHtml(v) || "";
+  });
   const [accessLevel, setAccessLevel] = useState<"ALL_MEMBERS" | "REGISTRATION_REQUIRED" | "ROLE_REQUIRED">(
     initialData?.accessLevel ?? "ALL_MEMBERS"
   );
@@ -400,11 +410,11 @@ export default function CourseEditor({ basePath = "/tools/learning", lessonBaseP
 
         <div className="th-field">
           <span className="th-field__label">Description</span>
-          <RimProseEditor
+          <RimTiptapEditor
             value={description}
             onChange={setDescription}
             placeholder="A brief description of this series…"
-            minHeight={200}
+            variant="message"
           />
         </div>
 

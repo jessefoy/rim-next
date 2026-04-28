@@ -2,7 +2,13 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
-import RimProseEditor from "./RimProseEditor";
+import dynamic from "next/dynamic";
+import { isHtmlString, renderBlockNoteHtml } from "@/lib/renderRichContent";
+
+const RimTiptapEditor = dynamic(
+  () => import("@/components/rim-tiptap/RimTiptapEditor"),
+  { ssr: false, loading: () => <div style={{ minHeight: 80 }} /> },
+);
 
 const RELATIONSHIP_LABELS: Record<string, string> = {
   SPOUSE: "Spouse",
@@ -69,7 +75,10 @@ export default function HouseholdDetail({ household: initial, isAdmin }: Props) 
   const [addressCity, setAddressCity] = useState(initial.addressCity ?? "");
   const [addressState, setAddressState] = useState(initial.addressState ?? "");
   const [addressZip, setAddressZip] = useState(initial.addressZip ?? "");
-  const [notes, setNotes] = useState<unknown>(initial.notes ?? null);
+  const [notes, setNotes] = useState<string>(() => {
+    if (isHtmlString(initial.notes)) return initial.notes;
+    return renderBlockNoteHtml(initial.notes) || "";
+  });
 
   // Add member
   const [addSearch, setAddSearch] = useState("");
@@ -270,10 +279,10 @@ export default function HouseholdDetail({ household: initial, isAdmin }: Props) 
         </div>
         <div className="adm-form__field">
           <label className="adm-form__label">Notes</label>
-          <RimProseEditor
+          <RimTiptapEditor
             value={notes}
-            onChange={(blocks) => setNotes(blocks)}
-            variant="compact"
+            onChange={setNotes}
+            variant="message"
           />
         </div>
         <div className="adm-save-bar">

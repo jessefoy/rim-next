@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import RimProseEditor from "@/components/RimProseEditor";
+import dynamic from "next/dynamic";
+import { isHtmlString, renderBlockNoteHtml } from "@/lib/renderRichContent";
+
+const RimTiptapEditor = dynamic(
+  () => import("@/components/rim-tiptap/RimTiptapEditor"),
+  { ssr: false, loading: () => <div style={{ minHeight: 80 }} /> },
+);
 
 interface Props {
   memberId: string;
@@ -10,9 +16,10 @@ interface Props {
 }
 
 export default function AdminNotesSection({ memberId, initialNotes, legacyAdminNotesHtml }: Props) {
-  const [notes, setNotes] = useState<unknown>(
-    Array.isArray(initialNotes) ? initialNotes : null
-  );
+  const [notes, setNotes] = useState<string>(() => {
+    if (isHtmlString(initialNotes)) return initialNotes;
+    return renderBlockNoteHtml(initialNotes) || legacyAdminNotesHtml || "";
+  });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
@@ -42,12 +49,11 @@ export default function AdminNotesSection({ memberId, initialNotes, legacyAdminN
     <section className="adm2-section">
       <h2 className="adm2-section__title">Admin Notes</h2>
       <p className="adm2-section__hint">Private — not visible to the member.</p>
-      <RimProseEditor
+      <RimTiptapEditor
         value={notes}
-        onChange={(v: unknown) => setNotes(v)}
+        onChange={setNotes}
         placeholder="Internal notes about this member…"
-        minHeight={160}
-        legacyHtml={legacyAdminNotesHtml}
+        variant="message"
       />
       <div className="adm2-save">
         {error && <p className="adm2-save__error">{error}</p>}

@@ -15,8 +15,12 @@
 
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import RimProseEditor from "@/components/RimProseEditor";
-import { extractBlockNoteText } from "@/lib/renderRichContent";
+import dynamic from "next/dynamic";
+
+const RimTiptapEditor = dynamic(
+  () => import("@/components/rim-tiptap/RimTiptapEditor"),
+  { ssr: false, loading: () => <div style={{ minHeight: 60 }} /> },
+);
 
 interface Session {
   id: string;
@@ -187,10 +191,10 @@ interface ModalProps {
 }
 
 function HsModal({ kind, session, onConfirm, onCancel, submitting }: ModalProps) {
-  const [coverNote, setCoverNote] = useState<any>(null);
+  const [coverNote, setCoverNote] = useState<string>("");
 
   useEffect(() => {
-    if (kind === "ask-cover") setCoverNote(null);
+    if (kind === "ask-cover") setCoverNote("");
   }, [kind, session?.id]);
 
   if (!kind || !session) return null;
@@ -231,11 +235,11 @@ function HsModal({ kind, session, onConfirm, onCancel, submitting }: ModalProps)
     extraInput = (
       <div className="hs-modal__field">
         <label className="hs-modal__field-label">Add a note (optional)</label>
-        <RimProseEditor
+        <RimTiptapEditor
           value={coverNote}
           onChange={setCoverNote}
           placeholder="Anything the replacement should know…"
-          variant="compact"
+          variant="message"
         />
       </div>
     );
@@ -581,8 +585,8 @@ export default function HubScheduleClient({
     ));
   }
 
-  async function askForCover(s: Session, message: any) {
-    const text = extractBlockNoteText(message ?? null).trim();
+  async function askForCover(s: Session, message: string | undefined) {
+    const text = (message ?? "").replace(/<[^>]+>/g, "").trim();
     const messagePayload = text ? message : null;
     const res = await fetch(`${apiBase}/sub-requests`, {
       method: "POST", headers: { "Content-Type": "application/json" },

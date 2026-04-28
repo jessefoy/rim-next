@@ -14,7 +14,13 @@
 
 import { useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
-import RimProseEditor from "@/components/RimProseEditor";
+import dynamic from "next/dynamic";
+import { isHtmlString, renderBlockNoteHtml } from "@/lib/renderRichContent";
+
+const RimTiptapEditor = dynamic(
+  () => import("@/components/rim-tiptap/RimTiptapEditor"),
+  { ssr: false, loading: () => <div style={{ minHeight: 80 }} /> },
+);
 
 interface Props {
   initialBio: unknown;
@@ -22,9 +28,10 @@ interface Props {
 }
 
 export default function AboutMeSection({ initialBio, initialAvatarUrl }: Props) {
-  const [bio, setBio] = useState<unknown>(
-    Array.isArray(initialBio) ? initialBio : null
-  );
+  const [bio, setBio] = useState<string>(() => {
+    if (isHtmlString(initialBio)) return initialBio;
+    return renderBlockNoteHtml(initialBio) || "";
+  });
   const [avatarUrl, setAvatarUrl] = useState<string | null>(initialAvatarUrl);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -139,11 +146,11 @@ export default function AboutMeSection({ initialBio, initialAvatarUrl }: Props) 
       </div>
 
       <div className="mp-bio__editor">
-        <RimProseEditor
+        <RimTiptapEditor
           value={bio}
-          onChange={(v: unknown) => setBio(v)}
+          onChange={setBio}
           placeholder="Share a bit about yourself…"
-          minHeight={160}
+          variant="message"
         />
       </div>
 

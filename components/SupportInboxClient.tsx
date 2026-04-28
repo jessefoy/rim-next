@@ -12,7 +12,24 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { upload } from "@vercel/blob/client";
 import type { Editor } from "@tiptap/react";
-import RimProseEditor from "@/components/RimProseEditor";
+import dynamic from "next/dynamic";
+import { isHtmlString, renderBlockNoteHtml } from "@/lib/renderRichContent";
+
+const RimTiptapEditor = dynamic(
+  () => import("@/components/rim-tiptap/RimTiptapEditor"),
+  { ssr: false, loading: () => <div style={{ minHeight: 80 }} /> },
+);
+
+function toEditorString(value: unknown): string {
+  if (isHtmlString(value)) return value;
+  return renderBlockNoteHtml(value) || "";
+}
+
+/** Tiptap returns "<p></p>" for an empty document — strip tags + whitespace
+ *  to check for meaningful content. Replaces the pre-Phase-4 `!draft` checks. */
+function hasDraftContent(html: string): boolean {
+  return html.replace(/<[^>]+>/g, "").trim().length > 0;
+}
 
 interface StagedFile {
   file: File;
@@ -265,7 +282,7 @@ export default function SupportInboxClient({
 
   // Reply composer (anchored to bottom of main panel)
   const [replyOpen, setReplyOpen] = useState(false);
-  const [replyDraft, setReplyDraft] = useState<any>(null);
+  const [replyDraft, setReplyDraft] = useState<string>("");
   const [replySending, setReplySending] = useState(false);
   const [replyFiles, setReplyFiles] = useState<StagedFile[]>([]);
   const [replyFileError, setReplyFileError] = useState<string | null>(null);
@@ -273,7 +290,7 @@ export default function SupportInboxClient({
 
   // Note panel (appears above timeline, separate from reply)
   const [noteOpen, setNoteOpen] = useState(false);
-  const [noteDraft, setNoteDraft] = useState<any>(null);
+  const [noteDraft, setNoteDraft] = useState<string>("");
   const [noteSending, setNoteSending] = useState(false);
 
   // Compose new email modal
@@ -281,7 +298,7 @@ export default function SupportInboxClient({
   const [composeRecipients, setComposeRecipients] = useState<string[]>([]);
   const [composeToInput, setComposeToInput] = useState("");
   const [composeSubject, setComposeSubject] = useState("");
-  const [composeDraft, setComposeDraft] = useState<any>(null);
+  const [composeDraft, setComposeDraft] = useState<string>("");
   const [composeSending, setComposeSending] = useState(false);
   const [composeFiles, setComposeFiles] = useState<StagedFile[]>([]);
   const [composeFileError, setComposeFileError] = useState<string | null>(null);
@@ -405,11 +422,11 @@ export default function SupportInboxClient({
   const selectThread = (id: string) => {
     setSelectedId(id);
     setReplyOpen(false);
-    setReplyDraft(null);
+    setReplyDraft("");
     setReplyFiles([]);
     setReplyFileError(null);
     setNoteOpen(false);
-    setNoteDraft(null);
+    setNoteDraft("");
     setMoreMenuOpen(false);
   };
 
@@ -455,7 +472,7 @@ export default function SupportInboxClient({
     if (replyEditorRef.current && t.body) {
       replyEditorRef.current.commands.setContent(t.body);
     }
-    setReplyDraft(t.body);
+    setReplyDraft(toEditorString(t.body));
     setReplyTplOpen(false);
   };
 
@@ -464,7 +481,7 @@ export default function SupportInboxClient({
     if (composeEditorRef.current && t.body) {
       composeEditorRef.current.commands.setContent(t.body);
     }
-    setComposeDraft(t.body);
+    setComposeDraft(toEditorString(t.body));
     setComposeTplOpen(false);
   };
 
@@ -537,7 +554,7 @@ export default function SupportInboxClient({
   // ─── Send reply (bottom composer) ────────────────────────────────────
 
   const handleSendReply = async () => {
-    if (!selectedId || !replyDraft) return;
+    if (!selectedId || !hasDraftContent(replyDraft)) return;
     // Check all files uploaded
     if (replyFiles.some((f) => f.uploading)) return;
     if (replyFiles.some((f) => f.error)) {
@@ -561,7 +578,7 @@ export default function SupportInboxClient({
       body: JSON.stringify({ body: replyDraft, attachments }),
     });
     if (res.ok) {
-      setReplyDraft(null);
+      setReplyDraft("");
       setReplyOpen(false);
       setReplyFiles([]);
       setReplyFileError(null);
@@ -572,8 +589,8 @@ export default function SupportInboxClient({
   };
 
   const handleCancelReply = () => {
-    if ((replyDraft || replyFiles.length > 0) && !window.confirm("Discard reply?")) return;
-    setReplyDraft(null);
+    if ((hasDraftContent(replyDraft) || replyFiles.length > 0) && !window.confirm("Discard reply?")) return;
+    setReplyDraft("");
     setReplyOpen(false);
     setReplyFiles([]);
     setReplyFileError(null);
@@ -583,7 +600,7 @@ export default function SupportInboxClient({
   // ─── Save note (separate panel) ────────────────────────────────────
 
   const handleSaveNote = async () => {
-    if (!selectedId || !noteDraft) return;
+    if (!selectedId || !hasDraftContent(noteDraft)) return;
     setNoteSending(true);
     const res = await fetch(`/api/support/threads/${selectedId}/note`, {
       method: "POST",
@@ -591,7 +608,7 @@ export default function SupportInboxClient({
       body: JSON.stringify({ body: noteDraft }),
     });
     if (res.ok) {
-      setNoteDraft(null);
+      setNoteDraft("");
       setNoteOpen(false);
       fetchDetail(selectedId);
     }
@@ -599,8 +616,8 @@ export default function SupportInboxClient({
   };
 
   const handleCancelNote = () => {
-    if (noteDraft && !window.confirm("Discard note?")) return;
-    setNoteDraft(null);
+    if (hasDraftContent(noteDraft) && !window.confirm("Discard note?")) return;
+    setNoteDraft("");
     setNoteOpen(false);
   };
 
@@ -733,7 +750,7 @@ export default function SupportInboxClient({
   };
 
   const handleSendCompose = async () => {
-    if (composeRecipients.length === 0 || !composeSubject || !composeDraft) return;
+    if (composeRecipients.length === 0 || !composeSubject || !hasDraftContent(composeDraft)) return;
     if (composeFiles.some((f) => f.uploading)) return;
     if (composeFiles.some((f) => f.error)) {
       setComposeFileError("Remove failed uploads before sending.");
@@ -768,7 +785,7 @@ export default function SupportInboxClient({
       setComposeRecipients([]);
       setComposeToInput("");
       setComposeSubject("");
-      setComposeDraft(null);
+      setComposeDraft("");
       setComposeFiles([]);
       setComposeFileError(null);
       // Navigate to new thread
@@ -779,12 +796,12 @@ export default function SupportInboxClient({
   };
 
   const handleCancelCompose = () => {
-    if ((composeRecipients.length > 0 || composeSubject || composeDraft) && !window.confirm("Discard this email?")) return;
+    if ((composeRecipients.length > 0 || composeSubject || hasDraftContent(composeDraft)) && !window.confirm("Discard this email?")) return;
     setComposeOpen(false);
     setComposeRecipients([]);
     setComposeToInput("");
     setComposeSubject("");
-    setComposeDraft(null);
+    setComposeDraft("");
     setComposeFiles([]);
     setComposeFileError(null);
     setComposeTplOpen(false);
@@ -1148,12 +1165,12 @@ export default function SupportInboxClient({
                   </button>
                 </div>
                 <div className="si-note-composer__editor">
-                  <RimProseEditor
+                  <RimTiptapEditor
                     key="note-editor"
                     value={noteDraft}
                     onChange={setNoteDraft}
                     placeholder="Write an internal note…"
-                    variant="compact"
+                    variant="message"
                   />
                 </div>
                 <div className="si-note-composer__footer">
@@ -1166,7 +1183,7 @@ export default function SupportInboxClient({
                   <button
                     className="si-btn si-btn--note"
                     onClick={handleSaveNote}
-                    disabled={noteSending || !noteDraft}
+                    disabled={noteSending || !hasDraftContent(noteDraft)}
                   >
                     {noteSending ? "Saving…" : "Save Note"}
                   </button>
@@ -1253,12 +1270,12 @@ export default function SupportInboxClient({
                 ) : (
                   <>
                     <div className="si-composer__editor">
-                      <RimProseEditor
+                      <RimTiptapEditor
                         key="reply-editor"
                         value={replyDraft}
                         onChange={setReplyDraft}
                         placeholder="Type your reply…"
-                        variant="compact"
+                        variant="message"
                       />
                     </div>
                     {/* Staged attachments */}
@@ -1345,7 +1362,7 @@ export default function SupportInboxClient({
                         <button
                           className="si-btn si-btn--send"
                           onClick={handleSendReply}
-                          disabled={replySending || !replyDraft || replyFiles.some((f) => f.uploading)}
+                          disabled={replySending || !hasDraftContent(replyDraft) || replyFiles.some((f) => f.uploading)}
                         >
                           {replySending ? "Sending…" : "Send Reply"}
                         </button>
@@ -1617,12 +1634,12 @@ export default function SupportInboxClient({
 
               {/* Body */}
               <div className="si-modal__field si-modal__field--editor">
-                <RimProseEditor
+                <RimTiptapEditor
                   key="compose-editor"
                   value={composeDraft}
                   onChange={setComposeDraft}
                   placeholder="Write your message…"
-                  variant="compact"
+                  variant="message"
                 />
               </div>
 
@@ -1705,7 +1722,7 @@ export default function SupportInboxClient({
                 <button
                   className="si-btn si-btn--send"
                   onClick={handleSendCompose}
-                  disabled={composeSending || composeRecipients.length === 0 || !composeSubject || !composeDraft || composeFiles.some((f) => f.uploading)}
+                  disabled={composeSending || composeRecipients.length === 0 || !composeSubject || !hasDraftContent(composeDraft) || composeFiles.some((f) => f.uploading)}
                 >
                   {composeSending ? "Sending…" : "Send"}
                 </button>

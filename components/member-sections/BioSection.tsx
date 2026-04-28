@@ -8,7 +8,13 @@
  */
 
 import { useState } from "react";
-import RimProseEditor from "@/components/RimProseEditor";
+import dynamic from "next/dynamic";
+import { isHtmlString, renderBlockNoteHtml } from "@/lib/renderRichContent";
+
+const RimTiptapEditor = dynamic(
+  () => import("@/components/rim-tiptap/RimTiptapEditor"),
+  { ssr: false, loading: () => <div style={{ minHeight: 80 }} /> },
+);
 
 interface Props {
   memberId: string;
@@ -16,9 +22,10 @@ interface Props {
 }
 
 export default function BioSection({ memberId, initialBio }: Props) {
-  const [bio, setBio] = useState<unknown>(
-    Array.isArray(initialBio) ? initialBio : null
-  );
+  const [bio, setBio] = useState<string>(() => {
+    if (isHtmlString(initialBio)) return initialBio;
+    return renderBlockNoteHtml(initialBio) || "";
+  });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
@@ -51,11 +58,11 @@ export default function BioSection({ memberId, initialBio }: Props) {
         Member's personal description. Separate from any role — shown on the
         member's own profile.
       </p>
-      <RimProseEditor
+      <RimTiptapEditor
         value={bio}
-        onChange={(v: unknown) => setBio(v)}
+        onChange={setBio}
         placeholder="Personal bio…"
-        minHeight={140}
+        variant="message"
       />
       <div className="adm2-save">
         {error && <p className="adm2-save__error">{error}</p>}

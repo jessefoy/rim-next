@@ -1,7 +1,18 @@
 "use client";
 
 import { useState, Fragment } from "react";
-import RimProseEditor from "@/components/RimProseEditor";
+import dynamic from "next/dynamic";
+import { isHtmlString, renderBlockNoteHtml } from "@/lib/renderRichContent";
+
+const RimTiptapEditor = dynamic(
+  () => import("@/components/rim-tiptap/RimTiptapEditor"),
+  { ssr: false, loading: () => <div style={{ minHeight: 60 }} /> },
+);
+
+function toEditorString(value: unknown): string {
+  if (isHtmlString(value)) return value;
+  return renderBlockNoteHtml(value) || "";
+}
 import type { RegistrationField } from "@/components/RegistrationForm";
 
 export interface SerializedRegistration {
@@ -83,7 +94,7 @@ export default function VolunteerTable({
   const [filter, setFilter] = useState<Filter>("ALL");
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [editingNotes, setEditingNotes] = useState<Record<string, any>>({});
+  const [editingNotes, setEditingNotes] = useState<Record<string, string>>({});
   const [savingNotes, setSavingNotes] = useState<string | null>(null);
   const [savedNotes, setSavedNotes] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -419,7 +430,7 @@ export default function VolunteerTable({
       setConfirmProgReminderId(null);
       setConfirmResendId(null);
       if (!(id in editingNotes)) {
-        setEditingNotes((prev) => ({ ...prev, [id]: currentNotes ?? null }));
+        setEditingNotes((prev) => ({ ...prev, [id]: toEditorString(currentNotes) }));
       }
     }
   }
@@ -1010,13 +1021,13 @@ export default function VolunteerTable({
                             {/* Notes — below actions */}
                             <div className="vol-detail__notes-wrap" onClick={(e) => e.stopPropagation()}>
                               <p className="vol-detail__col-label">Internal Notes</p>
-                              <RimProseEditor
-                                value={editingNotes[r.id] ?? r.notes ?? null}
+                              <RimTiptapEditor
+                                value={editingNotes[r.id] ?? toEditorString(r.notes)}
                                 onChange={(val) =>
                                   setEditingNotes((prev) => ({ ...prev, [r.id]: val }))
                                 }
                                 placeholder="Notes visible only to staff…"
-                                variant="compact"
+                                variant="message"
                               />
                               <button
                                 className="vol-save-btn"

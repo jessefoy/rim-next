@@ -24,7 +24,13 @@ const RimTiptapEditor = dynamic(
   () => import("@/components/rim-tiptap/RimTiptapEditor"),
   { ssr: false, loading: () => <div style={{ minHeight: 300 }} /> },
 );
-const RimProseEditor = dynamic(() => import("@/components/RimProseEditor"), { ssr: false });
+// Phase 4: ProgramEditor's prose editors (danaMessage, confirmationMessage,
+// reminderMessage) are now RimTiptapEditor variant=message. The description
+// editor was migrated to variant=document in Phase 3.
+function toEditorString(value: unknown): string {
+  if (isHtmlString(value)) return value;
+  return renderBlockNoteHtml(value) || "";
+}
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -107,14 +113,11 @@ interface Props {
    Custom templates are saved as BlockNote JSON to localStorage.
    ── */
 
-/** Wrap a plain string in a minimal BlockNote paragraph array. */
-function textToBlockNote(text: string): any[] {
-  return [{
-    id: `t-${Math.random().toString(36).slice(2, 8)}`,
-    type: "paragraph", props: {},
-    content: [{ type: "text", text, styles: {} }],
-    children: [],
-  }];
+/** Wrap a plain string in a single HTML paragraph. */
+function textToHtml(text: string): string {
+  // Minimal HTML escape for the few characters that matter inside a <p>.
+  const safe = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return `<p>${safe}</p>`;
 }
 
 const DANA_BUILTIN: { name: string; text: string }[] = [
@@ -135,10 +138,17 @@ const DANA_BUILTIN: { name: string; text: string }[] = [
 const DANA_LS_KEY = "rim_dana_templates";
 const DANA_LS_HIDDEN_KEY = "rim_dana_templates_hidden";
 
-function loadDanaTemplates(): { name: string; content: any }[] {
+function loadDanaTemplates(): { name: string; content: string }[] {
   if (typeof window === "undefined") return [];
-  try { return JSON.parse(localStorage.getItem(DANA_LS_KEY) ?? "[]"); }
-  catch { return []; }
+  try {
+    const raw = JSON.parse(localStorage.getItem(DANA_LS_KEY) ?? "[]");
+    if (!Array.isArray(raw)) return [];
+    // Convert any legacy BlockNote-JSON content to HTML strings on read.
+    return raw.map((t: { name: string; content: unknown }) => ({
+      name: t.name,
+      content: isHtmlString(t.content) ? t.content : (renderBlockNoteHtml(t.content) || ""),
+    }));
+  } catch { return []; }
 }
 function loadHiddenBuiltins(): string[] {
   if (typeof window === "undefined") return [];
@@ -146,8 +156,8 @@ function loadHiddenBuiltins(): string[] {
   catch { return []; }
 }
 
-function DanaTemplateSelector({ onLoad, value }: { onLoad: (v: any) => void; value: any }) {
-  const [saved, setSaved] = useState<{ name: string; content: any }[]>([]);
+function DanaTemplateSelector({ onLoad, value }: { onLoad: (v: string) => void; value: string }) {
+  const [saved, setSaved] = useState<{ name: string; content: string }[]>([]);
   const [hiddenBuiltins, setHiddenBuiltins] = useState<string[]>([]);
   const [showSave, setShowSave] = useState(false);
   const [saveName, setSaveName] = useState("");
@@ -158,11 +168,11 @@ function DanaTemplateSelector({ onLoad, value }: { onLoad: (v: any) => void; val
     setHiddenBuiltins(loadHiddenBuiltins());
   }, []);
 
-  const hasContent = Array.isArray(value) && value.length > 0;
+  const hasContent = value.replace(/<[^>]+>/g, "").trim().length > 0;
   const visibleBuiltins = DANA_BUILTIN.filter((t) => !hiddenBuiltins.includes(t.name));
   const allHidden = visibleBuiltins.length === 0;
 
-  function load(content: any, name: string) {
+  function load(content: string, name: string) {
     setLastLoadedName(name);
     onLoad(content);
   }
@@ -235,7 +245,7 @@ function DanaTemplateSelector({ onLoad, value }: { onLoad: (v: any) => void; val
         <div className="pe-template-bar__chips">
           {visibleBuiltins.map((t) => (
             <span key={t.name} className="pe-template-chip pe-template-chip--builtin">
-              <button type="button" className="pe-template-chip__name" onClick={() => load(textToBlockNote(t.text), t.name)}>{t.name}</button>
+              <button type="button" className="pe-template-chip__name" onClick={() => load(textToHtml(t.text), t.name)}>{t.name}</button>
               <button type="button" className="pe-template-chip__delete" onClick={() => hideBuiltin(t.name)} title="Remove">×</button>
             </span>
           ))}
@@ -543,7 +553,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
   });
   const [pullQuote, setPullQuote] = useState(initialData?.pullQuote ?? "");
   const [pullQuoteSource, setPullQuoteSource] = useState(initialData?.pullQuoteSource ?? "");
-  const [programNotes, setProgramNotes] = useState<any>(initialData?.programNotes ?? null);
+  const [programNotes, setProgramNotes] = useState<string>(toEditorString(initialData?.programNotes));
   const [teacherFacilitatorsText, setTeacherFacilitatorsText] = useState(
     initialData?.teacherFacilitators?.join(", ") ?? ""
   );
@@ -599,15 +609,15 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
   );
   // Raw string drafts for select option inputs — avoids split/join on every keystroke
   const [optionsDraft, setOptionsDraft] = useState<Record<number, string>>({});
-  const [confirmationMessage, setConfirmationMessage] = useState<any>(initialData?.confirmationMessage ?? null);
+  const [confirmationMessage, setConfirmationMessage] = useState<string>(toEditorString(initialData?.confirmationMessage));
   const [reminderDate, setReminderDate] = useState(initialData?.reminderDate ?? "");
-  const [reminderMessage, setReminderMessage] = useState<any>(initialData?.reminderMessage ?? null);
+  const [reminderMessage, setReminderMessage] = useState<string>(toEditorString(initialData?.reminderMessage));
 
   const [danaMode, setDanaMode] = useState(initialData?.danaMode ?? "none");
   const [suggestedDana, setSuggestedDana] = useState(initialData?.suggestedDana ?? "");
   const [danaBaseAmount, setDanaBaseAmount] = useState(initialData?.danaBaseAmount ?? "");
   const [danaFixedAmount, setDanaFixedAmount] = useState(initialData?.danaFixedAmount ?? "");
-  const [danaMessage, setDanaMessage] = useState<any>(initialData?.danaMessage ?? null);
+  const [danaMessage, setDanaMessage] = useState<string>(toEditorString(initialData?.danaMessage));
   const [danaEditorKey, setDanaEditorKey] = useState(0);
   const [danaText, setDanaText] = useState(initialData?.danaText ?? "");
 
@@ -1029,10 +1039,11 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
               <div className="pe-field">
                 <span className="pe-field__label">Program Notes</span>
                 <span className="pe-field__help">Additional notes shown on the public program detail page — scheduling context, accessibility info, what to bring, etc.</span>
-                <RimProseEditor
+                <RimTiptapEditor
                   value={programNotes}
-                  onChange={(v: any) => { setProgramNotes(v); markDirty(); }}
+                  onChange={(v) => { setProgramNotes(v); markDirty(); }}
                   placeholder="Program notes…"
+                  variant="message"
                 />
               </div>
             </div>
@@ -1494,11 +1505,11 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
             <div className="pe-field">
               <span className="pe-field__label">Confirmation Message</span>
               <span className="pe-field__help">Shown in the confirmation email after someone registers. Good for logistics like what to bring or how to prepare.</span>
-              <RimProseEditor
+              <RimTiptapEditor
                 value={confirmationMessage}
-                onChange={(v: any) => { setConfirmationMessage(v); markDirty(); }}
+                onChange={(v) => { setConfirmationMessage(v); markDirty(); }}
                 placeholder="Optional custom message…"
-                minHeight={120}
+                variant="message"
               />
             </div>
 
@@ -1511,11 +1522,11 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
             <div className="pe-field">
               <span className="pe-field__label">Reminder Message</span>
               <span className="pe-field__help">The content of the reminder email. You&rsquo;ll send it manually from the registration detail page — it doesn&rsquo;t send automatically.</span>
-              <RimProseEditor
+              <RimTiptapEditor
                 value={reminderMessage}
-                onChange={(v: any) => { setReminderMessage(v); markDirty(); }}
+                onChange={(v) => { setReminderMessage(v); markDirty(); }}
                 placeholder="Optional reminder message…"
-                minHeight={120}
+                variant="message"
               />
             </div>
 
@@ -1606,12 +1617,12 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                       markDirty();
                     }}
                   />
-                  <RimProseEditor
+                  <RimTiptapEditor
                     key={danaEditorKey}
                     value={danaMessage}
-                    onChange={(v: any) => { setDanaMessage(v); markDirty(); }}
+                    onChange={(v) => { setDanaMessage(v); markDirty(); }}
                     placeholder="Describe how dana supports RIM and what participants should know…"
-                    minHeight={120}
+                    variant="message"
                   />
                 </div>
 
