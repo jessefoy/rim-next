@@ -23997,3 +23997,55 @@ input.w-button { -webkit-appearance: button; }
   border-radius: 0 0 8px 8px;
   padding: 12px 14px;
 }
+
+/* ── Toolbar dropdowns (Heading, Callouts, Dharma blocks) ───────────── */
+.rt-toolbar__menu {
+  position: relative;
+  display: inline-flex;
+}
+.rt-toolbar__btn--label {
+  width: auto;
+  padding: 0 8px;
+  gap: 4px;
+}
+.rt-toolbar__label {
+  font-size: var(--text-ui);
+  font-weight: 500;
+}
+.rt-toolbar__caret {
+  font-size: 10px;
+  color: var(--rim-text-muted);
+  margin-left: 2px;
+}
+.rt-toolbar__btn--active .rt-toolbar__caret { color: #fff; }
+.rt-toolbar__dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 50;
+  background: #fff;
+  border: 1px solid var(--rim-rule);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  padding: 5px;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+}
+.rt-toolbar__dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 10px;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  color: var(--rim-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+}
+.rt-toolbar__dropdown-item:hover { background: #f4f2ed; }
+.rt-toolbar__dropdown-item svg { flex-shrink: 0; color: var(--rim-text-muted); }

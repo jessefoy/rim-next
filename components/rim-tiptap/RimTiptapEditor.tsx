@@ -36,7 +36,7 @@ import TableHeader from "@tiptap/extension-table-header";
 import TableCell from "@tiptap/extension-table-cell";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
 import {
   Bold, Italic, Underline as UIcon, Strikethrough, Code, Link as LinkIcon,
@@ -170,6 +170,25 @@ function buildExtensions(variant: RimTiptapVariant, placeholder: string) {
 
 function Toolbar({ editor, variant }: { editor: Editor; variant: RimTiptapVariant }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [openMenu, setOpenMenu] = useState<null | "heading" | "callout" | "dharma">(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+
+  // Close any open dropdown on outside click or Escape
+  useEffect(() => {
+    if (!openMenu) return;
+    function onDocMouseDown(e: MouseEvent) {
+      if (!toolbarRef.current?.contains(e.target as Node)) setOpenMenu(null);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpenMenu(null);
+    }
+    document.addEventListener("mousedown", onDocMouseDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocMouseDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [openMenu]);
 
   function pickImage() { fileInputRef.current?.click(); }
 
@@ -197,8 +216,51 @@ function Toolbar({ editor, variant }: { editor: Editor; variant: RimTiptapVarian
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   }
 
+  // Heading dropdown label reflects current state
+  const headingLabel =
+    editor.isActive("heading", { level: 2 }) ? "H2" :
+    editor.isActive("heading", { level: 3 }) ? "H3" :
+    editor.isActive("heading", { level: 4 }) ? "H4" :
+    "Text";
+
   return (
-    <div className="rt-toolbar" role="toolbar" aria-label="Editor toolbar">
+    <div className="rt-toolbar" role="toolbar" aria-label="Editor toolbar" ref={toolbarRef}>
+      {/* Heading dropdown (document only) */}
+      {variant === "document" && (
+        <>
+          <TDropdown
+            label={headingLabel}
+            title="Text style"
+            wide
+            isOpen={openMenu === "callout" /* dummy to satisfy types */ ? false : false}
+            onToggle={() => {}}
+            buttonContent={<span className="rt-toolbar__label">{headingLabel}</span>}
+            renderTrigger={(toggle, open) => (
+              <button
+                type="button"
+                className={`rt-toolbar__btn rt-toolbar__btn--label${open ? " rt-toolbar__btn--active" : ""}`}
+                onMouseDown={(e) => { e.preventDefault(); toggle(); }}
+                title="Text style"
+                aria-haspopup="menu"
+                aria-expanded={open}
+              >
+                <span className="rt-toolbar__label">{headingLabel}</span>
+                <span className="rt-toolbar__caret" aria-hidden="true">▾</span>
+              </button>
+            )}
+            open={openMenu === "heading"}
+            onOpenChange={(o) => setOpenMenu(o ? "heading" : null)}
+            items={[
+              { label: "Paragraph",  onClick: () => editor.chain().focus().setParagraph().run() },
+              { label: "Heading 2",  onClick: () => editor.chain().focus().setHeading({ level: 2 }).run() },
+              { label: "Heading 3",  onClick: () => editor.chain().focus().setHeading({ level: 3 }).run() },
+              { label: "Heading 4",  onClick: () => editor.chain().focus().setHeading({ level: 4 }).run() },
+            ]}
+          />
+          <TSep />
+        </>
+      )}
+
       {/* Inline formatting */}
       <TBtn editor={editor} cmd={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="Bold" icon={Bold} />
       <TBtn editor={editor} cmd={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive("italic")} title="Italic" icon={Italic} />
@@ -207,14 +269,6 @@ function Toolbar({ editor, variant }: { editor: Editor; variant: RimTiptapVarian
       <TBtn editor={editor} cmd={() => editor.chain().focus().toggleCode().run()} active={editor.isActive("code")} title="Inline code" icon={Code} />
       <TSep />
       <TBtn editor={editor} cmd={setLink} active={editor.isActive("link")} title="Link" icon={LinkIcon} />
-
-      {variant === "document" && (
-        <>
-          <TSep />
-          <TBtn editor={editor} cmd={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} active={editor.isActive("heading", { level: 2 })} title="Heading 2" icon={Heading2} />
-          <TBtn editor={editor} cmd={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} active={editor.isActive("heading", { level: 3 })} title="Heading 3" icon={Heading3} />
-        </>
-      )}
 
       <TSep />
       <TBtn editor={editor} cmd={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive("bulletList")} title="Bullet list" icon={List} />
@@ -230,14 +284,56 @@ function Toolbar({ editor, variant }: { editor: Editor; variant: RimTiptapVarian
           <TBtn editor={editor} cmd={() => editor.chain().focus().setHorizontalRule().run()} active={false} title="Divider" icon={Minus} />
 
           <TSep />
-          <TBtn editor={editor} cmd={() => editor.chain().focus().setCallout({ variant: "note" }).run()} active={editor.isActive("callout", { variant: "note" })} title="Callout — Note" icon={Lightbulb} />
-          <TBtn editor={editor} cmd={() => editor.chain().focus().setCallout({ variant: "decision" }).run()} active={editor.isActive("callout", { variant: "decision" })} title="Callout — Decision" icon={CheckCircle2} />
-
-          <TSep />
-          <TBtn editor={editor} cmd={() => editor.chain().focus().setPullQuote().run()} active={editor.isActive("pullQuote")} title="Pull quote" icon={Sparkles} />
-          <TBtn editor={editor} cmd={() => editor.chain().focus().setVerseQuote().run()} active={editor.isActive("verseQuote")} title="Verse quote" icon={BookOpen} />
-          <TBtn editor={editor} cmd={() => editor.chain().focus().setPracticeSuggestion().run()} active={editor.isActive("practiceSuggestion")} title="Practice suggestion" icon={Sparkles} />
-          <TBtn editor={editor} cmd={() => editor.chain().focus().setReflection().run()} active={editor.isActive("reflection")} title="Reflection" icon={MessageCircleQuestion} />
+          {/* Callouts dropdown */}
+          <TDropdown
+            label="Callout"
+            title="Insert callout"
+            renderTrigger={(toggle, open) => (
+              <button
+                type="button"
+                className={`rt-toolbar__btn${open ? " rt-toolbar__btn--active" : ""}`}
+                onMouseDown={(e) => { e.preventDefault(); toggle(); }}
+                title="Callout"
+                aria-haspopup="menu"
+                aria-expanded={open}
+              >
+                <Lightbulb size={15} strokeWidth={2} />
+                <span className="rt-toolbar__caret" aria-hidden="true">▾</span>
+              </button>
+            )}
+            open={openMenu === "callout"}
+            onOpenChange={(o) => setOpenMenu(o ? "callout" : null)}
+            items={[
+              { label: "Note", icon: Lightbulb, onClick: () => editor.chain().focus().setCallout({ variant: "note" }).run() },
+              { label: "Decision", icon: CheckCircle2, onClick: () => editor.chain().focus().setCallout({ variant: "decision" }).run() },
+            ]}
+          />
+          {/* Dharma blocks dropdown */}
+          <TDropdown
+            label="Dharma block"
+            title="Insert dharma block"
+            renderTrigger={(toggle, open) => (
+              <button
+                type="button"
+                className={`rt-toolbar__btn${open ? " rt-toolbar__btn--active" : ""}`}
+                onMouseDown={(e) => { e.preventDefault(); toggle(); }}
+                title="Dharma block"
+                aria-haspopup="menu"
+                aria-expanded={open}
+              >
+                <Sparkles size={15} strokeWidth={2} />
+                <span className="rt-toolbar__caret" aria-hidden="true">▾</span>
+              </button>
+            )}
+            open={openMenu === "dharma"}
+            onOpenChange={(o) => setOpenMenu(o ? "dharma" : null)}
+            items={[
+              { label: "Pull quote", icon: Sparkles, onClick: () => editor.chain().focus().setPullQuote().run() },
+              { label: "Verse quote", icon: BookOpen, onClick: () => editor.chain().focus().setVerseQuote().run() },
+              { label: "Practice suggestion", icon: Sparkles, onClick: () => editor.chain().focus().setPracticeSuggestion().run() },
+              { label: "Reflection", icon: MessageCircleQuestion, onClick: () => editor.chain().focus().setReflection().run() },
+            ]}
+          />
         </>
       )}
 
@@ -248,6 +344,57 @@ function Toolbar({ editor, variant }: { editor: Editor; variant: RimTiptapVarian
         style={{ display: "none" }}
         onChange={onFile}
       />
+    </div>
+  );
+}
+
+interface DropdownItemSpec {
+  label: string;
+  icon?: React.ComponentType<{ size?: number; strokeWidth?: number }>;
+  onClick: () => void;
+}
+
+function TDropdown({
+  open,
+  onOpenChange,
+  items,
+  renderTrigger,
+}: {
+  /** unused — kept for API symmetry */
+  label?: string;
+  title?: string;
+  wide?: boolean;
+  isOpen?: boolean;
+  onToggle?: () => void;
+  buttonContent?: React.ReactNode;
+  renderTrigger: (toggle: () => void, open: boolean) => React.ReactNode;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  items: DropdownItemSpec[];
+}) {
+  const toggle = () => onOpenChange(!open);
+  return (
+    <div className="rt-toolbar__menu">
+      {renderTrigger(toggle, open)}
+      {open && (
+        <div className="rt-toolbar__dropdown" role="menu">
+          {items.map((it) => {
+            const Icon = it.icon;
+            return (
+              <button
+                key={it.label}
+                type="button"
+                className="rt-toolbar__dropdown-item"
+                role="menuitem"
+                onMouseDown={(e) => { e.preventDefault(); it.onClick(); onOpenChange(false); }}
+              >
+                {Icon ? <Icon size={14} strokeWidth={2} /> : null}
+                <span>{it.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
