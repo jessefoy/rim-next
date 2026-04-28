@@ -2,126 +2,157 @@
 
 /**
  * Editor Lab — /admin/editor-lab
- * TipTap prototype replacing the old BlockNote-based RimBlockEditor.
- * CSS prefix: el- (layout) + tt- (editor chrome)
  *
- * Storage is plain HTML (localStorage), not BlockNote JSON. This is the
- * paradigm we're testing: rich-text-as-HTML, Webflow-like, portable.
+ * Demos the canonical RimTiptapEditor in all three variants side by side.
+ * Storage paradigm: plain HTML strings (not BlockNote JSON).
+ *
+ * CSS prefix: el- (layout) + rt- (editor chrome, defined by RimTiptapEditor)
  */
 
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
+import type { RimTiptapVariant } from "@/components/rim-tiptap/RimTiptapEditor";
 
-const TiptapEditor = dynamic(() => import("@/components/TiptapEditor"), { ssr: false });
+const RimTiptapEditor = dynamic(
+  () => import("@/components/rim-tiptap/RimTiptapEditor"),
+  { ssr: false },
+);
 
-const STORAGE_KEY = "el-tiptap-html";
+const STORAGE_PREFIX = "el-tiptap-v2";
 
-const SAMPLE_HTML = `
-<h1>Volunteer onboarding guide</h1>
-<p>This document walks new volunteers through their first month. Review with your coordinator.</p>
-
-<h2>Week one</h2>
-<ol>
-  <li>Complete the orientation video</li>
-  <li>Shadow an experienced volunteer at one session</li>
-  <li>Meet with your coordinator to set expectations</li>
-</ol>
-
-<h3>Key contacts</h3>
-<p>Reach out to your coordinator for scheduling questions or to flag any concerns.</p>
-
-<blockquote>
-  <p>We come here to practice clear seeing — which is the prerequisite for wise and compassionate response.</p>
-</blockquote>
-
-<h4>Further reading</h4>
-<p>Check the <a href="/admin/manual">staff manual</a> or reach out to your coordinator.</p>
-`.trim();
+const SAMPLES: Record<RimTiptapVariant, string> = {
+  minimal: `<p>A short, inline-friendly editor. <strong>Bold</strong>, <em>italic</em>, and <a href="https://rootedinmindfulness.org">links</a>. Nothing else.</p>`,
+  message: `<p>This is the editor for conversations, hub welcome messages, support replies, and program emails.</p>
+<p>You can <strong>emphasize</strong>, <em>shade meaning</em>, and add <a href="https://rootedinmindfulness.org">links</a>.</p>
+<ul><li>Bullet lists</li><li>Numbered lists</li><li>Task lists</li></ul>
+<blockquote><p>Quotes for moments worth pausing on.</p></blockquote>
+<p>No headings, no images, no tables — by design.</p>`,
+  document: `<h2>Document variant</h2>
+<p>The full editor — for hub documents, manual sections, program descriptions, and lesson bodies.</p>
+<h3>What you get</h3>
+<ul><li>Headings (H2, H3, H4)</li><li>Tables</li><li>Images</li><li>The dharma blocks below</li></ul>
+<div class="rim-el-pull-quote"><div class="rim-el-pull-quote__text">A line worth sitting with.</div><cite class="rim-el-pull-quote__attribution">— Attribution optional</cite></div>
+<div class="rim-el-note rim-el-note--note" data-variant="note"><div class="rim-el-note__title">Note</div><div class="rim-el-note__body"><p>Aside information worth surfacing — without breaking the flow of the page.</p></div></div>
+<p>Place a divider between sections:</p>
+<hr>
+<div class="rim-el-practice"><div class="rim-el-practice__eyebrow">Practice</div><div class="rim-el-practice__title">A short sit</div><div class="rim-el-practice__body"><p>Find a comfortable seat. Let the body settle. Three breaths.</p></div></div>`,
+};
 
 export default function EditorLabPage() {
   const [mounted, setMounted] = useState(false);
-  const [html, setHtml] = useState("");
+  const [active, setActive] = useState<RimTiptapVariant>("document");
+  const [content, setContent] = useState<Record<RimTiptapVariant, string>>({
+    minimal: "",
+    message: "",
+    document: "",
+  });
 
   useEffect(() => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) setHtml(raw);
+    const next: Record<RimTiptapVariant, string> = {
+      minimal: localStorage.getItem(`${STORAGE_PREFIX}-minimal`) ?? "",
+      message: localStorage.getItem(`${STORAGE_PREFIX}-message`) ?? "",
+      document: localStorage.getItem(`${STORAGE_PREFIX}-document`) ?? "",
+    };
+    setContent(next);
     setMounted(true);
   }, []);
 
-  function update(value: string) {
-    setHtml(value);
-    localStorage.setItem(STORAGE_KEY, value);
+  function update(variant: RimTiptapVariant, html: string) {
+    setContent((prev) => ({ ...prev, [variant]: html }));
+    localStorage.setItem(`${STORAGE_PREFIX}-${variant}`, html);
   }
 
-  function loadSample() {
-    localStorage.setItem(STORAGE_KEY, SAMPLE_HTML);
-    window.location.reload();
+  function loadSample(variant: RimTiptapVariant) {
+    const sample = SAMPLES[variant];
+    setContent((prev) => ({ ...prev, [variant]: sample }));
+    localStorage.setItem(`${STORAGE_PREFIX}-${variant}`, sample);
   }
 
-  function clear() {
-    localStorage.removeItem(STORAGE_KEY);
-    setHtml("");
-    window.location.reload();
+  function clearVariant(variant: RimTiptapVariant) {
+    setContent((prev) => ({ ...prev, [variant]: "" }));
+    localStorage.removeItem(`${STORAGE_PREFIX}-${variant}`);
   }
 
   if (!mounted) {
     return (
       <div className="el-page">
-        <div className="el-header">
+        <header className="el-header">
           <h1 className="el-title">Editor Lab</h1>
-        </div>
+        </header>
       </div>
     );
   }
 
+  const html = content[active];
+
   return (
     <div className="el-page">
       <header className="el-header">
-        <h1 className="el-title">Editor Lab — TipTap Prototype</h1>
+        <h1 className="el-title">Editor Lab — Tiptap (canonical)</h1>
         <p className="el-subtitle">
-          Minimal rich text editor — the Webflow paradigm. Standard text
-          formatting only (headings, bold/italic, lists, links, quote,
-          divider). Output: plain HTML.
+          Three variants of the same editor. Storage is plain HTML.{" "}
+          <code>minimal</code> for inline form fields,{" "}
+          <code>message</code> for conversations and short prose,{" "}
+          <code>document</code> for full pages with tables, images, and dharma blocks.
         </p>
       </header>
 
+      <div className="el-tabs" role="tablist" aria-label="Editor variant">
+        {(["minimal", "message", "document"] as RimTiptapVariant[]).map((v) => (
+          <button
+            key={v}
+            role="tab"
+            aria-selected={active === v}
+            className={`el-tab${active === v ? " el-tab--active" : ""}`}
+            onClick={() => setActive(v)}
+          >
+            {v}
+          </button>
+        ))}
+      </div>
+
       <div className="el-actions">
-        <button className="btn btn--sm" onClick={loadSample}>
+        <button className="btn btn--sm" onClick={() => loadSample(active)}>
           Load sample content
         </button>
-        <button className="btn btn--sm btn--ghost" onClick={clear}>
+        <button className="btn btn--sm btn--ghost" onClick={() => clearVariant(active)}>
           Clear
         </button>
       </div>
 
       <div className="el-split">
         <section className="el-pane" aria-label="Editor">
-          <div className="el-pane__label">Editor</div>
+          <div className="el-pane__label">Editor — variant: <code>{active}</code></div>
           <div className="el-pane__body">
-            <TiptapEditor
+            <RimTiptapEditor
+              key={active}
               value={html}
-              onChange={update}
-              placeholder="Start typing. Select text for inline formatting."
+              onChange={(next) => update(active, next)}
+              variant={active}
+              placeholder={
+                active === "minimal"
+                  ? "Short text…"
+                  : active === "message"
+                    ? "Write your message…"
+                    : "Start writing. Press Enter and use the + on the left margin to add blocks."
+              }
             />
           </div>
         </section>
 
         <section className="el-pane" aria-label="Rendered output">
           <div className="el-pane__label">
-            Rendered output — <code>rim-content rim-content--document</code>
+            Rendered output — wrapper: <code>rim-content rim-content--{active === "document" ? "document" : "message"}</code>
           </div>
           <div className="el-pane__body">
             {html ? (
               <div
-                className="rim-content rim-content--document"
+                className={`rim-content rim-content--${active === "document" ? "document" : "message"}`}
                 dangerouslySetInnerHTML={{ __html: html }}
               />
             ) : (
               <div className="el-placeholder">
-                <p>
-                  Start writing, or click <strong>Load sample content</strong> to
-                  populate.
-                </p>
+                <p>Start writing, or click <strong>Load sample content</strong>.</p>
               </div>
             )}
           </div>
