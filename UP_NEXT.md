@@ -4,66 +4,65 @@
 
 ---
 
-## Active: Phase 2 of the Tiptap editor migration (2026-04-27)
+## Active
 
-Phase 1 closed at the end of session 96. The canonical `RimTiptapEditor` is built and live in the Editor Lab in three variants. Production surfaces are still on `RimBlockEditor` / `RimProseEditor` (BlockNote). Phase 2 starts the migration of real surfaces and the one-time conversion of existing data.
+Nothing actively in flight. The Tiptap editor migration (Phases 1–4) closed at the end of session 97 (2026-04-28). Every editor surface in the platform now runs on `RimTiptapEditor` (one component, three variants: `minimal` / `message` / `document`, HTML storage, selection bubble menu). `RimBlockEditor`, `RimProseEditor`, and the `@blocknote/*` deps are deleted.
 
-### Status at session end
-
-- `components/rim-tiptap/RimTiptapEditor.tsx` — three variants (`minimal` / `message` / `document`), one pinned top toolbar, three dropdowns (Heading, Callout, Dharma block), Bear-style selection bubble for `minimal`. Storage = plain HTML strings.
-- Five custom block extensions in `components/rim-tiptap/extensions/` — Callout (note + decision), PullQuote, VerseQuote, PracticeSuggestion, Reflection. Output classes are shared between editor and rendered HTML.
-- Editor Lab `/admin/editor-lab` — three tabs, sample content, live render pane, raw HTML output pane. The review surface for editor-side feedback before any migration.
-- `RimBlockEditor` and `RimProseEditor` still in production. Untouched.
-
-### Next concrete steps for Phase 2
-
-1. **Render path.** Build `lib/renderRichContentTiptap.ts`. HTML pass-through with sanitization (existing content is trusted but the renderer sets the contract for Phase 5 imports). Allow the same set of elements + classes the editor produces; strip everything else.
-2. **Format detection at the boundary.** In `lib/renderRichContent.ts` and `lib/renderRichContentServer.ts`, add a `isHtmlString(value)` check before the existing `isBlockNoteJSON(value)` branch. HTML strings route to the Tiptap renderer; JSON arrays continue through the BlockNote pipeline. Single switch — both formats coexist during migration.
-3. **First migration target: `Hub.welcomeBody`.** Smallest blast radius — used in two places (`HostHubHomeClient` inline edit, `HubAdminForm` admin form). Swap both to `RimTiptapEditor variant="message"`. Walk existing `Hub` rows, server-render the BlockNote JSON to HTML, write back. Idempotent migration with a flag.
-4. **Then `Hub.homeContent`** — same pattern, different field. Used only in `HubAdminForm`.
-5. **Then `HubConversationThread.body` + `HubConversationReply.body`** — higher row count (~hundreds) but same shape. `HubConvClient.tsx` and `HubConvThreadClient.tsx` swap to `RimTiptapEditor variant="message"`.
-
-After step 5, Hub Message surfaces are fully migrated. That's the Phase 2 done line. Phase 3 (hub documents + manual sections, `variant="document"`) follows.
-
-### Decisions still open going into Phase 2
-
-- **Sanitization library.** `sanitize-html` is the obvious choice; we're trusting current writers but not external paste content (Tiptap's HTML serializer + the schema do most of the work, but a paste of arbitrary HTML can carry attribute payloads we don't want). Decide before building the renderer.
-- **`renderFormattedTextAsync` signature.** It currently dispatches by content shape. The Phase 2 detection adds an `htmlString` branch. Verify call sites still work without explicit format flags — they should, since the value is the only input.
-- **`extractTextAsync`** (used for plain-text excerpts and email message bodies) needs an HTML-strip path. `marked` isn't relevant; either `node-html-parser` or a small regex-based stripper. Plain text out, no styling.
-
-### Files to know going into Phase 2
-
-- `components/rim-tiptap/RimTiptapEditor.tsx` — the new editor.
-- `components/rim-tiptap/extensions/*.ts` — the custom blocks.
-- `lib/renderRichContent.ts` + `lib/renderRichContentServer.ts` — current renderers; Phase 2 adds the HTML branch here.
-- `lib/email.ts` — uses `renderFormattedTextAsync` for some fields; will read the new format transparently once Phase 2 dispatch is wired.
-- `app/admin/editor-lab/page.tsx` — review surface for the editor itself.
-- `prisma/migrate.mjs` — host the row-conversion migration alongside the existing flagged migrations.
+Pick from the open threads below.
 
 ---
 
-## Other open threads (pickable, not blocking)
+## Next deliverable candidates
 
-### Webflow weekly schedule (deferred from session 95)
+### Webflow weekly schedule (parked from session 95)
 
-Still real work, still designed but not built. Carries forward unchanged from session 95:
+Still real work, still designed but not built. The Programs listing in Webflow works; the next public-facing page Jesse wants to design is the weekly schedule. Concrete shape:
 
-- New endpoint `/api/public/programs/weekly` returning the next 7 days grouped by weekday. Reuse `lib/scheduleUtils.ts::isOccurrenceOnDate()`. Copy cache headers from the existing programs endpoints.
+- New endpoint `/api/public/programs/weekly` returning the next 7 days grouped by weekday. Reuse `lib/scheduleUtils.ts::isOccurrenceOnDate()`. Copy cache headers from the existing programs endpoints (`s-maxage=300, stale-while-revalidate=86400` plus explicit `CDN-Cache-Control` + `Vercel-CDN-Cache-Control`).
 - Default to grouped-list (`data-rim-group-list="weekly"`) over a new `data-rim-weekly-list` primitive. Only add a primitive if grouped-list can't express the design.
 - Jesse designs the Webflow page. Recommended path: duplicate `/rim-next/Programs` as `/rim-next/weekly-schedule`, point grouped-list at the new endpoint.
 - Programs listing page slug is still `Programs` (capital P) → publishes to `/rim-next/Programs`. Lowercase before it bites.
-- Auth-aware CTA on Program Detail (member states: registered / waitlisted / pending dana / join session) is still tracked in backlog item `2026-04-24-001`. Not urgent for the weekly view.
 
-### Vercel `NEXTAUTH_URL` env var has a trailing space
+This is self-contained work that doesn't depend on anything else. Good standalone session.
 
-Confirmed root cause of the broken sub-request link. The code is now defensive (every `BASE_URL` is `.trim().replace(/\/$/, "")`), but the env var itself should still be cleaned at the source so future surfaces that don't go through the trimmed constants don't pick up the same bug. One-time edit in Vercel project settings.
+### Editor toolbar polish
 
-### Smaller items still parked
+Jesse said "I'll address the menu items later" early in session 97. The current toolbar dropdowns (Heading, Callouts, Dharma blocks) and bubble menu contents are reasonable defaults but he may want refinements:
 
+- Specific button choices and order
+- Iconography
+- Mobile-specific layout changes
+- Whether the floating "+" on empty lines should be wired up (Tiptap extension is installed but not used; Notion-style block insertion menu)
+
+Lighter than Webflow weekly schedule but worth a focused pass before the toolbar set in stone.
+
+### Stage 2d editor blocks (Page Designer expansion)
+
+Three blocks in the original Page Designer plan that were never built: Announcement, EarlyArrival, DanaInvitation. They'd replace top-level Program fields (`specialAnnouncement`, `earlyArrivalMessage`, the page-rendering of `danaMessage`) with inline blocks the author places where they want.
+
+Now that the Tiptap migration is complete, these blocks can be added as Tiptap extensions (mirror existing `Callout`, `PullQuote`, etc. in `components/rim-tiptap/extensions/`). Plus a data migration that reads the legacy fields and inserts matching blocks at the end of the description.
+
+Not blocked by anything. Each block is a small, contained piece of work.
+
+### Auth-aware Program Detail CTA
+
+Tracked in backlog (`2026-04-24-001`). The Program Detail page in Webflow needs an authenticated CTA — different states for: not registered, registered, waitlisted, pending dana, ready to join session. Currently uses a static "Register" button.
+
+Approach: extend `rim-connect.js` with a `data-rim-member-cta` element + `/api/member/programs/[slug]/cta` endpoint that returns the right CTA shape for the signed-in member. Or embed the existing `RegisterButton` Next.js component via iframe.
+
+### BlockNote walker eventual removal
+
+Once every row in the database has been edited and saved as HTML, the BlockNote-JSON walker in `lib/renderRichContent.ts` and `lib/renderRichContentServer.ts` can be removed. Until then it's the safety net for unmigrated content. No deadline; depends on user activity. Worth checking the database periodically (`SELECT COUNT(*) FROM ... WHERE jsonb_typeof(field) = 'array'`) to know when it's safe.
+
+---
+
+## Smaller items still parked
+
+- **Vercel `NEXTAUTH_URL` trailing space** — code is defensively trimmed in five places (`lib/email.ts`, `lib/calendarLinks.ts`, `lib/supportNotify.ts`, `app/api/cron/drip-release`, `app/api/stripe/checkout`); the env var itself should still be cleaned at the source so future surfaces don't pick up the same bug. One-time edit in Vercel project settings.
 - **Schedule display of paused hosts** — `HubScheduleClient` doesn't visually mark assignments where the host is paused or `hostingCapability = false`.
-- **Stage 2d editor blocks** — Announcement, EarlyArrival, DanaInvitation. Not blocked by the Tiptap migration; in fact they'd be cleaner to build on Tiptap. Wait for Phase 4 (Page Designer surfaces) so they land natively in the new editor.
-- **Coordinator notes area** — `Hub.coordinatorNotes Json?` (or HTML, post-Phase-2) + coordinator-only editor surface.
-- **Duplicate-Aside backlog item** — Editor allows inserting an Aside immediately after another Aside. May not apply post-Tiptap-migration; revisit in Phase 4.
+- **Coordinator notes area** — `Hub.coordinatorNotes Json?` (or HTML, post-migration) + coordinator-only editor surface. Was discussed during the team-management work; never built.
+- **Duplicate-Aside backlog item** — Editor allows inserting an Aside immediately after another Aside. Was true with BlockNote's structure; may not apply post-Tiptap-migration. Revisit if it's still observable.
+- **Hub document export** — `app/api/hub/[slug]/documents/[id]/export/route.ts` still uses a BlockNote-JSON-only markdown converter. Should grow an HTML-string path for documents saved post-migration. Otherwise an HTML-stored document exports as `(No content)`.
 
 ---
 
@@ -79,7 +78,12 @@ Confirmed root cause of the broken sub-request link. The code is now defensive (
 - **No-delete policy for HubMember.** Never call `db.hubMember.delete()` outside the ADMIN-only route.
 - **Use `after()` from `next/server` for fire-and-forget email sends in route handlers.** `void (async () => {})()` is silently killed by Vercel's serverless teardown.
 - **Trim `NEXTAUTH_URL`-derived constants.** Every `BASE_URL` does `.trim().replace(/\/$/, "")` because env vars can carry whitespace.
-- **Storage paradigm for new editor surfaces is plain HTML strings**, not BlockNote JSON. The new `RimTiptapEditor` produces HTML directly. Existing BlockNote JSON columns remain valid until Phase 2/3/4 migrate them.
+- **Storage paradigm for editor content is plain HTML strings.** `RimTiptapEditor` produces HTML directly via `editor.getHTML()`. Renderers accept both HTML and legacy BlockNote JSON via format detection — unmigrated rows still display correctly.
+- **The selection bubble menu is the primary formatting surface in editors.** Top toolbar is for insertion-only actions (image, table, hr, callouts, dharma blocks). Don't put inline marks in both — duplicates discovery paths.
+- **`useEditor` returns null on first render with `immediatelyRender: false`.** Any `useEffect` that touches refs INSIDE the rendered tree must include `editor` in deps so it re-runs after editor initialization (the early `if (!editor) return null` means refs are null on the first run).
+- **`Array.isArray(body)` filters at page level will silently drop HTML.** Pre-Phase-2 code had patterns like `initialBody={Array.isArray(doc.body) ? doc.body : null}` — these reject HTML strings and pass null, causing content-appearing-missing bugs. Trust the editor component's own `isHtmlString` / `renderBlockNoteHtml` normalization; don't filter at the page.
+- **Tiptap's empty-document HTML is `"<p></p>"`, not `""`.** `!draft` truthiness checks fall through. Use `html.replace(/<[^>]+>/g, "").trim().length > 0` to detect meaningful content.
+- **`html { overflow-x: clip }`, not `hidden`.** `overflow-x: hidden` creates a scroll container that breaks `position: sticky` for descendants in Safari/Chromium. `clip` clips overflow without making the element scrollable.
 
 ---
 

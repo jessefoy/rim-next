@@ -4,16 +4,22 @@
 
 Read this file before working on any editor component, content rendering surface, or schema field that holds authored text. If code and this file disagree, the code is wrong and should be corrected.
 
-> ## ⚠️ Migration in progress (started session 96, 2026-04-27)
+> ## ✅ Tiptap migration complete (session 97, 2026-04-28)
 >
-> **The editor engine is moving from BlockNote to Tiptap.** The four types described below remain unchanged — they are about *what content is*, not *what library produces it*. What's changing is the implementation:
+> **The editor engine moved from BlockNote to Tiptap.** Every editor surface in the platform now runs on a single component, `RimTiptapEditor`, with three variants. The four authoring types in this document are unchanged — they describe *what content is*, not *what library produces it*. What changed is purely the implementation.
 >
-> - **Old:** `RimBlockEditor` (Document + Page Designer) and `RimProseEditor` (Message + Form Field), both BlockNote-based, both storing **BlockNote JSON**.
-> - **New:** `RimTiptapEditor` (one component, three variants: `minimal` / `message` / `document`), Tiptap-based, storing **plain HTML strings**.
+> - **Old (deleted):** `RimBlockEditor` (Document + Page Designer) and `RimProseEditor` (Message + Form Field), both BlockNote-based, both storing **BlockNote JSON**.
+> - **New (current):** `RimTiptapEditor` at `components/rim-tiptap/RimTiptapEditor.tsx` — one component, three variants:
+>   - `minimal` → Form Field type
+>   - `message` → Message type
+>   - `document` → Document type and Page Designer type (the same variant serves both — Page Designer is just the document variant on a placement that registers the Dharma block extensions)
+> - **Storage:** plain HTML strings produced by `editor.getHTML()`. No more JSON walker on the page.
 >
-> Phase 1 (session 96) built the new editor and mounted it in the Editor Lab; production surfaces are still on the old editors. Phases 2–5 migrate surfaces and existing data. See `UP_NEXT.md` for the active phase and `session-log.md` (session 96) for context.
+> **Selection bubble menu** — every variant has a selection-triggered floating toolbar (`BubbleMenu`) that appears next to selected text. This is the primary formatting surface — the user does not have to scroll to a top toolbar. The top toolbar (where it exists for `message` and `document`) is the discovery surface for *insertion-only* actions: inserting an image, table, callout, or dharma block.
 >
-> Until the migration completes, this document describes the *current state*: type definitions still hold; the placement registry below still reflects the BlockNote-based components in production. As surfaces migrate, the placement entries will be updated to reference `RimTiptapEditor` and the `variant` they use.
+> **Format detection at the renderer boundary.** `lib/renderRichContent.ts` and `lib/renderRichContentServer.ts` detect content shape (HTML string, BlockNote JSON, legacy rawHtml object, legacy Tiptap doc JSON) and route to the right path. Unmigrated rows still display correctly — the BlockNote JSON walker remains as a safety net for legacy content. New saves produce HTML strings.
+>
+> **Lazy migration on edit.** Phase 2 (Hub welcome/home + conversations) ran upfront row migrations in `prisma/migrate.mjs`. Phase 3 (document surfaces) and Phase 4 (every other prose surface) use lazy migration: when the user opens an editor, the legacy BlockNote JSON is converted to HTML on the client (`isHtmlString(value) ? value : (renderBlockNoteHtml(value) || "")`); the row is rewritten as HTML on save. Never-edited rows stay BlockNote forever and render correctly via format detection.
 
 ---
 
@@ -205,9 +211,10 @@ A new block enters the library through a four-phase process. This is a design co
 
 **Phase 3 — Implementation.**
 
-- Define the block in `lib/blockNoteCustomBlocks.tsx`.
-- Add the registry entry listing fields and `availableIn`.
-- Write output CSS for each scope that hosts the Page Designer.
+- Define the block as a Tiptap extension in `components/rim-tiptap/extensions/<BlockName>.ts` (mirror the existing `Callout`, `PullQuote`, `VerseQuote`, `PracticeSuggestion`, `Reflection`).
+- Register it in `components/rim-tiptap/RimTiptapEditor.tsx` under the `documentExtras` array in `buildExtensions()`.
+- Extend the `sanitize-html` allowlist in `lib/renderRichContentTiptap.ts` (document-variant `allowedTags` and `allowedClasses`) so the rendered output preserves the block's classes.
+- Write output CSS for each scope that hosts the Page Designer (`.rim-content--lesson .rim-el-...`, etc.). The same CSS rules also apply inside the editor (`.rt-wrap .ProseMirror .rim-el-...`) so what the author sees is what reads.
 - Add the block to the Editor Lab (`/admin/editor-lab`) for verification.
 
 **Phase 4 — Review and lock-in.**
@@ -302,6 +309,8 @@ The placement name (e.g., `hub-document`) is the same string used in `lib/editor
 
 ### Document type
 
+Uses `RimTiptapEditor` with `variant="document"`. Top toolbar present (insertion-only actions); selection bubble menu with full formatting parity.
+
 #### `hub-document`
 - **Component:** `components/HubDocumentEditor.tsx`
 - **Schema field:** `HubDocument.body`
@@ -317,6 +326,8 @@ The placement name (e.g., `hub-document`) is the same string used in `lib/editor
 - **Route:** `/admin/manual/[slug]`
 
 ### Page Designer type
+
+Uses `RimTiptapEditor` with `variant="document"` — the same component and chrome as the Document type. The Dharma block extensions (PullQuote, VerseQuote, PracticeSuggestion, Reflection) are registered globally on the document variant; the placement's CSS scope (`.rim-content--lesson`, `.rim-content--program`) determines how those blocks render.
 
 #### `program-description`
 - **Component:** `components/registrar/ProgramEditor.tsx` (Content tab)
@@ -336,12 +347,12 @@ The placement name (e.g., `hub-document`) is the same string used in `lib/editor
 
 ### Message type
 
-Uses `RimProseEditor`. `variant="dense"` for longer surfaces; `variant="compact"` for inline / short surfaces; `minimal` for Form Field-like single-line inputs.
+Uses `RimTiptapEditor` with `variant="message"`. The message variant has no top-toolbar in some surfaces (display purpose only) but the selection bubble menu is always available. For short / single-line fields, use `variant="minimal"` (Form Field type).
 
 #### `hub-welcome`
 - **Schema field:** `Hub.welcomeBody`
 - **Component:** `components/HubAdminForm.tsx`
-- **Variant:** dense
+- **Variant:** message
 - **Output destination:** web template
 - **Output wrapper:** interactively rendered in `HubHomeClient` welcome interstitial
 - **Route:** `/account/hub/[slug]` (first-visit interstitial)
@@ -349,48 +360,48 @@ Uses `RimProseEditor`. `variant="dense"` for longer surfaces; `variant="compact"
 #### `hub-home`
 - **Schema field:** `Hub.homeContent`
 - **Component:** `components/HubAdminForm.tsx`
-- **Variant:** dense
+- **Variant:** message
 - **Output destination:** web template
 - **Output wrapper:** rendered inside hub home orientation block
 
 #### `hub-conversation`
 - **Schema fields:** `HubConversationThread.body`, `HubConversationReply.body`
 - **Components:** `HubConvClient.tsx`, `HubConvThreadClient.tsx`
-- **Variant:** compact
+- **Variant:** message
 - **Output destination:** interactive web
 - **Output wrapper:** `rim-content hub-conv-post__body`
 
 #### `hub-task`
 - **Schema fields:** `Task.body`, `Subtask.body`
 - **Component:** `HubTasksClient.tsx`
-- **Variant:** dense (task), compact (subtask)
+- **Variant:** message (task), compact (subtask)
 - **Output destination:** interactive web
 - **Output wrapper:** `rim-content tsk-body`
 
 #### `support-reply`
 - **Client state (no schema field)** — reply / compose drafts in Support Inbox.
 - **Component:** `SupportInboxClient.tsx` (reply editor, compose editor)
-- **Variant:** compact
+- **Variant:** message
 - **Output destination:** transactional email (Gmail API via outbound message)
 
 #### `support-note`
 - **Schema field:** `SupportNote.body`
 - **Component:** `SupportInboxClient.tsx` (internal note editor)
-- **Variant:** compact
+- **Variant:** message
 - **Output destination:** interactive web (staff-only)
 - **Notes:** Not email-bound. Distinct from `support-reply` so future features (e.g. internal-only images or rich blocks) can be allowed here without leaking to outgoing emails.
 
 #### `support-template`
 - **Schema field:** `SupportTemplate.body`
 - **Component:** `SupportSettingsClient.tsx`
-- **Variant:** dense
+- **Variant:** message
 - **Output destination:** eventual transactional email (when inserted into a reply)
 - **Notes:** Matches `support-reply` capabilities (email-safe subset).
 
 #### `program-message`
 - **Schema fields:** `Program.confirmationMessage`, `Program.reminderMessage`, `Program.danaMessage`
 - **Component:** `components/registrar/ProgramEditor.tsx`
-- **Variant:** dense
+- **Variant:** message
 - **Output destination:** web template + transactional email
 - **Output wrappers:** varies by surface (`pg-dana__message`, `mpd-dana__text`, email HTML)
 - **Notes:** `danaMessage` on-page rendering will migrate to a Dana Invitation block in Stage 2d; the email version stays a Message field.
@@ -398,7 +409,7 @@ Uses `RimProseEditor`. `variant="dense"` for longer surfaces; `variant="compact"
 #### `course-description`
 - **Schema field:** `Course.description`
 - **Component:** `CourseEditor.tsx`
-- **Variant:** dense
+- **Variant:** message
 - **Output destination:** web template
 - **Output wrapper:** `rim-content crs-desc`
 - **Route:** `/course/[slug]`
@@ -406,48 +417,48 @@ Uses `RimProseEditor`. `variant="dense"` for longer surfaces; `variant="compact"
 #### `site-banner`
 - **Schema field:** `SiteBanner.body`
 - **Component:** `app/admin/banner/page.tsx`
-- **Variant:** compact
+- **Variant:** message
 - **Output destination:** web template (site-wide layout)
 - **Output wrapper:** `rim-content ban-body`
 
 #### `schedule-submessage`
 - **Schema field:** `SubRequest.message`
 - **Component:** `HubScheduleClient.tsx`
-- **Variant:** compact
+- **Variant:** message
 - **Output destination:** interactive web + transactional email
 
 #### `sub-claim-message`
 - **Schema field:** `SubClaim.message`
 - **Component:** *(UI pending — registered but not yet wired)*
-- **Variant:** compact (when built)
+- **Variant:** message (when built)
 - **Output destination:** transactional email (part of sub-claimed notification)
 - **Notes:** Small feature follow-up — add optional message field to the "claim this sub" confirmation dialog.
 
 #### `lesson-notes`
 - **Schema field:** `LessonNote.body`
 - **Component:** `LessonNoteEditor.tsx`
-- **Variant:** compact
+- **Variant:** message
 - **Output destination:** interactive web (member's private view)
 - **Output wrapper:** `rim-content ls-notes-body`
 
 #### `admin-notes`
 - **Schema field:** `User.adminNotes`
 - **Component:** `components/member-sections/AdminNotesSection.tsx`
-- **Variant:** compact
+- **Variant:** message
 - **Output destination:** interactive web (staff-only)
 - **Output wrapper:** inline (no wrapper)
 
 #### `household-notes`
 - **Schema field:** `Household.notes`
 - **Component:** `HouseholdDetail.tsx`
-- **Variant:** compact
+- **Variant:** message
 - **Output destination:** interactive web (staff-only)
 - **Output wrapper:** inline
 
 #### `volunteer-note`
 - **Schema field:** `Registration.notes`
 - **Component:** `components/registrar/VolunteerTable.tsx`
-- **Variant:** compact
+- **Variant:** message
 - **Output destination:** interactive web (staff-only)
 - **Output wrapper:** inline row
 
@@ -456,7 +467,7 @@ Uses `RimProseEditor`. `variant="dense"` for longer surfaces; `variant="compact"
 #### `reflection-question`
 - **Schema field:** `ReflectionQuestion.body`
 - **Component:** `LessonEditor.tsx` (question body field)
-- **Uses:** `RimProseEditor` with `minimal={true}` (bold / italic / link only)
+- **Uses:** `RimTiptapEditor` with `variant="minimal"` (bold / italic / underline / link only)
 - **Output destination:** web template
 - **Output wrapper:** `ls-question__text` (inline)
 
@@ -465,7 +476,7 @@ Uses `RimProseEditor`. `variant="dense"` for longer surfaces; `variant="compact"
 #### `email-template` (MarkdownEditor)
 - **Component:** `EmailTemplateEditor.tsx`
 - **Schema field:** `EmailTemplate.body`
-- **Storage:** Markdown (not BlockNote JSON)
+- **Storage:** Markdown (not HTML and not BlockNote JSON — different pipeline)
 - **Output destination:** transactional email (via `marked` → `juice` → Resend)
 - **Notes:** Outside the four-type model. Will fold into Document or Message when a BlockNote-to-email-safe renderer is built.
 
@@ -478,7 +489,7 @@ These placements are registered but their schema or UI is still being built:
 #### `teacher-bio`
 - **Target schema field:** `TeacherProfile.bio` (currently `String?`, will become `Json?`)
 - **Target component:** `components/member-sections/TeacherSection.tsx`
-- **Variant (when wired):** compact
+- **Variant (when wired):** message
 - **Output destination:** web template (`/teachers/[slug]`)
 - **Output wrapper (when wired):** `rim-content tp-body`
 - **Status:** Schema promotion + component + render change pending (Stage 2d).
@@ -486,7 +497,7 @@ These placements are registered but their schema or UI is still being built:
 #### `course-completion-note`
 - **Target schema field:** `Course.completionNote` (currently `String?`, will become `Json?`)
 - **Target component:** `components/CourseEditor.tsx`
-- **Variant (when wired):** compact
+- **Variant (when wired):** message
 - **Output destination:** interactive web (shown on series completion)
 - **Output wrapper (when wired):** `rim-content crs-completion-note`
 - **Status:** Schema promotion + component + render change pending (Stage 2d).
@@ -522,5 +533,5 @@ The migration is done one field at a time, per schema, with a commit for each. T
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org*
-*Working document · session 89, 2026-04-20*
+*Working document · last updated session 97, 2026-04-28 (Tiptap migration complete)*
 *Supersedes RIM_Editor_Design.md*

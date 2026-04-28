@@ -3432,7 +3432,9 @@ When the TEACHER role is granted via admin member detail, `syncHubMembership()` 
 
 ## 28. Editor Standard
 
-**Current standard (session 69):** BlockNote replaces Tiptap entirely as the editor foundation. Two components:
+> **Superseded by section 33's current state.** As of session 97 (2026-04-28), the editor standard is `RimTiptapEditor` (Tiptap, three variants, HTML storage). `RimBlockEditor` and `RimProseEditor` are deleted. The text below documents the BlockNote-era standard (sessions 69–95) for historical context.
+
+**Historical (session 69):** BlockNote replaced Tiptap entirely as the editor foundation. Two components:
 
 | Component | Purpose | Replaces |
 |---|---|---|
@@ -3880,9 +3882,23 @@ Three-column split-pane email client:
 
 ---
 
-## 33. BlockNote Editor System
+## 33. Editor System — RimTiptapEditor (current) · BlockNote era (legacy)
 
-**What it is:** Complete migration from Tiptap to BlockNote as the editor foundation, completed in session 69. All `Json?` rich-text fields in the database now store BlockNote JSON. Tiptap is fully removed from the codebase.
+> **Current state (session 97, 2026-04-28):** Every editor surface in the platform runs on `RimTiptapEditor` (Tiptap-based, three variants: `minimal` / `message` / `document`). Storage is plain HTML strings produced by `editor.getHTML()`. Selection bubble menu is the primary formatting surface; top toolbar (where present) is for insertion-only actions. The four authoring types defined in `RIM_Editor_Types.md` are unchanged — they describe what content IS, not what library produces it.
+>
+> **Legacy editors (deleted session 97):** `RimBlockEditor` (BlockNote, document) and `RimProseEditor` (BlockNote, message). The migration ran across sessions 96 (Phase 1: build the new editor in Editor Lab) and 97 (Phase 2: renderer plumbing + Hub message surfaces; Phase 3: document-variant surfaces; Phase 4: every remaining prose surface; cleanup commit deletes the old editors and removes `@blocknote/*` deps from `package.json`).
+>
+> **Format detection at the renderer boundary** keeps unmigrated rows displaying correctly: `lib/renderRichContent.ts` and `lib/renderRichContentServer.ts` route content by shape — HTML strings (new), BlockNote JSON arrays (legacy), `{type: "rawHtml"}` objects (very old), `{type: "doc"}` Tiptap doc JSON (very old). The BlockNote-JSON walker stays as a safety net.
+>
+> **Lazy migration on edit:** Phase 2 ran upfront row migrations (`prisma/migrate.mjs`: `convert_hub_content_to_html`, `convert_conversation_body_to_html`). Phases 3 and 4 use lazy migration — when the user opens an editor, the legacy JSON is converted to HTML via `renderBlockNoteHtml()`; the row is rewritten as HTML on save. Never-edited rows stay BlockNote forever.
+>
+> The remainder of this section is historical context from the BlockNote era. Useful for understanding legacy content shape, but **do not use it as guidance for new work.** New editor work goes through `RimTiptapEditor` and the patterns in `RIM_Editor_Types.md`.
+
+---
+
+### Historical: BlockNote Editor System (sessions 69–95)
+
+**What it was:** Complete migration from Tiptap to BlockNote as the editor foundation, completed in session 69. All `Json?` rich-text fields in the database stored BlockNote JSON. Tiptap had been fully removed from the codebase.
 
 **Migration scope:** 18 fields across 14 database tables converted. Migration script: `prisma/migrate-to-blocknote.ts`. All 54 existing records were converted successfully (confirmed dry-run post-migration).
 

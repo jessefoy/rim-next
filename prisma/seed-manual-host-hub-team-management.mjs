@@ -1,7 +1,7 @@
 /**
  * seed-manual-host-hub-team-management.mjs — Host Hub team management chapter.
  *
- * Called from migrate.mjs. Upserts a ManualSection with BlockNote JSON body.
+ * Called from migrate.mjs. Upserts a ManualSection. Body is BlockNote JSON at seed time; converts to HTML on first edit (lazy migration, session 97).
  * Idempotent: checked via migration flag in migrate.mjs.
  */
 
