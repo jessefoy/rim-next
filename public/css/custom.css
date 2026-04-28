@@ -148,17 +148,14 @@ body {
   background-color: var(--rim-bg);
 }
 /* Prevent accidental horizontal scroll on mobile when any descendant
-   overshoots the viewport by a few pixels (long program names, grid
-   rounding, 100vw children sitting inside padded containers, etc.).
-   Vertical scroll still works; this only kills horizontal.
-   overflow-x: hidden on html = universal support (clips reliably, does
-   not break position:sticky inside body because html is the ICB and
-   body is the scroll container).
-   overflow-x: clip on body = newer Safari/Chrome, preserves sticky
-   better when nested containers use overflow-x. Both together cover
-   the full browser matrix. */
+   overshoots the viewport (long program names, 100vw children inside
+   padded containers, etc.). Use overflow-x: clip — it clips overflow
+   WITHOUT creating a scroll container, so position:sticky descendants
+   continue to stick against the page viewport. overflow-x: hidden would
+   make html a scroll container and break sticky in Safari/Chromium.
+   Browser support for clip: Chrome 90+, Safari 16+, Firefox 81+. */
 html {
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 body {
   overflow-x: clip;
