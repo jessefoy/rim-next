@@ -13442,14 +13442,12 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   justify-content: flex-end;
 }
 
-/* Reply composer: editor needs its own frame here (not inside a card).
-   Quiet by default — hide the toolbar until focused so the empty composer
-   doesn't shout. On focus, the toolbar appears and the border accents. */
+/* Reply composer: quiet by default. The frame comes from the default
+   .rt-wrap:has(.rt-toolbar) rule. Hide the toolbar until focus so an
+   empty composer reads as a single-line entry; on focus, toolbar reveals
+   and the border accents. */
 .hub-conv-replybox .rt-wrap {
-  border: 1px solid var(--rim-rule);
-  border-radius: 8px;
   background: #fff;
-  overflow: hidden;
   transition: border-color 0.15s;
 }
 .hub-conv-replybox .rt-wrap:focus-within {
@@ -23954,10 +23952,9 @@ input.w-button { -webkit-appearance: button; }
 }
 
 /* ── Pinned toolbar ────────────────────────────────────────────────── */
-/* Default: borderless — grey band acts as visual separator. No outer box.
-   The editor is always placed inside a bordered container (post card, compose
-   card, form field), so adding its own box creates a double-border. Use
-   .rt-wrap--box on the wrapper when a standalone border is genuinely needed. */
+/* Toolbar itself is borderless — the wrapper provides the single outer
+   frame. The toolbar's bottom-border is the internal divider between the
+   grey band and the white body. */
 .rt-toolbar {
   display: flex;
   align-items: center;
@@ -23996,19 +23993,16 @@ input.w-button { -webkit-appearance: button; }
   background: var(--rim-rule);
   margin: 0 6px;
 }
-/* When toolbar is present, editor body sits flush below it — no border */
+/* Single light frame around the whole editor (toolbar + body as one unit).
+   overflow:hidden clips the toolbar's grey band cleanly to the rounded
+   corners — no apparent margin/padding around the toolbar. */
+.rt-wrap:has(.rt-toolbar) {
+  border: 1px solid var(--rim-rule);
+  border-radius: 6px;
+  overflow: hidden;
+}
 .rt-wrap:has(.rt-toolbar) .ProseMirror {
   padding: 12px 14px;
-}
-/* Standalone box variant — add when editor is NOT inside a bordered container */
-.rt-wrap--box .rt-toolbar {
-  border: 1px solid var(--rim-rule);
-  border-radius: 8px 8px 0 0;
-  border-bottom: 0;
-}
-.rt-wrap--box:has(.rt-toolbar) .ProseMirror {
-  border: 1px solid var(--rim-rule);
-  border-radius: 0 0 8px 8px;
 }
 
 /* ── Toolbar dropdowns (Heading, Callouts, Dharma blocks) ───────────── */
