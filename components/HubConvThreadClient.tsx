@@ -15,7 +15,11 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, Pin, Pencil, MoreHorizontal, SmilePlus } from "lucide-react";
-import RimProseEditor from "@/components/RimProseEditor";
+import dynamic from "next/dynamic";
+const RimTiptapEditor = dynamic(
+  () => import("@/components/rim-tiptap/RimTiptapEditor"),
+  { ssr: false, loading: () => <div style={{ minHeight: 80 }} /> },
+);
 import { renderBlockNoteHtml } from "@/lib/renderRichContent";
 import { avatarColorFor } from "@/lib/avatarColor";
 
@@ -93,9 +97,10 @@ function relativeTime(iso: string) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function hasContent(json: any): boolean {
-  if (!json) return false;
-  if (Array.isArray(json)) {
+function hasContent(value: any): boolean {
+  if (!value) return false;
+  if (typeof value === "string") return value.replace(/<[^>]+>/g, "").trim().length > 0;
+  if (Array.isArray(value)) {
     const extract = (n: any): string => {
       if (!n) return "";
       if (typeof n === "string") return n;
@@ -104,7 +109,7 @@ function hasContent(json: any): boolean {
       if (n.children) return (n.children as any[]).map(extract).join(" ");
       return "";
     };
-    return json.map(extract).join(" ").trim().length > 0;
+    return value.map(extract).join(" ").trim().length > 0;
   }
   return false;
 }
@@ -117,12 +122,12 @@ export default function HubConvThreadClient({
   currentUser,
 }: Props) {
   const [thread, setThread] = useState<Thread>(initialThread);
-  const [replyBody, setReplyBody] = useState<any>(null);
+  const [replyBody, setReplyBody] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
   // Editing state — single flag keyed by "op" or reply id
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editBody, setEditBody] = useState<any>(null);
+  const [editBody, setEditBody] = useState<string>("");
   const [editTitle, setEditTitle] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
 
@@ -168,7 +173,7 @@ export default function HubConvThreadClient({
         createdAt: reply.createdAt,
       };
       setThread((prev) => ({ ...prev, replies: [...prev.replies, newReply] }));
-      setReplyBody(null);
+      setReplyBody("");
     }
     setSaving(false);
   }
@@ -176,18 +181,18 @@ export default function HubConvThreadClient({
   function startEditOp() {
     setEditingId("op");
     setEditTitle(thread.title);
-    setEditBody(thread.body);
+    setEditBody(typeof thread.body === "string" ? thread.body : "");
   }
 
   function startEditReply(r: Reply) {
     setEditingId(r.id);
-    setEditBody(r.body);
+    setEditBody(typeof r.body === "string" ? r.body : "");
     setEditTitle("");
   }
 
   function cancelEdit() {
     setEditingId(null);
-    setEditBody(null);
+    setEditBody("");
     setEditTitle("");
   }
 
@@ -375,11 +380,11 @@ export default function HubConvThreadClient({
           </div>
           {editingId === "op" ? (
             <div className="hub-conv-post__edit-form">
-              <RimProseEditor
+              <RimTiptapEditor
                 value={editBody}
                 onChange={setEditBody}
                 placeholder="Edit your post…"
-                variant="compact"
+                variant="message"
               />
               <div className="hub-conv-post__edit-actions">
                 <button className="btn--ghost" onClick={cancelEdit}>Cancel</button>
@@ -441,11 +446,11 @@ export default function HubConvThreadClient({
 
                   {isEditing ? (
                     <div className="hub-conv-post__edit-form">
-                      <RimProseEditor
+                      <RimTiptapEditor
                         value={editBody}
                         onChange={setEditBody}
                         placeholder="Edit your reply…"
-                        variant="compact"
+                        variant="message"
                       />
                       <div className="hub-conv-post__edit-actions">
                         <button className="btn--ghost" onClick={cancelEdit}>Cancel</button>
@@ -533,11 +538,11 @@ export default function HubConvThreadClient({
             {initialsOf(currentUser)}
           </div>
           <div className="hub-conv-replybox__main">
-            <RimProseEditor
+            <RimTiptapEditor
               value={replyBody}
               onChange={setReplyBody}
               placeholder="Write a reply…"
-              variant="compact"
+              variant="message"
             />
             <div className="hub-conv-replybox__actions">
               <button

@@ -21,7 +21,11 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Pin, X, Plus, MessageSquare, Pencil, Trash2, Check } from "lucide-react";
-import RimProseEditor from "./RimProseEditor";
+import dynamic from "next/dynamic";
+const RimTiptapEditor = dynamic(
+  () => import("@/components/rim-tiptap/RimTiptapEditor"),
+  { ssr: false, loading: () => <div style={{ minHeight: 80 }} /> },
+);
 import { avatarColorFor } from "@/lib/avatarColor";
 
 interface ThreadAuthor {
@@ -83,16 +87,18 @@ function relativeTime(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function extractText(json: any): string {
-  if (!json || !Array.isArray(json)) return "";
+function extractText(value: any): string {
+  if (!value) return "";
+  if (typeof value === "string") return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  if (!Array.isArray(value)) return "";
   const inline = (content: any[] = []) => content.map((c: any) => c.text ?? "").join("");
   const blockText = (b: any): string =>
     [inline(b.content), ...(b.children || []).map(blockText)].filter(Boolean).join(" ");
-  return json.map(blockText).filter(Boolean).join(" ");
+  return value.map(blockText).filter(Boolean).join(" ");
 }
 
-function hasContent(json: any): boolean {
-  return extractText(json).trim().length > 0;
+function hasContent(value: any): boolean {
+  return extractText(value).trim().length > 0;
 }
 
 function AddCategoryForm({
@@ -147,7 +153,7 @@ export default function HubConvClient({
   const [categoryList, setCategoryList] = useState<string[]>(categories);
   const [showCompose, setShowCompose] = useState(!!newTopicParam);
   const [title, setTitle] = useState(newTopicParam);
-  const [body, setBody] = useState<any>(null);
+  const [body, setBody] = useState<string>("");
   const [composeCategory, setComposeCategory] = useState(categories[0] ?? "General");
   const [saving, setSaving] = useState(false);
   const [view, setView] = useState<"open" | "closed">("open");
@@ -307,7 +313,7 @@ export default function HubConvClient({
         updatedAt:  t.updatedAt,
       };
       setThreads((prev) => [thread, ...prev]);
-      setTitle(""); setBody(null); setShowCompose(false);
+      setTitle(""); setBody(""); setShowCompose(false);
     }
     setSaving(false);
   }
@@ -592,7 +598,7 @@ export default function HubConvClient({
             <span className="hub-conv-compose__label">New topic</span>
             <button
               className="hub-conv-compose__close"
-              onClick={() => { setShowCompose(false); setTitle(""); setBody(null); }}
+              onClick={() => { setShowCompose(false); setTitle(""); setBody(""); }}
               aria-label="Cancel"
             >
               <X size={16} />
@@ -628,17 +634,17 @@ export default function HubConvClient({
             <option value="__add__">+ Add new category…</option>
           </select>
           <div className="hub-conv-compose__editor">
-            <RimProseEditor
+            <RimTiptapEditor
               value={body}
               onChange={setBody}
               placeholder="Share your thoughts…"
-              variant="compact"
+              variant="message"
             />
           </div>
           <div className="hub-conv-compose__actions">
             <button
               className="btn--ghost"
-              onClick={() => { setShowCompose(false); setTitle(""); setBody(null); }}
+              onClick={() => { setShowCompose(false); setTitle(""); setBody(""); }}
             >
               Cancel
             </button>

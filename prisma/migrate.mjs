@@ -1381,6 +1381,46 @@ Rooted In Mindfulness · rootedinmindfulness.org`;
       }
     },
   },
+  {
+    // Convert HubConversationThread.body and HubConversationReply.body from
+    // BlockNote JSON arrays to plain HTML strings (new Tiptap storage format).
+    // Idempotent: rows already holding HTML strings are skipped.
+    name: "convert_conversation_body_to_html",
+    async run() {
+      const [threads, replies] = await Promise.all([
+        db.hubConversationThread.findMany({ select: { id: true, body: true } }),
+        db.hubConversationReply.findMany({ select: { id: true, body: true } }),
+      ]);
+
+      let converted = 0;
+
+      for (const t of threads) {
+        if (isBlockNoteArray(t.body)) {
+          await db.hubConversationThread.update({
+            where: { id: t.id },
+            data: { body: blockNoteToHtml(t.body) },
+          });
+          converted++;
+        }
+      }
+
+      for (const r of replies) {
+        if (isBlockNoteArray(r.body)) {
+          await db.hubConversationReply.update({
+            where: { id: r.id },
+            data: { body: blockNoteToHtml(r.body) },
+          });
+          converted++;
+        }
+      }
+
+      if (converted > 0) {
+        console.log(`  ✔ Applied: ${this.name} — converted ${converted} row(s)`);
+      } else {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+      }
+    },
+  },
 ];
 
 // ── Minimal BlockNote → HTML converter (migration-only) ──────────────────────
