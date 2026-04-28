@@ -87,9 +87,18 @@ export default function RimTiptapEditor({
   // when the wrapper top scrolls above the viewport top; release when the
   // wrapper has scrolled past the viewport (so the toolbar disappears with
   // the editor instead of floating over unrelated content).
+  //
+  // Listener is in CAPTURE phase so it fires regardless of which element
+  // actually scrolls — works for window scroll, body scroll, or any
+  // ancestor with its own overflow:auto scroll context.
+  //
+  // Effect depends on `editor` so it re-runs once useEditor finishes
+  // initializing — the early `return null` below means wrapperRef.current
+  // is null on the first render, so we have to wait for the second render.
   useEffect(() => {
+    if (!editor || variant === "minimal" || readOnly) return;
     const wrapper = wrapperRef.current;
-    if (!wrapper || variant === "minimal" || readOnly) return;
+    if (!wrapper) return;
 
     function update() {
       const w = wrapperRef.current;
@@ -100,20 +109,26 @@ export default function RimTiptapEditor({
       const tbHeight = tb.offsetHeight;
       const shouldStick = rect.top < 0 && rect.bottom > tbHeight;
       if (shouldStick) {
-        setStuck({ left: rect.left, width: rect.width, height: tbHeight });
+        setStuck((prev) => {
+          // Avoid superfluous re-renders when nothing meaningful changed
+          if (prev && prev.left === rect.left && prev.width === rect.width && prev.height === tbHeight) {
+            return prev;
+          }
+          return { left: rect.left, width: rect.width, height: tbHeight };
+        });
       } else {
-        setStuck(null);
+        setStuck((prev) => (prev ? null : prev));
       }
     }
 
     update();
-    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("scroll", update, { passive: true, capture: true });
     window.addEventListener("resize", update);
     return () => {
-      window.removeEventListener("scroll", update);
+      window.removeEventListener("scroll", update, { capture: true });
       window.removeEventListener("resize", update);
     };
-  }, [variant, readOnly]);
+  }, [editor, variant, readOnly]);
 
   if (!editor) return null;
 
