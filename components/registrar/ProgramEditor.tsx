@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { upload } from "@vercel/blob/client";
+import { isHtmlString, renderBlockNoteHtml } from "@/lib/renderRichContent";
 
 interface TeacherItem {
   id: string;
@@ -19,7 +20,10 @@ interface TeacherItem {
   lastName: string;
 }
 
-const RimBlockEditor = dynamic(() => import("@/components/RimBlockEditor"), { ssr: false });
+const RimTiptapEditor = dynamic(
+  () => import("@/components/rim-tiptap/RimTiptapEditor"),
+  { ssr: false, loading: () => <div style={{ minHeight: 300 }} /> },
+);
 const RimProseEditor = dynamic(() => import("@/components/RimProseEditor"), { ssr: false });
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -531,7 +535,12 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
   const [slug, setSlug] = useState(initialData?.slug ?? "");
   const [tagline, setTagline] = useState(initialData?.tagline ?? "");
   const [programImage, setProgramImage] = useState(initialData?.programImage ?? "");
-  const [description, setDescription] = useState<any>(initialData?.description ?? null);
+  // Lazy migration: convert legacy BlockNote JSON description to HTML on load.
+  const [description, setDescription] = useState<string>(() => {
+    const initial = initialData?.description;
+    if (isHtmlString(initial)) return initial;
+    return renderBlockNoteHtml(initial) || "";
+  });
   const [pullQuote, setPullQuote] = useState(initialData?.pullQuote ?? "");
   const [pullQuoteSource, setPullQuoteSource] = useState(initialData?.pullQuoteSource ?? "");
   const [programNotes, setProgramNotes] = useState<any>(initialData?.programNotes ?? null);
@@ -989,12 +998,11 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
               <div className="pe-field">
                 <span className="pe-field__label">Description</span>
                 <span className="pe-field__help">The full program description shown on the public program page. Write for someone who has never been to RIM.</span>
-                <RimBlockEditor
+                <RimTiptapEditor
                   value={description}
-                  onChange={(v: any) => { setDescription(v); markDirty(); }}
+                  onChange={(v) => { setDescription(v); markDirty(); }}
                   placeholder="Program description…"
-                  minHeight={300}
-                  context="program-description"
+                  variant="document"
                 />
               </div>
             </div>

@@ -15,13 +15,19 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import RimBlockEditor from "@/components/RimBlockEditor";
+import dynamic from "next/dynamic";
+import { isHtmlString, renderBlockNoteHtml } from "@/lib/renderRichContent";
+
+const RimTiptapEditor = dynamic(
+  () => import("@/components/rim-tiptap/RimTiptapEditor"),
+  { ssr: false, loading: () => <div style={{ minHeight: 500 }} /> },
+);
 
 interface Props {
   hubSlug: string;
   docId: string | null;           // null = new document
   initialLabel: string;
-  initialBody: any;               // BlockNote JSON or null
+  initialBody: any;               // HTML string or legacy BlockNote JSON
   initialCategory: string;
   documentCategories: string[];
   isAuthor?: boolean;
@@ -46,7 +52,10 @@ export default function HubDocumentEditor({
 }: Props) {
   const router = useRouter();
   const [label, setLabel] = useState(initialLabel);
-  const [body, setBody] = useState<any>(initialBody);
+  // Lazy migration: convert legacy BlockNote JSON to HTML on load.
+  const [body, setBody] = useState<string>(
+    isHtmlString(initialBody) ? initialBody : (renderBlockNoteHtml(initialBody) || ""),
+  );
   const [category, setCategory] = useState(initialCategory);
   const [newCat, setNewCat] = useState("");
   const [categories, setCategories] = useState(documentCategories);
@@ -221,12 +230,11 @@ export default function HubDocumentEditor({
         />
         <hr />
 
-        <RimBlockEditor
+        <RimTiptapEditor
           value={body}
           onChange={setBody}
           placeholder="Begin writing…"
-          minHeight={500}
-          context="document"
+          variant="document"
         />
       </div>
 

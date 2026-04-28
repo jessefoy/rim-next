@@ -1,14 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import RimBlockEditor from "@/components/RimBlockEditor";
+import dynamic from "next/dynamic";
+import { isHtmlString, renderBlockNoteHtml } from "@/lib/renderRichContent";
+
+const RimTiptapEditor = dynamic(
+  () => import("@/components/rim-tiptap/RimTiptapEditor"),
+  { ssr: false, loading: () => <div style={{ minHeight: 500 }} /> },
+);
 
 interface Props {
   slug: string;
   initialTitle: string;
   initialHubSlug: string;
   initialBody: unknown;
-  legacyBodyHtml: string | null;  // pre-rendered HTML from server for Tiptap → BlockNote import
+  legacyBodyHtml: string | null;  // pre-rendered HTML — server fallback for legacy rows
   initialRelations: string[];
   initialOrder: number;
 }
@@ -24,10 +30,14 @@ export default function ManualSectionEditor({
 }: Props) {
   const [title, setTitle] = useState(initialTitle);
   const [hubSlug, setHubSlug] = useState(initialHubSlug);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [body, setBody] = useState<any>(
-    Array.isArray(initialBody) ? initialBody : null
-  );
+  // Lazy migration: convert legacy BlockNote JSON to HTML on load.
+  // legacyBodyHtml is the server-rendered fallback for any non-BlockNote legacy format.
+  const [body, setBody] = useState<string>(() => {
+    if (isHtmlString(initialBody)) return initialBody;
+    const fromBlockNote = renderBlockNoteHtml(initialBody);
+    if (fromBlockNote) return fromBlockNote;
+    return legacyBodyHtml ?? "";
+  });
   const [relations, setRelations] = useState(initialRelations.join(", "));
   const [order, setOrder] = useState(String(initialOrder));
   const [saving, setSaving] = useState(false);
@@ -137,13 +147,11 @@ export default function ManualSectionEditor({
 
         <div className="man2-edit__field">
           <label className="man2-edit__label">Content</label>
-          <RimBlockEditor
+          <RimTiptapEditor
             value={body}
             onChange={setBody}
             placeholder="Write the manual section content…"
-            minHeight={500}
-            legacyHtml={legacyBodyHtml ?? undefined}
-            context="manual"
+            variant="document"
           />
         </div>
 

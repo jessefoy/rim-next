@@ -9,8 +9,14 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
-import RimBlockEditor from "@/components/RimBlockEditor";
+import dynamic from "next/dynamic";
+import { isHtmlString, renderBlockNoteHtml } from "@/lib/renderRichContent";
 import RimProseEditor from "@/components/RimProseEditor";
+
+const RimTiptapEditor = dynamic(
+  () => import("@/components/rim-tiptap/RimTiptapEditor"),
+  { ssr: false, loading: () => <div style={{ minHeight: 500 }} /> },
+);
 import ManualHelpIcon from "@/components/ManualHelpIcon";
 import SlugField from "@/components/SlugField";
 
@@ -93,10 +99,15 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
     (initialData as any)?.accessLevel ?? "ALL_MEMBERS"
   );
 
-  // Content — BlockNote JSON (or null for new lessons)
-  const [body, setBody] = useState<any>(
-    Array.isArray(initialData?.body) ? initialData.body : null
-  );
+  // Content — HTML string. Lazy migration: convert legacy BlockNote JSON
+  // (or fall back to server-rendered HTML for older Tiptap-JSON rows) on load.
+  const [body, setBody] = useState<string>(() => {
+    const initial = initialData?.body;
+    if (isHtmlString(initial)) return initial;
+    const fromBlockNote = renderBlockNoteHtml(initial);
+    if (fromBlockNote) return fromBlockNote;
+    return legacyBodyHtml ?? "";
+  });
 
   // Media
   const [heroImageUrl, setHeroImageUrl] = useState(initialData?.heroImageUrl ?? "");
@@ -497,13 +508,11 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
       {/* ── Section: Content ── */}
       <div className="th-section">
         <h3 className="th-section__title">Content</h3>
-        <RimBlockEditor
+        <RimTiptapEditor
           value={body}
           onChange={setBody}
           placeholder="Begin writing your lesson here…"
-          minHeight={500}
-          legacyHtml={legacyBodyHtml}
-          context="lesson"
+          variant="document"
         />
 
         <div className="th-form" style={{ marginTop: 24 }}>

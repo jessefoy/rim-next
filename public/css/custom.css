@@ -23593,6 +23593,9 @@ input.w-button { -webkit-appearance: button; }
 .rt-wrap--message .ProseMirror {
   min-height: 56px;
 }
+.rt-wrap--document .ProseMirror {
+  min-height: 500px;
+}
 /* Placeholder */
 .rt-wrap .ProseMirror p.is-editor-empty:first-child::before {
   color: var(--rim-text-muted);
