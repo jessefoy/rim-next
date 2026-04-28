@@ -23956,14 +23956,13 @@ input.w-button { -webkit-appearance: button; }
 
 /* ── Pinned toolbar ────────────────────────────────────────────────── */
 /* Sticky to viewport top while editing — follows the user as they scroll
-   long documents. Single horizontal row with overflow scroll on narrow
-   widths (instead of wrapping to multiple rows). The wrapper's grey band
-   reads as the toolbar zone; bottom-border divides it from the body. */
+   long documents. The toolbar can wrap to multiple rows on narrow widths;
+   we cannot use overflow-x:auto here because it forces overflow-y:auto
+   too (CSS spec) and that would clip the dropdowns that open below. */
 .rt-toolbar {
   display: flex;
   align-items: center;
-  flex-wrap: nowrap;
-  overflow-x: auto;
+  flex-wrap: wrap;
   gap: 1px;
   padding: 6px 8px;
   background: #fafaf9;
@@ -23973,17 +23972,7 @@ input.w-button { -webkit-appearance: button; }
   position: sticky;
   top: 0;
   z-index: 5;
-  scrollbar-width: thin;
-  scrollbar-color: var(--rim-rule) transparent;
 }
-.rt-toolbar::-webkit-scrollbar { height: 4px; }
-.rt-toolbar::-webkit-scrollbar-thumb {
-  background: var(--rim-rule);
-  border-radius: 2px;
-}
-/* Toolbar children must not shrink — they keep their target size and
-   the bar scrolls horizontally instead. */
-.rt-toolbar > * { flex-shrink: 0; }
 .rt-toolbar__btn {
   display: inline-flex;
   align-items: center;
