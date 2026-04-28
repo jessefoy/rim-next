@@ -4,6 +4,17 @@
 
 Read this file before working on any editor component, content rendering surface, or schema field that holds authored text. If code and this file disagree, the code is wrong and should be corrected.
 
+> ## ⚠️ Migration in progress (started session 96, 2026-04-27)
+>
+> **The editor engine is moving from BlockNote to Tiptap.** The four types described below remain unchanged — they are about *what content is*, not *what library produces it*. What's changing is the implementation:
+>
+> - **Old:** `RimBlockEditor` (Document + Page Designer) and `RimProseEditor` (Message + Form Field), both BlockNote-based, both storing **BlockNote JSON**.
+> - **New:** `RimTiptapEditor` (one component, three variants: `minimal` / `message` / `document`), Tiptap-based, storing **plain HTML strings**.
+>
+> Phase 1 (session 96) built the new editor and mounted it in the Editor Lab; production surfaces are still on the old editors. Phases 2–5 migrate surfaces and existing data. See `UP_NEXT.md` for the active phase and `session-log.md` (session 96) for context.
+>
+> Until the migration completes, this document describes the *current state*: type definitions still hold; the placement registry below still reflects the BlockNote-based components in production. As surfaces migrate, the placement entries will be updated to reference `RimTiptapEditor` and the `variant` they use.
+
 ---
 
 ## The Intention

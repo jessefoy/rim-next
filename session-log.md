@@ -1,5 +1,70 @@
 ---
 
+## 2026-04-27 (session 96) — Alerts removal, editable conversation categories, sub-request email fixes, Phase 1 of the Tiptap editor migration
+
+### What prompted this session
+
+Three threads converged. (1) Jesse wanted the alerts module gone — it was wired into half the host-flow code paths but the bell UI it was built for never shipped, so every notification path was paying a write that nobody was reading. (2) Conversations needed to let team members create and rename categories without going through admin. (3) A tester reported that the sub-request email either didn't arrive at all or arrived with a broken link. Those three landed first; then the bigger thread opened: Jesse said the Hub editors still felt clunky and asked to use the simpler Tiptap-based editor (the one currently sitting in the Editor Lab) everywhere formatting is needed.
+
+### What shipped
+
+**1. Alerts module removed entirely.** The `Alert` model + `AlertType` enum, the `/api/account/alerts` route, and the `check-unassigned-hosts` cron are gone. Every `db.alert.create / createMany / count` call was stripped out of: sub-request POST, sub-request claim, host-assignment claim/unclaim/reassign, programs-pg POST, and `lib/supportNotify.ts`. Email sends in those flows were preserved. The 5-minute alert-based dedup in `supportNotify` was dropped along with the alert write — it was the only consumer. Migration `remove_alerts_module` drops the `alerts` table and `AlertType` enum. The dashboard hub-unread badge for the host hub used to be `unreadThreads + unreadAlerts`; now it's just `unreadThreads`. Ritual closing for the module is real — the bell never shipped, the column is gone, the cron is gone, and the docs that referenced any of it have been updated below. Commit `14242e0`.
+
+**2. Editable conversation categories.** Any active hub member can add or rename a conversation category from the Conversations page. Coordinators can also delete (deleting reassigns existing threads to a fallback category — `General` if it exists, otherwise the first remaining one). New route `app/api/hub/[slug]/categories/route.ts` (POST/PATCH/DELETE) does the work; rename cascades through `HubConversationThread.category` in a single transaction so existing threads stay reachable under their new label. Client UI: the compose select gets a `+ Add new category…` option; a discreet pencil chip in the filter row opens a manage panel with inline rename and delete-for-coordinators. Closes-on-outside-click. Commit `b90a104`.
+
+**3. "What's new" panel removed from host hub home.** Per Jesse's read on a deployed copy. The host hub home is now welcome + "Our offerings this month" only — the recent-activity panel was duplicating signal already on the Conversations and Documents pages. Loader `loadHostHubRecent`, `RecentActivityPanel` + its types, and the `.hh-recent` CSS block are all gone. Commit `dd35154`.
+
+**4. Phase 1 of the Tiptap editor migration — canonical `RimTiptapEditor`.** This is the biggest piece of the session. New folder `components/rim-tiptap/` with the editor and the five custom block extensions (Callout note + decision, PullQuote, VerseQuote, PracticeSuggestion, Reflection). One component, three variants:
+
+- `minimal` — bold, italic, underline, link. No top toolbar; a small Bear-style selection bubble is the entire chrome. For inline form fields.
+- `message` — same pinned top toolbar as document, minus headings + image/table/divider + custom blocks. For conversations, welcome/home, support replies, banners.
+- `document` — full toolbar with three dropdowns: a heading dropdown (Paragraph / H2 / H3 / H4, label reflects current state), a Callouts dropdown (Note / Decision), and a Dharma block dropdown (Pull quote / Verse quote / Practice suggestion / Reflection). Plus the inline-format buttons, link, lists/quote, image upload (Vercel Blob client via `/api/upload`), table insert, divider.
+
+Storage paradigm is **plain HTML strings** — not BlockNote JSON. Output classes (`.rim-el-pull-quote`, `.rim-el-note`, `.rim-el-practice`, etc.) are shared between the editor surface (`.rt-wrap .ProseMirror`) and the rendered HTML (`.rim-content`), so what you see in the editor is what you get on the page. The Editor Lab page (`/admin/editor-lab`) is the review surface — three tabs, sample content, live render pane, raw HTML pane.
+
+**Production was not touched in Phase 1.** Old `RimBlockEditor` and `RimProseEditor` keep running on every existing surface. The migration of those surfaces — and the one-time JSON-to-HTML conversion of existing rows — happens in subsequent phases. Commits `b414ff1`, `4167fd6`, `b3a0655`, `ee01e00`.
+
+**5. Sub-request email fixes — both bugs identified, both fixed.** Jesse forwarded the broken email and the cause was visible in the rendered HTML: the link was `https://rim-next.vercel.app /tools/schedule?…` with a literal space between the host and the path. The space is in his Vercel `NEXTAUTH_URL` env var. `BASE_URL` is built from that env var in `lib/email.ts`, `lib/calendarLinks.ts`, `lib/supportNotify.ts`, `app/api/cron/drip-release/route.ts`, and `app/api/stripe/checkout/route.ts` — every site got `.trim().replace(/\/$/, "")` applied so a typo in env vars can't poison email links again.
+
+Second bug — same flow, separate cause. Sub-request POST and a few other fire-and-forget email paths used `void (async () => { … })()` after `Response.json()`. Vercel tears the function down once the response goes out, killing in-flight Resend calls. That matched the symptom (one email arrived intermittently, the rest were dropped). Switched to `after()` from `next/server` (Next.js 16's official background-work API) in sub-request POST, sub-claim POST, and programs-pg POST. The `after()` callback runs after the response is committed but before the function is torn down, so emails actually finish sending. Commit `35850f8`.
+
+### Design decisions worth keeping
+
+- **The bell that never rang was real cost.** `Alert` was being written from six call sites, indexed, paginated. Removing it deleted ~470 lines, simplified four hot routes, and dropped a daily cron. No user-facing loss because no UI was reading it. The lesson is the easy one — when a feature stops being a feature, removing the column is its own deliverable. Worth saving for the next "it's still in there because we built it" question.
+
+- **Editor consistency is upstream of polish.** Jesse's framing — "the work we were doing before was too complicated" — was the real signal. The previous editor had two BlockNote-based components (`RimBlockEditor` and `RimProseEditor`) that drifted in capability and chrome. Rather than tune them further, swapping the engine to Tiptap with one component and three variants brings the surface back to one paradigm. The dropdown-toolbar conversation across this session (added → simplified → restored) was Jesse calibrating the chrome, not the architecture; the architecture held.
+
+- **Measure-before-fixing applied to the email bug.** I was about to rewrite the markdown template to "defensively" remove the bold-around-link pattern when Jesse forwarded the actual broken email. The literal space made the cause obvious. Without the email, I'd have shipped a guess. Pattern reaffirmed: when the user reports a behavior bug, ask for the artifact (broken email, screenshot, log line) before theorizing.
+
+- **`after()` is the right primitive for fire-and-forget on Vercel.** The `void (async ()=>{})()` pattern feels like it should work — modern JS, no syntax error, no runtime warning — but Vercel's serverless lifecycle silently kills it. Worth knowing project-wide. The grep that found three current call sites is `grep -rn "void (async" app/api lib`. None remain after this session. New email-side-effect code should use `after()` from the start.
+
+- **Plain HTML over JSON for the new editor.** BlockNote stores its document as a JSON tree that has to be walked by every renderer (server-side, email, plain-text excerpt). Tiptap can do that too via `@tiptap/html`, but storing the editor's `.getHTML()` output directly removes the walker step entirely — both editor and rendered page use the same string with the same classes. Trade-off: harder to re-shape content programmatically (e.g., swap a callout variant across all rows). For RIM's content patterns, that's a non-need.
+
+- **Editor Lab as the review-before-migrate surface.** Phase 1 is intentionally a no-op for production. The whole point is to give Jesse a place to use the editor, find what feels off, and fix it before the migration touches data. The dropdown back-and-forth in this session is exactly the kind of feedback that needs to happen against the editor, not against migrated data.
+
+### What this work connects to
+
+- **Hub schema** — `Hub.conversationCategories` is now a write target for hub members (not just admins). `Hub.welcomeBody` and `Hub.homeContent` will become Tiptap HTML strings in Phase 2 (currently still BlockNote JSON, edited via the old `RimProseEditor` in `HubAdminForm`).
+- **Schema removed** — `Alert` model, `AlertType` enum, `User.alerts` relation, `alerts` table.
+- **Routes removed** — `/api/account/alerts`, `/api/cron/check-unassigned-hosts`. Cron entry stripped from `vercel.json`.
+- **Email infrastructure** — `BASE_URL` is now defensively trimmed in five places. Three POST routes (sub-request, sub-claim, programs-pg) wrap their email sends in `after()`.
+- **Editor architecture** — three editors now coexist: `RimBlockEditor` (BlockNote, document/page-designer surfaces), `RimProseEditor` (BlockNote, message surfaces), `RimTiptapEditor` (Tiptap, target replacement for both). Phases 2–5 migrate every surface to the new one and delete the old two. Renderers (`lib/renderRichContent.ts`, `lib/renderRichContentServer.ts`) need to detect HTML-string vs JSON-tree at the boundary in Phase 2 — only Phase 1 touched the editor itself.
+- **Manual** — no chapter changes this session. Manual sections about the host-team workflow continue to describe the existing flow accurately; the alerts removal and category editing are not user-visible enough to need new copy yet (Jesse can address as needed).
+
+### What comes next
+
+**Phase 2 of the Tiptap migration** is the next concrete deliverable. Outline:
+
+1. Build `lib/renderRichContentTiptap.ts` (HTML pass-through with sanitization safety net).
+2. Add format detection in `lib/renderRichContentServer.ts` so the existing rich-content renderers route HTML strings through the new path and BlockNote JSON through the old one. This lets surfaces migrate one at a time.
+3. Migrate Hub Message surfaces in this order: Hub welcome (`HostHubHomeClient` inline edit + `HubAdminForm`), Hub home content (`HubAdminForm`), then Hub conversations + replies (`HubConvClient`, `HubConvThreadClient`).
+4. Walk existing rows for those four fields (`Hub.welcomeBody`, `Hub.homeContent`, `HubConversationThread.body`, `HubConversationReply.body`), render the BlockNote JSON to HTML using the existing server renderer, write the HTML string back. Idempotent migration with a `_migration_flags` entry.
+5. Confirm production looks right, then proceed to Phase 3 (hub documents + manual sections — Document variant, tables and images come into play).
+
+The deferred Webflow weekly schedule work from session 95 also still stands — see UP_NEXT for which thread Jesse picks up first.
+
+---
+
 ## 2026-04-24 (session 95) — Program Detail Webflow audit + doc sync
 
 ### What prompted this session
