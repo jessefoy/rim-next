@@ -23951,6 +23951,10 @@ input.w-button { -webkit-appearance: button; }
 }
 
 /* ── Pinned toolbar ────────────────────────────────────────────────── */
+/* Default: borderless — grey band acts as visual separator. No outer box.
+   The editor is always placed inside a bordered container (post card, compose
+   card, form field), so adding its own box creates a double-border. Use
+   .rt-wrap--box on the wrapper when a standalone border is genuinely needed. */
 .rt-toolbar {
   display: flex;
   align-items: center;
@@ -23958,9 +23962,7 @@ input.w-button { -webkit-appearance: button; }
   gap: 1px;
   padding: 6px 8px;
   background: #fafaf9;
-  border: 1px solid var(--rim-rule);
-  border-radius: 8px 8px 0 0;
-  border-bottom: 0;
+  border-bottom: 1px solid var(--rim-rule);
   font-family: var(--font-sans);
 }
 .rt-toolbar__btn {
@@ -23991,11 +23993,19 @@ input.w-button { -webkit-appearance: button; }
   background: var(--rim-rule);
   margin: 0 6px;
 }
-/* When toolbar is present, the editor body sits flush below it */
+/* When toolbar is present, editor body sits flush below it — no border */
 .rt-wrap:has(.rt-toolbar) .ProseMirror {
+  padding: 12px 14px;
+}
+/* Standalone box variant — add when editor is NOT inside a bordered container */
+.rt-wrap--box .rt-toolbar {
+  border: 1px solid var(--rim-rule);
+  border-radius: 8px 8px 0 0;
+  border-bottom: 0;
+}
+.rt-wrap--box:has(.rt-toolbar) .ProseMirror {
   border: 1px solid var(--rim-rule);
   border-radius: 0 0 8px 8px;
-  padding: 12px 14px;
 }
 
 /* ── Toolbar dropdowns (Heading, Callouts, Dharma blocks) ───────────── */
