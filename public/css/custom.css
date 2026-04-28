@@ -23952,10 +23952,10 @@ input.w-button { -webkit-appearance: button; }
 }
 
 /* ── Pinned toolbar ────────────────────────────────────────────────── */
-/* Sticky to viewport top while editing — follows the user as they scroll
-   long documents. The toolbar can wrap to multiple rows on narrow widths;
-   we cannot use overflow-x:auto here because it forces overflow-y:auto
-   too (CSS spec) and that would clip the dropdowns that open below. */
+/* Position is managed by JS in RimTiptapEditor — when the wrapper top
+   scrolls above the viewport, the component sets inline position:fixed
+   so the toolbar floats at viewport top. This bypasses CSS sticky which
+   is fragile inside pages with clipped or transformed ancestors. */
 .rt-toolbar {
   display: flex;
   align-items: center;
@@ -23966,9 +23966,12 @@ input.w-button { -webkit-appearance: button; }
   border-bottom: 1px solid var(--rim-rule);
   border-radius: 5px 5px 0 0;
   font-family: var(--font-sans);
-  position: sticky;
-  top: 0;
-  z-index: 5;
+}
+/* When floating (JS toggles this class + inline position:fixed), add a
+   subtle shadow so the toolbar reads as a separate floating layer. */
+.rt-toolbar--stuck {
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
+  border-radius: 0;
 }
 .rt-toolbar__btn {
   display: inline-flex;

@@ -71,6 +71,9 @@ export default function RimTiptapEditor({
   className,
   readOnly = false,
 }: Props) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [stuck, setStuck] = useState<{ left: number; width: number; height: number } | null>(null);
+
   const editor = useEditor({
     extensions: buildExtensions(variant, placeholder),
     content: value || "",
@@ -79,12 +82,58 @@ export default function RimTiptapEditor({
     onUpdate: ({ editor: ed }) => onChange(ed.getHTML()),
   });
 
+  // JS-based sticky toolbar — bypasses CSS sticky which is fragile inside
+  // pages with overflow-clipped or transformed ancestors. Toggle position:fixed
+  // when the wrapper top scrolls above the viewport top; release when the
+  // wrapper has scrolled past the viewport (so the toolbar disappears with
+  // the editor instead of floating over unrelated content).
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper || variant === "minimal" || readOnly) return;
+
+    function update() {
+      const w = wrapperRef.current;
+      if (!w) return;
+      const tb = w.querySelector<HTMLElement>(".rt-toolbar");
+      if (!tb) return;
+      const rect = w.getBoundingClientRect();
+      const tbHeight = tb.offsetHeight;
+      const shouldStick = rect.top < 0 && rect.bottom > tbHeight;
+      if (shouldStick) {
+        setStuck({ left: rect.left, width: rect.width, height: tbHeight });
+      } else {
+        setStuck(null);
+      }
+    }
+
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [variant, readOnly]);
+
   if (!editor) return null;
 
   return (
-    <div className={`rt-wrap rt-wrap--${variant}${className ? ` ${className}` : ""}`}>
+    <div ref={wrapperRef} className={`rt-wrap rt-wrap--${variant}${className ? ` ${className}` : ""}`}>
+      {/* Spacer reserves vertical space so the body doesn't jump up when the
+          toolbar becomes position:fixed. */}
+      {stuck && <div aria-hidden="true" style={{ height: stuck.height }} />}
+
       {variant !== "minimal" && !readOnly && (
-        <Toolbar editor={editor} variant={variant} />
+        <Toolbar
+          editor={editor}
+          variant={variant}
+          className={stuck ? "rt-toolbar--stuck" : undefined}
+          style={
+            stuck
+              ? { position: "fixed", top: 0, left: stuck.left, width: stuck.width, zIndex: 50 }
+              : undefined
+          }
+        />
       )}
 
       {/* Minimal variant gets the bubble menu since it has no top toolbar
@@ -168,7 +217,17 @@ function buildExtensions(variant: RimTiptapVariant, placeholder: string) {
 
 /* ─── Pinned top toolbar ────────────────────────────────────────────────── */
 
-function Toolbar({ editor, variant }: { editor: Editor; variant: RimTiptapVariant }) {
+function Toolbar({
+  editor,
+  variant,
+  className,
+  style,
+}: {
+  editor: Editor;
+  variant: RimTiptapVariant;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [openMenu, setOpenMenu] = useState<null | "heading" | "callout" | "dharma">(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
@@ -224,7 +283,13 @@ function Toolbar({ editor, variant }: { editor: Editor; variant: RimTiptapVarian
     "Text";
 
   return (
-    <div className="rt-toolbar" role="toolbar" aria-label="Editor toolbar" ref={toolbarRef}>
+    <div
+      className={`rt-toolbar${className ? ` ${className}` : ""}`}
+      role="toolbar"
+      aria-label="Editor toolbar"
+      ref={toolbarRef}
+      style={style}
+    >
       {/* Heading dropdown (document only) */}
       {variant === "document" && (
         <>
