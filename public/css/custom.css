@@ -12869,8 +12869,8 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   padding: 6px 10px;
 }
 .hub-conv-compose__editor {
-  border-top: 1px solid var(--rim-rule);
-  padding-top: 12px;
+  /* The toolbar's grey band serves as the visual separator from the
+     title/category section above — no extra rule needed. */
 }
 .hub-conv-compose__actions {
   display: flex;
@@ -13280,14 +13280,12 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .hub-conv-post__body h2 { font-size: 18px; line-height: 1.35; }
 .hub-conv-thread .rim-content h3,
 .hub-conv-post__body h3 { font-size: 16px; line-height: 1.4; }
+/* Post edit form: layout-only. The post card already provides the frame —
+   adding our own border here creates a box-within-a-box. */
 .hub-conv-post__edit-form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  background: #fff;
-  border: 1px solid var(--rim-rule);
-  border-radius: 8px;
-  padding: 14px;
+  gap: 12px;
 }
 .hub-conv-post__edit-actions {
   display: flex;
@@ -13444,15 +13442,24 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   justify-content: flex-end;
 }
 
-/* Make the embedded editor feel at home in the stream (not a big white form) */
-.hub-conv-replybox .rim-prose-editor {
+/* Reply composer: editor needs its own frame here (not inside a card).
+   Quiet by default — hide the toolbar until focused so the empty composer
+   doesn't shout. On focus, the toolbar appears and the border accents. */
+.hub-conv-replybox .rt-wrap {
   border: 1px solid var(--rim-rule);
   border-radius: 8px;
   background: #fff;
+  overflow: hidden;
   transition: border-color 0.15s;
 }
-.hub-conv-replybox .rim-prose-editor:focus-within {
+.hub-conv-replybox .rt-wrap:focus-within {
   border-color: var(--rim-mid);
+}
+.hub-conv-replybox .rt-toolbar {
+  display: none;
+}
+.hub-conv-replybox .rt-wrap:focus-within .rt-toolbar {
+  display: flex;
 }
 
 .hub-conv-thread__closed-note {
@@ -20914,18 +20921,14 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
    Also clears bn-container (inner BlockNote div) to prevent double-box.
    ── */
 .si-composer__editor .rim-prose-editor,
-.si-note-composer__editor .rim-prose-editor,
-.hub-conv-compose__editor .rim-prose-editor,
-.hub-conv-post__edit-form .rim-prose-editor {
+.si-note-composer__editor .rim-prose-editor {
   border: none;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
 }
 .si-composer__editor .bn-container,
-.si-note-composer__editor .bn-container,
-.hub-conv-compose__editor .bn-container,
-.hub-conv-post__edit-form .bn-container {
+.si-note-composer__editor .bn-container {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
