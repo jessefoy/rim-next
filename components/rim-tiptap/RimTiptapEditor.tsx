@@ -71,9 +71,6 @@ export default function RimTiptapEditor({
   className,
   readOnly = false,
 }: Props) {
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const [stuck, setStuck] = useState<{ left: number; width: number; height: number } | null>(null);
-
   const editor = useEditor({
     extensions: buildExtensions(variant, placeholder),
     content: value || "",
@@ -82,78 +79,19 @@ export default function RimTiptapEditor({
     onUpdate: ({ editor: ed }) => onChange(ed.getHTML()),
   });
 
-  // JS-based sticky toolbar — bypasses CSS sticky which is fragile inside
-  // pages with overflow-clipped or transformed ancestors. Toggle position:fixed
-  // when the wrapper top scrolls above the viewport top; release when the
-  // wrapper has scrolled past the viewport (so the toolbar disappears with
-  // the editor instead of floating over unrelated content).
-  //
-  // Listener is in CAPTURE phase so it fires regardless of which element
-  // actually scrolls — works for window scroll, body scroll, or any
-  // ancestor with its own overflow:auto scroll context.
-  //
-  // Effect depends on `editor` so it re-runs once useEditor finishes
-  // initializing — the early `return null` below means wrapperRef.current
-  // is null on the first render, so we have to wait for the second render.
-  useEffect(() => {
-    if (!editor || variant === "minimal" || readOnly) return;
-    const wrapper = wrapperRef.current;
-    if (!wrapper) return;
-
-    function update() {
-      const w = wrapperRef.current;
-      if (!w) return;
-      const tb = w.querySelector<HTMLElement>(".rt-toolbar");
-      if (!tb) return;
-      const rect = w.getBoundingClientRect();
-      const tbHeight = tb.offsetHeight;
-      const shouldStick = rect.top < 0 && rect.bottom > tbHeight;
-      if (shouldStick) {
-        setStuck((prev) => {
-          // Avoid superfluous re-renders when nothing meaningful changed
-          if (prev && prev.left === rect.left && prev.width === rect.width && prev.height === tbHeight) {
-            return prev;
-          }
-          return { left: rect.left, width: rect.width, height: tbHeight };
-        });
-      } else {
-        setStuck((prev) => (prev ? null : prev));
-      }
-    }
-
-    update();
-    window.addEventListener("scroll", update, { passive: true, capture: true });
-    window.addEventListener("resize", update);
-    return () => {
-      window.removeEventListener("scroll", update, { capture: true });
-      window.removeEventListener("resize", update);
-    };
-  }, [editor, variant, readOnly]);
-
   if (!editor) return null;
 
   return (
-    <div ref={wrapperRef} className={`rt-wrap rt-wrap--${variant}${className ? ` ${className}` : ""}`}>
-      {/* Spacer reserves vertical space so the body doesn't jump up when the
-          toolbar becomes position:fixed. */}
-      {stuck && <div aria-hidden="true" style={{ height: stuck.height }} />}
-
+    <div className={`rt-wrap rt-wrap--${variant}${className ? ` ${className}` : ""}`}>
       {variant !== "minimal" && !readOnly && (
-        <Toolbar
-          editor={editor}
-          variant={variant}
-          className={stuck ? "rt-toolbar--stuck" : undefined}
-          style={
-            stuck
-              ? { position: "fixed", top: 0, left: stuck.left, width: stuck.width, zIndex: 50 }
-              : undefined
-          }
-        />
+        <Toolbar editor={editor} variant={variant} />
       )}
 
-      {/* Minimal variant gets the bubble menu since it has no top toolbar
-          (it's used in inline form fields where chrome would overwhelm). */}
-      {variant === "minimal" && (
+      {/* Selection bubble menu — appears next to selected text in every
+          variant. This is the primary formatting interaction: the toolbar
+          comes to the cursor instead of the user scrolling to it. The top
+          toolbar is the discovery surface; the bubble is the working tool. */}
+      {!readOnly && (
         <BubbleMenu
           editor={editor}
           options={{ placement: "top", offset: 8 }}
@@ -163,7 +101,13 @@ export default function RimTiptapEditor({
             return ed.isEditable;
           }}
         >
-          <MinimalBubble editor={editor} />
+          {variant === "minimal" ? (
+            <MinimalBubble editor={editor} />
+          ) : variant === "message" ? (
+            <MessageBubble editor={editor} />
+          ) : (
+            <DocumentBubble editor={editor} />
+          )}
         </BubbleMenu>
       )}
 
@@ -232,17 +176,7 @@ function buildExtensions(variant: RimTiptapVariant, placeholder: string) {
 
 /* ─── Pinned top toolbar ────────────────────────────────────────────────── */
 
-function Toolbar({
-  editor,
-  variant,
-  className,
-  style,
-}: {
-  editor: Editor;
-  variant: RimTiptapVariant;
-  className?: string;
-  style?: React.CSSProperties;
-}) {
+function Toolbar({ editor, variant }: { editor: Editor; variant: RimTiptapVariant }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [openMenu, setOpenMenu] = useState<null | "heading" | "callout" | "dharma">(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
@@ -298,13 +232,7 @@ function Toolbar({
     "Text";
 
   return (
-    <div
-      className={`rt-toolbar${className ? ` ${className}` : ""}`}
-      role="toolbar"
-      aria-label="Editor toolbar"
-      ref={toolbarRef}
-      style={style}
-    >
+    <div className="rt-toolbar" role="toolbar" aria-label="Editor toolbar" ref={toolbarRef}>
       {/* Heading dropdown (document only) */}
       {variant === "document" && (
         <>
@@ -537,6 +465,43 @@ function MinimalBubble({ editor }: { editor: Editor }) {
       <Btn editor={editor} cmd={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="Bold" icon={Bold} />
       <Btn editor={editor} cmd={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive("italic")} title="Italic" icon={Italic} />
       <Btn editor={editor} cmd={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive("underline")} title="Underline" icon={UIcon} />
+      <span className="rt-bubble__sep" />
+      <LinkBtn editor={editor} />
+    </div>
+  );
+}
+
+/* Message bubble: minimal + strikethrough + inline code. For Hub welcome,
+   conversations, replies — any place users format prose without headings. */
+function MessageBubble({ editor }: { editor: Editor }) {
+  return (
+    <div className="rt-bubble" role="toolbar" aria-label="Format">
+      <Btn editor={editor} cmd={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="Bold" icon={Bold} />
+      <Btn editor={editor} cmd={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive("italic")} title="Italic" icon={Italic} />
+      <Btn editor={editor} cmd={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive("underline")} title="Underline" icon={UIcon} />
+      <Btn editor={editor} cmd={() => editor.chain().focus().toggleStrike().run()} active={editor.isActive("strike")} title="Strikethrough" icon={Strikethrough} />
+      <Btn editor={editor} cmd={() => editor.chain().focus().toggleCode().run()} active={editor.isActive("code")} title="Inline code" icon={Code} />
+      <span className="rt-bubble__sep" />
+      <LinkBtn editor={editor} />
+    </div>
+  );
+}
+
+/* Document bubble: message marks + heading toggles + blockquote. Inserting
+   new blocks (callouts, dharma blocks, images, tables) stays in the top
+   toolbar — those are insertion actions, not transformations of selection. */
+function DocumentBubble({ editor }: { editor: Editor }) {
+  return (
+    <div className="rt-bubble" role="toolbar" aria-label="Format">
+      <Btn editor={editor} cmd={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="Bold" icon={Bold} />
+      <Btn editor={editor} cmd={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive("italic")} title="Italic" icon={Italic} />
+      <Btn editor={editor} cmd={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive("underline")} title="Underline" icon={UIcon} />
+      <Btn editor={editor} cmd={() => editor.chain().focus().toggleStrike().run()} active={editor.isActive("strike")} title="Strikethrough" icon={Strikethrough} />
+      <Btn editor={editor} cmd={() => editor.chain().focus().toggleCode().run()} active={editor.isActive("code")} title="Inline code" icon={Code} />
+      <span className="rt-bubble__sep" />
+      <Btn editor={editor} cmd={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} active={editor.isActive("heading", { level: 2 })} title="Heading 2" icon={Heading2} />
+      <Btn editor={editor} cmd={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} active={editor.isActive("heading", { level: 3 })} title="Heading 3" icon={Heading3} />
+      <Btn editor={editor} cmd={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive("blockquote")} title="Quote" icon={Quote} />
       <span className="rt-bubble__sep" />
       <LinkBtn editor={editor} />
     </div>

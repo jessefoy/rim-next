@@ -23951,11 +23951,11 @@ input.w-button { -webkit-appearance: button; }
   margin-bottom: 0;
 }
 
-/* ── Pinned toolbar ────────────────────────────────────────────────── */
-/* Position is managed by JS in RimTiptapEditor — when the wrapper top
-   scrolls above the viewport, the component sets inline position:fixed
-   so the toolbar floats at viewport top. This bypasses CSS sticky which
-   is fragile inside pages with clipped or transformed ancestors. */
+/* ── Top toolbar ───────────────────────────────────────────────────── */
+/* Top toolbar is the discovery surface — first-time users see what's
+   available. It scrolls naturally with the page; we don't try to make
+   it sticky. The selection bubble menu (.rt-bubble) is the working tool
+   that follows the user's cursor instead. */
 .rt-toolbar {
   display: flex;
   align-items: center;
@@ -23966,12 +23966,6 @@ input.w-button { -webkit-appearance: button; }
   border-bottom: 1px solid var(--rim-rule);
   border-radius: 5px 5px 0 0;
   font-family: var(--font-sans);
-}
-/* When floating (JS toggles this class + inline position:fixed), add a
-   subtle shadow so the toolbar reads as a separate floating layer. */
-.rt-toolbar--stuck {
-  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
-  border-radius: 0;
 }
 .rt-toolbar__btn {
   display: inline-flex;
