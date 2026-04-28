@@ -23949,3 +23949,51 @@ input.w-button { -webkit-appearance: button; }
 .rim-content .rim-el-reflection__body > *:last-child {
   margin-bottom: 0;
 }
+
+/* ── Pinned toolbar ────────────────────────────────────────────────── */
+.rt-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1px;
+  padding: 6px 8px;
+  background: #fafaf9;
+  border: 1px solid var(--rim-rule);
+  border-radius: 8px 8px 0 0;
+  border-bottom: 0;
+  font-family: var(--font-sans);
+}
+.rt-toolbar__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: transparent;
+  border: 0;
+  color: var(--rim-text-muted);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+.rt-toolbar__btn:hover { background: #fff; color: var(--rim-text); }
+.rt-toolbar__btn--active {
+  background: var(--rim-text);
+  color: #fff;
+}
+.rt-toolbar__btn--active:hover {
+  background: var(--rim-text);
+  color: #fff;
+}
+.rt-toolbar__sep {
+  width: 1px;
+  height: 18px;
+  background: var(--rim-rule);
+  margin: 0 6px;
+}
+/* When toolbar is present, the editor body sits flush below it */
+.rt-wrap:has(.rt-toolbar) .ProseMirror {
+  border: 1px solid var(--rim-rule);
+  border-radius: 0 0 8px 8px;
+  padding: 12px 14px;
+}
