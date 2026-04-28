@@ -373,11 +373,28 @@ function TDropdown({
   items: DropdownItemSpec[];
 }) {
   const toggle = () => onOpenChange(!open);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [flipRight, setFlipRight] = useState(false);
+
+  // After open, measure the dropdown — if it overflows the viewport's right
+  // edge, flip alignment so it opens to the left of the trigger instead.
+  useEffect(() => {
+    if (!open) { setFlipRight(false); return; }
+    const el = dropdownRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    if (rect.right > window.innerWidth - 8) setFlipRight(true);
+  }, [open]);
+
   return (
     <div className="rt-toolbar__menu">
       {renderTrigger(toggle, open)}
       {open && (
-        <div className="rt-toolbar__dropdown" role="menu">
+        <div
+          ref={dropdownRef}
+          className={`rt-toolbar__dropdown${flipRight ? " rt-toolbar__dropdown--right" : ""}`}
+          role="menu"
+        >
           {items.map((it) => {
             const Icon = it.icon;
             return (

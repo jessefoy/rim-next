@@ -23955,19 +23955,35 @@ input.w-button { -webkit-appearance: button; }
 }
 
 /* ── Pinned toolbar ────────────────────────────────────────────────── */
-/* Toolbar itself is borderless — the wrapper provides the single outer
-   frame. The toolbar's bottom-border is the internal divider between the
-   grey band and the white body. */
+/* Sticky to viewport top while editing — follows the user as they scroll
+   long documents. Single horizontal row with overflow scroll on narrow
+   widths (instead of wrapping to multiple rows). The wrapper's grey band
+   reads as the toolbar zone; bottom-border divides it from the body. */
 .rt-toolbar {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
   gap: 1px;
   padding: 6px 8px;
   background: #fafaf9;
   border-bottom: 1px solid var(--rim-rule);
+  border-radius: 5px 5px 0 0;
   font-family: var(--font-sans);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rim-rule) transparent;
 }
+.rt-toolbar::-webkit-scrollbar { height: 4px; }
+.rt-toolbar::-webkit-scrollbar-thumb {
+  background: var(--rim-rule);
+  border-radius: 2px;
+}
+/* Toolbar children must not shrink — they keep their target size and
+   the bar scrolls horizontally instead. */
+.rt-toolbar > * { flex-shrink: 0; }
 .rt-toolbar__btn {
   display: inline-flex;
   align-items: center;
@@ -23996,16 +24012,18 @@ input.w-button { -webkit-appearance: button; }
   background: var(--rim-rule);
   margin: 0 6px;
 }
-/* Single light frame around the whole editor (toolbar + body as one unit).
-   overflow:hidden clips the toolbar's grey band cleanly to the rounded
-   corners — no apparent margin/padding around the toolbar. */
+/* Single light frame around the whole editor. We can't use overflow:hidden
+   here — it would prevent the sticky toolbar from escaping the wrapper as
+   the page scrolls. Instead, the toolbar carries its own top-radius and
+   the body carries its own bottom-radius, both matching the wrapper's
+   inner curvature (6px wrapper - 1px border = 5px inner). */
 .rt-wrap:has(.rt-toolbar) {
   border: 1px solid var(--rim-rule);
   border-radius: 6px;
-  overflow: hidden;
 }
 .rt-wrap:has(.rt-toolbar) .ProseMirror {
   padding: 12px 14px;
+  border-radius: 0 0 5px 5px;
 }
 
 /* ── Toolbar dropdowns (Heading, Callouts, Dharma blocks) ───────────── */
@@ -24042,6 +24060,12 @@ input.w-button { -webkit-appearance: button; }
   display: flex;
   flex-direction: column;
 }
+/* Flipped — applied by the component when the default left-aligned position
+   would clip past the viewport's right edge. */
+.rt-toolbar__dropdown--right {
+  left: auto;
+  right: 0;
+}
 .rt-toolbar__dropdown-item {
   display: flex;
   align-items: center;
@@ -24059,3 +24083,24 @@ input.w-button { -webkit-appearance: button; }
 }
 .rt-toolbar__dropdown-item:hover { background: #f4f2ed; }
 .rt-toolbar__dropdown-item svg { flex-shrink: 0; color: var(--rim-text-muted); }
+
+/* Mobile: 44px touch targets per project standard.
+   Dropdown items also get taller padding for easier tapping. */
+@media (max-width: 768px) {
+  .rt-toolbar__btn {
+    width: 44px;
+    height: 44px;
+  }
+  .rt-toolbar__btn--label {
+    width: auto;
+    height: 44px;
+    padding: 0 12px;
+  }
+  .rt-toolbar__dropdown-item {
+    padding: 10px 12px;
+    font-size: var(--text-body);
+  }
+  .rt-toolbar__dropdown {
+    min-width: 220px;
+  }
+}
