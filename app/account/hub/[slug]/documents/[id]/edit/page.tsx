@@ -62,7 +62,7 @@ export default async function HubDocumentEditPage({
       hubSlug={slug}
       docId={id}
       initialLabel={doc.label}
-      initialBody={Array.isArray(doc.body) ? doc.body : null}
+      initialBody={doc.body}
       initialCategory={doc.category ?? ""}
       documentCategories={hub.documentCategories as string[]}
       isAuthor={isAuthor}
