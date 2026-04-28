@@ -1346,7 +1346,125 @@ Rooted In Mindfulness · rootedinmindfulness.org`;
       console.log(`  ✔ Applied: ${this.name}`);
     },
   },
+  {
+    // One-time conversion of Hub.welcomeBody and Hub.homeContent from
+    // BlockNote JSON arrays to plain HTML strings (new Tiptap storage format).
+    // Idempotent: rows already holding HTML strings (typeof === "string") are skipped.
+    // Rows with null/undefined are left as null.
+    name: "convert_hub_content_to_html",
+    async run() {
+      const hubs = await db.hub.findMany({
+        select: { id: true, welcomeBody: true, homeContent: true },
+      });
+
+      let converted = 0;
+
+      for (const hub of hubs) {
+        const updates = {};
+        if (isBlockNoteArray(hub.welcomeBody)) {
+          updates.welcomeBody = blockNoteToHtml(hub.welcomeBody);
+          converted++;
+        }
+        if (isBlockNoteArray(hub.homeContent)) {
+          updates.homeContent = blockNoteToHtml(hub.homeContent);
+          converted++;
+        }
+        if (Object.keys(updates).length > 0) {
+          await db.hub.update({ where: { id: hub.id }, data: updates });
+        }
+      }
+
+      if (converted > 0) {
+        console.log(`  ✔ Applied: ${this.name} — converted ${converted} field(s) across ${hubs.length} hub(s)`);
+      } else {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+      }
+    },
+  },
 ];
+
+// ── Minimal BlockNote → HTML converter (migration-only) ──────────────────────
+// Handles common prose block types found in hub welcome/home content.
+// Custom dharma blocks are not expected here; they'll be no-ops if present.
+
+function isBlockNoteArray(value) {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    typeof value[0] === "object" &&
+    value[0] !== null &&
+    typeof value[0].type === "string" &&
+    "id" in value[0]
+  );
+}
+
+function bnInlineToText(content) {
+  return (content || []).map((c) => {
+    if (!c) return "";
+    if (c.type === "link") {
+      const href = c.href ?? "#";
+      return `<a href="${href}">${bnInlineToText(c.content || [])}</a>`;
+    }
+    let t = c.text ?? "";
+    if (!t) return "";
+    if (c.styles?.bold)      t = `<strong>${t}</strong>`;
+    if (c.styles?.italic)    t = `<em>${t}</em>`;
+    if (c.styles?.underline) t = `<u>${t}</u>`;
+    if (c.styles?.strike)    t = `<s>${t}</s>`;
+    if (c.styles?.code)      t = `<code>${t}</code>`;
+    return t;
+  }).join("");
+}
+
+function bnBlockToHtml(block) {
+  const inner = Array.isArray(block.content) ? bnInlineToText(block.content) : "";
+  const children = Array.isArray(block.children)
+    ? block.children.map(bnBlockToHtml).join("")
+    : "";
+  switch (block.type) {
+    case "heading": {
+      const lvl = block.props?.level ?? 2;
+      return `<h${lvl}>${inner}</h${lvl}>${children}`;
+    }
+    case "bulletListItem":
+      return `<li>${inner}${children}</li>`;
+    case "numberedListItem":
+      return `<li>${inner}${children}</li>`;
+    case "quote":
+    case "blockquote":
+      return `<blockquote>${inner}</blockquote>${children}`;
+    case "codeBlock":
+      return `<pre><code>${inner}</code></pre>${children}`;
+    case "paragraph":
+    default:
+      return inner ? `<p>${inner}</p>${children}` : children;
+  }
+}
+
+function blockNoteToHtml(blocks) {
+  let html = "";
+  let i = 0;
+  while (i < blocks.length) {
+    const block = blocks[i];
+    if (block.type === "bulletListItem") {
+      let items = "";
+      while (i < blocks.length && blocks[i].type === "bulletListItem") {
+        items += bnBlockToHtml(blocks[i++]);
+      }
+      html += `<ul>${items}</ul>`;
+    } else if (block.type === "numberedListItem") {
+      let items = "";
+      while (i < blocks.length && blocks[i].type === "numberedListItem") {
+        items += bnBlockToHtml(blocks[i++]);
+      }
+      html += `<ol>${items}</ol>`;
+    } else {
+      html += bnBlockToHtml(block);
+      i++;
+    }
+  }
+  return html;
+}
 
 async function main() {
   console.log("Running migrations...");

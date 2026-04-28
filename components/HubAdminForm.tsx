@@ -9,7 +9,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import SlugField from "@/components/SlugField";
-import RimProseEditor from "@/components/RimProseEditor";
+import dynamic from "next/dynamic";
+const RimTiptapEditor = dynamic(
+  () => import("@/components/rim-tiptap/RimTiptapEditor"),
+  { ssr: false, loading: () => <div style={{ height: 120 }} /> },
+);
 import Link from "next/link";
 import { TOOL_REGISTRY, getToolBySlug } from "@/lib/toolRegistry";
 
@@ -62,8 +66,12 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug }: Props)
   const [status, setStatus] = useState<HubData["status"]>(initialData?.status ?? "ACTIVE");
   const [appLinks, setAppLinks] = useState<AppLink[]>(initialData?.appLinks ?? []);
   const [welcomeHeadline, setWelcomeHeadline] = useState(initialData?.welcomeHeadline ?? "");
-  const [welcomeBody, setWelcomeBody] = useState<any>(initialData?.welcomeBody ?? null);
-  const [homeContent, setHomeContent] = useState<any>(initialData?.homeContent ?? null);
+  const [welcomeBody, setWelcomeBody] = useState<string>(
+    typeof initialData?.welcomeBody === "string" ? initialData.welcomeBody : "",
+  );
+  const [homeContent, setHomeContent] = useState<string>(
+    typeof initialData?.homeContent === "string" ? initialData.homeContent : "",
+  );
   const coordinators = initialData?.coordinators ?? [];
 
   const [saving, setSaving] = useState(false);
@@ -269,12 +277,11 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug }: Props)
 
       <div className="adm-hubs-field">
         <label className="adm-hubs-label">Welcome Body</label>
-        <RimProseEditor
+        <RimTiptapEditor
           value={welcomeBody}
           onChange={setWelcomeBody}
-          variant="dense"
+          variant="message"
           placeholder="Orientation content for new hub members..."
-          minHeight={120}
         />
         <span className="adm-hubs-hint">
           Orientation text shown once to new members on first visit.
@@ -284,12 +291,11 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug }: Props)
       {/* Hub Home orientation (shown on every visit, bottom of Home) */}
       <div className="adm-hubs-field">
         <label className="adm-hubs-label">Hub Home Orientation</label>
-        <RimProseEditor
+        <RimTiptapEditor
           value={homeContent}
           onChange={setHomeContent}
-          variant="dense"
+          variant="message"
           placeholder="Optional orientation block shown at the bottom of this hub's Home..."
-          minHeight={120}
         />
         <span className="adm-hubs-hint">
           Long-lived context for this hub — shown beneath the activity rail on Home. Leave blank to hide.

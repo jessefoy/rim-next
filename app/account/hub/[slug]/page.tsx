@@ -69,7 +69,7 @@ export default async function HubHomePage({
         hubName={hub.name}
         canEditContent={isCoordinator}
         welcomeHtml={welcomeHtml}
-        welcomeJson={isCoordinator ? (hub.welcomeBody ?? null) : null}
+        welcomeBody={isCoordinator ? (typeof hub.welcomeBody === "string" ? hub.welcomeBody : "") : ""}
         thisMonth={thisMonth}
       />
     );

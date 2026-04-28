@@ -43,6 +43,11 @@ export function isRawHtml(json: any): boolean {
   return json && typeof json === "object" && json.type === "rawHtml" && typeof json.html === "string"
 }
 
+/** True when the value is a plain HTML string (new Tiptap storage format). */
+export function isHtmlString(value: any): value is string {
+  return typeof value === "string" && value.length > 0
+}
+
 // ── Client-safe BlockNote renderer ───────────────────────────────────────────
 //
 // Converts BlockNote JSON → HTML without requiring JSDOM.
@@ -272,12 +277,10 @@ function isTiptapJSON(json: any): boolean {
  */
 export function renderBlockNoteHtml(json: any): string {
   if (!json) return ""
+  if (isHtmlString(json)) return json          // new Tiptap HTML string — pass through
   if (isRawHtml(json)) return json.html
   if (isBlockNoteJSON(json)) return renderBlockNodes(json as any[])
-  // Legacy Tiptap JSON — extract text content as paragraph fallback until migration
-  if (isTiptapJSON(json)) {
-    return extractTiptapText(json)
-  }
+  if (isTiptapJSON(json)) return extractTiptapText(json)
   return ""
 }
 

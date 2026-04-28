@@ -19,9 +19,11 @@ import "server-only"
 import {
   isBlockNoteJSON,
   isRawHtml,
+  isHtmlString,
   renderBlockNoteHtml,
   extractBlockNoteText,
 } from "./renderRichContent"
+import { sanitizeTiptapHtml, stripTiptapHtml, type TiptapSanitizeVariant } from "./renderRichContentTiptap"
 
 // ── Legacy Tiptap support ───────────────────────────────────────────────────
 // Kept for any records that might not have been migrated yet.
@@ -93,10 +95,14 @@ async function ensureTiptapRenderers() {
 
 /**
  * Render full editor content (lessons, manual sections, program descriptions).
- * Handles BlockNote JSON, legacy rawHtml, and legacy Tiptap JSON.
+ * Handles HTML strings (new Tiptap), BlockNote JSON, legacy rawHtml, legacy Tiptap JSON.
  */
-export async function renderContentBodyAsync(json: any): Promise<string> {
+export async function renderContentBodyAsync(
+  json: any,
+  variant: TiptapSanitizeVariant = "document",
+): Promise<string> {
   if (!json) return ""
+  if (isHtmlString(json)) return sanitizeTiptapHtml(json, variant)
   if (isRawHtml(json)) return json.html
   if (isBlockNoteJSON(json)) return renderBlockNoteHtml(json)
   if (isTiptapJSON(json)) {
@@ -107,11 +113,15 @@ export async function renderContentBodyAsync(json: any): Promise<string> {
 }
 
 /**
- * Render prose content (notes, announcements, confirmationMessage, etc.).
- * Handles BlockNote JSON and legacy Tiptap JSON.
+ * Render prose content (notes, announcements, hub content, etc.).
+ * Handles HTML strings (new Tiptap), BlockNote JSON, legacy Tiptap JSON.
  */
-export async function renderFormattedTextAsync(json: any): Promise<string> {
+export async function renderFormattedTextAsync(
+  json: any,
+  variant: TiptapSanitizeVariant = "message",
+): Promise<string> {
   if (!json) return ""
+  if (isHtmlString(json)) return sanitizeTiptapHtml(json, variant)
   if (isBlockNoteJSON(json)) return renderBlockNoteHtml(json)
   if (isTiptapJSON(json)) {
     await ensureTiptapRenderers()
@@ -121,10 +131,12 @@ export async function renderFormattedTextAsync(json: any): Promise<string> {
 }
 
 /**
- * Extract plain text from stored JSON — for email notifications.
+ * Extract plain text from stored content — for email notifications and excerpts.
+ * Handles HTML strings (new Tiptap), BlockNote JSON, legacy Tiptap JSON.
  */
 export async function extractTextAsync(json: any): Promise<string> {
   if (!json) return ""
+  if (isHtmlString(json)) return stripTiptapHtml(json)
   if (isBlockNoteJSON(json)) return extractBlockNoteText(json)
   if (isTiptapJSON(json)) {
     await ensureTiptapRenderers()

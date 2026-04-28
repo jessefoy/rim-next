@@ -19,12 +19,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 
-const RimBlockEditor = dynamic(() => import("@/components/RimBlockEditor"), {
-  ssr: false,
-  loading: () => (
-    <div className="hub-home__editor-loading">Loading editor…</div>
-  ),
-});
+const RimTiptapEditor = dynamic(
+  () => import("@/components/rim-tiptap/RimTiptapEditor"),
+  { ssr: false, loading: () => <div className="hub-home__editor-loading">Loading editor…</div> },
+);
 
 export interface ThisMonthGlance {
   monthLabel: string;
@@ -39,7 +37,7 @@ interface Props {
   hubName: string;
   canEditContent: boolean;
   welcomeHtml: string;
-  welcomeJson: unknown;
+  welcomeBody: string;
   thisMonth: ThisMonthGlance;
 }
 
@@ -48,7 +46,7 @@ export default function HostHubHomeClient({
   hubName,
   canEditContent,
   welcomeHtml,
-  welcomeJson,
+  welcomeBody,
   thisMonth,
 }: Props) {
   const [editingWelcome, setEditingWelcome] = useState(false);
@@ -70,7 +68,7 @@ export default function HostHubHomeClient({
           <InlineBlockEditor
             slug={slug}
             field="welcomeBody"
-            initialValue={welcomeJson}
+            initialValue={welcomeBody}
             placeholder="Welcome hosts to the team — what this work is, and what they can expect here."
             onDone={() => setEditingWelcome(false)}
           />
@@ -212,12 +210,12 @@ function InlineBlockEditor({
 }: {
   slug: string;
   field: "welcomeBody" | "homeContent";
-  initialValue: unknown;
+  initialValue: string;
   placeholder: string;
   onDone: () => void;
 }) {
   const router = useRouter();
-  const [value, setValue] = useState<unknown>(initialValue);
+  const [value, setValue] = useState<string>(initialValue ?? "");
   const [saving, setSaving] = useState(false);
 
   async function save() {
@@ -236,10 +234,11 @@ function InlineBlockEditor({
 
   return (
     <div className="hub-home__editor">
-      <RimBlockEditor
-        value={initialValue ?? null}
+      <RimTiptapEditor
+        value={value}
         onChange={setValue}
         placeholder={placeholder}
+        variant="message"
       />
       <div className="hub-home__editor-actions">
         <button
