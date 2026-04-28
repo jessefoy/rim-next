@@ -40,7 +40,8 @@ import { useEffect, useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
 import {
   Bold, Italic, Underline as UIcon, Strikethrough, Code, Link as LinkIcon,
-  List, ListOrdered, Quote, Heading2, Heading3, Image as ImageIcon, Table as TableIcon,
+  List, ListOrdered, Quote, Heading2, Heading3, Heading4, Highlighter,
+  Image as ImageIcon, Table as TableIcon,
   CheckSquare, Sparkles, BookOpen, MessageCircleQuestion, Lightbulb, CheckCircle2,
   Minus,
 } from "lucide-react";
@@ -453,7 +454,7 @@ function MinimalBubble({ editor }: { editor: Editor }) {
   );
 }
 
-/* Message bubble: minimal + strikethrough + inline code. For Hub welcome,
+/* Message bubble: marks + lists + highlight + link. For Hub welcome,
    conversations, replies — any place users format prose without headings. */
 function MessageBubble({ editor }: { editor: Editor }) {
   return (
@@ -463,15 +464,20 @@ function MessageBubble({ editor }: { editor: Editor }) {
       <Btn editor={editor} cmd={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive("underline")} title="Underline" icon={UIcon} />
       <Btn editor={editor} cmd={() => editor.chain().focus().toggleStrike().run()} active={editor.isActive("strike")} title="Strikethrough" icon={Strikethrough} />
       <Btn editor={editor} cmd={() => editor.chain().focus().toggleCode().run()} active={editor.isActive("code")} title="Inline code" icon={Code} />
+      <Btn editor={editor} cmd={() => editor.chain().focus().toggleHighlight().run()} active={editor.isActive("highlight")} title="Highlight" icon={Highlighter} />
+      <span className="rt-bubble__sep" />
+      <Btn editor={editor} cmd={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive("bulletList")} title="Bullet list" icon={List} />
+      <Btn editor={editor} cmd={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive("orderedList")} title="Numbered list" icon={ListOrdered} />
+      <Btn editor={editor} cmd={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive("blockquote")} title="Quote" icon={Quote} />
       <span className="rt-bubble__sep" />
       <LinkBtn editor={editor} />
     </div>
   );
 }
 
-/* Document bubble: message marks + heading toggles + blockquote. Inserting
-   new blocks (callouts, dharma blocks, images, tables) stays in the top
-   toolbar — those are insertion actions, not transformations of selection. */
+/* Document bubble: full formatting parity with the top toolbar (minus
+   insertion-only actions like image, table, hr, callouts, dharma blocks).
+   Whatever a user can apply to a selection lives here. */
 function DocumentBubble({ editor }: { editor: Editor }) {
   return (
     <div className="rt-bubble" role="toolbar" aria-label="Format">
@@ -480,9 +486,15 @@ function DocumentBubble({ editor }: { editor: Editor }) {
       <Btn editor={editor} cmd={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive("underline")} title="Underline" icon={UIcon} />
       <Btn editor={editor} cmd={() => editor.chain().focus().toggleStrike().run()} active={editor.isActive("strike")} title="Strikethrough" icon={Strikethrough} />
       <Btn editor={editor} cmd={() => editor.chain().focus().toggleCode().run()} active={editor.isActive("code")} title="Inline code" icon={Code} />
+      <Btn editor={editor} cmd={() => editor.chain().focus().toggleHighlight().run()} active={editor.isActive("highlight")} title="Highlight" icon={Highlighter} />
       <span className="rt-bubble__sep" />
       <Btn editor={editor} cmd={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} active={editor.isActive("heading", { level: 2 })} title="Heading 2" icon={Heading2} />
       <Btn editor={editor} cmd={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} active={editor.isActive("heading", { level: 3 })} title="Heading 3" icon={Heading3} />
+      <Btn editor={editor} cmd={() => editor.chain().focus().toggleHeading({ level: 4 }).run()} active={editor.isActive("heading", { level: 4 })} title="Heading 4" icon={Heading4} />
+      <span className="rt-bubble__sep" />
+      <Btn editor={editor} cmd={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive("bulletList")} title="Bullet list" icon={List} />
+      <Btn editor={editor} cmd={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive("orderedList")} title="Numbered list" icon={ListOrdered} />
+      <Btn editor={editor} cmd={() => editor.chain().focus().toggleTaskList().run()} active={editor.isActive("taskList")} title="Checklist" icon={CheckSquare} />
       <Btn editor={editor} cmd={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive("blockquote")} title="Quote" icon={Quote} />
       <span className="rt-bubble__sep" />
       <LinkBtn editor={editor} />
