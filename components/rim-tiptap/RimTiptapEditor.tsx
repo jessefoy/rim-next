@@ -22,7 +22,7 @@
  */
 
 import { useEditor, EditorContent, type Editor } from "@tiptap/react";
-import { BubbleMenu, FloatingMenu } from "@tiptap/react/menus";
+import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import Link from "@tiptap/extension-link";
@@ -36,13 +36,13 @@ import TableHeader from "@tiptap/extension-table-header";
 import TableCell from "@tiptap/extension-table-cell";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { upload } from "@vercel/blob/client";
 import {
   Bold, Italic, Underline as UIcon, Strikethrough, Code, Link as LinkIcon,
   List, ListOrdered, Quote, Heading2, Heading3, Image as ImageIcon, Table as TableIcon,
   CheckSquare, Sparkles, BookOpen, MessageCircleQuestion, Lightbulb, CheckCircle2,
-  Plus, Minus,
+  Minus,
 } from "lucide-react";
 import { Callout } from "./extensions/Callout";
 import { PullQuote } from "./extensions/PullQuote";
@@ -87,33 +87,20 @@ export default function RimTiptapEditor({
         <Toolbar editor={editor} variant={variant} />
       )}
 
-      <BubbleMenu
-        editor={editor}
-        options={{ placement: "top", offset: 8 }}
-        shouldShow={({ editor: ed, from, to }) => {
-          if (readOnly) return false;
-          if (from === to) return false;
-          return ed.isEditable;
-        }}
-      >
-        <BubbleToolbar editor={editor} variant={variant} />
-      </BubbleMenu>
-
-      {variant !== "minimal" && (
-        <FloatingMenu
+      {/* Minimal variant gets the bubble menu since it has no top toolbar
+          (it's used in inline form fields where chrome would overwhelm). */}
+      {variant === "minimal" && (
+        <BubbleMenu
           editor={editor}
-          options={{ placement: "left-start", offset: 8 }}
-          shouldShow={({ editor: ed, state }) => {
+          options={{ placement: "top", offset: 8 }}
+          shouldShow={({ editor: ed, from, to }) => {
             if (readOnly) return false;
-            if (!ed.isEditable) return false;
-            const { $from } = state.selection;
-            const isEmptyParagraph =
-              $from.parent.type.name === "paragraph" && $from.parent.content.size === 0;
-            return isEmptyParagraph;
+            if (from === to) return false;
+            return ed.isEditable;
           }}
         >
-          <FloatingPlusMenu editor={editor} variant={variant} />
-        </FloatingMenu>
+          <MinimalBubble editor={editor} />
+        </BubbleMenu>
       )}
 
       <EditorContent editor={editor} className="rt-content" />
@@ -241,6 +228,16 @@ function Toolbar({ editor, variant }: { editor: Editor; variant: RimTiptapVarian
           <TBtn editor={editor} cmd={pickImage} active={false} title="Image" icon={ImageIcon} />
           <TBtn editor={editor} cmd={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} active={false} title="Table" icon={TableIcon} />
           <TBtn editor={editor} cmd={() => editor.chain().focus().setHorizontalRule().run()} active={false} title="Divider" icon={Minus} />
+
+          <TSep />
+          <TBtn editor={editor} cmd={() => editor.chain().focus().setCallout({ variant: "note" }).run()} active={editor.isActive("callout", { variant: "note" })} title="Callout — Note" icon={Lightbulb} />
+          <TBtn editor={editor} cmd={() => editor.chain().focus().setCallout({ variant: "decision" }).run()} active={editor.isActive("callout", { variant: "decision" })} title="Callout — Decision" icon={CheckCircle2} />
+
+          <TSep />
+          <TBtn editor={editor} cmd={() => editor.chain().focus().setPullQuote().run()} active={editor.isActive("pullQuote")} title="Pull quote" icon={Sparkles} />
+          <TBtn editor={editor} cmd={() => editor.chain().focus().setVerseQuote().run()} active={editor.isActive("verseQuote")} title="Verse quote" icon={BookOpen} />
+          <TBtn editor={editor} cmd={() => editor.chain().focus().setPracticeSuggestion().run()} active={editor.isActive("practiceSuggestion")} title="Practice suggestion" icon={Sparkles} />
+          <TBtn editor={editor} cmd={() => editor.chain().focus().setReflection().run()} active={editor.isActive("reflection")} title="Reflection" icon={MessageCircleQuestion} />
         </>
       )}
 
@@ -286,29 +283,18 @@ function TSep() {
   return <span className="rt-toolbar__sep" aria-hidden="true" />;
 }
 
-/* ─── Bubble menu (selection toolbar) ───────────────────────────────────── */
+/* ─── Minimal-variant bubble (selection toolbar) ────────────────────────
+   Only used by the minimal variant — it has no top toolbar by design
+   (inline form fields), so a small selection bubble is the entire UI. */
 
-function BubbleToolbar({ editor, variant }: { editor: Editor; variant: RimTiptapVariant }) {
+function MinimalBubble({ editor }: { editor: Editor }) {
   return (
     <div className="rt-bubble" role="toolbar" aria-label="Format">
       <Btn editor={editor} cmd={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="Bold" icon={Bold} />
       <Btn editor={editor} cmd={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive("italic")} title="Italic" icon={Italic} />
       <Btn editor={editor} cmd={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive("underline")} title="Underline" icon={UIcon} />
-      {variant !== "minimal" && (
-        <Btn editor={editor} cmd={() => editor.chain().focus().toggleStrike().run()} active={editor.isActive("strike")} title="Strikethrough" icon={Strikethrough} />
-      )}
-      {variant !== "minimal" && (
-        <Btn editor={editor} cmd={() => editor.chain().focus().toggleCode().run()} active={editor.isActive("code")} title="Inline code" icon={Code} />
-      )}
       <span className="rt-bubble__sep" />
       <LinkBtn editor={editor} />
-      {variant === "document" && (
-        <>
-          <span className="rt-bubble__sep" />
-          <Btn editor={editor} cmd={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} active={editor.isActive("heading", { level: 2 })} title="Heading 2" icon={Heading2} />
-          <Btn editor={editor} cmd={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} active={editor.isActive("heading", { level: 3 })} title="Heading 3" icon={Heading3} />
-        </>
-      )}
     </div>
   );
 }
@@ -360,161 +346,6 @@ function LinkBtn({ editor }: { editor: Editor }) {
       aria-label="Link"
     >
       <LinkIcon size={15} strokeWidth={2} />
-    </button>
-  );
-}
-
-/* ─── Floating "+" pill on empty lines ──────────────────────────────────── */
-
-function FloatingPlusMenu({ editor, variant }: { editor: Editor; variant: RimTiptapVariant }) {
-  const [open, setOpen] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  function close() { setOpen(false); }
-
-  async function pickImage() {
-    fileInputRef.current?.click();
-  }
-
-  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    try {
-      const url = await uploadImage(file);
-      editor.chain().focus().setImage({ src: url, alt: file.name }).run();
-    } catch (err) {
-      console.error("Image upload failed:", err);
-      window.alert("Could not upload that image.");
-    }
-    close();
-  }
-
-  return (
-    <div className="rt-plus">
-      <button
-        type="button"
-        className="rt-plus__trigger"
-        onClick={() => setOpen((v) => !v)}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        title="Insert"
-      >
-        <Plus size={14} strokeWidth={2.5} />
-      </button>
-      {open && (
-        <div className="rt-plus__menu" role="menu">
-          <PlusItem
-            label="Bullet list"
-            icon={List}
-            onClick={() => { editor.chain().focus().toggleBulletList().run(); close(); }}
-          />
-          <PlusItem
-            label="Numbered list"
-            icon={ListOrdered}
-            onClick={() => { editor.chain().focus().toggleOrderedList().run(); close(); }}
-          />
-          <PlusItem
-            label="Checklist"
-            icon={CheckSquare}
-            onClick={() => { editor.chain().focus().toggleTaskList().run(); close(); }}
-          />
-          <PlusItem
-            label="Quote"
-            icon={Quote}
-            onClick={() => { editor.chain().focus().toggleBlockquote().run(); close(); }}
-          />
-          {variant === "document" && (
-            <>
-              <div className="rt-plus__sep" />
-              <PlusItem
-                label="Heading 2"
-                icon={Heading2}
-                onClick={() => { editor.chain().focus().setHeading({ level: 2 }).run(); close(); }}
-              />
-              <PlusItem
-                label="Heading 3"
-                icon={Heading3}
-                onClick={() => { editor.chain().focus().setHeading({ level: 3 }).run(); close(); }}
-              />
-              <div className="rt-plus__sep" />
-              <PlusItem
-                label="Image"
-                icon={ImageIcon}
-                onClick={pickImage}
-              />
-              <PlusItem
-                label="Table"
-                icon={TableIcon}
-                onClick={() => { editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(); close(); }}
-              />
-              <PlusItem
-                label="Divider"
-                icon={Minus}
-                onClick={() => { editor.chain().focus().setHorizontalRule().run(); close(); }}
-              />
-              <div className="rt-plus__sep" />
-              <div className="rt-plus__group-label">Callouts</div>
-              <PlusItem
-                label="Note"
-                icon={Lightbulb}
-                onClick={() => { editor.chain().focus().setCallout({ variant: "note" }).run(); close(); }}
-              />
-              <PlusItem
-                label="Decision"
-                icon={CheckCircle2}
-                onClick={() => { editor.chain().focus().setCallout({ variant: "decision" }).run(); close(); }}
-              />
-              <div className="rt-plus__sep" />
-              <div className="rt-plus__group-label">Dharma blocks</div>
-              <PlusItem
-                label="Pull quote"
-                icon={Sparkles}
-                onClick={() => { editor.chain().focus().setPullQuote().run(); close(); }}
-              />
-              <PlusItem
-                label="Verse quote"
-                icon={BookOpen}
-                onClick={() => { editor.chain().focus().setVerseQuote().run(); close(); }}
-              />
-              <PlusItem
-                label="Practice suggestion"
-                icon={Sparkles}
-                onClick={() => { editor.chain().focus().setPracticeSuggestion().run(); close(); }}
-              />
-              <PlusItem
-                label="Reflection"
-                icon={MessageCircleQuestion}
-                onClick={() => { editor.chain().focus().setReflection().run(); close(); }}
-              />
-            </>
-          )}
-        </div>
-      )}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        style={{ display: "none" }}
-        onChange={onFile}
-      />
-    </div>
-  );
-}
-
-function PlusItem({
-  label,
-  icon: Icon,
-  onClick,
-}: {
-  label: string;
-  icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
-  onClick: () => void;
-}) {
-  return (
-    <button type="button" className="rt-plus__item" role="menuitem" onClick={onClick}>
-      <Icon size={14} strokeWidth={2} />
-      <span>{label}</span>
     </button>
   );
 }
