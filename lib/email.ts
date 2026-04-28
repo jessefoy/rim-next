@@ -8,7 +8,11 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 // NEXTAUTH_URL must be set in Vercel env vars (e.g. https://rim-next.vercel.app).
 // After DNS cutover, update to https://rootedinmindfulness.org.
-const BASE_URL = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+// Defensive: trim whitespace + strip trailing slash. A stray space in the
+// Vercel env var (we've hit this) lands directly inside email link URLs and
+// breaks them mid-string. Trim once here, never have to think about it again.
+const BASE_URL =
+  (process.env.NEXTAUTH_URL ?? "http://localhost:3000").trim().replace(/\/$/, "");
 
 // TODO: Switch EMAIL_FROM to a verified RIM domain after Resend DNS verification.
 const FROM = `Rooted In Mindfulness <${process.env.EMAIL_FROM ?? "onboarding@resend.dev"}>`;

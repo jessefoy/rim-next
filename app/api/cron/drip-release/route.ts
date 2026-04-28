@@ -3,7 +3,8 @@ import { db } from "@/lib/db";
 import { isLessonAvailable } from "@/lib/drip";
 import { sendDripLessonAvailableEmail } from "@/lib/email";
 
-const BASE_URL = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+const BASE_URL =
+  (process.env.NEXTAUTH_URL ?? "http://localhost:3000").trim().replace(/\/$/, "");
 
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");

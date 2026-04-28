@@ -2,7 +2,8 @@
 // Builds Google Calendar URLs and ICS file content for program events.
 // Used by confirmation emails, the program page, and the /api/programs/[slug]/ical route.
 
-const BASE_URL = process.env.NEXTAUTH_URL ?? "https://rim-next.vercel.app";
+const BASE_URL =
+  (process.env.NEXTAUTH_URL ?? "https://rim-next.vercel.app").trim().replace(/\/$/, "");
 
 export interface CalendarEvent {
   title: string;

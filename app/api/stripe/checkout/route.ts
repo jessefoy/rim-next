@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     }
 
     const baseUrl =
-      process.env.NEXTAUTH_URL || "https://rim-next.vercel.app";
+      (process.env.NEXTAUTH_URL || "https://rim-next.vercel.app").trim().replace(/\/$/, "");
 
     // Create Stripe Checkout session
     const session = await stripe.checkout.sessions.create({

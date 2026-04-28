@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { after } from "next/server";
 import { db } from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import {
@@ -92,8 +93,9 @@ export async function POST(
       })
     : null;
 
-  // Notify original host (fire-and-forget)
-  void (async () => {
+  // Notify original host. `after()` keeps the work alive past Response.json()
+  // so Vercel doesn't tear down the function before Resend completes.
+  after(async () => {
     try {
       const requester = subRequest.assignment.user;
       if (!requester) return;
@@ -109,7 +111,7 @@ export async function POST(
     } catch (e) {
       console.error("[sub-claim] notification error:", e);
     }
-  })();
+  });
 
   return Response.json({ ok: true });
 }

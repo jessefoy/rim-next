@@ -3,7 +3,7 @@
  * POST /api/programs-pg — Create a new program (REGISTRAR | ADMIN)
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { randomBytes } from "crypto";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
@@ -109,10 +109,10 @@ export async function POST(request: NextRequest) {
   // Notify the host team when a new virtual/hybrid program lands.
   // In-person programs don't need host coverage on the LiveKit side, so we
   // only fire for virtual/hybrid. Recipients exclude the registrar who
-  // created it (no point notifying yourself). Fire-and-forget; failure here
-  // never blocks the program-create response.
+  // created it (no point notifying yourself). `after()` keeps the work
+  // alive past the response so Vercel doesn't kill the in-flight emails.
   if (program.programFormat === "virtual" || program.programFormat === "hybrid") {
-    void (async () => {
+    after(async () => {
       try {
         const recipients = await getHubNotificationRecipients("host-team", {
           excludeUserId: session.user.id,
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
       } catch (e) {
         console.error("[programs-pg] new-program notification error:", e);
       }
-    })();
+    });
   }
 
   return NextResponse.json(program, { status: 201 });

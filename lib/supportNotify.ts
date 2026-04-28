@@ -12,7 +12,8 @@
 import { db } from "@/lib/db";
 import { sendTemplatedEmail } from "@/lib/email";
 
-const BASE_URL = process.env.NEXTAUTH_URL ?? "https://rim-next.vercel.app";
+const BASE_URL =
+  (process.env.NEXTAUTH_URL ?? "https://rim-next.vercel.app").trim().replace(/\/$/, "");
 
 interface NotifyOpts {
   threadId: string;

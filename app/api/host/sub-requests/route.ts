@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { after } from "next/server";
 import { db } from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import {
@@ -131,8 +132,11 @@ export async function POST(request: Request) {
       })
     : null;
 
-  // Send emails in background
-  void (async () => {
+  // Send emails after the response. `after()` keeps the work alive past
+  // Response.json() — without it, Vercel tears the function down and the
+  // in-flight Resend calls get killed (the symptom: emails arrive
+  // intermittently, or not at all).
+  after(async () => {
     try {
       const recipientUsers = await getHubNotificationRecipients("host-team", {
         excludeUserId: assignment.userId ?? undefined,
@@ -155,7 +159,7 @@ export async function POST(request: Request) {
     } catch (e) {
       console.error("[sub-requests] notification error:", e);
     }
-  })();
+  });
 
   return Response.json({ id: subRequest.id, ok: true });
 }
