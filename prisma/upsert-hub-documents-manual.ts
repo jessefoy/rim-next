@@ -12,7 +12,7 @@ async function main() {
   const body = {
     type: "rawHtml",
     html: `
-<p>Hub Documents let hub coordinators create, edit, and share documents within any hub workspace. Documents are created using the rich text editor (RimBlockEditor) and stored as structured data in the database.</p>
+<p>Hub Documents let hub coordinators create, edit, and share documents within any hub workspace. Documents are created using the rich text editor (RimTiptapEditor, document variant) and stored as plain HTML in the database.</p>
 
 <h2>Creating a document</h2>
 <p>Go to your hub's Documents tab and click <strong>"New Document"</strong>. You can also add external links via "Add Link." Native documents open in the built-in editor; link documents open in a new tab.</p>

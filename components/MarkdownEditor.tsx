@@ -4,8 +4,8 @@
  * MarkdownEditor — Tiptap-based markdown editor for email templates.
  *
  * This is NOT the standard editor for the platform. For all rich text fields
- * (notes, messages, documents, descriptions), use RimBlockEditor or RimProseEditor
- * which store BlockNote JSON. See RIM_Editor_Design.md.
+ * (notes, messages, documents, descriptions), use RimTiptapEditor which stores
+ * plain HTML strings. See RIM_Editor_Types.md.
  *
  * This editor exists solely for email templates, where markdown → marked() → juice()
  * → Resend is the correct pipeline for email-safe HTML output.
