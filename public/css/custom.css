@@ -15086,6 +15086,21 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   border-radius: 6px;
   margin: 0;
 }
+.hs-rot__toast {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--rim-text);
+  background: var(--color-success-bg);
+  padding: 10px 14px;
+  border-radius: 6px;
+  border-left: 3px solid var(--color-success);
+  margin: 0;
+  animation: hs-rot__toast-in 0.18s ease-out;
+}
+@keyframes hs-rot__toast-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 .hs-rot__empty {
   font-family: var(--font-sans);
   font-size: var(--text-small);
@@ -15180,7 +15195,6 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   align-items: center;
   justify-content: center;
 }
-.hs-rot__grid-cell--fifth { color: var(--rim-mid); font-style: italic; }
 .hs-rot__cell-empty { color: var(--rim-rule); }
 
 .hs-rot__grid-actions {

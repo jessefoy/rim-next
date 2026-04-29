@@ -171,18 +171,24 @@ export default function RotationsClient({ programs, teamMembers, year, month }: 
   const [rotations, setRotations] = useState<Rotation[]>([]);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState<string | null>(null);
+  const [toast, setToast]         = useState<string | null>(null);
 
   // Editing state — only one bundle (programSlug, dayOfWeek) edits at a time
   const [editing, setEditing] = useState<{ programSlug: string; dayOfWeek: DayOfWeek } | null>(null);
-  const [adding, setAdding]   = useState<string | null>(null); // programSlug being added to
   const [form, setForm]       = useState<FormState | null>(null);
   const [saving, setSaving]   = useState(false);
 
   // End-rotation confirm panel
   const [endingBundle, setEndingBundle] = useState<{ programSlug: string; dayOfWeek: DayOfWeek } | null>(null);
 
-  // Conflict modal — shown after save
+  // Conflict modal — shown ONLY when there are real conflicts to decide.
+  // Empty previews and conflict-free fills get a toast instead.
   const [pendingApply, setPendingApply] = useState<{ programSlug: string; dayOfWeek: DayOfWeek } | null>(null);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 4000);
+  };
 
   // ── Load existing rotations ────────────────────────────────────────────
   const loadRotations = useCallback(async () => {
@@ -216,37 +222,33 @@ export default function RotationsClient({ programs, teamMembers, year, month }: 
   }, [rotations]);
 
   // ── Form open / close ─────────────────────────────────────────────────
+  // For empty rows the form starts in "create" mode (Same pattern, no hosts).
+  // For filled rows the form pre-fills from detected pattern + existing hosts.
   const startEdit = (programSlug: string, dayOfWeek: DayOfWeek) => {
     const rows = rotationsByBundle.get(`${programSlug}::${dayOfWeek}`) ?? [];
-    const detected = detectPattern(rows);
-    const endsOn = rows[0]?.endsOn ? rows[0].endsOn.slice(0, 10) : "";
-    setForm({
-      programSlug,
-      dayOfWeek,
-      pattern:   detected.pattern,
-      hosts:     detected.hosts,
-      fifthHost: detected.fifthHost,
-      endsOn,
-    });
+    if (rows.length === 0) {
+      // Fresh setup
+      setForm({
+        programSlug,
+        dayOfWeek,
+        pattern:   "same",
+        hosts:     {},
+        fifthHost: "",
+        endsOn:    "",
+      });
+    } else {
+      const detected = detectPattern(rows);
+      const endsOn = rows[0]?.endsOn ? rows[0].endsOn.slice(0, 10) : "";
+      setForm({
+        programSlug,
+        dayOfWeek,
+        pattern:   detected.pattern,
+        hosts:     detected.hosts,
+        fifthHost: detected.fifthHost,
+        endsOn,
+      });
+    }
     setEditing({ programSlug, dayOfWeek });
-    setAdding(null);
-    setEndingBundle(null);
-    setError(null);
-  };
-
-  const startAdd = (program: Program) => {
-    // Default day: first day the program runs on, mapped to enum
-    const defaultDay = (program.recurrenceDays[0] ?? "MO") as DayOfWeek;
-    setForm({
-      programSlug: program.slug,
-      dayOfWeek:   defaultDay,
-      pattern:     "same",
-      hosts:       {},
-      fifthHost:   "",
-      endsOn:      "",
-    });
-    setAdding(program.slug);
-    setEditing(null);
     setEndingBundle(null);
     setError(null);
   };
@@ -254,15 +256,19 @@ export default function RotationsClient({ programs, teamMembers, year, month }: 
   const cancelForm = () => {
     setForm(null);
     setEditing(null);
-    setAdding(null);
     setError(null);
   };
 
   // ── Save ──────────────────────────────────────────────────────────────
+  // Three-branch flow after the records are saved:
+  //   1. Preview empty (no opens, no conflicts) → toast "Saved" only
+  //   2. Open slots only (no conflicts) → silent auto-apply with `leave` mode,
+  //      toast "Saved · N filled this month"
+  //   3. Has conflicts → open the conflict modal so coordinator decides
+  // The modal is reserved for the actual decision moment.
   const handleSave = async () => {
     if (!form) return;
 
-    // Validate: pattern needs at least one host
     const filled = Object.values(form.hosts).some((v) => v && v.length > 0);
     if (!filled) {
       setError("Pick at least one person before saving.");
@@ -273,7 +279,8 @@ export default function RotationsClient({ programs, teamMembers, year, month }: 
     setError(null);
 
     try {
-      const res = await fetch("/api/host/standing-assignments", {
+      // 1. Save records
+      const saveRes = await fetch("/api/host/standing-assignments", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({
@@ -285,16 +292,51 @@ export default function RotationsClient({ programs, teamMembers, year, month }: 
           endsOn:      form.endsOn || null,
         }),
       });
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => null);
+      if (!saveRes.ok) {
+        const errBody = await saveRes.json().catch(() => null);
         throw new Error(errBody?.error || "save failed");
       }
 
-      await loadRotations();
       const bundle = { programSlug: form.programSlug, dayOfWeek: form.dayOfWeek };
+
+      // 2. Preview to decide whether the modal is needed
+      const previewRes = await fetch("/api/host/standing-assignments/preview", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({
+          programSlug: bundle.programSlug,
+          dayOfWeek:   bundle.dayOfWeek,
+          year, month,
+        }),
+      });
+      const preview = previewRes.ok ? await previewRes.json() : null;
+
+      const openCount     = preview?.openSessions?.length ?? 0;
+      const conflictCount = preview?.conflicts?.length    ?? 0;
+
+      await loadRotations();
       cancelForm();
-      // Open the conflict modal for this saved bundle
-      setPendingApply(bundle);
+
+      if (conflictCount > 0) {
+        // 3a. Real decision needed — open modal
+        setPendingApply(bundle);
+      } else if (openCount > 0) {
+        // 3b. Silent apply with `leave` mode (no conflicts, just fill open slots)
+        await fetch("/api/host/standing-assignments/apply", {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({
+            programSlug: bundle.programSlug,
+            dayOfWeek:   bundle.dayOfWeek,
+            year, month,
+            resolution: "leave",
+          }),
+        });
+        showToast(`Rotation saved · ${openCount} session${openCount === 1 ? "" : "s"} filled this month`);
+      } else {
+        // 3c. Nothing to do this month (no opens, no conflicts) — just confirm
+        showToast("Rotation saved · already up to date for this month");
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong saving. Please try again.");
     } finally {
@@ -313,8 +355,14 @@ export default function RotationsClient({ programs, teamMembers, year, month }: 
         body:    JSON.stringify({ programSlug, dayOfWeek, releaseFuture }),
       });
       if (!res.ok) throw new Error("end failed");
+      const data = await res.json().catch(() => ({ ended: 0, released: 0 }));
       await loadRotations();
       setEndingBundle(null);
+      if (releaseFuture && data.released > 0) {
+        showToast(`Rotation ended · ${data.released} future session${data.released === 1 ? "" : "s"} released`);
+      } else {
+        showToast("Rotation ended");
+      }
     } catch {
       setError("Could not end this rotation. Please try again.");
     } finally {
@@ -337,6 +385,8 @@ export default function RotationsClient({ programs, teamMembers, year, month }: 
 
       {error && <p className="hs-rot__error">{error}</p>}
 
+      {toast && <div className="hs-rot__toast">{toast}</div>}
+
       {programs.length === 0 && (
         <p className="hs-rot__empty">No programs available.</p>
       )}
@@ -349,7 +399,6 @@ export default function RotationsClient({ programs, teamMembers, year, month }: 
           return null;
         }
         const days = DAY_ORDER.filter((d) => program.recurrenceDays.includes(d));
-        const isAdding = adding === program.slug;
         const editingHere = editing?.programSlug === program.slug ? editing.dayOfWeek : null;
 
         return (
@@ -442,25 +491,6 @@ export default function RotationsClient({ programs, teamMembers, year, month }: 
               })}
             </div>
 
-            {!isAdding && (
-              <button className="hs-rot__add" onClick={() => startAdd(program)}>
-                + Add rotation for this program
-              </button>
-            )}
-
-            {/* Add form — appears below the grid */}
-            {isAdding && form && (
-              <RotationForm
-                form={form}
-                setForm={setForm}
-                teamMembers={teamMembers}
-                saving={saving}
-                onSave={handleSave}
-                onCancel={cancelForm}
-                showDayPicker={program.recurrenceDays.length > 1}
-                allowedDays={program.recurrenceDays as DayOfWeek[]}
-              />
-            )}
           </div>
         );
       })}
@@ -640,23 +670,42 @@ function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, sh
         </>
       )}
 
-      {/* 5th-week host — always shown, optional */}
-      <div className="pe-field">
-        <span className="pe-field__label">5th-week host</span>
-        <span className="pe-field__help">For months with a 5th occurrence (rare). Leave blank to skip those weeks.</span>
-        <select
-          className="pe-select"
-          value={form.fifthHost}
-          onChange={(e) => setForm({ ...form, fifthHost: e.target.value })}
-        >
-          <option value="">— Skip 5th weeks —</option>
-          {teamMembers.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.displayName}{m.isCoordinator ? " ★" : ""}
-            </option>
-          ))}
-        </select>
-      </div>
+      {/* 5th-week host — copy depends on pattern.
+          Same pattern: blank means main host covers 5ths too (ALL record).
+          Other patterns: blank means skip 5th weeks (no FIFTH record). */}
+      {(() => {
+        const isSame = form.pattern === "same";
+        const mainHostId = form.hosts.every;
+        const mainHostName = mainHostId
+          ? teamMembers.find((m) => m.id === mainHostId)?.displayName ?? null
+          : null;
+        const helpText = isSame
+          ? (mainHostName
+              ? `Leave blank — ${mainHostName} hosts 5th weeks too. Pick someone else to override.`
+              : "Leave blank — same person hosts 5th weeks too. Pick someone else to override.")
+          : "For months with a 5th occurrence (rare). Leave blank to skip those weeks.";
+        const blankLabel = isSame
+          ? `— Same as main host ${mainHostName ? `(${mainHostName})` : ""} —`
+          : "— Skip 5th weeks —";
+        return (
+          <div className="pe-field">
+            <span className="pe-field__label">5th-week host</span>
+            <span className="pe-field__help">{helpText}</span>
+            <select
+              className="pe-select"
+              value={form.fifthHost}
+              onChange={(e) => setForm({ ...form, fifthHost: e.target.value })}
+            >
+              <option value="">{blankLabel}</option>
+              {teamMembers.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.displayName}{m.isCoordinator ? " ★" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+        );
+      })()}
 
       {/* End date — collapsed under affordance */}
       {form.endsOn ? (
