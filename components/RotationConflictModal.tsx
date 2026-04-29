@@ -53,6 +53,9 @@ interface Props {
   year:        number;
   month:       number;
   onClose:     () => void;
+  /** Fired after the apply call succeeds — parent uses this to refresh dependent
+   *  views (e.g. the Schedule's local sessions cache). */
+  onApplied?:  () => void;
 }
 
 const SOURCE_LABEL: Record<Conflict["source"], string> = {
@@ -62,7 +65,7 @@ const SOURCE_LABEL: Record<Conflict["source"], string> = {
   "sub-cover":      "sub-cover (protected)",
 };
 
-export default function RotationConflictModal({ standingId, programSlug, dayOfWeek, year, month, onClose }: Props) {
+export default function RotationConflictModal({ standingId, programSlug, dayOfWeek, year, month, onClose, onApplied }: Props) {
   const [preview, setPreview]     = useState<Preview | null>(null);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState<string | null>(null);
@@ -116,6 +119,7 @@ export default function RotationConflictModal({ standingId, programSlug, dayOfWe
       if (!res.ok) throw new Error("apply failed");
       const data = await res.json();
       setResult({ filled: data.filled, replaced: data.replaced, kept: data.kept });
+      onApplied?.();
     } catch {
       setError("Apply failed. Please try again.");
     } finally {

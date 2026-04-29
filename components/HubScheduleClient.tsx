@@ -834,12 +834,16 @@ export default function HubScheduleClient({
       )}
 
       {/* Rotations view */}
+      {/* When rotations apply changes, refresh the schedule's local sessions
+          state so the new HostAssignments + via-rotation markers appear when
+          the user switches back to Schedule. */}
       {view === "rotations" && (
         <RotationsClient
           programs={programs}
           teamMembers={teamMembers}
           year={year}
           month={month + 1}
+          onScheduleStale={() => loadMonth(year, month)}
         />
       )}
 

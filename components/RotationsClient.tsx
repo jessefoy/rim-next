@@ -67,6 +67,9 @@ interface Props {
   teamMembers: TeamMember[];
   year:        number;
   month:       number;
+  /** Called after any rotation change that may have created/modified HostAssignment
+   *  rows so the parent (Schedule view) can refresh its display. */
+  onScheduleStale?: () => void;
 }
 
 interface FormState {
@@ -167,7 +170,7 @@ function detectPattern(rows: Rotation[]): { pattern: Pattern; hosts: FormState["
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export default function RotationsClient({ programs, teamMembers, year, month }: Props) {
+export default function RotationsClient({ programs, teamMembers, year, month, onScheduleStale }: Props) {
   const [rotations, setRotations] = useState<Rotation[]>([]);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState<string | null>(null);
@@ -318,11 +321,11 @@ export default function RotationsClient({ programs, teamMembers, year, month }: 
       cancelForm();
 
       if (conflictCount > 0) {
-        // 3a. Real decision needed — open modal
+        // 3a. Real decision needed — open modal. Modal will fire onScheduleStale on apply.
         setPendingApply(bundle);
       } else if (openCount > 0) {
         // 3b. Silent apply with `leave` mode (no conflicts, just fill open slots)
-        await fetch("/api/host/standing-assignments/apply", {
+        const applyRes = await fetch("/api/host/standing-assignments/apply", {
           method:  "POST",
           headers: { "Content-Type": "application/json" },
           body:    JSON.stringify({
@@ -332,7 +335,13 @@ export default function RotationsClient({ programs, teamMembers, year, month }: 
             resolution: "leave",
           }),
         });
-        showToast(`Rotation saved · ${openCount} session${openCount === 1 ? "" : "s"} filled this month`);
+        if (!applyRes.ok) {
+          throw new Error("apply failed — rotation saved but sessions not yet filled");
+        }
+        const applyData = await applyRes.json().catch(() => ({ filled: 0 }));
+        const filled = applyData.filled ?? 0;
+        showToast(`Rotation saved · ${filled} session${filled === 1 ? "" : "s"} filled this month`);
+        onScheduleStale?.();
       } else {
         // 3c. Nothing to do this month (no opens, no conflicts) — just confirm
         showToast("Rotation saved · already up to date for this month");
@@ -360,8 +369,12 @@ export default function RotationsClient({ programs, teamMembers, year, month }: 
       setEndingBundle(null);
       if (releaseFuture && data.released > 0) {
         showToast(`Rotation ended · ${data.released} future session${data.released === 1 ? "" : "s"} released`);
+        onScheduleStale?.();
       } else {
         showToast("Rotation ended");
+        // Even when not releasing, the rotation's endsOn changed — schedule's
+        // "via rotation" pill / future cron behavior is affected. Refresh to be safe.
+        onScheduleStale?.();
       }
     } catch {
       setError("Could not end this rotation. Please try again.");
@@ -502,6 +515,7 @@ export default function RotationsClient({ programs, teamMembers, year, month }: 
           year={year}
           month={month}
           onClose={() => setPendingApply(null)}
+          onApplied={() => onScheduleStale?.()}
         />
       )}
     </div>
