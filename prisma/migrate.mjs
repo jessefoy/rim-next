@@ -1508,6 +1508,11 @@ function blockNoteToHtml(blocks) {
 
 async function main() {
   console.log("Running migrations...");
+  // Ensure flag table exists before any migration runs (some check it before any
+  // migration has had a chance to CREATE TABLE IF NOT EXISTS it).
+  await db.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
+  `);
   for (const m of migrations) {
     await m.run();
   }
