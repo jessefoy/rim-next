@@ -535,6 +535,48 @@ export async function sendNewProgramNeedsHostEmail(data: NewProgramNeedsHostEmai
   });
 }
 
+// ─── Standing assignment scheduled notification ───────────────────────────────
+
+export interface StandingAssignmentScheduledEmailData {
+  to: string;
+  firstName: string | null;
+  sessions: Array<{ programName: string; dateLabel: string }>;
+}
+
+/**
+ * Sent to a host when standing-assignment logic auto-creates one or more
+ * HostAssignment records for them. Groups all newly scheduled sessions for
+ * that host into a single email so they don't receive one per session.
+ *
+ * Bypasses the template manager — content is straightforward and doesn't
+ * need coordinator editing.
+ */
+export async function sendStandingAssignmentScheduledEmail(
+  data: StandingAssignmentScheduledEmailData
+): Promise<void> {
+  if (data.sessions.length === 0) return;
+  const count = data.sessions.length;
+  const listHtml = data.sessions
+    .map((s) => `<li style="margin-bottom:6px;">${s.programName} &mdash; ${s.dateLabel}</li>`)
+    .join("");
+  const subject =
+    count === 1
+      ? `You're scheduled to host ${data.sessions[0].programName}`
+      : `You're scheduled to host ${count} sessions this month`;
+  const html = `
+<p>Hi ${data.firstName ?? "there"},</p>
+<p>Your standing rotation has been applied. You're scheduled to host the following ${count === 1 ? "session" : "sessions"}:</p>
+<ul style="font-size:16px;line-height:1.7;padding-left:20px;">${listHtml}</ul>
+<p>If you need coverage for any of these, <a href="${BASE_URL}/tools/schedule" style="color:#135274;">post a sub-request</a> from the Host Schedule.</p>
+<p style="color:#666;font-size:14px;">This is an automated message from your standing host rotation.</p>`;
+
+  try {
+    await resend.emails.send({ from: FROM, to: data.to, subject, html });
+  } catch (e) {
+    console.error("[email] sendStandingAssignmentScheduledEmail failed:", e);
+  }
+}
+
 // ── Removed: sendNewThreadEmail + NewThreadEmailData (session 76) ────────────
 // Superseded by sendHubConvNewThreadEmail (generic, any hub). Zero call sites.
 

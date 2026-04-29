@@ -1,0 +1,71 @@
+/**
+ * GET /api/cron/apply-standing-assignments
+ *
+ * Runs daily at 8 AM UTC. Applies all active standing assignments to the
+ * current month's open sessions. Idempotent — skips sessions that already
+ * have a HostAssignment.
+ *
+ * On the 1st of the month, also pre-fills next month so hosts know their
+ * schedule in advance.
+ */
+
+import { after } from "next/server";
+import { applyStandingAssignments } from "@/lib/applyStandingAssignments";
+import { sendStandingAssignmentScheduledEmail } from "@/lib/email";
+
+export const dynamic = "force-dynamic";
+
+export async function GET(request: Request) {
+  const authHeader = request.headers.get("authorization");
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const now = new Date(
+    new Date().toLocaleString("en-US", { timeZone: "America/Chicago" })
+  );
+  const year  = now.getFullYear();
+  const month = now.getMonth() + 1;
+
+  const current = await applyStandingAssignments(null, year, month);
+
+  // On the 1st, also pre-fill next month
+  let nextCreated = 0;
+  const nextByUser = new Map<string, Array<{ programName: string; dateLabel: string; userEmail: string; firstName: string | null }>>();
+
+  if (now.getDate() === 1) {
+    const nextMonth = month === 12 ? 1      : month + 1;
+    const nextYear  = month === 12 ? year + 1 : year;
+    const next = await applyStandingAssignments(null, nextYear, nextMonth);
+    nextCreated = next.created;
+    for (const [uid, sessions] of next.byUser) {
+      // Merge into existing notifications rather than sending separate emails
+      if (!nextByUser.has(uid)) nextByUser.set(uid, []);
+      nextByUser.get(uid)!.push(...sessions);
+    }
+  }
+
+  // Merge current + next-month sessions per user, then send one email per person
+  const allByUser = new Map<string, Array<{ programName: string; dateLabel: string; userEmail: string; firstName: string | null }>>();
+  for (const [uid, sessions] of [...current.byUser, ...nextByUser]) {
+    if (!allByUser.has(uid)) allByUser.set(uid, []);
+    allByUser.get(uid)!.push(...sessions);
+  }
+
+  after(async () => {
+    for (const [, sessions] of allByUser) {
+      if (sessions.length === 0) continue;
+      const { userEmail, firstName } = sessions[0];
+      await sendStandingAssignmentScheduledEmail({
+        to: userEmail,
+        firstName,
+        sessions: sessions.map((s) => ({ programName: s.programName, dateLabel: s.dateLabel })),
+      });
+    }
+  });
+
+  return Response.json({
+    currentMonth: { created: current.created },
+    nextMonth:    { created: nextCreated },
+  });
+}

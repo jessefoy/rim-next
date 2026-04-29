@@ -139,6 +139,8 @@ model User {
   dripNotifications    DripNotification[]
   siteBannersCreated   SiteBanner[]          @relation("SiteBannerCreator")
   siteBannerDismissals SiteBannerDismissal[] @relation("SiteBannerDismissal")
+  standingAssignments        StandingAssignment[] @relation("StandingAssignmentHost")
+  standingAssignmentsCreated StandingAssignment[] @relation("StandingAssignmentCreator")
 
   @@map("users")
 }
@@ -836,6 +838,49 @@ enum SubStatus {
   OPEN
   CLAIMED
   CANCELLED
+}
+
+// ─── STANDING ASSIGNMENTS (host rotation patterns) ───────────────────────────
+//
+// A standing assignment says "User X hosts Program Y on occurrence Z of every
+// month." When sessions are generated or applied, any session whose occurrence
+// number matches a standing assignment (and whose date is within the active
+// window) gets a HostAssignment created automatically.
+//
+// One host per slot: @@unique([programSlug, occurrence]) — updating a slot
+// upserts the same record rather than creating duplicates.
+//
+// Occurrence meaning (within the month for this specific program):
+//   FIRST  = 1st time this program runs in the month
+//   SECOND = 2nd time, etc.
+//   FIFTH  = 5th time — only relevant for weekly programs; some months it won't fire
+//   ALL    = every occurrence (host covers the program every week it runs)
+
+enum StandingOccurrence {
+  FIRST
+  SECOND
+  THIRD
+  FOURTH
+  FIFTH
+  ALL
+}
+
+model StandingAssignment {
+  id          String             @id @default(cuid())
+  programSlug String
+  userId      String
+  occurrence  StandingOccurrence
+  startsOn    DateTime           @default(now())
+  endsOn      DateTime?
+  createdById String
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  user        User               @relation("StandingAssignmentHost",    fields: [userId],      references: [id])
+  createdBy   User               @relation("StandingAssignmentCreator", fields: [createdById], references: [id])
+
+  @@unique([programSlug, occurrence])
+  @@map("standing_assignments")
 }
 
 // HostThread and HostReply models removed in session 76 (hub conformance).

@@ -22,6 +22,11 @@ const RimTiptapEditor = dynamic(
   { ssr: false, loading: () => <div style={{ minHeight: 60 }} /> },
 );
 
+const RotationsClient = dynamic(
+  () => import("@/components/RotationsClient"),
+  { ssr: false, loading: () => <p className="hs-loading">Loading rotations…</p> },
+);
+
 interface Session {
   id: string;
   programId: string | null;
@@ -423,11 +428,15 @@ function HsRow({
 // ── Main ────────────────────────────────────────────────────
 
 export default function HubScheduleClient({
-  initialSessions, teamMembers, initialYear, initialMonth, currentUserId, currentUserName,
+  initialSessions, programs, teamMembers, initialYear, initialMonth,
+  currentUserId, currentUserName,
   isHostManager = false, apiBase = "/api/host",
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // "schedule" = agenda view (default), "rotations" = standing-assignment manager
+  const [view, setView] = useState<"schedule" | "rotations">("schedule");
 
   const [sessions, setSessions] = useState<Session[]>(initialSessions);
   const [year, setYear] = useState(initialYear);
@@ -773,6 +782,42 @@ export default function HubScheduleClient({
 
   return (
     <div className="hs-page">
+
+      {/* View tab strip — Schedule | Rotations (manager/coordinator only) */}
+      {isHostManager && (
+        <div className="hs-viewtabs" role="tablist" aria-label="Schedule views">
+          <button
+            role="tab"
+            aria-selected={view === "schedule"}
+            className={`hs-viewtab${view === "schedule" ? " hs-viewtab--active" : ""}`}
+            onClick={() => setView("schedule")}
+          >
+            Schedule
+          </button>
+          <button
+            role="tab"
+            aria-selected={view === "rotations"}
+            className={`hs-viewtab${view === "rotations" ? " hs-viewtab--active" : ""}`}
+            onClick={() => setView("rotations")}
+          >
+            Rotations
+          </button>
+        </div>
+      )}
+
+      {/* Rotations view */}
+      {view === "rotations" && (
+        <RotationsClient
+          programs={programs}
+          teamMembers={teamMembers}
+          year={year}
+          month={month + 1}
+        />
+      )}
+
+      {/* Schedule view — hidden when rotations is active */}
+      {view === "schedule" && <>
+
       {/* Month nav */}
       <div className="hs-monthnav">
         <button className="hs-monthnav__btn" onClick={prevMonth} aria-label="Previous month">←</button>
@@ -977,6 +1022,8 @@ export default function HubScheduleClient({
       />
 
       <Toast msg={toast} />
+
+      </> /* end schedule view */}
     </div>
   );
 }

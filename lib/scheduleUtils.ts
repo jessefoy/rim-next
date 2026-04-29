@@ -59,6 +59,29 @@ export interface ScheduleProgram {
 }
 
 /**
+ * Returns the 1-based occurrence number of this program session within its
+ * calendar month. Counts how many times the program runs in that month up to
+ * and including dateStr.
+ *
+ * e.g. if a program runs every Tuesday and dateStr is the 3rd Tuesday of the
+ * month, this returns 3.
+ *
+ * Used by standing-assignment logic to match occurrence patterns (FIRST–FIFTH).
+ */
+export function getOccurrenceInMonth(dateStr: string, program: ScheduleProgram): number {
+  const [yearStr, monthStr, dayStr] = dateStr.split("-");
+  const year  = parseInt(yearStr, 10);
+  const month = parseInt(monthStr, 10);
+  const day   = parseInt(dayStr, 10);
+  let count = 0;
+  for (let d = 1; d <= day; d++) {
+    const check = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    if (isOccurrenceOnDate(program, check)) count++;
+  }
+  return count;
+}
+
+/**
  * Does this program have a session on the given date?
  * dateStr must be "YYYY-MM-DD" format.
  */

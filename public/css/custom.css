@@ -14517,6 +14517,7 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 /* ═══════════════════════════════════════════════════
    HOST SCHEDULE — Team Agenda View  (hs- prefix)
    /tools/schedule
+   Two views: Schedule (agenda) + Rotations (standing-assignment manager).
    Filter pills + week-bucketed agenda rows.
    Default view shows the full team schedule (collective awareness).
    Filter narrows to: All / Needs help / Mine / My requests.
@@ -15029,6 +15030,191 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 /* Inherited button colors (kept for compat with lr-btn--host) */
 .lr-btn--host { background: #d9840f; }
 .lr-btn--host:hover { background: #b56b05; opacity: 1; color: #fff; }
+
+/* ── View tab strip (Schedule / Rotations) ──────────────────────────────── */
+.hs-viewtabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--rim-rule);
+  margin-bottom: 4px;
+}
+.hs-viewtab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: 8px 20px 10px;
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  font-weight: 500;
+  color: var(--rim-mid);
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+}
+.hs-viewtab:hover { color: var(--rim-text); }
+.hs-viewtab--active {
+  color: var(--rim-blue);
+  border-bottom-color: var(--rim-blue);
+}
+
+/* ── Rotations view (hs-rot-) ────────────────────────────────────────────── */
+.hs-rot {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.hs-rot__intro {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--rim-mid);
+  margin: 0;
+  line-height: var(--lh-body);
+}
+.hs-rot__error {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--color-error);
+  background: var(--color-error-bg);
+  padding: 10px 14px;
+  border-radius: 6px;
+  margin: 0;
+}
+.hs-rot__empty {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--rim-mid);
+  text-align: center;
+  padding: 40px 0;
+  margin: 0;
+}
+
+/* Program block */
+.hs-rot__program {
+  background: #fff;
+  border-radius: 8px;
+  border-left: 3px solid var(--rim-rule);
+  padding: 18px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.hs-rot__program-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.hs-rot__program-name {
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--rim-text);
+}
+.hs-rot__program-format {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--rim-mid);
+}
+
+/* Occurrence slots */
+.hs-rot__slots {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.hs-rot__slot {
+  display: grid;
+  grid-template-columns: 140px 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+/* 5th occurrence — visually de-emphasised; only fires some months */
+.hs-rot__slot--fifth {
+  opacity: 0.65;
+}
+.hs-rot__slot--fifth:focus-within { opacity: 1; }
+.hs-rot__slot-label {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--rim-mid);
+  white-space: nowrap;
+}
+.hs-rot__select {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--rim-text);
+  background: #fff;
+  border: 1px solid var(--rim-rule);
+  border-radius: 6px;
+  padding: 7px 10px;
+  min-height: 38px;
+  cursor: pointer;
+  transition: border-color 0.12s;
+}
+.hs-rot__select:focus { outline: 2px solid var(--rim-blue); outline-offset: 1px; border-color: var(--rim-blue); }
+.hs-rot__select:hover { border-color: var(--rim-mid); }
+
+/* Optional end date (shown when a host is assigned) */
+.hs-rot__ends-on {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.hs-rot__ends-label {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--rim-text-muted);
+  white-space: nowrap;
+}
+.hs-rot__date-input {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--rim-text);
+  border: 1px solid var(--rim-rule);
+  border-radius: 6px;
+  padding: 4px 8px;
+  min-height: 32px;
+  transition: border-color 0.12s;
+}
+.hs-rot__date-input:focus { outline: 2px solid var(--rim-blue); outline-offset: 1px; }
+
+/* Footer — save button + confirmation */
+.hs-rot__footer {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-top: 4px;
+}
+.hs-rot__save {
+  background: var(--rim-blue);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 20px;
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  font-weight: 500;
+  cursor: pointer;
+  min-height: 38px;
+  transition: opacity 0.12s;
+}
+.hs-rot__save:hover   { opacity: 0.88; }
+.hs-rot__save:disabled { opacity: 0.55; cursor: default; }
+.hs-rot__saved-msg {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--color-success);
+}
+
+/* Mobile — stack slot label above select + date */
+@media (max-width: 560px) {
+  .hs-rot__slot {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .hs-rot__slot-label { font-weight: 600; color: var(--rim-text); }
+  .hs-rot__ends-on { margin-top: 4px; }
+}
 
 /* Tablet — collapse 3-column row to stacked; right area goes horizontal */
 @media (max-width: 760px) {

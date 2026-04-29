@@ -19,8 +19,8 @@
       "schedule": "0 5 * * *"
     },
     {
-      "path": "/api/cron/seed-host-sessions",
-      "schedule": "0 2 * * *"
+      "path": "/api/cron/apply-standing-assignments",
+      "schedule": "0 8 * * *"
     },
     {
       "path": "/api/cron/missing-reports",
