@@ -865,7 +865,14 @@ function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, sh
         <button
           type="button"
           className="hs-rot__form-link"
-          onClick={() => setForm({ ...form, endsOn: new Date().toISOString().slice(0, 10) })}
+          onClick={() => setForm({
+            ...form,
+            // Default end date = last day of the current year. Most rotations
+            // are reviewed annually; this matches the natural cadence and
+            // saves the coordinator from typing the date manually. They can
+            // change it before saving or remove it entirely.
+            endsOn: `${new Date().getFullYear()}-12-31`,
+          })}
         >
           + Add an end date (optional)
         </button>
