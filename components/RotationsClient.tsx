@@ -67,6 +67,8 @@ interface Props {
   teamMembers: TeamMember[];
   year:        number;
   month:       number;
+  /** ADMIN-only — shows the nuclear-reset danger zone at the bottom. */
+  isAdmin?: boolean;
   /** Called after any rotation change that may have created/modified HostAssignment
    *  rows so the parent (Schedule view) can refresh its display. */
   onScheduleStale?: () => void;
@@ -170,7 +172,7 @@ function detectPattern(rows: Rotation[]): { pattern: Pattern; hosts: FormState["
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export default function RotationsClient({ programs, teamMembers, year, month, onScheduleStale }: Props) {
+export default function RotationsClient({ programs, teamMembers, year, month, isAdmin = false, onScheduleStale }: Props) {
   const [rotations, setRotations] = useState<Rotation[]>([]);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState<string | null>(null);
@@ -191,6 +193,35 @@ export default function RotationsClient({ programs, teamMembers, year, month, on
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 4000);
+  };
+
+  // Danger-zone state — two-step confirm before clearing assignments
+  const [clearConfirm, setClearConfirm] = useState<"future" | "all" | null>(null);
+  const [clearing, setClearing]         = useState(false);
+
+  const handleClear = async (scope: "future" | "all") => {
+    setClearing(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/host/assignments/clear", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ scope }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error || "clear failed");
+      }
+      const data = await res.json();
+      const word = scope === "future" ? "upcoming" : "total";
+      showToast(`Cleared · ${data.deleted} ${word} host assignment${data.deleted === 1 ? "" : "s"} removed`);
+      setClearConfirm(null);
+      onScheduleStale?.();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not clear assignments.");
+    } finally {
+      setClearing(false);
+    }
   };
 
   // ── Load existing rotations ────────────────────────────────────────────
@@ -517,6 +548,61 @@ export default function RotationsClient({ programs, teamMembers, year, month, on
           onClose={() => setPendingApply(null)}
           onApplied={() => onScheduleStale?.()}
         />
+      )}
+
+      {/* Danger zone — admin-only nuclear reset for host assignments. Useful
+          when starting fresh, recovering from misconfigured rotations, or
+          diagnosing why something isn't behaving as expected. */}
+      {isAdmin && (
+        <div className="hs-rot__danger">
+          <h3 className="hs-rot__danger-h">Reset host schedule</h3>
+          <p className="hs-rot__danger-hint">
+            These actions remove host assignments from the schedule. Standing
+            rotation rules are not affected — to also stop new assignments
+            from being created, end the rotations above first.
+          </p>
+
+          {clearConfirm === null ? (
+            <div className="hs-rot__danger-actions">
+              <button
+                className="hs-rot__danger-btn"
+                onClick={() => setClearConfirm("future")}
+              >
+                Clear upcoming host assignments
+              </button>
+              <button
+                className="hs-rot__danger-btn hs-rot__danger-btn--all"
+                onClick={() => setClearConfirm("all")}
+              >
+                Clear all host assignments (past + future)
+              </button>
+            </div>
+          ) : (
+            <div className="hs-rot__danger-confirm">
+              <p className="hs-rot__danger-q">
+                {clearConfirm === "future"
+                  ? "Delete every upcoming host assignment? Past assignments stay intact. Standing rotations remain — the cron may re-fill matching dates on its next run."
+                  : "Delete EVERY host assignment, past and future? This cannot be undone. Use only when starting completely fresh."}
+              </p>
+              <div className="hs-rot__danger-confirm-actions">
+                <button
+                  className={`hs-rot__danger-btn${clearConfirm === "all" ? " hs-rot__danger-btn--all" : ""}`}
+                  onClick={() => handleClear(clearConfirm)}
+                  disabled={clearing}
+                >
+                  {clearing ? "Clearing…" : `Yes, clear ${clearConfirm === "future" ? "upcoming" : "all"}`}
+                </button>
+                <button
+                  className="hs-rot__danger-cancel"
+                  onClick={() => setClearConfirm(null)}
+                  disabled={clearing}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

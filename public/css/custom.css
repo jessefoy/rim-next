@@ -15348,6 +15348,94 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 .hs-rot__end-cancel:hover { color: var(--rim-text); }
 
+/* Danger zone — ADMIN-only at the bottom of the rotations panel.
+   Visually separated, muted at rest, escalates to error tone on confirm. */
+.hs-rot__danger {
+  margin-top: 24px;
+  padding: 18px 20px;
+  background: var(--rim-bg);
+  border-radius: 8px;
+  border: 1px dashed var(--rim-rule);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.hs-rot__danger-h {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  color: var(--rim-mid);
+}
+.hs-rot__danger-hint {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--rim-mid);
+  line-height: var(--lh-body);
+  max-width: 640px;
+}
+.hs-rot__danger-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.hs-rot__danger-btn {
+  background: #fff;
+  border: 1px solid var(--rim-rule);
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--rim-text);
+  cursor: pointer;
+  min-height: 36px;
+  transition: border-color 0.12s, color 0.12s;
+}
+.hs-rot__danger-btn:hover {
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+.hs-rot__danger-btn--all:hover {
+  background: var(--color-error-bg);
+}
+.hs-rot__danger-btn:disabled { opacity: 0.55; cursor: default; }
+
+.hs-rot__danger-confirm {
+  background: var(--color-error-bg);
+  border-radius: 6px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.hs-rot__danger-q {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--rim-text);
+  line-height: var(--lh-body);
+}
+.hs-rot__danger-confirm-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.hs-rot__danger-cancel {
+  background: none;
+  border: none;
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--rim-mid);
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 6px 4px;
+}
+.hs-rot__danger-cancel:hover { color: var(--rim-text); }
+
 /* Mobile — stack the grid as horizontally-scrolling cards */
 @media (max-width: 760px) {
   .hs-rot__grid-head { display: none; }

@@ -35,6 +35,7 @@ export default async function ScheduleToolPage({
 
   const roles = session.user.roles ?? [];
   const isHostManager = roles.includes("HOST_MANAGER") || roles.includes("ADMIN");
+  const isAdmin = roles.includes("ADMIN");
 
   // Fetch hub context (members, coordinator) from ?hub= param or fall back to host-team
   const { hub: hubSlug } = await searchParams;
@@ -224,6 +225,7 @@ export default async function ScheduleToolPage({
         currentUserName={session.user.name || session.user.email?.split("@")[0] || ""}
         coordinatorName={coordinatorName}
         isHostManager={isHostManager}
+        isAdmin={isAdmin}
         myRotations={myRotations}
         apiBase="/api/host"
       />

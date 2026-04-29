@@ -83,6 +83,8 @@ interface Props {
   currentUserName: string;
   coordinatorName?: string;
   isHostManager?: boolean;
+  /** ADMIN-only privileges (e.g. nuclear reset of host assignments). */
+  isAdmin?: boolean;
   /** The current user's active standing rotations (host-side summary only). */
   myRotations?: MyRotation[];
   apiBase?: string;
@@ -458,7 +460,7 @@ const OCC_HUMAN: Record<MyRotation["occurrence"], string> = {
 export default function HubScheduleClient({
   initialSessions, programs, teamMembers, initialYear, initialMonth,
   currentUserId, currentUserName,
-  isHostManager = false, myRotations = [], apiBase = "/api/host",
+  isHostManager = false, isAdmin = false, myRotations = [], apiBase = "/api/host",
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -843,6 +845,7 @@ export default function HubScheduleClient({
           teamMembers={teamMembers}
           year={year}
           month={month + 1}
+          isAdmin={isAdmin}
           onScheduleStale={() => loadMonth(year, month)}
         />
       )}
