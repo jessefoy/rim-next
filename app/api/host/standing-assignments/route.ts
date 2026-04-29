@@ -69,13 +69,22 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const programSlug = searchParams.get("programSlug");
-  const userId      = searchParams.get("userId");
+  const programSlug   = searchParams.get("programSlug");
+  const userId        = searchParams.get("userId");
+  // ?includeEnded=1 returns ended rotations too. Default: active only — ended
+  // rotations would otherwise display in the grid as if active and let users
+  // edit/save them with stale endsOn=today values.
+  const includeEnded  = searchParams.get("includeEnded") === "1";
+
+  const now = new Date();
 
   const assignments = await db.standingAssignment.findMany({
     where: {
       ...(programSlug ? { programSlug } : {}),
       ...(userId      ? { userId      } : {}),
+      ...(includeEnded
+        ? {}
+        : { OR: [{ endsOn: null }, { endsOn: { gte: now } }] }),
     },
     include: {
       user: { select: { id: true, firstName: true, lastName: true, preferredName: true } },

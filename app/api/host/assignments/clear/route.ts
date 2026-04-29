@@ -1,23 +1,26 @@
 /**
  * POST /api/host/assignments/clear
  *
- * ADMIN-only nuclear reset for the host schedule. Two scopes:
+ * ADMIN-only nuclear reset for the host schedule.
  *
- *   { scope: "future" }
- *     Deletes all HostAssignment rows where sessionDate >= today (CT).
- *     Past assignments are preserved as historical record. Standing
- *     rotations are NOT ended — the next cron run will re-fill matching
- *     dates. Useful for "I want to redo this month's roster from scratch
- *     without losing history."
+ * Body:
+ *   { scope: "future" | "all",
+ *     endRotations?: boolean }
  *
- *   { scope: "all" }
- *     Deletes EVERY HostAssignment row, past and future. Use only when
- *     genuinely starting over (e.g. test / diagnostic reset).
+ * Modes:
+ *   { scope: "future" }                         "Clear upcoming schedule"
+ *     Deletes HostAssignment rows where sessionDate >= today (CT). Past
+ *     assignments preserved. Standing rotations remain — cron may re-fill.
  *
- * Standing rotations are not touched — to also stop new assignments from
- * being generated, end the rotations separately via /end-bundle.
+ *   { scope: "all", endRotations: true }        "Reset everything"
+ *     Deletes every HostAssignment row (past + future) AND deletes every
+ *     StandingAssignment record. Truly fresh start. Use only when redoing
+ *     the entire host system from scratch.
  *
- * Returns: { deleted: number, scope: string }
+ *   { scope: "all" } / { scope: "future", endRotations: true } also valid
+ *   for finer-grained scenarios.
+ *
+ * Returns: { deletedAssignments: number, deletedRotations: number, scope: string }
  */
 
 import { auth } from "@/auth";
@@ -34,7 +37,8 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const scope = body?.scope as string | undefined;
+  const scope         = body?.scope as string | undefined;
+  const endRotations  = body?.endRotations === true;
 
   if (scope !== "future" && scope !== "all") {
     return Response.json(
@@ -43,7 +47,8 @@ export async function POST(request: Request) {
     );
   }
 
-  let deleted = 0;
+  let deletedAssignments = 0;
+  let deletedRotations   = 0;
 
   if (scope === "future") {
     // CT-anchored "today"
@@ -59,14 +64,22 @@ export async function POST(request: Request) {
     const result = await db.hostAssignment.deleteMany({
       where: { sessionDate: { gte: todayCt } },
     });
-    deleted = result.count;
+    deletedAssignments = result.count;
   } else {
-    // Everything. Also clear sub-request chain to avoid orphaned rows.
+    // Everything. Clear sub-request chain to avoid orphaned rows.
     await db.subClaim.deleteMany({});
     await db.subRequest.deleteMany({});
     const result = await db.hostAssignment.deleteMany({});
-    deleted = result.count;
+    deletedAssignments = result.count;
   }
 
-  return Response.json({ deleted, scope });
+  if (endRotations) {
+    // Hard delete — true fresh start. The HostAssignment cascade is SetNull
+    // on standingAssignmentId, so any past assignments we kept lose the FK
+    // but stay as historical record (manual-looking).
+    const rotResult = await db.standingAssignment.deleteMany({});
+    deletedRotations = rotResult.count;
+  }
+
+  return Response.json({ deletedAssignments, deletedRotations, scope });
 }
