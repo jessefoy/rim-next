@@ -14663,6 +14663,7 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   border-radius: 50px 0 0 50px;
   border-right: none;
   padding-right: 12px;
+  margin-right: -1px;
 }
 .hs-filter__caret {
   background: #fff;
@@ -14784,11 +14785,12 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   border-left: 3px solid transparent;
   padding: 14px 18px 14px 16px;
   display: grid;
-  grid-template-columns: 130px 1fr 200px auto;
+  grid-template-columns: 130px 1fr auto;
   gap: 18px;
   align-items: center;
   transition: border-color 0.12s;
 }
+.hs-row--covered     { border-left-color: #ddd; }
 .hs-row--needs-host  { border-left-color: #d9840f; }
 .hs-row--needs-sub   { border-left-color: #c44a20; }
 .hs-row--mine        { border-left-color: var(--rim-blue); }
@@ -14835,11 +14837,18 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   color: var(--rim-mid);
 }
 
+.hs-row__right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
 .hs-row__who {
   font-family: var(--font-sans);
   font-size: var(--text-small);
+  text-align: right;
 }
-.hs-row__status--needs   { color: #b56b05; font-weight: 600; }
+.hs-row__status--needs   { color: var(--rim-mid); font-weight: 500; }
 .hs-row__status--mine    { color: var(--rim-blue); font-weight: 600; }
 .hs-row__status--asking  { color: #b56b05; font-weight: 600; }
 .hs-row__status--covered { color: var(--rim-mid); }
@@ -14857,16 +14866,17 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 .hs-row__quiet {
   background: none;
-  border: none;
+  border: 1px solid var(--rim-rule);
+  border-radius: 50px;
   font-family: var(--font-sans);
   font-size: var(--text-xs);
   color: var(--rim-mid);
   cursor: pointer;
-  padding: 4px 0;
-  text-decoration: underline;
+  padding: 5px 12px;
   white-space: nowrap;
+  transition: border-color 0.12s, color 0.12s;
 }
-.hs-row__quiet:hover { color: var(--rim-blue); }
+.hs-row__quiet:hover { color: var(--rim-text); border-color: var(--rim-mid); }
 .hs-row__manager {
   background: none;
   border: 1px solid var(--rim-rule);
@@ -15020,23 +15030,21 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .lr-btn--host { background: #d9840f; }
 .lr-btn--host:hover { background: #b56b05; opacity: 1; color: #fff; }
 
-/* Tablet — collapse the 4-column row into 3 (when + what + status, action below) */
+/* Tablet — collapse 3-column row to stacked; right area goes horizontal */
 @media (max-width: 760px) {
   .hs-row {
     grid-template-columns: 1fr;
     gap: 6px;
     padding: 14px 16px 14px 14px;
   }
-  .hs-row__do {
+  .hs-row__right {
     flex-direction: row;
-    align-items: stretch;
-    flex-wrap: wrap;
-    margin-top: 6px;
-    gap: 8px;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
   }
   .hs-row__do .lr-btn {
-    flex: 1;
-    min-width: 140px;
+    min-width: 130px;
     text-align: center;
   }
 }

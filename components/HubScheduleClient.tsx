@@ -405,14 +405,16 @@ function HsRow({
         </div>
         {fmt && <div className="hs-row__format">{fmt}</div>}
       </div>
-      <div className="hs-row__who">{statusEl}</div>
-      <div className="hs-row__do">
-        {actionEl}
-        {showManagerReassign && (
-          <button className="hs-row__manager" onClick={() => onReassign(session)}>
-            Reassign to me
-          </button>
-        )}
+      <div className="hs-row__right">
+        <div className="hs-row__who">{statusEl}</div>
+        <div className="hs-row__do">
+          {actionEl}
+          {showManagerReassign && (
+            <button className="hs-row__manager" onClick={() => onReassign(session)}>
+              Reassign to me
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
