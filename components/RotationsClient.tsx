@@ -330,7 +330,12 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
     setError(null);
 
     try {
-      // 1. Save records
+      // ATOMIC save+apply. The POST handler now upserts rotation records AND
+      // runs apply with 'leave' mode for current+next month inside one
+      // request. Returns { saved, filled, conflictCount }. Eliminates the
+      // previous 3-fetch chain (save → preview → apply) which had multiple
+      // failure points and a misleading "already covered" toast that fired
+      // both for genuine no-ops AND for silent preview fetch errors.
       const saveRes = await fetch("/api/host/standing-assignments", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
@@ -347,51 +352,23 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
         const errBody = await saveRes.json().catch(() => null);
         throw new Error(errBody?.error || "save failed");
       }
-
+      const data = await saveRes.json();
+      const filled        = data.filled        ?? 0;
+      const conflictCount = data.conflictCount ?? 0;
       const bundle = { programSlug: form.programSlug, dayOfWeek: form.dayOfWeek };
-
-      // 2. Preview to decide whether the modal is needed
-      const previewRes = await fetch("/api/host/standing-assignments/preview", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({
-          programSlug: bundle.programSlug,
-          dayOfWeek:   bundle.dayOfWeek,
-          year, month,
-        }),
-      });
-      const preview = previewRes.ok ? await previewRes.json() : null;
-
-      const openCount     = preview?.openSessions?.length ?? 0;
-      const conflictCount = preview?.conflicts?.length    ?? 0;
 
       await loadRotations();
       cancelForm();
 
       if (conflictCount > 0) {
-        // 3a. Real decision needed — open modal. Modal will fire onScheduleStale on apply.
+        // Conflicts remain — open modal for coordinator decision. Opens
+        // already filled by the leave-apply that just ran.
         setPendingApply(bundle);
-      } else if (openCount > 0) {
-        // 3b. Silent apply with `leave` mode (no conflicts, just fill open slots)
-        const applyRes = await fetch("/api/host/standing-assignments/apply", {
-          method:  "POST",
-          headers: { "Content-Type": "application/json" },
-          body:    JSON.stringify({
-            programSlug: bundle.programSlug,
-            dayOfWeek:   bundle.dayOfWeek,
-            year, month,
-            resolution: "leave",
-          }),
-        });
-        if (!applyRes.ok) {
-          throw new Error("apply failed — rotation saved but sessions not yet filled");
-        }
-        const applyData = await applyRes.json().catch(() => ({ filled: 0 }));
-        const filled = applyData.filled ?? 0;
+        if (filled > 0) onScheduleStale?.();  // refresh anyway since opens were filled
+      } else if (filled > 0) {
         showToast(`Rotation saved · ${filled} session${filled === 1 ? "" : "s"} filled this month and next`);
         onScheduleStale?.();
       } else {
-        // 3c. Nothing to fill in this month or next (everything covered or in past)
         showToast("Rotation saved · already covered through next month");
       }
     } catch (e) {

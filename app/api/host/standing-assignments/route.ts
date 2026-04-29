@@ -33,13 +33,35 @@
  *   Coordinator / HOST_MANAGER / ADMIN only.
  */
 
+import { after } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
+import { applyStandingAssignments } from "@/lib/applyStandingAssignments";
+import { sendStandingAssignmentScheduledEmail } from "@/lib/email";
 import type { StandingOccurrence } from "@prisma/client";
+
+const TZ = "America/Chicago";
 
 const VALID_DAYS = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"] as const;
 type DayOfWeek = (typeof VALID_DAYS)[number];
+
+/**
+ * Parse a "YYYY-MM-DD" date input as the END of that calendar day, NOT
+ * midnight UTC (which would land in the previous CT day).
+ *
+ * Apply-loop compares `new Date(dateStr + "T12:00:00") > endsOn`. Storing
+ * endsOn at 23:59:59Z makes the user's picked day still active (noon-of-day
+ * < 23:59:59-of-day) while next-day correctly evaluates as past
+ * (next-day-noon > 23:59:59-of-prev-day). Works for any user timezone
+ * because the comparison is between two UTC instants.
+ *
+ * Previously: `new Date("2026-12-31")` parsed as 2026-12-31T00:00:00Z =
+ * Dec 30 18:00 CT. Rotation expired one day early in CT.
+ */
+function endOfCalendarDay(yyyyMmDd: string): Date {
+  return new Date(yyyyMmDd + "T23:59:59Z");
+}
 
 function isManager(roles: string[]) {
   return roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
@@ -210,7 +232,17 @@ export async function POST(request: Request) {
     );
   }
 
-  const endsOn = body.endsOn ? new Date(body.endsOn) : null;
+  // CRITICAL endsOn parsing: a date input like "2026-12-31" parsed via
+  // `new Date(...)` becomes 2026-12-31T00:00:00Z = midnight UTC = 6pm
+  // CST the previous evening. The rotation's endsOn would be effectively
+  // Dec 30 in CT — one day early. Same problem when end-bundle writes
+  // `today` and the user picks "Dec 31" — they expect "through Dec 31"
+  // but get "through Dec 30".
+  //
+  // Fix: anchor endsOn at 23:59:59 in CT on the picked calendar day so
+  // the apply-loop's `dateStr <= ctDateStr(endsOn)` comparison treats
+  // the user's intended last day as still active.
+  const endsOn = body.endsOn ? endOfCalendarDay(body.endsOn) : null;
 
   // Single transaction: delete any existing records in the bundle that aren't
   // in the new set, then upsert each target record.
@@ -260,9 +292,62 @@ export async function POST(request: Request) {
     return out;
   });
 
+  // ── Atomic auto-apply with `leave` mode for current month + next month.
+  //
+  // Previously the client did this via a separate /preview + /apply chain
+  // after save returned. That chain had multiple failure points and one
+  // toast ("already covered") was used both for "preview ran and found
+  // nothing" AND for "preview fetch failed silently." Making it atomic
+  // server-side eliminates the chain and the misleading toast.
+  //
+  // 'leave' mode is non-destructive — only fills empty slots, never
+  // overrides existing assignments. If conflicts exist, they're returned
+  // for the client to open the resolution modal. This keeps user-driven
+  // overrides explicit while making the happy path one round-trip.
+  const now   = new Date(new Date().toLocaleString("en-US", { timeZone: TZ }));
+  const year  = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const nextMonth = month === 12 ? 1        : month + 1;
+  const nextYear  = month === 12 ? year + 1 : year;
+
+  const [a1, a2] = await Promise.all([
+    applyStandingAssignments(body.programSlug, year,     month,     "leave", null, body.dayOfWeek),
+    applyStandingAssignments(body.programSlug, nextYear, nextMonth, "leave", null, body.dayOfWeek),
+  ]);
+
+  // Merge byUser for one email per host across both months
+  type SessSum = { programName: string; dateLabel: string; userEmail: string; firstName: string | null };
+  const merged = new Map<string, SessSum[]>();
+  for (const [uid, sessions] of [...a1.byUser, ...a2.byUser]) {
+    if (!merged.has(uid)) merged.set(uid, []);
+    merged.get(uid)!.push(...sessions);
+  }
+  after(async () => {
+    for (const [, sessions] of merged) {
+      if (sessions.length === 0) continue;
+      const { userEmail, firstName } = sessions[0];
+      await sendStandingAssignmentScheduledEmail({
+        to: userEmail,
+        firstName,
+        sessions: sessions.map((s) => ({ programName: s.programName, dateLabel: s.dateLabel })),
+      });
+    }
+  });
+
+  // Re-run preview AFTER apply to surface remaining conflicts to the client.
+  // The leave-apply already filled opens; what remains is conflicts that
+  // require coordinator input.
+  const { previewStandingAssignments } = await import("@/lib/applyStandingAssignments");
+  const [p1, p2] = await Promise.all([
+    previewStandingAssignments(body.programSlug, year,     month,     null, body.dayOfWeek),
+    previewStandingAssignments(body.programSlug, nextYear, nextMonth, null, body.dayOfWeek),
+  ]);
+
   return Response.json({
     programSlug: body.programSlug,
     dayOfWeek:   body.dayOfWeek,
     saved,
+    filled:      a1.filled + a2.filled,
+    conflictCount: p1.conflicts.length + p2.conflicts.length,
   });
 }

@@ -104,9 +104,17 @@ export interface Conflict {
   hostAssignmentId: string;
 }
 
+/** Open candidates may already have a row in the DB with userId=null
+ *  (an unclaimed placeholder). When that's true, we must UPDATE that row
+ *  rather than try to CREATE — the unique constraint on (programSlug,
+ *  sessionDate) would otherwise drop the new write silently. */
+interface OpenSlot extends Candidate {
+  existingHostAssignmentId?: string;
+}
+
 export interface PreviewResult {
   candidates:   Candidate[];
-  openSessions: Candidate[];          // candidates that don't conflict with any existing assignment
+  openSessions: OpenSlot[];           // candidates with no conflict (may have existing userId=null row)
   conflicts:    Conflict[];
   pastIgnored:  number;
 }
@@ -227,8 +235,13 @@ export async function generateCandidates(
 
       if (!isOccurrenceOnDate(program, dateStr)) continue;
 
-      // Day-of-week scope (multi-day programs use this; legacy null matches any)
-      if (sa.dayOfWeek && sa.dayOfWeek !== dateDow) continue;
+      // Day-of-week scope. v3 requires dayOfWeek to be set explicitly; null
+      // rotations are legacy from v2 (before the column existed) and the
+      // migration backfilled what it could. Skip any remaining null rows
+      // so they don't fire on every weekday and compete with new editor-
+      // created rotations.
+      if (!sa.dayOfWeek) continue;
+      if (sa.dayOfWeek !== dateDow) continue;
 
       // Resolve occurrence pattern. When dayOfWeek is set, count occurrences
       // of THAT WEEKDAY in the month (not all program sessions). For null
@@ -304,13 +317,30 @@ export async function previewStandingAssignments(
     return { candidates: [], openSessions: [], conflicts: [], pastIgnored };
   }
 
-  // Load existing assignments for the candidate slots
+  // Load existing assignments for the candidate slots.
+  //
+  // CRITICAL: query by date RANGE, not exact DateTime match. The
+  // host_assignments unique constraint is `(programSlug, sessionDate)` on the
+  // full DateTime, but two writes on the same calendar date with even a
+  // millisecond difference would BOTH violate "one host per date" intent
+  // while passing the constraint. We must catch any existing row whose
+  // ctDateStr matches our candidate's calendar date, regardless of the
+  // stored time-of-day. Otherwise:
+  //   1. Preview misses zombies (any pre-existing row at a different t-o-d)
+  //   2. createMany skipDuplicates silently drops the new write
+  //   3. Coordinator sees "saved" but no host appears
+  // DST drift in shiftToDate also produces sessionDates whose UTC instant
+  // straddles midnight CT, which the exact-match query was missing.
   const slugs = [...new Set(candidates.map((c) => c.programSlug))];
-  const dates = [...new Set(candidates.map((c) => c.sessionDate.toISOString()))];
+  const sessionDates = candidates.map((c) => c.sessionDate.getTime());
+  // Pad ±1 day to absorb any DST or time-of-day variance
+  const minMs = Math.min(...sessionDates) - 86400000;
+  const maxMs = Math.max(...sessionDates) + 86400000;
+
   const existingRaw = await db.hostAssignment.findMany({
     where: {
       programSlug: { in: slugs },
-      sessionDate: { in: dates.map((d) => new Date(d)) },
+      sessionDate: { gte: new Date(minMs), lte: new Date(maxMs) },
     },
     include: {
       user: { select: { id: true, firstName: true, preferredName: true, email: true } },
@@ -321,22 +351,36 @@ export async function previewStandingAssignments(
     },
   });
 
+  // Key by (programSlug, calendarDate-in-CT). Within the loaded window we may
+  // find rows for adjacent dates we don't care about — those just won't have
+  // matching candidates so they're harmless. Multiple rows on the same calendar
+  // date for the same program is a data anomaly; keep the first (earliest by
+  // sessionDate) so we have something stable to compare against.
   const existingByKey = new Map<string, typeof existingRaw[number]>();
-  for (const a of existingRaw) {
+  for (const a of existingRaw.sort(
+    (x, y) => (x.sessionDate?.getTime() ?? 0) - (y.sessionDate?.getTime() ?? 0)
+  )) {
     if (!a.sessionDate) continue;
     const dStr = ctDateStr(a.sessionDate.toISOString());
-    existingByKey.set(`${a.programSlug}::${dStr}`, a);
+    const key  = `${a.programSlug}::${dStr}`;
+    if (!existingByKey.has(key)) existingByKey.set(key, a);
   }
 
-  const openSessions: Candidate[] = [];
-  const conflicts:    Conflict[]  = [];
+  const openSessions: OpenSlot[] = [];
+  const conflicts:    Conflict[] = [];
 
   for (const cand of candidates) {
     const key = `${cand.programSlug}::${cand.dateStr}`;
     const existing = existingByKey.get(key);
 
     if (!existing || existing.userId === null) {
-      openSessions.push(cand);
+      // No row, OR a placeholder row with userId=null. In the latter case
+      // we'll UPDATE that row in apply rather than fight the unique
+      // constraint with a CREATE.
+      openSessions.push({
+        ...cand,
+        existingHostAssignmentId: existing?.id,
+      });
       continue;
     }
 
@@ -416,8 +460,11 @@ export async function applyStandingAssignments(
     candidatesByKey.set(`${c.programSlug}::${c.dateStr}`, c);
   }
 
-  // Build the actual write list
-  const toCreate: Candidate[] = [...preview.openSessions];
+  // Build the actual write list. Open candidates split into two streams:
+  // toCreate = no existing row (createMany), toUpdate = placeholder userId=null
+  // row exists (must update by id to avoid unique-constraint skipDuplicates).
+  const toCreate: OpenSlot[] = preview.openSessions.filter((c) => !c.existingHostAssignmentId);
+  const toUpdate: OpenSlot[] = preview.openSessions.filter((c) =>  c.existingHostAssignmentId);
   const toReplace: Array<{ conflict: Conflict; cand: Candidate }> = [];
 
   for (const conf of preview.conflicts) {
@@ -456,7 +503,7 @@ export async function applyStandingAssignments(
 
   // ── Writes ─────────────────────────────────────────────────────────────
   await db.$transaction(async (tx) => {
-    // 1. Create open-slot assignments
+    // 1. Create rows for slots that don't have any existing row at all
     if (toCreate.length > 0) {
       await tx.hostAssignment.createMany({
         data: toCreate.map((c) => ({
@@ -466,17 +513,37 @@ export async function applyStandingAssignments(
           assignedBy:           c.userId, // self for standing — no manual assigner
           standingAssignmentId: c.standingAssignmentId,
         })),
+        // skipDuplicates as a safety net only — toCreate is already filtered
+        // to slots without existing rows. If we hit this, it indicates either
+        // a race condition or DST drift the date-range lookup didn't catch.
         skipDuplicates: true,
       });
     }
 
-    // 2. Replace conflicts: update existing rows in place (keeps subRequest
+    // 2. Update placeholder rows (userId=null) to point at the rotation host.
+    //    These rows already exist in the DB so we can't CREATE — must UPDATE
+    //    by id. Without this branch the createMany above would silently skip
+    //    them via skipDuplicates, leaving the rotation invisible on schedule.
+    for (const u of toUpdate) {
+      await tx.hostAssignment.update({
+        where: { id: u.existingHostAssignmentId! },
+        data: {
+          userId:               u.userId,
+          sessionDate:          u.sessionDate,
+          assignedBy:           u.userId,
+          standingAssignmentId: u.standingAssignmentId,
+        },
+      });
+    }
+
+    // 3. Replace conflicts: update existing rows in place (keeps subRequest
     //    relationship integrity if any non-sub-cover ones exist)
     for (const r of toReplace) {
       await tx.hostAssignment.update({
         where: { id: r.conflict.hostAssignmentId },
         data: {
           userId:               r.cand.userId,
+          sessionDate:          r.cand.sessionDate,  // canonicalize the t-o-d
           assignedBy:           r.cand.userId,
           standingAssignmentId: r.cand.standingAssignmentId,
         },
@@ -485,26 +552,22 @@ export async function applyStandingAssignments(
   });
 
   // ── Build result reports ───────────────────────────────────────────────
-  const filled   = toCreate.length;
+  // "filled" = slots that now have a host (creates + placeholder-updates)
+  const filled   = toCreate.length + toUpdate.length;
   const replaced = toReplace.length;
   const kept     = preview.conflicts.length - toReplace.length;
 
   const byUser = new Map<string, Array<{ programName: string; dateLabel: string; userEmail: string; firstName: string | null }>>();
-  for (const c of toCreate) {
+  const pushUser = (c: Candidate) => {
     if (!byUser.has(c.userId)) byUser.set(c.userId, []);
     byUser.get(c.userId)!.push({
       programName: c.programName, dateLabel: c.dateLabel,
       userEmail:   c.userEmail,   firstName: c.firstName,
     });
-  }
-  for (const r of toReplace) {
-    const c = r.cand;
-    if (!byUser.has(c.userId)) byUser.set(c.userId, []);
-    byUser.get(c.userId)!.push({
-      programName: c.programName, dateLabel: c.dateLabel,
-      userEmail:   c.userEmail,   firstName: c.firstName,
-    });
-  }
+  };
+  for (const c of toCreate) pushUser(c);
+  for (const c of toUpdate) pushUser(c);
+  for (const r of toReplace) pushUser(r.cand);
 
   const byDisplacedUser = new Map<string, Array<{ programName: string; dateLabel: string; userEmail: string; firstName: string | null }>>();
   for (const r of toReplace) {

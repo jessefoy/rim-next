@@ -82,9 +82,21 @@ export async function POST(request: Request) {
 
   const rotationIds = rotations.map((r) => r.id);
 
-  // CT-anchored "today" — past stays untouched
+  // CT-anchored "today" — start-of-day for the future-assignment cutoff
+  // (anything on or after today CT can be released). Past stays untouched.
   const todayCt = new Date(new Date().toLocaleString("en-US", { timeZone: TZ }));
   todayCt.setHours(0, 0, 0, 0);
+
+  // For the rotation's endsOn we want "today is the last active day."
+  // Setting endsOn to today's start-of-day-CT (which is 6am UTC) compared
+  // against `dateStr + T12:00:00` (UTC noon) makes today read as "past" —
+  // the rotation would skip TODAY's session if there were one. To make
+  // "ending today" mean "today is the last day," anchor endsOn at the
+  // end of today's calendar day, in UTC, mirroring the form's parsing.
+  const todayStr = todayCt.toLocaleDateString("en-US", {
+    timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit",
+  }).replace(/(\d+)\/(\d+)\/(\d+)/, "$3-$1-$2");
+  const endsOnValue = new Date(todayStr + "T23:59:59Z");
 
   // Build per-displaced-user email lists if releasing
   type ReleasedSession = { programName: string; dateLabel: string };
@@ -140,7 +152,7 @@ export async function POST(request: Request) {
     }
     await tx.standingAssignment.updateMany({
       where: { id: { in: rotationIds } },
-      data:  { endsOn: todayCt },
+      data:  { endsOn: endsOnValue },
     });
   });
 

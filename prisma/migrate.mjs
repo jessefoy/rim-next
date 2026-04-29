@@ -1481,6 +1481,41 @@ Rooted In Mindfulness · rootedinmindfulness.org`;
       console.log(`  ✔ Applied: ${this.name} — backfilled ${updated} of ${rows.length} row(s)`);
     },
   },
+  {
+    // Any StandingAssignment rows still with dayOfWeek=null after the backfill
+    // are multi-day programs where we couldn't infer a single day. v3 requires
+    // dayOfWeek; the apply logic now skips null rows so they don't fire on
+    // every weekday. End them in the data too so they're consistent and
+    // coordinators can re-create them via the editor with proper dayOfWeek.
+    name: "end_legacy_null_day_of_week_rotations",
+    async run() {
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
+      `);
+      const flagged = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags" WHERE name = '${this.name}_v1'
+      `);
+      if (Array.isArray(flagged) && flagged.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      const now = new Date();
+      const result = await db.standingAssignment.updateMany({
+        where: {
+          dayOfWeek: null,
+          OR: [{ endsOn: null }, { endsOn: { gte: now } }],
+        },
+        data: { endsOn: now },
+      });
+
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('${this.name}_v1')
+        ON CONFLICT DO NOTHING
+      `);
+      console.log(`  ✔ Applied: ${this.name} — ended ${result.count} legacy null-dayOfWeek row(s)`);
+    },
+  },
 ];
 
 // ── Minimal BlockNote → HTML converter (migration-only) ──────────────────────
