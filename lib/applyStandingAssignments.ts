@@ -68,6 +68,46 @@ function specificity(occ: StandingOccurrence): number {
   return 0;
 }
 
+/**
+ * Compute the month range to apply across, given a starting (year, month)
+ * and an optional rotation `endsOn` cap. Returns an array of (year, month)
+ * pairs (1-based month) to iterate through.
+ *
+ * Default horizon when endsOn is null: end of the calendar year. This
+ * matches the form's default end-date affordance and the coordinator's
+ * mental model of "set up the rotation for the rest of the year."
+ *
+ * If endsOn is in the past relative to start, returns just the start month
+ * (the apply itself further filters to future dates only).
+ */
+export function getApplyMonthRange(
+  startYear:  number,
+  startMonth: number,
+  endsOn:     Date | null
+): Array<{ year: number; month: number }> {
+  let endYear: number;
+  let endMonth: number;
+  if (endsOn) {
+    endYear  = endsOn.getFullYear();
+    endMonth = endsOn.getMonth() + 1;
+  } else {
+    endYear  = startYear;
+    endMonth = 12;
+  }
+  if (endYear < startYear || (endYear === startYear && endMonth < startMonth)) {
+    return [{ year: startYear, month: startMonth }];
+  }
+  const out: Array<{ year: number; month: number }> = [];
+  let y = startYear;
+  let m = startMonth;
+  while (y < endYear || (y === endYear && m <= endMonth)) {
+    out.push({ year: y, month: m });
+    m++;
+    if (m > 12) { m = 1; y++; }
+  }
+  return out;
+}
+
 // ─── TYPES ─────────────────────────────────────────────────────────────────
 
 export interface Candidate {

@@ -25,6 +25,7 @@ import { db } from "@/lib/db";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
 import {
   applyStandingAssignments,
+  getApplyMonthRange,
   type ResolutionMode,
 } from "@/lib/applyStandingAssignments";
 import {
@@ -89,35 +90,40 @@ export async function POST(request: Request) {
   const year  = body.year  ?? now.getFullYear();
   const month = body.month ?? now.getMonth() + 1;
 
-  // Coordinator apply spans the target month AND the next month. This is
-  // critical because if a rotation is saved late in a month (e.g. April 29),
-  // every remaining day of the current month may have already passed —
-  // applying just current-month would produce zero fills and the coordinator
-  // would think nothing happened. By spanning two months we always have
-  // future dates to act on. The cron stays per-month-conservative because it
-  // runs daily and self-corrects.
-  const nextMonth = month === 12 ? 1        : month + 1;
-  const nextYear  = month === 12 ? year + 1 : year;
+  // Look up the rotation's endsOn so the apply spans the same horizon the
+  // save did (current month → endsOn, or end-of-year if no end date).
+  let bundleEndsOn: Date | null = null;
+  if (programSlug && dayOfWeek) {
+    const sample = await db.standingAssignment.findFirst({
+      where: { programSlug, dayOfWeek },
+      select: { endsOn: true },
+    });
+    bundleEndsOn = sample?.endsOn ?? null;
+  }
+  const months = getApplyMonthRange(year, month, bundleEndsOn);
 
-  const r1 = await applyStandingAssignments(
-    programSlug, year,     month,     resolution, standingId, dayOfWeek
-  );
-  const r2 = await applyStandingAssignments(
-    programSlug, nextYear, nextMonth, resolution, standingId, dayOfWeek
-  );
-
-  // Merge byUser maps so each host receives ONE email summarizing both months
+  // Apply month-by-month with the user's chosen resolution
+  let totalFilled   = 0;
+  let totalReplaced = 0;
+  let totalKept     = 0;
   type SessSum = { programName: string; dateLabel: string; userEmail: string; firstName: string | null };
-  const merged = (a: Map<string, SessSum[]>, b: Map<string, SessSum[]>) => {
-    const out = new Map<string, SessSum[]>(a);
-    for (const [uid, sessions] of b) {
-      if (!out.has(uid)) out.set(uid, []);
-      out.get(uid)!.push(...sessions);
+  const byUser          = new Map<string, SessSum[]>();
+  const byDisplacedUser = new Map<string, SessSum[]>();
+
+  for (const { year: y, month: m } of months) {
+    const r = await applyStandingAssignments(programSlug, y, m, resolution, standingId, dayOfWeek);
+    totalFilled   += r.filled;
+    totalReplaced += r.replaced;
+    totalKept     += r.kept;
+    for (const [uid, sessions] of r.byUser) {
+      if (!byUser.has(uid)) byUser.set(uid, []);
+      byUser.get(uid)!.push(...sessions);
     }
-    return out;
-  };
-  const byUser           = merged(r1.byUser,           r2.byUser);
-  const byDisplacedUser  = merged(r1.byDisplacedUser,  r2.byDisplacedUser);
+    for (const [uid, sessions] of r.byDisplacedUser) {
+      if (!byDisplacedUser.has(uid)) byDisplacedUser.set(uid, []);
+      byDisplacedUser.get(uid)!.push(...sessions);
+    }
+  }
 
   // ── Notification emails (fire-and-forget) ──────────────────────────────
   after(async () => {
@@ -142,8 +148,8 @@ export async function POST(request: Request) {
   });
 
   return Response.json({
-    filled:   r1.filled   + r2.filled,
-    replaced: r1.replaced + r2.replaced,
-    kept:     r1.kept     + r2.kept,
+    filled:   totalFilled,
+    replaced: totalReplaced,
+    kept:     totalKept,
   });
 }

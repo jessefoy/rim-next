@@ -366,10 +366,16 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
         setPendingApply(bundle);
         if (filled > 0) onScheduleStale?.();  // refresh anyway since opens were filled
       } else if (filled > 0) {
-        showToast(`Rotation saved · ${filled} session${filled === 1 ? "" : "s"} filled this month and next`);
+        const monthsSpanned = data.monthsSpanned ?? 1;
+        const horizonText = monthsSpanned === 1
+          ? "this month"
+          : monthsSpanned === 2
+            ? "this month and next"
+            : `the next ${monthsSpanned} months`;
+        showToast(`Rotation saved · ${filled} session${filled === 1 ? "" : "s"} filled across ${horizonText}`);
         onScheduleStale?.();
       } else {
-        showToast("Rotation saved · already covered through next month");
+        showToast("Rotation saved · all matching sessions already covered");
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong saving. Please try again.");

@@ -24,7 +24,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
-import { previewStandingAssignments } from "@/lib/applyStandingAssignments";
+import { previewStandingAssignments, getApplyMonthRange } from "@/lib/applyStandingAssignments";
 
 const TZ = "America/Chicago";
 
@@ -72,25 +72,37 @@ export async function POST(request: Request) {
   const year  = body.year  ?? now.getFullYear();
   const month = body.month ?? now.getMonth() + 1;
 
-  // Span target month + next month so the modal reflects the same horizon as
-  // the apply route (see /apply for the rationale).
-  const nextMonth = month === 12 ? 1        : month + 1;
-  const nextYear  = month === 12 ? year + 1 : year;
+  // Span the same horizon the save+apply uses: through the bundle's endsOn,
+  // or end-of-year if no end date. This keeps the conflict modal's view
+  // consistent with what the save actually does.
+  let bundleEndsOn: Date | null = null;
+  if (programSlug && dayOfWeek) {
+    const sample = await db.standingAssignment.findFirst({
+      where: { programSlug, dayOfWeek },
+      select: { endsOn: true },
+    });
+    bundleEndsOn = sample?.endsOn ?? null;
+  }
+  const months = getApplyMonthRange(year, month, bundleEndsOn);
 
-  const [p1, p2] = await Promise.all([
-    previewStandingAssignments(programSlug, year,     month,     standingId, dayOfWeek),
-    previewStandingAssignments(programSlug, nextYear, nextMonth, standingId, dayOfWeek),
-  ]);
+  const previews = await Promise.all(
+    months.map(({ year: y, month: m }) =>
+      previewStandingAssignments(programSlug, y, m, standingId, dayOfWeek)
+    )
+  );
+  const allOpens     = previews.flatMap((p) => p.openSessions);
+  const allConflicts = previews.flatMap((p) => p.conflicts);
+  const totalPast    = previews.reduce((s, p) => s + p.pastIgnored, 0);
 
   return Response.json({
-    openSessions: [...p1.openSessions, ...p2.openSessions].map((c) => ({
+    openSessions: allOpens.map((c) => ({
       dateStr:      c.dateStr,
       dateLabel:    c.dateLabel,
       programSlug:  c.programSlug,
       programName:  c.programName,
       proposedHost: { userId: c.userId, displayName: c.firstName ?? c.userEmail },
     })),
-    conflicts: [...p1.conflicts, ...p2.conflicts].map((c) => ({
+    conflicts: allConflicts.map((c) => ({
       dateStr:           c.dateStr,
       dateLabel:         c.dateLabel,
       programSlug:       c.programSlug,
@@ -101,6 +113,6 @@ export async function POST(request: Request) {
       protected:         c.protected,
       hostAssignmentId:  c.hostAssignmentId,
     })),
-    pastIgnored: p1.pastIgnored + p2.pastIgnored,
+    pastIgnored: totalPast,
   });
 }

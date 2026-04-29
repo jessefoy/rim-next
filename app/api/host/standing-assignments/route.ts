@@ -37,7 +37,7 @@ import { after } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
-import { applyStandingAssignments } from "@/lib/applyStandingAssignments";
+import { applyStandingAssignments, getApplyMonthRange } from "@/lib/applyStandingAssignments";
 import { sendStandingAssignmentScheduledEmail } from "@/lib/email";
 import type { StandingOccurrence } from "@prisma/client";
 
@@ -292,35 +292,41 @@ export async function POST(request: Request) {
     return out;
   });
 
-  // ── Atomic auto-apply with `leave` mode for current month + next month.
+  // ── Atomic auto-apply with `leave` mode across the full rotation horizon.
   //
-  // Previously the client did this via a separate /preview + /apply chain
-  // after save returned. That chain had multiple failure points and one
-  // toast ("already covered") was used both for "preview ran and found
-  // nothing" AND for "preview fetch failed silently." Making it atomic
-  // server-side eliminates the chain and the misleading toast.
+  // Horizon = current month through `endsOn` (or end-of-current-year if
+  // no end date). When a coordinator sets up "Alex on 1st Mondays through
+  // Dec 31," they want all those Mondays filled now — not gradually as
+  // the cron rolls forward month by month.
   //
-  // 'leave' mode is non-destructive — only fills empty slots, never
-  // overrides existing assignments. If conflicts exist, they're returned
-  // for the client to open the resolution modal. This keeps user-driven
-  // overrides explicit while making the happy path one round-trip.
+  // 'leave' mode is non-destructive — only fills empty slots. If conflicts
+  // exist, conflictCount comes back > 0 and the client opens the resolution
+  // modal.
   const now   = new Date(new Date().toLocaleString("en-US", { timeZone: TZ }));
   const year  = now.getFullYear();
   const month = now.getMonth() + 1;
-  const nextMonth = month === 12 ? 1        : month + 1;
-  const nextYear  = month === 12 ? year + 1 : year;
+  const months = getApplyMonthRange(year, month, endsOn);
 
-  const [a1, a2] = await Promise.all([
-    applyStandingAssignments(body.programSlug, year,     month,     "leave", null, body.dayOfWeek),
-    applyStandingAssignments(body.programSlug, nextYear, nextMonth, "leave", null, body.dayOfWeek),
-  ]);
+  // Apply month-by-month. Each call is an independent transaction so a
+  // failure mid-stream doesn't roll back earlier months. Idempotent —
+  // re-running fills nothing new.
+  const results: Awaited<ReturnType<typeof applyStandingAssignments>>[] = [];
+  for (const { year: y, month: m } of months) {
+    results.push(
+      await applyStandingAssignments(body.programSlug, y, m, "leave", null, body.dayOfWeek)
+    );
+  }
 
-  // Merge byUser for one email per host across both months
+  // Aggregate filled count and merge byUser for one email per host
+  let totalFilled = 0;
   type SessSum = { programName: string; dateLabel: string; userEmail: string; firstName: string | null };
   const merged = new Map<string, SessSum[]>();
-  for (const [uid, sessions] of [...a1.byUser, ...a2.byUser]) {
-    if (!merged.has(uid)) merged.set(uid, []);
-    merged.get(uid)!.push(...sessions);
+  for (const r of results) {
+    totalFilled += r.filled;
+    for (const [uid, sessions] of r.byUser) {
+      if (!merged.has(uid)) merged.set(uid, []);
+      merged.get(uid)!.push(...sessions);
+    }
   }
   after(async () => {
     for (const [, sessions] of merged) {
@@ -334,20 +340,21 @@ export async function POST(request: Request) {
     }
   });
 
-  // Re-run preview AFTER apply to surface remaining conflicts to the client.
-  // The leave-apply already filled opens; what remains is conflicts that
-  // require coordinator input.
+  // Re-run preview AFTER apply to surface remaining conflicts. The leave-
+  // apply just filled opens; what remains is conflicts that need a decision.
   const { previewStandingAssignments } = await import("@/lib/applyStandingAssignments");
-  const [p1, p2] = await Promise.all([
-    previewStandingAssignments(body.programSlug, year,     month,     null, body.dayOfWeek),
-    previewStandingAssignments(body.programSlug, nextYear, nextMonth, null, body.dayOfWeek),
-  ]);
+  let conflictCount = 0;
+  for (const { year: y, month: m } of months) {
+    const p = await previewStandingAssignments(body.programSlug, y, m, null, body.dayOfWeek);
+    conflictCount += p.conflicts.length;
+  }
 
   return Response.json({
-    programSlug: body.programSlug,
-    dayOfWeek:   body.dayOfWeek,
+    programSlug:   body.programSlug,
+    dayOfWeek:     body.dayOfWeek,
     saved,
-    filled:      a1.filled + a2.filled,
-    conflictCount: p1.conflicts.length + p2.conflicts.length,
+    filled:        totalFilled,
+    conflictCount,
+    monthsSpanned: months.length,
   });
 }
