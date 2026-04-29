@@ -72,18 +72,25 @@ export async function POST(request: Request) {
   const year  = body.year  ?? now.getFullYear();
   const month = body.month ?? now.getMonth() + 1;
 
-  const preview = await previewStandingAssignments(programSlug, year, month, standingId, dayOfWeek);
+  // Span target month + next month so the modal reflects the same horizon as
+  // the apply route (see /apply for the rationale).
+  const nextMonth = month === 12 ? 1        : month + 1;
+  const nextYear  = month === 12 ? year + 1 : year;
 
-  // Strip down to wire shape — drop the heavy `candidates` array
+  const [p1, p2] = await Promise.all([
+    previewStandingAssignments(programSlug, year,     month,     standingId, dayOfWeek),
+    previewStandingAssignments(programSlug, nextYear, nextMonth, standingId, dayOfWeek),
+  ]);
+
   return Response.json({
-    openSessions: preview.openSessions.map((c) => ({
+    openSessions: [...p1.openSessions, ...p2.openSessions].map((c) => ({
       dateStr:      c.dateStr,
       dateLabel:    c.dateLabel,
       programSlug:  c.programSlug,
       programName:  c.programName,
       proposedHost: { userId: c.userId, displayName: c.firstName ?? c.userEmail },
     })),
-    conflicts: preview.conflicts.map((c) => ({
+    conflicts: [...p1.conflicts, ...p2.conflicts].map((c) => ({
       dateStr:           c.dateStr,
       dateLabel:         c.dateLabel,
       programSlug:       c.programSlug,
@@ -94,6 +101,6 @@ export async function POST(request: Request) {
       protected:         c.protected,
       hostAssignmentId:  c.hostAssignmentId,
     })),
-    pastIgnored: preview.pastIgnored,
+    pastIgnored: p1.pastIgnored + p2.pastIgnored,
   });
 }

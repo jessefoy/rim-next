@@ -340,11 +340,11 @@ export default function RotationsClient({ programs, teamMembers, year, month, on
         }
         const applyData = await applyRes.json().catch(() => ({ filled: 0 }));
         const filled = applyData.filled ?? 0;
-        showToast(`Rotation saved · ${filled} session${filled === 1 ? "" : "s"} filled this month`);
+        showToast(`Rotation saved · ${filled} session${filled === 1 ? "" : "s"} filled this month and next`);
         onScheduleStale?.();
       } else {
-        // 3c. Nothing to do this month (no opens, no conflicts) — just confirm
-        showToast("Rotation saved · already up to date for this month");
+        // 3c. Nothing to fill in this month or next (everything covered or in past)
+        showToast("Rotation saved · already covered through next month");
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong saving. Please try again.");
