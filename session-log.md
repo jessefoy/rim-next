@@ -1,5 +1,76 @@
 ---
 
+## 2026-04-29 (session 98) — Host Schedule visual tidy-up + Standing Host Assignments
+
+### What prompted this session
+
+Volunteers reported that the Host Schedule lacked recurring host rotation — everything required manual claiming or one-off coordinator assignment each month. Jesse also noticed a visual inconsistency: Thursday rows on April 30 were missing their left-border color accent, and the overall row design had too many competing amber signals on "needs a host" rows.
+
+### What was built
+
+**1. Host Schedule visual tidy-up.** Grid reduced from 4 columns (`130px 1fr 200px auto`) to 3 (`130px 1fr auto`) by merging the status text and action button into a single `hs-row__right` flex container. This matches how the data is actually read — status and action always belong together semantically. Key design fixes:
+- `.hs-row--covered { border-left-color: #ddd }` — every row now has a visible left anchor, not just the colored-state rows. Thursday's missing border was a `transparent` border on covered rows that looked incomplete when flanked by amber/blue neighbors.
+- "Needs a host" amber reduced to one signal: amber left border + action button carry the urgency. Status text downgraded to `var(--rim-mid)` weight 500 — the "triple amber" (border + text + button all amber) was too loud.
+- `.hs-row__quiet` changed from underlined text link to outlined pill button — consistent with the primary action button shape.
+- Filter group margin fix: `margin-right: -1px` on `.hs-filter--member` to close the 1px seam between adjacent pills.
+
+**2. Schedule | Rotations tab strip.** `HubScheduleClient` gained a `view: "schedule" | "rotations"` state with a `.hs-viewtabs` / `.hs-viewtab` / `.hs-viewtab--active` pill strip — visible to HOST_MANAGER and ADMIN only. The schedule content wraps in `{view === "schedule"}` and the rotations view renders `<RotationsClient />` dynamically.
+
+**3. Standing Host Assignments feature.** Full coordinator rotation system — one record per `programSlug + occurrence` slot, applied idempotently to open sessions each day.
+
+**Schema:** New `StandingAssignment` model and `StandingOccurrence` enum (FIRST–FIFTH, ALL). `@@unique([programSlug, occurrence])` enforces one host per slot. Optional `endsOn` for time-limited rotations (sabbatical cover, seasonal changes). `startsOn` gates early — doesn't apply before a given date.
+
+**Core logic (`lib/applyStandingAssignments.ts`):** Walks every day in the target month. For each day × each standing assignment: checks the program runs that day (`isOccurrenceOnDate`), checks the occurrence number matches the pattern (`getOccurrenceInMonth`), skips already-assigned sessions (loaded upfront + tracked in `existingKeys` within the run to prevent double-creates), batch-creates `HostAssignment` records. Returns `{ created, byUser: Map }` so callers can send notification emails.
+
+**New helper (`lib/scheduleUtils.ts`):** `getOccurrenceInMonth(dateStr, program)` — walks days 1 to the target date, counts `isOccurrenceOnDate` hits, returns 1-based occurrence number. Enables "1st Tuesday" and "3rd Saturday" pattern matching.
+
+**API routes:**
+- `GET /api/host/standing-assignments` — list assignments, optional `?programSlug=` filter
+- `POST /api/host/standing-assignments` — save full rotation for a program (upserts filled slots, deletes emptied ones); coordinator/manager only
+- `POST /api/host/standing-assignments/apply` — applies to open sessions immediately, sends emails via `after()`; coordinator/manager only
+- `GET /api/cron/apply-standing-assignments` — daily cron (8 AM UTC); fills current month, pre-fills next month on the 1st; secured by `CRON_SECRET`
+
+**Email:** `sendStandingAssignmentScheduledEmail` in `lib/email.ts` — one email per host summarising all newly-created sessions. Sent via `after()` to avoid Vercel teardown killing in-flight sends.
+
+**UI (`RotationsClient.tsx`):** Fetches existing assignments on mount. Per-program accordion: FIRST through FIFTH occurrence slots each with a team-member dropdown. FIFTH slot is visually de-emphasised (`opacity: 0.65`) since most programs don't have 5 occurrences in a month. Optional `endsOn` date input appears when a slot is filled (hide it when empty to avoid noise). Save button: calls POST to save rotation, then POST to apply immediately, shows "✓ Saved · N sessions filled this month" confirmation inline.
+
+**Cron registered in `vercel.json`:** Replaced the placeholder `apply-standing-assignments` entry (which pointed at a non-existent route) with the correct `0 8 * * *` schedule and route.
+
+**Build fix:** Turbopack does not allow importing across Next.js route handler files. The cron initially tried to import `applyStandingAssignments` from the apply-route — which fails at module resolution. Extracted to `lib/applyStandingAssignments.ts` (safe to import from anywhere).
+
+### What this connects to
+
+- **`HostAssignment` table** — standing assignments auto-populate this table exactly as if a coordinator had assigned manually. Sessions already in the table are skipped (idempotent).
+- **Host Schedule (`/tools/schedule`)** — the new Rotations tab lives inside `HubScheduleClient`. Schedule rows created by standing assignments look and behave identically to manual assignments — no visual distinction needed.
+- **Sub requests** — if a host with a standing assignment needs coverage, the sub-request flow (already built) handles it the same way.
+- **Hub Membership as Authority (§42)** — the apply route reuses `getEffectiveHostingCapability()` for the access check, consistent with all other host-area routes.
+- **Cron infrastructure** — joins the daily cron pattern established by the drip-release cron; both live in `vercel.json` at `0 8 * * *`.
+- **Email system (`lib/email.ts`)** — new function `sendStandingAssignmentScheduledEmail` joins the four existing host-area email functions.
+
+### Design decisions that hold
+
+- **Coordinator-only write access.** Team members can see their rotation (it shows up on their schedule), but only coordinators and managers can set rotation patterns. This matches the broader Host Hub authority model.
+- **One record per slot.** `@@unique([programSlug, occurrence])` means you can't have two people in the same slot — one host per session. This mirrors the `HostAssignment` model and keeps the mental model clean.
+- **Idempotent apply.** The daily cron can re-run safely if a previous run partially failed. Sessions with existing assignments are never touched — manual assignments are never overwritten.
+- **Fifth occurrence de-emphasised, not hidden.** Some months have a 5th occurrence. Rather than conditionally showing the slot, it's always shown at reduced opacity. Coordinators who need it can still fill it; those who don't can ignore it without wondering if there's a slot they're missing.
+- **`after()` for emails.** Consistent with the sub-request and sub-claim routes established in session 96. `void (async () => {})()` is silently killed by Vercel's serverless teardown.
+
+### Key files
+
+- `lib/applyStandingAssignments.ts` — core idempotent generation logic (new)
+- `components/RotationsClient.tsx` — coordinator rotation UI (new)
+- `app/api/host/standing-assignments/route.ts` — list + save (new)
+- `app/api/host/standing-assignments/apply/route.ts` — apply to sessions (new)
+- `app/api/cron/apply-standing-assignments/route.ts` — daily cron (new)
+- `lib/scheduleUtils.ts` — `getOccurrenceInMonth()` added
+- `lib/email.ts` — `sendStandingAssignmentScheduledEmail()` added
+- `components/HubScheduleClient.tsx` — Rotations tab strip + RotationsClient mount
+- `prisma/schema.prisma` — `StandingAssignment` model + `StandingOccurrence` enum
+- `public/css/custom.css` — row grid fix, hs-viewtabs, hs-rot-* styles
+- `vercel.json` — cron corrected to `apply-standing-assignments`
+
+---
+
 ## 2026-04-28 (session 97) — Tiptap migration phases 2 + 3 + 4 (complete), editor UX rethink, BlockNote deletion
 
 ### What prompted this session

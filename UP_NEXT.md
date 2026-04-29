@@ -6,7 +6,11 @@
 
 ## Active
 
-Nothing actively in flight. The Tiptap editor migration (Phases 1–4) closed at the end of session 97 (2026-04-28). Every editor surface in the platform now runs on `RimTiptapEditor` (one component, three variants: `minimal` / `message` / `document`, HTML storage, selection bubble menu). `RimBlockEditor`, `RimProseEditor`, and the `@blocknote/*` deps are deleted.
+Nothing actively in flight. Session 98 (2026-04-29) closed with:
+- **Host Schedule visual tidy-up** — 3-column row grid, `hs-row__right` wrapper, covered-row left border visible (`#ddd`), "needs a host" triple-amber resolved, quiet link → pill button.
+- **Standing Host Assignments** — full coordinator rotation system. `StandingAssignment` schema + DB pushed. `lib/applyStandingAssignments.ts` idempotent core logic. GET/POST routes at `/api/host/standing-assignments`, POST `/api/host/standing-assignments/apply`, daily cron at `0 8 * * *`. `RotationsClient.tsx` and Schedule | Rotations tab strip in `HubScheduleClient`. Notification email via `after()`.
+
+Next step: test the Rotations tab in production — navigate to `/tools/schedule` as HOST_MANAGER, click "Rotations", verify programs load, set a slot, save, confirm session count in the success message.
 
 Pick from the open threads below.
 

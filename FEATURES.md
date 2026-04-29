@@ -2296,6 +2296,85 @@ Session-scoped React state on `HostHubHomeClient`. Coordinators and admins see a
 
 ---
 
+## 45. Standing Host Assignments ✅ Built — session 98 (2026-04-29)
+
+### What it does
+
+Coordinators pre-assign hosts to recurring programs by occurrence pattern — "1st Thursday goes to Alex, 3rd Thursday to Sam." Every day at 8 AM UTC a cron walks the current month (and next month on the 1st) and creates `HostAssignment` records for any open session that matches an active standing assignment. Coordinators can also trigger the apply step immediately from the Rotations tab.
+
+### Schema
+
+New `StandingAssignment` model. One record per `programSlug + occurrence` slot (`@@unique`). Optional `endsOn` for time-limited rotations; `startsOn` gates early application.
+
+```prisma
+model StandingAssignment {
+  id          String             @id @default(cuid())
+  programSlug String
+  userId      String
+  occurrence  StandingOccurrence   -- FIRST | SECOND | THIRD | FOURTH | FIFTH | ALL
+  startsOn    DateTime           @default(now())
+  endsOn      DateTime?
+  createdById String
+  ...relations
+  @@unique([programSlug, occurrence])
+}
+```
+
+### Apply logic
+
+`lib/applyStandingAssignments.ts` — shared between the cron and the apply-now route. Walks every day in the target month:
+
+1. Load active standing assignments (not yet past `endsOn`)
+2. Load programs matching the slugs
+3. Load existing `HostAssignment` records for the month
+4. For each day × each standing assignment: `isOccurrenceOnDate()` + `getOccurrenceInMonth()` occurrence match + already-assigned skip
+5. `db.hostAssignment.createMany({ skipDuplicates: true })`
+6. Return `{ created, byUser: Map }` for email notifications
+
+Idempotent — safe to re-run; sessions with existing assignments are never touched.
+
+### Occurrence numbering
+
+`getOccurrenceInMonth(dateStr, program)` in `lib/scheduleUtils.ts`: walks days 1 to the target, counts `isOccurrenceOnDate` hits, returns 1-based count. Enables "1st Tuesday" and "3rd Saturday" matching.
+
+### Routes
+
+| Method | Route | Purpose | Auth |
+|---|---|---|---|
+| GET | `/api/host/standing-assignments` | List active standing assignments | coordinator / manager |
+| POST | `/api/host/standing-assignments` | Save rotation (upsert filled slots, delete emptied) | coordinator / manager |
+| POST | `/api/host/standing-assignments/apply` | Apply to open sessions immediately | coordinator / manager |
+| GET | `/api/cron/apply-standing-assignments` | Daily cron — fills current + next month on 1st | `CRON_SECRET` |
+
+### UI
+
+**Rotations tab** (`components/RotationsClient.tsx`) inside the Host Schedule tool. Visible to HOST_MANAGER and ADMIN. Per-program occurrence dropdowns (FIRST–FIFTH + ALL, 5th de-emphasised at `opacity: 0.65`). Optional `endsOn` date input per slot. Save button applies immediately and shows confirmation count: "✓ Saved · 4 sessions filled this month."
+
+**Tab strip** (`HubScheduleClient.tsx`): `hs-viewtabs` / `hs-viewtab` / `hs-viewtab--active` pill tabs toggle between Schedule and Rotations views (manager-only).
+
+### Email
+
+`sendStandingAssignmentScheduledEmail` — one email per host summarising all newly-scheduled sessions. Sent via `after()` from both the apply route and the cron.
+
+### Cron
+
+`vercel.json`: `0 8 * * *` → `/api/cron/apply-standing-assignments`. On the 1st of each month, also pre-fills next month so hosts see their schedule in advance.
+
+### Key files
+
+- `lib/applyStandingAssignments.ts` — core generate logic
+- `components/RotationsClient.tsx` — coordinator UI
+- `app/api/host/standing-assignments/route.ts` — list + save
+- `app/api/host/standing-assignments/apply/route.ts` — apply now
+- `app/api/cron/apply-standing-assignments/route.ts` — daily cron
+- `lib/scheduleUtils.ts` — `getOccurrenceInMonth()` added
+- `lib/email.ts` — `sendStandingAssignmentScheduledEmail()` added
+- `components/HubScheduleClient.tsx` — Rotations tab mount
+- `prisma/schema.prisma` — `StandingAssignment` + `StandingOccurrence`
+- `public/css/custom.css` — `hs-viewtabs`, `hs-rot-*` styles
+
+---
+
 ## Session Log
 
 | Date | Summary |
