@@ -41,6 +41,8 @@ import {
   isOccurrenceOnDate,
   getOccurrenceInMonth,
   getTotalOccurrencesInMonth,
+  getDayOfWeekOccurrenceInMonth,
+  getTotalDayOfWeekOccurrencesInMonth,
   type ScheduleProgram,
 } from "@/lib/scheduleUtils";
 import type { StandingOccurrence } from "@prisma/client";
@@ -51,6 +53,20 @@ const TZ = "America/Chicago";
 const OCC_NUMBER: Partial<Record<StandingOccurrence, number>> = {
   FIRST: 1, SECOND: 2, THIRD: 3, FOURTH: 4, FIFTH: 5,
 };
+
+/** Day index (0=Sun..6=Sat) → enum value used in StandingAssignment.dayOfWeek. */
+const DOW_FROM_INDEX = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"] as const;
+
+/**
+ * Specificity ranking for the apply loop. Lower number = more specific.
+ * When multiple rotations could match the same date, the most-specific wins
+ * (e.g. ALL=Nancy + FIFTH=Sue → Sue wins on a 5th-week date).
+ */
+function specificity(occ: StandingOccurrence): number {
+  if (occ === "ALL")  return 2;
+  if (occ === "LAST") return 1;
+  return 0;
+}
 
 // ─── TYPES ─────────────────────────────────────────────────────────────────
 
@@ -126,22 +142,32 @@ export async function generateCandidates(
   programSlugFilter: string | null,
   year:               number,
   month:              number,
-  standingFilterId:   string | null = null
+  standingFilterId:   string | null = null,
+  dayOfWeekFilter:    string | null = null
 ): Promise<{ candidates: Candidate[]; pastIgnored: number }> {
   // CT-anchored "today" — we treat anything strictly before today (CT) as past.
   const todayCt = new Date(new Date().toLocaleString("en-US", { timeZone: TZ }));
   const todayStr = `${todayCt.getFullYear()}-${String(todayCt.getMonth() + 1).padStart(2, "0")}-${String(todayCt.getDate()).padStart(2, "0")}`;
 
-  // 1. Load active rotations
-  const standingAssignments = await db.standingAssignment.findMany({
+  // 1. Load active rotations, sorted by specificity (specific wins over ALL)
+  const standingAssignmentsRaw = await db.standingAssignment.findMany({
     where: {
       ...(programSlugFilter ? { programSlug: programSlugFilter } : {}),
       ...(standingFilterId  ? { id: standingFilterId }            : {}),
+      ...(dayOfWeekFilter   ? { dayOfWeek:   dayOfWeekFilter   } : {}),
       OR: [{ endsOn: null }, { endsOn: { gte: todayCt } }],
     },
     include: {
       user: { select: { id: true, firstName: true, preferredName: true, email: true } },
     },
+  });
+  // Specificity sort: numeric (FIRST/SECOND/.../FIFTH) → LAST → ALL.
+  // Within same specificity, deterministic by id (so behavior is stable).
+  const standingAssignments = standingAssignmentsRaw.sort((a, b) => {
+    const sa = specificity(a.occurrence);
+    const sb = specificity(b.occurrence);
+    if (sa !== sb) return sa - sb;
+    return a.id.localeCompare(b.id);
   });
 
   if (standingAssignments.length === 0) return { candidates: [], pastIgnored: 0 };
@@ -188,6 +214,9 @@ export async function generateCandidates(
       continue;
     }
 
+    // Pre-compute the date's weekday once
+    const dateDow = DOW_FROM_INDEX[new Date(`${dateStr}T12:00:00`).getDay()];
+
     for (const sa of standingAssignments) {
       const program = programMap.get(sa.programSlug);
       if (!program) continue;
@@ -198,23 +227,35 @@ export async function generateCandidates(
 
       if (!isOccurrenceOnDate(program, dateStr)) continue;
 
-      // Resolve occurrence pattern
+      // Day-of-week scope (multi-day programs use this; legacy null matches any)
+      if (sa.dayOfWeek && sa.dayOfWeek !== dateDow) continue;
+
+      // Resolve occurrence pattern. When dayOfWeek is set, count occurrences
+      // of THAT WEEKDAY in the month (not all program sessions). For null
+      // dayOfWeek (legacy / single-day programs), use program-level occurrence.
       let matches = false;
       if (sa.occurrence === "ALL") {
         matches = true;
       } else if (sa.occurrence === "LAST") {
-        const occ      = getOccurrenceInMonth(dateStr, program);
-        const totalOcc = getTotalOccurrencesInMonth(program, year, month);
+        const occ      = sa.dayOfWeek
+          ? getDayOfWeekOccurrenceInMonth(dateStr)
+          : getOccurrenceInMonth(dateStr, program);
+        const totalOcc = sa.dayOfWeek
+          ? getTotalDayOfWeekOccurrencesInMonth(dateStr)
+          : getTotalOccurrencesInMonth(program, year, month);
         matches = occ === totalOcc;
       } else {
         const targetOcc = OCC_NUMBER[sa.occurrence];
         if (targetOcc === undefined) continue;
-        const actualOcc = getOccurrenceInMonth(dateStr, program);
+        const actualOcc = sa.dayOfWeek
+          ? getDayOfWeekOccurrenceInMonth(dateStr)
+          : getOccurrenceInMonth(dateStr, program);
         matches = actualOcc === targetOcc;
       }
       if (!matches) continue;
 
-      // De-dupe within this generation pass
+      // De-dupe within this generation pass — first (most-specific) wins.
+      // The specificity sort above ensures FIRST/.../FIFTH come before ALL.
       const key = `${sa.programSlug}::${dateStr}`;
       if (claimedKeys.has(key)) continue;
       claimedKeys.add(key);
@@ -252,10 +293,11 @@ export async function previewStandingAssignments(
   programSlugFilter: string | null,
   year:               number,
   month:              number,
-  standingFilterId:   string | null = null
+  standingFilterId:   string | null = null,
+  dayOfWeekFilter:    string | null = null
 ): Promise<PreviewResult> {
   const { candidates, pastIgnored } = await generateCandidates(
-    programSlugFilter, year, month, standingFilterId
+    programSlugFilter, year, month, standingFilterId, dayOfWeekFilter
   );
 
   if (candidates.length === 0) {
@@ -361,10 +403,11 @@ export async function applyStandingAssignments(
   year:               number,
   month:              number,
   resolution:         ResolutionMode = "leave",
-  standingFilterId:   string | null = null
+  standingFilterId:   string | null = null,
+  dayOfWeekFilter:    string | null = null
 ): Promise<ApplyResult> {
   const preview = await previewStandingAssignments(
-    programSlugFilter, year, month, standingFilterId
+    programSlugFilter, year, month, standingFilterId, dayOfWeekFilter
   );
 
   // Collect candidate user info from the preview's candidates (for emails)

@@ -206,6 +206,10 @@ export default async function ScheduleToolPage({
     slug: p.slug,
     name: p.name,
     programFormat: p.programFormat ?? null,
+    // Days the program runs on — drives the rotation editor's grid rows.
+    // For single-day programs this is one entry; for multi-day (e.g. Awakening
+    // The Heart on M/T/Th/Sat) the grid renders one row per day.
+    recurrenceDays: p.recurrenceDays ?? [],
   }));
 
   return (

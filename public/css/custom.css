@@ -15058,14 +15058,16 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 
 /* ── Rotations view (hs-rot-) ────────────────────────────────────────────── *
- * Plain-English rotation list. One sentence per rule. Add-form expands inline.
- * Replaced the per-program slot-grid in session 99 — the matrix exposed schema
- * concepts ("FIRST occurrence") instead of human concepts ("1st of the month").
+ * v3: per-program grid. Rows = days the program runs. Columns = 1st-5th
+ * occurrence of that weekday in the month. Cells = host name. Edit reveals an
+ * inline pattern form using the Program Editor's pe-* primitives (option
+ * cards, day grid, field rows) so the rotation editor matches the rest of the
+ * coordinator surfaces in feel.
  */
 .hs-rot {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 24px;
 }
 .hs-rot__intro {
   font-family: var(--font-sans);
@@ -15073,6 +15075,7 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   color: var(--rim-mid);
   margin: 0;
   line-height: var(--lh-body);
+  max-width: 720px;
 }
 .hs-rot__error {
   font-family: var(--font-sans);
@@ -15083,14 +15086,6 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   border-radius: 6px;
   margin: 0;
 }
-.hs-rot__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
 .hs-rot__empty {
   font-family: var(--font-sans);
   font-size: var(--text-small);
@@ -15099,51 +15094,111 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   padding: 40px 0;
   margin: 0;
 }
-.hs-rot__item {
-  background: #fff;
-  border-left: 3px solid var(--rim-rule);
-  border-radius: 6px;
-  padding: 14px 18px;
+
+/* Program block — the .pe-card class supplies the base card chrome.
+   Override pe-card padding to better fit a grid layout. */
+.hs-rot__prog.pe-card {
+  padding: 22px 24px 20px;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
+  flex-direction: column;
+  gap: 16px;
+}
+.hs-rot__prog-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
   flex-wrap: wrap;
+  border-bottom: 1px solid var(--rim-rule);
+  padding-bottom: 12px;
 }
-.hs-rot__sentence {
-  font-family: var(--font-sans);
-  font-size: var(--text-body);
+.hs-rot__prog-name {
+  font-family: var(--font-serif);
+  font-size: var(--text-h4);
   color: var(--rim-text);
+  font-weight: 500;
   margin: 0;
-  line-height: var(--lh-body);
-  flex: 1 1 60%;
-  min-width: 200px;
 }
-.hs-rot__host,
-.hs-rot__program { color: var(--rim-text); font-weight: 600; }
-.hs-rot__until {
+.hs-rot__prog-format {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: var(--rim-mid);
-  font-size: var(--text-small);
-  font-weight: 400;
+  font-weight: 600;
 }
 
-/* Per-row actions */
-.hs-rot__actions {
+/* Schedule grid */
+.hs-rot__grid {
   display: flex;
-  gap: 10px;
-  flex-shrink: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+.hs-rot__grid-head {
+  display: grid;
+  grid-template-columns: 130px repeat(5, 1fr) 130px;
+  gap: 8px;
+  padding: 0 8px 6px;
+  font-family: var(--font-sans);
+  font-size: var(--text-xxs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--rim-mid);
+  font-weight: 600;
+}
+.hs-rot__grid-head > div { text-align: center; }
+.hs-rot__grid-head > div:first-child { text-align: left; }
+
+.hs-rot__grid-row-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.hs-rot__grid-row {
+  display: grid;
+  grid-template-columns: 130px repeat(5, 1fr) 130px;
+  gap: 8px;
+  padding: 12px 8px;
+  border-radius: 6px;
+  align-items: center;
+  transition: background 0.12s;
+}
+.hs-rot__grid-row:hover { background: var(--rim-bg); }
+.hs-rot__grid-day {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--rim-text);
+}
+.hs-rot__grid-cell {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--rim-text);
+  text-align: center;
+  padding: 4px 6px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hs-rot__grid-cell--fifth { color: var(--rim-mid); font-style: italic; }
+.hs-rot__cell-empty { color: var(--rim-rule); }
+
+.hs-rot__grid-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
 }
 .hs-rot__action {
   background: none;
   border: 1px solid var(--rim-rule);
   border-radius: 6px;
-  padding: 6px 14px;
+  padding: 5px 12px;
   font-family: var(--font-sans);
-  font-size: var(--text-small);
+  font-size: var(--text-xs);
   color: var(--rim-text);
   cursor: pointer;
-  min-height: 36px;
-  transition: border-color 0.12s, background 0.12s;
+  min-height: 32px;
+  transition: border-color 0.12s, color 0.12s;
 }
 .hs-rot__action:hover { border-color: var(--rim-blue); color: var(--rim-blue); }
 .hs-rot__action--end:hover { border-color: var(--color-error); color: var(--color-error); }
@@ -15162,48 +15217,30 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   cursor: pointer;
   min-height: 38px;
   transition: opacity 0.12s;
+  margin-top: 4px;
 }
 .hs-rot__add:hover { opacity: 0.88; }
 
-/* Inline form (used for both Add and Edit) */
-.hs-rot__add-form,
-.hs-rot__item .hs-rot__form {
+/* Inline pattern form */
+.hs-rot__form.pe-form {
   width: 100%;
   background: var(--rim-bg);
-  border-radius: 6px;
-  padding: 16px 18px;
+  border-radius: 8px;
+  padding: 18px 20px 16px;
+  margin: 4px 0;
+  border-left: 3px solid var(--rim-blue);
+}
+.hs-rot__pattern-label {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 1px;
 }
-.hs-rot__form-row {
-  display: grid;
-  grid-template-columns: 100px 1fr;
-  gap: 12px;
-  align-items: center;
-}
-.hs-rot__form-label {
-  font-family: var(--font-sans);
-  font-size: var(--text-small);
+.hs-rot__pattern-label strong { font-weight: 500; color: var(--rim-text); }
+.hs-rot__pattern-label small {
+  font-size: var(--text-xs);
   color: var(--rim-mid);
+  font-weight: 400;
 }
-.hs-rot__form-input {
-  font-family: var(--font-sans);
-  font-size: var(--text-small);
-  color: var(--rim-text);
-  background: #fff;
-  border: 1px solid var(--rim-rule);
-  border-radius: 6px;
-  padding: 7px 10px;
-  min-height: 38px;
-  transition: border-color 0.12s;
-}
-.hs-rot__form-input:focus {
-  outline: 2px solid var(--rim-blue);
-  outline-offset: 1px;
-  border-color: var(--rim-blue);
-}
-.hs-rot__form-input:disabled { background: var(--rim-bg); color: var(--rim-mid); }
 .hs-rot__form-link {
   align-self: flex-start;
   background: none;
@@ -15214,20 +15251,19 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   color: var(--rim-blue);
   text-decoration: underline;
   cursor: pointer;
-  margin-left: 112px;  /* align with form inputs (label width + gap) */
 }
 .hs-rot__form-link:hover { color: var(--rim-text); }
 .hs-rot__form-actions {
   display: flex;
   gap: 12px;
-  margin-top: 4px;
+  margin-top: 8px;
 }
 .hs-rot__form-save {
   background: var(--rim-blue);
   color: #fff;
   border: none;
   border-radius: 6px;
-  padding: 8px 22px;
+  padding: 9px 22px;
   font-family: var(--font-sans);
   font-size: var(--text-small);
   font-weight: 500;
@@ -15241,7 +15277,7 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   background: none;
   border: 1px solid var(--rim-rule);
   border-radius: 6px;
-  padding: 8px 18px;
+  padding: 9px 18px;
   font-family: var(--font-sans);
   font-size: var(--text-small);
   color: var(--rim-text);
@@ -15254,8 +15290,9 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .hs-rot__end-confirm {
   width: 100%;
   background: var(--color-warning-bg);
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 14px 16px;
+  margin: 4px 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -15297,13 +15334,39 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 .hs-rot__end-cancel:hover { color: var(--rim-text); }
 
-/* Mobile — stack form labels and item layout */
-@media (max-width: 560px) {
-  .hs-rot__form-row { grid-template-columns: 1fr; gap: 4px; }
-  .hs-rot__form-link { margin-left: 0; }
-  .hs-rot__item { flex-direction: column; align-items: flex-start; }
-  .hs-rot__sentence { flex: 1 1 100%; }
-  .hs-rot__actions { width: 100%; justify-content: flex-end; }
+/* Mobile — stack the grid as horizontally-scrolling cards */
+@media (max-width: 760px) {
+  .hs-rot__grid-head { display: none; }
+  .hs-rot__grid-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    padding: 14px 12px;
+    background: #fff;
+    border: 1px solid var(--rim-rule);
+    border-radius: 6px;
+  }
+  .hs-rot__grid-day {
+    font-size: var(--text-body);
+    border-bottom: 1px solid var(--rim-rule);
+    padding-bottom: 6px;
+    margin-bottom: 6px;
+  }
+  /* Pseudo-labels via data attribute would be cleaner; for now show a 5-cell
+     row with subtle dividers as a row-of-pills */
+  .hs-rot__grid-cell {
+    justify-content: space-between;
+    text-align: left;
+    padding: 4px 0;
+    min-height: 28px;
+  }
+  .hs-rot__grid-cell::before {
+    content: attr(data-label);
+    font-size: var(--text-xs);
+    color: var(--rim-mid);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .hs-rot__grid-actions { justify-content: flex-start; padding-top: 6px; }
 }
 
 /* ── Conflict resolution modal (hs-cmodal-) ──────────────────────────────── */

@@ -63,6 +63,8 @@ interface Program {
   slug: string;
   name: string;
   programFormat: string | null;
+  /** Days of week this program runs on (e.g. ["MO","TH"]). Drives rotation editor rows. */
+  recurrenceDays: string[];
 }
 
 interface TeamMember {

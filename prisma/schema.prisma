@@ -877,6 +877,10 @@ enum StandingOccurrence {
 model StandingAssignment {
   id          String             @id @default(cuid())
   programSlug String
+  /// Day-of-week scope for multi-day programs. "MO"|"TU"|"WE"|"TH"|"FR"|"SA"|"SU".
+  /// Null for legacy rows or single-day programs where the day is implicit.
+  /// New rotations created via the editor always set this.
+  dayOfWeek   String?
   userId      String
   occurrence  StandingOccurrence
   startsOn    DateTime           @default(now())
@@ -891,7 +895,8 @@ model StandingAssignment {
   // Reverse relation: HostAssignments derived from this rotation rule
   hostAssignments HostAssignment[] @relation("StandingDerivedAssignments")
 
-  @@unique([programSlug, occurrence])
+  // Bundle = (programSlug, dayOfWeek). Inside a bundle, one record per occurrence.
+  @@unique([programSlug, dayOfWeek, occurrence])
   @@map("standing_assignments")
 }
 

@@ -61,13 +61,18 @@ export async function POST(request: Request) {
   const {
     programSlug = null,
     standingId  = null,
-  } = body as { programSlug?: string | null; standingId?: string | null };
+    dayOfWeek   = null,
+  } = body as {
+    programSlug?: string | null;
+    standingId?:  string | null;
+    dayOfWeek?:   string | null;
+  };
 
   const now   = new Date(new Date().toLocaleString("en-US", { timeZone: TZ }));
   const year  = body.year  ?? now.getFullYear();
   const month = body.month ?? now.getMonth() + 1;
 
-  const preview = await previewStandingAssignments(programSlug, year, month, standingId);
+  const preview = await previewStandingAssignments(programSlug, year, month, standingId, dayOfWeek);
 
   // Strip down to wire shape — drop the heavy `candidates` array
   return Response.json({

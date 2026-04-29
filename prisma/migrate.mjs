@@ -1421,6 +1421,66 @@ Rooted In Mindfulness · rootedinmindfulness.org`;
       }
     },
   },
+  {
+    // Backfill StandingAssignment.dayOfWeek for v2 rows that were saved before
+    // the column existed. Single-day programs: copy from recurrenceDays[0].
+    // Multi-day programs: leave null (the editor never produces multi-day rows
+    // without dayOfWeek — only the v2 form did, and only briefly).
+    // Idempotent: only updates rows where dayOfWeek IS NULL.
+    name: "backfill_standing_assignment_day_of_week",
+    async run() {
+      // Ensure flag table exists
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
+      `);
+      const flagged = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags" WHERE name = '${this.name}_v1'
+      `);
+      if (Array.isArray(flagged) && flagged.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      const rows = await db.standingAssignment.findMany({
+        where: { dayOfWeek: null },
+        select: { id: true, programSlug: true },
+      });
+
+      if (rows.length === 0) {
+        await db.$executeRawUnsafe(`
+          INSERT INTO "_migration_flags" (name) VALUES ('${this.name}_v1')
+          ON CONFLICT DO NOTHING
+        `);
+        console.log(`  ✔ Applied: ${this.name} — no rows needed backfill`);
+        return;
+      }
+
+      const slugs = [...new Set(rows.map((r) => r.programSlug))];
+      const programs = await db.program.findMany({
+        where: { slug: { in: slugs } },
+        select: { slug: true, recurrenceDays: true },
+      });
+      const daysBySlug = new Map(programs.map((p) => [p.slug, p.recurrenceDays ?? []]));
+
+      let updated = 0;
+      for (const r of rows) {
+        const days = daysBySlug.get(r.programSlug) ?? [];
+        if (days.length === 1) {
+          await db.standingAssignment.update({
+            where: { id: r.id },
+            data:  { dayOfWeek: days[0] },
+          });
+          updated++;
+        }
+      }
+
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('${this.name}_v1')
+        ON CONFLICT DO NOTHING
+      `);
+      console.log(`  ✔ Applied: ${this.name} — backfilled ${updated} of ${rows.length} row(s)`);
+    },
+  },
 ];
 
 // ── Minimal BlockNote → HTML converter (migration-only) ──────────────────────

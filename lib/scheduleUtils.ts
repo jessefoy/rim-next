@@ -82,6 +82,49 @@ export function getOccurrenceInMonth(dateStr: string, program: ScheduleProgram):
 }
 
 /**
+ * Returns the 1-based occurrence number of this date's WEEKDAY within its
+ * calendar month. e.g. April 14, 2026 is a Tuesday, and the 2nd Tuesday of
+ * April → returns 2.
+ *
+ * Used for multi-day programs where "1st of the month" is ambiguous —
+ * coordinators think in terms of "1st Tuesday" not "1st program session."
+ * The standing-assignment apply logic uses this when a rotation has a
+ * dayOfWeek scope set.
+ */
+export function getDayOfWeekOccurrenceInMonth(dateStr: string): number {
+  const [yStr, mStr, dStr] = dateStr.split("-");
+  const year  = parseInt(yStr, 10);
+  const month = parseInt(mStr, 10);
+  const day   = parseInt(dStr, 10);
+  const target = new Date(year, month - 1, day);
+  const targetDow = target.getDay();
+  let count = 0;
+  for (let i = 1; i <= day; i++) {
+    if (new Date(year, month - 1, i).getDay() === targetDow) count++;
+  }
+  return count;
+}
+
+/**
+ * Returns the total number of times this date's WEEKDAY occurs in its month.
+ * Used to resolve LAST occurrence semantics for weekday-scoped rotations
+ * (varies by month — sometimes 4 Tuesdays, sometimes 5).
+ */
+export function getTotalDayOfWeekOccurrencesInMonth(dateStr: string): number {
+  const [yStr, mStr] = dateStr.split("-");
+  const year  = parseInt(yStr, 10);
+  const month = parseInt(mStr, 10);
+  const target = new Date(`${dateStr}T12:00:00`);
+  const targetDow = target.getDay();
+  const daysInMonth = new Date(year, month, 0).getDate();
+  let count = 0;
+  for (let i = 1; i <= daysInMonth; i++) {
+    if (new Date(year, month - 1, i).getDay() === targetDow) count++;
+  }
+  return count;
+}
+
+/**
  * Returns the total number of times this program runs in the given calendar
  * month. Used by standing-assignment logic to resolve the LAST occurrence
  * (varies by month — sometimes 4, sometimes 5).

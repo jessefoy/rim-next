@@ -67,10 +67,12 @@ export async function POST(request: Request) {
   const {
     programSlug = null,
     standingId  = null,
+    dayOfWeek   = null,
     resolution  = "leave",
   } = body as {
     programSlug?: string | null;
     standingId?:  string | null;
+    dayOfWeek?:   string | null;
     resolution?:  ResolutionMode;
   };
 
@@ -88,7 +90,7 @@ export async function POST(request: Request) {
   const month = body.month ?? now.getMonth() + 1;
 
   const result = await applyStandingAssignments(
-    programSlug, year, month, resolution, standingId
+    programSlug, year, month, resolution, standingId, dayOfWeek
   );
 
   // ── Notification emails (fire-and-forget) ──────────────────────────────

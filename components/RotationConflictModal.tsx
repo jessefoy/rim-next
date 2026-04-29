@@ -45,8 +45,11 @@ interface Preview {
 type Mode = "leave" | "replace-all" | "perDate";
 
 interface Props {
-  standingId:  string;
+  /** v3: scope by (programSlug, dayOfWeek) bundle. */
   programSlug: string;
+  dayOfWeek?:  string;
+  /** v2 back-compat: scope by single rotation id. */
+  standingId?: string;
   year:        number;
   month:       number;
   onClose:     () => void;
@@ -59,7 +62,7 @@ const SOURCE_LABEL: Record<Conflict["source"], string> = {
   "sub-cover":      "sub-cover (protected)",
 };
 
-export default function RotationConflictModal({ standingId, programSlug, year, month, onClose }: Props) {
+export default function RotationConflictModal({ standingId, programSlug, dayOfWeek, year, month, onClose }: Props) {
   const [preview, setPreview]     = useState<Preview | null>(null);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState<string | null>(null);
@@ -75,7 +78,7 @@ export default function RotationConflictModal({ standingId, programSlug, year, m
         const res = await fetch("/api/host/standing-assignments/preview", {
           method:  "POST",
           headers: { "Content-Type": "application/json" },
-          body:    JSON.stringify({ standingId, programSlug, year, month }),
+          body:    JSON.stringify({ standingId, programSlug, dayOfWeek, year, month }),
         });
         if (!res.ok) throw new Error("preview failed");
         const data: Preview = await res.json();
@@ -108,7 +111,7 @@ export default function RotationConflictModal({ standingId, programSlug, year, m
       const res = await fetch("/api/host/standing-assignments/apply", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ standingId, programSlug, year, month, resolution }),
+        body:    JSON.stringify({ standingId, programSlug, dayOfWeek, year, month, resolution }),
       });
       if (!res.ok) throw new Error("apply failed");
       const data = await res.json();
