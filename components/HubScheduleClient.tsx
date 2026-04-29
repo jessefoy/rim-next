@@ -42,6 +42,17 @@ interface Session {
   livekitRoom?: string | null;
   /** ISO timestamp when the program was created. Drives the NEW badge. */
   programCreatedAt?: string | null;
+  /** If non-null, this assignment was created by a standing rotation rule. */
+  standingAssignmentId?: string | null;
+}
+
+/** A standing rotation the current user is on — drives the host-side summary. */
+interface MyRotation {
+  id:          string;
+  programSlug: string;
+  programName: string;
+  occurrence:  "FIRST" | "SECOND" | "THIRD" | "FOURTH" | "FIFTH" | "LAST" | "ALL";
+  endsOn:      string | null;
 }
 
 /** Programs created within this many days show a NEW badge on schedule cards. */
@@ -70,6 +81,8 @@ interface Props {
   currentUserName: string;
   coordinatorName?: string;
   isHostManager?: boolean;
+  /** The current user's active standing rotations (host-side summary only). */
+  myRotations?: MyRotation[];
   apiBase?: string;
 }
 
@@ -407,6 +420,9 @@ function HsRow({
         <div className="hs-row__name">
           {session.programName}
           {isNewProgram && !isPast && <span className="hs-row__new-badge" aria-label="New program">NEW</span>}
+          {session.standingAssignmentId && (
+            <span className="hs-row__via" aria-label="Assigned via standing rotation">via rotation</span>
+          )}
         </div>
         {fmt && <div className="hs-row__format">{fmt}</div>}
       </div>
@@ -427,10 +443,20 @@ function HsRow({
 
 // ── Main ────────────────────────────────────────────────────
 
+const OCC_HUMAN: Record<MyRotation["occurrence"], string> = {
+  FIRST:  "1st of the month",
+  SECOND: "2nd of the month",
+  THIRD:  "3rd of the month",
+  FOURTH: "4th of the month",
+  FIFTH:  "5th occurrence",
+  LAST:   "last of the month",
+  ALL:    "every session",
+};
+
 export default function HubScheduleClient({
   initialSessions, programs, teamMembers, initialYear, initialMonth,
   currentUserId, currentUserName,
-  isHostManager = false, apiBase = "/api/host",
+  isHostManager = false, myRotations = [], apiBase = "/api/host",
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -817,6 +843,29 @@ export default function HubScheduleClient({
 
       {/* Schedule view — hidden when rotations is active */}
       {view === "schedule" && <>
+
+      {/* Your standing rotations — host-side awareness panel.
+          Renders only for users who are on at least one rotation, regardless
+          of role. Coordinators still get the full management view via the
+          Rotations tab; this panel is just "here's what's auto-scheduling you." */}
+      {myRotations.length > 0 && (
+        <div className="hs-myrot">
+          <span className="hs-myrot__label">Your standing rotations:</span>
+          <ul className="hs-myrot__list">
+            {myRotations.map((r) => {
+              const endsLabel = r.endsOn
+                ? new Date(r.endsOn).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+                : null;
+              return (
+                <li key={r.id} className="hs-myrot__item">
+                  <strong>{r.programName}</strong> — {OCC_HUMAN[r.occurrence]}
+                  {endsLabel && <span className="hs-myrot__until"> (until {endsLabel})</span>}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       {/* Month nav */}
       <div className="hs-monthnav">

@@ -799,6 +799,13 @@ model HostAssignment {
   assignedBy  String?   // userId of HOST_MANAGER/ADMIN who created this
   notes       String?
   subRequests SubRequest[]
+
+  // If set, this assignment was created by a standing rotation rule.
+  // SetNull on parent delete preserves history (row stays, link breaks).
+  // The "release future assignments" delete path explicitly cascades by app code.
+  standingAssignmentId String?
+  standingAssignment   StandingAssignment? @relation("StandingDerivedAssignments", fields: [standingAssignmentId], references: [id], onDelete: SetNull)
+
   createdAt   DateTime  @default(now())
 
   @@unique([programSlug, sessionDate])
@@ -853,7 +860,8 @@ enum SubStatus {
 // Occurrence meaning (within the month for this specific program):
 //   FIRST  = 1st time this program runs in the month
 //   SECOND = 2nd time, etc.
-//   FIFTH  = 5th time — only relevant for weekly programs; some months it won't fire
+//   FIFTH  = 5th time — rare; for coordinators who want a specific 5th host
+//   LAST   = last occurrence in the month (variable: 4th if 4 occurrences, 5th if 5)
 //   ALL    = every occurrence (host covers the program every week it runs)
 
 enum StandingOccurrence {
@@ -862,6 +870,7 @@ enum StandingOccurrence {
   THIRD
   FOURTH
   FIFTH
+  LAST
   ALL
 }
 
@@ -879,6 +888,9 @@ model StandingAssignment {
   user        User               @relation("StandingAssignmentHost",    fields: [userId],      references: [id])
   createdBy   User               @relation("StandingAssignmentCreator", fields: [createdById], references: [id])
 
+  // Reverse relation: HostAssignments derived from this rotation rule
+  hostAssignments HostAssignment[] @relation("StandingDerivedAssignments")
+
   @@unique([programSlug, occurrence])
   @@map("standing_assignments")
 }
@@ -886,6 +898,18 @@ model StandingAssignment {
 // HostThread and HostReply models removed in session 76 (hub conformance).
 // Features (reactions, reply editing, categories) ported to shared HubConversationThread/Reply.
 // Tables host_threads and host_replies retained in DB for historical reference.
+
+// ─── MIGRATION FLAGS ─────────────────────────────────────────────────────────
+// Tracker for the custom migrate.mjs runner. Prisma owns the table definition
+// (so db push stops trying to drop it) but the migrate runner reads/writes it
+// via raw SQL — never through Prisma client.
+
+model MigrationFlag {
+  name      String   @id
+  appliedAt DateTime @default(now()) @map("applied_at") @db.Timestamptz
+
+  @@map("_migration_flags")
+}
 
 // ─── APP SETTINGS (key-value) ─────────────────────────────────────────────────
 

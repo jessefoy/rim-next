@@ -67,7 +67,7 @@ export default async function ScheduleToolPage({
   const startOfMonth = new Date(year, month, 1);
   const endOfMonth   = new Date(year, month + 1, 0, 23, 59, 59, 999);
 
-  const [pgPrograms, assignments] = await Promise.all([
+  const [pgPrograms, assignments, myRotationsRaw] = await Promise.all([
     db.program.findMany({
       where: {
         programFormat: { in: ["virtual", "hybrid"] },
@@ -88,6 +88,17 @@ export default async function ScheduleToolPage({
         subRequests: { where: { status: "OPEN" }, select: { id: true, message: true }, take: 1 },
       },
       orderBy: { sessionDate: "asc" },
+    }),
+    // Standing rotations for the current user — drives "Your standing rotations"
+    // summary at the top of the schedule. Coordinators see all rotations via the
+    // Rotations tab; hosts see just their own rotations here so they understand
+    // the recurring pattern that's putting sessions on their calendar.
+    db.standingAssignment.findMany({
+      where: {
+        userId: session.user.id,
+        OR: [{ endsOn: null }, { endsOn: { gte: now } }],
+      },
+      orderBy: [{ programSlug: "asc" }, { occurrence: "asc" }],
     }),
   ]);
 
@@ -114,6 +125,8 @@ export default async function ScheduleToolPage({
     livekitRoom: string | null;
     /** ISO string of the program's createdAt — drives the "NEW" badge on cards. */
     programCreatedAt: string | null;
+    /** If non-null, this assignment was created by a standing rotation. */
+    standingAssignmentId: string | null;
   }
 
   const sessions: SessionItem[] = [];
@@ -154,6 +167,7 @@ export default async function ScheduleToolPage({
           programId: p.id,
           livekitRoom: p.livekitRoom ?? null,
           programCreatedAt: p.createdAt?.toISOString() ?? null,
+          standingAssignmentId: a.standingAssignmentId ?? null,
         });
       } else {
         sessions.push({
@@ -170,10 +184,22 @@ export default async function ScheduleToolPage({
           programId: p.id,
           livekitRoom: p.livekitRoom ?? null,
           programCreatedAt: p.createdAt?.toISOString() ?? null,
+          standingAssignmentId: null,
         });
       }
     }
   }
+
+  // Serialize the current user's active rotations for the host-side summary.
+  // Just enough to render: program name + occurrence pattern + endsOn label.
+  const programNameBySlug = new Map(pgPrograms.map((p) => [p.slug, p.name]));
+  const myRotations = myRotationsRaw.map((r) => ({
+    id:          r.id,
+    programSlug: r.programSlug,
+    programName: programNameBySlug.get(r.programSlug) ?? r.programSlug,
+    occurrence:  r.occurrence,
+    endsOn:      r.endsOn?.toISOString() ?? null,
+  }));
 
   const serializedPrograms = pgPrograms.map((p) => ({
     id: p.id,
@@ -194,6 +220,7 @@ export default async function ScheduleToolPage({
         currentUserName={session.user.name || session.user.email?.split("@")[0] || ""}
         coordinatorName={coordinatorName}
         isHostManager={isHostManager}
+        myRotations={myRotations}
         apiBase="/api/host"
       />
     </div>

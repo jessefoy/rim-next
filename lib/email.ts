@@ -577,6 +577,69 @@ export async function sendStandingAssignmentScheduledEmail(
   }
 }
 
+/**
+ * Sent to a host when a coordinator's rotation change DISPLACED them from one
+ * or more sessions they were previously scheduled to host. Soft, informational
+ * tone — the coordinator made a deliberate change; the host is just being
+ * informed.
+ */
+export async function sendStandingAssignmentReplacedEmail(
+  data: StandingAssignmentScheduledEmailData
+): Promise<void> {
+  if (data.sessions.length === 0) return;
+  const count = data.sessions.length;
+  const listHtml = data.sessions
+    .map((s) => `<li style="margin-bottom:6px;">${s.programName} &mdash; ${s.dateLabel}</li>`)
+    .join("");
+  const subject =
+    count === 1
+      ? `You're no longer hosting ${data.sessions[0].programName} on ${data.sessions[0].dateLabel}`
+      : `You've been replaced on ${count} upcoming sessions`;
+  const html = `
+<p>Hi ${data.firstName ?? "there"},</p>
+<p>Your hosting coordinator has updated the standing rotation. You're no longer scheduled to host the following ${count === 1 ? "session" : "sessions"}:</p>
+<ul style="font-size:16px;line-height:1.7;padding-left:20px;">${listHtml}</ul>
+<p>If you have questions about this change, please reach out to your coordinator. You can see your current schedule any time on the <a href="${BASE_URL}/tools/schedule" style="color:#135274;">Host Schedule</a>.</p>
+<p style="color:#666;font-size:14px;">This is an automated message from your standing host rotation.</p>`;
+
+  try {
+    await resend.emails.send({ from: FROM, to: data.to, subject, html });
+  } catch (e) {
+    console.error("[email] sendStandingAssignmentReplacedEmail failed:", e);
+  }
+}
+
+/**
+ * Sent to a host when a coordinator ENDS their rotation with the "release
+ * future assignments" option. Tells them which upcoming sessions were cleared
+ * from their schedule so they're not surprised.
+ */
+export async function sendStandingAssignmentReleasedEmail(
+  data: StandingAssignmentScheduledEmailData
+): Promise<void> {
+  if (data.sessions.length === 0) return;
+  const count = data.sessions.length;
+  const listHtml = data.sessions
+    .map((s) => `<li style="margin-bottom:6px;">${s.programName} &mdash; ${s.dateLabel}</li>`)
+    .join("");
+  const subject =
+    count === 1
+      ? `Your hosting rotation has ended`
+      : `Your hosting rotation has ended (${count} sessions cleared)`;
+  const html = `
+<p>Hi ${data.firstName ?? "there"},</p>
+<p>Your standing rotation has been ended. The following upcoming ${count === 1 ? "session has" : "sessions have"} been cleared from your schedule:</p>
+<ul style="font-size:16px;line-height:1.7;padding-left:20px;">${listHtml}</ul>
+<p>Thank you for the time you've contributed. If this was unexpected or you'd like to talk about it, please reach out to your coordinator.</p>
+<p style="color:#666;font-size:14px;">This is an automated message from your standing host rotation.</p>`;
+
+  try {
+    await resend.emails.send({ from: FROM, to: data.to, subject, html });
+  } catch (e) {
+    console.error("[email] sendStandingAssignmentReleasedEmail failed:", e);
+  }
+}
+
 // ── Removed: sendNewThreadEmail + NewThreadEmailData (session 76) ────────────
 // Superseded by sendHubConvNewThreadEmail (generic, any hub). Zero call sites.
 

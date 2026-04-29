@@ -1,13 +1,16 @@
 /**
  * GET  /api/host/standing-assignments?programSlug=...
- *   Returns standing assignments for one program (or all if no param).
- *   Available to any authenticated host-team member.
+ *   Lists active standing rotations. Optional programSlug filter.
+ *   Available to any authenticated host-team member (read-only).
  *
  * POST /api/host/standing-assignments
- *   Saves the full rotation for one program. Body:
- *     { programSlug: string, slots: SlotInput[] }
- *   Each slot: { occurrence, userId, endsOn? }
- *   Slots present → upsert. Slots absent (unassigned) → delete existing record.
+ *   Creates OR updates a single rotation rule. Body:
+ *     { id?:        string,           -- present = update, absent = create
+ *       programSlug: string,
+ *       occurrence:  StandingOccurrence,
+ *       userId:      string,
+ *       endsOn?:     string | null    -- ISO date or null }
+ *   Returns the saved record.
  *   Coordinator / HOST_MANAGER / ADMIN only.
  */
 
@@ -17,7 +20,7 @@ import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
 import type { StandingOccurrence } from "@prisma/client";
 
 const OCCURRENCES: StandingOccurrence[] = [
-  "FIRST", "SECOND", "THIRD", "FOURTH", "FIFTH", "ALL",
+  "FIRST", "SECOND", "THIRD", "FOURTH", "FIFTH", "LAST", "ALL",
 ];
 
 function isManager(roles: string[]) {
@@ -49,9 +52,13 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const programSlug = searchParams.get("programSlug");
+  const userId      = searchParams.get("userId"); // optional: filter to a single host (for "your rotations")
 
   const assignments = await db.standingAssignment.findMany({
-    where: programSlug ? { programSlug } : undefined,
+    where: {
+      ...(programSlug ? { programSlug } : {}),
+      ...(userId      ? { userId      } : {}),
+    },
     include: {
       user: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
     },
@@ -74,12 +81,14 @@ export async function GET(request: Request) {
   );
 }
 
-// ── POST ──────────────────────────────────────────────────────────────────────
+// ── POST (create or update single rotation) ──────────────────────────────────
 
-interface SlotInput {
-  occurrence: StandingOccurrence;
-  userId: string;
-  endsOn?: string | null;
+interface RotationInput {
+  id?:         string;
+  programSlug: string;
+  occurrence:  StandingOccurrence;
+  userId:      string;
+  endsOn?:     string | null;
 }
 
 export async function POST(request: Request) {
@@ -87,63 +96,61 @@ export async function POST(request: Request) {
   if (!session?.user?.id) return Response.json({ error: "Unauthorized" }, { status: 401 });
   const roles = session.user.roles ?? [];
 
-  // Must be HOST_MANAGER / ADMIN or a hub coordinator
   if (!isManager(roles) && !(await isCoordinator(session.user.id))) {
     return Response.json({ error: "Forbidden — coordinator or manager required" }, { status: 403 });
   }
 
-  const body = await request.json().catch(() => null);
-  if (!body?.programSlug || !Array.isArray(body.slots)) {
-    return Response.json({ error: "programSlug and slots[] required" }, { status: 400 });
-  }
-
-  const { programSlug, slots } = body as { programSlug: string; slots: SlotInput[] };
-
-  // Validate occurrence values
-  for (const slot of slots) {
-    if (!OCCURRENCES.includes(slot.occurrence)) {
-      return Response.json({ error: `Invalid occurrence: ${slot.occurrence}` }, { status: 400 });
-    }
-  }
-
-  // Build a map of occurrence → slot for quick lookup
-  const slotMap = new Map(slots.map((s) => [s.occurrence, s]));
-
-  // Fetch existing assignments for this program
-  const existing = await db.standingAssignment.findMany({ where: { programSlug } });
-
-  const ops: Promise<unknown>[] = [];
-
-  // Upsert filled slots
-  for (const slot of slots) {
-    ops.push(
-      db.standingAssignment.upsert({
-        where: { programSlug_occurrence: { programSlug, occurrence: slot.occurrence } },
-        create: {
-          programSlug,
-          occurrence: slot.occurrence,
-          userId:      slot.userId,
-          endsOn:      slot.endsOn ? new Date(slot.endsOn) : null,
-          createdById: session.user.id,
-        },
-        update: {
-          userId:  slot.userId,
-          endsOn:  slot.endsOn ? new Date(slot.endsOn) : null,
-          // Reset startsOn when reassigned so the new host gets immediate coverage
-          startsOn: new Date(),
-        },
-      })
+  const body = await request.json().catch(() => null) as RotationInput | null;
+  if (!body?.programSlug || !body?.occurrence || !body?.userId) {
+    return Response.json(
+      { error: "programSlug, occurrence, and userId are required" },
+      { status: 400 }
     );
   }
-
-  // Delete slots that are no longer assigned (absent from slots array)
-  for (const ex of existing) {
-    if (!slotMap.has(ex.occurrence)) {
-      ops.push(db.standingAssignment.delete({ where: { id: ex.id } }));
-    }
+  if (!OCCURRENCES.includes(body.occurrence)) {
+    return Response.json({ error: `Invalid occurrence: ${body.occurrence}` }, { status: 400 });
   }
 
-  await Promise.all(ops);
+  const endsOn = body.endsOn ? new Date(body.endsOn) : null;
 
-  return Response.json({ ok: true });
+  let saved;
+  if (body.id) {
+    // UPDATE
+    saved = await db.standingAssignment.update({
+      where: { id: body.id },
+      data: {
+        programSlug: body.programSlug,
+        occurrence:  body.occurrence,
+        userId:      body.userId,
+        endsOn,
+      },
+    });
+  } else {
+    // CREATE — upsert on (programSlug, occurrence) so changing the host of an
+    // existing slot via the "+ Add" form replaces in place rather than failing.
+    saved = await db.standingAssignment.upsert({
+      where: { programSlug_occurrence: { programSlug: body.programSlug, occurrence: body.occurrence } },
+      create: {
+        programSlug: body.programSlug,
+        occurrence:  body.occurrence,
+        userId:      body.userId,
+        endsOn,
+        createdById: session.user.id,
+      },
+      update: {
+        userId:   body.userId,
+        endsOn,
+        startsOn: new Date(), // reset window when re-assigning
+      },
+    });
+  }
+
+  return Response.json({
+    id:          saved.id,
+    programSlug: saved.programSlug,
+    occurrence:  saved.occurrence,
+    userId:      saved.userId,
+    startsOn:    saved.startsOn.toISOString(),
+    endsOn:      saved.endsOn?.toISOString() ?? null,
+  });
 }

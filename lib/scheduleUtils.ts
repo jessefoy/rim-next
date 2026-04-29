@@ -82,6 +82,25 @@ export function getOccurrenceInMonth(dateStr: string, program: ScheduleProgram):
 }
 
 /**
+ * Returns the total number of times this program runs in the given calendar
+ * month. Used by standing-assignment logic to resolve the LAST occurrence
+ * (varies by month — sometimes 4, sometimes 5).
+ */
+export function getTotalOccurrencesInMonth(
+  program: ScheduleProgram,
+  year: number,
+  month: number  // 1-based
+): number {
+  const daysInMonth = new Date(year, month, 0).getDate();
+  let count = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const check = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    if (isOccurrenceOnDate(program, check)) count++;
+  }
+  return count;
+}
+
+/**
  * Does this program have a session on the given date?
  * dateStr must be "YYYY-MM-DD" format.
  */

@@ -2,13 +2,20 @@
  * POST /api/host/standing-assignments/apply
  *
  * Applies standing assignments for a given month, creating HostAssignment
- * records for every open session that matches a standing assignment pattern.
+ * records for every open future session that matches a standing pattern,
+ * and (if requested) replacing manually-assigned future sessions.
  *
- * Body: { programSlug?: string, year?: number, month?: number }
- *   programSlug — if provided, only apply for that program. Otherwise all.
- *   year/month  — defaults to current month (CT timezone).
+ * Past sessions are NEVER touched.
  *
- * Idempotent — skips sessions that already have a HostAssignment.
+ * Body:
+ *   { programSlug?: string,
+ *     standingId?:  string,    -- restrict to one rotation rule
+ *     year?:        number,
+ *     month?:       number,
+ *     resolution?:  'leave' | 'replace-all' | { perDate: {[YYYY-MM-DD]: 'keep'|'replace'} } }
+ *
+ * Defaults: current month (CT), all programs, resolution='leave'.
+ *
  * Access: HOST_MANAGER / ADMIN / hub coordinator.
  */
 
@@ -16,8 +23,14 @@ import { after } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
-import { applyStandingAssignments } from "@/lib/applyStandingAssignments";
-import { sendStandingAssignmentScheduledEmail } from "@/lib/email";
+import {
+  applyStandingAssignments,
+  type ResolutionMode,
+} from "@/lib/applyStandingAssignments";
+import {
+  sendStandingAssignmentScheduledEmail,
+  sendStandingAssignmentReplacedEmail,
+} from "@/lib/email";
 
 const TZ = "America/Chicago";
 
@@ -51,15 +64,36 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const { programSlug = null } = body as { programSlug?: string | null };
+  const {
+    programSlug = null,
+    standingId  = null,
+    resolution  = "leave",
+  } = body as {
+    programSlug?: string | null;
+    standingId?:  string | null;
+    resolution?:  ResolutionMode;
+  };
+
+  // Light shape-validation on resolution
+  if (
+    resolution !== "leave" &&
+    resolution !== "replace-all" &&
+    !(typeof resolution === "object" && resolution !== null && "perDate" in resolution)
+  ) {
+    return Response.json({ error: "Invalid resolution mode" }, { status: 400 });
+  }
 
   const now   = new Date(new Date().toLocaleString("en-US", { timeZone: TZ }));
   const year  = body.year  ?? now.getFullYear();
   const month = body.month ?? now.getMonth() + 1;
 
-  const result = await applyStandingAssignments(programSlug, year, month);
+  const result = await applyStandingAssignments(
+    programSlug, year, month, resolution, standingId
+  );
 
+  // ── Notification emails (fire-and-forget) ──────────────────────────────
   after(async () => {
+    // Newly-assigned hosts
     for (const [, sessions] of result.byUser) {
       if (sessions.length === 0) continue;
       const { userEmail, firstName } = sessions[0];
@@ -69,7 +103,21 @@ export async function POST(request: Request) {
         sessions: sessions.map((s) => ({ programName: s.programName, dateLabel: s.dateLabel })),
       });
     }
+    // Displaced hosts (only fires if resolution replaced anyone)
+    for (const [, sessions] of result.byDisplacedUser) {
+      if (sessions.length === 0) continue;
+      const { userEmail, firstName } = sessions[0];
+      await sendStandingAssignmentReplacedEmail({
+        to: userEmail,
+        firstName,
+        sessions: sessions.map((s) => ({ programName: s.programName, dateLabel: s.dateLabel })),
+      });
+    }
   });
 
-  return Response.json({ created: result.created });
+  return Response.json({
+    filled:   result.filled,
+    replaced: result.replaced,
+    kept:     result.kept,
+  });
 }

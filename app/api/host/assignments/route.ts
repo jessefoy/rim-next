@@ -192,6 +192,7 @@ export async function GET(request: Request) {
           subRequestId: openSub?.id ?? null, subMessage: openSub?.message ?? null,
           programFormat: p.programFormat ?? null, programId: p.id,
           livekitRoom: p.livekitRoom ?? null,
+          standingAssignmentId: a.standingAssignmentId ?? null,
         });
       } else {
         sessions.push({
@@ -202,6 +203,7 @@ export async function GET(request: Request) {
           subRequestId: null, subMessage: null,
           programFormat: p.programFormat ?? null, programId: p.id,
           livekitRoom: p.livekitRoom ?? null,
+          standingAssignmentId: null,
         });
       }
     }
