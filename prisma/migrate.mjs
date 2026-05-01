@@ -12,6 +12,7 @@ import { seedManualHostHubTeamManagement } from "./seed-manual-host-hub-team-man
 import { seedManualHostSchedule } from "./seed-manual-host-schedule.mjs";
 import { seedHostHubHomeContent } from "./seed-host-hub-home-content.mjs";
 import { seedHostHubOnboardingDocs } from "./seed-host-hub-onboarding-docs.mjs";
+import { seedHostHubTeamDocs } from "./seed-host-hub-team-docs.mjs";
 
 const db = new PrismaClient();
 
@@ -1702,6 +1703,22 @@ async function main() {
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_host_hub_onboarding_docs_v1')`);
   } else {
     console.log("  ⏭ Host Hub onboarding docs already seeded.");
+  }
+
+  // Host Hub team documents — six docs across four new categories
+  // (The Practice of Hosting, Running a Session, When Things Go Wrong,
+  // For Coordinators). Idempotent at the record level (upsert by hub +
+  // label) so re-running updates bodies. Adds any missing categories to
+  // Hub.documentCategories without touching existing ones.
+  const hostTeamDocsFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'seed_host_hub_team_docs_v1'
+  `).catch(() => []);
+
+  if (hostTeamDocsFlag.length === 0) {
+    await seedHostHubTeamDocs(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_host_hub_team_docs_v1')`);
+  } else {
+    console.log("  ⏭ Host Hub team docs already seeded.");
   }
 
   await db.$disconnect();
