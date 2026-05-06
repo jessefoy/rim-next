@@ -24,6 +24,7 @@ import { updateManualCourseHub } from "./update-manual-course-hub.mjs";
 import { updateManualRegistration } from "./update-manual-registration.mjs";
 import { updateManualPrograms } from "./update-manual-programs.mjs";
 import { updateManualProgramsRewrite } from "./update-manual-programs-rewrite.mjs";
+import { updateManualRegistrationRewrite } from "./update-manual-registration-rewrite.mjs";
 
 const db = new PrismaClient();
 
@@ -1874,6 +1875,24 @@ async function main() {
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_programs_rewrite_v1')`);
   } else {
     console.log("  ⏭ Manual programs rewrite already applied.");
+  }
+
+  // Manual chapter: registration (option-B full rewrite). Replaces the
+  // body wholesale with a fresh chapter built from the actual
+  // registration UI — the program list at /tools/programs, the
+  // registration detail (VolunteerTable) with its three-column
+  // expanded row and status-conditional actions, dana statuses,
+  // automatic vs manually-triggered emails, course access, calendar
+  // links.
+  const updateRegistrationRewriteFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_registration_rewrite_v1'
+  `).catch(() => []);
+
+  if (updateRegistrationRewriteFlag.length === 0) {
+    await updateManualRegistrationRewrite(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_registration_rewrite_v1')`);
+  } else {
+    console.log("  ⏭ Manual registration rewrite already applied.");
   }
 
   await db.$disconnect();
