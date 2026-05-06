@@ -18,10 +18,14 @@ export async function generateMetadata({
 
 export default async function ManualSectionPage({
   params,
+  searchParams,
 }: {
-  params: Promise<{ slug: string }>;
+  params:        Promise<{ slug: string }>;
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { slug } = await params;
+  const search = (await searchParams) ?? {};
+  const fromParam = typeof search.from === "string" ? search.from : null;
 
   const session = await auth();
   if (!session?.user) {
@@ -33,11 +37,32 @@ export default async function ManualSectionPage({
   const section = await db.manualSection.findUnique({ where: { slug } });
   if (!section) notFound();
 
+  // Determine the back-link.
+  // Priority: ?from=<hubSlug> → section.hubSlug → /admin/manual fallback.
+  // The "context" hub is whichever the user's path-of-arrival implies — the
+  // explicit `from` param wins because it captures intent (the user clicked
+  // "?" while inside that hub), and the chapter's own hubSlug is the
+  // fallback for direct loads.
+  let backHref  = "/admin/manual";
+  let backLabel = "Volunteer Manual";
+
+  const contextHubSlug = fromParam ?? section.hubSlug;
+  if (contextHubSlug) {
+    const ctxHub = await db.hub.findUnique({
+      where:  { slug: contextHubSlug },
+      select: { name: true },
+    });
+    if (ctxHub) {
+      backHref  = `/account/hub/${contextHubSlug}/manual`;
+      backLabel = `${ctxHub.name} Manual`;
+    }
+  }
+
   const relatedSections =
     section.relations.length > 0
       ? await db.manualSection.findMany({
-          where: { slug: { in: section.relations } },
-          select: { slug: true, title: true },
+          where:   { slug: { in: section.relations } },
+          select:  { slug: true, title: true },
           orderBy: { order: "asc" },
         })
       : [];
@@ -45,18 +70,23 @@ export default async function ManualSectionPage({
   const bodyHtml = section.body ? await renderContentBodyAsync(section.body) : "";
 
   const hubLabel: Record<string, string> = {
-    courses: "Course Hub",
+    courses:     "Course Hub",
     "host-team": "Host Hub",
-    support: "Support Inbox",
-    registrar: "Registrar Hub",
+    support:     "Support Inbox",
+    registrar:   "Registrar Hub",
   };
+
+  // Preserve the from-context on related-section links so navigation
+  // between sibling chapters keeps the user in their hub-scoped flow.
+  const fromSuffix = fromParam ? `?from=${fromParam}` : "";
 
   return (
     <div className="man-sec-page">
-      {/* Back link */}
+      {/* Back link — context-aware: /account/hub/<slug>/manual when a
+          hub context applies, /admin/manual otherwise. */}
       <div className="man-sec-page__back">
-        <Link href="/admin/manual" className="man-sec-page__back-link">
-          ← Volunteer Manual
+        <Link href={backHref} className="man-sec-page__back-link">
+          ← {backLabel}
         </Link>
       </div>
 
@@ -72,15 +102,18 @@ export default async function ManualSectionPage({
         </div>
         <div className="man-sec-page__meta">
           {section.hubSlug && hubLabel[section.hubSlug] && (
-            <span className="man-sec-page__hub-badge">
+            <Link
+              href={`/account/hub/${section.hubSlug}/manual`}
+              className="man-sec-page__hub-badge"
+            >
               {hubLabel[section.hubSlug]}
-            </span>
+            </Link>
           )}
           <span className="man-sec-page__updated">
             Updated {new Date(section.updatedAt).toLocaleDateString("en-US", {
               month: "long",
-              day: "numeric",
-              year: "numeric",
+              day:   "numeric",
+              year:  "numeric",
             })}
           </span>
         </div>
@@ -96,14 +129,18 @@ export default async function ManualSectionPage({
         <p className="man-sec-page__empty">No content yet.</p>
       )}
 
-      {/* Related sections */}
+      {/* Related sections — preserve the from-context on links */}
       {relatedSections.length > 0 && (
         <div className="man-sec-page__related">
           <hr className="man-sec-page__rule" />
           <p className="man-sec-page__related-label">Related sections</p>
           <div className="man-sec-page__related-list">
             {relatedSections.map((r) => (
-              <Link key={r.slug} href={`/admin/manual/${r.slug}`} className="man-sec-page__related-link">
+              <Link
+                key={r.slug}
+                href={`/admin/manual/${r.slug}${fromSuffix}`}
+                className="man-sec-page__related-link"
+              >
                 {r.title}
               </Link>
             ))}
@@ -111,7 +148,7 @@ export default async function ManualSectionPage({
         </div>
       )}
 
-      {/* Footer */}
+      {/* Footer — always points at the full manual, regardless of context */}
       <div className="man-sec-page__footer">
         <hr className="man-sec-page__rule" />
         <Link href="/admin/manual" className="man-sec-page__back-link">

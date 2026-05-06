@@ -164,7 +164,7 @@ export default function HubHomeClient({
         <h2 className="hub-home__state">{stateSentence}</h2>
         {manualSlug && (
           <a
-            href={`/admin/manual/${manualSlug}`}
+            href={`/admin/manual/${manualSlug}?from=${encodeURIComponent(slug)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="mh-icon"

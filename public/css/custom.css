@@ -20441,6 +20441,11 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .man-idx__entry-desc { font-family: var(--font-sans); font-size: var(--text-ui); color: var(--rim-text-muted); }
 .man-idx__hub-badge { font-family: var(--font-sans); font-size: var(--text-xxs); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--rim-mid); background: #eef2f5; padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
 
+/* Grouped manual index — chapters bucketed by audience */
+.man-idx__group { margin-bottom: 36px; }
+.man-idx__group-label { font-family: var(--font-serif); font-size: 22px; color: var(--rim-text); margin: 0 0 4px 0; font-weight: 500; }
+.man-idx__group-desc { font-family: var(--font-sans); font-size: var(--text-ui); color: var(--rim-text-muted); margin: 0 0 14px 0; }
+
 /* ── Manual Section Page (man-sec-page-) ──────────────────────────────────── */
 .man-sec-page { max-width: 800px; margin: 0 auto; padding: 40px 24px 80px; }
 .man-sec-page__back { margin-bottom: 24px; }
@@ -20452,7 +20457,8 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .man-sec-page__edit-link { font-family: var(--font-sans); font-size: var(--text-xs); color: var(--rim-blue); text-decoration: none; white-space: nowrap; margin-top: 8px; }
 .man-sec-page__edit-link:hover { text-decoration: underline; }
 .man-sec-page__meta { display: flex; align-items: center; gap: 12px; }
-.man-sec-page__hub-badge { font-family: var(--font-sans); font-size: var(--text-xxs); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--rim-mid); background: #eef2f5; padding: 3px 8px; border-radius: 4px; }
+.man-sec-page__hub-badge { font-family: var(--font-sans); font-size: var(--text-xxs); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--rim-mid); background: #eef2f5; padding: 3px 8px; border-radius: 4px; text-decoration: none; transition: background 0.1s; }
+.man-sec-page__hub-badge:hover { background: #dde6ec; }
 .man-sec-page__updated { font-family: var(--font-sans); font-size: var(--text-xs); color: var(--rim-text-muted); }
 .man-sec-page__body { line-height: 1.7; }
 .man-sec-page__empty { font-family: var(--font-sans); font-size: var(--text-ui); color: var(--rim-text-muted); font-style: italic; }

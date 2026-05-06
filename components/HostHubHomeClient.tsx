@@ -60,7 +60,7 @@ export default function HostHubHomeClient({
             as the schedule tool's hs-help-icon — discoverable without competing
             for visual weight. */}
         <a
-          href="/admin/manual/host-hub"
+          href="/admin/manual/host-hub?from=host-team"
           target="_blank"
           rel="noopener noreferrer"
           className="mh-icon"

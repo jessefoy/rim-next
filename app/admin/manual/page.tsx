@@ -2,15 +2,16 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import Link from "next/link";
+import { groupManualSections } from "@/lib/manualGroups";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Volunteer Manual — Rooted In Mindfulness" };
 
 const hubLabel: Record<string, string> = {
-  courses: "Course Hub",
+  courses:     "Course Hub",
   "host-team": "Host Hub",
-  support: "Support Inbox",
-  registrar: "Registrar Hub",
+  support:     "Support Inbox",
+  registrar:   "Registrar Hub",
 };
 
 export default async function ManualIndexPage() {
@@ -23,8 +24,10 @@ export default async function ManualIndexPage() {
 
   const sections = await db.manualSection.findMany({
     orderBy: { order: "asc" },
-    select: { slug: true, title: true, description: true, hubSlug: true },
+    select:  { slug: true, title: true, description: true, hubSlug: true },
   });
+
+  const grouped = groupManualSections(sections);
 
   return (
     <div className="man-idx">
@@ -40,21 +43,33 @@ export default async function ManualIndexPage() {
         )}
       </div>
 
-      <div className="man-idx__list">
-        {sections.map((s) => (
-          <Link key={s.slug} href={`/admin/manual/${s.slug}`} className="man-idx__entry">
-            <div className="man-idx__entry-main">
-              <span className="man-idx__entry-title">{s.title}</span>
-              {s.description && (
-                <span className="man-idx__entry-desc">{s.description}</span>
-              )}
-            </div>
-            {s.hubSlug && hubLabel[s.hubSlug] && (
-              <span className="man-idx__hub-badge">{hubLabel[s.hubSlug]}</span>
-            )}
-          </Link>
-        ))}
-      </div>
+      {grouped.map(({ group, sections }) => (
+        <section key={group.id} className="man-idx__group">
+          <h2 className="man-idx__group-label">{group.label}</h2>
+          {group.description && (
+            <p className="man-idx__group-desc">{group.description}</p>
+          )}
+          <div className="man-idx__list">
+            {sections.map((s) => (
+              <Link
+                key={s.slug}
+                href={`/admin/manual/${s.slug}`}
+                className="man-idx__entry"
+              >
+                <div className="man-idx__entry-main">
+                  <span className="man-idx__entry-title">{s.title}</span>
+                  {s.description && (
+                    <span className="man-idx__entry-desc">{s.description}</span>
+                  )}
+                </div>
+                {s.hubSlug && hubLabel[s.hubSlug] && (
+                  <span className="man-idx__hub-badge">{hubLabel[s.hubSlug]}</span>
+                )}
+              </Link>
+            ))}
+          </div>
+        </section>
+      ))}
     </div>
   );
 }

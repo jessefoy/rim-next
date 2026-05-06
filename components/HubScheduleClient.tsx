@@ -985,7 +985,7 @@ export default function HubScheduleClient({
             the filter row so it's discoverable without competing for visual
             weight. The system's standard ManualHelpIcon ("?") convention. */}
         <a
-          href="/admin/manual/host-schedule"
+          href="/admin/manual/host-schedule?from=host-team"
           target="_blank"
           rel="noopener noreferrer"
           className="hs-help-icon"
