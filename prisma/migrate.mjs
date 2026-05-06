@@ -14,6 +14,7 @@ import { seedHostHubHomeContent } from "./seed-host-hub-home-content.mjs";
 import { seedHostHubOnboardingDocs } from "./seed-host-hub-onboarding-docs.mjs";
 import { seedHostHubTeamDocs } from "./seed-host-hub-team-docs.mjs";
 import { updateManualHostHub } from "./update-manual-host-hub.mjs";
+import { updateManualHostHubTeamManagement } from "./update-manual-host-hub-team-management.mjs";
 
 const db = new PrismaClient();
 
@@ -1735,6 +1736,21 @@ async function main() {
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_hub_v1')`);
   } else {
     console.log("  ⏭ Manual host-hub already updated.");
+  }
+
+  // Manual chapter: host-hub-team-management rewrite. Same voice/tone
+  // pass as host-hub. Coordinator-facing. Trims ~6,000 → ~1,700 words
+  // while keeping all substantive information; adds the
+  // release-assignments-on-pause confirmation flow.
+  const updateManualTeamMgmtFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_host_hub_team_management_v1'
+  `).catch(() => []);
+
+  if (updateManualTeamMgmtFlag.length === 0) {
+    await updateManualHostHubTeamManagement(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_hub_team_management_v1')`);
+  } else {
+    console.log("  ⏭ Manual host-hub-team-management already updated.");
   }
 
   await db.$disconnect();
