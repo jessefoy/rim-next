@@ -129,7 +129,7 @@ This is the difference between executing tasks and co-creating a system. Jesse s
 - `app/layout.tsx` — root layout (CSS, Nav, Footer, SessionProvider)
 - `proxy.ts` — route protection for `/account/*`, `/admin/*`, `/course/*`
 - `auth.ts` — NextAuth config; session callback enriches `session.user` with firstName, roles, archivedAt, agreedToTerms
-- `prisma/schema.prisma` — full schema (User, Registration, CourseAccess, Donation, Household, HouseholdMember, HostAssignment, SubRequest, SubClaim, HostThread, HostReply, Alert)
+- `prisma/schema.prisma` — full schema (User, Registration, CourseAccess, Donation, Household, HouseholdMember, HostAssignment, SubRequest, SubClaim)
 - `lib/queries.ts` — all Sanity GROQ queries
 - `lib/email.ts` — all Resend transactional email builders
 - `lib/dateLabel.ts` — `buildDateLabel(p)` auto-generates schedule label from Sanity datetime/recurrence fields (CT timezone)

@@ -428,27 +428,16 @@ A registration is considered a duplicate if the same `userId` + `programId` alre
 The member home page. A single `720px` content column (`db2-wrap`), vertical sections in reading order:
 
 1. **Greeting** — "Welcome back, [firstName]." + today's date in CT
-2. **Alerts** — amber notification card (`AlertStrip`); only shown when unread alerts exist
-3. **Today's Virtual Sessions** — live/later sessions with join button and auto-refresh
-4. **Your Upcoming Programs** — next 5 active registrations with Sanity start dates
-5. **My Account** — quick links to My Profile, My Registrations, Course Library
-6. **Pending Dana** — shown only when `donationStatus: PENDING` registrations exist
-7. **Your Hubs** — hub cards; ADMIN sees all hubs; others see only their `HubMember` records
+2. **Today's Virtual Sessions** — live/later sessions with join button and auto-refresh
+3. **Your Upcoming Programs** — next 5 active registrations with Sanity start dates
+4. **My Account** — quick links to My Profile, My Registrations, Course Library
+5. **Pending Dana** — shown only when `donationStatus: PENDING` registrations exist
+6. **Your Hubs** — hub cards; ADMIN sees all hubs; others see only their `HubMember` records
 
 **Today's Virtual Sessions:** `virtualDashboardProgramsQuery` fetches all virtual/hybrid programs with full recurrence fields. JS-side `isOccurrenceToday()` handles weekly (day code + bi-weekly interval + series end), single events, and monthly/daily fallback. `shiftToToday()` corrects the live/later window for recurring programs. Sessions split into **Live Now** (join button; window opens 12 min before start, through session end) and **Later Today** (no join button; note tells member the link appears about 12 min before start). Join link withheld until Live Now — prevents members accidentally joining an open room when multiple programs are visible. **Auto-refresh:** `DashboardAutoRefresh` fires `router.refresh()` via `setTimeout` exactly when a Later Today session enters its Live Now window (epoch ms, timezone-agnostic; +2s buffer). No polling, no scroll reset — join button appears in place.
 
-**AlertStrip (`components/AlertStrip.tsx`):**
-- Amber notification card, inline within the dashboard content column (after the greeting)
-- Color tokens: `--color-alert: #C8821A`, `--color-alert-bg: #FDF6EC`, `--color-alert-border: #F0C98A`
-- Container: amber background + border + `border-radius: 10px`, `padding: 12px 16px`
-- Items: `border-left: 4px solid var(--color-alert)`, `padding-left: 20px`; hairline `border-bottom` dividers; no gap between items
-- Count badge uses `--color-alert` (not brand navy); label text "alerts" / "alert"
-- Scrollable list: `max-height: 220px; overflow-y: auto` on the `ul`
-- Scroll indicator: CSS-only pulsing downward chevron on `.alert-strip__scroll-wrap::after`; `opacity: 0.3→1→0.3` over 2s; hidden via `is-scrolled-to-bottom` class applied by `checkScroll` on mount + scroll + data change
-- Dismiss: per-item ✕ button (`PATCH /api/account/alerts { id }`); "Mark all read" clears all and sets `dismissed` state
-
-**Key files:** `app/account/dashboard/page.tsx`, `components/AlertStrip.tsx`, `components/DashboardAutoRefresh.tsx`
-**CSS prefix:** `db2-` (dashboard), `alert-strip` (AlertStrip)
+**Key files:** `app/account/dashboard/page.tsx`, `components/DashboardAutoRefresh.tsx`
+**CSS prefix:** `db2-` (dashboard)
 
 ### 6b. Account Sidebar (`AccountSidebar` / `AccountLayout`)
 

@@ -43,25 +43,6 @@ LiveKit replaced Google Meet in session 86. Code-level removal is complete (item
 
 ---
 
-## Theme C — Verification of removed features
-
-Things claimed-removed; verify nothing was missed before considering them closed.
-
-| # | Item | Where | Action |
-|---|---|---|---|
-| 20 | `task-reminders` cron | `vercel.json` | Verify gone |
-| 21 | `check-unassigned-hosts` cron | `vercel.json` | Verify gone |
-| 22 | Gmail 5-min sync cron | `vercel.json` | Verify gone (removed s88) |
-| 23 | `Task`, `TaskList`, `Subtask` models + `TaskStatus` enum | `prisma/schema.prisma` | Verify fully removed |
-| 24 | `Alert` model + `AlertType` enum | `prisma/schema.prisma` | Verify fully removed |
-| 25 | `/api/account/alerts` route | `app/api/account/alerts/` | Verify gone |
-| 26 | `AlertStrip` component | `components/AlertStrip.tsx` and its render in `app/account/dashboard/page.tsx` | Verify gone (FEATURES section 6a still describes it as live) |
-| 27 | `HubAnnouncement` model | `prisma/schema.prisma` | Verify gone (s72) |
-| 28 | `HostThread`, `HostReply` models + routes + components | Schema, `/api/host/threads/*`, `/api/host/replies/*`, `HubThreadDetailClient.tsx` | Verify gone (s76) |
-| 29 | `HubNavStrip`, `HubHeader` components | `components/` | Verify gone (s74) |
-
----
-
 ## Theme D — Direct code residue
 
 Items definitively present and definitively unused.
