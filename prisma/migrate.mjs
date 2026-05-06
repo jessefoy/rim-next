@@ -13,6 +13,7 @@ import { seedManualHostSchedule } from "./seed-manual-host-schedule.mjs";
 import { seedHostHubHomeContent } from "./seed-host-hub-home-content.mjs";
 import { seedHostHubOnboardingDocs } from "./seed-host-hub-onboarding-docs.mjs";
 import { seedHostHubTeamDocs } from "./seed-host-hub-team-docs.mjs";
+import { updateManualHostHub } from "./update-manual-host-hub.mjs";
 
 const db = new PrismaClient();
 
@@ -1719,6 +1720,21 @@ async function main() {
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_host_hub_team_docs_v1')`);
   } else {
     console.log("  ⏭ Host Hub team docs already seeded.");
+  }
+
+  // Manual chapter: host-hub orientation rewrite. Plain language, written
+  // for the average host volunteer (8th-grade level, no jargon, supportive).
+  // Replaces the original chapter that was extracted from a stale static
+  // HTML source. Idempotent: runs once via flag.
+  const updateManualHostHubFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_host_hub_v1'
+  `).catch(() => []);
+
+  if (updateManualHostHubFlag.length === 0) {
+    await updateManualHostHub(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_hub_v1')`);
+  } else {
+    console.log("  ⏭ Manual host-hub already updated.");
   }
 
   await db.$disconnect();
