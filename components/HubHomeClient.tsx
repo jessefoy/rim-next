@@ -147,12 +147,34 @@ export default function HubHomeClient({
     );
   }
 
+  // Per-hub orientation chapter for the "?" link in the header.
+  // host-team is handled by HostHubHomeClient, so it's not in this map.
+  const orientationManualSlug: Record<string, string> = {
+    courses:   "course-hub",
+    support:   "support-inbox",
+    registrar: "registration",
+  };
+  const manualSlug = orientationManualSlug[slug];
+
   return (
     <div className="hub-home">
       {/* ── State sentence ── */}
-      <header className="hub-home__header">
+      <header className="hub-home__header" style={{ position: "relative" }}>
         <div className="hub-home__greeting">{greeting()}.</div>
         <h2 className="hub-home__state">{stateSentence}</h2>
+        {manualSlug && (
+          <a
+            href={`/admin/manual/${manualSlug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mh-icon"
+            title={`About ${hubName}`}
+            aria-label={`About ${hubName} (opens in a new tab)`}
+            style={{ position: "absolute", top: 0, right: 0 }}
+          >
+            ?
+          </a>
+        )}
       </header>
 
       {/* ── Primary work card ── */}

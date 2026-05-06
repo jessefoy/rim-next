@@ -17,6 +17,8 @@ import { updateManualHostHub } from "./update-manual-host-hub.mjs";
 import { updateManualHostHubTeamManagement } from "./update-manual-host-hub-team-management.mjs";
 import { updateManualHostSchedule } from "./update-manual-host-schedule.mjs";
 import { updateManualHostRotations } from "./update-manual-host-rotations.mjs";
+import { updateManualHostSessionRoom } from "./update-manual-host-session-room.mjs";
+import { updateManualConversations } from "./update-manual-conversations.mjs";
 
 const db = new PrismaClient();
 
@@ -1783,6 +1785,35 @@ async function main() {
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_rotations_v1')`);
   } else {
     console.log("  ⏭ Manual host-rotations already updated.");
+  }
+
+  // Manual chapter: host-session-room (new). Walks through the host's
+  // experience inside RIM's video room — joining, what's on screen, the
+  // host controls, nonverbal signals, member photos, Open Access notes.
+  // Avoids product names — the room is "the session room."
+  const updateManualHostSessionRoomFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_host_session_room_v1'
+  `).catch(() => []);
+
+  if (updateManualHostSessionRoomFlag.length === 0) {
+    await updateManualHostSessionRoom(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_session_room_v1')`);
+  } else {
+    console.log("  ⏭ Manual host-session-room already updated.");
+  }
+
+  // Manual chapter: conversations (new, system-wide). hubSlug is null —
+  // the chapter applies to every hub. Threads, replies, reactions,
+  // categories, pinning, and notification rules.
+  const updateManualConversationsFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_conversations_v1'
+  `).catch(() => []);
+
+  if (updateManualConversationsFlag.length === 0) {
+    await updateManualConversations(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_conversations_v1')`);
+  } else {
+    console.log("  ⏭ Manual conversations already updated.");
   }
 
   await db.$disconnect();
