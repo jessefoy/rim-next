@@ -53,9 +53,23 @@ export default function HostHubHomeClient({
 
   return (
     <div className="hub-home">
-      <header className="hub-home__header">
+      <header className="hub-home__header" style={{ position: "relative" }}>
         <div className="hub-home__greeting">Welcome</div>
         <h2 className="hub-home__state">{hubName}</h2>
+        {/* Quiet "?" link to the orientation chapter for this hub. Same pattern
+            as the schedule tool's hs-help-icon — discoverable without competing
+            for visual weight. */}
+        <a
+          href="/admin/manual/host-hub"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mh-icon"
+          title="About the host hub"
+          aria-label="About the host hub (opens in a new tab)"
+          style={{ position: "absolute", top: 0, right: 0 }}
+        >
+          ?
+        </a>
       </header>
 
       <section className="hub-home__section">

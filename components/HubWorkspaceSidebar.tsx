@@ -24,6 +24,7 @@ import {
   Home,
   MessageSquare,
   FileText,
+  BookOpen,
   Users,
   Briefcase,
   Settings,
@@ -115,6 +116,7 @@ export default function HubWorkspaceSidebar({
   const otherItems = [
     { label: "Conversations", href: `${base}/conversations`, icon: MessageSquare, badge: navCounts.conversations ?? 0 },
     { label: "Documents",     href: `${base}/documents`,     icon: FileText,      badge: 0 },
+    { label: "Manual",        href: `${base}/manual`,        icon: BookOpen,      badge: 0 },
     { label: "Members",       href: `${base}/members`,       icon: Users,         badge: 0 },
   ];
 
