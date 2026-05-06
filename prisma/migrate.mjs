@@ -16,6 +16,7 @@ import { seedHostHubTeamDocs } from "./seed-host-hub-team-docs.mjs";
 import { updateManualHostHub } from "./update-manual-host-hub.mjs";
 import { updateManualHostHubTeamManagement } from "./update-manual-host-hub-team-management.mjs";
 import { updateManualHostSchedule } from "./update-manual-host-schedule.mjs";
+import { updateManualHostRotations } from "./update-manual-host-rotations.mjs";
 
 const db = new PrismaClient();
 
@@ -1726,15 +1727,15 @@ async function main() {
 
   // Manual chapter: host-hub orientation rewrite. Plain language, written
   // for the average host volunteer (8th-grade level, no jargon, supportive).
-  // Replaces the original chapter that was extracted from a stale static
-  // HTML source. Idempotent: runs once via flag.
+  // v2 scrubs specific coordinator name references — chapters now refer to
+  // "the host coordinator" generically for portability across role changes.
   const updateManualHostHubFlag = await db.$queryRawUnsafe(`
-    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_host_hub_v1'
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_host_hub_v2'
   `).catch(() => []);
 
   if (updateManualHostHubFlag.length === 0) {
     await updateManualHostHub(db);
-    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_hub_v1')`);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_hub_v2')`);
   } else {
     console.log("  ⏭ Manual host-hub already updated.");
   }
@@ -1755,17 +1756,32 @@ async function main() {
   }
 
   // Manual chapter: host-schedule refresh. Adds the Schedule | Rotations
-  // tab strip section (session 98). Names Maria explicitly. Light tone
-  // polish — the original was already in the right voice.
+  // tab strip section (session 98). v2 swaps named references for "the
+  // host coordinator" generically.
   const updateManualHostScheduleFlag = await db.$queryRawUnsafe(`
-    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_host_schedule_v1'
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_host_schedule_v2'
   `).catch(() => []);
 
   if (updateManualHostScheduleFlag.length === 0) {
     await updateManualHostSchedule(db);
-    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_schedule_v1')`);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_schedule_v2')`);
   } else {
     console.log("  ⏭ Manual host-schedule already updated.");
+  }
+
+  // Manual chapter: host-rotations (new). Coordinator-facing chapter on
+  // the Rotations tab in /tools/schedule — patterns, hosts, end dates,
+  // and what happens when you save. Fills the gap left by the brief
+  // mention in host-schedule.
+  const updateManualHostRotationsFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_host_rotations_v1'
+  `).catch(() => []);
+
+  if (updateManualHostRotationsFlag.length === 0) {
+    await updateManualHostRotations(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_rotations_v1')`);
+  } else {
+    console.log("  ⏭ Manual host-rotations already updated.");
   }
 
   await db.$disconnect();
