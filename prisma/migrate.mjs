@@ -1777,17 +1777,19 @@ async function main() {
     console.log("  ⏭ Manual host-schedule already updated.");
   }
 
-  // Manual chapter: host-rotations (new). Coordinator-facing chapter on
-  // the Rotations tab in /tools/schedule — patterns, hosts, end dates,
-  // and what happens when you save. Fills the gap left by the brief
-  // mention in host-schedule.
+  // Manual chapter: host-rotations. v2 corrects drift between the chapter
+  // and the actual UI: distinguishes "Set up" (empty row) from "Edit"
+  // (existing row), adds the "End" button flow with its two options
+  // (just stop generating vs stop and release future dates), and
+  // clarifies that setting endsOn in Edit is a different path from the
+  // dedicated End button.
   const updateManualHostRotationsFlag = await db.$queryRawUnsafe(`
-    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_host_rotations_v1'
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_host_rotations_v2'
   `).catch(() => []);
 
   if (updateManualHostRotationsFlag.length === 0) {
     await updateManualHostRotations(db);
-    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_rotations_v1')`);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_rotations_v2')`);
   } else {
     console.log("  ⏭ Manual host-rotations already updated.");
   }

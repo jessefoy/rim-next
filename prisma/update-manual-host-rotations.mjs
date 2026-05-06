@@ -27,9 +27,13 @@ const ROTATIONS_BODY = `<p>The Rotations tab is where you set up the standing pa
 <li><strong>Cells</strong> show whose name is assigned for that day-and-occurrence.</li>
 </ul>
 <p>For example, if a program runs every Tuesday and Thursday, the card has two rows: Tuesday and Thursday. Each row has cells for the 1st through 5th Tuesday (or Thursday) of the month. If a cell is empty, no one is assigned for that occurrence yet.</p>
-<p>To the right of each row is an <strong>Edit</strong> button. Click it to set up the rotation for that day, or to change one that's already there.</p>
+<p>To the right of each row, you'll see action buttons. The exact buttons depend on whether a rotation already exists for that day:</p>
+<ul>
+<li>If no one is assigned yet, you'll see <strong>Set up</strong> — the row is empty and waiting.</li>
+<li>If a rotation is already in place, you'll see <strong>Edit</strong> and <strong>End</strong>. Edit changes the pattern or the hosts. End stops the rotation.</li>
+</ul>
 <h2>Setting up a rotation</h2>
-<p>Click <strong>Edit</strong> on the row you want. A small form opens.</p>
+<p>Click <strong>Set up</strong> on an empty row (or <strong>Edit</strong> to change one that's already there). A small form opens.</p>
 <p>The form asks four things:</p>
 <ol>
 <li><strong>What's the pattern?</strong> Same, Alternate, Pair, or Custom — explained below.</li>
@@ -56,7 +60,13 @@ const ROTATIONS_BODY = `<p>The Rotations tab is where you set up the standing pa
 </ul>
 <h2>Ending a rotation</h2>
 <p>When a host's situation changes — they step back from a regular slot, they move, the team shifts — you can end the rotation without affecting past sessions.</p>
-<p>Open the row, set an <strong>end date</strong>, and save. The rotation stops on that date. Sessions before the end date stay scheduled as they were. Sessions after the end date go back to unassigned and can be claimed by the team or replaced with a new rotation.</p>
+<p>There are two ways to end a rotation, depending on what you need.</p>
+<p><strong>If you want it to stop on a specific future date</strong> — say, a host is committed only through June — click <strong>Edit</strong>, set the <strong>end date</strong>, and save. The rotation runs until that date and then stops. Sessions on or before the end date stay scheduled. Sessions after go back to unassigned.</p>
+<p><strong>If you want to end it now</strong>, click <strong>End</strong>. A small panel opens with two options:</p>
+<ul>
+<li><strong>Just stop generating.</strong> Hosts keep the dates already on their schedule. The system won't add any new ones from this rotation. Useful when the upcoming weeks are already covered and you just don't want the pattern to continue further.</li>
+<li><strong>Stop and release future dates.</strong> Upcoming sessions are cleared from the hosts' schedules so other people on the team can claim them. Past sessions stay as they were. Each affected host gets an email letting them know the dates were released.</li>
+</ul>
 <p>If you want to replace one rotation with another — say, a new host taking over a regular slot — open the row, change the hosts, and save. The conflict window will show what's about to change. Confirm and the new pattern takes over.</p>
 <h2>What happens behind the scenes</h2>
 <p>When you save a rotation, the system creates the session assignments on the schedule going forward. By default, it fills in through the end of the year. You don't need to think about this — it just happens.</p>
