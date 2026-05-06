@@ -28,9 +28,8 @@ const HOST_HUB_BODY = `<p>The Host Community Hub is the home of RIM's host team.
 <p>Jesse is RIM's guiding teacher. He's available for things that need a teacher's attention — a participant in crisis, a complicated pastoral situation, anything that feels bigger than a host's role. For most things, the host coordinator is the right person to ask.</p>
 <h2>What you'll find in the hub</h2>
 <p>When you open the hub, you'll see a sidebar on the left and the main content in the middle. The sidebar lists everything in the hub.</p>
-<p><strong>Home.</strong> A welcome page with what's new on the team — pinned conversations and current things to know.</p>
-<p><strong>Conversations.</strong> Where the team talks. Threads with replies, like a quiet message board. You can start a thread, reply, or react. Use it for questions, gratitudes, or anything the team should hear together.</p>
-<p><strong>Tasks.</strong> Lists of things the team is working on or has agreed to do. Mostly used by the coordinator.</p>
+<p><strong>Home.</strong> A short welcome message from the coordinator and a quick look at the team's offerings this month — how many sessions are happening, who's hosting, who's available, and whether any sessions still need a host.</p>
+<p><strong>Conversations.</strong> Where the team talks. Threads with replies, like a quiet message board. You can start a thread, reply, or react to a reply. Use it for questions, gratitudes, or anything the team should hear together.</p>
 <p><strong>Documents.</strong> Reference material for hosting. The shelves are:</p>
 <ul>
 <li><em>Onboarding</em> — read these first if you're new</li>

@@ -1730,15 +1730,17 @@ async function main() {
 
   // Manual chapter: host-hub orientation rewrite. Plain language, written
   // for the average host volunteer (8th-grade level, no jargon, supportive).
-  // v2 scrubs specific coordinator name references — chapters now refer to
-  // "the host coordinator" generically for portability across role changes.
+  // v3 corrects drift between the chapter and the actual UI: the Tasks
+  // bullet was removed (Tasks tab no longer exists in the host hub) and
+  // the Home description was rewritten to match what HostHubHomeClient
+  // actually renders — welcome message + "Our offerings this month."
   const updateManualHostHubFlag = await db.$queryRawUnsafe(`
-    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_host_hub_v2'
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_host_hub_v3'
   `).catch(() => []);
 
   if (updateManualHostHubFlag.length === 0) {
     await updateManualHostHub(db);
-    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_hub_v2')`);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_hub_v3')`);
   } else {
     console.log("  ⏭ Manual host-hub already updated.");
   }
