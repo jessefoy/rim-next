@@ -27,8 +27,9 @@ const SESSION_ROOM_BODY = `<p>The session room is where RIM's online sessions ha
 <ul>
 <li><strong>Tiles</strong> — one for each person in the room, with their name. As participants join, more tiles appear. You see your own tile too.</li>
 <li><strong>Your camera and microphone controls</strong> at the bottom — turn them on or off. You arrive with both on by default.</li>
-<li><strong>A chat panel</strong> — usually a button on the side or bottom that opens a conversation panel. Use it for typing notes to the room or to specific people.</li>
-<li><strong>Host controls</strong> — a participants panel where you can mute people, remove them, or end the session for everyone. Members don't see these.</li>
+<li><strong>A chat panel</strong> — opens from the side. Use it for typing notes to the room or to specific people.</li>
+<li><strong>Host buttons in the page header</strong> — Mute All and End for All. Members don't see these.</li>
+<li><strong>A participants panel</strong> — where you can mute one person at a time. The mute is for audio.</li>
 </ul>
 <p>If your browser asks for permission to play audio, click yes. Some browsers (especially Safari) require this once per session.</p>
 <h2>During the session</h2>
@@ -41,13 +42,11 @@ const SESSION_ROOM_BODY = `<p>The session room is where RIM's online sessions ha
 </ul>
 <p>That's the work. You don't have to fill the silence. The room being steady is the help.</p>
 <h2>The host controls — what they do</h2>
-<p>You have controls that ordinary participants don't. The participants panel shows everyone in the room with a small menu next to each name.</p>
-<p><strong>Mute a participant.</strong> Use this when a microphone is leaking noise. The participant can unmute themselves.</p>
-<p><strong>Disable a participant's camera.</strong> Rarely needed. Use when video is itself disruptive — a strange screen, an unexpected scene, a participant who isn't aware their camera is on.</p>
-<p><strong>Pin a participant.</strong> Pinning makes one person fill more of the screen — a "focus" view. Useful when the teacher is leading and you want their tile bigger, or when one participant is responding to something and the room should see them clearly.</p>
-<p><strong>Mute all.</strong> Mutes every non-host at once. Useful when the room itself becomes noisy, or as a fast first move during a coordinated disruption.</p>
-<p><strong>Remove a participant.</strong> Ejects someone from the session. They can't rejoin. Use this only when someone is hostile, harassing, or genuinely disruptive — the room matters more than any single participant.</p>
-<p><strong>End for all.</strong> Closes the session for everyone. Reserve for emergencies — multiple disruptors, a coordinated attack, a situation the room can't recover from.</p>
+<p>You have a small set of controls that ordinary participants don't.</p>
+<p><strong>Mute a participant.</strong> In the participants panel, click Mute next to someone's name. Their microphone is silenced; they can unmute themselves.</p>
+<p><strong>Mute All.</strong> A button in the page header. Mutes every non-host at once. Useful when the room itself becomes noisy, or as a fast first move during a coordinated disruption.</p>
+<p><strong>End for All.</strong> Also in the page header. Closes the session for everyone. Reserve for emergencies — a coordinated attack, a situation the room can't recover from.</p>
+<p><strong>Pin a participant.</strong> Click on someone's tile to pin them — they fill more of the screen, a "focus" view. Useful when the teacher is leading and their tile should be bigger, or when one participant is responding to something and the room should see them clearly. Click again to unpin.</p>
 <p>The Disruption Response document in the Host Hub Documents tab covers <em>when</em> to use each one. This chapter is about what they are.</p>
 <h2>Nonverbal signals</h2>
 <p>Members can use nonverbal signals to indicate something without speaking — a raised hand, a heart for thanks, a folded-hands gratitude, a check for "yes," an x for "no." When someone uses one, a small symbol appears on their tile.</p>

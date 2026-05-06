@@ -1789,31 +1789,36 @@ async function main() {
     console.log("  ⏭ Manual host-rotations already updated.");
   }
 
-  // Manual chapter: host-session-room (new). Walks through the host's
-  // experience inside RIM's video room — joining, what's on screen, the
-  // host controls, nonverbal signals, member photos, Open Access notes.
-  // Avoids product names — the room is "the session room."
+  // Manual chapter: host-session-room. v2 corrects drift between the
+  // chapter and the actual UI: dropped "Remove a participant" and
+  // "Disable a participant's camera" (no such endpoints or buttons
+  // exist in RIM's session room). Reorganized "What you see" to
+  // distinguish header buttons (Mute All, End for All) from the
+  // participants-panel mute. Pin is via tile click, not a custom
+  // button. The honest control set is now: Mute (one), Mute All,
+  // End for All, Pin.
   const updateManualHostSessionRoomFlag = await db.$queryRawUnsafe(`
-    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_host_session_room_v1'
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_host_session_room_v2'
   `).catch(() => []);
 
   if (updateManualHostSessionRoomFlag.length === 0) {
     await updateManualHostSessionRoom(db);
-    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_session_room_v1')`);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_session_room_v2')`);
   } else {
     console.log("  ⏭ Manual host-session-room already updated.");
   }
 
-  // Manual chapter: conversations (new, system-wide). hubSlug is null —
-  // the chapter applies to every hub. Threads, replies, reactions,
-  // categories, pinning, and notification rules.
+  // Manual chapter: conversations. v2 corrects the reactions section:
+  // reactions live on replies only, not on the thread's first message.
+  // The UI shows a smile-plus picker on each reply that opens a small
+  // emoji popup.
   const updateManualConversationsFlag = await db.$queryRawUnsafe(`
-    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_conversations_v1'
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_conversations_v2'
   `).catch(() => []);
 
   if (updateManualConversationsFlag.length === 0) {
     await updateManualConversations(db);
-    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_conversations_v1')`);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_conversations_v2')`);
   } else {
     console.log("  ⏭ Manual conversations already updated.");
   }

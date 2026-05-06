@@ -40,9 +40,8 @@ const CONVERSATIONS_BODY = `<p>Conversations are how teams talk to each other in
 <p>Your reply appears in the thread, and everyone who's already part of the conversation gets an email letting them know.</p>
 <p>If you want to edit your own reply later, you can — your replies have an Edit option. Other people's replies aren't yours to edit.</p>
 <h2>Reactions</h2>
-<p>Below each thread and each reply, you'll see five small emoji: 👍 ❤️ 🙏 💡 😊.</p>
-<p>Click one to add a reaction. Click again to take it back. Reactions show who reacted, so you can see who agreed, who appreciated, who liked.</p>
-<p>Reactions are a quiet way to acknowledge a thread without writing a reply. Useful when you want to say "I read this and I'm with you" without adding to the conversation.</p>
+<p>Below each reply, you'll see a small smile-plus icon. Click it and a small popup shows five emoji: 👍 ❤️ 🙏 💡 😊. Pick one to react. Click again to take it back. Reactions show how many people reacted with each emoji, so you can see who agreed, who appreciated, who liked.</p>
+<p>Reactions are a quiet way to acknowledge what someone said without writing a reply yourself. Useful when you want to say "I read this and I'm with you" without adding to the conversation. Reactions are on replies only — not on the thread's first message.</p>
 <h2>Categories</h2>
 <p>Each hub has its own list of categories — bookshelves for organizing conversations. Things like "General," "Logistics," "Practice questions," "Heads-up." Whatever the team has set up.</p>
 <p>You can:</p>
