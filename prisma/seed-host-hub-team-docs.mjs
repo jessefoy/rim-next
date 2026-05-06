@@ -2,9 +2,10 @@
  * seed-host-hub-team-docs.mjs — Seed reference HubDocuments for host-team.
  *
  * Six documents across four new categories, written for hosts and the
- * coordinator (Maria). Aligned with RIM_Role_Design.md §Virtual Host and
- * the Web Design Philosophy (clear seeing, restraint, designed for
- * overwhelmed users).
+ * host coordinator. Generic role names — never name a specific
+ * coordinator, so chapters stay portable across role changes. Aligned
+ * with RIM_Role_Design.md §Virtual Host and the Web Design Philosophy
+ * (clear seeing, restraint, designed for overwhelmed users).
  *
  * Documents (canonical HTML strings — the post-Tiptap-migration storage format):
  *
@@ -42,18 +43,18 @@ const HOST_ROLE = `<p>Hosting at RIM is a specific kind of service. You open the
 <h2>What we ask of you</h2>
 <p><strong>Reliability.</strong> When you're assigned to a session, members and teachers count on you being there. If something comes up, request a sub as early as you can — early enough that another host has a real chance to pick it up. Coverage gaps create stress for the whole team.</p>
 <p><strong>Steadiness.</strong> Things will go wrong sometimes. A participant's audio won't work. The teacher will be late. Someone will say something strange in chat. The work is to stay calm, do what's available to do, and let the rest go. The "Stewardship Practices" document covers the relational side of this in more depth.</p>
-<p><strong>Communication.</strong> If something feels off — a recurring technical issue, a participant who concerns you, a moment in a session that needs follow-up — tell Maria. Hosts debrief together. You don't carry difficult sessions alone.</p>
+<p><strong>Communication.</strong> If something feels off — a recurring technical issue, a participant who concerns you, a moment in a session that needs follow-up — tell the host coordinator. Hosts debrief together. You don't carry difficult sessions alone.</p>
 <p><strong>Practice.</strong> Hosting at RIM is not generic volunteering. It's a form of practice that sits inside a community of practice. Showing up, paying attention, being willing to be steady — these are the same dispositions meditation cultivates, brought into a particular service.</p>
 <h2>What we hold for you</h2>
 <p><strong>Training.</strong> Before your first session, you'll have a chance to shadow an experienced host, and to co-host with one before going solo. You won't be thrown in unprepared.</p>
-<p><strong>A coordinator.</strong> Maria is the host coordinator. She supports the team, handles questions, helps with coverage gaps, and is the first person to message if something difficult happens. You don't need to escalate to Jesse for ordinary issues — that's what the coordinator is for.</p>
+<p><strong>A coordinator.</strong> The team has a host coordinator who supports the team, handles questions, helps with coverage gaps, and is the first person to message if something difficult happens. You'll see who the coordinator is in the Members tab. You don't need to escalate to Jesse for ordinary issues — that's what the coordinator is for.</p>
 <p><strong>Tools.</strong> The Host Schedule shows you exactly what you're assigned to. The session room itself gives you mute, remove-participant, and end-for-all controls when you need them. The Documents tab in the host hub holds the references you might want during or after a session.</p>
-<p><strong>Support after a hard session.</strong> If something happens — a disruption, a participant in distress, a moment that felt heavy — you don't sit with it alone. Message Maria. Hosts debrief together as a matter of course, not as a special exception.</p>
+<p><strong>Support after a hard session.</strong> If something happens — a disruption, a participant in distress, a moment that felt heavy — you don't sit with it alone. Message the host coordinator. Hosts debrief together as a matter of course, not as a special exception.</p>
 <h2>The team you're part of</h2>
 <p>You're not a contractor. You're part of the host team — a sangha within a sangha. Other hosts are tending other sessions in the same week, working from the same shared schedule, drawing on the same training, and supporting each other through the harder moments. The way the team works together is itself part of what makes RIM what it is.</p>
 <p>When you're new, ask questions. When you're experienced, help newer hosts find their footing. When something's not working, say so — the team gets better when feedback is part of the rhythm.</p>
 <h2>Commitment</h2>
-<p>We ask for a commitment of at least six months when possible, and one or more sessions per week. If your availability changes, tell Maria — the schedule can flex. If you need a break or want to step back, tell Maria. Stepping back is a normal part of volunteer life. We'd rather know early than have you carry a commitment that's no longer right.</p>`;
+<p>We ask for a commitment of at least six months when possible, and one or more sessions per week. If your availability changes, tell the host coordinator — the schedule can flex. If you need a break or want to step back, tell the host coordinator. Stepping back is a normal part of volunteer life. We'd rather know early than have you carry a commitment that's no longer right.</p>`;
 
 const STEWARDSHIP_PRACTICES = `<p>Hosting is a form of practice. The technical work of opening the session, supporting audio and video, and watching the chat is real and necessary. But the work that matters most is harder to name and harder to teach. It is the quality of presence you bring into the room — the steadiness, the welcome, the unhurried attention — that becomes part of what other people experience when they arrive.</p>
 <p>A host who is technically competent but not present is missing the point. A host who is present but technically unprepared creates chaos. Both are required, and both are care.</p>
@@ -80,7 +81,7 @@ const STEWARDSHIP_PRACTICES = `<p>Hosting is a form of practice. The technical w
 <h2>When someone is upset</h2>
 <p>Sometimes a participant is visibly distressed — a comment in chat that suggests they're struggling, a tearful camera, a question that has more weight than the moment can hold. Your job here is narrow: stay calm, acknowledge briefly if appropriate, and protect the space.</p>
 <p>Your job is not to be their therapist, their teacher, or their friend in this moment. Trying to be any of those things, in a session with other people present, is rarely what's actually helpful, even when it feels generous.</p>
-<p>If something feels weighty — a hint of crisis, a reference to harm, a moment that needs careful pastoral attention — flag it for Jesse afterward. Not in front of the group. Use the post-session form, or message Maria directly.</p>
+<p>If something feels weighty — a hint of crisis, a reference to harm, a moment that needs careful pastoral attention — flag it for Jesse afterward. Not in front of the group. Message the host coordinator directly when the session ends.</p>
 <blockquote><p>Thank you for sharing that. I'm going to make sure we follow up after the session.</p></blockquote>
 <p>That is enough.</p>
 <h2>What you don't hold</h2>
@@ -104,16 +105,16 @@ const STEWARDSHIP_PRACTICES = `<p>Hosting is a form of practice. The technical w
 <li><strong>End for all.</strong> If the room itself is unsafe — multiple disruptors, a coordinated attack on an Open Access session — you can end the session for everyone. This is rare and dramatic, but it exists for a reason.</li>
 </ol>
 <p>The teacher or facilitator may notice and respond to disruption too. If they do, follow their lead. If they don't, you act.</p>
-<p>After any removal or session-ending action, leave a brief note in the post-session form and let Maria know.</p>
+<p>After any removal or session-ending action, message the host coordinator with a brief note about what happened.</p>
 <h2>After a difficult session</h2>
 <p>Don't carry it alone.</p>
-<p>If something happened — a participant in distress, a disruption, a moment that felt heavy — message Maria afterward. Brief is fine. <em>Wanted to let you know what happened in the session tonight.</em> The point isn't a formal report. The point is that you don't sit with it by yourself.</p>
-<p>Hosts debrief together. That's part of how the team learns, and part of how the work stays sustainable. If you find yourself replaying a difficult moment days later, that's the signal to talk to someone — Maria, Jesse, another host. The practice of hosting includes the practice of letting the day end.</p>
+<p>If something happened — a participant in distress, a disruption, a moment that felt heavy — message the host coordinator afterward. Brief is fine. <em>Wanted to let you know what happened in the session tonight.</em> The point isn't a formal report. The point is that you don't sit with it by yourself.</p>
+<p>Hosts debrief together. That's part of how the team learns, and part of how the work stays sustainable. If you find yourself replaying a difficult moment days later, that's the signal to talk to someone — the host coordinator, Jesse, another host. The practice of hosting includes the practice of letting the day end.</p>
 <h2>The practice itself</h2>
 <p>The most important part of stewardship is the simplest: be present. Not perfect. Not impressive. Present.</p>
 <p>The members in the room are not evaluating your performance. They're settling into their own practice, and your steadiness is one of the conditions that lets them do that. You don't have to fill the space. You don't have to be on. You can be quiet, attentive, and kind, and that is the work.</p>
 <p>If you make a mistake — share a wrong link, fumble a name, miss a moment — let it be a small thing. Hosts who can move past their own missteps without contracting are the hosts who can hold a room well. Self-criticism in the middle of a session pulls you out of presence, and presence is what you're here to offer.</p>
-<p>You are part of a sangha that is bigger than any one session. Maria has your back. Jesse has the team's back. You are not alone in this. The work is shared.</p>`;
+<p>You are part of a sangha that is bigger than any one session. The host coordinator has your back. Jesse has the team's back. You are not alone in this. The work is shared.</p>`;
 
 const QUICK_START = `<p>This document walks through running a session from the moment you sit down at your computer to the moment you close it down afterward. If you're hosting for the first time, read it once before your session. After that, return to it when something specific is in question.</p>
 <h2>Before you sit down</h2>
@@ -147,31 +148,31 @@ const QUICK_START = `<p>This document walks through running a session from the m
 <h2>At the end</h2>
 <p>The teacher will usually close the session. Your job is to be available for a moment afterward in case someone has a follow-up question or needs help leaving the room. Then end the session and close the room.</p>
 <h2>After the session</h2>
-<p>If something notable happened — a participant in distress, a sub coverage that didn't work, a recurring technical issue, a stranger who slipped past Open Access — let Maria know. A short message is fine.</p>
+<p>If something notable happened — a participant in distress, a sub coverage that didn't work, a recurring technical issue, a stranger who slipped past Open Access — let the host coordinator know. A short message is fine.</p>
 <p>If nothing notable happened, that's the sign of a session that went well. You don't need to file a report. You can let the day end.</p>`;
 
 const SUB_COVERAGE = `<p>If you're scheduled to host a session and can't make it, the team has you covered — but only if you tell us early enough for another host to pick up the assignment. This document explains how that works.</p>
 <h2>When to request a sub</h2>
 <p>As soon as you know you can't make a session. Twenty-four hours is the minimum target; a few days is much better. The earlier the request, the more likely another host can rearrange around it.</p>
-<p>If something genuinely last-minute happens — illness, an emergency — request the sub anyway and message Maria directly so she knows. The team will figure it out.</p>
+<p>If something genuinely last-minute happens — illness, an emergency — request the sub anyway and message the host coordinator directly so they know. The team will figure it out.</p>
 <h2>How to request</h2>
 <p>In the Host Schedule, find the session you're assigned to and use the "Request a sub" action. You'll be asked for an optional reason — a sentence or two is enough. Anything you write goes to the rest of the team in the sub-request notification.</p>
 <p>The request goes out to all available hosts. You don't choose who covers; whoever's available claims it.</p>
 <h2>How a sub gets claimed</h2>
 <p>Other hosts see your sub request in the Host Schedule and via email notification. The first available host who can take it claims the slot. You'll be notified when someone claims, and so will the rest of the team.</p>
-<p>If no one claims your sub request, Maria sees it and helps find coverage. You don't need to chase. You don't need to re-post in conversations. The system surfaces unclaimed sub requests directly to the coordinator.</p>
+<p>If no one claims your sub request, the host coordinator sees it and helps find coverage. You don't need to chase. You don't need to re-post in conversations. The system surfaces unclaimed sub requests directly to the coordinator.</p>
 <h2>When you're claiming a sub</h2>
 <p>If you see a sub request you can cover, claim it. Once claimed, the assignment is yours — you'll be the host of record for that session. Everyone on the team sees the claim land.</p>
 <p>The same expectations apply to a claimed sub as to your own scheduled session. Show up, open the room, hold the space.</p>
 <h2>Etiquette</h2>
 <p>A few things that help the system work:</p>
 <ul>
-<li><strong>Don't request a sub for something that hasn't been scheduled yet.</strong> If you know you can't host a future session, tell Maria during the rotation review rather than letting an assignment get made and then sub-requested.</li>
-<li><strong>Don't ghost.</strong> If you can't make it and didn't request a sub in time, message Maria directly. The session won't have a host otherwise.</li>
+<li><strong>Don't request a sub for something that hasn't been scheduled yet.</strong> If you know you can't host a future session, tell the host coordinator during the rotation review rather than letting an assignment get made and then sub-requested.</li>
+<li><strong>Don't ghost.</strong> If you can't make it and didn't request a sub in time, message the host coordinator directly. The session won't have a host otherwise.</li>
 <li><strong>Cover when you can.</strong> A team where every sub request gets claimed quickly is a team where every host trusts the system. Picking up an occasional sub when you have the bandwidth is part of how the trust gets built.</li>
 </ul>
 <h2>When the system feels stuck</h2>
-<p>If you've requested a sub and no one has claimed it, message Maria. If you're trying to claim a sub and the action isn't working, message Maria. The schedule is a working tool — when something is off, the coordinator wants to know.</p>`;
+<p>If you've requested a sub and no one has claimed it, message the host coordinator. If you're trying to claim a sub and the action isn't working, message the host coordinator. The schedule is a working tool — when something is off, the coordinator wants to know.</p>`;
 
 const DISRUPTION_RESPONSE = `<p>Most sessions never need this document. But you should know what to do, so the rare moment doesn't catch you off guard. The "Stewardship Practices" document covers the relational frame; this document covers what the controls actually do.</p>
 <h2>The principle</h2>
@@ -196,10 +197,10 @@ const DISRUPTION_RESPONSE = `<p>Most sessions never need this document. But you 
 <p>A handful of programs are Open Access — guests can join via a shared link without signing in. These sessions carry slightly more risk because participants aren't authenticated members. For Open Access sessions, be a little more vigilant about the participants list as members arrive. If a name looks suspicious or the participant won't engage when you reach out, you can remove preemptively.</p>
 <p>If a coordinated disruption happens on an Open Access session, end the session. The link can be reset; the practice space matters more than the continuity of one occurrence.</p>
 <h2>After</h2>
-<p>Any time you remove a participant or end a session, tell Maria afterward. A short message is fine — what happened, what you did, anything you'd want the team to know. The point isn't a report; the point is that the team learns and you don't carry it alone.</p>
-<p>If the moment was genuinely difficult — harassment that landed on you personally, a frightening situation, a participant who clearly came to disrupt — Maria will follow up. You're not expected to keep going as if it didn't happen.</p>`;
+<p>Any time you remove a participant or end a session, tell the host coordinator afterward. A short message is fine — what happened, what you did, anything you'd want the team to know. The point isn't a report; the point is that the team learns and you don't carry it alone.</p>
+<p>If the moment was genuinely difficult — harassment that landed on you personally, a frightening situation, a participant who clearly came to disrupt — the host coordinator will follow up. You're not expected to keep going as if it didn't happen.</p>`;
 
-const COORDINATOR_PLAYBOOK = `<p>Maria — this is your bookshelf. The host team's day-to-day is mostly self-organizing through the Host Schedule and the sub system, but a few things land specifically with you. This document covers them.</p>
+const COORDINATOR_PLAYBOOK = `<p>This document is for the host coordinator. The host team's day-to-day is mostly self-organizing through the Host Schedule and the sub system, but a few things land specifically with you. This document covers them.</p>
 <h2>Your work, in shape</h2>
 <p>Three rough buckets:</p>
 <p><strong>Tending the team.</strong> Keeping hosts oriented, supported, and able to do the work. Catching when someone's struggling. Welcoming new hosts when they join. Holding the relational thread that the team itself is built on.</p>
@@ -210,7 +211,7 @@ const COORDINATOR_PLAYBOOK = `<p>Maria — this is your bookshelf. The host team
 <p>The Host Schedule is at <strong>/tools/schedule</strong>. You'll see the calendar of upcoming sessions, the host or hosts assigned to each, and any open sub requests.</p>
 <p>Most of what you do here is light: glance at the next two weeks, check that everything is covered, see if any sub requests are sitting unclaimed. If a sub request has been open for more than a day without a claim, reach out to specific hosts who you know might be available.</p>
 <h2>Rotations</h2>
-<p>The Rotations tab is for setting up the standing assignments — the recurring "Maria takes the Monday 6:30am for the next three months" pattern. Open the tab, pick a program, set the slots, and apply.</p>
+<p>The Rotations tab is for setting up the standing assignments — the recurring "Sarah takes the Monday 6:30am for the next three months" pattern. Open the tab, pick a program, set the slots, and apply.</p>
 <p>When you apply rotations, the system creates the host assignments forward through the end of the rotation horizon. You don't need to assign each session individually. If a particular week needs to differ from the standing pattern, edit that week's assignment directly in the schedule.</p>
 <p>Re-run rotations when:</p>
 <ul>

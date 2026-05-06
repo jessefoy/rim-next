@@ -1711,16 +1711,17 @@ async function main() {
 
   // Host Hub team documents — six docs across four new categories
   // (The Practice of Hosting, Running a Session, When Things Go Wrong,
-  // For Coordinators). Idempotent at the record level (upsert by hub +
-  // label) so re-running updates bodies. Adds any missing categories to
-  // Hub.documentCategories without touching existing ones.
+  // For Coordinators). v2: scrubs specific coordinator names ("Maria")
+  // for "the host coordinator" generically + drops aspirational
+  // post-session-form references. Idempotent at the record level
+  // (upsert by hub + label) so re-running updates bodies.
   const hostTeamDocsFlag = await db.$queryRawUnsafe(`
-    SELECT name FROM "_migration_flags" WHERE name = 'seed_host_hub_team_docs_v1'
+    SELECT name FROM "_migration_flags" WHERE name = 'seed_host_hub_team_docs_v2'
   `).catch(() => []);
 
   if (hostTeamDocsFlag.length === 0) {
     await seedHostHubTeamDocs(db);
-    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_host_hub_team_docs_v1')`);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_host_hub_team_docs_v2')`);
   } else {
     console.log("  ⏭ Host Hub team docs already seeded.");
   }
