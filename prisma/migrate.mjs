@@ -19,6 +19,10 @@ import { updateManualHostSchedule } from "./update-manual-host-schedule.mjs";
 import { updateManualHostRotations } from "./update-manual-host-rotations.mjs";
 import { updateManualHostSessionRoom } from "./update-manual-host-session-room.mjs";
 import { updateManualConversations } from "./update-manual-conversations.mjs";
+import { updateManualSupportInbox } from "./update-manual-support-inbox.mjs";
+import { updateManualCourseHub } from "./update-manual-course-hub.mjs";
+import { updateManualRegistration } from "./update-manual-registration.mjs";
+import { updateManualPrograms } from "./update-manual-programs.mjs";
 
 const db = new PrismaClient();
 
@@ -1826,6 +1830,33 @@ async function main() {
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_conversations_v2')`);
   } else {
     console.log("  ⏭ Manual conversations already updated.");
+  }
+
+  // Older chapters — option-C "remove what's wrong" pass against the
+  // chapters extracted from the retired ManualContent.tsx. Each one
+  // had drift accumulated since March 2026 (architecture changes,
+  // tools extraction, LiveKit replacing Google Meet).
+  //
+  // support-inbox: targeted rewrite — fixed location to /tools/inbox,
+  //   "Resolved" → "Closed", removed stale auto-sync claim.
+  // course-hub: shorter rewrite — distinguishes Course Manager
+  //   (/tools/learning) from Course Hub (/account/hub/courses/).
+  // registration: surgical replace — fixed paths to /tools/programs,
+  //   "Spot opened" label, course-editor reference.
+  // programs: surgical replace — fixed paths, removed Google Meet
+  //   section (replaced with a brief LiveKit note).
+  const updateOlderManualFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'update_older_manual_chapters_v1'
+  `).catch(() => []);
+
+  if (updateOlderManualFlag.length === 0) {
+    await updateManualSupportInbox(db);
+    await updateManualCourseHub(db);
+    await updateManualRegistration(db);
+    await updateManualPrograms(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_older_manual_chapters_v1')`);
+  } else {
+    console.log("  ⏭ Older manual chapters already updated.");
   }
 
   await db.$disconnect();
