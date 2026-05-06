@@ -33,17 +33,13 @@ The April directive committed to a Webflow + RIM Next hybrid. That decision has 
 
 ## Theme B — Google Meet removal
 
-LiveKit replaced Google Meet in session 86. The Meet integration was never fully cleaned up.
+LiveKit replaced Google Meet in session 86. Code-level removal is complete (items #13, #14, #18 were already gone; #19 doc update done session 100). Manual items remain:
 
 | # | Item | Where | Action |
 |---|---|---|---|
-| 13 | `CreateMeetButton` component | `components/registrar/CreateMeetButton.tsx` | Remove + remove its render call sites |
-| 14 | Google Meet API route | `app/api/programs-pg/google-meet/` | Remove |
 | 15 | Google Meet env vars | Vercel env: `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PRIVATE_KEY`, `GOOGLE_ROOM_EMAILS`, `GOOGLE_CALENDAR_ID` | Remove from Vercel |
 | 16 | Google service account in Google Cloud | Google Cloud Console — DWD-configured service account | Manual: revoke or delete in Google Cloud |
 | 17 | Four shared room accounts | `meet1@`–`meet4@` Google Workspace accounts | Manual: archive or delete in Google Workspace |
-| 18 | Google Meet code in `lib/` | Wherever Meet booking + calendar conflict logic lives (`lib/googleMeet*` likely) | Remove |
-| 19 | Stack Reference Google Meet rows | `RIM_Stack_Reference.md` "Tech Stack" + "Environment Variables" + "Key External Integrations" Google entries | Update |
 
 ---
 

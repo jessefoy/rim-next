@@ -61,8 +61,7 @@ The Webflow-built site at `rootedinmindfulness.org` is the live public-facing do
 | Payments | Stripe | test mode (sk_test_* / pk_test_*) |
 | Newsletter | Flodesk | segment `6340e5b00170f97cbdfc4b87` |
 | Donations | GiveButter | account `GcnXeYilkL4lWnr3` |
-| Video (legacy) | Google Meet | 4 shared room accounts via DWD + Google Calendar API |
-| Video (new) | LiveKit Cloud | Ship tier ($50/month); `livekit-server-sdk`, `@livekit/components-react`, `@livekit/components-styles`, `livekit-client` |
+| Video | LiveKit Cloud | Ship tier ($50/month); `livekit-server-sdk`, `@livekit/components-react`, `@livekit/components-styles`, `livekit-client` |
 | Hosting | Vercel | auto-deploy on push to `main` |
 | CSS | Custom design system | `public/css/custom.css` only. Webflow CSS removed (session 84). Quincy CF self-hosted via `@font-face`. Legacy shim at bottom of custom.css for ~15 unredesigned pages. |
 | Rich text editor | **`RimTiptapEditor`** (Tiptap 3) — migration complete session 97, 2026-04-28 | One component at `components/rim-tiptap/RimTiptapEditor.tsx`, three variants: `minimal` (Form Field), `message` (Hub welcome / conversations / replies / member bios / notes / drafts), `document` (Hub documents / lessons / manual sections / program descriptions / Page Designer surfaces). **Storage:** plain HTML strings produced by `editor.getHTML()`. **Selection bubble menu** is the primary formatting surface (Tiptap `BubbleMenu`); top toolbar is for insertion-only actions. **Sanitization:** `lib/renderRichContentTiptap.ts` uses `sanitize-html` (allowlists per variant) on every render. **Format detection:** `lib/renderRichContent.ts` (`isHtmlString` / `isBlockNoteJSON` / `isRawHtml` / legacy Tiptap doc shape) routes content by shape — unmigrated rows still display correctly via the legacy walker. Five custom block extensions (`Callout`, `PullQuote`, `VerseQuote`, `PracticeSuggestion`, `Reflection`) in `components/rim-tiptap/extensions/`. Tiptap deps: `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-{link,underline,highlight,typography,image,table,table-row,table-header,table-cell,task-list,task-item,placeholder,bubble-menu,floating-menu,character-count,text-align,text-style,color}`, plus `sanitize-html` for output sanitization. **Editor Lab** at `/admin/editor-lab` validates all three variants. **Exception (unchanged):** `MarkdownEditor` (Tiptap + tiptap-markdown) is used exclusively by `EmailTemplateEditor` — email template pipeline is markdown → marked() → juice() → Resend. **Removed session 97:** `RimBlockEditor`, `RimProseEditor`, all `@blocknote/*` deps, `lib/blockNoteCustomBlocks.tsx`, `lib/blockNoteTheme.ts`, `components/editor/FormatPill.tsx`. |
@@ -133,14 +132,6 @@ All set in Vercel. Pull locally with `npx vercel env pull .env.local`.
 **Background email sends from route handlers — use `after()` from `next/server`.** The `void (async () => { ... })()` pattern after `Response.json()` does not work on Vercel — the function tears down once the response goes out, killing in-flight Resend calls (intermittent or no delivery). Wrap fire-and-forget email batches in `after(async () => { ... })` so the work runs after the response is committed but before the function is torn down. Currently used in `app/api/host/sub-requests/route.ts`, `app/api/host/sub-requests/[id]/claim/route.ts`, `app/api/programs-pg/route.ts`. Establishment session: 96.
 
 **`BASE_URL` is whitespace-trimmed.** Every place that derives a base URL from `process.env.NEXTAUTH_URL` does `.trim().replace(/\/$/, "")` — trailing whitespace in env vars on Vercel has historically broken email links by inserting a literal space inside the URL. Pattern lives in `lib/email.ts`, `lib/calendarLinks.ts`, `lib/supportNotify.ts`, `app/api/cron/drip-release/route.ts`, `app/api/stripe/checkout/route.ts`. Establishment session: 96.
-
-### Google Meet
-| Variable | Purpose |
-|---|---|
-| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Service account for DWD |
-| `GOOGLE_PRIVATE_KEY` | Service account private key |
-| `GOOGLE_ROOM_EMAILS` | Comma-separated list of meet1–meet4 room accounts |
-| `GOOGLE_CALENDAR_ID` | Legacy — currently unused |
 
 ### Gmail (Support Inbox)
 | Variable | Purpose |
@@ -247,7 +238,7 @@ app/
     courses/          course CRUD (TEACHER/ADMIN)
     lessons/          lesson CRUD + search (TEACHER/ADMIN)
     upload/           file upload via Vercel Blob (TEACHER/ADMIN)
-    programs-pg/      program CRUD + google-meet + send-reminder
+    programs-pg/      program CRUD + send-reminder
     programs/         legacy (ical only)
     registrations/    registration CRUD + email
     host/             hub APIs (assignments, assignments/reassign, sub-requests, threads, replies)
@@ -296,9 +287,7 @@ Registrar check: `roles.some(r => ["REGISTRAR","ADMIN"].includes(r))`
 | Resend | Magic links + all transactional email | Domain `rootedinmindfulness.org` verified |
 | Stripe | Dana/fee collection via Checkout | Test mode — switch to live before launch |
 | Sanity | Non-program content (teams, glossary, magazine, volunteers) | Programs, courses, lessons migrated to Postgres |
-| Google Meet | Virtual program hosting (legacy) | DWD via service account; 4 room accounts |
-| LiveKit Cloud | Video conferencing (new) | Ship tier ($50/month); token auth via HostAssignment |
-| Google Calendar | Room booking for Meet sessions | Conflict checking on create |
+| LiveKit Cloud | Video conferencing | Ship tier ($50/month); token auth via HostAssignment |
 | Gmail API | Support Inbox — sync threads, send replies | OAuth2 via GmailCredential; support@rootedinmindfulness.org |
 | Flodesk | Newsletter signup | Segment ID in env vars |
 | Neon | Postgres database | ⚠️ Rotate password before go-live |

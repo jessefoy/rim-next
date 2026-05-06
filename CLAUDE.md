@@ -90,7 +90,7 @@ This is the difference between executing tasks and co-creating a system. Jesse s
 - NextAuth v5 — magic-link auth via Resend, no passwords. `auth()` for server components.
 - Prisma 5 + Neon Postgres — member data, registrations, roles, hub models
 - Stripe (test mode) — dana/payment collection via Checkout
-- Google Meet — virtual program hosting via service account DWD + 4 shared room accounts
+- LiveKit Cloud — video conferencing for live sessions
 - Route protection: `proxy.ts` (not `middleware.ts` — Next.js 16)
 - `params` is `Promise<{slug}>` — must `await params` before destructuring
 
