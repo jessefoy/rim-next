@@ -26,10 +26,8 @@ The April directive committed to a Webflow + RIM Next hybrid. That decision has 
 | 1 | `rim-connect.js` | `public/rim-connect.js` | Remove |
 | 2 | Public-bridge API endpoints | `app/api/public/programs/route.ts`, `app/api/public/programs/[slug]/route.ts` | Remove |
 | 3 | Public-API cache header pattern | The `s-maxage=300` + explicit `CDN-Cache-Control` + `Vercel-CDN-Cache-Control` block in those routes | Remove with the routes |
-| 4 | Examples directory | `public/examples/rim-connect/` | Remove |
 | 5 | Webflow Site Settings head code | Webflow Designer → Site Settings → Custom Code → Head Code (preconnect + hide-style + script tag) | Manual: remove in Webflow |
 | 6 | Webflow staged pages | `/rim-next/Programs` and `/untitled/program-detail` on the live Webflow site | Manual: remove in Webflow |
-| 9 | `/atlas/` companion HTML files | `rim-atlas-v2.html`, `rim-layers.html`, `rim-stack.html` | Remove |
 
 ---
 

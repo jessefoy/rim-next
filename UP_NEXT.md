@@ -45,12 +45,6 @@ Now that the Tiptap migration is complete, these blocks can be added as Tiptap e
 
 Not blocked by anything. Each block is a small, contained piece of work.
 
-### Auth-aware Program Detail CTA
-
-Tracked in backlog (`2026-04-24-001`). The Program Detail page in Webflow needs an authenticated CTA — different states for: not registered, registered, waitlisted, pending dana, ready to join session. Currently uses a static "Register" button.
-
-Approach: extend `rim-connect.js` with a `data-rim-member-cta` element + `/api/member/programs/[slug]/cta` endpoint that returns the right CTA shape for the signed-in member. Or embed the existing `RegisterButton` Next.js component via iframe.
-
 ### BlockNote walker eventual removal
 
 Once every row in the database has been edited and saved as HTML, the BlockNote-JSON walker in `lib/renderRichContent.ts` and `lib/renderRichContentServer.ts` can be removed. Until then it's the safety net for unmigrated content. No deadline; depends on user activity. Worth checking the database periodically (`SELECT COUNT(*) FROM ... WHERE jsonb_typeof(field) = 'array'`) to know when it's safe.
