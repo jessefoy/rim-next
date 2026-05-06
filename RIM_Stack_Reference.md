@@ -6,7 +6,28 @@ _Generated 2026-03-11. Last updated 2026-04-20 (session 89)._
 
 ## What's been built
 
-Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfield, WI. This Next.js application is the future home of the entire RIM digital presence — programs, member accounts, registrations, online courses, and volunteer tooling. As of this writing, the application includes a full program registration system (with waitlisting, dana/Stripe payments, calendar links, and automated emails), a member dashboard and profile system, a Registrar Hub for managing participants (migrated into the multi-hub system with stakeholder visibility), an admin area for member management (with households, status, tags, and role assignment), a Postgres-backed course and lesson library (migrated from Sanity, managed via Teacher Hub with a rich Markdown editor), a staff reference manual, a site architecture/feature inventory for admins, a Google Meet integration for virtual programs, a Host Community Hub — a full team workspace for the volunteer host team with a calendar schedule, sub board, conversations, and alerts, a Support Inbox — a Gmail-integrated shared email client for the support team with thread management, reply composer, internal notes, templates, and member matching, and an Email Template Manager — a database-backed system for editing all managed transactional email copy without code deploys. The Webflow-built site at `rootedinmindfulness.org` remains live as the public-facing domain while this app is in active development at `rim-next.vercel.app`.
+Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfield, WI. This Next.js application is the headless backend of the RIM digital presence — programs, member accounts, registrations, online courses, hubs, and volunteer tools. The public/member-facing surface is moving to Webflow per `RIM_Architecture_Directive.md` (April 2026 pivot); RIM Next continues to host the API, the database, business logic, scheduled jobs, and the small set of stateful interactive surfaces (the Tiptap editor surfaces, the LiveKit session room, the staff tools).
+
+**Currently active (operational):**
+- Program registration system (waitlisting, dana/Stripe payments, calendar links, automated emails)
+- Member dashboard and profile system
+- Admin Member Registry (`/admin/members`) — households, status, tags, role assignment, course access, teacher profile
+- Programs and registrations management at `/tools/programs` (the Program Manager)
+- Postgres-backed course and lesson library (`/tools/learning` — the Course Manager)
+- Host Community Hub workspace + Host Schedule at `/tools/schedule` with Schedule and Rotations tabs (Standing Host Assignments — session 98)
+- LiveKit Cloud video conferencing (replaced Google Meet in session 86) — RIM-branded session room with custom layout, host controls, nonverbal signals
+- Email Template Manager at `/admin/emails` — database-backed
+- Database-driven staff manual (ManualSection records) with audience-grouped index, hub-scoped projection, contextual help icons
+
+**Parked or removed:**
+- **Google Meet integration** — replaced by LiveKit in session 86; all Meet UI, room accounts, and calendar booking removed
+- **Support Inbox** (`/tools/inbox`) — code preserved but not currently staffed by volunteers; 5-minute Gmail sync cron removed in session 88 (Neon Free-tier exhaustion). Sync is manual via the Sync button only. `support@rootedinmindfulness.org` is being read directly until a support team is back in place.
+- **Tasks per hub** — schema and UI removed entirely in session 96; never adopted in practice
+- **Alerts module** — schema, API, UI all removed in session 96; bell UI never shipped
+- **Sanity Studio access for staff** — removed in session 54 when programs migrated to Postgres
+- **Virtual Host Hub Attendance + Session Tracking** — built sessions 43–45, deleted session 89; never reached operational use
+
+The Webflow-built site at `rootedinmindfulness.org` is the live public-facing domain; this app currently runs at `rim-next.vercel.app`. Cutover happens once the new Webflow site is ready to replace the legacy public pages.
 
 ---
 
@@ -155,7 +176,9 @@ All set in Vercel. Pull locally with `npx vercel env pull .env.local`.
 
 **Site-Wide Banner (session 72):** `SiteBanner` + `SiteBannerDismissal` models. ADMIN single-slot broadcast; `body Json?` (BlockNote JSON via RimProseEditor compact). APIs: `/api/admin/site-banner` (GET/POST/DELETE), `/api/site-banner/dismiss` (POST). Admin page: `/admin/banner`. Component: `SiteBannerStrip.tsx` on dashboard.
 
-**Hub notification redesign (session 72):** Announcements merged into pinned conversation threads (`isPinned Boolean`, `pinnedAt DateTime?` on `HubConversationThread`). `HubAnnouncement` model removed. Announcements tab removed; hub root → `/conversations`. Dashboard hub cards show teal unread-count badge (threads + alerts since `lastVisitedAt`). `AlertStrip` removed.
+**Hub notification redesign (session 72):** Announcements merged into pinned conversation threads (`isPinned Boolean`, `pinnedAt DateTime?` on `HubConversationThread`). `HubAnnouncement` model removed. Announcements tab removed; hub root → `/conversations`. Dashboard hub cards show teal unread-count badge (threads since `lastVisitedAt`). `AlertStrip` removed.
+
+> **Note on alerts:** the broader Alerts module (`Alert` model + `AlertType` enum + `/api/account/alerts` + `check-unassigned-hosts` cron) was removed entirely in session 96. The unread badge on hub cards now counts conversation thread updates only.
 
 **Support Inbox security posture (hardened 2026-03-16):** SSRF guard on attachment fetch (Vercel Blob domain only), attachment proxy ownership check, soft-delete bypass fix in sync engine, deleted-thread 404 on reply/note, 30s rate limit on manual sync, status enum validation, HTML escaping on signature fields, 100-char max on signature fields, audit log on hard delete, `NEXTAUTH_URL` in notification emails.
 
@@ -200,7 +223,7 @@ app/
     dashboard/        member home
     programs/         my registrations list
     programs/[slug]/  member program detail (authenticated — status, join, calendar, dana)
-    hub/[slug]/       Multi-hub volunteer workspaces (conversations, tasks, documents, members)
+    hub/[slug]/       Multi-hub volunteer workspaces (home, conversations, documents, manual, members)
     hub/[slug]/programs/  Registrar Hub stakeholder view (read-only headcount)
     welcome/          onboarding
     reactivate/       self-service reactivation
@@ -220,7 +243,7 @@ app/
     sitemap/          site architecture
     ideas/            backlog (data/backlog.json)
   api/
-    account/          member-facing APIs (registrations, alerts, reactivate)
+    account/          member-facing APIs (registrations, reactivate, profile, bio)
     courses/          course CRUD (TEACHER/ADMIN)
     lessons/          lesson CRUD + search (TEACHER/ADMIN)
     upload/           file upload via Vercel Blob (TEACHER/ADMIN)
@@ -250,7 +273,7 @@ data/backlog.json     feature backlog (surfaced at /admin/ideas)
 | Role | Access |
 |---|---|
 | `HOST` | Host Community Hub, sub board, conversations |
-| `HOST_MANAGER` | All HOST access + assignment management + unassigned alerts |
+| `HOST_MANAGER` | All HOST access + assignment management + Standing Rotations editor |
 | `TEACHER` | Teacher Hub — course and lesson management |
 | `SUPPORT` | Support Inbox — shared inbox, thread assignment, reply, internal notes |
 | `REGISTRAR` | Registrar Hub (auto-synced, coordinator), registrations, member profiles, Program Editor |

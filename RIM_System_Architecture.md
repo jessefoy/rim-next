@@ -46,7 +46,7 @@ Tools are full-featured staff applications extracted from hubs. They serve one w
 | Layer | Purpose | Examples |
 |---|---|---|
 | **Member Registry** (`/admin/members`) | Canonical record authority | Full profile, roles, households, tags |
-| **Hubs** (`/account/hub/[slug]`) | Team workspaces | Conversations, documents, tasks, members |
+| **Hubs** (`/account/hub/[slug]`) | Team workspaces | Home, Conversations, Documents, Members, Manual (per-hub scoped) |
 | **Tools** (`/tools/*`) | Operational applications | Program Manager, Support Inbox, Host Schedule |
 
 Hubs and Tools both provide scoped projections of member data — but they serve different needs. A hub is where a team coordinates. A tool is where they do their specialized work.
@@ -202,14 +202,16 @@ Previously, hosting permission (LiveKit admin grants, sub-request claims, HostAs
 
 **Tools extraction — complete (session 73):** Three full applications extracted from hub tabs to `/tools/*`: Program Manager → `/tools/programs`, Support Inbox → `/tools/inbox`, Host Schedule → `/tools/schedule`. Each tool has its own nav chrome, role gate, and back link to its associated hub. Hub tabs simplified — only team-centric tabs remain (Home, Conversations, Tasks, Documents, Members, plus course-specific tabs for Course Hub and stakeholder Programs tab for Registrar Hub). This establishes the three-layer architecture: Member Registry (canonical authority) → Hubs (team workspaces) → Tools (operational applications).
 
-**Hub schema enhancements — session 73:** `HubStatus` enum (ACTIVE/ARCHIVED) with status field on Hub. `HubAppLink` model for hub-to-tool linking. `firstVisitedAt` on HubMember for newcomer welcome tracking. `TaskList`, `Task`, `Subtask` models with `TaskStatus` enum for hub task management.
+**Hub schema enhancements — session 73:** `HubStatus` enum (ACTIVE/ARCHIVED) with status field on Hub. `HubAppLink` model for hub-to-tool linking. `firstVisitedAt` on HubMember for newcomer welcome tracking.
+
+> **Tasks removed (session 96, 2026-04-27).** `TaskList`, `Task`, `Subtask` models and the `TaskStatus` enum were dropped from the schema; all `/api/hubs/[slug]/tasks/**` routes deleted; the `task-reminders` cron removed from `vercel.json`. Tasks were never adopted in practice and added complexity to every hub template. May be revisited later if a real need emerges.
 
 **Completed since session 73:**
 
 - **Hub admin page (session 74):** `/admin/hubs` — create, edit, archive hubs with app links, coordinator display. Replaces seed-script-only management.
 - **Hub home screen (session 74):** Coordinator-editable home content via `RimProseEditor variant="document"`, app links rendered on home, pinned threads surfaced.
 - **Hub newcomer welcome (session 74):** One-time interstitial on first visit (uses `firstVisitedAt` + `welcomeBody`).
-- **Hub task system (session 74):** Full three-column task UI — rail (lists/filters), task list, detail panel. Lists, tasks, subtasks, assignees, due dates, templates, `RimProseEditor` bodies. Mobile responsive.
+- ~~**Hub task system (session 74):**~~ **Removed in session 96 (2026-04-27).** The full three-column task UI (rail, task list, detail panel) was deleted along with the schema models. Tasks were never adopted operationally.
 - **Hub sidebar navigation (session 74):** Horizontal tab strip replaced with 220px left sidebar. Identity block, core sections, Tools section (app links with ↗), Hub settings link. Mobile: slide-in drawer via hamburger. `HubNavStrip.tsx` and `HubHeader.tsx` deleted.
 - **Hub context for tools (session 74):** `?hub=` query param appended to all tool links from sidebar. `ToolsContext` reads param client-side via `useSearchParams()`, exposes `hubSlug` to tool pages. Foundation for scoped data.
 
@@ -239,7 +241,7 @@ The complete architecture for how hubs and tools relate is documented in **`RIM_
 - Core sections architecture — Home, Conversations, Tasks, Documents, Members as shared infrastructure
 - App link and home screen pattern — current implementation and planned live context cards
 - Access control matrix — complete role → hub → tool → section mapping
-- Mobile navigation — sidebar drawer, three-screen task flow, tool patterns
+- Mobile navigation — sidebar drawer, tool patterns
 - Database schema reference — all hub-related models and their fields
 
 **Claude Code: Read `RIM_Hub_Model.md` before working on any hub, tool, app link, sidebar, or scoped data feature.**
