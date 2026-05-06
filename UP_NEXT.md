@@ -6,11 +6,19 @@
 
 ## Active
 
-Nothing actively in flight. Session 98 (2026-04-29) closed with:
-- **Host Schedule visual tidy-up** — 3-column row grid, `hs-row__right` wrapper, covered-row left border visible (`#ddd`), "needs a host" triple-amber resolved, quiet link → pill button.
-- **Standing Host Assignments** — full coordinator rotation system. `StandingAssignment` schema + DB pushed. `lib/applyStandingAssignments.ts` idempotent core logic. GET/POST routes at `/api/host/standing-assignments`, POST `/api/host/standing-assignments/apply`, daily cron at `0 8 * * *`. `RotationsClient.tsx` and Schedule | Rotations tab strip in `HubScheduleClient`. Notification email via `after()`.
+Nothing actively in flight. Session 99 (2026-05-06) closed with a major regroup focused on documentation sync. Three threads landed:
 
-Next step: test the Rotations tab in production — navigate to `/tools/schedule` as HOST_MANAGER, click "Rotations", verify programs load, set a slot, save, confirm session count in the success message.
+- **Hub Documents and manual chapters** — six new Host Hub Documents (Practice of Hosting, Running a Session, When Things Go Wrong, For Coordinators); manual chapters rewritten in plain language for the average host volunteer (`host-hub`, `host-hub-team-management`, `host-schedule`); new chapters added (`host-rotations`, `host-session-room`, `conversations`); option-B rewrites of `programs` and `registration` from careful UI walkthroughs.
+- **Manual surfacing inside hubs** — new `/account/hub/[slug]/manual` route; "Manual" item in the hub sidebar; `?` icons on hub homes; hub-aware back-link from chapter pages; audience-grouped manual index.
+- **Drift catch-up** — corrected stale claims across the manual (Tasks documented as live but removed in session 96; Support Inbox documented as live but parked since session 88; Google Meet documented but replaced by LiveKit in session 86; "Remove participant" and "Disable video" listed as host controls but neither exists). Section 19 marked REPLACED, Section 29 marked PARKED. Reference docs (`FEATURES.md`, `RIM_System_Architecture.md`, `RIM_Stack_Reference.md`) caught up — 11 session log entries added, intro paragraph rewritten to distinguish active vs parked/removed features.
+
+The session also surfaced a real concern: the closing ritual hasn't been done thoroughly across recent sessions, producing compounding documentation drift. The mechanism is documented in `CLAUDE.md`; the fix is the practice, not new tooling.
+
+### Loose ends from session 99
+
+- **Broken redirects in `vercel.json`** — four redirects (`/volunteer*`, `/account/registrar*`) point to `/account/hub/registrar/programs` which no longer exists. They 404. Should be redirected to `/tools/programs` or removed.
+- **`missing-reports` cron** in `vercel.json` — leftover from the deleted Virtual Host Hub Attendance system (session 89). Cleanup pending.
+- **Future option-B depth on remaining chapters.** `course-hub` and `support-inbox` are now short and accurate from option-C; could be expanded with field-by-field detail later if there's a real audience.
 
 Pick from the open threads below.
 

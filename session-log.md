@@ -1,5 +1,67 @@
 ---
 
+## 2026-05-06 (session 99) — Manual reorganization, Hub Documents, drift catch-up, reference docs synced
+
+### What prompted this session
+
+Opening prompt; Jesse asked for help thinking through documentation for the host coordinator and host team — initially around how to handle ChatGPT's 33-document Zoom support pack. The work expanded into an overhaul of the staff manual and hub documentation, then into a major drift audit and catch-up of the canonical reference docs.
+
+### What was built
+
+**1. Six new Hub Documents seeded into host-team.** Across four new categories (Practice of Hosting · Running a Session · When Things Go Wrong · For Coordinators): Host Role, Stewardship Practices, Quick Start, Sub Coverage, Disruption Response, Coordinator Playbook. Storage: plain HTML strings (post-Tiptap canonical). Voice: 8th-grade plain language, generic role names ("the host coordinator"), no model-name jargon.
+
+**2. Manual chapters rewritten or added.** Wholesale rewrites: `host-hub`, `host-hub-team-management`, `host-schedule`. New chapters: `host-rotations` (the Rotations tab walked from `RotationsClient.tsx`), `host-session-room` (what hosts see in the LiveKit room and what controls actually exist), `conversations` (system-wide; threads/replies/reactions/categories). Option-B full rewrites built from careful UI walkthroughs: `programs` (~2,000 words against the seven actual Program Editor tabs) and `registration` (~2,200 words against the VolunteerTable expanded-row layout). Option-C surgical patches on `support-inbox` and `course-hub` for path/wording drift.
+
+**3. Manual surfacing inside hubs.** New route `/account/hub/[slug]/manual` lists chapters where `hubSlug = current hub slug`. New "Manual" item in `HubWorkspaceSidebar` between Documents and Members. `?` icon on host hub home and the shared HubHomeClient (courses/support/registrar) — opens the hub's orientation chapter in a new tab with `?from=<hub-slug>`. Chapter pages now have a hub-aware back-link (priority: `?from` param → chapter's own `hubSlug` → system-wide `/admin/manual`). Manual index reorganized into audience groups (`lib/manualGroups.ts`): Welcome · For all volunteers · For each team · For members · About this manual.
+
+**4. Major drift caught and corrected mid-session.** Several manual chapters and Hub Documents described features that were removed or replaced:
+- Tasks tab in host hub described as live — Tasks were removed entirely in session 96 (commit ea9d868).
+- Support Inbox described as a daily-use tool — parked since session 88, no Gmail sync cron, not staffed.
+- Google Meet described as the video platform — replaced by LiveKit in session 86.
+- "Remove a participant" and "Disable a participant's video" listed as host controls — neither exists in the actual session room (no API endpoint, no UI button). The Disruption Response gradient was rebuilt with Mute All replacing the false Remove step.
+
+Section 19 (Google Meet) marked REPLACED. Section 29 (Support Inbox) marked PARKED. Tasks references scrubbed.
+
+**5. Reference docs catch-up sync.** `FEATURES.md` got 11 catch-up session log entries for sessions 89–99 (each summarising what shipped or was removed). `RIM_System_Architecture.md` updated: Tasks removed from hub feature list, Manual added, "three-screen task flow" reference scrubbed. `RIM_Stack_Reference.md` intro rewritten to explicitly distinguish currently-active features from parked/removed ones (Google Meet, Support Inbox, Tasks, Alerts, Sanity Studio access, Virtual Host Hub Attendance).
+
+### What this connects to
+
+- **Closing ritual discipline.** The biggest lesson: the mechanism for keeping docs in sync (CLAUDE.md closing ritual) already exists; it just hasn't been done thoroughly across recent sessions. The fix is the practice, not new tooling. Going forward, the ritual needs to land at every meaningful change.
+- **Hub-vs-tool model now documented uniformly.** Every hub has Home · Conversations · Documents · Manual · Members + a hub-specific tool. Course Hub's tool is the Course Manager (`/tools/learning`). Registrar Hub's tool is the Program Manager (`/tools/programs`). Host Hub's tool is the Host Schedule (`/tools/schedule`). Support Hub's tool is the (parked) Support Inbox (`/tools/inbox`). This was implicit; now it is explicit in `RIM_System_Architecture.md` and `RIM_Stack_Reference.md`.
+- **Manual layered over Hub Documents.** Manual = canonical system reference, edited centrally, hub-scoped projection. Hub Documents = team-authored operational material, edited by coordinator/team in the hub. Both visible inside each hub now (sidebar Manual item; Documents tab as before). Both surfaced via `?` icons.
+
+### Design decisions that hold
+
+- **The hub shape is uniform.** Every hub has the same general elements; only the tool varies. Don't conflate "the Course Hub" with "the Course Manager" — they're hub and tool, not competing things.
+- **Names are scrubbed from the manual; named freely in Hub Documents.** Manual chapters say "the host coordinator" — portable across role changes. Hub Documents (more conversational, team-authored) name people directly when it adds warmth.
+- **"Remove what's wrong" before "add what's missing."** The option-C pass closed the most dangerous drift (false claims about features that don't exist) without rewriting whole chapters. Full rewrites came after, only where structural drift made surgical patching impossible.
+- **Operational state ≠ code state.** Documentation should reflect what's in operational use, not what code happens to exist. The Support Inbox code is preserved but parked; the manual now says so explicitly.
+
+### Open
+
+- **Broken redirects in `vercel.json`.** Four redirects (`/volunteer/programs/:slug`, `/volunteer`, `/account/registrar/:slug`, `/account/registrar`) point to `/account/hub/registrar/programs` which no longer exists — they 404. Should redirect to `/tools/programs` or be removed.
+- **`missing-reports` cron** in `vercel.json` — leftover from the deleted Virtual Host Hub Attendance system (session 89). Should be cleaned up if no longer used.
+- **Option-B rewrites for remaining older chapters.** `course-hub` and `support-inbox` are now short and accurate but could be expanded with field-by-field detail in future focused sessions. Not urgent.
+- **Open Access** — confirmed by Jesse as the guest-link feature for virtual programs; available but unverified whether it's actively used in any program.
+- **Lessons system** — confirmed by Jesse as essential and still in development; not currently being actively iterated on.
+- **Attendance tracking** — confirmed by Jesse as being removed entirely; planned to rebuild as a future system.
+
+### Key files
+
+- `prisma/seed-host-hub-team-docs.mjs` — six Hub Documents
+- `prisma/update-manual-{host-hub,host-hub-team-management,host-schedule,host-rotations,host-session-room,conversations,support-inbox,course-hub,registration,programs,programs-rewrite,registration-rewrite}.mjs` — chapter writers
+- `lib/manualGroups.ts` — audience-grouped manual index (new)
+- `app/account/hub/[slug]/manual/page.tsx` — hub-scoped manual route (new)
+- `app/admin/manual/[slug]/page.tsx` — hub-aware back-link
+- `components/HubWorkspaceSidebar.tsx` — Manual sidebar item
+- `components/HostHubHomeClient.tsx`, `HubHomeClient.tsx` — `?` icon
+- `components/HubScheduleClient.tsx` — `?` link passes `?from=host-team`
+- `components/ManualHelpIcon.tsx` — optional `from` prop
+- `FEATURES.md`, `RIM_System_Architecture.md`, `RIM_Stack_Reference.md` — reference docs sync pass
+- `prisma/migrate.mjs` — wired all the update-manual flags
+
+---
+
 ## 2026-04-29 (session 98) — Host Schedule visual tidy-up + Standing Host Assignments
 
 ### What prompted this session
