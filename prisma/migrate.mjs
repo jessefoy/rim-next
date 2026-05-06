@@ -23,6 +23,7 @@ import { updateManualSupportInbox } from "./update-manual-support-inbox.mjs";
 import { updateManualCourseHub } from "./update-manual-course-hub.mjs";
 import { updateManualRegistration } from "./update-manual-registration.mjs";
 import { updateManualPrograms } from "./update-manual-programs.mjs";
+import { updateManualProgramsRewrite } from "./update-manual-programs-rewrite.mjs";
 
 const db = new PrismaClient();
 
@@ -1857,6 +1858,22 @@ async function main() {
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_older_manual_chapters_v1')`);
   } else {
     console.log("  ⏭ Older manual chapters already updated.");
+  }
+
+  // Manual chapter: programs (option-B full rewrite). Replaces the body
+  // wholesale with a fresh chapter built from the actual Program Editor
+  // UI — 7 tabs (Content, Schedule, Categories, Registration, Dana,
+  // Dashboard, Visibility), conditional fields called out, Open Access
+  // and Teachers documented (neither was in the original).
+  const updateProgramsRewriteFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_programs_rewrite_v1'
+  `).catch(() => []);
+
+  if (updateProgramsRewriteFlag.length === 0) {
+    await updateManualProgramsRewrite(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_programs_rewrite_v1')`);
+  } else {
+    console.log("  ⏭ Manual programs rewrite already applied.");
   }
 
   await db.$disconnect();
