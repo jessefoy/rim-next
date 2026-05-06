@@ -25,9 +25,7 @@ When Jesse says **"opening prompt"** (or similar), execute the full opening ritu
 
 At the start of every session, before any implementation work:
 
-1. **Read `RIM_Architecture_Directive.md` first.** This file is authoritative and supersedes any earlier instructions, memory, or conventions that conflict with it. It defines the Webflow + RIM Next split, which surfaces move to Webflow vs. stay in Next.js, the `rim-connect.js` pattern, the `/api/public/*` and `/api/member/*` API conventions, and the task classification that must happen before any code is written. If a later file contradicts this directive, the directive wins — flag the contradiction and ask Jesse.
-
-2. **Read the remaining reference files in order:**
+1. **Read the reference files in order:**
    - `UP_NEXT.md` — in-progress context from the last session (what's half-built, what's being tested, what's the next concrete step). If `UP_NEXT.md` has active work and Jesse's first message sounds related, resume that thread.
    - `FEATURES.md` — what exists, what's built, what's new
    - `RIM_Stack_Reference.md` — technology, services, environment
@@ -36,7 +34,7 @@ At the start of every session, before any implementation work:
    - `RIM_Web_Design_Philosophy.md` — design intent
    - Plus any task-specific files per the Design Orientation table above
 
-3. **Confirm you've read them before starting work.** State explicitly that the directive and reference files have been read, and reference anything from `UP_NEXT.md` that bears on Jesse's first message. This is not ceremonial — it's the verification that the pivot context and current state are loaded before any proposal.
+3. **Confirm you've read them before starting work.** State explicitly that the reference files have been read, and reference anything from `UP_NEXT.md` that bears on Jesse's first message. This is not ceremonial — it's the verification that current state is loaded before any proposal.
 
 4. **Produce a Connections Map before writing any code.** When Jesse describes what we're working on, your first response must include a map in this format:
 
@@ -70,7 +68,7 @@ Design principles that apply:
 
 This is not a formality. It is how Jesse verifies that you understand the system before you touch it. If a section has no entries, write "None" — do not omit it. If you're unsure about a connection, say so and ask.
 
-5. **Classify the task before proposing anything** per the Directive's "Before writing code, classify the task" rules. In particular: if the target page is in the Directive's "moves to Webflow" list, do not build or modify the Next.js version — the work is an API endpoint, a `rim-connect.js` extension, or a `data-rim-*` attribute pattern for Jesse to apply in Webflow. When ambiguous, ask.
+5. **Classify the task before proposing anything.** When a task touches an existing page or feature, read how it currently works before proposing changes. When ambiguous, ask Jesse.
 
 6. **Wait for Jesse to confirm the map before building.** Jesse may see connections you missed. The map is a conversation, not a checklist. Only proceed to implementation after Jesse says the map looks right.
 
@@ -199,7 +197,9 @@ When Jesse says **"closing prompt"**, **"let's document everything"**, or simila
 
 7. **UP_NEXT.md** — Rewrite the "Active" section to reflect where this session ended. Capture: what was built and is now live, what is open (being tested, half-built, or waiting on Jesse), the next concrete step, and any queued follow-ons. This file is read at the top of the next session's opening ritual — it is how Jesse picks up where we left off without starting cold.
 
-8. **Commit and push all documentation changes together.**
+8. **Architectural decisions.** If a significant architectural or strategic decision was made or reversed during this session, identify the authoritative document for that decision and update or supersede it before closing. This is the step the closing ritual was missing when the Webflow directive went stale — a directive going out of date is nobody's job unless it's explicitly someone's job. Don't let the docs lie.
+
+9. **Commit and push all documentation changes together.**
 
 If any of these files do not need updating for this session, say so explicitly. Do not silently skip them.
 

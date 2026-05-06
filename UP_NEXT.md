@@ -26,17 +26,6 @@ Pick from the open threads below.
 
 ## Next deliverable candidates
 
-### Webflow weekly schedule (parked from session 95)
-
-Still real work, still designed but not built. The Programs listing in Webflow works; the next public-facing page Jesse wants to design is the weekly schedule. Concrete shape:
-
-- New endpoint `/api/public/programs/weekly` returning the next 7 days grouped by weekday. Reuse `lib/scheduleUtils.ts::isOccurrenceOnDate()`. Copy cache headers from the existing programs endpoints (`s-maxage=300, stale-while-revalidate=86400` plus explicit `CDN-Cache-Control` + `Vercel-CDN-Cache-Control`).
-- Default to grouped-list (`data-rim-group-list="weekly"`) over a new `data-rim-weekly-list` primitive. Only add a primitive if grouped-list can't express the design.
-- Jesse designs the Webflow page. Recommended path: duplicate `/rim-next/Programs` as `/rim-next/weekly-schedule`, point grouped-list at the new endpoint.
-- Programs listing page slug is still `Programs` (capital P) → publishes to `/rim-next/Programs`. Lowercase before it bites.
-
-This is self-contained work that doesn't depend on anything else. Good standalone session.
-
 ### Editor toolbar polish
 
 Jesse said "I'll address the menu items later" early in session 97. The current toolbar dropdowns (Heading, Callouts, Dharma blocks) and bubble menu contents are reasonable defaults but he may want refinements:
@@ -80,12 +69,6 @@ Once every row in the database has been edited and saved as HTML, the BlockNote-
 
 ## Permanent reminders (still true)
 
-- **Webflow-primary for public/member-facing surfaces.** Do not tune `app/programs/[slug]/page.tsx` or other Webflow-destined pages in the Next.js CSS. Changes go to the API + `rim-connect.js` + Webflow.
-- **API cache policy.** `/api/public/*` endpoints default to `s-maxage=300, stale-while-revalidate=86400` plus explicit `CDN-Cache-Control` + `Vercel-CDN-Cache-Control` headers.
-- **`[data-rim-page]` is invisible until `.rim-ready`.** Wrapper element must carry `data-rim-page="collection"` or similar.
-- **Audit Webflow by reading the shipped HTML.** `curl -sL <url> | grep -oE 'data-rim-[a-z]+="[^"]*"' | sort -u` is authoritative.
-- **Webflow MCP does not expose navigator labels.** Element renames are a manual double-click in the Webflow Designer.
-- **Browser cache on Webflow pages is sticky.** Stale 404s persist through hard refresh — incognito or DevTools clear-site-data fixes it.
 - **Hub membership is authoritative when it exists.**
 - **No-delete policy for HubMember.** Never call `db.hubMember.delete()` outside the ADMIN-only route.
 - **Use `after()` from `next/server` for fire-and-forget email sends in route handlers.** `void (async () => {})()` is silently killed by Vercel's serverless teardown.

@@ -29,12 +29,7 @@ The April directive committed to a Webflow + RIM Next hybrid. That decision has 
 | 4 | Examples directory | `public/examples/rim-connect/` | Remove |
 | 5 | Webflow Site Settings head code | Webflow Designer → Site Settings → Custom Code → Head Code (preconnect + hide-style + script tag) | Manual: remove in Webflow |
 | 6 | Webflow staged pages | `/rim-next/Programs` and `/untitled/program-detail` on the live Webflow site | Manual: remove in Webflow |
-| 7 | `RIM_Architecture_Directive.md` | Repo root | Mark superseded with a clear header, or delete entirely |
-| 8 | `RIM_Webflow_Fields.md` | Repo root | Delete |
 | 9 | `/atlas/` companion HTML files | `rim-atlas-v2.html`, `rim-layers.html`, `rim-stack.html` | Remove |
-| 10 | `UP_NEXT.md` "Webflow weekly schedule" parked item | `UP_NEXT.md` "Next deliverable candidates" | Remove from list |
-| 11 | `UP_NEXT.md` "Permanent reminders" Webflow lines | `UP_NEXT.md` bottom — "Webflow-primary for public/member-facing surfaces", audit-Webflow command, etc. | Remove |
-| 12 | `CLAUDE.md` references to the directive | "Required reading" table and "Read `RIM_Architecture_Directive.md` first" instructions | Update or remove |
 
 ---
 
@@ -132,14 +127,6 @@ Items that will be removable later, after a precondition is met. Tracked here so
 | 55 | Legacy CSS shim | Bottom of `public/css/custom.css` (~25 Webflow classes for ~15 unredesigned pages) | All ~15 pages have had their design pass |
 | 56 | Sanity programs/courses/lessons schemas | Sanity studio | After old documents in the dataset are confirmed unused; programs/courses/lessons all migrated to Postgres, but Sanity schemas remain |
 | 57 | `BASE_URL` whitespace-trim defensive code | 5 places in `lib/` and `app/api/` | After `NEXTAUTH_URL` env var itself is cleaned at the source in Vercel project settings (UP_NEXT loose-end) |
-
----
-
-## Theme H — Meta-finding (closing ritual)
-
-| # | Item | Where | Action |
-|---|---|---|---|
-| 58 | Closing ritual has no hook for strategic-policy-level documents | `CLAUDE.md` "Closing Ritual" section | Add a step: when an architectural/strategic decision is made or reversed, identify the authoritative doc(s) and update or supersede. The current ritual catches feature-level changes via `FEATURES.md` / `RIM_Stack_Reference.md` / `RIM_System_Architecture.md`, but a directive going stale wasn't anyone's job. |
 
 ---
 

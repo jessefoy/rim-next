@@ -1,5 +1,9 @@
 # RIM Architecture Directive
 
+> **SUPERSEDED — May 2026.** The Webflow + RIM Next hybrid described in this document has been reversed. Everything is built in RIM Next; no new work is happening in Webflow. `rim-connect.js` is being removed. This file is kept as historical record only. Do not treat it as authoritative. See `CLEANUP.md` for the residue queue, and `CLAUDE.md` for current session instructions.
+
+---
+
 **Read this file at the start of every session. Before writing code. Before editing files. Before proposing anything.**
 
 This document is authoritative. It supersedes any earlier instructions, memory, or conventions that conflict with what's below. Last updated April 2026.
