@@ -1713,17 +1713,20 @@ async function main() {
 
   // Host Hub team documents — six docs across four new categories
   // (The Practice of Hosting, Running a Session, When Things Go Wrong,
-  // For Coordinators). v2: scrubs specific coordinator names ("Maria")
-  // for "the host coordinator" generically + drops aspirational
-  // post-session-form references. Idempotent at the record level
-  // (upsert by hub + label) so re-running updates bodies.
+  // For Coordinators). v3 corrects drift between the docs and the
+  // actual session room: dropped "Remove a participant" and "Disable
+  // a participant's video" from the Disruption Response and
+  // Stewardship Practices gradients (no such endpoints or buttons
+  // exist). Replaced step 4 with "Mute All" as a real escalation
+  // option. Host Role doc no longer claims a remove-participant
+  // control. Idempotent at the record level (upsert by hub + label).
   const hostTeamDocsFlag = await db.$queryRawUnsafe(`
-    SELECT name FROM "_migration_flags" WHERE name = 'seed_host_hub_team_docs_v2'
+    SELECT name FROM "_migration_flags" WHERE name = 'seed_host_hub_team_docs_v3'
   `).catch(() => []);
 
   if (hostTeamDocsFlag.length === 0) {
     await seedHostHubTeamDocs(db);
-    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_host_hub_team_docs_v2')`);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_host_hub_team_docs_v3')`);
   } else {
     console.log("  ⏭ Host Hub team docs already seeded.");
   }

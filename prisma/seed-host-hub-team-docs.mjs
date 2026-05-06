@@ -48,7 +48,7 @@ const HOST_ROLE = `<p>Hosting at RIM is a specific kind of service. You open the
 <h2>What we hold for you</h2>
 <p><strong>Training.</strong> Before your first session, you'll have a chance to shadow an experienced host, and to co-host with one before going solo. You won't be thrown in unprepared.</p>
 <p><strong>A coordinator.</strong> The team has a host coordinator who supports the team, handles questions, helps with coverage gaps, and is the first person to message if something difficult happens. You'll see who the coordinator is in the Members tab. You don't need to escalate to Jesse for ordinary issues — that's what the coordinator is for.</p>
-<p><strong>Tools.</strong> The Host Schedule shows you exactly what you're assigned to. The session room itself gives you mute, remove-participant, and end-for-all controls when you need them. The Documents tab in the host hub holds the references you might want during or after a session.</p>
+<p><strong>Tools.</strong> The Host Schedule shows you exactly what you're assigned to. The session room itself gives you Mute and End for All controls when you need them. The Documents tab in the host hub holds the references you might want during or after a session.</p>
 <p><strong>Support after a hard session.</strong> If something happens — a disruption, a participant in distress, a moment that felt heavy — you don't sit with it alone. Message the host coordinator. Hosts debrief together as a matter of course, not as a special exception.</p>
 <h2>The team you're part of</h2>
 <p>You're not a contractor. You're part of the host team — a sangha within a sangha. Other hosts are tending other sessions in the same week, working from the same shared schedule, drawing on the same training, and supporting each other through the harder moments. The way the team works together is itself part of what makes RIM what it is.</p>
@@ -101,11 +101,11 @@ const STEWARDSHIP_PRACTICES = `<p>Hosting is a form of practice. The technical w
 <li><strong>Private message.</strong> Most low-level issues — background noise, an open mic, a comment in chat edging toward inappropriate — can be handled with a private message. The participant is often unaware. A kind word fixes it.</li>
 <li><strong>Mute.</strong> If background noise is disrupting practice or the participant doesn't respond, mute them. You can send a private message afterward explaining why.</li>
 <li><strong>Verbal redirect.</strong> Rarely needed, but if a participant is speaking out of turn or pulling the room off course, a brief verbal redirect can land. Keep it kind and short. <em>We're going to return to the practice now. Thank you.</em></li>
-<li><strong>Remove from session.</strong> If a participant is hostile, harassing, or genuinely disruptive — remove them. The host controls in the session room let you do this directly. You don't need permission. The room matters more than any single participant's continued presence.</li>
-<li><strong>End for all.</strong> If the room itself is unsafe — multiple disruptors, a coordinated attack on an Open Access session — you can end the session for everyone. This is rare and dramatic, but it exists for a reason.</li>
+<li><strong>Mute All.</strong> A single button in the page header. Mutes every non-host at once — useful when the room itself becomes noisy or when a coordinated disruption begins. Buys the room a moment to settle.</li>
+<li><strong>End for all.</strong> If the room itself is unsafe — multiple disruptors, a coordinated attack on an Open Access session — close the session for everyone. This is rare and dramatic, but it exists for a reason.</li>
 </ol>
 <p>The teacher or facilitator may notice and respond to disruption too. If they do, follow their lead. If they don't, you act.</p>
-<p>After any removal or session-ending action, message the host coordinator with a brief note about what happened.</p>
+<p>After ending a session or any difficult moment, message the host coordinator with a brief note about what happened.</p>
 <h2>After a difficult session</h2>
 <p>Don't carry it alone.</p>
 <p>If something happened — a participant in distress, a disruption, a moment that felt heavy — message the host coordinator afterward. Brief is fine. <em>Wanted to let you know what happened in the session tonight.</em> The point isn't a formal report. The point is that you don't sit with it by yourself.</p>
@@ -178,26 +178,24 @@ const DISRUPTION_RESPONSE = `<p>Most sessions never need this document. But you 
 <h2>The principle</h2>
 <p>Least-intrusive-response. Do as little as the situation actually requires. Escalate only when the smaller response wasn't enough. The teacher or facilitator may notice and respond too — if they do, follow their lead. If they don't, you act.</p>
 <h2>The controls</h2>
-<p>Inside the session room, the host has a set of controls that ordinary participants don't:</p>
-<p><strong>Mute a participant.</strong> From the participants panel, find the participant and use the mute control. They can unmute themselves.</p>
-<p><strong>Mute all.</strong> A single action that mutes every non-host participant. Useful when the room is noisy or when a coordinated disruption begins. Participants can unmute themselves afterward.</p>
-<p><strong>Disable a participant's video.</strong> From the participant menu. They can re-enable, unless they've been removed.</p>
-<p><strong>Remove a participant.</strong> This ejects them from the session. They cannot rejoin during that session. Use this when a participant is hostile, harassing, or genuinely disruptive. You don't need permission. The room matters more than any single participant's continued presence.</p>
-<p><strong>End for all.</strong> This closes the session for everyone. Reserve for genuine emergencies — multiple disruptors, a coordinated attack, something the room can't recover from.</p>
+<p>Inside the session room, the host has a small set of controls that ordinary participants don't:</p>
+<p><strong>Mute a participant.</strong> In the participants panel, click Mute next to someone's name. Their microphone is silenced; they can unmute themselves.</p>
+<p><strong>Mute All.</strong> A button in the page header. Mutes every non-host at once. Useful when the room itself becomes noisy or when a coordinated disruption begins. Participants can unmute themselves afterward.</p>
+<p><strong>End for All.</strong> Also in the page header. Closes the session for everyone. Reserve for genuine emergencies — multiple disruptors, a coordinated attack, something the room can't recover from.</p>
 <h2>The gradient</h2>
 <p>Most low-level issues don't need the full toolkit. The order of response is roughly:</p>
 <ol>
 <li><strong>Private chat message.</strong> Most issues — an open mic, a comment in chat that's edging toward inappropriate — can be handled with a private message. The participant is often unaware. A kind word fixes it.</li>
 <li><strong>Mute.</strong> If the noise is disrupting practice or the participant doesn't respond to the chat, mute them.</li>
 <li><strong>Verbal redirect.</strong> Rarely needed. If a participant is speaking out of turn or pulling the room off course, a brief verbal redirect can land. <em>We're going to return to the practice now. Thank you.</em></li>
-<li><strong>Remove.</strong> Hostile, harassing, or repeatedly disruptive — remove them.</li>
-<li><strong>End for all.</strong> The room is unsafe. Close it.</li>
+<li><strong>Mute All.</strong> When the room itself becomes disruptive — multiple participants making noise, a coordinated arrival of strangers — Mute All quiets everyone at once and buys the room a moment to settle.</li>
+<li><strong>End for all.</strong> The room is unsafe and can't be recovered. Close it.</li>
 </ol>
 <h2>Open Access sessions</h2>
 <p>A handful of programs are Open Access — guests can join via a shared link without signing in. These sessions carry slightly more risk because participants aren't authenticated members. For Open Access sessions, be a little more vigilant about the participants list as members arrive. If a name looks suspicious or the participant won't engage when you reach out, you can remove preemptively.</p>
 <p>If a coordinated disruption happens on an Open Access session, end the session. The link can be reset; the practice space matters more than the continuity of one occurrence.</p>
 <h2>After</h2>
-<p>Any time you remove a participant or end a session, tell the host coordinator afterward. A short message is fine — what happened, what you did, anything you'd want the team to know. The point isn't a report; the point is that the team learns and you don't carry it alone.</p>
+<p>Any time you end a session, or any time something difficult happens in the room, tell the host coordinator afterward. A short message is fine — what happened, what you did, anything you'd want the team to know. The point isn't a report; the point is that the team learns and you don't carry it alone.</p>
 <p>If the moment was genuinely difficult — harassment that landed on you personally, a frightening situation, a participant who clearly came to disrupt — the host coordinator will follow up. You're not expected to keep going as if it didn't happen.</p>`;
 
 const COORDINATOR_PLAYBOOK = `<p>This document is for the host coordinator. The host team's day-to-day is mostly self-organizing through the Host Schedule and the sub system, but a few things land specifically with you. This document covers them.</p>
