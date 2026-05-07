@@ -5,7 +5,6 @@ import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import { buildGoogleCalendarUrl, buildIcsUrl } from "@/lib/calendarLinks";
 import { resolveLocation } from "@/lib/locations";
 import { buildDateLabel } from "@/lib/dateLabel";
-import { rematchUnlinkedThreads } from "@/lib/supportSync";
 import {
   enrollMemberInOnboardingSeries,
   enrollMemberInProgramCourse,
@@ -108,7 +107,6 @@ export async function POST(request: NextRequest) {
           },
         });
         // Fire-and-forget: match any existing support threads to this new member
-        rematchUnlinkedThreads().catch(() => {});
         // Auto-enroll new member in onboarding series (fire-and-forget)
         if (agreedToTerms === true) {
           enrollMemberInOnboardingSeries(user.id).catch(() => {});

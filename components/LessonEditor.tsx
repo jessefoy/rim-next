@@ -61,8 +61,6 @@ interface LessonData {
   quoteSource: string;
   resources: Resource[];
   teachers?: { id: string; name: string }[];
-  releaseDelayDays?: number | null;
-  parentDripInfo?: { seriesTitle: string; intervalDays: number | null }[];
   durationMinutes?: number | null;
   reflectionPrompt?: string | null;
   questionsRequired?: boolean;
@@ -123,10 +121,6 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
   const [quoteSource, setQuoteSource] = useState(initialData?.quoteSource ?? "");
 
   // Scheduling
-  const [releaseDelayDays, setReleaseDelayDays] = useState(
-    String(initialData?.releaseDelayDays ?? "")
-  );
-  const parentDripInfo = initialData?.parentDripInfo ?? [];
 
   // Learning system
   const [durationMinutes, setDurationMinutes] = useState(
@@ -382,7 +376,6 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
         quoteSource: quoteSource || null,
         resources: resources.filter((r) => r.name || r.url),
         teacherIds: selectedTeachers.map((t) => t.id),
-        releaseDelayDays: releaseDelayDays !== "" ? (parseInt(releaseDelayDays) || null) : null,
         durationMinutes: durationMinutes !== "" ? (parseInt(durationMinutes) || null) : null,
         reflectionPrompt: reflectionPrompt.trim() || null,
         questionsRequired,
@@ -773,32 +766,6 @@ export default function LessonEditor({ basePath = "/tools/learning/lessons", ini
           </div>
         </div>
       </div>
-
-      {/* ── Section: Scheduling ── */}
-      {parentDripInfo.length > 0 && (
-        <div className="th-section">
-          <h3 className="th-section__title">Scheduling</h3>
-          {parentDripInfo.length > 1 && (
-            <p className="th-section__help">This lesson belongs to multiple series with different schedules. The override applies to all of them.</p>
-          )}
-          <div className="th-form">
-            <label className="th-field">
-              <span className="th-field__label">Override release delay (days)</span>
-              <input
-                type="number"
-                min="0"
-                value={releaseDelayDays}
-                onChange={(e) => setReleaseDelayDays(e.target.value)}
-                className="th-input"
-                placeholder={parentDripInfo[0]?.intervalDays != null ? String(parentDripInfo[0].intervalDays) : ""}
-              />
-              <span className="th-field__help">
-                Leave blank to use the series default ({parentDripInfo[0]?.intervalDays ?? "not set"} days).
-              </span>
-            </label>
-          </div>
-        </div>
-      )}
 
       {/* ── Section: Resources ── */}
       <div className="th-section">

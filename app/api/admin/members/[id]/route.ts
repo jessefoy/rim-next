@@ -101,12 +101,6 @@ export async function PATCH(
     !(user.roles as string[]).includes("HOST") &&
     (roles as string[]).includes("HOST");
 
-  // Detect SUPPORT role removal
-  const removingSupport =
-    roles !== undefined &&
-    (user.roles as string[]).includes("SUPPORT") &&
-    !(roles as string[]).includes("SUPPORT");
-
   // Detect newly added roles (for series auto-enrollment)
   const newlyAddedRoles: string[] =
     roles !== undefined
@@ -174,30 +168,6 @@ export async function PATCH(
   // Auto-enroll in role-gated series for each newly added role — fire-and-forget
   for (const role of newlyAddedRoles) {
     enrollMemberInRoleSeries(id, role).catch(() => {});
-  }
-
-  // SUPPORT role revoked: reassign their active threads
-  if (removingSupport) {
-    // Check for a default assignee
-    const defaultSetting = await db.appSetting.findUnique({
-      where: { key: "support.defaultAssigneeId" },
-    });
-    const fallbackId = defaultSetting?.value ?? null;
-
-    // Only reassign if fallback isn't the user being removed
-    const reassignTo = fallbackId && fallbackId !== id ? fallbackId : null;
-
-    await db.supportThread.updateMany({
-      where: {
-        assignedToId: id,
-        status: { in: ["OPEN", "CLAIMED", "WAITING"] },
-        deletedAt: null,
-      },
-      data: {
-        assignedToId: reassignTo,
-        status: reassignTo ? "CLAIMED" : "OPEN",
-      },
-    });
   }
 
   // Notify newly-promoted registrar — fire-and-forget

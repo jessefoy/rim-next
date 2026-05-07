@@ -4,7 +4,6 @@ import HouseholdSection from "@/components/HouseholdSection";
 import AdminNotesSection from "@/components/member-sections/AdminNotesSection";
 import BioSection from "@/components/member-sections/BioSection";
 import RolesSection from "@/components/member-sections/RolesSection";
-import HubAccessSection from "@/components/HubAccessSection";
 import TeacherSection from "@/components/member-sections/TeacherSection";
 import CourseAccessSection from "@/components/CourseAccessSection";
 import RegistrationHistorySection from "@/components/member-sections/RegistrationHistorySection";
@@ -52,7 +51,6 @@ export type SerializedMember = {
     courseSlug: string;
     createdAt: string;
   }[];
-  hubAccess: { hubSlug: string; grantedAt: string }[];
   household: {
     id: string;
     name: string | null;
@@ -138,21 +136,6 @@ export const MEMBER_SECTIONS: MemberSection[] = [
     render: ({ member }) => (
       <RolesSection memberId={member.id} initialRoles={member.roles} />
     ),
-  },
-  {
-    id: "hub-access",
-    allowedRoles: ["ADMIN"],
-    render: ({ member }) => {
-      const displayName =
-        [member.firstName, member.lastName].filter(Boolean).join(" ") || member.email;
-      return (
-        <HubAccessSection
-          memberId={member.id}
-          memberName={displayName}
-          initialAccess={member.hubAccess}
-        />
-      );
-    },
   },
   {
     id: "teacher",

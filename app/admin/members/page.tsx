@@ -2,7 +2,6 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import MembersTable, { type SerializedMember } from "@/components/MembersTable";
-import MemberImport from "@/components/MemberImport";
 
 export const metadata = { title: "Members — Admin" };
 export const dynamic = "force-dynamic";
@@ -69,7 +68,6 @@ export default async function AdminMembersPage() {
           <p className="adm-header__count">{members.length} total</p>
         </header>
 
-        {isAdmin && <MemberImport />}
         <MembersTable members={members} />
       </div>
     </div>

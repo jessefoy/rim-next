@@ -5,7 +5,6 @@ import { db } from "@/lib/db";
 import { renderContentBodyAsync, renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import AudioPlayer from "@/components/AudioPlayer";
 import LessonFooterClient from "@/components/LessonFooterClient";
-import { isLessonAvailable, computeAvailableDate, formatAvailableDate } from "@/lib/drip";
 
 export const dynamic = "force-dynamic";
 
@@ -163,77 +162,6 @@ export default async function LessonPage({
         prevLesson: idx > 0 ? allLessons[idx - 1].lesson : null,
         nextLesson: idx < allLessons.length - 1 ? allLessons[idx + 1].lesson : null,
       };
-    }
-  }
-
-  // ── Drip check ─────────────────────────────────────────────────────────────
-  if (courseContext) {
-    const [dripCourse, dripEnrollment] = await Promise.all([
-      db.course.findUnique({
-        where: { slug: courseContext.course.slug },
-        select: {
-          dripEnabled: true,
-          dripIntervalDays: true,
-          lessons: { select: { lessonId: true }, orderBy: { sortOrder: "asc" } },
-        },
-      }),
-      db.seriesEnrollment.findUnique({
-        where: { userId_courseId: { userId, courseId: courseContext.course.id } },
-        select: { enrolledAt: true },
-      }),
-    ]);
-
-    if (dripCourse?.dripEnabled) {
-      const positionIndex = dripCourse.lessons.findIndex((cl) => cl.lessonId === lesson.id);
-      const available = isLessonAvailable(
-        { id: lesson.id, releaseDate: lesson.releaseDate, releaseDelayDays: lesson.releaseDelayDays },
-        positionIndex >= 0 ? positionIndex : 0,
-        { dripEnabled: dripCourse.dripEnabled, dripIntervalDays: dripCourse.dripIntervalDays },
-        dripEnrollment,
-        new Date()
-      );
-
-      if (!available) {
-        const availDate = dripEnrollment
-          ? computeAvailableDate(
-              { id: lesson.id, releaseDate: lesson.releaseDate, releaseDelayDays: lesson.releaseDelayDays },
-              positionIndex >= 0 ? positionIndex : 0,
-              { dripEnabled: dripCourse.dripEnabled, dripIntervalDays: dripCourse.dripIntervalDays },
-              dripEnrollment
-            )
-          : null;
-
-        return (
-          <div className="lp-page">
-            {courseContext && (
-              <div className="lp-breadcrumb">
-                <Link href={`/course/${courseContext.course.slug}`} className="lp-breadcrumb__link">
-                  ← {courseContext.course.title}
-                </Link>
-              </div>
-            )}
-            <header className="lp-header">
-              <div className="lp-header__inner">
-                <p className="lp-label">{courseContext.course.title}</p>
-                <h1 className="lp-title">{lesson.titleDisplayed}</h1>
-              </div>
-            </header>
-            <div className="lp-content">
-              <div className="lp-drip-locked">
-                <p className="lp-drip-locked__msg">This lesson isn&apos;t available yet.</p>
-                {availDate && (
-                  <p className="lp-drip-locked__date">
-                    Available {formatAvailableDate(availDate)}
-                  </p>
-                )}
-                <Link href={`/course/${courseContext.course.slug}`} className="lp-drip-locked__back">
-                  ← Back to series
-                </Link>
-              </div>
-            </div>
-          </div>
-        );
-      }
     }
   }
 

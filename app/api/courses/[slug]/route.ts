@@ -48,12 +48,12 @@ export async function PATCH(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // Handle lesson order update — accepts { id, groupLabel?, releaseDate? }[] or legacy string[]
+  // Handle lesson order update — accepts { id, groupLabel? }[] or legacy string[]
   if (body.lessonOrder && Array.isArray(body.lessonOrder)) {
     await db.courseLesson.deleteMany({ where: { courseId: course.id } });
     await db.courseLesson.createMany({
       data: body.lessonOrder.map(
-        (item: string | { id: string; groupLabel?: string | null; releaseDate?: string | null }, i: number) => ({
+        (item: string | { id: string; groupLabel?: string | null }, i: number) => ({
           courseId: course.id,
           lessonId: typeof item === "string" ? item : item.id,
           sortOrder: i,
@@ -61,16 +61,6 @@ export async function PATCH(
         })
       ),
     });
-
-    // Update per-lesson release dates if provided in lessonOrder items
-    for (const item of body.lessonOrder) {
-      if (typeof item === "object" && item.releaseDate !== undefined) {
-        await db.lesson.update({
-          where: { id: item.id },
-          data: { releaseDate: item.releaseDate ? new Date(item.releaseDate) : null },
-        });
-      }
-    }
   }
 
   // Handle field updates
@@ -118,11 +108,6 @@ export async function PATCH(
     updateData.requiredRoles = [];
   }
 
-  if (fields.dripEnabled !== undefined) updateData.dripEnabled = fields.dripEnabled;
-  if (fields.dripIntervalDays !== undefined) {
-    updateData.dripIntervalDays = fields.dripIntervalDays != null ? Number(fields.dripIntervalDays) : null;
-  }
-  if (fields.hideLockedLessons !== undefined) updateData.hideLockedLessons = fields.hideLockedLessons;
   if (fields.completionNote !== undefined) updateData.completionNote = fields.completionNote || null;
 
   const updated = await db.course.update({
@@ -135,31 +120,6 @@ export async function PATCH(
       },
     },
   });
-
-  // Handle per-lesson release dates (for fixed date drip mode)
-  if (body.lessonReleaseDates && typeof body.lessonReleaseDates === "object") {
-    for (const [lessonId, dateStr] of Object.entries(body.lessonReleaseDates)) {
-      await db.lesson.update({
-        where: { id: lessonId },
-        data: {
-          releaseDate: dateStr ? new Date(dateStr as string) : null,
-        },
-      });
-    }
-  }
-
-  // Handle per-lesson delay overrides (for interval drip mode)
-  if (body.lessonDelayDays && typeof body.lessonDelayDays === "object") {
-    for (const [lessonId, daysStr] of Object.entries(body.lessonDelayDays)) {
-      const days = daysStr !== "" && daysStr != null ? parseInt(daysStr as string) : null;
-      await db.lesson.update({
-        where: { id: lessonId },
-        data: {
-          releaseDelayDays: Number.isFinite(days as number) ? (days as number) : null,
-        },
-      });
-    }
-  }
 
   return NextResponse.json(updated);
 }

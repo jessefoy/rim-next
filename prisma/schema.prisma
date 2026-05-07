@@ -96,11 +96,7 @@ model User {
   lessonTeachers      LessonTeacher[]
   programTeachers     ProgramTeacher[]
 
-  // Support inbox notification preference
-  supportEmailNotifications Boolean @default(true)
-
   // Legacy data imported from Memberstack (kept for historical reference)
-  legacyMemberstackId     String?   @unique
   legacyLastLogin         DateTime?
   legacyLastAttendance    DateTime?
   legacyActivityCount     Int?
@@ -109,8 +105,6 @@ model User {
   // Relations
   accounts        Account[]
   sessions        Session[]
-  memberships     UserMembership[]
-  attendance      AttendanceRecord[]
   registrations   Registration[]
   courseAccess    CourseAccess[]
   household       HouseholdMember?
@@ -123,22 +117,9 @@ model User {
   hubThreads2     HubConversationThread[]
   hubReplies2     HubConversationReply[]
   emailTemplates  EmailTemplate[]
-  // Support inbox
-  assignedThreads    SupportThread[]   @relation("ThreadAssignee")
-  memberThreads      SupportThread[]   @relation("ThreadMember")
-  sentMessages       SupportMessage[]  @relation("MessageSender")
-  supportNotes       SupportNote[]     @relation("NoteAuthor")
-  supportSignature   SupportSignature?
-  supportTemplates   SupportTemplate[] @relation("TemplateCreator")
-  // Hub access grants
-  hubAccess            UserHubAccess[]
-  hubAccessGranted     UserHubAccess[]       @relation("HubAccessGranter")
   // Tool access grants (individual access without role)
   toolAccess           UserToolAccess[]      @relation("ToolAccess")
   toolAccessGranted    UserToolAccess[]      @relation("ToolAccessGranter")
-  dripNotifications    DripNotification[]
-  siteBannersCreated   SiteBanner[]          @relation("SiteBannerCreator")
-  siteBannerDismissals SiteBannerDismissal[] @relation("SiteBannerDismissal")
   standingAssignments        StandingAssignment[] @relation("StandingAssignmentHost")
   standingAssignmentsCreated StandingAssignment[] @relation("StandingAssignmentCreator")
 
@@ -204,64 +185,7 @@ model HouseholdMember {
   @@map("household_members")
 }
 
-// ─── MEMBERSHIP TYPES ────────────────────────────────────────────────────────
 
-model MembershipType {
-  id          String   @id @default(cuid())
-  name        String   @unique  // e.g. "General Member", "Dharma Study Group"
-  slug        String   @unique  // e.g. "general", "dharma-study-group"
-  description String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-
-  members UserMembership[]
-
-  @@map("membership_types")
-}
-
-model UserMembership {
-  id               String         @id @default(cuid())
-  userId           String
-  membershipTypeId String
-  joinedAt         DateTime       @default(now())
-  isActive         Boolean        @default(true)
-
-  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  membershipType MembershipType @relation(fields: [membershipTypeId], references: [id])
-
-  @@unique([userId, membershipTypeId])
-  @@map("user_memberships")
-}
-
-// ─── ATTENDANCE (Phase 2 — table created now, populated later) ───────────────
-
-model AttendanceRecord {
-  id          String           @id @default(cuid())
-  userId      String
-  recordedAt  DateTime         @default(now())
-  eventDate   DateTime
-  eventName   String
-  eventType   AttendanceType
-  format      AttendanceFormat
-  notes       String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("attendance_records")
-}
-
-enum AttendanceType {
-  CLASS
-  RETREAT
-  STUDY_GROUP
-  VOLUNTEER
-  EVENT
-}
-
-enum AttendanceFormat {
-  IN_PERSON
-  ONLINE
-}
 
 // ─── PROGRAMS (migrated from Sanity) ──────────────────────────────────────────
 
@@ -496,12 +420,6 @@ model Course {
   discussionEnabled Boolean  @default(false)
   showDana          Boolean  @default(true)
 
-  // Drip / cohort pacing
-  dripEnabled        Boolean @default(false)
-  dripIntervalDays   Int?    // days between lesson releases (when dripEnabled)
-  hideLockedLessons  Boolean @default(false) // if true, locked lessons are hidden from members entirely
-  cohortProgramId    String? // links to a Program for cohort-based pacing
-
   category    CourseCategory?    @relation(fields: [categoryId], references: [id])
   lessons     CourseLesson[]
   programs    ProgramCourse[]
@@ -534,9 +452,6 @@ model Lesson {
 
   resources       Json?    // { name, url, resourceType }[]
 
-  releaseDate      DateTime? // fixed-date release; overrides interval if set
-  releaseDelayDays Int?      // per-lesson override of dripIntervalDays
-
   // Learning system
   durationMinutes   Int?     // estimated reading/listening time shown on lesson cards
   reflectionPrompt  String?  // optional invitation shown at the bottom of the lesson
@@ -547,7 +462,6 @@ model Lesson {
   progress  LessonProgress[]
   notes     LessonNote[]
   questions ReflectionQuestion[]
-  dripNotifications DripNotification[]
 
   @@index([slug])
   @@map("lessons")
@@ -592,19 +506,6 @@ model ProgramTeacher {
 
   @@unique([programId, userId])
   @@map("program_teachers")
-}
-
-model DripNotification {
-  id       String   @id @default(cuid())
-  userId   String
-  lessonId String
-  sentAt   DateTime @default(now())
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, lessonId])
-  @@map("drip_notifications")
 }
 
 model CourseLesson {
@@ -926,25 +827,6 @@ model AppSetting {
   @@map("app_settings")
 }
 
-// ─── HUB ACCESS (person-level) ────────────────────────────────────────────────
-// Replaces role-baked hub access checks with explicit per-person, per-hub grants.
-// Carries an audit trail (grantedAt, grantedById).
-// ADMIN users bypass this table entirely — see lib/hubAuth.ts.
-
-model UserHubAccess {
-  id          String   @id @default(cuid())
-  userId      String
-  hubSlug     String
-  grantedAt   DateTime @default(now())
-  grantedById String?
-
-  user      User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  grantedBy User? @relation("HubAccessGranter", fields: [grantedById], references: [id])
-
-  @@unique([userId, hubSlug])
-  @@map("user_hub_access")
-}
-
 model UserToolAccess {
   id          String   @id @default(cuid())
   userId      String
@@ -1154,123 +1036,6 @@ model EmailTemplate {
   @@map("email_templates")
 }
 
-// ─── SUPPORT INBOX ──────────────────────────────────────────────────────────
-// Gmail integration for support@rootedinmindfulness.org.
-// Threads and messages are synced from Gmail; notes are internal-only.
-
-enum SupportStatus {
-  OPEN
-  CLAIMED
-  WAITING
-  RESOLVED
-}
-
-model GmailCredential {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  accessToken  String   @db.Text
-  refreshToken String   @db.Text
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@map("gmail_credentials")
-}
-
-model SupportThread {
-  id            String        @id @default(cuid())
-  gmailThreadId String        @unique
-  subject       String
-  status        SupportStatus @default(OPEN)
-  assignedToId  String?
-  assignedTo    User?         @relation("ThreadAssignee", fields: [assignedToId], references: [id])
-  memberId      String?
-  member        User?         @relation("ThreadMember", fields: [memberId], references: [id])
-  senderEmail   String
-  senderName    String?
-  messages      SupportMessage[]
-  notes         SupportNote[]
-  lastMessageAt DateTime
-  lastSyncedAt  DateTime      @default(now())
-  deletedAt     DateTime?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  @@index([status])
-  @@index([assignedToId])
-  @@map("support_threads")
-}
-
-model SupportMessage {
-  id             String        @id @default(cuid())
-  gmailMessageId String        @unique
-  threadId       String
-  thread         SupportThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  fromEmail      String
-  fromName       String?
-  bodyHtml       String        @db.Text
-  bodyText       String        @db.Text
-  attachments    Json?         // CID map: [{ cid, attachmentId, mimeType, filename }]
-  fileAttachments SupportAttachment[]
-  sentAt         DateTime
-  isOutbound     Boolean       @default(false)
-  sentById       String?
-  sentBy         User?         @relation("MessageSender", fields: [sentById], references: [id])
-
-  @@index([threadId])
-  @@map("support_messages")
-}
-
-model SupportAttachment {
-  id                String         @id @default(cuid())
-  messageId         String
-  message           SupportMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  gmailAttachmentId String
-  filename          String
-  mimeType          String
-  size              Int
-
-  @@index([messageId])
-  @@map("support_attachments")
-}
-
-model SupportNote {
-  id        String        @id @default(cuid())
-  threadId  String
-  thread    SupportThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  authorId  String
-  author    User          @relation("NoteAuthor", fields: [authorId], references: [id])
-  body      Json
-  createdAt DateTime      @default(now())
-
-  @@index([threadId])
-  @@map("support_notes")
-}
-
-model SupportSignature {
-  id      String  @id @default(cuid())
-  userId  String  @unique
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name    String
-  tagline String  @default("RIM Support")
-  role    String?
-
-  @@map("support_signatures")
-}
-
-model SupportTemplate {
-  id        String   @id @default(cuid())
-  name      String
-  subject   String   @default("")
-  body      Json?
-  createdById String
-  createdBy User     @relation("TemplateCreator", fields: [createdById], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("support_templates")
-}
-
 // ─── MANUAL / CONTEXTUAL HELP ─────────────────────────────────────────────────
 
 model ManualSection {
@@ -1288,30 +1053,4 @@ model ManualSection {
   @@map("manual_sections")
 }
 
-// ─── SITE-WIDE BANNER ────────────────────────────────────────────────────────
-// Single-slot broadcast for community-wide notices (cancellations, etc.).
-// ADMIN posts and dismisses globally; members can dismiss individually.
 
-model SiteBanner {
-  id          String    @id @default(cuid())
-  body        Json?     // BlockNote JSON (RimProseEditor)
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  createdById String
-  createdBy   User      @relation("SiteBannerCreator", fields: [createdById], references: [id])
-
-  dismissals  SiteBannerDismissal[]
-
-  @@map("site_banners")
-}
-
-model SiteBannerDismissal {
-  id       String     @id @default(cuid())
-  bannerId String
-  userId   String
-  banner   SiteBanner @relation(fields: [bannerId], references: [id], onDelete: Cascade)
-  user     User       @relation("SiteBannerDismissal", fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([bannerId, userId])
-  @@map("site_banner_dismissals")
-}

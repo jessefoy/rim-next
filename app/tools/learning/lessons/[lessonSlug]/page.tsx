@@ -40,7 +40,7 @@ export default async function EditLessonPage({
         },
         courses: {
           include: {
-            course: { select: { dripEnabled: true, dripIntervalDays: true, title: true } },
+            course: { select: { title: true } },
           },
         },
       },
@@ -83,17 +83,10 @@ export default async function EditLessonPage({
       id: lt.user.id,
       name: [lt.user.preferredName || lt.user.firstName, lt.user.lastName].filter(Boolean).join(" "),
     })),
-    releaseDelayDays: lesson.releaseDelayDays ?? null,
     durationMinutes: lesson.durationMinutes ?? null,
     reflectionPrompt: lesson.reflectionPrompt ?? null,
     questionsRequired: lesson.questionsRequired,
     initialQuestions: initialQuestions.map((q) => ({ ...q, body: q.body ?? null })),
-    parentDripInfo: lesson.courses
-      .filter((cl) => cl.course.dripEnabled)
-      .map((cl) => ({
-        seriesTitle: cl.course.title,
-        intervalDays: cl.course.dripIntervalDays,
-      })),
   };
 
   return (

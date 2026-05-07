@@ -4,7 +4,6 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import EnrollButton from "@/components/EnrollButton";
-import { isLessonAvailable, computeAvailableDate, formatAvailableDate } from "@/lib/drip";
 
 export const dynamic = "force-dynamic";
 
@@ -75,7 +74,6 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
             select: {
               id: true, slug: true, titleDisplayed: true,
               audioUrl: true, videoUrl: true,
-              releaseDate: true, releaseDelayDays: true,
               questionsRequired: true,
               _count: { select: { questions: true } },
               teachers: {
@@ -188,7 +186,6 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
       ? `Taught by ${teacherNames[0]} and ${teacherNames[1]}`
       : `Taught by ${teacherNames.slice(0, -1).join(", ")}, and ${teacherNames[teacherNames.length - 1]}`;
 
-  // Apply hideLockedLessons filter — admins always see all lessons
   const allLessonItems = course.lessons;
 
   // ── Progress & enrollment ──────────────────────────────────────────────────
@@ -210,91 +207,18 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
   const completedIds = new Set(progressRecords.map((p) => p.lessonId));
   const completedCount = completedIds.size;
 
-  // ── Drip availability ──────────────────────────────────────────────────────
-  const now = new Date();
-  const lessonAvailability = new Map<string, boolean>(); // lessonId → available
-
-  if (course.dripEnabled) {
-    allLessonItems.forEach((cl, index) => {
-      const available = isLessonAvailable(
-        {
-          id: cl.lesson.id,
-          releaseDate: cl.lesson.releaseDate,
-          releaseDelayDays: cl.lesson.releaseDelayDays,
-        },
-        index,
-        { dripEnabled: course.dripEnabled, dripIntervalDays: course.dripIntervalDays },
-        enrollment ? { enrolledAt: enrollment.enrolledAt } : null,
-        now
-      );
-      lessonAvailability.set(cl.lessonId, available);
-    });
-  } else {
-    allLessonItems.forEach((cl) => lessonAvailability.set(cl.lessonId, true));
-  }
-
   const totalCount = allLessonItems.length;
 
-  // Build the display list, handling hideLockedLessons + section divider re-attachment
   type DisplayItem = { cl: (typeof allLessonItems)[0]; sectionLabel: string | null };
-  const displayItems: DisplayItem[] = [];
+  const displayItems: DisplayItem[] = allLessonItems.map((cl) => ({
+    cl,
+    sectionLabel: cl.groupLabel || null,
+  }));
 
-  if (course.hideLockedLessons && !isAdmin) {
-    // Walk the full list; re-attach section labels to the first available lesson per section
-    let currentSection: string | null = null;
-    let shownCurrentSection = false;
-    for (const cl of allLessonItems) {
-      if (cl.groupLabel) {
-        currentSection = cl.groupLabel;
-        shownCurrentSection = false;
-      }
-      if (lessonAvailability.get(cl.lessonId) !== false) {
-        displayItems.push({ cl, sectionLabel: shownCurrentSection ? null : currentSection });
-        shownCurrentSection = true;
-      }
-    }
-  } else {
-    // Normal mode: all lessons visible; locked ones show with lock icon
-    for (const cl of allLessonItems) {
-      displayItems.push({ cl, sectionLabel: cl.groupLabel || null });
-    }
-  }
-
-  // lessonItems used by Continue → / firstIncomplete logic
   const lessonItems = displayItems.map((d) => d.cl);
-  const visibleCount = lessonItems.length;
-  const hasHiddenLessons = course.hideLockedLessons && !isAdmin && visibleCount < totalCount;
   const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-  // Edge case: hideLockedLessons is on and zero lessons are currently available
-  const allLocked = course.hideLockedLessons && !isAdmin && visibleCount === 0 && totalCount > 0;
-  let firstLessonDateStr: string | null = null;
-  if (allLocked) {
-    const firstCl = allLessonItems[0];
-    let date: Date | null = null;
-    if (firstCl.lesson.releaseDate) {
-      date = firstCl.lesson.releaseDate;
-    } else if (enrollment) {
-      date = computeAvailableDate(
-        { id: firstCl.lesson.id, releaseDate: firstCl.lesson.releaseDate, releaseDelayDays: firstCl.lesson.releaseDelayDays },
-        0,
-        { dripEnabled: course.dripEnabled, dripIntervalDays: course.dripIntervalDays },
-        { enrolledAt: enrollment.enrolledAt }
-      );
-    }
-    if (date) {
-      const opts: Intl.DateTimeFormatOptions = {
-        weekday: "long", month: "long", day: "numeric", timeZone: "America/Chicago",
-      };
-      if (date.getFullYear() !== now.getFullYear()) opts.year = "numeric";
-      firstLessonDateStr = date.toLocaleDateString("en-US", opts);
-    }
-  }
-
-  // Find the first incomplete AND available lesson for "Continue →"
-  const firstIncomplete = lessonItems.find(
-    (cl) => !completedIds.has(cl.lessonId) && (lessonAvailability.get(cl.lessonId) !== false)
-  );
+  const firstIncomplete = lessonItems.find((cl) => !completedIds.has(cl.lessonId));
   const isFullyComplete = totalCount > 0 && completedCount === totalCount;
   const descriptionHtml = course.description
     ? await renderFormattedTextAsync(course.description)
@@ -350,9 +274,6 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
                   ? "Series complete"
                   : `${completedCount} of ${totalCount} complete`}
               </span>
-              {hasHiddenLessons && (
-                <span className="crs-progress__unlock-note">More lessons unlock as you progress.</span>
-              )}
             </div>
           )}
 
@@ -371,52 +292,13 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
       {/* ── Lesson list ── */}
       {displayItems.length > 0 ? (
         <div className="crs-lessons">
-          {hasHiddenLessons && !enrollment && (
-            <p className="crs-unlock-note">More lessons unlock as you progress.</p>
-          )}
           <div className="crs-toc">
             {displayItems.map(({ cl, sectionLabel }, i) => {
               const hasAudio = !!cl.lesson.audioUrl;
               const hasVideo = !!cl.lesson.videoUrl;
               const mediaType = hasAudio ? "audio" : hasVideo ? "video" : "text";
               const isComplete = completedIds.has(cl.lessonId);
-              const available = lessonAvailability.get(cl.lessonId) !== false;
-              // Use allLessonItems index for numbering (so numbers stay consistent regardless of filter)
               const globalIdx = allLessonItems.findIndex((a) => a.lessonId === cl.lessonId);
-
-              if (!available) {
-                // Only reachable in non-hideLockedLessons mode (admins or flag off)
-                const availDate = enrollment
-                  ? computeAvailableDate(
-                      {
-                        id: cl.lesson.id,
-                        releaseDate: cl.lesson.releaseDate,
-                        releaseDelayDays: cl.lesson.releaseDelayDays,
-                      },
-                      globalIdx,
-                      { dripEnabled: course.dripEnabled, dripIntervalDays: course.dripIntervalDays },
-                      { enrolledAt: enrollment.enrolledAt }
-                    )
-                  : null;
-
-                return (
-                  <div key={cl.lessonId}>
-                    {sectionLabel && (
-                      <p className="crs-toc__section">{sectionLabel}</p>
-                    )}
-                    <div
-                      className="crs-toc__item crs-toc__item--locked"
-                      title={availDate ? `Available ${formatAvailableDate(availDate)}` : "Not yet available"}
-                    >
-                      <span className="crs-toc__num crs-toc__num--locked">🔒</span>
-                      <span className="crs-toc__title crs-toc__title--locked">{cl.lesson.titleDisplayed}</span>
-                      {availDate && (
-                        <span className="crs-toc__available-date">Available {formatAvailableDate(availDate)}</span>
-                      )}
-                    </div>
-                  </div>
-                );
-              }
 
               const hasRequiredQuestions =
                 cl.lesson.questionsRequired && cl.lesson._count.questions > 0;
@@ -452,15 +334,7 @@ export default async function CoursePage({ params }: { params: Promise<{ slug: s
         </div>
       ) : (
         <div className="crs-lessons">
-          {allLocked ? (
-            <p className="crs-pending">
-              {firstLessonDateStr
-                ? <>Your first lesson will be available on {firstLessonDateStr}.</>
-                : <>Lessons will become available soon.</>}
-            </p>
-          ) : (
-            <p className="crs-empty">No lessons have been added to this series yet.</p>
-          )}
+          <p className="crs-empty">No lessons have been added to this series yet.</p>
         </div>
       )}
 

@@ -35,7 +35,7 @@ export default async function EditCoursePage({
       lessons: {
         include: {
           lesson: {
-            select: { id: true, titleInternal: true, titleDisplayed: true, slug: true, releaseDate: true },
+            select: { id: true, titleInternal: true, titleDisplayed: true, slug: true },
           },
         },
         orderBy: { sortOrder: "asc" },
@@ -57,15 +57,11 @@ export default async function EditCoursePage({
     hideFromMemberProfile: course.hideFromMemberProfile,
     sortOrder: course.sortOrder != null ? String(course.sortOrder) : "",
     isActive: course.isActive,
-    dripEnabled: course.dripEnabled,
-    dripIntervalDays: course.dripIntervalDays ?? null,
-    hideLockedLessons: course.hideLockedLessons,
     completionNote: course.completionNote ?? null,
     lessons: course.lessons.map((cl) => ({
       lessonId: cl.lessonId,
       sortOrder: cl.sortOrder,
       groupLabel: cl.groupLabel ?? "",
-      releaseDate: cl.lesson.releaseDate ? cl.lesson.releaseDate.toISOString() : null,
       lesson: {
         id: cl.lesson.id,
         titleInternal: cl.lesson.titleInternal,

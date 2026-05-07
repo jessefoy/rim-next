@@ -53,10 +53,6 @@ export default async function AdminMemberDetailPage({
           orderBy: { createdAt: "asc" },
           select: { id: true, courseSlug: true, createdAt: true },
         },
-        hubAccess: {
-          orderBy: { grantedAt: "asc" },
-          select: { hubSlug: true, grantedAt: true },
-        },
         household: {
           select: {
             isPrimary: true,
@@ -152,10 +148,6 @@ export default async function AdminMemberDetailPage({
       id: g.id,
       courseSlug: g.courseSlug,
       createdAt: g.createdAt.toISOString(),
-    })),
-    hubAccess: user.hubAccess.map((h) => ({
-      hubSlug: h.hubSlug,
-      grantedAt: h.grantedAt.toISOString(),
     })),
     household: user.household
       ? {

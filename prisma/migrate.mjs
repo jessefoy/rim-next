@@ -19,7 +19,6 @@ import { updateManualHostSchedule } from "./update-manual-host-schedule.mjs";
 import { updateManualHostRotations } from "./update-manual-host-rotations.mjs";
 import { updateManualHostSessionRoom } from "./update-manual-host-session-room.mjs";
 import { updateManualConversations } from "./update-manual-conversations.mjs";
-import { updateManualSupportInbox } from "./update-manual-support-inbox.mjs";
 import { updateManualCourseHub } from "./update-manual-course-hub.mjs";
 import { updateManualRegistration } from "./update-manual-registration.mjs";
 import { updateManualPrograms } from "./update-manual-programs.mjs";
@@ -1852,7 +1851,6 @@ async function main() {
   `).catch(() => []);
 
   if (updateOlderManualFlag.length === 0) {
-    await updateManualSupportInbox(db);
     await updateManualCourseHub(db);
     await updateManualRegistration(db);
     await updateManualPrograms(db);
@@ -1893,6 +1891,57 @@ async function main() {
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_registration_rewrite_v1')`);
   } else {
     console.log("  ⏭ Manual registration rewrite already applied.");
+  }
+
+  // Session 100 cleanup: remove support inbox, site banner, drip, UserHubAccess,
+  // MembershipType/UserMembership/AttendanceRecord scaffolding.
+  // Idempotent — IF EXISTS guards prevent re-run errors.
+  const session100CleanupFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'session_100_cleanup_v1'
+  `).catch(() => []);
+
+  if (session100CleanupFlag.length === 0) {
+    console.log("  Running session 100 schema cleanup...");
+
+    // Drop tables in dependency order (dependents first)
+    await db.$executeRawUnsafe(`DROP TABLE IF EXISTS site_banner_dismissals CASCADE`);
+    await db.$executeRawUnsafe(`DROP TABLE IF EXISTS site_banners CASCADE`);
+    await db.$executeRawUnsafe(`DROP TABLE IF EXISTS drip_notifications CASCADE`);
+    await db.$executeRawUnsafe(`DROP TABLE IF EXISTS support_attachments CASCADE`);
+    await db.$executeRawUnsafe(`DROP TABLE IF EXISTS support_messages CASCADE`);
+    await db.$executeRawUnsafe(`DROP TABLE IF EXISTS support_notes CASCADE`);
+    await db.$executeRawUnsafe(`DROP TABLE IF EXISTS support_threads CASCADE`);
+    await db.$executeRawUnsafe(`DROP TABLE IF EXISTS support_signatures CASCADE`);
+    await db.$executeRawUnsafe(`DROP TABLE IF EXISTS support_templates CASCADE`);
+    await db.$executeRawUnsafe(`DROP TABLE IF EXISTS gmail_credentials CASCADE`);
+    await db.$executeRawUnsafe(`DROP TABLE IF EXISTS user_hub_access CASCADE`);
+    await db.$executeRawUnsafe(`DROP TABLE IF EXISTS user_memberships CASCADE`);
+    await db.$executeRawUnsafe(`DROP TABLE IF EXISTS membership_types CASCADE`);
+    await db.$executeRawUnsafe(`DROP TABLE IF EXISTS attendance_records CASCADE`);
+
+    // Drop User columns
+    await db.$executeRawUnsafe(`ALTER TABLE users DROP COLUMN IF EXISTS support_email_notifications`);
+    await db.$executeRawUnsafe(`ALTER TABLE users DROP COLUMN IF EXISTS legacy_memberstack_id`);
+
+    // Drop Course drip columns
+    await db.$executeRawUnsafe(`ALTER TABLE courses DROP COLUMN IF EXISTS drip_enabled`);
+    await db.$executeRawUnsafe(`ALTER TABLE courses DROP COLUMN IF EXISTS drip_interval_days`);
+    await db.$executeRawUnsafe(`ALTER TABLE courses DROP COLUMN IF EXISTS hide_locked_lessons`);
+    await db.$executeRawUnsafe(`ALTER TABLE courses DROP COLUMN IF EXISTS cohort_program_id`);
+
+    // Drop Lesson drip columns
+    await db.$executeRawUnsafe(`ALTER TABLE lessons DROP COLUMN IF EXISTS release_date`);
+    await db.$executeRawUnsafe(`ALTER TABLE lessons DROP COLUMN IF EXISTS release_delay_days`);
+
+    // Drop enum types (only once all referencing tables/columns are gone)
+    await db.$executeRawUnsafe(`DROP TYPE IF EXISTS "SupportStatus" CASCADE`);
+    await db.$executeRawUnsafe(`DROP TYPE IF EXISTS "AttendanceType" CASCADE`);
+    await db.$executeRawUnsafe(`DROP TYPE IF EXISTS "AttendanceFormat" CASCADE`);
+
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('session_100_cleanup_v1')`);
+    console.log("  ✓ Session 100 cleanup complete.");
+  } else {
+    console.log("  ⏭ Session 100 cleanup already applied.");
   }
 
   await db.$disconnect();

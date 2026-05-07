@@ -21,10 +21,6 @@
     {
       "path": "/api/cron/apply-standing-assignments",
       "schedule": "0 8 * * *"
-    },
-    {
-      "path": "/api/cron/drip-release",
-      "schedule": "0 12 * * *"
     }
   ]
 }

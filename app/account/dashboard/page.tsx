@@ -4,9 +4,7 @@ import Link from "next/link";
 import { Flame } from "lucide-react";
 import { db } from "@/lib/db";
 import AccountLayout from "@/components/AccountLayout";
-import SiteBannerStrip from "@/components/SiteBannerStrip";
 import DashboardAutoRefresh from "@/components/DashboardAutoRefresh";
-import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 
 export const metadata = { title: "My Dashboard — Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
@@ -112,7 +110,7 @@ export default async function DashboardPage() {
   const userId = session.user.id;
   const today  = todayCT();
 
-  const [allVirtual, upcomingRegistrations, hubMemberships, onboardingEnrollments, seriesEnrollments, activeBanner] =
+  const [allVirtual, upcomingRegistrations, hubMemberships, onboardingEnrollments, seriesEnrollments] =
     await Promise.all([
       db.program.findMany({
         where: {
@@ -178,10 +176,6 @@ export default async function DashboardPage() {
           },
         },
         orderBy: { enrolledAt: "desc" },
-      }),
-      db.siteBanner.findFirst({
-        where: { isActive: true },
-        include: { dismissals: { where: { userId } } },
       }),
     ]);
 
@@ -268,11 +262,6 @@ export default async function DashboardPage() {
     }
   }
 
-  const showBanner = activeBanner && activeBanner.dismissals.length === 0;
-  const bannerData = showBanner
-    ? { id: activeBanner.id, bodyHtml: await renderFormattedTextAsync(activeBanner.body) }
-    : null;
-
   const firstName =
     session.user?.name?.split(" ")[0] ??
     session.user?.email?.split("@")[0] ??
@@ -291,8 +280,6 @@ export default async function DashboardPage() {
   return (
     <AccountLayout>
       <div className="db2-wrap">
-
-        <SiteBannerStrip banner={bannerData} />
 
         {/* Greeting */}
         <div className="db2-greeting">

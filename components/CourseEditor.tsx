@@ -22,8 +22,6 @@ interface Lesson {
   titleInternal: string;
   titleDisplayed: string;
   slug: string;
-  releaseDate?: string | null;       // fixed-date release (Lesson.releaseDate)
-  releaseDelayDays?: number | null;  // per-lesson interval override (Lesson.releaseDelayDays)
 }
 
 interface CourseLesson {
@@ -59,9 +57,6 @@ interface CourseData {
   hideFromMemberProfile: boolean;
   isActive: boolean;
   lessons?: CourseLesson[];
-  dripEnabled?: boolean;
-  dripIntervalDays?: number | null;
-  hideLockedLessons?: boolean;
   completionNote?: string | null;
 }
 
@@ -137,36 +132,6 @@ export default function CourseEditor({ basePath = "/tools/learning", lessonBaseP
   const [isActive, setIsActive] = useState(initialData?.isActive ?? true);
 
   const [completionNote, setCompletionNote] = useState(initialData?.completionNote ?? "");
-
-  // Drip / scheduled release
-  const [dripEnabled, setDripEnabled] = useState(initialData?.dripEnabled ?? false);
-  const [hideLockedLessons, setHideLockedLessons] = useState(initialData?.hideLockedLessons ?? false);
-  // Infer mode: if dripEnabled is true but dripIntervalDays is null, we're in fixed-date mode
-  const [dripMode, setDripMode] = useState<"interval" | "fixed">(
-    initialData?.dripEnabled && initialData?.dripIntervalDays == null ? "fixed" : "interval"
-  );
-  const [dripIntervalDays, setDripIntervalDays] = useState(
-    String(initialData?.dripIntervalDays ?? "7")
-  );
-  // Fixed-date mode: per-lesson release dates (stored on Lesson.releaseDate)
-  const [lessonReleaseDates, setLessonReleaseDates] = useState<Record<string, string>>(() => {
-    const map: Record<string, string> = {};
-    initialData?.lessons?.forEach((cl) => {
-      const rd = cl.lesson.releaseDate;
-      if (rd) map[cl.lessonId] = (rd as string).slice(0, 10);
-    });
-    return map;
-  });
-  // Interval mode: per-lesson delay override (stored on Lesson.releaseDelayDays)
-  const [lessonDelayDays, setLessonDelayDays] = useState<Record<string, string>>(() => {
-    const map: Record<string, string> = {};
-    initialData?.lessons?.forEach((cl) => {
-      if (cl.lesson.releaseDelayDays != null) {
-        map[cl.lessonId] = String(cl.lesson.releaseDelayDays);
-      }
-    });
-    return map;
-  });
 
   // Flat list of sections + lessons
   const [items, setItems] = useState<ListItem[]>(() =>
@@ -313,20 +278,11 @@ export default function CourseEditor({ basePath = "/tools/learning", lessonBaseP
         isOnboarding,
         hideFromMemberProfile,
         isActive,
-        dripEnabled,
-        dripIntervalDays: dripEnabled && dripMode === "interval" ? (parseInt(dripIntervalDays) || 7) : null,
-        hideLockedLessons: dripEnabled ? hideLockedLessons : false,
         completionNote: completionNote.trim() || null,
       };
 
       if (isEditing) {
         payload.lessonOrder = listToLessonOrder(items);
-        if (dripEnabled && dripMode === "fixed") {
-          payload.lessonReleaseDates = lessonReleaseDates;
-        }
-        if (dripEnabled && dripMode === "interval") {
-          payload.lessonDelayDays = lessonDelayDays;
-        }
       }
 
       const url = isEditing ? `/api/courses/${initialData?.slug}` : "/api/courses";
@@ -492,67 +448,6 @@ export default function CourseEditor({ basePath = "/tools/learning", lessonBaseP
 
         <div className="th-section-break" />
 
-        {/* ── Release Schedule ── */}
-        <fieldset className="th-field">
-          <legend className="th-field__label">Release Schedule</legend>
-          <label className="th-checkbox">
-            <input
-              type="checkbox"
-              checked={dripEnabled}
-              onChange={(e) => setDripEnabled(e.target.checked)}
-            />
-            Release lessons on a schedule
-          </label>
-
-          {dripEnabled && (
-            <div className="th-drip-options">
-              <label className="th-radio">
-                <input
-                  type="radio"
-                  checked={dripMode === "interval"}
-                  onChange={() => setDripMode("interval")}
-                />
-                Interval — set a delay per lesson below
-              </label>
-              {dripMode === "interval" && (
-                <p className="th-field__hint" style={{ marginLeft: 24 }}>
-                  Default interval (used when no per-lesson override is set):{" "}
-                  <input
-                    type="number"
-                    min="1"
-                    value={dripIntervalDays}
-                    onChange={(e) => setDripIntervalDays(e.target.value)}
-                    className="th-input th-input--inline"
-                  />{" "}
-                  days
-                </p>
-              )}
-              <label className="th-radio">
-                <input
-                  type="radio"
-                  checked={dripMode === "fixed"}
-                  onChange={() => setDripMode("fixed")}
-                />
-                Fixed dates — set a release date per lesson below
-              </label>
-              <div className="th-drip-options__divider" />
-              <label className="th-checkbox">
-                <input
-                  type="checkbox"
-                  checked={hideLockedLessons}
-                  onChange={(e) => setHideLockedLessons(e.target.checked)}
-                />
-                Hide locked lessons from members until they become available
-              </label>
-              <p className="th-field__hint" style={{ marginLeft: 24 }}>
-                When checked, members only see lessons that are currently available. When unchecked, upcoming lessons are visible with a lock icon and release date.
-              </p>
-            </div>
-          )}
-        </fieldset>
-
-        <div className="th-section-break" />
-
         <label className="th-checkbox">
           <input
             type="checkbox"
@@ -632,46 +527,7 @@ export default function CourseEditor({ basePath = "/tools/learning", lessonBaseP
                   >
                     <span className="th-lessons__handle" title="Drag to reorder">☰</span>
                     <span className="th-lessons__name">{item.lesson.titleInternal}</span>
-                    {dripEnabled && dripMode === "interval" && (() => {
-                      const lessonItems = items.filter((it) => it.type === "lesson");
-                      const lessonIdx = lessonItems.findIndex((it) => (it as any).lessonId === item.lessonId);
-                      const defaultDelay = lessonIdx <= 0 ? 0 : lessonIdx * (parseInt(dripIntervalDays) || 7);
-                      return (
-                        <label className="th-drip-delay-label">
-                          <span className="th-drip-delay-label__text">Unlock after</span>
-                          <input
-                            type="number"
-                            min="0"
-                            placeholder={String(defaultDelay)}
-                            className="th-input th-input--inline"
-                            value={lessonDelayDays[item.lessonId] ?? ""}
-                            onChange={(e) =>
-                              setLessonDelayDays((prev) => ({
-                                ...prev,
-                                [item.lessonId]: e.target.value,
-                              }))
-                            }
-                            aria-label={`Release delay for ${item.lesson.titleInternal}`}
-                          />
-                          <span className="th-drip-delay-label__text">days</span>
-                        </label>
-                      );
-                    })()}
-                    {dripEnabled && dripMode === "fixed" && (
-                      <input
-                        type="date"
-                        className="th-input th-input--date"
-                        value={lessonReleaseDates[item.lessonId] ?? ""}
-                        onChange={(e) =>
-                          setLessonReleaseDates((prev) => ({
-                            ...prev,
-                            [item.lessonId]: e.target.value,
-                          }))
-                        }
-                        aria-label={`Release date for ${item.lesson.titleInternal}`}
-                      />
-                    )}
-                    <a
+                    <
                       href={`/lessons/${item.lesson.slug}`}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -698,24 +554,7 @@ export default function CourseEditor({ basePath = "/tools/learning", lessonBaseP
             </div>
           )}
 
-          {/* ── Drip interval preview ── */}
-          {dripEnabled && dripMode === "interval" && items.filter((i) => i.type === "lesson").length > 0 && (
-            <div className="th-drip-preview">
-              {items.filter((i) => i.type === "lesson").map((item, idx) => {
-                const lessonId = (item as any).lessonId;
-                const override = lessonDelayDays[lessonId];
-                const days = override !== undefined && override !== ""
-                  ? parseInt(override) || 0
-                  : idx * (parseInt(dripIntervalDays) || 7);
-                return (
-                  <p key={lessonId} className="th-drip-preview__row">
-                    Lesson {idx + 1}: {days === 0 ? "available immediately" : `${days} days after enrollment`}
-                    {override !== undefined && override !== "" && <span className="th-drip-preview__custom"> (custom)</span>}
-                  </p>
-                );
-              })}
-            </div>
-          )}
+
 
           {/* ── Add section button ── */}
           <div className="th-lessons__add-section">

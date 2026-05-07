@@ -58,20 +58,18 @@ All items resolved in session 100. Notes:
 
 ## Theme E — Decision-needed items (built, unclear if used)
 
-Each is built infrastructure that may be active or may be dormant. A "are we using this?" decision determines whether it stays or joins the removal list.
+All items resolved in session 100. Notes:
 
-| # | Item | Where | Decision |
-|---|---|---|---|
-| 36 | Support Inbox + supporting infrastructure | `/tools/inbox`, `/api/support/*`, Gmail OAuth env vars (`GMAIL_CLIENT_ID/CLIENT_SECRET/REDIRECT_URI`), `GmailCredential` model, Support Hub's two app links | Park indefinitely (status quo), simplify (e.g., remove sync entirely, keep schema), or remove the whole tool + hub link |
-| 37 | Course drip system | `Course.dripEnabled`, `dripIntervalDays`, `Lesson.releaseDelayDays`, `Lesson.releaseDate`, `Course.hideLockedLessons`, `lib/drip.ts`, `drip-release` cron | Confirm any course actually uses drip. If not, remove. |
-| 38 | `/admin/banner` + dashboard `SiteBannerStrip` | `app/admin/banner/`, `SiteBanner` + `SiteBannerDismissal` models, `components/SiteBannerStrip.tsx`, `/api/admin/site-banner`, `/api/site-banner/dismiss` | Confirm actual use. If banners are rare, the dismissal-tracking infrastructure may not earn its keep — could simplify to a single broadcast field on a config table. |
-| 39 | `UserToolAccess` model + enforcement | Prisma schema, `lib/toolAuth.ts:hasToolAccess()` | Has no UI; managed only via Neon console. If never used in practice, remove. |
-| 40 | `UserHubAccess` model | Prisma schema, Course Hub access logic | Confirm any actual usage. If not used, remove. |
-| 41 | `sectionGrants String[]` field on User | Prisma schema, `lib/memberSectionRegistry.tsx` | Has no UI; designed for future per-viewer grants. If no current need, remove. |
-| 42 | `/admin/editor-lab` | `app/admin/editor-lab/` | Tiptap migration complete. If never opened post-migration, remove. |
-| 43 | Memberstack CSV import | `app/admin/members/MemberImport.tsx`, `/api/admin/members/import/route.ts` | Given the membership philosophy ("members appear naturally"), unlikely to be used again. Keep for one-time historical import or remove. |
-| 44 | Phase 2 scaffolding models | `MembershipType`, `UserMembership`, `AttendanceRecord` + enums in `prisma/schema.prisma` | Schema present, no UI, no app code. If not on the near-term roadmap, remove. |
-| 45 | `Donation` table without read UI | Prisma schema; receives Stripe writes from registration dana | Either commit to building the donation management UI (separate decision) or accept it as a write-only ledger. |
+- **#36** Support Inbox — removed entirely. Routes, lib files, schema models, and Support Hub app links all deleted. Gmail OAuth env vars (`GMAIL_CLIENT_ID/CLIENT_SECRET/REDIRECT_URI`) remain in Vercel and need manual removal.
+- **#37** Course drip system — removed. No courses were using it. Schema columns, `lib/drip.ts`, `drip-release` cron, and all UI in CourseEditor/LessonEditor deleted.
+- **#38** Site Banner — removed. `/admin/banner/`, `SiteBannerStrip`, schema models, and API routes all deleted.
+- **#39** `UserToolAccess` — kept. Intended for future use; managed via Neon console.
+- **#40** `UserHubAccess` — removed. HubMember is the authoritative model; UserHubAccess was unenforced and unused.
+- **#41** `sectionGrants String[]` — kept. Has no UI yet but is a deliberate future hook; field is cheap to keep.
+- **#42** `/admin/editor-lab` — removed.
+- **#43** Memberstack CSV import — removed. `MemberImport.tsx` and import route deleted. `legacyMemberstackId` field also removed from schema.
+- **#44** Phase 2 scaffolding — removed. `MembershipType`, `UserMembership`, `AttendanceRecord` and their enums all dropped.
+- **#45** `Donation` table — kept as write-only ledger. Receives Stripe writes from registration dana flow. A read UI is "Not on this list" for now.
 
 ---
 
