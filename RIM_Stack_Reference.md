@@ -21,7 +21,7 @@ Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfie
 
 **Parked or removed:**
 - **Google Meet integration** — replaced by LiveKit in session 86; all Meet UI, room accounts, and calendar booking removed
-- **Support Inbox** (`/tools/inbox`) — code preserved but not currently staffed by volunteers; 5-minute Gmail sync cron removed in session 88 (Neon Free-tier exhaustion). Sync is manual via the Sync button only. `support@rootedinmindfulness.org` is being read directly until a support team is back in place.
+- **Support Inbox** (`/tools/inbox`) — fully removed in session 100 (Theme E). All schema models (GmailCredential, SupportThread, SupportMessage, SupportAttachment, SupportNote, SupportSignature, SupportTemplate), routes, and lib files deleted. `support@rootedinmindfulness.org` is read directly via Gmail.
 - **Tasks per hub** — schema and UI removed entirely in session 96; never adopted in practice
 - **Alerts module** — schema, API, UI all removed in session 96; bell UI never shipped
 - **Sanity Studio access for staff** — removed in session 54 when programs migrated to Postgres
@@ -131,14 +131,10 @@ All set in Vercel. Pull locally with `npx vercel env pull .env.local`.
 
 **Background email sends from route handlers — use `after()` from `next/server`.** The `void (async () => { ... })()` pattern after `Response.json()` does not work on Vercel — the function tears down once the response goes out, killing in-flight Resend calls (intermittent or no delivery). Wrap fire-and-forget email batches in `after(async () => { ... })` so the work runs after the response is committed but before the function is torn down. Currently used in `app/api/host/sub-requests/route.ts`, `app/api/host/sub-requests/[id]/claim/route.ts`, `app/api/programs-pg/route.ts`. Establishment session: 96.
 
-**`BASE_URL` is whitespace-trimmed.** Every place that derives a base URL from `process.env.NEXTAUTH_URL` does `.trim().replace(/\/$/, "")` — trailing whitespace in env vars on Vercel has historically broken email links by inserting a literal space inside the URL. Pattern lives in `lib/email.ts`, `lib/calendarLinks.ts`, `lib/supportNotify.ts`, `app/api/cron/drip-release/route.ts`, `app/api/stripe/checkout/route.ts`. Establishment session: 96.
+**`BASE_URL` is whitespace-trimmed.** Every place that derives a base URL from `process.env.NEXTAUTH_URL` does `.trim().replace(/\/$/, "")` — trailing whitespace in env vars on Vercel has historically broken email links by inserting a literal space inside the URL. Pattern lives in `lib/email.ts`, `lib/calendarLinks.ts`, `app/api/stripe/checkout/route.ts`. Establishment session: 96.
 
-### Gmail (Support Inbox)
-| Variable | Purpose |
-|---|---|
-| `GMAIL_CLIENT_ID` | OAuth2 client ID for Gmail API |
-| `GMAIL_CLIENT_SECRET` | OAuth2 client secret |
-| `GMAIL_REDIRECT_URI` | OAuth2 callback URL (`https://rim-next.vercel.app/api/support/auth/callback`) |
+### Gmail (Support Inbox — removed session 100)
+The Gmail OAuth env vars (`GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REDIRECT_URI`) are still in Vercel but no longer used. Remove them from Vercel project settings.
 
 ### LiveKit (Video Conferencing)
 | Variable | Purpose |
@@ -155,7 +151,7 @@ All set in Vercel. Pull locally with `npx vercel env pull .env.local`.
 
 **Learning System (sessions 60–61, updated session 67):** Prisma models — `LessonProgress` (`lesson_progress`, `userId + lessonId @@unique`), `SeriesEnrollment` (`series_enrollments`, `userId + courseId @@unique`, `enrollmentSource`, `completedAt DateTime?`), `LessonNote` (`lesson_notes`, `userId + lessonId @@unique`, `body Json?`), `ReflectionQuestion` (`reflection_questions`, `lessonId`, `body Json?` — Tiptap, `sortOrder`), `ReflectionOption` (`reflection_options`, `questionId`, `text`, `isCorrect Boolean`, `sortOrder`), `ReflectionResponse` (`reflection_responses`, `userId + questionId @@unique`, `optionId`), `LessonTeacher` (`lesson_teachers`, `id @id`, `lessonId`, `userId` → User direct join, `order Int`, `@@unique([lessonId, userId])`), `TeacherProfile` (`teacher_profiles`, `userId @unique`, `bio String?`, `photoUrl String?`, `slug String? @unique`, `isPublic Boolean`). User gains `isTeacher Boolean @default(false)`. `Lesson` gains `durationMinutes Int?`, `reflectionPrompt String?`, `questionsRequired Boolean @default(false)`. Key API routes: `POST /api/courses/[slug]/enroll`, `POST /api/lessons/[slug]/complete` (toggle; enrollment-gated), `GET + PATCH /api/lessons/[slug]/note`, `GET + PUT /api/lessons/[slug]/questions`, `POST /api/lessons/[slug]/questions/[questionId]/respond`, `DELETE /api/lessons/[slug]/questions/responses` (clears all responses for retake), `GET /api/members/search?q=` (TEACHER/ADMIN; filters `isTeacher: true` — returns `{id, firstName, lastName}`), `PATCH /api/admin/members/[id]/teacher-profile` (ADMIN; upserts TeacherProfile). Key components: `EnrollButton.tsx`, `MarkCompleteButton.tsx` (locked prop), `LessonNoteEditor.tsx`, `ReflectionQuestionsClient.tsx` (group submit; plain-string body fallback), `LessonFooterClient.tsx` (allCorrect state). Lesson page links teacher name to `/teachers/[slug]` only if `TeacherProfile.isPublic`. `isCorrect` never sent to client in GET questions route. **Teacher attribution:** managed in MemberDetail admin — `isTeacher` checkbox + "Public Teacher Profile" section (bio/photoUrl/slug/isPublic, saved separately). Slug auto-generates from `firstName + lastName` on first render when empty; uses `SlugField` (locked + Unlock). Public pages `/teachers` and `/teachers/[slug]` show profiles where `isPublic: true`. Old standalone Teacher model removed (session 67).
 
-**Course drip system (session 63–64):** `Course.dripEnabled` + `dripIntervalDays` (global) + `Lesson.releaseDelayDays` (per-lesson override) + `Lesson.releaseDate` (fixed date). `Course.hideLockedLessons Boolean @default(false)` — when true, locked lessons are hidden from member view entirely; section dividers re-attach to first available lesson per section. `lib/drip.ts` — `isLessonAvailable()`, `computeAvailableDate()`, `formatAvailableDate()`.
+**Course drip system (session 63–64, removed session 100):** Schema fields and `lib/drip.ts` fully removed in Theme E cleanup. Never entered operational use.
 
 **Modular Manual System (session 62–63):** `ManualSection` model — `slug @unique`, `title`, `description String?`, `hubSlug String?`, `body Json?`, `relations String[]`, `order Int`. 9 sections seeded (introduction, registration, programs, member-accounts, course-hub, host-hub, support-inbox, volunteer-roles, manual-system). Routes: `/admin/manual` (index, any logged-in user), `/admin/manual/[slug]` (section page, any logged-in user; ADMIN sees Edit link), `/admin/manual/editor` (DB editor, ADMIN only), `/manual` (public index). `body` stored as Tiptap JSON; migrated sections were initially stored as `{ type: "rawHtml", html: "..." }` — `renderContentBody()` handles both formats. `ManualSectionEditor` auto-converts rawHtml → Tiptap JSON via `generateJSON()` on mount. `ManualHelpIcon` wired into 10 locations. `ManualContent.tsx` hollowed out (content now in DB). Migration script: `prisma/seed-manual-chapters.ts`.
 
@@ -165,13 +161,13 @@ All set in Vercel. Pull locally with `npx vercel env pull .env.local`.
 3. Update `RIM_System_Architecture.md` — if hubs, roles, or member data architecture changed
 4. **Upsert ManualSection DB records** — touch only affected section(s); upsert on slug; write for the person doing the work. Edit at `/admin/manual/[slug]/edit` or re-run `prisma/seed-manual-chapters.ts` for large rewrites.
 
-**Site-Wide Banner (session 72):** `SiteBanner` + `SiteBannerDismissal` models. ADMIN single-slot broadcast; `body Json?` (BlockNote JSON via RimProseEditor compact). APIs: `/api/admin/site-banner` (GET/POST/DELETE), `/api/site-banner/dismiss` (POST). Admin page: `/admin/banner`. Component: `SiteBannerStrip.tsx` on dashboard.
+**Site-Wide Banner (session 72, removed session 100):** Models, API routes, admin page, and component all deleted in Theme E cleanup. Never entered operational use.
 
 **Hub notification redesign (session 72):** Announcements merged into pinned conversation threads (`isPinned Boolean`, `pinnedAt DateTime?` on `HubConversationThread`). `HubAnnouncement` model removed. Announcements tab removed; hub root → `/conversations`. Dashboard hub cards show teal unread-count badge (threads since `lastVisitedAt`). `AlertStrip` removed.
 
 > **Note on alerts:** the broader Alerts module (`Alert` model + `AlertType` enum + `/api/account/alerts` + `check-unassigned-hosts` cron) was removed entirely in session 96. The unread badge on hub cards now counts conversation thread updates only.
 
-**Support Inbox security posture (hardened 2026-03-16):** SSRF guard on attachment fetch (Vercel Blob domain only), attachment proxy ownership check, soft-delete bypass fix in sync engine, deleted-thread 404 on reply/note, 30s rate limit on manual sync, status enum validation, HTML escaping on signature fields, 100-char max on signature fields, audit log on hard delete, `NEXTAUTH_URL` in notification emails.
+**Support Inbox security posture (hardened 2026-03-16, system removed 2026-05-06):** Historical reference only. All code removed in session 100 Theme E.
 
 ### Payments (Stripe — test mode)
 | Variable | Purpose |
@@ -222,7 +218,7 @@ app/
     learning/         Course Manager — Series + Lessons (TEACHER | ADMIN) — extracted from hub
     programs/         Program Manager (REGISTRAR | ADMIN) — extracted from hub
     programs/categories/  Category ordering (standalone view; also in ProgramEditor Categories tab)
-    inbox/            Support Inbox + Settings (SUPPORT | ADMIN) — extracted from hub
+    *(inbox/ removed session 100 — Support Inbox deleted)*
     schedule/         Host Schedule — mini-cal + card list (HOST | HOST_MANAGER | ADMIN) — extracted from hub
   admin/
     members/          member management (ADMIN | REGISTRAR)
@@ -266,14 +262,14 @@ data/backlog.json     feature backlog (surfaced at /admin/ideas)
 | `HOST` | Host Community Hub, sub board, conversations |
 | `HOST_MANAGER` | All HOST access + assignment management + Standing Rotations editor |
 | `TEACHER` | Teacher Hub — course and lesson management |
-| `SUPPORT` | Support Inbox — shared inbox, thread assignment, reply, internal notes |
+| ~~`SUPPORT`~~ | Removed session 100 — Support Inbox deleted |
 | `REGISTRAR` | Registrar Hub (auto-synced, coordinator), registrations, member profiles, Program Editor |
 | `ADMIN` | Everything |
 
 Hub access check: `roles.some(r => ["HOST","HOST_MANAGER","ADMIN"].includes(r))`
 Manager check: `roles.some(r => ["HOST_MANAGER","ADMIN"].includes(r))`
 Teacher check: `roles.some(r => ["TEACHER","ADMIN"].includes(r))`
-Support check: `roles.some(r => ["SUPPORT","ADMIN"].includes(r))`
+*(SUPPORT role removed session 100)*
 Registrar check: `roles.some(r => ["REGISTRAR","ADMIN"].includes(r))`
 
 **Hub membership as authority (session 92 Phase 3):** for hosting and hub communications, a HubMember record is authoritative when it exists — coordinator-owned `status`, `hostingCapability`, and `communicationsEnabled` fields override the legacy role check. Use `getEffectiveHostingCapability(userId, hubSlug, fallback)` and `canReceiveHubNotifications(userId, hubSlug, fallback)` in `lib/hubMemberAuth.ts` when gating host/LiveKit/notification surfaces. ADMIN bypasses. If no HubMember record exists, the helpers fall through to the passed role-based fallback. `syncHubMembership` no longer deletes records on role revoke; hard removal is ADMIN-only via `DELETE /api/hub/[slug]/members/[userId]`.
@@ -288,7 +284,7 @@ Registrar check: `roles.some(r => ["REGISTRAR","ADMIN"].includes(r))`
 | Stripe | Dana/fee collection via Checkout | Test mode — switch to live before launch |
 | Sanity | Non-program content (teams, glossary, magazine, volunteers) | Programs, courses, lessons migrated to Postgres |
 | LiveKit Cloud | Video conferencing | Ship tier ($50/month); token auth via HostAssignment |
-| Gmail API | Support Inbox — sync threads, send replies | OAuth2 via GmailCredential; support@rootedinmindfulness.org |
+| ~~Gmail API~~ | Removed session 100 — Support Inbox deleted | OAuth env vars remain in Vercel; remove manually |
 | Flodesk | Newsletter signup | Segment ID in env vars |
 | Neon | Postgres database | ⚠️ Rotate password before go-live |
 | Vercel (Pro) | Hosting + cron jobs | Auto-deploy from `main`; Pro plan for 5-min cron interval |

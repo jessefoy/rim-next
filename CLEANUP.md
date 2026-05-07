@@ -75,15 +75,15 @@ All items resolved in session 100. Notes:
 
 ## Theme F — Documentation cleanup
 
-| # | Item | Where | Action |
-|---|---|---|---|
-| 46 | `RIM_Hub_Model.md` | Repo root | Significant rewrite: hub count (4, not 14+2), remove Tasks references, add Manual section, update §13 inventory, update §10 core sections, update §12 mobile patterns, update §15 schema reference |
-| 47 | `RIM_Feature_Interconnections.md` | Repo root | Remove BlockNote primary-editor description, remove Tasks from hubs, remove `AlertStrip` reference |
-| 48 | `RIM_System_Architecture.md` | Repo root | Resolve s73-vs-s76 inconsistency on Registrar Hub stakeholder tab |
-| 49 | `FEATURES.md` | Repo root | Comb for Webflow-pivot framing throughout (multiple sections still describe pages "moving to Webflow"); remove or update each. Verify section 6a (`AlertStrip`) matches actual code state. |
-| 50 | `/admin/sitemap` content | `app/admin/sitemap/page.tsx` (data is in-file constants) | Either commit to ongoing maintenance, or retire — overlapping with `/admin/manual` and `/admin/features` |
-| 51 | `/admin/features` content | `app/admin/features/page.tsx` | Same: maintain or retire (built s30, no maintenance pattern, almost certainly stale on Tasks/Alerts/BlockNote/Meet/Webflow) |
-| 52 | Inter vs. Open Sans drift | `RIM_Stack_Reference.md` says Open Sans; `RIM_Feature_Interconnections.md` says Inter | Resolve against code |
+All items resolved in session 101. Notes:
+
+- **#46** `RIM_Hub_Model.md` — rewritten: hub count corrected (14 operational + 2 governance), Tasks removed from all sections, Support Inbox removed, core sections updated to 4 (not 5), RimProseEditor → RimTiptapEditor, BlockNote JSON → HTML, UserHubAccess removed, §13 Support Hub tools cleared, §15 schema rows for UserHubAccess/TaskList/Task/Subtask removed
+- **#47** `RIM_Feature_Interconnections.md` — Tasks removed from Hubs, Support Inbox section deleted, Editor System rewritten (Tiptap primary), Email System Gmail reference removed, Learning System BlockNote → Tiptap, CSS Architecture Inter → Open Sans, Webflow migration reference replaced with legacy shim note
+- **#48** `RIM_System_Architecture.md` — s73-vs-s76 inconsistency resolved in "What's Next"; hub count updated; /tools/inbox removed from tools list; hub-access removed from member profile section registry; Tasks removed from Hub Model section list
+- **#49** `FEATURES.md` — Phase 2 scaffolding models (MembershipType, UserMembership, AttendanceRecord) removed from §7; Memberstack import removed from §11; MemberImport.tsx references removed; legacyMemberstackId removed; Support Inbox §29 updated from PARKED → REMOVED; Site-Wide Banner §36 marked as removed; Tools table updated (Support Inbox row removed); AlertStrip §35 Alert-model note corrected
+- **#50** `/admin/sitemap` — already removed (page does not exist in codebase)
+- **#51** `/admin/features` — already removed (page does not exist in codebase)
+- **#52** Inter vs. Open Sans — fixed in `RIM_Feature_Interconnections.md` (was Inter, now correctly Open Sans)
 
 ---
 

@@ -32,7 +32,7 @@ An admin visits `/admin/hubs` and submits the create form. The `POST /api/admin/
 |--------|-------|------------|
 | `Hub` | `hubs` | `slug` (unique), `name`, `type` (OPERATIONAL / GOVERNANCE / COMMUNITY_GROUP), `status` (ACTIVE), `description` |
 
-At this point the hub exists but has no members, no tools, and no content. The five core sections (Home, Conversations, Tasks, Documents, Members) are available immediately — they require no configuration because they read from hub-scoped tables that start empty.
+At this point the hub exists but has no members, no tools, and no content. The four core sections (Home, Conversations, Documents, Members) are available immediately — they require no configuration because they read from hub-scoped tables that start empty.
 
 **Database defaults on creation:**
 - `status` → `ACTIVE`
@@ -57,7 +57,7 @@ isMember = hub.members.some(m => m.userId === session.user.id)
 ```
 No member record → no access (unless ADMIN, who bypasses all hub membership checks).
 
-**Special case — Course Hub:** The Course Hub also accepts `UserHubAccess` records (`user_hub_access` table, `userId + hubSlug` unique pair) as an alternative access grant. This lets students access the Course Hub without being formal hub members. All other hubs use `HubMember` exclusively.
+All hubs use `HubMember` exclusively. No alternative access grant mechanism exists.
 
 ### Step 3: Admin assigns a coordinator
 
@@ -85,15 +85,13 @@ Example app links seeded for existing hubs:
 |-----|---------------|------|
 | Host Team | Host Schedule | `/tools/schedule` |
 | Registrar Hub | Program Manager | `/tools/programs` |
-| Support Hub | Support Inbox | `/tools/inbox` |
-| Support Hub | Inbox Settings | `/tools/inbox/settings` |
 
 **Update strategy:** The PATCH endpoint for hubs uses delete-all + recreate for app links. This is safe because app links have no foreign keys pointing to them.
 
 ### Step 5: Coordinator configures hub content
 
 The coordinator (or admin) can now:
-- Edit the Home screen content via `RimProseEditor` (stored as `homeContent` JSON on the Hub)
+- Edit the Home screen content via `RimTiptapEditor` (stored as `homeContent` HTML on the Hub)
 - Set a welcome headline and body for newcomer interstitials (stored as `welcomeHeadline` / `welcomeBody`)
 - Create conversation categories, document categories
 - Pin important conversation threads
@@ -104,7 +102,7 @@ When a member navigates to `/account/hub/[slug]`:
 
 1. **Auth check** — redirect to `/login` if not authenticated
 2. **Hub fetch** — query `hubs` by slug, include `members` and `appLinks`
-3. **Membership check** — verify user has a `HubMember` record (or is ADMIN, or has `UserHubAccess` for Course Hub)
+3. **Membership check** — verify user has a `HubMember` record (or is ADMIN)
 4. **Sidebar render** — `HubSidebar` receives hub data, nav items, coordinator status
 5. **First visit tracking** — if `firstVisitedAt` is null, show the welcome interstitial and set the timestamp
 6. **`lastVisitedAt` update** — updated on each visit for unread badge calculation
@@ -117,13 +115,13 @@ Every hub has a left sidebar (220px, sticky on desktop) that serves as its navig
 
 **Identity** — hub type label (e.g. "Operational Hub"), hub name, member count, coordinator name(s). Always visible so you always know where you are.
 
-**Core sections** — Home, Conversations, Tasks, Documents, Members. These are the same in every hub. Improving any one of them improves every hub simultaneously because they're all powered by the same shared code.
+**Core sections** — Home, Conversations, Documents, Members. These are the same in every hub. Improving any one of them improves every hub simultaneously because they're all powered by the same shared code.
 
 **Tools** — a curated list of applications this team uses, rendered from `HubAppLink` records. Each tool link navigates away from the hub to the tool's full-screen experience. An arrow indicator (↗) signals that it's leaving the hub. The `?hub=<slug>` param is automatically appended.
 
 **Hub settings** — visible only to coordinators and admins. Links to `/admin/hubs/[slug]/edit`.
 
-**No hub-specific sections.** As of session 76, all hubs have the same five core sections. Hub-specific functionality (course management, program management) lives in tools linked via app links. No hub injects custom nav items.
+**No hub-specific sections.** All hubs have the same four core sections. Hub-specific functionality (course management, program management) lives in tools linked via app links. No hub injects custom nav items.
 
 ### Sidebar nav item construction (in layout.tsx)
 
@@ -131,7 +129,6 @@ Every hub has a left sidebar (220px, sticky on desktop) that serves as its navig
 const navItems = [
   { label: "Home",          href: base },
   { label: "Conversations", href: `${base}/conversations` },
-  { label: "Tasks",         href: `${base}/tasks` },
   { label: "Documents",     href: `${base}/documents` },
   { label: "Members",       href: `${base}/members` },
 ];
@@ -206,7 +203,6 @@ These are separate. Being a member of a hub that links to a tool does not grant 
 |------|-------|--------------|-------------|
 | Course Manager | `/tools/learning` | TEACHER or ADMIN | courses |
 | Program Manager | `/tools/programs` | REGISTRAR or ADMIN | registrar |
-| Support Inbox | `/tools/inbox` | SUPPORT or ADMIN | support |
 | Host Schedule | `/tools/schedule` | HOST, HOST_MANAGER, or ADMIN | host-team |
 
 All tools also support individual access grants via `UserToolAccess` — admins can grant a specific user access to any tool without assigning them the full role. See `lib/toolAuth.ts`.
@@ -237,8 +233,7 @@ Coordinator actions (editing home content, managing settings) are gated by `isCo
 |------|---------------------------|----------------------|--------------|
 | HOST | Host Team | Host Schedule | All core + schedule |
 | HOST_MANAGER | Host Team | Host Schedule | All core + schedule + assignment management |
-| REGISTRAR | Registrar Hub | Program Manager | All core + Programs stakeholder view |
-| SUPPORT | Support Hub | Support Inbox | All core |
+| REGISTRAR | Registrar Hub | Program Manager | All core |
 | TEACHER | Course Hub | — | All core + Series + Lessons |
 | ADMIN | All hubs (bypass) | All tools (bypass) | All sections + Hub settings |
 | VOLUNTEER_COORDINATOR | Volunteer Coordination | — | All core |
@@ -274,8 +269,6 @@ Sidebar click → URL (?hub=slug) → server page (searchParams) → getToolHubC
 
 **Host Schedule** — reads `?hub=` and calls `getToolHubContext()` to get coordinator names and hub membership for access control. Falls back to `"host-team"` if no hub param.
 
-**Support Inbox** — reads `?hub=` and calls `getToolHubContext()` to get team members for the assignment dropdown. Falls back to `"support"` if no hub param.
-
 **Program Manager and Course Manager** — not yet hub-aware (no hub member queries needed currently). When a tool serves multiple hubs, it will add `getToolHubContext()` to scope its data.
 
 ### Data scoping pattern
@@ -287,12 +280,6 @@ Tools query data globally by default. When hub context is available, they can sc
 db.program.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] })
 ```
 This is correct for now — the Registrar Hub is the only hub that links to Program Manager, and registrars need the complete view.
-
-**Support Inbox** — fetches the shared Gmail credential and displays all threads:
-```
-db.hubMember.findMany({ where: { hub: { slug: "support" } } })
-```
-The inbox is a single shared resource (one Gmail account), so hub scoping doesn't apply.
 
 **Host Schedule** — fetches all program assignments globally. The Host Team is the only hub that links to this tool.
 
@@ -328,11 +315,6 @@ Hub sections already scope their data by `hubId`. Each hub sub-page calls `getHu
 const threads = await db.hubConversationThread.findMany({
   where: { hubId: hub.id },
   orderBy: [{ isPinned: "desc" }, { createdAt: "desc" }],
-});
-
-// Tasks page
-const taskLists = await db.taskList.findMany({
-  where: { hubId: hub.id, isArchived: false },
 });
 
 // Documents page
@@ -447,10 +429,6 @@ When should functionality live inside a hub section vs. be extracted to a standa
 - *Why extracted:* Complex multi-step workflow (create program → configure schedule → manage registrations → send reminders). Needed its own editing UI with many sub-pages. The Registrar Hub kept a read-only "Programs" stakeholder view showing headcounts — the right information for the team context.
 - *Pattern:* Hub retains a lightweight stakeholder view. Tool handles the full operational workflow.
 
-**Support Inbox** (from Support Hub → `/tools/inbox`)
-- *Why extracted:* Full email client with thread list, compose, reply, internal notes, templates, settings. Gmail OAuth integration. Completely different UX from a hub section — needs full screen, real-time sync, keyboard shortcuts.
-- *Pattern:* Tool is the entire workflow. Hub provides team context (who's on support, conversations, shared documents).
-
 **Host Schedule** (from Host Team Hub → `/tools/schedule`)
 - *Why extracted:* Calendar-based UI with mini-cal + card list. Session management with sub-board integration. Originally had sub-nav (Schedule / Live Session / Journal) — Live Session and Journal removed in session 76; will rebuild around LiveKit video conferencing.
 - *Pattern:* Single-page tool (no sub-nav currently). Hub is where the team coordinates (conversations, tasks, documents).
@@ -465,14 +443,14 @@ When in doubt, start as a hub section. Extract to a tool when the hub section st
 
 ## 10. Core Sections Architecture
 
-The five core sections are shared infrastructure. Every hub gets them for free. Improving one improves all hubs.
+The four core sections are shared infrastructure. Every hub gets them for free. Improving one improves all hubs.
 
 ### Home
 
 **Route:** `/account/hub/[slug]` (page.tsx)
 
 **What it shows:**
-- Coordinator-editable rich text content (`homeContent` JSON via `RimProseEditor variant="document"`)
+- Coordinator-editable rich text content (`homeContent` HTML via `RimTiptapEditor variant="document"`)
 - App link cards (rendered from `HubAppLink` records)
 - Pinned conversation threads (from `HubConversationThread` where `isPinned: true`)
 
@@ -490,21 +468,7 @@ The five core sections are shared infrastructure. Every hub gets them for free. 
 - Category filtering (from `hub.conversationCategories[]`)
 - Thread detail with replies at `/conversations/[id]`
 
-**Data model:** `HubConversationThread` (title, body as BlockNote JSON, status, isPinned, pinnedAt) → `HubConversationReply` (body as BlockNote JSON)
-
-### Tasks
-
-**Route:** `/account/hub/[slug]/tasks`
-
-**What it shows:**
-- Three-column UI: task list rail (lists + filters) → task list → detail panel
-- Lists, tasks, subtasks with assignees, due dates
-- Template lists for recurring workflows
-- Task status: OPEN → IN_PROGRESS → DONE
-
-**Data model:** `TaskList` (hubId, name, isTemplate, isArchived) → `Task` (title, body as BlockNote JSON, assigneeId, status, dueDate) → `Subtask` (title, status)
-
-**Mobile:** Responsive three-screen flow (see §12).
+**Data model:** `HubConversationThread` (title, body as HTML, status, isPinned, pinnedAt) → `HubConversationReply` (body as HTML)
 
 ### Documents
 
@@ -516,7 +480,7 @@ The five core sections are shared infrastructure. Every hub gets them for free. 
 - Native documents (created in-app with BlockNote editor) and external links
 - Locked documents (coordinator-only editing)
 
-**Data model:** `HubDocument` (hubId, label, url, fileType, category, isNative, isLocked, body as BlockNote JSON)
+**Data model:** `HubDocument` (hubId, label, url, fileType, category, isNative, isLocked, body as HTML)
 
 ### Members
 
@@ -531,14 +495,13 @@ The five core sections are shared infrastructure. Every hub gets them for free. 
 
 ### No Hub-Specific Additions
 
-As of session 76, no hub has custom nav items. All hub-specific functionality has been extracted to tools:
+No hub has custom nav items. All hub-specific functionality has been extracted to tools:
 
 - Course/Lesson management → `/tools/learning` (Course Manager tool)
 - Program management → `/tools/programs` (Program Manager tool)
-- Support email → `/tools/inbox` (Support Inbox tool)
 - Host scheduling → `/tools/schedule` (Host Schedule tool)
 
-Hubs connect to their tools via app links in the sidebar. This ensures every hub is structurally identical — the same five core sections, no exceptions.
+Hubs connect to their tools via app links in the sidebar. This ensures every hub is structurally identical — the same four core sections, no exceptions.
 
 ---
 
@@ -616,13 +579,6 @@ Tools should follow these patterns on mobile:
 
 **Sub-nav tabs:** Tools with sub-navigation render as horizontal scrollable tabs. (Host Schedule currently has no sub-nav — Live Session and Journal were removed; may return with LiveKit integration.)
 
-**Three-column layouts (Tasks):** On mobile, the Tasks section uses a three-screen flow:
-1. **Lists screen** — shows all task lists (the rail)
-2. **Tasks screen** — shows tasks in the selected list
-3. **Detail screen** — shows the full task with subtasks, assignee, due date
-
-Navigation between screens is via click-through (forward) and back button (backward). Each screen takes the full viewport width.
-
 **Guideline for new tools:** Design mobile-first. If the tool has a list → detail pattern, use the full-screen progressive disclosure pattern (list screen → detail screen). Avoid side-by-side panels on mobile.
 
 ---
@@ -636,7 +592,7 @@ Navigation between screens is via click-through (forward) and back button (backw
 | Host Team | `host-team` | Host Schedule | — |
 | Course Hub | `courses` | Course Manager | — |
 | Registrar Hub | `registrar` | Program Manager | — |
-| Support Hub | `support` | Support Inbox, Inbox Settings | — |
+| Support Hub | `support` | — | — |
 | People Team | `people-team` | — | — |
 | Greeter Team | `greeter` | — | — |
 | AV Team | `av-team` | — | — |
@@ -671,20 +627,16 @@ All hub-related models in `prisma/schema.prisma`:
 
 | Model | Table | Key Fields | Purpose |
 |-------|-------|------------|---------|
-| `Hub` | `hubs` | `slug` (unique), `name`, `type`, `status`, `hasSchedule`, `welcomeHeadline`, `welcomeBody` (JSON), `homeContent` (JSON), `documentCategories[]`, `conversationCategories[]` | Hub definition |
+| `Hub` | `hubs` | `slug` (unique), `name`, `type`, `status`, `hasSchedule`, `welcomeHeadline`, `welcomeBody` (HTML), `homeContent` (HTML), `documentCategories[]`, `conversationCategories[]` | Hub definition |
 | `HubType` | enum | `OPERATIONAL`, `GOVERNANCE`, `COMMUNITY_GROUP` | Hub classification |
 | `HubStatus` | enum | `ACTIVE`, `ARCHIVED` | Hub lifecycle |
 | `HubAppLink` | `hub_app_links` | `hubId`, `label`, `href`, `order`, `isEnabled` | Hub-to-tool connection |
 | `HubMember` | `hub_members` | `hubId` + `userId` (unique), `position`, `isCoordinator`, `joinedAt`, `lastVisitedAt`, `firstVisitedAt` | Hub membership |
-| `HubDocument` | `hub_documents` | `hubId`, `addedById`, `label`, `url`, `fileType`, `category`, `isNative`, `isLocked`, `body` (JSON) | Hub document library |
-| `HubConversationThread` | `hub_conversation_threads` | `hubId`, `authorId`, `title`, `body` (JSON), `status`, `isPinned`, `pinnedAt`, `category` | Hub discussions |
-| `HubConversationReply` | `hub_conversation_replies` | `threadId`, `authorId`, `body` (JSON) | Thread replies |
-| `UserHubAccess` | `user_hub_access` | `userId` + `hubSlug` (unique) | Alternative access (Course Hub only) |
-| `TaskList` | `task_lists` | `hubId`, `name`, `isTemplate`, `isArchived` | Task organization |
-| `Task` | `tasks` | `listId`, `title`, `body` (JSON), `assigneeId`, `status` (OPEN/IN_PROGRESS/DONE), `dueDate` | Individual tasks |
-| `Subtask` | `subtasks` | `taskId`, `title`, `status` | Task subtasks |
+| `HubDocument` | `hub_documents` | `hubId`, `addedById`, `label`, `url`, `fileType`, `category`, `isNative`, `isLocked`, `body` (HTML) | Hub document library |
+| `HubConversationThread` | `hub_conversation_threads` | `hubId`, `authorId`, `title`, `body` (HTML), `status`, `isPinned`, `pinnedAt`, `category` | Hub discussions |
+| `HubConversationReply` | `hub_conversation_replies` | `threadId`, `authorId`, `body` (HTML) | Thread replies |
 
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org*
-*Working document · March 2026 (updated session 76)*
+*Working document · May 2026 (updated session 101 — Tasks removed, Support Inbox removed, Tiptap migration complete)*

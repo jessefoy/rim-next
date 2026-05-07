@@ -21,7 +21,7 @@ The Member Registry is the authoritative record of every person in the RIM commu
 
 Hubs are team workspaces for RIM's volunteer groups. Each hub serves one team. Members see only the hubs they belong to.
 
-**Current hubs (4):** Hosting Hub (`host-team`), Course Hub (`courses`), Registration Hub (`registrar`), Support Hub (`support`) — all ACTIVE, OPERATIONAL. Unused hubs and governance hubs removed in session 75 cleanup. New hubs can be created from `/admin/hubs`.
+**Current hubs:** 14 operational hubs + 2 governance hubs, all manageable from `/admin/hubs`. The four hubs with linked tools are: Hosting Hub (`host-team`), Course Hub (`courses`), Registration Hub (`registrar`), Support Hub (`support`). Support Hub has no linked tools — its Support Inbox was removed in session 100.
 
 **What they are:** Team-centric workspaces. Each hub provides a Home screen (with app links and coordinator content), Conversations (with pinned threads), Tasks, Documents, and a Members tab. Dashboard hub cards show unread badges.
 
@@ -29,9 +29,8 @@ Hubs are team workspaces for RIM's volunteer groups. Each hub serves one team. M
 
 Tools are full-featured staff applications extracted from hubs. They serve one workflow, with their own navigation chrome and sub-pages.
 
-**Current tools (4):**
+**Current tools (3):**
 - `/tools/programs` — Program Manager (REGISTRAR/ADMIN)
-- `/tools/inbox` — Support Inbox (SUPPORT/ADMIN)
 - `/tools/schedule` — Host Schedule (mini-cal + card list; HOST/HOST_MANAGER/ADMIN)
 - `/tools/learning` — Course Manager: Series + Lessons (TEACHER/ADMIN)
 
@@ -46,7 +45,7 @@ Tools are full-featured staff applications extracted from hubs. They serve one w
 | Layer | Purpose | Examples |
 |---|---|---|
 | **Member Registry** (`/admin/members`) | Canonical record authority | Full profile, roles, households, tags |
-| **Hubs** (`/account/hub/[slug]`) | Team workspaces | Home, Conversations, Documents, Members, Manual (per-hub scoped) |
+| **Hubs** (`/account/hub/[slug]`) | Team workspaces | Home, Conversations, Documents, Members |
 | **Tools** (`/tools/*`) | Operational applications | Program Manager, Support Inbox, Host Schedule |
 
 Hubs and Tools both provide scoped projections of member data — but they serve different needs. A hub is where a team coordinates. A tool is where they do their specialized work.
@@ -125,7 +124,6 @@ Assigned by ADMIN via the Neon console for now; a UI for this will be added when
 | `household` | ADMIN, REGISTRAR | — |
 | `admin-notes` | ADMIN | — |
 | `roles` | ADMIN | — |
-| `hub-access` | ADMIN | — |
 | `teacher` | ADMIN | — |
 | `course-access` | ADMIN, REGISTRAR | — |
 | `registrations` | ADMIN, REGISTRAR | — |
@@ -200,7 +198,7 @@ Previously, hosting permission (LiveKit admin grants, sub-request claims, HostAs
 
 ## What's Next
 
-**Tools extraction — complete (session 73):** Three full applications extracted from hub tabs to `/tools/*`: Program Manager → `/tools/programs`, Support Inbox → `/tools/inbox`, Host Schedule → `/tools/schedule`. Each tool has its own nav chrome, role gate, and back link to its associated hub. Hub tabs simplified — only team-centric tabs remain (Home, Conversations, Tasks, Documents, Members, plus course-specific tabs for Course Hub and stakeholder Programs tab for Registrar Hub). This establishes the three-layer architecture: Member Registry (canonical authority) → Hubs (team workspaces) → Tools (operational applications).
+**Tools extraction — complete (session 73, refined session 76):** Three full applications extracted from hub tabs to `/tools/*`: Program Manager → `/tools/programs`, Support Inbox → `/tools/inbox` (subsequently removed session 100), Host Schedule → `/tools/schedule`. Each tool has its own nav chrome, role gate, and back link to its associated hub. Session 76 removed the Registrar Hub stakeholder Programs tab and all course-specific Course Hub tabs — all hubs now have identical core sections: Home, Conversations, Documents, Members. This establishes the three-layer architecture: Member Registry (canonical authority) → Hubs (team workspaces) → Tools (operational applications).
 
 **Hub schema enhancements — session 73:** `HubStatus` enum (ACTIVE/ARCHIVED) with status field on Hub. `HubAppLink` model for hub-to-tool linking. `firstVisitedAt` on HubMember for newcomer welcome tracking.
 
@@ -238,7 +236,7 @@ The complete architecture for how hubs and tools relate is documented in **`RIM_
 - Tool creation pattern — checklist and template for building new tools
 - Data scoping — how `?hub=` context flows from sidebar → URL → ToolsContext → queries
 - Decision tree — when to keep functionality in a hub section vs. extract to a tool
-- Core sections architecture — Home, Conversations, Tasks, Documents, Members as shared infrastructure
+- Core sections architecture — Home, Conversations, Documents, Members as shared infrastructure
 - App link and home screen pattern — current implementation and planned live context cards
 - Access control matrix — complete role → hub → tool → section mapping
 - Mobile navigation — sidebar drawer, tool patterns
@@ -275,4 +273,4 @@ This file is part of the closing ritual for any Claude Code session that touches
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org*
-*Working document · March 2026 (updated session 76)*
+*Working document · May 2026 (updated session 101 — Tasks removed, Support Inbox removed, hub count corrected)*

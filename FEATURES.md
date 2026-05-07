@@ -41,7 +41,7 @@ Two audiences:
 26. [Email Template Manager](#26-email-template-manager)
 27. [Teacher Hub & Content Management](#27-teacher-hub--content-management)
 28. [Editor Standard](#28-editor-standard)
-29. [Support Inbox](#29--support-inbox)
+29. [Support Inbox (removed)](#29--support-inbox----removed-session-100-2026-05-06)
 30. [Learning System — Planned](#30-learning-system--planned)
 31. [Contextual Help System (Manual Sections)](#31-contextual-help-system-manual-sections)
 32. [Admin Member Profile — Section Registry](#32-admin-member-profile--section-registry)
@@ -583,15 +583,6 @@ Unified record of every contribution to RIM regardless of source. Schema is in P
 | `quickbooksRef` | String? | QB transaction ID (future reconciliation) |
 | `createdAt` | DateTime | When the record was created in our system |
 
-#### MembershipType, UserMembership (Phase 2 scaffolding — table exists, no UI yet)
-Schema is live in the DB but no application code reads or writes these models yet.
-- `MembershipType` — defines categories of community involvement (e.g. "General Member", "Dharma Study Group"). Fields: `id`, `name` (unique), `slug` (unique), `description?`, `isActive`, `createdAt`.
-- `UserMembership` — join table linking a User to a MembershipType. Fields: `userId`, `membershipTypeId`, `joinedAt`, `isActive`. `@@unique([userId, membershipTypeId])`.
-
-#### AttendanceRecord (Phase 2 scaffolding — table exists, no UI yet)
-Schema is live in the DB but no application code reads or writes this model yet. Intended for tracking which sessions/retreats/classes a member has attended.
-Fields: `userId`, `recordedAt`, `eventDate`, `eventName`, `eventType` (CLASS / RETREAT / STUDY_GROUP / VOLUNTEER / EVENT), `format` (IN_PERSON / ONLINE), `notes?`.
-
 #### Course, Lesson, CourseLesson, ProgramCourse (Phase 1 — Sanity → Postgres migration)
 Courses and lessons have been migrated from Sanity to Postgres. These models power the Teacher Hub and the member-facing `/course/[slug]` and `/lessons/[slug]` pages.
 
@@ -608,8 +599,6 @@ CourseAccessLevel:  MEMBERS | REGISTRATION_REQUIRED
 RegistrationStatus: REGISTERED | WAITLISTED | APPROVED | CANCELLED
 DonationStatus:     NOT_REQUIRED | PENDING | COMPLETED | WAIVED
 DonationSource:     STRIPE | GIVEBUTTER | CASH | CHECK | OTHER
-AttendanceType:     CLASS | RETREAT | STUDY_GROUP | VOLUNTEER | EVENT  (Phase 2)
-AttendanceFormat:   IN_PERSON | ONLINE  (Phase 2)
 ```
 
 **🔧 Technical notes:**
@@ -870,7 +859,6 @@ Shared layout primitives used by all redesigned pages:
 - **Archived toggle:** "Show Archived (N)" button when `archivedCount > 0` — switches view to Inactive/archived members; muted rows with "Archived" badge
 - Table: Name (with preferred name in parentheses), Last name, Email, Status badge + role badges, Regs count, Joined date
 - Click any row → navigates to member detail
-- "Import from Memberstack" button — admin only, opens import panel inline
 - API: `GET /api/admin/members` — ADMIN or REGISTRAR; supports `?q=` search and `?limit=` params
 
 ### Member detail (`/admin/members/[id]`)
@@ -909,19 +897,11 @@ Two re-entry paths for Inactive members:
 ### Dashboard integration
 AccountSidebar shows "Members" and "Households" links for REGISTRAR+. ADMIN also sees these plus Manual and Roadmap.
 
-### Memberstack CSV import
-- Client-side CSV parse — handles quoted fields; no library
-- Column mapping: Email, First Name / firstName, Last Name / lastName, Phone
-- Preview: first 5 rows + total count
-- Upsert by email (lowercase): fills blank fields only (never overwrites); not found → create
-- Results: "X new · Y updated · Z skipped"
-
 ### Key files
 - `app/admin/members/page.tsx` — member list server component
 - `app/admin/members/[id]/page.tsx` — member detail server component; constructs `serialized` explicitly (never spreads Prisma `include` — see Technical notes)
 - `components/MembersTable.tsx` — list client component (search, filters, sort, archived toggle)
 - `components/MemberDetail.tsx` — detail client component (all profile sections; imports HouseholdSection + CourseAccessSection)
-- `components/MemberImport.tsx` — CSV import client component
 - `components/CourseAccessSection.tsx` — course access UI
 - `components/HouseholdSection.tsx` — household embedded panel in member detail
 - `app/account/reactivate/page.tsx` — self-service reactivation (`wl-` prefix)
@@ -930,7 +910,6 @@ AccountSidebar shows "Members" and "Households" links for REGISTRAR+. ADMIN also
 - `app/api/admin/members/[id]/route.ts` — PATCH (profile/status/roles) + DELETE (zero-registration guard)
 - `app/api/admin/members/[id]/household/route.ts` — GET: returns member's household ID+name (used by HouseholdSection join flow)
 - `app/api/admin/members/[id]/course-access/route.ts` — POST/DELETE — ADMIN or REGISTRAR
-- `app/api/admin/members/import/route.ts` — POST (CSV upsert)
 
 **🔧 Technical notes:**
 - `effectiveStatus` pattern: `member.archivedAt && member.memberStatus !== "INACTIVE" ? "INACTIVE" : member.memberStatus` — handles legacy archived members in component state; first save syncs DB
@@ -983,32 +962,20 @@ When an archived member requests a magic link and clicks it, `proxy.ts` detects 
 - Both REGISTRAR and ADMIN produce cards for their hub links + Staff Manual
 - Deduplication by `href` — no duplicate cards if a user holds both ADMIN + REGISTRAR
 
-### Memberstack CSV import
-- Client-side CSV parse — no library, handles quoted fields
-- Column mapping (case-insensitive): Email, First Name / firstName, Last Name / lastName, Phone
-- Preview: first 5 rows + total count before committing
-- Upsert by email (lowercase normalized): found → fill blank fields only (never overwrite); not found → create
-- Results: "X new · Y updated · Z skipped"
-- One-time migration path: export from Memberstack dashboard → Members → Export → upload here
-
-### Key files
+### Key files (complete list)
 - `app/admin/members/page.tsx` — member list server component; `showArchived` query param controls DB filter
 - `app/admin/members/[id]/page.tsx` — member detail server component; constructs `serialized` object explicitly (never spreads Prisma `include` result — see Technical notes)
 - `components/MembersTable.tsx` — list client component (search, filter, archived toggle, muted archived rows)
 - `components/MemberDetail.tsx` — detail client component (profile form, role checkboxes, registration history, archived banner, danger zone, renders `<CourseAccessSection>`)
-- `components/MemberImport.tsx` — CSV import client component
 - `components/CourseAccessSection.tsx` — course access client component (fetches all courses, computes statuses, grant/revoke UI with per-course state machine)
 - `app/account/reactivate/page.tsx` — self-service reactivation page (`wl-` CSS prefix)
 - `app/api/account/reactivate/route.ts` — PATCH: clears `archivedAt` for the authenticated user
 - `app/api/admin/members/route.ts` — GET (list)
 - `app/api/admin/members/[id]/route.ts` — PATCH (update profile/roles/archive/restore) + DELETE (hard delete, zero-registration guard)
 - `app/api/admin/members/[id]/course-access/route.ts` — POST (grant access) / DELETE (revoke access) — ADMIN or REGISTRAR
-- `app/api/admin/members/import/route.ts` — POST (CSV upsert)
 - `app/api/admin/courses/route.ts` — GET (all courses enriched with linked programs) — used by `CourseAccessSection`
 
 **🔧 Technical notes:**
-- Import runs rows sequentially (N+1 queries) — acceptable for one-time migration; optimize with batch upsert if needed
-- `legacyMemberstackId` field exists on the User model — can be populated during import in the future for reconciliation
 - Role validation in PATCH uses `Object.values(Role)` from `@prisma/client` — adding a new role to the Prisma enum automatically makes it valid here
 - `STAFF_LINKS` format: `Record<string, { label, href, description }[]>` — each role maps to an array of links (allows ADMIN to show multiple cards without duplicates)
 - ⚠️ **RSC serialization gotcha:** Never use `...user` (or any Prisma `include` result) as props for a Client Component. Prisma `include` returns ALL scalar fields on the model including Date fields (`updatedAt`, `emailVerified`, `agreedAt`, `legacyLastLogin`, etc.). Raw `Date` objects are not serializable across the Server→Client boundary in Next.js 16 + React 19 — the navigation silently fails with no visible error (no error boundary = page stays frozen). Always construct props explicitly, naming only the fields the Client Component needs, and convert all dates to ISO strings (`.toISOString()`).
@@ -1256,14 +1223,6 @@ When a non-logged-in person submits a registration form:
 - They receive a confirmation email with a magic link. Clicking it takes them directly to the dashboard (no welcome page — they already agreed)
 
 When a logged-in member registers: name/phone already on file, no agreements step, shorter form.
-
-### Memberstack migration strategy
-
-The old Memberstack list of ~1,462 members is **not bulk-imported**. Instead:
-- Real members will naturally appear when they register for a program or log in via magic link
-- This organically filters out people who signed up once and never engaged
-- The new system's member list reflects actual community participants
-- If a targeted import is ever desired, the Memberstack CSV export includes `activity count`, `last login`, and `last attendance date` — these can be used to import only genuinely active members selectively
 
 ### Key files
 
@@ -1717,12 +1676,11 @@ Merges the Announcements tab into Conversations as pinned threads, adds unread i
 
 **Dashboard Hub Card Unread Indicators:**
 - Each hub card shows a teal badge with unread count (threads + replies since `lastVisitedAt`)
-- Host-team hub also counts unread `Alert` records
 - ADMIN bypasses (no HubMember records)
 
 **AlertStrip Removal:**
 - `AlertStrip.tsx` deleted; all `alert-strip` CSS removed
-- Alert model stays — powers host-team unread count via hub card indicator
+- Alert model subsequently removed in session 96 along with Tasks
 
 ### Key files
 
@@ -1738,9 +1696,11 @@ Merges the Announcements tab into Conversations as pinned threads, adds unread i
 
 ---
 
-## 36. Site-Wide Banner ✅ Built — session 72 (2026-03-23)
+## 36. Site-Wide Banner ~~✅ Built~~ 🗑 Removed — session 100 (2026-05-06)
 
-### What it does
+> **Removed in Theme E cleanup.** The banner never entered operational use. All code, schema models (`SiteBanner`, `SiteBannerDismissal`), API routes, and CSS removed. The description below is preserved for historical reference.
+
+### What it did
 
 A single-slot ADMIN broadcast banner visible to all logged-in members at the top of their dashboard. Used for community-wide notices (cancellations, closures, etc.).
 
@@ -1799,7 +1759,6 @@ Site `<Nav>` returns null for `/tools/*` paths. `FooterWrapper` suppresses foote
 | Tool | Route | Role Gate | Back Link | Replaced |
 |---|---|---|---|---|
 | Program Manager | `/tools/programs` | REGISTRAR, ADMIN | Registrar Hub | Hub Programs tab (full management) |
-| Support Inbox | `/tools/inbox` | SUPPORT, ADMIN | Support Hub | Hub Inbox + Settings tabs |
 | Host Schedule | `/tools/schedule` | HOST, HOST_MANAGER, ADMIN | Host Team Hub | Event-pill calendar + filterable day list (redesigned session 88) |
 
 ### Sub-navigation
@@ -1814,8 +1773,6 @@ Tools can declare sub-navigation items via the `subNav` property in ToolsContext
 | `app/tools/programs/new/page.tsx` | Create program |
 | `app/tools/programs/[programSlug]/page.tsx` | Program detail + registrations |
 | `app/tools/programs/[programSlug]/edit/page.tsx` | Edit program |
-| `app/tools/inbox/page.tsx` | Support Inbox (3-column email client) |
-| `app/tools/inbox/settings/page.tsx` | Support settings (Gmail, signatures, templates) |
 | `app/tools/schedule/page.tsx` | Host schedule — event-pill calendar + day-filterable card list (redesigned session 88 from the session-76 mini-cal). Single page, no sub-nav. See §24a for the schedule-tool design contract. |
 
 ### Hub stakeholder views
@@ -3564,9 +3521,9 @@ Defined in `lib/blockNoteCustomBlocks.tsx`. Exports `rimBlockSchema` (full) and 
 
 ---
 
-## §29 — Support Inbox — PARKED (not currently in operational use)
+## §29 — Support Inbox — 🗑 REMOVED (session 100, 2026-05-06)
 
-> **Parked since session 88 (2026-04-19).** The Support Inbox feature is built and the code is preserved, but it is **not currently staffed by volunteers** and the 5-minute Gmail sync cron was removed in session 88 (it kept the Neon endpoint continuously active and exhausted the Free-tier compute cap). `support@rootedinmindfulness.org` is currently being read directly via Gmail. The manual sync button in `/tools/inbox` still works (POST `/api/support/sync` with 30-second rate limit), so the inbox can be opened on demand if needed — but no real-time sync runs. **When volunteers begin staffing the inbox, restoring the cron is a single `vercel.json` entry, and the rest of the system below applies.** Until then, treat this section as describing a dormant feature.
+> **Fully removed in Theme E cleanup.** All code, schema models (GmailCredential, SupportThread, SupportMessage, SupportAttachment, SupportNote, SupportSignature, SupportTemplate), API routes (`/api/support/*`), and lib files (`lib/gmail.ts`, `lib/supportSync.ts`, `lib/supportNotify.ts`) deleted. The SUPPORT role enum value also removed. `support@rootedinmindfulness.org` is read directly via Gmail. The section below describes the removed feature for historical context.
 
 ---
 

@@ -35,15 +35,14 @@ Programs are the most interconnected system. Touching a program touches almost e
 
 ## Hubs
 
-Hubs are team workspaces. All four share the same five core sections.
+Hubs are team workspaces. All share the same four core sections.
 
 | Connected to | How |
 |---|---|
 | **Hub sidebar** | `HubSidebar.tsx` — 220px left nav with identity, core sections, tool app links, settings. Appends `?hub=slug` to tool links |
-| **Core sections (shared)** | Home, Conversations, Tasks, Documents, Members — identical across all hubs |
+| **Core sections (shared)** | Home, Conversations, Documents, Members — identical across all hubs |
 | **Conversations** | Threads with replies, pinned threads (replaced announcements), emoji reactions, reply editing, category filtering, email notifications |
-| **Tasks** | Three-column UI (rail/list/detail). Lists, tasks, subtasks, assignees, due dates, templates. Per-hub |
-| **Documents** | Native BlockNote documents + link documents. Locking, presence, blob cleanup |
+| **Documents** | Native Tiptap documents + link documents. Locking, presence, blob cleanup |
 | **Members tab** | Coordinator can add/remove members, toggle coordinator status. Shows hub membership, not registry data |
 | **App links** | Hub home screen shows tool links. `HubAppLink` model with `toolSlug` from registry |
 | **Tools** | Each hub may link to one or more tools. Tools read `?hub=` for scoped context |
@@ -51,14 +50,13 @@ Hubs are team workspaces. All four share the same five core sections.
 | **Newcomer welcome** | `firstVisitedAt` on HubMember. One-time interstitial with `welcomeBody` |
 | **Hub admin** | `/admin/hubs` — create, edit, archive hubs. App link management. Coordinator display |
 | **Notifications** | `getHubNotificationRecipients()` — queries hub members for email alerts |
-| **CSS** | `hub-` prefix (shell, sidebar, core sections), `hub-sb-` (sidebar), `hub-conv-` (conversations), `hub-doc-` (documents), `hub-mem-` (members), `hub-tasks-` (tasks) |
+| **CSS** | `hub-` prefix (shell, sidebar, core sections), `hub-sb-` (sidebar), `hub-conv-` (conversations), `hub-doc-` (documents), `hub-mem-` (members) |
 
-**The four hubs and their tools:**
+**Active hubs with linked tools:**
 | Hub | Slug | Primary tool(s) |
 |---|---|---|
 | Hosting Hub | `host-team` | Host Schedule (`/tools/schedule`) |
 | Registration Hub | `registrar` | Program Manager (`/tools/programs`) |
-| Support Hub | `support` | Support Inbox (`/tools/inbox`) |
 | Course Hub | `courses` | Course Manager (`/tools/learning`) |
 
 **If you're touching Hubs, you must check:** sidebar rendering, the specific core section you're modifying across all four hubs (they share code), dashboard hub cards, and any connected tools.
@@ -127,9 +125,8 @@ The canonical record of every person. ADMIN and REGISTRAR only.
 | **Role assignment** | REGISTRAR role added → automatic notification email |
 | **Hub member added** | `sendHubMemberAddedEmail` — when added to a hub |
 | **Host alerts** | Sub requests, claims, unassigned session warnings — all via email |
-| **Support Inbox** | Gmail API for reading/sending support@ emails. Separate from Resend transactional pipeline |
 
-**The two email pipelines:** Resend handles all outbound transactional email (templates rendered server-side). Gmail API handles the Support Inbox (reading and replying to support@ threads). These are completely separate systems.
+**One email pipeline:** Resend handles all outbound transactional email (templates rendered server-side). All templates are managed at `/admin/email-templates`.
 
 ---
 
@@ -137,14 +134,14 @@ The canonical record of every person. ADMIN and REGISTRAR only.
 
 | Connected to | How |
 |---|---|
-| **BlockNote** | Primary editor. Two components: `RimBlockEditor` (full) and `RimProseEditor` (compact) |
-| **24 usage sites** | 4 RimBlockEditor instances + 20 RimProseEditor instances across the platform |
-| **Custom Dharma blocks** | VerseQuote, PracticeSuggestion, Callout — in schema and renderer |
-| **Rendering** | `lib/renderRichContent.ts` — BlockNote JSON → HTML. Color tokens, list grouping, image/table rendering |
-| **Tiptap exception** | `MarkdownEditor` (formerly RimEditor.tsx) used ONLY for email templates. Markdown pipeline |
-| **Vercel Blob** | Image uploads in BlockNote → Vercel Blob. Cleanup on document edit/delete |
+| **RimTiptapEditor** | Primary editor — one component, three variants: `minimal`, `message`, `document`. Replaced BlockNote (session 97) |
+| **Storage format** | Plain HTML strings everywhere — not JSON. Written on save, read on render |
+| **Custom Dharma blocks** | VerseQuote, PracticeSuggestion, Callout, PullQuote, Reflection — Tiptap extensions |
+| **Rendering** | `lib/renderRichContentServer.ts` / `lib/renderRichContent.ts` — HTML passthrough with format detection for any unmigrated rows |
+| **MarkdownEditor** | Used ONLY for email templates. Markdown → juice() → Resend pipeline |
+| **Vercel Blob** | Image uploads in RimTiptapEditor → Vercel Blob. Cleanup on document edit/delete |
 | **Document locking** | Author lock + ADMIN override + presence heartbeat for hub documents |
-| **Heading CSS** | Injected via `<style>` tag on mount. Must target `<h1>`/`<h2>`/`<h3>` tags, not `data-level` |
+| **Bubble menu** | Inline formatting (B/I/U/S/Code/Link/Highlight) in a selection-based bubble menu. Toolbar for insertion-only (image, table, hr, callout, dharma blocks) |
 
 **If you're touching any editor or content display:** Read `RIM_Editor_Types.md` first.
 
@@ -176,7 +173,7 @@ The canonical record of every person. ADMIN and REGISTRAR only.
 | **Course Hub** | Team workspace for teachers. Links to Course Manager via app link |
 | **Series / Lessons** | Postgres models. Enrollment gating, progress tracking, reflection questions |
 | **Course access** | `CourseAccess` records on member profiles gate lesson visibility |
-| **BlockNote** | Lesson content authored in RimBlockEditor |
+| **RimTiptapEditor** | Lesson content authored in RimTiptapEditor (document variant). Stored as HTML. |
 | **Teacher profiles** | Teachers must be members with accounts. `isTeacher` + `TeacherProfile` |
 
 ---
@@ -185,23 +182,11 @@ The canonical record of every person. ADMIN and REGISTRAR only.
 
 | Connected to | How |
 |---|---|
-| **Design tokens** | `:root` variables — `--rim-bg`, `--rim-text`, `--rim-mid`, `--rim-blue`, `--font-serif` (quincy-cf), `--font-sans` (Inter) |
+| **Design tokens** | `:root` variables — `--rim-bg`, `--rim-text`, `--rim-mid`, `--rim-blue`, `--font-serif` (quincy-cf), `--font-sans` (Open Sans) |
 | **Prefix system** | Every page/component has a CSS prefix. See CLAUDE.md for the full list |
-| **Webflow migration** | `pages-inventory.md` tracks 🟢/🟠 status. 14/31 original pages migrated. Admin sitemap is the full route inventory |
-| **custom.css** | `public/css/custom.css` is the ONLY file to edit. Never touch Webflow CSS files |
+| **Legacy shim** | Bottom of `custom.css` — ~25 Webflow classes for ~15 unredesigned pages. Delete when all pages are migrated |
+| **custom.css** | `public/css/custom.css` is the ONLY file to edit. Webflow CSS files are fully removed |
 | **Mobile standards** | 360px min viewport, 390px primary target, 44px touch targets, 16px input fonts, 17px body text |
-
----
-
-## Support Inbox
-
-| Connected to | How |
-|---|---|
-| **Gmail API** | OAuth2 connection to support@ and jesse@ Google Workspace accounts |
-| **Member matching** | Sender email matched against Member Registry to surface profile context |
-| **Thread management** | Claiming, routing, internal notes, reply composer |
-| **Email templates** | Quick-reply templates available in inbox |
-| **Support Hub** | Team workspace. Inbox is a linked tool |
 
 ---
 
@@ -220,5 +205,5 @@ The canonical record of every person. ADMIN and REGISTRAR only.
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org*
-*Working document · April 2026*
+*Working document · May 2026 (updated session 101 — Tasks removed, Support Inbox removed, Tiptap migration complete)*
 *Companion to: FEATURES.md, RIM_System_Architecture.md*
