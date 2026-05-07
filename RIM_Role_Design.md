@@ -23,9 +23,9 @@ Each role section follows the same structure:
 
 ### What this role actually does
 
-A virtual host facilitates RIM's online sessions on Google Meet. Their job has two equally important dimensions:
+A virtual host facilitates RIM's online sessions through the RIM session room. Their job has two equally important dimensions:
 
-**Technical/logistical:** Log into the correct room account before the session, open the space, manage the technical environment, monitor chat, handle any issues, close the room when the session ends.
+**Technical/logistical:** Join the session room from the Host Schedule or dashboard, manage the technical environment (mute participants as needed, address audio and connection issues), hold an active host presence throughout, and close the room when the session ends. A secondary host can join the same room — the Step in as Host affordance lets any host-team member gain host controls mid-session.
 
 **Relational/pastoral:** Arrive 12 minutes early to hold a welcoming space as members gather. Foster genuine community connection during that pre-session window. Welcome people — especially new ones — in a way that feels warm and human, not procedural. Keep the container safe and aligned with RIM's spirit while the teacher is teaching. Embody presence, because presence fosters presence.
 
@@ -64,43 +64,21 @@ This distinction matters significantly for what a host can know before and durin
 - For open programs: nothing — there is nothing to show yet
 
 #### During the session
-- A live view that populates automatically as members click the Meet link from their logged-in dashboard
-- New member flag — first time attending anything at RIM
-- Returning-after-absence flag — member who hasn't attended in 6+ weeks
-- Registered but hasn't shown up — for registered programs only
-- One-tap to mark a person: "remember this person for a post-session note"
-- Nothing else. The host needs to be present with people. This view is glanced at, not worked.
+The live attendance view — participants populating automatically as they join from their dashboard, with first-time-attendee and returning-after-absence flags, a one-tap to mark someone for a post-session note — was designed here and built in early sessions. It was removed in session 89 during the tools extraction as it was tied to systems that no longer exist.
 
-**Critical design principle:** The live view must require almost no interaction. A tap is acceptable. Reading, typing, or deciding during a session is not. If using the tool pulls the host out of presence, the tool is wrong.
+This design intent remains valid. The live view is deferred as D1–D2 in the current build plan (see HOSTING_HUB_READINESS.md).
+
+**Design principle preserved:** When this is rebuilt, it must require almost no interaction. A tap is acceptable. Reading, typing, or deciding during a session is not. If the tool pulls the host out of presence, the tool is wrong.
 
 #### After the session (post-session form)
-The post-session window — while the session is still fresh — is where the real work happens. Hosts should expect to spend up to five minutes here. This is part of the role, not optional.
+The post-session form — flagged participants to follow up with, a session reflection field, an optional resource to share with attendees — was designed here but never fully built. The infrastructure it relied on (support threads for routing) was removed in session 76. This is deferred as D3.
 
-The form has two sections:
-
-**Section one — flagged people**
-Each person the host tapped during the session appears here with a note field and a routing choice:
-
-| Flag type | What it means | Routes to |
-|---|---|---|
-| Gentle follow-up | Someone who seemed uncertain, a new person who might appreciate a reach-out | Jesse + host coordinator |
-| Jesse only | Something sensitive happened — someone in the chat suggested they were in a dark place, something that needs careful pastoral attention | Jesse alone, private |
-| Technical issue | Something went wrong with the room, the account, the tech | Host coordinator |
-| No action needed | The tap was precautionary; nothing required | Nobody |
-
-**Section two — session reflection**
-A single open text field. The spirit of the session, challenges that came up, anything worth the team remembering. This is contemplative as much as operational — it's how the team learns together and how the coordinator supports hosts over time. Optional but strongly encouraged.
-
-**Section three — session resource**
-If something came up during the session that the whole group would benefit from — a book reference, a PDF, a link — the host can add it here and it goes out to everyone whose attendance was recorded that night. Routes through support/registrar for now.
+The design intent remains: the post-session window is where the real work happens. The system should make it easy for a host to capture what they noticed while it's still fresh. The routing model (gentle follow-up to Jesse + coordinator, sensitive flags to Jesse only, technical issues to coordinator) is the right model when this is rebuilt.
 
 #### Automated emails
-Two automated emails, both starting in disabled/draft state until the copy is written and approved by Jesse:
+A first-time-attendee email (warm welcome when a member attends their first RIM session) and a returning-after-absence email (gentle "good to see you" after 6+ weeks away) were designed here but never operationalized. The infrastructure they relied on was removed in session 76. These are deferred as D4.
 
-- **First-time attendee:** A warm, brief welcome. Triggered when a member attends their first RIM session of any kind.
-- **Returning after absence:** A gentle "good to see you." Triggered when a member who hasn't attended in 6+ weeks shows up.
-
-**Important:** Both emails must be written carefully enough that a false positive isn't damaging. Someone might be a regular on a different day than the host is familiar with. The tone should be warm and generic enough that receiving it unexpectedly doesn't feel like surveillance or make someone feel overlooked.
+The tone guidance holds whenever this is rebuilt: both emails must be written carefully enough that a false positive isn't damaging. The tone should be warm and generic — not surveillance-y, not making someone feel overlooked or unseen.
 
 ### Design decisions and why
 
@@ -113,16 +91,25 @@ Frictionless. The member does nothing extra. The host does nothing extra. The da
 **Why flag types instead of free routing?**
 At RIM's current size and role maturity, smart routing is premature. The coordinator role is still forming. The support/communications function is still carried by the registrar. Simple, honest routing to known people is more reliable than a system that tries to be clever. When the roles mature, the routing can too.
 
-**Why start automated emails in disabled state?**
-The words matter enormously at a dharma center. An automated email that sounds generic or surveillance-y would actively harm the community's trust. Better to build the infrastructure and wait for the right words than to send something wrong at scale.
+**Why hold automated emails until copy is written and approved?**
+The words matter enormously at a dharma center. An automated email that sounds generic or surveillance-y would actively harm the community's trust. Better to have the infrastructure ready and wait for the right words than to send something wrong at scale.
 
 **Why no email templates library in Phase 1?**
 You don't yet know which situations recur enough to warrant a template. Build the simple version, run it, and let the patterns emerge. Templates written for imagined scenarios often miss the real ones.
 
 ### What's deferred and why
 
+**Live attendance view and attendee flags (D1–D2)**
+The live view — participants populating automatically as they join, with first-time and returning-after-absence flags — was built in early sessions and removed in session 89 when the systems it relied on were extracted. Design intent intact. Rebuild when attendance tracking infrastructure is re-established.
+
+**Post-session form (D3)**
+Designed but never fully built. The routing infrastructure it relied on (support threads) was removed in session 76. Design intent intact — see the "After the session" section above for the model.
+
+**Automated attendee emails (D4)**
+Designed but never operationalized. Infrastructure removed in session 76. The tone guidance in Design decisions above still applies when rebuilding.
+
 **Sensitive context flags (pre-session)**
-The idea of attaching notes to a member's record that a host should be aware of before a session — fragility, a difficult history, something the care team wanted to flag. This raises serious privacy questions: who writes these notes, who can see them, under what circumstances, with what consent. The risks outweigh the benefits until there is a clear pastoral ethics framework around it. Deferred indefinitely until that framework exists.
+The idea of attaching notes to a member's record that a host should be aware of before a session — fragility, a difficult history, something the care team wanted to flag. This raises serious privacy questions: who writes these notes, who can see them, under what circumstances, with what consent. The risks outweigh the benefits until there is a clear pastoral ethics framework around it. Deferred indefinitely.
 
 **In-person and hybrid check-in**
 The same attendance tracking logic applies — but for in-person, it probably means a QR code at the door that a logged-in member scans. Simple in principle, but a separate build. Noted for future phases.
@@ -135,10 +122,6 @@ As RIM develops a communications/support hub — an internal "switchboard" team 
 
 **The communications/support hub**
 A future team concept: external-facing for general inquiries, internal-facing for routing information between teams. Like a sangha switchboard. When this team exists, post-session flags and resource requests will route through them. For now, that function lives with the registrar/general support person.
-
-### Phase 1 scope
-
-See the Claude Code session brief for the exact build spec.
 
 ---
 

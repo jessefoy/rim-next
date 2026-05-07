@@ -1,5 +1,49 @@
 ---
 
+## 2026-05-07 (session 106) — Host manual completion: first-week chapter, role design update, coordinator schedule guide
+
+### What was done
+
+Three "build before training" items from `HOSTING_HUB_READINESS.md` closed in one session. All documentation work; no code changes to application routes or components.
+
+**B2 — host-first-week chapter.** New `ManualSection` seeded via `prisma/seed-manual-host-first-week.mjs`. Plain HTML body (post-Tiptap canonical format). Five sections drawn verbatim from Jesse's provided text: right after you join, before your first session, during and after, the first month, when questions come up. Placed first in the host-team manual group in `lib/manualGroups.ts` — it's the orientation chapter, so it should appear before everything else. DB order 4. `seed_manual_host_first_week_v1` flag added to `migrate.mjs`.
+
+**B3 — RIM_Role_Design.md Virtual Host section refreshed.** In-place edit of the Virtual Host section — refresh, not rewrite. Changes:
+- Opening description: "Google Meet" → "the RIM session room"; technical dimension rewritten to describe the actual session room (join from schedule or dashboard, host controls, Step in as Host affordance).
+- "What the system needs to support — During the session": replaced the live-view build spec with current state: built session 43-45, removed session 89, deferred as D1–D2.
+- "After the session": replaced post-session form spec with current state: never fully built, infrastructure removed session 76, deferred as D3.
+- "Automated emails": replaced "starting in disabled state" with current state: never operationalized, infrastructure removed session 76, deferred as D4.
+- "What's deferred and why": added D1–D4 entries with historical context.
+- "Phase 1 scope" subsection: removed entirely (the pointer "see the Claude Code session brief" was dead-ended; that brief no longer exists).
+- "Design decisions and why": minor update to the automated emails rationale wording (no substantive change).
+- Decision made deliberately: keeping "Relational/pastoral" label unchanged. Changing it to "Relational/practice of sangha" would require touching the Registrar section for consistency — scope creep on B3. The Registrar section also uses "relational/pastoral"; both documents are internal architectural references where the register is appropriate.
+
+**B4 — host-schedule coordinator section.** "For coordinators" section appended to `update-manual-host-schedule.mjs` (v3). Three subsections:
+1. "Checking any teammate's schedule" — member picker framed as a situational-awareness tool that all hosts have, used differently by coordinators (team-wide coverage check, spotting overload, confirming new host assignments). Explicitly NOT framed as coordinator-exclusive.
+2. "The Rotations tab" — coordinator-only, brief, references the host-rotations chapter for detail.
+3. "Reassigning a session to yourself" — coordinator-only on covered sessions; confirmation window described including side effects (previous host removed, notified; open sub-request closed).
+`update_manual_host_schedule_v3` flag added to `migrate.mjs`.
+
+**HOSTING_HUB_READINESS.md updated:** B2, B3, B4 removed from the "Build before training" action list (replaced with a completion table). Category 7 documentation table updated to reflect the new chapter and the role design refresh. Summary view updated: "Five host manual chapters" (was three), "only T3 remains."
+
+### What this connects to
+
+- **`prisma/seed-manual-host-first-week.mjs`** — new file; exports `seedManualHostFirstWeek(db)`.
+- **`prisma/migrate.mjs`** — import added for `seedManualHostFirstWeek`; two new flag blocks: `seed_manual_host_first_week_v1` and `update_manual_host_schedule_v3`.
+- **`lib/manualGroups.ts`** — `host-first-week` added as first entry in the `host-team` group's slugs array.
+- **`prisma/update-manual-host-schedule.mjs`** — "For coordinators" section appended; file header updated to note v3.
+- **`RIM_Role_Design.md`** — Virtual Host section updated; design intent preserved; implementation language updated to match reality.
+- **`HOSTING_HUB_READINESS.md`** — Category 7 and consolidated action list updated; summary updated.
+- **Training readiness** — B1, B2, B3, B4, T1, T2 all complete. T3 (hub welcome body) remains — a Jesse/Maria content task, not a build.
+
+### Design decisions
+
+- **Five sections for host-first-week, not a condensed overview.** Each section has a different frame: joining, preparation, first session, ongoing patterns, escalation paths. Combining them would lose the temporal arc — a new host reads through it in sequence, not as reference material.
+- **Member picker explicitly framed as non-coordinator-exclusive in B4.** Jesse's original prompt said "coordinators can assign hosts other than themselves" — this was incorrect (the member picker is a view tool, not an assignment tool). Corrected before writing, confirmed with Jesse. The framing "this is the same picker you saw in the host orientation; here's how coordinators use it differently" preserves the truth while explaining the coordinator-specific use pattern.
+- **B3 keeps "Relational/pastoral" label.** Updating to "Relational/practice of sangha" would require the Registrar section for consistency — that's scope creep. Both are internal architectural docs; the register is appropriate there even if the member-facing welcome body uses a different phrase.
+
+---
+
 ## 2026-05-07 (session 105) — Session room manual chapter (T2)
 
 ### What was done

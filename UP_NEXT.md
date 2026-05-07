@@ -15,19 +15,10 @@
 
 **Next concrete steps — in priority order from HOSTING_HUB_READINESS.md:**
 
-*(T1 — HOST_MANAGER email and B1 — paused host badge: built session 104. T2 — session room chapter v3 + help icon: built session 105. All deployed.)*
+*(T1 — HOST_MANAGER email and B1 — paused host badge: built session 104. T2 — session room chapter v3 + help icon: built session 105. B2, B3, B4: built session 106. All deployed.)*
 
 #### T3 — Hub welcome body authored (blocks training — Jesse/Maria task, not a build)
-`/account/hub/host-team` welcome body is empty. Jesse or Maria writes it via the inline editor before training. No code needed.
-
-#### B2 — New host onboarding sequence (build before training)
-Manual chapter: "your first week as a host" — what to do after role assignment, how to find the hub, how to navigate the schedule, who to contact.
-
-#### B3 — RIM_Role_Design.md Google Meet references (build before training)
-Rewrite implementation language in the Virtual Host section to reflect LiveKit. Design intent stays; "log into the room account" / "open the space" / "close the room" goes.
-
-#### B4 — Coordinator-specific schedule guide (build before training)
-Add coordinator section to `host-schedule` chapter: member picker, Rotations tab, reassign-to-me, paused host assignments.
+`/account/hub/host-team` welcome body is empty. Jesse or Maria writes it via the inline editor before training. No code needed. This is the only remaining item blocking the May training session.
 
 ---
 

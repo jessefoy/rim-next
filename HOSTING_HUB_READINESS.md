@@ -300,11 +300,12 @@ Not a training blocker — hosts don't touch crons — but the reference doc is 
 | `host-hub-team-management` | Manual table of contents | Coordinator-specific: adding/pausing/removing members, pause decisions (hosting/comms/why), coordinator notes, activity tracking. Well-written and comprehensive. | Ready |
 | `host-schedule` | "?" icon in schedule filter row | Schedule tool for hosts: navigation, 4 actions, modals, filters, standing rotations awareness. Comprehensive. | Ready |
 | `host-session-room` | "?" icon in session room header (host-team members only) | Full host experience: the twelve-minute pre-session window (relational/pastoral dimension), joining, what the room UI looks like, all host controls (Mute All, End for All, per-participant mute, Pin), Step in as Host (its own section — distinct audience), nonverbal signals, Open Access sessions, troubleshooting, ending. Rewritten session 105. | Ready |
-| *(none)* | — | **New host onboarding sequence.** No checklist or "your first week" document: what to do after role assignment, how to navigate the hub, how the schedule works, who to contact, what a typical session looks like. Currently this exists only in the `host-hub` orientation chapter which covers the hub but not the workflow arc. | **Gap: build needed** |
+| `host-first-week` | Manual table of contents | New host onboarding: right after joining, first-session preparation, during and after, the first month, and where to go with questions. Built session 106. Listed first in the host-team group. | Ready |
+| `host-schedule` (v3) | "?" icon in schedule filter row | All previous content plus "For coordinators" section: member picker as situational awareness tool, Rotations tab (with reference to host-rotations chapter), Reassign to me. Updated session 106. | Ready |
 
 ### Stale references in reference documents
 
-**`RIM_Role_Design.md` — Virtual Host section:** The entire section references "Google Meet" throughout. "Log into the correct room account before the session," "open the space," "close the room" — all describe the Google Meet shared-account workflow, which was replaced by LiveKit in session 86. The design intent (12-minute arrival, relational/technical dimensions, two-host ideal) is still accurate and valuable. The implementation description is now wrong. A coordinator reading this document would be confused about how sessions actually work.
+**`RIM_Role_Design.md` — Virtual Host section:** Updated session 106. Google Meet references replaced with LiveKit session room. "What the system needs to support" updated to reflect current state: live view removed session 89 (D1–D2), post-session form never built (D3), automated emails never operationalized (D4). Phase 1 scope subsection removed. Design intent and two dimensions preserved throughout.
 
 **`lib/email.ts:440`** — Function comment on `sendHostRoleAssignmentEmail`: *"to new Meet host."* Minor, but visible to any developer reading the file.
 
@@ -314,10 +315,10 @@ Not a training blocker — hosts don't touch crons — but the reference doc is 
 |---|---|---|
 | host-hub chapter | Ready | — |
 | host-hub-team-management chapter | Ready | — |
-| host-schedule chapter | Ready | — |
+| host-schedule chapter (v3) | Ready (updated session 106) | — |
 | Session room chapter for hosts | Ready (built session 105) | — |
-| New host onboarding sequence | Gap: build needed | **build before training** |
-| RIM_Role_Design.md Google Meet references | Functional — needs documentation | **build before training** |
+| host-first-week chapter | Ready (built session 106) | — |
+| RIM_Role_Design.md Virtual Host section | Ready (updated session 106) | — |
 | email.ts comment "to new Meet host" | Functional — needs documentation | **post-cutover** |
 
 ---
@@ -332,13 +333,16 @@ Sorted by training-readiness priority. Each item is decision-ready: description,
 |---|---|---|---|
 | T3 | Hub welcome body — content authored | Hub home at `/account/hub/host-team` | Jesse or Maria authors the welcome message before training. The mechanism works; the field is empty. Coordinator writes it via the inline editor. Not a code change. |
 
-### Build before training — meaningful improvement, not strict blocker
+### Build before training — complete
 
-| # | Item | Location | Action |
-|---|---|---|---|
-| B2 | New host onboarding sequence | `prisma/` (new seed file), `/admin/manual` | A "your first week as a host" chapter or section: what to do after role assignment, how to find the hub, how to navigate the schedule, who to call. Could be a subsection of `host-hub` or a standalone chapter. |
-| B3 | RIM_Role_Design.md — update Google Meet references | `RIM_Role_Design.md` | Rewrite the Virtual Host section's implementation language to reflect LiveKit. The design intent (12-minute arrival, relational dimensions, two-host ideal) stays. The "log into the room account" / "open the space" / "close the room" language goes. A coordinator reading this should get an accurate picture of what LiveKit hosting looks like. |
-| B4 | Coordinator-specific schedule guide | Existing `host-schedule` chapter or new section | Add a coordinator section to the schedule manual: how the member picker works, what the Rotations tab is for, how reassign-to-me works, how to check a paused host's assignments. |
+All "build before training" items are resolved as of session 106:
+
+| # | Item | Completed |
+|---|---|---|
+| B1 | Paused host badge in schedule | Session 104 |
+| B2 | New host onboarding chapter (`host-first-week`) | Session 106 |
+| B3 | RIM_Role_Design.md Virtual Host section updated off Google Meet | Session 106 |
+| B4 | Coordinator section added to `host-schedule` chapter | Session 106 |
 
 ### Acceptable to defer — with documentation
 
@@ -363,9 +367,9 @@ The following gaps exist in the system. Training succeeds without them if the ma
 
 ## Summary View
 
-**What is ready now:** The core operational loop works. Hosts can sign up, ask for cover, accept cover, and join sessions with host controls. Standing rotations auto-schedule and notify. Sub-request emails fire. The hub has conversations, documents, and a members view. Three manual chapters exist and are current.
+**What is ready now:** The core operational loop works. Hosts can sign up, ask for cover, accept cover, and join sessions with host controls. Standing rotations auto-schedule and notify. Sub-request emails fire. The hub has conversations, documents, and a members view. Five host manual chapters exist and are current: `host-first-week`, `host-hub`, `host-schedule` (with coordinator section), `host-session-room`, `host-hub-team-management`.
 
-**What stands between Maria and a successful training session:** One blocking item (T3) and three improvement items (B2–B4). T3 is a content task for Jesse or Maria, not a build. T1 (coordinator welcome email), B1 (paused host badge), and T2 (session room chapter) are complete as of sessions 104–105.
+**What stands between Maria and a successful training session:** T3 only — the hub welcome body, a content task for Jesse or Maria, not a build. All code and documentation items from this inventory are complete as of session 106.
 
 **What to tell the team about the gaps:** The live view and post-session form (D1–D3) were part of the original design and were removed during an earlier rebuild. They are not forgotten — they are intentionally deferred. Training should name them honestly: "We don't have in-session tracking yet. Here's how we handle it for now."
 

@@ -24,6 +24,7 @@ import { updateManualRegistration } from "./update-manual-registration.mjs";
 import { updateManualPrograms } from "./update-manual-programs.mjs";
 import { updateManualProgramsRewrite } from "./update-manual-programs-rewrite.mjs";
 import { updateManualRegistrationRewrite } from "./update-manual-registration-rewrite.mjs";
+import { seedManualHostFirstWeek } from "./seed-manual-host-first-week.mjs";
 
 const db = new PrismaClient();
 
@@ -1907,6 +1908,36 @@ async function main() {
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_registration_rewrite_v1')`);
   } else {
     console.log("  ⏭ Manual registration rewrite already applied.");
+  }
+
+  // Manual chapter: host-first-week — "Your first week as a host".
+  // New chapter for new hosts. Placed first in the host-team manual group
+  // (manualGroups.ts). Covers right-after-joining, first-session prep,
+  // during-and-after, the first month, and where to get help.
+  const seedHostFirstWeekFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'seed_manual_host_first_week_v1'
+  `).catch(() => []);
+
+  if (seedHostFirstWeekFlag.length === 0) {
+    await seedManualHostFirstWeek(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_manual_host_first_week_v1')`);
+  } else {
+    console.log("  ⏭ Manual host-first-week chapter already seeded.");
+  }
+
+  // Manual chapter: host-schedule (v3) — adds "For coordinators" section.
+  // Appends three coordinator-specific subsections: member picker as situational
+  // awareness tool, Rotations tab (coordinator-only), Reassign to me
+  // (coordinator-only on covered sessions).
+  const updateHostScheduleV3Flag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_host_schedule_v3'
+  `).catch(() => []);
+
+  if (updateHostScheduleV3Flag.length === 0) {
+    await updateManualHostSchedule(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_schedule_v3')`);
+  } else {
+    console.log("  ⏭ Manual host-schedule v3 already applied.");
   }
 
   // Session 100 cleanup: remove support inbox, site banner, drip, UserHubAccess,

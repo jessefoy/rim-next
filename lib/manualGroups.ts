@@ -40,6 +40,7 @@ export const MANUAL_GROUPS: ManualGroup[] = [
     label:       "For the host team",
     description: "The host hub, the schedule, the session room, and team management.",
     slugs:       [
+      "host-first-week",
       "host-hub",
       "host-schedule",
       "host-session-room",

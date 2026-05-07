@@ -5,18 +5,25 @@
  * plain language, host-friendly, no jargon. This update is lighter than
  * host-hub or host-hub-team-management:
  *
- *   1. Adds a new "The two tabs at the top" section explaining the
- *      Schedule | Rotations tab strip (session 98 — Standing Assignments).
- *   2. References "the host coordinator" generically rather than naming
- *      a specific person — keeps the chapter portable across role changes.
- *   3. Updates sidebar reference to "Host Schedule" (the actual app-link
- *      label).
+ *   v2 (session 98):
+ *     1. Adds a new "The two tabs at the top" section explaining the
+ *        Schedule | Rotations tab strip (Standing Assignments).
+ *     2. References "the host coordinator" generically rather than naming
+ *        a specific person — keeps the chapter portable across role changes.
+ *     3. Updates sidebar reference to "Host Schedule" (the actual app-link
+ *        label).
+ *     4. Body switches from BlockNote JSON to plain HTML string (post-Tiptap
+ *        canonical format). Renderers route via isHtmlString().
  *
- * Body switches from BlockNote JSON to plain HTML string (post-Tiptap
- * canonical format). Renderers route via isHtmlString().
+ *   v3 (session 106):
+ *     5. Adds "For coordinators" section near the end — three subsections:
+ *        member picker as situational awareness tool (all hosts have it,
+ *        framed for coordinators), Rotations tab (coordinator-only, with
+ *        reference to host-rotations chapter), Reassign to me (coordinator-
+ *        only on covered sessions, with description of side effects).
  *
  * Idempotent at the record level (update by slug). Wired into migrate.mjs
- * behind a one-time flag.
+ * behind a one-time flag per version.
  */
 
 const HOST_SCHEDULE_BODY = `<p>Welcome. The Host Schedule is where you see what's coming up — your own commitments, what the team needs help with, and what your teammates are hosting. Everything happens through this one page.</p>
@@ -77,7 +84,21 @@ const HOST_SCHEDULE_BODY = `<p>Welcome. The Host Schedule is where you see what'
 <p>If anything is confusing — a button you can't find, a label that doesn't make sense, a workflow that feels harder than it should be — tell the host coordinator. The page is meant to make hosting easy. If it doesn't, that's worth fixing.</p>
 <h2>A small reminder</h2>
 <p>Hosting is volunteer work. Your time is a real gift to the community. The page is designed so that saying yes is easy, asking for help is easy, and changing your mind doesn't feel like failure. None of those things should ever feel hard.</p>
-<p>Welcome to the team.</p>`;
+<p>Welcome to the team.</p>
+
+<h2>For coordinators</h2>
+<p>This section is for the host coordinator. The three things below are coordinator-only — they don't appear in the regular host view.</p>
+<h3>Checking any teammate's schedule</h3>
+<p>The member picker — the small arrow next to the <strong>Mine</strong> pill — is available to every host on the team. All hosts can switch to anyone else's view to see what they're hosting. You saw this in your host orientation.</p>
+<p>As coordinator, you'll use it differently: checking who has taken on too many sessions, seeing whether a new host's first assignment showed up correctly, or scanning whether anyone has open sub-requests you haven't noticed. It's a team-wide situational awareness tool, not an assignment tool — you can see their schedule but you can't act on their behalf from this view.</p>
+<p>Click the small arrow next to <strong>Mine</strong>, pick a teammate's name. To return to your own view, click the arrow again and pick <strong>Mine</strong> from the top of the list.</p>
+<h3>The Rotations tab</h3>
+<p>The <strong>Rotations</strong> tab at the top of the page is yours. It's where you manage standing host assignments — the recurring pattern of who hosts what. Once a rotation is set, the schedule fills in each session automatically. You don't need to ask hosts to claim individual sessions every week.</p>
+<p>Everything about creating, editing, and removing rotations is in the <a href="/admin/manual/host-rotations">Host Rotations chapter</a>.</p>
+<h3>Reassigning a session to yourself</h3>
+<p>On any covered session — a session that's been claimed by another host — you'll see a <strong>Reassign to me</strong> button. Regular hosts don't see it; it's coordinator-only.</p>
+<p>When you click it, a confirmation window opens and tells you exactly what happens: the previous host is removed from that session, a notification goes to them, and any open sub-request for that session closes automatically. You become the assigned host.</p>
+<p>Use this when a correction is needed — the wrong person got assigned, or you need to step in directly. It's a surgical tool for specific situations, not a routine action.</p>`;
 
 export async function updateManualHostSchedule(db) {
   const existing = await db.manualSection.findUnique({
