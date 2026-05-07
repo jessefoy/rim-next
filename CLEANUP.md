@@ -19,15 +19,13 @@
 
 ## Theme A — Webflow-bridge removal
 
-The April directive committed to a Webflow + RIM Next hybrid. That decision has reversed: everything is in RIM Next. Items below were built specifically for the bridge.
+All items resolved in session 102. Notes:
 
-| # | Item | Where | Action |
-|---|---|---|---|
-| 1 | `rim-connect.js` | `public/rim-connect.js` | Remove |
-| 2 | Public-bridge API endpoints | `app/api/public/programs/route.ts`, `app/api/public/programs/[slug]/route.ts` | Remove |
-| 3 | Public-API cache header pattern | The `s-maxage=300` + explicit `CDN-Cache-Control` + `Vercel-CDN-Cache-Control` block in those routes | Remove with the routes |
-| 5 | Webflow Site Settings head code | Webflow Designer → Site Settings → Custom Code → Head Code (preconnect + hide-style + script tag) | Manual: remove in Webflow |
-| 6 | Webflow staged pages | `/rim-next/Programs` and `/untitled/program-detail` on the live Webflow site | Manual: remove in Webflow |
+- **#1** `rim-connect.js` — already removed before session 102 (part of the pivot reversal)
+- **#2** Public-bridge API endpoints — already removed before session 102
+- **#3** Public-API cache header pattern — removed with the routes
+- **#5** Webflow Site Settings head code — removed manually in Webflow Designer (session 102)
+- **#6** Webflow staged pages `/rim-next/Programs` and `/untitled/program-detail` — removed manually in Webflow (session 102)
 
 ---
 
