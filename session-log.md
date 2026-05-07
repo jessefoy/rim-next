@@ -1,5 +1,35 @@
 ---
 
+## 2026-05-07 (session 104) — HOST_MANAGER welcome email + paused host badge
+
+### What was done
+
+**T1 — sendHostManagerRoleAssignmentEmail.** New email function in `lib/email.ts`, triggered when `HOST_MANAGER` is newly added to a member's roles in `/api/admin/members/[id]/route.ts`. Uses the same inline markdown → marked → wrapInEmailChrome → juice pipeline as other role-assignment emails. Coordinator-appropriate copy: welcomes Maria by name, orients her to the hub and schedule tool, points to the manual with a note that more coordinator-specific chapters are coming soon. Subject: "Welcome, host coordinator — your hub is ready." Three links: hub home, schedule tool, manual (host-hub-team-management chapter). Fire-and-forget via `.catch(() => {})` — mirrors the existing `addingHost` pattern exactly.
+
+**B1 — Paused host visual indicator.** Amber pill badge ("paused" or "inactive") appears on covered session rows in the host schedule when the assigned host's HubMember status is not fully active. Implementation spans three files:
+
+- `app/tools/schedule/page.tsx` — added `pauseMap` construction (single hub lookup + one `hubMember.findMany`) after the assignments query; added `hostBadge: "paused" | "inactive" | null` to the `SessionItem` interface; passes `hostBadge` on every session push.
+- `app/api/host/assignments/route.ts` — same `pauseMap` pattern added to the GET handler's month-navigation path; `hostBadge` included on every session in the JSON response.
+- `components/HubScheduleClient.tsx` — `hostBadge` added to the `Session` interface with JSDoc distinguishing the two states; `HsRow` covered case renders `<span className="hs-row__paused-badge">` alongside the host name when `hostBadge` is non-null.
+- `public/css/custom.css` — `.hs-row__paused-badge` styled adjacent to `.hs-row__new-badge` using `--color-warning` and `--color-warning-bg` tokens (no new color variables).
+
+The distinction between "paused" and "inactive" matters: INACTIVE can co-occur with an active HostAssignment when a coordinator marks someone inactive without releasing their sessions. The "inactive" badge signals higher urgency — that session needs a host, not just a note.
+
+### What this connects to
+
+- **Host schedule (`/tools/schedule`)** — both the server-rendered initial load and the client-side month-navigation API now carry pause state through to the UI. No N+1: pause state is fetched in a single hub + member query per request, not per session.
+- **HubMember authority model (Phase 3)** — `getEffectiveHostingCapability()` already gates LiveKit token grants, sub-claims, and assignment creation. The badge closes the loop on the coordinator's view: the system was already refusing paused hosts at action points; coordinators can now see the pause state without cross-referencing the Members tab.
+- **Training readiness** — T1 and B1 were both on the `HOSTING_HUB_READINESS.md` action list. Both are now complete. Remaining blockers: T2 (session room manual chapter) and T3 (hub welcome body, a Jesse/Maria content task, not a build).
+- **`lib/email.ts`** — stale comment on `sendHostRoleAssignmentEmail` ("to new Meet host") was corrected to "to new host" as part of the adjacent work.
+
+### Design decisions
+
+- **Inline HTML email, not template manager.** The coordinator welcome email bakes its copy directly (marked + juice), same approach as standing-assignment digest emails. Reason: coordinator onboarding is low-iteration copy that doesn't need admin-side editability; the template manager overhead adds friction before the email can fire.
+- **Single typed field (`hostBadge`) rather than two booleans.** A discriminated `"paused" | "inactive" | null` value is cleaner to pass through four layers (DB → page → API → component) than `isPaused: boolean, isInactive: boolean`. The client renders based on the string value directly.
+- **Amber tokens, no new variables.** `--color-warning` and `--color-warning-bg` already existed in `:root`. Informational, not alarming — the badge reads as a note, not a warning.
+
+---
+
 ## 2026-05-07 (session 102) — Theme A closure, editor toolbar polish
 
 ### What was done

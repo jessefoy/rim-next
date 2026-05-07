@@ -48,7 +48,7 @@
 
 When ADMIN assigns Maria the `HOST_MANAGER` role and marks her `isCoordinator: true` on her HubMember record, here is exactly what she experiences:
 
-1. **No email fires.** `sendHostRoleAssignmentEmail` only triggers when the `HOST` role is newly added (not `HOST_MANAGER`). Maria receives no system email acknowledging her coordinator role. Her first notification of the role change is the next time she logs in and finds she has access she didn't have before.
+1. **Coordinator welcome email fires.** `sendHostManagerRoleAssignmentEmail` triggers when the `HOST_MANAGER` role is newly added. Maria receives an email linking to the hub, the schedule tool, and the manual, with a note that coordinator-specific chapters are coming soon. Built session 104.
 
 2. **No newcomer interstitial.** The `firstVisitedAt`-based interstitial that fires for other hubs on first visit is NOT used for the host-team hub. The `HostHubHomeClient` renders the same view for everyone. There is no pop-up.
 
@@ -56,14 +56,14 @@ When ADMIN assigns Maria the `HOST_MANAGER` role and marks her `isCoordinator: t
 
 4. **Her first coordinator task.** Writing the welcome body. This is not a bug — it is the intended flow. But it means she arrives to a blank page with no system-driven guidance about what to do first.
 
-**Assessment:** The welcome body as content is Maria's first coordinator task. The system does not tell her that. Maria needs to be briefed on this out-of-band (via training, email from Jesse, or a reference document) before she sits down at the hub for the first time.
+**Assessment:** The welcome body as content is Maria's first coordinator task. The coordinator welcome email (now built) tells her she has access and points her to the hub and manual. What it doesn't tell her is specifically that writing the welcome body is her first task — that still needs to be covered in training or an out-of-band note from Jesse.
 
 | Item | Status | Priority |
 |---|---|---|
 | "Our offerings this month" panel | Ready | — |
 | Welcome body (mechanism) | Ready | — |
 | Welcome body (content) | Functional — needs content | **blocks training** |
-| Coordinator role assignment email | Gap: build needed | **build before training** |
+| Coordinator role assignment email | Ready (built session 104) | — |
 | Newcomer interstitial | Not applicable to host-team | — |
 
 ---
@@ -107,8 +107,6 @@ When ADMIN assigns Maria the `HOST_MANAGER` role and marks her `isCoordinator: t
 
 ### Gaps
 
-**Paused host display** — Functional — needs polish. When a coordinator pauses a host's `hostingCapability`, that host can no longer claim new sessions and their token request is denied at session time. However, existing HostAssignment records for that host still appear in the schedule as "Covered by [name]" with no visual signal that the host is paused. For a small team this creates a coordination blind spot: the coordinator sees a session as "covered" when in practice it needs attention. Noted in `UP_NEXT.md`.
-
 **Coordinator-specific schedule guidance** — Functional — needs documentation. The schedule manual chapter covers the host perspective (4 actions, filters, confirmations) well. There is no section explaining the coordinator-specific affordances: the member picker, the Rotations tab, how reassign-to-me works, or how to use the tool to check a paused member's assignments.
 
 | Item | Status | Priority |
@@ -119,7 +117,7 @@ When ADMIN assigns Maria the `HOST_MANAGER` role and marks her `isCoordinator: t
 | NEW badge, "via rotation" markers | Ready | — |
 | Member picker (coordinator view) | Ready | — |
 | Host-side manual chapter | Ready | — |
-| Paused host visual indicator | Functional — needs polish | **build before training** |
+| Paused host visual indicator | Ready (built session 104) | — |
 | Coordinator schedule manual additions | Functional — needs documentation | **build before training** |
 
 ---
@@ -198,8 +196,6 @@ When ADMIN assigns Maria the `HOST_MANAGER` role and marks her `isCoordinator: t
 
 ### Gaps
 
-**HOST_MANAGER role assigned — no email fires.** `sendHostRoleAssignmentEmail` is only triggered by newly-adding the `HOST` role (detected at line 98–102 in `/api/admin/members/[id]/route.ts`). There is no equivalent trigger for `HOST_MANAGER`. If Maria is assigned `HOST_MANAGER`, no email fires. Her first indication she has access is finding it on login. A coordinator who doesn't know she has access can't prepare. This is the sharpest onboarding gap in the system.
-
 **First-time attendee welcome email** — Design-intent gap. Designed in `RIM_Role_Design.md`, never operationalized. The role design notes it should start in disabled state. The infrastructure (the triggering mechanism) was removed in session 76. The copy has never been written.
 
 **Returning-after-absence email** — Design-intent gap. Same as above. Never built to the triggering stage.
@@ -213,7 +209,7 @@ When ADMIN assigns Maria the `HOST_MANAGER` role and marks her `isCoordinator: t
 | New program email | Ready | — |
 | Standing assignment emails (assigned / displaced / ended) | Ready | — |
 | HOST role assignment email | Ready (stale comment) | verify copy before training |
-| HOST_MANAGER role assignment email | Gap: build needed | **blocks training** |
+| HOST_MANAGER role assignment email | Ready (built session 104) | — |
 | First-time attendee welcome | Design-intent gap | **post-cutover** |
 | Returning-after-absence | Design-intent gap | **post-cutover** |
 | Post-session routing emails | Design-intent gap | **post-cutover** |
@@ -244,10 +240,6 @@ When ADMIN assigns Maria the `HOST_MANAGER` role and marks her `isCoordinator: t
 
 **Member management (add/remove, toggle coordinator)** — Ready. Coordinators can add members to the hub, remove them, and toggle `isCoordinator` on existing members.
 
-### Gap
-
-**Paused host display in schedule** — Functional — needs polish (same gap as Category 2). The coordinator who paused a host can see from the Members page that the host is paused, but in the schedule tool, their assigned sessions still show as "Hosted by [name]" with no signal. During the transition window after pausing someone, the coordinator may not catch sessions that need a new host without cross-referencing.
-
 | Item | Status | Priority |
 |---|---|---|
 | Pause / restore workflow | Ready | — |
@@ -257,7 +249,7 @@ When ADMIN assigns Maria the `HOST_MANAGER` role and marks her `isCoordinator: t
 | No-delete policy on role revoke | Ready | — |
 | Coordinator notes | Ready | — |
 | Team management manual chapter | Ready | — |
-| Paused host display in schedule | Functional — needs polish | **build before training** |
+| Paused host display in schedule | Ready (built session 104) | — |
 
 ---
 
@@ -338,7 +330,6 @@ Sorted by training-readiness priority. Each item is decision-ready: description,
 
 | # | Item | Location | Action |
 |---|---|---|---|
-| T1 | HOST_MANAGER role assignment email | `lib/email.ts`, `/api/admin/members/[id]/route.ts` | Build a `sendHostManagerRoleAssignmentEmail()` function and add a trigger when HOST_MANAGER is newly added to a member's role list. Template should orient the coordinator: where the hub is, what the Rotations tab does, the team management chapter link. |
 | T2 | Session room manual chapter | `prisma/` (new seed file), `/admin/manual` | Write a chapter covering: how to navigate to a session, what the room looks like, host controls, Step in as Host, audio troubleshooting, how to leave. Slug: `host-session-room`. Wire the "?" help icon in `app/session/[slug]/page.tsx`. |
 | T3 | Hub welcome body — content authored | Hub home at `/account/hub/host-team` | Jesse or Maria authors the welcome message before training. The mechanism works; the field is empty. Coordinator writes it via the inline editor. Not a code change. |
 
@@ -346,7 +337,6 @@ Sorted by training-readiness priority. Each item is decision-ready: description,
 
 | # | Item | Location | Action |
 |---|---|---|---|
-| B1 | Paused host visual indicator in schedule | `components/HubScheduleClient.tsx` | When a session row's host is paused or has `hostingCapability: false`, add a visual signal (muted color, "paused" label, or strikethrough) so the coordinator can see at a glance that a "covered" session may need attention. Requires passing pause state from the API. |
 | B2 | New host onboarding sequence | `prisma/` (new seed file), `/admin/manual` | A "your first week as a host" chapter or section: what to do after role assignment, how to find the hub, how to navigate the schedule, who to call. Could be a subsection of `host-hub` or a standalone chapter. |
 | B3 | RIM_Role_Design.md — update Google Meet references | `RIM_Role_Design.md` | Rewrite the Virtual Host section's implementation language to reflect LiveKit. The design intent (12-minute arrival, relational dimensions, two-host ideal) stays. The "log into the room account" / "open the space" / "close the room" language goes. A coordinator reading this should get an accurate picture of what LiveKit hosting looks like. |
 | B4 | Coordinator-specific schedule guide | Existing `host-schedule` chapter or new section | Add a coordinator section to the schedule manual: how the member picker works, what the Rotations tab is for, how reassign-to-me works, how to check a paused host's assignments. |
@@ -376,7 +366,7 @@ The following gaps exist in the system. Training succeeds without them if the ma
 
 **What is ready now:** The core operational loop works. Hosts can sign up, ask for cover, accept cover, and join sessions with host controls. Standing rotations auto-schedule and notify. Sub-request emails fire. The hub has conversations, documents, and a members view. Three manual chapters exist and are current.
 
-**What stands between Maria and a successful training session:** Three blocking items (T1–T3) and four improvement items (B1–B4). The most critical is T2 (session room documentation) — this is the part of the workflow that has no in-context help for a host who has never seen it. T1 (coordinator welcome email) ensures Maria knows she has access before she needs to use it.
+**What stands between Maria and a successful training session:** Two blocking items (T2–T3) and three improvement items (B2–B4). The most critical is T2 (session room documentation) — this is the part of the workflow that has no in-context help for a host who has never seen it. T1 (coordinator welcome email) and B1 (paused host badge) are complete as of session 104.
 
 **What to tell the team about the gaps:** The live view and post-session form (D1–D3) were part of the original design and were removed during an earlier rebuild. They are not forgotten — they are intentionally deferred. Training should name them honestly: "We don't have in-session tracking yet. Here's how we handle it for now."
 

@@ -15,17 +15,13 @@
 
 **Next concrete steps — in priority order from HOSTING_HUB_READINESS.md:**
 
-#### T1 — HOST_MANAGER role assignment email (blocks training)
-`lib/email.ts` + `/api/admin/members/[id]/route.ts`. Build `sendHostManagerRoleAssignmentEmail()`. Trigger when HOST_MANAGER is newly added to a member's roles. Template orients the coordinator: hub link, Rotations tab, team management chapter.
+*(T1 — HOST_MANAGER email and B1 — paused host badge: built session 104, deployed.)*
 
 #### T2 — Session room manual chapter (blocks training)
 New seed file in `prisma/`. Slug: `host-session-room`. Covers: how to navigate to `/session/[slug]`, session room UI, host controls (Mute All, End for All, per-participant), Step in as Host, audio prompt, how to leave. Wire the "?" help icon in `app/session/[slug]/page.tsx`.
 
 #### T3 — Hub welcome body authored (blocks training — Jesse/Maria task, not a build)
 `/account/hub/host-team` welcome body is empty. Jesse or Maria writes it via the inline editor before training. No code needed.
-
-#### B1 — Paused host visual indicator in schedule (build before training)
-`components/HubScheduleClient.tsx`. When a session row's host is paused or `hostingCapability: false`, add a visual signal. Requires passing pause state through the API.
 
 #### B2 — New host onboarding sequence (build before training)
 Manual chapter: "your first week as a host" — what to do after role assignment, how to find the hub, how to navigate the schedule, who to contact.
@@ -68,7 +64,6 @@ Once every row in the database has been edited and saved as HTML, the BlockNote-
 ## Smaller items still parked
 
 - **Vercel `NEXTAUTH_URL` trailing space** — code is defensively trimmed in five places (`lib/email.ts`, `lib/calendarLinks.ts`, `lib/supportNotify.ts`, `app/api/cron/drip-release`, `app/api/stripe/checkout`); the env var itself should still be cleaned at the source so future surfaces don't pick up the same bug. One-time edit in Vercel project settings.
-- **Schedule display of paused hosts** — `HubScheduleClient` doesn't visually mark assignments where the host is paused or `hostingCapability = false`.
 - **Coordinator notes area** — `Hub.coordinatorNotes Json?` (or HTML, post-migration) + coordinator-only editor surface. Was discussed during the team-management work; never built.
 - **Duplicate-Aside backlog item** — Editor allows inserting an Aside immediately after another Aside. Was true with BlockNote's structure; may not apply post-Tiptap-migration. Revisit if it's still observable.
 - **Hub document export** — fixed session 102. HTML documents export as `.html`; legacy BlockNote JSON documents still export as `.md`. Both paths tested via TypeScript.
