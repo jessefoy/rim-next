@@ -42,7 +42,7 @@ import {
   Bold, Italic, Underline as UIcon, Strikethrough, Code, Link as LinkIcon,
   List, ListOrdered, Quote, Heading2, Heading3, Heading4, Highlighter,
   Image as ImageIcon, Table as TableIcon,
-  CheckSquare, Sparkles, BookOpen, MessageCircleQuestion, Lightbulb, CheckCircle2,
+  CheckSquare, Footprints, BookOpen, MessageCircleQuestion, Lightbulb, CheckCircle2,
   Minus,
 } from "lucide-react";
 import { Callout } from "./extensions/Callout";
@@ -227,12 +227,6 @@ function Toolbar({ editor, variant }: { editor: Editor; variant: RimTiptapVarian
       {variant === "document" && (
         <>
           <TDropdown
-            label={headingLabel}
-            title="Text style"
-            wide
-            isOpen={openMenu === "callout" /* dummy to satisfy types */ ? false : false}
-            onToggle={() => {}}
-            buttonContent={<span className="rt-toolbar__label">{headingLabel}</span>}
             renderTrigger={(toggle, open) => (
               <button
                 type="button"
@@ -277,8 +271,6 @@ function Toolbar({ editor, variant }: { editor: Editor; variant: RimTiptapVarian
           <TSep />
           {/* Callouts dropdown */}
           <TDropdown
-            label="Callout"
-            title="Insert callout"
             renderTrigger={(toggle, open) => (
               <button
                 type="button"
@@ -301,8 +293,6 @@ function Toolbar({ editor, variant }: { editor: Editor; variant: RimTiptapVarian
           />
           {/* Dharma blocks dropdown */}
           <TDropdown
-            label="Dharma block"
-            title="Insert dharma block"
             renderTrigger={(toggle, open) => (
               <button
                 type="button"
@@ -312,16 +302,16 @@ function Toolbar({ editor, variant }: { editor: Editor; variant: RimTiptapVarian
                 aria-haspopup="menu"
                 aria-expanded={open}
               >
-                <Sparkles size={15} strokeWidth={2} />
+                <BookOpen size={15} strokeWidth={2} />
                 <span className="rt-toolbar__caret" aria-hidden="true">▾</span>
               </button>
             )}
             open={openMenu === "dharma"}
             onOpenChange={(o) => setOpenMenu(o ? "dharma" : null)}
             items={[
-              { label: "Pull quote", icon: Sparkles, onClick: () => editor.chain().focus().setPullQuote().run() },
+              { label: "Pull quote", icon: Quote, onClick: () => editor.chain().focus().setPullQuote().run() },
               { label: "Verse quote", icon: BookOpen, onClick: () => editor.chain().focus().setVerseQuote().run() },
-              { label: "Practice suggestion", icon: Sparkles, onClick: () => editor.chain().focus().setPracticeSuggestion().run() },
+              { label: "Practice suggestion", icon: Footprints, onClick: () => editor.chain().focus().setPracticeSuggestion().run() },
               { label: "Reflection", icon: MessageCircleQuestion, onClick: () => editor.chain().focus().setReflection().run() },
             ]}
           />
@@ -351,13 +341,6 @@ function TDropdown({
   items,
   renderTrigger,
 }: {
-  /** unused — kept for API symmetry */
-  label?: string;
-  title?: string;
-  wide?: boolean;
-  isOpen?: boolean;
-  onToggle?: () => void;
-  buttonContent?: React.ReactNode;
   renderTrigger: (toggle: () => void, open: boolean) => React.ReactNode;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -466,10 +449,6 @@ function MessageBubble({ editor }: { editor: Editor }) {
       <Btn editor={editor} cmd={() => editor.chain().focus().toggleCode().run()} active={editor.isActive("code")} title="Inline code" icon={Code} />
       <Btn editor={editor} cmd={() => editor.chain().focus().toggleHighlight().run()} active={editor.isActive("highlight")} title="Highlight" icon={Highlighter} />
       <span className="rt-bubble__sep" />
-      <Btn editor={editor} cmd={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive("bulletList")} title="Bullet list" icon={List} />
-      <Btn editor={editor} cmd={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive("orderedList")} title="Numbered list" icon={ListOrdered} />
-      <Btn editor={editor} cmd={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive("blockquote")} title="Quote" icon={Quote} />
-      <span className="rt-bubble__sep" />
       <LinkBtn editor={editor} />
     </div>
   );
@@ -491,11 +470,6 @@ function DocumentBubble({ editor }: { editor: Editor }) {
       <Btn editor={editor} cmd={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} active={editor.isActive("heading", { level: 2 })} title="Heading 2" icon={Heading2} />
       <Btn editor={editor} cmd={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} active={editor.isActive("heading", { level: 3 })} title="Heading 3" icon={Heading3} />
       <Btn editor={editor} cmd={() => editor.chain().focus().toggleHeading({ level: 4 }).run()} active={editor.isActive("heading", { level: 4 })} title="Heading 4" icon={Heading4} />
-      <span className="rt-bubble__sep" />
-      <Btn editor={editor} cmd={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive("bulletList")} title="Bullet list" icon={List} />
-      <Btn editor={editor} cmd={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive("orderedList")} title="Numbered list" icon={ListOrdered} />
-      <Btn editor={editor} cmd={() => editor.chain().focus().toggleTaskList().run()} active={editor.isActive("taskList")} title="Checklist" icon={CheckSquare} />
-      <Btn editor={editor} cmd={() => editor.chain().focus().toggleBlockquote().run()} active={editor.isActive("blockquote")} title="Quote" icon={Quote} />
       <span className="rt-bubble__sep" />
       <LinkBtn editor={editor} />
     </div>

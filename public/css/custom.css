@@ -24864,7 +24864,9 @@ input.w-button { -webkit-appearance: button; }
 .rt-toolbar__dropdown-item svg { flex-shrink: 0; color: var(--rim-text-muted); }
 
 /* Mobile: 44px touch targets per project standard.
-   Dropdown items also get taller padding for easier tapping. */
+   Dropdown items also get taller padding for easier tapping.
+   Bubble buttons use 36px — floating context menus; 44px would overflow
+   the screen width with a full set of formatting buttons. */
 @media (max-width: 768px) {
   .rt-toolbar__btn {
     width: 44px;
@@ -24881,5 +24883,9 @@ input.w-button { -webkit-appearance: button; }
   }
   .rt-toolbar__dropdown {
     min-width: 220px;
+  }
+  .rt-bubble__btn {
+    width: 36px;
+    height: 36px;
   }
 }
