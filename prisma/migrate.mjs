@@ -25,6 +25,7 @@ import { updateManualPrograms } from "./update-manual-programs.mjs";
 import { updateManualProgramsRewrite } from "./update-manual-programs-rewrite.mjs";
 import { updateManualRegistrationRewrite } from "./update-manual-registration-rewrite.mjs";
 import { seedManualHostFirstWeek } from "./seed-manual-host-first-week.mjs";
+import { updateHostHubWelcomeBody } from "./update-host-hub-welcome-body.mjs";
 
 const db = new PrismaClient();
 
@@ -1908,6 +1909,19 @@ async function main() {
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_registration_rewrite_v1')`);
   } else {
     console.log("  ⏭ Manual registration rewrite already applied.");
+  }
+
+  // Host Hub welcome body — final coordinator-authored content (T3).
+  // Unconditionally overwrites any placeholder; this is the authoritative copy.
+  const updateWelcomeBodyFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'update_host_hub_welcome_body_v1'
+  `).catch(() => []);
+
+  if (updateWelcomeBodyFlag.length === 0) {
+    await updateHostHubWelcomeBody(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_host_hub_welcome_body_v1')`);
+  } else {
+    console.log("  ⏭ Host Hub welcome body already updated.");
   }
 
   // Manual chapter: host-first-week — "Your first week as a host".

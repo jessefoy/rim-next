@@ -17,8 +17,7 @@
 
 *(T1 — HOST_MANAGER email and B1 — paused host badge: built session 104. T2 — session room chapter v3 + help icon: built session 105. B2, B3, B4: built session 106. All deployed.)*
 
-#### T3 — Hub welcome body authored (blocks training — Jesse/Maria task, not a build)
-`/account/hub/host-team` welcome body is empty. Jesse or Maria writes it via the inline editor before training. No code needed. This is the only remaining item blocking the May training session.
+*(T3 — Hub welcome body: authored by Jesse and seeded via migrate.mjs, session 106. All T and B items from HOSTING_HUB_READINESS.md are complete. The D-items — live view, post-session form, automated emails — are intentionally deferred.)*
 
 ---
 

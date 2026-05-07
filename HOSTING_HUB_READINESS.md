@@ -331,7 +331,7 @@ Sorted by training-readiness priority. Each item is decision-ready: description,
 
 | # | Item | Location | Action |
 |---|---|---|---|
-| T3 | Hub welcome body — content authored | Hub home at `/account/hub/host-team` | Jesse or Maria authors the welcome message before training. The mechanism works; the field is empty. Coordinator writes it via the inline editor. Not a code change. |
+| T3 | Hub welcome body — content authored | Hub home at `/account/hub/host-team` | Content written by Jesse (session 106). Seeded via `update-host-hub-welcome-body.mjs` in migrate.mjs. ✓ Complete. |
 
 ### Build before training — complete
 
@@ -369,7 +369,7 @@ The following gaps exist in the system. Training succeeds without them if the ma
 
 **What is ready now:** The core operational loop works. Hosts can sign up, ask for cover, accept cover, and join sessions with host controls. Standing rotations auto-schedule and notify. Sub-request emails fire. The hub has conversations, documents, and a members view. Five host manual chapters exist and are current: `host-first-week`, `host-hub`, `host-schedule` (with coordinator section), `host-session-room`, `host-hub-team-management`.
 
-**What stands between Maria and a successful training session:** T3 only — the hub welcome body, a content task for Jesse or Maria, not a build. All code and documentation items from this inventory are complete as of session 106.
+**What stands between Maria and a successful training session:** Nothing. All action items from this inventory — T1–T3 and B1–B4 — are complete as of session 106. The D-items (live view, post-session form, automated emails) are intentionally deferred design-intent gaps; acknowledge them in training.
 
 **What to tell the team about the gaps:** The live view and post-session form (D1–D3) were part of the original design and were removed during an earlier rebuild. They are not forgotten — they are intentionally deferred. Training should name them honestly: "We don't have in-session tracking yet. Here's how we handle it for now."
 
