@@ -15337,6 +15337,49 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 .hs-rot__form-cancel:hover { border-color: var(--rim-mid); }
 
+/* Pattern preview inside RotationForm */
+.hs-rot__preview {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 14px;
+  background: rgba(19, 82, 116, 0.04);
+  border-radius: 6px;
+  margin-top: 2px;
+}
+.hs-rot__preview-label {
+  font-family: var(--font-sans);
+  font-size: var(--text-label);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--rim-mid);
+  font-weight: 600;
+  flex-shrink: 0;
+  padding-top: 2px;
+  min-width: 48px;
+}
+.hs-rot__preview-rows {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 16px;
+  flex: 1 1 auto;
+}
+.hs-rot__preview-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  min-width: 160px;
+}
+.hs-rot__preview-date {
+  color: var(--rim-mid);
+  flex-shrink: 0;
+  min-width: 54px;
+}
+.hs-rot__preview-host { color: var(--rim-text); font-weight: 500; }
+.hs-rot__preview-host--empty { color: var(--rim-mid); font-weight: 400; }
+
 /* End-rotation confirm panel */
 .hs-rot__end-confirm {
   width: 100%;

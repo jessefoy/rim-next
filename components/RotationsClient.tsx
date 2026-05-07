@@ -37,6 +37,57 @@ const DAY_LABEL: Record<DayOfWeek, string> = {
 };
 const DAY_ORDER: DayOfWeek[] = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
 
+const DAY_TO_JS: Record<DayOfWeek, number> = {
+  SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6,
+};
+
+/** Return the next N dates (YYYY-MM-DD) that fall on the given day of week. */
+function upcomingDates(dayOfWeek: DayOfWeek, count: number): string[] {
+  const target = DAY_TO_JS[dayOfWeek];
+  const today = new Date();
+  const cursor = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  // Advance to next matching weekday (inclusive of today)
+  while (cursor.getDay() !== target) cursor.setDate(cursor.getDate() + 1);
+  const out: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const y = cursor.getFullYear();
+    const m = String(cursor.getMonth() + 1).padStart(2, "0");
+    const d = String(cursor.getDate()).padStart(2, "0");
+    out.push(`${y}-${m}-${d}`);
+    cursor.setDate(cursor.getDate() + 7);
+  }
+  return out;
+}
+
+/** Return the 1-based occurrence count of a date within its month (e.g. 3rd Monday = 3). */
+function occurrenceInMonth(dateStr: string): number {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const jsDay = new Date(`${dateStr}T12:00:00`).getDay();
+  let n = 0;
+  for (let day = 1; day <= d; day++) {
+    if (new Date(y, m - 1, day).getDay() === jsDay) n++;
+  }
+  return n;
+}
+
+/** Resolve the assigned host userId for one session given the current form state. */
+function resolvePreviewHost(occN: number, form: FormState): string | undefined {
+  // FIFTH override: if expanded + set, always wins for 5th occurrence
+  if (occN === 5 && form.fifthExpanded && form.fifthHost) return form.fifthHost;
+
+  switch (form.pattern) {
+    case "same":
+      // For "same" pattern without a 5th override, the ALL record covers 5th weeks too
+      return form.hosts.every;
+    case "alternate":
+      return occN % 2 === 1 ? form.hosts.oddWk : form.hosts.evenWk;
+    case "custom": {
+      const keys: Array<keyof FormState["hosts"]> = ["first", "second", "third", "fourth"];
+      return keys[occN - 1] !== undefined ? form.hosts[keys[occN - 1]] : undefined;
+    }
+  }
+}
+
 interface Program {
   id:             string | null;
   slug:           string;
@@ -831,6 +882,39 @@ function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, sh
           + Add an end date (optional)
         </button>
       )}
+
+      {/* Pattern preview — shows next 6 occurrences with projected hosts.
+          Only renders when at least one host field is filled so the preview
+          isn't confusing while the form is still being set up. */}
+      {(() => {
+        const hasAnyHost = Object.values(form.hosts).some((v) => v);
+        if (!hasAnyHost) return null;
+        const dates = upcomingDates(form.dayOfWeek, 6);
+        const rows = dates.map((dateStr) => {
+          const occN = occurrenceInMonth(dateStr);
+          const userId = resolvePreviewHost(occN, form);
+          const hostName = userId ? (teamMembers.find((m) => m.id === userId)?.displayName ?? null) : null;
+          const label = new Date(`${dateStr}T12:00:00`).toLocaleDateString("en-US", {
+            month: "short", day: "numeric",
+          });
+          return { dateStr, label, occN, hostName };
+        });
+        return (
+          <div className="hs-rot__preview">
+            <span className="hs-rot__preview-label">Preview</span>
+            <div className="hs-rot__preview-rows">
+              {rows.map((r) => (
+                <div key={r.dateStr} className="hs-rot__preview-row">
+                  <span className="hs-rot__preview-date">{r.label}</span>
+                  <span className={`hs-rot__preview-host${!r.hostName ? " hs-rot__preview-host--empty" : ""}`}>
+                    {r.hostName ?? "—"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="hs-rot__form-actions">
         <button className="hs-rot__form-save" onClick={onSave} disabled={saving}>
