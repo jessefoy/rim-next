@@ -92,7 +92,6 @@ Items that will be removable later, after a precondition is met. Tracked here so
 | # | Item | Where | Precondition |
 |---|---|---|---|
 | 53 | Multi-format editor renderer | `lib/renderRichContent.ts`, `lib/renderRichContentServer.ts` | All content rows are HTML (no remaining BlockNote JSON) |
-| 54 | BlockNote-JSON-only export converter | `app/api/hub/[slug]/documents/[id]/export/route.ts` | Either fix to handle HTML or wait until #53's precondition |
 | 55 | Legacy CSS shim | Bottom of `public/css/custom.css` (~25 Webflow classes for ~15 unredesigned pages) | All ~15 pages have had their design pass |
 | 56 | Sanity programs/courses/lessons schemas | Sanity studio | After old documents in the dataset are confirmed unused; programs/courses/lessons all migrated to Postgres, but Sanity schemas remain |
 | 57 | `BASE_URL` whitespace-trim defensive code | 5 places in `lib/` and `app/api/` | After `NEXTAUTH_URL` env var itself is cleaned at the source in Vercel project settings (UP_NEXT loose-end) |

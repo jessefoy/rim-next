@@ -54,7 +54,7 @@ Once every row in the database has been edited and saved as HTML, the BlockNote-
 - **Schedule display of paused hosts** — `HubScheduleClient` doesn't visually mark assignments where the host is paused or `hostingCapability = false`.
 - **Coordinator notes area** — `Hub.coordinatorNotes Json?` (or HTML, post-migration) + coordinator-only editor surface. Was discussed during the team-management work; never built.
 - **Duplicate-Aside backlog item** — Editor allows inserting an Aside immediately after another Aside. Was true with BlockNote's structure; may not apply post-Tiptap-migration. Revisit if it's still observable.
-- **Hub document export** — `app/api/hub/[slug]/documents/[id]/export/route.ts` still uses a BlockNote-JSON-only markdown converter. Should grow an HTML-string path for documents saved post-migration. Otherwise an HTML-stored document exports as `(No content)`.
+- **Hub document export** — fixed session 102. HTML documents export as `.html`; legacy BlockNote JSON documents still export as `.md`. Both paths tested via TypeScript.
 
 ---
 
