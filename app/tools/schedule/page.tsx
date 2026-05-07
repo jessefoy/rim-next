@@ -103,6 +103,27 @@ export default async function ScheduleToolPage({
     }),
   ]);
 
+  // Build pause-state map: userId → "paused" | "inactive"
+  // A single HubMember query covers all assigned hosts in the initial month load.
+  const assignedUserIds = [...new Set(assignments.map((a) => a.userId).filter(Boolean))] as string[];
+  const pauseMap = new Map<string, "paused" | "inactive">();
+  if (assignedUserIds.length > 0) {
+    const hostHub = await db.hub.findUnique({ where: { slug: "host-team" }, select: { id: true } });
+    if (hostHub) {
+      const hubMembers = await db.hubMember.findMany({
+        where: { hubId: hostHub.id, userId: { in: assignedUserIds } },
+        select: { userId: true, status: true, hostingCapability: true },
+      });
+      for (const m of hubMembers) {
+        if (m.status === "INACTIVE") {
+          pauseMap.set(m.userId, "inactive");
+        } else if (m.status === "PAUSED" || !m.hostingCapability) {
+          pauseMap.set(m.userId, "paused");
+        }
+      }
+    }
+  }
+
   const assignmentMap = new Map(
     assignments.map((a) => {
       const dateStr = a.sessionDate ? ctDateStr(a.sessionDate.toISOString()) : "";
@@ -128,6 +149,8 @@ export default async function ScheduleToolPage({
     programCreatedAt: string | null;
     /** If non-null, this assignment was created by a standing rotation. */
     standingAssignmentId: string | null;
+    /** Coordinator-facing status badge for the assigned host, if not fully active. */
+    hostBadge: "paused" | "inactive" | null;
   }
 
   const sessions: SessionItem[] = [];
@@ -169,6 +192,7 @@ export default async function ScheduleToolPage({
           livekitRoom: p.livekitRoom ?? null,
           programCreatedAt: p.createdAt?.toISOString() ?? null,
           standingAssignmentId: a.standingAssignmentId ?? null,
+          hostBadge: a.userId ? (pauseMap.get(a.userId) ?? null) : null,
         });
       } else {
         sessions.push({
@@ -186,6 +210,7 @@ export default async function ScheduleToolPage({
           livekitRoom: p.livekitRoom ?? null,
           programCreatedAt: p.createdAt?.toISOString() ?? null,
           standingAssignmentId: null,
+          hostBadge: null,
         });
       }
     }

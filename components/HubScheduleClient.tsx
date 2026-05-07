@@ -44,6 +44,14 @@ interface Session {
   programCreatedAt?: string | null;
   /** If non-null, this assignment was created by a standing rotation rule. */
   standingAssignmentId?: string | null;
+  /**
+   * Coordinator-facing status for the assigned host.
+   * "paused" — HubMember.status is PAUSED or hostingCapability is false while ACTIVE.
+   * "inactive" — HubMember.status is INACTIVE (host has left the team but assignment
+   *              was not released; coordinator should act).
+   * null — host is fully active, or no host assigned.
+   */
+  hostBadge?: "paused" | "inactive" | null;
 }
 
 /** A standing rotation the current user is on — drives the host-side summary. */
@@ -398,6 +406,11 @@ function HsRow({
       statusEl = (
         <span className="hs-row__status hs-row__status--covered">
           Hosted by {session.hostName ?? "—"}
+          {session.hostBadge && (
+            <span className="hs-row__paused-badge">
+              {session.hostBadge === "inactive" ? "inactive" : "paused"}
+            </span>
+          )}
         </span>
       );
       break;

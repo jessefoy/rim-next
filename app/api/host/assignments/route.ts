@@ -156,6 +156,27 @@ export async function GET(request: Request) {
     }),
   ]);
 
+  // Build pause-state map: userId → "paused" | "inactive" | null
+  // A single query covers all assigned hosts in this month's sessions.
+  const assignedUserIds = [...new Set(assignments.map((a) => a.userId).filter(Boolean))] as string[];
+  const pauseMap = new Map<string, "paused" | "inactive">();
+  if (assignedUserIds.length > 0) {
+    const hostHub = await db.hub.findUnique({ where: { slug: "host-team" }, select: { id: true } });
+    if (hostHub) {
+      const hubMembers = await db.hubMember.findMany({
+        where: { hubId: hostHub.id, userId: { in: assignedUserIds } },
+        select: { userId: true, status: true, hostingCapability: true },
+      });
+      for (const m of hubMembers) {
+        if (m.status === "INACTIVE") {
+          pauseMap.set(m.userId, "inactive");
+        } else if (m.status === "PAUSED" || !m.hostingCapability) {
+          pauseMap.set(m.userId, "paused");
+        }
+      }
+    }
+  }
+
   const assignmentMap = new Map(
     assignments.map((a) => {
       const dateStr = a.sessionDate ? ctDateStr(a.sessionDate.toISOString()) : "";
@@ -193,6 +214,7 @@ export async function GET(request: Request) {
           programFormat: p.programFormat ?? null, programId: p.id,
           livekitRoom: p.livekitRoom ?? null,
           standingAssignmentId: a.standingAssignmentId ?? null,
+          hostBadge: a.userId ? (pauseMap.get(a.userId) ?? null) : null,
         });
       } else {
         sessions.push({
@@ -204,6 +226,7 @@ export async function GET(request: Request) {
           programFormat: p.programFormat ?? null, programId: p.id,
           livekitRoom: p.livekitRoom ?? null,
           standingAssignmentId: null,
+          hostBadge: null,
         });
       }
     }

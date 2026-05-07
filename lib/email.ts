@@ -437,7 +437,7 @@ export async function sendRoleAssignmentEmail(data: RoleAssignmentEmailData): Pr
 }
 
 
-// ─── Host role assignment notification (to new Meet host) ────────────────────
+// ─── Host role assignment notification (to new host) ─────────────────────────
 
 /**
  * Sent to a member when they are granted the HOST role.
@@ -450,6 +450,64 @@ export async function sendHostRoleAssignmentEmail(data: RoleAssignmentEmailData)
     hostAreaUrl: `${BASE_URL}/account/hub/host-team`,
     manualUrl:   `${BASE_URL}/admin/manual`,
   });
+}
+
+// ─── Host coordinator (HOST_MANAGER) role assignment notification ─────────────
+
+/**
+ * Sent to a member when they are granted the HOST_MANAGER role.
+ *
+ * Bypasses the template manager — copy was approved at build time and
+ * coordinator onboarding is a low-iteration email. Uses marked + wrapInEmailChrome
+ * + juice for proper RIM brand chrome, matching how managed templates render.
+ *
+ * From address: same module-level FROM constant as all other emails.
+ * Fire-and-forget — caller wraps in .catch(() => {}).
+ */
+export async function sendHostManagerRoleAssignmentEmail(
+  data: RoleAssignmentEmailData
+): Promise<void> {
+  const firstName = data.firstName ?? "there";
+  const hostHubUrl  = `${BASE_URL}/account/hub/host-team`;
+  const scheduleUrl = `${BASE_URL}/tools/schedule`;
+  const manualUrl   = `${BASE_URL}/admin/manual/host-hub-team-management`;
+
+  const markdown = `Hi ${firstName},
+
+You've been added as the host coordinator for RIM's virtual host team. This note is to make sure you know where everything lives before you need it.
+
+## Your role
+
+The coordinator is the team's main point of contact — not Jesse. You train new hosts, manage the schedule, support teammates when sessions get complicated, and hold the pastoral side of the work alongside the logistics. Jesse is available for anything that needs a teacher's attention; day-to-day the team looks to you.
+
+## Where to start
+
+**The Host Hub** — your team's home. Conversations, documents, the full member list. There's a welcome message there that hosts see when they arrive; it's yours to write.
+
+**The Host Schedule** — where you manage coverage. You can view any host's assignments (not just your own), create and manage standing rotations, and reassign sessions when someone is unavailable.
+
+**The Staff Manual** — the manual has chapters on the host role and the schedule tool, and as the coordinator you'll want to read them both. More chapters specifically for coordinator work are coming soon.
+
+[Open the Host Hub](${hostHubUrl})
+[View the Host Schedule](${scheduleUrl})
+[Read the Manual](${manualUrl})`;
+
+  const { marked } = await import("marked");
+  const juice = (await import("juice")).default;
+  const bodyHtml = await marked(markdown);
+  const wrapped = wrapInEmailChrome(bodyHtml);
+  const html = juice(wrapped, { extraCss: EMAIL_BASE_CSS });
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: data.to,
+      subject: "Welcome, host coordinator — your hub is ready",
+      html,
+    });
+  } catch (e) {
+    console.error("[email] sendHostManagerRoleAssignmentEmail failed:", e);
+  }
 }
 
 // ─── Host Community Hub emails ───────────────────────────────────────────────

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { Role, MemberStatus } from "@prisma/client";
-import { sendRoleAssignmentEmail, sendHostRoleAssignmentEmail } from "@/lib/email";
+import { sendRoleAssignmentEmail, sendHostRoleAssignmentEmail, sendHostManagerRoleAssignmentEmail } from "@/lib/email";
 import { syncHubMembership } from "@/lib/syncHubMembership";
 import { enrollMemberInRoleSeries } from "@/lib/enrollment";
 
@@ -101,6 +101,12 @@ export async function PATCH(
     !(user.roles as string[]).includes("HOST") &&
     (roles as string[]).includes("HOST");
 
+  // Detect new HOST_MANAGER: role wasn't there before, but is in the incoming list
+  const addingHostManager =
+    roles !== undefined &&
+    !(user.roles as string[]).includes("HOST_MANAGER") &&
+    (roles as string[]).includes("HOST_MANAGER");
+
   // Detect newly added roles (for series auto-enrollment)
   const newlyAddedRoles: string[] =
     roles !== undefined
@@ -181,6 +187,14 @@ export async function PATCH(
   // Notify newly-added host — fire-and-forget
   if (addingHost) {
     sendHostRoleAssignmentEmail({
+      to: updated.email,
+      firstName: updated.firstName,
+    }).catch(() => {});
+  }
+
+  // Notify newly-added host coordinator — fire-and-forget
+  if (addingHostManager) {
+    sendHostManagerRoleAssignmentEmail({
       to: updated.email,
       firstName: updated.firstName,
     }).catch(() => {});
