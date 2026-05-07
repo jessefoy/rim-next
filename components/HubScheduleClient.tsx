@@ -460,15 +460,26 @@ function HsRow({
 
 // ── Main ────────────────────────────────────────────────────
 
-const OCC_HUMAN: Record<MyRotation["occurrence"], string> = {
-  FIRST:  "1st of the month",
-  SECOND: "2nd of the month",
-  THIRD:  "3rd of the month",
-  FOURTH: "4th of the month",
-  FIFTH:  "5th occurrence",
-  LAST:   "last of the month",
-  ALL:    "every session",
+const OCC_ORDER = ["FIRST", "SECOND", "THIRD", "FOURTH", "FIFTH"] as const;
+const OCC_SHORT: Record<string, string> = {
+  FIRST: "1st", SECOND: "2nd", THIRD: "3rd", FOURTH: "4th", FIFTH: "5th",
 };
+
+/** Format a set of occurrence values into a single readable label. */
+function formatOccurrences(occs: Set<string>): string {
+  if (occs.has("ALL"))  return "every session";
+  if (occs.has("LAST")) return "last of the month";
+  const sorted = OCC_ORDER.filter((o) => occs.has(o));
+  if (sorted.length === 0) return "—";
+  // Named common patterns
+  const key = sorted.join(",");
+  if (key === "FIRST,SECOND,THIRD,FOURTH") return "every week";
+  if (key === "FIRST,THIRD")  return "1st & 3rd of the month";
+  if (key === "SECOND,FOURTH") return "2nd & 4th of the month";
+  // General
+  const labels = sorted.map((o) => OCC_SHORT[o] ?? o.toLowerCase());
+  return (labels.length === 1 ? labels[0] : labels.slice(0, -1).join(", ") + " & " + labels[labels.length - 1]) + " of the month";
+}
 
 export default function HubScheduleClient({
   initialSessions, programs, teamMembers, initialYear, initialMonth,
@@ -869,25 +880,37 @@ export default function HubScheduleClient({
       {/* Your standing rotations — host-side awareness panel.
           Renders only for users who are on at least one rotation, regardless
           of role. Coordinators still get the full management view via the
-          Rotations tab; this panel is just "here's what's auto-scheduling you." */}
-      {myRotations.length > 0 && (
-        <div className="hs-myrot">
-          <span className="hs-myrot__label">Your standing rotations:</span>
-          <ul className="hs-myrot__list">
-            {myRotations.map((r) => {
-              const endsLabel = r.endsOn
-                ? new Date(r.endsOn).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+          Rotations tab; this panel is just "here's what's auto-scheduling you."
+          Multiple records for the same program (e.g. FIRST + THIRD from an
+          alternate pattern) are grouped into one chip per program. */}
+      {myRotations.length > 0 && (() => {
+        // Group by programSlug — one chip per program regardless of how many
+        // occurrence records exist.
+        const grouped = new Map<string, { programName: string; occs: Set<string>; endsOn: string | null }>();
+        for (const r of myRotations) {
+          if (!grouped.has(r.programSlug)) {
+            grouped.set(r.programSlug, { programName: r.programName, occs: new Set(), endsOn: r.endsOn });
+          }
+          grouped.get(r.programSlug)!.occs.add(r.occurrence);
+        }
+        return (
+          <div className="hs-myrot">
+            <span className="hs-myrot__label">Your rotations</span>
+            {Array.from(grouped.entries()).map(([slug, g]) => {
+              const endsLabel = g.endsOn
+                ? new Date(g.endsOn).toLocaleDateString("en-US", { month: "short", year: "numeric" })
                 : null;
               return (
-                <li key={r.id} className="hs-myrot__item">
-                  <strong>{r.programName}</strong> — {OCC_HUMAN[r.occurrence]}
-                  {endsLabel && <span className="hs-myrot__until"> (until {endsLabel})</span>}
-                </li>
+                <span key={slug} className="hs-myrot__chip">
+                  <span className="hs-myrot__prog">{g.programName}</span>
+                  <span className="hs-myrot__pat">· {formatOccurrences(g.occs)}</span>
+                  {endsLabel && <span className="hs-myrot__until">· until {endsLabel}</span>}
+                </span>
               );
             })}
-          </ul>
-        </div>
-      )}
+          </div>
+        );
+      })()}
 
       {/* Month nav */}
       <div className="hs-monthnav">
