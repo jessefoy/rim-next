@@ -376,5 +376,9 @@ The following gaps exist in the system. Training succeeds without them if the ma
 ---
 
 *Produced: 2026-05-07, session 103.*
-*Companion files: `UP_NEXT.md`, `CLEANUP.md`, `RIM_Role_Design.md`, `session-log.md`.*
+*Companion files: `UP_NEXT.md`, `CLEANUP.md`, `RIM_Role_Design.md`, `session-log.md`, `TRAINING_PLAN.md`.*
 *Deadline: Zoom renews 2026-06-17. Training target: mid-to-late May 2026.*
+
+---
+
+**Readiness work complete (session 107).** `TRAINING_PLAN.md` now governs the path to cutover. Hub training document ("Training Session — May 2026") seeded via `seed-host-hub-training-doc.mjs`. This inventory is the historical record of what was assessed and built; use `TRAINING_PLAN.md` for the operational sequence going forward.

@@ -1,5 +1,42 @@
 ---
 
+## 2026-05-07 (session 107) — Training session preparation: TRAINING_PLAN.md + hub training document
+
+### What was done
+
+Two deliverables completing the readiness work for the May training session.
+
+**`TRAINING_PLAN.md` — operational reference for Jesse and the host coordinator.** Created in repo root. 9 sections:
+1. Sequence and Key Dates (table with [TBD] dates and the June 17 hard deadline).
+2. Maria's Onboarding (precursor steps: accounts, hub access, manual chapters to read before the pilot).
+3. Pre-Pilot Smoke Test (7-phase checklist for Jesse + Maria the day before the pilot): LiveKit env via `/admin/livekit-test`; hub and manual chapter routes; schedule tool (programFormat field, member picker visibility, Rotations tab for coordinator); `communicationsEnabled` check on HubMember records; email template verification including the `sendTemplatedEmail("host-role-assigned", ...)` risk (template content may still be placeholder copy); two-window session room host controls test; cron manual trigger at `/api/cron/apply-standing-assignments` (accepts GET as ADMIN).
+4. Pilot Session (Jesse + Maria + one volunteer host; outcomes, what happens if something breaks).
+5. Full Team Training (live exercise: 6 rounds — audio prompt handling, Mute All with button feedback, Step in as Host with reconnect pause explained, per-participant mute, End for All drill without executing, sub-request flow).
+6. Between Training and Cutover (solo sessions with pairing, coordinator support, rotations re-run if needed).
+7. Cutover Protocol (5-day buffer before June 17; confirmation checklist before canceling Zoom).
+8. Post-Cutover (P1–P3 deferred items from HOSTING_HUB_READINESS.md).
+9. Open Questions (table format for Jesse to resolve).
+
+**Hub training document — "Training Session — May 2026".** Seeded into the host-team hub (new "Training" category) via `prisma/seed-host-hub-training-doc.mjs`. Written for the host team members who will receive it in advance. Content: what's changing and why (Zoom → LiveKit, June 17 deadline), what to read beforehand (links to four manual chapters: host-first-week, host-hub, host-schedule, host-session-room), what the training will cover (5-item agenda of the live exercise), after the training (pairing period, final Zoom session, cutover), cutover dates table with [TBD] placeholders, questions link to Conversations. Matches the hub welcome body voice (practical, sangha-grounded, designed for overwhelmed users).
+
+`HOSTING_HUB_READINESS.md` closed out with a completion note — all T and B items complete, `TRAINING_PLAN.md` now governs the path forward.
+
+### What this connects to
+
+- `prisma/seed-host-hub-training-doc.mjs` — new file; `migrate.mjs` updated with import + `seed_host_hub_training_doc_v1` flag block.
+- Host-team hub document system — same upsert-by-hub+label pattern as `seed-host-hub-team-docs.mjs`; new "Training" category added to `Hub.documentCategories`.
+- `TRAINING_PLAN.md` — standalone operational document, no code dependency; referenced by `HOSTING_HUB_READINESS.md`.
+- Manual chapters referenced in the training doc: `host-first-week`, `host-hub`, `host-schedule`, `host-session-room` (all built and live as of sessions 99–106).
+- The smoke test section references `/api/cron/apply-standing-assignments` GET route (no UI button for bulk apply — code-confirmed in `RotationsClient.tsx`).
+- The smoke test flags `communicationsEnabled: false` on `HubMember` as the field that makes a host invisible to sub-request emails.
+- The smoke test flags the `host-role-assigned` email template as a risk — confirmed via grep that `sendHostRoleAssignmentEmail` uses `sendTemplatedEmail("host-role-assigned", ...)`, so the Template Manager content must be verified before training.
+
+### What comes next
+
+Jesse fills in the [TBD] dates in both `TRAINING_PLAN.md` and the hub training document (update the hub document via the hub's document editor or by re-running the seed). Theme B (Google Meet env cleanup: items #15–17) remains as manual steps Jesse does when ready. P1–P3 post-cutover items deferred to after June 17.
+
+---
+
 ## 2026-05-07 (session 106) — Host manual completion: first-week chapter, role design update, coordinator schedule guide
 
 ### What was done

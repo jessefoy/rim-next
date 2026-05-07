@@ -6,18 +6,18 @@
 
 ## Active
 
-**Session 103 (2026-05-07)** produced `HOSTING_HUB_READINESS.md` — a decision-ready readiness inventory of the hosting hub system ahead of the May training session and June 17 Zoom renewal. Seven categories walked; action items T1–T3 (blocks training), B1–B4 (build before training), D1–D4 (acceptable to defer), P1–P3 (post-cutover).
+**Session 107 (2026-05-07)** completed the readiness build for the May training session.
+
+- `TRAINING_PLAN.md` created in repo root — Jesse's operational reference from coordinator onboarding through Zoom cancellation. Covers smoke test (7-phase pre-pilot checklist), live session exercise (6 practice rounds), between-training period, cutover protocol, and open questions.
+- "Training Session — May 2026" hub document seeded into the host-team hub (new "Training" category) via `seed-host-hub-training-doc.mjs` — sent to hosts in advance, kept as reference through cutover. Links to the four pre-reading chapters in the manual.
+- `HOSTING_HUB_READINESS.md` closed out: all T and B items complete; `TRAINING_PLAN.md` now governs the path forward.
 
 **Theme B (Google Meet) remains.** Items #15–17 are manual steps Jesse will do when ready:
 - #15 — Remove four Google Meet env vars from Vercel project settings
 - #16 — Revoke/delete the service account in Google Cloud Console
 - #17 — Archive or delete `meet1@`–`meet4@` Google Workspace accounts
 
-**Next concrete steps — in priority order from HOSTING_HUB_READINESS.md:**
-
-*(T1 — HOST_MANAGER email and B1 — paused host badge: built session 104. T2 — session room chapter v3 + help icon: built session 105. B2, B3, B4: built session 106. All deployed.)*
-
-*(T3 — Hub welcome body: authored by Jesse and seeded via migrate.mjs, session 106. All T and B items from HOSTING_HUB_READINESS.md are complete. The D-items — live view, post-session form, automated emails — are intentionally deferred.)*
+**Next concrete step:** Jesse sets the [TBD] dates in `TRAINING_PLAN.md` and the hub training document, then coordinates Maria's onboarding per §2 of the plan.
 
 ---
 

@@ -26,6 +26,7 @@ import { updateManualProgramsRewrite } from "./update-manual-programs-rewrite.mj
 import { updateManualRegistrationRewrite } from "./update-manual-registration-rewrite.mjs";
 import { seedManualHostFirstWeek } from "./seed-manual-host-first-week.mjs";
 import { updateHostHubWelcomeBody } from "./update-host-hub-welcome-body.mjs";
+import { seedHostHubTrainingDoc } from "./seed-host-hub-training-doc.mjs";
 
 const db = new PrismaClient();
 
@@ -1952,6 +1953,20 @@ async function main() {
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_schedule_v3')`);
   } else {
     console.log("  ⏭ Manual host-schedule v3 already applied.");
+  }
+
+  // Host hub training document — sent to hosts before the May training session.
+  // "Training Session — May 2026": what's changing, pre-reading links, agenda,
+  // post-training steps, cutover timeline with [TBD] placeholders.
+  const seedTrainingDocFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'seed_host_hub_training_doc_v1'
+  `).catch(() => []);
+
+  if (seedTrainingDocFlag.length === 0) {
+    await seedHostHubTrainingDoc(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_host_hub_training_doc_v1')`);
+  } else {
+    console.log("  ⏭ Host hub training doc already seeded.");
   }
 
   // Session 100 cleanup: remove support inbox, site banner, drip, UserHubAccess,
