@@ -1,5 +1,19 @@
 ---
 
+## 2026-05-07 (session 108) — Schedule tool polish: rotation panel, form cleanup, pattern preview
+
+Pre-training polish across the rotation UI. Six items from the opening brief; all shipped in three commits.
+
+**Standing Rotations panel redesign (items 3 + 4).** The old panel was a gray-box paragraph list that read like an alert. Key problem: a user on an "alternate" rotation (FIRST + THIRD records in the DB for the same program) saw two separate list items for the same program — "Awakening The Heart — 1st of the month" / "Awakening The Heart — 3rd of the month" — which looked like two distinct rotations. Root cause: a display issue, not a data model issue. The `StandingAssignment` model correctly stores one record per occurrence-slot; the display just wasn't grouping them. Fix: group `myRotations` by `programSlug` before rendering. New `formatOccurrences()` maps occurrence sets to readable patterns (`[FIRST, THIRD]` → "1st & 3rd of the month", `[ALL]` → "every session", `[FIRST,SECOND,THIRD,FOURTH]` → "every week", etc.). New layout: inline chips, one per program, showing program name · pattern · end date (month/year only). No gray box, no alert feel. Changes: `HubScheduleClient.tsx` + `hs-myrot` CSS.
+
+**Rotation form cleanup (items 1, 2, 6).** Three changes in one commit. (1) Dropped "Pair weeks" from `PATTERN_OPTIONS`. Form now has three choices: Same / Alternate / Custom. Existing pair rotations in the DB are unaffected — `detectPattern()` correctly falls them through to "custom" on edit. API validation updated to match. (2) 5th-week host field collapsed to a reveal link by default, mirroring the end-date UX already in the form. Pre-expanded when editing a rotation that already has a 5th-week host set. For "same" pattern: `+ Override 5th week (optional)`; for others: `+ Assign 5th-week host (optional)`. Most months have no 5th occurrence so this stays out of the way. (3) Grid de-emphasis while editing: when a row's inline form is open, all other rows in that program card dim to `opacity: 0.4` with `pointer-events: none`. The active row stays full weight. Removes visual competition between prior-state data and the form being filled. Changes: `RotationsClient.tsx`, `app/api/host/standing-assignments/route.ts`, CSS.
+
+**Pattern preview (item 5).** After selecting a pattern and assigning hosts, a "Preview" row appears at the bottom of the form showing the next 6 sessions for that day with the projected host name. Updates live as the coordinator changes selects. Hidden until at least one host is picked. Implementation: three pure-JS helpers at module level — `upcomingDates(dayOfWeek, n)` walks forward from today to find the next N dates matching the rotation's weekday; `occurrenceInMonth(dateStr)` counts which occurrence that is; `resolvePreviewHost(occN, form)` applies the current pattern+hosts to return the right userId. No API call — all derived from form state. The 5th-week override is respected in the preview too. Layout: date label + host name in a wrapping row inside a tinted card. Changes: `RotationsClient.tsx`, CSS.
+
+**What this connects to:** `HubScheduleClient.tsx` (panel), `RotationsClient.tsx` (form), `app/api/host/standing-assignments/route.ts` (validation), `public/css/custom.css`. No schema changes. No email changes. No manual chapter changes (no "Pair weeks" language existed in manual content). FEATURES.md section 45 updated.
+
+**What comes next:** Jesse tests on Vercel. The training session with Maria is the primary next milestone.
+
 ## 2026-05-07 (session 107) — Training session preparation: TRAINING_PLAN.md + hub training document
 
 ### What was done

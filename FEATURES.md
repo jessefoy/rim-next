@@ -2294,7 +2294,19 @@ Idempotent — safe to re-run; sessions with existing assignments are never touc
 
 ### UI
 
-**Rotations tab** (`components/RotationsClient.tsx`) inside the Host Schedule tool. Visible to HOST_MANAGER and ADMIN. Per-program occurrence dropdowns (FIRST–FIFTH + ALL, 5th de-emphasised at `opacity: 0.65`). Optional `endsOn` date input per slot. Save button applies immediately and shows confirmation count: "✓ Saved · 4 sessions filled this month."
+**Rotations tab** (`components/RotationsClient.tsx`) inside the Host Schedule tool. Visible to HOST_MANAGER and ADMIN. One card per program; each program shows a day × occurrence (1st–5th) grid. Click "Edit" or "Set up" on a row to open an inline pattern form.
+
+Pattern options: **Same every week** (one ALL record), **Alternate** (1st & 3rd / 2nd & 4th), **Custom** (set each occurrence independently). "Pair weeks" (1st-2nd / 3rd-4th) was removed in session 108 — Custom covers it when needed. Existing pair rotations continue to apply via the DB records; they appear as Custom on edit.
+
+5th-week host is collapsed by default behind a reveal link (same pattern as the end-date field). Only expands when needed. For "Same" pattern, blank = main host covers 5th weeks automatically (via ALL record); for other patterns, blank = skip 5th-week occurrences.
+
+**Pattern preview**: once at least one host is filled, a Preview section appears showing the next 6 sessions for that day with the projected host name. Updates live as selects change. Converts "I think this is right" into "I can see this is right" — particularly useful when setting up rotations for the first time.
+
+**Grid de-emphasis while editing**: when a row's form is open, all other rows dim to 40% opacity. The editing row stays full weight. Removes competition between prior-state data and the form.
+
+Save applies immediately (current + future months through `endsOn` horizon, leave-mode). Conflict modal shows if any sessions had existing assignments. Toast confirms fill count.
+
+**Host-side awareness panel** (`HubScheduleClient.tsx`): hosts see a compact chip strip above the schedule showing their active rotations. Multiple DB records for the same program (e.g. FIRST + THIRD from an alternate pattern) are grouped into one chip with a readable label ("1st & 3rd of the month"). End date shown as month/year if set.
 
 **Tab strip** (`HubScheduleClient.tsx`): `hs-viewtabs` / `hs-viewtab` / `hs-viewtab--active` pill tabs toggle between Schedule and Rotations views (manager-only).
 

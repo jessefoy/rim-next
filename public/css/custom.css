@@ -15198,6 +15198,12 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   display: flex;
   flex-direction: column;
   gap: 0;
+  transition: opacity 0.15s;
+}
+/* Dim all rows except the one being edited when a form is open */
+.hs-rot__grid--editing .hs-rot__grid-row-wrap:not(.hs-rot__grid-row-wrap--active) {
+  opacity: 0.4;
+  pointer-events: none;
 }
 .hs-rot__grid-row {
   display: grid;
@@ -15330,6 +15336,49 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   min-height: 38px;
 }
 .hs-rot__form-cancel:hover { border-color: var(--rim-mid); }
+
+/* Pattern preview inside RotationForm */
+.hs-rot__preview {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 14px;
+  background: rgba(19, 82, 116, 0.04);
+  border-radius: 6px;
+  margin-top: 2px;
+}
+.hs-rot__preview-label {
+  font-family: var(--font-sans);
+  font-size: var(--text-label);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--rim-mid);
+  font-weight: 600;
+  flex-shrink: 0;
+  padding-top: 2px;
+  min-width: 48px;
+}
+.hs-rot__preview-rows {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 16px;
+  flex: 1 1 auto;
+}
+.hs-rot__preview-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  min-width: 160px;
+}
+.hs-rot__preview-date {
+  color: var(--rim-mid);
+  flex-shrink: 0;
+  min-width: 54px;
+}
+.hs-rot__preview-host { color: var(--rim-text); font-weight: 500; }
+.hs-rot__preview-host--empty { color: var(--rim-mid); font-weight: 400; }
 
 /* End-rotation confirm panel */
 .hs-rot__end-confirm {
@@ -15801,47 +15850,42 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   vertical-align: middle;
 }
 
-/* ── Host-side "Your standing rotations" panel ───────────────────────────── *
+/* ── Host-side "Your rotations" panel ────────────────────────────────────── *
  * Sits at the top of /tools/schedule for any user on at least one rotation.
- * Just informational — the host can see the recurring pattern that's
- * generating their schedule. Editing happens in the Rotations tab (manager
- * only).
+ * One chip per program (multiple occurrence records for the same program are
+ * grouped). Reads as "context for what's scheduling me," not an alert.
  */
 .hs-myrot {
-  background: rgba(19, 82, 116, 0.04);
-  border-radius: 8px;
-  padding: 12px 18px;
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: 8px 14px;
+  align-items: center;
+  gap: 6px 8px;
+  margin-bottom: 4px;
 }
 .hs-myrot__label {
   font-family: var(--font-sans);
-  font-size: var(--text-xs);
+  font-size: var(--text-label);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--rim-mid);
   font-weight: 600;
   flex-shrink: 0;
+  margin-right: 2px;
 }
-.hs-myrot__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1 1 auto;
-}
-.hs-myrot__item {
+.hs-myrot__chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  background: rgba(19, 82, 116, 0.06);
+  border-radius: 4px;
+  padding: 3px 9px 4px;
   font-family: var(--font-sans);
   font-size: var(--text-small);
-  color: var(--rim-text);
-  line-height: var(--lh-body);
+  line-height: 1.4;
 }
-.hs-myrot__item strong { font-weight: 600; }
-.hs-myrot__until { color: var(--rim-mid); }
+.hs-myrot__prog { font-weight: 600; color: var(--rim-text); }
+.hs-myrot__pat  { color: var(--rim-mid); }
+.hs-myrot__until { color: var(--rim-mid); font-size: var(--text-xs); }
 
 /* Tablet — collapse 3-column row to stacked; right area goes horizontal */
 @media (max-width: 760px) {

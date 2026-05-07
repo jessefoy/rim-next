@@ -6,18 +6,20 @@
 
 ## Active
 
-**Session 107 (2026-05-07)** completed the readiness build for the May training session.
+**Session 108 (2026-05-07)** completed schedule tool polish ahead of the Maria training session.
 
-- `TRAINING_PLAN.md` created in repo root — Jesse's operational reference from coordinator onboarding through Zoom cancellation. Covers smoke test (7-phase pre-pilot checklist), live session exercise (6 practice rounds), between-training period, cutover protocol, and open questions.
-- "Training Session — May 2026" hub document seeded into the host-team hub (new "Training" category) via `seed-host-hub-training-doc.mjs` — sent to hosts in advance, kept as reference through cutover. Links to the four pre-reading chapters in the manual.
-- `HOSTING_HUB_READINESS.md` closed out: all T and B items complete; `TRAINING_PLAN.md` now governs the path forward.
+- **Standing Rotations panel**: grouped by program (multiple occurrence records now show as one chip), chip layout replaces gray-box paragraph list. `HubScheduleClient.tsx` + CSS.
+- **Form cleanup**: "Pair weeks" pattern removed (3 patterns remain: Same / Alternate / Custom). 5th-week host field collapsed behind a reveal link by default. Grid dims to 40% opacity on non-editing rows while a form is open. `RotationsClient.tsx` + API route validation.
+- **Pattern preview**: last 6 upcoming sessions with projected host names, shown live as the form is filled. Pure client-side logic. `RotationsClient.tsx` + CSS.
+
+All deployed. Vercel build triggered from branch `claude/stoic-mendel-eb67fc`.
+
+**Next concrete step:** Jesse reviews on Vercel, then sets [TBD] dates in `TRAINING_PLAN.md` and the hub training document, coordinates Maria's onboarding per §2 of the plan.
 
 **Theme B (Google Meet) remains.** Items #15–17 are manual steps Jesse will do when ready:
 - #15 — Remove four Google Meet env vars from Vercel project settings
 - #16 — Revoke/delete the service account in Google Cloud Console
 - #17 — Archive or delete `meet1@`–`meet4@` Google Workspace accounts
-
-**Next concrete step:** Jesse sets the [TBD] dates in `TRAINING_PLAN.md` and the hub training document, then coordinates Maria's onboarding per §2 of the plan.
 
 ---
 
