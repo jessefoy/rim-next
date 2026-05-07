@@ -1,5 +1,81 @@
 ---
 
+## 2026-05-07 (session 102) — Theme A closure, editor toolbar polish
+
+### What was done
+
+**1. Theme A: Webflow-bridge removal complete.** Items #1–3 (rim-connect.js, public-bridge API routes, CDN cache headers) were confirmed already removed as part of the pivot reversal. Items #5 and #6 (Webflow Site Settings head code and staged pages /rim-next/Programs + /untitled/program-detail) removed manually by Jesse in Webflow Designer. CLEANUP.md updated; Theme A closed.
+
+**2. Editor toolbar polish.** Three interrelated cleanup passes on `components/rim-tiptap/RimTiptapEditor.tsx` and CSS:
+
+- **Duplicates removed from bubble menus.** The message and document bubble menus had structural elements (bullet list, numbered list, blockquote — and in document: checklist) that were already in the top toolbar. Removed from both bubbles. Bubbles are now inline-marks-only: B · I · U · S · Code · Highlight | Link. DocumentBubble keeps H2/H3/H4 (applying a heading level to selected text is a selection-driven action that belongs in the bubble; using the heading dropdown to start a new heading is a toolbar-driven action).
+- **Duplicate icons fixed.** Pull quote and Practice suggestion both used the `Sparkles` icon — they were visually identical in the Dharma dropdown. Pull quote → `Quote` icon (already imported). Practice suggestion → `Footprints`. Dharma dropdown trigger → `BookOpen`. `Sparkles` import removed.
+- **Dead TDropdown props cleaned up.** The TDropdown component interface declared 6 props (`label`, `title`, `wide`, `isOpen`, `onToggle`, `buttonContent`) that were never read inside the component and were passed with dummy/empty values at call sites. All removed from the interface and from all three call sites.
+- **Mobile bubble touch targets.** Added `@media (max-width: 768px)` rule: `.rt-bubble__btn { width: 36px; height: 36px; }`. Top toolbar already had 44px mobile targets. Bubble uses 36px (floating context menu; 44px would overflow the viewport width with a full button set).
+
+### What this connects to
+
+- **All editor surfaces.** The bubble menu cleanup affects every `RimTiptapEditor` placement — hub documents, manual sections, program descriptions, lesson bodies, conversations, course descriptions, volunteer notes, admin notes, household notes, sub-request messages. The rule is now consistent: structure lives in the top toolbar, character formatting lives in the bubble.
+- **Dharma dropdown.** Pull quote, Verse quote, Practice suggestion, Reflection — four distinct icons now. The icons matter for muscle memory and discoverability in a dropdown where text labels are present but icons are the first visual signal.
+
+### Design decisions that hold
+
+- **Top toolbar = structure. Bubble = inline marks.** This is the modern editor pattern (Medium, Notion, Craft, Bear) and now enforced. The bubble that appears on text selection is for character formatting, not for starting new structural elements. Lists and blockquotes are started on empty lines via the toolbar.
+- **H2/H3/H4 in the document bubble.** The one exception to the above: heading-level conversion is also a selection action (select a paragraph, change its heading level). Keeping H2/H3/H4 in the DocumentBubble is correct — it's a different gesture than "start a new heading."
+
+---
+
+## 2026-05-06 (session 101) — Theme F: documentation sync pass
+
+### What was done
+
+Full documentation sync across five root docs, correcting all drift from sessions 96–100 (Tasks removal, Support Inbox removal, Tiptap migration, UserHubAccess removal, MemberImport removal, Phase 2 scaffolding removal, Site Banner removal, Course drip removal).
+
+- **RIM_Hub_Model.md** — hub count corrected (14 operational + 2 governance), Tasks section removed entirely, Support Hub tools cleared, core sections updated from 5 to 4, RimProseEditor → RimTiptapEditor, BlockNote JSON → HTML throughout, UserHubAccess removed from access matrix and schema rows, schema rows for UserHubAccess/TaskList/Task/Subtask removed.
+- **RIM_Feature_Interconnections.md** — Tasks removed from Hubs section, Support Inbox section deleted entirely, Editor System section rewritten (Tiptap-primary, BlockNote references removed), Email System consolidated (one pipeline, Gmail removed), Learning System BlockNote → Tiptap, CSS Architecture Inter → Open Sans (fix from session 84), Webflow migration reference replaced with legacy shim note.
+- **RIM_System_Architecture.md** — s73-vs-s76 Registrar Hub inconsistency resolved ("What's Next" paragraph rewritten to accurately describe both sessions), hub count updated, /tools/inbox removed from tools list, hub-access removed from member profile section registry, Tasks removed from Hub Model section list.
+- **FEATURES.md** — Phase 2 scaffolding models removed from §7; Memberstack import removed from §11; Support Inbox §29 updated (PARKED → REMOVED, session 100); Site-Wide Banner §36 marked removed; AlertStrip §35 Alert-model note corrected; Tools table updated (Support Inbox row removed).
+- **RIM_Stack_Reference.md** — Support Inbox/drip/banner marked removed; Gmail API integration marked removed; SUPPORT role marked removed; BASE_URL note updated (removed references to deleted files).
+- **CLEANUP.md** — Theme F section converted from decision table to resolution notes for all 7 items.
+
+---
+
+## 2026-05-06 (session 100) — Theme D + Theme E: direct code residue and decision-needed items removed
+
+### What was done
+
+Major removal pass across code, schema, and config — resolving all Theme D and Theme E items from CLEANUP.md. This was the biggest code-deletion session since the Tiptap migration.
+
+**Theme D (direct residue):**
+- `missing-reports` cron removed from `vercel.json` (route never existed)
+- Four broken redirects (`/volunteer*`, `/account/registrar*`) updated to `/tools/programs` and `/tools/programs/:slug`
+- `/api/programs/` audit: all three routes kept (iCal, registrations CSV, manual reminder trigger — all active)
+- Host Schedule residue: already clean
+- `/admin/manual/editor` removed; per-section edit via `/admin/manual/[slug]/edit` is the current approach
+
+**Theme E (decision-needed):**
+- **Support Inbox** — removed entirely: routes (`/tools/inbox`, `/admin/inbox`, `/api/inbox/*`), lib files (`lib/supportNotify.ts`, `lib/supportService.ts`), schema models (`SupportThread`, `SupportMessage`, `SupportNote`, `SupportTemplate`), Support Hub app links, and the SUPPORT role. Gmail OAuth env vars (`GMAIL_CLIENT_ID/CLIENT_SECRET/REDIRECT_URI`) remain in Vercel and require manual removal.
+- **Course drip system** — removed: schema columns (`Course.dripEnabled`, `dripType`, etc.), `lib/drip.ts`, `drip-release` cron in `vercel.json`, and all drip UI in `CourseEditor.tsx` and `LessonEditor.tsx`. No courses were using it.
+- **Site-Wide Banner** — removed: `/admin/banner/`, `SiteBannerStrip` component, schema models (`SiteBanner`), and API routes. Never went operational.
+- **UserToolAccess** — kept. Intended for future use; managed via Neon console.
+- **UserHubAccess** — removed. `HubMember` is the authoritative model; `UserHubAccess` was unenforced and unused.
+- **sectionGrants String[]** — kept. Deliberate future hook; cheap to retain.
+- **/admin/editor-lab** — removed.
+- **Memberstack CSV import** — removed: `MemberImport.tsx`, import route, `legacyMemberstackId` field from schema.
+- **Phase 2 scaffolding** — removed: `MembershipType`, `UserMembership`, `AttendanceRecord` models and their enums all dropped.
+- **Donation table** — kept as write-only ledger (receives Stripe writes from registration dana flow).
+
+**Mid-session hot-fix:** Vercel build failure discovered — `CourseEditor.tsx` had a broken anchor tag (`<` with missing `a` element name), introduced during Theme E cleanup. Fixed and pushed as a separate commit before continuing.
+
+### What this connects to
+
+- **Schema** — five models and several enum types dropped; schema is significantly cleaner.
+- **API routes** — inbox routes, banner routes, import route all gone.
+- **Vercel config** — drip-release cron removed.
+- **Auth** — SUPPORT role removed from the role enum and from all role checks.
+
+---
+
 ## 2026-05-06 (session 99) — Manual reorganization, Hub Documents, drift catch-up, reference docs synced
 
 ### What prompted this session

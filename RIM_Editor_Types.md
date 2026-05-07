@@ -15,7 +15,7 @@ Read this file before working on any editor component, content rendering surface
 >   - `document` → Document type and Page Designer type (the same variant serves both — Page Designer is just the document variant on a placement that registers the Dharma block extensions)
 > - **Storage:** plain HTML strings produced by `editor.getHTML()`. No more JSON walker on the page.
 >
-> **Selection bubble menu** — every variant has a selection-triggered floating toolbar (`BubbleMenu`) that appears next to selected text. This is the primary formatting surface — the user does not have to scroll to a top toolbar. The top toolbar (where it exists for `message` and `document`) is the discovery surface for *insertion-only* actions: inserting an image, table, callout, or dharma block.
+> **Selection bubble menu** — every variant has a selection-triggered floating toolbar (`BubbleMenu`) that appears next to selected text. This is the primary formatting surface — the user does not have to scroll to a top toolbar. The top toolbar (where it exists for `message` and `document`) is the discovery surface for structural elements (lists, blockquote) and *insertion-only* actions (image, table, callout, dharma block). The bubble is for character formatting only: B · I · U · S · Code · Highlight · Link. The document bubble additionally includes H2/H3/H4 heading-level conversion, since changing the level of a selected heading is a selection-driven action. No overlap between toolbar and bubble (session 102).
 >
 > **Format detection at the renderer boundary.** `lib/renderRichContent.ts` and `lib/renderRichContentServer.ts` detect content shape (HTML string, BlockNote JSON, legacy rawHtml object, legacy Tiptap doc JSON) and route to the right path. Unmigrated rows still display correctly — the BlockNote JSON walker remains as a safety net for legacy content. New saves produce HTML strings.
 >
@@ -215,12 +215,11 @@ A new block enters the library through a four-phase process. This is a design co
 - Register it in `components/rim-tiptap/RimTiptapEditor.tsx` under the `documentExtras` array in `buildExtensions()`.
 - Extend the `sanitize-html` allowlist in `lib/renderRichContentTiptap.ts` (document-variant `allowedTags` and `allowedClasses`) so the rendered output preserves the block's classes.
 - Write output CSS for each scope that hosts the Page Designer (`.rim-content--lesson .rim-el-...`, etc.). The same CSS rules also apply inside the editor (`.rt-wrap .ProseMirror .rim-el-...`) so what the author sees is what reads.
-- Add the block to the Editor Lab (`/admin/editor-lab`) for verification.
+- Verify the block in a real placement (drop it into a program, lesson, or hub document).
 
 **Phase 4 — Review and lock-in.**
 
-- Verify in the Editor Lab that the block renders correctly in every scope it's available in.
-- Verify in a real placement (drop it into a program or lesson).
+- Verify in a real placement that the block renders correctly in every scope it's available in (program, lesson, hub document).
 - Commit with a message that names the block and its scopes.
 - Update this document — add the new block to the library roster.
 
@@ -371,33 +370,6 @@ Uses `RimTiptapEditor` with `variant="message"`. The message variant has no top-
 - **Output destination:** interactive web
 - **Output wrapper:** `rim-content hub-conv-post__body`
 
-#### `hub-task`
-- **Schema fields:** `Task.body`, `Subtask.body`
-- **Component:** `HubTasksClient.tsx`
-- **Variant:** message (task), compact (subtask)
-- **Output destination:** interactive web
-- **Output wrapper:** `rim-content tsk-body`
-
-#### `support-reply`
-- **Client state (no schema field)** — reply / compose drafts in Support Inbox.
-- **Component:** `SupportInboxClient.tsx` (reply editor, compose editor)
-- **Variant:** message
-- **Output destination:** transactional email (Gmail API via outbound message)
-
-#### `support-note`
-- **Schema field:** `SupportNote.body`
-- **Component:** `SupportInboxClient.tsx` (internal note editor)
-- **Variant:** message
-- **Output destination:** interactive web (staff-only)
-- **Notes:** Not email-bound. Distinct from `support-reply` so future features (e.g. internal-only images or rich blocks) can be allowed here without leaking to outgoing emails.
-
-#### `support-template`
-- **Schema field:** `SupportTemplate.body`
-- **Component:** `SupportSettingsClient.tsx`
-- **Variant:** message
-- **Output destination:** eventual transactional email (when inserted into a reply)
-- **Notes:** Matches `support-reply` capabilities (email-safe subset).
-
 #### `program-message`
 - **Schema fields:** `Program.confirmationMessage`, `Program.reminderMessage`, `Program.danaMessage`
 - **Component:** `components/registrar/ProgramEditor.tsx`
@@ -413,13 +385,6 @@ Uses `RimTiptapEditor` with `variant="message"`. The message variant has no top-
 - **Output destination:** web template
 - **Output wrapper:** `rim-content crs-desc`
 - **Route:** `/course/[slug]`
-
-#### `site-banner`
-- **Schema field:** `SiteBanner.body`
-- **Component:** `app/admin/banner/page.tsx`
-- **Variant:** message
-- **Output destination:** web template (site-wide layout)
-- **Output wrapper:** `rim-content ban-body`
 
 #### `schedule-submessage`
 - **Schema field:** `SubRequest.message`
@@ -533,5 +498,5 @@ The migration is done one field at a time, per schema, with a commit for each. T
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org*
-*Working document · last updated session 97, 2026-04-28 (Tiptap migration complete)*
+*Working document · last updated session 102, 2026-05-07 (toolbar polish: bubble = inline marks only; stale placements removed)*
 *Supersedes RIM_Editor_Design.md*

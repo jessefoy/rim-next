@@ -6,21 +6,18 @@
 
 ## Active
 
-Nothing actively in flight. Session 99 (2026-05-06) closed with a major regroup focused on documentation sync. Three threads landed:
+Nothing actively in flight. Sessions 100–102 (2026-05-06 to 2026-05-07) completed a full CLEANUP.md pass:
 
-- **Hub Documents and manual chapters** — six new Host Hub Documents (Practice of Hosting, Running a Session, When Things Go Wrong, For Coordinators); manual chapters rewritten in plain language for the average host volunteer (`host-hub`, `host-hub-team-management`, `host-schedule`); new chapters added (`host-rotations`, `host-session-room`, `conversations`); option-B rewrites of `programs` and `registration` from careful UI walkthroughs.
-- **Manual surfacing inside hubs** — new `/account/hub/[slug]/manual` route; "Manual" item in the hub sidebar; `?` icons on hub homes; hub-aware back-link from chapter pages; audience-grouped manual index.
-- **Drift catch-up** — corrected stale claims across the manual (Tasks documented as live but removed in session 96; Support Inbox documented as live but parked since session 88; Google Meet documented but replaced by LiveKit in session 86; "Remove participant" and "Disable video" listed as host controls but neither exists). Section 19 marked REPLACED, Section 29 marked PARKED. Reference docs (`FEATURES.md`, `RIM_System_Architecture.md`, `RIM_Stack_Reference.md`) caught up — 11 session log entries added, intro paragraph rewritten to distinguish active vs parked/removed features.
+- **Session 100** — Theme D + E: removed Support Inbox, Course drip system, Site Banner, UserHubAccess, Memberstack CSV import, Phase 2 scaffolding (MembershipType/UserMembership/AttendanceRecord). Fixed vercel.json (missing-reports cron removed, four broken redirects fixed). Mid-session hot-fix: broken anchor tag in CourseEditor.tsx.
+- **Session 101** — Theme F: documentation sync across RIM_Hub_Model.md, RIM_Feature_Interconnections.md, RIM_System_Architecture.md, FEATURES.md, RIM_Stack_Reference.md.
+- **Session 102** — Theme A closure (Webflow bridge code confirmed gone; Jesse removed Webflow head code and staged pages manually). Editor toolbar polish: duplicates removed from bubble menus (bubbles are now inline-marks-only), Dharma dropdown icons fixed, dead TDropdown props cleaned up, mobile bubble touch targets added.
 
-The session also surfaced a real concern: the closing ritual hasn't been done thoroughly across recent sessions, producing compounding documentation drift. The mechanism is documented in `CLAUDE.md`; the fix is the practice, not new tooling.
+**Theme B (Google Meet) remains.** Items #15–17 are manual steps Jesse will do when ready:
+- #15 — Remove four Google Meet env vars from Vercel project settings
+- #16 — Revoke/delete the service account in Google Cloud Console
+- #17 — Archive or delete `meet1@`–`meet4@` Google Workspace accounts
 
-### Loose ends from session 99
-
-- **Broken redirects in `vercel.json`** — four redirects (`/volunteer*`, `/account/registrar*`) point to `/account/hub/registrar/programs` which no longer exists. They 404. Should be redirected to `/tools/programs` or removed.
-- **`missing-reports` cron** in `vercel.json` — leftover from the deleted Virtual Host Hub Attendance system (session 89). Cleanup pending.
-- **Future option-B depth on remaining chapters.** `course-hub` and `support-inbox` are now short and accurate from option-C; could be expanded with field-by-field detail later if there's a real audience.
-
-Pick from the open threads below.
+Pick from the queued feature work below.
 
 ---
 
