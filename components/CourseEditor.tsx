@@ -527,7 +527,7 @@ export default function CourseEditor({ basePath = "/tools/learning", lessonBaseP
                   >
                     <span className="th-lessons__handle" title="Drag to reorder">☰</span>
                     <span className="th-lessons__name">{item.lesson.titleInternal}</span>
-                    <
+                    <a
                       href={`/lessons/${item.lesson.slug}`}
                       target="_blank"
                       rel="noopener noreferrer"
