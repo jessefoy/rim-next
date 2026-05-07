@@ -20,8 +20,6 @@ export default async function ManualIndexPage() {
     redirect("/login");
   }
 
-  const isAdmin = session.user.roles?.includes("ADMIN") ?? false;
-
   const sections = await db.manualSection.findMany({
     orderBy: { order: "asc" },
     select:  { slug: true, title: true, description: true, hubSlug: true },
@@ -36,11 +34,6 @@ export default async function ManualIndexPage() {
         <p className="man-idx__subtitle">
           Reference documentation for the RIM platform — for everyone who volunteers with Rooted In Mindfulness.
         </p>
-        {isAdmin && (
-          <Link href="/admin/manual/editor" className="man-idx__editor-link">
-            Manage sections →
-          </Link>
-        )}
       </div>
 
       {grouped.map(({ group, sections }) => (

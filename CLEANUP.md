@@ -45,16 +45,14 @@ LiveKit replaced Google Meet in session 86. Code-level removal is complete (item
 
 ## Theme D — Direct code residue
 
-Items definitively present and definitively unused.
+All items resolved in session 100. Notes:
 
-| # | Item | Where | Action |
-|---|---|---|---|
-| 30 | `missing-reports` cron | `vercel.json` | Remove (UP_NEXT loose-end) |
-| 31 | Four broken redirects | `vercel.json` — `/volunteer*`, `/account/registrar*` → `/account/hub/registrar/programs` (404s) | Remove or redirect to `/tools/programs` (UP_NEXT loose-end) |
-| 32 | Legacy `/api/programs/` directory | `app/api/programs/` — should only contain iCal feed; anything else is pre-Postgres residue | Audit + remove non-iCal handlers |
-| 33 | Host Schedule sub-nav residue | Removed Live Session and Journal tab routes from `app/tools/schedule/` | Verify removed; clean up any orphaned components |
-| 34 | `legacyMemberstackId` field | `User` model, `prisma/schema.prisma` | Remove (never populated per FEATURES) |
-| 35 | `/admin/manual/editor` vs per-section `/admin/manual/[slug]/edit` | `app/admin/manual/` | Pick one — likely the per-section edit; remove the other |
+- **#30** `missing-reports` cron — removed from `vercel.json`; route never existed
+- **#31** Four broken redirects — updated to `/tools/programs` and `/tools/programs/:slug`
+- **#32** `/api/programs/` audit — all three routes active (iCal, registrations CSV, manual reminder trigger); kept
+- **#33** Host Schedule residue — already clean; no orphaned components
+- **#34** `legacyMemberstackId` — blocked on #43 (Memberstack CSV import); field is referenced in the import route; resolve together with #43
+- **#35** `/admin/manual/editor` — removed; per-section edit (`/admin/manual/[slug]/edit`) is the current approach; new sections created via seed script
 
 ---
 

@@ -2,10 +2,10 @@
   "redirects": [
     { "source": "/account/hub/teacher",        "destination": "/account/hub/courses",        "permanent": true },
     { "source": "/account/hub/teacher/:path*", "destination": "/account/hub/courses/:path*", "permanent": true },
-    { "source": "/volunteer/programs/:slug", "destination": "/account/hub/registrar/programs/:slug", "permanent": true },
-    { "source": "/volunteer", "destination": "/account/hub/registrar/programs", "permanent": true },
-    { "source": "/account/registrar/:slug", "destination": "/account/hub/registrar/programs/:slug", "permanent": true },
-    { "source": "/account/registrar", "destination": "/account/hub/registrar/programs", "permanent": true },
+    { "source": "/volunteer/programs/:slug", "destination": "/tools/programs/:slug", "permanent": true },
+    { "source": "/volunteer", "destination": "/tools/programs", "permanent": true },
+    { "source": "/account/registrar/:slug", "destination": "/tools/programs/:slug", "permanent": true },
+    { "source": "/account/registrar", "destination": "/tools/programs", "permanent": true },
     { "source": "/account/dashboard-my-registrations", "destination": "/account/programs", "permanent": true },
     { "source": "/account/dashboard-my-library", "destination": "/account/courses", "permanent": true }
   ],
@@ -21,10 +21,6 @@
     {
       "path": "/api/cron/apply-standing-assignments",
       "schedule": "0 8 * * *"
-    },
-    {
-      "path": "/api/cron/missing-reports",
-      "schedule": "0 23 * * *"
     },
     {
       "path": "/api/cron/drip-release",
