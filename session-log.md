@@ -1,5 +1,39 @@
 ---
 
+## 2026-05-07 (session 105) — Session room manual chapter (T2)
+
+### What was done
+
+**T2 — Session room chapter v3.** The `host-session-room` manual chapter already existed (written session 99, corrected session 103 v2). The HOSTING_HUB_READINESS.md inventory had marked it as a gap — correctly, because two significant things were missing: the twelve-minute pre-session section (the relational/pastoral dimension of the host role, the most important thing a host does) and the Step in as Host section (a distinct affordance for host-team members who aren't the assigned host, with a different audience than the rest of the controls).
+
+**Chapter changes (v3):**
+- New opening section: "The twelve minutes before." Holds the relational side of the role — arrive early, welcome people as they filter in, hold the space without an agenda. Drawn from `RIM_Role_Design.md`'s design intent. This is what the role is *for*, and it was completely absent from v1 and v2.
+- New section: "Step in as Host." Who sees this button (host-team members who aren't the assigned host), what it does (grants full host controls without pre-assignment), when to use it (assigned host no-shows, coordinator checking in, second host joining), and that the transition is invisible to participants.
+- Fullscreen button noted in the what-you-see list.
+- Navigation path clarified (Schedule card → Join session, or dashboard).
+- "During the session" makes explicit that the teacher leads content and the host holds the room — the default is presence, not activity.
+- `ManualSection.description` updated to reflect new coverage.
+
+**Help icon (code change, three lines of JSX):** `?` link added to the session page header (`app/session/[slug]/page.tsx`), visible only to `isHostTeam` members. Links to `/admin/manual/host-session-room?from=host-team`, opens in a new tab. Dark-themed `.vs-header__help` CSS class added to `custom.css` (matches the dark session room header — different from the light `.hs-help-icon` on the schedule tool). The user approved this code change explicitly despite the session being characterized as documentation work.
+
+**Backlog entry added:** Architectural question about whether the Step In gate should exist at all (vs. automatic host capability for all active host-team HubMembers). Filed as 2026-05-07-001, priority low, post-cutover.
+
+### What this connects to
+
+- **`prisma/update-manual-host-session-room.mjs`** — chapter content (v3). Wired into `migrate.mjs` with `update_manual_host_session_room_v3` flag.
+- **`app/session/[slug]/page.tsx`** — help icon addition. No functional logic changed; the conditional `isHostTeam && (...)` renders one new anchor element.
+- **`public/css/custom.css`** — `.vs-header__help` styles, placed adjacent to `.vs-header__fullscreen`.
+- **`RIM_Role_Design.md`** — the twelve-minute section draws directly from the "Relational/pastoral" description in the Virtual Host section. That section still has Google Meet implementation language (B3 in HOSTING_HUB_READINESS.md) — that's a separate task.
+- **Training readiness** — T2 is resolved. The one remaining blocker is T3 (hub welcome body), which is a Jesse/Maria content task, not a build.
+
+### Design decisions
+
+- **Step In as its own section, not folded into Host Controls.** The audience is different: the assigned host never sees the Step In button. Folding it into a controls section that only the assigned host has would confuse first-time readers. Its own section, clearly labeled, lets the two audiences navigate independently.
+- **The twelve minutes is the second section, not an afterthought.** Placing it before the technical walkthrough signals its priority. A host reading the chapter linearly encounters the relational framing before they encounter any button.
+- **Honest about the video system being new.** The troubleshooting section says "This video system is newer than what some volunteers have used before." That's the factual situation. Pretending otherwise would undermine trust.
+
+---
+
 ## 2026-05-07 (session 104) — HOST_MANAGER welcome email + paused host badge
 
 ### What was done

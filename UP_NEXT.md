@@ -15,10 +15,7 @@
 
 **Next concrete steps — in priority order from HOSTING_HUB_READINESS.md:**
 
-*(T1 — HOST_MANAGER email and B1 — paused host badge: built session 104, deployed.)*
-
-#### T2 — Session room manual chapter (blocks training)
-New seed file in `prisma/`. Slug: `host-session-room`. Covers: how to navigate to `/session/[slug]`, session room UI, host controls (Mute All, End for All, per-participant), Step in as Host, audio prompt, how to leave. Wire the "?" help icon in `app/session/[slug]/page.tsx`.
+*(T1 — HOST_MANAGER email and B1 — paused host badge: built session 104. T2 — session room chapter v3 + help icon: built session 105. All deployed.)*
 
 #### T3 — Hub welcome body authored (blocks training — Jesse/Maria task, not a build)
 `/account/hub/host-team` welcome body is empty. Jesse or Maria writes it via the inline editor before training. No code needed.

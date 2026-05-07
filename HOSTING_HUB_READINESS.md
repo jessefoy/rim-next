@@ -299,7 +299,7 @@ Not a training blocker — hosts don't touch crons — but the reference doc is 
 | `host-hub` | "?" icon on hub home header | Hub orientation for hosts: what each section is, where to go for what, who's on the team, what you'll find in Documents. Well-written; current as of session 97 rewrite. | Ready |
 | `host-hub-team-management` | Manual table of contents | Coordinator-specific: adding/pausing/removing members, pause decisions (hosting/comms/why), coordinator notes, activity tracking. Well-written and comprehensive. | Ready |
 | `host-schedule` | "?" icon in schedule filter row | Schedule tool for hosts: navigation, 4 actions, modals, filters, standing rotations awareness. Comprehensive. | Ready |
-| *(none)* | — | **Virtual session room for hosts.** Nothing covers: how to navigate to `/session/[slug]`, what the session room UI looks like, host controls (Mute All, End for All, per-participant mute), the "Step in as Host" button, what to do when audio doesn't work, how to leave. A host encountering the room for the first time during a live session has no in-context help. | **Gap: build needed** |
+| `host-session-room` | "?" icon in session room header (host-team members only) | Full host experience: the twelve-minute pre-session window (relational/pastoral dimension), joining, what the room UI looks like, all host controls (Mute All, End for All, per-participant mute, Pin), Step in as Host (its own section — distinct audience), nonverbal signals, Open Access sessions, troubleshooting, ending. Rewritten session 105. | Ready |
 | *(none)* | — | **New host onboarding sequence.** No checklist or "your first week" document: what to do after role assignment, how to navigate the hub, how the schedule works, who to contact, what a typical session looks like. Currently this exists only in the `host-hub` orientation chapter which covers the hub but not the workflow arc. | **Gap: build needed** |
 
 ### Stale references in reference documents
@@ -315,7 +315,7 @@ Not a training blocker — hosts don't touch crons — but the reference doc is 
 | host-hub chapter | Ready | — |
 | host-hub-team-management chapter | Ready | — |
 | host-schedule chapter | Ready | — |
-| Session room chapter for hosts | Gap: build needed | **blocks training** |
+| Session room chapter for hosts | Ready (built session 105) | — |
 | New host onboarding sequence | Gap: build needed | **build before training** |
 | RIM_Role_Design.md Google Meet references | Functional — needs documentation | **build before training** |
 | email.ts comment "to new Meet host" | Functional — needs documentation | **post-cutover** |
@@ -330,7 +330,6 @@ Sorted by training-readiness priority. Each item is decision-ready: description,
 
 | # | Item | Location | Action |
 |---|---|---|---|
-| T2 | Session room manual chapter | `prisma/` (new seed file), `/admin/manual` | Write a chapter covering: how to navigate to a session, what the room looks like, host controls, Step in as Host, audio troubleshooting, how to leave. Slug: `host-session-room`. Wire the "?" help icon in `app/session/[slug]/page.tsx`. |
 | T3 | Hub welcome body — content authored | Hub home at `/account/hub/host-team` | Jesse or Maria authors the welcome message before training. The mechanism works; the field is empty. Coordinator writes it via the inline editor. Not a code change. |
 
 ### Build before training — meaningful improvement, not strict blocker
@@ -366,7 +365,7 @@ The following gaps exist in the system. Training succeeds without them if the ma
 
 **What is ready now:** The core operational loop works. Hosts can sign up, ask for cover, accept cover, and join sessions with host controls. Standing rotations auto-schedule and notify. Sub-request emails fire. The hub has conversations, documents, and a members view. Three manual chapters exist and are current.
 
-**What stands between Maria and a successful training session:** Two blocking items (T2–T3) and three improvement items (B2–B4). The most critical is T2 (session room documentation) — this is the part of the workflow that has no in-context help for a host who has never seen it. T1 (coordinator welcome email) and B1 (paused host badge) are complete as of session 104.
+**What stands between Maria and a successful training session:** One blocking item (T3) and three improvement items (B2–B4). T3 is a content task for Jesse or Maria, not a build. T1 (coordinator welcome email), B1 (paused host badge), and T2 (session room chapter) are complete as of sessions 104–105.
 
 **What to tell the team about the gaps:** The live view and post-session form (D1–D3) were part of the original design and were removed during an earlier rebuild. They are not forgotten — they are intentionally deferred. Training should name them honestly: "We don't have in-session tracking yet. Here's how we handle it for now."
 
