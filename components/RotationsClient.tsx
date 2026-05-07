@@ -29,7 +29,7 @@ import RotationConflictModal from "./RotationConflictModal";
 
 type Occurrence = "FIRST" | "SECOND" | "THIRD" | "FOURTH" | "FIFTH" | "LAST" | "ALL";
 type DayOfWeek = "MO" | "TU" | "WE" | "TH" | "FR" | "SA" | "SU";
-type Pattern = "same" | "alternate" | "pair" | "custom";
+type Pattern = "same" | "alternate" | "custom";
 
 const DAY_LABEL: Record<DayOfWeek, string> = {
   SU: "Sunday", MO: "Monday", TU: "Tuesday", WE: "Wednesday",
@@ -79,18 +79,17 @@ interface FormState {
   dayOfWeek:   DayOfWeek;
   pattern:     Pattern;
   hosts: {
-    every?:      string;
-    oddWk?:      string;  // 1st & 3rd
-    evenWk?:     string;  // 2nd & 4th
-    firstHalf?:  string;  // 1st & 2nd
-    secondHalf?: string;  // 3rd & 4th
-    first?:      string;
-    second?:     string;
-    third?:      string;
-    fourth?:     string;
+    every?:  string;        // same: every week
+    oddWk?:  string;        // alternate: 1st & 3rd
+    evenWk?: string;        // alternate: 2nd & 4th
+    first?:  string;        // custom: 1st
+    second?: string;        // custom: 2nd
+    third?:  string;        // custom: 3rd
+    fourth?: string;        // custom: 4th
   };
-  fifthHost: string;
-  endsOn:    string;
+  fifthHost:      string;
+  fifthExpanded:  boolean;  // whether the 5th-week reveal is open
+  endsOn:         string;
 }
 
 // ─── Pattern detection ──────────────────────────────────────────────────────
@@ -143,21 +142,8 @@ function detectPattern(rows: Rotation[]): { pattern: Pattern; hosts: FormState["
     };
   }
 
-  // "Pair" — 1st === 2nd, 3rd === 4th, 1st !== 3rd
-  if (
-    cells.FIRST && cells.THIRD
-    && cells.FIRST === cells.SECOND
-    && cells.THIRD === cells.FOURTH
-    && cells.FIRST !== cells.THIRD
-  ) {
-    return {
-      pattern: "pair",
-      hosts: { firstHalf: cells.FIRST, secondHalf: cells.THIRD },
-      fifthHost,
-    };
-  }
-
-  // Otherwise custom — just emit each filled cell
+  // Otherwise custom — emit each filled cell (handles "pair" rotations saved
+  // before this pattern was removed; they fall through correctly)
   return {
     pattern: "custom",
     hosts: {
@@ -277,10 +263,11 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       setForm({
         programSlug,
         dayOfWeek,
-        pattern:   "same",
-        hosts:     {},
-        fifthHost: "",
-        endsOn:    "",
+        pattern:       "same",
+        hosts:         {},
+        fifthHost:     "",
+        fifthExpanded: false,
+        endsOn:        "",
       });
     } else {
       const detected = detectPattern(rows);
@@ -293,9 +280,10 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       setForm({
         programSlug,
         dayOfWeek,
-        pattern:   detected.pattern,
-        hosts:     detected.hosts,
-        fifthHost: detected.fifthHost,
+        pattern:       detected.pattern,
+        hosts:         detected.hosts,
+        fifthHost:     detected.fifthHost,
+        fifthExpanded: !!detected.fifthHost,  // expand if already set
         endsOn,
       });
     }
@@ -456,7 +444,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
               )}
             </div>
 
-            <div className="hs-rot__grid">
+            <div className={`hs-rot__grid${editingHere ? " hs-rot__grid--editing" : ""}`}>
               <div className="hs-rot__grid-head">
                 <div></div>
                 <div>1st</div>
@@ -480,7 +468,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                 };
 
                 return (
-                  <div key={d} className="hs-rot__grid-row-wrap">
+                  <div key={d} className={`hs-rot__grid-row-wrap${isEditingThis ? " hs-rot__grid-row-wrap--active" : ""}`}>
                     <div className="hs-rot__grid-row">
                       <div className="hs-rot__grid-day">{DAY_LABEL[d]}</div>
                       <div className="hs-rot__grid-cell" data-label="1st">{hostName(cells.FIRST)  ?? <span className="hs-rot__cell-empty">—</span>}</div>
@@ -654,10 +642,9 @@ function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, sh
     setForm({ ...form, hosts: { ...form.hosts, ...next } });
 
   const PATTERN_OPTIONS: Array<{ value: Pattern; label: string; hint: string }> = [
-    { value: "same",      label: "Same every week",  hint: "One person hosts every session" },
-    { value: "alternate", label: "Alternate",        hint: "Two people, 1st & 3rd / 2nd & 4th" },
-    { value: "pair",      label: "Pair weeks",       hint: "Two people, 1st-2nd / 3rd-4th" },
-    { value: "custom",    label: "Custom",           hint: "Different person each week" },
+    { value: "same",      label: "Same every week", hint: "One person hosts every session" },
+    { value: "alternate", label: "Alternate",       hint: "Two people, 1st & 3rd / 2nd & 4th" },
+    { value: "custom",    label: "Custom",          hint: "Set each week independently" },
   ];
 
   return (
@@ -745,31 +732,6 @@ function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, sh
         </>
       )}
 
-      {form.pattern === "pair" && (
-        <>
-          <div className="pe-field">
-            <span className="pe-field__label">1st &amp; 2nd weeks</span>
-            <select
-              className="pe-select"
-              value={form.hosts.firstHalf ?? ""}
-              onChange={(e) => setHosts({ firstHalf: e.target.value })}
-            >
-              {personOptions}
-            </select>
-          </div>
-          <div className="pe-field">
-            <span className="pe-field__label">3rd &amp; 4th weeks</span>
-            <select
-              className="pe-select"
-              value={form.hosts.secondHalf ?? ""}
-              onChange={(e) => setHosts({ secondHalf: e.target.value })}
-            >
-              {personOptions}
-            </select>
-          </div>
-        </>
-      )}
-
       {form.pattern === "custom" && (
         <>
           {(["first", "second", "third", "fourth"] as const).map((k, i) => (
@@ -787,42 +749,51 @@ function RotationForm({ form, setForm, teamMembers, saving, onSave, onCancel, sh
         </>
       )}
 
-      {/* 5th-week host — copy depends on pattern.
-          Same pattern: blank means main host covers 5ths too (ALL record).
-          Other patterns: blank means skip 5th weeks (no FIFTH record). */}
-      {(() => {
-        const isSame = form.pattern === "same";
-        const mainHostId = form.hosts.every;
-        const mainHostName = mainHostId
-          ? teamMembers.find((m) => m.id === mainHostId)?.displayName ?? null
-          : null;
-        const helpText = isSame
-          ? (mainHostName
-              ? `Leave blank — ${mainHostName} hosts 5th weeks too. Pick someone else to override.`
-              : "Leave blank — same person hosts 5th weeks too. Pick someone else to override.")
-          : "For months with a 5th occurrence (rare). Leave blank to skip those weeks.";
-        const blankLabel = isSame
-          ? `— Same as main host ${mainHostName ? `(${mainHostName})` : ""} —`
-          : "— Skip 5th weeks —";
-        return (
-          <div className="pe-field">
-            <span className="pe-field__label">5th-week host</span>
-            <span className="pe-field__help">{helpText}</span>
+      {/* 5th-week host — collapsed by default; expand via link.
+          Same pattern: blank = main host covers 5ths automatically (ALL record).
+          Other patterns: blank = skip 5th-week occurrences (no FIFTH record).
+          Most months don't have a 5th occurrence so this stays out of the way. */}
+      {form.fifthExpanded ? (
+        <div className="pe-field">
+          <span className="pe-field__label">
+            {form.pattern === "same" ? "5th-week override (optional)" : "5th-week host"}
+          </span>
+          <span className="pe-field__help">
+            {form.pattern === "same"
+              ? "Leave blank and the main host covers 5th weeks automatically."
+              : "For months with a 5th occurrence (rare). Leave blank to skip those weeks."}
+          </span>
+          <div className="pe-inline-row">
             <select
               className="pe-select"
               value={form.fifthHost}
               onChange={(e) => setForm({ ...form, fifthHost: e.target.value })}
             >
-              <option value="">{blankLabel}</option>
+              <option value="">{form.pattern === "same" ? "— Same as main host —" : "— Skip 5th weeks —"}</option>
               {teamMembers.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.displayName}{m.isCoordinator ? " ★" : ""}
                 </option>
               ))}
             </select>
+            <button
+              type="button"
+              className="hs-rot__form-link"
+              onClick={() => setForm({ ...form, fifthHost: "", fifthExpanded: false })}
+            >
+              Remove
+            </button>
           </div>
-        );
-      })()}
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="hs-rot__form-link"
+          onClick={() => setForm({ ...form, fifthExpanded: true })}
+        >
+          {form.pattern === "same" ? "+ Override 5th week (optional)" : "+ Assign 5th-week host (optional)"}
+        </button>
+      )}
 
       {/* End date — collapsed under affordance */}
       {form.endsOn ? (

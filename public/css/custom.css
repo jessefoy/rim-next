@@ -15198,6 +15198,12 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   display: flex;
   flex-direction: column;
   gap: 0;
+  transition: opacity 0.15s;
+}
+/* Dim all rows except the one being edited when a form is open */
+.hs-rot__grid--editing .hs-rot__grid-row-wrap:not(.hs-rot__grid-row-wrap--active) {
+  opacity: 0.4;
+  pointer-events: none;
 }
 .hs-rot__grid-row {
   display: grid;

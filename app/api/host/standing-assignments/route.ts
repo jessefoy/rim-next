@@ -136,17 +136,15 @@ export async function GET(request: Request) {
 interface BundleInput {
   programSlug: string;
   dayOfWeek:   DayOfWeek;
-  pattern:     "same" | "alternate" | "pair" | "custom";
+  pattern:     "same" | "alternate" | "custom";
   hosts: {
-    every?:       string;
-    oddWk?:       string;
-    evenWk?:      string;
-    firstHalf?:   string;
-    secondHalf?:  string;
-    first?:       string;
-    second?:      string;
-    third?:       string;
-    fourth?:      string;
+    every?:  string;
+    oddWk?:  string;
+    evenWk?: string;
+    first?:  string;
+    second?: string;
+    third?:  string;
+    fourth?: string;
   };
   fifthHost?: string | null;
   endsOn?:    string | null;
@@ -174,17 +172,6 @@ function patternToRecords(input: BundleInput): Map<StandingOccurrence, string> {
       if (h.evenWk) {
         out.set("SECOND", h.evenWk);
         out.set("FOURTH", h.evenWk);
-      }
-      break;
-
-    case "pair":
-      if (h.firstHalf) {
-        out.set("FIRST",  h.firstHalf);
-        out.set("SECOND", h.firstHalf);
-      }
-      if (h.secondHalf) {
-        out.set("THIRD",  h.secondHalf);
-        out.set("FOURTH", h.secondHalf);
       }
       break;
 
@@ -219,7 +206,7 @@ export async function POST(request: Request) {
   if (!VALID_DAYS.includes(body.dayOfWeek)) {
     return Response.json({ error: `Invalid dayOfWeek: ${body.dayOfWeek}` }, { status: 400 });
   }
-  if (!["same", "alternate", "pair", "custom"].includes(body.pattern)) {
+  if (!["same", "alternate", "custom"].includes(body.pattern)) {
     return Response.json({ error: `Invalid pattern: ${body.pattern}` }, { status: 400 });
   }
 
