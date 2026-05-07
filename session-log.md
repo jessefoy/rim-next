@@ -18,10 +18,24 @@
 - **All editor surfaces.** The bubble menu cleanup affects every `RimTiptapEditor` placement — hub documents, manual sections, program descriptions, lesson bodies, conversations, course descriptions, volunteer notes, admin notes, household notes, sub-request messages. The rule is now consistent: structure lives in the top toolbar, character formatting lives in the bubble.
 - **Dharma dropdown.** Pull quote, Verse quote, Practice suggestion, Reflection — four distinct icons now. The icons matter for muscle memory and discoverability in a dropdown where text labels are present but icons are the first visual signal.
 
+**3. Hub document export bug fixed (CLEANUP.md item #54).** The export route (`app/api/hub/[slug]/documents/[id]/export/route.ts`) assumed `doc.body` was always a BlockNote JSON array and called `.map()` on it. After the Tiptap migration, `doc.body` is an HTML string — this throws at runtime, silently producing a broken export. The route now detects content type and branches: HTML string → exports as `.html` (full fidelity, no new dependencies); BlockNote JSON array → existing Markdown converter, exports as `.md`; null → `(No content)` fallback. Added `escapeHtml()` for the document title in the HTML wrapper. CLEANUP.md item #54 removed.
+
+This was reclassified mid-session from "future cleanup" to "current data loss bug" — anyone trying to export a document saved post-migration was getting nothing. The right call.
+
+**4. CLEANUP.md discipline recovered in real time.** When closing item #54, the first edit used strikethrough on the resolved row instead of removing it. The CLEANUP.md preamble is explicit: "Don't leave struck-through residue in the residue file." The strikethrough was caught, the preamble was re-read, and the row was removed cleanly. Worth naming: the rule held in practice, not just on paper. That's the kind of small recovery that's easy to skip when tired and that matters a lot for the file staying useful over long sessions.
+
+### What this connects to
+
+- **All hub document placements** — the export fix affects every native hub document across all hubs. Anyone who tried to export a post-migration document was silently failing.
+- **CLEANUP.md Theme G** — item #54 was in the "future-removable" table. It's now gone. The table is shorter and more accurate.
+- **The closing ritual itself** — the discipline recovery in item 4 is why the closing ritual and CLEANUP.md preamble exist: they are the mechanism by which small drift is caught and corrected before it compounds. The ritual is only as good as the habit of re-reading the rules before editing the files.
+
 ### Design decisions that hold
 
 - **Top toolbar = structure. Bubble = inline marks.** This is the modern editor pattern (Medium, Notion, Craft, Bear) and now enforced. The bubble that appears on text selection is for character formatting, not for starting new structural elements. Lists and blockquotes are started on empty lines via the toolbar.
 - **H2/H3/H4 in the document bubble.** The one exception to the above: heading-level conversion is also a selection action (select a paragraph, change its heading level). Keeping H2/H3/H4 in the DocumentBubble is correct — it's a different gesture than "start a new heading."
+- **HTML documents export as HTML.** The export format follows the storage format. Markdown was the right export for BlockNote JSON; HTML is the right export for Tiptap HTML. No lossy conversion, no new dependencies.
+- **Read the preamble before editing a working file.** CLEANUP.md, UP_NEXT.md, and FEATURES.md each have preambles that describe how the file should be maintained. They are the rules for that file. Re-reading before editing is the discipline; catching drift in real time is the practice.
 
 ---
 
