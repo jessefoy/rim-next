@@ -297,6 +297,18 @@ export default function SessionPage() {
         <button className="vs-header__fullscreen" onClick={toggleFullscreen} title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>
           {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
         </button>
+        {isHostTeam && (
+          <a
+            href="/admin/manual/host-session-room?from=host-team"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="vs-header__help"
+            title="How the session room works"
+            aria-label="How the session room works (opens in a new tab)"
+          >
+            ?
+          </a>
+        )}
       </div>
       <div className="vs-room">
         {token && wsUrl && (

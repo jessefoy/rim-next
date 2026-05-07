@@ -13606,6 +13606,23 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   transition: background 0.1s, color 0.1s;
 }
 .vs-header__fullscreen:hover { background: #333; color: #ccc; }
+.vs-header__help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid #444;
+  color: #777;
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color 0.12s, color 0.12s;
+}
+.vs-header__help:hover { border-color: #888; color: #ccc; }
 .vs-page:fullscreen .vs-header { background: #111; border-bottom-color: #222; }
 .vs-page:fullscreen .vs-header__end { background: #c44; }
 .vs-page:fullscreen { background: #000; }

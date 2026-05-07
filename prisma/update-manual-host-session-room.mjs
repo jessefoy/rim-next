@@ -1,75 +1,122 @@
 /**
- * update-manual-host-session-room.mjs — The Session Room chapter (new).
+ * update-manual-host-session-room.mjs — The Session Room chapter.
  *
- * Audience: hosts running a session. Walks through the host's experience
- * inside RIM's video room — joining, what's on screen, the host
- * controls, nonverbal signals, member photos, Open Access notes, and
- * what to do when something looks weird.
+ * Audience: hosts running a virtual session. Walks through the full
+ * host experience: the twelve-minute pre-session window, joining,
+ * what's on screen, host controls (Mute All / End for All / per-
+ * participant / Pin), Step in as Host, nonverbal signals, member
+ * photos, Open Access, and what to do when something misbehaves.
  *
- * Avoids product names — no LiveKit, no RIMConference, no Zoom. The room
- * is "the session room."
+ * v3 additions over v2:
+ *   - The twelve-minute pre-session section (the relational dimension
+ *     of the role, from RIM_Role_Design.md — the most important thing
+ *     a host does, previously unmentioned)
+ *   - Step in as Host section (a distinct host-team affordance, absent
+ *     in v2 despite being wired in the UI)
+ *   - Fullscreen button noted in what-you-see
+ *   - Host role vs. teacher role made more explicit in during-the-session
+ *   - Navigation path to the session room clarified
  *
- * Voice: 8th-grade reading level, plain language, supportive in tone,
- * no model names or system jargon. Same spirit as the other chapters.
+ * Avoids product names (no LiveKit, no RIMConference, no Zoom).
+ * The room is always "the session room."
+ *
+ * Voice: 8th-grade reading level, plain language, warm and practical.
+ * Same spirit as the other host manual chapters.
  *
  * Body is a plain HTML string (post-Tiptap canonical format).
- * Idempotent at the record level. Wired into migrate.mjs with a v1 flag.
+ * Wired into migrate.mjs with a v3 flag.
  */
 
-const SESSION_ROOM_BODY = `<p>The session room is where RIM's online sessions happen. Hosts open it, members join, the teacher leads, and practice unfolds. As a host, you're the first one in and the last one out — opening the room steady so everyone else can settle.</p>
-<p>This chapter walks through what the room looks like, what your host controls do, and the few things that might trip you up.</p>
-<h2>Joining as a host</h2>
-<p>Sign in to RIM. Open your dashboard or the Host Schedule, find the session you're hosting, and click into it. You'll arrive in the room as the host — the system recognizes you because of how you signed in.</p>
-<p>Your browser will ask permission to use your camera and microphone. Click <strong>Allow</strong>. If you don't see the prompt, look for a small icon in the address bar that lets you grant permission.</p>
-<p>Most laptops and phones work fine. If you're using something unusual, test ahead of time during a quiet moment so you're not figuring it out at start time.</p>
+const SESSION_ROOM_BODY = `<p>The session room is where RIM's online sessions happen. As a host, you're the first one in and the last one out — opening the space and holding it steady so practice can unfold. This chapter covers everything from arriving early through closing the room when it's done.</p>
+
+<h2>The twelve minutes before</h2>
+<p>Plan to join the room twelve minutes before the session starts. This isn't waiting around. It's the most important part of hosting.</p>
+<p>As participants filter in, they find someone already there. A familiar presence, or a warm stranger. Greet people as they arrive. If you see a name you don't recognize, welcome them — they may be joining RIM for the first time. Let conversation happen naturally. Ask how someone's doing. You don't need an agenda. The room being settled and welcoming <em>is</em> the agenda.</p>
+<p>This is the relational dimension of the role. It's not less important than the technical side — it's equally important. Presence fosters presence. The room you hold at the start is the room the teacher inherits.</p>
+<p>Technically there's nothing to configure. The room is simply open. Your job is to be there, in it, attending.</p>
+
+<h2>Getting into the room</h2>
+<p>Sign in to your RIM account. From the Host Schedule, find the session card you're hosting and click <strong>Join session</strong>. You can also join from the dashboard's Join button if your program shows one there.</p>
+<p>Your browser will ask permission to use your camera and microphone. Click <strong>Allow</strong>. If you don't see the prompt, look for a small camera or lock icon in your browser's address bar — clicking it lets you grant permission.</p>
+<p>You arrive as host automatically because the system recognizes you from how you signed in. No special code or link is needed.</p>
+<p>If you haven't tested your setup recently, join the room during a quiet moment before a live session — check that your camera and audio work, then leave. Better to find a problem then than at start time.</p>
+
 <h2>What you see when you arrive</h2>
-<p>The first time you join, here's what's there:</p>
+<p>The session room is a full-page video space with a dark header strip across the top. Reading across the header:</p>
 <ul>
-<li><strong>Tiles</strong> — one for each person in the room, with their name. As participants join, more tiles appear. You see your own tile too.</li>
-<li><strong>Your camera and microphone controls</strong> at the bottom — turn them on or off. You arrive with both on by default.</li>
-<li><strong>A chat panel</strong> — opens from the side. Use it for typing notes to the room or to specific people.</li>
-<li><strong>Host buttons in the page header</strong> — Mute All and End for All. Members don't see these.</li>
-<li><strong>A participants panel</strong> — where you can mute one person at a time. The mute is for audio.</li>
+<li><strong>← Leave</strong> — exits you from the room. Other participants stay connected.</li>
+<li>The <strong>program name</strong>, centered.</li>
+<li><strong>Mute All</strong> and <strong>End for All</strong> — your host controls. Members don't see these.</li>
+<li><strong>Fullscreen</strong> — expands the session room to fill your whole screen. Optional, but it helps some hosts stay focused. Press Escape or click the button again to exit.</li>
 </ul>
-<p>If your browser asks for permission to play audio, click yes. Some browsers (especially Safari) require this once per session.</p>
+<p>In the main area:</p>
+<ul>
+<li><strong>Tiles</strong> — one per person in the room, with their name. Yours is there too. More tiles appear as participants join.</li>
+<li><strong>Camera and microphone controls</strong> at the bottom — toggle them on or off any time.</li>
+<li><strong>A chat panel</strong> — opens from the side. Use it for written notes to the whole room or to individual participants.</li>
+<li><strong>A participants panel</strong> — lists everyone in the room and lets you mute individual participants.</li>
+</ul>
+<p>If your browser asks for permission to play audio — a full-screen prompt that blocks the view — click yes. Some browsers, especially Safari, require this once each session. It's normal.</p>
+
 <h2>During the session</h2>
-<p>For most of the session, you don't do much. You're holding the room — present, attentive, available — while the teacher teaches.</p>
-<p>Keep an eye on:</p>
+<p>The teacher leads the content. You hold the room. For most of the session, that means doing very little — staying present, attentive, and available.</p>
+<p>Keep a background awareness of three things:</p>
 <ul>
-<li><strong>Background noise.</strong> If someone's microphone is picking up loud sounds during practice, mute them. They can unmute themselves when they want to speak.</li>
-<li><strong>The chat.</strong> People may write questions or quietly say they're having technical trouble.</li>
-<li><strong>Raised hands.</strong> If someone raises a hand, the system shows a banner so you don't miss it. Either acknowledge them, point it out to the teacher, or use your judgment.</li>
+<li><strong>Background noise.</strong> If someone's microphone is picking up distracting sound during practice, mute them. They can unmute themselves when they want to speak.</li>
+<li><strong>The chat.</strong> Participants may write questions, respond to the teacher, or quietly mention a technical problem. Glance at it periodically. You don't need to respond to everything immediately — but note what's there.</li>
+<li><strong>Raised hands.</strong> A banner appears at the top of your screen when someone raises a hand. Notice it. Address it yourself or let the teacher know when the timing feels right.</li>
 </ul>
-<p>That's the work. You don't have to fill the silence. The room being steady is the help.</p>
-<h2>The host controls — what they do</h2>
-<p>You have a small set of controls that ordinary participants don't.</p>
-<p><strong>Mute a participant.</strong> In the participants panel, click Mute next to someone's name. Their microphone is silenced; they can unmute themselves.</p>
-<p><strong>Mute All.</strong> A button in the page header. Mutes every non-host at once. Useful when the room itself becomes noisy, or as a fast first move during a coordinated disruption.</p>
-<p><strong>End for All.</strong> Also in the page header. Closes the session for everyone. Reserve for emergencies — a coordinated attack, a situation the room can't recover from.</p>
-<p><strong>Pin a participant.</strong> Click on someone's tile to pin them — they fill more of the screen, a "focus" view. Useful when the teacher is leading and their tile should be bigger, or when one participant is responding to something and the room should see them clearly. Click again to unpin.</p>
-<p>The Disruption Response document in the Host Hub Documents tab covers <em>when</em> to use each one. This chapter is about what they are.</p>
+<p>The default is presence, not activity. You don't need to fill the silence, add to what the teacher is saying, or keep the chat going. A steady, attentive host is the help. When you're uncertain whether to do something, wait. The right moment often becomes obvious.</p>
+
+<h2>Host controls</h2>
+<p>You have four controls that regular participants don't.</p>
+<p><strong>Mute (individual).</strong> In the participants panel, click Mute next to any participant's name. Their audio is silenced. They can unmute themselves whenever they want to speak — you're not locking them out.</p>
+<p><strong>Mute All.</strong> The button in the header. Mutes every non-host at once. Use it when background noise is coming from multiple places and individual muting isn't practical, or when you need everyone quiet immediately. It's a blunt instrument — use it purposefully.</p>
+<p><strong>End for All.</strong> Also in the header. Closes the session room for everyone. Reserve this for genuine emergencies — a coordinated disruption, a situation the room can't recover from. A normal end to a session does not use this button. When you use it, the session is over for everyone.</p>
+<p><strong>Pin (focus).</strong> Click any participant's tile to pin them — they fill more of the visible screen. Useful when the teacher is leading and their tile should be more prominent, or when a participant is responding and the room should see them clearly. Click the tile again to unpin.</p>
+<p>The Disruption Response document in the Host Hub's Documents tab covers when to use each of these under specific circumstances. This section is about what they are.</p>
+
+<h2>Step in as Host</h2>
+<p>Any host-team member who joins a session they are <em>not</em> the assigned host for will see a <strong>Step in as Host</strong> button in the header. Regular participants don't see this button.</p>
+<p>Clicking it grants you the full host control set — Mute All, End for All, and individual mutes — without any pre-assignment. Use it when:</p>
+<ul>
+<li>The assigned host hasn't shown up and someone needs to hold the room.</li>
+<li>The host coordinator wants to step in and provide coverage mid-session.</li>
+<li>A second host is joining and wants to share host responsibility with the primary host.</li>
+</ul>
+<p>The transition is invisible to participants — no notification appears. You simply gain the controls and can use them from that point forward.</p>
+<p>If you're the assigned host, you won't see this button. You already have host controls from the moment you join.</p>
+
 <h2>Nonverbal signals</h2>
-<p>Members can use nonverbal signals to indicate something without speaking — a raised hand, a heart for thanks, a folded-hands gratitude, a check for "yes," an x for "no." When someone uses one, a small symbol appears on their tile.</p>
-<p>The raised hand also shows as a banner across the top so you don't miss it. You don't have to respond immediately, but you should know it's there.</p>
+<p>Participants can communicate without speaking — a raised hand, a heart for thanks, a folded-hands gesture of gratitude, a check for yes, an x for no. When someone uses one, a small symbol appears on their tile. The raised hand also triggers a banner at the top of the screen so it doesn't get lost in a full room.</p>
+<p>You don't need to respond to every signal. Being present and aware — letting people see that you see them — is often enough.</p>
+
 <h2>Member photos</h2>
-<p>When members upload a photo to their profile, it appears in the room when their camera is off — a small image instead of a blank tile. It encourages a sense of being seen even when video isn't on.</p>
+<p>Members who have uploaded a profile photo will show that photo in their tile when their camera is off, instead of a blank rectangle. It keeps the room feeling like a gathering of people rather than a grid of names.</p>
+
 <h2>Open Access sessions</h2>
-<p>A few RIM programs are Open Access — guests can join via a shared link without signing in. They appear as named guests in the room.</p>
-<p>These sessions carry slightly more risk because the participants aren't authenticated members. Be a little more attentive to the participants list as people arrive. If a name looks odd or someone won't engage when you reach out, you can remove them preemptively.</p>
-<p>If a coordinated disruption ever happens on an Open Access session, end the session. The link can be reset; the practice space matters more than continuing one occurrence.</p>
+<p>Some programs allow guests to join via a shared link without signing in. They appear in the room under whatever name they entered on the join screen — not necessarily their real name.</p>
+<p>These sessions have a slightly wider door. Be a little more attentive to who's arriving. If someone's presence feels off or they aren't engaging when you reach out, you can use the participants panel to remove them. If a coordinated disruption happens on an Open Access session, end the session. A link can be reset; the practice space matters more than finishing any one occurrence.</p>
+
 <h2>When something looks weird</h2>
-<p>Sometimes the room misbehaves. A participant's audio is silent. A camera won't connect. You disconnect briefly and have to rejoin.</p>
-<p>The first move is almost always <strong>refresh the page</strong>. Most issues clear up. If they don't:</p>
+<p>Technical problems happen. Handling them calmly is part of the job.</p>
+<p>The first move for almost anything is <strong>refresh the page</strong>. You'll reconnect to the room and most issues clear. If that doesn't work:</p>
 <ul>
-<li>Try a different browser (Chrome and Edge are most reliable; Safari is fine on Mac too).</li>
-<li>Restart your camera or microphone by clicking the icons off and back on.</li>
-<li>Rejoin the session if you've fully disconnected.</li>
+<li>Try a different browser. Chrome and Edge are the most reliable. Safari works well on Mac and iPhone.</li>
+<li>Click the camera or microphone icon off and back on to reset the device.</li>
+<li>Leave the session and rejoin if you've fully disconnected.</li>
 </ul>
-<p>If the issue keeps coming back across sessions, message the host coordinator afterward — recurring problems are signals worth flagging.</p>
+<p>If a participant is having trouble, walk them through the same steps: refresh first, then try a different browser or device if that doesn't work.</p>
+<p>This video system is newer than what some volunteers have used before. If something unfamiliar happens, it doesn't mean something is broken — it might just be new. Message the host coordinator afterward with what you saw. That's how the team gets better at handling the edges together.</p>
+
 <h2>Ending the session</h2>
-<p>When the teacher finishes, stay available for a brief moment in case someone has a question or needs help leaving. Then end the session.</p>
-<p>You can leave the session yourself, or click <strong>End for all</strong> to close the room for everyone. Either way, the session is done.</p>
-<p>If something notable happened — a disruption, a participant in distress, a recurring technical issue — message the host coordinator afterward. Brief is fine. The team learns when these get reported.</p>`;
+<p>After the teacher closes the teaching, there's usually a brief settling moment — goodbyes, a closing word, a few quiet seconds. Stay available through that. It's part of holding the room to the end.</p>
+<p>When it's time to close:</p>
+<ul>
+<li>Click <strong>← Leave</strong> to exit yourself. Participants stay connected and will leave on their own.</li>
+<li>Or click <strong>End for All</strong> to close the room for everyone at once. This is the cleaner option when the session is clearly finished.</li>
+</ul>
+<p>After leaving, if anything notable happened — a disruption, a participant who seemed distressed, a technical problem that kept recurring — send a brief note to the host coordinator. A few sentences is enough. The team learns from what gets reported.</p>`;
 
 export async function updateManualHostSessionRoom(db) {
   const existing = await db.manualSection.findUnique({
@@ -79,7 +126,7 @@ export async function updateManualHostSessionRoom(db) {
 
   const data = {
     title: "The Session Room",
-    description: "What hosts see when they open the room — controls, nonverbal signals, raised hands, and what to do when something misbehaves.",
+    description: "What hosts see when they open the room — the twelve-minute welcome window, controls, nonverbal signals, Step in as Host, and what to do when something misbehaves.",
     hubSlug: "host-team",
     body: SESSION_ROOM_BODY,
     relations: ["host-hub", "host-schedule"],
@@ -92,8 +139,6 @@ export async function updateManualHostSessionRoom(db) {
     });
     console.log("  ✔ Updated manual section: host-session-room");
   } else {
-    // Order 9 places it after host-rotations (order 8) in the host-team
-    // chapter cluster.
     await db.manualSection.create({
       data: { slug: "host-session-room", order: 9, ...data },
     });
