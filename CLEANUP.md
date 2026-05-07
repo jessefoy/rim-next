@@ -45,7 +45,6 @@ LiveKit replaced Google Meet in session 86. Code-level removal is complete (item
 
 All items resolved in session 100. Notes:
 
-- **#30** `missing-reports` cron — removed from `vercel.json`; route never existed
 - **#31** Four broken redirects — updated to `/tools/programs` and `/tools/programs/:slug`
 - **#32** `/api/programs/` audit — all three routes active (iCal, registrations CSV, manual reminder trigger); kept
 - **#33** Host Schedule residue — already clean; no orphaned components

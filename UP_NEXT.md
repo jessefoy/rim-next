@@ -6,18 +6,35 @@
 
 ## Active
 
-Nothing actively in flight. Sessions 100–102 (2026-05-06 to 2026-05-07) completed a full CLEANUP.md pass:
-
-- **Session 100** — Theme D + E: removed Support Inbox, Course drip system, Site Banner, UserHubAccess, Memberstack CSV import, Phase 2 scaffolding (MembershipType/UserMembership/AttendanceRecord). Fixed vercel.json (missing-reports cron removed, four broken redirects fixed). Mid-session hot-fix: broken anchor tag in CourseEditor.tsx.
-- **Session 101** — Theme F: documentation sync across RIM_Hub_Model.md, RIM_Feature_Interconnections.md, RIM_System_Architecture.md, FEATURES.md, RIM_Stack_Reference.md.
-- **Session 102** — Theme A closure (Webflow bridge code confirmed gone; Jesse removed Webflow head code and staged pages manually). Editor toolbar polish: duplicates removed from bubble menus (bubbles are now inline-marks-only), Dharma dropdown icons fixed, dead TDropdown props cleaned up, mobile bubble touch targets added.
+**Session 103 (2026-05-07)** produced `HOSTING_HUB_READINESS.md` — a decision-ready readiness inventory of the hosting hub system ahead of the May training session and June 17 Zoom renewal. Seven categories walked; action items T1–T3 (blocks training), B1–B4 (build before training), D1–D4 (acceptable to defer), P1–P3 (post-cutover).
 
 **Theme B (Google Meet) remains.** Items #15–17 are manual steps Jesse will do when ready:
 - #15 — Remove four Google Meet env vars from Vercel project settings
 - #16 — Revoke/delete the service account in Google Cloud Console
 - #17 — Archive or delete `meet1@`–`meet4@` Google Workspace accounts
 
-Pick from the queued feature work below.
+**Next concrete steps — in priority order from HOSTING_HUB_READINESS.md:**
+
+#### T1 — HOST_MANAGER role assignment email (blocks training)
+`lib/email.ts` + `/api/admin/members/[id]/route.ts`. Build `sendHostManagerRoleAssignmentEmail()`. Trigger when HOST_MANAGER is newly added to a member's roles. Template orients the coordinator: hub link, Rotations tab, team management chapter.
+
+#### T2 — Session room manual chapter (blocks training)
+New seed file in `prisma/`. Slug: `host-session-room`. Covers: how to navigate to `/session/[slug]`, session room UI, host controls (Mute All, End for All, per-participant), Step in as Host, audio prompt, how to leave. Wire the "?" help icon in `app/session/[slug]/page.tsx`.
+
+#### T3 — Hub welcome body authored (blocks training — Jesse/Maria task, not a build)
+`/account/hub/host-team` welcome body is empty. Jesse or Maria writes it via the inline editor before training. No code needed.
+
+#### B1 — Paused host visual indicator in schedule (build before training)
+`components/HubScheduleClient.tsx`. When a session row's host is paused or `hostingCapability: false`, add a visual signal. Requires passing pause state through the API.
+
+#### B2 — New host onboarding sequence (build before training)
+Manual chapter: "your first week as a host" — what to do after role assignment, how to find the hub, how to navigate the schedule, who to contact.
+
+#### B3 — RIM_Role_Design.md Google Meet references (build before training)
+Rewrite implementation language in the Virtual Host section to reflect LiveKit. Design intent stays; "log into the room account" / "open the space" / "close the room" goes.
+
+#### B4 — Coordinator-specific schedule guide (build before training)
+Add coordinator section to `host-schedule` chapter: member picker, Rotations tab, reassign-to-me, paused host assignments.
 
 ---
 
