@@ -8,7 +8,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { centralToUtc } from "@/lib/timezone";
+import { centralToUtc, toCentralDatetime } from "@/lib/timezone";
+import { computeTimeText, computeDateText } from "@/lib/programUtils";
 
 export async function GET(
   _req: NextRequest,
@@ -109,8 +110,8 @@ export async function PUT(
   if (body.programNotes !== undefined) data.programNotes = body.programNotes || null;
   if (body.teacherFacilitators !== undefined) data.teacherFacilitators = body.teacherFacilitators;
   if (body.categoryId !== undefined) data.categoryId = body.categoryId || null;
-  if (body.dateText !== undefined) data.dateText = body.dateText || null;
-  if (body.timeText !== undefined) data.timeText = body.timeText || null;
+  // dateText / timeText are server-computed below from the source fields,
+  // so we ignore whatever the client sends here.
   if (body.programFormat !== undefined) data.programFormat = body.programFormat;
   if (body.venue !== undefined) data.venue = body.venue;
   if (body.locationText !== undefined) data.locationText = body.locationText || null;
@@ -155,6 +156,30 @@ export async function PUT(
       data.guestAccessKey = null;
     }
   }
+
+  // Recompute dateText / timeText from the merged source values (incoming
+  // body fields override existing ones; everything else falls back to the
+  // stored program). These are caches of the source fields and must be
+  // refreshed on every save so they never drift.
+  const startSource =
+    body.startDatetime !== undefined
+      ? body.startDatetime
+      : toCentralDatetime(existing.startDatetime);
+  const endSource =
+    body.endDatetime !== undefined
+      ? body.endDatetime
+      : toCentralDatetime(existing.endDatetime);
+  const freqSource =
+    body.recurrenceFreq !== undefined ? body.recurrenceFreq : existing.recurrenceFreq;
+  const daysSource =
+    body.recurrenceDays !== undefined ? body.recurrenceDays : existing.recurrenceDays;
+  const intervalSource =
+    body.recurrenceInterval !== undefined
+      ? body.recurrenceInterval
+      : existing.recurrenceInterval;
+
+  data.dateText = computeDateText(startSource, freqSource, daysSource, intervalSource) || null;
+  data.timeText = computeTimeText(startSource, endSource) || null;
 
   const updated = await db.program.update({
     where: { slug },

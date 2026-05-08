@@ -8,6 +8,7 @@ import { randomBytes } from "crypto";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { centralToUtc } from "@/lib/timezone";
+import { computeTimeText, computeDateText } from "@/lib/programUtils";
 import { sendNewProgramNeedsHostEmail } from "@/lib/email";
 import { getHubNotificationRecipients } from "@/lib/toolAuth";
 
@@ -54,8 +55,15 @@ export async function POST(request: NextRequest) {
       pullQuoteSource: body.pullQuoteSource || null,
       teacherFacilitators: body.teacherFacilitators ?? [],
       categoryId: body.categoryId || null,
-      dateText: body.dateText || null,
-      timeText: body.timeText || null,
+      // dateText / timeText are server-computed from the source fields so they
+      // never drift. Any value the client sends is ignored.
+      dateText: computeDateText(
+        body.startDatetime,
+        body.recurrenceFreq,
+        body.recurrenceDays ?? [],
+        body.recurrenceInterval,
+      ) || null,
+      timeText: computeTimeText(body.startDatetime, body.endDatetime) || null,
       programFormat: body.programFormat || "in-person",
       venue: body.venue || "at-rim",
       locationText: body.locationText || null,
