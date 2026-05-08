@@ -43,6 +43,8 @@ const HOST_SCHEDULE_BODY = `<p>Welcome. The Host Schedule is where you see what'
 <li><strong>Cards</strong> — each card is one upcoming session. Date and time, the program name and format, who's hosting (or whether nobody has signed up yet), and a button if there's something for you to do.</li>
 <li><strong>"Earlier this month"</strong> — a quiet, collapsed section at the bottom. It holds the sessions that already happened. You can open it for reference, but you can't take action on past sessions.</li>
 </ul>
+<p>If the host coordinator has placed you on a recurring rotation (e.g. "1st &amp; 3rd Thursdays"), you'll also see a <strong>Your rotations</strong> panel near the top — one card per program, with the date and time of your next session on the right. It's there so you can see at a glance what's putting sessions on your calendar.</p>
+<p>Below the filter pills, a small <strong>Print my schedule</strong> link opens a date-range form where you can download a PDF of your assigned sessions and standing rotations. The PDF lists each session with its date, time, program, and format, with the next upcoming session marked. Helpful for the fridge, a printout, or sharing with a partner who handles your calendar.</p>
 <h2>The four buttons you might see</h2>
 <p>There are really only four actions you'll ever take from this page. Each one is a clearly-labeled button on a session card.</p>
 <h3>"Yes, I can host this"</h3>

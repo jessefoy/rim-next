@@ -74,6 +74,7 @@ The Webflow-built site at `rootedinmindfulness.org` is the live public-facing do
 | File storage | Vercel Blob | `@vercel/blob` + `@vercel/blob/client` — client-side upload pattern (browser → Blob direct, bypasses 4.5 MB serverless limit); max 500 MB; `BLOB_READ_WRITE_TOKEN` env var |
 | Webflow bridge | `public/rim-connect.js` (v3) | Populates `data-rim-*` attributes on Webflow pages from `/api/public/*` endpoints. Served from `https://rim-next.vercel.app/rim-connect.js`. Site-wide head code lives in Webflow Site Settings → Custom Code → Head Code (preconnect + hide-style + script tag). `[data-rim-page]` containers fade in when populated (opacity 0 → 1, 120ms) to eliminate placeholder flash. See `RIM_Webflow_Fields.md` for attribute + payload reference. |
 | Public API cache policy | `/api/public/*` route handlers | Default headers: `Cache-Control: public, s-maxage=300, stale-while-revalidate=86400`, plus explicit `CDN-Cache-Control` + `Vercel-CDN-Cache-Control` copies of the same value. The explicit CDN headers are required — Vercel sanitizes the browser `Cache-Control` and drops `s-maxage` by default. Template: `app/api/public/programs/[slug]/route.ts`. |
+| PDF generation | `@react-pdf/renderer` `^4.5.1` | React-based PDF library — server-side rendering via `renderToBuffer()`, no headless Chromium required. Runs on Vercel serverless out of the box. First use: schedule export at `app/api/host/schedule/pdf/route.ts` + `ScheduleDocument.tsx` (session 109). Layout uses `<Document>`/`<Page>`/`<Text>`/`<View>` with `StyleSheet.create()`. |
 
 ---
 

@@ -2095,6 +2095,20 @@ async function main() {
     console.log("  ⏭ Manual host-schedule v3 already applied.");
   }
 
+  // Manual chapter: host-schedule (v4) — adds "Your rotations" panel and
+  // "Print my schedule" PDF export to the "What you see when you arrive"
+  // section (session 109).
+  const updateHostScheduleV4Flag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_host_schedule_v4'
+  `).catch(() => []);
+
+  if (updateHostScheduleV4Flag.length === 0) {
+    await updateManualHostSchedule(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_schedule_v4')`);
+  } else {
+    console.log("  ⏭ Manual host-schedule v4 already applied.");
+  }
+
   // Host hub training document — sent to hosts before the May training session.
   // "Training Session — May 2026": what's changing, pre-reading links, agenda,
   // post-training steps, cutover timeline with [TBD] placeholders.

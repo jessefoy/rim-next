@@ -6,15 +6,13 @@
 
 ## Active
 
-**Session 108 (2026-05-07)** completed schedule tool polish ahead of the Maria training session.
+**Session 109 (2026-05-07/08)** finished the schedule tool work and shipped a real PDF export. All commits merged to `main`.
 
-- **Standing Rotations panel**: grouped by program (multiple occurrence records now show as one chip), chip layout replaces gray-box paragraph list. `HubScheduleClient.tsx` + CSS.
-- **Form cleanup**: "Pair weeks" pattern removed (3 patterns remain: Same / Alternate / Custom). 5th-week host field collapsed behind a reveal link by default. Grid dims to 40% opacity on non-editing rows while a form is open. `RotationsClient.tsx` + API route validation.
-- **Pattern preview**: last 6 upcoming sessions with projected host names, shown live as the form is filled. Pure client-side logic. `RotationsClient.tsx` + CSS.
+- **Your rotations panel** — chip layout replaced with stacked white cards: program name + pattern meta on the left, "NEXT" microlabel + next session date·time on the right. Driven by a new `nextSessionBySlug` query in `app/tools/schedule/page.tsx`.
+- **Schedule PDF export** — `/tools/schedule/print` is now a date-range form that hands off to `GET /api/host/schedule/pdf?from=&to=`, which streams a real PDF rendered with `@react-pdf/renderer` (no headless Chromium; works on Vercel serverless). Tabular layout: column header (Day · Date · Time · Program · Format), month dividers, summary line ("7 sessions · Thursdays at 8:15 AM"), next-session marker with teal ▸ + pale teal row tint, fixed footer.
+- **Program label drift fix** — `dateText` / `timeText` were stale on the public listing because the editor's "dirty" override mechanism couldn't tell first-save auto-defaults from real overrides. Dropped the override entirely; both fields are now server-computed from source fields on every POST/PUT. Editor inputs are read-only previews. `lib/programUtils.ts` gained `computeTimeText` + `computeDateText`. Existing rows self-heal via a `prisma/migrate.mjs` entry (`recache_program_date_time_text`) that walks all programs every deploy and only writes when the cached label differs.
 
-All deployed. Vercel build triggered from branch `claude/stoic-mendel-eb67fc`.
-
-**Next concrete step:** Jesse reviews on Vercel, then sets [TBD] dates in `TRAINING_PLAN.md` and the hub training document, coordinates Maria's onboarding per §2 of the plan.
+**Next concrete step:** Maria training session per `TRAINING_PLAN.md`. Jesse confirms PDF render quality and rotation panel behavior on production, then sets [TBD] training dates.
 
 **Theme B (Google Meet) remains.** Items #15–17 are manual steps Jesse will do when ready:
 - #15 — Remove four Google Meet env vars from Vercel project settings

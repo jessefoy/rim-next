@@ -2047,6 +2047,14 @@ Replaced CSS class–based layout with pure inline styles (immune to global `but
 
 **`dashboardShowAt` timezone:** PUT and POST routes used `new Date(body.dashboardShowAt)` — Node.js treats bare ISO strings as UTC, causing a 5–6 hour offset. Fixed to `centralToUtc()` consistent with all other datetime fields.
 
+### Schedule Label / Time Label — drift fix (session 109, 2026-05-07)
+
+Followup to the session 83 work: the `dirty` mechanism still drifted for any program saved more than once. The editor wrote the auto-computed value back to the DB on save; on next load, `stored == computed` at save time, but later (after a `startDatetime` change) `stored != computed`, falsely tripping the dirty check and freezing the label at the value it had at first save. Real-world symptom: Essential Dharma Study showed 9:30 AM on the public listing while the editor's start time was 8:15 AM.
+
+Fix: drop the override mechanism entirely. `dateText` and `timeText` are now caches of the source fields, recomputed by the server on every `POST /api/programs-pg` and every `PUT /api/programs-pg/[slug]` from the merged body + existing values. Compute helpers (`computeTimeText`, `computeDateText`) lifted from the editor into `lib/programUtils.ts` so server and client share the same logic. The editor inputs are now `readOnly` previews with the help text "Auto-generated from your start and end times — change those above to update." The PUT handler reads the existing program for any source field not in the request body so partial updates still recompute correctly. A new entry in `prisma/migrate.mjs` (`recache_program_date_time_text`) walks every program on every deploy and refreshes any whose cached label disagrees with the freshly computed one — cheap, idempotent, left in place as drift insurance.
+
+**Lesson worth remembering (and recorded as a feedback memory):** when a stored value is meant to be a cache of source fields, the server should always recompute it on write, never trust client-sent values. The override-with-auto-default pattern is a footgun whenever the auto value is also written to the DB — the "is this overridden?" inference has no way to tell the two states apart on next load.
+
 ---
 
 ## 42. Hub Membership as Authority ✅ Built — session 92 Phase 3 (2026-04-22)
@@ -2306,7 +2314,7 @@ Pattern options: **Same every week** (one ALL record), **Alternate** (1st & 3rd 
 
 Save applies immediately (current + future months through `endsOn` horizon, leave-mode). Conflict modal shows if any sessions had existing assignments. Toast confirms fill count.
 
-**Host-side awareness panel** (`HubScheduleClient.tsx`): hosts see a compact chip strip above the schedule showing their active rotations. Multiple DB records for the same program (e.g. FIRST + THIRD from an alternate pattern) are grouped into one chip with a readable label ("1st & 3rd of the month"). End date shown as month/year if set.
+**Host-side awareness panel** (`HubScheduleClient.tsx`): hosts see a "Your rotations" panel above the schedule showing their active rotations as stacked horizontal cards (session 109). Each card has the program name + pattern meta on the left ("1st & 3rd of the month · until Dec 2026") and a "NEXT" microlabel + date·time of the next upcoming session on the right. Multiple DB records for the same program (e.g. FIRST + THIRD from an alternate pattern) are grouped into one card. The next-session date is fetched as a separate DB query in `app/tools/schedule/page.tsx` (`nextSessionBySlug`) so it always reflects the real next assignment regardless of which calendar month is open.
 
 **Tab strip** (`HubScheduleClient.tsx`): `hs-viewtabs` / `hs-viewtab` / `hs-viewtab--active` pill tabs toggle between Schedule and Rotations views (manager-only).
 
@@ -2330,6 +2338,42 @@ Save applies immediately (current + future months through `endsOn` horizon, leav
 - `components/HubScheduleClient.tsx` — Rotations tab mount
 - `prisma/schema.prisma` — `StandingAssignment` + `StandingOccurrence`
 - `public/css/custom.css` — `hs-viewtabs`, `hs-rot-*` styles
+
+---
+
+## 46. Schedule PDF Export ✅ Built — session 109 (2026-05-07)
+
+### What it does
+
+Hosts can download a PDF of their personal schedule from `/tools/schedule/print`. A small form with date pickers (default: today through end of next month) plus a "Download PDF" button that opens the PDF in a new tab — the browser's PDF viewer shows it inline with its own Save action. A "Print my schedule" link below the filter pills on the main schedule page (`HubScheduleClient.tsx`) is the entry point.
+
+### Implementation
+
+Server-rendered with `@react-pdf/renderer` v4.5.1 — a React-based PDF library (no headless Chromium), so it runs cleanly on Vercel's serverless runtime without any extra setup or large bundles.
+
+`GET /api/host/schedule/pdf?from=YYYY-MM-DD&to=YYYY-MM-DD` (NodeJS runtime, dynamic) fetches the user's `HostAssignment` records in the date range, their active `StandingAssignment` records, and the relevant `Program` rows for joins. Builds a flat session list, marks the first session whose date is ≥ now as "next," and groups standing rotations by program slug (same `formatOccurrences` logic the hub panel uses). Renders via `renderToBuffer(ScheduleDocument(props))` and streams `application/pdf`.
+
+### PDF layout
+
+Letter, Helvetica, 50pt side margins, fixed footer.
+
+- **Header**: title + range + auto-summary line ("7 sessions · Thursdays at 8:15 AM" when day-of-week and time are uniform across all sessions; just count otherwise).
+- **Standing Rotations section**: tabular — program name on the left, occurrence pattern + end date on the right.
+- **Sessions section**: tabular — Day (Thu) · Date (May 14) · Time (8:15 AM) · Program · Format. Month dividers ("MAY 2026", "JUNE 2026") chunk the rows. The next upcoming session has a teal ▸ marker in a leftmost column and a pale-teal row background. Column header is `fixed` so it repeats automatically when the table wraps to a new page.
+- **Footer (fixed)**: "Schedule for [Name] · Generated [date] · rootedinmindfulness.org".
+
+### Type sizes
+
+Tuned for arm's-length printed reading: 17pt title, 10pt body, 9pt format column (slightly muted as secondary), 8pt section eyebrows / column headers, 8pt footer. Content fits two months on one page comfortably; longer ranges paginate cleanly with the fixed header.
+
+### Key files
+
+- `app/api/host/schedule/pdf/route.ts` — route handler (data fetch + PDF stream)
+- `app/api/host/schedule/pdf/ScheduleDocument.tsx` — React-PDF document component
+- `app/tools/schedule/print/page.tsx` — the date-range form page
+- `app/tools/schedule/print/PrintControls.tsx` — client component with date inputs + Download link
+- `components/HubScheduleClient.tsx` — "Print my schedule" link below filter pills
+- `package.json` — `@react-pdf/renderer ^4.5.1` dep added
 
 ---
 
