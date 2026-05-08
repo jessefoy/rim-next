@@ -12,7 +12,7 @@ import { NextRequest } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { renderToBuffer } from "@react-pdf/renderer";
-import { ScheduleDocument } from "./ScheduleDocument";
+import { ScheduleDocument, type PdfSession } from "./ScheduleDocument";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -40,26 +40,55 @@ function parseDate(raw: string | null, fallback: Date): Date {
   return isNaN(d.getTime()) ? fallback : d;
 }
 
-function ctDateStr(iso: string): string {
-  // YYYY-MM-DD in CT
-  const d = new Date(iso);
-  const parts = d.toLocaleDateString("en-US", {
-    timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit",
-  }).split("/");
-  return `${parts[2]}-${parts[0]}-${parts[1]}`;
-}
 function fmtDateLong(d: Date): string {
   return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 }
-function fmtDateDay(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    timeZone: TZ, weekday: "short", month: "long", day: "numeric",
-  });
+function fmtDay(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", { timeZone: TZ, weekday: "short" });
+}
+function fmtDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", { timeZone: TZ, month: "short", day: "numeric" });
 }
 function fmtTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("en-US", {
     timeZone: TZ, hour: "numeric", minute: "2-digit",
   });
+}
+function monthKey(iso: string): string {
+  // YYYY-MM in CT
+  const d = new Date(iso);
+  const parts = d.toLocaleDateString("en-US", {
+    timeZone: TZ, year: "numeric", month: "2-digit",
+  }).split("/");
+  return `${parts[2]}-${parts[0]}`;
+}
+function monthLabel(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", {
+    timeZone: TZ, month: "long", year: "numeric",
+  });
+}
+
+const DOW_FULL: Record<string, string> = {
+  Sun: "Sunday", Mon: "Monday", Tue: "Tuesday", Wed: "Wednesday",
+  Thu: "Thursday", Fri: "Friday", Sat: "Saturday",
+};
+
+function buildSummary(sessions: PdfSession[]): string | null {
+  if (sessions.length === 0) return null;
+  const count = `${sessions.length} session${sessions.length === 1 ? "" : "s"}`;
+
+  const firstDow  = sessions[0].dayShort;
+  const firstTime = sessions[0].timeLabel;
+  const allSameDow  = sessions.every(s => s.dayShort  === firstDow);
+  const allSameTime = sessions.every(s => s.timeLabel === firstTime);
+
+  if (allSameDow && allSameTime) {
+    return `${count} · ${DOW_FULL[firstDow] ?? firstDow}s at ${firstTime}`;
+  }
+  if (allSameDow) {
+    return `${count} · ${DOW_FULL[firstDow] ?? firstDow}s`;
+  }
+  return count;
 }
 
 export async function GET(req: NextRequest) {
@@ -106,32 +135,30 @@ export async function GET(req: NextRequest) {
 
   const programBySlug = new Map(pgPrograms.map(p => [p.slug, p]));
 
-  const sessions = assignments
-    .filter(a => a.sessionDate != null)
-    .map(a => {
-      const iso = a.sessionDate!.toISOString();
-      const p = programBySlug.get(a.programSlug);
-      const fmt = p?.programFormat;
-      return {
-        dateStr:     ctDateStr(iso),
-        dateLabel:   fmtDateDay(iso),
-        programName: p?.name ?? a.programSlug,
-        timeLabel:   fmtTime(iso),
-        formatLabel: fmt === "virtual" ? "Virtual"
-                   : fmt === "hybrid"  ? "In-person & virtual"
-                   : "",
-      };
-    });
+  // Build flat session list. The first session whose date is >= now gets isNext.
+  const filtered = assignments.filter(a => a.sessionDate != null);
+  let nextMarked = false;
+  const sessions: PdfSession[] = filtered.map(a => {
+    const iso = a.sessionDate!.toISOString();
+    const p = programBySlug.get(a.programSlug);
+    const fmt = p?.programFormat;
+    const isNext = !nextMarked && a.sessionDate!.getTime() >= now.getTime();
+    if (isNext) nextMarked = true;
+    return {
+      dayShort:    fmtDay(iso),
+      dateLabel:   fmtDate(iso),
+      timeLabel:   fmtTime(iso),
+      programName: p?.name ?? a.programSlug,
+      formatLabel: fmt === "virtual" ? "Virtual"
+                 : fmt === "hybrid"  ? "In-person & virtual"
+                 : "",
+      monthKey:    monthKey(iso),
+      monthLabel:  monthLabel(iso),
+      isNext,
+    };
+  });
 
-  const dayMap = new Map<string, typeof sessions>();
-  for (const s of sessions) {
-    if (!dayMap.has(s.dateStr)) dayMap.set(s.dateStr, []);
-    dayMap.get(s.dateStr)!.push(s);
-  }
-  const days = Array.from(dayMap.entries())
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([dateStr, daySessions]) => ({ dateStr, daySessions }));
-
+  // Standing rotations
   const rotGrouped = new Map<string, { name: string; occs: Set<string>; endsOn: string | null }>();
   for (const r of rotationsRaw) {
     if (!rotGrouped.has(r.programSlug)) {
@@ -164,11 +191,12 @@ export async function GET(req: NextRequest) {
     ScheduleDocument({
       title: "My Host Schedule",
       rangeLabel: `${fmtDateLong(fromDate)} – ${fmtDateLong(toDate)}`,
+      summaryLabel: buildSummary(sessions),
       rotations,
-      days,
+      sessions,
+      totalSessions: sessions.length,
       userName,
       generatedAt,
-      totalSessions: sessions.length,
     }),
   );
 
