@@ -1,8 +1,13 @@
 /**
  * ScheduleDocument — @react-pdf/renderer document for the host schedule.
- * Letter page, Helvetica, modest 3-color palette: black ink, mid-grey for
- * meta, hairline rules. Designed to match the calm density of the rest of
- * RIM's tools.
+ *
+ * Layout: Letter, Helvetica.
+ * Sessions render as a clean table with month dividers — eye sweeps the
+ * date column. The next upcoming session has a left ▸ marker and a
+ * subtle teal-tinted row.
+ *
+ * Type sizes are tuned for arm's-length printed reading:
+ * - 17pt title, 10pt body, 9pt secondary, 8pt section eyebrows.
  */
 
 import {
@@ -10,10 +15,14 @@ import {
 } from "@react-pdf/renderer";
 
 const COLORS = {
-  text: "#222",
-  mid:  "#7a7068",
-  rule: "#d5d5d5",
-  bg:   "#f5f5f5",
+  text:     "#222",
+  textMid:  "#555",
+  mid:      "#7a7068",
+  midLight: "#a39b95",
+  rule:     "#d5d5d5",
+  ruleSoft: "#e8e6e3",
+  accent:   "#135274", // RIM teal
+  nextBg:   "#eef5f9", // pale teal tint for the next-session row
 };
 
 const styles = StyleSheet.create({
@@ -23,60 +32,86 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     paddingTop: 48,
     paddingBottom: 56,
-    paddingHorizontal: 56,
+    paddingHorizontal: 50,
     lineHeight: 1.4,
   },
 
-  header: { marginBottom: 22 },
-  title: { fontSize: 18, fontWeight: 600, marginBottom: 4 },
-  range: { fontSize: 10, color: COLORS.mid },
+  // Header
+  header:   { marginBottom: 22 },
+  title:    { fontSize: 17, fontWeight: 700, marginBottom: 3 },
+  range:    { fontSize: 10, color: COLORS.mid, marginBottom: 1 },
+  summary:  { fontSize: 10, color: COLORS.textMid },
 
+  // Section
+  section:        { marginBottom: 22 },
   sectionHeading: {
-    fontSize: 9,
+    fontSize: 8.5,
     fontWeight: 700,
-    letterSpacing: 1,
+    letterSpacing: 1.2,
     color: COLORS.mid,
     textTransform: "uppercase",
     paddingBottom: 5,
-    marginBottom: 8,
+    marginBottom: 6,
     borderBottom: `1pt solid ${COLORS.rule}`,
   },
 
+  // Standing rotations
   rotRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     paddingVertical: 5,
-    borderBottom: `0.5pt solid ${COLORS.rule}`,
+    borderBottom: `0.5pt solid ${COLORS.ruleSoft}`,
   },
   rotName: { fontSize: 10, fontWeight: 500 },
   rotMeta: { fontSize: 10, color: COLORS.mid },
 
-  section: { marginBottom: 22 },
-
-  day: { marginBottom: 12 },
-  dayHeading: {
-    fontSize: 11,
-    fontWeight: 700,
-    paddingBottom: 3,
-    marginBottom: 4,
+  // Session table
+  colHeader: {
+    flexDirection: "row",
+    paddingVertical: 4,
     borderBottom: `0.5pt solid ${COLORS.rule}`,
   },
-  session: {
-    flexDirection: "row",
-    paddingVertical: 3,
-    fontSize: 10,
+  colHeaderText: {
+    fontSize: 7.5,
+    fontWeight: 700,
+    letterSpacing: 1,
+    color: COLORS.midLight,
+    textTransform: "uppercase",
   },
-  sessionName: { flexGrow: 1, fontWeight: 500 },
-  sessionTime: { color: COLORS.mid, marginRight: 14 },
-  sessionFmt:  { color: COLORS.mid, fontSize: 9 },
+
+  monthDivider: {
+    fontSize: 9.5,
+    fontWeight: 700,
+    letterSpacing: 1.5,
+    color: COLORS.text,
+    textTransform: "uppercase",
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+
+  row: {
+    flexDirection: "row",
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    borderBottom: `0.5pt solid ${COLORS.ruleSoft}`,
+  },
+  rowNext: { backgroundColor: COLORS.nextBg },
+
+  // Columns
+  cMarker:  { width: 14, fontSize: 11, fontWeight: 700, color: COLORS.accent },
+  cDay:     { width: 36, color: COLORS.mid },
+  cDate:    { width: 74, fontWeight: 500 },
+  cTime:    { width: 64, color: COLORS.mid },
+  cProgram: { flex: 1, fontWeight: 500, paddingRight: 8 },
+  cFormat:  { width: 80, color: COLORS.mid, fontSize: 9, textAlign: "right" },
 
   empty: { fontSize: 10, color: COLORS.mid, fontStyle: "italic" },
 
   footer: {
     position: "absolute",
     bottom: 28,
-    left: 56,
-    right: 56,
+    left: 50,
+    right: 50,
     fontSize: 8,
     color: COLORS.mid,
     paddingTop: 8,
@@ -86,28 +121,36 @@ const styles = StyleSheet.create({
   },
 });
 
+export interface PdfSession {
+  dayShort:    string; // "Thu"
+  dateLabel:   string; // "May 14"
+  timeLabel:   string; // "8:15 AM"
+  programName: string;
+  formatLabel: string;
+  monthKey:    string; // "2026-05"
+  monthLabel:  string; // "May 2026"
+  isNext:      boolean;
+}
+
 export interface ScheduleDocumentProps {
-  title: string;
-  rangeLabel: string;
-  rotations: Array<{ slug: string; name: string; meta: string }>;
-  days: Array<{
-    dateStr: string;
-    daySessions: Array<{
-      dateStr: string;
-      dateLabel: string;
-      programName: string;
-      timeLabel: string;
-      formatLabel: string;
-    }>;
-  }>;
-  userName: string;
-  generatedAt: string;
+  title:         string;
+  rangeLabel:    string;
+  summaryLabel:  string | null;
+  rotations:     Array<{ slug: string; name: string; meta: string }>;
+  sessions:      PdfSession[];
   totalSessions: number;
+  userName:      string;
+  generatedAt:   string;
 }
 
 export function ScheduleDocument({
-  title, rangeLabel, rotations, days, userName, generatedAt, totalSessions,
+  title, rangeLabel, summaryLabel, rotations, sessions, totalSessions,
+  userName, generatedAt,
 }: ScheduleDocumentProps) {
+
+  // Track month transitions during render so we insert dividers inline.
+  let renderedMonth = "";
+
   return (
     <Document title={title} author="Rooted in Mindfulness">
       <Page size="LETTER" style={styles.page}>
@@ -116,6 +159,7 @@ export function ScheduleDocument({
         <View style={styles.header}>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.range}>{rangeLabel}</Text>
+          {summaryLabel && <Text style={styles.summary}>{summaryLabel}</Text>}
         </View>
 
         {/* Standing rotations */}
@@ -137,25 +181,42 @@ export function ScheduleDocument({
             Sessions ({totalSessions})
           </Text>
 
-          {days.length === 0 ? (
+          {sessions.length === 0 ? (
             <Text style={styles.empty}>
               No sessions assigned in this date range.
             </Text>
           ) : (
-            days.map((d) => (
-              <View key={d.dateStr} style={styles.day} wrap={false}>
-                <Text style={styles.dayHeading}>{d.daySessions[0].dateLabel}</Text>
-                {d.daySessions.map((s, i) => (
-                  <View key={i} style={styles.session}>
-                    <Text style={styles.sessionName}>{s.programName}</Text>
-                    <Text style={styles.sessionTime}>{s.timeLabel}</Text>
-                    {s.formatLabel ? (
-                      <Text style={styles.sessionFmt}>{s.formatLabel}</Text>
-                    ) : null}
-                  </View>
-                ))}
+            <>
+              <View style={styles.colHeader} fixed>
+                <View style={styles.cMarker} />
+                <Text style={[styles.colHeaderText, styles.cDay]}>Day</Text>
+                <Text style={[styles.colHeaderText, styles.cDate]}>Date</Text>
+                <Text style={[styles.colHeaderText, styles.cTime]}>Time</Text>
+                <Text style={[styles.colHeaderText, styles.cProgram]}>Program</Text>
+                <Text style={[styles.colHeaderText, styles.cFormat]}>Format</Text>
               </View>
-            ))
+
+              {sessions.map((s, i) => {
+                const showDivider = s.monthKey !== renderedMonth;
+                renderedMonth = s.monthKey;
+                const rowStyle = s.isNext ? [styles.row, styles.rowNext] : styles.row;
+                return (
+                  <View key={i} wrap={false}>
+                    {showDivider && (
+                      <Text style={styles.monthDivider}>{s.monthLabel}</Text>
+                    )}
+                    <View style={rowStyle}>
+                      <Text style={styles.cMarker}>{s.isNext ? "▸" : ""}</Text>
+                      <Text style={styles.cDay}>{s.dayShort}</Text>
+                      <Text style={styles.cDate}>{s.dateLabel}</Text>
+                      <Text style={styles.cTime}>{s.timeLabel}</Text>
+                      <Text style={styles.cProgram}>{s.programName}</Text>
+                      <Text style={styles.cFormat}>{s.formatLabel}</Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </>
           )}
         </View>
 
