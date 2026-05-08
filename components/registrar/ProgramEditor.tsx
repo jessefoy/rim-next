@@ -569,26 +569,8 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
 
   // Dirty = user typed a custom override. False = keep label in sync with date/recurrence settings.
   // Initialised by comparing stored value to what the compute functions would produce.
-  const [dateTextDirty, setDateTextDirty] = useState(() => {
-    const stored = initialData?.dateText ?? "";
-    if (!stored) return false;
-    const computed = computeDateText(
-      initialData?.startDatetime ?? "",
-      initialData?.recurrenceFreq ?? "",
-      initialData?.recurrenceDays ?? [],
-      initialData?.recurrenceInterval ?? ""
-    );
-    return computed !== stored;
-  });
-  const [timeTextDirty, setTimeTextDirty] = useState(() => {
-    const stored = initialData?.timeText ?? "";
-    if (!stored) return false;
-    const computed = computeTimeText(
-      initialData?.startDatetime ?? "",
-      initialData?.endDatetime ?? ""
-    );
-    return computed !== stored;
-  });
+  // dateText / timeText are server-computed on save (always recomputed from
+  // start/end/recurrence). The editor mirrors them locally as a live preview.
   const [programFormat, setProgramFormat] = useState(initialData?.programFormat ?? "in-person");
   const [venue, setVenue] = useState(initialData?.venue ?? "at-rim");
   const [locationText, setLocationText] = useState(initialData?.locationText ?? "");
@@ -666,19 +648,16 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
     }
   }, [name, isEditing, slugTouched]);
 
+  // Live preview only — server recomputes these on every save.
   useEffect(() => {
-    if (!dateTextDirty) {
-      const computed = computeDateText(startDatetime, recurrenceFreq, recurrenceDays, recurrenceInterval);
-      if (computed && computed !== dateText) setDateText(computed);
-    }
-  }, [dateTextDirty, startDatetime, recurrenceFreq, recurrenceDays, recurrenceInterval]); // eslint-disable-line react-hooks/exhaustive-deps
+    const computed = computeDateText(startDatetime, recurrenceFreq, recurrenceDays, recurrenceInterval);
+    setDateText(computed);
+  }, [startDatetime, recurrenceFreq, recurrenceDays, recurrenceInterval]);
 
   useEffect(() => {
-    if (!timeTextDirty) {
-      const computed = computeTimeText(startDatetime, endDatetime);
-      if (computed && computed !== timeText) setTimeText(computed);
-    }
-  }, [timeTextDirty, startDatetime, endDatetime]); // eslint-disable-line react-hooks/exhaustive-deps
+    const computed = computeTimeText(startDatetime, endDatetime);
+    setTimeText(computed);
+  }, [startDatetime, endDatetime]);
 
   // ── Teacher search ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -1108,14 +1087,14 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
           <div className="pe-card"><div className="pe-form">
             <label className="pe-field">
               <span className="pe-field__label">Schedule Label</span>
-              <span className="pe-field__help">How the schedule appears on the public site — auto-generated from your recurrence and start date. Clear it to regenerate, or type here to override.</span>
-              <input type="text" value={dateText} onChange={(e) => { setDateText(e.target.value); setDateTextDirty(e.target.value !== ""); markDirty(); }} className="pe-input" placeholder="e.g. Tuesdays and Thursdays" />
+              <span className="pe-field__help">How the schedule appears on the public site. Auto-generated from your recurrence and start date — change those above to update.</span>
+              <input type="text" value={dateText} readOnly className="pe-input pe-input--readonly" />
             </label>
 
             <label className="pe-field">
               <span className="pe-field__label">Time Label</span>
-              <span className="pe-field__help">Shown on program cards and in confirmation emails — auto-generated from your start and end times. Clear to regenerate, or type to override.</span>
-              <input type="text" value={timeText} onChange={(e) => { setTimeText(e.target.value); setTimeTextDirty(e.target.value !== ""); markDirty(); }} className="pe-input" placeholder="e.g. 7:00–8:30 PM CT" />
+              <span className="pe-field__help">Shown on program cards and in confirmation emails. Auto-generated from your start and end times — change those above to update.</span>
+              <input type="text" value={timeText} readOnly className="pe-input pe-input--readonly" />
             </label>
 
             <div className="pe-field">
@@ -1280,12 +1259,12 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
             <div className="pe-field">
               <span className="pe-field__label">Start Date &amp; Time</span>
               <span className="pe-field__help">The date range for this program. For single-day events, set both to the same date.</span>
-              <DateTimePicker value={startDatetime} onChange={(v) => { setStartDatetime(v); setDateTextDirty(false); setTimeTextDirty(false); markDirty(); }} />
+              <DateTimePicker value={startDatetime} onChange={(v) => { setStartDatetime(v); markDirty(); }} />
             </div>
 
             <div className="pe-field">
               <span className="pe-field__label">End Date &amp; Time</span>
-              <DateTimePicker value={endDatetime} onChange={(v) => { setEndDatetime(v); setTimeTextDirty(false); markDirty(); }} />
+              <DateTimePicker value={endDatetime} onChange={(v) => { setEndDatetime(v); markDirty(); }} />
             </div>
 
             <div className="pe-field">
@@ -1299,7 +1278,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                   { value: "MONTHLY", label: "Monthly" },
                 ].map((opt) => (
                   <label key={opt.value} className={`pe-option-card${recurrenceFreq === opt.value ? " pe-option-card--active" : ""}`}>
-                    <input type="radio" name="recurrenceFreq" checked={recurrenceFreq === opt.value} onChange={() => { setRecurrenceFreq(opt.value); setDateTextDirty(false); markDirty(); }} />
+                    <input type="radio" name="recurrenceFreq" checked={recurrenceFreq === opt.value} onChange={() => { setRecurrenceFreq(opt.value); markDirty(); }} />
                     <span className="pe-option-card__mark" />
                     {opt.label}
                   </label>
@@ -1316,7 +1295,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                     min="1"
                     max="52"
                     value={recurrenceInterval}
-                    onChange={(e) => { setRecurrenceInterval(e.target.value); setDateTextDirty(false); markDirty(); }}
+                    onChange={(e) => { setRecurrenceInterval(e.target.value); markDirty(); }}
                     className="pe-input pe-input--narrow"
                   />
                   <span>{recurrenceFreq === "DAILY" ? "day(s)" : recurrenceFreq === "WEEKLY" ? "week(s)" : "month(s)"}</span>
@@ -1333,7 +1312,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                       <input
                         type="checkbox"
                         checked={recurrenceDays.includes(d.value)}
-                        onChange={() => { setRecurrenceDays(toggleDay(recurrenceDays, d.value)); setDateTextDirty(false); markDirty(); }}
+                        onChange={() => { setRecurrenceDays(toggleDay(recurrenceDays, d.value)); markDirty(); }}
                       />
                       {d.label}
                     </label>

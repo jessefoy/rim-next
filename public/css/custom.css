@@ -17029,6 +17029,14 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 .pe-input:focus { outline: none; border-color: var(--rim-mid); box-shadow: 0 0 0 3px rgba(57,96,122,0.1); }
 .pe-input:disabled { background: #f5f3f0; color: var(--rim-text-muted); }
+.pe-input--readonly,
+.pe-input[readonly] {
+  background: #f5f3f0;
+  color: var(--rim-mid);
+  cursor: default;
+}
+.pe-input--readonly:focus,
+.pe-input[readonly]:focus { box-shadow: none; border-color: var(--rim-rule); }
 .pe-input--narrow { max-width: 160px; }
 
 .pe-textarea {
