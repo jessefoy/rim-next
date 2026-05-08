@@ -217,24 +217,42 @@ export default async function ScheduleToolPage({
   }
 
   // Serialize the current user's active rotations for the host-side summary.
-  // Just enough to render: program name + occurrence pattern + endsOn label.
   const programNameBySlug = new Map(pgPrograms.map((p) => [p.slug, p.name]));
   const myRotations = myRotationsRaw.map((r) => ({
     id:          r.id,
     programSlug: r.programSlug,
     programName: programNameBySlug.get(r.programSlug) ?? r.programSlug,
     occurrence:  r.occurrence,
+    dayOfWeek:   r.dayOfWeek ?? null,
     endsOn:      r.endsOn?.toISOString() ?? null,
   }));
+
+  // Next upcoming HostAssignment per rotation program for this user.
+  // Drives the "Next" column in the Your Rotations panel.
+  const rotationSlugs = [...new Set(myRotationsRaw.map((r) => r.programSlug))];
+  const nextSessionBySlug: Record<string, string> = {};
+  if (rotationSlugs.length > 0) {
+    const upcoming = await db.hostAssignment.findMany({
+      where: {
+        userId: session.user.id,
+        programSlug: { in: rotationSlugs },
+        sessionDate: { gte: now },
+      },
+      orderBy: { sessionDate: "asc" },
+      select: { programSlug: true, sessionDate: true },
+    });
+    for (const a of upcoming) {
+      if (a.sessionDate && !nextSessionBySlug[a.programSlug]) {
+        nextSessionBySlug[a.programSlug] = a.sessionDate.toISOString();
+      }
+    }
+  }
 
   const serializedPrograms = pgPrograms.map((p) => ({
     id: p.id,
     slug: p.slug,
     name: p.name,
     programFormat: p.programFormat ?? null,
-    // Days the program runs on — drives the rotation editor's grid rows.
-    // For single-day programs this is one entry; for multi-day (e.g. Awakening
-    // The Heart on M/T/Th/Sat) the grid renders one row per day.
     recurrenceDays: p.recurrenceDays ?? [],
   }));
 
@@ -252,6 +270,7 @@ export default async function ScheduleToolPage({
         isHostManager={isHostManager}
         isAdmin={isAdmin}
         myRotations={myRotations}
+        nextSessionBySlug={nextSessionBySlug}
         apiBase="/api/host"
       />
     </div>
