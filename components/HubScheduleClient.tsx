@@ -1054,6 +1054,9 @@ export default function HubScheduleClient({
           ?
         </a>
       </div>
+      <p className="hs-print-bar">
+        <a href="/tools/schedule/print" className="hs-print-link">Print my schedule</a>
+      </p>
 
       {/* Body */}
       {loading ? (
