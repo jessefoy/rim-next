@@ -60,6 +60,7 @@ interface MyRotation {
   programSlug: string;
   programName: string;
   occurrence:  "FIRST" | "SECOND" | "THIRD" | "FOURTH" | "FIFTH" | "LAST" | "ALL";
+  dayOfWeek:   string | null;
   endsOn:      string | null;
 }
 
@@ -95,6 +96,8 @@ interface Props {
   isAdmin?: boolean;
   /** The current user's active standing rotations (host-side summary only). */
   myRotations?: MyRotation[];
+  /** Next upcoming HostAssignment ISO datetime per programSlug — drives the "Next" column. */
+  nextSessionBySlug?: Record<string, string>;
   apiBase?: string;
 }
 
@@ -481,10 +484,23 @@ function formatOccurrences(occs: Set<string>): string {
   return (labels.length === 1 ? labels[0] : labels.slice(0, -1).join(", ") + " & " + labels[labels.length - 1]) + " of the month";
 }
 
+/** Format a next-session ISO datetime as "Tue, May 20 · 8:00 AM" (CT). */
+function formatNextSession(iso: string): string {
+  const d = new Date(iso);
+  const date = d.toLocaleDateString("en-US", {
+    timeZone: TZ, weekday: "short", month: "short", day: "numeric",
+  });
+  const time = d.toLocaleTimeString("en-US", {
+    timeZone: TZ, hour: "numeric", minute: "2-digit",
+  });
+  return `${date} · ${time}`;
+}
+
 export default function HubScheduleClient({
   initialSessions, programs, teamMembers, initialYear, initialMonth,
   currentUserId, currentUserName,
-  isHostManager = false, isAdmin = false, myRotations = [], apiBase = "/api/host",
+  isHostManager = false, isAdmin = false, myRotations = [],
+  nextSessionBySlug = {}, apiBase = "/api/host",
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -878,14 +894,11 @@ export default function HubScheduleClient({
       {view === "schedule" && <>
 
       {/* Your standing rotations — host-side awareness panel.
-          Renders only for users who are on at least one rotation, regardless
-          of role. Coordinators still get the full management view via the
-          Rotations tab; this panel is just "here's what's auto-scheduling you."
-          Multiple records for the same program (e.g. FIRST + THIRD from an
-          alternate pattern) are grouped into one chip per program. */}
+          One card per program. Multiple occurrence records for the same program
+          (e.g. FIRST + THIRD from an alternate pattern) are grouped and the
+          occurrences formatted as a single readable label. The right column
+          shows the next upcoming HostAssignment datetime for that program. */}
       {myRotations.length > 0 && (() => {
-        // Group by programSlug — one chip per program regardless of how many
-        // occurrence records exist.
         const grouped = new Map<string, { programName: string; occs: Set<string>; endsOn: string | null }>();
         for (const r of myRotations) {
           if (!grouped.has(r.programSlug)) {
@@ -895,17 +908,27 @@ export default function HubScheduleClient({
         }
         return (
           <div className="hs-myrot">
-            <span className="hs-myrot__label">Your rotations</span>
+            <p className="hs-myrot__heading">Your rotations</p>
             {Array.from(grouped.entries()).map(([slug, g]) => {
+              const patLabel  = formatOccurrences(g.occs);
               const endsLabel = g.endsOn
                 ? new Date(g.endsOn).toLocaleDateString("en-US", { month: "short", year: "numeric" })
                 : null;
+              const meta      = [patLabel, endsLabel ? `until ${endsLabel}` : null].filter(Boolean).join(" · ");
+              const nextLabel = nextSessionBySlug[slug] ? formatNextSession(nextSessionBySlug[slug]) : null;
               return (
-                <span key={slug} className="hs-myrot__chip">
-                  <span className="hs-myrot__prog">{g.programName}</span>
-                  <span className="hs-myrot__pat">· {formatOccurrences(g.occs)}</span>
-                  {endsLabel && <span className="hs-myrot__until">· until {endsLabel}</span>}
-                </span>
+                <div key={slug} className="hs-myrot__card">
+                  <div className="hs-myrot__left">
+                    <p className="hs-myrot__prog">{g.programName}</p>
+                    <p className="hs-myrot__meta">{meta}</p>
+                  </div>
+                  {nextLabel && (
+                    <div className="hs-myrot__right">
+                      <p className="hs-myrot__next-label">Next</p>
+                      <p className="hs-myrot__next-date">{nextLabel}</p>
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
@@ -1031,6 +1054,9 @@ export default function HubScheduleClient({
           ?
         </a>
       </div>
+      <p className="hs-print-bar">
+        <a href="/tools/schedule/print" className="hs-print-link">Print my schedule</a>
+      </p>
 
       {/* Body */}
       {loading ? (

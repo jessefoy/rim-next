@@ -15852,40 +15852,249 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 
 /* ── Host-side "Your rotations" panel ────────────────────────────────────── *
  * Sits at the top of /tools/schedule for any user on at least one rotation.
- * One chip per program (multiple occurrence records for the same program are
- * grouped). Reads as "context for what's scheduling me," not an alert.
+ * One card per program (multiple occurrence records for the same program are
+ * grouped). Left: program name + pattern/end-date meta. Right: next session.
  */
 .hs-myrot {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 8px;
-  margin-bottom: 4px;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 0 4px;
 }
-.hs-myrot__label {
+.hs-myrot__heading {
   font-family: var(--font-sans);
   font-size: var(--text-label);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--rim-mid);
   font-weight: 600;
-  flex-shrink: 0;
-  margin-right: 2px;
+  margin: 0 0 2px;
 }
-.hs-myrot__chip {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 4px;
-  background: rgba(19, 82, 116, 0.06);
-  border-radius: 4px;
-  padding: 3px 9px 4px;
+.hs-myrot__card {
+  background: #fff;
+  border: 0.5px solid var(--rim-rule);
+  border-radius: 10px;
+  padding: 14px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.hs-myrot__left {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.hs-myrot__prog {
   font-family: var(--font-sans);
-  font-size: var(--text-small);
-  line-height: 1.4;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--rim-text);
+  margin: 0 0 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.hs-myrot__prog { font-weight: 600; color: var(--rim-text); }
-.hs-myrot__pat  { color: var(--rim-mid); }
-.hs-myrot__until { color: var(--rim-mid); font-size: var(--text-xs); }
+.hs-myrot__meta {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--rim-mid);
+  margin: 0;
+}
+.hs-myrot__right {
+  text-align: right;
+  flex-shrink: 0;
+  min-width: 110px;
+}
+.hs-myrot__next-label {
+  font-family: var(--font-sans);
+  font-size: var(--text-xxs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--rim-mid);
+  margin: 0 0 2px;
+  font-weight: 600;
+}
+.hs-myrot__next-date {
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  font-weight: 500;
+  color: var(--rim-text);
+  margin: 0;
+}
+
+/* ── "Print my schedule" link below filter pills ──────────────────────── */
+.hs-print-bar {
+  text-align: right;
+  margin: 4px 0 0;
+}
+.hs-print-link {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--rim-mid);
+  text-decoration: none;
+}
+.hs-print-link:hover { color: var(--rim-text); }
+
+/* ── Schedule print page (/tools/schedule/print) ───────────────────────── */
+.hs-print-page {
+  max-width: 720px;
+  padding: 24px 0 48px;
+  font-family: var(--font-sans);
+}
+.hs-print-header {
+  margin-bottom: 28px;
+}
+.hs-print-header__title {
+  font-family: var(--font-sans);
+  font-size: var(--text-h3);
+  font-weight: 600;
+  color: var(--rim-text);
+  margin: 0 0 4px;
+}
+.hs-print-header__range {
+  font-size: var(--text-small);
+  color: var(--rim-mid);
+  margin: 0;
+}
+.hs-print-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: var(--rim-bg);
+  border-radius: 10px;
+  margin-bottom: 32px;
+}
+.hs-print-controls__back {
+  font-size: var(--text-small);
+  color: var(--rim-mid);
+  text-decoration: none;
+  margin-right: auto;
+}
+.hs-print-controls__back:hover { color: var(--rim-text); }
+.hs-print-controls__fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+.hs-print-controls__group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.hs-print-controls__label {
+  font-size: var(--text-label);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--rim-mid);
+}
+.hs-print-controls__input {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: var(--text-small);
+  font-family: var(--font-sans);
+  background: #fff;
+  color: var(--rim-text);
+}
+.hs-print-controls__btn {
+  padding: 9px 18px;
+  background: var(--rim-blue);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: var(--text-small);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  cursor: pointer;
+  align-self: flex-end;
+}
+.hs-print-controls__btn--print {
+  background: #fff;
+  color: var(--rim-text);
+  border: 1px solid var(--rim-rule);
+}
+.hs-print-section {
+  margin-bottom: 32px;
+}
+.hs-print-section__heading {
+  font-family: var(--font-sans);
+  font-size: var(--text-label);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--rim-mid);
+  font-weight: 700;
+  margin: 0 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--rim-rule);
+}
+.hs-print-rot {
+  display: flex;
+  flex-direction: column;
+}
+.hs-print-rot__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: var(--text-small);
+  padding: 7px 0;
+  border-bottom: 0.5px solid var(--rim-rule);
+}
+.hs-print-rot__row:last-child { border-bottom: none; }
+.hs-print-rot__name { font-weight: 500; color: var(--rim-text); }
+.hs-print-rot__pat  { color: var(--rim-mid); text-align: right; flex-shrink: 0; }
+.hs-print-day {
+  margin-bottom: 18px;
+}
+.hs-print-day__heading {
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  font-weight: 700;
+  color: var(--rim-text);
+  margin: 0 0 6px;
+  padding-bottom: 5px;
+  border-bottom: 0.5px solid var(--rim-rule);
+}
+.hs-print-session {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 5px 0;
+  font-size: var(--text-small);
+}
+.hs-print-session__name { flex: 1 1 auto; font-weight: 500; color: var(--rim-text); }
+.hs-print-session__time { color: var(--rim-mid); flex-shrink: 0; }
+.hs-print-session__fmt  { color: var(--rim-mid); flex-shrink: 0; font-size: var(--text-xs); }
+.hs-print-empty {
+  font-size: var(--text-small);
+  color: var(--rim-mid);
+  margin: 0;
+}
+.hs-print-footer {
+  margin-top: 40px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rim-rule);
+  font-size: var(--text-xs);
+  color: var(--rim-mid);
+}
+
+/* Print media — hide chrome, show only the schedule content */
+@media print {
+  .hub-ws-sidebar,
+  .hub-ws-mobilebar,
+  .hub-ws-toolhead,
+  .hs-print-controls,
+  .hs-print-bar,
+  nav { display: none !important; }
+  .hub-ws-layout { display: block; }
+  .hub-ws-content { padding: 0 !important; }
+  body { background: #fff; }
+  .hs-print-page { max-width: none; padding: 0; }
+  .hs-print-day { break-inside: avoid; }
+}
 
 /* Tablet — collapse 3-column row to stacked; right area goes horizontal */
 @media (max-width: 760px) {
