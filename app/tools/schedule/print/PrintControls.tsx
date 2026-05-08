@@ -1,11 +1,11 @@
 "use client";
 
 /**
- * PrintControls — date range pickers + print button for /tools/schedule/print.
- * Rendered client-side so date inputs are interactive and window.print() is available.
+ * PrintControls — date range pickers + "Download PDF" button.
+ * Opens /api/host/schedule/pdf?from=&to= in a new tab; the browser
+ * shows the PDF inline (with a Save button) or downloads it directly.
  */
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 interface Props {
@@ -14,13 +14,10 @@ interface Props {
 }
 
 export default function PrintControls({ fromStr, toStr }: Props) {
-  const router = useRouter();
   const [from, setFrom] = useState(fromStr);
   const [to, setTo]     = useState(toStr);
 
-  function update() {
-    router.push(`/tools/schedule/print?from=${from}&to=${to}`);
-  }
+  const pdfUrl = `/api/host/schedule/pdf?from=${from}&to=${to}`;
 
   return (
     <div className="hs-print-controls">
@@ -49,17 +46,16 @@ export default function PrintControls({ fromStr, toStr }: Props) {
             onChange={e => setTo(e.target.value)}
           />
         </div>
-        <button className="hs-print-controls__btn" onClick={update}>
-          Update
-        </button>
       </div>
 
-      <button
-        className="hs-print-controls__btn hs-print-controls__btn--print"
-        onClick={() => window.print()}
+      <a
+        href={pdfUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="hs-print-controls__btn"
       >
-        ⎙ Print / Save as PDF
-      </button>
+        Download PDF
+      </a>
     </div>
   );
 }
