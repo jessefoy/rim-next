@@ -1531,7 +1531,147 @@ Rooted In Mindfulness · rootedinmindfulness.org`;
       console.log(`  ✔ Applied: ${this.name} — ended ${result.count} legacy null-dayOfWeek row(s)`);
     },
   },
+  {
+    /**
+     * Re-cache program.dateText / program.timeText from their source fields.
+     *
+     * These are now server-computed on every save (POST/PUT), but pre-existing
+     * rows may have stale values from when the field accepted manual overrides.
+     * This entry walks all programs every deploy — cheap because it only
+     * writes when the stored value disagrees with the freshly computed one.
+     */
+    name: "recache_program_date_time_text",
+    async run() {
+      const programs = await db.program.findMany({
+        select: {
+          id: true,
+          dateText: true,
+          timeText: true,
+          startDatetime: true,
+          endDatetime: true,
+          recurrenceFreq: true,
+          recurrenceDays: true,
+          recurrenceInterval: true,
+        },
+      });
+
+      let updated = 0;
+      for (const p of programs) {
+        const dateText = computeDateText(
+          p.startDatetime,
+          p.recurrenceFreq,
+          p.recurrenceDays,
+          p.recurrenceInterval,
+        ) || null;
+        const timeText = computeTimeText(p.startDatetime, p.endDatetime) || null;
+
+        if (dateText !== p.dateText || timeText !== p.timeText) {
+          await db.program.update({
+            where: { id: p.id },
+            data: { dateText, timeText },
+          });
+          updated += 1;
+        }
+      }
+
+      if (updated > 0) {
+        console.log(`  ✔ Applied: ${this.name} — refreshed ${updated} program(s)`);
+      } else {
+        console.log(`  ⏭ ${this.name} — all programs already current`);
+      }
+    },
+  },
 ];
+
+// ── Server-safe compute helpers (mirror of lib/programUtils.ts) ──────────────
+// Inlined here because migrate.mjs is plain ESM and can't import .ts directly.
+// Keep in sync with lib/programUtils.ts.
+
+const _DAY_FULL = {
+  SU: "Sundays", MO: "Mondays", TU: "Tuesdays", WE: "Wednesdays",
+  TH: "Thursdays", FR: "Fridays", SA: "Saturdays",
+};
+const _DAY_ORDER = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+const _TZ = "America/Chicago";
+
+function _toCtLocalString(input) {
+  if (!input) return "";
+  if (typeof input === "string") {
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(input)) return input;
+    const d = new Date(input);
+    if (isNaN(d.getTime())) return "";
+    return _toCtLocalString(d);
+  }
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: _TZ,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  }).formatToParts(input);
+  const get = (type) => parts.find((p) => p.type === type)?.value ?? "";
+  const hour = get("hour") === "24" ? "00" : get("hour");
+  return `${get("year")}-${get("month")}-${get("day")}T${hour}:${get("minute")}`;
+}
+
+function computeTimeText(start, end) {
+  const startStr = _toCtLocalString(start);
+  if (!startStr) return "";
+  const endStr = _toCtLocalString(end);
+  const parseTime = (dt) => {
+    const t = dt.split("T")[1];
+    if (!t) return null;
+    const [h, m] = t.split(":").map(Number);
+    return { h, m };
+  };
+  const fmt = (h, m) => {
+    const ampm = h >= 12 ? "PM" : "AM";
+    const h12 = h % 12 || 12;
+    const mStr = m === 0 ? "" : `:${String(m).padStart(2, "0")}`;
+    return { str: `${h12}${mStr}`, ampm };
+  };
+  const s = parseTime(startStr);
+  if (!s) return "";
+  const { str: sStr, ampm: sAmpm } = fmt(s.h, s.m);
+  if (endStr) {
+    const e = parseTime(endStr);
+    if (e) {
+      const { str: eStr, ampm: eAmpm } = fmt(e.h, e.m);
+      if (sAmpm === eAmpm) return `${sStr}–${eStr} ${eAmpm} CT`;
+      return `${sStr} ${sAmpm}–${eStr} ${eAmpm} CT`;
+    }
+  }
+  return `${sStr} ${sAmpm} CT`;
+}
+
+function computeDateText(start, freq, days, interval) {
+  const daysList = days ?? [];
+  const intervalStr = interval == null ? "" : String(interval);
+  if (freq === "WEEKLY") {
+    const ordered = [...daysList].sort((a, b) => _DAY_ORDER.indexOf(a) - _DAY_ORDER.indexOf(b));
+    const names = ordered.map((d) => _DAY_FULL[d] ?? d);
+    const prefix = intervalStr && Number(intervalStr) > 1 ? `Every ${intervalStr} weeks: ` : "";
+    if (names.length === 0) return `${prefix}Weekly`;
+    if (names.length === 1) return `${prefix}${names[0]}`;
+    if (names.length === 2) return `${prefix}${names[0]} and ${names[1]}`;
+    const last = names[names.length - 1];
+    return `${prefix}${names.slice(0, -1).join(", ")}, and ${last}`;
+  }
+  if (freq === "DAILY") {
+    const n = Number(intervalStr);
+    return !intervalStr || n <= 1 ? "Daily" : `Every ${n} days`;
+  }
+  if (freq === "MONTHLY") return "Monthly";
+  const startStr = _toCtLocalString(start);
+  if (startStr) {
+    const datePart = startStr.split("T")[0];
+    if (datePart) {
+      const [y, m, d] = datePart.split("-").map(Number);
+      return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+        month: "long", day: "numeric", year: "numeric",
+      });
+    }
+  }
+  return "";
+}
 
 // ── Minimal BlockNote → HTML converter (migration-only) ──────────────────────
 // Handles common prose block types found in hub welcome/home content.
