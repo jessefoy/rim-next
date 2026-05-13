@@ -15398,7 +15398,6 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   margin: 0 0 2px;
   font-weight: 500;
 }
-.hs-rot__end-q-sub { font-weight: 400; color: var(--rim-mid); }
 .hs-rot__end-opt {
   text-align: left;
   background: #fff;
@@ -15544,12 +15543,6 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   color: var(--rim-mid);
   line-height: var(--lh-body);
   max-width: 640px;
-}
-.hs-rot__danger-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 4px;
 }
 .hs-rot__danger-btn {
   background: #fff;

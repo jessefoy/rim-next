@@ -220,11 +220,9 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
   const [form, setForm]       = useState<FormState | null>(null);
   const [saving, setSaving]   = useState(false);
 
-  // End/manage panel — tracks which bundle is open + which view is showing
-  const [endingBundle, setEndingBundle]   = useState<{ programSlug: string; dayOfWeek: DayOfWeek } | null>(null);
-  // "options" = main three choices; "release-picker" = per-person release sub-view
-  const [endPanelView, setEndPanelView]   = useState<"options" | "release-picker">("options");
-  const [releasing, setReleasing]         = useState(false);
+  // End/manage panel — tracks which bundle is open
+  const [endingBundle, setEndingBundle] = useState<{ programSlug: string; dayOfWeek: DayOfWeek } | null>(null);
+  const [releasing, setReleasing]       = useState(false);
 
   // Per-program Reset confirm
   const [progResetConfirm, setProgResetConfirm] = useState<string | null>(null);
@@ -252,7 +250,6 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       if (!res.ok) throw new Error("release failed");
       const data = await res.json().catch(() => ({ released: 0 }));
       setEndingBundle(null);
-      setEndPanelView("options");
       if (data.released > 0) {
         showToast(`Released · ${data.released} upcoming session${data.released === 1 ? "" : "s"} freed`);
         onScheduleStale?.();
@@ -294,7 +291,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
   // Danger-zone state — two-step confirm before clearing
   // "soft"     → scope: future, rotations stay
   // "nuclear"  → scope: all + endRotations, true fresh start
-  const [clearConfirm, setClearConfirm] = useState<"soft" | "nuclear" | null>(null);
+  const [clearConfirm, setClearConfirm] = useState<"nuclear" | null>(null);
   const [clearing, setClearing]         = useState(false);
 
   const handleClear = async (mode: "soft" | "nuclear") => {
@@ -591,8 +588,8 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                       <div className="hs-rot__grid-actions">
                         {rows.length > 0 ? (
                           <>
-                            <button className="hs-rot__action" onClick={() => { setEndingBundle(null); setEndPanelView("options"); startEdit(program.slug, d); }}>Edit</button>
-                            <button className="hs-rot__action hs-rot__action--end" onClick={() => { cancelForm(); setEndPanelView("options"); setEndingBundle({ programSlug: program.slug, dayOfWeek: d }); }}>End</button>
+                            <button className="hs-rot__action" onClick={() => { setEndingBundle(null); startEdit(program.slug, d); }}>Edit</button>
+                            <button className="hs-rot__action hs-rot__action--end" onClick={() => { cancelForm(); setEndingBundle({ programSlug: program.slug, dayOfWeek: d }); }}>End</button>
                           </>
                         ) : (
                           <button className="hs-rot__action" onClick={() => startEdit(program.slug, d)}>Set up</button>
@@ -608,27 +605,11 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                       )];
                       return (
                         <div className="hs-rot__end-confirm">
-                          {endPanelView === "options" ? (
-                            <>
-                              <p className="hs-rot__end-q">Manage this rotation</p>
-                              {isManager && (
-                                <button className="hs-rot__end-opt" onClick={() => setEndPanelView("release-picker")} disabled={saving || releasing}>
-                                  <strong>Release one person&rsquo;s upcoming dates.</strong>
-                                  <span>Frees their sessions so others can claim them. The rotation stays active and can be edited.</span>
-                                </button>
-                              )}
-                              <button className="hs-rot__end-opt hs-rot__end-opt--release" onClick={() => handleEnd(program.slug, d, true)} disabled={saving || releasing}>
-                                <strong>End this rotation.</strong>
-                                <span>Stops generating new sessions and clears all upcoming dates from hosts&rsquo; schedules. Each affected host is emailed.</span>
-                              </button>
-                              <button className="hs-rot__end-cancel" onClick={() => setEndingBundle(null)} disabled={saving || releasing}>Cancel</button>
-                            </>
-                          ) : (
-                            <>
-                              <p className="hs-rot__end-q">
-                                Release upcoming sessions for a host in this rotation.
-                                <span className="hs-rot__end-q-sub"> The rotation stays active.</span>
-                              </p>
+                          <p className="hs-rot__end-q">Manage this rotation</p>
+
+                          {isManager && distinctHosts.length > 0 && (
+                            <div className="hs-rot__release-panel">
+                              <p className="hs-rot__release-q">Release one person&rsquo;s upcoming dates — rotation stays active</p>
                               <div className="hs-rot__release-hosts">
                                 {distinctHosts.map((uid) => (
                                   <div key={uid} className="hs-rot__release-row">
@@ -636,16 +617,21 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                                     <button
                                       className="hs-rot__release-btn"
                                       onClick={() => handleReleaseHost(program.slug, d, uid)}
-                                      disabled={releasing}
+                                      disabled={releasing || saving}
                                     >
                                       {releasing ? "Releasing…" : "Release their dates"}
                                     </button>
                                   </div>
                                 ))}
                               </div>
-                              <button className="hs-rot__end-cancel" onClick={() => setEndPanelView("options")} disabled={releasing}>← Back</button>
-                            </>
+                            </div>
                           )}
+
+                          <button className="hs-rot__end-opt hs-rot__end-opt--release" onClick={() => handleEnd(program.slug, d, true)} disabled={saving || releasing}>
+                            <strong>End this rotation.</strong>
+                            <span>Stops generating new sessions and clears all upcoming dates from hosts&rsquo; schedules. Each affected host is emailed.</span>
+                          </button>
+                          <button className="hs-rot__end-cancel" onClick={() => setEndingBundle(null)} disabled={saving || releasing}>Cancel</button>
                         </div>
                       );
                     })()}
@@ -727,64 +713,40 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
         />
       )}
 
-      {/* Danger zone — manager/coordinator access.
-          Two intents:
-            soft     → wipe upcoming schedule, rotations stay
-            nuclear  → delete EVERYTHING (assignments + rotation rules) */}
+      {/* Danger zone — manager/coordinator access only.
+          Nuclear reset: wipes every assignment (past + future) AND every
+          rotation rule. Use only when redoing the host system from scratch. */}
       {isManager && (
         <div className="hs-rot__danger">
           <h3 className="hs-rot__danger-h">Reset</h3>
           <p className="hs-rot__danger-hint">
-            For redoing the schedule or starting fresh during testing.
+            For redoing the entire host schedule from scratch during setup or testing.
           </p>
 
           {clearConfirm === null ? (
-            <div className="hs-rot__danger-actions">
-              <button
-                className="hs-rot__danger-btn"
-                onClick={() => setClearConfirm("soft")}
-              >
-                Clear upcoming schedule
-              </button>
-              <button
-                className="hs-rot__danger-btn hs-rot__danger-btn--all"
-                onClick={() => setClearConfirm("nuclear")}
-              >
-                Reset everything
-              </button>
-            </div>
+            <button
+              className="hs-rot__danger-btn hs-rot__danger-btn--all"
+              onClick={() => setClearConfirm("nuclear")}
+            >
+              Reset everything
+            </button>
           ) : (
             <div className="hs-rot__danger-confirm">
               <p className="hs-rot__danger-q">
-                {clearConfirm === "soft" ? (
-                  <>
-                    <strong>Clear upcoming schedule?</strong><br />
-                    Deletes every host assignment from today forward. Past
-                    assignments stay intact. Standing rotation rules are kept —
-                    they'll re-fill on the next save or cron run.
-                  </>
-                ) : (
-                  <>
-                    <strong>Reset everything?</strong><br />
-                    Deletes <em>every</em> host assignment (past and future) AND
-                    deletes <em>every</em> standing rotation rule. The schedule
-                    becomes blank and the Rotations grid becomes empty. Use only
-                    when redoing the entire host system from scratch. Cannot be
-                    undone.
-                  </>
-                )}
+                <strong>Reset everything?</strong><br />
+                Deletes <em>every</em> host assignment (past and future) AND
+                deletes <em>every</em> standing rotation rule. The schedule
+                becomes blank and the Rotations grid becomes empty. Use only
+                when redoing the entire host system from scratch. Cannot be
+                undone.
               </p>
               <div className="hs-rot__danger-confirm-actions">
                 <button
-                  className={`hs-rot__danger-btn${clearConfirm === "nuclear" ? " hs-rot__danger-btn--all" : ""}`}
-                  onClick={() => handleClear(clearConfirm)}
+                  className="hs-rot__danger-btn hs-rot__danger-btn--all"
+                  onClick={() => handleClear("nuclear")}
                   disabled={clearing}
                 >
-                  {clearing
-                    ? "Working…"
-                    : clearConfirm === "soft"
-                      ? "Yes, clear upcoming"
-                      : "Yes, reset everything"}
+                  {clearing ? "Working…" : "Yes, reset everything"}
                 </button>
                 <button
                   className="hs-rot__danger-cancel"
