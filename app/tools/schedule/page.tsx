@@ -35,7 +35,14 @@ export default async function ScheduleToolPage({
 
   const roles = session.user.roles ?? [];
   const isHostManager = roles.includes("HOST_MANAGER") || roles.includes("ADMIN");
-  const isAdmin = roles.includes("ADMIN");
+
+  // isManager = HOST_MANAGER/ADMIN OR a hub coordinator — governs rotation
+  // clear/reset controls. Checked against the host-team hub specifically.
+  const coordinatorRecord = await db.hubMember.findFirst({
+    where: { userId: session.user.id, hub: { slug: "host-team" }, isCoordinator: true },
+    select: { id: true },
+  });
+  const isManager = isHostManager || !!coordinatorRecord;
 
   // Fetch hub context (members, coordinator) from ?hub= param or fall back to host-team
   const { hub: hubSlug } = await searchParams;
@@ -268,7 +275,7 @@ export default async function ScheduleToolPage({
         currentUserName={session.user.name || session.user.email?.split("@")[0] || ""}
         coordinatorName={coordinatorName}
         isHostManager={isHostManager}
-        isAdmin={isAdmin}
+        isManager={isManager}
         myRotations={myRotations}
         nextSessionBySlug={nextSessionBySlug}
         apiBase="/api/host"

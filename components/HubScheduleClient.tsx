@@ -92,8 +92,8 @@ interface Props {
   currentUserName: string;
   coordinatorName?: string;
   isHostManager?: boolean;
-  /** ADMIN-only privileges (e.g. nuclear reset of host assignments). */
-  isAdmin?: boolean;
+  /** HOST_MANAGER / ADMIN / hub coordinator — rotation clear/reset controls. */
+  isManager?: boolean;
   /** The current user's active standing rotations (host-side summary only). */
   myRotations?: MyRotation[];
   /** Next upcoming HostAssignment ISO datetime per programSlug — drives the "Next" column. */
@@ -499,7 +499,7 @@ function formatNextSession(iso: string): string {
 export default function HubScheduleClient({
   initialSessions, programs, teamMembers, initialYear, initialMonth,
   currentUserId, currentUserName,
-  isHostManager = false, isAdmin = false, myRotations = [],
+  isHostManager = false, isManager = false, myRotations = [],
   nextSessionBySlug = {}, apiBase = "/api/host",
 }: Props) {
   const router = useRouter();
@@ -885,7 +885,7 @@ export default function HubScheduleClient({
           teamMembers={teamMembers}
           year={year}
           month={month + 1}
-          isAdmin={isAdmin}
+          isManager={isManager}
           onScheduleStale={() => loadMonth(year, month)}
         />
       )}

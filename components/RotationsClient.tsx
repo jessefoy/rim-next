@@ -118,8 +118,8 @@ interface Props {
   teamMembers: TeamMember[];
   year:        number;
   month:       number;
-  /** ADMIN-only — shows the nuclear-reset danger zone at the bottom. */
-  isAdmin?: boolean;
+  /** HOST_MANAGER / ADMIN / hub coordinator — shows per-program and global reset controls. */
+  isManager?: boolean;
   /** Called after any rotation change that may have created/modified HostAssignment
    *  rows so the parent (Schedule view) can refresh its display. */
   onScheduleStale?: () => void;
@@ -209,7 +209,7 @@ function detectPattern(rows: Rotation[]): { pattern: Pattern; hosts: FormState["
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export default function RotationsClient({ programs, teamMembers, year, month, isAdmin = false, onScheduleStale }: Props) {
+export default function RotationsClient({ programs, teamMembers, year, month, isManager = false, onScheduleStale }: Props) {
   const [rotations, setRotations] = useState<Rotation[]>([]);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState<string | null>(null);
@@ -223,6 +223,14 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
   // End-rotation confirm panel
   const [endingBundle, setEndingBundle] = useState<{ programSlug: string; dayOfWeek: DayOfWeek } | null>(null);
 
+  // Release-host panel — per (programSlug, dayOfWeek) row
+  const [releasingBundle, setReleasingBundle] = useState<{ programSlug: string; dayOfWeek: DayOfWeek } | null>(null);
+  const [releasing, setReleasing]             = useState(false);
+
+  // Per-program Clear/Reset confirm
+  const [progClearConfirm, setProgClearConfirm] = useState<{ slug: string; mode: "clear" | "reset" } | null>(null);
+  const [progClearing, setProgClearing]         = useState(false);
+
   // Conflict modal — shown ONLY when there are real conflicts to decide.
   // Empty previews and conflict-free fills get a toast instead.
   const [pendingApply, setPendingApply] = useState<{ programSlug: string; dayOfWeek: DayOfWeek } | null>(null);
@@ -230,6 +238,60 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 4000);
+  };
+
+  // ── Release-host ──────────────────────────────────────────────────────────
+  const handleReleaseHost = async (programSlug: string, dayOfWeek: DayOfWeek, userId: string) => {
+    setReleasing(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/host/standing-assignments/release-host", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ programSlug, dayOfWeek, userId }),
+      });
+      if (!res.ok) throw new Error("release failed");
+      const data = await res.json().catch(() => ({ released: 0 }));
+      setReleasingBundle(null);
+      if (data.released > 0) {
+        showToast(`Released · ${data.released} upcoming session${data.released === 1 ? "" : "s"} freed`);
+        onScheduleStale?.();
+      } else {
+        showToast("No upcoming sessions found for this host");
+      }
+    } catch {
+      setError("Could not release sessions. Please try again.");
+    } finally {
+      setReleasing(false);
+    }
+  };
+
+  // ── Per-program Clear / Reset ──────────────────────────────────────────────
+  const handleProgClear = async (slug: string, mode: "clear" | "reset") => {
+    setProgClearing(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/host/programs/${slug}/clear-rotations`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ mode }),
+      });
+      if (!res.ok) throw new Error("operation failed");
+      const data = await res.json();
+      const aCount = data.deletedAssignments ?? 0;
+      const rCount = data.deletedRotations   ?? 0;
+      const summary = mode === "clear"
+        ? `Cleared · ${aCount} upcoming session${aCount === 1 ? "" : "s"} released`
+        : `Reset · ${aCount} session${aCount === 1 ? "" : "s"} and ${rCount} rotation${rCount === 1 ? "" : "s"} removed`;
+      showToast(summary);
+      setProgClearConfirm(null);
+      await loadRotations();
+      onScheduleStale?.();
+    } catch {
+      setError("Could not complete this operation. Please try again.");
+    } finally {
+      setProgClearing(false);
+    }
   };
 
   // Danger-zone state — two-step confirm before clearing
@@ -532,8 +594,11 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                       <div className="hs-rot__grid-actions">
                         {rows.length > 0 ? (
                           <>
-                            <button className="hs-rot__action" onClick={() => startEdit(program.slug, d)}>Edit</button>
-                            <button className="hs-rot__action hs-rot__action--end" onClick={() => setEndingBundle({ programSlug: program.slug, dayOfWeek: d })}>End</button>
+                            <button className="hs-rot__action" onClick={() => { setReleasingBundle(null); startEdit(program.slug, d); }}>Edit</button>
+                            <button className="hs-rot__action hs-rot__action--end" onClick={() => { setReleasingBundle(null); setEndingBundle({ programSlug: program.slug, dayOfWeek: d }); }}>End</button>
+                            {isManager && (
+                              <button className="hs-rot__action hs-rot__action--release" onClick={() => { setEndingBundle(null); cancelForm(); setReleasingBundle(releasingBundle?.programSlug === program.slug && releasingBundle?.dayOfWeek === d ? null : { programSlug: program.slug, dayOfWeek: d }); }}>Release</button>
+                            )}
                           </>
                         ) : (
                           <button className="hs-rot__action" onClick={() => startEdit(program.slug, d)}>Set up</button>
@@ -557,6 +622,39 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                       </div>
                     )}
 
+                    {/* Release-host panel — free one person's future slots without ending the rotation */}
+                    {releasingBundle?.programSlug === program.slug && releasingBundle?.dayOfWeek === d && (() => {
+                      // Collect distinct hosts in this bundle (excluding the 5th-week override
+                      // if it duplicates an existing host — keep unique userIds only)
+                      const distinctHosts = [...new Set(
+                        [cells.FIRST, cells.SECOND, cells.THIRD, cells.FOURTH, fifthHost]
+                          .filter((uid): uid is string => !!uid)
+                      )];
+                      return (
+                        <div className="hs-rot__release-panel">
+                          <p className="hs-rot__release-q">
+                            Release upcoming sessions for a host in this rotation.
+                            <span> The rotation rules stay active.</span>
+                          </p>
+                          <div className="hs-rot__release-hosts">
+                            {distinctHosts.map((uid) => (
+                              <div key={uid} className="hs-rot__release-row">
+                                <span className="hs-rot__release-name">{hostName(uid)}</span>
+                                <button
+                                  className="hs-rot__release-btn"
+                                  onClick={() => handleReleaseHost(program.slug, d, uid)}
+                                  disabled={releasing}
+                                >
+                                  {releasing ? "Releasing…" : "Release their dates"}
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          <button className="hs-rot__end-cancel" onClick={() => setReleasingBundle(null)} disabled={releasing}>Cancel</button>
+                        </div>
+                      );
+                    })()}
+
                     {/* Inline edit form */}
                     {isEditingThis && form && (
                       <RotationForm
@@ -574,6 +672,69 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
               })}
             </div>
 
+            {/* Per-program Clear / Reset — manager/coordinator only */}
+            {isManager && (() => {
+              const hasRotations = days.some((d) =>
+                (rotationsByBundle.get(`${program.slug}::${d}`) ?? []).length > 0
+              );
+              if (!hasRotations) return null;
+              const confirm = progClearConfirm?.slug === program.slug ? progClearConfirm.mode : null;
+              return (
+                <div className="hs-rot__prog-danger">
+                  {confirm === null ? (
+                    <div className="hs-rot__prog-danger-actions">
+                      <button
+                        className="hs-rot__prog-danger-btn"
+                        onClick={() => setProgClearConfirm({ slug: program.slug, mode: "clear" })}
+                      >
+                        Clear upcoming schedule
+                      </button>
+                      <button
+                        className="hs-rot__prog-danger-btn hs-rot__prog-danger-btn--reset"
+                        onClick={() => setProgClearConfirm({ slug: program.slug, mode: "reset" })}
+                      >
+                        Reset rotations
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="hs-rot__prog-danger-confirm">
+                      <p className="hs-rot__prog-danger-q">
+                        {confirm === "clear" ? (
+                          <>
+                            <strong>Clear upcoming schedule for {program.name}?</strong><br />
+                            Removes all upcoming host assignments for this program. Rotation
+                            rules stay in place — they&rsquo;ll re-fill on the next save or cron run.
+                          </>
+                        ) : (
+                          <>
+                            <strong>Reset rotations for {program.name}?</strong><br />
+                            Deletes all rotation rules <em>and</em> removes all upcoming assignments
+                            for this program. The rotation grid for this program becomes empty.
+                          </>
+                        )}
+                      </p>
+                      <div className="hs-rot__prog-danger-confirm-actions">
+                        <button
+                          className={`hs-rot__prog-danger-btn${confirm === "reset" ? " hs-rot__prog-danger-btn--reset" : ""}`}
+                          onClick={() => handleProgClear(program.slug, confirm)}
+                          disabled={progClearing}
+                        >
+                          {progClearing ? "Working…" : confirm === "clear" ? "Yes, clear upcoming" : "Yes, reset rotations"}
+                        </button>
+                        <button
+                          className="hs-rot__danger-cancel"
+                          onClick={() => setProgClearConfirm(null)}
+                          disabled={progClearing}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
           </div>
         );
       })}
@@ -589,11 +750,11 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
         />
       )}
 
-      {/* Danger zone — admin-only.
+      {/* Danger zone — manager/coordinator access.
           Two intents:
             soft     → wipe upcoming schedule, rotations stay
             nuclear  → delete EVERYTHING (assignments + rotation rules) */}
-      {isAdmin && (
+      {isManager && (
         <div className="hs-rot__danger">
           <h3 className="hs-rot__danger-h">Reset</h3>
           <p className="hs-rot__danger-hint">

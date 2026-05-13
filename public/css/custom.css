@@ -15253,6 +15253,7 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 .hs-rot__action:hover { border-color: var(--rim-blue); color: var(--rim-blue); }
 .hs-rot__action--end:hover { border-color: var(--color-error); color: var(--color-error); }
+.hs-rot__action--release:hover { border-color: var(--color-warning); color: var(--color-warning); }
 
 /* Add-rotation button */
 .hs-rot__add {
@@ -15428,7 +15429,99 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 .hs-rot__end-cancel:hover { color: var(--rim-text); }
 
-/* Danger zone — ADMIN-only at the bottom of the rotations panel.
+/* Release-host panel — appears inline below a rotation row */
+.hs-rot__release-panel {
+  width: 100%;
+  background: var(--color-warning-bg);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin: 4px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.hs-rot__release-q {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--rim-text);
+  margin: 0 0 2px;
+  font-weight: 500;
+}
+.hs-rot__release-q span { color: var(--rim-mid); font-weight: 400; }
+.hs-rot__release-hosts { display: flex; flex-direction: column; gap: 6px; }
+.hs-rot__release-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #fff;
+  border: 1px solid var(--rim-rule);
+  border-radius: 6px;
+  padding: 10px 14px;
+}
+.hs-rot__release-name {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--rim-text);
+  font-weight: 500;
+}
+.hs-rot__release-btn {
+  background: none;
+  border: 1px solid var(--color-warning);
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--color-warning);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s;
+  min-height: 32px;
+}
+.hs-rot__release-btn:hover { background: var(--color-warning); color: #fff; }
+.hs-rot__release-btn:disabled { opacity: 0.55; cursor: default; }
+
+/* Per-program Clear/Reset — inside each program card, below the rotation grid */
+.hs-rot__prog-danger {
+  margin-top: 14px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--rim-rule);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.hs-rot__prog-danger-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.hs-rot__prog-danger-btn {
+  background: none;
+  border: 1px solid var(--rim-rule);
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--rim-mid);
+  cursor: pointer;
+  min-height: 32px;
+  transition: border-color 0.12s, color 0.12s;
+}
+.hs-rot__prog-danger-btn:hover { border-color: var(--rim-blue); color: var(--rim-blue); }
+.hs-rot__prog-danger-btn--reset:hover { border-color: var(--color-error); color: var(--color-error); }
+.hs-rot__prog-danger-btn:disabled { opacity: 0.55; cursor: default; }
+.hs-rot__prog-danger-confirm { display: flex; flex-direction: column; gap: 8px; }
+.hs-rot__prog-danger-q {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--rim-text);
+  margin: 0;
+  line-height: var(--lh-body);
+}
+.hs-rot__prog-danger-q strong { color: var(--rim-text); }
+.hs-rot__prog-danger-confirm-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* Danger zone — manager/coordinator at the bottom of the rotations panel.
    Visually separated, muted at rest, escalates to error tone on confirm. */
 .hs-rot__danger {
   margin-top: 24px;
