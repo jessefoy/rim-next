@@ -1750,6 +1750,149 @@ Rooted In Mindfulness · Brookfield, WI`,
       console.log(`  ✔ Applied: ${this.name}`);
     },
   },
+  {
+    // Session 113 — Backfill seed entries for four templates that were
+    // referenced by sendTemplatedEmail() in lib/email.ts but never seeded
+    // by migrate.mjs. The organize-by-group migration earlier (session 96)
+    // used updateMany() to assign group/groupLabel, which silently skipped
+    // these slugs — so any environment without manually-created rows had
+    // them silently no-op'ing in production.
+    //
+    // Defensive contract: `update: {}` is empty so any row Jesse has
+    // already edited in /admin/emails is preserved. This migration ONLY
+    // creates the row if it doesn't exist; it never overwrites existing
+    // content. Re-running is a no-op.
+    name: "backfill_missing_email_template_seeds",
+    async run() {
+      const flag = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags"
+        WHERE name = 'backfill_missing_email_template_seeds_v1'
+      `).catch(() => []);
+      if (flag.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      const templates = [
+        {
+          slug: "session-reminder",
+          name: "Session Reminder",
+          description: "Sent to a registrant as a reminder about an upcoming program session.",
+          enabled: true,
+          group: "03-sessions",
+          groupLabel: "Session Reminders",
+          subject: "Reminder: {{programTitle}}",
+          variables: ["firstName", "programTitle", "dateText", "locationText", "reminderMessage", "dashboardUrl"],
+          body: `Hi {{firstName}},
+
+A gentle reminder that **{{programTitle}}** is coming up{{#if dateText}} — {{dateText}}{{/if}}.
+
+{{#if locationText}}📍 {{locationText}}{{/if}}
+
+{{#if reminderMessage}}
+{{reminderMessage}}
+{{/if}}
+
+**[View in your dashboard →]({{dashboardUrl}})**
+
+We look forward to practicing together.
+
+---
+Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`,
+        },
+        {
+          slug: "host-role-assigned",
+          name: "Host Role Assigned",
+          description: "Sent to a member when they are granted the HOST role.",
+          enabled: true,
+          group: "04-hosts",
+          groupLabel: "Host Team",
+          subject: "Welcome to the host team — Rooted In Mindfulness",
+          variables: ["firstName", "hostAreaUrl", "manualUrl"],
+          body: `Hi {{firstName}},
+
+You've been added to the **host team** at Rooted In Mindfulness. Thank you for offering this generosity to the sangha.
+
+As a host, you'll help open and steward virtual sessions: greeting people as they arrive, holding space during practice, and being a calm presence when small things come up.
+
+**[Open the Host Hub →]({{hostAreaUrl}})**
+
+The Host Hub is your team's home — conversations, documents, the schedule, and everyone else on the team. If anything is unclear, the **[Staff Manual]({{manualUrl}})** has chapters on the host role and the schedule tool.
+
+Welcome aboard.
+
+---
+Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`,
+        },
+        {
+          slug: "sub-request-claimed",
+          name: "Sub Request Claimed",
+          description: "Sent to the host who requested coverage when another host claims the session.",
+          enabled: true,
+          group: "04-hosts",
+          groupLabel: "Host Team",
+          subject: "Your session is covered — {{programName}}",
+          variables: ["firstName", "claimerName", "programName", "sessionDate", "message", "hubUrl"],
+          body: `Hi {{firstName}},
+
+Good news — **{{claimerName}}** has agreed to cover your hosting session for **{{programName}}**{{sessionDate}}.
+
+{{#if message}}
+> {{message}}
+{{/if}}
+
+You're off the hook for this one. Thank you for letting the team know early.
+
+**[View the schedule →]({{hubUrl}})**
+
+---
+Rooted In Mindfulness · Brookfield, WI`,
+        },
+        {
+          slug: "drip-lesson-available",
+          name: "Drip Lesson Available",
+          description: "Sent to a course member when a scheduled lesson becomes available on their drip-release schedule.",
+          enabled: true,
+          group: "08-courses",
+          groupLabel: "Courses",
+          subject: "New lesson available: {{lessonTitle}}",
+          variables: ["memberFirstName", "lessonTitle", "seriesTitle", "lessonUrl"],
+          body: `Hi {{memberFirstName}},
+
+A new lesson is ready for you in **{{seriesTitle}}**:
+
+## {{lessonTitle}}
+
+**[Open the lesson →]({{lessonUrl}})**
+
+Take your time with it. There's no rush — the lesson will be there whenever you're ready.
+
+---
+Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`,
+        },
+      ];
+
+      let created = 0;
+      let skipped = 0;
+      for (const t of templates) {
+        const existing = await db.emailTemplate.findUnique({ where: { slug: t.slug } });
+        if (existing) {
+          skipped++;
+          continue;
+        }
+        await db.emailTemplate.create({ data: t });
+        created++;
+      }
+
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
+      `).catch(() => {});
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('backfill_missing_email_template_seeds_v1')
+      `);
+      console.log(`  ✔ Applied: ${this.name} (${created} created, ${skipped} preserved)`);
+    },
+  },
 ];
 
 // ── Server-safe compute helpers (mirror of lib/programUtils.ts) ──────────────

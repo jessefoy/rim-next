@@ -113,11 +113,13 @@ export default function HubDocumentsClient({
   const [editNewCat, setEditNewCat]       = useState("");
   const [editFileType, setEditFileType]   = useState<HubDoc["fileType"]>("LINK");
   const [editNotifyIds, setEditNotifyIds] = useState<string[]>([]);
+  const [editNotifiedMap, setEditNotifiedMap] = useState<Record<string, string>>({});
 
   // Standalone Notify panel state (post-creation)
   const [notifyDocId, setNotifyDocId]       = useState<string | null>(null);
   const [notifyMembers, setNotifyMembers]   = useState<HubMemberOption[]>([]);
   const [notifySelectedIds, setNotifySelectedIds] = useState<string[]>([]);
+  const [notifyNotifiedMap, setNotifyNotifiedMap] = useState<Record<string, string>>({});
   const [notifyLoading, setNotifyLoading]   = useState(false);
   const [notifySending, setNotifySending]   = useState(false);
 
@@ -125,7 +127,7 @@ export default function HubDocumentsClient({
     return isCoordinator || doc.addedById === currentUserId;
   }
 
-  function openEdit(doc: HubDoc) {
+  async function openEdit(doc: HubDoc) {
     setEditingId(doc.id);
     setEditLabel(doc.label);
     setEditUrl(doc.url ?? "");
@@ -134,6 +136,20 @@ export default function HubDocumentsClient({
     setEditNewCat("");
     setEditFileType(doc.fileType);
     setEditNotifyIds([]);
+    setEditNotifiedMap({});
+    // Fetch prior "updated" notifications so author can see who already got
+    // the update email and avoid re-notifying.
+    try {
+      const res = await fetch(`/api/hub/${hubSlug}/documents/${doc.id}/notify`);
+      if (res.ok) {
+        const { notifications } = await res.json();
+        const map: Record<string, string> = {};
+        for (const n of notifications as Array<{ userId: string; eventType: string; notifiedAt: string }>) {
+          if (n.eventType === "updated" && !map[n.userId]) map[n.userId] = n.notifiedAt;
+        }
+        setEditNotifiedMap(map);
+      }
+    } catch { /* non-fatal — panel still works without the map */ }
   }
 
   function resetAddForm() {
@@ -229,21 +245,28 @@ export default function HubDocumentsClient({
   }
 
   // ── Standalone Notify panel (post-creation) ──────────────────────────────
+  // Uses eventType "created" — this is the "tell people the doc exists" path.
+  // Already-notified members are rendered as disabled rows with timestamp.
   async function openNotifyPanel(docId: string) {
     setNotifyDocId(docId);
     setNotifyLoading(true);
     setNotifyMembers([]);
     setNotifySelectedIds([]);
+    setNotifyNotifiedMap({});
     try {
       const res = await fetch(`/api/hub/${hubSlug}/documents/${docId}/notify`);
       if (res.ok) {
-        const { members, notifiedUserIds } = await res.json();
+        const { members, notifications } = await res.json();
         setNotifyMembers(members);
-        // Pre-select those who haven't been notified yet
-        const notNotifiedYet = (members as HubMemberOption[]).filter(
-          (m) => !(notifiedUserIds as string[]).includes(m.id)
+        const createdMap: Record<string, string> = {};
+        for (const n of notifications as Array<{ userId: string; eventType: string; notifiedAt: string }>) {
+          if (n.eventType === "created" && !createdMap[n.userId]) createdMap[n.userId] = n.notifiedAt;
+        }
+        setNotifyNotifiedMap(createdMap);
+        // Pre-select everyone not yet notified (eligible).
+        setNotifySelectedIds(
+          (members as HubMemberOption[]).filter((m) => !createdMap[m.id]).map((m) => m.id)
         );
-        setNotifySelectedIds(notNotifiedYet.map((m) => m.id));
       }
     } finally {
       setNotifyLoading(false);
@@ -457,6 +480,7 @@ export default function HubDocumentsClient({
               selectedIds={notifySelectedIds}
               onChange={setNotifySelectedIds}
               loading={notifyLoading}
+              notifiedMap={notifyNotifiedMap}
             />
             <div className="form-actions">
               <button className="btn--ghost" onClick={() => setNotifyDocId(null)}>Cancel</button>
@@ -530,6 +554,7 @@ export default function HubDocumentsClient({
                         members={hubMembers}
                         selectedIds={editNotifyIds}
                         onChange={setEditNotifyIds}
+                        notifiedMap={editNotifiedMap}
                       />
 
                       <div className="hub-doc-edit-footer">

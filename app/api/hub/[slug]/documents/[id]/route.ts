@@ -111,8 +111,22 @@ export async function PATCH(
 
       if (eligible.length === 0) return;
 
+      // Dedup against prior (docId, userId, "updated") notifications.
+      const existing = await db.hubDocumentNotification.findMany({
+        where: {
+          documentId: id,
+          userId:     { in: eligible.map((m) => m.userId) },
+          eventType:  "updated",
+        },
+        select: { userId: true },
+      });
+      const alreadyNotified = new Set(existing.map((n) => n.userId));
+      const toNotify = eligible.filter((m) => !alreadyNotified.has(m.userId));
+
+      if (toNotify.length === 0) return;
+
       await db.hubDocumentNotification.createMany({
-        data: eligible.map((m) => ({
+        data: toNotify.map((m) => ({
           documentId: id,
           userId:     m.userId,
           eventType:  "updated",
@@ -120,7 +134,7 @@ export async function PATCH(
       });
 
       await Promise.allSettled(
-        eligible
+        toNotify
           .filter((m) => m.user.email)
           .map((m) =>
             sendHubDocumentUpdatedEmail({

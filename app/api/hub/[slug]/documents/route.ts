@@ -101,18 +101,32 @@ export async function POST(
 
       if (eligible.length === 0) return;
 
-      // Record notifications
+      // Defensive dedup against (docId, userId, "created") — protects against
+      // accidental double-submits and keeps the contract identical to the
+      // standalone /notify path.
+      const existing = await db.hubDocumentNotification.findMany({
+        where: {
+          documentId: doc.id,
+          userId:     { in: eligible.map((m) => m.userId) },
+          eventType:  "created",
+        },
+        select: { userId: true },
+      });
+      const alreadyNotified = new Set(existing.map((n) => n.userId));
+      const toNotify = eligible.filter((m) => !alreadyNotified.has(m.userId));
+
+      if (toNotify.length === 0) return;
+
       await db.hubDocumentNotification.createMany({
-        data: eligible.map((m) => ({
+        data: toNotify.map((m) => ({
           documentId: doc.id,
           userId:     m.userId,
           eventType:  "created",
         })),
       });
 
-      // Send emails
       await Promise.allSettled(
-        eligible
+        toNotify
           .filter((m) => m.user.email)
           .map((m) =>
             sendHubDocumentCreatedEmail({

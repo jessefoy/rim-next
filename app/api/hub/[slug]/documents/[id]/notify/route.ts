@@ -37,13 +37,19 @@ export async function GET(
     orderBy: [{ user: { firstName: "asc" } }, { user: { lastName: "asc" } }],
   });
 
-  // Already-notified: distinct userIds with any notification for this document
-  const alreadyNotified = await db.hubDocumentNotification.findMany({
+  // All notifications for this document — caller groups by eventType.
+  // Ordered ascending so reducing on userId+eventType keeps the FIRST send
+  // (the earliest notification is what the user gets credit for).
+  const notificationRows = await db.hubDocumentNotification.findMany({
     where:  { documentId: id },
-    select: { userId: true },
-    distinct: ["userId"],
+    select: { userId: true, eventType: true, notifiedAt: true },
+    orderBy: { notifiedAt: "asc" },
   });
-  const notifiedUserIds = alreadyNotified.map((n) => n.userId);
+  const notifications = notificationRows.map((n) => ({
+    userId:     n.userId,
+    eventType:  n.eventType,
+    notifiedAt: n.notifiedAt.toISOString(),
+  }));
 
   const members = hubMembers.map((m) => ({
     id:           m.userId,
@@ -52,7 +58,7 @@ export async function GET(
     preferredName: m.user.preferredName,
   }));
 
-  return NextResponse.json({ members, notifiedUserIds });
+  return NextResponse.json({ members, notifications });
 }
 
 // POST /api/hub/[slug]/documents/[id]/notify
@@ -89,6 +95,8 @@ export async function POST(
   const authorName = session.user.name || session.user.email?.split("@")[0] || "Someone";
   const docUrl = `${BASE_URL}/account/hub/${slug}/documents/${id}`;
 
+  const normalizedEventType = eventType === "updated" ? "updated" : "created";
+
   after(async () => {
     const eligible = await db.hubMember.findMany({
       where: {
@@ -102,18 +110,33 @@ export async function POST(
 
     if (eligible.length === 0) return;
 
+    // Dedup against existing (documentId, userId, eventType) — Basecamp pattern:
+    // once you've gotten a "created" alert for this doc, you never get another.
+    const existing = await db.hubDocumentNotification.findMany({
+      where: {
+        documentId: id,
+        userId:     { in: eligible.map((m) => m.userId) },
+        eventType:  normalizedEventType,
+      },
+      select: { userId: true },
+    });
+    const alreadyNotified = new Set(existing.map((n) => n.userId));
+    const toNotify = eligible.filter((m) => !alreadyNotified.has(m.userId));
+
+    if (toNotify.length === 0) return;
+
     await db.hubDocumentNotification.createMany({
-      data: eligible.map((m) => ({
+      data: toNotify.map((m) => ({
         documentId: id,
         userId:     m.userId,
-        eventType:  eventType === "updated" ? "updated" : "created",
+        eventType:  normalizedEventType,
       })),
     });
 
-    const sendFn = eventType === "updated" ? sendHubDocumentUpdatedEmail : sendHubDocumentCreatedEmail;
+    const sendFn = normalizedEventType === "updated" ? sendHubDocumentUpdatedEmail : sendHubDocumentCreatedEmail;
 
     await Promise.allSettled(
-      eligible
+      toNotify
         .filter((m) => m.user.email)
         .map((m) =>
           sendFn({

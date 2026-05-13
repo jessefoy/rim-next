@@ -66,6 +66,7 @@ export default function HubDocumentEditor({
   const [error, setError] = useState<string | null>(null);
   const [locked, setLocked] = useState(initialLocked);
   const [notifyIds, setNotifyIds] = useState<string[]>([]);
+  const [notifiedMap, setNotifiedMap] = useState<Record<string, string>>({});
   const [dismissed, setDismissed] = useState(false);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -88,6 +89,24 @@ export default function HubDocumentEditor({
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
       fetch(`/api/hub/${hubSlug}/documents/${docId}/presence`, { method: "DELETE" });
     };
+  }, [docId, hubSlug, isNew]);
+
+  // ── Load prior "updated" notifications so author can see who's been told ─
+  useEffect(() => {
+    if (isNew || !docId) return;
+    let cancelled = false;
+    fetch(`/api/hub/${hubSlug}/documents/${docId}/notify`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return;
+        const map: Record<string, string> = {};
+        for (const n of (data.notifications ?? []) as Array<{ userId: string; eventType: string; notifiedAt: string }>) {
+          if (n.eventType === "updated" && !map[n.userId]) map[n.userId] = n.notifiedAt;
+        }
+        setNotifiedMap(map);
+      })
+      .catch(() => { /* non-fatal */ });
+    return () => { cancelled = true; };
   }, [docId, hubSlug, isNew]);
 
   // ── Lock toggle ──────────────────────────────────────────────────────
@@ -248,6 +267,7 @@ export default function HubDocumentEditor({
         members={hubMembers}
         selectedIds={notifyIds}
         onChange={setNotifyIds}
+        notifiedMap={notifiedMap}
       />
 
       <div className="doc-page__footer" style={{ display: "flex", alignItems: "center", gap: 12 }}>

@@ -84,6 +84,18 @@ This is the difference between executing tasks and co-creating a system. Jesse s
 - Full stack reference: `RIM_Stack_Reference.md` in project root.
 - Editor system reference: `RIM_Editor_Types.md` in project root — **read before working on any editor component, content renderer, display page, or CSS for rich text output.** (Supersedes the older `RIM_Editor_Design.md`, which is archived.)
 
+## Email Template Gate (always)
+
+Every `sendTemplatedEmail("slug", …)` call site MUST have a corresponding seed entry in `prisma/migrate.mjs` in the same commit. The template manager at `/admin/emails` is the source of truth — if the row doesn't exist in DB, `sendTemplatedEmail` silently no-ops and the recipient gets nothing. The compiler can't catch this; only discipline can.
+
+When adding a notification:
+1. Add the template body, subject, variables, and group/groupLabel to `prisma/migrate.mjs` (new migration entry).
+2. Use `enabled: true` so the email actually sends on first deploy.
+3. Use the defensive `findUnique` → `create` pattern, NOT `upsert`, so re-running doesn't overwrite manual edits Jesse has made via the admin UI.
+4. The `groupLabel` and numeric prefix (e.g. `04-hosts`, `05-hubs`) determines where it shows up in `/admin/emails`.
+
+Hardcoded sends (don't use the template manager, intentionally): `sendHostManagerRoleAssignmentEmail`, the three `sendStandingAssignment*` functions. These render markdown inline — long-form, set-and-forget content that doesn't need coordinator editing. If you add a new hardcoded send, write a one-line justification in the function's JSDoc explaining why it bypasses the manager.
+
 ## Stack
 - Next.js **16** (App Router) + TypeScript
 - Sanity v3 (project `xxgvfpjf`, dataset `production`) — content CMS at `rooted-in-mindfulness.sanity.studio`
