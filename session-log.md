@@ -1,5 +1,35 @@
 ---
 
+## 2026-05-13 (session 111) — Host rotation management UX overhaul
+
+Three closely-related changes, all driven by a single real-world need: hub coordinators needed to manage rotations, and the tooling needed to cover three distinct operations cleanly — releasing one person from a shared rotation, ending an entire rotation bundle, and resetting a program's rotation structure from scratch.
+
+**Coordinator access.** Rotation controls were previously gated to HOST_MANAGER and ADMIN only. `app/tools/schedule/page.tsx` now queries `HubMember` for coordinator status on the host-team hub and merges the result into a single `isManager` boolean. That value flows through `HubScheduleClient` (prop renamed `isAdmin → isManager`) into `RotationsClient` where it gates the manage panel's release section, the per-program Reset button, and the global "Reset everything" button.
+
+**Release one person's upcoming dates.** New `POST /api/host/standing-assignments/release-host` endpoint. The scenario it solves: Nancy and Silvia share an Alternate rotation (Nancy 1st & 3rd, Silvia 2nd & 4th). Nancy is stepping back with no replacement ready. Ending the whole rotation would displace Silvia and email her unnecessarily. The release operation finds future HostAssignment rows for `userId` within the `(programSlug, dayOfWeek)` bundle, cancels open SubRequests, deletes the assignments, and emails Nancy. Silvia's assignments stay intact. StandingAssignment rules stay — the rotation is still active and can be edited to add a replacement.
+
+**Flat manage panel.** The previous End panel was a two-view state machine. The redesign: End opens a single panel. If the user is a manager and the bundle has distinct hosts, the release section appears immediately with each host's name and a "Release their dates" button. "End this rotation" sits below it. No sub-views, no `endPanelView` state.
+
+**"End this rotation" simplified to one option.** A previous iteration had two End options. Jesse identified that "keep existing sessions, stop generating" leaves dozens of future assignments in place — not useful when actually ending a rotation. Graceful wind-down is already covered by the Edit form's end-date field. Removed option 1. End now always releases future dates and emails affected hosts.
+
+**Global soft-clear removed.** "Clear upcoming schedule" deleted future HostAssignments while leaving rotation rules intact — making it a no-op after the next cron run. Only "Reset everything" (nuclear) remains as a global option.
+
+**Per-program Reset.** "Reset rotations" button at the bottom of each program card (manager only). Calls `POST /api/host/programs/[slug]/clear-rotations` with `mode: "reset"` — deletes all StandingAssignment rules and future HostAssignments for that program only.
+
+**Manual updated.** `host-rotations` chapter rewritten as v3: removes the Pair pattern, corrects the End section, adds Release one person and per-program Reset, notes coordinator access. Wired into `migrate.mjs` with flag `update_manual_host_rotations_v3`.
+
+**What this connects to:**
+- `components/RotationsClient.tsx` — coordinator UI, flat manage panel
+- `components/HubScheduleClient.tsx` — `isManager` prop
+- `app/tools/schedule/page.tsx` — coordinator DB check
+- `app/api/host/standing-assignments/release-host/route.ts` — new
+- `app/api/host/programs/[slug]/clear-rotations/route.ts` — new
+- `lib/email.ts` — `sendStandingAssignmentReleasedEmail`
+- `prisma/migrate.mjs` + `update-manual-host-rotations-v3.mjs` — manual update
+- `FEATURES.md` — Feature 45 updated
+
+---
+
 ## 2026-05-13 (session 110) — Member-area cleanup: Dashboard → Home, dead-link sweep, Support Inbox tool residue strip
 
 Pure cleanup session, no new feature work. Started from a screenshot Jesse sent of the member dashboard with the sidebar open: a "Support Inbox" entry under "Your Hubs," dead admin links in the Staff section ("Roadmap," "Banner," "Editor Lab"), an Admin dropdown in the top nav pointing at routes that don't exist, and the word "Dashboard" everywhere — a word Jesse said members find abstract and don't connect to a community-login experience.

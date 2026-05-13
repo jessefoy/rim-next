@@ -31,7 +31,7 @@ Tools are full-featured staff applications extracted from hubs. They serve one w
 
 **Current tools (3):**
 - `/tools/programs` — Program Manager (REGISTRAR/ADMIN)
-- `/tools/schedule` — Host Schedule (mini-cal + card list; HOST/HOST_MANAGER/ADMIN)
+- `/tools/schedule` — Host Schedule (mini-cal + card list; HOST/HOST_MANAGER/ADMIN/hub coordinator). Rotations tab gated to `isManager` = HOST_MANAGER/ADMIN or host-team hub coordinator (session 111).
 - `/tools/learning` — Course Manager: Series + Lessons (TEACHER/ADMIN)
 
 **Tool access:** Role-based (via `hasToolAccess()`) OR individual `UserToolAccess` grants. Tool registry: `lib/toolRegistry.ts`. Hub awareness: `getToolHubContext()` resolves `?hub=` param to hub + members. Notifications: `getHubNotificationRecipients()` queries hub members (not roles).

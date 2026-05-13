@@ -2302,11 +2302,14 @@ Idempotent — safe to re-run; sessions with existing assignments are never touc
 | GET | `/api/host/standing-assignments` | List active standing assignments | coordinator / manager |
 | POST | `/api/host/standing-assignments` | Save rotation (upsert filled slots, delete emptied) | coordinator / manager |
 | POST | `/api/host/standing-assignments/apply` | Apply to open sessions immediately | coordinator / manager |
+| POST | `/api/host/standing-assignments/end-bundle` | End a (programSlug, dayOfWeek) rotation bundle | coordinator / manager |
+| POST | `/api/host/standing-assignments/release-host` | Release one user's future assignments for a bundle | coordinator / manager |
+| POST | `/api/host/programs/[slug]/clear-rotations` | Per-program reset (`mode: "reset"` deletes rules + future assignments) | coordinator / manager |
 | GET | `/api/cron/apply-standing-assignments` | Daily cron — fills current + next month on 1st | `CRON_SECRET` |
 
 ### UI
 
-**Rotations tab** (`components/RotationsClient.tsx`) inside the Host Schedule tool. Visible to HOST_MANAGER and ADMIN. One card per program; each program shows a day × occurrence (1st–5th) grid. Click "Edit" or "Set up" on a row to open an inline pattern form.
+**Rotations tab** (`components/RotationsClient.tsx`) inside the Host Schedule tool. Visible to HOST_MANAGER, ADMIN, and hub coordinators (`isManager` prop — added session 111). One card per program; each program shows a day × occurrence (1st–5th) grid. Click "Edit" or "Set up" on a row to open an inline pattern form.
 
 Pattern options: **Same every week** (one ALL record), **Alternate** (1st & 3rd / 2nd & 4th), **Custom** (set each occurrence independently). "Pair weeks" (1st-2nd / 3rd-4th) was removed in session 108 — Custom covers it when needed. Existing pair rotations continue to apply via the DB records; they appear as Custom on edit.
 
@@ -2319,6 +2322,10 @@ Pattern options: **Same every week** (one ALL record), **Alternate** (1st & 3rd 
 Save applies immediately (current + future months through `endsOn` horizon, leave-mode). Conflict modal shows if any sessions had existing assignments. Toast confirms fill count.
 
 **Host-side awareness panel** (`HubScheduleClient.tsx`): hosts see a "Your rotations" panel above the schedule showing their active rotations as stacked horizontal cards (session 109). Each card has the program name + pattern meta on the left ("1st & 3rd of the month · until Dec 2026") and a "NEXT" microlabel + date·time of the next upcoming session on the right. Multiple DB records for the same program (e.g. FIRST + THIRD from an alternate pattern) are grouped into one card. The next-session date is fetched as a separate DB query in `app/tools/schedule/page.tsx` (`nextSessionBySlug`) so it always reflects the real next assignment regardless of which calendar month is open.
+
+**Manage panel** (session 111): clicking End opens a flat inline panel — no sub-views or state machine. If the coordinator is a manager and the bundle has assigned hosts, a release section appears immediately showing each distinct host with a "Release their dates" button. Below that, "End this rotation" ends the whole bundle (deletes StandingAssignment records, cancels open SubRequests, deletes future HostAssignments, emails each affected host). Global soft-clear removed — "Reset everything" is the only global operation.
+
+**Per-program Reset** (session 111): each program card shows a "Reset rotations" button (manager only, when rotations exist) that deletes all StandingAssignment rules for that program and all future HostAssignments. Scoped to one program; doesn't touch other programs. Two-step confirmation required.
 
 **Tab strip** (`HubScheduleClient.tsx`): `hs-viewtabs` / `hs-viewtab` / `hs-viewtab--active` pill tabs toggle between Schedule and Rotations views (manager-only).
 
@@ -2336,10 +2343,14 @@ Save applies immediately (current + future months through `endsOn` horizon, leav
 - `components/RotationsClient.tsx` — coordinator UI
 - `app/api/host/standing-assignments/route.ts` — list + save
 - `app/api/host/standing-assignments/apply/route.ts` — apply now
+- `app/api/host/standing-assignments/end-bundle/route.ts` — end a bundle
+- `app/api/host/standing-assignments/release-host/route.ts` — per-person release
+- `app/api/host/programs/[slug]/clear-rotations/route.ts` — per-program reset
 - `app/api/cron/apply-standing-assignments/route.ts` — daily cron
 - `lib/scheduleUtils.ts` — `getOccurrenceInMonth()` added
 - `lib/email.ts` — `sendStandingAssignmentScheduledEmail()` added
-- `components/HubScheduleClient.tsx` — Rotations tab mount
+- `components/HubScheduleClient.tsx` — Rotations tab mount (`isManager` prop)
+- `app/tools/schedule/page.tsx` — coordinator DB check → `isManager`
 - `prisma/schema.prisma` — `StandingAssignment` + `StandingOccurrence`
 - `public/css/custom.css` — `hs-viewtabs`, `hs-rot-*` styles
 

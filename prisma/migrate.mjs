@@ -17,6 +17,7 @@ import { updateManualHostHub } from "./update-manual-host-hub.mjs";
 import { updateManualHostHubTeamManagement } from "./update-manual-host-hub-team-management.mjs";
 import { updateManualHostSchedule } from "./update-manual-host-schedule.mjs";
 import { updateManualHostRotations } from "./update-manual-host-rotations.mjs";
+import { updateManualHostRotationsV3 } from "./update-manual-host-rotations-v3.mjs";
 import { updateManualHostSessionRoom } from "./update-manual-host-session-room.mjs";
 import { updateManualConversations } from "./update-manual-conversations.mjs";
 import { updateManualCourseHub } from "./update-manual-course-hub.mjs";
@@ -1985,6 +1986,21 @@ async function main() {
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_rotations_v2')`);
   } else {
     console.log("  ⏭ Manual host-rotations already updated.");
+  }
+
+  // Manual chapter: host-rotations v3 — removes Pair pattern (removed from
+  // UI in session 108), corrects End section (one action: end + release all
+  // future dates + email hosts), adds Release one person's upcoming dates,
+  // adds per-program Reset rotations, notes coordinator access.
+  const updateManualHostRotationsV3Flag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_host_rotations_v3'
+  `).catch(() => []);
+
+  if (updateManualHostRotationsV3Flag.length === 0) {
+    await updateManualHostRotationsV3(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_rotations_v3')`);
+  } else {
+    console.log("  ⏭ Manual host-rotations v3 already applied.");
   }
 
   // Manual chapter: host-session-room. v2 corrects drift between the

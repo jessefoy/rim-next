@@ -6,18 +6,20 @@
 
 ## Active
 
-**Session 110 (2026-05-13)** was member-area cleanup: rename Dashboard → Home, sweep dead links, strip Support Inbox tool residue. Pushed as `8d81ce3` on `main`. Vercel deploy in flight at session close.
+**Session 111 (2026-05-13)** — Host rotation management UX overhaul. All changes live on `main`.
 
-- **Dashboard → Home rename** — Member sidebar, top nav (desktop + mobile + public-site Member Area dropdown), page title, tool back-link labels (`ToolsContext`, all three tool layouts), hub workspace footer link, public program-detail CTAs all updated. Admin vocabulary tracked: ProgramEditor's "Dashboard" tab → "Home Card" plus help-text rewrites; RolesSection hint reworded. URL `/account/dashboard` is unchanged — only the label moved.
-- **Dead admin links gone** — Sidebar STAFF section lost `Roadmap` / `Banner` / `Editor Lab` (none of those pages ever existed in active code). Member-area top nav lost the entire Admin dropdown (the only two items inside, `/admin/sitemap` and `/admin/features`, were both already gone per `CLEANUP.md` §F). `Courses` and `Teachers` came out of the member-area top nav too — sidebar is now the authoritative member rail.
-- **Support Inbox tool residue gone, hub itself stays** — `lib/toolRegistry.ts` (no more `inbox` entry), `lib/hubContext.ts` (no more `case "support":` primary-tool branch), `lib/manualGroups.ts` (no more support-team group), `HubHomeClient` orientation map, `RolesSection` + `CourseEditor` role pickers, `api/upload/route.ts` SUPPORT branch — all cleaned. Deleted `components/SupportInboxClient.tsx` (1,736 lines, no importers). `seed-hubs.ts` no longer seeds the two dead app-link rows; `seed-manual-chapters.ts` no longer creates the `support-inbox` ManualSection. One-time `migrate.mjs` migration `remove_support_inbox_residue` (idempotent via `_migration_flags`) cleans existing DB rows on next deploy. The Support Hub stays as a core-only workspace (Home, Conversations, Documents, Members) — same shape as any other tool-less hub.
-- **Sanity status memorialized** — Wrote `memory/sanity-status.md` documenting that Sanity is effectively retired (per the post-Webflow-reversal state + `CLEANUP.md` #56) and listing every code-level residue point (`lib/sanity.ts`, `lib/queries.ts`, two public routes, `@sanity/client` package dep). Don't propose Sanity for new work.
+- **Coordinator access** — Rotation controls (previously HOST_MANAGER/ADMIN only) now extend to hub coordinators. `app/tools/schedule/page.tsx` queries `HubMember` for coordinator status; result merged into `isManager`. `HubScheduleClient` and `RotationsClient` props renamed `isAdmin → isManager`.
+- **Release one person's upcoming dates** — New `POST /api/host/standing-assignments/release-host`. Accepts `{ programSlug, dayOfWeek, userId }`. Cancels open SubRequests, deletes future HostAssignments for that user+bundle only, emails the displaced host. Leaves other hosts in the rotation untouched. Essential for Alternate/Custom rotations where only one person steps back.
+- **Flat manage panel** — End button opens a single panel (no sub-views or navigation state). Manager sees each distinct host with "Release their dates" immediately; "End this rotation" below terminates the whole bundle and emails all affected hosts.
+- **Global soft-clear removed** — "Clear upcoming schedule" had no durable effect (rotation rules immediately refill). Only "Reset everything" remains as the global nuclear option.
+- **Per-program Reset** — `POST /api/host/programs/[slug]/clear-rotations` (`mode: "reset"`) deletes all StandingAssignment rules + future HostAssignments for one program. Two-step confirmation in the UI.
+- **Manual updated** — `host-rotations` chapter rewritten as v3 via `update-manual-host-rotations-v3.mjs` (removes Pair pattern, corrects End section, adds Release one person and per-program Reset).
 
-**Next concrete step:** Maria training session per `TRAINING_PLAN.md` — still the primary milestone. Jesse confirms session 110 cleanup landed cleanly on production (sidebar shows "Home," hub workspace footer says "Back to Home," Support Hub renders without dead inbox card), then sets [TBD] training dates.
+**Next concrete step:** Maria training session per `TRAINING_PLAN.md`. Confirm session 111 rotation changes look correct in the live tool (End panel is flat, coordinator can access Rotations tab), then set training dates.
 
-**Two cleanup follow-ons surfaced this session, parked for now:**
+**Parked follow-ons from session 110:**
 
-1. **Email template wording in DB** — `registrar-role-assigned` and reminder templates still contain "Your session link and full details are on your dashboard." / "**[Go to my dashboard →]({{dashboardUrl}})**". The `dashboardUrl` variable name is a contract between `lib/email.ts:434` and the DB template body — renaming requires coordinated edits. Safe path: edit each affected template at `/admin/emails` (UI), keep the binding name `dashboardUrl` for now or coordinate a rename in a dedicated pass.
+1. **Email template wording in DB** — `registrar-role-assigned` and reminder templates still contain "dashboard" language. Safe path: edit at `/admin/emails`; keep the `dashboardUrl` binding name for now.
 2. **`SUPPORT` enum value in `prisma/schema.prisma:135`** — Still present. Removing a Prisma enum value while any user row references it in `roles[]` will crash. Needs a user-records audit (`SELECT id FROM users WHERE 'SUPPORT' = ANY(roles)`) before removal. Out of scope this session.
 
 **Theme B (Google Meet) remains.** Items #15–17 are still manual steps Jesse will do when ready:
