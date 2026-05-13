@@ -617,13 +617,9 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                                   <span>Frees their sessions so others can claim them. The rotation stays active and can be edited.</span>
                                 </button>
                               )}
-                              <button className="hs-rot__end-opt" onClick={() => handleEnd(program.slug, d, false)} disabled={saving || releasing}>
-                                <strong>End — keep existing sessions.</strong>
-                                <span>Stops generating new sessions. Hosts keep the dates already on their schedule.</span>
-                              </button>
                               <button className="hs-rot__end-opt hs-rot__end-opt--release" onClick={() => handleEnd(program.slug, d, true)} disabled={saving || releasing}>
-                                <strong>End — release all future dates.</strong>
-                                <span>Stops generating and clears upcoming sessions from all hosts&rsquo; schedules. Each affected host is emailed.</span>
+                                <strong>End this rotation.</strong>
+                                <span>Stops generating new sessions and clears all upcoming dates from hosts&rsquo; schedules. Each affected host is emailed.</span>
                               </button>
                               <button className="hs-rot__end-cancel" onClick={() => setEndingBundle(null)} disabled={saving || releasing}>Cancel</button>
                             </>
