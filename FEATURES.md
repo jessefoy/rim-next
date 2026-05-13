@@ -2302,7 +2302,7 @@ Idempotent — safe to re-run; sessions with existing assignments are never touc
 | GET | `/api/host/standing-assignments` | List active standing assignments | coordinator / manager |
 | POST | `/api/host/standing-assignments` | Save rotation (upsert filled slots, delete emptied) | coordinator / manager |
 | POST | `/api/host/standing-assignments/apply` | Apply to open sessions immediately | coordinator / manager |
-| POST | `/api/host/standing-assignments/end-bundle` | End a (programSlug, dayOfWeek) rotation bundle | coordinator / manager |
+| POST | `/api/host/standing-assignments/end-bundle` | End a bundle — `{ releaseFuture }` or `{ endsOn: "YYYY-MM-DD" }` for graceful wind-down | coordinator / manager |
 | POST | `/api/host/standing-assignments/release-host` | Release one user's future assignments for a bundle | coordinator / manager |
 | POST | `/api/host/programs/[slug]/clear-rotations` | Per-program reset (`mode: "reset"` deletes rules + future assignments) | coordinator / manager |
 | GET | `/api/cron/apply-standing-assignments` | Daily cron — fills current + next month on 1st | `CRON_SECRET` |
@@ -2323,7 +2323,7 @@ Save applies immediately (current + future months through `endsOn` horizon, leav
 
 **Host-side awareness panel** (`HubScheduleClient.tsx`): hosts see a "Your rotations" panel above the schedule showing their active rotations as stacked horizontal cards (session 109). Each card has the program name + pattern meta on the left ("1st & 3rd of the month · until Dec 2026") and a "NEXT" microlabel + date·time of the next upcoming session on the right. Multiple DB records for the same program (e.g. FIRST + THIRD from an alternate pattern) are grouped into one card. The next-session date is fetched as a separate DB query in `app/tools/schedule/page.tsx` (`nextSessionBySlug`) so it always reflects the real next assignment regardless of which calendar month is open.
 
-**Manage panel** (session 111): clicking End opens a flat inline panel — no sub-views or state machine. If the coordinator is a manager and the bundle has assigned hosts, a release section appears immediately showing each distinct host with a "Release their dates" button. Below that, "End this rotation" ends the whole bundle (deletes StandingAssignment records, cancels open SubRequests, deletes future HostAssignments, emails each affected host). Global soft-clear removed — "Reset everything" is the only global operation.
+**Manage panel** (session 111): clicking End opens a flat inline panel with three options. (1) Release section — if manager + hosts assigned, each host listed with "Release their dates" button. (2) End on a specific date — date picker + "Set end date"; sets `endsOn` on StandingAssignment records, silently trims pre-generated HostAssignments beyond that date, no email. (3) End this rotation — deletes StandingAssignment records, cancels open SubRequests, deletes future HostAssignments, emails each affected host. Global soft-clear removed — "Reset everything" is the only global operation.
 
 **Per-program Reset** (session 111): each program card shows a "Reset rotations" button (manager only, when rotations exist) that deletes all StandingAssignment rules for that program and all future HostAssignments. Scoped to one program; doesn't touch other programs. Two-step confirmation required.
 

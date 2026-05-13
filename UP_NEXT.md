@@ -10,10 +10,11 @@
 
 - **Coordinator access** — Rotation controls (previously HOST_MANAGER/ADMIN only) now extend to hub coordinators. `app/tools/schedule/page.tsx` queries `HubMember` for coordinator status; result merged into `isManager`. `HubScheduleClient` and `RotationsClient` props renamed `isAdmin → isManager`.
 - **Release one person's upcoming dates** — New `POST /api/host/standing-assignments/release-host`. Accepts `{ programSlug, dayOfWeek, userId }`. Cancels open SubRequests, deletes future HostAssignments for that user+bundle only, emails the displaced host. Leaves other hosts in the rotation untouched. Essential for Alternate/Custom rotations where only one person steps back.
-- **Flat manage panel** — End button opens a single panel (no sub-views or navigation state). Manager sees each distinct host with "Release their dates" immediately; "End this rotation" below terminates the whole bundle and emails all affected hosts.
-- **Global soft-clear removed** — "Clear upcoming schedule" had no durable effect (rotation rules immediately refill). Only "Reset everything" remains as the global nuclear option.
-- **Per-program Reset** — `POST /api/host/programs/[slug]/clear-rotations` (`mode: "reset"`) deletes all StandingAssignment rules + future HostAssignments for one program. Two-step confirmation in the UI.
-- **Manual updated** — `host-rotations` chapter rewritten as v3 via `update-manual-host-rotations-v3.mjs` (removes Pair pattern, corrects End section, adds Release one person and per-program Reset).
+- **Flat manage panel** — End button opens a single panel with three options: release one person, end on a specific date, end now. No sub-views.
+- **End on a specific date** — Date picker + "Set end date" in the panel. Calls `end-bundle` with `{ endsOn: "YYYY-MM-DD" }` — sets `endsOn` on StandingAssignment records and silently trims pre-generated HostAssignment rows beyond that date. No email.
+- **Global soft-clear removed** — "Clear upcoming schedule" had no durable effect. Only "Reset everything" remains.
+- **Per-program Reset** — `POST /api/host/programs/[slug]/clear-rotations` (`mode: "reset"`) deletes all StandingAssignment rules + future HostAssignments for one program.
+- **Manual updated** — `host-rotations` chapter at v4 via `update-manual-host-rotations-v4.mjs` (all three end-panel options documented).
 
 **Next concrete step:** Maria training session per `TRAINING_PLAN.md`. Confirm session 111 rotation changes look correct in the live tool (End panel is flat, coordinator can access Rotations tab), then set training dates.
 
