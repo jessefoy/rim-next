@@ -443,20 +443,22 @@ The member home page. A single `720px` content column (`db2-wrap`), vertical sec
 
 A persistent sidebar that appears on all account pages, showing navigation links appropriate to the user's roles.
 
-**Sidebar links by role:**
+**Sidebar links by role (current as of session 110, 2026-05-13):**
 | Link | Destination | Who sees it |
 |---|---|---|
-| Dashboard | `/account/dashboard` | All members |
-| My Programs | `/account/programs` | All members |
-| My Library | `/account/dashboard-my-library` | All members |
+| Home | `/account/dashboard` | All members |
+| My Registrations | `/account/programs` | All members |
+| My Courses | `/account/courses` | All members |
 | My Profile | `/account/dashboard-my-profile` | All members |
 | *(Your Hubs divider + links)* | `/account/hub/[slug]` | Members with `HubMember` records; ADMIN sees all hubs; REGISTRAR auto-synced to Registrar Hub |
-| *(divider)* | — | REGISTRAR / ADMIN |
+| *(Staff divider)* | — | REGISTRAR / ADMIN |
 | Members | `/admin/members` | REGISTRAR / ADMIN |
 | Households | `/admin/households` | REGISTRAR / ADMIN |
-| *(divider)* | — | ADMIN only |
+| Hubs | `/admin/hubs` | ADMIN |
+| Emails | `/admin/emails` | ADMIN |
 | Manual | `/admin/manual` | ADMIN |
-| Roadmap | `/admin/roadmap` | ADMIN |
+
+The label "Dashboard" was renamed to "Home" in session 110 — members find "Dashboard" abstract for a community-login surface. The URL `/account/dashboard` is unchanged. Three dead entries (Roadmap, Banner, Editor Lab) were also removed in session 110 — none of those pages exist in active code.
 
 **Architecture:**
 - `AccountLayout` — server component; calls `auth()`, extracts `roles`; ADMIN users get all hubs via `db.hub.findMany()`; non-admins get only their `HubMember` records. Renders `ac-layout` wrapper with `AccountSidebar + ac-content`.
@@ -1385,7 +1387,9 @@ Areas: 🔐 Auth, 🛡️ Route Protection, 📋 Registration, ✉️ Email, �
 
 The Programs dropdown has two items: "All Programs" → `/community-programs` and "This Week's Schedule" → `/this-week`. Same dropdown pattern as Get Involved and Member Area.
 
-**Member area mode** (`/account/*`, `/admin/*`): My Dashboard · Programs · Admin ▾ (admin-only) · Sign Out · Donate pill
+**Member area mode** (`/account/*`, `/admin/*`, `/tools/*`): My Home · Programs ▾ · Sign Out · Donate pill
+
+Top nav in the member area is intentionally minimal — the sidebar is the authoritative left rail (session 110 cleanup). The Admin dropdown and standalone `Courses` / `Teachers` links were removed because the sidebar already surfaces every staff destination, and the public catalog pages were creating two paths to "courses" / "teachers" inside the member area without a clear distinction.
 
 Dropdowns open on CSS `hover` + `focus-within` — no JavaScript required for desktop. Each dropdown renders a white floating card with `--rim-bg-accent` separator lines between items.
 
@@ -3586,7 +3590,13 @@ Defined in `lib/blockNoteCustomBlocks.tsx`. Exports `rimBlockSchema` (full) and 
 
 ## §29 — Support Inbox — 🗑 REMOVED (session 100, 2026-05-06)
 
-> **Fully removed in Theme E cleanup.** All code, schema models (GmailCredential, SupportThread, SupportMessage, SupportAttachment, SupportNote, SupportSignature, SupportTemplate), API routes (`/api/support/*`), and lib files (`lib/gmail.ts`, `lib/supportSync.ts`, `lib/supportNotify.ts`) deleted. The SUPPORT role enum value also removed. `support@rootedinmindfulness.org` is read directly via Gmail. The section below describes the removed feature for historical context.
+> **Fully removed in Theme E cleanup.** All code, schema models (GmailCredential, SupportThread, SupportMessage, SupportAttachment, SupportNote, SupportSignature, SupportTemplate), API routes (`/api/support/*`), and lib files (`lib/gmail.ts`, `lib/supportSync.ts`, `lib/supportNotify.ts`) deleted. `support@rootedinmindfulness.org` is read directly via Gmail.
+>
+> **Residual tool wiring stripped in session 110 (2026-05-13).** The Support Inbox tool's removal in session 100 missed several upstream references that kept surfacing dead UI inside the Support Hub workspace: `lib/toolRegistry.ts` still had an `inbox` entry; `lib/hubContext.ts` had a `case "support"` branch that rendered a "X open requests · Open tool →" primary-work card pointing at the deleted route; `lib/manualGroups.ts` had a "For the support team" group; `HubHomeClient` had `support: "support-inbox"` in its orientation map; `components/SupportInboxClient.tsx` (1,736 lines) was orphaned dead code; `RolesSection` and `CourseEditor` still listed `SUPPORT` as a role pickable option; `api/upload/route.ts` had a `SUPPORT`-in-roles branch. All cleaned. Two `HubAppLink` rows + the `support-inbox` `ManualSection` row are deleted from the DB by a new `migrate.mjs` entry `remove_support_inbox_residue` on next deploy. The `SUPPORT` enum value remains in `prisma/schema.prisma:135` pending a user-records audit before removal (deferred — removing a Prisma enum value while any user row references it crashes the build).
+>
+> **The Support Hub itself stays as a core-only team workspace** — Home, Conversations, Documents, Members — same shape as any other tool-less hub.
+>
+> The section below describes the removed feature for historical context.
 
 ---
 

@@ -6,15 +6,21 @@
 
 ## Active
 
-**Session 109 (2026-05-07/08)** finished the schedule tool work and shipped a real PDF export. All commits merged to `main`.
+**Session 110 (2026-05-13)** was member-area cleanup: rename Dashboard → Home, sweep dead links, strip Support Inbox tool residue. Pushed as `8d81ce3` on `main`. Vercel deploy in flight at session close.
 
-- **Your rotations panel** — chip layout replaced with stacked white cards: program name + pattern meta on the left, "NEXT" microlabel + next session date·time on the right. Driven by a new `nextSessionBySlug` query in `app/tools/schedule/page.tsx`.
-- **Schedule PDF export** — `/tools/schedule/print` is now a date-range form that hands off to `GET /api/host/schedule/pdf?from=&to=`, which streams a real PDF rendered with `@react-pdf/renderer` (no headless Chromium; works on Vercel serverless). Tabular layout: column header (Day · Date · Time · Program · Format), month dividers, summary line ("7 sessions · Thursdays at 8:15 AM"), next-session marker with teal ▸ + pale teal row tint, fixed footer.
-- **Program label drift fix** — `dateText` / `timeText` were stale on the public listing because the editor's "dirty" override mechanism couldn't tell first-save auto-defaults from real overrides. Dropped the override entirely; both fields are now server-computed from source fields on every POST/PUT. Editor inputs are read-only previews. `lib/programUtils.ts` gained `computeTimeText` + `computeDateText`. Existing rows self-heal via a `prisma/migrate.mjs` entry (`recache_program_date_time_text`) that walks all programs every deploy and only writes when the cached label differs.
+- **Dashboard → Home rename** — Member sidebar, top nav (desktop + mobile + public-site Member Area dropdown), page title, tool back-link labels (`ToolsContext`, all three tool layouts), hub workspace footer link, public program-detail CTAs all updated. Admin vocabulary tracked: ProgramEditor's "Dashboard" tab → "Home Card" plus help-text rewrites; RolesSection hint reworded. URL `/account/dashboard` is unchanged — only the label moved.
+- **Dead admin links gone** — Sidebar STAFF section lost `Roadmap` / `Banner` / `Editor Lab` (none of those pages ever existed in active code). Member-area top nav lost the entire Admin dropdown (the only two items inside, `/admin/sitemap` and `/admin/features`, were both already gone per `CLEANUP.md` §F). `Courses` and `Teachers` came out of the member-area top nav too — sidebar is now the authoritative member rail.
+- **Support Inbox tool residue gone, hub itself stays** — `lib/toolRegistry.ts` (no more `inbox` entry), `lib/hubContext.ts` (no more `case "support":` primary-tool branch), `lib/manualGroups.ts` (no more support-team group), `HubHomeClient` orientation map, `RolesSection` + `CourseEditor` role pickers, `api/upload/route.ts` SUPPORT branch — all cleaned. Deleted `components/SupportInboxClient.tsx` (1,736 lines, no importers). `seed-hubs.ts` no longer seeds the two dead app-link rows; `seed-manual-chapters.ts` no longer creates the `support-inbox` ManualSection. One-time `migrate.mjs` migration `remove_support_inbox_residue` (idempotent via `_migration_flags`) cleans existing DB rows on next deploy. The Support Hub stays as a core-only workspace (Home, Conversations, Documents, Members) — same shape as any other tool-less hub.
+- **Sanity status memorialized** — Wrote `memory/sanity-status.md` documenting that Sanity is effectively retired (per the post-Webflow-reversal state + `CLEANUP.md` #56) and listing every code-level residue point (`lib/sanity.ts`, `lib/queries.ts`, two public routes, `@sanity/client` package dep). Don't propose Sanity for new work.
 
-**Next concrete step:** Maria training session per `TRAINING_PLAN.md`. Jesse confirms PDF render quality and rotation panel behavior on production, then sets [TBD] training dates.
+**Next concrete step:** Maria training session per `TRAINING_PLAN.md` — still the primary milestone. Jesse confirms session 110 cleanup landed cleanly on production (sidebar shows "Home," hub workspace footer says "Back to Home," Support Hub renders without dead inbox card), then sets [TBD] training dates.
 
-**Theme B (Google Meet) remains.** Items #15–17 are manual steps Jesse will do when ready:
+**Two cleanup follow-ons surfaced this session, parked for now:**
+
+1. **Email template wording in DB** — `registrar-role-assigned` and reminder templates still contain "Your session link and full details are on your dashboard." / "**[Go to my dashboard →]({{dashboardUrl}})**". The `dashboardUrl` variable name is a contract between `lib/email.ts:434` and the DB template body — renaming requires coordinated edits. Safe path: edit each affected template at `/admin/emails` (UI), keep the binding name `dashboardUrl` for now or coordinate a rename in a dedicated pass.
+2. **`SUPPORT` enum value in `prisma/schema.prisma:135`** — Still present. Removing a Prisma enum value while any user row references it in `roles[]` will crash. Needs a user-records audit (`SELECT id FROM users WHERE 'SUPPORT' = ANY(roles)`) before removal. Out of scope this session.
+
+**Theme B (Google Meet) remains.** Items #15–17 are still manual steps Jesse will do when ready:
 - #15 — Remove four Google Meet env vars from Vercel project settings
 - #16 — Revoke/delete the service account in Google Cloud Console
 - #17 — Archive or delete `meet1@`–`meet4@` Google Workspace accounts

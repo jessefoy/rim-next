@@ -154,7 +154,7 @@ The Gmail OAuth env vars (`GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REDIR
 
 **Course drip system (session 63–64, removed session 100):** Schema fields and `lib/drip.ts` fully removed in Theme E cleanup. Never entered operational use.
 
-**Modular Manual System (session 62–63):** `ManualSection` model — `slug @unique`, `title`, `description String?`, `hubSlug String?`, `body Json?`, `relations String[]`, `order Int`. 9 sections seeded (introduction, registration, programs, member-accounts, course-hub, host-hub, support-inbox, volunteer-roles, manual-system). Routes: `/admin/manual` (index, any logged-in user), `/admin/manual/[slug]` (section page, any logged-in user; ADMIN sees Edit link), `/admin/manual/editor` (DB editor, ADMIN only), `/manual` (public index). `body` stored as Tiptap JSON; migrated sections were initially stored as `{ type: "rawHtml", html: "..." }` — `renderContentBody()` handles both formats. `ManualSectionEditor` auto-converts rawHtml → Tiptap JSON via `generateJSON()` on mount. `ManualHelpIcon` wired into 10 locations. `ManualContent.tsx` hollowed out (content now in DB). Migration script: `prisma/seed-manual-chapters.ts`.
+**Modular Manual System (session 62–63):** `ManualSection` model — `slug @unique`, `title`, `description String?`, `hubSlug String?`, `body Json?`, `relations String[]`, `order Int`. Sections seeded (introduction, registration, programs, member-accounts, course-hub, host-* family, volunteer-roles, manual-system, conversations). The `support-inbox` section was deleted in session 110 via the `remove_support_inbox_residue` migrate.mjs entry — the Support Inbox tool was removed in session 100 but its manual chapter persisted as a dead row until session 110. Routes: `/admin/manual` (index, any logged-in user), `/admin/manual/[slug]` (section page, any logged-in user; ADMIN sees Edit link), `/admin/manual/editor` (DB editor, ADMIN only), `/manual` (public index). `body` stored as Tiptap JSON; migrated sections were initially stored as `{ type: "rawHtml", html: "..." }` — `renderContentBody()` handles both formats. `ManualSectionEditor` auto-converts rawHtml → Tiptap JSON via `generateJSON()` on mount. `ManualHelpIcon` wired into 10 locations. `ManualContent.tsx` hollowed out (content now in DB). Migration script: `prisma/seed-manual-chapters.ts`.
 
 **Closing ritual — required after every session that changes features:**
 1. Update `FEATURES.md` — add session entry, update relevant feature sections
@@ -239,9 +239,8 @@ app/
     programs/         legacy (ical only)
     registrations/    registration CRUD + email
     host/             hub APIs (assignments, assignments/reassign, sub-requests, threads, replies)
-    support/          support inbox APIs (threads, compose, reply, notes, templates, settings, sync, auth)
     stripe/           checkout + webhook
-    cron/             scheduled jobs (reminders, unassigned-host check, support-sync)
+    cron/             scheduled jobs (reminders, unassigned-host check)
   programs/[slug]/    public program pages
   course/[slug]/      member-gated course pages
   lessons/[slug]/     lesson pages

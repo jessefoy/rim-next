@@ -46,7 +46,7 @@ Tools are full-featured staff applications extracted from hubs. They serve one w
 |---|---|---|
 | **Member Registry** (`/admin/members`) | Canonical record authority | Full profile, roles, households, tags |
 | **Hubs** (`/account/hub/[slug]`) | Team workspaces | Home, Conversations, Documents, Members |
-| **Tools** (`/tools/*`) | Operational applications | Program Manager, Support Inbox, Host Schedule |
+| **Tools** (`/tools/*`) | Operational applications | Program Manager, Host Schedule, Course Manager |
 
 Hubs and Tools both provide scoped projections of member data — but they serve different needs. A hub is where a team coordinates. A tool is where they do their specialized work.
 
@@ -221,7 +221,7 @@ Previously, hosting permission (LiveKit admin grants, sub-request claims, HostAs
 
 - **Check-in tools:** Digital check-in per program (phone-first), PDF export, future member self-check-in.
 - **Tool home screen cards with live context:** App links on hub home could surface tool-specific counts ("3 new registrations") — needs per-tool API endpoints.
-- **Hub-scoped tool data:** Tools read `?hub=` server-side via `getToolHubContext()`. Schedule and Inbox are hub-aware. Program Manager and Course Manager will add hub-scoping when they serve multiple hubs.
+- **Hub-scoped tool data:** Tools read `?hub=` server-side via `getToolHubContext()`. Schedule is hub-aware. Program Manager and Course Manager will add hub-scoping when they serve multiple hubs.
 - **Documents page-based unification:** Link documents still use inline forms; native documents use page-based editors. Planned: unify both to page-based creation/editing flow.
 - **Tool access admin UI:** `UserToolAccess` grants currently managed via Neon console. A UI for granting/revoking tool access could be added to the member profile admin page.
 
@@ -273,4 +273,4 @@ This file is part of the closing ritual for any Claude Code session that touches
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org*
-*Working document · May 2026 (updated session 101 — Tasks removed, Support Inbox removed, hub count corrected)*
+*Working document · May 2026 (updated session 110 — Support Inbox tool wiring residue stripped, "Dashboard" → "Home" in member area; session 101 — Tasks removed, Support Inbox removed, hub count corrected)*
