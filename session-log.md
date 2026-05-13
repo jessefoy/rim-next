@@ -1,5 +1,29 @@
 ---
 
+## 2026-05-13 (session 112) — Host hub: LiveKit room gap fix + Enter room link in host schedule
+
+Two small, connected changes. Both came from the same question: could a coordinator lose the connection to the virtual conferencing space in a way they couldn't fix from the hub?
+
+**Background:** The LiveKit room name is always derived from the program slug (`roomNameForProgram(slug, sessionDate)` in `lib/livekit.ts`). The token API never uses the `livekitRoom` field — it always goes through the slug. But the member program detail page (`/account/programs/[slug]`) gates the "Join Session" button on `livekitRoom` being non-null. So a new virtual/hybrid program started with `livekitRoom = null` and that page showed "Session link will appear here when available" even though the room itself worked fine.
+
+**Fix 1 — Auto-set `livekitRoom` on create/edit.** `POST /api/programs-pg` now writes `livekitRoom = slug` whenever `programFormat` is virtual or hybrid. `PUT /api/programs-pg/[slug]` backfills it whenever format changes *to* virtual/hybrid and the field is null. In-person programs are untouched.
+
+**Fix 2 — "Enter room →" link in host schedule rows.** Every upcoming virtual/hybrid session row in `HubScheduleClient` now shows a small "Enter room →" link below the format label, opening `/session/{programSlug}` in a new tab. Always visible — not gated by session time — so hosts can test their audio/camera beforehand or arrive 10–12 minutes early to hold the welcoming space. Styled as `.hs-row__join` (13px, 70% opacity at rest), visually subordinate to the main action button.
+
+**Manual updated.** `host-schedule` chapter v5 (`update-manual-host-schedule-v4.mjs`, flag `update_manual_host_schedule_v5`): new "For virtual and hybrid sessions — entering the room" section, placed between "What you see when you arrive" and "The four buttons you might see."
+
+**What this connects to:**
+- `app/api/programs-pg/route.ts` — POST handler, livekitRoom auto-set
+- `app/api/programs-pg/[slug]/route.ts` — PUT handler, backfill on format change
+- `components/HubScheduleClient.tsx` — Enter room link in HsRow
+- `public/css/custom.css` — .hs-row__join style
+- `prisma/update-manual-host-schedule-v4.mjs` + `prisma/migrate.mjs` — manual v5
+- Member program detail page (`/account/programs/[slug]`) — Join button now always present for virtual/hybrid
+
+**What comes next:** Maria training session per TRAINING_PLAN.md.
+
+---
+
 ## 2026-05-13 (session 111) — Host rotation management UX overhaul
 
 Three closely-related changes, all driven by a single real-world need: hub coordinators needed to manage rotations, and the tooling needed to cover three distinct operations cleanly — releasing one person from a shared rotation, ending an entire rotation bundle, and resetting a program's rotation structure from scratch.
