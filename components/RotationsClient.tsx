@@ -220,16 +220,15 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
   const [form, setForm]       = useState<FormState | null>(null);
   const [saving, setSaving]   = useState(false);
 
-  // End-rotation confirm panel
-  const [endingBundle, setEndingBundle] = useState<{ programSlug: string; dayOfWeek: DayOfWeek } | null>(null);
+  // End/manage panel — tracks which bundle is open + which view is showing
+  const [endingBundle, setEndingBundle]   = useState<{ programSlug: string; dayOfWeek: DayOfWeek } | null>(null);
+  // "options" = main three choices; "release-picker" = per-person release sub-view
+  const [endPanelView, setEndPanelView]   = useState<"options" | "release-picker">("options");
+  const [releasing, setReleasing]         = useState(false);
 
-  // Release-host panel — per (programSlug, dayOfWeek) row
-  const [releasingBundle, setReleasingBundle] = useState<{ programSlug: string; dayOfWeek: DayOfWeek } | null>(null);
-  const [releasing, setReleasing]             = useState(false);
-
-  // Per-program Clear/Reset confirm
-  const [progClearConfirm, setProgClearConfirm] = useState<{ slug: string; mode: "clear" | "reset" } | null>(null);
-  const [progClearing, setProgClearing]         = useState(false);
+  // Per-program Reset confirm
+  const [progResetConfirm, setProgResetConfirm] = useState<string | null>(null);
+  const [progClearing, setProgClearing]          = useState(false);
 
   // Conflict modal — shown ONLY when there are real conflicts to decide.
   // Empty previews and conflict-free fills get a toast instead.
@@ -240,7 +239,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
     setTimeout(() => setToast(null), 4000);
   };
 
-  // ── Release-host ──────────────────────────────────────────────────────────
+  // ── Release-host (called from inside the manage panel) ───────────────────
   const handleReleaseHost = async (programSlug: string, dayOfWeek: DayOfWeek, userId: string) => {
     setReleasing(true);
     setError(null);
@@ -252,7 +251,8 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       });
       if (!res.ok) throw new Error("release failed");
       const data = await res.json().catch(() => ({ released: 0 }));
-      setReleasingBundle(null);
+      setEndingBundle(null);
+      setEndPanelView("options");
       if (data.released > 0) {
         showToast(`Released · ${data.released} upcoming session${data.released === 1 ? "" : "s"} freed`);
         onScheduleStale?.();
@@ -266,29 +266,26 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
     }
   };
 
-  // ── Per-program Clear / Reset ──────────────────────────────────────────────
-  const handleProgClear = async (slug: string, mode: "clear" | "reset") => {
+  // ── Per-program Reset ──────────────────────────────────────────────────────
+  const handleProgReset = async (slug: string) => {
     setProgClearing(true);
     setError(null);
     try {
       const res = await fetch(`/api/host/programs/${slug}/clear-rotations`, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ mode }),
+        body:    JSON.stringify({ mode: "reset" }),
       });
-      if (!res.ok) throw new Error("operation failed");
+      if (!res.ok) throw new Error("reset failed");
       const data = await res.json();
       const aCount = data.deletedAssignments ?? 0;
       const rCount = data.deletedRotations   ?? 0;
-      const summary = mode === "clear"
-        ? `Cleared · ${aCount} upcoming session${aCount === 1 ? "" : "s"} released`
-        : `Reset · ${aCount} session${aCount === 1 ? "" : "s"} and ${rCount} rotation${rCount === 1 ? "" : "s"} removed`;
-      showToast(summary);
-      setProgClearConfirm(null);
+      showToast(`Reset · ${aCount} session${aCount === 1 ? "" : "s"} and ${rCount} rotation${rCount === 1 ? "" : "s"} removed`);
+      setProgResetConfirm(null);
       await loadRotations();
       onScheduleStale?.();
     } catch {
-      setError("Could not complete this operation. Please try again.");
+      setError("Could not reset rotations. Please try again.");
     } finally {
       setProgClearing(false);
     }
@@ -594,11 +591,8 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                       <div className="hs-rot__grid-actions">
                         {rows.length > 0 ? (
                           <>
-                            <button className="hs-rot__action" onClick={() => { setReleasingBundle(null); startEdit(program.slug, d); }}>Edit</button>
-                            <button className="hs-rot__action hs-rot__action--end" onClick={() => { setReleasingBundle(null); setEndingBundle({ programSlug: program.slug, dayOfWeek: d }); }}>End</button>
-                            {isManager && (
-                              <button className="hs-rot__action hs-rot__action--release" onClick={() => { setEndingBundle(null); cancelForm(); setReleasingBundle(releasingBundle?.programSlug === program.slug && releasingBundle?.dayOfWeek === d ? null : { programSlug: program.slug, dayOfWeek: d }); }}>Release</button>
-                            )}
+                            <button className="hs-rot__action" onClick={() => { setEndingBundle(null); setEndPanelView("options"); startEdit(program.slug, d); }}>Edit</button>
+                            <button className="hs-rot__action hs-rot__action--end" onClick={() => { cancelForm(); setEndPanelView("options"); setEndingBundle({ programSlug: program.slug, dayOfWeek: d }); }}>End</button>
                           </>
                         ) : (
                           <button className="hs-rot__action" onClick={() => startEdit(program.slug, d)}>Set up</button>
@@ -606,51 +600,56 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                       </div>
                     </div>
 
-                    {/* End-confirm panel */}
-                    {endingBundle?.programSlug === program.slug && endingBundle?.dayOfWeek === d && (
-                      <div className="hs-rot__end-confirm">
-                        <p className="hs-rot__end-q">How should we end this rotation?</p>
-                        <button className="hs-rot__end-opt" onClick={() => handleEnd(program.slug, d, false)} disabled={saving}>
-                          <strong>Just stop generating.</strong>
-                          <span>Hosts keep the dates already on their schedule. Future cron runs won't add new ones.</span>
-                        </button>
-                        <button className="hs-rot__end-opt hs-rot__end-opt--release" onClick={() => handleEnd(program.slug, d, true)} disabled={saving}>
-                          <strong>Stop and release future dates.</strong>
-                          <span>Clears upcoming sessions from the hosts' schedules so others can claim them. Past sessions stay. Each affected host is emailed.</span>
-                        </button>
-                        <button className="hs-rot__end-cancel" onClick={() => setEndingBundle(null)} disabled={saving}>Cancel</button>
-                      </div>
-                    )}
-
-                    {/* Release-host panel — free one person's future slots without ending the rotation */}
-                    {releasingBundle?.programSlug === program.slug && releasingBundle?.dayOfWeek === d && (() => {
-                      // Collect distinct hosts in this bundle (excluding the 5th-week override
-                      // if it duplicates an existing host — keep unique userIds only)
+                    {/* Manage-rotation panel — End button opens this */}
+                    {endingBundle?.programSlug === program.slug && endingBundle?.dayOfWeek === d && (() => {
                       const distinctHosts = [...new Set(
                         [cells.FIRST, cells.SECOND, cells.THIRD, cells.FOURTH, fifthHost]
                           .filter((uid): uid is string => !!uid)
                       )];
                       return (
-                        <div className="hs-rot__release-panel">
-                          <p className="hs-rot__release-q">
-                            Release upcoming sessions for a host in this rotation.
-                            <span> The rotation rules stay active.</span>
-                          </p>
-                          <div className="hs-rot__release-hosts">
-                            {distinctHosts.map((uid) => (
-                              <div key={uid} className="hs-rot__release-row">
-                                <span className="hs-rot__release-name">{hostName(uid)}</span>
-                                <button
-                                  className="hs-rot__release-btn"
-                                  onClick={() => handleReleaseHost(program.slug, d, uid)}
-                                  disabled={releasing}
-                                >
-                                  {releasing ? "Releasing…" : "Release their dates"}
+                        <div className="hs-rot__end-confirm">
+                          {endPanelView === "options" ? (
+                            <>
+                              <p className="hs-rot__end-q">Manage this rotation</p>
+                              {isManager && (
+                                <button className="hs-rot__end-opt" onClick={() => setEndPanelView("release-picker")} disabled={saving || releasing}>
+                                  <strong>Release one person&rsquo;s upcoming dates.</strong>
+                                  <span>Frees their sessions so others can claim them. The rotation stays active and can be edited.</span>
                                 </button>
+                              )}
+                              <button className="hs-rot__end-opt" onClick={() => handleEnd(program.slug, d, false)} disabled={saving || releasing}>
+                                <strong>End — keep existing sessions.</strong>
+                                <span>Stops generating new sessions. Hosts keep the dates already on their schedule.</span>
+                              </button>
+                              <button className="hs-rot__end-opt hs-rot__end-opt--release" onClick={() => handleEnd(program.slug, d, true)} disabled={saving || releasing}>
+                                <strong>End — release all future dates.</strong>
+                                <span>Stops generating and clears upcoming sessions from all hosts&rsquo; schedules. Each affected host is emailed.</span>
+                              </button>
+                              <button className="hs-rot__end-cancel" onClick={() => setEndingBundle(null)} disabled={saving || releasing}>Cancel</button>
+                            </>
+                          ) : (
+                            <>
+                              <p className="hs-rot__end-q">
+                                Release upcoming sessions for a host in this rotation.
+                                <span className="hs-rot__end-q-sub"> The rotation stays active.</span>
+                              </p>
+                              <div className="hs-rot__release-hosts">
+                                {distinctHosts.map((uid) => (
+                                  <div key={uid} className="hs-rot__release-row">
+                                    <span className="hs-rot__release-name">{hostName(uid)}</span>
+                                    <button
+                                      className="hs-rot__release-btn"
+                                      onClick={() => handleReleaseHost(program.slug, d, uid)}
+                                      disabled={releasing}
+                                    >
+                                      {releasing ? "Releasing…" : "Release their dates"}
+                                    </button>
+                                  </div>
+                                ))}
                               </div>
-                            ))}
-                          </div>
-                          <button className="hs-rot__end-cancel" onClick={() => setReleasingBundle(null)} disabled={releasing}>Cancel</button>
+                              <button className="hs-rot__end-cancel" onClick={() => setEndPanelView("options")} disabled={releasing}>← Back</button>
+                            </>
+                          )}
                         </div>
                       );
                     })()}
@@ -672,58 +671,40 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
               })}
             </div>
 
-            {/* Per-program Clear / Reset — manager/coordinator only */}
+            {/* Per-program Reset — manager/coordinator only; shown only when rotations exist */}
             {isManager && (() => {
               const hasRotations = days.some((d) =>
                 (rotationsByBundle.get(`${program.slug}::${d}`) ?? []).length > 0
               );
               if (!hasRotations) return null;
-              const confirm = progClearConfirm?.slug === program.slug ? progClearConfirm.mode : null;
+              const confirming = progResetConfirm === program.slug;
               return (
                 <div className="hs-rot__prog-danger">
-                  {confirm === null ? (
-                    <div className="hs-rot__prog-danger-actions">
-                      <button
-                        className="hs-rot__prog-danger-btn"
-                        onClick={() => setProgClearConfirm({ slug: program.slug, mode: "clear" })}
-                      >
-                        Clear upcoming schedule
-                      </button>
-                      <button
-                        className="hs-rot__prog-danger-btn hs-rot__prog-danger-btn--reset"
-                        onClick={() => setProgClearConfirm({ slug: program.slug, mode: "reset" })}
-                      >
-                        Reset rotations
-                      </button>
-                    </div>
+                  {!confirming ? (
+                    <button
+                      className="hs-rot__prog-danger-btn hs-rot__prog-danger-btn--reset"
+                      onClick={() => setProgResetConfirm(program.slug)}
+                    >
+                      Reset rotations
+                    </button>
                   ) : (
                     <div className="hs-rot__prog-danger-confirm">
                       <p className="hs-rot__prog-danger-q">
-                        {confirm === "clear" ? (
-                          <>
-                            <strong>Clear upcoming schedule for {program.name}?</strong><br />
-                            Removes all upcoming host assignments for this program. Rotation
-                            rules stay in place — they&rsquo;ll re-fill on the next save or cron run.
-                          </>
-                        ) : (
-                          <>
-                            <strong>Reset rotations for {program.name}?</strong><br />
-                            Deletes all rotation rules <em>and</em> removes all upcoming assignments
-                            for this program. The rotation grid for this program becomes empty.
-                          </>
-                        )}
+                        <strong>Reset rotations for {program.name}?</strong><br />
+                        Deletes all rotation rules <em>and</em> removes all upcoming assignments
+                        for this program. The rotation grid becomes empty.
                       </p>
                       <div className="hs-rot__prog-danger-confirm-actions">
                         <button
-                          className={`hs-rot__prog-danger-btn${confirm === "reset" ? " hs-rot__prog-danger-btn--reset" : ""}`}
-                          onClick={() => handleProgClear(program.slug, confirm)}
+                          className="hs-rot__prog-danger-btn hs-rot__prog-danger-btn--reset"
+                          onClick={() => handleProgReset(program.slug)}
                           disabled={progClearing}
                         >
-                          {progClearing ? "Working…" : confirm === "clear" ? "Yes, clear upcoming" : "Yes, reset rotations"}
+                          {progClearing ? "Working…" : "Yes, reset rotations"}
                         </button>
                         <button
                           className="hs-rot__danger-cancel"
-                          onClick={() => setProgClearConfirm(null)}
+                          onClick={() => setProgResetConfirm(null)}
                           disabled={progClearing}
                         >
                           Cancel
