@@ -8,7 +8,7 @@ Three closely-related changes, all driven by a single real-world need: hub coord
 
 **Release one person's upcoming dates.** New `POST /api/host/standing-assignments/release-host` endpoint. The scenario it solves: Nancy and Silvia share an Alternate rotation (Nancy 1st & 3rd, Silvia 2nd & 4th). Nancy is stepping back with no replacement ready. Ending the whole rotation would displace Silvia and email her unnecessarily. The release operation finds future HostAssignment rows for `userId` within the `(programSlug, dayOfWeek)` bundle, cancels open SubRequests, deletes the assignments, and emails Nancy. Silvia's assignments stay intact. StandingAssignment rules stay — the rotation is still active and can be edited to add a replacement.
 
-**Flat manage panel.** The previous End panel was a two-view state machine. The redesign: End opens a single panel. If the user is a manager and the bundle has distinct hosts, the release section appears immediately with each host's name and a "Release their dates" button. "End this rotation" sits below it. No sub-views, no `endPanelView` state.
+**Flat manage panel with three options.** End opens a single panel: (1) release one person's upcoming dates, (2) end on a specific date, (3) end this rotation now. No sub-views, no `endPanelView` state.
 
 **"End this rotation" simplified to one option.** A previous iteration had two End options. Jesse identified that "keep existing sessions, stop generating" leaves dozens of future assignments in place — not useful when actually ending a rotation. Graceful wind-down is already covered by the Edit form's end-date field. Removed option 1. End now always releases future dates and emails affected hosts.
 
@@ -16,7 +16,9 @@ Three closely-related changes, all driven by a single real-world need: hub coord
 
 **Per-program Reset.** "Reset rotations" button at the bottom of each program card (manager only). Calls `POST /api/host/programs/[slug]/clear-rotations` with `mode: "reset"` — deletes all StandingAssignment rules and future HostAssignments for that program only.
 
-**Manual updated.** `host-rotations` chapter rewritten as v3: removes the Pair pattern, corrects the End section, adds Release one person and per-program Reset, notes coordinator access. Wired into `migrate.mjs` with flag `update_manual_host_rotations_v3`.
+**"End on a specific date."** Date picker + "Set end date" button added to the flat panel. Extends `end-bundle` with an optional `endsOn: "YYYY-MM-DD"` param — sets `endsOn` on StandingAssignment records and silently trims any pre-generated HostAssignment rows beyond that date. No email sent (coordinator planning action). Sessions up to and including the end date stay untouched.
+
+**Manual updated.** `host-rotations` chapter at v4 via `prisma/update-manual-host-rotations-v4.mjs`: all three end-panel options documented, including "end on a specific date" and the equivalence of the Edit form's end-date field. Wired into `migrate.mjs` with flag `update_manual_host_rotations_v4`.
 
 **What this connects to:**
 - `components/RotationsClient.tsx` — coordinator UI, flat manage panel
