@@ -1893,6 +1893,88 @@ Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`,
       console.log(`  ✔ Applied: ${this.name} (${created} created, ${skipped} preserved)`);
     },
   },
+  {
+    // Session 113 — Basecamp-style thread subscriptions for hub conversations.
+    // Replaces the implicit "notify coordinators on new thread / notify
+    // participants on reply" behavior with an explicit subscriber list.
+    //
+    // Backfill: for every existing thread, subscribe (a) the author,
+    // (b) everyone who has replied, (c) every current coordinator of the hub.
+    // That preserves the prior implicit behavior — anyone who would have been
+    // notified before stays notified going forward.
+    name: "create_hub_thread_subscriptions",
+    async run() {
+      const flag = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags"
+        WHERE name = 'create_hub_thread_subscriptions_v1'
+      `).catch(() => []);
+      if (flag.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "hub_thread_subscriptions" (
+          "id"           TEXT PRIMARY KEY,
+          "threadId"     TEXT NOT NULL REFERENCES "hub_conversation_threads"("id") ON DELETE CASCADE,
+          "userId"       TEXT NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+          "subscribedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          "source"       TEXT NOT NULL,
+          UNIQUE("threadId", "userId")
+        )
+      `);
+      await db.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS "hub_thread_subscriptions_threadId_idx"
+          ON "hub_thread_subscriptions"("threadId")
+      `);
+      await db.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS "hub_thread_subscriptions_userId_idx"
+          ON "hub_thread_subscriptions"("userId")
+      `);
+
+      // Backfill — three sources, ON CONFLICT DO NOTHING to handle overlaps.
+      // Authors:
+      const authorRes = await db.$executeRawUnsafe(`
+        INSERT INTO "hub_thread_subscriptions" ("id", "threadId", "userId", "source")
+        SELECT
+          'sub_' || substr(md5(random()::text || t."id" || t."authorId"), 1, 24),
+          t."id", t."authorId", 'AUTHOR'
+        FROM "hub_conversation_threads" t
+        ON CONFLICT ("threadId", "userId") DO NOTHING
+      `);
+
+      // Repliers (distinct user per thread):
+      const replierRes = await db.$executeRawUnsafe(`
+        INSERT INTO "hub_thread_subscriptions" ("id", "threadId", "userId", "source")
+        SELECT
+          'sub_' || substr(md5(random()::text || r."threadId" || r."authorId"), 1, 24),
+          r."threadId", r."authorId", 'ADDED'
+        FROM (
+          SELECT DISTINCT "threadId", "authorId" FROM "hub_conversation_replies"
+        ) r
+        ON CONFLICT ("threadId", "userId") DO NOTHING
+      `);
+
+      // Current coordinators of each hub (active, communications enabled):
+      const coordRes = await db.$executeRawUnsafe(`
+        INSERT INTO "hub_thread_subscriptions" ("id", "threadId", "userId", "source")
+        SELECT
+          'sub_' || substr(md5(random()::text || t."id" || hm."userId"), 1, 24),
+          t."id", hm."userId", 'COORDINATOR_AUTO'
+        FROM "hub_conversation_threads" t
+        JOIN "hub_members" hm
+          ON hm."hubId" = t."hubId"
+         AND hm."isCoordinator" = TRUE
+         AND hm."status" = 'ACTIVE'
+        ON CONFLICT ("threadId", "userId") DO NOTHING
+      `);
+
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('create_hub_thread_subscriptions_v1')
+      `);
+      console.log(`  ✔ Applied: ${this.name} (authors:${authorRes}, repliers:${replierRes}, coordinators:${coordRes})`);
+    },
+  },
 ];
 
 // ── Server-safe compute helpers (mirror of lib/programUtils.ts) ──────────────

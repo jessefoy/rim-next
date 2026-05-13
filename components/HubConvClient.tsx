@@ -27,6 +27,7 @@ const RimTiptapEditor = dynamic(
   { ssr: false, loading: () => <div style={{ minHeight: 80 }} /> },
 );
 import { avatarColorFor } from "@/lib/avatarColor";
+import HubDocNotifyPanel, { type NotifyMember } from "@/components/HubDocNotifyPanel";
 
 interface ThreadAuthor {
   firstName: string | null;
@@ -56,6 +57,8 @@ interface Props {
   currentUserId: string;
   currentUserName: string;
   lastVisitedAt: string | null;
+  hubMembers: NotifyMember[];
+  coordinatorIds: string[]; // already-subscribed-by-default — shown as disabled in panel
 }
 
 function displayName(u: ThreadAuthor) {
@@ -145,6 +148,8 @@ export default function HubConvClient({
   currentUserId,
   currentUserName,
   lastVisitedAt,
+  hubMembers,
+  coordinatorIds,
 }: Props) {
   const searchParams = useSearchParams();
   const newTopicParam = searchParams.get("newTopic") ?? "";
@@ -155,7 +160,17 @@ export default function HubConvClient({
   const [title, setTitle] = useState(newTopicParam);
   const [body, setBody] = useState<string>("");
   const [composeCategory, setComposeCategory] = useState(categories[0] ?? "General");
+  const [composeNotifyIds, setComposeNotifyIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+
+  // Filter coordinators out of the picker — they're auto-subscribed at thread
+  // creation, so picking them is redundant. We tell the author this with help
+  // text below the picker.
+  const coordinatorSet = new Set(coordinatorIds);
+  const nonCoordinatorMembers = hubMembers.filter(
+    (m) => !coordinatorSet.has(m.id) && m.id !== currentUserId
+  );
+  const coordinatorCount = coordinatorIds.filter((c) => c !== currentUserId).length;
   const [view, setView] = useState<"open" | "closed">("open");
   const [filterCategory, setFilterCategory] = useState<string | null>(null);
   const [loadingClosed, setLoadingClosed] = useState(false);
@@ -291,7 +306,12 @@ export default function HubConvClient({
     const res = await fetch(`/api/hub/${hubSlug}/conversations`, {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ title: title.trim(), body, category: composeCategory }),
+      body:    JSON.stringify({
+        title:         title.trim(),
+        body,
+        category:      composeCategory,
+        notifyUserIds: composeNotifyIds,
+      }),
     });
     if (res.ok) {
       const t = await res.json();
@@ -314,6 +334,7 @@ export default function HubConvClient({
       };
       setThreads((prev) => [thread, ...prev]);
       setTitle(""); setBody(""); setShowCompose(false);
+      setComposeNotifyIds([]);
     }
     setSaving(false);
   }
@@ -641,6 +662,19 @@ export default function HubConvClient({
               variant="message"
             />
           </div>
+          {coordinatorCount > 0 && (
+            <p className="hub-conv-compose__notify-note">
+              {coordinatorCount === 1
+                ? "Coordinators of this hub are automatically notified."
+                : `${coordinatorCount} coordinators of this hub are automatically notified.`}{" "}
+              You can add anyone else who should see this:
+            </p>
+          )}
+          <HubDocNotifyPanel
+            members={nonCoordinatorMembers}
+            selectedIds={composeNotifyIds}
+            onChange={setComposeNotifyIds}
+          />
           <div className="hub-conv-compose__actions">
             <button
               className="btn--ghost"

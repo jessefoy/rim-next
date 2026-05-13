@@ -37,18 +37,34 @@ export default async function HubConversationsPage({
     });
   }
 
-  const threads = await db.hubConversationThread.findMany({
-    where:   { hubId: hub.id, status: "OPEN" },
-    include: {
-      author: { select: { firstName: true, lastName: true, preferredName: true } },
-      _count:  { select: { replies: true } },
-    },
-    orderBy: [
-      { isPinned: "desc" },
-      { pinnedAt: { sort: "desc", nulls: "last" } },
-      { createdAt: "desc" },
-    ],
-  });
+  const [threads, hubMemberRows, coordinatorRows] = await Promise.all([
+    db.hubConversationThread.findMany({
+      where:   { hubId: hub.id, status: "OPEN" },
+      include: {
+        author: { select: { firstName: true, lastName: true, preferredName: true } },
+        _count:  { select: { replies: true } },
+      },
+      orderBy: [
+        { isPinned: "desc" },
+        { pinnedAt: { sort: "desc", nulls: "last" } },
+        { createdAt: "desc" },
+      ],
+    }),
+    db.hubMember.findMany({
+      where: {
+        hubId:                 hub.id,
+        status:                "ACTIVE",
+        communicationsEnabled: true,
+        userId:                { not: session.user.id },
+      },
+      include: { user: { select: { id: true, firstName: true, lastName: true, preferredName: true } } },
+      orderBy: [{ user: { firstName: "asc" } }, { user: { lastName: "asc" } }],
+    }),
+    db.hubMember.findMany({
+      where:  { hubId: hub.id, isCoordinator: true, status: "ACTIVE" },
+      select: { userId: true },
+    }),
+  ]);
 
   const isCoordinator =
     member?.isCoordinator || (session.user.roles ?? []).includes("ADMIN");
@@ -73,6 +89,15 @@ export default async function HubConversationsPage({
     updatedAt:  t.updatedAt.toISOString(),
   }));
 
+  const serializedMembers = hubMemberRows.map((m) => ({
+    id:            m.userId,
+    firstName:     m.user.firstName,
+    lastName:      m.user.lastName,
+    preferredName: m.user.preferredName,
+  }));
+
+  const coordinatorIds = coordinatorRows.map((c) => c.userId);
+
   const userName =
     session.user.name ||
     session.user.email?.split("@")[0] ||
@@ -87,6 +112,8 @@ export default async function HubConversationsPage({
       currentUserId={session.user.id}
       currentUserName={userName}
       lastVisitedAt={priorLastVisitedAt}
+      hubMembers={serializedMembers}
+      coordinatorIds={coordinatorIds}
     />
   );
 }

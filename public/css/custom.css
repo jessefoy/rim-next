@@ -13123,6 +13123,67 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   font-weight: 500;
 }
 
+/* Follow toggle — small pill in the thread header meta */
+.hub-conv-thread__follow {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid var(--rim-rule);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--rim-text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.hub-conv-thread__follow:hover { background: var(--rim-bg); color: var(--rim-text); }
+.hub-conv-thread__follow:disabled { opacity: 0.5; cursor: default; }
+.hub-conv-thread__follow--on {
+  background: var(--rim-blue);
+  border-color: var(--rim-blue);
+  color: #fff;
+}
+.hub-conv-thread__follow--on:hover {
+  background: var(--rim-blue);
+  color: #fff;
+  opacity: 0.85;
+}
+
+/* Compose form: note about auto-notified coordinators (above picker) */
+.hub-conv-compose__notify-note {
+  margin: 16px 0 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rim-rule);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--rim-text-muted);
+  line-height: 1.5;
+}
+/* When the note is present, the panel below shouldn't re-draw its own
+   top border. */
+.hub-conv-compose__notify-note + .hub-doc-notify-panel {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+/* Reply composer: "Notify someone new…" toggle (collapsed-by-default panel) */
+.hub-conv-replybox__notify-toggle {
+  margin: 8px 0 0;
+  padding: 0;
+  background: none;
+  border: none;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--rim-blue);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.hub-conv-replybox__notify-toggle:hover { opacity: 0.75; }
+
 /* "…" menu */
 .hub-conv-thread__menu-wrap {
   position: absolute;

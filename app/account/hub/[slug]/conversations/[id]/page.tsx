@@ -114,10 +114,41 @@ export default async function HubConvThreadPage({
     createdAt: thread.createdAt.toISOString(),
   };
 
-  const currentUser = await db.user.findUnique({
-    where:  { id: session.user.id },
-    select: { firstName: true, lastName: true, preferredName: true },
-  });
+  const [currentUser, hubMemberRows, subRows] = await Promise.all([
+    db.user.findUnique({
+      where:  { id: session.user.id },
+      select: { firstName: true, lastName: true, preferredName: true },
+    }),
+    db.hubMember.findMany({
+      where: {
+        hubId:                 hub.id,
+        status:                "ACTIVE",
+        communicationsEnabled: true,
+        userId:                { not: session.user.id },
+      },
+      include: { user: { select: { id: true, firstName: true, lastName: true, preferredName: true } } },
+      orderBy: [{ user: { firstName: "asc" } }, { user: { lastName: "asc" } }],
+    }),
+    db.hubThreadSubscription.findMany({
+      where:  { threadId: id },
+      select: { userId: true, source: true, subscribedAt: true },
+      orderBy: { subscribedAt: "asc" },
+    }),
+  ]);
+
+  const serializedMembers = hubMemberRows.map((m) => ({
+    id:            m.userId,
+    firstName:     m.user.firstName,
+    lastName:      m.user.lastName,
+    preferredName: m.user.preferredName,
+  }));
+
+  const subscriptions = subRows.map((s) => ({
+    userId:       s.userId,
+    source:       s.source,
+    subscribedAt: s.subscribedAt.toISOString(),
+  }));
+  const currentUserSubscribed = subRows.some((s) => s.userId === session.user.id);
 
   return (
     <HubConvThreadClient
@@ -130,6 +161,9 @@ export default async function HubConvThreadPage({
         lastName:      currentUser?.lastName ?? null,
         preferredName: currentUser?.preferredName ?? null,
       }}
+      hubMembers={serializedMembers}
+      initialSubscriptions={subscriptions}
+      initialCurrentUserSubscribed={currentUserSubscribed}
     />
   );
 }

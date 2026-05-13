@@ -117,6 +117,7 @@ model User {
   hubDocumentNotifications HubDocumentNotification[]
   hubThreads2     HubConversationThread[]
   hubReplies2     HubConversationReply[]
+  hubThreadSubscriptions HubThreadSubscription[]
   emailTemplates  EmailTemplate[]
   // Tool access grants (individual access without role)
   toolAccess           UserToolAccess[]      @relation("ToolAccess")
@@ -1000,10 +1001,32 @@ model HubConversationThread {
   hub           Hub               @relation(fields: [hubId], references: [id])
   author        User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
   replies       HubConversationReply[]
+  subscriptions HubThreadSubscription[]
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
   @@map("hub_conversation_threads")
+}
+
+/// Basecamp-style subscription: a member is "subscribed" to a thread and receives
+/// every reply automatically. Source tracks how they got there so the UI can
+/// explain it ("auto-subscribed as coordinator", "added by Mary", "self-subscribed").
+/// Coordinators are auto-subscribed at thread creation; the author is always subscribed;
+/// anyone the author/repliers pick via the "Also notify" panel is added with source=ADDED.
+model HubThreadSubscription {
+  id           String   @id @default(cuid())
+  threadId     String
+  userId       String
+  subscribedAt DateTime @default(now())
+  source       String   // AUTHOR | COORDINATOR_AUTO | ADDED | SELF
+
+  thread HubConversationThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user   User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([threadId, userId])
+  @@index([threadId])
+  @@index([userId])
+  @@map("hub_thread_subscriptions")
 }
 
 model HubConversationReply {

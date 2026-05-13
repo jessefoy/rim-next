@@ -14,7 +14,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, Pin, Pencil, MoreHorizontal, SmilePlus } from "lucide-react";
+import { ArrowLeft, Pin, Pencil, MoreHorizontal, SmilePlus, Bell, BellOff } from "lucide-react";
 import dynamic from "next/dynamic";
 const RimTiptapEditor = dynamic(
   () => import("@/components/rim-tiptap/RimTiptapEditor"),
@@ -22,6 +22,7 @@ const RimTiptapEditor = dynamic(
 );
 import { renderBlockNoteHtml } from "@/lib/renderRichContent";
 import { avatarColorFor } from "@/lib/avatarColor";
+import HubDocNotifyPanel, { type NotifyMember } from "@/components/HubDocNotifyPanel";
 
 interface PersonName {
   firstName: string | null;
@@ -57,12 +58,21 @@ interface Thread {
   createdAt: string;
 }
 
+interface Subscription {
+  userId: string;
+  source: string; // AUTHOR | COORDINATOR_AUTO | ADDED | SELF
+  subscribedAt: string;
+}
+
 interface Props {
   hubSlug: string;
   initialThread: Thread;
   isCoordinator: boolean;
   currentUserId: string;
   currentUser: PersonName;
+  hubMembers: NotifyMember[];
+  initialSubscriptions: Subscription[];
+  initialCurrentUserSubscribed: boolean;
 }
 
 const ALLOWED_EMOJIS = ["👍", "❤️", "🙏", "💡", "😊"] as const;
@@ -120,10 +130,45 @@ export default function HubConvThreadClient({
   isCoordinator,
   currentUserId,
   currentUser,
+  hubMembers,
+  initialSubscriptions,
+  initialCurrentUserSubscribed,
 }: Props) {
   const [thread, setThread] = useState<Thread>(initialThread);
   const [replyBody, setReplyBody] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>(initialSubscriptions);
+  const [currentUserSubscribed, setCurrentUserSubscribed] = useState(initialCurrentUserSubscribed);
+  const [followBusy, setFollowBusy] = useState(false);
+  const [replyNotifyIds, setReplyNotifyIds] = useState<string[]>([]);
+  const [notifyExpanded, setNotifyExpanded] = useState(false);
+
+  // userId → subscribedAt (ISO) — fed to the notify panel as notifiedMap so
+  // already-subscribed members appear disabled with a timestamp.
+  const subscribedMap: Record<string, string> = {};
+  for (const s of subscriptions) subscribedMap[s.userId] = s.subscribedAt;
+
+  async function toggleFollow() {
+    setFollowBusy(true);
+    const willSubscribe = !currentUserSubscribed;
+    const res = await fetch(
+      `/api/hub/${hubSlug}/conversations/${thread.id}/subscribe`,
+      { method: willSubscribe ? "POST" : "DELETE" }
+    );
+    if (res.ok) {
+      setCurrentUserSubscribed(willSubscribe);
+      if (willSubscribe) {
+        setSubscriptions((prev) =>
+          prev.some((s) => s.userId === currentUserId)
+            ? prev
+            : [...prev, { userId: currentUserId, source: "SELF", subscribedAt: new Date().toISOString() }]
+        );
+      } else {
+        setSubscriptions((prev) => prev.filter((s) => s.userId !== currentUserId));
+      }
+    }
+    setFollowBusy(false);
+  }
 
   // Editing state — single flag keyed by "op" or reply id
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -156,7 +201,7 @@ export default function HubConvThreadClient({
       {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ body: replyBody }),
+        body:    JSON.stringify({ body: replyBody, notifyUserIds: replyNotifyIds }),
       }
     );
     if (res.ok) {
@@ -173,7 +218,28 @@ export default function HubConvThreadClient({
         createdAt: reply.createdAt,
       };
       setThread((prev) => ({ ...prev, replies: [...prev.replies, newReply] }));
+      // Update local subscriptions: replier is auto-subscribed; any picked
+      // members are now subscribed. Mirrors what the server just did.
+      const nowIso = new Date().toISOString();
+      setSubscriptions((prev) => {
+        const seen = new Set(prev.map((s) => s.userId));
+        const additions: Subscription[] = [];
+        if (!seen.has(currentUserId)) {
+          additions.push({ userId: currentUserId, source: "ADDED", subscribedAt: nowIso });
+          seen.add(currentUserId);
+        }
+        for (const uid of replyNotifyIds) {
+          if (!seen.has(uid)) {
+            additions.push({ userId: uid, source: "ADDED", subscribedAt: nowIso });
+            seen.add(uid);
+          }
+        }
+        return additions.length > 0 ? [...prev, ...additions] : prev;
+      });
+      if (!currentUserSubscribed) setCurrentUserSubscribed(true);
       setReplyBody("");
+      setReplyNotifyIds([]);
+      setNotifyExpanded(false);
     }
     setSaving(false);
   }
@@ -312,16 +378,25 @@ export default function HubConvThreadClient({
             <span>{thread.title}</span>
           </h1>
         )}
-        {(thread.replies.length > 0 || isClosed) && (
-          <div className="hub-conv-thread__head-meta">
-            {thread.replies.length > 0 && (
-              <span>
-                {thread.replies.length} {thread.replies.length === 1 ? "reply" : "replies"}
-              </span>
-            )}
-            {isClosed && <span className="hub-conv-thread__closed">Closed</span>}
-          </div>
-        )}
+        <div className="hub-conv-thread__head-meta">
+          {thread.replies.length > 0 && (
+            <span>
+              {thread.replies.length} {thread.replies.length === 1 ? "reply" : "replies"}
+            </span>
+          )}
+          {isClosed && <span className="hub-conv-thread__closed">Closed</span>}
+          <button
+            type="button"
+            className={`hub-conv-thread__follow${currentUserSubscribed ? " hub-conv-thread__follow--on" : ""}`}
+            onClick={toggleFollow}
+            disabled={followBusy}
+            aria-pressed={currentUserSubscribed}
+            title={currentUserSubscribed ? "You're getting reply emails" : "Get an email for every reply"}
+          >
+            {currentUserSubscribed ? <Bell size={13} /> : <BellOff size={13} />}
+            <span>{currentUserSubscribed ? "Following" : "Follow"}</span>
+          </button>
+        </div>
         {isCoordinator && editingId !== "op" && (
           <div className="hub-conv-thread__menu-wrap" ref={menuRef}>
             <button
@@ -544,6 +619,22 @@ export default function HubConvThreadClient({
               placeholder="Write a reply…"
               variant="message"
             />
+            {notifyExpanded ? (
+              <HubDocNotifyPanel
+                members={hubMembers}
+                selectedIds={replyNotifyIds}
+                onChange={setReplyNotifyIds}
+                notifiedMap={subscribedMap}
+              />
+            ) : (
+              <button
+                type="button"
+                className="hub-conv-replybox__notify-toggle"
+                onClick={() => setNotifyExpanded(true)}
+              >
+                + Notify someone new…
+              </button>
+            )}
             <div className="hub-conv-replybox__actions">
               <button
                 className="btn"

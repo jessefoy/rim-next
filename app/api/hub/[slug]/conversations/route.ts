@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { after } from "next/server";
 import { getHubMembership } from "@/lib/hubAuth";
 import { sendHubConvNewThreadEmail } from "@/lib/email";
 
@@ -51,7 +52,7 @@ export async function POST(
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
   if (!member && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { title, body, category } = await req.json();
+  const { title, body, category, notifyUserIds } = await req.json();
   if (!title?.trim() || !body) {
     return NextResponse.json({ error: "Title and body required" }, { status: 400 });
   }
@@ -71,33 +72,67 @@ export async function POST(
     },
   });
 
-  // Notify coordinators of the new thread (awaited so it completes before
-  // the serverless function exits — the old .then() chain was fire-and-forget
-  // and could be dropped on Vercel before emails were sent).
+  // Seed subscriptions: author (always), all coordinators of this hub, and
+  // any members the author explicitly picked in the "Also notify" panel.
+  // The author is the source of truth for *initial* subscribers; once threaded,
+  // anyone can be added via reply pickers or self-subscribe.
+  const coords = await db.hubMember.findMany({
+    where:  { hubId: hub.id, isCoordinator: true, status: "ACTIVE" },
+    select: { userId: true },
+  });
+  const pickedIds: string[] = Array.isArray(notifyUserIds) ? notifyUserIds : [];
+
+  const subRows: Array<{ threadId: string; userId: string; source: string }> = [
+    { threadId: thread.id, userId: session.user.id, source: "AUTHOR" },
+  ];
+  const seen = new Set<string>([session.user.id]);
+  for (const c of coords) {
+    if (seen.has(c.userId)) continue;
+    seen.add(c.userId);
+    subRows.push({ threadId: thread.id, userId: c.userId, source: "COORDINATOR_AUTO" });
+  }
+  for (const uid of pickedIds) {
+    if (seen.has(uid)) continue;
+    seen.add(uid);
+    subRows.push({ threadId: thread.id, userId: uid, source: "ADDED" });
+  }
+  await db.hubThreadSubscription.createMany({ data: subRows, skipDuplicates: true });
+
+  // Email everyone subscribed (except the author) who's an active hub member
+  // with communicationsEnabled. Use after() for fire-and-forget reliability —
+  // the .then() pattern from before could be dropped by Vercel teardown.
+  const recipientIds = subRows.filter((r) => r.userId !== session.user.id).map((r) => r.userId);
   const authorName = session.user.name || session.user.email?.split("@")[0] || "Someone";
-  try {
-    const coords = await db.hubMember.findMany({
-      where: { hubId: hub.id, isCoordinator: true, userId: { not: session.user.id } },
+  const threadTitle = title.trim();
+  const hubName = hub.name;
+
+  after(async () => {
+    if (recipientIds.length === 0) return;
+    const eligible = await db.hubMember.findMany({
+      where: {
+        hubId:                 hub.id,
+        userId:                { in: recipientIds },
+        status:                "ACTIVE",
+        communicationsEnabled: true,
+      },
       include: { user: { select: { email: true, firstName: true } } },
     });
     await Promise.allSettled(
-      coords
-        .filter((c) => c.user.email)
-        .map((c) =>
+      eligible
+        .filter((m) => m.user.email)
+        .map((m) =>
           sendHubConvNewThreadEmail({
-            to: c.user.email!,
-            firstName: c.user.firstName,
+            to: m.user.email!,
+            firstName: m.user.firstName,
             authorName,
-            hubName: hub.name,
+            hubName,
             hubSlug: slug,
-            threadTitle: title.trim(),
+            threadTitle,
             threadId: thread.id,
           })
         )
     );
-  } catch {
-    // Notification failure must never block the response
-  }
+  });
 
   return NextResponse.json(thread, { status: 201 });
 }
