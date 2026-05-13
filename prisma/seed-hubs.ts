@@ -16,7 +16,7 @@ const hubs = [
   { slug: "host-team", name: "Hosting Hub",      type: "OPERATIONAL" as const, hasSchedule: true, status: "ACTIVE" as const },
   { slug: "courses",   name: "Course Hub",       type: "OPERATIONAL" as const, status: "ACTIVE" as const },
   { slug: "registrar", name: "Registration Hub", type: "OPERATIONAL" as const, status: "ACTIVE" as const, description: "Program registration management and participant support." },
-  { slug: "support",   name: "Support Hub",  type: "OPERATIONAL" as const, status: "ACTIVE" as const, description: "Shared inbox for support@rootedinmindfulness.org." },
+  { slug: "support",   name: "Support Hub",      type: "OPERATIONAL" as const, status: "ACTIVE" as const, description: "Team workspace for community support questions." },
 ];
 
 async function main() {
@@ -63,23 +63,9 @@ async function main() {
     }
   }
 
-  const supportHub = await db.hub.findUnique({ where: { slug: "support" } });
-  if (supportHub) {
-    const existing = await db.hubAppLink.findFirst({ where: { hubId: supportHub.id, label: "Support Inbox" } });
-    if (!existing) {
-      await db.hubAppLink.create({
-        data: { hubId: supportHub.id, label: "Support Inbox", href: "/tools/inbox", order: 0 },
-      });
-      console.log("  ✓ Support Hub → Support Inbox app link");
-    }
-    const existingSettings = await db.hubAppLink.findFirst({ where: { hubId: supportHub.id, label: "Inbox Settings" } });
-    if (!existingSettings) {
-      await db.hubAppLink.create({
-        data: { hubId: supportHub.id, label: "Inbox Settings", href: "/tools/inbox/settings", order: 1 },
-      });
-      console.log("  ✓ Support Hub → Inbox Settings app link");
-    }
-  }
+  // Support Hub has no linked tools — it's a core-only team workspace
+  // (Home, Conversations, Documents, Members). The Support Inbox tool was
+  // removed in session 100; the hub remains as a generic team space.
 
   console.log("Done.");
 }

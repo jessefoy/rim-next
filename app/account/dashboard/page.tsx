@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import AccountLayout from "@/components/AccountLayout";
 import DashboardAutoRefresh from "@/components/DashboardAutoRefresh";
 
-export const metadata = { title: "My Dashboard — Rooted In Mindfulness" };
+export const metadata = { title: "My Home — Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
 
 interface VirtualProgram {

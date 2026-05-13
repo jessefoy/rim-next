@@ -151,7 +151,6 @@ export default function HubHomeClient({
   // host-team is handled by HostHubHomeClient, so it's not in this map.
   const orientationManualSlug: Record<string, string> = {
     courses:   "course-hub",
-    support:   "support-inbox",
     registrar: "registration",
   };
   const manualSlug = orientationManualSlug[slug];

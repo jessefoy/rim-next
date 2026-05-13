@@ -31,7 +31,7 @@ export default async function ScheduleToolLayout({
   }
 
   let backHref = "/account/dashboard";
-  let backLabel = "Dashboard";
+  let backLabel = "Home";
 
   const hub = await db.hub.findUnique({ where: { slug: "host-team" }, select: { id: true, name: true } });
   if (hub) {

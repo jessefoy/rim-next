@@ -271,20 +271,20 @@ export default async function ProgramDetailPage({
                   program.programFormat === "virtual" ? (
                     session?.user ? (
                       <Link href="/account/dashboard" className="pg-detail-cta__link">
-                        Access Zoom Link in Dashboard →
+                        Access Zoom Link on My Home →
                       </Link>
                     ) : (
                       <span className="pg-detail-cta__text">
-                        Members access Zoom via <Link href="/community-membership" className="pg-detail-cta__inline-link">member dashboard</Link>
+                        Members access Zoom via their <Link href="/community-membership" className="pg-detail-cta__inline-link">member home</Link>
                       </span>
                     )
                   ) : session?.user ? (
                     <span className="pg-detail-cta__text">
-                      Simply arrive in person · <Link href="/account/dashboard" className="pg-detail-cta__inline-link">Zoom link in dashboard</Link>
+                      Simply arrive in person · <Link href="/account/dashboard" className="pg-detail-cta__inline-link">Zoom link on My Home</Link>
                     </span>
                   ) : (
                     <span className="pg-detail-cta__text">
-                      Simply arrive in person · Members join online via <Link href="/community-membership" className="pg-detail-cta__inline-link">dashboard</Link>
+                      Simply arrive in person · Members join online via their <Link href="/community-membership" className="pg-detail-cta__inline-link">member home</Link>
                     </span>
                   )
                 )}

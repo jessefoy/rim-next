@@ -277,10 +277,10 @@ export default function HubWorkspaceSidebar({
           <Link
             href="/account/dashboard"
             className="hub-ws-footer__link"
-            title={collapsed ? "Back to dashboard" : undefined}
+            title={collapsed ? "Back to Home" : undefined}
           >
             <ChevronLeft size={16} strokeWidth={1.75} />
-            <span>Back to dashboard</span>
+            <span>Back to Home</span>
           </Link>
         </div>
       </nav>

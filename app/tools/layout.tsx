@@ -1,7 +1,7 @@
 /**
  * Tools outer layout — auth gate only.
  *
- * Each specific tool (schedule, inbox, programs, learning) wraps its content
+ * Each specific tool (schedule, programs, learning) wraps its content
  * in <WorkspaceShell> via its own layout. WorkspaceShell decides between the
  * hub sidebar (when ?hub=<slug> is present) and the thin ToolsNav chrome.
  *

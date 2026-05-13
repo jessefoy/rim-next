@@ -45,7 +45,7 @@ export default function StyleGuidePage() {
               <span className="sg-component-path">components/ListRow.tsx</span>
             </div>
             <p className="sg-component-desc">
-              Universal list-row card used everywhere: community programs, dashboard Zoom links,
+              Universal list-row card used everywhere: community programs, member-home Zoom links,
               My Library, and course lessons (via SeriesListItem). All four lists now share
               this one component. Props: <code>title</code>, <code>subtitle</code>,{" "}
               <code>note</code> (italic), <code>announcement</code>, <code>badge</code>,{" "}

@@ -93,17 +93,6 @@ async function getPrimaryToolContext(hubSlug: string, userId: string): Promise<{
       };
     }
 
-    case "support": {
-      // Open sub-requests are the nearest neutral signal available without Gmail sync;
-      // once real inbox-thread counts exist, swap here.
-      const count = await db.subRequest.count({ where: { status: "OPEN" } });
-      return {
-        primaryTool: toolBySlug("inbox"),
-        primaryCount: count,
-        primaryLabel: plural(count, "open request", "open requests"),
-      };
-    }
-
     case "courses": {
       // Inactive courses = drafts waiting to be published
       const count = await db.course.count({ where: { isActive: false } });

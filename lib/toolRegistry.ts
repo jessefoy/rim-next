@@ -23,12 +23,6 @@ export const TOOL_REGISTRY: ToolDefinition[] = [
     description: "Session calendar, host assignments, sub requests",
   },
   {
-    slug: "inbox",
-    label: "Support Inbox",
-    path: "/tools/inbox",
-    description: "Gmail-connected support ticket management",
-  },
-  {
     slug: "programs",
     label: "Program Manager",
     path: "/tools/programs",

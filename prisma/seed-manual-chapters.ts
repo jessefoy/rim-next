@@ -108,16 +108,6 @@ async function main() {
       order: 6,
       relations: ["volunteer-roles", "programs"],
       startMarker: '<div id="hub"',
-      endMarker: '<div id="support"',
-    },
-    {
-      slug: "support-inbox",
-      title: "Support Inbox",
-      description: "The shared email inbox for support@rootedinmindfulness.org — reading, replying, notes, templates, and settings.",
-      hubSlug: "support",
-      order: 7,
-      relations: ["volunteer-roles"],
-      startMarker: '<div id="support"',
       endMarker: '<div id="roles"',
     },
     {
@@ -126,7 +116,7 @@ async function main() {
       description: "What each volunteer role unlocks, how to assign and remove roles, and first-admin setup.",
       hubSlug: null,
       order: 8,
-      relations: ["member-accounts", "host-hub", "support-inbox", "course-hub"],
+      relations: ["member-accounts", "host-hub", "course-hub"],
       startMarker: '<div id="roles"',
       endMarker: null,
     },
@@ -185,7 +175,6 @@ async function main() {
       <tr><td>member-accounts</td><td>Member Accounts</td><td>—</td></tr>
       <tr><td>course-hub</td><td>Courses &amp; Lessons</td><td>courses</td></tr>
       <tr><td>host-hub</td><td>Host Community Hub</td><td>host-team</td></tr>
-      <tr><td>support-inbox</td><td>Support Inbox</td><td>support</td></tr>
       <tr><td>volunteer-roles</td><td>Volunteer Roles</td><td>—</td></tr>
       <tr><td>manual-system</td><td>The Manual System (this page)</td><td>—</td></tr>
     </tbody>
@@ -214,7 +203,7 @@ async function main() {
   <h2 class="man-section__title">The ManualHelpIcon component</h2>
   <p>The <code>ManualHelpIcon</code> component renders a quiet <strong>?</strong> circle that links to a manual section in a new tab. It accepts a <code>manualSlug</code> prop.</p>
   <p>Place it in the top-right of any page or hub header where context help is relevant. Never floating over content; never in the navigation bar.</p>
-  <p>Current wiring locations: Course Hub landing, series editor, lesson editor, member courses library, public courses browse, Host Hub landing, Registrar Hub landing, Support Inbox landing, admin member detail, admin teachers.</p>
+  <p>Current wiring locations: Course Hub landing, series editor, lesson editor, member courses library, public courses browse, Host Hub landing, Registrar Hub landing, admin member detail, admin teachers.</p>
   <div class="man-note man-note--dev"><span class="man-note--dev__label">⚠️&ensp;Developer note</span>The component is at <code>components/ManualHelpIcon.tsx</code>. It renders as a client component (&quot;use client&quot;) with <code>mh-icon</code> CSS prefix. CSS is in <code>public/css/custom.css</code>.</div>
 </section>
 `

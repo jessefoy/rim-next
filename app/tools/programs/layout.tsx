@@ -32,7 +32,7 @@ export default async function ProgramsToolLayout({
 
   // Resolve back link: check if user is in the registrar hub
   let backHref = "/account/dashboard";
-  let backLabel = "Dashboard";
+  let backLabel = "Home";
 
   const hub = await db.hub.findUnique({ where: { slug: "registrar" }, select: { id: true, name: true } });
   if (hub) {

@@ -41,7 +41,6 @@ const ROLE_OPTIONS: { value: string; label: string }[] = [
   { value: "HOST_MANAGER", label: "Host Manager" },
   { value: "TEACHER",      label: "Teacher" },
   { value: "REGISTRAR",    label: "Registrar" },
-  { value: "SUPPORT",      label: "Support" },
   { value: "ADMIN",        label: "Admin" },
 ];
 

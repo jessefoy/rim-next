@@ -5,7 +5,7 @@ import { useState } from "react";
 const ROLE_GROUPS = [
   {
     label: "System Roles",
-    roles: ["ADMIN", "REGISTRAR", "TEACHER", "SUPPORT", "HOST", "HOST_MANAGER"],
+    roles: ["ADMIN", "REGISTRAR", "TEACHER", "HOST", "HOST_MANAGER"],
   },
 ];
 
@@ -13,7 +13,6 @@ const ROLE_DESCRIPTIONS: Record<string, string> = {
   ADMIN:        "Full access — members, registrations, and all volunteer areas",
   REGISTRAR:    "View and manage registrations, programs, and member profiles",
   TEACHER:      "Course Manager tool — manages courses and lessons",
-  SUPPORT:      "Support Inbox tool — shared inbox, thread assignment, reply, internal notes",
   HOST:         "Host Schedule tool — host sessions, claim substitutions",
   HOST_MANAGER: "Host Schedule tool + manages schedule and assignments",
 };
@@ -59,7 +58,7 @@ export default function RolesSection({ memberId, initialRoles }: Props) {
     <section className="adm2-section">
       <h2 className="adm2-section__title">Roles &amp; Permissions</h2>
       <p className="adm2-section__hint">
-        When a role is assigned, the member&rsquo;s dashboard will show a link to that volunteer area.
+        When a role is assigned, the member&rsquo;s home will show a link to that volunteer area.
       </p>
       {ROLE_GROUPS.map((group) => (
         <div key={group.label} className="adm2-roles-group">

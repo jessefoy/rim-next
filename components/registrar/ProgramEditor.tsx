@@ -415,7 +415,7 @@ function CategoryOrderInline({ categories: initial }: { categories: Category[] }
   );
 }
 
-const TABS = ["Content", "Schedule", "Categories", "Registration", "Dana", "Dashboard", "Visibility"] as const;
+const TABS = ["Content", "Schedule", "Categories", "Registration", "Dana", "Home Card", "Visibility"] as const;
 type Tab = (typeof TABS)[number];
 
 const DAY_OPTIONS = [
@@ -920,7 +920,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
             <div className="pe-form">
               <label className="pe-field">
                 <span className="pe-field__label">Name *</span>
-                <span className="pe-field__help">The program title. This appears on the public site, in member dashboards, and in all emails.</span>
+                <span className="pe-field__help">The program title. This appears on the public site, on the member home, and in all emails.</span>
                 <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="pe-input" required />
               </label>
 
@@ -1621,16 +1621,16 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
-           TAB 6 — Dashboard
+           TAB 6 — Home Card
            ══════════════════════════════════════════════════════════════════ */}
-        {tab === "Dashboard" && (
+        {tab === "Home Card" && (
           <div className="pe-card">
             <div className="pe-card__section">
-              <p className="pe-tab-intro">These fields control what appears on program cards in the member dashboard. Both are optional — leave blank if not needed.</p>
+              <p className="pe-tab-intro">These fields control what appears on program cards on the member home screen. Both are optional — leave blank if not needed.</p>
               <div className="pe-form">
                 <label className="pe-field">
                   <span className="pe-field__label">Special Announcement</span>
-                  <span className="pe-field__help">A bold notice shown on this program&rsquo;s dashboard card. Use for urgent or time-sensitive info like a schedule change or room reassignment.</span>
+                  <span className="pe-field__help">A bold notice shown on this program&rsquo;s home card. Use for urgent or time-sensitive info like a schedule change or room reassignment.</span>
                   <textarea
                     value={specialAnnouncement}
                     onChange={(e) => setSpecialAnnouncement(e.target.value)}
@@ -1641,7 +1641,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
 
                 <label className="pe-field">
                   <span className="pe-field__label">Early Arrival Message</span>
-                  <span className="pe-field__help">A quieter message shown on the dashboard card — things like &lsquo;Please arrive 10 minutes early&rsquo; or &lsquo;Bring a cushion.&rsquo;</span>
+                  <span className="pe-field__help">A quieter message shown on the home card — things like &lsquo;Please arrive 10 minutes early&rsquo; or &lsquo;Bring a cushion.&rsquo;</span>
                   <textarea
                     value={earlyArrivalMessage}
                     onChange={(e) => setEarlyArrivalMessage(e.target.value)}
@@ -1707,14 +1707,14 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                     if (!e.target.checked) setDashboardShowAt("");
                   }}
                 />
-                <span className="pe-checkbox__label">Hide from member dashboards</span>
+                <span className="pe-checkbox__label">Hide from member home</span>
               </label>
-              <p className="pe-field__help">This program won&rsquo;t appear on member dashboards. Still accessible by direct link and on the public site.</p>
+              <p className="pe-field__help">This program won&rsquo;t appear on the member home. Still accessible by direct link and on the public site.</p>
 
               {removeFromProgramList && (
                 <div className="pe-visibility-schedule">
-                  <span className="pe-field__label">Auto-show on dashboards</span>
-                  <p className="pe-field__help">Optional. On this date the program will automatically reappear on member dashboards — no manual action needed.</p>
+                  <span className="pe-field__label">Auto-show on member home</span>
+                  <p className="pe-field__help">Optional. On this date the program will automatically reappear on the member home — no manual action needed.</p>
                   <DateTimePicker value={dashboardShowAt} onChange={setDashboardShowAt} />
                   {dashboardShowAt && (
                     <button

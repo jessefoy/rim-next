@@ -57,13 +57,15 @@ export default function Nav() {
         {/* ── Desktop nav ───────────────────────────────── */}
         <nav className="nav__desktop" aria-label="Main navigation">
           {isMemberArea ? (
-            /* Member area desktop: minimal */
+            /* Member area desktop: minimal. Sidebar is the authoritative left rail —
+               top nav is intentionally light. Programs dropdown stays because
+               members regularly browse it; Courses/Teachers reached via sidebar. */
             <>
               <Link
                 href="/account/dashboard"
                 className={`nav__link${isActive("/account/dashboard")}`}
               >
-                My Dashboard
+                My Home
               </Link>
               <div className="nav__dropdown">
                 <button className="nav__dropdown-toggle">
@@ -83,54 +85,6 @@ export default function Nav() {
                   </div>
                 </div>
               </div>
-              <Link
-                href="/courses"
-                className={`nav__link${isActive("/courses")}`}
-              >
-                Courses
-              </Link>
-              <Link
-                href="/teachers"
-                className={`nav__link${isActive("/teachers")}`}
-              >
-                Teachers
-              </Link>
-
-              {isAdmin && (
-                <div className="nav__dropdown">
-                  <button className="nav__dropdown-toggle">
-                    Admin
-                    <span className="nav__dropdown-caret" aria-hidden="true">▾</span>
-                  </button>
-                  <div className="nav__dropdown-panel">
-                    <div className="nav__dropdown-panel-inner">
-                      <Link
-                        href="/admin/sitemap"
-                        className="nav__dropdown-link"
-                      >
-                        <div className="nav__dropdown-title">Site Architecture</div>
-                        <div className="nav__dropdown-desc">All pages reference</div>
-                      </Link>
-                      <Link
-                        href="/admin/features"
-                        className="nav__dropdown-link"
-                      >
-                        <div className="nav__dropdown-title">Feature Inventory</div>
-                        <div className="nav__dropdown-desc">Every feature, categorized</div>
-                      </Link>
-                      <a
-                        href="https://rooted-in-mindfulness.sanity.studio/"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="nav__dropdown-link"
-                      >
-                        <div className="nav__dropdown-title">Sanity Studio</div>
-                        <div className="nav__dropdown-desc">Edit site content</div>
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}
@@ -212,7 +166,7 @@ export default function Nav() {
                     {isLoggedIn ? (
                       <>
                         <Link href="/account/dashboard" className="nav__dropdown-link">
-                          <div className="nav__dropdown-title">My Dashboard</div>
+                          <div className="nav__dropdown-title">My Home</div>
                           <div className="nav__dropdown-desc">Today&apos;s Sessions &amp; Resources</div>
                         </Link>
                         <button
@@ -268,7 +222,7 @@ export default function Nav() {
                 href="/account/dashboard"
                 className={`nav__mobile-link${isActive("/account/dashboard")}`}
               >
-                My Dashboard
+                My Home
               </Link>
               <Link href="/community-programs" className="nav__mobile-link">
                 All Programs
@@ -276,38 +230,6 @@ export default function Nav() {
               <Link href="/this-week" className={`nav__mobile-link${isActive("/this-week")}`}>
                 This Week&apos;s Schedule
               </Link>
-              <Link href="/courses" className={`nav__mobile-link${isActive("/courses")}`}>
-                Courses
-              </Link>
-              <Link href="/teachers" className={`nav__mobile-link${isActive("/teachers")}`}>
-                Teachers
-              </Link>
-              {isAdmin && (
-                <Link
-                  href="/admin/sitemap"
-                  className={`nav__mobile-link${isActive("/admin/sitemap")}`}
-                >
-                  Admin — Site Architecture
-                </Link>
-              )}
-              {isAdmin && (
-                <Link
-                  href="/admin/features"
-                  className={`nav__mobile-link${isActive("/admin/features")}`}
-                >
-                  Admin — Feature Inventory
-                </Link>
-              )}
-              {isAdmin && (
-                <a
-                  href="https://rooted-in-mindfulness.sanity.studio/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="nav__mobile-link"
-                >
-                  Admin — Sanity Studio
-                </a>
-              )}
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}
                 className="nav__mobile-link"

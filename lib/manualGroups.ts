@@ -61,12 +61,6 @@ export const MANUAL_GROUPS: ManualGroup[] = [
     slugs:       ["course-hub"],
   },
   {
-    id:          "support-team",
-    label:       "For the support team",
-    description: "The shared inbox and support workflow.",
-    slugs:       ["support-inbox"],
-  },
-  {
     id:          "members",
     label:       "For members",
     description: "What members see and do in their accounts.",

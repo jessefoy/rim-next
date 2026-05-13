@@ -20,9 +20,8 @@ export async function POST(request: NextRequest) {
         if (!session?.user) {
           throw new Error("Unauthorized");
         }
-        // ADMIN and SUPPORT: any content type (support inbox needs arbitrary files)
-        // Everyone else: media types only (images, audio, PDFs for documents/lessons)
-        const hasFullAccess = session.user.roles?.some((r) => ["SUPPORT", "ADMIN"].includes(r));
+        // ADMIN: any content type. Everyone else: media types only (images, audio, PDFs for documents/lessons)
+        const hasFullAccess = session.user.roles?.includes("ADMIN") ?? false;
         return {
           allowedContentTypes: hasFullAccess ? undefined : ["image/*", "audio/*", "application/pdf"],
           maximumSizeInBytes: 500 * 1024 * 1024, // 500 MB

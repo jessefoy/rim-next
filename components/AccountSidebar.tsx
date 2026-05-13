@@ -14,7 +14,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard,
+  Home,
   CalendarCheck,
   BookOpen,
   UserCircle,
@@ -23,10 +23,7 @@ import {
   Layers,
   Mail,
   FileText,
-  MapPin,
-  Megaphone,
   Globe,
-  FlaskConical,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
@@ -54,21 +51,18 @@ interface NavLink {
 }
 
 const MEMBER_LINKS: NavLink[] = [
-  { label: "Dashboard",        href: "/account/dashboard",            icon: LayoutDashboard },
-  { label: "My Registrations", href: "/account/programs",             icon: CalendarCheck   },
-  { label: "My Courses",       href: "/account/courses",              icon: BookOpen        },
-  { label: "My Profile",       href: "/account/dashboard-my-profile", icon: UserCircle      },
+  { label: "Home",             href: "/account/dashboard",            icon: Home          },
+  { label: "My Registrations", href: "/account/programs",             icon: CalendarCheck },
+  { label: "My Courses",       href: "/account/courses",              icon: BookOpen      },
+  { label: "My Profile",       href: "/account/dashboard-my-profile", icon: UserCircle    },
 ];
 
 const STAFF_LINKS: (NavLink & { adminOnly?: boolean; registrarOk?: boolean })[] = [
-  { label: "Members",    href: "/admin/members",    icon: Users,     registrarOk: true },
-  { label: "Households", href: "/admin/households", icon: House,     registrarOk: true },
-  { label: "Hubs",       href: "/admin/hubs",       icon: Layers,    adminOnly: true   },
-  { label: "Emails",     href: "/admin/emails",     icon: Mail,      adminOnly: true   },
-  { label: "Manual",     href: "/admin/manual",     icon: FileText,  adminOnly: true   },
-  { label: "Roadmap",    href: "/admin/roadmap",    icon: MapPin,    adminOnly: true   },
-  { label: "Banner",     href: "/admin/banner",     icon: Megaphone, adminOnly: true   },
-  { label: "Editor Lab", href: "/admin/editor-lab", icon: FlaskConical, adminOnly: true },
+  { label: "Members",    href: "/admin/members",    icon: Users,    registrarOk: true },
+  { label: "Households", href: "/admin/households", icon: House,    registrarOk: true },
+  { label: "Hubs",       href: "/admin/hubs",       icon: Layers,   adminOnly: true   },
+  { label: "Emails",     href: "/admin/emails",     icon: Mail,     adminOnly: true   },
+  { label: "Manual",     href: "/admin/manual",     icon: FileText, adminOnly: true   },
 ];
 
 const STORAGE_KEY = "ac-sidebar-collapsed";
