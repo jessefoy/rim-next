@@ -22,7 +22,8 @@ export async function GET(
   if (!member && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const documents = await db.hubDocument.findMany({
-    where:   { hubId: hub.id },
+    // Trash never surfaces here — see /api/hub/[slug]/trash for managers.
+    where:   { hubId: hub.id, deletedAt: null },
     include: { addedBy: { select: { firstName: true, lastName: true, preferredName: true } } },
     orderBy: { createdAt: "desc" },
   });

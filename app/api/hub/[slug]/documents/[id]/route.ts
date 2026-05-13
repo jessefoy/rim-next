@@ -2,8 +2,8 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { after } from "next/server";
-import { getHubMembership } from "@/lib/hubAuth";
-import { cleanupRemovedBlobs, cleanupAllBlobs } from "@/lib/blobCleanup";
+import { getHubMembership, canManageTrash } from "@/lib/hubAuth";
+import { cleanupRemovedBlobs } from "@/lib/blobCleanup";
 import { sendHubDocumentUpdatedEmail } from "@/lib/email";
 
 const BASE_URL = (process.env.NEXTAUTH_URL ?? "").trim().replace(/\/$/, "");
@@ -27,6 +27,16 @@ export async function GET(
   });
   if (!doc || doc.hubId !== hub.id) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  // Trashed docs are visible only to trash-managers (admin / guiding teacher /
+  // hub coordinator). Everyone else gets a 404 — same as if it never existed.
+  if (doc.deletedAt) {
+    const roles = session.user.roles ?? [];
+    const isCoord = member?.isCoordinator ?? false;
+    if (!canManageTrash(roles, isCoord)) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+  }
+
   return NextResponse.json(doc);
 }
 
@@ -48,6 +58,14 @@ export async function PATCH(
   // Author or coordinator can edit
   const doc = await db.hubDocument.findFirst({ where: { id, hubId: hub.id } });
   if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // Trashed and archived docs are read-only. Restore (or unarchive) first.
+  if (doc.deletedAt) {
+    return NextResponse.json({ error: "This document is in the trash — restore it first" }, { status: 400 });
+  }
+  if (doc.archivedAt) {
+    return NextResponse.json({ error: "This document is archived — unarchive it first" }, { status: 400 });
+  }
 
   const isAuthor = doc.addedById === session.user.id;
   const isCoord = (member?.isCoordinator ?? false) || isAdminPatch;
@@ -154,6 +172,12 @@ export async function PATCH(
 }
 
 // DELETE /api/hub/[slug]/documents/[id]
+// Soft-delete by default: sets deletedAt + deletedById. The document vanishes
+// from members and shows up at /account/hub/[slug]/trash for trash-managers.
+// Author or coordinator can soft-delete.
+//
+// For permanent removal, use POST /api/hub/[slug]/documents/[id]/permanent-delete
+// (restricted to trash-managers).
 export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ slug: string; id: string }> }
@@ -167,9 +191,10 @@ export async function DELETE(
   const isAdminDelete = (session.user.roles ?? []).includes("ADMIN");
   if (!member && !isAdminDelete) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  // Author or coordinator can delete
+  // Author or coordinator can soft-delete
   const doc = await db.hubDocument.findFirst({ where: { id, hubId: hub.id } });
   if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (doc.deletedAt) return NextResponse.json({ ok: true }); // idempotent
 
   const isAuthorDel = doc.addedById === session.user.id;
   const isCoordDel = (member?.isCoordinator ?? false) || isAdminDelete;
@@ -177,9 +202,9 @@ export async function DELETE(
     return NextResponse.json({ error: "Only the author or a coordinator can delete" }, { status: 403 });
   }
 
-  // Clean up any blob images before deleting the document
-  if (doc.body) cleanupAllBlobs(doc.body); // fire-and-forget
-
-  await db.hubDocument.delete({ where: { id } });
-  return NextResponse.json({ ok: true });
+  await db.hubDocument.update({
+    where: { id },
+    data:  { deletedAt: new Date(), deletedById: session.user.id },
+  });
+  return NextResponse.json({ ok: true, trashed: true });
 }

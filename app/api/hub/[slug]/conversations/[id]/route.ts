@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { getHubMembership, requireCoordinator } from "@/lib/hubAuth";
+import { getHubMembership, requireCoordinator, canManageTrash } from "@/lib/hubAuth";
 
 // GET /api/hub/[slug]/conversations/[id] — thread detail + replies
 export async function GET(
@@ -32,6 +32,15 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  // Trashed threads are only visible to trash-managers.
+  if (thread.deletedAt) {
+    const roles = session.user.roles ?? [];
+    const isCoord = member?.isCoordinator ?? false;
+    if (!canManageTrash(roles, isCoord)) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+  }
+
   return NextResponse.json(thread);
 }
 
@@ -55,6 +64,10 @@ export async function PATCH(
   const thread = await db.hubConversationThread.findUnique({ where: { id } });
   if (!thread || thread.hubId !== hub.id) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  // Trashed threads are read-only — must be restored first.
+  if (thread.deletedAt) {
+    return NextResponse.json({ error: "This thread is in the trash — restore it first" }, { status: 400 });
   }
 
   const body = await req.json();
@@ -124,4 +137,38 @@ export async function PATCH(
   });
 
   return NextResponse.json(updated);
+}
+
+// DELETE /api/hub/[slug]/conversations/[id]
+// Soft-delete (sends to trash). Author or coordinator. Idempotent.
+// Permanent delete is at POST /api/hub/[slug]/conversations/[id]/permanent-delete
+// and is restricted to trash-managers.
+export async function DELETE(
+  _req: Request,
+  { params }: { params: Promise<{ slug: string; id: string }> }
+) {
+  const session = await auth();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { slug, id } = await params;
+  const { hub, member } = await getHubMembership(slug, session.user.id);
+  if (!hub) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const isAdmin = (session.user.roles ?? []).includes("ADMIN");
+  if (!member && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const thread = await db.hubConversationThread.findFirst({ where: { id, hubId: hub.id } });
+  if (!thread) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (thread.deletedAt) return NextResponse.json({ ok: true }); // idempotent
+
+  const isAuthor = thread.authorId === session.user.id;
+  const isCoord  = (member?.isCoordinator ?? false) || isAdmin;
+  if (!isAuthor && !isCoord) {
+    return NextResponse.json({ error: "Only the author or a coordinator can delete" }, { status: 403 });
+  }
+
+  await db.hubConversationThread.update({
+    where: { id },
+    data:  { deletedAt: new Date(), deletedById: session.user.id },
+  });
+  return NextResponse.json({ ok: true, trashed: true });
 }

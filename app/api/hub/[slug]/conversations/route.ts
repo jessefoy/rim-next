@@ -23,7 +23,7 @@ export async function GET(
   const status = url.searchParams.get("status") ?? "OPEN";
 
   const threads = await db.hubConversationThread.findMany({
-    where: { hubId: hub.id, status },
+    where: { hubId: hub.id, status, deletedAt: null },
     include: {
       author: { select: { firstName: true, lastName: true, preferredName: true } },
       _count:  { select: { replies: true } },

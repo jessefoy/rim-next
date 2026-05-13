@@ -114,8 +114,11 @@ model User {
   hubMemberships  HubMember[]
   hubDocuments            HubDocument[] @relation("HubDocumentAuthor")
   hubDocumentsEditing     HubDocument[] @relation("HubDocumentEditor")
+  hubDocumentsArchived    HubDocument[] @relation("HubDocumentArchiver")
+  hubDocumentsTrashed     HubDocument[] @relation("HubDocumentTrasher")
   hubDocumentNotifications HubDocumentNotification[]
   hubThreads2     HubConversationThread[]
+  hubThreadsTrashed HubConversationThread[] @relation("HubThreadTrasher")
   hubReplies2     HubConversationReply[]
   hubThreadSubscriptions HubThreadSubscription[]
   emailTemplates  EmailTemplate[]
@@ -135,6 +138,7 @@ enum Role {
   ADMIN                // full access
   TEACHER              // course/lesson management via Course Manager tool
   SUPPORT              // support inbox — reads/replies to support@rootedinmindfulness.org
+  GUIDING_TEACHER      // dharma authority — manages hub trash alongside admin + coordinators
 }
 
 enum MemberStatus {
@@ -956,13 +960,25 @@ model HubDocument {
   editingById String?             // Currently editing — presence tracking
   editingAt   DateTime?           // When the editor was last opened/heartbeat
 
+  // Two-stage lifecycle.
+  //   archivedAt = null + deletedAt = null → ACTIVE (shows in main list)
+  //   archivedAt set, deletedAt = null    → ARCHIVED (read-only, "Archived" filter, visible to all members)
+  //   deletedAt set                        → TRASHED (vanishes from members; visible only to ADMIN/GUIDING_TEACHER/coordinator at /trash)
+  archivedAt   DateTime?
+  archivedById String?
+  deletedAt    DateTime?
+  deletedById  String?
+
   hub           Hub      @relation(fields: [hubId], references: [id])
   addedBy       User     @relation("HubDocumentAuthor", fields: [addedById], references: [id], onDelete: Cascade)
   editingBy     User?    @relation("HubDocumentEditor", fields: [editingById], references: [id])
+  archivedBy    User?    @relation("HubDocumentArchiver", fields: [archivedById], references: [id])
+  deletedBy     User?    @relation("HubDocumentTrasher",  fields: [deletedById],  references: [id])
   notifications HubDocumentNotification[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  @@index([hubId, deletedAt])
   @@map("hub_documents")
 }
 
@@ -992,19 +1008,26 @@ model HubConversationThread {
   title                String
   body                 Json?
   category             String    @default("General")
-  status               String    @default("OPEN")
+  status               String    @default("OPEN") // OPEN | CLOSED (closed serves as archive)
   isPinned             Boolean   @default(false)
   pinnedAt             DateTime?
   edited               Boolean   @default(false)
   editedAt             DateTime?
 
+  // Soft-delete (trash). When deletedAt is set, the thread vanishes from
+  // members and is visible only to trash-managers at /account/hub/[slug]/trash.
+  deletedAt            DateTime?
+  deletedById          String?
+
   hub           Hub               @relation(fields: [hubId], references: [id])
   author        User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  deletedBy     User?             @relation("HubThreadTrasher", fields: [deletedById], references: [id])
   replies       HubConversationReply[]
   subscriptions HubThreadSubscription[]
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
+  @@index([hubId, deletedAt])
   @@map("hub_conversation_threads")
 }
 

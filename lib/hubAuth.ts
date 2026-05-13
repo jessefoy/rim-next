@@ -51,3 +51,23 @@ export function requireCoordinator(isCoordinator: boolean, roles: string[]) {
     throw new Error("coordinator_required");
   }
 }
+
+/**
+ * Trash-management authority for hub documents + conversations.
+ *
+ * A user can see the per-hub Trash, restore items, or permanently delete them
+ * if ANY of the following is true:
+ *   - role includes ADMIN
+ *   - role includes GUIDING_TEACHER (sangha-wide dharma authority)
+ *   - HubMember.isCoordinator === true on this hub (hub-scoped authority)
+ *
+ * Non-coordinators can still soft-delete their own items — that's a separate
+ * check (authorship or coordinator-ness on the item itself). This helper is
+ * only the gate for the trash bin: who can see deleted items, restore them,
+ * or perform the final permanent delete.
+ */
+export function canManageTrash(roles: string[], isCoordinator: boolean): boolean {
+  if (roles.includes("ADMIN")) return true;
+  if (roles.includes("GUIDING_TEACHER")) return true;
+  return isCoordinator;
+}

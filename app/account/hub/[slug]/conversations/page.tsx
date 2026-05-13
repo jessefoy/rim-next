@@ -39,7 +39,7 @@ export default async function HubConversationsPage({
 
   const [threads, hubMemberRows, coordinatorRows] = await Promise.all([
     db.hubConversationThread.findMany({
-      where:   { hubId: hub.id, status: "OPEN" },
+      where:   { hubId: hub.id, status: "OPEN", deletedAt: null },
       include: {
         author: { select: { firstName: true, lastName: true, preferredName: true } },
         _count:  { select: { replies: true } },

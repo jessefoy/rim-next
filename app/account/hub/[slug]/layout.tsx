@@ -15,6 +15,7 @@ import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import HubWorkspaceSidebar from "@/components/HubWorkspaceSidebar";
 import { getHubContext } from "@/lib/hubContext";
+import { canManageTrash } from "@/lib/hubAuth";
 
 interface Props {
   children: React.ReactNode;
@@ -60,6 +61,7 @@ export default async function HubLayout({ children, params }: Props) {
 
   const member = hub.members.find((m) => m.userId === session.user.id) ?? null;
   const isCoordinator = (member?.isCoordinator ?? false) || isAdmin;
+  const canTrash = canManageTrash(session.user.roles ?? [], member?.isCoordinator ?? false);
 
   const ctx = await getHubContext(
     hub.slug,
@@ -99,6 +101,7 @@ export default async function HubLayout({ children, params }: Props) {
         }}
         isCoordinator={isCoordinator}
         isAdmin={isAdmin}
+        canManageTrash={canTrash}
       />
       <div className="hub-ws-main">
         <div className="hub-ws-content hub-ws-content--reading">{children}</div>

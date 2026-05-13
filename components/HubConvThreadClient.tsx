@@ -353,6 +353,18 @@ export default function HubConvThreadClient({
     if (res.ok) setThread((prev) => ({ ...prev, isPinned: !prev.isPinned }));
   }
 
+  async function softDeleteThread() {
+    setMenuOpen(false);
+    if (!window.confirm("Move this thread to the trash? Admins and coordinators can restore or permanently delete it from there.")) return;
+    const res = await fetch(`/api/hub/${hubSlug}/conversations/${thread.id}`, {
+      method: "DELETE",
+    });
+    if (res.ok) {
+      // Navigate back to the list — the thread is no longer visible to this user.
+      window.location.href = `/account/hub/${hubSlug}/conversations`;
+    }
+  }
+
   return (
     <div className="hub-conv-thread">
       {/* Back link */}
@@ -397,7 +409,7 @@ export default function HubConvThreadClient({
             <span>{currentUserSubscribed ? "Following" : "Follow"}</span>
           </button>
         </div>
-        {isCoordinator && editingId !== "op" && (
+        {(isCoordinator || canEditOp) && editingId !== "op" && (
           <div className="hub-conv-thread__menu-wrap" ref={menuRef}>
             <button
               className="hub-conv-iconbtn"
@@ -409,16 +421,29 @@ export default function HubConvThreadClient({
             </button>
             {menuOpen && (
               <div className="hub-conv-menu" role="menu">
-                <button className="hub-conv-menu__item" onClick={togglePin} role="menuitem">
-                  {thread.isPinned ? "Unpin thread" : "Pin to top"}
-                </button>
-                {isClosed ? (
-                  <button className="hub-conv-menu__item" onClick={() => setStatus("OPEN")} role="menuitem">
-                    Reopen thread
+                {isCoordinator && (
+                  <button className="hub-conv-menu__item" onClick={togglePin} role="menuitem">
+                    {thread.isPinned ? "Unpin thread" : "Pin to top"}
                   </button>
-                ) : (
-                  <button className="hub-conv-menu__item" onClick={() => setStatus("CLOSED")} role="menuitem">
-                    Close thread
+                )}
+                {isCoordinator && (
+                  isClosed ? (
+                    <button className="hub-conv-menu__item" onClick={() => setStatus("OPEN")} role="menuitem">
+                      Reopen thread
+                    </button>
+                  ) : (
+                    <button className="hub-conv-menu__item" onClick={() => setStatus("CLOSED")} role="menuitem">
+                      Close thread
+                    </button>
+                  )
+                )}
+                {canEditOp && (
+                  <button
+                    className="hub-conv-menu__item hub-conv-menu__item--danger"
+                    onClick={softDeleteThread}
+                    role="menuitem"
+                  >
+                    Move to trash
                   </button>
                 )}
               </div>

@@ -41,6 +41,7 @@ interface HubDoc {
   isLocked: boolean;
   addedById: string;
   addedBy: DocAddedBy;
+  archivedAt: string | null;
   createdAt: string;
 }
 
@@ -89,6 +90,8 @@ export default function HubDocumentsClient({
   const [showAdd, setShowAdd]         = useState(false);
   const [editingId, setEditingId]     = useState<string | null>(null);
   const [deletingId, setDeletingId]   = useState<string | null>(null);
+  const [archivingId, setArchivingId] = useState<string | null>(null);
+  const [view, setView]               = useState<"active" | "archived">("active");
 
   // Add form state
   const [addMode, setAddMode]           = useState<AddMode>("link");
@@ -238,10 +241,26 @@ export default function HubDocumentsClient({
   }
 
   async function deleteDoc(id: string) {
+    if (!window.confirm("Move this document to the trash? Admins and coordinators can restore or permanently delete it from there.")) return;
     setDeletingId(id);
     const res = await fetch(`/api/hub/${hubSlug}/documents/${id}`, { method: "DELETE" });
     if (res.ok) { setDocs((prev) => prev.filter((d) => d.id !== id)); setEditingId(null); }
     setDeletingId(null);
+  }
+
+  // Toggle archive state — author or coordinator only.
+  async function toggleArchive(id: string, currentlyArchived: boolean) {
+    setArchivingId(id);
+    const res = await fetch(`/api/hub/${hubSlug}/documents/${id}/archive`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ archived: !currentlyArchived }),
+    });
+    if (res.ok) {
+      const { archivedAt } = await res.json();
+      setDocs((prev) => prev.map((d) => d.id === id ? { ...d, archivedAt } : d));
+    }
+    setArchivingId(null);
   }
 
   // ── Standalone Notify panel (post-creation) ──────────────────────────────
@@ -316,9 +335,14 @@ export default function HubDocumentsClient({
     );
   }
 
-  // ── Categorized sections ─────────────────────────────────────────────────
+  // ── Filter by view + categorize ──────────────────────────────────────────
+  const visibleDocs = docs.filter((d) =>
+    view === "archived" ? d.archivedAt !== null : d.archivedAt === null
+  );
+  const archivedCount = docs.filter((d) => d.archivedAt !== null).length;
+
   const byCategory = new Map<string | null, HubDoc[]>();
-  for (const doc of docs) {
+  for (const doc of visibleDocs) {
     const key = doc.category;
     if (!byCategory.has(key)) byCategory.set(key, []);
     byCategory.get(key)!.push(doc);
@@ -350,6 +374,26 @@ export default function HubDocumentsClient({
           </button>
         </div>
       </div>
+
+      {/* Active / Archived filter — only shown when archived items exist */}
+      {archivedCount > 0 && (
+        <div className="hub-doc-view-toggle">
+          <button
+            type="button"
+            className={`hub-doc-view-toggle__btn${view === "active" ? " hub-doc-view-toggle__btn--active" : ""}`}
+            onClick={() => setView("active")}
+          >
+            Active
+          </button>
+          <button
+            type="button"
+            className={`hub-doc-view-toggle__btn${view === "archived" ? " hub-doc-view-toggle__btn--active" : ""}`}
+            onClick={() => setView("archived")}
+          >
+            Archived <span className="hub-doc-view-toggle__count">{archivedCount}</span>
+          </button>
+        </div>
+      )}
 
       {/* Add Resource form */}
       {showAdd && (
@@ -597,7 +641,7 @@ export default function HubDocumentsClient({
                         {fmtDate(doc.createdAt)} · {displayName(doc.addedBy)}
                       </div>
                       <div className="hub-doc-item__actions">
-                        {canEdit(doc) && (
+                        {canEdit(doc) && !doc.archivedAt && (
                           <button
                             className="hub-action-btn"
                             onClick={() => openNotifyPanel(doc.id)}
@@ -605,7 +649,7 @@ export default function HubDocumentsClient({
                             Notify
                           </button>
                         )}
-                        {canEdit(doc) && !doc.isNative && !doc.isLocked && (
+                        {canEdit(doc) && !doc.isNative && !doc.isLocked && !doc.archivedAt && (
                           <button
                             className="hub-action-btn hub-doc-item__edit"
                             onClick={(e) => { e.stopPropagation(); openEdit(doc); }}
@@ -613,13 +657,31 @@ export default function HubDocumentsClient({
                             Edit
                           </button>
                         )}
-                        {canEdit(doc) && doc.isNative && (
+                        {canEdit(doc) && doc.isNative && !doc.archivedAt && (
                           <a
                             href={`/account/hub/${hubSlug}/documents/${doc.id}/edit`}
                             className="hub-action-btn hub-doc-item__edit"
                           >
                             {doc.isLocked && doc.addedById !== currentUserId ? "View" : "Edit"}
                           </a>
+                        )}
+                        {canEdit(doc) && (
+                          <button
+                            className="hub-action-btn"
+                            onClick={() => toggleArchive(doc.id, !!doc.archivedAt)}
+                            disabled={archivingId === doc.id}
+                          >
+                            {archivingId === doc.id ? "…" : doc.archivedAt ? "Unarchive" : "Archive"}
+                          </button>
+                        )}
+                        {canEdit(doc) && (
+                          <button
+                            className="hub-action-btn hub-action-btn--del"
+                            onClick={() => deleteDoc(doc.id)}
+                            disabled={deletingId === doc.id}
+                          >
+                            {deletingId === doc.id ? "…" : "Delete"}
+                          </button>
                         )}
                       </div>
                     </div>

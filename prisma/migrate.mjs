@@ -1975,6 +1975,50 @@ Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`,
       console.log(`  ✔ Applied: ${this.name} (authors:${authorRes}, repliers:${replierRes}, coordinators:${coordRes})`);
     },
   },
+  {
+    // Session 113 — Two-stage delete for hub documents + conversations.
+    //
+    // Adds GUIDING_TEACHER to the Role enum (sangha-wide dharma authority,
+    // distinct from ADMIN; Jesse currently holds both).
+    //
+    // HubDocument gains archive + trash columns:
+    //   archivedAt / archivedById — set when archived (read-only, "Archived" filter)
+    //   deletedAt  / deletedById  — set when soft-deleted (visible only to trash-managers)
+    //
+    // HubConversationThread gains trash columns only — `status: CLOSED`
+    // already serves as the archive concept for threads.
+    name: "add_hub_archive_and_trash_columns",
+    async run() {
+      const flag = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags"
+        WHERE name = 'add_hub_archive_and_trash_columns_v1'
+      `).catch(() => []);
+      if (flag.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      // Role enum — IF NOT EXISTS is supported in Postgres 12+.
+      await db.$executeRawUnsafe(`ALTER TYPE "Role" ADD VALUE IF NOT EXISTS 'GUIDING_TEACHER'`);
+
+      // HubDocument columns
+      await db.$executeRawUnsafe(`ALTER TABLE "hub_documents" ADD COLUMN IF NOT EXISTS "archivedAt"   TIMESTAMPTZ`);
+      await db.$executeRawUnsafe(`ALTER TABLE "hub_documents" ADD COLUMN IF NOT EXISTS "archivedById" TEXT REFERENCES "users"("id") ON DELETE SET NULL`);
+      await db.$executeRawUnsafe(`ALTER TABLE "hub_documents" ADD COLUMN IF NOT EXISTS "deletedAt"    TIMESTAMPTZ`);
+      await db.$executeRawUnsafe(`ALTER TABLE "hub_documents" ADD COLUMN IF NOT EXISTS "deletedById"  TEXT REFERENCES "users"("id") ON DELETE SET NULL`);
+      await db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "hub_documents_hubId_deletedAt_idx" ON "hub_documents"("hubId", "deletedAt")`);
+
+      // HubConversationThread columns
+      await db.$executeRawUnsafe(`ALTER TABLE "hub_conversation_threads" ADD COLUMN IF NOT EXISTS "deletedAt"   TIMESTAMPTZ`);
+      await db.$executeRawUnsafe(`ALTER TABLE "hub_conversation_threads" ADD COLUMN IF NOT EXISTS "deletedById" TEXT REFERENCES "users"("id") ON DELETE SET NULL`);
+      await db.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "hub_conversation_threads_hubId_deletedAt_idx" ON "hub_conversation_threads"("hubId", "deletedAt")`);
+
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('add_hub_archive_and_trash_columns_v1')
+      `);
+      console.log(`  ✔ Applied: ${this.name}`);
+    },
+  },
 ];
 
 // ── Server-safe compute helpers (mirror of lib/programUtils.ts) ──────────────

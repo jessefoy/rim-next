@@ -5,7 +5,7 @@
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { getHubMembership } from "@/lib/hubAuth";
+import { getHubMembership, canManageTrash } from "@/lib/hubAuth";
 import HubConvThreadClient from "@/components/HubConvThreadClient";
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 
@@ -77,6 +77,15 @@ export default async function HubConvThreadPage({
 
   const isCoordinator =
     member?.isCoordinator || (session.user.roles ?? []).includes("ADMIN");
+
+  // Trashed threads: 404 for non-managers (they shouldn't even know it exists).
+  // Managers can still view via the Trash page; this page redirects them there.
+  if (thread.deletedAt) {
+    if (!canManageTrash(session.user.roles ?? [], member?.isCoordinator ?? false)) {
+      notFound();
+    }
+    redirect(`/account/hub/${slug}/trash`);
+  }
 
   const serialized = {
     id:       thread.id,

@@ -37,7 +37,9 @@ export default async function HubDocumentsPage({
 
   const [documents, hubMembers] = await Promise.all([
     db.hubDocument.findMany({
-      where:   { hubId: hub.id },
+      // Trashed documents are never surfaced here — they live at /trash for managers.
+      // Archived documents ARE included; client splits into Active vs Archived tabs.
+      where:   { hubId: hub.id, deletedAt: null },
       include: { addedBy: { select: { firstName: true, lastName: true, preferredName: true } } },
       orderBy: { createdAt: "desc" },
     }),
@@ -72,7 +74,8 @@ export default async function HubDocumentsPage({
       lastName:      d.addedBy.lastName,
       preferredName: d.addedBy.preferredName,
     },
-    createdAt: d.createdAt.toISOString(),
+    archivedAt: d.archivedAt?.toISOString() ?? null,
+    createdAt:  d.createdAt.toISOString(),
   }));
 
   const serializedMembers = hubMembers.map((m) => ({

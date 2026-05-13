@@ -28,6 +28,7 @@ import {
   Users,
   Briefcase,
   Settings,
+  Trash2,
   ChevronLeft,
   ChevronsLeft,
   ChevronsRight,
@@ -57,6 +58,7 @@ interface Props {
   tools: SidebarTool[];
   navCounts: SidebarNavCounts;
   isCoordinator: boolean;
+  canManageTrash?: boolean;
   isAdmin: boolean;
 }
 
@@ -84,6 +86,7 @@ export default function HubWorkspaceSidebar({
   tools,
   navCounts,
   isCoordinator,
+  canManageTrash: canTrash = false,
   isAdmin,
 }: Props) {
   const pathname = usePathname();
@@ -264,6 +267,16 @@ export default function HubWorkspaceSidebar({
 
         {/* Footer: settings + back */}
         <div className="hub-ws-footer">
+          {(canTrash || isCoordinator || isAdmin) && (
+            <Link
+              href={`${base}/trash`}
+              className={`hub-ws-footer__link${pathname === `${base}/trash` ? " hub-ws-footer__link--active" : ""}`}
+              title={collapsed ? "Trash" : undefined}
+            >
+              <Trash2 size={16} strokeWidth={1.75} />
+              <span>Trash</span>
+            </Link>
+          )}
           {(isCoordinator || isAdmin) && (
             <Link
               href={`/admin/hubs/${hub.slug}/edit`}

@@ -13216,6 +13216,8 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   cursor: pointer;
 }
 .hub-conv-menu__item:hover { background: var(--rim-bg); }
+.hub-conv-menu__item--danger { color: var(--color-error); }
+.hub-conv-menu__item--danger:hover { background: var(--color-error-bg); }
 
 /* Post (OP + each reply) — flat, with hairline rhythm on replies */
 .hub-conv-post {
@@ -13605,6 +13607,85 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 
 /* Notify panel inside editor (below card, above footer) */
 .doc-page .hub-doc-notify-panel { max-width: 700px; margin: 0 auto 0; padding: 20px 0 0; }
+
+/* Documents Active/Archived view toggle */
+.hub-doc-view-toggle {
+  display: flex;
+  gap: 4px;
+  margin: 0 0 18px;
+  padding: 0;
+  border-bottom: 1px solid var(--rim-rule);
+}
+.hub-doc-view-toggle__btn {
+  padding: 8px 14px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--rim-text-muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.hub-doc-view-toggle__btn:hover { color: var(--rim-text); }
+.hub-doc-view-toggle__btn--active {
+  color: var(--rim-text);
+  border-bottom-color: var(--rim-blue);
+  font-weight: 500;
+}
+.hub-doc-view-toggle__count {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--rim-bg);
+  font-size: var(--text-xxs);
+}
+
+/* ── Hub Trash page (hub-trash- prefix) ─────────────────────────────── */
+.hub-trash { max-width: 900px; }
+.hub-trash__sub {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--rim-text-muted);
+}
+.hub-trash__section { margin-top: 28px; }
+.hub-trash__section-title {
+  font-family: var(--font-sans);
+  font-size: var(--text-xxs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--rim-text-muted);
+  margin: 0 0 10px;
+}
+.hub-trash__list { display: flex; flex-direction: column; gap: 1px; background: var(--rim-rule); }
+.hub-trash__row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 14px 0;
+  background: var(--rim-bg-card, #fff);
+}
+.hub-trash__row-main { flex: 1; min-width: 0; }
+.hub-trash__row-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  color: var(--rim-text);
+  margin-bottom: 4px;
+}
+.hub-trash__row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--rim-text-muted);
+}
+.hub-trash__row-actions { display: flex; gap: 6px; flex-shrink: 0; }
 
 /* ── LiveKit Video Room (vr- prefix) ──────────────────────────── */
 .vr-container {
