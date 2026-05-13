@@ -223,6 +223,8 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
   // End/manage panel — tracks which bundle is open
   const [endingBundle, setEndingBundle] = useState<{ programSlug: string; dayOfWeek: DayOfWeek } | null>(null);
   const [releasing, setReleasing]       = useState(false);
+  const [endOnInput, setEndOnInput]     = useState("");
+  const [settingEndDate, setSettingEndDate] = useState(false);
 
   // Per-program Reset confirm
   const [progResetConfirm, setProgResetConfirm] = useState<string | null>(null);
@@ -260,6 +262,33 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       setError("Could not release sessions. Please try again.");
     } finally {
       setReleasing(false);
+    }
+  };
+
+  // ── Set end date ──────────────────────────────────────────────────────────
+  const handleSetEndDate = async (programSlug: string, dayOfWeek: DayOfWeek) => {
+    if (!endOnInput) return;
+    setSettingEndDate(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/host/standing-assignments/end-bundle", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ programSlug, dayOfWeek, endsOn: endOnInput }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error || "set end date failed");
+      }
+      await loadRotations();
+      setEndingBundle(null);
+      setEndOnInput("");
+      showToast(`End date set · rotation stops after ${new Date(endOnInput + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`);
+      onScheduleStale?.();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not set end date. Please try again.");
+    } finally {
+      setSettingEndDate(false);
     }
   };
 
@@ -588,8 +617,8 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                       <div className="hs-rot__grid-actions">
                         {rows.length > 0 ? (
                           <>
-                            <button className="hs-rot__action" onClick={() => { setEndingBundle(null); startEdit(program.slug, d); }}>Edit</button>
-                            <button className="hs-rot__action hs-rot__action--end" onClick={() => { cancelForm(); setEndingBundle({ programSlug: program.slug, dayOfWeek: d }); }}>End</button>
+                            <button className="hs-rot__action" onClick={() => { setEndingBundle(null); setEndOnInput(""); startEdit(program.slug, d); }}>Edit</button>
+                            <button className="hs-rot__action hs-rot__action--end" onClick={() => { cancelForm(); setEndOnInput(""); setEndingBundle({ programSlug: program.slug, dayOfWeek: d }); }}>End</button>
                           </>
                         ) : (
                           <button className="hs-rot__action" onClick={() => startEdit(program.slug, d)}>Set up</button>
@@ -627,11 +656,32 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                             </div>
                           )}
 
-                          <button className="hs-rot__end-opt hs-rot__end-opt--release" onClick={() => handleEnd(program.slug, d, true)} disabled={saving || releasing}>
+                          <div className="hs-rot__end-date-section">
+                            <p className="hs-rot__end-date-label">End on a specific date — sessions up to that date stay scheduled</p>
+                            <div className="hs-rot__end-date-row">
+                              <input
+                                type="date"
+                                className="hs-rot__end-date-input"
+                                value={endOnInput}
+                                min={new Date().toISOString().slice(0, 10)}
+                                onChange={(e) => setEndOnInput(e.target.value)}
+                                disabled={settingEndDate || saving || releasing}
+                              />
+                              <button
+                                className="hs-rot__end-date-btn"
+                                onClick={() => handleSetEndDate(program.slug, d)}
+                                disabled={!endOnInput || settingEndDate || saving || releasing}
+                              >
+                                {settingEndDate ? "Saving…" : "Set end date"}
+                              </button>
+                            </div>
+                          </div>
+
+                          <button className="hs-rot__end-opt hs-rot__end-opt--release" onClick={() => handleEnd(program.slug, d, true)} disabled={saving || releasing || settingEndDate}>
                             <strong>End this rotation.</strong>
                             <span>Stops generating new sessions and clears all upcoming dates from hosts&rsquo; schedules. Each affected host is emailed.</span>
                           </button>
-                          <button className="hs-rot__end-cancel" onClick={() => setEndingBundle(null)} disabled={saving || releasing}>Cancel</button>
+                          <button className="hs-rot__end-cancel" onClick={() => { setEndingBundle(null); setEndOnInput(""); }} disabled={saving || releasing || settingEndDate}>Cancel</button>
                         </div>
                       );
                     })()}

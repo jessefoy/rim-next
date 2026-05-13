@@ -2,7 +2,14 @@
  * POST /api/host/standing-assignments/end-bundle
  *
  * Ends every standing rotation record in a (programSlug, dayOfWeek) bundle.
- * Two flavors via body:
+ * Three flavors via body:
+ *
+ *   { endsOn: "YYYY-MM-DD" }
+ *     Sets endsOn to the specified date on every record in the bundle.
+ *     Deletes any HostAssignment rows for this bundle with sessionDate
+ *     AFTER that date (pre-generated sessions beyond the new end). No email
+ *     is sent — this is a coordinator planning action, not an emergency.
+ *     Sessions up to and including the end date stay untouched.
  *
  *   { releaseFuture: false }  (default)
  *     Sets endsOn = today on every record in the bundle. Future cron runs
@@ -19,7 +26,8 @@
  * Body:
  *   { programSlug:   string,
  *     dayOfWeek:     string,
- *     releaseFuture: boolean }
+ *     releaseFuture?: boolean,
+ *     endsOn?:        string }   -- YYYY-MM-DD; takes precedence over releaseFuture
  *
  * Access: HOST_MANAGER / ADMIN / hub coordinator.
  */
@@ -64,10 +72,24 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const programSlug   = body?.programSlug as string | undefined;
   const dayOfWeek     = body?.dayOfWeek   as string | undefined;
-  const releaseFuture = body?.releaseFuture === true;
+  const endsOnParam   = body?.endsOn      as string | undefined;  // YYYY-MM-DD, takes precedence
+  const releaseFuture = !endsOnParam && body?.releaseFuture === true;
 
   if (!programSlug || !dayOfWeek) {
     return Response.json({ error: "programSlug and dayOfWeek are required" }, { status: 400 });
+  }
+
+  // Validate the specific end date if provided
+  if (endsOnParam) {
+    const parsed = new Date(endsOnParam + "T12:00:00Z");
+    if (isNaN(parsed.getTime())) {
+      return Response.json({ error: "endsOn must be a valid YYYY-MM-DD date" }, { status: 400 });
+    }
+    const todayCt = new Date(new Date().toLocaleString("en-US", { timeZone: TZ }));
+    todayCt.setHours(0, 0, 0, 0);
+    if (parsed < todayCt) {
+      return Response.json({ error: "endsOn must be today or a future date" }, { status: 400 });
+    }
   }
 
   // Load all rotation records in this bundle
@@ -140,20 +162,36 @@ export async function POST(request: Request) {
     }
   }
 
-  // Single transaction: delete future assignments (if releasing) + end rotations
+  // Single transaction: delete out-of-range assignments + set endsOn
   await db.$transaction(async (tx) => {
-    if (releaseFuture && releasedCount > 0) {
+    if (endsOnParam) {
+      // Set-end-date mode: delete pre-generated sessions AFTER the new end date.
+      // Sessions up to the end date stay. No email sent.
+      const cutoff = new Date(endsOnParam + "T23:59:59Z");
       await tx.hostAssignment.deleteMany({
         where: {
           standingAssignmentId: { in: rotationIds },
-          sessionDate:          { gte: todayCt },
+          sessionDate:          { gt: cutoff },
         },
       });
+      await tx.standingAssignment.updateMany({
+        where: { id: { in: rotationIds } },
+        data:  { endsOn: new Date(endsOnParam + "T23:59:59Z") },
+      });
+    } else {
+      if (releaseFuture && releasedCount > 0) {
+        await tx.hostAssignment.deleteMany({
+          where: {
+            standingAssignmentId: { in: rotationIds },
+            sessionDate:          { gte: todayCt },
+          },
+        });
+      }
+      await tx.standingAssignment.updateMany({
+        where: { id: { in: rotationIds } },
+        data:  { endsOn: endsOnValue },
+      });
     }
-    await tx.standingAssignment.updateMany({
-      where: { id: { in: rotationIds } },
-      data:  { endsOn: endsOnValue },
-    });
   });
 
   // Email each displaced host
@@ -179,5 +217,6 @@ export async function POST(request: Request) {
   return Response.json({
     ended:    rotations.length,
     released: releasedCount,
+    mode:     endsOnParam ? "set-end-date" : releaseFuture ? "release" : "end",
   });
 }

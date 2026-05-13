@@ -15480,6 +15480,56 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .hs-rot__release-btn:hover { background: var(--color-warning); color: #fff; }
 .hs-rot__release-btn:disabled { opacity: 0.55; cursor: default; }
 
+/* End-on-date section — inside the manage panel */
+.hs-rot__end-date-section {
+  width: 100%;
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid var(--rim-rule);
+  border-radius: 8px;
+}
+.hs-rot__end-date-label {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--rim-text);
+  font-weight: 500;
+  margin: 0 0 8px;
+}
+.hs-rot__end-date-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.hs-rot__end-date-input {
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  color: var(--rim-text);
+  border: 1px solid var(--rim-rule);
+  border-radius: 6px;
+  padding: 6px 10px;
+  min-height: 36px;
+  background: #fff;
+  flex: 1;
+  min-width: 140px;
+}
+.hs-rot__end-date-input:focus { outline: 2px solid var(--rim-blue); outline-offset: 1px; }
+.hs-rot__end-date-btn {
+  background: none;
+  border: 1px solid var(--rim-blue);
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: var(--rim-blue);
+  cursor: pointer;
+  white-space: nowrap;
+  min-height: 36px;
+  transition: background 0.12s, color 0.12s;
+}
+.hs-rot__end-date-btn:hover { background: var(--rim-blue); color: #fff; }
+.hs-rot__end-date-btn:disabled { opacity: 0.45; cursor: default; }
+
 /* Per-program Reset — inside each program card, below the rotation grid */
 .hs-rot__prog-danger {
   margin-top: 14px;
