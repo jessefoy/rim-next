@@ -112,7 +112,13 @@ export async function PUT(
   if (body.categoryId !== undefined) data.categoryId = body.categoryId || null;
   // dateText / timeText are server-computed below from the source fields,
   // so we ignore whatever the client sends here.
-  if (body.programFormat !== undefined) data.programFormat = body.programFormat;
+  if (body.programFormat !== undefined) {
+    data.programFormat = body.programFormat;
+    const fmt = body.programFormat as string;
+    if ((fmt === "virtual" || fmt === "hybrid") && !existing.livekitRoom) {
+      data.livekitRoom = body.slug ?? slug;
+    }
+  }
   if (body.venue !== undefined) data.venue = body.venue;
   if (body.locationText !== undefined) data.locationText = body.locationText || null;
   if (body.locationLink !== undefined) data.locationLink = body.locationLink || null;

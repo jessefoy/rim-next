@@ -99,6 +99,7 @@ export async function POST(request: NextRequest) {
       hideFromWeeklySchedule: body.hideFromWeeklySchedule ?? false,
       isOpenAccess: body.isOpenAccess ?? false,
       guestAccessKey: body.isOpenAccess ? randomBytes(6).toString("hex") : null,
+      livekitRoom: (body.programFormat === "virtual" || body.programFormat === "hybrid") ? slug : null,
     },
   });
 

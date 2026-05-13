@@ -445,6 +445,16 @@ function HsRow({
           )}
         </div>
         {fmt && <div className="hs-row__format">{fmt}</div>}
+        {!isPast && (session.programFormat === "virtual" || session.programFormat === "hybrid") && (
+          <a
+            href={`/session/${session.programSlug}`}
+            className="hs-row__join"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Enter room →
+          </a>
+        )}
       </div>
       <div className="hs-row__right">
         <div className="hs-row__who">{statusEl}</div>
