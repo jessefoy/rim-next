@@ -1,7 +1,11 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { after } from "next/server";
 import { getHubMembership } from "@/lib/hubAuth";
+import { sendHubDocumentCreatedEmail } from "@/lib/email";
+
+const BASE_URL = (process.env.NEXTAUTH_URL ?? "").trim().replace(/\/$/, "");
 
 // GET /api/hub/[slug]/documents
 export async function GET(
@@ -27,7 +31,9 @@ export async function GET(
 }
 
 // POST /api/hub/[slug]/documents — any hub member can create
-// Accepts external link docs ({ label, url, fileType, ... }) or native docs ({ label, body, isNative: true })
+// Accepts external link docs ({ label, url, fileType, ... }), native docs ({ label, body, isNative: true }),
+// or uploaded file docs ({ label, url, fileType: "PDF", ... }).
+// Optional: notifyUserIds — array of userId strings to notify after creation.
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ slug: string }> }
@@ -41,7 +47,7 @@ export async function POST(
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
   if (!member && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { label, url, description, fileType, category, newCategory, body, isNative } = await req.json();
+  const { label, url, description, fileType, category, newCategory, body, isNative, notifyUserIds } = await req.json();
 
   if (!label?.trim()) {
     return NextResponse.json({ error: "Label required" }, { status: 400 });
@@ -74,6 +80,53 @@ export async function POST(
     },
     include: { addedBy: { select: { firstName: true, lastName: true, preferredName: true } } },
   });
+
+  // Fire notifications after response
+  const validUserIds: string[] = Array.isArray(notifyUserIds) ? notifyUserIds : [];
+  if (validUserIds.length > 0) {
+    const authorName = session.user.name || session.user.email?.split("@")[0] || "Someone";
+    const docUrl = `${BASE_URL}/account/hub/${slug}/documents/${doc.id}`;
+
+    after(async () => {
+      // Verify recipients are active hub members with communicationsEnabled
+      const eligible = await db.hubMember.findMany({
+        where: {
+          hubId:                 hub.id,
+          userId:                { in: validUserIds, not: session.user.id },
+          status:                "ACTIVE",
+          communicationsEnabled: true,
+        },
+        include: { user: { select: { id: true, email: true, firstName: true } } },
+      });
+
+      if (eligible.length === 0) return;
+
+      // Record notifications
+      await db.hubDocumentNotification.createMany({
+        data: eligible.map((m) => ({
+          documentId: doc.id,
+          userId:     m.userId,
+          eventType:  "created",
+        })),
+      });
+
+      // Send emails
+      await Promise.allSettled(
+        eligible
+          .filter((m) => m.user.email)
+          .map((m) =>
+            sendHubDocumentCreatedEmail({
+              to:         m.user.email!,
+              firstName:  m.user.firstName,
+              authorName,
+              hubName:    hub.name,
+              docLabel:   doc.label,
+              docUrl,
+            })
+          )
+      );
+    });
+  }
 
   return NextResponse.json(doc, { status: 201 });
 }

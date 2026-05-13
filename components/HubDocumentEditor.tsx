@@ -17,6 +17,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { isHtmlString, renderBlockNoteHtml } from "@/lib/renderRichContent";
+import HubDocNotifyPanel, { type NotifyMember } from "@/components/HubDocNotifyPanel";
 
 const RimTiptapEditor = dynamic(
   () => import("@/components/rim-tiptap/RimTiptapEditor"),
@@ -35,6 +36,7 @@ interface Props {
   isLocked?: boolean;
   authorName?: string;
   activeEditorName?: string | null;
+  hubMembers?: NotifyMember[];    // eligible notification recipients
 }
 
 export default function HubDocumentEditor({
@@ -49,6 +51,7 @@ export default function HubDocumentEditor({
   isLocked: initialLocked = false,
   authorName,
   activeEditorName,
+  hubMembers = [],
 }: Props) {
   const router = useRouter();
   const [label, setLabel] = useState(initialLabel);
@@ -62,6 +65,7 @@ export default function HubDocumentEditor({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [locked, setLocked] = useState(initialLocked);
+  const [notifyIds, setNotifyIds] = useState<string[]>([]);
   const [dismissed, setDismissed] = useState(false);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -116,6 +120,7 @@ export default function HubDocumentEditor({
             category: resolvedCategory,
             newCategory,
             isNative: true,
+            notifyUserIds: notifyIds,
           }),
         });
       } else {
@@ -126,6 +131,7 @@ export default function HubDocumentEditor({
             label: label.trim(), body,
             category: resolvedCategory,
             newCategory,
+            notifyUserIds: notifyIds,
           }),
         });
       }
@@ -237,6 +243,12 @@ export default function HubDocumentEditor({
           variant="document"
         />
       </div>
+
+      <HubDocNotifyPanel
+        members={hubMembers}
+        selectedIds={notifyIds}
+        onChange={setNotifyIds}
+      />
 
       <div className="doc-page__footer" style={{ display: "flex", alignItems: "center", gap: 12 }}>
         {error && <p style={{ fontFamily: "var(--font-doc)", fontSize: "var(--text-xs)", color: "var(--color-error)", flex: 1, margin: 0 }}>{error}</p>}

@@ -22,13 +22,26 @@ export default async function HubDocumentEditPage({
   const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
   if (!hub || (!member && !isAdmin)) redirect(`/account/hub/${slug}/documents`);
 
-  const doc = await db.hubDocument.findUnique({
-    where: { id },
-    include: {
-      addedBy: { select: { firstName: true, lastName: true, preferredName: true } },
-      editingBy: { select: { firstName: true, lastName: true, preferredName: true } },
-    },
-  });
+  const [doc, hubMemberRows] = await Promise.all([
+    db.hubDocument.findUnique({
+      where: { id },
+      include: {
+        addedBy:   { select: { firstName: true, lastName: true, preferredName: true } },
+        editingBy: { select: { firstName: true, lastName: true, preferredName: true } },
+      },
+    }),
+    db.hubMember.findMany({
+      where: {
+        hubId:                 hub.id,
+        status:                "ACTIVE",
+        communicationsEnabled: true,
+        userId:                { not: session.user.id },
+      },
+      include: { user: { select: { id: true, firstName: true, lastName: true, preferredName: true } } },
+      orderBy: [{ user: { firstName: "asc" } }, { user: { lastName: "asc" } }],
+    }),
+  ]);
+
   if (!doc || doc.hubId !== hub.id) notFound();
 
   // Only author or coordinator can edit
@@ -57,6 +70,13 @@ export default async function HubDocumentEditPage({
     ? (otherEditing.preferredName || [otherEditing.firstName, otherEditing.lastName].filter(Boolean).join(" ") || "Someone")
     : null;
 
+  const serializedMembers = hubMemberRows.map((m) => ({
+    id:            m.userId,
+    firstName:     m.user.firstName,
+    lastName:      m.user.lastName,
+    preferredName: m.user.preferredName,
+  }));
+
   return (
     <HubDocumentEditor
       hubSlug={slug}
@@ -70,6 +90,7 @@ export default async function HubDocumentEditPage({
       isLocked={doc.isLocked}
       authorName={authorName}
       activeEditorName={editorName}
+      hubMembers={serializedMembers}
     />
   );
 }

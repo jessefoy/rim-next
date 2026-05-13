@@ -22,6 +22,24 @@ export default async function HubDocumentNewPage({
   const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
   if (!hub || (!member && !isAdmin)) redirect(`/account/hub/${slug}/documents`);
 
+  const hubMembers = await db.hubMember.findMany({
+    where: {
+      hubId:                 hub.id,
+      status:                "ACTIVE",
+      communicationsEnabled: true,
+      userId:                { not: session.user.id },
+    },
+    include: { user: { select: { id: true, firstName: true, lastName: true, preferredName: true } } },
+    orderBy: [{ user: { firstName: "asc" } }, { user: { lastName: "asc" } }],
+  });
+
+  const serializedMembers = hubMembers.map((m) => ({
+    id:            m.userId,
+    firstName:     m.user.firstName,
+    lastName:      m.user.lastName,
+    preferredName: m.user.preferredName,
+  }));
+
   return (
     <HubDocumentEditor
       hubSlug={slug}
@@ -30,6 +48,7 @@ export default async function HubDocumentNewPage({
       initialBody={null}
       initialCategory=""
       documentCategories={hub.documentCategories as string[]}
+      hubMembers={serializedMembers}
     />
   );
 }

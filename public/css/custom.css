@@ -13498,6 +13498,46 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .hub-doc-edit-footer { display: flex; justify-content: space-between; }
 .hub-doc-edit-footer__right { display: flex; gap: 8px; }
 .hub-doc-item__edit { flex-shrink: 0; }
+.hub-doc-item__actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+/* PDF badge variant */
+.hub-doc-type-badge--pdf { background: #fde8e8; color: #c0392b; }
+
+/* Link / File mode toggle */
+.hub-doc-mode-toggle { display: flex; gap: 0; margin-bottom: 16px; border: 1px solid var(--rim-rule); border-radius: 6px; overflow: hidden; width: fit-content; }
+.hub-doc-mode-btn { padding: 6px 16px; font-size: var(--text-xs); font-family: var(--font-sans); background: #fff; color: var(--rim-text-muted); border: none; cursor: pointer; transition: background 0.1s, color 0.1s; }
+.hub-doc-mode-btn + .hub-doc-mode-btn { border-left: 1px solid var(--rim-rule); }
+.hub-doc-mode-btn--active { background: var(--rim-bg-accent); color: var(--rim-text); font-weight: 600; }
+
+/* File upload zone */
+.hub-doc-upload-zone { border: 2px dashed var(--rim-rule); border-radius: 8px; padding: 28px 20px; text-align: center; font-size: var(--text-small); color: var(--rim-text-muted); cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+.hub-doc-upload-zone:hover { border-color: var(--rim-blue); background: #f0f7ff; }
+.hub-doc-upload-zone--loading { opacity: 0.6; cursor: default; }
+.hub-doc-upload-done { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+.hub-doc-upload-filename { font-size: var(--text-small); color: var(--rim-text); flex: 1; }
+
+/* Notify panel */
+.hub-doc-notify-panel { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--rim-rule); }
+.hub-doc-notify-panel__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.hub-doc-notify-panel__label { font-size: var(--text-xs); font-weight: 600; color: var(--rim-text); }
+.hub-doc-notify-panel__actions { display: flex; align-items: center; gap: 4px; }
+.hub-doc-notify-link { background: none; border: none; padding: 0; font-size: var(--text-xs); color: var(--rim-blue); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.hub-doc-notify-link:hover { opacity: 0.75; }
+.hub-doc-notify-sep { font-size: var(--text-xs); color: var(--rim-text-muted); }
+.hub-doc-notify-panel__list { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.hub-doc-notify-member { display: flex; align-items: center; gap: 6px; font-size: var(--text-small); color: var(--rim-text); cursor: pointer; }
+.hub-doc-notify-member input[type="checkbox"] { width: 15px; height: 15px; flex-shrink: 0; cursor: pointer; accent-color: var(--rim-blue); }
+.hub-doc-notify-panel__count { margin: 10px 0 0; font-size: var(--text-xs); color: var(--rim-text-muted); }
+.hub-doc-notify-loading { font-size: var(--text-small); color: var(--rim-text-muted); margin: 0; }
+
+/* Standalone Notify modal (post-creation) */
+.hub-doc-notify-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 400; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.hub-doc-notify-modal { background: #fff; border-radius: 10px; padding: 24px; width: 100%; max-width: 460px; box-sizing: border-box; }
+.hub-doc-notify-modal__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.hub-doc-notify-modal__header strong { font-size: var(--text-small); }
+
+/* Notify panel inside editor (below card, above footer) */
+.doc-page .hub-doc-notify-panel { max-width: 700px; margin: 0 auto 0; padding: 20px 0 0; }
 
 /* ── LiveKit Video Room (vr- prefix) ──────────────────────────── */
 .vr-container {

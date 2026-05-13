@@ -1629,6 +1629,127 @@ Rooted In Mindfulness · rootedinmindfulness.org`;
       console.log(`  ✔ Applied: ${this.name} — ${appLinksDeleted} app link(s), ${manualResult.count} manual section(s) removed`);
     },
   },
+  {
+    // Session 113 — Hub document notifications.
+    // Creates hub_document_notifications table (event log: who was notified,
+    // when, and whether it was a creation or update event).
+    // Also adds PDF to the HubDocumentFileType enum for uploaded file support.
+    name: "create_hub_document_notifications",
+    async run() {
+      const flag = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags"
+        WHERE name = 'create_hub_document_notifications_v1'
+      `).catch(() => []);
+      if (flag.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      // Add PDF to HubDocumentFileType enum (IF NOT EXISTS not valid for enum values;
+      // catch the "already exists" error gracefully)
+      await db.$executeRawUnsafe(
+        `ALTER TYPE "HubDocumentFileType" ADD VALUE IF NOT EXISTS 'PDF'`
+      ).catch(() => {});
+
+      // Create hub_document_notifications table
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "hub_document_notifications" (
+          "id"         TEXT        NOT NULL PRIMARY KEY,
+          "documentId" TEXT        NOT NULL REFERENCES "hub_documents"("id") ON DELETE CASCADE,
+          "userId"     TEXT        NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+          "notifiedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          "eventType"  TEXT        NOT NULL DEFAULT 'created'
+        )
+      `);
+      await db.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS "hub_document_notifications_documentId_idx"
+          ON "hub_document_notifications"("documentId")
+      `);
+      await db.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS "hub_document_notifications_documentId_userId_idx"
+          ON "hub_document_notifications"("documentId", "userId")
+      `);
+
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
+      `).catch(() => {});
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('create_hub_document_notifications_v1')
+      `);
+      console.log(`  ✔ Applied: ${this.name}`);
+    },
+  },
+  {
+    // Session 113 — Seed hub document notification email templates.
+    // hub-document-created: someone added a document to the hub.
+    // hub-document-updated: someone edited an existing document.
+    name: "seed_hub_document_email_templates",
+    async run() {
+      const flag = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags"
+        WHERE name = 'seed_hub_document_email_templates_v1'
+      `).catch(() => []);
+      if (flag.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      const templates = [
+        {
+          slug: "hub-document-created",
+          name: "Hub Document: Added",
+          description: "Sent to hub members chosen by the author when a new document is added.",
+          enabled: true,
+          group: "05-hubs",
+          groupLabel: "Hubs & Onboarding",
+          subject: "New document in {{hubName}}: {{docLabel}}",
+          variables: ["firstName", "authorName", "hubName", "docLabel", "docUrl"],
+          body: `{{#if firstName}}Hi {{firstName}},{{else}}Hello,{{/if}}
+
+**{{authorName}}** added a new document to {{hubName}}: *{{docLabel}}*
+
+**[View document →]({{docUrl}})**
+
+---
+Rooted In Mindfulness · Brookfield, WI`,
+        },
+        {
+          slug: "hub-document-updated",
+          name: "Hub Document: Updated",
+          description: "Sent to hub members chosen by the author when an existing document is updated.",
+          enabled: true,
+          group: "05-hubs",
+          groupLabel: "Hubs & Onboarding",
+          subject: "Document updated in {{hubName}}: {{docLabel}}",
+          variables: ["firstName", "authorName", "hubName", "docLabel", "docUrl"],
+          body: `{{#if firstName}}Hi {{firstName}},{{else}}Hello,{{/if}}
+
+**{{authorName}}** updated *{{docLabel}}* in {{hubName}}.
+
+**[View document →]({{docUrl}})**
+
+---
+Rooted In Mindfulness · Brookfield, WI`,
+        },
+      ];
+
+      for (const t of templates) {
+        await db.emailTemplate.upsert({
+          where:  { slug: t.slug },
+          update: { name: t.name, description: t.description, subject: t.subject, body: t.body, variables: t.variables, enabled: t.enabled, group: t.group, groupLabel: t.groupLabel },
+          create: t,
+        });
+      }
+
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
+      `).catch(() => {});
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('seed_hub_document_email_templates_v1')
+      `);
+      console.log(`  ✔ Applied: ${this.name}`);
+    },
+  },
 ];
 
 // ── Server-safe compute helpers (mirror of lib/programUtils.ts) ──────────────

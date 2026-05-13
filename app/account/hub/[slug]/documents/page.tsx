@@ -35,11 +35,24 @@ export default async function HubDocumentsPage({
     });
   }
 
-  const documents = await db.hubDocument.findMany({
-    where:   { hubId: hub.id },
-    include: { addedBy: { select: { firstName: true, lastName: true, preferredName: true } } },
-    orderBy: { createdAt: "desc" },
-  });
+  const [documents, hubMembers] = await Promise.all([
+    db.hubDocument.findMany({
+      where:   { hubId: hub.id },
+      include: { addedBy: { select: { firstName: true, lastName: true, preferredName: true } } },
+      orderBy: { createdAt: "desc" },
+    }),
+    // Eligible notification recipients: active members with communicationsEnabled, excluding self
+    db.hubMember.findMany({
+      where: {
+        hubId:                 hub.id,
+        status:                "ACTIVE",
+        communicationsEnabled: true,
+        userId:                { not: session.user.id },
+      },
+      include: { user: { select: { id: true, firstName: true, lastName: true, preferredName: true } } },
+      orderBy: [{ user: { firstName: "asc" } }, { user: { lastName: "asc" } }],
+    }),
+  ]);
 
   const isCoordinator =
     member?.isCoordinator || (session.user.roles ?? []).includes("ADMIN");
@@ -47,9 +60,9 @@ export default async function HubDocumentsPage({
   const serialized = documents.map((d) => ({
     id:          d.id,
     label:       d.label,
-    url:         d.url,                    // string | null
+    url:         d.url,
     description: d.description,
-    fileType:    d.fileType as "DOC" | "SHEET" | "SLIDE" | "FORM" | "LINK",
+    fileType:    d.fileType as "DOC" | "SHEET" | "SLIDE" | "FORM" | "LINK" | "PDF",
     category:    d.category,
     isNative:    d.isNative,
     isLocked:    d.isLocked,
@@ -62,6 +75,13 @@ export default async function HubDocumentsPage({
     createdAt: d.createdAt.toISOString(),
   }));
 
+  const serializedMembers = hubMembers.map((m) => ({
+    id:           m.userId,
+    firstName:    m.user.firstName,
+    lastName:     m.user.lastName,
+    preferredName: m.user.preferredName,
+  }));
+
   return (
     <HubDocumentsClient
       hubSlug={slug}
@@ -69,6 +89,7 @@ export default async function HubDocumentsPage({
       documentCategories={hub.documentCategories as string[]}
       isCoordinator={isCoordinator}
       currentUserId={session.user.id}
+      hubMembers={serializedMembers}
     />
   );
 }

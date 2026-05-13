@@ -9,9 +9,20 @@
  *
  * All hub members can create documents and edit/delete their own.
  * Coordinators can edit/delete any document.
+ *
+ * "Add Resource" form supports:
+ *  - Link mode: external URL (Google Drive, etc.)
+ *  - File mode: PDF upload via Vercel Blob
+ *
+ * Notify panel appears at the bottom of add/edit forms and as a standalone
+ * action on each row (author + coordinators only). Works like Basecamp:
+ * default is nobody checked; on existing docs the panel pre-selects members
+ * who haven't been notified yet.
  */
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { upload } from "@vercel/blob/client";
+import HubDocNotifyPanel, { type NotifyMember } from "@/components/HubDocNotifyPanel";
 
 interface DocAddedBy {
   firstName: string | null;
@@ -22,9 +33,9 @@ interface DocAddedBy {
 interface HubDoc {
   id: string;
   label: string;
-  url: string | null;             // nullable — native docs have no external URL
+  url: string | null;
   description: string | null;
-  fileType: "DOC" | "SHEET" | "SLIDE" | "FORM" | "LINK";
+  fileType: "DOC" | "SHEET" | "SLIDE" | "FORM" | "LINK" | "PDF";
   category: string | null;
   isNative: boolean;
   isLocked: boolean;
@@ -33,13 +44,18 @@ interface HubDoc {
   createdAt: string;
 }
 
+type HubMemberOption = NotifyMember;
+
 interface Props {
   hubSlug: string;
   initialDocuments: HubDoc[];
   documentCategories: string[];
   isCoordinator: boolean;
   currentUserId: string;
+  hubMembers: HubMemberOption[];
 }
+
+type AddMode = "link" | "file";
 
 function detectFileType(url: string): HubDoc["fileType"] {
   if (url.includes("docs.google.com/document"))      return "DOC";
@@ -53,9 +69,12 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-function displayName(u: DocAddedBy) {
-  return u.preferredName || [u.firstName, u.lastName].filter(Boolean).join(" ") || "Unknown";
+function displayName(u: HubMemberOption | DocAddedBy) {
+  return (u as HubMemberOption).preferredName ||
+    [u.firstName, u.lastName].filter(Boolean).join(" ") || "Unknown";
 }
+
+/* ── Main component ─────────────────────────────────────────────────────────── */
 
 export default function HubDocumentsClient({
   hubSlug,
@@ -63,6 +82,7 @@ export default function HubDocumentsClient({
   documentCategories: initialCategories,
   isCoordinator,
   currentUserId,
+  hubMembers,
 }: Props) {
   const [docs, setDocs]               = useState<HubDoc[]>(initialDocuments);
   const [categories, setCategories]   = useState<string[]>(initialCategories);
@@ -71,21 +91,35 @@ export default function HubDocumentsClient({
   const [deletingId, setDeletingId]   = useState<string | null>(null);
 
   // Add form state
+  const [addMode, setAddMode]           = useState<AddMode>("link");
   const [addLabel, setAddLabel]         = useState("");
   const [addUrl, setAddUrl]             = useState("");
   const [addDesc, setAddDesc]           = useState("");
   const [addCategory, setAddCategory]   = useState(initialCategories[0] ?? "");
   const [addNewCat, setAddNewCat]       = useState("");
   const [addFileType, setAddFileType]   = useState<HubDoc["fileType"]>("LINK");
+  const [addNotifyIds, setAddNotifyIds] = useState<string[]>([]);
+  const [uploading, setUploading]       = useState(false);
+  const [uploadedUrl, setUploadedUrl]   = useState<string | null>(null);
+  const [uploadedName, setUploadedName] = useState<string>("");
   const [saving, setSaving]             = useState(false);
+  const fileInputRef                    = useRef<HTMLInputElement>(null);
 
   // Edit form state
-  const [editLabel, setEditLabel]       = useState("");
-  const [editUrl, setEditUrl]           = useState("");
-  const [editDesc, setEditDesc]         = useState("");
-  const [editCategory, setEditCategory] = useState("");
-  const [editNewCat, setEditNewCat]     = useState("");
-  const [editFileType, setEditFileType] = useState<HubDoc["fileType"]>("LINK");
+  const [editLabel, setEditLabel]         = useState("");
+  const [editUrl, setEditUrl]             = useState("");
+  const [editDesc, setEditDesc]           = useState("");
+  const [editCategory, setEditCategory]   = useState("");
+  const [editNewCat, setEditNewCat]       = useState("");
+  const [editFileType, setEditFileType]   = useState<HubDoc["fileType"]>("LINK");
+  const [editNotifyIds, setEditNotifyIds] = useState<string[]>([]);
+
+  // Standalone Notify panel state (post-creation)
+  const [notifyDocId, setNotifyDocId]       = useState<string | null>(null);
+  const [notifyMembers, setNotifyMembers]   = useState<HubMemberOption[]>([]);
+  const [notifySelectedIds, setNotifySelectedIds] = useState<string[]>([]);
+  const [notifyLoading, setNotifyLoading]   = useState(false);
+  const [notifySending, setNotifySending]   = useState(false);
 
   function canEdit(doc: HubDoc) {
     return isCoordinator || doc.addedById === currentUserId;
@@ -99,36 +133,69 @@ export default function HubDocumentsClient({
     setEditCategory(doc.category ?? "");
     setEditNewCat("");
     setEditFileType(doc.fileType);
+    setEditNotifyIds([]);
   }
 
+  function resetAddForm() {
+    setAddLabel(""); setAddUrl(""); setAddDesc(""); setAddNewCat("");
+    setAddCategory(initialCategories[0] ?? ""); setAddMode("link");
+    setAddFileType("LINK"); setAddNotifyIds([]);
+    setUploadedUrl(null); setUploadedName("");
+  }
+
+  // ── File upload ──────────────────────────────────────────────────────────
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const safe = file.name.replace(/[^a-zA-Z0-9.-]/g, "_").slice(0, 80);
+      const uniqueName = `hub-docs/${Date.now()}-${safe}`;
+      const blob = await upload(uniqueName, file, {
+        access: "public",
+        handleUploadUrl: "/api/upload",
+      });
+      setUploadedUrl(blob.url);
+      setUploadedName(file.name);
+      if (!addLabel.trim()) setAddLabel(file.name.replace(/\.[^.]+$/, ""));
+    } catch {
+      window.alert("Upload failed. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  // ── Save new resource (link or uploaded file) ────────────────────────────
   async function saveDoc() {
-    if (!addLabel.trim() || !addUrl.trim()) return;
+    const urlToSave = addMode === "file" ? uploadedUrl : addUrl.trim();
+    if (!addLabel.trim() || !urlToSave) return;
     setSaving(true);
     const res = await fetch(`/api/hub/${hubSlug}/documents`, {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         label:       addLabel.trim(),
-        url:         addUrl.trim(),
+        url:         urlToSave,
         description: addDesc.trim() || null,
-        fileType:    addFileType,
+        fileType:    addMode === "file" ? "PDF" : addFileType,
         category:    addNewCat.trim() ? null : (addCategory || null),
         newCategory: addNewCat.trim() || undefined,
+        notifyUserIds: addNotifyIds,
       }),
     });
     if (res.ok) {
       const doc = await res.json();
       setDocs((prev) => [doc, ...prev]);
-      // If a new category was created, add it to the local list
       if (addNewCat.trim() && !categories.includes(addNewCat.trim())) {
         setCategories((prev) => [...prev, addNewCat.trim()]);
       }
-      setAddLabel(""); setAddUrl(""); setAddDesc(""); setAddNewCat("");
-      setAddCategory(initialCategories[0] ?? ""); setShowAdd(false);
+      resetAddForm();
+      setShowAdd(false);
     }
     setSaving(false);
   }
 
+  // ── Save edit ────────────────────────────────────────────────────────────
   async function updateDoc(id: string) {
     setSaving(true);
     const res = await fetch(`/api/hub/${hubSlug}/documents/${id}`, {
@@ -140,12 +207,12 @@ export default function HubDocumentsClient({
         fileType: editFileType,
         category: editNewCat.trim() ? null : (editCategory || null),
         newCategory: editNewCat.trim() || undefined,
+        notifyUserIds: editNotifyIds,
       }),
     });
     if (res.ok) {
       const updated = await res.json();
       setDocs((prev) => prev.map((d) => (d.id === id ? updated : d)));
-      // If a new category was created, add it to the local list
       if (editNewCat.trim() && !categories.includes(editNewCat.trim())) {
         setCategories((prev) => [...prev, editNewCat.trim()]);
       }
@@ -161,24 +228,44 @@ export default function HubDocumentsClient({
     setDeletingId(null);
   }
 
-  // Build categorized sections
-  const byCategory = new Map<string | null, HubDoc[]>();
-  for (const doc of docs) {
-    const key = doc.category;
-    if (!byCategory.has(key)) byCategory.set(key, []);
-    byCategory.get(key)!.push(doc);
+  // ── Standalone Notify panel (post-creation) ──────────────────────────────
+  async function openNotifyPanel(docId: string) {
+    setNotifyDocId(docId);
+    setNotifyLoading(true);
+    setNotifyMembers([]);
+    setNotifySelectedIds([]);
+    try {
+      const res = await fetch(`/api/hub/${hubSlug}/documents/${docId}/notify`);
+      if (res.ok) {
+        const { members, notifiedUserIds } = await res.json();
+        setNotifyMembers(members);
+        // Pre-select those who haven't been notified yet
+        const notNotifiedYet = (members as HubMemberOption[]).filter(
+          (m) => !(notifiedUserIds as string[]).includes(m.id)
+        );
+        setNotifySelectedIds(notNotifiedYet.map((m) => m.id));
+      }
+    } finally {
+      setNotifyLoading(false);
+    }
   }
 
-  // Render in documentCategories order, uncategorized last
-  const sections: Array<{ label: string; docs: HubDoc[] }> = [];
-  for (const cat of categories) {
-    const catDocs = byCategory.get(cat) ?? [];
-    if (catDocs.length > 0) sections.push({ label: cat, docs: catDocs });
+  async function sendNotify() {
+    if (!notifyDocId || notifySelectedIds.length === 0) {
+      setNotifyDocId(null);
+      return;
+    }
+    setNotifySending(true);
+    await fetch(`/api/hub/${hubSlug}/documents/${notifyDocId}/notify`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userIds: notifySelectedIds, eventType: "created" }),
+    });
+    setNotifySending(false);
+    setNotifyDocId(null);
   }
-  const uncategorized = byCategory.get(null) ?? [];
-  if (uncategorized.length > 0) sections.push({ label: "Uncategorized", docs: uncategorized });
 
-  /* ── Category select helper ───────────────────────────────── */
+  // ── Category select helper ───────────────────────────────────────────────
   function CategorySelect({
     value, onChange, newCat, onNewCatChange,
   }: {
@@ -206,6 +293,25 @@ export default function HubDocumentsClient({
     );
   }
 
+  // ── Categorized sections ─────────────────────────────────────────────────
+  const byCategory = new Map<string | null, HubDoc[]>();
+  for (const doc of docs) {
+    const key = doc.category;
+    if (!byCategory.has(key)) byCategory.set(key, []);
+    byCategory.get(key)!.push(doc);
+  }
+  const sections: Array<{ label: string; docs: HubDoc[] }> = [];
+  for (const cat of categories) {
+    const catDocs = byCategory.get(cat) ?? [];
+    if (catDocs.length > 0) sections.push({ label: cat, docs: catDocs });
+  }
+  const uncategorized = byCategory.get(null) ?? [];
+  if (uncategorized.length > 0) sections.push({ label: "Uncategorized", docs: uncategorized });
+
+  const addSaveDisabled =
+    saving || uploading || !addLabel.trim() ||
+    (addMode === "link" ? !addUrl.trim() : !uploadedUrl);
+
   return (
     <div className="hub-doc-container">
 
@@ -216,33 +322,99 @@ export default function HubDocumentsClient({
           <a href={`/account/hub/${hubSlug}/documents/new`} className="btn btn--sm">
             + New Document
           </a>
-          <button className="btn btn--sm btn--ghost" onClick={() => setShowAdd((v) => !v)}>
-            + Add Link
+          <button className="btn btn--sm btn--ghost" onClick={() => { setShowAdd((v) => !v); resetAddForm(); }}>
+            + Add Resource
           </button>
         </div>
       </div>
 
-      {/* Add form */}
+      {/* Add Resource form */}
       {showAdd && (
         <div className="hub-doc-add-form">
-          <div className="add-doc-form__title">Add Document</div>
+          <div className="add-doc-form__title">Add Resource</div>
+
+          {/* Link / File toggle */}
+          <div className="hub-doc-mode-toggle">
+            <button
+              type="button"
+              className={`hub-doc-mode-btn${addMode === "link" ? " hub-doc-mode-btn--active" : ""}`}
+              onClick={() => setAddMode("link")}
+            >
+              Link
+            </button>
+            <button
+              type="button"
+              className={`hub-doc-mode-btn${addMode === "file" ? " hub-doc-mode-btn--active" : ""}`}
+              onClick={() => setAddMode("file")}
+            >
+              Upload File
+            </button>
+          </div>
+
+          {/* URL input (link mode) */}
+          {addMode === "link" && (
+            <div className="fg">
+              <label className="fl">URL</label>
+              <div className="hub-doc-url-row">
+                <input
+                  className="fi"
+                  type="url"
+                  value={addUrl}
+                  onChange={(e) => { setAddUrl(e.target.value); setAddFileType(detectFileType(e.target.value)); }}
+                  placeholder="https://…"
+                />
+                {addUrl && <span className="hub-doc-type-badge">{addFileType}</span>}
+              </div>
+            </div>
+          )}
+
+          {/* File upload (file mode) */}
+          {addMode === "file" && (
+            <div className="fg">
+              <label className="fl">File (PDF)</label>
+              {uploadedUrl ? (
+                <div className="hub-doc-upload-done">
+                  <span className="hub-doc-type-badge hub-doc-type-badge--pdf">PDF</span>
+                  <span className="hub-doc-upload-filename">{uploadedName}</span>
+                  <button
+                    type="button"
+                    className="hub-doc-notify-link"
+                    onClick={() => { setUploadedUrl(null); setUploadedName(""); }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div
+                  className={`hub-doc-upload-zone${uploading ? " hub-doc-upload-zone--loading" : ""}`}
+                  onClick={() => !uploading && fileInputRef.current?.click()}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) {
+                      const fakeEvent = { target: { files: e.dataTransfer.files } } as unknown as React.ChangeEvent<HTMLInputElement>;
+                      handleFileSelect(fakeEvent);
+                    }
+                  }}
+                >
+                  {uploading ? "Uploading…" : "Click or drag a PDF here to upload"}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="application/pdf"
+                    style={{ display: "none" }}
+                    onChange={handleFileSelect}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="fg">
             <label className="fl">Label</label>
             <input className="fi" type="text" value={addLabel} onChange={(e) => setAddLabel(e.target.value)}
               placeholder="e.g. Virtual Host Guidelines" />
-          </div>
-          <div className="fg">
-            <label className="fl">Google Drive URL</label>
-            <div className="hub-doc-url-row">
-              <input
-                className="fi"
-                type="url"
-                value={addUrl}
-                onChange={(e) => { setAddUrl(e.target.value); setAddFileType(detectFileType(e.target.value)); }}
-                placeholder="https://docs.google.com/…"
-              />
-              {addUrl && <span className="hub-doc-type-badge">{addFileType}</span>}
-            </div>
           </div>
           <div className="fg">
             <label className="fl">Category</label>
@@ -256,11 +428,46 @@ export default function HubDocumentsClient({
             <input className="fi" type="text" value={addDesc} onChange={(e) => setAddDesc(e.target.value)}
               placeholder="Brief description" />
           </div>
+
+          <HubDocNotifyPanel
+            members={hubMembers}
+            selectedIds={addNotifyIds}
+            onChange={setAddNotifyIds}
+          />
+
           <div className="form-actions">
-            <button className="btn--ghost" onClick={() => { setShowAdd(false); setAddNewCat(""); }}>Cancel</button>
-            <button className="btn" onClick={saveDoc} disabled={saving || !addLabel.trim() || !addUrl.trim()}>
-              {saving ? "Saving…" : "Save"}
+            <button className="btn--ghost" onClick={() => { setShowAdd(false); resetAddForm(); }}>Cancel</button>
+            <button className="btn" onClick={saveDoc} disabled={addSaveDisabled}>
+              {saving ? "Saving…" : uploading ? "Uploading…" : "Save"}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Standalone Notify panel (post-creation) */}
+      {notifyDocId && (
+        <div className="hub-doc-notify-overlay">
+          <div className="hub-doc-notify-modal">
+            <div className="hub-doc-notify-modal__header">
+              <strong>Notify team members</strong>
+              <button className="btn--ghost btn--xs" onClick={() => setNotifyDocId(null)}>Cancel</button>
+            </div>
+            <HubDocNotifyPanel
+              members={notifyMembers}
+              selectedIds={notifySelectedIds}
+              onChange={setNotifySelectedIds}
+              loading={notifyLoading}
+            />
+            <div className="form-actions">
+              <button className="btn--ghost" onClick={() => setNotifyDocId(null)}>Cancel</button>
+              <button
+                className="btn"
+                onClick={sendNotify}
+                disabled={notifySending || notifySelectedIds.length === 0}
+              >
+                {notifySending ? "Sending…" : `Notify${notifySelectedIds.length > 0 ? ` (${notifySelectedIds.length})` : ""}`}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -284,13 +491,24 @@ export default function HubDocumentsClient({
                         <label className="fl">Label</label>
                         <input className="fi" type="text" value={editLabel} onChange={(e) => setEditLabel(e.target.value)} />
                       </div>
-                      {!doc.isNative && (
+                      {!doc.isNative && doc.fileType !== "PDF" && (
                         <div className="fg">
-                          <label className="fl">Google Drive URL</label>
+                          <label className="fl">URL</label>
                           <div className="hub-doc-url-row">
                             <input className="fi" type="url" value={editUrl}
                               onChange={(e) => { setEditUrl(e.target.value); setEditFileType(detectFileType(e.target.value)); }} />
                             <span className="hub-doc-type-badge">{editFileType}</span>
+                          </div>
+                        </div>
+                      )}
+                      {doc.fileType === "PDF" && (
+                        <div className="fg">
+                          <label className="fl">File</label>
+                          <div className="hub-doc-upload-done">
+                            <span className="hub-doc-type-badge hub-doc-type-badge--pdf">PDF</span>
+                            <a href={doc.url ?? "#"} target="_blank" rel="noopener noreferrer" className="hub-doc-notify-link">
+                              View current file ↗
+                            </a>
                           </div>
                         </div>
                       )}
@@ -307,6 +525,13 @@ export default function HubDocumentsClient({
                           <input className="fi" type="text" value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
                         </div>
                       )}
+
+                      <HubDocNotifyPanel
+                        members={hubMembers}
+                        selectedIds={editNotifyIds}
+                        onChange={setEditNotifyIds}
+                      />
+
                       <div className="hub-doc-edit-footer">
                         <button
                           className="hub-action-btn hub-action-btn--del"
@@ -325,23 +550,19 @@ export default function HubDocumentsClient({
                     </div>
                   ) : (
                     <div className="hub-doc-item">
-                      {!doc.isNative && <span className="hub-doc-type-badge">{doc.fileType}</span>}
+                      {!doc.isNative && (
+                        <span className={`hub-doc-type-badge${doc.fileType === "PDF" ? " hub-doc-type-badge--pdf" : ""}`}>
+                          {doc.fileType}
+                        </span>
+                      )}
                       {doc.isLocked && <span className="hub-doc-item__edit" title="Locked by author">🔒</span>}
                       <div className="hub-doc-item__text">
                         {doc.isNative ? (
-                          <a
-                            href={`/account/hub/${hubSlug}/documents/${doc.id}`}
-                            className="hub-doc-item__native-link"
-                          >
+                          <a href={`/account/hub/${hubSlug}/documents/${doc.id}`} className="hub-doc-item__native-link">
                             {doc.label}
                           </a>
                         ) : (
-                          <a
-                            href={doc.url!}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="hub-doc-item__link"
-                          >
+                          <a href={doc.url!} target="_blank" rel="noopener noreferrer" className="hub-doc-item__link">
                             {doc.label} ↗
                           </a>
                         )}
@@ -350,22 +571,32 @@ export default function HubDocumentsClient({
                       <div className="hub-doc-item__meta">
                         {fmtDate(doc.createdAt)} · {displayName(doc.addedBy)}
                       </div>
-                      {canEdit(doc) && !doc.isNative && !doc.isLocked && (
-                        <button
-                          className="hub-action-btn hub-doc-item__edit"
-                          onClick={(e) => { e.stopPropagation(); openEdit(doc); }}
-                        >
-                          Edit
-                        </button>
-                      )}
-                      {canEdit(doc) && doc.isNative && (
-                        <a
-                          href={`/account/hub/${hubSlug}/documents/${doc.id}/edit`}
-                          className="hub-action-btn hub-doc-item__edit"
-                        >
-                          {doc.isLocked && doc.addedById !== currentUserId ? "View" : "Edit"}
-                        </a>
-                      )}
+                      <div className="hub-doc-item__actions">
+                        {canEdit(doc) && (
+                          <button
+                            className="hub-action-btn"
+                            onClick={() => openNotifyPanel(doc.id)}
+                          >
+                            Notify
+                          </button>
+                        )}
+                        {canEdit(doc) && !doc.isNative && !doc.isLocked && (
+                          <button
+                            className="hub-action-btn hub-doc-item__edit"
+                            onClick={(e) => { e.stopPropagation(); openEdit(doc); }}
+                          >
+                            Edit
+                          </button>
+                        )}
+                        {canEdit(doc) && doc.isNative && (
+                          <a
+                            href={`/account/hub/${hubSlug}/documents/${doc.id}/edit`}
+                            className="hub-action-btn hub-doc-item__edit"
+                          >
+                            {doc.isLocked && doc.addedById !== currentUserId ? "View" : "Edit"}
+                          </a>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

@@ -1,8 +1,12 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
+import { after } from "next/server";
 import { getHubMembership } from "@/lib/hubAuth";
 import { cleanupRemovedBlobs, cleanupAllBlobs } from "@/lib/blobCleanup";
+import { sendHubDocumentUpdatedEmail } from "@/lib/email";
+
+const BASE_URL = (process.env.NEXTAUTH_URL ?? "").trim().replace(/\/$/, "");
 
 // GET — fetch a single document (for view/edit pages)
 export async function GET(
@@ -27,6 +31,7 @@ export async function GET(
 }
 
 // PATCH /api/hub/[slug]/documents/[id]
+// Optional: notifyUserIds — array of userId strings to notify about the update.
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ slug: string; id: string }> }
@@ -55,7 +60,7 @@ export async function PATCH(
     return NextResponse.json({ error: "This document is locked by the author" }, { status: 403 });
   }
 
-  const { label, url, description, fileType, category, newCategory, body } = await req.json();
+  const { label, url, description, fileType, category, newCategory, body, notifyUserIds } = await req.json();
 
   // Handle inline new category creation
   let resolvedCategory = category !== undefined ? (category || null) : doc.category;
@@ -85,6 +90,50 @@ export async function PATCH(
   // Clean up any blob images that were removed from the body
   if (body !== undefined) {
     cleanupRemovedBlobs(oldBody, body); // fire-and-forget
+  }
+
+  // Fire notifications after response
+  const validUserIds: string[] = Array.isArray(notifyUserIds) ? notifyUserIds : [];
+  if (validUserIds.length > 0) {
+    const authorName = session.user.name || session.user.email?.split("@")[0] || "Someone";
+    const docUrl = `${BASE_URL}/account/hub/${slug}/documents/${id}`;
+
+    after(async () => {
+      const eligible = await db.hubMember.findMany({
+        where: {
+          hubId:                 hub.id,
+          userId:                { in: validUserIds, not: session.user.id },
+          status:                "ACTIVE",
+          communicationsEnabled: true,
+        },
+        include: { user: { select: { id: true, email: true, firstName: true } } },
+      });
+
+      if (eligible.length === 0) return;
+
+      await db.hubDocumentNotification.createMany({
+        data: eligible.map((m) => ({
+          documentId: id,
+          userId:     m.userId,
+          eventType:  "updated",
+        })),
+      });
+
+      await Promise.allSettled(
+        eligible
+          .filter((m) => m.user.email)
+          .map((m) =>
+            sendHubDocumentUpdatedEmail({
+              to:         m.user.email!,
+              firstName:  m.user.firstName,
+              authorName,
+              hubName:    hub.name,
+              docLabel:   updated.label,
+              docUrl,
+            })
+          )
+      );
+    });
   }
 
   return NextResponse.json(updated);

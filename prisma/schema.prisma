@@ -112,8 +112,9 @@ model User {
   subClaims       SubClaim[]         @relation("SubClaims")
   // Hub system
   hubMemberships  HubMember[]
-  hubDocuments       HubDocument[] @relation("HubDocumentAuthor")
-  hubDocumentsEditing HubDocument[] @relation("HubDocumentEditor")
+  hubDocuments            HubDocument[] @relation("HubDocumentAuthor")
+  hubDocumentsEditing     HubDocument[] @relation("HubDocumentEditor")
+  hubDocumentNotifications HubDocumentNotification[]
   hubThreads2     HubConversationThread[]
   hubReplies2     HubConversationReply[]
   emailTemplates  EmailTemplate[]
@@ -864,6 +865,7 @@ enum HubDocumentFileType {
   SLIDE
   FORM
   LINK
+  PDF
 }
 
 model Hub {
@@ -953,13 +955,33 @@ model HubDocument {
   editingById String?             // Currently editing — presence tracking
   editingAt   DateTime?           // When the editor was last opened/heartbeat
 
-  hub        Hub      @relation(fields: [hubId], references: [id])
-  addedBy    User     @relation("HubDocumentAuthor", fields: [addedById], references: [id], onDelete: Cascade)
-  editingBy  User?    @relation("HubDocumentEditor", fields: [editingById], references: [id])
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  hub           Hub      @relation(fields: [hubId], references: [id])
+  addedBy       User     @relation("HubDocumentAuthor", fields: [addedById], references: [id], onDelete: Cascade)
+  editingBy     User?    @relation("HubDocumentEditor", fields: [editingById], references: [id])
+  notifications HubDocumentNotification[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@map("hub_documents")
+}
+
+// One row per notification sent. No unique constraint on (documentId, userId) —
+// the same person can be notified on creation and again on a later update.
+// "Not yet notified" query: hub members whose userId is NOT IN
+// (SELECT DISTINCT userId FROM hub_document_notifications WHERE documentId = X)
+model HubDocumentNotification {
+  id         String   @id @default(cuid())
+  documentId String
+  userId     String
+  notifiedAt DateTime @default(now())
+  eventType  String   @default("created") // "created" | "updated"
+
+  document HubDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@index([documentId, userId])
+  @@map("hub_document_notifications")
 }
 
 model HubConversationThread {
