@@ -221,7 +221,7 @@ There is no shared `roleGate()` utility — each tool handles it inline in its l
 
 ### Hub section access
 
-All core sections (Home, Conversations, Tasks, Documents, Members) are visible to every hub member. There is no per-section gating within a hub — if you're a member, you see everything.
+All core sections (Home, Conversations, Documents, Members) are visible to every hub member. There is no per-section gating within a hub — if you're a member, you see everything.
 
 Hub-specific sections follow the same rule: if you're a member of Course Hub, you see Series and Lessons. If you're a member of Registrar Hub, you see the Programs stakeholder view.
 

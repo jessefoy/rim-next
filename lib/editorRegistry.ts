@@ -41,7 +41,6 @@ export type EditorPlacement =
   | "hub-welcome"
   | "hub-home"
   | "hub-conversation"
-  | "hub-task"
   // Message type — email-bound / support
   | "support-reply"
   | "support-note"              // internal note on a support thread (not email)
@@ -82,7 +81,6 @@ export const PLACEMENT_TYPE: Record<EditorPlacement, EditorType> = {
   "hub-welcome": "message",
   "hub-home": "message",
   "hub-conversation": "message",
-  "hub-task": "message",
   // Message — email-bound / support
   "support-reply": "message",
   "support-note": "message",
@@ -154,7 +152,6 @@ const MESSAGE_PLACEMENTS: EditorPlacement[] = [
   "hub-welcome",
   "hub-home",
   "hub-conversation",
-  "hub-task",
   "support-reply",
   "support-note",
   "support-template",
@@ -193,7 +190,6 @@ const MESSAGE_WITH_TABLES: EditorPlacement[] = [
   "support-template",
   "program-message",
   "hub-conversation",
-  "hub-task",
 ];
 
 /** Message placements that allow file attachments (email-bound or document-like). */
@@ -202,7 +198,6 @@ const MESSAGE_WITH_FILES: EditorPlacement[] = [
   "support-template",
   "program-message",
   "hub-conversation",
-  "hub-task",
 ];
 
 /** Every placement except the minimal Form Field ones. */

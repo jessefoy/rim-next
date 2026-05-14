@@ -43,7 +43,7 @@ export async function DELETE() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Cascade deletes: Sessions, Accounts, CourseAccess, HubMember, Alerts, threads/replies, etc.
+  // Cascade deletes: Sessions, Accounts, CourseAccess, HubMember, threads/replies, etc.
   // Registrations use onDelete: SetNull — registration records are preserved with userId = null.
   await db.user.delete({ where: { id: session.user.id } });
 

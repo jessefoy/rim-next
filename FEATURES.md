@@ -3037,9 +3037,11 @@ The host-team hub at `/account/hub/host-team` reuses the `HubScheduleClient` com
 | Conversations | ✅ | Pinned threads replace former Announcements tab |
 | Programs | conditional | `slug === "registrar"` — stakeholder read-only view |
 | Series + Lessons | conditional | `slug === "courses"` |
-| Tasks | ✅ | |
 | Documents | ✅ | |
 | Members | ✅ | |
+| Trash | conditional | Admin, Guiding Teacher, or hub coordinator only |
+
+*Tasks tab removed in session 96 — never adopted, schema and routes deleted.*
 
 **Extracted to /tools/ (session 73):** Schedule, Session, Inbox, Settings tabs removed from hub nav. Full applications now live at `/tools/schedule`, `/tools/inbox`, `/tools/programs`. See §37.
 

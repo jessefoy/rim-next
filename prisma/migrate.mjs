@@ -834,8 +834,7 @@ Submitted via /kalyana-mitta/kalyana-mitta-group-application`,
     // Session 96 — Migrate support-notification email into the template
     // manager. One template covers all three event types (assigned, new
     // reply, new note); the message body is composed in lib/supportNotify.ts
-    // before sending. Alert creation + 5-minute dedup logic stays where
-    // it is.
+    // before sending.
     name: "seed_support_notification_email_template",
     async run() {
       const flag = await db.$queryRawUnsafe(`
@@ -851,7 +850,7 @@ Submitted via /kalyana-mitta/kalyana-mitta-group-application`,
         where: { slug: "support-notification" },
         update: {
           name: "Support Notification",
-          description: "Sent to a support team member when a thread is assigned to them, gets a new reply, or gets a new internal note. Same email used for all three event types — alert-creation and dedup happen in lib/supportNotify.ts.",
+          description: "Sent to a support team member when a thread is assigned to them, gets a new reply, or gets a new internal note. Same email used for all three event types — the message body is composed per-event before sending.",
           enabled: true,
           subject: "[RIM Support] {{threadSubject}}",
           variables: ["firstName", "message", "threadUrl"],
@@ -867,7 +866,7 @@ Rooted In Mindfulness Support`,
         create: {
           slug: "support-notification",
           name: "Support Notification",
-          description: "Sent to a support team member when a thread is assigned to them, gets a new reply, or gets a new internal note. Same email used for all three event types — alert-creation and dedup happen in lib/supportNotify.ts.",
+          description: "Sent to a support team member when a thread is assigned to them, gets a new reply, or gets a new internal note. Same email used for all three event types — the message body is composed per-event before sending.",
           enabled: true,
           subject: "[RIM Support] {{threadSubject}}",
           variables: ["firstName", "message", "threadUrl"],
@@ -1213,77 +1212,6 @@ Rooted In Mindfulness · Brookfield, WI`,
     },
   },
   {
-    // Session 96 — Remove the Tasks feature from hubs entirely. The
-    // TaskList / Task / Subtask data model and UI have been removed; this
-    // migration drops the tables, the TaskStatus enum, and the
-    // TASK_ASSIGNED / TASK_DUE_TOMORROW values from the AlertType enum.
-    //
-    // Postgres can't drop enum values that are still referenced; the steps:
-    //   1. Delete any existing alerts of those types
-    //   2. Recreate AlertType without the two task values, swap columns over
-    //   3. Drop subtasks → tasks → task_lists (FK order)
-    //   4. Drop TaskStatus enum
-    name: "remove_tasks_feature",
-    async run() {
-      const flag = await db.$queryRawUnsafe(`
-        SELECT name FROM "_migration_flags"
-        WHERE name = 'remove_tasks_feature_v1'
-      `).catch(() => []);
-      if (flag.length > 0) {
-        console.log(`  ⏭ Already applied: ${this.name}`);
-        return;
-      }
-
-      // 1. Delete any existing TASK_* alerts (no UI to view them anyway).
-      await db.$executeRawUnsafe(`
-        DELETE FROM "alerts"
-        WHERE "type"::text IN ('TASK_ASSIGNED', 'TASK_DUE_TOMORROW')
-      `).catch(() => {});
-
-      // 2. Drop TASK_* values from AlertType. Postgres approach: rename
-      //    the old enum, create a new one without the values, alter the
-      //    column to use the new type, drop the old type.
-      await db.$executeRawUnsafe(`
-        DO $$
-        BEGIN
-          IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'AlertType') THEN
-            ALTER TYPE "AlertType" RENAME TO "AlertType_old";
-            CREATE TYPE "AlertType" AS ENUM (
-              'SUB_REQUEST',
-              'SUB_CLAIMED',
-              'NEW_THREAD',
-              'NEW_REPLY',
-              'UNASSIGNED_SESSION',
-              'SUPPORT_ASSIGNED',
-              'SUPPORT_NEW_REPLY',
-              'SUPPORT_NEW_NOTE'
-            );
-            ALTER TABLE "alerts"
-              ALTER COLUMN "type" TYPE "AlertType"
-              USING "type"::text::"AlertType";
-            DROP TYPE "AlertType_old";
-          END IF;
-        END$$;
-      `);
-
-      // 3. Drop the task tables (FK order matters)
-      await db.$executeRawUnsafe(`DROP TABLE IF EXISTS "subtasks" CASCADE`);
-      await db.$executeRawUnsafe(`DROP TABLE IF EXISTS "tasks" CASCADE`);
-      await db.$executeRawUnsafe(`DROP TABLE IF EXISTS "task_lists" CASCADE`);
-
-      // 4. Drop the TaskStatus enum (no longer referenced)
-      await db.$executeRawUnsafe(`DROP TYPE IF EXISTS "TaskStatus"`);
-
-      await db.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
-      `).catch(() => {});
-      await db.$executeRawUnsafe(`
-        INSERT INTO "_migration_flags" (name) VALUES ('remove_tasks_feature_v1')
-      `);
-      console.log(`  ✔ Applied: ${this.name}`);
-    },
-  },
-  {
     // Session 96 — Schedule tool rebuild: sub-request emails carry a
     // {{coverUrl}} deep link that opens the schedule page with the cover
     // confirmation modal pre-opened. The DB-stored email template needs
@@ -1333,33 +1261,6 @@ Rooted In Mindfulness · rootedinmindfulness.org`;
       `).catch(() => {});
       await db.$executeRawUnsafe(`
         INSERT INTO "_migration_flags" (name) VALUES ('update_sub_request_posted_template_with_cover_url_v1')
-      `);
-      console.log(`  ✔ Applied: ${this.name}`);
-    },
-  },
-  {
-    // Session 96 — Remove the alerts module entirely. The bell UI was
-    // never built; email carries all signal now. Drop the alerts table
-    // and the AlertType enum.
-    name: "remove_alerts_module",
-    async run() {
-      const flag = await db.$queryRawUnsafe(`
-        SELECT name FROM "_migration_flags"
-        WHERE name = 'remove_alerts_module_v1'
-      `).catch(() => []);
-      if (flag.length > 0) {
-        console.log(`  ⏭ Already applied: ${this.name}`);
-        return;
-      }
-
-      await db.$executeRawUnsafe(`DROP TABLE IF EXISTS "alerts" CASCADE`);
-      await db.$executeRawUnsafe(`DROP TYPE IF EXISTS "AlertType"`);
-
-      await db.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
-      `).catch(() => {});
-      await db.$executeRawUnsafe(`
-        INSERT INTO "_migration_flags" (name) VALUES ('remove_alerts_module_v1')
       `);
       console.log(`  ✔ Applied: ${this.name}`);
     },
