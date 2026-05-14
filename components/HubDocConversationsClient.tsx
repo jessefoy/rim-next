@@ -187,17 +187,15 @@ export default function HubDocConversationsClient({
           />
 
           <div className="doc-conv__compose-footer">
+            {coordinatorCount > 0 && (
+              <p className="doc-conv__notify-note">
+                {coordinatorCount} coordinator{coordinatorCount > 1 ? "s are" : " is"} always notified.
+              </p>
+            )}
             <HubDocNotifyPanel
-              hubSlug={hubSlug}
               members={nonCoordinatorMembers}
               selectedIds={notifyIds}
               onChange={setNotifyIds}
-              helpNote={
-                coordinatorCount > 0
-                  ? `${coordinatorCount} coordinator${coordinatorCount > 1 ? "s are" : " is"} always notified.`
-                  : undefined
-              }
-              alreadyNotified={[]}
             />
             <div className="doc-conv__compose-actions">
               {error && <span className="doc-conv__error">{error}</span>}
