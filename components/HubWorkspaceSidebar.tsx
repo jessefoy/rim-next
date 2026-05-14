@@ -34,6 +34,7 @@ import {
   ChevronsRight,
   Menu,
   X,
+  Activity,
 } from "lucide-react";
 
 export interface SidebarTool {
@@ -117,6 +118,7 @@ export default function HubWorkspaceSidebar({
   // with one tool the divider was visual overhead.
   const homeItem = { label: "Home", href: base, icon: Home, badge: 0 };
   const otherItems = [
+    { label: "Activity",      href: `${base}/activity`,      icon: Activity,      badge: 0 },
     { label: "Conversations", href: `${base}/conversations`, icon: MessageSquare, badge: navCounts.conversations ?? 0 },
     { label: "Documents",     href: `${base}/documents`,     icon: FileText,      badge: 0 },
     { label: "Manual",        href: `${base}/manual`,        icon: BookOpen,      badge: 0 },

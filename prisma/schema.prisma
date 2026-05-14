@@ -975,6 +975,7 @@ model HubDocument {
   archivedBy    User?    @relation("HubDocumentArchiver", fields: [archivedById], references: [id])
   deletedBy     User?    @relation("HubDocumentTrasher",  fields: [deletedById],  references: [id])
   notifications HubDocumentNotification[]
+  conversations HubConversationThread[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -1019,15 +1020,20 @@ model HubConversationThread {
   deletedAt            DateTime?
   deletedById          String?
 
+  // When set, this thread belongs to a document rather than the hub conversations feed.
+  documentId           String?
+
   hub           Hub               @relation(fields: [hubId], references: [id])
   author        User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
   deletedBy     User?             @relation("HubThreadTrasher", fields: [deletedById], references: [id])
+  document      HubDocument?      @relation(fields: [documentId], references: [id], onDelete: Cascade)
   replies       HubConversationReply[]
   subscriptions HubThreadSubscription[]
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
   @@index([hubId, deletedAt])
+  @@index([documentId])
   @@map("hub_conversation_threads")
 }
 

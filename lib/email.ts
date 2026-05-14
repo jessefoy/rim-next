@@ -776,6 +776,7 @@ export interface HubConvNewThreadEmailData {
   hubSlug: string;
   threadTitle: string;
   threadId: string;
+  documentTitle?: string; // set when the thread belongs to a document
 }
 
 /**
@@ -784,11 +785,12 @@ export interface HubConvNewThreadEmailData {
  */
 export async function sendHubConvNewThreadEmail(data: HubConvNewThreadEmailData): Promise<void> {
   await sendTemplatedEmail("hub-conv-new-thread", data.to, {
-    firstName:   data.firstName,
-    authorName:  data.authorName,
-    hubName:     data.hubName,
-    threadTitle: data.threadTitle,
-    threadUrl:   `${BASE_URL}/account/hub/${data.hubSlug}/conversations/${data.threadId}`,
+    firstName:     data.firstName,
+    authorName:    data.authorName,
+    hubName:       data.hubName,
+    threadTitle:   data.threadTitle,
+    documentTitle: data.documentTitle ?? null,
+    threadUrl:     `${BASE_URL}/account/hub/${data.hubSlug}/conversations/${data.threadId}`,
   });
 }
 

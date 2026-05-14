@@ -121,6 +121,7 @@ async function countUnreadConversations(
   return db.hubConversationThread.count({
     where: {
       hubId,
+      documentId: null,
       status: { not: "ARCHIVED" },
       updatedAt: { gt: lastVisitedAt },
     },

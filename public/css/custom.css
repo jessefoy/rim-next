@@ -23646,6 +23646,77 @@ html body .bn-mantine .bn-mt-suggestion-menu-item-subtitle {
   .doc-page__footer { padding: 0 20px 24px; }
 }
 
+/* ── Document meta row (author · date + conversations anchor) ── */
+.doc-page__meta-row { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin: 0 0 24px; }
+.doc-page__meta-row .doc-page__meta { margin: 0; }
+.doc-page__conv-anchor { font-family: var(--font-doc); font-size: var(--text-xs); color: var(--rim-text-muted); text-decoration: none; white-space: nowrap; transition: color 0.15s; }
+.doc-page__conv-anchor:hover { color: var(--rim-blue); }
+
+/* ── Document conversations panel (doc-conv-) ── */
+.doc-conv { max-width: 760px; margin: 0 auto; padding: 0 24px 80px; }
+.doc-conv__header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.doc-conv__heading { display: flex; align-items: center; gap: 8px; font-family: var(--font-doc); font-size: var(--text-small); font-weight: 600; color: var(--rim-text); margin: 0; }
+.doc-conv__count { font-size: var(--text-xs); font-weight: 500; color: var(--rim-text-muted); background: var(--rim-bg-accent); border-radius: 20px; padding: 1px 7px; }
+.doc-conv__new-btn { display: flex; align-items: center; gap: 5px; font-size: var(--text-xs); }
+
+.doc-conv__compose { background: #fff; border: 1px solid var(--rim-rule); border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; }
+.doc-conv__compose-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.doc-conv__title-input { flex: 1; font-family: var(--font-doc); font-size: var(--text-small); font-weight: 500; border: none; outline: none; background: transparent; color: var(--rim-text); }
+.doc-conv__title-input::placeholder { color: var(--rim-text-muted); font-weight: 400; }
+.doc-conv__compose-close { background: none; border: none; cursor: pointer; color: var(--rim-text-muted); padding: 2px; display: flex; }
+.doc-conv__compose-close:hover { color: var(--rim-text); }
+.doc-conv__compose-footer { margin-top: 12px; }
+.doc-conv__compose-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.doc-conv__error { font-size: var(--text-xs); color: var(--color-error); }
+
+.doc-conv__empty { font-family: var(--font-doc); font-size: var(--text-small); color: var(--rim-text-muted); font-style: italic; }
+.doc-conv__list { list-style: none; padding: 0; margin: 0; border: 1px solid var(--rim-rule); border-radius: 10px; overflow: hidden; background: #fff; }
+.doc-conv__item { border-bottom: 1px solid var(--rim-rule); }
+.doc-conv__item:last-child { border-bottom: none; }
+.doc-conv__item-link { display: flex; align-items: center; gap: 12px; padding: 14px 18px; text-decoration: none; transition: background 0.1s; }
+.doc-conv__item-link:hover { background: #fafaf9; }
+.doc-conv__avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.doc-conv__item-body { flex: 1; min-width: 0; }
+.doc-conv__item-title { display: block; font-family: var(--font-doc); font-size: var(--text-small); font-weight: 500; color: var(--rim-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.doc-conv__item-meta { display: block; font-size: var(--text-label); color: var(--rim-text-muted); margin-top: 2px; }
+
+@media (max-width: 430px) {
+  .doc-conv { padding: 0 16px 60px; }
+  .doc-page__meta-row { flex-direction: column; gap: 4px; }
+}
+
+/* ── Hub Activity stream (hub-act-) ── */
+.hub-act { padding: 32px 0 80px; max-width: 720px; }
+.hub-act__header { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 28px; flex-wrap: wrap; }
+.hub-act__title { font-size: var(--text-h2); font-weight: 700; color: var(--rim-text); margin: 0; }
+.hub-act__filters { display: flex; gap: 0; border: 1px solid var(--rim-rule); border-radius: 6px; overflow: hidden; }
+.hub-act__filter { padding: 6px 14px; font-size: var(--text-xs); font-family: var(--font-sans); background: #fff; color: var(--rim-text-muted); border: none; border-right: 1px solid var(--rim-rule); cursor: pointer; transition: background 0.1s, color 0.1s; }
+.hub-act__filter:last-child { border-right: none; }
+.hub-act__filter--active { background: var(--rim-text); color: #fff; }
+.hub-act__filter:hover:not(.hub-act__filter--active) { background: var(--rim-bg-accent); }
+
+.hub-act__empty { font-size: var(--text-small); color: var(--rim-text-muted); font-style: italic; }
+.hub-act__list { list-style: none; padding: 0; margin: 0; }
+.hub-act__item { border-bottom: 1px solid var(--rim-rule); }
+.hub-act__item:first-child { border-top: 1px solid var(--rim-rule); }
+.hub-act__item-link { display: flex; align-items: baseline; gap: 10px; padding: 13px 0; text-decoration: none; transition: opacity 0.1s; }
+.hub-act__item-link:hover { opacity: 0.75; }
+.hub-act__item__icon { flex-shrink: 0; margin-top: 1px; }
+.hub-act__item__icon--doc   { color: var(--rim-blue); }
+.hub-act__item__icon--conv  { color: var(--rim-text-muted); }
+.hub-act__item__icon--reply { color: var(--rim-text-muted); }
+.hub-act__item-label { flex: 1; font-size: var(--text-small); color: var(--rim-text); line-height: 1.5; }
+.hub-act__item-label strong { font-weight: 600; }
+.hub-act__item-label em { font-style: normal; color: var(--rim-mid); }
+.hub-act__item-time { font-size: var(--text-xs); color: var(--rim-text-muted); white-space: nowrap; flex-shrink: 0; }
+.hub-act__load-more { margin-top: 24px; display: block; font-size: var(--text-xs); color: var(--rim-text-muted); background: none; border: 1px solid var(--rim-rule); border-radius: 6px; padding: 8px 20px; cursor: pointer; transition: background 0.1s; }
+.hub-act__load-more:hover { background: var(--rim-bg-accent); }
+
+@media (max-width: 430px) {
+  .hub-act { padding: 20px 0 60px; }
+  .hub-act__header { flex-direction: column; gap: 12px; }
+}
+
 /* ── Document banners (author attribution, presence warning) ── */
 .doc-banner {
   font-family: var(--font-doc);
