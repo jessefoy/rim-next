@@ -96,17 +96,18 @@ export async function PATCH(
     return NextResponse.json(updated);
   }
 
-  // Everything below is coordinator-only
-  try {
-    requireCoordinator(member?.isCoordinator ?? false, session.user.roles ?? []);
-  } catch {
-    return NextResponse.json({ error: "Coordinators only" }, { status: 403 });
-  }
-
-  if (action === "pin") {
+  // Pin/Unpin are coordinator-only — structural moderation.
+  if (action === "pin" || action === "unpin") {
+    try {
+      requireCoordinator(member?.isCoordinator ?? false, session.user.roles ?? []);
+    } catch {
+      return NextResponse.json({ error: "Coordinators only" }, { status: 403 });
+    }
     const updated = await db.hubConversationThread.update({
       where: { id },
-      data:  { isPinned: true, pinnedAt: new Date() },
+      data:  action === "pin"
+        ? { isPinned: true, pinnedAt: new Date() }
+        : { isPinned: false, pinnedAt: null },
       include: {
         author: { select: { firstName: true, lastName: true, preferredName: true } },
         _count:  { select: { replies: true } },
@@ -115,16 +116,13 @@ export async function PATCH(
     return NextResponse.json(updated);
   }
 
-  if (action === "unpin") {
-    const updated = await db.hubConversationThread.update({
-      where: { id },
-      data:  { isPinned: false, pinnedAt: null },
-      include: {
-        author: { select: { firstName: true, lastName: true, preferredName: true } },
-        _count:  { select: { replies: true } },
-      },
-    });
-    return NextResponse.json(updated);
+  // Status change (Archive / Unarchive) is author OR coordinator. Closing a
+  // thread is the archive concept for conversations — the author should be
+  // able to wind down their own thread, not just coordinators.
+  const isAuthor = thread.authorId === session.user.id;
+  const isCoordinator = (member?.isCoordinator ?? false) || isAdmin;
+  if (!isAuthor && !isCoordinator) {
+    return NextResponse.json({ error: "Only the author or a coordinator can change status" }, { status: 403 });
   }
 
   const updated = await db.hubConversationThread.update({
@@ -140,9 +138,15 @@ export async function PATCH(
 }
 
 // DELETE /api/hub/[slug]/conversations/[id]
-// Soft-delete (sends to trash). Author or coordinator. Idempotent.
-// Permanent delete is at POST /api/hub/[slug]/conversations/[id]/permanent-delete
-// and is restricted to trash-managers.
+// Soft-delete (sends to manager trash). Author or coordinator. Idempotent.
+//
+// Three-stage lifecycle: Active → Archived (status=CLOSED) → Trash.
+// A thread MUST be archived first before it can be soft-deleted — this is
+// the deliberate-staging design. The UI hides the Delete menu item unless
+// the thread is archived; this server check is the enforcement.
+//
+// Permanent removal: POST /api/hub/[slug]/conversations/[id]/permanent-delete
+// (managers only).
 export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ slug: string; id: string }> }
@@ -159,6 +163,11 @@ export async function DELETE(
   const thread = await db.hubConversationThread.findFirst({ where: { id, hubId: hub.id } });
   if (!thread) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (thread.deletedAt) return NextResponse.json({ ok: true }); // idempotent
+
+  // Enforce archive-first: thread must be CLOSED (archived) before deletion.
+  if (thread.status !== "CLOSED") {
+    return NextResponse.json({ error: "Archive this thread first, then delete it." }, { status: 400 });
+  }
 
   const isAuthor = thread.authorId === session.user.id;
   const isCoord  = (member?.isCoordinator ?? false) || isAdmin;

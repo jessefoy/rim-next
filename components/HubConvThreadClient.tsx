@@ -355,7 +355,7 @@ export default function HubConvThreadClient({
 
   async function softDeleteThread() {
     setMenuOpen(false);
-    if (!window.confirm("Move this thread to the trash? Admins and coordinators can restore or permanently delete it from there.")) return;
+    if (!window.confirm("Delete this archived thread? It will move to the trash, where admins or coordinators can restore or permanently delete it.")) return;
     const res = await fetch(`/api/hub/${hubSlug}/conversations/${thread.id}`, {
       method: "DELETE",
     });
@@ -396,7 +396,7 @@ export default function HubConvThreadClient({
               {thread.replies.length} {thread.replies.length === 1 ? "reply" : "replies"}
             </span>
           )}
-          {isClosed && <span className="hub-conv-thread__closed">Closed</span>}
+          {isClosed && <span className="hub-conv-thread__closed">Archived</span>}
           <button
             type="button"
             className={`hub-conv-thread__follow${currentUserSubscribed ? " hub-conv-thread__follow--on" : ""}`}
@@ -426,24 +426,26 @@ export default function HubConvThreadClient({
                     {thread.isPinned ? "Unpin thread" : "Pin to top"}
                   </button>
                 )}
-                {isCoordinator && (
+                {canEditOp && (
                   isClosed ? (
                     <button className="hub-conv-menu__item" onClick={() => setStatus("OPEN")} role="menuitem">
-                      Reopen thread
+                      Unarchive thread
                     </button>
                   ) : (
                     <button className="hub-conv-menu__item" onClick={() => setStatus("CLOSED")} role="menuitem">
-                      Close thread
+                      Archive thread
                     </button>
                   )
                 )}
-                {canEditOp && (
+                {/* Delete only appears on archived threads — three-stage flow:
+                    Active → Archived → Trash (manager review). */}
+                {canEditOp && isClosed && (
                   <button
                     className="hub-conv-menu__item hub-conv-menu__item--danger"
                     onClick={softDeleteThread}
                     role="menuitem"
                   >
-                    Move to trash
+                    Delete
                   </button>
                 )}
               </div>
@@ -673,7 +675,7 @@ export default function HubConvThreadClient({
         </div>
       ) : (
         <p className="hub-conv-thread__closed-note">
-          This conversation is closed — no new replies can be added.
+          This conversation is archived — no new replies can be added.
         </p>
       )}
     </div>

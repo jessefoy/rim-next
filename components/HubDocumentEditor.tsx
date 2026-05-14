@@ -174,10 +174,14 @@ export default function HubDocumentEditor({
     }
   }
 
-  async function handleDelete() {
+  async function handleArchive() {
     if (!docId) return;
-    if (!window.confirm("Delete this document? This cannot be undone.")) return;
-    const res = await fetch(`/api/hub/${hubSlug}/documents/${docId}`, { method: "DELETE" });
+    if (!window.confirm("Archive this document? It will move to the Archived tab — anyone can unarchive it from there, and admins or coordinators can delete it from there.")) return;
+    const res = await fetch(`/api/hub/${hubSlug}/documents/${docId}/archive`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ archived: true }),
+    });
     if (res.ok) router.push(`/account/hub/${hubSlug}/documents`);
   }
 
@@ -279,8 +283,8 @@ export default function HubDocumentEditor({
         )}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginLeft: "auto" }}>
           {!isNew && (
-            <button className="hdoc-editor__delete" onClick={handleDelete}>
-              Delete
+            <button className="hdoc-editor__delete" onClick={handleArchive}>
+              Archive
             </button>
           )}
           <button

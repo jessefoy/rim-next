@@ -602,14 +602,7 @@ export default function HubDocumentsClient({
                       />
 
                       <div className="hub-doc-edit-footer">
-                        <button
-                          className="hub-action-btn hub-action-btn--del"
-                          onClick={() => deleteDoc(doc.id)}
-                          disabled={deletingId === doc.id}
-                        >
-                          {deletingId === doc.id ? "Deleting…" : "Delete"}
-                        </button>
-                        <div className="hub-doc-edit-footer__right">
+                        <div className="hub-doc-edit-footer__right" style={{ marginLeft: "auto" }}>
                           <button className="btn--ghost" onClick={() => setEditingId(null)}>Cancel</button>
                           <button className="btn" onClick={() => updateDoc(doc.id)} disabled={saving}>
                             {saving ? "Saving…" : "Save"}
@@ -674,7 +667,9 @@ export default function HubDocumentsClient({
                             {archivingId === doc.id ? "…" : doc.archivedAt ? "Unarchive" : "Archive"}
                           </button>
                         )}
-                        {canEdit(doc) && (
+                        {/* Delete only appears on archived items — by design.
+                            Three-stage flow: Active → Archived → Trash (manager review). */}
+                        {canEdit(doc) && doc.archivedAt && (
                           <button
                             className="hub-action-btn hub-action-btn--del"
                             onClick={() => deleteDoc(doc.id)}

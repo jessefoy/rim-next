@@ -473,7 +473,7 @@ export default function HubConvClient({
               className={`hub-conv-segment__btn${view === "open" ? " hub-conv-segment__btn--active" : ""}`}
               onClick={() => setView("open")}
             >
-              Open
+              Active
             </button>
             <button
               role="tab"
@@ -481,7 +481,7 @@ export default function HubConvClient({
               className={`hub-conv-segment__btn${view === "closed" ? " hub-conv-segment__btn--active" : ""}`}
               onClick={() => { setView("closed"); loadClosed(); }}
             >
-              Closed
+              Archived
             </button>
           </div>
           <button
@@ -700,7 +700,7 @@ export default function HubConvClient({
         <div className="hub-conv__empty">
           <MessageSquare size={36} strokeWidth={1.5} aria-hidden="true" />
           <p className="hub-conv__empty-title">
-            {view === "open" ? "No conversations yet." : "No closed conversations."}
+            {view === "open" ? "No conversations yet." : "No archived conversations."}
           </p>
           {view === "open" && (
             <p className="hub-conv__empty-sub">Start a topic to get the conversation going.</p>

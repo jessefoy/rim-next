@@ -172,12 +172,16 @@ export async function PATCH(
 }
 
 // DELETE /api/hub/[slug]/documents/[id]
-// Soft-delete by default: sets deletedAt + deletedById. The document vanishes
-// from members and shows up at /account/hub/[slug]/trash for trash-managers.
-// Author or coordinator can soft-delete.
+// Soft-delete (sends to manager trash). Author or coordinator. Idempotent.
 //
-// For permanent removal, use POST /api/hub/[slug]/documents/[id]/permanent-delete
-// (restricted to trash-managers).
+// Three-stage lifecycle: Active → Archived → Trash → permanent delete.
+// A document MUST be archived first before it can be soft-deleted — this is
+// the deliberate-staging design ("archive is reversible; trash is the next
+// step toward removal"). The UI hides the Delete button on non-archived rows;
+// this server check is the enforcement.
+//
+// Permanent removal: POST /api/hub/[slug]/documents/[id]/permanent-delete
+// (managers only — visible on the Trash page).
 export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ slug: string; id: string }> }
@@ -195,6 +199,11 @@ export async function DELETE(
   const doc = await db.hubDocument.findFirst({ where: { id, hubId: hub.id } });
   if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (doc.deletedAt) return NextResponse.json({ ok: true }); // idempotent
+
+  // Enforce archive-first: must be archived before deletion.
+  if (!doc.archivedAt) {
+    return NextResponse.json({ error: "Archive this document first, then delete it from the Archived tab." }, { status: 400 });
+  }
 
   const isAuthorDel = doc.addedById === session.user.id;
   const isCoordDel = (member?.isCoordinator ?? false) || isAdminDelete;
