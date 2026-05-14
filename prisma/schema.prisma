@@ -118,6 +118,7 @@ model User {
   hubDocumentsTrashed     HubDocument[] @relation("HubDocumentTrasher")
   hubDocumentNotifications HubDocumentNotification[]
   hubThreads2     HubConversationThread[]
+  hubThreadsArchived HubConversationThread[] @relation("HubThreadArchiver")
   hubThreadsTrashed HubConversationThread[] @relation("HubThreadTrasher")
   hubReplies2     HubConversationReply[]
   hubThreadSubscriptions HubThreadSubscription[]
@@ -1009,11 +1010,22 @@ model HubConversationThread {
   title                String
   body                 Json?
   category             String    @default("General")
-  status               String    @default("OPEN") // OPEN | CLOSED (closed serves as archive)
+  // status was the legacy archive marker (OPEN | CLOSED). Post-session-115 the
+  // canonical archive marker is `archivedAt`; status is kept in sync by the
+  // PATCH route for backward compatibility with clients that still read it.
+  // Safe to remove in a future cleanup once nothing reads `status`.
+  status               String    @default("OPEN")
   isPinned             Boolean   @default(false)
   pinnedAt             DateTime?
   edited               Boolean   @default(false)
   editedAt             DateTime?
+
+  // Archive (separate from trash). When archivedAt is set, the thread is
+  // hidden from the active conversations feed but readable in the Archived
+  // view. Read-only when archived. Author or coordinator can toggle. Mirrors
+  // HubDocument.archivedAt — both lifecycles now share the same shape.
+  archivedAt           DateTime?
+  archivedById         String?
 
   // Soft-delete (trash). When deletedAt is set, the thread vanishes from
   // members and is visible only to trash-managers at /account/hub/[slug]/trash.
@@ -1025,6 +1037,7 @@ model HubConversationThread {
 
   hub           Hub               @relation(fields: [hubId], references: [id])
   author        User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  archivedBy    User?             @relation("HubThreadArchiver", fields: [archivedById], references: [id])
   deletedBy     User?             @relation("HubThreadTrasher", fields: [deletedById], references: [id])
   document      HubDocument?      @relation(fields: [documentId], references: [id], onDelete: Cascade)
   replies       HubConversationReply[]

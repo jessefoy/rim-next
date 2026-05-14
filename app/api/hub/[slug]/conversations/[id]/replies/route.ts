@@ -28,7 +28,10 @@ export async function POST(
   if (!thread || thread.hubId !== hub.id) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  if (thread.status !== "OPEN") {
+  // Block replies on archived or trashed threads. archivedAt is the canonical
+  // archive marker (session 115); status is kept in sync but no longer the
+  // source of truth.
+  if (thread.archivedAt || thread.deletedAt) {
     return NextResponse.json({ error: "Thread is closed" }, { status: 400 });
   }
 

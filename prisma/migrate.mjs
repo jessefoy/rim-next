@@ -1961,6 +1961,59 @@ Rooted In Mindfulness · Brookfield, WI`,
       console.log(`  ✔ Applied: ${this.name}`);
     },
   },
+  {
+    // Session 115 — archive-mechanism unification for hub threads.
+    //
+    // HubDocument used `archivedAt DateTime?` for its archive marker; threads
+    // used the overloaded `status: "CLOSED"`. The inventory found that several
+    // query sites had drifted to `status: { not: "ARCHIVED" }` (an enum value
+    // that doesn't exist — the filter never matched), and the asymmetry made
+    // the model harder to keep correct.
+    //
+    // This migration:
+    //   1. Adds archivedAt + archivedById columns to hub_conversation_threads
+    //   2. Backfills archivedAt = updatedAt for every row with status = 'CLOSED'
+    //      (archivedById stays null — we don't know who closed historical rows)
+    //
+    // The PATCH route keeps status in sync going forward so legacy clients
+    // that still read it continue to work. A future cleanup can drop the
+    // status column once nothing reads it.
+    name: "add_archived_columns_to_hub_threads",
+    async run() {
+      const flag = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags"
+        WHERE name = 'add_archived_columns_to_hub_threads_v1'
+      `).catch(() => []);
+      if (flag.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      await db.$executeRawUnsafe(`
+        ALTER TABLE "hub_conversation_threads"
+        ADD COLUMN IF NOT EXISTS "archivedAt" TIMESTAMPTZ
+      `);
+      await db.$executeRawUnsafe(`
+        ALTER TABLE "hub_conversation_threads"
+        ADD COLUMN IF NOT EXISTS "archivedById" TEXT
+        REFERENCES "users"("id") ON DELETE SET NULL
+      `);
+
+      // Backfill from the legacy status column. Idempotent — the WHERE clause
+      // skips rows already backfilled.
+      const backfilled = await db.$executeRawUnsafe(`
+        UPDATE "hub_conversation_threads"
+        SET "archivedAt" = "updatedAt"
+        WHERE "status" = 'CLOSED' AND "archivedAt" IS NULL
+      `);
+      console.log(`  ✔ Backfilled archivedAt on ${backfilled} previously-CLOSED thread(s)`);
+
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('add_archived_columns_to_hub_threads_v1')
+      `);
+      console.log(`  ✔ Applied: ${this.name}`);
+    },
+  },
 ];
 
 // ── Server-safe compute helpers (mirror of lib/programUtils.ts) ──────────────

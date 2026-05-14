@@ -125,9 +125,15 @@ export async function PATCH(
     return NextResponse.json({ error: "Only the author or a coordinator can change status" }, { status: 403 });
   }
 
+  // Translate status to archivedAt + keep status in sync. archivedAt is the
+  // canonical archive marker (session 115 unification); status is written
+  // in lockstep so legacy clients that read it continue to work.
+  const willArchive = status === "CLOSED";
   const updated = await db.hubConversationThread.update({
     where: { id },
-    data:  { status },
+    data: willArchive
+      ? { status: "CLOSED", archivedAt: new Date(), archivedById: session.user.id }
+      : { status: "OPEN",   archivedAt: null,       archivedById: null },
     include: {
       author: { select: { firstName: true, lastName: true, preferredName: true } },
       _count:  { select: { replies: true } },
@@ -140,7 +146,7 @@ export async function PATCH(
 // DELETE /api/hub/[slug]/conversations/[id]
 // Soft-delete (sends to manager trash). Author or coordinator. Idempotent.
 //
-// Three-stage lifecycle: Active → Archived (status=CLOSED) → Trash.
+// Three-stage lifecycle: Active → Archived (archivedAt set) → Trash.
 // A thread MUST be archived first before it can be soft-deleted — this is
 // the deliberate-staging design. The UI hides the Delete menu item unless
 // the thread is archived; this server check is the enforcement.
@@ -164,8 +170,8 @@ export async function DELETE(
   if (!thread) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (thread.deletedAt) return NextResponse.json({ ok: true }); // idempotent
 
-  // Enforce archive-first: thread must be CLOSED (archived) before deletion.
-  if (thread.status !== "CLOSED") {
+  // Enforce archive-first: thread must be archived before deletion.
+  if (!thread.archivedAt) {
     return NextResponse.json({ error: "Archive this thread first, then delete it." }, { status: 400 });
   }
 

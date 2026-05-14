@@ -20,10 +20,20 @@ export async function GET(
   if (!member && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const url = new URL(req.url);
-  const status = url.searchParams.get("status") ?? "OPEN";
+  const statusParam = url.searchParams.get("status") ?? "OPEN";
+
+  // Translate the legacy ?status= param to the canonical archivedAt filter:
+  //   "OPEN"   (default) — non-archived threads (active feed)
+  //   "CLOSED"           — archived threads (the "Archived" tab in HubConvClient)
+  // Trashed threads (deletedAt set) never appear here regardless of param —
+  // they live at /trash.
+  const archiveFilter =
+    statusParam === "CLOSED"
+      ? { archivedAt: { not: null } }
+      : { archivedAt: null };
 
   const threads = await db.hubConversationThread.findMany({
-    where: { hubId: hub.id, status, deletedAt: null, documentId: null },
+    where: { hubId: hub.id, documentId: null, deletedAt: null, ...archiveFilter },
     include: {
       author: { select: { firstName: true, lastName: true, preferredName: true } },
       _count:  { select: { replies: true } },
