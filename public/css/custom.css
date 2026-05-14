@@ -268,6 +268,7 @@ h4 { font-size: var(--text-h4); }
 /* Inline formatting */
 .rim-content strong { font-weight: 700; }
 .rim-content em { font-style: italic; }
+.rim-content img { max-width: 100%; height: auto; display: block; }
 
 
 /* ═══════════════════════════════════════════════════
