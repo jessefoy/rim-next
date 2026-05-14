@@ -9,6 +9,7 @@
 
 import { db } from "./db";
 import { TOOL_REGISTRY, type ToolDefinition } from "./toolRegistry";
+import { activeHubThreadWhere } from "./hubQueries";
 
 export interface HubContext {
   /** The tool surfaced as the primary work card + "Work" sidebar item. Null for non-tool hubs. */
@@ -120,9 +121,7 @@ async function countUnreadConversations(
   if (!lastVisitedAt) return 0;
   return db.hubConversationThread.count({
     where: {
-      hubId,
-      documentId: null,
-      status: { not: "ARCHIVED" },
+      ...activeHubThreadWhere(hubId),
       updatedAt: { gt: lastVisitedAt },
     },
   });

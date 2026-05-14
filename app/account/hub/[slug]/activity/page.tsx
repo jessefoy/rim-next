@@ -61,7 +61,7 @@ export default async function HubActivityPage({
       take: LIMIT,
     }),
     db.hubConversationReply.findMany({
-      where: { thread: { hubId: hub.id, documentId: null } },
+      where: { thread: { hubId: hub.id, documentId: null, deletedAt: null } },
       select: {
         id: true, authorId: true, createdAt: true,
         author: { select: { firstName: true, lastName: true, preferredName: true } },
@@ -81,7 +81,7 @@ export default async function HubActivityPage({
       take: LIMIT,
     }),
     db.hubConversationReply.findMany({
-      where: { thread: { hubId: hub.id, documentId: { not: null } } },
+      where: { thread: { hubId: hub.id, documentId: { not: null }, deletedAt: null } },
       select: {
         id: true, authorId: true, createdAt: true,
         author:  { select: { firstName: true, lastName: true, preferredName: true } },

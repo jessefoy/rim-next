@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Flame } from "lucide-react";
 import { db } from "@/lib/db";
+import { activeHubThreadWhere } from "@/lib/hubQueries";
 import AccountLayout from "@/components/AccountLayout";
 import DashboardAutoRefresh from "@/components/DashboardAutoRefresh";
 
@@ -250,8 +251,7 @@ export default async function DashboardPage() {
       const lastVisited = membership.lastVisitedAt ?? new Date(0);
       const unreadThreads = await db.hubConversationThread.count({
         where: {
-          hubId: membership.hub.id,
-          status: { not: "ARCHIVED" },
+          ...activeHubThreadWhere(membership.hub.id),
           OR: [
             { createdAt: { gt: lastVisited } },
             { replies: { some: { createdAt: { gt: lastVisited } } } },

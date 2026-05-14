@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getHubMembership } from "@/lib/hubAuth";
+import { activeHubThreadWhere } from "@/lib/hubQueries";
 import HubConvClient from "@/components/HubConvClient";
 
 export const dynamic = "force-dynamic";
@@ -39,7 +40,7 @@ export default async function HubConversationsPage({
 
   const [threads, hubMemberRows, coordinatorRows] = await Promise.all([
     db.hubConversationThread.findMany({
-      where:   { hubId: hub.id, status: "OPEN", deletedAt: null },
+      where:   activeHubThreadWhere(hub.id),
       include: {
         author: { select: { firstName: true, lastName: true, preferredName: true } },
         _count:  { select: { replies: true } },

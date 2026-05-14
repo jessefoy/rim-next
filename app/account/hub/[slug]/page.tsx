@@ -16,6 +16,7 @@ import { db } from "@/lib/db";
 import { getHubMembership } from "@/lib/hubAuth";
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import { getHubContext } from "@/lib/hubContext";
+import { activeHubThreadWhere } from "@/lib/hubQueries";
 import HubHomeClient from "@/components/HubHomeClient";
 import HostHubHomeClient from "@/components/HostHubHomeClient";
 import { ctDateStr, isOccurrenceOnDate, type ScheduleProgram } from "@/lib/scheduleUtils";
@@ -79,7 +80,7 @@ export default async function HubHomePage({
 
   // Pinned threads (always surfaced)
   const pinnedThreads = await db.hubConversationThread.findMany({
-    where: { hubId: hub.id, isPinned: true, status: "OPEN" },
+    where: { ...activeHubThreadWhere(hub.id), isPinned: true },
     select: { id: true, title: true },
     orderBy: { pinnedAt: "desc" },
     take: 3,
@@ -87,7 +88,7 @@ export default async function HubHomePage({
 
   // Recent conversations
   const recentThreads = await db.hubConversationThread.findMany({
-    where: { hubId: hub.id, status: { not: "ARCHIVED" }, isPinned: false },
+    where: { ...activeHubThreadWhere(hub.id), isPinned: false },
     select: {
       id: true,
       title: true,
