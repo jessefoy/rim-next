@@ -181,7 +181,7 @@ export default function HubDocConversationsClient({
 
           <RimTiptapEditor
             variant="message"
-            initialContent={body}
+            value={body}
             onChange={setBody}
             placeholder="Add a message…"
           />
