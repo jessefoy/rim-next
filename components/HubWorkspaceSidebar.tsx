@@ -58,6 +58,9 @@ interface Props {
   };
   tools: SidebarTool[];
   navCounts: SidebarNavCounts;
+  /** True when at least one ManualSection is tagged to this hub. Hides the
+   *  Manual link otherwise — no dead-end click for hubs without content. */
+  hasManual: boolean;
   isCoordinator: boolean;
   canManageTrash?: boolean;
   isAdmin: boolean;
@@ -86,6 +89,7 @@ export default function HubWorkspaceSidebar({
   hub,
   tools,
   navCounts,
+  hasManual,
   isCoordinator,
   canManageTrash: canTrash = false,
   isAdmin,
@@ -121,7 +125,7 @@ export default function HubWorkspaceSidebar({
     { label: "Activity",      href: `${base}/activity`,      icon: Activity,      badge: 0 },
     { label: "Conversations", href: `${base}/conversations`, icon: MessageSquare, badge: navCounts.conversations ?? 0 },
     { label: "Documents",     href: `${base}/documents`,     icon: FileText,      badge: 0 },
-    { label: "Manual",        href: `${base}/manual`,        icon: BookOpen,      badge: 0 },
+    ...(hasManual ? [{ label: "Manual", href: `${base}/manual`, icon: BookOpen, badge: 0 }] : []),
     { label: "Members",       href: `${base}/members`,       icon: Users,         badge: 0 },
   ];
 
