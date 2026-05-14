@@ -172,6 +172,14 @@ Email templates seeded via `prisma/migrate.mjs`: `hub-document-created`, `hub-do
 
 API routes added: `/api/hub/[slug]/documents/[id]/{notify,archive,restore,permanent-delete}`, `/api/hub/[slug]/conversations/[id]/{subscribe,restore,permanent-delete}`, page route `/account/hub/[slug]/trash`. Three-stage delete enforced both in UI (Delete button hidden when item not archived) and at the API (DELETE returns 400 with "Archive this … first" unless archived). Trashed items 404 for non-managers even via direct URL.
 
+**Document conversations + Activity stream (session 114):**
+
+- `HubConversationThread` gains `documentId String?` (optional FK → `HubDocument`, ON DELETE CASCADE, `@@index([documentId])`). When set, the thread is a document conversation; when null, it's a hub-level conversation. Both the hub Conversations feed and `countUnreadConversations` filter `documentId: null`.
+- New API routes: `GET/POST /api/hub/[slug]/documents/[id]/conversations`, `GET /api/hub/[slug]/activity`.
+- New page route: `/account/hub/[slug]/activity` — computed union stream (no model), `HubActivityClient` with four filter pills.
+- New components: `HubDocConversationsClient.tsx` (`doc-conv-` CSS prefix), `HubActivityClient.tsx` (`hub-act-` CSS prefix).
+- DB migration: `add_document_id_to_hub_conversation_threads` (adds nullable column + index to Neon via `migrate.mjs`).
+
 
 **Modular Manual System (session 62–63):** `ManualSection` model — `slug @unique`, `title`, `description String?`, `hubSlug String?`, `body Json?`, `relations String[]`, `order Int`. Sections seeded (introduction, registration, programs, member-accounts, course-hub, host-* family, volunteer-roles, manual-system, conversations). The `support-inbox` section was deleted in session 110 via the `remove_support_inbox_residue` migrate.mjs entry — the Support Inbox tool was removed in session 100 but its manual chapter persisted as a dead row until session 110. Routes: `/admin/manual` (index, any logged-in user), `/admin/manual/[slug]` (section page, any logged-in user; ADMIN sees Edit link), `/admin/manual/editor` (DB editor, ADMIN only), `/manual` (public index). `body` stored as Tiptap JSON; migrated sections were initially stored as `{ type: "rawHtml", html: "..." }` — `renderContentBody()` handles both formats. `ManualSectionEditor` auto-converts rawHtml → Tiptap JSON via `generateJSON()` on mount. `ManualHelpIcon` wired into 10 locations. `ManualContent.tsx` hollowed out (content now in DB). Migration script: `prisma/seed-manual-chapters.ts`.
 

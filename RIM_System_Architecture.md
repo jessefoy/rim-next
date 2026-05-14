@@ -296,6 +296,12 @@ Three coordinated systems share the same Basecamp-style mental model and the sam
 
 All three systems use `after()` from `next/server` for reliable serverless background dispatch and filter recipients to active hub members with `communicationsEnabled` before sending. All three systems' email templates are seeded in `prisma/migrate.mjs` per the **Email Template Gate** documented in `CLAUDE.md`.
 
+### Document conversations and the Activity stream (session 114)
+
+**Document conversations.** `HubConversationThread` has an optional `documentId FK` (nullable, ON DELETE CASCADE, indexed). When set, the thread is a document conversation — it lives on the document view page and is excluded from the hub-level Conversations feed. Hub Conversations and `countUnreadConversations` both filter `documentId: null`. Document conversations filter to `documentId: docId`. The thread detail page's back link is context-aware: "← Back to [Document]" if `documentId` is set, "← Conversations" otherwise.
+
+**Unified Activity stream.** The Activity page (`/account/hub/[slug]/activity`) is a computed union — no model, just five parallel queries joined in memory. Types: `document_added`, `document_updated`, `hub_thread`, `hub_reply`, `doc_thread`, `doc_reply`. The stream is the single place to see the full hub picture across both conversation surfaces and document activity. It sits first in the sidebar below Home, above Conversations.
+
 ---
 
 ## Closing Ritual
@@ -305,4 +311,4 @@ This file is part of the closing ritual for any Claude Code session that touches
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org*
-*Working document · May 2026 (updated session 113 — three-stage archive/trash lifecycle, GUIDING_TEACHER role, hub notification subscriptions, host confirmation emails; session 110 — Support Inbox tool wiring residue stripped, "Dashboard" → "Home" in member area; session 101 — Tasks removed, Support Inbox removed, hub count corrected)*
+*Working document · May 2026 (updated session 114 — document conversations (HubConversationThread.documentId FK), unified Activity stream; session 113 — three-stage archive/trash lifecycle, GUIDING_TEACHER role, hub notification subscriptions, host confirmation emails; session 110 — Support Inbox tool wiring residue stripped, "Dashboard" → "Home" in member area; session 101 — Tasks removed, Support Inbox removed, hub count corrected)*

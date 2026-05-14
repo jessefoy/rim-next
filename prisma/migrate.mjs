@@ -23,6 +23,7 @@ import { updateManualHostRotationsV4 } from "./update-manual-host-rotations-v4.m
 import { updateManualHostSessionRoom } from "./update-manual-host-session-room.mjs";
 import { updateManualConversations } from "./update-manual-conversations.mjs";
 import { updateManualConversationsV2 } from "./update-manual-conversations-v2.mjs";
+import { updateManualConversationsV3 } from "./update-manual-conversations-v3.mjs";
 import { updateManualCourseHub } from "./update-manual-course-hub.mjs";
 import { updateManualRegistration } from "./update-manual-registration.mjs";
 import { updateManualPrograms } from "./update-manual-programs.mjs";
@@ -2414,6 +2415,20 @@ async function main() {
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_conversations_v3')`);
   } else {
     console.log("  ⏭ Manual conversations (v3 subscriptions + trash) already updated.");
+  }
+
+  // Session 114 — append document conversations + Activity page section
+  // to the Conversations chapter.
+  const updateManualConversationsV4Flag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_conversations_v4'
+  `).catch(() => []);
+
+  if (updateManualConversationsV4Flag.length === 0) {
+    await updateManualConversationsV3(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_conversations_v4')`);
+    console.log("  ✔ Manual conversations (v4 document conversations + Activity) updated.");
+  } else {
+    console.log("  ⏭ Manual conversations (v4 document conversations + Activity) already updated.");
   }
 
   // Older chapters — option-C "remove what's wrong" pass against the

@@ -1,5 +1,54 @@
 ---
 
+## 2026-05-14 (session 114) — Document conversations + unified Activity stream
+
+Two features, three bug fixes, and a missing DB migration.
+
+### 1. Image overflow fix
+
+Hub documents were displaying images wider than the page. Root cause: no `max-width` on `img` inside `.rim-content`. One-line fix: `.rim-content img { max-width: 100%; height: auto; display: block; }` added to `custom.css` in the universal editor output base block. Applies to every rich-text surface in the app.
+
+### 2. Document conversations
+
+Each hub document now has its own conversation section, below the document card on the document view page. Threads here are contextually tied to that document — they don't appear in the hub's main Conversations feed, which stays scoped to hub-level discussion.
+
+**What it looks like:** A "N conversations ↓" anchor link in the document's meta row scrolls down to the `#doc-conversations` section. The compose form is a stripped-down version of the hub composer — title input + `RimTiptapEditor` message body + `HubDocNotifyPanel` for optional member notification. Posted threads link out to the shared thread detail page, which now shows "← Back to [Document]" as the back link instead of "← Conversations".
+
+**Schema change:** `HubConversationThread` gained an optional `documentId` FK (`String?`, ON DELETE CASCADE). Hub Conversations feed and `countUnreadConversations` both filter to `documentId: null`. Document conversations filter to `documentId: docId`.
+
+**New files:** `app/api/hub/[slug]/documents/[id]/conversations/route.ts` (GET list + POST create, seeds subscriptions via `after()`), `components/HubDocConversationsClient.tsx` (CSS prefix `doc-conv-`).
+
+**Modified files:** `prisma/schema.prisma`, `app/api/hub/[slug]/conversations/route.ts`, `lib/hubContext.ts`, `app/account/hub/[slug]/documents/[id]/page.tsx`, `app/account/hub/[slug]/conversations/[id]/page.tsx`, `components/HubConvThreadClient.tsx`, `lib/email.ts`.
+
+### 3. Unified Activity stream
+
+A new `/account/hub/[slug]/activity` page shows everything that's happened in a hub in a single chronological river: documents added, documents updated, hub conversations started, hub conversation replies, document conversations started, document conversation replies. Four filter pills narrow the view: All / Documents / Conversations / Mine.
+
+Each item is a single link row: icon + label (e.g. "**Maria** started a conversation on *Team Norms* — Is our check-in time working?") + timestamp. Clicking navigates to the source (document page or thread). Load-more cursor pagination via `GET /api/hub/[slug]/activity`.
+
+Activity is the first item in the sidebar `otherItems` list, above Conversations.
+
+**New files:** `app/account/hub/[slug]/activity/page.tsx`, `app/api/hub/[slug]/activity/route.ts`, `components/HubActivityClient.tsx` (CSS prefix `hub-act-`).
+
+**Modified files:** `components/HubWorkspaceSidebar.tsx` (Activity link added).
+
+### 4. Bug fixes
+
+Three prop errors and one missing DB migration surfaced during this session:
+
+1. **Wrong prop on `RimTiptapEditor`:** Used `initialContent={body}` — correct prop is `value`. Fixed before first push.
+2. **Invalid props on `HubDocNotifyPanel`:** Passed `hubSlug`, `helpNote`, `alreadyNotified` — none of which exist on that component. Stripped; coordinator note rendered inline above the panel instead.
+3. **Missing DB migration:** `documentId` column was in the Prisma schema but never added to Neon via `migrate.mjs`. Caused a runtime 500 on all hub pages after the build succeeded. Fixed with `add_document_id_to_hub_conversation_threads` migration.
+
+**Pattern to remember:** Always `grep` a component's Props interface before writing usage. Don't assume prop names from memory or from similar components.
+
+### Design decisions
+
+- **Model C chosen for document conversations.** Three options were considered: (A) document threads appear in hub Conversations feed with a "Re: [doc]" label, (B) documents link to a filtered view of the conversations feed, (C) threads live on the document page only and a separate Activity stream surfaces everything. Jesse chose C — conversations stay contextual, nothing is lost from the main feed, and the Activity stream becomes the single place to see the full hub picture.
+- **Activity is a computed union query, not a new model.** No new DB table. The stream is assembled at query time from five parallel lookups with a sort + slice. Trade-off: no server-side pagination on the initial load, but the first 30 items fit well within a page view.
+
+---
+
 ## 2026-05-13 (session 113) — Hub notifications, subscriptions, three-stage delete, host confirmation emails, residue cleanup
 
 Eight commits, all on `main`. The session began with one request — add per-document notifications — and grew into a connected pass that touched the entire hub notification + lifecycle system.

@@ -6,28 +6,23 @@
 
 ## Active
 
-**Session 113 (2026-05-13)** — Hub notifications + subscriptions + three-stage delete + host confirmation emails + residue cleanup. Eight commits, all live on `main`.
+**Session 114 (2026-05-14)** — Document conversations + unified Activity stream. Three commits live on `main`.
 
 What's now live for every hub:
 
-- **Per-document notifications** (Basecamp-style picker, server-side dedup, PDF upload via Vercel Blob)
-- **Conversation thread subscriptions** (`HubThreadSubscription` model, Follow/Unfollow pill, "+ Notify someone new" picker on replies, automatic backfill for every existing thread)
-- **Three-stage Archive → Trash lifecycle** on documents and threads (deliberate two-step process; senior leadership owns final delete)
-- **`GUIDING_TEACHER` role** in the Role enum + `canManageTrash` helper in `lib/hubAuth.ts`
-- **Trash page** at `/account/hub/[slug]/trash` (sidebar link gated; non-managers redirected away)
-- **Host assignment confirmation emails** wired into every path that makes someone a host (sub-claim, self-claim, manager assignment, PATCH claim, reassign); reassign also notifies the displaced host
-- **Cleanup**: Tasks/Alerts/Support-Inbox residue removed across code, migrations, docs, and backlog (≈ 900 lines deleted in two commits)
-- **CLAUDE.md "Email Template Gate"** — discipline rule that every `sendTemplatedEmail(slug, …)` must ship with a matching seed entry in `migrate.mjs`
+- **Document conversations** — threads attached to a specific document, visible below the document card on the view page; separate from the main Conversations feed. "N conversations ↓" anchor link in the document meta row.
+- **Unified Activity stream** at `/account/hub/[slug]/activity` — chronological river of all hub activity (docs added/updated, hub conversations, doc conversations, replies). Four filter pills: All / Documents / Conversations / Mine. Sits first in the sidebar below Home.
+- **Image overflow fix** — `.rim-content img { max-width: 100%; height: auto; display: block; }` applied universally.
+- **`HubConversationThread.documentId`** FK in schema + Neon (migration `add_document_id_to_hub_conversation_threads`).
+- **Conversations chapter** updated (v4 flag) with "Conversations on documents" and "The Activity page" sections.
 
-**Next concrete step:** Maria training session per `TRAINING_PLAN.md`. Sessions 111/112 features (rotation UX, enter-room link) + session 113 features (notifications, subscriptions, trash) all live — confirm visually in the deployed app before training dates.
+**Next concrete step:** Maria training session per `TRAINING_PLAN.md`. All hub features from sessions 111–114 are now live. Confirm visually in the deployed app before training.
 
-**Closing-ritual deferred items from session 113 (manual chapter updates):**
+**Deferred from session 113 (still open):**
 
-1. **`volunteer-roles` chapter** — `prisma/seed-manual.ts` was updated in-file (SUPPORT removed, GUIDING_TEACHER added), but the DB record at `/admin/manual/volunteer-roles` was not refreshed. Either edit it manually at `/admin/manual/volunteer-roles/edit`, or write a small `update-manual-volunteer-roles-v2.mjs` script gated by a migration flag.
-2. **`host-hub` chapter** — Should mention the new Documents notification picker and the Archive → Trash flow. Could also point at the Trash page for coordinators.
-3. **New `hub-trash` chapter (optional)** — A short chapter explaining the manager-facing Trash page. Audience: admins/coordinators/guiding teachers.
-
-The Conversations chapter was updated in this session (v3, `update_manual_conversations_v3` flag).
+1. **`volunteer-roles` chapter** — `prisma/seed-manual.ts` updated in-file (SUPPORT removed, GUIDING_TEACHER added), but the DB record at `/admin/manual/volunteer-roles` was not refreshed. Edit manually at `/admin/manual/volunteer-roles/edit`, or write a small `update-manual-volunteer-roles-v2.mjs` script gated by a migration flag.
+2. **`host-hub` chapter** — Should mention the Documents notification picker and Archive → Trash flow, and point coordinators to the Trash page.
+3. **New `hub-trash` chapter (optional)** — Short chapter explaining the manager-facing Trash page (admins/coordinators/guiding teachers).
 
 **Parked follow-ons from earlier sessions:**
 

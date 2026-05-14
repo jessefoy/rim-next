@@ -370,6 +370,14 @@ Uses `RimTiptapEditor` with `variant="message"`. The message variant has no top-
 - **Output destination:** interactive web
 - **Output wrapper:** `rim-content hub-conv-post__body`
 
+#### `hub-document-conversation`
+- **Schema fields:** `HubConversationThread.body` (where `documentId` is set)
+- **Component:** `HubDocConversationsClient.tsx` (compose); `HubConvThreadClient.tsx` (replies, shared with hub-conversation)
+- **Variant:** message
+- **Output destination:** interactive web
+- **Output wrapper:** `rim-content hub-conv-post__body` (same as hub-conversation — same thread detail page)
+- **Notes:** Document conversations use the same `HubConversationThread` model with an optional `documentId` FK. Compose surface lives at the bottom of the document view page (`/account/hub/[slug]/documents/[id]`); thread detail is the shared `/conversations/[id]` page.
+
 #### `program-message`
 - **Schema fields:** `Program.confirmationMessage`, `Program.reminderMessage`, `Program.danaMessage`
 - **Component:** `components/registrar/ProgramEditor.tsx`
