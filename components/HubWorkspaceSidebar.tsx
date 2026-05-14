@@ -283,7 +283,12 @@ export default function HubWorkspaceSidebar({
               <span>Trash</span>
             </Link>
           )}
-          {(isCoordinator || isAdmin) && (
+          {/* Hub settings link goes to /admin/hubs/[slug]/edit, which is
+              ADMIN-only (hub config: slug, type, app links, coordinators).
+              Coordinators don't see it because they can't follow it.
+              Per-hub content editing (welcome, home) is a separate surface —
+              inline for host hub, deferred for others. */}
+          {isAdmin && (
             <Link
               href={`/admin/hubs/${hub.slug}/edit`}
               className="hub-ws-footer__link"
