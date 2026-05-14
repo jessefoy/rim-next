@@ -593,6 +593,68 @@ export async function sendNewProgramNeedsHostEmail(data: NewProgramNeedsHostEmai
   });
 }
 
+// ─── Host assignment confirmation ──────────────────────────────────────────
+//
+// Sent to the host every time they become responsible for a session — whether
+// they claimed a sub-request, self-claimed an unassigned session, were assigned
+// by a manager, or reassigned via the manager override.
+//
+// Standing rotations have their own batched email (sendStandingAssignmentScheduledEmail,
+// hardcoded) because a rotation creates many assignments at once. This template
+// is for one-off per-session assignments.
+//
+// Template variables:
+//   firstName, programName, dateText, scheduleUrl, requesterNote (optional)
+
+export interface HostAssignmentConfirmationEmailData {
+  to: string;
+  firstName: string | null;
+  programName: string;
+  /** Pre-formatted "Thu, May 22 · 8:15 AM" style label, or null if no session date set. */
+  dateText: string | null;
+  /** Optional note from the original sub-request, when this confirmation is for a sub-claim. */
+  requesterNote?: string | null;
+}
+
+export async function sendHostAssignmentConfirmationEmail(
+  data: HostAssignmentConfirmationEmailData,
+): Promise<void> {
+  await sendTemplatedEmail("host-assignment-confirmation", data.to, {
+    firstName:     data.firstName ?? "there",
+    programName:   data.programName,
+    dateText:      data.dateText ?? "",
+    requesterNote: data.requesterNote ?? "",
+    scheduleUrl:   `${BASE_URL}/tools/schedule`,
+  });
+}
+
+// ─── Host assignment removed (displaced by manager reassign) ───────────────
+//
+// Sent to a host when a manager reassigns their session to someone else.
+// Standing rotations use sendStandingAssignmentReplacedEmail (batched, hardcoded);
+// this is for the one-off manager-override path on /api/host/assignments/reassign.
+
+export interface HostAssignmentRemovedEmailData {
+  to: string;
+  firstName: string | null;
+  programName: string;
+  dateText: string | null;
+  /** Name of the person who reassigned (the manager). */
+  byName: string;
+}
+
+export async function sendHostAssignmentRemovedEmail(
+  data: HostAssignmentRemovedEmailData,
+): Promise<void> {
+  await sendTemplatedEmail("host-assignment-removed", data.to, {
+    firstName:   data.firstName ?? "there",
+    programName: data.programName,
+    dateText:    data.dateText ?? "",
+    byName:      data.byName,
+    scheduleUrl: `${BASE_URL}/tools/schedule`,
+  });
+}
+
 // ─── Standing assignment scheduled notification ───────────────────────────────
 
 export interface StandingAssignmentScheduledEmailData {

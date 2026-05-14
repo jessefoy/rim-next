@@ -2019,6 +2019,95 @@ Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`,
       console.log(`  ✔ Applied: ${this.name}`);
     },
   },
+  {
+    // Session 113 — Host-assignment confirmation + removal templates.
+    //
+    // Audit found that when a host claimed a sub-request or self-claimed a
+    // session, they received no confirmation email — only the original
+    // requester was notified. Other assignment paths (manager assigns,
+    // PATCH claim, reassign) likewise sent nothing to the new host.
+    //
+    // Two new templates power the unified confirmation flow:
+    //   host-assignment-confirmation — sent to anyone who becomes a host,
+    //     whether via sub-claim, self-claim, manager assignment, or reassign
+    //   host-assignment-removed      — sent to a host displaced by manager
+    //     reassign (standing-rotation displacement keeps its hardcoded email)
+    //
+    // Defensive seed: findUnique → create. Manual edits via /admin/emails
+    // are preserved.
+    name: "seed_host_assignment_email_templates",
+    async run() {
+      const flag = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags"
+        WHERE name = 'seed_host_assignment_email_templates_v1'
+      `).catch(() => []);
+      if (flag.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      const templates = [
+        {
+          slug: "host-assignment-confirmation",
+          name: "Host Assignment Confirmation",
+          description: "Sent to a host when they become responsible for a session — sub-claim, self-claim, manager assignment, or reassign. (Standing rotations use a separate batched email.)",
+          enabled: true,
+          group: "04-hosts",
+          groupLabel: "Host Team",
+          subject: "You're hosting {{programName}}{{#if dateText}} — {{dateText}}{{/if}}",
+          variables: ["firstName", "programName", "dateText", "requesterNote", "scheduleUrl"],
+          body: `Hi {{firstName}},
+
+You're confirmed to host **{{programName}}**{{#if dateText}} on {{dateText}}{{/if}}. Thank you.
+
+{{#if requesterNote}}
+> {{requesterNote}}
+{{/if}}
+
+**[View the Host Schedule →]({{scheduleUrl}})**
+
+If anything changes and you need coverage, you can post a sub-request from the schedule page.
+
+---
+Rooted In Mindfulness · Brookfield, WI`,
+        },
+        {
+          slug: "host-assignment-removed",
+          name: "Host Assignment Removed",
+          description: "Sent to a host when a coordinator reassigns their session to someone else. (Standing rotations use a separate batched email for the same situation.)",
+          enabled: true,
+          group: "04-hosts",
+          groupLabel: "Host Team",
+          subject: "You're no longer hosting {{programName}}{{#if dateText}} on {{dateText}}{{/if}}",
+          variables: ["firstName", "programName", "dateText", "byName", "scheduleUrl"],
+          body: `Hi {{firstName}},
+
+**{{byName}}** has reassigned **{{programName}}**{{#if dateText}} on {{dateText}}{{/if}} to another host — you're no longer scheduled for this session.
+
+If you have questions about this change, please reach out to your coordinator.
+
+**[View the Host Schedule →]({{scheduleUrl}})**
+
+---
+Rooted In Mindfulness · Brookfield, WI`,
+        },
+      ];
+
+      let created = 0;
+      let skipped = 0;
+      for (const t of templates) {
+        const existing = await db.emailTemplate.findUnique({ where: { slug: t.slug } });
+        if (existing) { skipped++; continue; }
+        await db.emailTemplate.create({ data: t });
+        created++;
+      }
+
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('seed_host_assignment_email_templates_v1')
+      `);
+      console.log(`  ✔ Applied: ${this.name} (${created} created, ${skipped} preserved)`);
+    },
+  },
 ];
 
 // ── Server-safe compute helpers (mirror of lib/programUtils.ts) ──────────────

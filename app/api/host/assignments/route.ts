@@ -1,7 +1,48 @@
 import { auth } from "@/auth";
+import { after } from "next/server";
 import { db } from "@/lib/db";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
 import { getHubNotificationRecipients } from "@/lib/toolAuth";
+import { sendHostAssignmentConfirmationEmail } from "@/lib/email";
+
+/**
+ * Format a session date for use in host emails.
+ * Matches the format used in sub-claim ("Thu, May 22") and standing-assignment
+ * emails so all host notifications speak the same dialect.
+ */
+function formatSessionDate(date: Date | null): string | null {
+  if (!date) return null;
+  return date.toLocaleDateString("en-US", {
+    weekday: "short", month: "short", day: "numeric",
+  });
+}
+
+/**
+ * Fire-and-forget: send "you're hosting" confirmation to the assignee.
+ * Resolves the program's human name from the slug. Wrapped in after() by
+ * the caller — this helper assumes it's running in deferred work.
+ */
+async function notifyAssignedHost(
+  assignedUserId: string,
+  programSlug: string,
+  sessionDate: Date | null,
+): Promise<void> {
+  try {
+    const [program, assignee] = await Promise.all([
+      db.program.findUnique({ where: { slug: programSlug }, select: { name: true } }),
+      db.user.findUnique({ where: { id: assignedUserId }, select: { email: true, firstName: true } }),
+    ]);
+    if (!assignee?.email) return;
+    await sendHostAssignmentConfirmationEmail({
+      to: assignee.email,
+      firstName: assignee.firstName,
+      programName: program?.name || programSlug,
+      dateText: formatSessionDate(sessionDate),
+    });
+  } catch (e) {
+    console.error("[host-assignment] confirmation email error:", e);
+  }
+}
 
 function isManager(roles: string[]) {
   return roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
@@ -284,6 +325,7 @@ export async function POST(request: Request) {
         data: { userId: session.user.id, assignedBy: session.user.id },
         include: { user: { select: { id: true, firstName: true, lastName: true, preferredName: true } } },
       });
+      after(() => notifyAssignedHost(session.user.id, updated.programSlug, updated.sessionDate));
       return Response.json({
         id: updated.id, programSlug: updated.programSlug,
         sessionDate: updated.sessionDate?.toISOString() ?? null,
@@ -330,6 +372,12 @@ export async function POST(request: Request) {
       user: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
     },
   });
+
+  // Confirmation email when someone becomes the host: self-claim AND
+  // manager-assigns-to-another-user both flow through here.
+  if (assignment.userId) {
+    after(() => notifyAssignedHost(assignment.userId!, assignment.programSlug, assignment.sessionDate));
+  }
 
   return Response.json({
     id: assignment.id,

@@ -1,5 +1,14 @@
 import { auth } from "@/auth";
+import { after } from "next/server";
 import { db } from "@/lib/db";
+import {
+  sendHostAssignmentConfirmationEmail,
+  sendHostAssignmentRemovedEmail,
+} from "@/lib/email";
+
+function fmtDate(d: Date | null): string | null {
+  return d ? d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : null;
+}
 
 function isManager(roles: string[]) {
   return roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
@@ -79,6 +88,59 @@ export async function POST(request: Request) {
     include: {
       user: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
     },
+  });
+
+  // Symmetric host notifications:
+  //   - new host (the manager) gets a confirmation email
+  //   - previously assigned host, if any, gets a "no longer hosting" email
+  // Resolve program name + manager name once, then dispatch both in after().
+  const newHostId = session.user.id;
+  const displacedId = previousUserId;
+  after(async () => {
+    try {
+      const program = await db.program.findUnique({
+        where:  { slug: programSlug },
+        select: { name: true },
+      });
+      const programName = program?.name || programSlug;
+      const dateText = fmtDate(parsedDate);
+
+      const newHost = await db.user.findUnique({
+        where:  { id: newHostId },
+        select: { email: true, firstName: true, lastName: true, preferredName: true },
+      });
+
+      if (newHost?.email) {
+        await sendHostAssignmentConfirmationEmail({
+          to: newHost.email,
+          firstName: newHost.firstName,
+          programName,
+          dateText,
+        });
+      }
+
+      if (displacedId && displacedId !== newHostId) {
+        const displaced = await db.user.findUnique({
+          where:  { id: displacedId },
+          select: { email: true, firstName: true },
+        });
+        if (displaced?.email) {
+          const byName =
+            newHost?.preferredName ||
+            [newHost?.firstName, newHost?.lastName].filter(Boolean).join(" ") ||
+            "A coordinator";
+          await sendHostAssignmentRemovedEmail({
+            to: displaced.email,
+            firstName: displaced.firstName,
+            programName,
+            dateText,
+            byName,
+          });
+        }
+      }
+    } catch (e) {
+      console.error("[host-assignment reassign] notification error:", e);
+    }
   });
 
   return Response.json({

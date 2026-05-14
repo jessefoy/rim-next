@@ -1,5 +1,11 @@
 import { auth } from "@/auth";
+import { after } from "next/server";
 import { db } from "@/lib/db";
+import { sendHostAssignmentConfirmationEmail } from "@/lib/email";
+
+function fmtDate(d: Date | null): string | null {
+  return d ? d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : null;
+}
 
 function hasHubAccess(roles: string[]) {
   return roles.some((r) => ["HOST", "HOST_MANAGER", "ADMIN"].includes(r));
@@ -48,6 +54,25 @@ export async function PATCH(
     await db.hostAssignment.update({
       where: { id },
       data: { userId: session.user.id, assignedBy: session.user.id },
+    });
+    // Confirmation email to the claimer.
+    after(async () => {
+      try {
+        const [program, claimer] = await Promise.all([
+          db.program.findUnique({ where: { slug: assignment.programSlug }, select: { name: true } }),
+          db.user.findUnique({ where: { id: session.user.id }, select: { email: true, firstName: true } }),
+        ]);
+        if (claimer?.email) {
+          await sendHostAssignmentConfirmationEmail({
+            to: claimer.email,
+            firstName: claimer.firstName,
+            programName: program?.name || assignment.programSlug,
+            dateText: fmtDate(assignment.sessionDate),
+          });
+        }
+      } catch (e) {
+        console.error("[host-assignment claim] confirmation email error:", e);
+      }
     });
     return Response.json({ ok: true, status: "claimed" });
   }

@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import {
   sendSubClaimedEmail,
+  sendHostAssignmentConfirmationEmail,
   type SubClaimedEmailData,
 } from "@/lib/email";
 import { extractTextAsync } from "@/lib/renderRichContentServer";
@@ -93,21 +94,47 @@ export async function POST(
       })
     : null;
 
-  // Notify original host. `after()` keeps the work alive past Response.json()
-  // so Vercel doesn't tear down the function before Resend completes.
+  // Resolve human-friendly program name (slug isn't great in an email body)
+  // and the claimer's email + first name for their own confirmation.
+  const [program, claimerForEmail] = await Promise.all([
+    db.program.findUnique({
+      where:  { slug: subRequest.programSlug },
+      select: { name: true },
+    }),
+    db.user.findUnique({
+      where:  { id: session.user.id },
+      select: { email: true, firstName: true },
+    }),
+  ]);
+  const programName = program?.name || subRequest.programSlug;
+  const requesterNote = message ? (await extractTextAsync(message) || null) : null;
+
+  // Send both emails after the response. The requester gets the existing
+  // "your session is covered" email; the claimer gets a confirmation so they
+  // have it in their inbox alongside their other host scheduling messages.
   after(async () => {
     try {
       const requester = subRequest.assignment.user;
-      if (!requester) return;
+      if (requester) {
+        await sendSubClaimedEmail({
+          to: requester.email,
+          firstName: requester.firstName,
+          claimerName,
+          programName,
+          sessionDate: sessionLabel,
+          message: requesterNote,
+        } as SubClaimedEmailData);
+      }
 
-      await sendSubClaimedEmail({
-        to: requester.email,
-        firstName: requester.firstName,
-        claimerName,
-        programName: subRequest.programSlug,
-        sessionDate: sessionLabel,
-        message: message ? (await extractTextAsync(message) || null) : null,
-      } as SubClaimedEmailData);
+      if (claimerForEmail?.email) {
+        await sendHostAssignmentConfirmationEmail({
+          to: claimerForEmail.email,
+          firstName: claimerForEmail.firstName,
+          programName,
+          dateText: sessionLabel,
+          requesterNote,
+        });
+      }
     } catch (e) {
       console.error("[sub-claim] notification error:", e);
     }
