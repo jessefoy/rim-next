@@ -234,8 +234,8 @@ const sections = [
         "HOST — access to the Host Community Hub; can be on the session hosting rotation",
         "HOST_MANAGER — manages the host schedule and assignments; full read/write access to the Host Hub; can also be on rotation (combinable with HOST)",
         "TEACHER — access to the Course Hub; can create and manage courses and lessons",
-        "SUPPORT — access to the Support Inbox; can read, reply to, and manage support threads",
         "REGISTRAR — access to the Registrar hub; can manage programs, registrations, and members",
+        "GUIDING_TEACHER — sangha-wide dharma authority; manages hub trash alongside admins and coordinators",
         "ADMIN — full access to everything; bypasses all hub membership checks",
       ]),
 
@@ -274,8 +274,8 @@ const sections = [
         "HOST → Host Community Hub → Host Schedule tool",
         "HOST_MANAGER → Host Community Hub (as coordinator) → Host Schedule tool",
         "TEACHER → Courses Hub → Course Manager tool",
-        "SUPPORT → Support Hub → Support Inbox tool",
         "REGISTRAR → Registrar Hub (as coordinator) → Program Manager tool",
+        "GUIDING_TEACHER → sangha-wide trash management (no dedicated hub or tool)",
         "ADMIN → all hubs and all tools, no membership record required",
       ])
     ),

@@ -10,7 +10,7 @@ export const metadata = { title: "Volunteer Manual — Rooted In Mindfulness" };
 const hubLabel: Record<string, string> = {
   courses:     "Course Hub",
   "host-team": "Host Hub",
-  support:     "Support Inbox",
+  support:     "Support Hub",
   registrar:   "Registrar Hub",
 };
 

@@ -44,7 +44,6 @@ const migrations = [
       if (cols.length === 0) {
         await db.$executeRawUnsafe(`ALTER TABLE "hub_app_links" ADD COLUMN "toolSlug" TEXT`);
         await db.$executeRawUnsafe(`UPDATE "hub_app_links" SET "toolSlug" = 'schedule' WHERE "href" LIKE '%/tools/schedule%'`);
-        await db.$executeRawUnsafe(`UPDATE "hub_app_links" SET "toolSlug" = 'inbox' WHERE "href" LIKE '%/tools/inbox%'`);
         await db.$executeRawUnsafe(`UPDATE "hub_app_links" SET "toolSlug" = 'programs' WHERE "href" LIKE '%/tools/programs%'`);
         await db.$executeRawUnsafe(`UPDATE "hub_app_links" SET "toolSlug" = 'learning' WHERE "href" LIKE '%/tools/learning%'`);
         console.log(`  ✔ Applied: ${this.name}`);
@@ -831,66 +830,6 @@ Submitted via /kalyana-mitta/kalyana-mitta-group-application`,
     },
   },
   {
-    // Session 96 — Migrate support-notification email into the template
-    // manager. One template covers all three event types (assigned, new
-    // reply, new note); the message body is composed in lib/supportNotify.ts
-    // before sending.
-    name: "seed_support_notification_email_template",
-    async run() {
-      const flag = await db.$queryRawUnsafe(`
-        SELECT name FROM "_migration_flags"
-        WHERE name = 'seed_support_notification_email_template_v1'
-      `).catch(() => []);
-      if (flag.length > 0) {
-        console.log(`  ⏭ Already applied: ${this.name}`);
-        return;
-      }
-
-      await db.emailTemplate.upsert({
-        where: { slug: "support-notification" },
-        update: {
-          name: "Support Notification",
-          description: "Sent to a support team member when a thread is assigned to them, gets a new reply, or gets a new internal note. Same email used for all three event types — the message body is composed per-event before sending.",
-          enabled: true,
-          subject: "[RIM Support] {{threadSubject}}",
-          variables: ["firstName", "message", "threadUrl"],
-          body: `{{#if firstName}}Hi {{firstName}},{{else}}Hello,{{/if}}
-
-{{message}}
-
-**[View this thread →]({{threadUrl}})**
-
----
-Rooted In Mindfulness Support`,
-        },
-        create: {
-          slug: "support-notification",
-          name: "Support Notification",
-          description: "Sent to a support team member when a thread is assigned to them, gets a new reply, or gets a new internal note. Same email used for all three event types — the message body is composed per-event before sending.",
-          enabled: true,
-          subject: "[RIM Support] {{threadSubject}}",
-          variables: ["firstName", "message", "threadUrl"],
-          body: `{{#if firstName}}Hi {{firstName}},{{else}}Hello,{{/if}}
-
-{{message}}
-
-**[View this thread →]({{threadUrl}})**
-
----
-Rooted In Mindfulness Support`,
-        },
-      });
-
-      await db.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
-      `).catch(() => {});
-      await db.$executeRawUnsafe(`
-        INSERT INTO "_migration_flags" (name) VALUES ('seed_support_notification_email_template_v1')
-      `);
-      console.log(`  ✔ Applied: ${this.name}`);
-    },
-  },
-  {
     // Session 96 — Migrate magic-link emails into the template manager.
     // Two templates: magic-link-new-user and magic-link-returning. Both are
     // CRITICAL for authentication; sendMagicLinkEmail uses throwOnFailure
@@ -1037,18 +976,6 @@ Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`,
         { slug: "hub-welcome",                      group: "05-hubs",          groupLabel: "Hubs & Onboarding" },
         { slug: "hub-conv-new-thread",              group: "05-hubs",          groupLabel: "Hubs & Onboarding" },
         { slug: "hub-conv-new-reply",               group: "05-hubs",          groupLabel: "Hubs & Onboarding" },
-
-        // ─── 06 · Support Inbox (IMPORTANT) ─────────────────────────────
-        {
-          slug: "support-notification",
-          group: "06-support",
-          groupLabel: "Support Inbox",
-          helpText:
-            "Important — keeps the support team in the loop.\n\n" +
-            "Sent to a support team member when a thread has activity: thread assigned to them, a new reply from a member, or a new internal note from a teammate. The same template is used for all three event types — the {{message}} variable carries the event-specific text, built in lib/supportNotify.ts.\n\n" +
-            "If disabled, the support team will still see in-app alerts at /tools/inbox, but they won't receive email notifications. Most people rely on email to know when there's a new reply, so disabling will likely slow response times.\n\n" +
-            "The {{message}} variable contains text like \"New reply from Sarah on 'Question about registration'\" — it's required for the email to make sense. Don't remove it.",
-        },
 
         // ─── 07 · Public Forms ──────────────────────────────────────────
         { slug: "volunteer-interest-internal",      group: "07-forms",         groupLabel: "Public Forms" },
@@ -1483,51 +1410,6 @@ Rooted In Mindfulness · rootedinmindfulness.org`;
       } else {
         console.log(`  ⏭ ${this.name} — all programs already current`);
       }
-    },
-  },
-  {
-    // Session 110 — Strip residual Support Inbox tool wiring from the
-    // Support Hub. The /tools/inbox application was removed in session 100,
-    // but two HubAppLink rows + the `support-inbox` ManualSection remained,
-    // surfacing dead links inside the Support Hub workspace. The hub itself
-    // stays as a core-only team space (Home, Conversations, Documents, Members).
-    name: "remove_support_inbox_residue",
-    async run() {
-      const flag = await db.$queryRawUnsafe(`
-        SELECT name FROM "_migration_flags"
-        WHERE name = 'remove_support_inbox_residue_v1'
-      `).catch(() => []);
-      if (flag.length > 0) {
-        console.log(`  ⏭ Already applied: ${this.name}`);
-        return;
-      }
-
-      const supportHub = await db.hub.findUnique({ where: { slug: "support" } });
-      let appLinksDeleted = 0;
-      if (supportHub) {
-        const result = await db.hubAppLink.deleteMany({
-          where: {
-            hubId: supportHub.id,
-            OR: [
-              { href: { startsWith: "/tools/inbox" } },
-              { label: { in: ["Support Inbox", "Inbox Settings"] } },
-            ],
-          },
-        });
-        appLinksDeleted = result.count;
-      }
-
-      const manualResult = await db.manualSection.deleteMany({
-        where: { slug: "support-inbox" },
-      });
-
-      await db.$executeRawUnsafe(`
-        CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
-      `).catch(() => {});
-      await db.$executeRawUnsafe(`
-        INSERT INTO "_migration_flags" (name) VALUES ('remove_support_inbox_residue_v1')
-      `);
-      console.log(`  ✔ Applied: ${this.name} — ${appLinksDeleted} app link(s), ${manualResult.count} manual section(s) removed`);
     },
   },
   {
@@ -2009,6 +1891,39 @@ Rooted In Mindfulness · Brookfield, WI`,
       console.log(`  ✔ Applied: ${this.name} (${created} created, ${skipped} preserved)`);
     },
   },
+  {
+    // Session 113 — Drop the orphaned `support-notification` email template.
+    //
+    // The Support Inbox application was removed in session 100; its supporting
+    // residue (HubAppLinks, the `support-inbox` ManualSection) was stripped in
+    // session 110. But the EmailTemplate row was missed — it has sat in the DB
+    // since session 96 with no sender, no UI consumer, and an irrelevant
+    // group/groupLabel ("Support Inbox") cluttering /admin/emails.
+    //
+    // This migration deletes the row. No-op on fresh DBs (the row was never
+    // created there because we're simultaneously dropping the seed migration
+    // from this file).
+    name: "drop_support_notification_template",
+    async run() {
+      const flag = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags"
+        WHERE name = 'drop_support_notification_template_v1'
+      `).catch(() => []);
+      if (flag.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      const result = await db.emailTemplate.deleteMany({
+        where: { slug: "support-notification" },
+      });
+
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('drop_support_notification_template_v1')
+      `);
+      console.log(`  ✔ Applied: ${this.name} (${result.count} row${result.count === 1 ? "" : "s"} removed)`);
+    },
+  },
 ];
 
 // ── Server-safe compute helpers (mirror of lib/programUtils.ts) ──────────────
@@ -2263,9 +2178,10 @@ async function main() {
 
   if (hostScheduleManualFlag.length === 0) {
     await seedManualHostSchedule(db);
-    // Push down the sections that previously occupied 7/8 to make room.
-    // updateMany is a no-op when the rows are already at the target order.
-    await db.manualSection.updateMany({ where: { slug: "support-inbox" },    data: { order: 8 } });
+    // Push down the section that previously occupied this slot to make room.
+    // (The support-inbox row that used to sit at order 8 was deleted in
+    //  session 110's residue cleanup.) updateMany is a no-op when the row
+    // is already at the target order.
     await db.manualSection.updateMany({ where: { slug: "volunteer-roles" },  data: { order: 9 } });
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_manual_host_schedule_v1')`);
   } else {
@@ -2455,8 +2371,6 @@ async function main() {
   // had drift accumulated since March 2026 (architecture changes,
   // tools extraction, LiveKit replacing Google Meet).
   //
-  // support-inbox: targeted rewrite — fixed location to /tools/inbox,
-  //   "Resolved" → "Closed", removed stale auto-sync claim.
   // course-hub: shorter rewrite — distinguishes Course Manager
   //   (/tools/learning) from Course Hub (/account/hub/courses/).
   // registration: surgical replace — fixed paths to /tools/programs,

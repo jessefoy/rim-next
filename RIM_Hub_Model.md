@@ -542,7 +542,6 @@ GET /api/tools/<tool-name>/context?hub=<slug>
 Examples:
 - `/api/tools/programs/context?hub=registrar` → `{ count: 3, label: "new registrations" }`
 - `/api/tools/schedule/context?hub=host-team` → `{ count: 2, label: "sessions need hosts" }`
-- `/api/tools/inbox/context?hub=support` → `{ count: 5, label: "unread threads" }`
 
 The `HubHomeClient` component would fetch these on mount and overlay the count on each app link card. The `hub` param allows scoped counts when the same tool serves multiple hubs.
 

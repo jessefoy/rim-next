@@ -72,7 +72,7 @@ export default async function ManualSectionPage({
   const hubLabel: Record<string, string> = {
     courses:     "Course Hub",
     "host-team": "Host Hub",
-    support:     "Support Inbox",
+    support:     "Support Hub",
     registrar:   "Registrar Hub",
   };
 
