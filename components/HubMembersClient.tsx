@@ -49,6 +49,8 @@ interface UpcomingAssignment {
 
 interface Props {
   hubSlug: string;
+  /** True when hub.hasSchedule — drives hosting-capability UI affordances. */
+  hasSchedule: boolean;
   members: HubMemberRow[];
   isCoordinator: boolean;
   isAdmin: boolean;
@@ -79,6 +81,7 @@ function fmtDate(iso: string | null) {
 
 export default function HubMembersClient({
   hubSlug,
+  hasSchedule,
   members: initialMembers,
   isCoordinator,
   isAdmin,
@@ -103,7 +106,7 @@ export default function HubMembersClient({
     pendingPayload: Record<string, unknown>;
   }>(null);
 
-  const isHostTeam = hubSlug === "host-team";
+  const isHostingHub = hasSchedule;
   const canEdit = isCoordinator;
 
   async function patchMember(
@@ -204,7 +207,7 @@ export default function HubMembersClient({
           {(m.user.title || m.position) && (
             <div className="hub-mem-item__role">{m.position || m.user.title}</div>
           )}
-          {isHostTeam && !m.hostingCapability && m.status === "ACTIVE" && (
+          {isHostingHub && !m.hostingCapability && m.status === "ACTIVE" && (
             <div className="hub-mem-item__flag">Hosting restricted</div>
           )}
           {!m.communicationsEnabled && (
@@ -230,7 +233,7 @@ export default function HubMembersClient({
         {canEdit && isEditing && (
           <MemberEditor
             member={m}
-            isHostTeam={isHostTeam}
+            isHostingHub={isHostingHub}
             isSelf={isSelf}
             isAdmin={isAdmin}
             onSave={(payload) => patchMember(m.userId, payload)}
@@ -382,14 +385,14 @@ export default function HubMembersClient({
 
 function MemberEditor({
   member,
-  isHostTeam,
+  isHostingHub,
   isSelf,
   isAdmin,
   onSave,
   onHardRemoveRequest,
 }: {
   member: HubMemberRow;
-  isHostTeam: boolean;
+  isHostingHub: boolean;
   isSelf: boolean;
   isAdmin: boolean;
   onSave: (payload: Record<string, unknown>) => Promise<{ ok: boolean; confirmed?: boolean }>;
@@ -437,7 +440,7 @@ function MemberEditor({
           <input type="checkbox" checked={coord} onChange={(e) => setCoord(e.target.checked)} disabled={isSelf} />
           <span>Coordinator</span>
         </label>
-        {isHostTeam && (
+        {isHostingHub && (
           <label className="hub-mem-editor__check">
             <input
               type="checkbox"

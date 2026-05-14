@@ -14,7 +14,7 @@ type HubMemberStatus = "ACTIVE" | "PAUSED" | "INACTIVE";
  *   position, isCoordinator, status, hostingCapability, communicationsEnabled,
  *   pauseNote, coordinatorNote
  *
- * Destructive-action warning flow (only relevant for host-team):
+ * Destructive-action warning flow (only relevant for hubs where hub.hasSchedule):
  *   If the update would revoke hosting (status !== "ACTIVE" OR hostingCapability === false)
  *   AND the user has upcoming HostAssignments in the future, the API responds 409 with
  *   `{ requiresConfirmation: true, upcomingAssignments: [...] }`.
@@ -73,7 +73,7 @@ export async function PATCH(
     hostingCapability !== undefined ? hostingCapability : existing.hostingCapability;
 
   const willRevokeHosting =
-    slug === "host-team" &&
+    hub.hasSchedule &&
     (existing.status === "ACTIVE" && existing.hostingCapability) &&
     !(nextStatus === "ACTIVE" && nextHostingCapability);
 

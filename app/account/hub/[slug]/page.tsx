@@ -52,11 +52,13 @@ export default async function HubHomePage({
     });
   }
 
-  // Host Hub: single unified home (one view for everyone). Coordinators have
+  // Hosting hub: single unified home (one view for everyone). Coordinators have
   // an inline edit affordance on the welcome message; nothing else differs.
   // Below the welcome is the "Our offerings this month" panel — team
-  // contribution + open coverage at a glance.
-  if (slug === "host-team") {
+  // contribution + open coverage at a glance. Gated on hub.hasSchedule (a
+  // schema field) rather than a slug literal so a future hosting hub works
+  // without code changes.
+  if (hub.hasSchedule) {
     const isCoordinator = (member?.isCoordinator ?? false) || isAdmin;
 
     const [welcomeHtml, thisMonth] = await Promise.all([

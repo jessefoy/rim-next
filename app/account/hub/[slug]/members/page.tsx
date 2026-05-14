@@ -62,6 +62,7 @@ export default async function HubMembersPage({
   return (
     <HubMembersClient
       hubSlug={slug}
+      hasSchedule={hub.hasSchedule}
       members={serialized}
       isCoordinator={isCoordinator}
       isAdmin={isAdmin}
