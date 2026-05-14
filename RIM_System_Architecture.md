@@ -266,6 +266,38 @@ Virtual and hybrid programs use **LiveKit Cloud** (Build plan, free) for video c
 
 The system of record for member data is called the **Member Registry**. This is the preferred term in code comments, documentation, and conversation. Avoid "CRM," "CMS," "database," or "People Hub" when referring to this system.
 
+### Three-stage delete + Guiding Teacher role (session 113)
+
+Hub documents and conversation threads share a three-stage lifecycle: **Active → Archived → Trash**.
+
+- **Archive** is the only soft action available on an Active item. Reversible. Author or coordinator. Documents move to an "Archived" filter view (member-visible, read-only); threads use the existing `status: "CLOSED"` (relabeled "Archived" in the UI).
+- **Delete** is only available on Archived items. Soft-deletes the item to the per-hub Trash, vanishes from member views entirely. Author or coordinator. Enforced both in the UI (Delete button hidden when item is not archived) and in the API (DELETE returns 400 if not archived).
+- **Restore** and **Permanent Delete** live on the Trash page (`/account/hub/[slug]/trash`). Trash-managers only.
+
+**Trash-management authority** is gated by `canManageTrash(roles, isCoordinator)` in `lib/hubAuth.ts` — a single source of truth used by the Trash page, the sidebar link, and every restore/permanent-delete endpoint. Returns true if any of:
+
+- `ADMIN ∈ roles`
+- `GUIDING_TEACHER ∈ roles` (new role added in session 113)
+- `HubMember.isCoordinator === true` on the hub in question
+
+**`GUIDING_TEACHER` role.** Sangha-wide dharma authority, distinct from `ADMIN` (which is technical/operational). Currently held only by Jesse, but the distinction is preserved in the enum for future teachers who may have dharma authority without needing technical-admin scope. The Trash gate is the only place this role unlocks behavior today.
+
+Schema additions: `HubDocument.archivedAt/archivedById/deletedAt/deletedById`, `HubConversationThread.deletedAt/deletedById`. Indexes `(hubId, deletedAt)` on both. List queries everywhere filter `deletedAt: null` by default; single-item GET routes 404 for non-managers when `deletedAt` is set.
+
+### Hub notifications (session 113)
+
+Three coordinated systems share the same Basecamp-style mental model and the same shared UI component (`components/HubDocNotifyPanel.tsx`):
+
+1. **Per-document notifications** — Authors pick recipients explicitly per document. `HubDocumentNotification` is an event log keyed `documentId × userId × eventType` (`"created"` | `"updated"`). Server-side dedup before insert + send. UI shows already-notified members as disabled `✓ Notified [date]` rows. Three routes share the dedup logic: `POST /documents`, `PATCH /documents/[id]`, `POST /documents/[id]/notify`.
+
+2. **Conversation thread subscriptions** — Each thread has a subscriber list; subscribers receive every reply automatically. `HubThreadSubscription { threadId, userId, source }` with `source ∈ {AUTHOR, COORDINATOR_AUTO, ADDED, SELF}`. Subscribers are seeded at thread creation (author + coordinators + author's "Also notify" picks); replier auto-subscribed by virtue of replying; readers can `Follow` / `Unfollow` themselves via the thread-header pill. Subscription is the recipient list — no separate per-event tracking.
+
+3. **Host assignment confirmations** — Two templates (`host-assignment-confirmation`, `host-assignment-removed`) wired into every path where someone becomes or stops being the host of a single session. Sub-claim, self-claim, manager assignment, PATCH claim, and reassign all use the same confirmation template; reassign also fires the removal template for the displaced host. Standing-rotation emails stay hardcoded and batched — they handle a different shape of event.
+
+All three systems use `after()` from `next/server` for reliable serverless background dispatch and filter recipients to active hub members with `communicationsEnabled` before sending. All three systems' email templates are seeded in `prisma/migrate.mjs` per the **Email Template Gate** documented in `CLAUDE.md`.
+
+---
+
 ## Closing Ritual
 
 This file is part of the closing ritual for any Claude Code session that touches hubs, roles, or member data architecture. Regenerate it alongside FEATURES.md and RIM_Stack_Reference.md after any such session.
@@ -273,4 +305,4 @@ This file is part of the closing ritual for any Claude Code session that touches
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org*
-*Working document · May 2026 (updated session 110 — Support Inbox tool wiring residue stripped, "Dashboard" → "Home" in member area; session 101 — Tasks removed, Support Inbox removed, hub count corrected)*
+*Working document · May 2026 (updated session 113 — three-stage archive/trash lifecycle, GUIDING_TEACHER role, hub notification subscriptions, host confirmation emails; session 110 — Support Inbox tool wiring residue stripped, "Dashboard" → "Home" in member area; session 101 — Tasks removed, Support Inbox removed, hub count corrected)*

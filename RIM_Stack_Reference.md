@@ -1,6 +1,6 @@
 # RIM Next — Stack Reference
 
-_Generated 2026-03-11. Last updated 2026-04-20 (session 89)._
+_Generated 2026-03-11. Last updated 2026-05-13 (session 113 — GUIDING_TEACHER role + hub trash + notification subscriptions)._
 
 ---
 
@@ -18,6 +18,10 @@ Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfie
 - LiveKit Cloud video conferencing (replaced Google Meet in session 86) — RIM-branded session room with custom layout, host controls, nonverbal signals
 - Email Template Manager at `/admin/emails` — database-backed
 - Database-driven staff manual (ManualSection records) with audience-grouped index, hub-scoped projection, contextual help icons
+- **Hub Documents** with per-document Basecamp-style notifications, PDF file uploads, three-stage Archive → Trash lifecycle (session 113)
+- **Hub Conversations** with thread subscription model (subscribers receive every reply automatically), `Follow` / `Unfollow` toggle, additive "Notify someone new" picker on replies, three-stage Archive → Trash lifecycle (session 113)
+- **Hub Trash** (`/account/hub/[slug]/trash`) — per-hub trash bin for soft-deleted documents and threads; gated to Admin / Guiding Teacher / hub coordinator (session 113)
+- **Host assignment confirmation emails** — every path that makes someone a host (sub-claim, self-claim, manager assignment, PATCH claim, reassign) sends a confirmation; reassign also sends a removal email to the displaced host (session 113)
 
 **Parked or removed:**
 - **Google Meet integration** — replaced by LiveKit in session 86; all Meet UI, room accounts, and calendar booking removed
@@ -154,6 +158,21 @@ The Gmail OAuth env vars (`GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REDIR
 
 **Course drip system (session 63–64, removed session 100):** Schema fields and `lib/drip.ts` fully removed in Theme E cleanup. Never entered operational use.
 
+**Hub Notifications + Subscriptions + Trash (session 113):** Three connected systems. Schema additions:
+
+- `HubDocumentNotification` (`hub_document_notifications`, `documentId × userId × eventType` event log; no unique constraint — same person can be notified once per event type). Cascade-deletes with the document. Indexes `documentId`, `(documentId, userId)`.
+- `HubThreadSubscription` (`hub_thread_subscriptions`, `@@unique([threadId, userId])`, `source ∈ {AUTHOR, COORDINATOR_AUTO, ADDED, SELF}`). Replaces implicit per-reply notification logic. Backfilled for every existing thread at deploy: author + all prior repliers + all current coordinators.
+- `HubDocument` gains `archivedAt`/`archivedById`/`deletedAt`/`deletedById` (+ index `(hubId, deletedAt)`).
+- `HubConversationThread` gains `deletedAt`/`deletedById` (+ index `(hubId, deletedAt)`). `status: "CLOSED"` continues to serve as the archive state for threads — UI labels relabeled to "Archived".
+- `Role` enum gains `GUIDING_TEACHER`. New helper `canManageTrash(roles, isCoordinator)` in `lib/hubAuth.ts` returns true for `ADMIN`, `GUIDING_TEACHER`, or hub coordinator. Trash page (`/account/hub/[slug]/trash`) and all restore/permanent-delete endpoints gate on this. `HubDocumentFileType` enum gains `PDF` for Vercel Blob uploads.
+
+Shared UI: `components/HubDocNotifyPanel.tsx` — Basecamp-style picker used across document add/edit/standalone-notify, conversation compose, and conversation reply surfaces. Already-notified members render as disabled `✓ Notified [date]` rows.
+
+Email templates seeded via `prisma/migrate.mjs`: `hub-document-created`, `hub-document-updated` (group `05-hubs`); `host-assignment-confirmation`, `host-assignment-removed` (group `04-hosts`). Plus four backfilled templates that had been referenced but never seeded: `session-reminder`, `host-role-assigned`, `sub-request-claimed`, `drip-lesson-available`. `CLAUDE.md` "Email Template Gate" requires future `sendTemplatedEmail` slugs to ship with matching seed entries.
+
+API routes added: `/api/hub/[slug]/documents/[id]/{notify,archive,restore,permanent-delete}`, `/api/hub/[slug]/conversations/[id]/{subscribe,restore,permanent-delete}`, page route `/account/hub/[slug]/trash`. Three-stage delete enforced both in UI (Delete button hidden when item not archived) and at the API (DELETE returns 400 with "Archive this … first" unless archived). Trashed items 404 for non-managers even via direct URL.
+
+
 **Modular Manual System (session 62–63):** `ManualSection` model — `slug @unique`, `title`, `description String?`, `hubSlug String?`, `body Json?`, `relations String[]`, `order Int`. Sections seeded (introduction, registration, programs, member-accounts, course-hub, host-* family, volunteer-roles, manual-system, conversations). The `support-inbox` section was deleted in session 110 via the `remove_support_inbox_residue` migrate.mjs entry — the Support Inbox tool was removed in session 100 but its manual chapter persisted as a dead row until session 110. Routes: `/admin/manual` (index, any logged-in user), `/admin/manual/[slug]` (section page, any logged-in user; ADMIN sees Edit link), `/admin/manual/editor` (DB editor, ADMIN only), `/manual` (public index). `body` stored as Tiptap JSON; migrated sections were initially stored as `{ type: "rawHtml", html: "..." }` — `renderContentBody()` handles both formats. `ManualSectionEditor` auto-converts rawHtml → Tiptap JSON via `generateJSON()` on mount. `ManualHelpIcon` wired into 10 locations. `ManualContent.tsx` hollowed out (content now in DB). Migration script: `prisma/seed-manual-chapters.ts`.
 
 **Closing ritual — required after every session that changes features:**
@@ -264,6 +283,7 @@ data/backlog.json     feature backlog (surfaced at /admin/ideas)
 | `TEACHER` | Teacher Hub — course and lesson management |
 | ~~`SUPPORT`~~ | Removed session 100 — Support Inbox deleted |
 | `REGISTRAR` | Registrar Hub (auto-synced, coordinator), registrations, member profiles, Program Editor |
+| `GUIDING_TEACHER` | Sangha-wide dharma authority (added session 113). Distinct from `ADMIN` (technical). Gates hub Trash management alongside coordinators. Currently held only by Jesse; preserved in the enum for future teachers without technical-admin scope. |
 | `ADMIN` | Everything |
 
 Hub access check: `roles.some(r => ["HOST","HOST_MANAGER","ADMIN"].includes(r))`
@@ -271,6 +291,7 @@ Manager check: `roles.some(r => ["HOST_MANAGER","ADMIN"].includes(r))`
 Teacher check: `roles.some(r => ["TEACHER","ADMIN"].includes(r))`
 *(SUPPORT role removed session 100)*
 Registrar check: `roles.some(r => ["REGISTRAR","ADMIN"].includes(r))`
+Trash-manager check: `canManageTrash(roles, isCoordinator)` in `lib/hubAuth.ts` — returns true for ADMIN, GUIDING_TEACHER, or hub coordinator. Used by the Trash page, the sidebar Trash link, and every restore/permanent-delete endpoint.
 
 **Hub membership as authority (session 92 Phase 3):** for hosting and hub communications, a HubMember record is authoritative when it exists — coordinator-owned `status`, `hostingCapability`, and `communicationsEnabled` fields override the legacy role check. Use `getEffectiveHostingCapability(userId, hubSlug, fallback)` and `canReceiveHubNotifications(userId, hubSlug, fallback)` in `lib/hubMemberAuth.ts` when gating host/LiveKit/notification surfaces. ADMIN bypasses. If no HubMember record exists, the helpers fall through to the passed role-based fallback. `syncHubMembership` no longer deletes records on role revoke; hard removal is ADMIN-only via `DELETE /api/hub/[slug]/members/[userId]`.
 

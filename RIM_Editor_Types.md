@@ -498,5 +498,5 @@ The migration is done one field at a time, per schema, with a commit for each. T
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org*
-*Working document · last updated session 102, 2026-05-07 (toolbar polish: bubble = inline marks only; stale placements removed)*
+*Working document · last updated session 113, 2026-05-13 (dropped stale `hub-task` placement — Tasks feature was removed in session 96 but the registry entry survived); session 102 (toolbar polish: bubble = inline marks only)*
 *Supersedes RIM_Editor_Design.md*

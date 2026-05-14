@@ -227,6 +227,35 @@ Hub-specific sections follow the same rule: if you're a member of Course Hub, yo
 
 Coordinator actions (editing home content, managing settings) are gated by `isCoordinator` on the `HubMember` record.
 
+A fifth section, **Trash**, appears in the sidebar only for trash-managers (Admin, Guiding Teacher, or hub coordinator). It lists items soft-deleted from this hub's Documents and Conversations and offers Restore + Permanent Delete. See "Three-stage delete" below.
+
+### Three-stage delete (Active → Archived → Trash)
+
+Both Hub Documents and Conversation threads share a three-stage soft-delete lifecycle (introduced session 113):
+
+1. **Active** — default state. Documents appear in the main list; threads in the "Active" filter.
+2. **Archived** — author or coordinator can archive. Documents move to an "Archived" filter view (still member-readable, read-only). Threads keep their existing `status: "CLOSED"` (relabeled "Archived" in the UI).
+3. **Trash** — the only action available on an Archived item is "Delete", which soft-deletes the item: it disappears from member view entirely and surfaces only on the per-hub Trash page (`/account/hub/[slug]/trash`).
+
+From Trash, a trash-manager can **Restore** (back to whatever state — archived or active for documents, archived for threads) or **Delete permanently** (irreversible cascade).
+
+Members never have a "go straight to trash" option. The Archive step is deliberate — it's reversible and visible. Trash is the second deliberate step that puts the item in front of leadership for review before final removal.
+
+The gate for trash management is `canManageTrash(roles, isCoordinator)` in `lib/hubAuth.ts`. Returns true if `ADMIN ∈ roles || GUIDING_TEACHER ∈ roles || HubMember.isCoordinator === true` on this hub.
+
+### Conversation thread subscriptions
+
+Each thread has an explicit subscriber list (`HubThreadSubscription`, introduced session 113). Subscribers receive every reply automatically. Who becomes a subscriber:
+
+- **Author** (always, source `AUTHOR`)
+- **All hub coordinators** at thread creation (source `COORDINATOR_AUTO`)
+- **Anyone the author picks** in the "Also notify" panel below the compose form (source `ADDED`)
+- **The replier** on any reply (source `ADDED`) — subscribe-by-replying
+- **Anyone added** via the "+ Notify someone new…" picker on a reply (source `ADDED`)
+- **Anyone who self-subscribes** via the `Follow` button in the thread header (source `SELF`)
+
+A subscriber can unsubscribe themselves any time. This model replaced the previous implicit "notify coordinators on new thread / notify participants on reply" — same default behavior, but now an explicit row exists per subscriber so the email recipient list is queryable and overridable.
+
 ### Complete access control matrix
 
 | Role | Hubs (membership required) | Tools (role required) | Hub Sections |
@@ -634,8 +663,10 @@ All hub-related models in `prisma/schema.prisma`:
 | `HubDocument` | `hub_documents` | `hubId`, `addedById`, `label`, `url`, `fileType`, `category`, `isNative`, `isLocked`, `body` (HTML) | Hub document library |
 | `HubConversationThread` | `hub_conversation_threads` | `hubId`, `authorId`, `title`, `body` (HTML), `status`, `isPinned`, `pinnedAt`, `category` | Hub discussions |
 | `HubConversationReply` | `hub_conversation_replies` | `threadId`, `authorId`, `body` (HTML) | Thread replies |
+| `HubThreadSubscription` | `hub_thread_subscriptions` | `threadId`, `userId`, `source`, `@@unique([threadId, userId])` | Per-thread subscriber list (session 113) |
+| `HubDocumentNotification` | `hub_document_notifications` | `documentId`, `userId`, `eventType` | Per-document notification event log (session 113) |
 
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org*
-*Working document · May 2026 (updated session 101 — Tasks removed, Support Inbox removed, Tiptap migration complete)*
+*Working document · May 2026 (updated session 113 — three-stage Archive → Trash lifecycle, thread subscriptions, GUIDING_TEACHER role, per-document notifications; session 101 — Tasks removed, Support Inbox removed, Tiptap migration complete)*

@@ -1,5 +1,150 @@
 ---
 
+## 2026-05-13 (session 113) — Hub notifications, subscriptions, three-stage delete, host confirmation emails, residue cleanup
+
+Eight commits, all on `main`. The session began with one request — add per-document notifications — and grew into a connected pass that touched the entire hub notification + lifecycle system.
+
+### 1. Hub Documents — per-document notification system + PDF upload (commit `3b6fc4b`)
+
+Two features, one form. Authors can now attach a PDF (Vercel Blob client upload via `@vercel/blob/client`, max 500 MB) by toggling Link/File in the existing "Add Resource" form. Auto-populates the label from the filename.
+
+Notifications follow the Basecamp pattern: at creation, the author chooses specific members to notify (default: nobody checked). After creation, a `Notify` button on each row opens a modal that pre-selects members not yet notified for that document.
+
+**Schema:** new `HubDocumentNotification` model (event log, `documentId × userId × eventType` rows, no unique constraint), `PDF` value added to `HubDocumentFileType` enum.
+
+**New routes:**
+- `GET /api/hub/[slug]/documents/[id]/notify` — returns members + notification history
+- `POST /api/hub/[slug]/documents/[id]/notify` — sends to a chosen list
+
+**New email templates** (seeded via `prisma/migrate.mjs`, both in group `05-hubs`): `hub-document-created`, `hub-document-updated`. Sends use `after()` from `next/server` for reliable serverless dispatch.
+
+**Shared component:** `components/HubDocNotifyPanel.tsx` — reused later in conversations.
+
+### 2. Notification dedup + missing email template backfill (commit `767aa9b`)
+
+Server-side dedup on `(documentId, userId, eventType)` in all three send paths. UI shows already-notified members as disabled `✓ Notified [date]` rows with checkbox locked — Basecamp pattern, belt + suspenders.
+
+Audit of `lib/email.ts` vs. `prisma/migrate.mjs` found **four templates referenced by code but never seeded** — silently no-op'ing in production. Backfilled via defensive `findUnique → create` (so any manual `/admin/emails` edits stayed untouched): `session-reminder`, `host-role-assigned`, `sub-request-claimed`, `drip-lesson-available`.
+
+**New gate added to `CLAUDE.md`** ("Email Template Gate"): every `sendTemplatedEmail(slug, …)` call must ship with a matching seed entry in `prisma/migrate.mjs` in the same commit. Documents the defensive create-not-upsert pattern and names the intentional hardcoded exceptions (host coordinator welcome, standing-assignment notifications).
+
+### 3. Conversations — Basecamp-style thread subscriptions (commit `70c759c`)
+
+Replaced the implicit "notify coordinators on new thread / notify participants on reply" with explicit subscription rows.
+
+**New model:** `HubThreadSubscription { threadId, userId, subscribedAt, source }` with `source ∈ {AUTHOR, COORDINATOR_AUTO, ADDED, SELF}`.
+
+**Mental model:**
+- A thread has subscribers; subscribers get every reply automatically.
+- Author + coordinators + anyone picked in the "Also notify" panel are subscribed at thread creation.
+- Replier is auto-subscribed (subscribe-by-replying). Picker on replies adds new subscribers; they receive this reply and every future one.
+- Self-subscribe and unsubscribe via Bell pill in the thread header.
+
+**Backfill migration:** for every existing thread, subscribe (author + all prior repliers + all current coordinators). Preserves the prior implicit behavior — nobody loses email after deploy.
+
+**New routes:** `GET/POST/DELETE /api/hub/[slug]/conversations/[id]/subscribe`. The thread + reply POST routes accept optional `notifyUserIds` (additive — these become subscribers).
+
+**UI:** compose form gets a help line "N coordinators of this hub are automatically notified" + picker filtered to non-coordinators. Thread header gets `Following ✓` / `Follow` pill. Reply box has collapsed "+ Notify someone new…" link expanding the shared `HubDocNotifyPanel`. Same component, two surfaces.
+
+### 4. Two-stage delete: archive + trash with manager review (commit `b2e9f95`)
+
+New shared lifecycle pattern. Member can soft-delete; the item vanishes from member views and surfaces only in a per-hub Trash visible to (Admin / Guiding Teacher / Hub Coordinator).
+
+**Schema:**
+- New `GUIDING_TEACHER` role in the `Role` enum (sangha-wide dharma authority, distinct from `ADMIN`; Jesse currently holds both but the concept is preserved for future teachers).
+- `HubDocument` gains `archivedAt`, `archivedById`, `deletedAt`, `deletedById`.
+- `HubConversationThread` gains `deletedAt`, `deletedById` (status `CLOSED` already serves as archive for threads).
+
+**Permission helper:** `canManageTrash(roles, isCoordinator)` in `lib/hubAuth.ts` — single source of truth. ADMIN ∈ roles OR GUIDING_TEACHER ∈ roles OR `HubMember.isCoordinator === true`.
+
+**New routes for both documents and conversations:**
+- `POST /{id}/archive` (documents only — threads use existing `CLOSED` status)
+- `POST /{id}/restore`
+- `POST /{id}/permanent-delete`
+- existing `DELETE /{id}` becomes soft-delete
+
+**Trash page:** `/account/hub/[slug]/trash` lists soft-deleted documents + threads side by side, sorted by deletion date. Restore + "Delete permanently" on each row. Hub layout passes `canManageTrash` to the sidebar; non-managers don't see the link and direct URL access redirects them away.
+
+**Safety:** trashed items 404 for non-managers even via direct URL; PATCH refuses with "restore it first"; permanent-delete requires the item to already be in trash (no one-shot hard delete).
+
+### 5. Three-stage lifecycle enforcement (commit `f37e267`)
+
+Initial implementation let members go straight from Active to Trash. Jesse clarified the intent: only Archive is available on active items; Delete only appears on archived items, and it sends to the manager trash.
+
+Aligned both UI and API to this rule:
+- Documents: Delete button hidden when `!doc.archivedAt`. Editor footer button changed from `Delete` to `Archive`.
+- Conversations: "Move to trash" menu item only renders when `isClosed`. Menu labels relabeled `Close thread` → `Archive thread`, `Reopen thread` → `Unarchive thread`. "Closed" badge → "Archived". List filter tabs `Open / Closed` → `Active / Archived`.
+- Status change (archive/unarchive) is now author OR coordinator (was coordinator-only); pin/unpin remains coordinator-only.
+- API: both DELETE endpoints 400 with "Archive this … first" unless the item is archived.
+
+### 6. Host assignment confirmation emails — every path (commit `7f9f6e2`)
+
+Audit found that only standing-rotation assignments emailed the new host. Every other path — sub-claim, self-claim, manager-assigns-to-user, claim via PATCH, manager reassign — left the new host with no inbox record.
+
+**Two new templates** (seeded defensively):
+- `host-assignment-confirmation` — sent to anyone who becomes a host on a single session, regardless of the path. Variables: `firstName`, `programName`, `dateText`, `requesterNote` (optional, only on sub-claim), `scheduleUrl`.
+- `host-assignment-removed` — sent to a host displaced by a manager reassign. (Standing-rotation displacement keeps its existing hardcoded batched email.)
+
+**Wired into:**
+- `POST /api/host/sub-requests/[id]/claim` — claimer gets confirmation alongside existing requester email; both now use resolved `Program.name` instead of slug.
+- `POST /api/host/assignments` — fires on self-claim AND when a manager assigns to another user; covers both the create-and-claim-existing-unclaimed and create-new branches.
+- `PATCH /api/host/assignments/[id]` (action=claim) — claimer gets confirmation.
+- `POST /api/host/assignments/reassign` — new host gets confirmation, previously-assigned host gets removal email. The TODO comment that promised displaced-host notification is now actually true.
+
+**Side benefit:** the slug-as-program-name (e.g. `first-floor-pull-back-2024-07-14`) was leaking into the existing `sub-request-claimed` email. Every route now resolves `Program.name` from the slug before sending.
+
+### 7. Tasks + Alerts residue cleanup (commit `809c6b9`)
+
+The Tasks and Alerts modules were deleted in session 96 but residue survived in five places. Audited the codebase and the supporting docs:
+
+- `lib/editorRegistry.ts`: dropped `hub-task` from the `EditorPlacement` union and from `PLACEMENT_TYPE`, `MESSAGE_PLACEMENTS`, `MESSAGE_WITH_TABLES`, `MESSAGE_WITH_FILES`. The Tiptap `TaskList` extension stays — different thing (in-editor inline checklist).
+- Removed "Alerts" from cascade-delete enumeration comments in `app/api/admin/members/[id]/route.ts` and `app/api/account/complete-profile/route.ts`.
+- Dropped the one-time `remove_tasks_feature` and `remove_alerts_module` migrations from `prisma/migrate.mjs` (already flagged in prod, inert on fresh DB).
+- Updated three stale "alert-creation/dedup happens in lib/supportNotify.ts" descriptions — that file no longer exists.
+- `RIM_Hub_Model.md` + `RIM_System_Architecture.md`: trimmed Tasks from the hub core sections list. `FEATURES.md`: removed Tasks from the per-hub tab table, added Trash row, added removal footnote.
+
+### 8. Support Inbox residue cleanup (commit `f122a30`)
+
+The Support Inbox application was removed in session 100; HubAppLinks + ManualSection were stripped in session 110; but residue survived in eight more places.
+
+- `app/manual/page.tsx`, `app/admin/manual/page.tsx`, `app/admin/manual/[slug]/page.tsx`: `support: "Support Inbox"` → `support: "Support Hub"` in the hubLabel maps. The Support Hub still exists; it just has no inbox tool.
+- Dropped the `seed_support_notification_email_template` and `remove_support_inbox_residue` migrations (their work is done).
+- Removed the "06 · Support Inbox" group section from `organize_email_templates_with_groups_and_helptext`.
+- Removed the inbox UPDATE from `add_tool_slug_to_hub_app_links` (no rows match anymore).
+- Removed the dead `manualSection.updateMany({ slug: "support-inbox" })` call from the host-schedule seed block.
+- **New cleanup migration** `drop_support_notification_template` deletes the orphaned `support-notification` email template row from `/admin/emails` (no sender, no UI consumer).
+- Deleted `prisma/update-manual-system-section.ts` (session-63 one-shot with outdated content) and `prisma/seed-email-templates.js` (pre-migrate.mjs seed superseded).
+- `prisma/seed-manual.ts`: removed SUPPORT role lines from volunteer-roles seed (SUPPORT was also removed in session 100); added `GUIDING_TEACHER` to match current Role enum.
+- `RIM_Hub_Model.md`: dropped the example `/api/tools/inbox/context` endpoint. `FEATURES.md`: footnoted the session-73 tools-extraction callout. Backlog: removed the "Restore support-sync cron when Support Inbox launches" item (it's not launching), updated the mobile-audit item to drop `/tools/inbox` + `/tasks` and add `/account/hub/[slug]/trash`.
+
+### Design decisions
+
+1. **Notification dedup is per-event-type, not per-document.** Same person can legitimately get `created` then `updated` for the same doc — those are distinct events. Subscriber model for threads removes the question entirely (subscribed = receives all events).
+
+2. **Coordinator role at the hub level remains distinct from sangha-wide GUIDING_TEACHER role.** Both gate trash, but coordinator is per-hub authority and GUIDING_TEACHER is sangha-wide dharma authority. Today they map 1:1 onto Jesse (ADMIN); the distinction matters for future teachers who might have dharma authority but no technical admin role.
+
+3. **Three-stage lifecycle, not two.** Members never have a "go straight to trash" option — Archive is the deliberate intermediate step. The Archived view is member-visible, read-only, and reversible. Trash is manager-only.
+
+4. **Archive concept is unified under "archive" terminology, but conversations keep their existing CLOSED status as the underlying data model.** No schema rename — just label changes in the UI. Avoids a migration for cosmetic reasons; preserves the meaning of `status: "CLOSED"` for the API.
+
+5. **Every host gets a confirmation email when they become a host, regardless of how.** Standing rotations had it; per-session paths didn't. Now they all do. One template handles five paths via optional `requesterNote` variable.
+
+6. **Email Template Gate added as a discipline gate in `CLAUDE.md`.** The audit surfaced four templates missing for months. Going forward, every `sendTemplatedEmail` slug must have a `migrate.mjs` seed in the same commit.
+
+### What this connects to
+
+- Hub architecture is unchanged structurally — every hub gets every feature automatically because the routes are `[slug]`-parameterized and the data is keyed by `hubId`. The Host Hub, Support Hub, Course Hub, Registrar Hub, and every governance hub now have document archive/trash, conversation subscriptions, and the Trash page (managers only).
+- LiveKit, programs, registrations are unaffected.
+- Standing-rotation emails remain hardcoded — they're batched, content-specific, and don't fit the per-session template model. Acceptable exception noted in code + CLAUDE.md.
+
+### What comes next
+
+- Maria training session per `TRAINING_PLAN.md` — sessions 111/112 features are live, sessions 113 features (notifications, subscriptions, trash) are live as of this session.
+- Optional UX validation in the deployed app: PDF upload flow, notification dedup behavior, "Follow" toggle, Trash page UX.
+- Optional future polish: email confirmation copy review at `/admin/emails`; consider showing `requesterNote` more prominently in `host-assignment-confirmation` when populated.
+
+---
+
 ## 2026-05-13 (session 112) — Host hub: LiveKit room gap fix + Enter room link in host schedule
 
 Two small, connected changes. Both came from the same question: could a coordinator lose the connection to the virtual conferencing space in a way they couldn't fix from the hub?

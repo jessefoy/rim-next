@@ -22,6 +22,7 @@ import { updateManualHostRotationsV3 } from "./update-manual-host-rotations-v3.m
 import { updateManualHostRotationsV4 } from "./update-manual-host-rotations-v4.mjs";
 import { updateManualHostSessionRoom } from "./update-manual-host-session-room.mjs";
 import { updateManualConversations } from "./update-manual-conversations.mjs";
+import { updateManualConversationsV2 } from "./update-manual-conversations-v2.mjs";
 import { updateManualCourseHub } from "./update-manual-course-hub.mjs";
 import { updateManualRegistration } from "./update-manual-registration.mjs";
 import { updateManualPrograms } from "./update-manual-programs.mjs";
@@ -2364,6 +2365,21 @@ async function main() {
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_conversations_v2')`);
   } else {
     console.log("  ⏭ Manual conversations already updated.");
+  }
+
+  // Session 113 — rewrite the Conversations chapter to cover the new
+  // subscription model (subscribers receive every reply), Follow/Unfollow
+  // toggle, "Notify someone new" picker on replies, and the Archive → Trash
+  // three-stage delete flow. Flag advanced to v3.
+  const updateManualConversationsV3Flag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_conversations_v3'
+  `).catch(() => []);
+
+  if (updateManualConversationsV3Flag.length === 0) {
+    await updateManualConversationsV2(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_conversations_v3')`);
+  } else {
+    console.log("  ⏭ Manual conversations (v3 subscriptions + trash) already updated.");
   }
 
   // Older chapters — option-C "remove what's wrong" pass against the
