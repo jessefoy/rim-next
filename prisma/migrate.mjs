@@ -1925,6 +1925,40 @@ Rooted In Mindfulness · Brookfield, WI`,
       console.log(`  ✔ Applied: ${this.name} (${result.count} row${result.count === 1 ? "" : "s"} removed)`);
     },
   },
+  {
+    // Session 114 — Document conversations.
+    //
+    // HubConversationThread gains an optional documentId FK so threads can be
+    // associated with a specific hub document. The hub Conversations feed
+    // filters to documentId: null; document threads live on the document page
+    // and in the unified Activity stream.
+    name: "add_document_id_to_hub_conversation_threads",
+    async run() {
+      const flag = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags"
+        WHERE name = 'add_document_id_to_hub_conversation_threads_v1'
+      `).catch(() => []);
+      if (flag.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      await db.$executeRawUnsafe(`
+        ALTER TABLE "hub_conversation_threads"
+        ADD COLUMN IF NOT EXISTS "documentId" TEXT
+        REFERENCES "hub_documents"("id") ON DELETE CASCADE
+      `);
+      await db.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS "hub_conversation_threads_documentId_idx"
+        ON "hub_conversation_threads"("documentId")
+      `);
+
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('add_document_id_to_hub_conversation_threads_v1')
+      `);
+      console.log(`  ✔ Applied: ${this.name}`);
+    },
+  },
 ];
 
 // ── Server-safe compute helpers (mirror of lib/programUtils.ts) ──────────────
