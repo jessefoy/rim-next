@@ -5,7 +5,7 @@
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { getHubMembership } from "@/lib/hubAuth";
+import { getHubMembership, effectiveCoordinator } from "@/lib/hubAuth";
 import HubDocumentEditor from "@/components/HubDocumentEditor";
 
 export const dynamic = "force-dynamic";
@@ -45,12 +45,17 @@ export default async function HubDocumentEditPage({
   if (!doc || doc.hubId !== hub.id) notFound();
 
   // Only author or coordinator can edit
-  const isCoordinator = (member?.isCoordinator ?? false) || isAdmin;
+  const editRoles = session.user.roles ?? [];
+  const isCoordinator = effectiveCoordinator(member, editRoles);
   const isAuthor = doc.addedById === session.user.id;
   if (!isAuthor && !isCoordinator) redirect(`/account/hub/${slug}/documents`);
 
-  // Locked docs: only author + admin can edit
-  if (doc.isLocked && !isAuthor && !isAdmin) {
+  // Locked docs: only author, ADMIN, or GUIDING_TEACHER can edit. (Lock is the
+  // author asserting sole authorship; coordinators don't override it, but
+  // technical/dharma authorities do for moderation/restoration.)
+  const canOverrideLock =
+    editRoles.includes("ADMIN") || editRoles.includes("GUIDING_TEACHER");
+  if (doc.isLocked && !isAuthor && !canOverrideLock) {
     redirect(`/account/hub/${slug}/documents/${id}`);
   }
 

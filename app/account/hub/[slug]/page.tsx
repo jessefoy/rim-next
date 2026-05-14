@@ -13,7 +13,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { getHubMembership } from "@/lib/hubAuth";
+import { getHubMembership, effectiveCoordinator } from "@/lib/hubAuth";
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import { getHubContext } from "@/lib/hubContext";
 import { activeHubThreadWhere } from "@/lib/hubQueries";
@@ -59,7 +59,7 @@ export default async function HubHomePage({
   // schema field) rather than a slug literal so a future hosting hub works
   // without code changes.
   if (hub.hasSchedule) {
-    const isCoordinator = (member?.isCoordinator ?? false) || isAdmin;
+    const isCoordinator = effectiveCoordinator(member, session.user.roles ?? []);
 
     const [welcomeHtml, thisMonth] = await Promise.all([
       renderFormattedTextAsync(hub.welcomeBody),

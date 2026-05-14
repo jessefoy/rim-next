@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { after } from "next/server";
-import { getHubMembership } from "@/lib/hubAuth";
+import { getHubMembership, effectiveCoordinator } from "@/lib/hubAuth";
 import { sendHubDocumentCreatedEmail, sendHubDocumentUpdatedEmail } from "@/lib/email";
 
 const BASE_URL = (process.env.NEXTAUTH_URL ?? "").trim().replace(/\/$/, "");
@@ -82,7 +82,7 @@ export async function POST(
 
   // Only author or coordinator can send notifications
   const isAuthor = doc.addedById === session.user.id;
-  const isCoord  = (member?.isCoordinator ?? false) || isAdmin;
+  const isCoord  = effectiveCoordinator(member, session.user.roles ?? []);
   if (!isAuthor && !isCoord) {
     return NextResponse.json({ error: "Only the author or a coordinator can send notifications" }, { status: 403 });
   }

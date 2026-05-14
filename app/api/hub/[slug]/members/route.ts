@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { getHubMembership, requireCoordinator } from "@/lib/hubAuth";
+import { getHubMembership, requireCoordinator, effectiveCoordinator } from "@/lib/hubAuth";
 import { sendHubWelcomeEmail } from "@/lib/email";
 
 // GET /api/hub/[slug]/members — list hub members
@@ -66,7 +66,7 @@ export async function POST(
   if (!hub) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (!member && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const isCoordinator = (member?.isCoordinator ?? false) || isAdmin;
+  const isCoordinator = effectiveCoordinator(member, roles);
   try { requireCoordinator(isCoordinator, roles); }
   catch { return NextResponse.json({ error: "Coordinator required" }, { status: 403 }); }
 

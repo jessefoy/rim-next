@@ -13,6 +13,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getHubContext } from "@/lib/hubContext";
+import { effectiveCoordinator } from "@/lib/hubAuth";
 
 export async function GET(
   _req: Request,
@@ -80,7 +81,7 @@ export async function GET(
       conversations: ctx.conversationsUnread,
     },
     hasManual: manualCount > 0,
-    isCoordinator: (member?.isCoordinator ?? false) || isAdmin,
+    isCoordinator: effectiveCoordinator(member, roles),
     isAdmin,
   });
 }

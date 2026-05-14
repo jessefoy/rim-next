@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { effectiveCoordinator } from "@/lib/hubAuth";
 
 /**
  * PATCH /api/hubs/[slug]/home — update hub home content (coordinator or admin).
@@ -17,7 +18,6 @@ export async function PATCH(
 
   const { slug } = await params;
   const roles = session.user.roles ?? [];
-  const isAdmin = roles.includes("ADMIN");
 
   const hub = await db.hub.findUnique({
     where: { slug },
@@ -27,8 +27,7 @@ export async function PATCH(
   if (!hub) return NextResponse.json({ error: "Hub not found" }, { status: 404 });
 
   const member = hub.members[0] ?? null;
-  const isCoordinator = (member?.isCoordinator ?? false) || isAdmin;
-  if (!isCoordinator) {
+  if (!effectiveCoordinator(member, roles)) {
     return NextResponse.json({ error: "Only coordinators can edit hub home content." }, { status: 403 });
   }
 

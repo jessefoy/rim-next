@@ -1,16 +1,29 @@
 import { db } from "@/lib/db";
 
 /**
- * ─── DEV-MODE ACCESS POLICY ──────────────────────────────────────────────────
- * During development, ADMIN has full coordinator-level access to ALL hubs,
- * even without a HubMember record. This is intentional — it lets admins test
- * and manage any hub without needing to be individually added as a member.
+ * ─── COORDINATOR-LEVEL ACCESS POLICY ─────────────────────────────────────────
+ * Two roles bypass the per-hub HubMember.isCoordinator flag and act as
+ * coordinators on every hub:
  *
- * How it works:
- *  - getHubMembership() always returns isAdmin (caller gates on !member && !isAdmin)
- *  - requireCoordinator() already bypasses for ADMIN (checks roles.includes("ADMIN"))
- *  - API write routes use `member?.isCoordinator ?? false` so null member is safe
- *  - Page isCoordinator computations use `(member?.isCoordinator ?? false) || isAdmin`
+ *   ADMIN            — technical authority. Soft-admins every surface; used
+ *                      for testing and operating any hub without needing a
+ *                      HubMember row.
+ *
+ *   GUIDING_TEACHER  — sangha-wide dharma authority (added session 113).
+ *                      Distinct from ADMIN: no technical-admin scope (can't
+ *                      edit hub config, delete hubs, hard-remove members),
+ *                      but DOES act as an implicit coordinator on every hub
+ *                      for content + moderation purposes. See
+ *                      RIM_Role_Design.md for the rationale.
+ *
+ * Helpers in this module:
+ *  - getHubMembership()    — returns isAdmin (callers gate on !member && !isAdmin)
+ *  - requireCoordinator()  — bypasses for ADMIN + GUIDING_TEACHER
+ *  - effectiveCoordinator()— the canonical "is this user acting as coordinator
+ *                            on this hub?" computation. Use it everywhere
+ *                            that previously inlined
+ *                              (member?.isCoordinator ?? false) || isAdmin
+ *  - canManageTrash()      — trash-bin authority (coordinator/ADMIN/GT)
  *
  * Post-launch decision: revisit whether ADMIN should be auto-added to all hubs
  * as a HubMember (coordinator) via syncHubMembership, or whether the bypass
@@ -44,12 +57,39 @@ export async function getHubMembership(slug: string, userId: string, roles: stri
 
 /**
  * Throws an error (HTTP-style) if user is not a coordinator on this hub.
- * ADMIN users bypass this check.
+ * ADMIN and GUIDING_TEACHER bypass this check — see the access policy
+ * comment at the top of this file.
  */
 export function requireCoordinator(isCoordinator: boolean, roles: string[]) {
-  if (!isCoordinator && !roles.includes("ADMIN")) {
+  if (
+    !isCoordinator &&
+    !roles.includes("ADMIN") &&
+    !roles.includes("GUIDING_TEACHER")
+  ) {
     throw new Error("coordinator_required");
   }
+}
+
+/**
+ * The canonical "is this user acting as a coordinator on this hub?" check.
+ *
+ * Returns true if any of:
+ *   - HubMember.isCoordinator === true on this hub (the canonical flag)
+ *   - roles includes ADMIN (technical authority)
+ *   - roles includes GUIDING_TEACHER (sangha-wide dharma authority)
+ *
+ * Replaces the inline pattern
+ *     const isCoordinator = (member?.isCoordinator ?? false) || isAdmin;
+ * which appeared at ~14 call sites and silently omitted GT. Use this helper
+ * everywhere coordinator-level UI affordances or write paths are gated.
+ */
+export function effectiveCoordinator(
+  member: { isCoordinator: boolean } | null | undefined,
+  roles: string[],
+): boolean {
+  if (roles.includes("ADMIN")) return true;
+  if (roles.includes("GUIDING_TEACHER")) return true;
+  return member?.isCoordinator ?? false;
 }
 
 /**

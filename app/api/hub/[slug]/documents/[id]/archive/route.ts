@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { getHubMembership } from "@/lib/hubAuth";
+import { getHubMembership, effectiveCoordinator } from "@/lib/hubAuth";
 
 /**
  * POST /api/hub/[slug]/documents/[id]/archive — toggle archive state.
@@ -30,7 +30,7 @@ export async function POST(
   if (doc.deletedAt) return NextResponse.json({ error: "Document is in trash" }, { status: 400 });
 
   const isAuthor = doc.addedById === session.user.id;
-  const isCoord  = (member?.isCoordinator ?? false) || isAdmin;
+  const isCoord  = effectiveCoordinator(member, session.user.roles ?? []);
   if (!isAuthor && !isCoord) {
     return NextResponse.json({ error: "Only the author or a coordinator can archive" }, { status: 403 });
   }

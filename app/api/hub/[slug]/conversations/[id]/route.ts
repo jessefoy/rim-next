@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
-import { getHubMembership, requireCoordinator, canManageTrash } from "@/lib/hubAuth";
+import { getHubMembership, requireCoordinator, canManageTrash, effectiveCoordinator } from "@/lib/hubAuth";
 
 // GET /api/hub/[slug]/conversations/[id] — thread detail + replies
 export async function GET(
@@ -76,7 +76,7 @@ export async function PATCH(
   // Edit — author OR coordinator can edit title/body
   if (action === "edit") {
     const isAuthor = thread.authorId === session.user.id;
-    const isCoordinator = (member?.isCoordinator ?? false) || isAdmin;
+    const isCoordinator = effectiveCoordinator(member, session.user.roles ?? []);
     if (!isAuthor && !isCoordinator) {
       return NextResponse.json({ error: "Only the author can edit this post." }, { status: 403 });
     }
@@ -120,7 +120,7 @@ export async function PATCH(
   // thread is the archive concept for conversations — the author should be
   // able to wind down their own thread, not just coordinators.
   const isAuthor = thread.authorId === session.user.id;
-  const isCoordinator = (member?.isCoordinator ?? false) || isAdmin;
+  const isCoordinator = effectiveCoordinator(member, session.user.roles ?? []);
   if (!isAuthor && !isCoordinator) {
     return NextResponse.json({ error: "Only the author or a coordinator can change status" }, { status: 403 });
   }
@@ -170,7 +170,7 @@ export async function DELETE(
   }
 
   const isAuthor = thread.authorId === session.user.id;
-  const isCoord  = (member?.isCoordinator ?? false) || isAdmin;
+  const isCoord  = effectiveCoordinator(member, session.user.roles ?? []);
   if (!isAuthor && !isCoord) {
     return NextResponse.json({ error: "Only the author or a coordinator can delete" }, { status: 403 });
   }

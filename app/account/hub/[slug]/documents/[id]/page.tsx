@@ -11,7 +11,7 @@
 import { auth } from "@/auth";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { getHubMembership } from "@/lib/hubAuth";
+import { getHubMembership, effectiveCoordinator } from "@/lib/hubAuth";
 import { renderContentBodyAsync } from "@/lib/renderRichContentServer";
 import Link from "next/link";
 import HubDocConversationsClient from "@/components/HubDocConversationsClient";
@@ -36,7 +36,7 @@ export default async function HubDocumentViewPage({
   });
   if (!doc || doc.hubId !== hub.id) notFound();
 
-  const isCoordinator = (member?.isCoordinator ?? false) || isAdmin;
+  const isCoordinator = effectiveCoordinator(member, session.user.roles ?? []);
   const bodyHtml = doc.body ? await renderContentBodyAsync(doc.body) : "";
 
   const addedByName =

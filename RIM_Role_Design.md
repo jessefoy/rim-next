@@ -234,6 +234,52 @@ To be written as a dedicated spec after this role design is reviewed and approve
 
 ---
 
+## Guiding Teacher
+
+### What this role actually does
+
+The Guiding Teacher holds **sangha-wide dharma authority** at RIM. The role exists for senior teachers whose responsibility spans every hub — not as technical operators of the system, but as stewards of what the community produces inside it. Currently held only by Jesse; preserved in the role enum for future teachers who carry the same scope without being given full technical admin.
+
+The distinction from `ADMIN` is intentional. `ADMIN` is a technical role: a person trusted to operate the system, change configuration, hard-remove records, delete hubs. `GUIDING_TEACHER` is a dharma role: a person trusted to oversee the content and tone of community spaces. The two often overlap (Jesse is both), but they are not the same authority. Adding a second guiding teacher should not require also handing them the keys to the technical infrastructure.
+
+### How the system treats GT (as of session 115)
+
+`GUIDING_TEACHER` acts as an **implicit coordinator on every hub** for content and moderation purposes, without needing a `HubMember` row. The system computes this in one place: `effectiveCoordinator(member, roles)` in `lib/hubAuth.ts`. Any surface that asked "is this user a coordinator?" now answers true for GT.
+
+Concretely, a Guiding Teacher can — on any hub, even one they are not a member of:
+
+- Edit hub Home content (welcome body, home content)
+- Create, edit, archive, and delete any document (override authorship)
+- Override a document lock (alongside `ADMIN`) for moderation/restoration
+- Edit, pin, archive, and delete any conversation thread (override authorship)
+- Add and remove hub members
+- Change member status, hosting capability, communications, position, coordinator flag, and pause/coordinator notes
+- See and act on the hub Trash (restore, permanently delete) — already enabled by `canManageTrash` in session 113
+
+What GT does NOT inherit from `ADMIN`:
+
+- Hard-remove a hub member (`DELETE /api/hub/[slug]/members/[userId]` — ADMIN only)
+- Edit hub config: name, slug, type, app links, status (the `/admin/hubs/[slug]/edit` page is ADMIN-gated)
+- Create or delete hubs
+- Edit roles on the canonical User record (`/admin/members/[id]`)
+- Edit email templates, manual chapters, Sanity content, or other site-wide configuration
+
+The mental model: **GT is a soft admin at the content layer; not at the configuration layer.**
+
+### Why this scope
+
+The role exists because community oversight does not require technical operation. A senior teacher should be able to step into any conversation, restore an accidentally-deleted document, archive a thread that ran its course, or remove a member who has stopped participating — without needing to also be the person who configures Vercel or migrates databases. The technical operator role is separately given to whoever currently does that work; the two are decoupled.
+
+The system enforces this through one helper (`effectiveCoordinator`) rather than scattered role checks. The `canManageTrash` and lock-override checks include GT separately because they are not "coordinator" actions — they are explicit authority decisions. `requireCoordinator` was updated to allow GT bypass to match the new model.
+
+### What's deferred
+
+A separate "Guiding Teacher" badge or membership indicator (a visible cue in member rosters that this person is GT) has not been added. The authority is computed per-viewer for permissions; it is not displayed in lists. If a future hub coordinator wants visibility into who can override their decisions, a badge can be added then.
+
+A GT-specific audit log of moderation actions (who restored what, who edited whose thread) is not built. Moderation history can be reconstructed from the `archivedById` / `deletedById` / `editedAt` fields already on each model. A dedicated audit view becomes worth building if the moderation volume grows enough to need it.
+
+---
+
 *Rooted in Mindfulness · rootedinmindfulness.org*
 *Working document · March 2026*
 *This is a living document. Add a new role section each time a hub goes through this design process.*

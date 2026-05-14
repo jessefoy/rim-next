@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 import { after } from "next/server";
-import { getHubMembership, canManageTrash } from "@/lib/hubAuth";
+import { getHubMembership, canManageTrash, effectiveCoordinator } from "@/lib/hubAuth";
 import { cleanupRemovedBlobs } from "@/lib/blobCleanup";
 import { sendHubDocumentUpdatedEmail } from "@/lib/email";
 
@@ -67,14 +67,19 @@ export async function PATCH(
     return NextResponse.json({ error: "This document is archived — unarchive it first" }, { status: 400 });
   }
 
+  const patchRoles = session.user.roles ?? [];
   const isAuthor = doc.addedById === session.user.id;
-  const isCoord = (member?.isCoordinator ?? false) || isAdminPatch;
+  const isCoord = effectiveCoordinator(member, patchRoles);
   if (!isAuthor && !isCoord) {
     return NextResponse.json({ error: "Only the author or a coordinator can edit" }, { status: 403 });
   }
 
-  // Enforce lock — only author and admin can edit a locked document
-  if (doc.isLocked && !isAuthor && !isAdminPatch) {
+  // Enforce lock — only author, ADMIN, or GUIDING_TEACHER can edit a locked
+  // document. (Coordinators don't override locks; lock is the author asserting
+  // sole authorship. ADMIN/GT override for moderation/restoration.)
+  const canOverrideLock =
+    patchRoles.includes("ADMIN") || patchRoles.includes("GUIDING_TEACHER");
+  if (doc.isLocked && !isAuthor && !canOverrideLock) {
     return NextResponse.json({ error: "This document is locked by the author" }, { status: 403 });
   }
 
@@ -206,7 +211,7 @@ export async function DELETE(
   }
 
   const isAuthorDel = doc.addedById === session.user.id;
-  const isCoordDel = (member?.isCoordinator ?? false) || isAdminDelete;
+  const isCoordDel = effectiveCoordinator(member, session.user.roles ?? []);
   if (!isAuthorDel && !isCoordDel) {
     return NextResponse.json({ error: "Only the author or a coordinator can delete" }, { status: 403 });
   }

@@ -5,7 +5,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { getHubMembership } from "@/lib/hubAuth";
+import { getHubMembership, effectiveCoordinator } from "@/lib/hubAuth";
 import HubMembersClient from "@/components/HubMembersClient";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +28,7 @@ export default async function HubMembersPage({
   const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, session.user.roles ?? []);
   if (!hub || (!member && !isAdmin)) redirect("/account/dashboard");
 
-  const isCoordinator = (member?.isCoordinator ?? false) || isAdmin;
+  const isCoordinator = effectiveCoordinator(member, session.user.roles ?? []);
 
   const members = await db.hubMember.findMany({
     where:   { hubId: hub.id },
