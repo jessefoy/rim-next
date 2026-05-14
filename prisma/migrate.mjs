@@ -32,6 +32,7 @@ import { updateManualRegistrationRewrite } from "./update-manual-registration-re
 import { seedManualHostFirstWeek } from "./seed-manual-host-first-week.mjs";
 import { updateHostHubWelcomeBody } from "./update-host-hub-welcome-body.mjs";
 import { seedHostHubTrainingDoc } from "./seed-host-hub-training-doc.mjs";
+import { seedNonHostHubHomeContent } from "./seed-non-host-hub-home-content.mjs";
 
 const db = new PrismaClient();
 
@@ -2622,6 +2623,21 @@ async function main() {
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_schedule_v5')`);
   } else {
     console.log("  ⏭ Manual host-schedule v5 already applied.");
+  }
+
+  // Session 115 — placeholder welcomes for the three non-host operational
+  // hubs (courses, registrar, support). Defensive: only writes welcomeBody
+  // when it's currently null. Coordinator edits made before or after this
+  // runs are preserved.
+  const seedNonHostWelcomesFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'seed_non_host_hub_home_content_v1'
+  `).catch(() => []);
+
+  if (seedNonHostWelcomesFlag.length === 0) {
+    await seedNonHostHubHomeContent(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('seed_non_host_hub_home_content_v1')`);
+  } else {
+    console.log("  ⏭ Non-host hub welcomes already seeded.");
   }
 
   await db.$disconnect();
