@@ -270,19 +270,21 @@ The system of record for member data is called the **Member Registry**. This is 
 
 Hub documents and conversation threads share a three-stage lifecycle: **Active → Archived → Trash**.
 
-- **Archive** is the only soft action available on an Active item. Reversible. Author or coordinator. Documents move to an "Archived" filter view (member-visible, read-only); threads use the existing `status: "CLOSED"` (relabeled "Archived" in the UI).
+- **Archive** is the only soft action available on an Active item. Reversible. Author or coordinator. Both documents and threads use `archivedAt DateTime?` as the canonical archive marker (session 115 — threads were unified with documents, mirroring `HubDocument`'s shape). Archived items move to an "Archived" filter view (member-visible, read-only).
 - **Delete** is only available on Archived items. Soft-deletes the item to the per-hub Trash, vanishes from member views entirely. Author or coordinator. Enforced both in the UI (Delete button hidden when item is not archived) and in the API (DELETE returns 400 if not archived).
 - **Restore** and **Permanent Delete** live on the Trash page (`/account/hub/[slug]/trash`). Trash-managers only.
 
 **Trash-management authority** is gated by `canManageTrash(roles, isCoordinator)` in `lib/hubAuth.ts` — a single source of truth used by the Trash page, the sidebar link, and every restore/permanent-delete endpoint. Returns true if any of:
 
 - `ADMIN ∈ roles`
-- `GUIDING_TEACHER ∈ roles` (new role added in session 113)
+- `GUIDING_TEACHER ∈ roles` (role added in session 113)
 - `HubMember.isCoordinator === true` on the hub in question
 
-**`GUIDING_TEACHER` role.** Sangha-wide dharma authority, distinct from `ADMIN` (which is technical/operational). Currently held only by Jesse, but the distinction is preserved in the enum for future teachers who may have dharma authority without needing technical-admin scope. The Trash gate is the only place this role unlocks behavior today.
+**Coordinator-level authority** (separately) is gated by `effectiveCoordinator(member, roles)` in `lib/hubAuth.ts` — added in session 115 to replace the inline `(member?.isCoordinator ?? false) || isAdmin` pattern that silently omitted GT. Returns true for the coordinator flag, ADMIN, or GUIDING_TEACHER. Used in every page and API route that previously inlined the check (~14 sites).
 
-Schema additions: `HubDocument.archivedAt/archivedById/deletedAt/deletedById`, `HubConversationThread.deletedAt/deletedById`. Indexes `(hubId, deletedAt)` on both. List queries everywhere filter `deletedAt: null` by default; single-item GET routes 404 for non-managers when `deletedAt` is set.
+**`GUIDING_TEACHER` role.** Sangha-wide dharma authority, distinct from `ADMIN` (which is technical/operational). As of session 115, GT **acts as an implicit coordinator on every hub** for content + moderation (archive, restore, edit threads, pin/unpin, override doc lock, edit member status). GT does NOT inherit ADMIN-level technical authority (hub config edits, hard-remove member, hub create/delete, system-wide settings). The role exists so a senior teacher can have full content reach across the sangha without also being given the keys to the technical infrastructure. Full role design: `RIM_Role_Design.md`.
+
+Schema additions: `HubDocument.archivedAt/archivedById/deletedAt/deletedById` (session 113), `HubConversationThread.archivedAt/archivedById` (session 115), `HubConversationThread.deletedAt/deletedById` (session 113). Indexes `(hubId, deletedAt)` on both. List queries everywhere filter `deletedAt: null` and `archivedAt: null` by default; single-item GET routes 404 for non-managers when `deletedAt` is set. The canonical hub-thread filter is `activeHubThreadWhere(hubId)` in `lib/hubQueries.ts` — use it for any findMany / count surfacing hub-level threads to members.
 
 ### Hub notifications (session 113)
 
@@ -311,4 +313,4 @@ This file is part of the closing ritual for any Claude Code session that touches
 ---
 
 *Rooted in Mindfulness · rootedinmindfulness.org*
-*Working document · May 2026 (updated session 114 — document conversations (HubConversationThread.documentId FK), unified Activity stream; session 113 — three-stage archive/trash lifecycle, GUIDING_TEACHER role, hub notification subscriptions, host confirmation emails; session 110 — Support Inbox tool wiring residue stripped, "Dashboard" → "Home" in member area; session 101 — Tasks removed, Support Inbox removed, hub count corrected)*
+*Working document · May 2026 (updated session 115 — hub-system audit, canonical query/coordinator helpers, archive mechanism unified between threads and documents, GUIDING_TEACHER scope expanded to implicit-coordinator on every hub; session 114 — document conversations (HubConversationThread.documentId FK), unified Activity stream; session 113 — three-stage archive/trash lifecycle, GUIDING_TEACHER role, hub notification subscriptions, host confirmation emails; session 110 — Support Inbox tool wiring residue stripped, "Dashboard" → "Home" in member area; session 101 — Tasks removed, Support Inbox removed, hub count corrected)*

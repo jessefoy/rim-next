@@ -1,6 +1,6 @@
 # RIM Next — Stack Reference
 
-_Generated 2026-03-11. Last updated 2026-05-13 (session 113 — GUIDING_TEACHER role + hub trash + notification subscriptions)._
+_Generated 2026-03-11. Last updated 2026-05-14 (session 115 — hub-system audit: canonical query/coordinator helpers, archive unification, GT scope expansion)._
 
 ---
 
@@ -19,7 +19,7 @@ Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfie
 - Email Template Manager at `/admin/emails` — database-backed
 - Database-driven staff manual (ManualSection records) with audience-grouped index, hub-scoped projection, contextual help icons
 - **Hub Documents** with per-document Basecamp-style notifications, PDF file uploads, three-stage Archive → Trash lifecycle (session 113)
-- **Hub Conversations** with thread subscription model (subscribers receive every reply automatically), `Follow` / `Unfollow` toggle, additive "Notify someone new" picker on replies, three-stage Archive → Trash lifecycle (session 113)
+- **Hub Conversations** with thread subscription model (subscribers receive every reply automatically), `Follow` / `Unfollow` toggle, additive "Notify someone new" picker on replies, three-stage Archive → Trash lifecycle (session 113). Archive marker is `archivedAt DateTime?` as of session 115 (mirrors `HubDocument`); legacy `status: "CLOSED"` column kept in sync for backward compat, removable in a future cleanup.
 - **Hub Trash** (`/account/hub/[slug]/trash`) — per-hub trash bin for soft-deleted documents and threads; gated to Admin / Guiding Teacher / hub coordinator (session 113)
 - **Host assignment confirmation emails** — every path that makes someone a host (sub-claim, self-claim, manager assignment, PATCH claim, reassign) sends a confirmation; reassign also sends a removal email to the displaced host (session 113)
 
@@ -291,7 +291,7 @@ data/backlog.json     feature backlog (surfaced at /admin/ideas)
 | `TEACHER` | Teacher Hub — course and lesson management |
 | ~~`SUPPORT`~~ | Removed session 100 — Support Inbox deleted |
 | `REGISTRAR` | Registrar Hub (auto-synced, coordinator), registrations, member profiles, Program Editor |
-| `GUIDING_TEACHER` | Sangha-wide dharma authority (added session 113). Distinct from `ADMIN` (technical). Gates hub Trash management alongside coordinators. Currently held only by Jesse; preserved in the enum for future teachers without technical-admin scope. |
+| `GUIDING_TEACHER` | Sangha-wide dharma authority. Acts as **implicit coordinator on every hub** for content + moderation (scope expanded session 115). Distinct from `ADMIN`: no technical-admin scope (no hub config, no hard-remove member, no hub create/delete). Currently held only by Jesse; preserved in the enum for future teachers without technical-admin scope. Full role design: `RIM_Role_Design.md`. |
 | `ADMIN` | Everything |
 
 Hub access check: `roles.some(r => ["HOST","HOST_MANAGER","ADMIN"].includes(r))`
@@ -300,6 +300,10 @@ Teacher check: `roles.some(r => ["TEACHER","ADMIN"].includes(r))`
 *(SUPPORT role removed session 100)*
 Registrar check: `roles.some(r => ["REGISTRAR","ADMIN"].includes(r))`
 Trash-manager check: `canManageTrash(roles, isCoordinator)` in `lib/hubAuth.ts` — returns true for ADMIN, GUIDING_TEACHER, or hub coordinator. Used by the Trash page, the sidebar Trash link, and every restore/permanent-delete endpoint.
+
+Coordinator-level check: `effectiveCoordinator(member, roles)` in `lib/hubAuth.ts` (session 115) — returns true for `HubMember.isCoordinator || ADMIN || GUIDING_TEACHER`. Use this everywhere previously inlined as `(member?.isCoordinator ?? false) || isAdmin`. The pre-session-115 inline pattern silently omitted GT. `requireCoordinator(isCoordinator, roles)` also bypasses for ADMIN + GT.
+
+Hub thread filter: `activeHubThreadWhere(hubId)` in `lib/hubQueries.ts` (session 115) — returns the canonical filter shape `{ hubId, documentId: null, deletedAt: null, archivedAt: null }`. Use for any hub-level thread findMany / count: unread badges, conversations page server load, hub Home pinned + recent. Don't inline the filter; the three previous drift bugs (`status: { not: "ARCHIVED" }`, missing `documentId: null`, missing `deletedAt: null`) all happened by inlining.
 
 **Hub membership as authority (session 92 Phase 3):** for hosting and hub communications, a HubMember record is authoritative when it exists — coordinator-owned `status`, `hostingCapability`, and `communicationsEnabled` fields override the legacy role check. Use `getEffectiveHostingCapability(userId, hubSlug, fallback)` and `canReceiveHubNotifications(userId, hubSlug, fallback)` in `lib/hubMemberAuth.ts` when gating host/LiveKit/notification surfaces. ADMIN bypasses. If no HubMember record exists, the helpers fall through to the passed role-based fallback. `syncHubMembership` no longer deletes records on role revoke; hard removal is ADMIN-only via `DELETE /api/hub/[slug]/members/[userId]`.
 

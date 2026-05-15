@@ -6,17 +6,19 @@
 
 ## Active
 
-**Session 114 (2026-05-14)** — Document conversations + unified Activity stream. Three commits live on `main`.
+**Session 115 (2026-05-14)** — Hub-system consistency audit + seven-commit cleanup. All commits live on `main`.
 
-What's now live for every hub:
+What's now live across every hub:
 
-- **Document conversations** — threads attached to a specific document, visible below the document card on the view page; separate from the main Conversations feed. "N conversations ↓" anchor link in the document meta row.
-- **Unified Activity stream** at `/account/hub/[slug]/activity` — chronological river of all hub activity (docs added/updated, hub conversations, doc conversations, replies). Four filter pills: All / Documents / Conversations / Mine. Sits first in the sidebar below Home.
-- **Image overflow fix** — `.rim-content img { max-width: 100%; height: auto; display: block; }` applied universally.
-- **`HubConversationThread.documentId`** FK in schema + Neon (migration `add_document_id_to_hub_conversation_threads`).
-- **Conversations chapter** updated (v4 flag) with "Conversations on documents" and "The Activity page" sections.
+- **Correct unread / feed filtering** — `lib/hubQueries.ts::activeHubThreadWhere(hubId)` is the canonical filter for "active hub-level threads." Dashboard hub card, sidebar Conversations badge, hub Home pinned + recent, conversations page server-load, and activity-stream reply queries all use it. Fixes three drift bugs at once (broken enum string, missing `documentId: null`, missing `deletedAt: null`).
+- **Empty Manual link hidden.** Sidebar Manual entry only renders when at least one `ManualSection` is tagged to that hub. Saves a dead-end click for `courses`, `registrar`, `support`.
+- **No more `slug === "host-team"` literals in three sites.** All read `hub.hasSchedule` now.
+- **`GUIDING_TEACHER` acts as implicit coordinator on every hub.** `lib/hubAuth.ts::effectiveCoordinator(member, roles)` is the canonical "is this user a coordinator?" helper. ADMIN-only authority is unchanged (hub config, hard-remove member, system-wide). Fully documented in `RIM_Role_Design.md`.
+- **Sidebar Settings link gated to ADMIN-only.** Matches the actual page authorization at `/admin/hubs/[slug]/edit`. No more "you don't have permission" wall for coordinators.
+- **Welcome seeds for courses / registrar / support.** Practice-grounded voice matching the host-hub welcome. Defensive write — coordinator edits via `/admin/hubs/[slug]/edit` are preserved.
+- **Archive mechanism unified.** `HubConversationThread` now uses `archivedAt DateTime?` (mirrors `HubDocument`). Backfilled from `status = 'CLOSED'`. Legacy `status` column stays in sync via PATCH for backward compat.
 
-**Next concrete step:** Maria training session per `TRAINING_PLAN.md`. All hub features from sessions 111–114 are now live. Confirm visually in the deployed app before training.
+**Next concrete step:** Maria training session per `TRAINING_PLAN.md`. The audit changes are surface-invisible cleanups (better counts, no leaked threads, no dead links) — every hub feature she'll demo is materially more coherent than at session start. Confirm visually in the deployed app before training.
 
 **Deferred from session 113 (still open):**
 
@@ -28,6 +30,11 @@ What's now live for every hub:
 
 1. **Email template wording in DB** — `registrar-role-assigned` and reminder templates still contain "dashboard" language. Safe path: edit at `/admin/emails`; keep the `dashboardUrl` binding name for now.
 2. **`SUPPORT` enum value in `prisma/schema.prisma:135`** — Still present. Removing a Prisma enum value while any user row references it in `roles[]` will crash. Needs a user-records audit (`SELECT id FROM users WHERE 'SUPPORT' = ANY(roles)`) before removal. Out of scope.
+
+**New follow-ons from session 115 (added to backlog):**
+
+1. **Drop legacy `HubConversationThread.status` column** — A couple of UI checks (`HubConvThreadClient.isClosed`, archive toggle buttons in `HubConvClient`) still read `status`. Migrate them to `archivedAt`, then drop the column. Mechanical, low-risk, no rush.
+2. **Coordinator-friendly hub content editing for non-host hubs** — Currently welcome / home content on the three non-host hubs (`courses`, `registrar`, `support`) is editable only via the ADMIN form at `/admin/hubs/[slug]/edit`. Either extend `HostHubHomeClient`'s inline edit affordance to all hubs, or build a coordinator-scoped settings page. Decision: which surface?
 
 **Theme B (Google Meet) remains.** Items #15–17 are still manual steps Jesse will do when ready:
 - #15 — Remove four Google Meet env vars from Vercel project settings
@@ -80,6 +87,9 @@ Once every row in the database has been edited and saved as HTML, the BlockNote-
 - **Trim `NEXTAUTH_URL`-derived constants.** Every `BASE_URL` does `.trim().replace(/\/$/, "")` because env vars can carry whitespace.
 - **Every `sendTemplatedEmail(slug, …)` must ship with a matching seed entry in `prisma/migrate.mjs` in the same commit** (Email Template Gate, CLAUDE.md). Missing templates silently no-op — recipients get nothing. Use defensive `findUnique → create` so any manual `/admin/emails` edits are preserved.
 - **Trash-management authority lives in one place:** `canManageTrash(roles, isCoordinator)` in `lib/hubAuth.ts`. ADMIN, GUIDING_TEACHER, or hub coordinator. Use this helper anywhere trash visibility or restore/permanent-delete gating is needed — don't reimplement the role check inline.
+- **Coordinator-level authority lives in one place:** `effectiveCoordinator(member, roles)` in `lib/hubAuth.ts`. Returns true for hub-coordinator flag, ADMIN, or GUIDING_TEACHER (GT acts as soft admin at the content layer on every hub). Use this helper anywhere you'd previously written `(member?.isCoordinator ?? false) || isAdmin`. Don't inline the boolean.
+- **Hub-thread filter shape lives in one place:** `activeHubThreadWhere(hubId)` in `lib/hubQueries.ts`. Returns `{ hubId, documentId: null, deletedAt: null, archivedAt: null }`. Use it for any findMany / count surfacing hub-level threads to members. Don't inline the filter; the three previous drift bugs (`status: { not: "ARCHIVED" }`, missing `documentId: null`, missing `deletedAt: null`) all happened by inlining.
+- **`archivedAt`, not `status`, is the canonical archive marker for hub threads.** `HubConversationThread` now mirrors `HubDocument` (session 115). The `status` column is kept in sync by the PATCH route for backward compat but will be dropped in a future cleanup. Don't write new code that reads `status` to determine archive state.
 - **Three-stage hub delete is enforced at both UI and API layers.** The UI hides the Delete button on non-archived items; the API returns 400 with "Archive this … first" unless the item is archived. Both rules matter — the UI is the friendly path, the API is the hard guard against direct calls.
 - **Resolve `Program.name` from the slug before sending any host email.** Slugs are URL-safe but ugly — `essential-dharma-study-2024-07-14` in an email body is a reliability issue, not a cosmetic one. Pattern: `await db.program.findUnique({ where: { slug }, select: { name: true } })` near the top of the email-sending block.
 - **Storage paradigm for editor content is plain HTML strings.** `RimTiptapEditor` produces HTML directly via `editor.getHTML()`. Renderers accept both HTML and legacy BlockNote JSON via format detection — unmigrated rows still display correctly.

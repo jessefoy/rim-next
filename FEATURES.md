@@ -53,6 +53,7 @@ Two audiences:
 38. [LiveKit Video Conferencing](#38-livekit-video-conferencing--phase-1-2--built--session-76-2026-03-25)
 39. [Open Access — Guest Join for Virtual Programs](#39-open-access--guest-join-for-virtual-programs)
 40. [ProgramTeacher — Linked Teacher Accounts](#40-programteacher--linked-teacher-accounts)
+49. [Hub System — Audit Findings + Cleanup (session 115)](#49-hub-system--audit-findings--cleanup--built--session-115-2026-05-14)
 
 ---
 
@@ -87,13 +88,16 @@ Two audiences:
 **Current roles:**
 | Role | Access | Dashboard links |
 |---|---|---|
-| `ADMIN` | Everything — full site management | Registrations, Members, Staff Manual |
+| `ADMIN` | Everything — full site management. Technical authority: hub config, hard-remove member, system-wide settings, all admin surfaces. | Registrations, Members, Staff Manual |
+| `GUIDING_TEACHER` | Sangha-wide dharma authority. Acts as **implicit coordinator on every hub** for content + moderation: archive/restore/trash any document or thread, edit any thread, pin/unpin, override document lock, edit member status. Does NOT inherit ADMIN-level technical scope (hub config, hard-remove member, hub create/delete, system-wide). Scope: session 115. Currently held only by Jesse. | Same as ADMIN if also ADMIN |
 | `REGISTRAR` | Registration management, member profiles, course access, Program Editor | Registrations, Members, Staff Manual |
 | `HOST` | Host Community Hub — schedule, sub board, conversations, session tracking | Host Hub |
 | `HOST_MANAGER` | All HOST access + assignment management + unassigned alerts | Host Hub |
 | `TEACHER` | Teacher Hub — manages courses and lessons in Postgres | Teacher Hub |
 
 New roles are added only when there is real functionality to attach to them.
+
+**🔧 Coordinator-level authority is computed via `lib/hubAuth.ts::effectiveCoordinator(member, roles)` (session 115).** Returns true for `HubMember.isCoordinator` on the current hub, OR `ADMIN`, OR `GUIDING_TEACHER`. Used in 14+ sites to gate coordinator UI and write paths. `requireCoordinator(isCoordinator, roles)` and `canManageTrash(roles, isCoordinator)` likewise bypass for ADMIN + GT. Don't inline the boolean — use the helper. The pre-session-115 pattern `(member?.isCoordinator ?? false) || isAdmin` silently omitted GT and is no longer correct.
 
 **Where roles are assigned:** Via the admin member detail page (`/admin/members/[id]`). Check or uncheck the role checkbox, then click "Save changes." No direct database access needed.
 
@@ -2484,10 +2488,48 @@ Activity is the first item in the hub sidebar below Home, above Conversations.
 
 ---
 
+## 49. Hub System — Audit Findings + Cleanup ✅ Built — session 115 (2026-05-14)
+
+A systematic inventory of every hub element against the Hosting Hub as the canonical reference. Surfaced four bug classes, three drift points, and one model asymmetry; seven commits shipped. Each is a small, surface-invisible improvement to coherence — no new user-facing feature, but the hub system is materially more correct than it was at session start.
+
+### What changed for users
+
+- **Unread counts and feed lists are accurate.** Dashboard hub card, sidebar Conversations badge, hub Home pinned + recent, and the Conversations page no longer include archived threads, doc threads, or trashed threads in surfaces meant for active hub-level work.
+- **The sidebar Manual link only appears when the hub has manual chapters.** No more dead-end click for `courses`, `registrar`, `support`.
+- **The sidebar Settings link only appears for ADMIN.** No more "you don't have permission" wall for coordinators.
+- **Welcome messages on `courses`, `registrar`, `support`.** Each non-host hub now has a starter welcome in the same practice-grounded voice as the host hub.
+- **GUIDING_TEACHER can step into any hub.** Archive a thread, restore a document from trash, edit a member's status — anywhere on every hub — without needing ADMIN.
+
+### What changed under the hood
+
+🔧 **`lib/hubQueries.ts::activeHubThreadWhere(hubId)`** is the canonical filter for active hub-level threads. Returns `{ hubId, documentId: null, deletedAt: null, archivedAt: null }`. Use it for any findMany / count surfacing hub-level threads to members. Six call sites use it: dashboard unread badge, sidebar Conversations badge (`lib/hubContext.ts`), hub Home pinned + recent, Conversations page server load, GET `/api/hub/[slug]/conversations` (default OPEN case).
+
+🔧 **`lib/hubAuth.ts::effectiveCoordinator(member, roles)`** is the canonical "is this user a coordinator?" check. Returns true for `HubMember.isCoordinator || roles includes ADMIN || roles includes GUIDING_TEACHER`. Use it everywhere previously inlined as `(member?.isCoordinator ?? false) || isAdmin`. 14 sites swapped. `requireCoordinator(isCoordinator, roles)` also adds GT bypass. Document-lock override extends to GT alongside ADMIN.
+
+🔧 **`HubConversationThread` archive mechanism mirrors `HubDocument`.** `archivedAt DateTime?` + `archivedById String?` columns added; backfilled `archivedAt = updatedAt` for every existing `status = 'CLOSED'` row. `User.hubThreadsArchived` reverse relation added. The DELETE precondition checks `!thread.archivedAt`; the replies-POST endpoint blocks on `thread.archivedAt || thread.deletedAt`; GET `?status=CLOSED` translates to `archivedAt: { not: null }`. The PATCH status-change handler writes both `status` AND `archivedAt` in lockstep — legacy clients that still read `status` continue to work. A future cleanup can drop the column once nothing reads `status` directly. Migration: `add_archived_columns_to_hub_threads`.
+
+🔧 **Three `slug === "host-team"` literals replaced with `hub.hasSchedule` reads.** `app/account/hub/[slug]/page.tsx` (the Host-hub-specific `HostHubHomeClient` branch), `app/api/hub/[slug]/members/[userId]/route.ts` (hosting-revoke confirmation flow), and `components/HubMembersClient.tsx` (the "Can host sessions" affordance + "Hosting restricted" flag). `HubMembersClient`'s internal `isHostTeam` flag renames to `isHostingHub`.
+
+🔧 **Welcome seeds.** New file `prisma/seed-non-host-hub-home-content.mjs` writes `welcomeBody` HTML strings for `courses`, `registrar`, `support`. Idempotent: only fills when current value is null. Wired into `migrate.mjs` behind flag `seed_non_host_hub_home_content_v1`.
+
+### Pre-existing soft issues surfaced
+
+- The sidebar's "Hub settings" link was rendered for `(isCoordinator || isAdmin)` but the target page `/admin/hubs/[slug]/edit` is strictly ADMIN-only. Coordinators (and after the GT expansion, GT holders) hit a "no permission" wall. Gated the link to ADMIN-only (commit `b86ddf6`). Coordinator-side editing of hub content (welcome / home) for non-host hubs is now an explicit backlog item.
+
+### Documentation deliverables
+
+- `RIM_Role_Design.md` — new section "Guiding Teacher" documenting scope, rationale, and what's deferred.
+- `lib/hubAuth.ts` — top-of-file access-policy comment block expanded to enumerate the four helpers (`getHubMembership`, `requireCoordinator`, `effectiveCoordinator`, `canManageTrash`) and the ADMIN-vs-GT distinction.
+- `UP_NEXT.md` — four new permanent reminders added (canonical filter, canonical coordinator check, `archivedAt` not `status`, GT scope).
+- Backlog: two new items added (drop legacy `status` column once UI reads are migrated; coordinator-friendly hub content editing surface for non-host hubs).
+
+---
+
 ## Session Log
 
 | Date | Summary |
 |---|---|
+| 2026-05-14 (session 115) | **Hub-system consistency audit + seven-commit cleanup.** Systematic inventory of every hub element (sidebar, home, conversations, documents, activity, members, manual, trash, dashboard card) against the Hosting Hub as canonical. Seven fixes shipped to `main`: (1) `571e331` — P1 filter bugs in unread/feed queries: introduced `lib/hubQueries.ts::activeHubThreadWhere(hubId)` as the canonical filter and swapped 5 sites + fixed 2 activity-stream reply queries. Fixed `status: { not: "ARCHIVED" }` (an enum value that doesn't exist), missing `documentId: null` (doc threads leaked into hub feed), missing `deletedAt: null` (trashed threads on Home). (2) `24d049a` — Hub sidebar Manual link hides when the hub has no `ManualSection` chapters tagged. Layout + `/api/hubs/[slug]/nav` pass `hasManual` to `HubWorkspaceSidebar`. (3) `93f9995` — Three sites that did `slug === "host-team"` now read `hub.hasSchedule` instead; `HubMembersClient`'s `isHostTeam` flag renames to `isHostingHub`. (4) `b73cbda` — `GUIDING_TEACHER` acts as implicit coordinator on every hub for content + moderation. New helper `effectiveCoordinator(member, roles)` in `lib/hubAuth.ts`; 14-site sweep of the inline `(member?.isCoordinator ?? false) || isAdmin` pattern; `requireCoordinator` adds GT bypass; document-lock override extends to GT alongside ADMIN. Full role section added to `RIM_Role_Design.md`. (5) `b86ddf6` — Sidebar Settings link gated to ADMIN-only to match the `/admin/hubs/[slug]/edit` page authorization. (6) `ac235d5` — Welcome seeds for `courses`, `registrar`, `support` in the practice-grounded voice. Defensive write — only fills `welcomeBody` when null. New `prisma/seed-non-host-hub-home-content.mjs`. (7) `20ba301` — Archive mechanism unified between threads and documents. New `archivedAt`/`archivedById` columns on `hub_conversation_threads`; backfilled `archivedAt = updatedAt` for every existing `status = 'CLOSED'` row. `activeHubThreadWhere` filters `archivedAt: null`; DELETE precondition + replies-block + GET `?status=` translation all use `archivedAt`. PATCH keeps legacy `status` in sync for backward compat. Schema: `User.hubThreadsArchived` reverse relation added. Full section: §49. |
 | 2026-05-14 (session 114) | **Document conversations + unified Activity stream.** (1) **Image overflow fix:** `.rim-content img { max-width: 100%; height: auto; display: block; }` — one line, applies universally to all editor output surfaces. (2) **Document conversations:** `HubConversationThread.documentId` FK added; hub Conversations feed filtered to `documentId: null`; new `GET/POST /api/hub/[slug]/documents/[id]/conversations`; new `HubDocConversationsClient` with compose + thread list; document view page shows meta-row anchor "N conversations ↓" and renders the panel below the card; thread detail page back link is "← Back to [Document]" when `documentId` is set. (3) **Unified Activity stream:** new page `/account/hub/[slug]/activity`, new API `GET /api/hub/[slug]/activity` (cursor pagination), new `HubActivityClient` (four filter pills: All/Documents/Conversations/Mine); computed union of docs + hub threads + hub replies + doc threads + doc replies; Activity sidebar entry added to `HubWorkspaceSidebar`. (4) **Three bug fixes:** wrong `initialContent` → `value` prop on `RimTiptapEditor`; invalid `hubSlug`/`helpNote`/`alreadyNotified` props stripped from `HubDocNotifyPanel` usage; missing DB migration `add_document_id_to_hub_conversation_threads` — column was in schema but not in Neon, causing runtime 500s on all hub pages after deploy. |
 | 2026-05-13 (session 113) | **Hub notifications + subscriptions + three-stage delete + host confirmation emails + residue cleanup.** Eight commits. (1) **Per-document notifications**: new `HubDocumentNotification` event-log model, Basecamp-style picker UI with already-notified members shown as disabled `✓ Notified [date]` rows, PDF upload via Vercel Blob (`PDF` enum value added), two new templates `hub-document-created` + `hub-document-updated`. (2) **Notification dedup + email-template backfill**: server-side dedup on `(documentId, userId, eventType)` in all three send paths; audit surfaced four templates referenced by code but never seeded — `session-reminder`, `host-role-assigned`, `sub-request-claimed`, `drip-lesson-available` — backfilled defensively (findUnique → create) so manual `/admin/emails` edits stay untouched; new "Email Template Gate" section added to `CLAUDE.md` as a discipline rule for future templates. (3) **Conversation thread subscriptions**: new `HubThreadSubscription` model replaces implicit "notify coordinators on new thread / notify participants on reply"; author + coordinators + picked members auto-subscribed at creation, replier auto-subscribed (subscribe-by-replying), `+ Notify someone new…` adds subscribers on a reply; `Follow` / `Following ✓` toggle in thread header; backfill migration preserves prior behavior for every existing thread; shared `HubDocNotifyPanel` reused. (4) **Three-stage archive → trash lifecycle**: new `GUIDING_TEACHER` role; documents and threads gain `archivedAt`/`deletedAt` columns; new `canManageTrash(roles, isCoordinator)` helper in `lib/hubAuth.ts`; per-hub `/trash` page (sidebar link gated, server page redirects non-managers, items 404 on direct URL); enforce-archive-first: API DELETE refuses with "Archive this … first" unless archived. (5) **Three-stage enforcement**: after initial implementation, Jesse clarified Delete should only appear on archived items; tightened UI (Delete hidden when `!archivedAt`; thread Move-to-trash hidden unless `isClosed`) and API (matching 400s). Conversations Close → Archive rename, with status change now author-or-coordinator (was coordinator-only). (6) **Host confirmation emails — every path**: audit found that only standing rotations emailed the new host; added `host-assignment-confirmation` template and wired into 5 paths (sub-claim, self-claim, manager-assigns-to-user, PATCH claim, reassign); added `host-assignment-removed` for the displaced host on reassign (fulfills a long-standing TODO in `reassign/route.ts`); every host email now resolves `Program.name` from slug instead of leaking the slug. (7) **Tasks + Alerts residue cleanup**: `hub-task` placement dropped from editor registry; one-time migrations removed; stale `lib/supportNotify.ts` references in template descriptions cleaned; hub-section docs trimmed; Trash row added to the per-hub tab table here. (8) **Support Inbox residue cleanup**: 3 hubLabel maps relabeled `Support Inbox → Support Hub`; 4 obsolete migration entries removed; new `drop_support_notification_template` cleanup migration deletes the orphan email-template row; 2 standalone seed scripts deleted (`prisma/update-manual-system-section.ts`, `prisma/seed-email-templates.js`); `seed-manual.ts` updated to drop SUPPORT and add GUIDING_TEACHER; obsolete backlog items removed; doc refs to `/api/tools/inbox/context` and `/tools/inbox` cleaned. |
 | 2026-03-01 | Built complete registration system: RegistrationForm, volunteer admin table, API routes, DB schema (roles array, Registration model), Sanity schema fields, route protection, staff dashboard panel, mobile-friendly volunteer pages; added FEATURES.md |

@@ -1,6 +1,87 @@
 ---
 
-## 2026-05-14 (session 114) — Document conversations + unified Activity stream
+## 2026-05-14 (session 115) — Hub-system consistency audit + seven-commit cleanup
+
+A systematic inventory of every hub element (sidebar, home, conversations, documents, activity, members, trash, manual, settings, dashboard card) against the most-recent hub work (Hosting Hub) as canonical, "minus the application." Found and fixed four bug classes, expanded GUIDING_TEACHER scope, removed three hardcoded slug literals, seeded welcome content for the three empty hubs, and unified the archive mechanism between threads and documents. Seven commits shipped directly to `main`.
+
+### The audit (Connections Map)
+
+The 9 hub surfaces inventoried:
+
+1. **Sidebar** — `HubWorkspaceSidebar.tsx`. Single flat nav: Home → tools → Activity / Conversations / Documents / Manual / Members → footer (Trash, Settings, Back). Consistent 9/9 across all hubs.
+2. **Home** — `app/account/hub/[slug]/page.tsx` + `HubHomeClient` / `HostHubHomeClient`. The host hub branches to a different client component to render the "Our offerings this month" panel (tightly coupled to the Schedule tool).
+3. **Conversations** — `app/account/hub/[slug]/conversations/page.tsx` + `HubConvClient`. Categories, pinned, archive, trash, subscriptions all generic.
+4. **Documents** — `app/account/hub/[slug]/documents/*` + `HubDocumentsClient`. Three-stage lifecycle (Active → Archived → Trash) fully generic. Document conversations tied to docId (session 114).
+5. **Activity stream** — `app/account/hub/[slug]/activity/page.tsx` + `HubActivityClient` (session 114). Generic, computed union.
+6. **Members** — `app/account/hub/[slug]/members/page.tsx` + `HubMembersClient`. Coordinator-only editing of status / hostingCapability / communications / pause notes. Host-team had a literal-slug branch for the "Can host sessions" affordance.
+7. **Manual** — `app/account/hub/[slug]/manual/page.tsx`. Hub-scoped projection of `ManualSection` records via `hubSlug` filter.
+8. **Trash** — `app/account/hub/[slug]/trash/page.tsx` (session 113). `canManageTrash` gates ADMIN / GUIDING_TEACHER / hub coordinator.
+9. **Dashboard hub card** — `app/account/dashboard/page.tsx`. Per-hub unread badge.
+
+The seeded hub set is `host-team` (Hosting Hub), `courses` (Course Hub), `registrar` (Registration Hub), `support` (Support Hub) — see `prisma/seed-hubs.ts`. The "14 + 2" hubs mention in some older docs is aspirational, not current; the additional-hubs-via-`/admin/hubs` pathway is in place but unused.
+
+### Findings (the inventory)
+
+Four bug classes, three drift points, and one model-asymmetry, ranked by impact. All addressed.
+
+**P1 — Filter bugs in unread/feed queries (commit `571e331`).** Three field mistakes appearing in 6 sites:
+
+1. `status: { not: "ARCHIVED" }` — the schema only has `OPEN | CLOSED`, so the filter never matched anything. Archived (CLOSED) threads leaked into dashboard unread badge, sidebar Conversations badge, and hub Home "Recent conversations."
+2. Missing `documentId: null` — let document threads bleed into the hub-level Conversations feed (server-rendered on first load), dashboard unread count, and hub Home pinned/recent.
+3. Missing `deletedAt: null` — trashed threads appeared on hub Home; replies to trashed threads appeared in the Activity stream.
+
+Centralized the canonical filter as `activeHubThreadWhere(hubId)` in new `lib/hubQueries.ts`. Swapped 5 sites to use it; fixed the 2 activity-stream reply queries inline (they intentionally show closed-thread history, so they only filter `deletedAt`).
+
+**P2 — Hide empty Manual sidebar link (commit `24d049a`).** Three of four hubs had no `ManualSection` rows tagged to their slug — the Manual link in the sidebar led to "No manual chapters for this hub yet." The layout now fetches a `manualCount` alongside the hub and passes `hasManual: boolean` to `HubWorkspaceSidebar`, which only renders the Manual entry when chapters exist. Same wiring through `/api/hubs/[slug]/nav` for tool surfaces.
+
+**P3 — Drop host-team literals (commit `93f9995`).** Three sites checked `slug === "host-team"` as a string literal. All three now read `hub.hasSchedule` (the schema field that's already true for host-team and false for the others). No behavior change for the current hub set, but a future hosting hub works without code edits. `HubMembersClient`'s `isHostTeam` flag renames to `isHostingHub` for the same reason.
+
+**P2 — GUIDING_TEACHER scope (commit `b73cbda`).** The role existed (session 113) but only had explicit trash authority via `canManageTrash`. The natural question — should GT also act as coordinator on hubs they're not a member of? — was undecided. Jesse picked the broadest scope: **GT acts as an implicit coordinator on every hub for content + moderation, but does NOT inherit ADMIN-level technical authority** (hard-remove member, hub config, hub create/delete, system-wide settings). New helper `effectiveCoordinator(member, roles)` in `lib/hubAuth.ts` returns true for `member.isCoordinator || ADMIN || GUIDING_TEACHER`. Swept 14 sites that previously inlined `(member?.isCoordinator ?? false) || isAdmin`. `requireCoordinator` gains GT bypass. Document-lock override extends to GT alongside ADMIN (lock is "author asserts sole authorship"; coordinators don't override, but technical/dharma authorities do for moderation/restoration). Documented as a full role section in `RIM_Role_Design.md`.
+
+**Pre-existing soft issue — Settings sidebar link (commit `b86ddf6`).** Found mid-audit: the sidebar's "Hub settings" link was rendered for coordinators-or-admins, but the target `/admin/hubs/[slug]/edit` is strictly ADMIN-only. Coordinators (and after the GT expansion, GT holders) clicked into a "You don't have permission" wall. Gated the link to ADMIN-only. Coordinator-side editing of hub content (welcome, home content) is already inline for the host hub; for non-host hubs it remains a deferred surface decision.
+
+**P2 — Welcome seeds (commit `ac235d5`).** `courses`, `registrar`, and `support` all entered the audit with empty `welcomeBody` — Hub Home read as abandoned. Added `prisma/seed-non-host-hub-home-content.mjs` with starter welcomes in the same practice-grounded voice as the host-hub seed (`seed-host-hub-home-content.mjs`). Defensive write: only sets when `welcomeBody` is null; coordinator edits are preserved. `homeContent` (the "Team directory" block on host hub) is left null — no generic placeholder makes sense; each team can author when shape stabilizes.
+
+**P2 — Archive mechanism unification (commit `20ba301`).** `HubDocument` used `archivedAt DateTime?` since session 113; `HubConversationThread` used the overloaded `status: "CLOSED"`. The asymmetry was the root cause of the P1 `status: { not: "ARCHIVED" }` drift — when the canonical archive marker is a magic string in an enum, code authors guess and sometimes guess wrong. Added `archivedAt` + `archivedById` columns to `hub_conversation_threads`, backfilled `archivedAt = updatedAt` for every existing `status = 'CLOSED'` row. `activeHubThreadWhere` now filters `archivedAt: null`. DELETE precondition, replies-block, and GET `?status=` translation all use `archivedAt`. PATCH status-change keeps `status` in sync for backward compat with clients that still read it; a future cleanup can drop the column once nothing reads `status`.
+
+### Design decisions
+
+**Most-recent-as-canonical for inventory.** Two evaluation standards were on the table: design intent from the docs, or current best-in-class hub work. Jesse picked the latter — the Hosting Hub (most touched in sessions 111–114) becomes the reference. "Minus the application" means the schedule-tool-coupled "Our offerings this month" panel doesn't count against other hubs; only the chrome counts.
+
+**GT scope = "soft admin at the content layer; not at the configuration layer."** Three options offered (trash-only / trash + structural moderation / full coordinator on every hub). Jesse picked option C — broadest reach. Rationale documented in `RIM_Role_Design.md`: a senior teacher should be able to step into any conversation, restore an accidentally-deleted document, archive a thread that ran its course, or remove a member who has stopped participating, **without** also needing to be the person who configures Vercel or runs migrations. Decoupling the technical-operator role from the dharma-authority role lets a future second guiding teacher be added without also handing them the keys.
+
+**Welcomes in Jesse's voice.** Three drafts presented inline; ship-as-drafted approved. Defensive seed pattern means edits at `/admin/hubs/[slug]/edit` are preserved on every future build.
+
+**Archive unification kept status in sync rather than removing it.** Lower-risk path. The `status` column becomes vestigial — a couple of UI checks (`HubConvThreadClient.isClosed`, `HubConvClient` status displays) still read it; they continue to work because PATCH keeps it accurate. A future cleanup migration can drop the column once those UI reads are migrated to `archivedAt`. Added to the backlog.
+
+**Push-to-main is the project's workflow.** First commit went to the worktree branch only out of caution; Jesse confirmed push-to-main is the documented Vercel auto-deploy workflow for this solo project. All subsequent commits went straight to `main` via `git push origin HEAD:main`.
+
+### Interconnections (what this work touches)
+
+- **Hub system as a whole** — every hub now has correct unread badges, hides the Manual link when empty, has a welcome message, and shares an archive mechanism with documents.
+- **Role design** — `GUIDING_TEACHER` is no longer just a trash-authority role; it's the canonical "dharma authority without technical scope" role across every hub.
+- **Schema** — `HubConversationThread` gains two columns + a `User?` relation; a future cleanup will remove the legacy `status` column.
+- **Query layer** — new `lib/hubQueries.ts` is the canonical helper for hub-thread filtering. Any future code that filters hub threads should use it.
+- **Maria training (next concrete step per `UP_NEXT.md`)** — the surfaces she will demo are materially more coherent than at session start. P1 bug fixes alone clean up three visible-to-her drift points.
+
+### What comes next
+
+The seven items in the original inventory recommendation list are all done. The next concrete step is Maria training (see `UP_NEXT.md`). After that, deferred items in the backlog include:
+
+- Drop the legacy `HubConversationThread.status` column once UI reads are migrated to `archivedAt`
+- Build a coordinator-friendly surface for editing hub welcome / home content on non-host hubs (currently ADMIN-only via `/admin/hubs/[slug]/edit`)
+
+### New patterns to remember
+
+- **`activeHubThreadWhere(hubId)` is the canonical filter** for hub-level conversation threads. Use it for any unread badge, feed query, or count. Don't inline the filter shape.
+- **`effectiveCoordinator(member, roles)` is the canonical "is this user acting as coordinator?" check.** Replaces the inline `(member?.isCoordinator ?? false) || isAdmin` pattern; includes GUIDING_TEACHER as well as ADMIN.
+- **GT is a soft admin at the content + moderation layer.** Anywhere the model asks "is this user a coordinator?", GT answers yes. Anywhere the model asks "is this user ADMIN?" (hub config, hard-remove member, ADMIN-only surfaces), GT answers no.
+- **Archive markers should be nullable timestamps, not enum strings.** The P1 bugs were rooted in the `"CLOSED"`-vs-`"ARCHIVED"` enum confusion. With `archivedAt: null`, there is no string to forget. `HubConversationThread` now matches `HubDocument` in shape.
+- **For new schema columns, use the in-array `migrations` entry pattern (with `_migration_flags`)**, not the bottom-of-`main()` inline pattern, when the change is a schema column add. The inline pattern is for content-only seeds.
+
+---
+
+
 
 Two features, three bug fixes, and a missing DB migration.
 
