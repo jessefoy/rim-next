@@ -14653,6 +14653,9 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .db2-greeting { margin-bottom: 32px; }
 .db2-greeting__name { font-size: var(--text-h2); font-weight: 400; font-family: var(--font-serif); color: #2d3f47; margin: 0 0 4px; }
 .db2-greeting__date { font-size: var(--text-xs); color: #7a7068; margin: 0; }
+.db2-greeting__schedule { margin: 8px 0 0; }
+.db2-greeting__schedule a { font-size: var(--text-xs); color: var(--rim-mid); text-decoration: none; }
+.db2-greeting__schedule a:hover { text-decoration: underline; }
 .db2-empty-card { background: #fff; border: 1px solid var(--rim-rule); border-radius: 8px; padding: 20px 24px; }
 .db2-empty-card__text { font-size: var(--text-small); color: var(--rim-text-muted); margin: 0 0 8px; }
 .db2-empty-card__link { font-size: var(--text-ui); color: var(--rim-mid); text-decoration: none; }
@@ -14665,6 +14668,7 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .db2-upcoming__date-month { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #6a8fa0; }
 .db2-upcoming__date-day { font-size: var(--text-h4); font-weight: 700; line-height: 1; color: #6a8fa0; }
 .db2-upcoming__title { flex: 1; padding: 13px 18px; align-self: center; font-size: var(--text-small); font-weight: 400; font-family: var(--font-serif); color: #2d3f47; }
+.db2-upcoming__time { color: #7a7068; font-size: var(--text-xs); font-family: var(--font-sans); }
 .db2-upcoming__date-block + .db2-upcoming__title { padding-left: 14px; }
 .db2-upcoming__date { font-size: var(--text-xs); color: var(--rim-text-muted); flex-shrink: 0; }
 .db2-quicklinks { display: flex; gap: 10px; flex-wrap: wrap; }

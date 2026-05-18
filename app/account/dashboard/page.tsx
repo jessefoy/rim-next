@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Flame } from "lucide-react";
 import { db } from "@/lib/db";
 import { activeHubThreadWhere } from "@/lib/hubQueries";
+import { nextOccurrenceOnOrAfter, shiftToDate } from "@/lib/scheduleUtils";
 import AccountLayout from "@/components/AccountLayout";
 import DashboardAutoRefresh from "@/components/DashboardAutoRefresh";
 
@@ -130,7 +131,10 @@ export default async function DashboardPage() {
         },
         orderBy: { sortOrder: "asc" },
       }),
-      // Include donationStatus so we can show dana inline
+      // Include donationStatus so we can show dana inline.
+      // Include recurrence fields so we can compute each program's next occurrence.
+      // We sort by next-occurrence in JS below — Prisma can't express "next
+      // upcoming session" for a recurring program directly.
       db.registration.findMany({
         where: { userId, status: { not: "CANCELLED" } },
         select: {
@@ -138,10 +142,19 @@ export default async function DashboardPage() {
           programTitle: true,
           programSlug: true,
           donationStatus: true,
-          program: { select: { startDatetime: true } },
+          program: {
+            select: {
+              startDatetime: true,
+              endDatetime: true,
+              recurrenceFreq: true,
+              recurrenceInterval: true,
+              recurrenceDays: true,
+              recurrenceCount: true,
+            },
+          },
         },
         orderBy: { createdAt: "desc" },
-        take: 5,
+        take: 20,
       }),
       db.hubMember.findMany({
         where: { userId },
@@ -239,6 +252,45 @@ export default async function DashboardPage() {
   const showTodayCard = liveSessions.length > 0 || laterSessions.length > 0;
   const laterEpochs   = laterSessions.map((s) => s.liveStartEpoch);
 
+  // Project each registration to its next upcoming occurrence — date plus the
+  // session start time on that date. Members think in "what's coming next," not
+  // "what did I sign up for most recently."
+  const registrationsWithNext = upcomingRegistrations.map((r) => {
+    const p = r.program;
+    let nextDateStr: string | null = null;
+    let nextTimeCT: string | null = null;
+    if (p?.startDatetime) {
+      nextDateStr = nextOccurrenceOnOrAfter(
+        {
+          id: "",
+          name: r.programTitle,
+          slug: r.programSlug,
+          programFormat: null,
+          startDatetime: p.startDatetime,
+          endDatetime: p.endDatetime ?? null,
+          recurrenceFreq: p.recurrenceFreq ?? null,
+          recurrenceInterval: p.recurrenceInterval ?? null,
+          recurrenceDays: p.recurrenceDays ?? [],
+          recurrenceCount: p.recurrenceCount ?? null,
+        },
+        today,
+        365
+      );
+      if (nextDateStr) {
+        const projected = shiftToDate(p.startDatetime.toISOString(), nextDateStr);
+        nextTimeCT = fmtTimeCT(projected.toISOString());
+      }
+    }
+    return { ...r, nextDateStr, nextTimeCT };
+  });
+
+  // Drop registrations that have no future occurrence — they don't belong under
+  // "Coming up for you," and a past anchor pill would be stale.
+  const sortedRegistrations = registrationsWithNext
+    .filter((r): r is typeof r & { nextDateStr: string } => r.nextDateStr !== null)
+    .sort((a, b) => a.nextDateStr.localeCompare(b.nextDateStr))
+    .slice(0, 5);
+
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
 
   const dashboardHubs = isAdmin
@@ -285,6 +337,9 @@ export default async function DashboardPage() {
         <div className="db2-greeting">
           <h1 className="db2-greeting__name">Good {timeOfDay()}, {firstName}.</h1>
           <p className="db2-greeting__date">{summaryLine}</p>
+          <p className="db2-greeting__schedule">
+            <Link href="/this-week">See this week&apos;s community schedule →</Link>
+          </p>
         </div>
 
         {/* Today's Sessions */}
@@ -325,25 +380,27 @@ export default async function DashboardPage() {
           </div>
         )}
 
-        {/* Your Programs (with inline dana status) */}
+        {/* Coming up for you (with inline dana status) */}
         <div className="db-section">
-          <p className="db-section__label">Your Programs</p>
-          {upcomingRegistrations.length === 0 ? (
+          <p className="db-section__label">Coming up for you</p>
+          {sortedRegistrations.length === 0 ? (
             <div className="db2-empty-card">
               <p className="db2-empty-card__text">No upcoming programs yet.</p>
               <Link href="/community-programs" className="db2-empty-card__link">Browse programs →</Link>
             </div>
           ) : (
             <div className="db2-upcoming">
-              {upcomingRegistrations.map((r) => {
-                const startDt = r.program?.startDatetime;
+              {sortedRegistrations.map((r) => {
+                // Date pill shows the projected next-occurrence date, not the
+                // program's anchor — anchor is the first-ever occurrence, often
+                // long in the past for recurring programs.
+                const dateForPill = new Date(r.nextDateStr + "T12:00:00");
                 const hasPendingDana = r.donationStatus === "PENDING";
                 return (
                   <Link key={r.id} href={`/account/programs/${r.programSlug}`} className="db2-upcoming__item">
-                    {startDt && (() => {
-                      const d = new Date(startDt);
-                      const mon = d.toLocaleDateString("en-US", { timeZone: "America/Chicago", month: "short" }).toUpperCase();
-                      const day = d.toLocaleDateString("en-US", { timeZone: "America/Chicago", day: "numeric" });
+                    {(() => {
+                      const mon = dateForPill.toLocaleDateString("en-US", { timeZone: "America/Chicago", month: "short" }).toUpperCase();
+                      const day = dateForPill.toLocaleDateString("en-US", { timeZone: "America/Chicago", day: "numeric" });
                       return (
                         <span className="db2-upcoming__date-block">
                           <span className="db2-upcoming__date-month">{mon}</span>
@@ -351,7 +408,10 @@ export default async function DashboardPage() {
                         </span>
                       );
                     })()}
-                    <span className="db2-upcoming__title">{r.programTitle}</span>
+                    <span className="db2-upcoming__title">
+                      {r.programTitle}
+                      {r.nextTimeCT && <span className="db2-upcoming__time"> · {r.nextTimeCT}</span>}
+                    </span>
                     <span className="db2-upcoming__status">
                       {hasPendingDana
                         ? <span title="You're invited to offer dana for this program — a voluntary gift, welcomed with gratitude.">
@@ -386,7 +446,7 @@ export default async function DashboardPage() {
         {/* Enrolled series */}
         {seriesEnrollments.length > 0 && (
           <div className="db-section">
-            <p className="db-section__label">Your Series</p>
+            <p className="db-section__label">Where you&apos;re studying</p>
             <div className="ls-dash-list">
               {seriesEnrollments.map((enrollment) => {
                 const lessons = enrollment.course.lessons;
@@ -431,7 +491,7 @@ export default async function DashboardPage() {
         {/* Your Hubs */}
         {dashboardHubs.length > 0 && (
           <div className="db-section">
-            <p className="db-section__label">Your Hubs</p>
+            <p className="db-section__label">Where you&apos;re contributing</p>
             <div className="db2-hub-grid">
               {dashboardHubs.map((hub) => {
                 const unread = hubUnreadCounts[hub.id] ?? 0;

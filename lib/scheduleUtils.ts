@@ -144,6 +144,33 @@ export function getTotalOccurrencesInMonth(
 }
 
 /**
+ * Find the next date on or after fromDateStr when this program has a session.
+ * Returns "YYYY-MM-DD" in Central Time, or null if no occurrence falls within
+ * the next maxDays.
+ */
+export function nextOccurrenceOnOrAfter(
+  p: ScheduleProgram,
+  fromDateStr: string,
+  maxDays = 90
+): string | null {
+  if (!p.startDatetime) return null;
+  // For non-recurring programs whose anchor is already in the past, no future
+  // occurrence exists — skip the day-walk loop.
+  if (!p.recurrenceFreq) {
+    const anchor = ctDateStr(p.startDatetime.toISOString());
+    return anchor >= fromDateStr ? anchor : null;
+  }
+  const startMs = new Date(fromDateStr + "T12:00:00").getTime();
+  const msPerDay = 24 * 60 * 60 * 1000;
+  for (let i = 0; i < maxDays; i++) {
+    const d = new Date(startMs + i * msPerDay);
+    const dateStr = ctDateStr(d.toISOString());
+    if (isOccurrenceOnDate(p, dateStr)) return dateStr;
+  }
+  return null;
+}
+
+/**
  * Does this program have a session on the given date?
  * dateStr must be "YYYY-MM-DD" format.
  */
