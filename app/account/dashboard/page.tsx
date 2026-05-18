@@ -144,6 +144,7 @@ export default async function DashboardPage() {
           donationStatus: true,
           program: {
             select: {
+              programFormat: true,
               startDatetime: true,
               endDatetime: true,
               recurrenceFreq: true,
@@ -249,7 +250,6 @@ export default async function DashboardPage() {
 
   const liveSessions  = todaySessions.filter((s) => s.isLive);
   const laterSessions = todaySessions.filter((s) => s.isLaterToday);
-  const showTodayCard = liveSessions.length > 0 || laterSessions.length > 0;
   const laterEpochs   = laterSessions.map((s) => s.liveStartEpoch);
 
   // Project each registration to its next upcoming occurrence — date plus the
@@ -284,10 +284,24 @@ export default async function DashboardPage() {
     return { ...r, nextDateStr, nextTimeCT };
   });
 
-  // Drop registrations that have no future occurrence — they don't belong under
-  // "Coming up for you," and a past anchor pill would be stale.
+  // In-person sessions the user is registered for that happen today. Hybrid
+  // programs are already covered by `todaySessions` via `allVirtual` (which
+  // includes virtual + hybrid). Strictly in-person registrations are not.
+  // Surfacing them in the Today card keeps every today-commitment in one place.
+  const inPersonTodayRegistrations = registrationsWithNext.filter(
+    (r) => r.nextDateStr === today && r.program?.programFormat === "in-person",
+  );
+
+  const showTodayCard =
+    liveSessions.length > 0 ||
+    laterSessions.length > 0 ||
+    inPersonTodayRegistrations.length > 0;
+
+  // "Coming up for you" excludes today's sessions — they live in the Today
+  // card above. Drop registrations with no future occurrence too (past
+  // programs).
   const sortedRegistrations = registrationsWithNext
-    .filter((r): r is typeof r & { nextDateStr: string } => r.nextDateStr !== null)
+    .filter((r): r is typeof r & { nextDateStr: string } => r.nextDateStr !== null && r.nextDateStr !== today)
     .sort((a, b) => a.nextDateStr.localeCompare(b.nextDateStr))
     .slice(0, 5);
 
@@ -321,7 +335,7 @@ export default async function DashboardPage() {
 
   // Contextual greeting summary
   const pendingDanaCount = upcomingRegistrations.filter((r) => r.donationStatus === "PENDING").length;
-  const sessionCount = liveSessions.length + laterSessions.length;
+  const sessionCount = liveSessions.length + laterSessions.length + inPersonTodayRegistrations.length;
   const summaryParts: string[] = [];
   if (sessionCount > 0) summaryParts.push(`${sessionCount} session${sessionCount > 1 ? "s" : ""} today`);
   if (pendingDanaCount > 0) summaryParts.push(`${pendingDanaCount} dana offering${pendingDanaCount > 1 ? "s" : ""} to complete`);
@@ -373,6 +387,17 @@ export default async function DashboardPage() {
                   <div className="today-row__right">
                     {s.isRegistered && <span className="today-registered">Registered</span>}
                     <span className="today-row__countdown">{s.countdownText}</span>
+                  </div>
+                </div>
+              ))}
+              {inPersonTodayRegistrations.map((r) => (
+                <div key={r.id} className="today-row today-row--later">
+                  <div className="today-row__left">
+                    <span className="today-row__time">{r.nextTimeCT}</span>
+                    <span className="today-row__title">{r.programTitle}</span>
+                  </div>
+                  <div className="today-row__right">
+                    <span className="today-registered">In-person</span>
                   </div>
                 </div>
               ))}
