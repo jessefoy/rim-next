@@ -2190,6 +2190,13 @@ function blockNoteToHtml(blocks) {
 }
 
 async function main() {
+  // Skip cleanly when there's no DB env (Vercel preview builds, local builds
+  // without env). Production deploys always set POSTGRES_PRISMA_URL.
+  if (!process.env.POSTGRES_PRISMA_URL) {
+    console.log("⏭  POSTGRES_PRISMA_URL not set — skipping migrations.");
+    console.log("   Normal for preview builds; production sets this env var.");
+    return;
+  }
   console.log("Running migrations...");
   // Ensure flag table exists before any migration runs (some check it before any
   // migration has had a chance to CREATE TABLE IF NOT EXISTS it).
