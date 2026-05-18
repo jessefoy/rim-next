@@ -6,19 +6,24 @@
 
 ## Active
 
-**Session 115 (2026-05-14)** — Hub-system consistency audit + seven-commit cleanup. All commits live on `main`.
+**Session 116 (2026-05-18)** — Member home pass + first reviewer-subagent run. Three commits live on `main` (`1d3f7b1`, `0b12f99`, `ac2317b`). Branch `claude/sad-hopper-d44915` merged and deleted on origin.
 
-What's now live across every hub:
+What's now live on `/account/dashboard`:
 
-- **Correct unread / feed filtering** — `lib/hubQueries.ts::activeHubThreadWhere(hubId)` is the canonical filter for "active hub-level threads." Dashboard hub card, sidebar Conversations badge, hub Home pinned + recent, conversations page server-load, and activity-stream reply queries all use it. Fixes three drift bugs at once (broken enum string, missing `documentId: null`, missing `deletedAt: null`).
-- **Empty Manual link hidden.** Sidebar Manual entry only renders when at least one `ManualSection` is tagged to that hub. Saves a dead-end click for `courses`, `registrar`, `support`.
-- **No more `slug === "host-team"` literals in three sites.** All read `hub.hasSchedule` now.
-- **`GUIDING_TEACHER` acts as implicit coordinator on every hub.** `lib/hubAuth.ts::effectiveCoordinator(member, roles)` is the canonical "is this user a coordinator?" helper. ADMIN-only authority is unchanged (hub config, hard-remove member, system-wide). Fully documented in `RIM_Role_Design.md`.
-- **Sidebar Settings link gated to ADMIN-only.** Matches the actual page authorization at `/admin/hubs/[slug]/edit`. No more "you don't have permission" wall for coordinators.
-- **Welcome seeds for courses / registrar / support.** Practice-grounded voice matching the host-hub welcome. Defensive write — coordinator edits via `/admin/hubs/[slug]/edit` are preserved.
-- **Archive mechanism unified.** `HubConversationThread` now uses `archivedAt DateTime?` (mirrors `HubDocument`). Backfilled from `status = 'CLOSED'`. Legacy `status` column stays in sync via PATCH for backward compat.
+- **Quiet schedule link in greeting.** `See this week's community schedule →` points to `/this-week` for members who don't pre-register and want to see what the community is doing.
+- **Today card is now the single source of truth for today.** Virtual/hybrid live + later rows (Join button when in the 12-min window), plus strictly-in-person registrations with a quiet "In-person" tag. Summary count includes in-person today.
+- **"Coming up for you"** (renamed from "Your Programs") sorted ascending by each program's *next* upcoming occurrence — not by registration creation date. Today's sessions filtered out (they're in Today). Programs with no future occurrence filtered out. Each row shows inline time ("Essential Dharma Study · 8:15 AM") and a date pill that's the projected next-occurrence date, not the program's first-ever anchor.
+- **Section labels reworded** to stateful sentences: "Your Series" → "Where you're studying," "Your Hubs" → "Where you're contributing." Continuation of the session-110 "Dashboard → Home" direction.
+- **`nextOccurrenceOnOrAfter()` helper** in `lib/scheduleUtils.ts`. Walks forward up to `maxDays` from a CT date, returns the next session date or null. Short-circuits for non-recurring past anchors.
+- **`prisma/migrate.mjs` guards against missing DB env.** Vercel preview builds were failing because `prisma generate && node prisma/migrate.mjs && next build` ran migrate.mjs unconditionally and preview deploys don't see `POSTGRES_PRISMA_URL`. Guard at top of `main()`: log + return when env is absent. Production unaffected.
 
-**Next concrete step:** Maria training session per `TRAINING_PLAN.md`. The audit changes are surface-invisible cleanups (better counts, no leaked threads, no dead links) — every hub feature she'll demo is materially more coherent than at session start. Confirm visually in the deployed app before training.
+**Built, deliberately removed: a standalone "Your next session" block.** Initial plan; reviewer sub-agent caught four real issues mid-build (visual regression, non-deterministic `take` after dropping `orderBy`, 365-day walk for past anchors, stale-pill rendering); Jesse then pushed back on the concept ("should it be there on the dashboard or in a link?"). Pulled it. The schedule link + time-bearing "Coming up for you" rows carry the same info without a third competing surface. Restraint as design principle.
+
+**Collaboration experiments still on probation:**
+- **Plan mode** (`EnterPlanMode`) used for the member-home evaluation — produced the written eval before any edits. Worth continuing on non-trivial features.
+- **Reviewer sub-agent before commit** caught four real issues on first run. New memory at `feedback-reviewer-subagent.md`. Two more positive passes and it moves into the closing ritual permanently.
+
+**Next concrete step:** hold for Jesse's read on the deployed page. The pass landed restrained — possible follow-ups if he wants more visible weight on the next commitment: (a) make the top row of "Coming up for you" larger / more prominent, (b) broader rethink of whether Today + "Coming up for you" can collapse into one adaptive surface across all states. Plus Maria training session per `TRAINING_PLAN.md` remains the queued downstream item from session 115.
 
 **Deferred from session 113 (still open):**
 
@@ -31,10 +36,14 @@ What's now live across every hub:
 1. **Email template wording in DB** — `registrar-role-assigned` and reminder templates still contain "dashboard" language. Safe path: edit at `/admin/emails`; keep the `dashboardUrl` binding name for now.
 2. **`SUPPORT` enum value in `prisma/schema.prisma:135`** — Still present. Removing a Prisma enum value while any user row references it in `roles[]` will crash. Needs a user-records audit (`SELECT id FROM users WHERE 'SUPPORT' = ANY(roles)`) before removal. Out of scope.
 
-**New follow-ons from session 115 (added to backlog):**
+**From session 115 (still in backlog):**
 
 1. **Drop legacy `HubConversationThread.status` column** — A couple of UI checks (`HubConvThreadClient.isClosed`, archive toggle buttons in `HubConvClient`) still read `status`. Migrate them to `archivedAt`, then drop the column. Mechanical, low-risk, no rush.
 2. **Coordinator-friendly hub content editing for non-host hubs** — Currently welcome / home content on the three non-host hubs (`courses`, `registrar`, `support`) is editable only via the ADMIN form at `/admin/hubs/[slug]/edit`. Either extend `HostHubHomeClient`'s inline edit affordance to all hubs, or build a coordinator-scoped settings page. Decision: which surface?
+
+**New from session 116 (in backlog):**
+
+1. **Functional Vercel preview deploys** — migrate.mjs now skips gracefully on preview builds, but the app itself still has no DB at runtime in preview. Two options: (a) add a staging/preview Postgres and wire its URL to Vercel's Preview env scope, (b) accept that previews are build-only checks (won't run end-to-end). Worth a decision before regular branch work resumes.
 
 **Theme B (Google Meet) remains.** Items #15–17 are still manual steps Jesse will do when ready:
 - #15 — Remove four Google Meet env vars from Vercel project settings

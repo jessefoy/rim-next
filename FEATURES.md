@@ -427,21 +427,23 @@ A registration is considered a duplicate if the same `userId` + `programId` alre
 
 **What it does:** The member area home page — a visual hub showing nav cards for every member resource, plus today's Zoom session links, pending dana reminders, and staff-only access panels. Redesigned 2026-03-03 from a bare Zoom-link list into a proper discovery hub so members can find all available resources without hunting through the nav.
 
-### 6a. Dashboard Hub (`/account/dashboard`)
+### 6a. Member Home (`/account/dashboard`)
 
-The member home page. A single `720px` content column (`db2-wrap`), vertical sections in reading order:
+The member home page. A single `720px` content column (`db2-wrap`), sections in reading order (each conditional — empty bins don't render):
 
-1. **Greeting** — "Welcome back, [firstName]." + today's date in CT
-2. **Today's Virtual Sessions** — live/later sessions with join button and auto-refresh
-3. **Your Upcoming Programs** — next 5 active registrations with Sanity start dates
-4. **My Account** — quick links to My Profile, My Registrations, Course Library
-5. **Pending Dana** — shown only when `donationStatus: PENDING` registrations exist
-6. **Your Hubs** — hub cards; ADMIN sees all hubs; others see only their `HubMember` records
+1. **Greeting** — "Good {morning|afternoon|evening}, [firstName]." + a stateful summary line ("You have 2 sessions today and 1 dana offering to complete." or today's date if nothing pending) + a quiet `See this week's community schedule →` link to `/this-week`. Schedule link added session 116 so members who don't pre-register have an in-page path to the community calendar.
+2. **Today** — every commitment for today in one place: live virtual rows (Join button), later virtual rows (countdown), and in-person registrations (quiet "In-person" tag, no Join button).
+3. **Coming up for you** — future-dated registrations (today is filtered out — those live in Today above), sorted by each program's *next* upcoming occurrence (not by registration creation date). Each row shows: date pill (projected next-occurrence date, not the program's first-ever anchor), title with inline start time ("Essential Dharma Study · 8:15 AM"), and either a "Registered" chip or a dana flame icon if `donationStatus: PENDING`. Limited to 5 rows. Renamed from "Your Programs" in session 116.
+4. **Welcome to RIM — here's where to begin** — shown only when onboarding `SeriesEnrollment` records exist (`enrollmentSource: ONBOARDING`, not completed).
+5. **Where you're studying** — non-onboarding `SeriesEnrollment` records with progress bars + Continue link. Renamed from "Your Series" in session 116.
+6. **Where you're contributing** — hub cards with unread badges; ADMIN sees all hubs; others see only their `HubMember` records. Renamed from "Your Hubs" in session 116.
 
-**Today's Virtual Sessions:** `virtualDashboardProgramsQuery` fetches all virtual/hybrid programs with full recurrence fields. JS-side `isOccurrenceToday()` handles weekly (day code + bi-weekly interval + series end), single events, and monthly/daily fallback. `shiftToToday()` corrects the live/later window for recurring programs. Sessions split into **Live Now** (join button; window opens 12 min before start, through session end) and **Later Today** (no join button; note tells member the link appears about 12 min before start). Join link withheld until Live Now — prevents members accidentally joining an open room when multiple programs are visible. **Auto-refresh:** `DashboardAutoRefresh` fires `router.refresh()` via `setTimeout` exactly when a Later Today session enters its Live Now window (epoch ms, timezone-agnostic; +2s buffer). No polling, no scroll reset — join button appears in place.
+**Today logic:** `allVirtual` query fetches virtual/hybrid programs with full recurrence fields. JS-side `isOccurrenceToday()` handles weekly (day code + bi-weekly interval + series end), single events, monthly/daily. `shiftToToday()` corrects the live/later window for recurring programs. Sessions split into **Live Now** (Join button; window opens 12 min before start through session end) and **Later Today** (no Join button; countdown text — "Join opens in 23 min"). Join link withheld until Live Now to prevent accidental joins. **In-person today:** strictly-in-person registrations (`programFormat === "in-person"`) whose next occurrence falls on today are merged into the same Today card with a quiet "In-person" tag (no Join button — physical attendance). Hybrid programs are already covered via `allVirtual`. **Auto-refresh:** `DashboardAutoRefresh` fires `router.refresh()` via `setTimeout` exactly when a Later Today session enters its Live Now window. No polling.
 
-**Key files:** `app/account/dashboard/page.tsx`, `components/DashboardAutoRefresh.tsx`
-**CSS prefix:** `db2-` (dashboard)
+**Coming up for you logic:** Each `Registration` is projected to its program's next upcoming occurrence via `nextOccurrenceOnOrAfter()` (new in session 116, `lib/scheduleUtils.ts`) — walks forward up to 365 days from today's CT date, short-circuits for non-recurring programs with past anchors. Rows where `nextDateStr === null` (no future occurrence — completed series, past one-time programs) are filtered out. Rows where `nextDateStr === today` are filtered out (they're in Today above). Remaining rows sorted ascending by next date, sliced to 5. Each row's inline time is the start time projected to the next-occurrence date via `shiftToDate()`.
+
+**Key files:** `app/account/dashboard/page.tsx`, `components/DashboardAutoRefresh.tsx`, `lib/scheduleUtils.ts`
+**CSS prefix:** `db2-` (and shared `today-*` for the Today card rows)
 
 ### 6b. Account Sidebar (`AccountSidebar` / `AccountLayout`)
 

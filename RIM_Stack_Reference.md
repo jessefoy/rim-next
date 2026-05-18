@@ -85,7 +85,8 @@ The Webflow-built site at `rootedinmindfulness.org` is the live public-facing do
 ## Workflow
 
 - **Never run a local dev server.** Push to `main` → Vercel auto-deploys in ~1–2 min.
-- `npm run build` = `prisma generate && next build` — run locally to catch TypeScript errors before pushing.
+- `npm run build` = `prisma generate && node prisma/migrate.mjs && next build` — run locally to catch TypeScript errors before pushing. Note: locally the full build will fail at `migrate.mjs` unless `.env.local` is loaded, because it needs `POSTGRES_PRISMA_URL`. To type-check without DB: `npx tsc --noEmit`.
+- **`prisma/migrate.mjs` skips cleanly when DB env is missing.** Top-of-`main()` guard: if `POSTGRES_PRISMA_URL` is absent, log a friendly note and return. Production deploys always set the env and run migrations. Vercel preview deploys (which don't inherit production env vars by default) complete `next build` without DB access. Established session 116 after the first non-main branch push surfaced the pre-existing fragility.
 - To pull env vars: `npx vercel env pull .env.local`
 - To run DB migration: `set -a && source .env.local && set +a && npx prisma db push`
 - Route protection: `proxy.ts` (not `middleware.ts` — Next.js 16 naming)

@@ -1,5 +1,15 @@
 [
   {
+    "id": "2026-05-18-001",
+    "title": "Decide on functional Vercel preview deploys (staging DB or build-only)",
+    "description": "Session 116 surfaced that Vercel preview builds for non-main branches were failing because prisma/migrate.mjs needs POSTGRES_PRISMA_URL and Vercel preview envs don't inherit production env vars by default. Added a guard at the top of migrate.mjs main() so it skips cleanly when the env is missing — production deploys are unaffected, and preview builds now reach next build without crashing. BUT: the app itself still has no DB at runtime on preview deploys, so any page that hits Prisma will 500 if visited. Two options for the future: (A) provision a small staging/preview Postgres (Neon supports branching — could use a Neon branch as the preview DB, scoped to Vercel's Preview env) and wire its URL to the Preview env scope so previews are functional end-to-end; or (B) accept that previews are build-only checks and not visit-them deployments — in which case maybe configure Vercel to skip preview deploys for most pushes, or just leave the situation as-is. Decision-point: do we want previews to be functional? If yes, set up the branched Neon DB and add it to Vercel Preview env. If no, document the limitation and move on.",
+    "category": "Infrastructure",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-05-18",
+    "notes": "Branch pushes are rare in current workflow — Jesse usually goes straight to main. But the moment a branch-based workflow comes back (a real PR, a Claude worktree pass that wants to be reviewed visually before merging), this matters. Not urgent until then. Neon branching is the cleanest path if we go (A) — see https://neon.tech/docs/guides/vercel-overview for the Vercel integration that auto-creates a branch DB per preview deploy."
+  },
+  {
     "id": "2026-05-14-002",
     "title": "Drop legacy HubConversationThread.status column",
     "description": "Session 115 added archivedAt/archivedById to hub_conversation_threads and unified the archive mechanism with HubDocument. The legacy status column (OPEN | CLOSED) is now vestigial: the PATCH handler keeps it in sync with archivedAt for backward compat. Once a few UI reads are migrated to use archivedAt directly, the status column can be dropped. Sites to migrate: components/HubConvThreadClient.tsx:195 (const isClosed = thread.status !== 'OPEN'), components/HubConvClient.tsx:349/440/443/452 (status display + archive toggle buttons), the document conversations POST that initializes status: 'OPEN' on create, and the hub conversations POST that does the same (both can stop writing the field once it's dropped). Then add a migration that drops the column and the @default('OPEN'). Mechanical, low-risk, no rush — purely a model-cleanup item.",

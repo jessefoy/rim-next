@@ -1,5 +1,59 @@
 ---
 
+## 2026-05-18 (session 116) — Member home pass + first reviewer-subagent run
+
+Started from a question about an Anthropic-published "explore → plan → code → commit" Claude Code video. Evaluated it against the existing RIM workflow (already richer in most respects), committed to trying two things from it: actually using plan mode (shift+tab) for non-trivial work, and spinning up a code-reviewer sub-agent on the staged diff before commit. Then immediately exercised both on a member home (`/account/dashboard`) pass.
+
+**Member home audit.** Jesse's framing: the dashboard "doesn't feel very well designed to support the average RIM community member." Read the page in plan mode and produced a written evaluation against `RIM_Web_Design_Philosophy.md` (designing for overwhelmed users, clear seeing, one dominant action per state). The honest finding: the page does its job during the 12-min pre-session window — big Join button, "Live Now" badge, unmistakable — but the other 99% of the time it had no answer to "what's next for me?" The greeting carried the visual weight that should belong to the next commitment. "Your Programs" sorted by `createdAt: desc`, not by what's coming next. No surface for the casual community-drop-in path. Section labels categorical ("Your Programs"), not stateful.
+
+**What landed (three commits, all on `main`):**
+
+1. **`nextOccurrenceOnOrAfter()` in `lib/scheduleUtils.ts`** — walks forward up to `maxDays` from a CT date string, returns the next date the program runs. Short-circuits for non-recurring programs with anchors in the past (returns null immediately).
+
+2. **Registrations sorted by next-occurrence ascending, filtered to upcoming-only.** The previous `orderBy: { createdAt: "desc" }` + `take: 5` was platform thinking. Query now selects recurrence fields + `programFormat`, takes 20, JS computes next-occurrence then sorts/filters/slices to 5.
+
+3. **Inline session time on each "Coming up for you" row.** "Essential Dharma Study · 8:15 AM" — start time projected to the next occurrence's date via existing `shiftToDate()`.
+
+4. **"See this week's community schedule →" link** in the greeting block. Quiet `--rim-mid` link in `--text-xs`. For members who don't pre-register.
+
+5. **Section label renames.** "Your Programs" → "Coming up for you." "Your Series" → "Where you're studying." "Your Hubs" → "Where you're contributing." Stateful sentences in line with the session-110 "Dashboard → Home" direction.
+
+6. **Today's in-person registrations surface in the Today card.** Originally Today showed only virtual/hybrid; an in-person registration that fell on today lived under "Coming up for you" with a today-pill. Split-brain on what "today" means. Now Today renders in-person rows alongside the virtual ones (quiet "In-person" tag, no Join button), and "Coming up for you" filters out today's date. Summary count ("N session(s) today") includes in-person today.
+
+7. **`prisma/migrate.mjs` guards against missing DB env.** The Vercel preview build for the branch failed because `prisma generate && node prisma/migrate.mjs && next build` runs migrate.mjs unconditionally and preview deploys don't see `POSTGRES_PRISMA_URL`. Added a top-of-`main()` guard: log a friendly note and return when the env var is absent. Production deploys unaffected. Pre-existing fragility surfaced by the first non-main branch push in a long time.
+
+**Built and deliberately removed: the "Your next session" block.** First plan was to render a persistent block between the greeting and the Today card, showing the member's next commitment whenever Today was empty. Built it; the reviewer sub-agent caught four real issues (visual regression — weekday in narrow time column; non-deterministic `take: 20` after dropping `orderBy`; unbounded 365-day walk for past anchors; stale-pill rendering for past registrations); fixed those. Then Jesse pushed back on the *concept*: "We can do strict soonest, but I wonder if it should be there on the dashboard or if it should be in a link." Pulled the block entirely. The schedule link plus the now-time-bearing "Coming up for you" rows carry the same information without a third surface competing for attention. *Restraint is itself the design principle here.*
+
+**Reviewer sub-agent — first data point.** The transcript-evaluation conversation produced an agreement to try the reviewer sub-agent on the next non-trivial diff before commit and see if it earned its keep. The dashboard pass was that diff. The reviewer caught four real issues across visual hierarchy, data correctness, perf, and stale-state rendering. Two of the four (the `take: 20` orderBy drop, the past-anchor 365-loop) are exactly the kind of "I touched something next to it and didn't think about the consequence" failure the main loop misses. First data point is positive. Skipped on the second (smaller) diff. New memory at `feedback-reviewer-subagent.md` captures the pattern; still on probation pending more passes.
+
+**Plan mode first real use.** Used `EnterPlanMode` for the member-home evaluation. The forcing function is real — no edits during read; final plan written to a plan file before any change. For implementation, the loop was: enter plan mode → write evaluation/Connections Map → exit plan mode → implement. Cleaner than the chat-based Connections Map pattern. Not making it a hard requirement, but using it on non-trivial features from here.
+
+**Vercel deploy detour.** When the branch was first pushed (separately from the merge), Vercel built a preview that failed in migrate.mjs (no DB env). Jesse pasted the log thinking it might be the production build. Clarified: production main deploy was separate and would succeed. Fix: migrate.mjs env guard (above). Deleted the now-stale remote branch `claude/sad-hopper-d44915` (ref at `1d3f7b1`, before the fix) to clear the failing-preview clutter from Vercel.
+
+**Connections Map (what was touched):**
+- `lib/scheduleUtils.ts` — new helper, +27 lines
+- `app/account/dashboard/page.tsx` — query expansion (recurrence fields + `programFormat`), next-occurrence sort, upcoming-only filter, in-person-today logic, section renames, time-inline JSX, schedule link, summary count
+- `public/css/custom.css` — `db2-greeting__schedule` link styling, `db2-upcoming__time` inline-time styling
+- `prisma/migrate.mjs` — env-guard at top of `main()`
+- `FEATURES.md` — section 6a rewritten
+- `RIM_Stack_Reference.md` — migrate.mjs env-guard note under build pipeline
+- `UP_NEXT.md` — Active rewritten
+- `data/backlog.json` — preview-env-DB consideration added
+- Memory: `feedback-reviewer-subagent.md` added; `MEMORY.md` index entry added
+
+**No changes to:** `RIM_System_Architecture.md` (no hub/tool/role/permission logic touched), `RIM_Editor_Types.md` (no editor surfaces touched), `RIM_Role_Design.md` (no role changes), staff manual at `/admin/manual` (the Member Home chapter is DB-stored — if a refresh is wanted, that's an admin-UI edit, not a code change).
+
+**Commits:**
+- `1d3f7b1` Member home: sort by next occurrence, show times, link this-week
+- `0b12f99` Build: skip migrations cleanly when DB env is missing
+- `ac2317b` Member home: surface today's in-person sessions in the Today card
+
+All fast-forwarded to `main` via `git push origin claude/sad-hopper-d44915:main`. Remote branch `claude/sad-hopper-d44915` deleted.
+
+**What comes next.** Plan-mode + reviewer-subagent are still on probation as habit. Two more non-trivial passes will tell whether they're permanent fixtures or theatrical overhead. The dashboard pass landed about as restrained as it can get; Jesse may notice it feels too subtle, in which case the next move is either a more visible weighting of the next commitment (top row of "Coming up for you" gets bigger), or a broader rethink (do we even need both a Today card and a "Coming up for you" list, or could one surface adapt across all states?). Hold for Jesse's read on the deployed page.
+
+---
+
 ## 2026-05-14 (session 115) — Hub-system consistency audit + seven-commit cleanup
 
 A systematic inventory of every hub element (sidebar, home, conversations, documents, activity, members, trash, manual, settings, dashboard card) against the most-recent hub work (Hosting Hub) as canonical, "minus the application." Found and fixed four bug classes, expanded GUIDING_TEACHER scope, removed three hardcoded slug literals, seeded welcome content for the three empty hubs, and unified the archive mechanism between threads and documents. Seven commits shipped directly to `main`.
