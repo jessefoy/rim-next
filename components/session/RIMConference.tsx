@@ -1,15 +1,13 @@
 "use client";
 
 /**
- * RIMConference — custom LiveKit conference layout.
+ * RIMConference — Zoom-aligned LiveKit conference layout.
  *
- * - Participant tiles with avatar overlays + signal badges (via RIMParticipantTile)
- * - Nonverbal toolbar: ✋ ❤️ 🙏 ✓ ✗ for all participants
- * - Focus/pin layout: hover a tile and click the pin icon to promote one speaker
- * - Chat sidebar: all participants can chat
- * - Raised-hand banner: floating indicator at the top of the video area
- * - Host-only: Participants panel with per-participant mute + raised hand queue
- * - Video settings: blur, brightness/contrast preview, avatar upload
+ * Video grid (Gallery) or focus (Speaker) layout, with a raised-hand banner
+ * across the top and the bottom Zoom-style control bar carrying every
+ * action button. Participants / Chat / Settings open as overlays. The
+ * nonverbal signal toolbar lives inside the Reactions menu in the control
+ * bar (no longer a separate top toolbar).
  */
 
 import { useState, useEffect } from "react";
@@ -28,7 +26,6 @@ import {
 } from "@livekit/components-react";
 import { Track, RoomEvent } from "livekit-client";
 import RIMParticipantTile from "./RIMParticipantTile";
-import NonverbalToolbar from "./NonverbalToolbar";
 import ParticipantsPanel from "./ParticipantsPanel";
 import VideoSettingsPanel from "./VideoSettingsPanel";
 import RIMControlBar from "./RIMControlBar";
@@ -92,34 +89,6 @@ export default function RIMConference({ isHost, programSlug, guestKey, initialAv
     <LayoutContextProvider value={layoutContext}>
       <div className="rim-conference">
 
-        {/* Toolbar row — dark, above the video grid */}
-        <div className="rim-conference__toolbar">
-          <button
-            className={`rim-conf-btn${participantsOpen ? " rim-conf-btn--active" : ""}`}
-            onClick={() => setParticipantsOpen((v) => !v)}
-          >
-            👥 Participants
-            {isHost && raisedHandCount > 0 && (
-              <span className="rim-conf-btn__badge">{raisedHandCount}</span>
-            )}
-          </button>
-          <NonverbalToolbar localParticipant={localParticipant} />
-          <button
-            className={`rim-conf-btn${chatOpen ? " rim-conf-btn--active" : ""}`}
-            onClick={() => setChatOpen((v) => !v)}
-            aria-label="Toggle chat"
-          >
-            💬 Chat
-          </button>
-          <button
-            className={`rim-conf-btn${settingsOpen ? " rim-conf-btn--active" : ""}`}
-            onClick={() => setSettingsOpen((v) => !v)}
-            aria-label="Video settings"
-          >
-            ⚙ Settings
-          </button>
-        </div>
-
         {/* Raised-hand banner — at-a-glance, visible without opening the panel */}
         {raisedHandCount > 0 && (
           <div className="rim-hand-banner">
@@ -129,7 +98,7 @@ export default function RIMConference({ isHost, programSlug, guestKey, initialAv
                 ? `${raisedHands[0].name || raisedHands[0].identity} raised their hand`
                 : `${raisedHandCount} people raised their hand`}
             </span>
-            {isHost && !participantsOpen && (
+            {!participantsOpen && (
               <button
                 className="rim-hand-banner__open"
                 onClick={() => setParticipantsOpen(true)}
@@ -174,9 +143,19 @@ export default function RIMConference({ isHost, programSlug, guestKey, initialAv
           )}
         </div>
 
-        {/* RIM control bar — one big labeled button per action,
-            with device selection moved to the ⚙ Settings panel. */}
-        <RIMControlBar />
+        {/* Zoom-aligned bottom control bar — every action button lives here. */}
+        <RIMControlBar
+          programSlug={programSlug}
+          isHost={isHost}
+          participantsOpen={participantsOpen}
+          onToggleParticipants={() => setParticipantsOpen((v) => !v)}
+          chatOpen={chatOpen}
+          onToggleChat={() => setChatOpen((v) => !v)}
+          settingsOpen={settingsOpen}
+          onToggleSettings={() => setSettingsOpen((v) => !v)}
+          participantCount={remoteParticipants.length + 1}
+          raisedHandCount={raisedHandCount}
+        />
 
         {/* Audio playback prompt — Safari blocks audio until user interaction */}
         <AudioPlaybackPrompt />

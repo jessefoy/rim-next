@@ -34,9 +34,6 @@ export default function SessionPage() {
   const [isHostTeam, setIsHostTeam] = useState(false);
   const [audioProfile, setAudioProfile] = useState<"teacher" | "speaker" | "listener">("listener");
   const [steppingIn, setSteppingIn] = useState(false);
-  const [ending, setEnding] = useState(false);
-  const [mutingAll, setMutingAll] = useState(false);
-  const [muteCount, setMuteCount] = useState<number | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [guestName, setGuestName] = useState("");
@@ -156,37 +153,6 @@ export default function SessionPage() {
     setSteppingIn(false);
   }
 
-  async function handleMuteAll() {
-    setMutingAll(true);
-    setMuteCount(null);
-    try {
-      const res = await fetch("/api/livekit/mute-all", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ programSlug: slug }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setMuteCount(data.muted);
-        setTimeout(() => setMuteCount(null), 3000);
-      }
-    } catch {}
-    setMutingAll(false);
-  }
-
-  async function handleEndForAll() {
-    if (!confirm("End this session for all participants?")) return;
-    setEnding(true);
-    try {
-      await fetch("/api/livekit/end-session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ programSlug: slug }),
-      });
-    } catch {}
-    setState("left");
-  }
-
   // Loading state
   if (state === "loading") {
     return (
@@ -275,40 +241,39 @@ export default function SessionPage() {
   return (
     <div className="vs-page" ref={pageRef}>
       <div className="vs-header">
-        <button className="vs-header__back" onClick={handleLeave}>
-          ← Leave
-        </button>
+        {/* Left: Step-in (host-team non-hosts only) */}
+        <div className="vs-header__left">
+          {isHostTeam && !isHost && (
+            <button className="vs-header__stepin" onClick={handleStepIn} disabled={steppingIn}>
+              {steppingIn ? "Connecting…" : "Step in as Host"}
+            </button>
+          )}
+        </div>
+        {/* Center: program name */}
         <span className="vs-header__name">{programName}</span>
-        {isHostTeam && !isHost && (
-          <button className="vs-header__stepin" onClick={handleStepIn} disabled={steppingIn}>
-            {steppingIn ? "Connecting…" : "Step in as Host"}
-          </button>
-        )}
-        {isHost && (
-          <button className="vs-header__mute" onClick={handleMuteAll} disabled={mutingAll}>
-            {mutingAll ? "Muting…" : muteCount !== null ? `Muted ${muteCount}` : "Mute All"}
-          </button>
-        )}
-        {isHost && (
-          <button className="vs-header__end" onClick={handleEndForAll} disabled={ending}>
-            {ending ? "Ending…" : "End for All"}
-          </button>
-        )}
-        <button className="vs-header__fullscreen" onClick={toggleFullscreen} title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>
-          {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
-        </button>
-        {isHostTeam && (
-          <a
-            href="/admin/manual/host-session-room?from=host-team"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="vs-header__help"
-            title="How the session room works"
-            aria-label="How the session room works (opens in a new tab)"
+        {/* Right: view toggle (coming next), fullscreen, help */}
+        <div className="vs-header__right">
+          <button
+            className="vs-header__icon"
+            onClick={toggleFullscreen}
+            aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+            title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
           >
-            ?
-          </a>
-        )}
+            {isFullscreen ? "⤡" : "⛶"}
+          </button>
+          {isHostTeam && (
+            <a
+              href="/admin/manual/host-session-room?from=host-team"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="vs-header__icon"
+              title="How the session room works"
+              aria-label="How the session room works (opens in a new tab)"
+            >
+              ?
+            </a>
+          )}
+        </div>
       </div>
       <div className="vs-room">
         {token && wsUrl && (

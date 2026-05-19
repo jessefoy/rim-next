@@ -44,6 +44,8 @@ interface Props {
 export default function ParticipantsPanel({ open, onClose, participants, programSlug, localIdentity, isHost }: Props) {
   const room = useRoomContext();
   const [muting, setMuting] = useState<Record<string, boolean>>({});
+  const [mutingAll, setMutingAll] = useState(false);
+  const [muteAllResult, setMuteAllResult] = useState<number | null>(null);
   // Tick to force re-render when remote participants' mic state changes,
   // since RemoteParticipant prop identity doesn't change on toggle.
   const [, setTick] = useState(0);
@@ -75,6 +77,24 @@ export default function ParticipantsPanel({ open, onClose, participants, program
       });
     } catch {}
     setMuting((prev) => ({ ...prev, [identity]: false }));
+  }
+
+  async function muteAll() {
+    setMutingAll(true);
+    setMuteAllResult(null);
+    try {
+      const res = await fetch("/api/livekit/mute-all", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ programSlug }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMuteAllResult(typeof data.muted === "number" ? data.muted : 0);
+        setTimeout(() => setMuteAllResult(null), 3000);
+      }
+    } catch {}
+    setMutingAll(false);
   }
 
   // Sort: raised hands first, then alphabetical
@@ -143,6 +163,22 @@ export default function ParticipantsPanel({ open, onClose, participants, program
             );
           })}
         </div>
+        {isHost && participants.length > 0 && (
+          <div className="rim-pp__footer">
+            <button
+              type="button"
+              className="rim-pp__mute-all"
+              onClick={muteAll}
+              disabled={mutingAll}
+            >
+              {mutingAll
+                ? "Muting…"
+                : muteAllResult !== null
+                ? `Muted ${muteAllResult}`
+                : "Mute All"}
+            </button>
+          </div>
+        )}
       </aside>
     </>
   );
