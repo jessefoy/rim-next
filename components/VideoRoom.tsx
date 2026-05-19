@@ -59,10 +59,11 @@ interface Props {
   programSlug: string;
   guestKey?: string;
   avatarUrl?: string | null;
+  view?: "speaker" | "gallery";
   onLeave?: () => void;
 }
 
-export default function VideoRoom({ token, wsUrl, isHost = false, audioProfile = "listener", programSlug, guestKey, avatarUrl, onLeave }: Props) {
+export default function VideoRoom({ token, wsUrl, isHost = false, audioProfile = "listener", programSlug, guestKey, avatarUrl, view = "gallery", onLeave }: Props) {
   const roomOptions = buildRoomOptions(audioProfile);
 
   // Load LiveKit styles only when video room mounts — prevents global CSS leak
@@ -92,6 +93,7 @@ export default function VideoRoom({ token, wsUrl, isHost = false, audioProfile =
           isHost={isHost}
           programSlug={programSlug}
           guestKey={guestKey}
+          view={view}
           initialAvatarUrl={avatarUrl ?? null}
         />
       </LiveKitRoom>

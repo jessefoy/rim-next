@@ -13,8 +13,21 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
+import ViewToggle, { type SessionView } from "@/components/session/ViewToggle";
 
 const VideoRoom = dynamic(() => import("@/components/VideoRoom"), { ssr: false });
+
+const VIEW_LS_KEY = "rim-livekit-view";
+
+function readView(): SessionView {
+  if (typeof window === "undefined") return "gallery";
+  try {
+    const v = localStorage.getItem(VIEW_LS_KEY);
+    return v === "speaker" ? "speaker" : "gallery";
+  } catch {
+    return "gallery";
+  }
+}
 
 type State = "loading" | "guest-name" | "ready" | "connected" | "error" | "left";
 
@@ -36,6 +49,15 @@ export default function SessionPage() {
   const [steppingIn, setSteppingIn] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [view, setView] = useState<SessionView>("gallery");
+
+  // Restore view preference on mount
+  useEffect(() => { setView(readView()); }, []);
+
+  function handleViewChange(next: SessionView) {
+    setView(next);
+    try { localStorage.setItem(VIEW_LS_KEY, next); } catch {}
+  }
   const [guestName, setGuestName] = useState("");
   const [joiningAsGuest, setJoiningAsGuest] = useState(false);
   const pageRef = useRef<HTMLDivElement>(null);
@@ -251,8 +273,9 @@ export default function SessionPage() {
         </div>
         {/* Center: program name */}
         <span className="vs-header__name">{programName}</span>
-        {/* Right: view toggle (coming next), fullscreen, help */}
+        {/* Right: view toggle, fullscreen, help */}
         <div className="vs-header__right">
+          <ViewToggle view={view} onChange={handleViewChange} />
           <button
             className="vs-header__icon"
             onClick={toggleFullscreen}
@@ -285,6 +308,7 @@ export default function SessionPage() {
             programSlug={slug}
             guestKey={guestKey ?? undefined}
             avatarUrl={avatarUrl}
+            view={view}
             onLeave={handleLeave}
           />
         )}

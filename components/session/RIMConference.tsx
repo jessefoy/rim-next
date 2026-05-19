@@ -23,6 +23,7 @@ import {
   FocusLayout,
   FocusLayoutContainer,
   CarouselLayout,
+  useSpeakingParticipants,
 } from "@livekit/components-react";
 import { Track, RoomEvent } from "livekit-client";
 import RIMParticipantTile from "./RIMParticipantTile";
@@ -36,6 +37,7 @@ interface Props {
   isHost: boolean;
   programSlug: string;
   guestKey?: string;
+  view?: "speaker" | "gallery";
   initialAvatarUrl: string | null;
 }
 
@@ -43,7 +45,7 @@ function getMetadata(raw: string | undefined): ParticipantMetadata {
   try { return JSON.parse(raw || "{}"); } catch { return {}; }
 }
 
-export default function RIMConference({ isHost, programSlug, guestKey, initialAvatarUrl }: Props) {
+export default function RIMConference({ isHost, programSlug, guestKey, view = "gallery", initialAvatarUrl }: Props) {
   const { localParticipant } = useLocalParticipant();
   // updateOnlyOn ensures the component re-renders when metadata changes (for raised hand tracking)
   const remoteParticipants = useRemoteParticipants({
@@ -82,12 +84,53 @@ export default function RIMConference({ isHost, programSlug, guestKey, initialAv
     { onlySubscribed: false }
   );
 
-  // Is a participant/track pinned (focus view active)?
-  const hasPinnedTracks = layoutContext.pin.state && layoutContext.pin.state.length > 0;
+  const speakers = useSpeakingParticipants();
+
+  // Speaker / Gallery view orchestration:
+  //  - speaker: ensure a pin exists (first active speaker, else first remote).
+  //             Refresh pin to follow active speaker as they change.
+  //  - gallery: clear any pin so the grid is the layout.
+  useEffect(() => {
+    if (view === "gallery") {
+      if (layoutContext.pin.state && layoutContext.pin.state.length > 0) {
+        layoutContext.pin.dispatch?.({ msg: "clear_pin" });
+      }
+      return;
+    }
+    // Speaker view — look for a camera track to focus.
+    const cameraTracks = tracks.filter((t) => t.source === Track.Source.Camera);
+    if (cameraTracks.length === 0) return;
+    // Prefer the first active speaker who has a camera track
+    let nextTrack = cameraTracks.find((t) =>
+      speakers.some((sp) => sp.identity === t.participant.identity)
+    );
+    // Fall back to the current pinned participant if still in the room
+    if (!nextTrack && layoutContext.pin.state && layoutContext.pin.state.length > 0) {
+      const pinned = layoutContext.pin.state[0];
+      const stillPresent = cameraTracks.find((t) => t.participant.identity === pinned.participant.identity);
+      if (stillPresent) return; // keep current pin
+    }
+    // Last fallback — first remote camera (or first overall)
+    if (!nextTrack) {
+      nextTrack =
+        cameraTracks.find((t) => t.participant.identity !== localParticipant?.identity) ??
+        cameraTracks[0];
+    }
+    if (!nextTrack) return;
+    const currentlyPinned = layoutContext.pin.state?.[0];
+    if (currentlyPinned && currentlyPinned.participant.identity === nextTrack.participant.identity) {
+      return; // already pinned
+    }
+    layoutContext.pin.dispatch?.({ msg: "set_pin", trackReference: nextTrack });
+  }, [view, speakers, tracks, layoutContext.pin, localParticipant?.identity]);
+
+  // Render speaker layout when view === speaker AND we have a pinned track.
+  // Otherwise gallery.
+  const inSpeakerView = view === "speaker" && !!layoutContext.pin.state && layoutContext.pin.state.length > 0;
 
   return (
     <LayoutContextProvider value={layoutContext}>
-      <div className="rim-conference">
+      <div className={`rim-conference rim-conference--${view}`}>
 
         {/* Raised-hand banner — at-a-glance, visible without opening the panel */}
         {raisedHandCount > 0 && (
@@ -112,7 +155,7 @@ export default function RIMConference({ isHost, programSlug, guestKey, initialAv
         {/* Video grid + optional chat sidebar */}
         <div className="rim-conference__main">
           <div className="rim-conference__video">
-            {hasPinnedTracks ? (
+            {inSpeakerView ? (
               <FocusLayoutContainer>
                 <CarouselLayout tracks={tracks}>
                   <RIMParticipantTile />

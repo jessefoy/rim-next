@@ -13779,6 +13779,39 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 .vs-page:fullscreen .vs-header { background: #111; border-bottom-color: #222; }
 .vs-page:fullscreen { background: #000; }
+
+/* Speaker / Gallery segmented toggle */
+.vs-view-toggle {
+  display: inline-flex;
+  background: #1f1f1f;
+  border: 1px solid #333;
+  border-radius: 6px;
+  overflow: hidden;
+  height: 32px;
+}
+.vs-view-toggle__btn {
+  background: transparent;
+  border: none;
+  padding: 0 12px;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: #888;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  min-width: 64px;
+}
+.vs-view-toggle__btn:hover { color: #ccc; background: rgba(255,255,255,0.04); }
+.vs-view-toggle__btn--active {
+  background: #135274;
+  color: #fff;
+}
+.vs-view-toggle__btn--active:hover { background: #1a6b95; color: #fff; }
+
+/* Hide LiveKit's tile pin button when we're in gallery view — clicking it
+   would set a phantom pin that gallery doesn't honor. Pin is a Speaker-view
+   affordance only. */
+.rim-conference--gallery .lk-focus-toggle-button { display: none !important; }
 .vs-room {
   flex: 1;
   min-height: 0;
