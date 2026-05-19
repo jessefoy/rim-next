@@ -1804,7 +1804,7 @@ When an application is extracted, the hub may retain a simplified read-only view
 
 ---
 
-## 38. LiveKit Video Conferencing — Phase 1-4 ✅ Built — sessions 76, 86
+## 38. LiveKit Video Conferencing — Phases 1–5 ✅ Built — sessions 76, 86, 117 (Zoom-aligned redesign)
 
 ### What it does
 
@@ -1817,7 +1817,8 @@ Embedded video conferencing that replaces Google Meet for virtual and hybrid pro
 - **Phase 2 (dashboard embed):** VideoRoomEmbed replaces MeetJoinButton on the member dashboard, fullscreen toggle. Complete.
 - **Phase 3 (host integration):** Emergency host step-in, end-session-for-all, high-fidelity audio for hosts/teachers. ✅ Complete.
 - **Phase 4 (session room UI):** Custom RIMConference layout, chat, focus/pin, nonverbal signals, raised-hand banner, presence photos, dark theme, audio prompt. ✅ Complete (session 86).
-- **Phase 5 (recording):** 🔜 Pressing future feature — see below.
+- **Phase 5 (Zoom-aligned redesign):** ✅ Complete (session 117). The entire session-room UX was reshaped to mirror Zoom's information architecture so Sangha muscle memory transfers cleanly. See "Zoom-aligned redesign" below.
+- **Phase 6 (recording):** 🔜 Pressing future feature — see below.
 
 ### Emergency Host Step-In
 
@@ -1836,13 +1837,64 @@ Embedded video conferencing that replaces Google Meet for virtual and hybrid pro
 
 🔧 **Technical notes:** The step-in API upserts the HostAssignment (@@unique on [programSlug, sessionDate]), generates a new JWT with `roomAdmin: true`, and returns it. The client cycles state to force a LiveKit reconnect with the new token. The token API returns `isHostTeam` alongside `isHost` so the session page knows whether to show the button.
 
-### High-Fidelity Audio for Hosts & Teachers
+### Three-Way Audio Profile (session 117)
 
-Hosts and teachers automatically receive high-fidelity audio settings: noise suppression OFF, echo cancellation OFF, auto-gain OFF, 128kbps bitrate. Meditation bells, singing bowls, dharma talks, and music pass through clean without being clipped by speech optimization. Regular participants keep noise suppression ON so background sounds stay suppressed. DTX (discontinuous transmission) enabled for all — during silent meditation, nearly zero audio bandwidth is used.
+The previous host-vs-non-host audio split was replaced with a three-way profile axis derived in the token route:
 
-**Who gets hi-fi audio:** Anyone with HOST, HOST_MANAGER, TEACHER, or ADMIN role. Automatic — no toggle needed.
+- **teacher** — used for anyone in `ProgramTeacher` for this program. Preserves bells, singing bowls, music. `echoCancellation: true`, `autoGainControl: false`, `noiseSuppression: false`, `audioPreset.maxBitrate: 128_000`.
+- **speaker** — host who isn't teaching (e.g. supporting a session). Clean speech profile, all three processing flags on. `audioPreset.maxBitrate: 96_000`.
+- **listener** — everyone else. Clean speech profile. `audioPreset.maxBitrate: 64_000`.
 
-### 🔜 Phase 5: Session Recording (Pressing — Not Yet Built)
+DTX (discontinuous transmission) is OFF for all profiles — the bandwidth savings during silence weren't worth the audible speech-edge artifacts. Default audio bitrate in LiveKit is ~20 kbps; bumping every profile gives a clearly perceptible "this voice sounds full, not phone-call thin" improvement at trivial bandwidth cost.
+
+The token route returns `audioProfile` (the previous `needsHiFiAudio` boolean was dropped — it was being shadowed by the page only reading `isHost`, which meant teachers who weren't the assigned host got the wrong audio profile).
+
+### Video: H.264 + Explicit Bitrate Caps (session 117)
+
+Codec switched from VP8 to H.264 — the same codec Zoom uses. Universal hardware encode/decode (no CPU spike on older laptops or phones); visibly cleaner than VP8 at the same bitrate. Explicit `videoEncoding: { maxBitrate: 2_500_000, maxFramerate: 30 }`. Simulcast layers stay `[h180, h360, h720]` for adaptive downgrade on lossy networks.
+
+### Zoom-aligned redesign (session 117)
+
+The visual / behavioral language of every session-room surface was reshaped to mirror Zoom's information architecture. The goal: Sangha members transitioning from Zoom shouldn't have to wrap their minds around a new model. Where our pattern and Zoom's differed, Zoom won (unless `RIM_Web_Design_Philosophy.md` had a stronger reason).
+
+**Control bar (`RIMControlBar`).** Bottom-center, dark, icon-stacked-over-label compact buttons (~64×52). Order LTR: `Mute` `Start Video` (each as a cluster: main toggle + thin divider + chevron) → `Participants` `Chat` → `Share Screen` `Reactions` `Settings` → spacer → red `End` button. All icons are inline Lucide-style line SVGs at 20×20 with 2px stroke (no emoji — emoji rendered inconsistently across OSes). Off-state mic/camera tint red via `currentColor`.
+
+**Device pickers.** Mic and camera chevrons open upward popovers (`DevicePickerMenu`) listing `MediaDeviceInfo` for the appropriate kind, marking the active one, and live-swapping via `room.switchActiveDevice()`. Preferences persist in `localStorage` under `rim-livekit-prefs`. Settings panel grew matching Audio + Video sections so the deeper home is consistent.
+
+**Reactions popover (`ReactionsMenu`).** Replaces the standalone top-of-room `NonverbalToolbar`. Opens upward from the Reactions button. Five signals (✋ ❤️ 🙏 ✓ ✗); hand persists until toggled, others auto-clear after 5s. "Lower hand" item appears when hand is raised.
+
+**End popover (`EndMenu`).** Red End button opens an upward popover. Hosts see `End Meeting for All` (red) + `Leave Meeting`; non-hosts see just `Leave Meeting`. Server endpoint (`/api/livekit/end-session`) is the security boundary; the popover is the UX boundary.
+
+**Speaker / Gallery view toggle (`ViewToggle`).** Segmented control top-right of the page header. Gallery default. Speaker view auto-pins active speaker via `useSpeakingParticipants` with a ref-gated effect to avoid per-render thrash. Preference persists in `localStorage` under `rim-livekit-view`.
+
+**Page header trim.** Was: Leave / Step-In / Mute All / End for All / Fullscreen / Help. Now: Step-In (left, host-team only) / program name (center) / View toggle + Fullscreen + Help (right). The removed buttons moved to their Zoom-equivalent locations — Mute All to Participants panel footer, Leave + End for All into the control bar's End popover.
+
+**Participants panel.** Sticky local "Me" row at the top with `(you)` tag and `Host` pill (when applicable). Host pill also renders on remote rows whose token metadata marked them as host. Search box at >10 participants. Per-row mute (host) or `Muted` pill (off state). Footer Mute All for hosts. Re-renders driven by `TrackMuted/Unmuted/Published/Unpublished` from `useRemoteParticipants` updateOnlyOn config.
+
+**Custom chat (`RIMChat`).** Replaces LiveKit's stock `<Chat />` (broadcast-only, in-memory). New `SessionChatMessage` Prisma model + `/api/livekit/chat` (GET + POST). On mount, fetches up to 100 prior messages so new joiners and post-refresh users see history. Live via `room.localParticipant.publishData(payload, { destinationIdentities, reliable: true, topic: "rim-chat" })`. Recipient picker above compose: default "Everyone," select a name → private DM. Private messages render with a teal left border and `(private)` tag. Server-side filtering on read so DMs only return to sender + listed recipients. Guests authenticate via `guestKey + guestIdentity` for chat writes.
+
+**Custom tile (`RIMParticipantTile`).** Hides LiveKit's default name bar; renders our own Zoom-style nameplate (white text bottom-left with text-shadow, no pill background; small red mic-off SVG only when muted; small Host pill if applicable). Active-speaker 3px yellow outline via `useIsSpeaking`. 8px rounded corners.
+
+**Initials avatar fallback.** When a participant has video off and no presence photo, renders an initials circle (first letter of first + last name token) on a deterministic muted color hashed from identity — pattern matches Slack / Google Meet / Zoom. LiveKit's generic gray silhouette is hidden unconditionally. Sized to the shorter tile axis via `min(40cqh, 240px)` so it stays circular at any aspect ratio.
+
+**Auto-hide chrome.** Page tracks idle via 3-second timer reset by mousemove / keydown / touchstart / focus. CSS fades the top header and bottom control bar (`opacity: 0` + small `translateY`) on `.vs-page--idle`. `:has()` overrides re-show chrome when any panel or popover is open. `:hover` restores. Touch devices (`hover: none`) never fade. Tile nameplates and the raised-hand banner stay visible (information, not chrome).
+
+**Pure-black background.** Conference root background changed from `#111` to `#000` to match Zoom's depth.
+
+**Host-tag trust note.** `host: true` in participant metadata is a UI cue, not a security boundary. `canUpdateOwnMetadata: true` on the token grant means a client could technically rewrite their own metadata. Real host actions (mute, end-for-all) are gated server-side via `auth() + role + HostAssignment + ProgramTeacher` lookup — not via this flag. Documented in the token route. If a non-spoofable Host indicator is needed later, route avatar/signal updates through a server-side `RoomServiceClient.updateParticipant` endpoint.
+
+### Three-stage host privileges
+
+Host privilege is computed in the token route from any of:
+
+- `ADMIN` role
+- `HOST_MANAGER` role
+- `HostAssignment` for this program + sessionDate
+- `ProgramTeacher` for this program
+
+Then run through `getEffectiveHostingCapability(userId, "host-team", tentativeHost)` for hub-membership authority (a paused HubMember overrides). For host emergency step-in, see "Emergency Host Step-In" above.
+
+### 🔜 Phase 6: Session Recording (Pressing — Not Yet Built)
 
 **Goal:** Automatically record dharma talks for a community library that builds itself from live sessions.
 
@@ -1868,20 +1920,13 @@ Hosts and teachers automatically receive high-fidelity audio settings: noise sup
 
 **Prerequisites:** Community agreements update, Recording/Lesson model linking, teacher hub "My Recordings" UI, audio player on lesson pages (already exists).
 
-### Session Room UI (Phase 4 — session 86)
+### Session Room UI — current state (post-session-117 Zoom-aligned redesign)
 
-Custom `RIMConference` layout replacing LiveKit's default `VideoConference` component:
+See "Zoom-aligned redesign" above for the current detailed inventory. Below is the pre-117 Phase 4 record kept for historical context.
 
-- **Grid / Focus layout** — default is a responsive grid. Hover any tile → pin button appears top-right. Click to switch to focus/speaker view (pinned large, others in carousel). Click again to return to grid.
-- **Chat sidebar** — 300px dark sidebar, toggled via 💬 Chat button. Our own header with working ✕ close button (LiveKit's built-in close doesn't work with our state management).
-- **Nonverbal signals** — ✋❤️🙏✓✗ buttons in toolbar. Badges appear top-left of the participant tile at 44px with dark pill background. Hand raise is a toggle (persists until clicked again); others auto-clear after 5 seconds.
-- **Raised-hand banner** — yellow strip below toolbar: "✋ [Name] raised their hand." Hosts see a "View" button to open the participants panel. Always visible without opening any panel.
-- **Presence photo** — upload from Settings panel or account settings. Shown as a centered rounded square (50% tile height, 16px border radius) when camera is off. Grey silhouette hidden when photo is present. Baked into JWT metadata so it loads immediately on join.
-- **Participants panel** — host-only slide-in (280px). Shows all remote participants sorted by raised hands first. Per-participant mute button.
-- **Dark header** — `vs-header` uses #1a1a1a to match the video area (was white, which clashed).
-- **Audio playback prompt** — full-screen overlay for Safari/browsers that block audio: "🔊 Tap to enable audio" with explanation. Replaces LiveKit's tiny "Start Audio" pill.
-- **Participant names** — always visible at bottom-left of tile, 16px/500 weight, dark background pill.
-- **Echo cancellation** — hosts: `echoCancellation: true`, `noiseSuppression: false` (preserves bells/music). Participants: full speech processing.
+#### Pre-117 baseline (session 86 Phase 4 — superseded by Phase 5)
+
+Custom `RIMConference` layout replacing LiveKit's default `VideoConference`. Grid / Focus layout, chat sidebar, top-toolbar with nonverbal signals + Participants + Chat + Settings, raised-hand banner, presence photos, participants panel (host-only), dark header, audio playback prompt for Safari, participant names. **Most of this was reshaped in session 117** — the top toolbar is gone (those buttons live in the bottom control bar now), the nonverbal toolbar was consolidated into a Reactions popover, the participants panel is no longer host-only (non-hosts see roster), and the chat is custom-built with persistence + DMs.
 
 ### Who uses it
 
@@ -1902,14 +1947,21 @@ Rooms are created on-demand from the program slug (e.g., `thursday-evening-medit
 | `app/api/livekit/mute-all/route.ts` | POST — server-side mute all participants via RoomServiceClient |
 | `app/api/livekit/mute-participant/route.ts` | POST — server-side mute individual participant |
 | `app/api/account/avatar/route.ts` | PATCH — save/clear avatar URL for current user |
-| `components/VideoRoom.tsx` | LiveKitRoom wrapper — role-based audio config, loads livekit-prefabs.css, renders RIMConference |
-| `components/session/RIMConference.tsx` | Custom conference layout: grid/focus, toolbar, chat, raised-hand banner, audio prompt |
-| `components/session/RIMParticipantTile.tsx` | Custom tile: avatar overlay, signal badge, uses trackRef.participant (not context) |
-| `components/session/NonverbalToolbar.tsx` | Signal buttons: hand (toggle), heart/namaste/yes/no (5s momentary) |
-| `components/session/ParticipantsPanel.tsx` | Host-only: participant list, raised hands sorted first, per-participant mute |
-| `components/session/VideoSettingsPanel.tsx` | Settings: presence photo upload only |
+| `components/VideoRoom.tsx` | LiveKitRoom wrapper — audio-profile-based capture config, H.264 video, loads livekit-prefabs.css, renders RIMConference |
+| `components/session/RIMConference.tsx` | Custom conference layout: grid (Gallery) / focus (Speaker), raised-hand banner, chat sidebar, view-mode auto-pin, audio prompt |
+| `components/session/RIMParticipantTile.tsx` | Custom tile: avatar / initials fallback, Zoom-style nameplate, active-speaker outline, signal badge |
+| `components/session/RIMControlBar.tsx` | Bottom Zoom-style control bar: mic/cam clusters with device chevrons, Participants/Chat/Share/Reactions/Settings/End buttons |
+| `components/session/ControlBarIcons.tsx` | Lucide-style SVG icon set for the control bar |
+| `components/session/DevicePickerMenu.tsx` | Upward popover from mic/cam chevrons — device list, live-swap via `room.switchActiveDevice()`, localStorage prefs |
+| `components/session/ReactionsMenu.tsx` | Upward popover from Reactions button — five RIM signals; replaces the deleted `NonverbalToolbar` |
+| `components/session/EndMenu.tsx` | Upward popover from red End button — host: End-for-All + Leave; non-host: Leave |
+| `components/session/ViewToggle.tsx` | Segmented Speaker | Gallery toggle in page header, localStorage persistence |
+| `components/session/ParticipantsPanel.tsx` | Slide-in roster: sticky Me row, Host pills, raised-hands-first sort, per-row mute (host), Mute All footer, search at >10 |
+| `components/session/RIMChat.tsx` | Custom chat: history seed via GET, live via data channel, recipient picker for DMs, server-filtered reads |
+| `components/session/VideoSettingsPanel.tsx` | Settings: Audio + Video device sections, presence photo |
+| `app/api/livekit/chat/route.ts` | GET (history, DM-filtered) + POST (persist + dedup) for `SessionChatMessage` |
 | `components/VideoRoomEmbed.tsx` | Dashboard embed wrapper — join button → inline VideoRoom with fullscreen toggle |
-| `app/session/[slug]/page.tsx` | Dedicated session page: auth/guest flows, header with host controls |
+| `app/session/[slug]/page.tsx` | Dedicated session page: auth/guest flows, header (Step-In / name / view-toggle + fullscreen + help), auto-hide chrome on idle |
 | `app/admin/livekit-test/page.tsx` | Admin-only test page for verifying LiveKit connectivity and room creation |
 
 ### Technical notes

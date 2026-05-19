@@ -1,5 +1,120 @@
 ---
 
+## 2026-05-19 (session 117) — Session room: six-issue fix → Zoom-aligned redesign → A/V quality + auto-hide
+
+Single long session with one through-line: bring the LiveKit session room to "feels like Zoom" before Maria's host training. Three phases, thirteen commits, all on `main`.
+
+### Phase 1 — Six-issue fix pass (`e37cff9`)
+
+Jesse listed six concrete defects from Sangha testing:
+1. Per-participant mute icon not appearing for hosts
+2. Mute/unmute button confusing — members clicked the chevron, not the button
+3. Audio choppy / echoey
+4. Non-hosts couldn't see participant list
+5. Chat had no history
+6. No direct messages
+
+Entered plan mode, produced a Connections Map + grouped fixes (Group A: mute UX, B: participants, C: audio, D: chat). Approved, built, reviewed via sub-agent (caught two real issues — `participants.length+1` mismatch with rendered rows; auto-pin effect re-running every render), committed.
+
+Key changes in this commit:
+- `RIMControlBar` (new) replaces LiveKit's stock `<ControlBar />`. Wide labeled buttons (this was the e37cff9 overcorrection — fixed in Phase 2).
+- `ParticipantsPanel` mute-button visibility bug — `[].every() === true` + `!pub.track` race on fresh joins. Switched to `participant.isMicrophoneEnabled` (canonical flag).
+- `audioProfile: teacher | speaker | listener` axis derived in token route. Teacher = `ProgramTeacher` for this program (not "any host"); preserves bell-friendly capture profile. Others get clean speech defaults. DTX off everywhere.
+- Token route returns `audioProfile`, drops `needsHiFiAudio`. Page threads it to `VideoRoom`.
+- `RIMChat` (new) replaces stock `<Chat />`. New `SessionChatMessage` Prisma model + `/api/livekit/chat` (GET/POST). Live via `room.localParticipant.publishData(..., { destinationIdentities })` for DMs. History persists; new joiners get full chat on entry. Server-side filtering on read so DMs only return to sender + recipients.
+- `isHost` gates removed from participants panel button + panel mount; non-hosts now see roster.
+- Headphone hint in audio-playback prompt.
+- `NonverbalToolbar` consolidated into a Reactions popover (built in Phase 2).
+- `EndMenu` + `ReactionsMenu` (new components in Phase 2).
+
+### Phase 1.5 — Build fix (`f74ff6d`)
+
+First push of the branch surfaced a pre-existing fragility: `lib/stripe.ts` threw at module evaluation if `STRIPE_SECRET_KEY` was absent, which crashes preview builds (`next build` collects page data and imports `/api/stripe/webhook`). Wrapped Stripe in a lazy-init Proxy so the env-var check defers to first runtime access. Production unaffected (env var is set there). Pattern matches the session-116 `prisma/migrate.mjs` env-guard.
+
+### Phase 2 — Zoom-aligned redesign (six commits: `ec93a58` `cc5b01c` `0b5112f` `4eb1904` `756a791` `99dd6fd`)
+
+After Phase 1 landed, Jesse asked: "Out of curiosity, can we make it look like a cloned Zoom?" The path that emerged through dialogue: don't go for pixel-clone of Zoom's brand, but adopt Zoom's *information architecture* across every surface — button positions, panel layout, popover behavior, color treatment — so member muscle memory transfers cleanly. Zoom wins where our pattern and theirs differ, unless `RIM_Web_Design_Philosophy.md` says otherwise.
+
+Plan file written, approved, executed across six commits:
+
+1. **Control bar reshape + header trim (`ec93a58`).** Replaced the wide-labeled buttons from `e37cff9` with Zoom-style icon-stacked-over-label (~64×52px). Mic and Camera become two-part clusters (main button + thin divider + chevron). `Participants`, `Chat`, `Settings`, `Share Screen`, `Reactions`, red `End` button — every action that used to be in the page header or RIMConference top toolbar now lives in the bottom control bar in its Zoom-equivalent position. `NonverbalToolbar.tsx` deleted; signals live inside the Reactions popover. Page header trimmed to three slots: Step-In (left), program name (center), fullscreen + help (right). Mute All → Participants panel footer. End-for-All → End popover. Hand-raise "View" button ungated (non-hosts can use it too now). CLAUDE.md updated with a scoped box-shadow exception for control-bar popovers.
+
+2. **Device pickers + Settings audio/video (`cc5b01c`).** Wired the previously-disabled mic and camera chevrons to upward popovers that enumerate `MediaDeviceInfo`, mark the active one, and live-swap via `room.switchActiveDevice()`. Preferences persist in `localStorage` under `rim-livekit-prefs`. `VideoSettingsPanel.tsx` grew Audio and Video sections sharing the same prefs.
+
+3. **Speaker / Gallery view toggle (`0b5112f`).** New `ViewToggle.tsx` segmented control in the top-right of the page header. Gallery default. Speaker view auto-pins active speaker via `useSpeakingParticipants`. Persists in `localStorage`.
+
+4. **Participants panel polish (`4eb1904`).** Sticky local Me row at top with "(you)" tag and a "Host" pill when applicable. Host pill also on remote rows where token marked them as host. Host status encoded in participant metadata at token-issue time (`host: true`) because `roomAdmin` permission isn't exposed cross-client. Search box appears at participant count > 10.
+
+5. **Tile aesthetic (`756a791`).** Custom Zoom-style nameplate with mic icon + name; active-speaker yellow outline (3px `#fde047`) via `useIsSpeaking`; signal badge shrunk from 44px to 22px; rounded 8px corners. (Nameplate further refined in Phase 3.)
+
+6. **Reviewer polish (`99dd6fd`).** Sub-agent on cumulative diff caught: auto-pin effect re-running every render (added `useRef` short-circuit + identity-based gating); `as never` casts in `DevicePickerMenu` (replaced with `Track.Source.*`); spoofability of Host tag (`canUpdateOwnMetadata: true` means a client can fake `host: true` — documented as a UI cue, not a security boundary; actual host actions are gated server-side via `auth() + role + HostAssignment`).
+
+### Phase 3 — A/V quality + visible-bug fixes + final feel (four commits: `b0e3011` `a545360` `7379e96` `57abef7` `b2c45a9`)
+
+Jesse reported video quality was "not great compared to Zoom" and asked for audio to also be good.
+
+- **H.264 + audio bitrate bumps (`b0e3011`).** Switched from VP8 to H.264 (the codec Zoom uses; universal hardware encode/decode; visibly cleaner than VP8 at the same bitrate). Explicit `videoEncoding: { maxBitrate: 2_500_000, maxFramerate: 30 }`. All audio profiles now publish with explicit `audioPreset.maxBitrate` — listener 64 kbps, speaker 96 kbps, teacher 128 kbps. Default was ~20 kbps, which was the source of "thin/unclear" voice complaints. DTX off everywhere.
+
+Screenshot comparison with Zoom showed our session was rendering a generic gray silhouette (LiveKit's default) for participants without uploaded presence photos, vs Zoom's centered profile picture.
+
+- **Initials fallback + pure-black background (`a545360`).** Hide LK's silhouette unconditionally. Render an initials circle (first letter of first + last name token) on a deterministic muted color hashed from identity. Pattern matches Slack / Google Meet / Zoom. Conference background `#111` → `#000` to match Zoom's depth.
+
+- **SVG icons + tighter spacing (`7379e96`).** Replaced emoji icons (🎤 🔇 📹 etc.) with inline Lucide-style line SVGs at 20×20 with 2px stroke. Off-state still tints red via `currentColor`. Removed the two 16px gap dividers between button groups in the control bar (`rim-cb-gap` deleted). Base gap 4 → 6 px. Buttons flow as a continuous cluster the way Zoom does.
+
+- **Initials oval → circle (`57abef7`).** Jesse spotted the initials avatar rendering as a tall oval. Bug: `font-size: 14cqw` on a 1900px-wide tile produced a 266px tall "J" glyph; `aspect-ratio: 1` was being overridden by content height. Fixed with explicit `width/height: min(40cqh, 240px)` (using container-query *height* so it scales with the shorter axis) and `font-size: min(18cqh, 96px)`.
+
+Then the bigger insight from Jesse: "Pause and contemplate the images very carefully." The Zoom screenshot showed no toolbars at all — only the avatar, name, and a single status pill — because **Zoom's UI auto-hides when idle**. That was the missing thing — not icon style or spacing, but the toolbar being permanently visible at all.
+
+- **Auto-hide chrome + Zoom-style nameplate (`b2c45a9`).** Page tracks idle via 3-second timer reset by mousemove / keydown / touchstart / focus. CSS fades `.vs-header` and `.rim-cb` with `opacity 0` + small `translateY` on `.vs-page--idle`. `:has()` selectors re-show chrome when any panel or popover is open (so device pickers, reactions, end menu, chat / participants / settings sidebars never get cut off mid-interaction). `:hover` on the bars also restores them. Touch devices (`hover: none`) never fade. Nameplate restyle: dropped the dark pill background; white text bottom-left with `text-shadow: 0 1px 2px rgba(0,0,0,0.85)` for legibility against any video color. Mic-off SVG only renders when the participant is muted (no icon when unmuted), in red.
+
+### Collaboration experiments — round 2
+
+- **Plan mode** used twice (six-issue fix, Zoom redesign). Worked well both times — the forcing function of "write evaluation before any edits" keeps assumptions visible.
+- **Reviewer sub-agent before commit** used twice. First run on the six-issue diff caught two real issues. Second run on the Zoom-redesign cumulative diff caught two more (effect thrash, type casts). Both runs surfaced things the main loop missed. Memory at `feedback-reviewer-subagent.md` was on probation pending two more positive passes; now confirmed. Promote to default-before-non-trivial-commit pattern.
+- **Merge to main by default** — first session honoring `feedback-merge-by-default.md`. After each phase: push branch → fast-forward `main` → delete branch. Pattern held; production deploys followed each phase without an extra "want me to merge?" gate.
+
+### Concrete connections (what was touched)
+
+- New: `components/session/RIMChat.tsx`, `RIMControlBar.tsx`, `ReactionsMenu.tsx`, `EndMenu.tsx`, `DevicePickerMenu.tsx`, `ViewToggle.tsx`, `ControlBarIcons.tsx`
+- New: `app/api/livekit/chat/route.ts`
+- New: `SessionChatMessage` Prisma model + `session_chat_messages` table + `prisma/migrate.mjs` entry
+- Deleted: `components/session/NonverbalToolbar.tsx`
+- Major rewrites: `components/session/RIMParticipantTile.tsx`, `ParticipantsPanel.tsx`, `RIMConference.tsx`, `VideoSettingsPanel.tsx`, `components/VideoRoom.tsx`, `app/session/[slug]/page.tsx`
+- API change: `app/api/livekit/token/route.ts` returns `audioProfile` (was `needsHiFiAudio`); seeds `host` in metadata
+- Infra: `lib/stripe.ts` lazy-init Proxy
+- CSS: extensive rewrite in `public/css/custom.css` — Zoom-style control bar, popovers, view toggle, initials avatar, auto-hide chrome, nameplate
+- Docs: `CLAUDE.md` (box-shadow exception for popovers), `SESSION_ROOM_FOR_VOLUNTEERS.md` (new — plain-English changelog for hosts/sangha)
+
+### Commits
+
+`e37cff9` Session room: six-issue fix pass
+`f74ff6d` Build: lazy-init Stripe client so preview builds don't throw on import
+`ec93a58` Session room: Zoom-aligned control bar + header trim
+`cc5b01c` Session room: device pickers + Settings audio/video sections
+`0b5112f` Session room: Speaker / Gallery view toggle
+`4eb1904` Session room: participants panel polish
+`756a791` Session room: Zoom-style tile aesthetic
+`99dd6fd` Session room: reviewer-flagged polish
+`b0e3011` Session room: H.264 video + higher audio bitrate
+`a545360` Session room: initials fallback + pure-black background
+`7379e96` Session room: SVG icons + tighter control-bar spacing
+`57abef7` Session room: initials avatar — circle, not oval
+`b2c45a9` Session room: auto-hide chrome + Zoom-style nameplate
+
+### Backlog added
+
+- **Spotlight** (host-driven global pin everyone sees) — Zoom feature we don't have.
+- **Mirror video toggle** in Settings → Video.
+- **Test Microphone / Test Speakers** in Settings → Audio.
+- **Host-tag spoofability hardening** — if we want a non-spoofable Host indicator, route avatar/signal updates through a server-side `RoomServiceClient.updateParticipant` endpoint and remove `canUpdateOwnMetadata` from the token grant. Documented as risk-accepted for now.
+
+### What's still on the radar
+
+- Sangha-confidence test: one Sangha member who used the prior version saying "this feels like Zoom" without prompting.
+- Maria training session (queued downstream from session 115 / 116).
+
+---
+
 ## 2026-05-18 (session 116) — Member home pass + first reviewer-subagent run
 
 Started from a question about an Anthropic-published "explore → plan → code → commit" Claude Code video. Evaluated it against the existing RIM workflow (already richer in most respects), committed to trying two things from it: actually using plan mode (shift+tab) for non-trivial work, and spinning up a code-reviewer sub-agent on the staged diff before commit. Then immediately exercised both on a member home (`/account/dashboard`) pass.

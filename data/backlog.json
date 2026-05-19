@@ -1,5 +1,55 @@
 [
   {
+    "id": "2026-05-19-001",
+    "title": "Session room: Spotlight (host-driven global pin)",
+    "description": "Zoom feature we don't have. Our local Speaker view auto-pins the active speaker locally; Spotlight pins one participant for everyone in the room, persists until the host releases it, and surfaces above the active-speaker logic. LiveKit doesn't have a built-in spotlight primitive, but we can implement it by sending a 'spotlight' data-channel message from the host and having every client treat the named identity as the auto-pin target until cleared. UI: a 'Spotlight for everyone' option in the per-tile host hover menu or in the participants panel's per-row host actions. Track current spotlight in room metadata so latecomers see it on join.",
+    "category": "LiveKit / Session Room",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-05-19",
+    "notes": "Only build if a real session needs it. Most dharma talks don't — the active-speaker pin works fine. Could be useful for panel discussions or guided meditations where the teacher should stay focused regardless of who speaks."
+  },
+  {
+    "id": "2026-05-19-002",
+    "title": "Session room: Mirror video toggle in Settings",
+    "description": "Zoom shows your self-view mirrored by default (matches the mirror you're used to looking in). We render the raw camera feed. Add a 'Mirror my video' toggle in the Video section of VideoSettingsPanel that applies a CSS scaleX(-1) transform only to the local participant's tile (not their video as published to others). Persist in localStorage under rim-livekit-prefs.",
+    "category": "LiveKit / Session Room",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-05-19",
+    "notes": "Implementation: pass a 'mirror' boolean from VideoSettingsPanel down to RIMParticipantTile. Tile compares trackRef.participant.identity to room.localParticipant.identity and applies '.rim-tile-wrapper--mirror' class only when match. CSS: .rim-tile-wrapper--mirror .lk-participant-video { transform: scaleX(-1); }."
+  },
+  {
+    "id": "2026-05-19-003",
+    "title": "Session room: Test Microphone + Test Speakers in Settings",
+    "description": "Useful pre-session affordance. Test Microphone: 5-second VU-meter showing input volume. Test Speakers: plays a short bell or chime through the selected output device so user can confirm they'll hear the session. Both live in the Audio section of VideoSettingsPanel below the device dropdowns.",
+    "category": "LiveKit / Session Room",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-05-19",
+    "notes": "Use getUserMedia({ audio: { deviceId: selectedMicId } }) for the test mic; pipe MediaStreamSource through AnalyserNode for VU. Test speakers: a short asset bundled in /public/sounds/, played via Audio element with .setSinkId(selectedSpeakerId) to honor the chosen output."
+  },
+  {
+    "id": "2026-05-19-004",
+    "title": "Session room: harden host tag against client spoofing",
+    "description": "Currently host: true is seeded into participant metadata at token-issue time. The token grants canUpdateOwnMetadata: true so a client can technically rewrite their own metadata in devtools to claim Host. Real host actions (mute, end-for-all) are server-gated via auth() + role + HostAssignment + ProgramTeacher lookup, so this is a UI-only deception risk. To eliminate: route avatar and signal metadata updates through a small server endpoint that calls RoomServiceClient.updateParticipant (server is the only writer), and drop canUpdateOwnMetadata from the token grant. Pattern: POST /api/livekit/metadata with the requested partial; server validates ownership and applies.",
+    "category": "LiveKit / Session Room",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-05-19",
+    "notes": "Risk-accepted in session 117 for a small trusted Sangha. Worth doing if (a) the community grows large enough that trust no longer covers it, or (b) we ever expose the room beyond authenticated members + key-gated guests. Documented in app/api/livekit/token/route.ts."
+  },
+  {
+    "id": "2026-05-19-005",
+    "title": "Session room: chevron 'Audio Settings…' link scrolls to section",
+    "description": "DevicePickerMenu's bottom links — 'Audio Settings…' and 'Camera Settings…' — open VideoSettingsPanel but don't scroll the panel to the relevant section. Sections are short and the panel body is single-page-scrollable, so this is a minor friction. Accept an optional focusSection: 'audio' | 'video' | 'presence' prop on VideoSettingsPanel; on mount, scrollIntoView the matching section's element.",
+    "category": "LiveKit / Session Room",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-05-19",
+    "notes": ""
+  },
+  {
     "id": "2026-05-18-001",
     "title": "Decide on functional Vercel preview deploys (staging DB or build-only)",
     "description": "Session 116 surfaced that Vercel preview builds for non-main branches were failing because prisma/migrate.mjs needs POSTGRES_PRISMA_URL and Vercel preview envs don't inherit production env vars by default. Added a guard at the top of migrate.mjs main() so it skips cleanly when the env is missing — production deploys are unaffected, and preview builds now reach next build without crashing. BUT: the app itself still has no DB at runtime on preview deploys, so any page that hits Prisma will 500 if visited. Two options for the future: (A) provision a small staging/preview Postgres (Neon supports branching — could use a Neon branch as the preview DB, scoped to Vercel's Preview env) and wire its URL to the Preview env scope so previews are functional end-to-end; or (B) accept that previews are build-only checks and not visit-them deployments — in which case maybe configure Vercel to skip preview deploys for most pushes, or just leave the situation as-is. Decision-point: do we want previews to be functional? If yes, set up the branched Neon DB and add it to Vercel Preview env. If no, document the limitation and move on.",

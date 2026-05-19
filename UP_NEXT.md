@@ -6,24 +6,35 @@
 
 ## Active
 
-**Session 116 (2026-05-18)** — Member home pass + first reviewer-subagent run. Three commits live on `main` (`1d3f7b1`, `0b12f99`, `ac2317b`). Branch `claude/sad-hopper-d44915` merged and deleted on origin.
+**Session 117 (2026-05-19)** — Session room: six-issue fix → Zoom-aligned redesign → A/V quality + auto-hide. Thirteen commits on `main`. Branch `claude/auto-hide-chrome` is the final stop (locally; merged to main and deleted on origin). See session-log entry for full chronology; the volunteer-facing changelog is at `SESSION_ROOM_FOR_VOLUNTEERS.md`.
 
-What's now live on `/account/dashboard`:
+**What's now live in the LiveKit session room:**
 
-- **Quiet schedule link in greeting.** `See this week's community schedule →` points to `/this-week` for members who don't pre-register and want to see what the community is doing.
-- **Today card is now the single source of truth for today.** Virtual/hybrid live + later rows (Join button when in the 12-min window), plus strictly-in-person registrations with a quiet "In-person" tag. Summary count includes in-person today.
-- **"Coming up for you"** (renamed from "Your Programs") sorted ascending by each program's *next* upcoming occurrence — not by registration creation date. Today's sessions filtered out (they're in Today). Programs with no future occurrence filtered out. Each row shows inline time ("Essential Dharma Study · 8:15 AM") and a date pill that's the projected next-occurrence date, not the program's first-ever anchor.
-- **Section labels reworded** to stateful sentences: "Your Series" → "Where you're studying," "Your Hubs" → "Where you're contributing." Continuation of the session-110 "Dashboard → Home" direction.
-- **`nextOccurrenceOnOrAfter()` helper** in `lib/scheduleUtils.ts`. Walks forward up to `maxDays` from a CT date, returns the next session date or null. Short-circuits for non-recurring past anchors.
-- **`prisma/migrate.mjs` guards against missing DB env.** Vercel preview builds were failing because `prisma generate && node prisma/migrate.mjs && next build` ran migrate.mjs unconditionally and preview deploys don't see `POSTGRES_PRISMA_URL`. Guard at top of `main()`: log + return when env is absent. Production unaffected.
+- **Bottom Zoom-style control bar** — icon-stacked-over-label, Lucide SVG icons, two-part Mic + Camera clusters with device-picker chevrons, Reactions popover, red End button with End-for-All + Leave popover. Page header trimmed to Step-In / program name / View toggle + Fullscreen + Help.
+- **Three-way audio profile** (teacher / speaker / listener) driving capture flags and publish bitrate (128 / 96 / 64 kbps). H.264 video at 2.5 Mbps / 30 fps. DTX off. Default ~20 kbps was the source of "thin voice" complaints.
+- **Custom persistent chat** with direct messages. New `SessionChatMessage` model + `/api/livekit/chat` (GET history, POST persist + dedup). Live via LiveKit data channel. Recipient picker → server-filtered DMs.
+- **Custom tile** — Zoom-style nameplate (no pill, white text + text-shadow, mic-off only when muted), active-speaker yellow outline, initials-circle avatar fallback (deterministic muted color hashed from identity), pure-black room background.
+- **Speaker / Gallery view toggle** with `useSpeakingParticipants` auto-pin (ref-gated to avoid per-render thrash).
+- **Participants panel** sticky Me row, Host pills from token metadata, raised hands floated, per-row mute (host), Mute All footer, search at >10.
+- **Device pickers** on mic/cam chevrons + matching Settings sections. Persist to `localStorage` under `rim-livekit-prefs`.
+- **Auto-hide chrome** — 3s idle timer, `:has()` overrides for panels/popovers, `:hover` restores, touch never fades.
 
-**Built, deliberately removed: a standalone "Your next session" block.** Initial plan; reviewer sub-agent caught four real issues mid-build (visual regression, non-deterministic `take` after dropping `orderBy`, 365-day walk for past anchors, stale-pill rendering); Jesse then pushed back on the concept ("should it be there on the dashboard or in a link?"). Pulled it. The schedule link + time-bearing "Coming up for you" rows carry the same info without a third competing surface. Restraint as design principle.
+**Build hardening:** `lib/stripe.ts` lazy-init Proxy so preview builds don't throw on import. Pairs with the session-116 `prisma/migrate.mjs` env-guard.
 
-**Collaboration experiments still on probation:**
-- **Plan mode** (`EnterPlanMode`) used for the member-home evaluation — produced the written eval before any edits. Worth continuing on non-trivial features.
-- **Reviewer sub-agent before commit** caught four real issues on first run. New memory at `feedback-reviewer-subagent.md`. Two more positive passes and it moves into the closing ritual permanently.
+**Collaboration experiments — promoted from probation:**
+- **Plan mode** used twice (six-issue fix, Zoom redesign). Worth keeping for non-trivial work.
+- **Reviewer sub-agent before commit** used twice. First run caught the participants count/row mismatch + a false-positive on `onLeave`. Second run caught the auto-pin re-render thrash + `as never` casts. Promote to default-before-non-trivial-commit pattern.
+- **Merge to main by default** held all session. No "want me to merge?" gates.
 
-**Next concrete step:** hold for Jesse's read on the deployed page. The pass landed restrained — possible follow-ups if he wants more visible weight on the next commitment: (a) make the top row of "Coming up for you" larger / more prominent, (b) broader rethink of whether Today + "Coming up for you" can collapse into one adaptive surface across all states. Plus Maria training session per `TRAINING_PLAN.md` remains the queued downstream item from session 115.
+**Next concrete step:** hold for Jesse's testing on the deployed room. Possible follow-up if a Sangha member tests and reports specifics. Maria training session per `TRAINING_PLAN.md` remains the queued downstream item from session 115/116.
+
+**Deferred from session 117 (in backlog):**
+
+1. **Spotlight** — host-driven global pin everyone sees (we have local pin in Speaker view, but not Zoom's spotlight).
+2. **Mirror video toggle** in Settings → Video.
+3. **Test Microphone / Test Speakers** affordances in Settings → Audio.
+4. **Host-tag spoofability hardening** — `canUpdateOwnMetadata: true` lets a client claim Host in their own metadata; UI cue only, real actions server-gated. If we want a non-spoofable tag, proxy avatar/signal updates via `RoomServiceClient.updateParticipant` and drop the grant. Risk-accepted for now.
+5. **Settings scroll-to-section** — chevron popovers' "Audio Settings…" / "Camera Settings…" link opens the panel but doesn't scroll to the relevant section. Sections are short; minor.
 
 **Deferred from session 113 (still open):**
 
