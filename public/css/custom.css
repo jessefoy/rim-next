@@ -14174,16 +14174,16 @@ a.hub-home-act__row:hover { background: #fafaf9; }
    avatar image or initials circle on top in the no-video state. */
 .rim-tile-wrapper .lk-participant-placeholder { display: none !important; }
 
-/* Initials circle — fallback when video is off and no presence photo */
+/* Initials circle — fallback when video is off and no presence photo.
+   Sized to the shorter axis (cqh) and capped, so the shape stays circular
+   on any tile aspect ratio and the font never blows out the box. */
 .rim-tile-initials {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -55%);
-  width: 30%;
-  min-width: 80px;
-  max-width: 240px;
-  aspect-ratio: 1;
+  width: min(40cqh, 240px);
+  height: min(40cqh, 240px);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -14191,7 +14191,8 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   color: #fff;
   font-family: var(--font-sans);
   font-weight: 500;
-  font-size: 14cqw; /* scales with tile size */
+  font-size: min(18cqh, 96px);
+  line-height: 1;
   letter-spacing: 0.02em;
   z-index: 2;
   pointer-events: none;
