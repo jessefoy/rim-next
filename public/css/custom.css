@@ -14466,13 +14466,12 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 6px;
   padding: 8px 12px;
   background: #1c1c1c;
   border-top: 1px solid rgba(255,255,255,0.06);
   flex-wrap: wrap;
 }
-.rim-cb-gap { width: 16px; }
 .rim-cb-spacer { flex: 1; }
 .rim-cb-anchor { position: relative; display: inline-flex; }
 
@@ -14502,7 +14501,15 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .rim-cb-btn:disabled { opacity: 0.5; cursor: default; }
 .rim-cb-btn:disabled:hover { background: transparent; }
 .rim-cb-btn--active { background: rgba(255,255,255,0.12); }
-.rim-cb-btn__icon { font-size: 20px; line-height: 1; }
+.rim-cb-btn__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  line-height: 1;
+  color: #e8e8e8;
+}
 .rim-cb-btn__label { font-size: 11px; letter-spacing: 0.01em; }
 .rim-cb-btn__badge {
   position: absolute;

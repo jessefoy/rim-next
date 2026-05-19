@@ -19,6 +19,18 @@ import { RoomEvent } from "livekit-client";
 import ReactionsMenu from "./ReactionsMenu";
 import EndMenu from "./EndMenu";
 import DevicePickerMenu from "./DevicePickerMenu";
+import {
+  IconMicOn,
+  IconMicOff,
+  IconCamOn,
+  IconCamOff,
+  IconParticipants,
+  IconChat,
+  IconShare,
+  IconReactions,
+  IconSettings,
+  IconChevronUp,
+} from "./ControlBarIcons";
 
 interface Props {
   programSlug: string;
@@ -137,7 +149,7 @@ export default function RIMControlBar({
           aria-label={micEnabled ? "Mute" : "Unmute"}
         >
           <span className="rim-cb-btn__icon" aria-hidden="true">
-            {micEnabled ? "🎤" : "🔇"}
+            {micEnabled ? <IconMicOn /> : <IconMicOff />}
           </span>
           <span className="rim-cb-btn__label">{micEnabled ? "Mute" : "Unmute"}</span>
         </button>
@@ -152,7 +164,7 @@ export default function RIMControlBar({
           aria-label="Audio devices"
           title="Audio devices"
         >
-          ▴
+          <IconChevronUp />
         </button>
         <DevicePickerMenu
           open={micPickerOpen}
@@ -174,7 +186,7 @@ export default function RIMControlBar({
           aria-label={cameraEnabled ? "Stop Video" : "Start Video"}
         >
           <span className="rim-cb-btn__icon" aria-hidden="true">
-            {cameraEnabled ? "📹" : "📷"}
+            {cameraEnabled ? <IconCamOn /> : <IconCamOff />}
           </span>
           <span className="rim-cb-btn__label">
             {cameraEnabled ? "Stop Video" : "Start Video"}
@@ -191,7 +203,7 @@ export default function RIMControlBar({
           aria-label="Camera devices"
           title="Camera devices"
         >
-          ▴
+          <IconChevronUp />
         </button>
         <DevicePickerMenu
           open={camPickerOpen}
@@ -202,8 +214,6 @@ export default function RIMControlBar({
         />
       </div>
 
-      <div className="rim-cb-gap" aria-hidden="true" />
-
       {/* ── Participants ────────────────────────────────────────── */}
       <button
         type="button"
@@ -212,7 +222,7 @@ export default function RIMControlBar({
         aria-pressed={participantsOpen}
         aria-label="Participants"
       >
-        <span className="rim-cb-btn__icon" aria-hidden="true">👥</span>
+        <span className="rim-cb-btn__icon" aria-hidden="true"><IconParticipants /></span>
         <span className="rim-cb-btn__label">Participants</span>
         {raisedHandCount > 0 && (
           <span className="rim-cb-btn__badge rim-cb-btn__badge--hand" aria-label={`${raisedHandCount} raised hand${raisedHandCount === 1 ? "" : "s"}`}>
@@ -232,14 +242,12 @@ export default function RIMControlBar({
         aria-pressed={chatOpen}
         aria-label="Chat"
       >
-        <span className="rim-cb-btn__icon" aria-hidden="true">💬</span>
+        <span className="rim-cb-btn__icon" aria-hidden="true"><IconChat /></span>
         <span className="rim-cb-btn__label">Chat</span>
         {unreadChatCount && unreadChatCount > 0 ? (
           <span className="rim-cb-btn__badge">{unreadChatCount}</span>
         ) : null}
       </button>
-
-      <div className="rim-cb-gap" aria-hidden="true" />
 
       {/* ── Share Screen ────────────────────────────────────────── */}
       <button
@@ -250,7 +258,7 @@ export default function RIMControlBar({
         aria-pressed={screenShareEnabled}
         aria-label={screenShareEnabled ? "Stop Share" : "Share Screen"}
       >
-        <span className="rim-cb-btn__icon" aria-hidden="true">🖥️</span>
+        <span className="rim-cb-btn__icon" aria-hidden="true"><IconShare /></span>
         <span className="rim-cb-btn__label">
           {screenShareEnabled ? "Stop Share" : "Share Screen"}
         </span>
@@ -267,7 +275,7 @@ export default function RIMControlBar({
           aria-expanded={reactionsOpen}
           aria-label="Reactions"
         >
-          <span className="rim-cb-btn__icon" aria-hidden="true">🙂</span>
+          <span className="rim-cb-btn__icon" aria-hidden="true"><IconReactions /></span>
           <span className="rim-cb-btn__label">Reactions</span>
         </button>
         {localParticipant && (
@@ -288,7 +296,7 @@ export default function RIMControlBar({
         aria-pressed={settingsOpen}
         aria-label="Settings"
       >
-        <span className="rim-cb-btn__icon" aria-hidden="true">⚙</span>
+        <span className="rim-cb-btn__icon" aria-hidden="true"><IconSettings /></span>
         <span className="rim-cb-btn__label">Settings</span>
       </button>
 
