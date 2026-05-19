@@ -1140,4 +1140,27 @@ model ManualSection {
   @@map("manual_sections")
 }
 
+// ─── LIVE SESSION CHAT ────────────────────────────────────────────────────────
+//
+// Persistent chat record for LiveKit session rooms. Sent live via LiveKit's
+// data channel and POSTed here for history + DM filtering. New joiners fetch
+// recent messages via GET to seed the chat sidebar.
+//
+// toIdentities empty = broadcast to room; non-empty = private DM (only sender
+// and listed recipients see the message on read).
 
+model SessionChatMessage {
+  id            String   @id @default(cuid())
+  roomName      String
+  programSlug   String
+  sessionDate   DateTime?
+  fromUserId    String?
+  fromIdentity  String
+  fromName      String
+  body          String
+  toIdentities  String[] @default([])
+  sentAt        DateTime @default(now())
+
+  @@index([roomName, sentAt])
+  @@map("session_chat_messages")
+}

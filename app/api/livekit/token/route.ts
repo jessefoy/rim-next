@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
   // Determine if this user is the assigned host for this session.
   // ADMIN always gets host controls.
   let tentativeHost = isAdmin;
+  let isProgramTeacher = false;
 
   if (!tentativeHost) {
     // Check HostAssignment for this program + date
@@ -72,12 +73,20 @@ export async function POST(req: NextRequest) {
     if (roles.includes("HOST_MANAGER")) tentativeHost = true;
 
     // Teachers assigned to this program get host controls
-    if (!tentativeHost) {
-      const programTeacher = await db.programTeacher.findFirst({
-        where: { programId: program.id, userId: session.user.id },
-      });
-      if (programTeacher) tentativeHost = true;
+    const programTeacher = await db.programTeacher.findFirst({
+      where: { programId: program.id, userId: session.user.id },
+    });
+    if (programTeacher) {
+      isProgramTeacher = true;
+      tentativeHost = true;
     }
+  } else {
+    // Admin path — still check teacher status separately so audio profile
+    // is set correctly even when ADMIN is the one teaching.
+    const programTeacher = await db.programTeacher.findFirst({
+      where: { programId: program.id, userId: session.user.id },
+    });
+    if (programTeacher) isProgramTeacher = true;
   }
 
   // Hub authority: if a host-team HubMember record exists for this user, it
@@ -95,9 +104,12 @@ export async function POST(req: NextRequest) {
     ? true
     : await getEffectiveHostingCapability(session.user.id, "host-team", tentativeHostTeam);
 
-  // Teachers get high-fidelity audio (bells, dharma talks, music)
-  const isTeacher = roles.includes("TEACHER");
-  const needsHiFiAudio = isHost || isTeacher;
+  // Audio profile — drives RoomOptions.audioCaptureDefaults in the client:
+  //   teacher  → preserve bells/music (no noise suppression, no AGC)
+  //   speaker  → host who isn't teaching; clean speech profile
+  //   listener → everyone else; clean speech profile
+  const audioProfile: "teacher" | "speaker" | "listener" =
+    isProgramTeacher ? "teacher" : isHost ? "speaker" : "listener";
 
   const roomName = roomNameForProgram(program.slug, sessionDate);
   const userName = session.user.name || "Member";
@@ -121,7 +133,7 @@ export async function POST(req: NextRequest) {
     wsUrl: process.env.NEXT_PUBLIC_LIVEKIT_URL,
     isHost,
     isHostTeam,
-    needsHiFiAudio,
+    audioProfile,
     avatarUrl: caller?.avatarUrl ?? null,
   });
 }

@@ -2014,6 +2014,38 @@ Rooted In Mindfulness · Brookfield, WI`,
       console.log(`  ✔ Applied: ${this.name}`);
     },
   },
+  {
+    name: "create_session_chat_messages_table",
+    async run() {
+      const tables = await db.$queryRawUnsafe(`
+        SELECT table_name FROM information_schema.tables
+        WHERE table_name = 'session_chat_messages'
+      `);
+      if (tables.length === 0) {
+        await db.$executeRawUnsafe(`
+          CREATE TABLE "session_chat_messages" (
+            "id"            TEXT PRIMARY KEY,
+            "roomName"      TEXT NOT NULL,
+            "programSlug"   TEXT NOT NULL,
+            "sessionDate"   TIMESTAMPTZ,
+            "fromUserId"    TEXT,
+            "fromIdentity"  TEXT NOT NULL,
+            "fromName"      TEXT NOT NULL,
+            "body"          TEXT NOT NULL,
+            "toIdentities"  TEXT[] NOT NULL DEFAULT '{}',
+            "sentAt"        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+          )
+        `);
+        await db.$executeRawUnsafe(`
+          CREATE INDEX "session_chat_messages_roomName_sentAt_idx"
+          ON "session_chat_messages" ("roomName", "sentAt")
+        `);
+        console.log(`  ✔ Applied: ${this.name}`);
+      } else {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+      }
+    },
+  },
 ];
 
 // ── Server-safe compute helpers (mirror of lib/programUtils.ts) ──────────────

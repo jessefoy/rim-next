@@ -1,20 +1,24 @@
 "use client";
 
 /**
- * ParticipantsPanel — host-only slide-in sidebar.
+ * ParticipantsPanel — slide-in roster.
  *
- * Shows all remote participants with:
- * - Their display name + signal badge
- * - Raised hands surfaced at the top
- * - Individual mute button per participant
+ * Hosts see name + signal + mic state + a "Mute" button per participant.
+ * Non-hosts see the same list without the mute controls — so everyone can
+ * tell who's in the room.
  *
- * Calls POST /api/livekit/mute-participant for each mute action (server-side).
+ * Re-renders on TrackMuted / TrackUnmuted / TrackPublished / TrackUnpublished
+ * because `useRemoteParticipants()` in the parent is configured with
+ * the corresponding RoomEvents. We read `isMicrophoneEnabled` directly
+ * off the Participant — that's the canonical flag and avoids the
+ * `[].every()` race that hid the Mute button on fresh joins.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { RemoteParticipant } from "livekit-client";
-import type { Signal } from "./RIMParticipantTile";
-import type { ParticipantMetadata } from "./RIMParticipantTile";
+import { RoomEvent } from "livekit-client";
+import { useRoomContext } from "@livekit/components-react";
+import type { Signal, ParticipantMetadata } from "./RIMParticipantTile";
 
 const SIGNAL_EMOJI: Record<NonNullable<Signal>, string> = {
   hand: "✋",
@@ -34,10 +38,30 @@ interface Props {
   participants: RemoteParticipant[];
   programSlug: string;
   localIdentity: string;
+  isHost: boolean;
 }
 
-export default function ParticipantsPanel({ open, onClose, participants, programSlug, localIdentity }: Props) {
+export default function ParticipantsPanel({ open, onClose, participants, programSlug, localIdentity, isHost }: Props) {
+  const room = useRoomContext();
   const [muting, setMuting] = useState<Record<string, boolean>>({});
+  // Tick to force re-render when remote participants' mic state changes,
+  // since RemoteParticipant prop identity doesn't change on toggle.
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    if (!room) return;
+    const update = () => setTick((n) => n + 1);
+    room.on(RoomEvent.TrackMuted, update);
+    room.on(RoomEvent.TrackUnmuted, update);
+    room.on(RoomEvent.TrackPublished, update);
+    room.on(RoomEvent.TrackUnpublished, update);
+    return () => {
+      room.off(RoomEvent.TrackMuted, update);
+      room.off(RoomEvent.TrackUnmuted, update);
+      room.off(RoomEvent.TrackPublished, update);
+      room.off(RoomEvent.TrackUnpublished, update);
+    };
+  }, [room]);
 
   if (!open) return null;
 
@@ -72,38 +96,48 @@ export default function ParticipantsPanel({ open, onClose, participants, program
       <aside className="rim-pp">
         <div className="rim-pp__header">
           <span className="rim-pp__title">
-            Participants ({participants.length})
+            Participants ({participants.length + 1})
             {handCount > 0 && <span className="rim-pp__hands"> · ✋ {handCount}</span>}
           </span>
           <button className="rim-pp__close" onClick={onClose} aria-label="Close">✕</button>
         </div>
         <div className="rim-pp__list">
+          {/* Local participant row — clarifies that the count includes "you" */}
+          <div className="rim-pp__row rim-pp__row--self">
+            <span className="rim-pp__signal" />
+            <span className="rim-pp__name">{(room?.localParticipant?.name) || "You"} (you)</span>
+          </div>
           {sorted.length === 0 && (
-            <p className="rim-pp__empty">No other participants yet.</p>
+            <p className="rim-pp__empty">No one else is here yet.</p>
           )}
           {sorted.map((p) => {
             const meta = getMetadata(p);
-            const isAudioMuted = [...(p.audioTrackPublications?.values() ?? [])].every(
-              (pub) => pub.isMuted || !pub.track
-            );
+            const isMicEnabled = p.isMicrophoneEnabled;
             return (
               <div key={p.identity} className="rim-pp__row">
                 <span className="rim-pp__signal">
                   {meta.signal ? SIGNAL_EMOJI[meta.signal] : ""}
                 </span>
                 <span className="rim-pp__name">{p.name || p.identity}</span>
-                <span className={`rim-pp__mic${isAudioMuted ? " rim-pp__mic--muted" : ""}`}>
-                  {isAudioMuted ? "🔇" : "🎤"}
+                <span
+                  className={`rim-pp__mic${isMicEnabled ? "" : " rim-pp__mic--muted"}`}
+                  title={isMicEnabled ? "Mic on" : "Muted"}
+                >
+                  {isMicEnabled ? "🎤" : "🔇"}
                 </span>
-                {!isAudioMuted && (
-                  <button
-                    className="rim-pp__mute-btn"
-                    onClick={() => muteParticipant(p.identity)}
-                    disabled={muting[p.identity]}
-                    title={`Mute ${p.name || p.identity}`}
-                  >
-                    {muting[p.identity] ? "…" : "Mute"}
-                  </button>
+                {isHost && (
+                  isMicEnabled ? (
+                    <button
+                      className="rim-pp__mute-btn"
+                      onClick={() => muteParticipant(p.identity)}
+                      disabled={muting[p.identity]}
+                      title={`Mute ${p.name || p.identity}`}
+                    >
+                      {muting[p.identity] ? "…" : "Mute"}
+                    </button>
+                  ) : (
+                    <span className="rim-pp__muted-pill">Muted</span>
+                  )
                 )}
               </div>
             );

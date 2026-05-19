@@ -32,7 +32,7 @@ export default function SessionPage() {
   const [error, setError] = useState<string | null>(null);
   const [isHost, setIsHost] = useState(false);
   const [isHostTeam, setIsHostTeam] = useState(false);
-  const [needsHiFiAudio, setNeedsHiFiAudio] = useState(false);
+  const [audioProfile, setAudioProfile] = useState<"teacher" | "speaker" | "listener">("listener");
   const [steppingIn, setSteppingIn] = useState(false);
   const [ending, setEnding] = useState(false);
   const [mutingAll, setMutingAll] = useState(false);
@@ -84,7 +84,7 @@ export default function SessionPage() {
         setWsUrl(data.wsUrl);
         setIsHost(data.isHost ?? false);
         setIsHostTeam(data.isHostTeam ?? false);
-        setNeedsHiFiAudio(data.needsHiFiAudio ?? false);
+        setAudioProfile(data.audioProfile ?? "listener");
         setAvatarUrl(data.avatarUrl ?? null);
         setProgramName(data.roomName.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()));
         setState("ready");
@@ -316,7 +316,9 @@ export default function SessionPage() {
             token={token}
             wsUrl={wsUrl}
             isHost={isHost}
+            audioProfile={audioProfile}
             programSlug={slug}
+            guestKey={guestKey ?? undefined}
             avatarUrl={avatarUrl}
             onLeave={handleLeave}
           />

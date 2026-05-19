@@ -15,7 +15,6 @@
 import { useState, useEffect } from "react";
 import {
   GridLayout,
-  ControlBar,
   RoomAudioRenderer,
   useLocalParticipant,
   useRemoteParticipants,
@@ -23,7 +22,6 @@ import {
   LayoutContextProvider,
   useCreateLayoutContext,
   useStartAudio,
-  Chat,
   FocusLayout,
   FocusLayoutContainer,
   CarouselLayout,
@@ -33,11 +31,14 @@ import RIMParticipantTile from "./RIMParticipantTile";
 import NonverbalToolbar from "./NonverbalToolbar";
 import ParticipantsPanel from "./ParticipantsPanel";
 import VideoSettingsPanel from "./VideoSettingsPanel";
+import RIMControlBar from "./RIMControlBar";
+import RIMChat from "./RIMChat";
 import type { ParticipantMetadata } from "./RIMParticipantTile";
 
 interface Props {
   isHost: boolean;
   programSlug: string;
+  guestKey?: string;
   initialAvatarUrl: string | null;
 }
 
@@ -45,7 +46,7 @@ function getMetadata(raw: string | undefined): ParticipantMetadata {
   try { return JSON.parse(raw || "{}"); } catch { return {}; }
 }
 
-export default function RIMConference({ isHost, programSlug, initialAvatarUrl }: Props) {
+export default function RIMConference({ isHost, programSlug, guestKey, initialAvatarUrl }: Props) {
   const { localParticipant } = useLocalParticipant();
   // updateOnlyOn ensures the component re-renders when metadata changes (for raised hand tracking)
   const remoteParticipants = useRemoteParticipants({
@@ -93,17 +94,15 @@ export default function RIMConference({ isHost, programSlug, initialAvatarUrl }:
 
         {/* Toolbar row — dark, above the video grid */}
         <div className="rim-conference__toolbar">
-          {isHost && (
-            <button
-              className={`rim-conf-btn${participantsOpen ? " rim-conf-btn--active" : ""}`}
-              onClick={() => setParticipantsOpen((v) => !v)}
-            >
-              👥 Participants
-              {raisedHandCount > 0 && (
-                <span className="rim-conf-btn__badge">{raisedHandCount}</span>
-              )}
-            </button>
-          )}
+          <button
+            className={`rim-conf-btn${participantsOpen ? " rim-conf-btn--active" : ""}`}
+            onClick={() => setParticipantsOpen((v) => !v)}
+          >
+            👥 Participants
+            {isHost && raisedHandCount > 0 && (
+              <span className="rim-conf-btn__badge">{raisedHandCount}</span>
+            )}
+          </button>
           <NonverbalToolbar localParticipant={localParticipant} />
           <button
             className={`rim-conf-btn${chatOpen ? " rim-conf-btn--active" : ""}`}
@@ -170,13 +169,14 @@ export default function RIMConference({ isHost, programSlug, initialAvatarUrl }:
                   ✕
                 </button>
               </div>
-              <Chat />
+              <RIMChat programSlug={programSlug} guestKey={guestKey} />
             </div>
           )}
         </div>
 
-        {/* LiveKit control bar (mic, cam, screen share, leave) */}
-        <ControlBar controls={{ screenShare: true, camera: true, microphone: true, leave: true }} />
+        {/* RIM control bar — one big labeled button per action,
+            with device selection moved to the ⚙ Settings panel. */}
+        <RIMControlBar />
 
         {/* Audio playback prompt — Safari blocks audio until user interaction */}
         <AudioPlaybackPrompt />
@@ -185,15 +185,14 @@ export default function RIMConference({ isHost, programSlug, initialAvatarUrl }:
         <RoomAudioRenderer />
 
         {/* Overlays */}
-        {isHost && (
-          <ParticipantsPanel
-            open={participantsOpen}
-            onClose={() => setParticipantsOpen(false)}
-            participants={remoteParticipants}
-            programSlug={programSlug}
-            localIdentity={localParticipant?.identity ?? ""}
-          />
-        )}
+        <ParticipantsPanel
+          open={participantsOpen}
+          onClose={() => setParticipantsOpen(false)}
+          participants={remoteParticipants}
+          programSlug={programSlug}
+          localIdentity={localParticipant?.identity ?? ""}
+          isHost={isHost}
+        />
         <VideoSettingsPanel
           open={settingsOpen}
           onClose={() => setSettingsOpen(false)}
@@ -224,6 +223,9 @@ function AudioPlaybackPrompt() {
       </button>
       <p className="rim-audio-prompt__hint">
         Your browser requires a tap before audio can play
+      </p>
+      <p className="rim-audio-prompt__hint">
+        Headphones recommended — speakers can cause echo for others.
       </p>
     </div>
   );

@@ -3,21 +3,17 @@
 /**
  * VideoRoom — LiveKit video conferencing room.
  *
- * Wraps LiveKitRoom and renders RIMConference, our custom layout that provides:
- * - Custom participant tiles with avatar overlays and signal badges
- * - Nonverbal toolbar (✋ ❤️ 🙏 ✓ ✗)
- * - Host participants panel with per-participant mute and raised hand queue
- * - Video settings panel: background blur, brightness/contrast, presence photo upload
+ * Wraps LiveKitRoom and renders RIMConference, our custom layout.
  *
- * Video quality: 720p default, adaptive bitrate up to 1.5Mbps.
- * LiveKit's simulcast sends multiple quality layers — participants
- * with slower connections automatically receive a lower layer.
+ * Audio profile drives the capture defaults:
+ *   teacher  — preserves bells, singing bowls, music. Noise suppression OFF,
+ *              auto-gain OFF, echo cancellation ON, higher bitrate.
+ *   speaker  — host who isn't teaching. Clean speech profile, all three on.
+ *   listener — everyone else. Clean speech profile.
  *
- * Audio (host): Echo cancellation ON, noise suppression OFF, auto-gain OFF.
- *   This preserves meditation bells, singing bowls, and music while preventing
- *   speaker feedback.
- * Audio (participant): Full speech processing ON.
- *   DTX enabled — during silence, almost no audio bandwidth is used.
+ * DTX is OFF for all profiles. The bandwidth savings during silence are
+ * negligible and DTX can cause perceptible artifacts at the start/end of
+ * speech ("choppy" complaints).
  */
 
 import { useEffect } from "react";
@@ -25,12 +21,15 @@ import { LiveKitRoom } from "@livekit/components-react";
 import { RoomOptions, VideoPresets } from "livekit-client";
 import RIMConference from "./session/RIMConference";
 
-function buildRoomOptions(isHost: boolean): RoomOptions {
+export type AudioProfile = "teacher" | "speaker" | "listener";
+
+function buildRoomOptions(profile: AudioProfile): RoomOptions {
+  const isTeacher = profile === "teacher";
   return {
     videoCaptureDefaults: {
       resolution: VideoPresets.h720.resolution,
     },
-    audioCaptureDefaults: isHost
+    audioCaptureDefaults: isTeacher
       ? {
           autoGainControl: false,
           echoCancellation: true,
@@ -44,8 +43,8 @@ function buildRoomOptions(isHost: boolean): RoomOptions {
     publishDefaults: {
       videoSimulcastLayers: [VideoPresets.h180, VideoPresets.h360],
       videoCodec: "vp8",
-      dtx: true,
-      ...(isHost ? { audioPreset: { maxBitrate: 128_000 } } : {}),
+      dtx: false,
+      ...(isTeacher ? { audioPreset: { maxBitrate: 128_000 } } : {}),
     },
     adaptiveStream: true,
     dynacast: true,
@@ -56,13 +55,15 @@ interface Props {
   token: string;
   wsUrl: string;
   isHost?: boolean;
+  audioProfile?: AudioProfile;
   programSlug: string;
+  guestKey?: string;
   avatarUrl?: string | null;
   onLeave?: () => void;
 }
 
-export default function VideoRoom({ token, wsUrl, isHost = false, programSlug, avatarUrl, onLeave }: Props) {
-  const roomOptions = buildRoomOptions(isHost);
+export default function VideoRoom({ token, wsUrl, isHost = false, audioProfile = "listener", programSlug, guestKey, avatarUrl, onLeave }: Props) {
+  const roomOptions = buildRoomOptions(audioProfile);
 
   // Load LiveKit styles only when video room mounts — prevents global CSS leak
   useEffect(() => {
@@ -90,6 +91,7 @@ export default function VideoRoom({ token, wsUrl, isHost = false, programSlug, a
         <RIMConference
           isHost={isHost}
           programSlug={programSlug}
+          guestKey={guestKey}
           initialAvatarUrl={avatarUrl ?? null}
         />
       </LiveKitRoom>
