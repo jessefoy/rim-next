@@ -18,6 +18,7 @@ import { useRoomContext, useLocalParticipant } from "@livekit/components-react";
 import { RoomEvent } from "livekit-client";
 import ReactionsMenu from "./ReactionsMenu";
 import EndMenu from "./EndMenu";
+import DevicePickerMenu from "./DevicePickerMenu";
 
 interface Props {
   programSlug: string;
@@ -28,6 +29,7 @@ interface Props {
   onToggleChat: () => void;
   settingsOpen: boolean;
   onToggleSettings: () => void;
+  onOpenSettings: () => void;
   participantCount: number;
   raisedHandCount: number;
   unreadChatCount?: number;
@@ -74,6 +76,7 @@ export default function RIMControlBar({
   onToggleChat,
   settingsOpen,
   onToggleSettings,
+  onOpenSettings,
   participantCount,
   raisedHandCount,
   unreadChatCount,
@@ -86,9 +89,13 @@ export default function RIMControlBar({
   const [pendingShare, setPendingShare] = useState(false);
   const [reactionsOpen, setReactionsOpen] = useState(false);
   const [endOpen, setEndOpen] = useState(false);
+  const [micPickerOpen, setMicPickerOpen] = useState(false);
+  const [camPickerOpen, setCamPickerOpen] = useState(false);
 
   const reactionsAnchor = useRef<HTMLButtonElement | null>(null);
   const endAnchor = useRef<HTMLButtonElement | null>(null);
+  const micChevronAnchor = useRef<HTMLButtonElement | null>(null);
+  const camChevronAnchor = useRef<HTMLButtonElement | null>(null);
 
   async function toggleMic() {
     if (!room) return;
@@ -120,7 +127,7 @@ export default function RIMControlBar({
   return (
     <div className="rim-cb" role="toolbar" aria-label="Session controls">
       {/* ── Mic cluster: main + chevron ─────────────────────────── */}
-      <div className={`rim-cb-cluster${micEnabled ? "" : " rim-cb-cluster--off"}`}>
+      <div className={`rim-cb-cluster${micEnabled ? "" : " rim-cb-cluster--off"} rim-cb-anchor`}>
         <button
           type="button"
           className="rim-cb-btn rim-cb-btn--mic"
@@ -136,19 +143,28 @@ export default function RIMControlBar({
         </button>
         <span className="rim-cb-cluster__divider" aria-hidden="true" />
         <button
+          ref={micChevronAnchor}
           type="button"
           className="rim-cb-chevron"
-          aria-label="Select microphone"
-          disabled
-          aria-disabled="true"
-          title="Device selection — coming next"
+          onClick={() => setMicPickerOpen((v) => !v)}
+          aria-haspopup="menu"
+          aria-expanded={micPickerOpen}
+          aria-label="Audio devices"
+          title="Audio devices"
         >
           ▴
         </button>
+        <DevicePickerMenu
+          open={micPickerOpen}
+          onClose={() => setMicPickerOpen(false)}
+          anchorRef={micChevronAnchor}
+          variant="mic"
+          onOpenSettings={onOpenSettings}
+        />
       </div>
 
       {/* ── Video cluster: main + chevron ───────────────────────── */}
-      <div className={`rim-cb-cluster${cameraEnabled ? "" : " rim-cb-cluster--off"}`}>
+      <div className={`rim-cb-cluster${cameraEnabled ? "" : " rim-cb-cluster--off"} rim-cb-anchor`}>
         <button
           type="button"
           className="rim-cb-btn rim-cb-btn--cam"
@@ -166,15 +182,24 @@ export default function RIMControlBar({
         </button>
         <span className="rim-cb-cluster__divider" aria-hidden="true" />
         <button
+          ref={camChevronAnchor}
           type="button"
           className="rim-cb-chevron"
-          aria-label="Select camera"
-          disabled
-          aria-disabled="true"
-          title="Device selection — coming next"
+          onClick={() => setCamPickerOpen((v) => !v)}
+          aria-haspopup="menu"
+          aria-expanded={camPickerOpen}
+          aria-label="Camera devices"
+          title="Camera devices"
         >
           ▴
         </button>
+        <DevicePickerMenu
+          open={camPickerOpen}
+          onClose={() => setCamPickerOpen(false)}
+          anchorRef={camChevronAnchor}
+          variant="camera"
+          onOpenSettings={onOpenSettings}
+        />
       </div>
 
       <div className="rim-cb-gap" aria-hidden="true" />

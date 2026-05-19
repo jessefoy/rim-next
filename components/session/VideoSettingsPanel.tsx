@@ -1,17 +1,22 @@
 "use client";
 
 /**
- * VideoSettingsPanel — settings overlay (⚙ button in toolbar).
+ * VideoSettingsPanel — settings overlay (⚙ button in control bar).
  *
- * Presence photo: upload from this panel or from /account/settings.
- * - Saved to DB via PATCH /api/account/avatar
- * - Broadcast to the room immediately via participant metadata
- * - Shown on your tile when camera is off
+ * Sections:
+ *   - Audio: microphone + speaker device dropdowns
+ *   - Video: camera device dropdown
+ *   - Presence photo: upload / change / remove
+ *
+ * Device selection is the deeper home for the in-control-bar chevron
+ * popovers. Both write to the same localStorage prefs and call
+ * `room.switchActiveDevice()` for live swap.
  */
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
 import type { LocalParticipant } from "livekit-client";
+import { useRoomContext } from "@livekit/components-react";
 import type { ParticipantMetadata } from "./RIMParticipantTile";
 
 interface Props {
@@ -22,14 +27,75 @@ interface Props {
   onAvatarChange: (url: string | null) => void;
 }
 
+type Kind = "audioinput" | "videoinput" | "audiooutput";
+
+const LS_KEY = "rim-livekit-prefs";
+
+function readPrefs(): Record<Kind, string | undefined> {
+  if (typeof window === "undefined") return { audioinput: undefined, videoinput: undefined, audiooutput: undefined };
+  try {
+    const raw = JSON.parse(localStorage.getItem(LS_KEY) || "{}");
+    return {
+      audioinput: raw.audioinput,
+      videoinput: raw.videoinput,
+      audiooutput: raw.audiooutput,
+    };
+  } catch {
+    return { audioinput: undefined, videoinput: undefined, audiooutput: undefined };
+  }
+}
+
+function writePref(kind: Kind, deviceId: string) {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = JSON.parse(localStorage.getItem(LS_KEY) || "{}");
+    raw[kind] = deviceId;
+    localStorage.setItem(LS_KEY, JSON.stringify(raw));
+  } catch {}
+}
+
 function getMetadata(p: LocalParticipant): ParticipantMetadata {
   try { return JSON.parse(p.metadata || "{}"); } catch { return {}; }
 }
 
 export default function VideoSettingsPanel({ open, onClose, localParticipant, avatarUrl, onAvatarChange }: Props) {
+  const room = useRoomContext();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+  const [active, setActive] = useState(readPrefs);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    async function load() {
+      try {
+        const list = await navigator.mediaDevices.enumerateDevices();
+        if (!cancelled) setDevices(list);
+      } catch {}
+    }
+    load();
+    function refresh() { if (!cancelled) load(); }
+    navigator.mediaDevices?.addEventListener?.("devicechange", refresh);
+    return () => {
+      cancelled = true;
+      navigator.mediaDevices?.removeEventListener?.("devicechange", refresh);
+    };
+  }, [open]);
+
+  async function pickDevice(kind: Kind, deviceId: string) {
+    if (!room || !deviceId) return;
+    try {
+      await room.switchActiveDevice(kind, deviceId);
+      setActive((prev) => ({ ...prev, [kind]: deviceId }));
+      writePref(kind, deviceId);
+    } catch {}
+  }
+
+  const audioInputs = devices.filter((d) => d.kind === "audioinput");
+  const audioOutputs = devices.filter((d) => d.kind === "audiooutput");
+  const videoInputs = devices.filter((d) => d.kind === "videoinput");
 
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -88,6 +154,65 @@ export default function VideoSettingsPanel({ open, onClose, localParticipant, av
         </div>
 
         <div className="rim-settings__body">
+
+          {/* Audio */}
+          <section className="rim-settings__section">
+            <div className="rim-settings__label">Audio</div>
+            <div className="rim-settings__hint">Choose your microphone and speaker.</div>
+            <div className="rim-settings__field">
+              <label className="rim-settings__field-label" htmlFor="rim-settings-mic">Microphone</label>
+              <select
+                id="rim-settings-mic"
+                className="rim-settings__select"
+                value={active.audioinput ?? ""}
+                onChange={(e) => pickDevice("audioinput", e.target.value)}
+              >
+                {audioInputs.length === 0 && <option value="">No microphones detected</option>}
+                {audioInputs.length > 0 && !active.audioinput && <option value="">Default</option>}
+                {audioInputs.map((d) => (
+                  <option key={d.deviceId} value={d.deviceId}>{d.label || "Microphone"}</option>
+                ))}
+              </select>
+            </div>
+            <div className="rim-settings__field">
+              <label className="rim-settings__field-label" htmlFor="rim-settings-spk">Speaker</label>
+              <select
+                id="rim-settings-spk"
+                className="rim-settings__select"
+                value={active.audiooutput ?? ""}
+                onChange={(e) => pickDevice("audiooutput", e.target.value)}
+                disabled={audioOutputs.length === 0}
+              >
+                {audioOutputs.length === 0 && <option value="">System default (no selection available)</option>}
+                {audioOutputs.length > 0 && !active.audiooutput && <option value="">Default</option>}
+                {audioOutputs.map((d) => (
+                  <option key={d.deviceId} value={d.deviceId}>{d.label || "Speaker"}</option>
+                ))}
+              </select>
+            </div>
+          </section>
+
+          {/* Video */}
+          <section className="rim-settings__section">
+            <div className="rim-settings__label">Video</div>
+            <div className="rim-settings__hint">Choose your camera.</div>
+            <div className="rim-settings__field">
+              <label className="rim-settings__field-label" htmlFor="rim-settings-cam">Camera</label>
+              <select
+                id="rim-settings-cam"
+                className="rim-settings__select"
+                value={active.videoinput ?? ""}
+                onChange={(e) => pickDevice("videoinput", e.target.value)}
+              >
+                {videoInputs.length === 0 && <option value="">No cameras detected</option>}
+                {videoInputs.length > 0 && !active.videoinput && <option value="">Default</option>}
+                {videoInputs.map((d) => (
+                  <option key={d.deviceId} value={d.deviceId}>{d.label || "Camera"}</option>
+                ))}
+              </select>
+            </div>
+          </section>
+
           <section className="rim-settings__section">
             <div className="rim-settings__label">Presence photo</div>
             <div className="rim-settings__hint">

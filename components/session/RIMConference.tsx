@@ -153,6 +153,7 @@ export default function RIMConference({ isHost, programSlug, guestKey, initialAv
           onToggleChat={() => setChatOpen((v) => !v)}
           settingsOpen={settingsOpen}
           onToggleSettings={() => setSettingsOpen((v) => !v)}
+          onOpenSettings={() => setSettingsOpen(true)}
           participantCount={remoteParticipants.length + 1}
           raisedHandCount={raisedHandCount}
         />
