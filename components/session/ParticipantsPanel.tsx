@@ -1,20 +1,19 @@
 "use client";
 
 /**
- * ParticipantsPanel — slide-in roster.
+ * ParticipantsPanel — Zoom-aligned slide-in roster.
  *
- * Hosts see name + signal + mic state + a "Mute" button per participant.
- * Non-hosts see the same list without the mute controls — so everyone can
- * tell who's in the room.
+ * Sticky local "Me" row at the top with a Host tag when applicable, then
+ * remote participants below (raised hands float to top). Host tag is also
+ * shown on remote rows whose token grants roomAdmin. Hosts see a Mute
+ * button per row + Mute All in the footer. A search box appears when
+ * participant count exceeds 10.
  *
- * Re-renders on TrackMuted / TrackUnmuted / TrackPublished / TrackUnpublished
- * because `useRemoteParticipants()` in the parent is configured with
- * the corresponding RoomEvents. We read `isMicrophoneEnabled` directly
- * off the Participant — that's the canonical flag and avoids the
- * `[].every()` race that hid the Mute button on fresh joins.
+ * Re-renders on TrackMuted / TrackUnmuted / TrackPublished / TrackUnpublished.
+ * Uses `participant.isMicrophoneEnabled` (the canonical flag) for mic state.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { RemoteParticipant } from "livekit-client";
 import { RoomEvent } from "livekit-client";
 import { useRoomContext } from "@livekit/components-react";
@@ -27,6 +26,8 @@ const SIGNAL_EMOJI: Record<NonNullable<Signal>, string> = {
   yes: "✓",
   no: "✗",
 };
+
+const SEARCH_THRESHOLD = 10;
 
 function getMetadata(p: RemoteParticipant): ParticipantMetadata {
   try { return JSON.parse(p.metadata || "{}"); } catch { return {}; }
@@ -46,6 +47,7 @@ export default function ParticipantsPanel({ open, onClose, participants, program
   const [muting, setMuting] = useState<Record<string, boolean>>({});
   const [mutingAll, setMutingAll] = useState(false);
   const [muteAllResult, setMuteAllResult] = useState<number | null>(null);
+  const [search, setSearch] = useState("");
   // Tick to force re-render when remote participants' mic state changes,
   // since RemoteParticipant prop identity doesn't change on toggle.
   const [, setTick] = useState(0);
@@ -64,8 +66,6 @@ export default function ParticipantsPanel({ open, onClose, participants, program
       room.off(RoomEvent.TrackUnpublished, update);
     };
   }, [room]);
-
-  if (!open) return null;
 
   async function muteParticipant(identity: string) {
     setMuting((prev) => ({ ...prev, [identity]: true }));
@@ -97,18 +97,29 @@ export default function ParticipantsPanel({ open, onClose, participants, program
     setMutingAll(false);
   }
 
-  // Sort: raised hands first, then alphabetical
-  const sorted = [...participants].sort((a, b) => {
-    const aMeta = getMetadata(a);
-    const bMeta = getMetadata(b);
-    const aHand = aMeta.signal === "hand" ? 0 : 1;
-    const bHand = bMeta.signal === "hand" ? 0 : 1;
-    if (aHand !== bHand) return aHand - bHand;
-    return (a.name || "").localeCompare(b.name || "");
-  });
+  // Sort + filter
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const list = q
+      ? participants.filter((p) => (p.name || p.identity).toLowerCase().includes(q))
+      : participants;
+    return [...list].sort((a, b) => {
+      const aMeta = getMetadata(a);
+      const bMeta = getMetadata(b);
+      const aHand = aMeta.signal === "hand" ? 0 : 1;
+      const bHand = bMeta.signal === "hand" ? 0 : 1;
+      if (aHand !== bHand) return aHand - bHand;
+      return (a.name || "").localeCompare(b.name || "");
+    });
+  }, [participants, search]);
 
-  // Count raised hands for the header
   const handCount = participants.filter((p) => getMetadata(p).signal === "hand").length;
+  const totalCount = participants.length + 1;
+  const showSearch = totalCount > SEARCH_THRESHOLD;
+
+  if (!open) return null;
+
+  const localName = room?.localParticipant?.name || "You";
 
   return (
     <>
@@ -116,29 +127,51 @@ export default function ParticipantsPanel({ open, onClose, participants, program
       <aside className="rim-pp">
         <div className="rim-pp__header">
           <span className="rim-pp__title">
-            Participants ({participants.length + 1})
+            Participants ({totalCount})
             {handCount > 0 && <span className="rim-pp__hands"> · ✋ {handCount}</span>}
           </span>
           <button className="rim-pp__close" onClick={onClose} aria-label="Close">✕</button>
         </div>
+
+        {showSearch && (
+          <div className="rim-pp__search">
+            <input
+              type="search"
+              className="rim-pp__search-input"
+              placeholder="Search participants"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        )}
+
         <div className="rim-pp__list">
-          {/* Local participant row — clarifies that the count includes "you" */}
+          {/* Sticky local "Me" row */}
           <div className="rim-pp__row rim-pp__row--self">
             <span className="rim-pp__signal" />
-            <span className="rim-pp__name">{(room?.localParticipant?.name) || "You"} (you)</span>
+            <span className="rim-pp__name">
+              {localName} <span className="rim-pp__self-tag">(you)</span>
+            </span>
+            {isHost && <span className="rim-pp__role-tag">Host</span>}
           </div>
-          {sorted.length === 0 && (
-            <p className="rim-pp__empty">No one else is here yet.</p>
+
+          {filtered.length === 0 && (
+            <p className="rim-pp__empty">
+              {search ? "No participants match that search." : "No one else is here yet."}
+            </p>
           )}
-          {sorted.map((p) => {
+
+          {filtered.map((p) => {
             const meta = getMetadata(p);
             const isMicEnabled = p.isMicrophoneEnabled;
+            const isAdmin = meta.host === true;
             return (
               <div key={p.identity} className="rim-pp__row">
                 <span className="rim-pp__signal">
                   {meta.signal ? SIGNAL_EMOJI[meta.signal] : ""}
                 </span>
                 <span className="rim-pp__name">{p.name || p.identity}</span>
+                {isAdmin && <span className="rim-pp__role-tag">Host</span>}
                 <span
                   className={`rim-pp__mic${isMicEnabled ? "" : " rim-pp__mic--muted"}`}
                   title={isMicEnabled ? "Mic on" : "Muted"}
@@ -163,6 +196,7 @@ export default function ParticipantsPanel({ open, onClose, participants, program
             );
           })}
         </div>
+
         {isHost && participants.length > 0 && (
           <div className="rim-pp__footer">
             <button

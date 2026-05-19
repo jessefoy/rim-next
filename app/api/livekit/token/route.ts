@@ -114,10 +114,14 @@ export async function POST(req: NextRequest) {
   const roomName = roomNameForProgram(program.slug, sessionDate);
   const userName = session.user.name || "Member";
 
-  // Seed avatar into participant metadata so it's present from the moment they connect
-  const initialMeta = caller?.avatarUrl
-    ? JSON.stringify({ avatarUrl: caller.avatarUrl })
-    : undefined;
+  // Seed metadata so it's visible from the moment they connect. Includes
+  // avatarUrl (for tile presence photo) and host (so other clients can
+  // render a Host tag in the participants panel — roomAdmin permission
+  // isn't exposed cross-client).
+  const seedMeta: { avatarUrl?: string; host?: boolean } = {};
+  if (caller?.avatarUrl) seedMeta.avatarUrl = caller.avatarUrl;
+  if (isHost) seedMeta.host = true;
+  const initialMeta = Object.keys(seedMeta).length > 0 ? JSON.stringify(seedMeta) : undefined;
 
   const token = await createRoomToken(
     session.user.id,

@@ -30,6 +30,8 @@ export type Signal = "hand" | "heart" | "namaste" | "yes" | "no" | null;
 export interface ParticipantMetadata {
   avatarUrl?: string;
   signal?: Signal;
+  /** Marker placed in the token metadata for participants granted host privileges. */
+  host?: boolean;
 }
 
 const SIGNAL_EMOJI: Record<NonNullable<Signal>, string> = {
