@@ -44,6 +44,31 @@ function parseMetadata(raw: string | undefined): ParticipantMetadata {
   try { return JSON.parse(raw); } catch { return {}; }
 }
 
+/** First letter of first + last name token, uppercased. Falls back to "?". */
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return (parts[0][0] || "?").toUpperCase();
+  return ((parts[0][0] || "") + (parts[parts.length - 1][0] || "")).toUpperCase();
+}
+
+/** Deterministic muted color from a small palette, hashed by identity. */
+const INITIALS_PALETTE = [
+  "#6b8794", // steel blue
+  "#8b7355", // warm brown
+  "#7b8d6f", // sage
+  "#736987", // lavender
+  "#996d6d", // muted brick
+  "#878072", // taupe
+];
+function colorForIdentity(identity: string): string {
+  let h = 0;
+  for (let i = 0; i < identity.length; i++) {
+    h = (h * 31 + identity.charCodeAt(i)) >>> 0;
+  }
+  return INITIALS_PALETTE[h % INITIALS_PALETTE.length];
+}
+
 export default function RIMParticipantTile() {
   const trackRef = useMaybeTrackRefContext();
   const participant = trackRef?.participant ?? undefined;
@@ -66,10 +91,12 @@ export default function RIMParticipantTile() {
     (!trackRef.publication || trackRef.publication.isMuted);
 
   const showAvatar = isVideoOff && !!meta.avatarUrl;
+  const showInitials = isVideoOff && !meta.avatarUrl;
   const isMicMuted = !participant.isMicrophoneEnabled;
 
   const wrapperClass = [
     "rim-tile-wrapper",
+    isVideoOff ? "rim-tile-wrapper--no-video" : "",
     showAvatar ? "rim-tile-wrapper--avatar" : "",
     isSpeaking ? "rim-tile-wrapper--speaking" : "",
   ].filter(Boolean).join(" ");
@@ -83,6 +110,15 @@ export default function RIMParticipantTile() {
           style={{ backgroundImage: `url(${meta.avatarUrl})` }}
           aria-hidden="true"
         />
+      )}
+      {showInitials && (
+        <div
+          className="rim-tile-initials"
+          style={{ backgroundColor: colorForIdentity(participant.identity) }}
+          aria-hidden="true"
+        >
+          {getInitials(displayName)}
+        </div>
       )}
       {/* Custom Zoom-style name bar — bottom-left, mic icon + name */}
       <div className="rim-tile-nameplate">

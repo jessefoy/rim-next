@@ -13915,7 +13915,7 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #111;
+  background: #000;
   position: relative;
 }
 /* Main area: video grid + optional chat sidebar side-by-side */
@@ -14132,9 +14132,11 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   height: 100%;
   border-radius: 8px;
   overflow: hidden;
-  /* Active-speaker yellow border — drawn via inset box-shadow so the layout
-     doesn't shift between speaking and not speaking. Outline rather than
-     border keeps the tile size stable. */
+  background: #000;
+  /* Container query unit (cqw) for initials font-size to scale with tile. */
+  container-type: inline-size;
+  /* Active-speaker yellow border — drawn via outline so the layout doesn't
+     shift between speaking and not speaking. */
   outline: 3px solid transparent;
   outline-offset: -3px;
   transition: outline-color 0.15s;
@@ -14168,10 +14170,34 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 /* Hide LiveKit's default name bar — we render our own nameplate */
 .rim-tile-wrapper .lk-participant-metadata { display: none !important; }
-/* Hide LiveKit's grey silhouette when our avatar is showing */
-.rim-tile-wrapper--avatar .lk-participant-placeholder {
-  display: none !important;
+/* Always hide LiveKit's grey silhouette placeholder — we render our own
+   avatar image or initials circle on top in the no-video state. */
+.rim-tile-wrapper .lk-participant-placeholder { display: none !important; }
+
+/* Initials circle — fallback when video is off and no presence photo */
+.rim-tile-initials {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -55%);
+  width: 30%;
+  min-width: 80px;
+  max-width: 240px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 14cqw; /* scales with tile size */
+  letter-spacing: 0.02em;
+  z-index: 2;
+  pointer-events: none;
+  text-transform: uppercase;
 }
+.rim-tile-wrapper--no-video .lk-participant-tile { background: #000; }
 
 /* Our Zoom-style nameplate — bottom-left, mic icon + name */
 .rim-tile-nameplate {
