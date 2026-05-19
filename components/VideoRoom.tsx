@@ -5,11 +5,21 @@
  *
  * Wraps LiveKitRoom and renders RIMConference, our custom layout.
  *
- * Audio profile drives the capture defaults:
+ * Audio profile drives capture + publish settings:
  *   teacher  — preserves bells, singing bowls, music. Noise suppression OFF,
- *              auto-gain OFF, echo cancellation ON, higher bitrate.
+ *              auto-gain OFF, echo cancellation ON. 128 kbps audio.
  *   speaker  — host who isn't teaching. Clean speech profile, all three on.
- *   listener — everyone else. Clean speech profile.
+ *              96 kbps audio.
+ *   listener — everyone else. Clean speech profile. 64 kbps audio.
+ *
+ * Audio default in LiveKit is ~20 kbps (speech preset); bumping to 64–128 kbps
+ * yields a clearly perceptible quality improvement at trivial bandwidth cost.
+ *
+ * Video codec is H.264 — matches what Zoom uses, with universal hardware
+ * encode/decode across laptops/phones/iPads, no CPU spike on older devices.
+ * VP8 (our previous default) looked visibly softer at the same bitrate.
+ * 720p @ 30fps, capped at 2.5 Mbps with simulcast layers down to 180p for
+ * lossy networks.
  *
  * DTX is OFF for all profiles. The bandwidth savings during silence are
  * negligible and DTX can cause perceptible artifacts at the start/end of
@@ -25,6 +35,8 @@ export type AudioProfile = "teacher" | "speaker" | "listener";
 
 function buildRoomOptions(profile: AudioProfile): RoomOptions {
   const isTeacher = profile === "teacher";
+  const audioMaxBitrate =
+    profile === "teacher" ? 128_000 : profile === "speaker" ? 96_000 : 64_000;
   return {
     videoCaptureDefaults: {
       resolution: VideoPresets.h720.resolution,
@@ -42,9 +54,13 @@ function buildRoomOptions(profile: AudioProfile): RoomOptions {
         },
     publishDefaults: {
       videoSimulcastLayers: [VideoPresets.h180, VideoPresets.h360],
-      videoCodec: "vp8",
+      videoCodec: "h264",
+      videoEncoding: {
+        maxBitrate: 2_500_000,
+        maxFramerate: 30,
+      },
+      audioPreset: { maxBitrate: audioMaxBitrate },
       dtx: false,
-      ...(isTeacher ? { audioPreset: { maxBitrate: 128_000 } } : {}),
     },
     adaptiveStream: true,
     dynacast: true,
