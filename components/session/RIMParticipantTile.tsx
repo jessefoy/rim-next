@@ -1,27 +1,24 @@
 "use client";
 
 /**
- * RIMParticipantTile — wraps LiveKit's ParticipantTile with:
- * - Avatar image overlay shown when camera is off
- * - Nonverbal signal badge (hand, heart, namaste, yes, no) — reactively updated
+ * RIMParticipantTile — Zoom-aligned tile.
  *
- * Participant comes from trackRef.participant, NOT from ParticipantContext.
- * GridLayout only provides TrackRefContext; it does NOT provide ParticipantContext.
- * Using useMaybeParticipantContext() here would always return null and fall
- * through to the early return, so avatars and signals would never render.
+ * Custom name bar (bottom-left, dark, mic icon + name), avatar overlay when
+ * camera off, active-speaker yellow border, nonverbal signal badge top-left.
+ * Replaces LiveKit's default participant metadata bar.
  *
- * useParticipantInfo({ participant }) subscribes to participantInfoObserver,
- * which fires on ParticipantEvent.ParticipantMetadataChanged — so signal badges
- * and the avatar re-render immediately when metadata changes (e.g., hand raise).
+ * Participant comes from trackRef.participant (GridLayout provides
+ * TrackRefContext, not ParticipantContext).
  *
- * The built-in FocusToggle (pin to speaker view) is part of LiveKit's default
- * ParticipantTile content and shows on hover automatically. No custom pin needed.
+ * useParticipantInfo subscribes to metadata changes for live signal badge
+ * updates; useIsSpeaking gives the active-speaker border.
  */
 
 import {
   ParticipantTile,
   useMaybeTrackRefContext,
   useParticipantInfo,
+  useIsSpeaking,
 } from "@livekit/components-react";
 import { Track } from "livekit-client";
 
@@ -49,14 +46,9 @@ function parseMetadata(raw: string | undefined): ParticipantMetadata {
 
 export default function RIMParticipantTile() {
   const trackRef = useMaybeTrackRefContext();
-  // Get participant directly from the track reference.
-  // GridLayout provides TrackRefContext but NOT ParticipantContext,
-  // so useMaybeParticipantContext() would always return null here.
   const participant = trackRef?.participant ?? undefined;
-
-  // Reactive metadata: fires whenever this participant's metadata changes
-  // (works for both local participant raising hand and remote participants)
   const { metadata: metadataRaw } = useParticipantInfo({ participant });
+  const isSpeaking = useIsSpeaking(participant);
 
   if (!trackRef || !participant) {
     return (
@@ -67,20 +59,24 @@ export default function RIMParticipantTile() {
   }
 
   const meta = parseMetadata(metadataRaw);
+  const displayName = participant.name || participant.identity;
 
-  // Camera is off when there's no publication (placeholder) or the track is muted
   const isVideoOff =
     trackRef.source === Track.Source.Camera &&
     (!trackRef.publication || trackRef.publication.isMuted);
 
   const showAvatar = isVideoOff && !!meta.avatarUrl;
+  const isMicMuted = !participant.isMicrophoneEnabled;
+
+  const wrapperClass = [
+    "rim-tile-wrapper",
+    showAvatar ? "rim-tile-wrapper--avatar" : "",
+    isSpeaking ? "rim-tile-wrapper--speaking" : "",
+  ].filter(Boolean).join(" ");
 
   return (
-    <div className={`rim-tile-wrapper${showAvatar ? " rim-tile-wrapper--avatar" : ""}`}>
-      {/* ParticipantTile renders video, name bar, speaking indicator, and
-          the built-in hover-reveal FocusToggle (pin) button */}
+    <div className={wrapperClass}>
       <ParticipantTile />
-      {/* Avatar shown when camera is off — replaces the LiveKit placeholder */}
       {showAvatar && (
         <div
           className="rim-tile-avatar"
@@ -88,6 +84,14 @@ export default function RIMParticipantTile() {
           aria-hidden="true"
         />
       )}
+      {/* Custom Zoom-style name bar — bottom-left, mic icon + name */}
+      <div className="rim-tile-nameplate">
+        <span className={`rim-tile-nameplate__mic${isMicMuted ? " rim-tile-nameplate__mic--muted" : ""}`} aria-hidden="true">
+          {isMicMuted ? "🔇" : "🎤"}
+        </span>
+        <span className="rim-tile-nameplate__name">{displayName}</span>
+        {meta.host && <span className="rim-tile-nameplate__host-tag">Host</span>}
+      </div>
       {/* Nonverbal signal badge */}
       {meta.signal && (
         <div className={`rim-tile-signal rim-tile-signal--${meta.signal}`}>

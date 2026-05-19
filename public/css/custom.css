@@ -14130,11 +14130,24 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   position: relative;
   width: 100%;
   height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  /* Active-speaker yellow border — drawn via inset box-shadow so the layout
+     doesn't shift between speaking and not speaking. Outline rather than
+     border keeps the tile size stable. */
+  outline: 3px solid transparent;
+  outline-offset: -3px;
+  transition: outline-color 0.15s;
 }
-/* Ensure LiveKit's tile fills our wrapper so name bar stays visible */
+.rim-tile-wrapper--speaking {
+  outline-color: #fde047;
+}
+/* Ensure LiveKit's tile fills our wrapper */
 .rim-tile-wrapper .lk-participant-tile {
   width: 100%;
   height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
 }
 /* Avatar — centered rounded square like Zoom */
 .rim-tile-avatar {
@@ -14153,37 +14166,63 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   z-index: 2;
   pointer-events: none;
 }
-/* Name bar — always visible, above avatar overlay */
-.rim-tile-wrapper .lk-participant-metadata {
-  z-index: 3;
-  opacity: 1 !important;
-  display: flex !important;
-}
-.rim-tile-wrapper .lk-participant-metadata-item {
-  background: rgba(0,0,0,0.6);
-  padding: 5px 10px;
-  font-size: 16px;
-}
-.rim-tile-wrapper .lk-participant-name {
-  font-size: 16px;
-  font-weight: 500;
-}
+/* Hide LiveKit's default name bar — we render our own nameplate */
+.rim-tile-wrapper .lk-participant-metadata { display: none !important; }
 /* Hide LiveKit's grey silhouette when our avatar is showing */
 .rim-tile-wrapper--avatar .lk-participant-placeholder {
   display: none !important;
 }
-/* Signal badge — top-left of tile, large */
+
+/* Our Zoom-style nameplate — bottom-left, mic icon + name */
+.rim-tile-nameplate {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: rgba(0,0,0,0.65);
+  border-radius: 4px;
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  max-width: calc(100% - 16px);
+  pointer-events: none;
+}
+.rim-tile-nameplate__mic { font-size: 12px; line-height: 1; }
+.rim-tile-nameplate__mic--muted { color: #f87171; }
+.rim-tile-nameplate__name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rim-tile-nameplate__host-tag {
+  display: inline-block;
+  padding: 1px 5px;
+  background: rgba(19, 82, 116, 0.6);
+  color: #c5dafa;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Signal badge — top-left of tile, smaller per Zoom proportions */
 .rim-tile-signal {
   position: absolute;
-  top: 10px;
-  left: 10px;
-  font-size: 44px;
+  top: 8px;
+  left: 8px;
+  font-size: 22px;
   line-height: 1;
   z-index: 4;
   pointer-events: none;
-  background: rgba(0,0,0,0.5);
-  border-radius: 10px;
-  padding: 6px 8px;
+  background: rgba(0,0,0,0.65);
+  border-radius: 6px;
+  padding: 4px 6px;
   animation: rim-signal-pop 0.25s ease-out;
 }
 @keyframes rim-signal-pop {
