@@ -60,6 +60,7 @@ export default function SessionPage() {
   }
   const [guestName, setGuestName] = useState("");
   const [joiningAsGuest, setJoiningAsGuest] = useState(false);
+  const [isIdle, setIsIdle] = useState(false);
   const pageRef = useRef<HTMLDivElement>(null);
   const isGuest = !!guestKey;
 
@@ -78,6 +79,32 @@ export default function SessionPage() {
     document.addEventListener("fullscreenchange", handler);
     return () => document.removeEventListener("fullscreenchange", handler);
   }, []);
+
+  // Auto-hide chrome on idle (Zoom-style). 3-second timer, reset by mouse /
+  // keyboard / focus / touch. CSS handles the actual fade — and CSS
+  // overrides re-show chrome when any popover/panel is open or hovered, so
+  // the JS only needs to track the raw idle state.
+  useEffect(() => {
+    if (state !== "ready" && state !== "connected") return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    function reset() {
+      setIsIdle(false);
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => setIsIdle(true), 3000);
+    }
+    reset();
+    window.addEventListener("mousemove", reset);
+    window.addEventListener("keydown", reset);
+    window.addEventListener("touchstart", reset, { passive: true });
+    window.addEventListener("focus", reset);
+    return () => {
+      if (timer) clearTimeout(timer);
+      window.removeEventListener("mousemove", reset);
+      window.removeEventListener("keydown", reset);
+      window.removeEventListener("touchstart", reset);
+      window.removeEventListener("focus", reset);
+    };
+  }, [state]);
 
   // Member flow: fetch token immediately
   useEffect(() => {
@@ -261,7 +288,7 @@ export default function SessionPage() {
 
   // Ready / Connected
   return (
-    <div className="vs-page" ref={pageRef}>
+    <div className={`vs-page${isIdle ? " vs-page--idle" : ""}`} ref={pageRef}>
       <div className="vs-header">
         {/* Left: Step-in (host-team non-hosts only) */}
         <div className="vs-header__left">

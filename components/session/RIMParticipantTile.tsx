@@ -120,11 +120,19 @@ export default function RIMParticipantTile() {
           {getInitials(displayName)}
         </div>
       )}
-      {/* Custom Zoom-style name bar — bottom-left, mic icon + name */}
+      {/* Zoom-style name bar — plain white text bottom-left, with a
+          small red mic-off glyph only when the participant is muted. */}
       <div className="rim-tile-nameplate">
-        <span className={`rim-tile-nameplate__mic${isMicMuted ? " rim-tile-nameplate__mic--muted" : ""}`} aria-hidden="true">
-          {isMicMuted ? "🔇" : "🎤"}
-        </span>
+        {isMicMuted && (
+          <span className="rim-tile-nameplate__mic-off" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+              <line x1="2" y1="2" x2="22" y2="22" />
+              <path d="M9 9v3a3 3 0 0 0 5.12 2.12" />
+              <path d="M15 9.34V4a3 3 0 0 0-5.94-.6" />
+              <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23" />
+            </svg>
+          </span>
+        )}
         <span className="rim-tile-nameplate__name">{displayName}</span>
         {meta.host && <span className="rim-tile-nameplate__host-tag">Host</span>}
       </div>

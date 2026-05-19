@@ -13780,6 +13780,56 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .vs-page:fullscreen .vs-header { background: #111; border-bottom-color: #222; }
 .vs-page:fullscreen { background: #000; }
 
+/* ─── Auto-hide chrome on idle (Zoom-style) ──────────────────── */
+/* The page sets .vs-page--idle after ~3s of no mouse/keyboard activity.
+   We fade the top header and bottom control bar, but keep them visible
+   when any panel/popover is open or when the user hovers them — and on
+   touch devices, never fade (no hover signal). */
+.vs-header,
+.rim-cb {
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.vs-page--idle .vs-header {
+  opacity: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
+}
+.vs-page--idle .rim-cb {
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+}
+/* Bring chrome back when any panel/popover is open. :has() lets us catch
+   children mounted anywhere under the page. */
+.vs-page--idle:has(.rim-pp) .vs-header,
+.vs-page--idle:has(.rim-pp) .rim-cb,
+.vs-page--idle:has(.rim-settings) .vs-header,
+.vs-page--idle:has(.rim-settings) .rim-cb,
+.vs-page--idle:has(.rim-conference__chat) .vs-header,
+.vs-page--idle:has(.rim-conference__chat) .rim-cb,
+.vs-page--idle:has(.rim-cb-popover) .vs-header,
+.vs-page--idle:has(.rim-cb-popover) .rim-cb {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+/* And bring chrome back when hovered directly. */
+.vs-page--idle .vs-header:hover,
+.vs-page--idle .rim-cb:hover {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+/* Touch devices: no hover → never fade. */
+@media (hover: none) {
+  .vs-page--idle .vs-header,
+  .vs-page--idle .rim-cb {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+}
+
 /* Speaker / Gallery segmented toggle */
 .vs-view-toggle {
   display: inline-flex;
@@ -14200,27 +14250,33 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 .rim-tile-wrapper--no-video .lk-participant-tile { background: #000; }
 
-/* Our Zoom-style nameplate — bottom-left, mic icon + name */
+/* Zoom-style nameplate — no pill background, white text with a soft
+   shadow for legibility against any video color. Mic-off icon (small red)
+   appears only when the participant is muted; otherwise just name. */
 .rim-tile-nameplate {
   position: absolute;
-  bottom: 8px;
-  left: 8px;
+  bottom: 10px;
+  left: 12px;
   z-index: 4;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 8px;
-  background: rgba(0,0,0,0.65);
-  border-radius: 4px;
   color: #fff;
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
-  max-width: calc(100% - 16px);
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.85);
+  max-width: calc(100% - 24px);
   pointer-events: none;
 }
-.rim-tile-nameplate__mic { font-size: 12px; line-height: 1; }
-.rim-tile-nameplate__mic--muted { color: #f87171; }
+.rim-tile-nameplate__mic-off {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #f87171;
+  line-height: 1;
+}
 .rim-tile-nameplate__name {
   white-space: nowrap;
   overflow: hidden;
@@ -14228,14 +14284,15 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 .rim-tile-nameplate__host-tag {
   display: inline-block;
-  padding: 1px 5px;
-  background: rgba(19, 82, 116, 0.6);
-  color: #c5dafa;
+  padding: 1px 6px;
+  background: rgba(19, 82, 116, 0.85);
+  color: #fff;
   border-radius: 3px;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  text-shadow: none;
 }
 
 /* Signal badge — top-left of tile, smaller per Zoom proportions */
