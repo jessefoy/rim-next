@@ -118,6 +118,12 @@ export async function POST(req: NextRequest) {
   // avatarUrl (for tile presence photo) and host (so other clients can
   // render a Host tag in the participants panel — roomAdmin permission
   // isn't exposed cross-client).
+  //
+  // Trust note: `canUpdateOwnMetadata: true` (lib/livekit.ts) means a client
+  // can technically rewrite their own metadata to claim `host: true`. The
+  // tag is therefore a *UI cue only*, not a security boundary. Real host
+  // actions (mute, end-for-all) are gated server-side via auth() + role +
+  // HostAssignment lookup, not via this metadata flag.
   const seedMeta: { avatarUrl?: string; host?: boolean } = {};
   if (caller?.avatarUrl) seedMeta.avatarUrl = caller.avatarUrl;
   if (isHost) seedMeta.host = true;

@@ -13,6 +13,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRoomContext } from "@livekit/components-react";
+import { Track } from "livekit-client";
 
 type Kind = "audioinput" | "videoinput" | "audiooutput";
 
@@ -91,16 +92,12 @@ export default function DevicePickerMenu({ open, onClose, anchorRef, variant, on
   useEffect(() => {
     if (!room) return;
     const lp = room.localParticipant;
-    const micTrack = lp.getTrackPublication
-      ? lp.getTrackPublication("microphone" as never)?.track
-      : undefined;
-    const camTrack = lp.getTrackPublication
-      ? lp.getTrackPublication("camera" as never)?.track
-      : undefined;
+    const micTrack = lp.getTrackPublication(Track.Source.Microphone)?.track;
+    const camTrack = lp.getTrackPublication(Track.Source.Camera)?.track;
     setActive((prev) => ({
       ...prev,
-      audioinput: (micTrack?.mediaStreamTrack?.getSettings().deviceId as string | undefined) ?? prev.audioinput,
-      videoinput: (camTrack?.mediaStreamTrack?.getSettings().deviceId as string | undefined) ?? prev.videoinput,
+      audioinput: micTrack?.mediaStreamTrack?.getSettings().deviceId ?? prev.audioinput,
+      videoinput: camTrack?.mediaStreamTrack?.getSettings().deviceId ?? prev.videoinput,
     }));
   }, [room, open]);
 

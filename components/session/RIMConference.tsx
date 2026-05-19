@@ -10,7 +10,7 @@
  * bar (no longer a separate top toolbar).
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   GridLayout,
   RoomAudioRenderer,
@@ -86,6 +86,12 @@ export default function RIMConference({ isHost, programSlug, guestKey, view = "g
 
   const speakers = useSpeakingParticipants();
 
+  // Track the last identity we asked to pin, so the effect can short-circuit
+  // before doing any work during the render-storm after a dispatch (the pin
+  // state update would otherwise re-trigger this effect via fresh
+  // `tracks` / `speakers` array identities on every render).
+  const lastPinnedIdentityRef = useRef<string | null>(null);
+
   // Speaker / Gallery view orchestration:
   //  - speaker: ensure a pin exists (first active speaker, else first remote).
   //             Refresh pin to follow active speaker as they change.
@@ -94,33 +100,55 @@ export default function RIMConference({ isHost, programSlug, guestKey, view = "g
     if (view === "gallery") {
       if (layoutContext.pin.state && layoutContext.pin.state.length > 0) {
         layoutContext.pin.dispatch?.({ msg: "clear_pin" });
+        lastPinnedIdentityRef.current = null;
       }
       return;
     }
-    // Speaker view — look for a camera track to focus.
+    // Speaker view — pick the target identity first; only filter tracks if we
+    // actually need to dispatch a change. This keeps the per-render cost cheap.
+    const activeSpeakerIdentity = speakers
+      .map((sp) => sp.identity)
+      .find((id) =>
+        tracks.some(
+          (t) => t.source === Track.Source.Camera && t.participant.identity === id,
+        ),
+      );
+
+    const currentlyPinnedIdentity = layoutContext.pin.state?.[0]?.participant.identity;
+
+    // If an active speaker already matches the current pin, nothing to do.
+    if (activeSpeakerIdentity && activeSpeakerIdentity === currentlyPinnedIdentity) {
+      lastPinnedIdentityRef.current = activeSpeakerIdentity;
+      return;
+    }
+
+    // If the current pin is still present and no one else is speaking, keep it.
+    if (
+      currentlyPinnedIdentity &&
+      tracks.some(
+        (t) => t.source === Track.Source.Camera && t.participant.identity === currentlyPinnedIdentity,
+      ) &&
+      !activeSpeakerIdentity
+    ) {
+      lastPinnedIdentityRef.current = currentlyPinnedIdentity;
+      return;
+    }
+
+    // Need to (re)pin. Pick the active speaker; else a remote camera; else first.
     const cameraTracks = tracks.filter((t) => t.source === Track.Source.Camera);
     if (cameraTracks.length === 0) return;
-    // Prefer the first active speaker who has a camera track
-    let nextTrack = cameraTracks.find((t) =>
-      speakers.some((sp) => sp.identity === t.participant.identity)
-    );
-    // Fall back to the current pinned participant if still in the room
-    if (!nextTrack && layoutContext.pin.state && layoutContext.pin.state.length > 0) {
-      const pinned = layoutContext.pin.state[0];
-      const stillPresent = cameraTracks.find((t) => t.participant.identity === pinned.participant.identity);
-      if (stillPresent) return; // keep current pin
-    }
-    // Last fallback — first remote camera (or first overall)
-    if (!nextTrack) {
-      nextTrack =
-        cameraTracks.find((t) => t.participant.identity !== localParticipant?.identity) ??
-        cameraTracks[0];
-    }
+    const nextTrack =
+      (activeSpeakerIdentity &&
+        cameraTracks.find((t) => t.participant.identity === activeSpeakerIdentity)) ||
+      cameraTracks.find((t) => t.participant.identity !== localParticipant?.identity) ||
+      cameraTracks[0];
     if (!nextTrack) return;
-    const currentlyPinned = layoutContext.pin.state?.[0];
-    if (currentlyPinned && currentlyPinned.participant.identity === nextTrack.participant.identity) {
-      return; // already pinned
+
+    // Guard against re-dispatch loops while the pin state catches up to us.
+    if (lastPinnedIdentityRef.current === nextTrack.participant.identity && currentlyPinnedIdentity === nextTrack.participant.identity) {
+      return;
     }
+    lastPinnedIdentityRef.current = nextTrack.participant.identity;
     layoutContext.pin.dispatch?.({ msg: "set_pin", trackReference: nextTrack });
   }, [view, speakers, tracks, layoutContext.pin, localParticipant?.identity]);
 
