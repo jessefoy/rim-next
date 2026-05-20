@@ -6,7 +6,44 @@
 
 ## Active
 
-**Session 118 (2026-05-20)** — Offering model design + Library extraction cleanup. Two threads.
+### Priority for next session — Course offering model build (carried over from session 118, unchanged)
+
+**The Course offering model architecture (`RIM_Offering_Model.md`) is the priority for the next session.** No code has been written for this yet. Session 119 was an unrelated detour driven by a Safari permission incident — see below. Course-offering work resumes from the same starting point session 118 ended on.
+
+**Build order suggestion (from session 118, still applicable):**
+
+1. Schema: add the orthogonal-flag fields and the new content fields to `Course` in `prisma/schema.prisma`. Backfill migration in `prisma/migrate.mjs` mapping the existing `accessLevel` enum to the new flags (rules in `RIM_Offering_Model.md`).
+2. Update `MyCourseLibrary`, `/courses` catalog filter, `/api/courses`, `CourseEditor`, and `/course/[slug]` access logic to read the new flags. Leave the enum in place during transition.
+3. Build the pre-enrollment landing state on `/course/[slug]` for the six states. Reference `pg-` styles from `/programs/[slug]`; adopt parallel `crs-` styles.
+4. Build the dana flow for `selfEnrollDanaRequired` courses (parallel to program registration's Stripe Checkout path; new endpoint).
+5. Surface `publishOnPublicCatalog` and the new fields in `CourseEditor`. Decide presets-vs-raw-flags at build.
+6. Drop the `accessLevel` enum once all reads have migrated.
+
+**Reference `RIM_Offering_Model.md` before writing any code.** Open questions parked there (pending-dana behavior, `CourseAccess` vs `SeriesEnrollment` boundary, refund/cancellation, editor presets vs raw flags, default fallback for `accessRestrictionMessage`) — resolve as they come up during build, not pre-emptively.
+
+---
+
+### Session 119 (2026-05-21) — LiveKit Greenroom + magic-code auth (shipped, no in-progress code)
+
+Four commits, all merged to `main`. See `session-log.md` entry for full chronology.
+
+**Greenroom + Recovery (`d2a0008`, fix `8577348`):** pre-prompt screen that primes users before the browser camera/microphone permission prompt fires; denial-state Recovery screen with Safari Mac fix instructions. Auto-skips silently when Permissions API confirms `'granted'`. Component files: `components/session/Greenroom.tsx`, `components/session/Recovery.tsx`. Phase machine inside `VideoRoom.tsx`. CSS: `gr-` prefix in `public/css/custom.css`.
+
+**Auth flow switched from magic link to 6-digit sign-in code (`45e7be4`, expiry tweak `a13b34f`):** users now type a code from their email instead of clicking a link. 30-minute expiry. Templates renamed `magic-link-*` → `sign-in-code-*` (migration deletes old rows). Files: `auth.ts`, `lib/email.ts`, `prisma/migrate.mjs` (two new migration entries), `app/login/page.tsx`, `app/login/check-email/page.tsx`, `app/login/error/page.tsx`. The old `seed_magic_link_email_templates` migration entry is now dead code on fresh installs (creates rows the next migration immediately deletes) — backlog cleanup item.
+
+**No in-progress code.** All work shipped. Test on the deployed site once Vercel completes the deploy of `a13b34f`.
+
+**Deferred to backlog (in this session):**
+
+1. **PWA (Progressive Web App) install for Mac / PC / iOS / iPad / Android.** Most user-friendly fix for Safari's per-session permission issue — installed PWAs get persistent permission storage that's distinct from Safari's per-session sandbox. Magic-code auth (now shipped) was the prerequisite. Adds a "RIM" app icon for users. Sized as "small lift" but no spec written yet. *(In `data/backlog.json` as `2026-05-21-001`.)*
+2. **Rate-limit `/api/auth/callback/resend`.** 6-digit keyspace × 30-min window × no IP rate limit = a determined attacker who knows a victim's email could brute-force within the window. Low realistic risk at sangha scale but worth a per-IP or per-email rate limit before this gets meaningful traffic. *(In `data/backlog.json` as `2026-05-21-002`.)*
+3. **Cleanup of dead magic-link migration entries.** `seed_magic_link_email_templates` and the magic-link entries inside `organize_email_templates_with_groups_and_helptext` are now dead code (the followup migration deletes the rows they create). Mechanical cleanup. *(In `data/backlog.json` as `2026-05-21-003`.)*
+
+**One staff-manual touch-up Jesse should do manually:** `/admin/manual/host-hub-team-management` has a sentence telling coordinators how to direct a new person to create an account, and it still references "magic link." Edit that one sentence to say "sign-in code" instead. ~30 seconds in the admin UI; cheaper than a migration entry for one line of copy.
+
+---
+
+### Session 118 (2026-05-20) — original context, preserved for cross-reference
 
 **(1) Library extraction shipped (commit `6c57073`).** Member home cleanup per the approved plan: courses removed from `/account/dashboard`, onboarding welcome moved to `/account/courses` Library page, "My Programs" → "My Registrations," greeting session count fixed to member commitments only, new `Course.publishOnPublicCatalog` flag added (backfill in `prisma/migrate.mjs`), Course editor toggle wired. Follow-up commit `822029f` removed orphaned `db2-courses-line` CSS rules.
 

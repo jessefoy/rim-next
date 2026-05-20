@@ -59,25 +59,41 @@ Two audiences:
 
 ## 1. Authentication
 
-**What it does:** Members sign in via a magic link sent to their email — no password needed. Clicking the link in the email logs them in and redirects to their dashboard.
+**What it does:** Members sign in by typing a 6-digit code sent to their email — no password, no magic link. Entering the code on the sign-in page logs them in and redirects to their dashboard. Switched from magic link to code in session 119 (2026-05-21).
 
 **Flow:**
 1. User visits `/login`, enters email
-2. Resend sends a magic-link email
-3. User clicks link → lands at `/account/dashboard`
-4. Session persists via a database-backed cookie
+2. Resend sends an email with a 6-digit code (large, centered, no link)
+3. User lands at `/login/check-email?email=ENCODED` with the code-entry form
+4. User types the code → form GETs `/api/auth/callback/resend?token=CODE&email=EMAIL&callbackUrl=/account/dashboard`
+5. NextAuth verifies the token, sets the session cookie, redirects to `/account/dashboard`
+
+**Why code, not magic link:** magic links route to the OS default browser regardless of where the user wants to be (a Safari user who prefers Chrome ends up authenticated in Safari with no way to "send to Chrome"). PWAs on iOS can't reliably receive magic-link clicks either — the OS routes the click to Safari, not the installed PWA. Codes work in every context because the user types them into the app/browser they're standing in. Industry-standard pattern (Slack, Apple, Mercury, Notion all do this).
 
 **Key files:**
-- `auth.ts` — NextAuth v5 config (Resend provider, Prisma adapter, session callbacks)
-- `app/login/page.tsx` — login page
-- `app/login/check-email/page.tsx` — "check your inbox" confirmation page
-- `prisma/schema.prisma` — stores sessions, verification tokens
+- `auth.ts` — NextAuth v5 config (Resend provider, Prisma adapter, session callbacks). Overrides `generateVerificationToken` to return a 6-digit code via `crypto.randomInt(100000, 1000000)`. `maxAge: 30 * 60` on the Resend provider (30-min code expiry).
+- `lib/email.ts::sendSignInCodeEmail` — sends the templated email with the code as a Handlebars variable. Calls `sendTemplatedEmail` with `throwOnFailure: true` so a missing/disabled template surfaces to the user rather than silently swallowing the sign-in.
+- `app/login/page.tsx` — server action calls `signIn("resend", { email, redirect: false })`, detects email-send failure via the returned error-URL (signIn with `redirect: false` does NOT throw on failure — it returns an error-page URL string), and redirects to `/login/check-email?email=ENCODED` on success.
+- `app/login/check-email/page.tsx` — reads `email` from URL params (redirects to `/login` if missing), shows a 6-digit input form, includes an inline "send a new code" affordance.
+- `app/login/error/page.tsx` — sign-in error landing page.
+- `prisma/schema.prisma` — `VerificationToken` table (NextAuth standard). No schema change for the code switch; the token value is just a 6-digit string instead of a long random one.
+
+**Email templates (Email Template Gate — see CLAUDE.md):**
+- `sign-in-code-new-user` — sent to first-time visitors (no account, or account without `agreedToTerms`)
+- `sign-in-code-returning` — sent to existing members
+- Both seeded in `prisma/migrate.mjs` (`seed_sign_in_code_email_templates`) via defensive `findUnique → create` so admin edits at `/admin/emails` are preserved on re-run. Both `enabled: true` — required for sign-in to work.
+- The old `magic-link-new-user` / `magic-link-returning` templates were deleted by the same migration.
 
 **🔧 Technical notes:**
 - NextAuth v5 uses `auth()` (not `getServerSession`) for server components
-- Session callback queries the DB for `firstName` and `roles` so they're available on `session.user` without extra fetches on every page
+- Session callback queries the DB for `firstName`, `roles`, `agreedToTerms`, `archivedAt` so they're available on `session.user` without extra fetches on every page
 - `EMAIL_FROM` is currently `onboarding@resend.dev` — must be changed to the RIM domain after Resend DNS verification
-- Magic links expire per Resend's default TTL
+- Code expiry: **30 minutes** (was 10 in the first ship; bumped after users hitting expiry on the walk-away-and-come-back flow)
+- Codes never start with `0` because `crypto.randomInt(100000, 1000000)` is lower-inclusive / upper-exclusive. Keyspace 900K. Acceptable for sangha scale, but rate-limiting the callback endpoint is a backlog candidate before this gets meaningful traffic
+- NextAuth's default behavior allows multiple unconsumed codes to coexist (each `signIn` call creates a fresh row in `VerificationToken`); they're independently valid until consumed (single-use) or expired. Kept intentionally — Jesse uses this himself
+- Session: `maxAge: 90 * 24 * 60 * 60` (90 days), `updateAge: 24 * 60 * 60` (refresh expiry at most once per day on activity). Sign-in friction is once per device, not every visit
+- The callback URL is constructed entirely client-side (form GETs `/api/auth/callback/resend`) so the `NEXTAUTH_URL` trimming concern from `UP_NEXT.md` doesn't apply here
+- `signIn` with `redirect: false` returns a URL string rather than throwing on failure — when adapting this pattern elsewhere, always inspect the returned URL for `error=` query params
 
 ---
 
@@ -1882,6 +1898,34 @@ The visual / behavioral language of every session-room surface was reshaped to m
 **Pure-black background.** Conference root background changed from `#111` to `#000` to match Zoom's depth.
 
 **Host-tag trust note.** `host: true` in participant metadata is a UI cue, not a security boundary. `canUpdateOwnMetadata: true` on the token grant means a client could technically rewrite their own metadata. Real host actions (mute, end-for-all) are gated server-side via `auth() + role + HostAssignment + ProgramTeacher` lookup — not via this flag. Documented in the token route. If a non-spoofable Host indicator is needed later, route avatar/signal updates through a server-side `RoomServiceClient.updateParticipant` endpoint.
+
+### Greenroom + Recovery — Permission-safe join flow (session 119, 2026-05-21)
+
+**Problem solved:** the browser's camera/microphone permission prompt fires every time a user joins the session room. On Safari (Mac and iOS) the prompt fires *every session* by default — Apple's per-session permission model means clicking "Allow" doesn't persist unless the user has explicitly set the per-site permission to "Allow" via Safari → Settings for This Website. Worse, panic-clicks of "Never for this Website" (the third option in Safari's prompt) silently and permanently break the user with no in-app recovery path. A real testing incident triggered this work.
+
+**Greenroom (`components/session/Greenroom.tsx`).** Pre-prompt screen that primes the user *before* the browser asks. Single dominant Continue button. Body: "In a moment, your browser will ask to use your camera and microphone. Please click **Allow** when prompted." Includes an inline "Set Safari to remember →" affordance (Safari Mac only) with four-step instructions for the one-time per-site Allow setup. Detects Safari Mac specifically via `navigator.userAgent` + `Macintosh` + no touch (excludes iPadOS-13+ which reports as Mac).
+
+**Recovery (`components/session/Recovery.tsx`).** Denial-state screen reached when Permissions API returns `'denied'` on Greenroom mount or the Continue click throws `NotAllowedError` / `NotReadableError` / `NotFoundError`. Safari Mac instructions visible by default ("Safari menu → Settings for This Website… → set Camera and Microphone to Allow → Refresh page"). Collapsed "different browser" block covers Safari iOS + generic for Chrome/Firefox/Edge. The Refresh button is the only action because Safari's Permissions API does not reliably re-query state after a Settings change without a page reload.
+
+**Phase machine in `VideoRoom`.** `<LiveKitRoom audio={false} video={false}>` mounts immediately with the token; connection happens in the background. `phase` state cycles `greenroom → conference` (on Continue + successful publish) OR `greenroom → recovery` (on permission denial). The phase logic lives inside VideoRoom; the page (`/session/[slug]`) state machine is unchanged.
+
+**The iOS Safari user-gesture constraint shapes the architecture.** `setMicrophoneEnabled(true)` and `setCameraEnabled(true)` must be called synchronously from the click handler — iOS Safari requires the user-gesture chain to survive without `await` between the click and the LiveKit call. Continue handler uses `Promise.all([setMicrophoneEnabled(true), setCameraEnabled(true)])` so both calls fire before any await. Greenroom is a child of `<LiveKitRoom>` precisely so the click handler has `useLocalParticipant()` available; the room is already connected by the time the user clicks. The Continue button is disabled with label "Connecting…" while `connectionState !== ConnectionState.Connected`.
+
+**Auto-skip only on confirmed-granted state.** Greenroom checks `navigator.permissions.query({ name: 'camera' })` and `microphone` on mount. If BOTH report `'granted'`, attempts a direct publish from a `useEffect` (allowed because permission is already granted — no prompt fires). For any other state (`'prompt'`, `'unsupported'`, `'denied'`), the manual Greenroom UI shows. The initial implementation included a speculative auto-publish path for users with a localStorage `joined-before` flag; this was removed in `8577348` because on Safari (per-session `'prompt'` default) it caused the browser prompt to fire from a non-gesture context, reproducing the exact bare-prompt experience the Greenroom was built to prevent. Lesson: speculative permission attempts from non-gesture contexts are unsafe on Safari.
+
+**Error mapping (post-publish):**
+- `NotAllowedError` → Recovery (user clicked Don't Allow or Never)
+- `NotReadableError` → Recovery (camera/mic in use by another app, e.g. Zoom open)
+- `NotFoundError` → Recovery (no device; copy mentions hardware in passing)
+- Unknown → returns to manual Greenroom UI as a last resort
+
+**Step-in mid-session caveat.** The host emergency step-in flow cycles `loading → ready` on the page state, which remounts VideoRoom. Greenroom mounts fresh, detects `'granted'` (the host just had permissions a moment ago), auto-publishes silently, transitions to conference. User-visible result: a sub-second "Connecting…" silent card during step-in. Accepted for v1.
+
+**Why no listen-only / no in-room recovery toast / no per-browser instruction blocks.** All considered, all deferred. The proportional spec is Greenroom + Safari-focused Recovery. Backlog items if real users hit them.
+
+**CSS:** `gr-` prefix in `public/css/custom.css`. Local CSS custom properties (`--gr-bg`, `--gr-text`, `--gr-text-dim`, `--gr-text-mute`, `--gr-link`, `--gr-link-hover`, `--gr-panel-bg`) scope the dark-surface palette to this block. Tokens (`--font-serif`, `--text-h1`, `--text-body`, `--lh-body`) used everywhere else. Mobile breakpoint at 430px tightens spacing and drops the headline to `--text-h2`. 48px CTA min-height, 44px secondary toggle min-height (touch target rule). `z-index: 10` so it covers the LiveKit room layout reliably.
+
+**🔧 Permission-state caveat for Safari.** Safari's Permissions API was historically unreliable for `camera` and `microphone`. Recent Safari (16.4+) reports `'granted'` correctly when the user has set persistent Allow via Settings for This Website. Older Safari may return `'unsupported'`. In the unsupported case, Greenroom shows the manual UI; user clicks Continue; if Allow is set, the publish succeeds silently (no prompt). One extra screen but no prompt. Acceptable.
 
 ### Three-stage host privileges
 

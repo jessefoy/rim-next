@@ -1,5 +1,54 @@
 ---
 
+## 2026-05-21 (session 119) — LiveKit Greenroom + magic-code auth (Safari per-session permission fix)
+
+Two threads driven by a real testing incident: a tester clicked "Never for this Website" on the Safari camera/microphone prompt while testing the session room, silently breaking themselves with no recovery path. Diagnosis widened into two changes — one direct fix for the prompt UX, one architectural change that unblocks the future PWA direction.
+
+### Thread 1 — Greenroom + Recovery for the LiveKit session room (`d2a0008`, fix `8577348`)
+
+Built a pre-prompt screen ("Greenroom") that primes the user before the browser camera/microphone prompt fires, and a denial-recovery screen for the small number who still click Never. The Greenroom skips itself silently when permission state is `'granted'` (Chrome remembers Allow; Safari does too if the user has set persistent Allow via Settings for This Website). Architecturally, both screens are children of `<LiveKitRoom>` so the Continue click handler has `useLocalParticipant()` and can call `Promise.all([setMicrophoneEnabled(true), setCameraEnabled(true)])` synchronously — the iOS Safari user-gesture chain only survives if both calls fire inside one click handler.
+
+The initial implementation included a "speculative auto-publish" path that used a localStorage `joined-before` flag to skip the Greenroom on repeat visits. Jesse tested it and discovered the bug it caused: on Safari (per-session default Allow), the Permissions API reports `'prompt'` on the return visit even though the user clicked Allow last time. The speculative path fired `setCameraEnabled` from a `useEffect` (no user gesture), Safari prompted again without the priming card visible, and the user got the exact bare-prompt experience the Greenroom was built to prevent. Fixed in `8577348` by removing the speculative branch entirely — auto-skip only when Permissions API confirms `'granted'`.
+
+Pattern worth remembering: speculative permission attempts from non-gesture contexts are unsafe on Safari. Only auto-publish when the API confirms state is granted. The reviewer sub-agent flagged adjacent concerns during the first commit's review but I underweighted the warning — caught during user testing instead.
+
+Recovery screen instructions are Safari Mac-specific in the primary block (the actual problem case for the demographic), with a collapsed "different browser" section for Safari iOS + a generic paragraph covering Chrome/Firefox/Edge. No platform-by-platform conditional rendering — fewer code paths, simpler to maintain. The Recovery button is a literal "Refresh page" because Safari's Permissions API does not reliably re-query state after a Settings change without a page reload.
+
+Reviewer sub-agent surfaced four pre-commit items, all addressed in the same worktree before merging: `useCallback` for stable Greenroom callbacks, local CSS custom properties for the dark-surface palette (`--gr-bg`, `--gr-text`, etc.), token-based mobile breakpoint, and `overflow-y: auto` on the screen for short viewports with expanded instructions.
+
+Notable scope-creep observation: the original prompt Jesse pasted into Claude (the spec from a prior session) had grown to a 7-step, 6-component plan with platform-specific instruction blocks for five browsers, listen-only fallback, no-device fallback, in-room follow-through toast with modal overlay, and a dual-mode Recovery component. Jesse pushed back on scope. The actual proportional spec was: Greenroom + Safari-focused Recovery, ~250 lines TSX + ~190 lines CSS. Everything else moved to deferred. The proportional version shipped cleanly; the kitchen-sink version would have introduced surface area without proportional user-value gain.
+
+### Thread 2 — Magic link → 6-digit sign-in code (`45e7be4`, expiry tweak `a13b34f`)
+
+Replaced magic-link authentication with magic-code (6-digit) authentication. Users now type a code from their email instead of clicking a link. Two reasons converged on this:
+
+1. **Safari's per-session permission model AND magic links both have a "default browser" trap.** A user on Safari clicks a magic link in their Mail app → opens in Safari → authenticates Safari → but they wanted Chrome, and now their Chrome session is still signed out. Magic links lock the user to whichever browser the OS opens.
+2. **PWAs can't reliably receive magic-link clicks on iOS.** The OS routes the click to Safari, not to the installed PWA; the PWA has its own cookie partition and stays signed out. Industry-standard solution (Slack, Apple, Mercury, Notion all do this): 6-digit codes the user types into whichever app/browser they're standing in.
+
+Architecture: `auth.ts` overrides `generateVerificationToken` to return a 6-digit code via `crypto.randomInt(100000, 1000000)`. The same NextAuth Email-provider verification flow still runs (DB-backed `VerificationToken` table, `(identifier, token)` composite key, single-use). The "click the link" path is gone; the email shows only the code, large and centered. The `/login/check-email` page transitioned from a stateless "check your inbox" landing to a real form that GETs `/api/auth/callback/resend?token=CODE&email=EMAIL&callbackUrl=/account/dashboard` — same NextAuth callback that magic-link clicks used to hit.
+
+`/login` server action calls `signIn("resend", { email, redirect: false })`, manually inspects the returned URL for error params, and routes the user to `/login/check-email?email=ENCODED` on success. The reviewer caught a BLOCKER here pre-merge: `signIn` with `redirect: false` does NOT throw on email-send failure — it returns an error-page URL string. My initial try/catch would have silently dropped failed sends. Fix detects error params in the returned URL and redirects to `/login?error=send-failed`.
+
+Code expiry was 10 minutes in the first commit; bumped to 30 in `a13b34f` after Jesse pointed out users walking away from email and coming back were hitting expiry. Done as a defensive migration that only updates the existing template body if it still contains "expires in 10 minutes" — so admin edits via `/admin/emails` are preserved.
+
+NextAuth's default behavior of allowing multiple unconsumed codes to coexist (each `signIn` call creates a fresh `VerificationToken` row, all valid until consumed or expired) was kept as-is — Jesse noted he uses this himself.
+
+### What this work connects to
+
+- **Session room (Greenroom):** sits inside `<LiveKitRoom>` inside `VideoRoom`. The phase switch (`greenroom | recovery | conference`) is the new internal state machine. Existing pieces — `RIMConference`, `RIMControlBar`, `ParticipantsPanel`, audio profile axis — all unchanged. Step-in host flow remounts VideoRoom which briefly re-enters Greenroom; with confirmed-granted permissions it auto-skips so the friction is a sub-second "Connecting…" silent card. Accepted for v1.
+- **Auth flow (sign-in code):** every page that gated on `auth()` continues to work identically. Session callback, 90-day session, agreedToTerms gate, role enrichment — all untouched. Only the *acquisition* path changed; the *enforcement* path is the same. Existing magic-link templates were deleted by the migration; the `seed_magic_link_email_templates` migration entry is dead code on fresh installs (creates rows the next migration immediately deletes) — backlog cleanup item.
+- **PWA work (deferred):** code-based auth was the prerequisite. With this shipped, the PWA spec can proceed without the iOS link-routing trap that would have blocked it. Greenroom auto-skip means PWA users get a silent prompt-free experience inside the app (installed PWAs get persistent permission storage that's distinct from Safari's per-session sandbox).
+- **Email Template Gate:** both new templates (`sign-in-code-new-user`, `sign-in-code-returning`) seeded via defensive `findUnique → create` so any admin edits at `/admin/emails` are preserved on re-run. Both `enabled: true`. helpText references the `{{code}}` variable.
+- **Reviewer sub-agent default-on pattern (per memory):** ran on both threads. Caught the speculative-auto-publish concern (underweighted by me, hit in user testing), the signIn-return-vs-throw BLOCKER (caught and fixed pre-merge), the stale `/login/error/page.tsx` copy and pre-Next-16 `Promise<searchParams>` shape, and the no-rate-limit-on-callback concern (deferred to backlog).
+
+### What's next
+
+- **Course offering model build (session 118 thread) is the priority for the next session.** All of session 118's architecture (orthogonal flags on Course, six-state landing page, `RIM_Offering_Model.md` as authoritative reference) is unchanged and unstarted. See `UP_NEXT.md`.
+- **PWA spec.** Deferred for now. The full design space is in this session's transcript — install paths per platform, magic-code auth pairing (now shipped), PWA permission persistence on iOS Safari being the actual lever. Real spec when it becomes priority.
+- **Rate-limit `/api/auth/callback/resend`.** Backlog. 6-digit codes × 30-min window × no IP rate limit = a determined attacker with a victim's email could brute-force. Low realistic risk at sangha scale.
+
+---
+
 ## 2026-05-20 (session 118) — Library extraction shipped; Course offering model architecture decided
 
 Two coordinated threads. The first shipped code; the second produced architecture for the next build pass.

@@ -1,6 +1,6 @@
 # RIM Next — Stack Reference
 
-_Generated 2026-03-11. Last updated 2026-05-19 (session 117 — Zoom-aligned session room: control bar, device pickers, view toggle, custom chat with history + DMs, H.264 video, audio profile axis, initials avatar, auto-hide chrome)._
+_Generated 2026-03-11. Last updated 2026-05-21 (session 119 — Greenroom + Recovery for LiveKit join flow; auth switched from magic link to 6-digit sign-in code with 30-min expiry)._
 
 ---
 
@@ -15,7 +15,7 @@ Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfie
 - Programs and registrations management at `/tools/programs` (the Program Manager)
 - Postgres-backed course and lesson library (`/tools/learning` — the Course Manager)
 - Host Community Hub workspace + Host Schedule at `/tools/schedule` with Schedule and Rotations tabs (Standing Host Assignments — session 98)
-- LiveKit Cloud video conferencing (replaced Google Meet in session 86; Zoom-aligned redesign session 117) — bottom Zoom-style control bar with mic/cam device pickers, Speaker/Gallery view toggle, custom persistent chat with DMs, H.264 video at 2.5 Mbps / 30 fps, three-way audio profile (teacher/speaker/listener) with explicit per-profile bitrates, initials-circle avatar fallback, auto-hide chrome on idle
+- LiveKit Cloud video conferencing (replaced Google Meet in session 86; Zoom-aligned redesign session 117; Greenroom + Recovery permission-safe join flow session 119) — bottom Zoom-style control bar with mic/cam device pickers, Speaker/Gallery view toggle, custom persistent chat with DMs, H.264 video at 2.5 Mbps / 30 fps, three-way audio profile (teacher/speaker/listener) with explicit per-profile bitrates, initials-circle avatar fallback, auto-hide chrome on idle. Pre-prompt Greenroom primes the user before the browser camera/microphone prompt; Recovery screen with Safari Mac fix instructions for users who clicked "Never for this Website."
 - Email Template Manager at `/admin/emails` — database-backed
 - Database-driven staff manual (ManualSection records) with audience-grouped index, hub-scoped projection, contextual help icons
 - **Hub Documents** with per-document Basecamp-style notifications, PDF file uploads, three-stage Archive → Trash lifecycle (session 113)
@@ -57,11 +57,11 @@ The Webflow-built site at `rootedinmindfulness.org` is the live public-facing do
 |---|---|---|
 | Framework | Next.js (App Router) | 16.1.6 |
 | Language | TypeScript | strict |
-| Auth | NextAuth v5 | `^5.0.0-beta.30` — magic link via Resend, no passwords |
+| Auth | NextAuth v5 | `^5.0.0-beta.30` — **6-digit sign-in code** via Resend, no passwords. Switched from magic link in session 119 to support multi-browser and future PWA. Override `generateVerificationToken` returns `crypto.randomInt(100000, 1000000).toString()`; `maxAge: 30 * 60`. Code-entry form on `/login/check-email` GETs the standard NextAuth callback. |
 | Database ORM | Prisma | `^5.22.0` |
 | Database | Neon (Postgres) | project `ep-super-pine-ai6ujd7t`, db `neondb`. **Plan: Launch** (via Vercel Marketplace, metered $0.106/CU-hr + $0.35/GB-mo). Upgraded from Free on 2026-04-19 (session 88) after the 5-min Gmail sync cron blew the 100 CU-hr/mo Free cap and took the site offline. |
 | CMS | Sanity v3 | project `xxgvfpjf`, dataset `production` |
-| Email | Resend | transactional + magic links |
+| Email | Resend | transactional + sign-in codes |
 | Payments | Stripe | test mode (sk_test_* / pk_test_*) |
 | Newsletter | Flodesk | segment `6340e5b00170f97cbdfc4b87` |
 | Donations | GiveButter | account `GcnXeYilkL4lWnr3` |

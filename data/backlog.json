@@ -1,5 +1,35 @@
 [
   {
+    "id": "2026-05-21-001",
+    "title": "PWA install — RIM as an installable app for Mac/PC/iOS/iPad/Android",
+    "description": "Add a Progressive Web App manifest, icons, and service worker so users can install the RIM site as an app — File menu → 'Add to Dock' on Safari Mac (Sonoma+), 'Install' button in Chrome/Edge, 'Add to Home Screen' on iOS/iPad Safari and Android Chrome. The main operational win is permission persistence: installed PWAs get their own permission storage that's distinct from Safari's per-session sandbox, so the Greenroom flow auto-skips silently for installed-PWA users on every visit (Safari's per-session Allow no longer applies inside the PWA). Secondary wins: app icon on the home screen, standalone window without browser chrome, feels-like-an-app to non-technical users. Magic-code auth (shipped session 119) was the prerequisite — PWAs can't reliably receive magic-link clicks on iOS. Scope decision needed: install whole site as one PWA vs carve out just /session/* as a 'RIM Meeting' app. Whole-site is simpler and probably the right call; if /session/* is its own scope the install bar can appear contextually when a user visits a session room. Also needs a small in-app install prompt UI (banner or onboarding step) so users discover the install path — iOS's Add to Home Screen is buried in the share menu and most users won't find it without guidance.",
+    "category": "Infrastructure",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-05-21",
+    "notes": "Deferred from session 119 after the Greenroom + auth work created the technical conditions. Approximate work: manifest.json + 8 PNG icons (192, 512, maskable, iOS apple-touch-icon set), a small service worker (next-pwa or hand-rolled), and the install-prompt UI. The session-119 PWA discussion covered: install paths per platform, magic-code auth pairing as prerequisite (now satisfied), iOS Safari permission persistence being the actual lever, the user-decision tree (Do nothing / Set Safari to remember / Use Chrome / Install PWA), and the indefinite session persistence (NextAuth cookie in PWA storage survives indefinitely barring uninstall, manual sign-out, or iOS storage-low offloading). See session 119 transcript and session-log.md."
+  },
+  {
+    "id": "2026-05-21-002",
+    "title": "Rate-limit /api/auth/callback/resend to prevent code brute-force",
+    "description": "After switching from magic link to 6-digit sign-in code (session 119), the verification callback at /api/auth/callback/resend accepts unlimited guesses. With a 900K keyspace (codes 100000–999999) and a 30-minute expiry window, a determined attacker who knows a victim's email could brute-force the code if request volume is unconstrained. Realistic risk at sangha scale is very low — attacker needs the email AND willingness to burn API requests against a small target — but worth adding rate limiting before any growth in user count or any expansion of who has accounts. Implementation options: (a) per-IP rate limit at the Vercel edge or in a Next.js middleware, (b) per-email rate limit stored in Redis/Neon with a sliding window, (c) NextAuth-side rate limit via a custom callback wrapper. Simplest is probably per-IP via Vercel's edge config or @upstash/ratelimit. Recommended threshold: 5 attempts per minute per IP across all auth endpoints.",
+    "category": "Infrastructure",
+    "priority": "medium",
+    "status": "open",
+    "addedAt": "2026-05-21",
+    "notes": "Surfaced by the code-reviewer sub-agent during the session-119 auth-flow review. The code itself is sound; this is a defense-in-depth item. Keyspace math: 900K codes / 30 min = ~500/sec average to fully cover the space; an attacker hitting the callback ~10/sec could cover ~1% of the space in 30 min for a 1% hit rate per code window. Cheap mitigation; worth doing before this gets meaningful traffic."
+  },
+  {
+    "id": "2026-05-21-003",
+    "title": "Remove dead magic-link migration entries from prisma/migrate.mjs",
+    "description": "Mechanical cleanup. After session 119 switched auth from magic link to magic code, the seed_magic_link_email_templates migration entry creates two rows that the next migration (seed_sign_in_code_email_templates) immediately deletes. Also the magic-link-* entries in organize_email_templates_with_groups_and_helptext reference now-deleted slugs. On fresh installs this is just wasted work, not a bug. Both can be safely removed from migrate.mjs (the migration flag system ensures the orgs are tied to specific flag names, so removing the entries from the JS array won't affect existing databases that already have the flags set). Low priority — no user impact.",
+    "category": "Infrastructure",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-05-21",
+    "notes": "Touches prisma/migrate.mjs only. Remove the two old entries entirely (or comment them out for historical reference); do not touch the new sign-in-code entries. Verify with a fresh DB that the seed_sign_in_code_email_templates migration still produces both templates correctly without the prior magic-link entries existing."
+  },
+  {
     "id": "2026-05-19-001",
     "title": "Session room: Spotlight (host-driven global pin)",
     "description": "Zoom feature we don't have. Our local Speaker view auto-pins the active speaker locally; Spotlight pins one participant for everyone in the room, persists until the host releases it, and surfaces above the active-speaker logic. LiveKit doesn't have a built-in spotlight primitive, but we can implement it by sending a 'spotlight' data-channel message from the host and having every client treat the named identity as the auto-pin target until cleared. UI: a 'Spotlight for everyone' option in the per-tile host hover menu or in the participants panel's per-row host actions. Track current spotlight in room metadata so latecomers see it on join.",
