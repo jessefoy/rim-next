@@ -172,6 +172,35 @@ export default async function DashboardPage() {
   const todaySessionsRaw = allVirtual.filter((p) => isOccurrenceToday(p, today));
   const now = new Date();
 
+  // Host/teacher detection: the Session Host (HostAssignment for today) and the
+  // ProgramTeacher both get a 10-minute early-open window before the regular
+  // 12-minute join opens to everyone. ADMIN gets the same affordance as a
+  // safety override. One batched query per surface (host + teacher), then we
+  // match per session in JS using the CT date string for HostAssignment.
+  const isAdmin = (session.user.roles ?? []).includes("ADMIN");
+  const todayProgramSlugs = todaySessionsRaw.map((p) => p.slug);
+  const todayProgramIds   = todaySessionsRaw.map((p) => p.id);
+  // Prisma `{ in: [] }` returns no rows, so the queries are safe to always run.
+  const [myHostAssignments, myTeacherPrograms] = await Promise.all([
+    db.hostAssignment.findMany({
+      where: { userId, programSlug: { in: todayProgramSlugs } },
+      select: { programSlug: true, sessionDate: true },
+    }),
+    db.programTeacher.findMany({
+      where: { userId, programId: { in: todayProgramIds } },
+      select: { programId: true },
+    }),
+  ]);
+  // A host matches today's occurrence if either the assignment's sessionDate
+  // is set to today (the normal per-occurrence case) OR sessionDate is null
+  // (a legacy "standing" assignment — covers every occurrence).
+  const hostedSlugsToday = new Set(
+    myHostAssignments
+      .filter((a) => !a.sessionDate || ctDateStr(a.sessionDate.toISOString()) === today)
+      .map((a) => a.programSlug),
+  );
+  const teacherProgramIds = new Set(myTeacherPrograms.map((t) => t.programId));
+
   const todaySessions = await Promise.all(
     todaySessionsRaw.map(async (p) => {
       const startIso = p.startDatetime!.toISOString();
@@ -179,11 +208,17 @@ export default async function DashboardPage() {
       const liveStart = new Date(start.getTime() - 12 * 60 * 1000);
       const endIso    = p.endDatetime?.toISOString() ?? null;
       const liveEnd   = endIso ? shiftToToday(endIso, today) : new Date(start.getTime() + 90 * 60 * 1000);
+      const isHostOrTeacher =
+        isAdmin ||
+        hostedSlugsToday.has(p.slug) ||
+        teacherProgramIds.has(p.id);
+      const earlyOpenStart = new Date(liveStart.getTime() - 10 * 60 * 1000);
       const isLive       = now >= liveStart && now <= liveEnd;
-      const isLaterToday = !isLive && start > now;
+      const isSetupOpen  = !isLive && isHostOrTeacher && now >= earlyOpenStart && now < liveStart;
+      const isLaterToday = !isLive && !isSetupOpen && start > now;
 
       let isRegistered = false;
-      if (isLive || isLaterToday) {
+      if (isLive || isSetupOpen || isLaterToday) {
         const reg = await db.registration.findFirst({
           where: { userId, programSlug: p.slug, status: { not: "CANCELLED" } },
           select: { id: true },
@@ -191,12 +226,15 @@ export default async function DashboardPage() {
         isRegistered = !!reg;
       }
 
-      // Compute countdown for later sessions
-      const minsUntilStart = Math.round((start.getTime() - now.getTime()) / 60000);
-      const minsUntilJoin  = Math.round((liveStart.getTime() - now.getTime()) / 60000);
+      // Compute countdown for later sessions (regular members and host/teacher
+      // before their early-open window).
+      const minsUntilJoin = Math.round((liveStart.getTime() - now.getTime()) / 60000);
+      const minsUntilEarly = Math.round((earlyOpenStart.getTime() - now.getTime()) / 60000);
       let countdownText = "";
       if (isLaterToday) {
-        if (minsUntilJoin <= 0) {
+        if (isHostOrTeacher && minsUntilEarly > 0 && minsUntilEarly <= 60) {
+          countdownText = `Setup opens in ${minsUntilEarly} min`;
+        } else if (minsUntilJoin <= 0) {
           countdownText = "Join opens now";
         } else if (minsUntilJoin <= 60) {
           countdownText = `Join opens in ${minsUntilJoin} min`;
@@ -206,18 +244,25 @@ export default async function DashboardPage() {
       }
 
       return {
-        ...p, _id: p.id, isLive, isLaterToday, isRegistered,
+        ...p, _id: p.id, isLive, isSetupOpen, isLaterToday, isHostOrTeacher, isRegistered,
         startTimeCT: fmtTimeCT(start.toISOString()),
         liveStartEpoch: liveStart.getTime(),
         liveStartTimeCT: fmtTimeCT(liveStart.toISOString()),
+        earlyOpenEpoch: earlyOpenStart.getTime(),
         countdownText,
       };
     })
   );
 
   const liveSessions  = todaySessions.filter((s) => s.isLive);
+  const setupSessions = todaySessions.filter((s) => s.isSetupOpen);
   const laterSessions = todaySessions.filter((s) => s.isLaterToday);
   const laterEpochs   = laterSessions.map((s) => s.liveStartEpoch);
+  // Refresh epochs for the host/teacher early-open transition: any "later"
+  // session the viewer is hosting/teaching that hasn't yet hit setup time.
+  const earlyEpochs   = laterSessions
+    .filter((s) => s.isHostOrTeacher && s.earlyOpenEpoch > now.getTime())
+    .map((s) => s.earlyOpenEpoch);
 
   // Project each registration to its next upcoming occurrence — date plus the
   // session start time on that date. Members think in "what's coming next," not
@@ -271,8 +316,6 @@ export default async function DashboardPage() {
     .filter((r): r is typeof r & { nextDateStr: string } => r.nextDateStr !== null && r.nextDateStr !== today)
     .sort((a, b) => a.nextDateStr.localeCompare(b.nextDateStr))
     .slice(0, 5);
-
-  const isAdmin = (session.user.roles ?? []).includes("ADMIN");
 
   const dashboardHubs = isAdmin
     ? await db.hub.findMany({ select: { id: true, slug: true, name: true, type: true }, orderBy: { name: "asc" } })
@@ -338,7 +381,7 @@ export default async function DashboardPage() {
           <div className="db-section">
             <p className="db-section__label">Today</p>
             <div className="today-card">
-              <DashboardAutoRefresh liveStartEpochs={laterEpochs} />
+              <DashboardAutoRefresh liveStartEpochs={laterEpochs} earlyOpenEpochs={earlyEpochs} />
               {liveSessions.map((s) => (
                 <div key={s._id} className="today-row today-row--live">
                   <div className="today-row__left">
@@ -350,6 +393,22 @@ export default async function DashboardPage() {
                     {(s.programFormat === "virtual" || s.programFormat === "hybrid") && (
                       <a href={`/session/${s.slug}`} className="join-btn">
                         Join now
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {setupSessions.map((s) => (
+                <div key={s._id} className="today-row today-row--setup">
+                  <div className="today-row__left">
+                    <span className="today-setup-badge">Open early as host</span>
+                    <span className="today-row__title">{s.name}</span>
+                  </div>
+                  <div className="today-row__right">
+                    <span className="today-row__countdown">Live opens at {s.liveStartTimeCT}</span>
+                    {(s.programFormat === "virtual" || s.programFormat === "hybrid") && (
+                      <a href={`/session/${s.slug}`} className="join-btn join-btn--setup">
+                        Enter as host
                       </a>
                     )}
                   </div>

@@ -4,44 +4,42 @@
  * DashboardAutoRefresh
  *
  * Invisible component that schedules an automatic server-component refresh
- * when the next "Later Today" virtual session enters its Live Now window.
+ * when the next state-transition epoch is reached:
+ *   - `liveStartEpochs`     — each "Later Today" session's Live Now opens
+ *   - `earlyOpenEpochs`     — each session the viewer is hosting/teaching
+ *                             enters its 10-minute setup window
  *
- * The server passes `liveStartEpochs` — plain epoch ms values (timezone-agnostic)
- * representing the exact moment each session's join button should appear.
- * When the earliest upcoming epoch arrives, router.refresh() re-fetches the
- * server component data in-place and the join button appears naturally.
- *
- * No polling. One precise setTimeout per page load. Chains automatically
- * after each refresh (component re-mounts with updated props from new render).
+ * Both arrays are plain epoch ms (timezone-agnostic). We schedule a single
+ * setTimeout for the soonest upcoming epoch across both sets; router.refresh()
+ * re-fetches the server component and the row's state flips naturally. The
+ * component re-mounts with fresh props from the new render, so chains carry
+ * the page through every subsequent transition without polling.
  */
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 interface Props {
-  /** Epoch ms (Date.getTime()) of each Later Today session's liveStart.
-   *  Timezone-agnostic — Date.now() on any client compares correctly. */
   liveStartEpochs: number[];
+  earlyOpenEpochs?: number[];
 }
 
-export default function DashboardAutoRefresh({ liveStartEpochs }: Props) {
+export default function DashboardAutoRefresh({ liveStartEpochs, earlyOpenEpochs = [] }: Props) {
   const router = useRouter();
 
   useEffect(() => {
-    if (liveStartEpochs.length === 0) return;
+    const all = [...liveStartEpochs, ...earlyOpenEpochs];
+    if (all.length === 0) return;
 
     const now = Date.now();
-    const upcoming = liveStartEpochs
-      .filter((t) => t > now)
-      .sort((a, b) => a - b);
-
+    const upcoming = all.filter((t) => t > now).sort((a, b) => a - b);
     if (upcoming.length === 0) return;
 
     // Fire 2 seconds after the window opens — small buffer for server clock drift
     const delay = upcoming[0] - now + 2000;
     const timer = setTimeout(() => router.refresh(), delay);
     return () => clearTimeout(timer);
-  }, [liveStartEpochs, router]);
+  }, [liveStartEpochs, earlyOpenEpochs, router]);
 
   return null;
 }
