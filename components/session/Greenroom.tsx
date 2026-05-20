@@ -81,7 +81,7 @@ export default function Greenroom({ onJoined, onDenied }: Props) {
   const connectionState = useConnectionState();
   const [status, setStatus] = useState<Status>("checking");
   const [showRememberInstructions, setShowRememberInstructions] = useState(false);
-  const decisionRef = useRef<"granted" | "speculative" | "manual" | null>(null);
+  const decisionRef = useRef<"granted" | "manual" | null>(null);
   const attemptedRef = useRef(false);
   const safariMac = isSafariMac();
 
@@ -100,14 +100,16 @@ export default function Greenroom({ onJoined, onDenied }: Props) {
         return;
       }
 
-      const allGranted = cam === "granted" && mic === "granted";
-      const joinedBefore = readJoinedBefore();
-
-      if (allGranted) {
+      // Only auto-skip the Greenroom when the Permissions API confirms both
+      // tracks are already granted. The joined-before localStorage flag is
+      // NOT a safe signal to skip: Safari defaults to per-session Allow, so a
+      // user who clicked Allow last visit will report 'prompt' this visit.
+      // Auto-publishing from a useEffect (no user gesture) with state 'prompt'
+      // fires the browser prompt without the priming card visible — the exact
+      // problem the Greenroom was built to prevent. Always show the manual
+      // UI for non-granted states so the Continue click provides the gesture.
+      if (cam === "granted" && mic === "granted") {
         decisionRef.current = "granted";
-        setStatus("auto-publishing");
-      } else if (joinedBefore) {
-        decisionRef.current = "speculative";
         setStatus("auto-publishing");
       } else {
         decisionRef.current = "manual";
@@ -137,13 +139,15 @@ export default function Greenroom({ onJoined, onDenied }: Props) {
         onJoined();
       } catch (err) {
         const errName = err instanceof Error ? err.name : "";
-        const decision = decisionRef.current;
-        if (decision === "granted" && errName === "NotAllowedError") {
-          // High-confidence path failed — real denial (OS-level block, etc.)
+        // We only reach this effect with decisionRef === "granted" (Permissions
+        // API confirmed both tracks). Any standard WebRTC failure here is a
+        // real condition the user can't resolve from a fresh gesture — route
+        // to Recovery so they see the "fix it" instructions (NotReadable is
+        // covered by Recovery's "another app like Zoom" line).
+        if (errName === "NotAllowedError" || errName === "NotReadableError" || errName === "NotFoundError") {
           onDenied();
         } else {
-          // Speculative attempt failed, or unknown error — show manual UI
-          // so the user can retry from a fresh gesture.
+          // Unknown error — fall back to the manual UI as a last resort.
           attemptedRef.current = false;
           setStatus("manual");
         }
