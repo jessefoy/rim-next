@@ -2112,7 +2112,7 @@ Enter this code on the sign-in page to complete your account:
 
 <p style="font-size:36px;font-weight:700;letter-spacing:8px;text-align:center;font-family:ui-monospace,'SF Mono','Menlo',monospace;color:#135274;margin:24px 0;">{{code}}</p>
 
-The code expires in 10 minutes.
+The code expires in 30 minutes.
 
 If you didn't request this, you can safely ignore this email.
 
@@ -2125,7 +2125,7 @@ Enter this code on the sign-in page to access your account:
 
 <p style="font-size:36px;font-weight:700;letter-spacing:8px;text-align:center;font-family:ui-monospace,'SF Mono','Menlo',monospace;color:#135274;margin:24px 0;">{{code}}</p>
 
-The code expires in 10 minutes.
+The code expires in 30 minutes.
 
 If you didn't request this, you can safely ignore this email.
 
@@ -2192,6 +2192,40 @@ Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`;
         INSERT INTO "_migration_flags" (name) VALUES ('seed_sign_in_code_email_templates_v1')
       `);
       console.log(`  ✔ Applied: ${this.name} (${createdCount} created, ${removed.count} removed)`);
+    },
+  },
+  {
+    // Bump the sign-in code expiry in the email body copy from "10 minutes"
+    // to "30 minutes" to match the new auth.ts maxAge of 30 minutes.
+    //
+    // The seed migration above is flag-gated and won't re-run, so the body
+    // text it wrote into production still says "10 minutes." This migration
+    // updates existing rows in place — but only if the body still contains
+    // the original "expires in 10 minutes" string. If an admin has edited
+    // the body via /admin/emails to say something else, the LIKE filter
+    // excludes it, so admin edits are preserved.
+    name: "update_sign_in_code_expiry_copy_to_30min",
+    async run() {
+      const flag = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags"
+        WHERE name = 'update_sign_in_code_expiry_copy_to_30min_v1'
+      `).catch(() => []);
+      if (flag.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      const updated = await db.$executeRawUnsafe(`
+        UPDATE "EmailTemplate"
+        SET body = REPLACE(body, 'expires in 10 minutes', 'expires in 30 minutes')
+        WHERE slug IN ('sign-in-code-new-user', 'sign-in-code-returning')
+          AND body LIKE '%expires in 10 minutes%'
+      `);
+
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('update_sign_in_code_expiry_copy_to_30min_v1')
+      `);
+      console.log(`  ✔ Applied: ${this.name} (${updated} rows updated)`);
     },
   },
 ];

@@ -24,8 +24,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       generateVerificationToken: async () => randomInt(100000, 1000000).toString(),
       // Shorter expiry than the default 24h because 6-digit codes have
       // only 1M combinations; tightening the window reduces brute-force
-      // surface area. 10 minutes is the industry standard (Slack, Apple).
-      maxAge: 10 * 60,
+      // surface area. 30 minutes is a humane balance — long enough that
+      // a user can walk away from their email, come back, and still sign
+      // in without re-requesting.
+      maxAge: 30 * 60,
       // Custom email — code displayed prominently, no magic link.
       sendVerificationRequest: async ({ identifier: email, token }) => {
         const existing = await db.user.findUnique({
