@@ -3,7 +3,20 @@
 /**
  * VideoRoom — LiveKit video conferencing room.
  *
- * Wraps LiveKitRoom and renders RIMConference, our custom layout.
+ * Wraps LiveKitRoom and renders a small phase machine inside it:
+ *   greenroom  — pre-prompt screen that primes the user before the browser
+ *                permission prompt fires (and skips itself silently when
+ *                permissions are already granted from a prior session).
+ *   recovery   — denial-state screen with Safari Mac instructions and a
+ *                Refresh page button. Reached when permission was already
+ *                denied on mount, or the Continue click threw NotAllowedError.
+ *   conference — RIMConference, the actual room layout.
+ *
+ * LiveKitRoom is mounted with audio={false} video={false} so connection
+ * happens in the background while Greenroom is showing. Greenroom calls
+ * setCameraEnabled/setMicrophoneEnabled synchronously from the Continue
+ * click handler — iOS Safari needs the user-gesture chain to survive,
+ * and only this architecture preserves it.
  *
  * Audio profile drives capture + publish settings:
  *   teacher  — preserves bells, singing bowls, music. Noise suppression OFF,
@@ -26,12 +39,16 @@
  * speech ("choppy" complaints).
  */
 
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { LiveKitRoom } from "@livekit/components-react";
 import { RoomOptions, VideoPresets } from "livekit-client";
 import RIMConference from "./session/RIMConference";
+import Greenroom from "./session/Greenroom";
+import Recovery from "./session/Recovery";
 
 export type AudioProfile = "teacher" | "speaker" | "listener";
+
+type Phase = "greenroom" | "recovery" | "conference";
 
 function buildRoomOptions(profile: AudioProfile): RoomOptions {
   const isTeacher = profile === "teacher";
@@ -81,6 +98,13 @@ interface Props {
 
 export default function VideoRoom({ token, wsUrl, isHost = false, audioProfile = "listener", programSlug, guestKey, avatarUrl, view = "gallery", onLeave }: Props) {
   const roomOptions = buildRoomOptions(audioProfile);
+  const [phase, setPhase] = useState<Phase>("greenroom");
+
+  // Stable callbacks so Greenroom's permission-check effect doesn't re-fire
+  // on every VideoRoom re-render (LiveKit state updates flow through context
+  // and trigger frequent parent re-renders).
+  const handleJoined = useCallback(() => setPhase("conference"), []);
+  const handleDenied = useCallback(() => setPhase("recovery"), []);
 
   // Load LiveKit styles only when video room mounts — prevents global CSS leak
   useEffect(() => {
@@ -100,18 +124,26 @@ export default function VideoRoom({ token, wsUrl, isHost = false, audioProfile =
         token={token}
         serverUrl={wsUrl}
         connect={true}
+        audio={false}
+        video={false}
         options={roomOptions}
         onDisconnected={() => onLeave?.()}
         data-lk-theme="default"
         style={{ height: "100%" }}
       >
-        <RIMConference
-          isHost={isHost}
-          programSlug={programSlug}
-          guestKey={guestKey}
-          view={view}
-          initialAvatarUrl={avatarUrl ?? null}
-        />
+        {phase === "greenroom" && (
+          <Greenroom onJoined={handleJoined} onDenied={handleDenied} />
+        )}
+        {phase === "recovery" && <Recovery />}
+        {phase === "conference" && (
+          <RIMConference
+            isHost={isHost}
+            programSlug={programSlug}
+            guestKey={guestKey}
+            view={view}
+            initialAvatarUrl={avatarUrl ?? null}
+          />
+        )}
       </LiveKitRoom>
     </div>
   );

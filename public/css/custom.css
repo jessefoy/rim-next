@@ -13960,6 +13960,194 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   .vs-room { padding: 8px; }
 }
 
+/* ─── Greenroom + Recovery (gr- prefix) ───────────────────────────
+   Pre-prompt screen that primes the user before the browser camera/
+   microphone prompt fires, and denial-state Recovery screen reached
+   when permission was already denied. Both render as children of
+   LiveKitRoom and cover the room background while shown.
+
+   Local custom properties scope the dark-surface palette to this
+   block, since the project's primary tokens (--rim-bg, --rim-text)
+   are tuned for light-mode editorial surfaces. A future migration
+   to global dark-surface tokens would update these five lines. */
+
+.gr-screen {
+  --gr-bg: #000;
+  --gr-text: #fff;
+  --gr-text-dim: #d8d8d8;
+  --gr-text-mute: #999;
+  --gr-link: #9bb8c9;
+  --gr-link-hover: #c7dae6;
+  --gr-panel-bg: rgba(255, 255, 255, 0.04);
+
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--gr-bg);
+  color: var(--gr-text-dim);
+  overflow-y: auto;
+}
+.gr-card {
+  width: 100%;
+  max-width: 480px;
+  background: transparent;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 16px;
+}
+.gr-card--silent {
+  align-items: center;
+  justify-content: center;
+}
+.gr-card__pending {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--gr-text-mute);
+  margin: 0;
+}
+.gr-card__title {
+  font-family: var(--font-serif);
+  font-size: var(--text-h1);
+  font-weight: 500;
+  line-height: var(--lh-heading);
+  color: var(--gr-text);
+  margin: 0 0 4px;
+}
+.gr-card__body {
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  color: var(--gr-text-dim);
+  margin: 0;
+}
+.gr-card__steps {
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: var(--lh-body);
+  color: var(--gr-text-dim);
+  text-align: left;
+  margin: 0;
+  padding-left: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gr-card__steps li {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+.gr-card__steps strong {
+  color: var(--gr-text);
+  font-weight: 600;
+}
+.gr-card__cta {
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  font-weight: 500;
+  color: var(--gr-text);
+  background: var(--rim-blue, #135274);
+  border: none;
+  border-radius: 6px;
+  padding: 14px 20px;
+  min-height: 48px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  margin-top: 4px;
+}
+.gr-card__cta:hover { opacity: 0.9; }
+.gr-card__cta:disabled { opacity: 0.5; cursor: default; }
+.gr-card__hint {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  line-height: 1.5;
+  color: var(--gr-text-mute);
+  margin: 4px 0 0;
+}
+.gr-card__body strong,
+.gr-card__hint strong {
+  color: var(--gr-text);
+  font-weight: 600;
+}
+
+.gr-remember {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.gr-remember__toggle {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--gr-link);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 10px 4px;
+  min-height: 44px;
+}
+.gr-remember__toggle:hover { color: var(--gr-link-hover); }
+.gr-remember__panel {
+  width: 100%;
+  text-align: left;
+  background: var(--gr-panel-bg);
+  border-radius: 8px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gr-remember__intro {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--gr-text-dim);
+  margin: 0;
+  font-weight: 500;
+}
+.gr-remember__steps {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  line-height: 1.6;
+  color: var(--gr-text-dim);
+  margin: 0;
+  padding-left: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.gr-remember__steps li {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+.gr-remember__steps strong,
+.gr-remember__plain strong {
+  color: var(--gr-text);
+  font-weight: 600;
+}
+.gr-remember__plain {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  line-height: 1.6;
+  color: var(--gr-text-dim);
+  margin: 0;
+}
+
+@media (max-width: 430px) {
+  .gr-screen { padding: 20px 16px; }
+  .gr-card__title { font-size: var(--text-h2); }
+  .gr-card__body { font-size: var(--text-body); }
+  .gr-card__cta { font-size: var(--text-body); padding: 14px 18px; }
+  .gr-remember__panel { padding: 14px; }
+}
+
 /* ─── RIMConference layout ────────────────────────────────────── */
 .rim-conference {
   display: flex;
