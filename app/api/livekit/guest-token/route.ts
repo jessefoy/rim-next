@@ -43,8 +43,13 @@ export async function POST(req: NextRequest) {
   const guestId = `guest-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   const displayName = guestName.trim();
 
-  // Guests are never hosts — canPublish true so they can share audio/video
-  const token = await createRoomToken(guestId, displayName, roomName, false);
+  // Guests are always Participant-tier: mic + camera only, no screen share, no admin.
+  const token = await createRoomToken(
+    guestId,
+    displayName,
+    roomName,
+    { roomAdmin: false, canShareScreen: false },
+  );
 
   return NextResponse.json({
     token,

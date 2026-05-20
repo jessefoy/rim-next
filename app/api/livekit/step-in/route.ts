@@ -73,7 +73,8 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  // Generate a new token with host controls
+  // Generate a new token: stepping in upserts the HostAssignment, so this
+  // user is now the Session Host (full grant: roomAdmin + screen share).
   const roomName = roomNameForProgram(programSlug, sessionDate);
   const userName = session.user.name || "Host";
 
@@ -81,13 +82,14 @@ export async function POST(req: NextRequest) {
     session.user.id,
     userName,
     roomName,
-    true, // roomAdmin
+    { roomAdmin: true, canShareScreen: true },
   );
 
   return NextResponse.json({
     token,
     roomName,
     wsUrl: process.env.NEXT_PUBLIC_LIVEKIT_URL,
-    isHost: true,
+    isSessionHost: true,
+    isCoHost: true,
   });
 }

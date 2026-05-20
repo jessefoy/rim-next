@@ -34,7 +34,10 @@ import {
 
 interface Props {
   programSlug: string;
-  isHost: boolean;
+  /** Session Host: gates End-for-All in the End menu and the End button label. */
+  isSessionHost: boolean;
+  /** Co-host (or higher): gates Share Screen affordance. */
+  isCoHost: boolean;
   participantsOpen: boolean;
   onToggleParticipants: () => void;
   chatOpen: boolean;
@@ -81,7 +84,8 @@ function useLocalTrackState() {
 
 export default function RIMControlBar({
   programSlug,
-  isHost,
+  isSessionHost,
+  isCoHost,
   participantsOpen,
   onToggleParticipants,
   chatOpen,
@@ -249,20 +253,22 @@ export default function RIMControlBar({
         ) : null}
       </button>
 
-      {/* ── Share Screen ────────────────────────────────────────── */}
-      <button
-        type="button"
-        className={`rim-cb-btn rim-cb-btn--share${screenShareEnabled ? " rim-cb-btn--share-active" : ""}`}
-        onClick={toggleScreenShare}
-        disabled={pendingShare}
-        aria-pressed={screenShareEnabled}
-        aria-label={screenShareEnabled ? "Stop Share" : "Share Screen"}
-      >
-        <span className="rim-cb-btn__icon" aria-hidden="true"><IconShare /></span>
-        <span className="rim-cb-btn__label">
-          {screenShareEnabled ? "Stop Share" : "Share Screen"}
-        </span>
-      </button>
+      {/* ── Share Screen — Co-host or higher only ───────────────── */}
+      {isCoHost && (
+        <button
+          type="button"
+          className={`rim-cb-btn rim-cb-btn--share${screenShareEnabled ? " rim-cb-btn--share-active" : ""}`}
+          onClick={toggleScreenShare}
+          disabled={pendingShare}
+          aria-pressed={screenShareEnabled}
+          aria-label={screenShareEnabled ? "Stop Share" : "Share Screen"}
+        >
+          <span className="rim-cb-btn__icon" aria-hidden="true"><IconShare /></span>
+          <span className="rim-cb-btn__label">
+            {screenShareEnabled ? "Stop Share" : "Share Screen"}
+          </span>
+        </button>
+      )}
 
       {/* ── Reactions ───────────────────────────────────────────── */}
       <div className="rim-cb-anchor">
@@ -313,12 +319,12 @@ export default function RIMControlBar({
           aria-expanded={endOpen}
           aria-label="End"
         >
-          <span className="rim-cb-btn__label">{isHost ? "End" : "Leave"}</span>
+          <span className="rim-cb-btn__label">{isSessionHost ? "End" : "Leave"}</span>
         </button>
         <EndMenu
           open={endOpen}
           onClose={() => setEndOpen(false)}
-          isHost={isHost}
+          isSessionHost={isSessionHost}
           programSlug={programSlug}
           anchorRef={endAnchor}
         />

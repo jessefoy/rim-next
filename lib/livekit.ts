@@ -3,24 +3,31 @@
  * Server-only (uses API secret).
  */
 
-import { AccessToken, RoomServiceClient } from "livekit-server-sdk";
+import { AccessToken, RoomServiceClient, TrackSource } from "livekit-server-sdk";
 
 const API_KEY = process.env.LIVEKIT_API_KEY!;
 const API_SECRET = process.env.LIVEKIT_API_SECRET!;
 
+export interface TokenPermissions {
+  /** Grants mute/remove/end-room capability. True for Session Host and Co-host. */
+  roomAdmin: boolean;
+  /** Allow screen-share publishing. True for Session Host only. */
+  canShareScreen: boolean;
+}
+
 /**
  * Generate a JWT token for a user to join a LiveKit room.
  *
- * @param userId   — unique user ID (used as identity)
- * @param userName — display name shown in the room
- * @param roomName — the room to join (created on-demand by LiveKit)
- * @param isHost   — if true, grants roomAdmin (mute, remove, etc.)
+ * Permission tiers (see lib/livekitAuth.ts::resolveSessionRole):
+ *   Session Host → roomAdmin + canShareScreen
+ *   Co-host      → roomAdmin only
+ *   Participant  → neither; can publish mic + camera only
  */
 export async function createRoomToken(
   userId: string,
   userName: string,
   roomName: string,
-  isHost: boolean,
+  permissions: TokenPermissions,
   metadata?: string,
 ): Promise<string> {
   const token = new AccessToken(API_KEY, API_SECRET, {
@@ -29,13 +36,22 @@ export async function createRoomToken(
     ttl: "6h",
     metadata,
   });
+  const canPublishSources = permissions.canShareScreen
+    ? [
+        TrackSource.MICROPHONE,
+        TrackSource.CAMERA,
+        TrackSource.SCREEN_SHARE,
+        TrackSource.SCREEN_SHARE_AUDIO,
+      ]
+    : [TrackSource.MICROPHONE, TrackSource.CAMERA];
   token.addGrant({
     room: roomName,
     roomJoin: true,
     canPublish: true,
+    canPublishSources,
     canSubscribe: true,
     canPublishData: true,
-    roomAdmin: isHost,
+    roomAdmin: permissions.roomAdmin,
     canUpdateOwnMetadata: true,
   });
   return token.toJwt();

@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { db } from "@/lib/db";
 import { RoomServiceClient } from "livekit-server-sdk";
 import { roomNameForProgram } from "@/lib/livekit";
-import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
+import { resolveSessionRole } from "@/lib/livekitAuth";
 
 /**
  * POST /api/livekit/mute-participant
  *
  * Server-side mute a single participant in a room.
- * Requires the caller to be a host (ADMIN, HOST_MANAGER, HostAssignment, or ProgramTeacher).
+ * Co-host tier or higher (ADMIN, HOST_MANAGER, ProgramTeacher, or Session Host).
  *
  * Body: { programSlug: string, participantIdentity: string, sessionDate?: string }
- * Returns: { ok: true }
+ * Returns: { ok: true, muted: number }
  */
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -25,39 +24,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "programSlug and participantIdentity required" }, { status: 400 });
   }
 
-  const roles = session.user.roles ?? [];
-  const isAdmin = roles.includes("ADMIN");
-  let tentativeHost = isAdmin;
-
-  if (!tentativeHost) {
-    const program = await db.program.findFirst({
-      where: { slug: programSlug },
-      select: { id: true },
-    });
-    if (program) {
-      const assignment = await db.hostAssignment.findFirst({
-        where: {
-          programSlug,
-          userId: session.user.id,
-          ...(sessionDate ? { sessionDate: new Date(sessionDate) } : {}),
-        },
-      });
-      if (assignment) tentativeHost = true;
-      if (roles.includes("HOST_MANAGER")) tentativeHost = true;
-      if (!tentativeHost) {
-        const programTeacher = await db.programTeacher.findFirst({
-          where: { programId: program.id, userId: session.user.id },
-        });
-        if (programTeacher) tentativeHost = true;
-      }
-    }
-  }
-
-  const isHost = isAdmin
-    ? true
-    : await getEffectiveHostingCapability(session.user.id, "host-team", tentativeHost);
-
-  if (!isHost) {
+  const { isCoHost } = await resolveSessionRole(
+    session.user.id,
+    programSlug,
+    sessionDate,
+    session.user.roles ?? [],
+  );
+  if (!isCoHost) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

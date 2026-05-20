@@ -31,10 +31,12 @@ import ParticipantsPanel from "./ParticipantsPanel";
 import VideoSettingsPanel from "./VideoSettingsPanel";
 import RIMControlBar from "./RIMControlBar";
 import RIMChat from "./RIMChat";
+import { SessionRoleProvider } from "./sessionRole";
 import type { ParticipantMetadata } from "./RIMParticipantTile";
 
 interface Props {
-  isHost: boolean;
+  isSessionHost: boolean;
+  isCoHost: boolean;
   programSlug: string;
   guestKey?: string;
   view?: "speaker" | "gallery";
@@ -45,7 +47,7 @@ function getMetadata(raw: string | undefined): ParticipantMetadata {
   try { return JSON.parse(raw || "{}"); } catch { return {}; }
 }
 
-export default function RIMConference({ isHost, programSlug, guestKey, view = "gallery", initialAvatarUrl }: Props) {
+export default function RIMConference({ isSessionHost, isCoHost, programSlug, guestKey, view = "gallery", initialAvatarUrl }: Props) {
   const { localParticipant } = useLocalParticipant();
   // updateOnlyOn ensures the component re-renders when metadata changes (for raised hand tracking)
   const remoteParticipants = useRemoteParticipants({
@@ -157,6 +159,14 @@ export default function RIMConference({ isHost, programSlug, guestKey, view = "g
   const inSpeakerView = view === "speaker" && !!layoutContext.pin.state && layoutContext.pin.state.length > 0;
 
   return (
+    <SessionRoleProvider
+      value={{
+        isSessionHost,
+        isCoHost,
+        programSlug,
+        localIdentity: localParticipant?.identity ?? null,
+      }}
+    >
     <LayoutContextProvider value={layoutContext}>
       <div className={`rim-conference rim-conference--${view}`}>
 
@@ -217,7 +227,8 @@ export default function RIMConference({ isHost, programSlug, guestKey, view = "g
         {/* Zoom-aligned bottom control bar — every action button lives here. */}
         <RIMControlBar
           programSlug={programSlug}
-          isHost={isHost}
+          isSessionHost={isSessionHost}
+          isCoHost={isCoHost}
           participantsOpen={participantsOpen}
           onToggleParticipants={() => setParticipantsOpen((v) => !v)}
           chatOpen={chatOpen}
@@ -242,7 +253,7 @@ export default function RIMConference({ isHost, programSlug, guestKey, view = "g
           participants={remoteParticipants}
           programSlug={programSlug}
           localIdentity={localParticipant?.identity ?? ""}
-          isHost={isHost}
+          isCoHost={isCoHost}
         />
         <VideoSettingsPanel
           open={settingsOpen}
@@ -253,6 +264,7 @@ export default function RIMConference({ isHost, programSlug, guestKey, view = "g
         />
       </div>
     </LayoutContextProvider>
+    </SessionRoleProvider>
   );
 }
 

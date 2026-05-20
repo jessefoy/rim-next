@@ -5,7 +5,7 @@
  *
  * Sticky local "Me" row at the top with a Host tag when applicable, then
  * remote participants below (raised hands float to top). Host tag is also
- * shown on remote rows whose token grants roomAdmin. Hosts see a Mute
+ * shown on remote rows whose token grants roomAdmin. Co-hosts see a Mute
  * button per row + Mute All in the footer. A search box appears when
  * participant count exceeds 10.
  *
@@ -39,10 +39,11 @@ interface Props {
   participants: RemoteParticipant[];
   programSlug: string;
   localIdentity: string;
-  isHost: boolean;
+  /** Co-host or higher: gates the per-row Mute and the Mute All footer. */
+  isCoHost: boolean;
 }
 
-export default function ParticipantsPanel({ open, onClose, participants, programSlug, localIdentity, isHost }: Props) {
+export default function ParticipantsPanel({ open, onClose, participants, programSlug, localIdentity, isCoHost }: Props) {
   const room = useRoomContext();
   const [muting, setMuting] = useState<Record<string, boolean>>({});
   const [mutingAll, setMutingAll] = useState(false);
@@ -152,7 +153,7 @@ export default function ParticipantsPanel({ open, onClose, participants, program
             <span className="rim-pp__name">
               {localName} <span className="rim-pp__self-tag">(you)</span>
             </span>
-            {isHost && <span className="rim-pp__role-tag">Host</span>}
+            {isCoHost && <span className="rim-pp__role-tag">Host</span>}
           </div>
 
           {filtered.length === 0 && (
@@ -178,7 +179,7 @@ export default function ParticipantsPanel({ open, onClose, participants, program
                 >
                   {isMicEnabled ? "🎤" : "🔇"}
                 </span>
-                {isHost && (
+                {isCoHost && (
                   isMicEnabled ? (
                     <button
                       className="rim-pp__mute-btn"
@@ -197,7 +198,7 @@ export default function ParticipantsPanel({ open, onClose, participants, program
           })}
         </div>
 
-        {isHost && participants.length > 0 && (
+        {isCoHost && participants.length > 0 && (
           <div className="rim-pp__footer">
             <button
               type="button"

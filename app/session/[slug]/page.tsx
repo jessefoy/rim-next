@@ -43,7 +43,9 @@ export default function SessionPage() {
   const [wsUrl, setWsUrl] = useState<string | null>(null);
   const [programName, setProgramName] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
-  const [isHost, setIsHost] = useState(false);
+  // Permission tiers — see lib/livekitAuth.ts. isSessionHost ⇒ isCoHost.
+  const [isSessionHost, setIsSessionHost] = useState(false);
+  const [isCoHost, setIsCoHost] = useState(false);
   const [isHostTeam, setIsHostTeam] = useState(false);
   const [audioProfile, setAudioProfile] = useState<"teacher" | "speaker" | "listener">("listener");
   const [steppingIn, setSteppingIn] = useState(false);
@@ -60,7 +62,6 @@ export default function SessionPage() {
   }
   const [guestName, setGuestName] = useState("");
   const [joiningAsGuest, setJoiningAsGuest] = useState(false);
-  const [isIdle, setIsIdle] = useState(false);
   const pageRef = useRef<HTMLDivElement>(null);
   const isGuest = !!guestKey;
 
@@ -79,32 +80,6 @@ export default function SessionPage() {
     document.addEventListener("fullscreenchange", handler);
     return () => document.removeEventListener("fullscreenchange", handler);
   }, []);
-
-  // Auto-hide chrome on idle (Zoom-style). 3-second timer, reset by mouse /
-  // keyboard / focus / touch. CSS handles the actual fade — and CSS
-  // overrides re-show chrome when any popover/panel is open or hovered, so
-  // the JS only needs to track the raw idle state.
-  useEffect(() => {
-    if (state !== "ready" && state !== "connected") return;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    function reset() {
-      setIsIdle(false);
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => setIsIdle(true), 3000);
-    }
-    reset();
-    window.addEventListener("mousemove", reset);
-    window.addEventListener("keydown", reset);
-    window.addEventListener("touchstart", reset, { passive: true });
-    window.addEventListener("focus", reset);
-    return () => {
-      if (timer) clearTimeout(timer);
-      window.removeEventListener("mousemove", reset);
-      window.removeEventListener("keydown", reset);
-      window.removeEventListener("touchstart", reset);
-      window.removeEventListener("focus", reset);
-    };
-  }, [state]);
 
   // Member flow: fetch token immediately
   useEffect(() => {
@@ -128,7 +103,8 @@ export default function SessionPage() {
         const data = await res.json();
         setToken(data.token);
         setWsUrl(data.wsUrl);
-        setIsHost(data.isHost ?? false);
+        setIsSessionHost(data.isSessionHost ?? false);
+        setIsCoHost(data.isCoHost ?? false);
         setIsHostTeam(data.isHostTeam ?? false);
         setAudioProfile(data.audioProfile ?? "listener");
         setAvatarUrl(data.avatarUrl ?? null);
@@ -193,7 +169,8 @@ export default function SessionPage() {
         const data = await res.json();
         setToken(data.token);
         setWsUrl(data.wsUrl);
-        setIsHost(true);
+        setIsSessionHost(true);
+        setIsCoHost(true);
         // Force reconnect by cycling state
         setState("loading");
         setTimeout(() => setState("ready"), 100);
@@ -288,11 +265,11 @@ export default function SessionPage() {
 
   // Ready / Connected
   return (
-    <div className={`vs-page${isIdle ? " vs-page--idle" : ""}`} ref={pageRef}>
+    <div className="vs-page" ref={pageRef}>
       <div className="vs-header">
         {/* Left: Step-in (host-team non-hosts only) */}
         <div className="vs-header__left">
-          {isHostTeam && !isHost && (
+          {isHostTeam && !isSessionHost && (
             <button className="vs-header__stepin" onClick={handleStepIn} disabled={steppingIn}>
               {steppingIn ? "Connecting…" : "Step in as Host"}
             </button>
@@ -330,7 +307,8 @@ export default function SessionPage() {
           <VideoRoom
             token={token}
             wsUrl={wsUrl}
-            isHost={isHost}
+            isSessionHost={isSessionHost}
+            isCoHost={isCoHost}
             audioProfile={audioProfile}
             programSlug={slug}
             guestKey={guestKey ?? undefined}

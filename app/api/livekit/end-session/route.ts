@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { db } from "@/lib/db";
 import { endRoom, roomNameForProgram } from "@/lib/livekit";
+import { resolveSessionRole } from "@/lib/livekitAuth";
 
 /**
  * POST /api/livekit/end-session
  *
  * End a session for all participants by deleting the LiveKit room.
- * Only the assigned host, HOST_MANAGER, or ADMIN can end a session.
+ * Session Host only (assigned HostAssignment for this session, OR ADMIN as
+ * safety override). HOST_MANAGER and ProgramTeacher do NOT end sessions —
+ * they are Co-host tier; ending is a Session-Host action.
  *
  * Body: { programSlug: string, sessionDate?: string }
  */
@@ -22,26 +24,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "programSlug required" }, { status: 400 });
   }
 
-  // Check permissions — must be assigned host, HOST_MANAGER, or ADMIN
-  const roles = session.user.roles ?? [];
-  const isAdmin = roles.includes("ADMIN");
-  const isManager = roles.includes("HOST_MANAGER");
-
-  let authorized = isAdmin || isManager;
-
-  if (!authorized) {
-    const assignment = await db.hostAssignment.findFirst({
-      where: {
-        programSlug,
-        userId: session.user.id,
-        ...(sessionDate ? { sessionDate: new Date(sessionDate) } : {}),
-      },
-    });
-    if (assignment) authorized = true;
-  }
-
-  if (!authorized) {
-    return NextResponse.json({ error: "Only the assigned host can end a session" }, { status: 403 });
+  const { isSessionHost } = await resolveSessionRole(
+    session.user.id,
+    programSlug,
+    sessionDate,
+    session.user.roles ?? [],
+  );
+  if (!isSessionHost) {
+    return NextResponse.json(
+      { error: "Only the assigned host can end this session" },
+      { status: 403 },
+    );
   }
 
   const roomName = roomNameForProgram(programSlug, sessionDate);

@@ -2,16 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { createRoomToken, roomNameForProgram } from "@/lib/livekit";
-import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
+import { resolveSessionRole } from "@/lib/livekitAuth";
 
 /**
  * POST /api/livekit/token
  *
  * Generate a LiveKit room token for an authenticated user.
- * Host permissions are granted if the user is the assigned host for this session.
+ *
+ * Permission tiers are resolved by lib/livekitAuth.ts::resolveSessionRole:
+ *   Session Host → roomAdmin + screen share (HostAssignment match OR ADMIN)
+ *   Co-host      → roomAdmin only           (ProgramTeacher OR HOST_MANAGER, hub-gated)
+ *   Participant  → mic + camera only        (everyone else)
  *
  * Body: { programSlug: string, sessionDate?: string }
- * Returns: { token: string, roomName: string, wsUrl: string }
+ * Returns: { token, roomName, wsUrl, isSessionHost, isCoHost, isHostTeam, audioProfile, avatarUrl }
  */
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -24,10 +28,16 @@ export async function POST(req: NextRequest) {
   const isAdmin = roles.includes("ADMIN");
 
   // Test mode: any authenticated user can join a test room directly
-  // (for /admin/livekit-test — the page itself is admin-gated)
+  // (for /admin/livekit-test — the page itself is admin-gated). Admin gets
+  // full Session Host permissions in test rooms.
   if (testRoom) {
     const userName = session.user.name || "Member";
-    const token = await createRoomToken(session.user.id, userName, testRoom, isAdmin);
+    const token = await createRoomToken(
+      session.user.id,
+      userName,
+      testRoom,
+      { roomAdmin: isAdmin, canShareScreen: isAdmin },
+    );
     return NextResponse.json({
       token,
       roomName: testRoom,
@@ -39,13 +49,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "programSlug required" }, { status: 400 });
   }
 
-  // Look up caller's avatar
-  const caller = await db.user.findUnique({
-    where: { id: session.user.id },
-    select: { avatarUrl: true },
-  });
-
-  // Look up the program
   const program = await db.program.findFirst({
     where: { slug: programSlug },
     select: { id: true, slug: true, name: true, programFormat: true },
@@ -54,86 +57,44 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Program not found" }, { status: 404 });
   }
 
-  // Determine if this user is the assigned host for this session.
-  // ADMIN always gets host controls.
-  let tentativeHost = isAdmin;
-  let isProgramTeacher = false;
+  const caller = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { avatarUrl: true },
+  });
 
-  if (!tentativeHost) {
-    // Check HostAssignment for this program + date
-    const assignment = await db.hostAssignment.findFirst({
-      where: {
-        programSlug: program.slug,
-        userId: session.user.id,
-        ...(sessionDate ? { sessionDate: new Date(sessionDate) } : {}),
-      },
-    });
-    if (assignment) tentativeHost = true;
-
-    if (roles.includes("HOST_MANAGER")) tentativeHost = true;
-
-    // Teachers assigned to this program get host controls
-    const programTeacher = await db.programTeacher.findFirst({
-      where: { programId: program.id, userId: session.user.id },
-    });
-    if (programTeacher) {
-      isProgramTeacher = true;
-      tentativeHost = true;
-    }
-  } else {
-    // Admin path — still check teacher status separately so audio profile
-    // is set correctly even when ADMIN is the one teaching.
-    const programTeacher = await db.programTeacher.findFirst({
-      where: { programId: program.id, userId: session.user.id },
-    });
-    if (programTeacher) isProgramTeacher = true;
-  }
-
-  // Hub authority: if a host-team HubMember record exists for this user, it
-  // can revoke a tentative grant (status !== ACTIVE or hostingCapability false).
-  // ADMIN bypasses the hub check entirely. Teachers or one-off HostAssignments
-  // with no HubMember record fall through to the tentative decision.
-  const isHost = isAdmin
-    ? true
-    : await getEffectiveHostingCapability(session.user.id, "host-team", tentativeHost);
-
-  // Host team flag (used by client to show "step in" option) — also respects
-  // the effective hub authority.
-  const tentativeHostTeam = tentativeHost || roles.includes("HOST") || roles.includes("HOST_MANAGER");
-  const isHostTeam = isAdmin
-    ? true
-    : await getEffectiveHostingCapability(session.user.id, "host-team", tentativeHostTeam);
+  const { isSessionHost, isCoHost, isHostTeam, isProgramTeacher } =
+    await resolveSessionRole(session.user.id, program.slug, sessionDate, roles);
 
   // Audio profile — drives RoomOptions.audioCaptureDefaults in the client:
   //   teacher  → preserve bells/music (no noise suppression, no AGC)
   //   speaker  → host who isn't teaching; clean speech profile
   //   listener → everyone else; clean speech profile
   const audioProfile: "teacher" | "speaker" | "listener" =
-    isProgramTeacher ? "teacher" : isHost ? "speaker" : "listener";
+    isProgramTeacher ? "teacher" : isCoHost ? "speaker" : "listener";
 
   const roomName = roomNameForProgram(program.slug, sessionDate);
   const userName = session.user.name || "Member";
 
-  // Seed metadata so it's visible from the moment they connect. Includes
-  // avatarUrl (for tile presence photo) and host (so other clients can
-  // render a Host tag in the participants panel — roomAdmin permission
-  // isn't exposed cross-client).
+  // Seed metadata so it's visible from the moment they connect. The `host`
+  // flag corresponds to Session Host (the singular assigned host) — Co-host
+  // tier (teacher, host manager) gets no badge to keep the visible label
+  // unambiguous: when you see "Host", that is the person who can End for All.
   //
   // Trust note: `canUpdateOwnMetadata: true` (lib/livekit.ts) means a client
-  // can technically rewrite their own metadata to claim `host: true`. The
-  // tag is therefore a *UI cue only*, not a security boundary. Real host
-  // actions (mute, end-for-all) are gated server-side via auth() + role +
-  // HostAssignment lookup, not via this metadata flag.
+  // can rewrite their own metadata to claim `host: true`. The badge is a
+  // *UI cue only*, not a security boundary. Real actions (mute, end-for-all)
+  // are gated server-side via the same resolveSessionRole helper that gates
+  // token issuance.
   const seedMeta: { avatarUrl?: string; host?: boolean } = {};
   if (caller?.avatarUrl) seedMeta.avatarUrl = caller.avatarUrl;
-  if (isHost) seedMeta.host = true;
+  if (isSessionHost) seedMeta.host = true;
   const initialMeta = Object.keys(seedMeta).length > 0 ? JSON.stringify(seedMeta) : undefined;
 
   const token = await createRoomToken(
     session.user.id,
     userName,
     roomName,
-    isHost,
+    { roomAdmin: isCoHost, canShareScreen: isSessionHost },
     initialMeta,
   );
 
@@ -141,7 +102,8 @@ export async function POST(req: NextRequest) {
     token,
     roomName,
     wsUrl: process.env.NEXT_PUBLIC_LIVEKIT_URL,
-    isHost,
+    isSessionHost,
+    isCoHost,
     isHostTeam,
     audioProfile,
     avatarUrl: caller?.avatarUrl ?? null,

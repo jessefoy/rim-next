@@ -21,6 +21,8 @@ import {
   useIsSpeaking,
 } from "@livekit/components-react";
 import { Track } from "livekit-client";
+import { useState } from "react";
+import { useSessionRole } from "./sessionRole";
 
 export type Signal = "hand" | "heart" | "namaste" | "yes" | "no" | null;
 
@@ -74,6 +76,8 @@ export default function RIMParticipantTile() {
   const participant = trackRef?.participant ?? undefined;
   const { metadata: metadataRaw } = useParticipantInfo({ participant });
   const isSpeaking = useIsSpeaking(participant);
+  const sessionRole = useSessionRole();
+  const [muting, setMuting] = useState(false);
 
   if (!trackRef || !participant) {
     return (
@@ -94,16 +98,58 @@ export default function RIMParticipantTile() {
   const showInitials = isVideoOff && !meta.avatarUrl;
   const isMicMuted = !participant.isMicrophoneEnabled;
 
+  // Hover-mute affordance: visible only to Co-hosts on remote tiles. We
+  // require localIdentity to be bound before showing the action — without
+  // it we can't reliably tell whether this tile is the local participant,
+  // and a brief render window could otherwise expose a self-mute button.
+  const localIdentity = sessionRole?.localIdentity;
+  const participantIdentity = participant.identity;
+  const isLocal = !!localIdentity && localIdentity === participantIdentity;
+  const showMuteAction = !!sessionRole?.isCoHost && !!localIdentity && !isLocal;
+
+  async function handleMute() {
+    if (!sessionRole) return;
+    setMuting(true);
+    try {
+      await fetch("/api/livekit/mute-participant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          programSlug: sessionRole.programSlug,
+          participantIdentity,
+        }),
+      });
+    } catch {}
+    setMuting(false);
+  }
+
   const wrapperClass = [
     "rim-tile-wrapper",
     isVideoOff ? "rim-tile-wrapper--no-video" : "",
     showAvatar ? "rim-tile-wrapper--avatar" : "",
     isSpeaking ? "rim-tile-wrapper--speaking" : "",
+    showMuteAction ? "rim-tile-wrapper--has-actions" : "",
   ].filter(Boolean).join(" ");
 
   return (
     <div className={wrapperClass}>
       <ParticipantTile />
+      {showMuteAction && (
+        isMicMuted ? (
+          <span className="rim-tile-muted-pill" aria-hidden="true">Muted</span>
+        ) : (
+          <button
+            type="button"
+            className="rim-tile-mute"
+            onClick={handleMute}
+            disabled={muting}
+            title={`Mute ${displayName}`}
+            aria-label={`Mute ${displayName}`}
+          >
+            {muting ? "…" : "Mute"}
+          </button>
+        )
+      )}
       {showAvatar && (
         <div
           className="rim-tile-avatar"

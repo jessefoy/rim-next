@@ -13780,55 +13780,9 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .vs-page:fullscreen .vs-header { background: #111; border-bottom-color: #222; }
 .vs-page:fullscreen { background: #000; }
 
-/* ─── Auto-hide chrome on idle (Zoom-style) ──────────────────── */
-/* The page sets .vs-page--idle after ~3s of no mouse/keyboard activity.
-   We fade the top header and bottom control bar, but keep them visible
-   when any panel/popover is open or when the user hovers them — and on
-   touch devices, never fade (no hover signal). */
-.vs-header,
-.rim-cb {
-  transition: opacity 0.35s ease, transform 0.35s ease;
-}
-.vs-page--idle .vs-header {
-  opacity: 0;
-  transform: translateY(-8px);
-  pointer-events: none;
-}
-.vs-page--idle .rim-cb {
-  opacity: 0;
-  transform: translateY(8px);
-  pointer-events: none;
-}
-/* Bring chrome back when any panel/popover is open. :has() lets us catch
-   children mounted anywhere under the page. */
-.vs-page--idle:has(.rim-pp) .vs-header,
-.vs-page--idle:has(.rim-pp) .rim-cb,
-.vs-page--idle:has(.rim-settings) .vs-header,
-.vs-page--idle:has(.rim-settings) .rim-cb,
-.vs-page--idle:has(.rim-conference__chat) .vs-header,
-.vs-page--idle:has(.rim-conference__chat) .rim-cb,
-.vs-page--idle:has(.rim-cb-popover) .vs-header,
-.vs-page--idle:has(.rim-cb-popover) .rim-cb {
-  opacity: 1;
-  transform: none;
-  pointer-events: auto;
-}
-/* And bring chrome back when hovered directly. */
-.vs-page--idle .vs-header:hover,
-.vs-page--idle .rim-cb:hover {
-  opacity: 1;
-  transform: none;
-  pointer-events: auto;
-}
-/* Touch devices: no hover → never fade. */
-@media (hover: none) {
-  .vs-page--idle .vs-header,
-  .vs-page--idle .rim-cb {
-    opacity: 1;
-    transform: none;
-    pointer-events: auto;
-  }
-}
+/* Session chrome stays visible at all times — the auto-hide pattern
+   was confusing for volunteers (test feedback, session 121). The bottom
+   bar is shallow enough that always-visible costs no usable real estate. */
 
 /* Speaker / Gallery segmented toggle */
 .vs-view-toggle {
@@ -14621,6 +14575,50 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .rim-tile-wrapper .lk-focus-toggle-button:hover {
   background: rgba(0,0,0,0.8);
 }
+
+/* ─── Tile hover-mute (Co-host action on remote tiles) ──────── */
+/* Hover the tile → Mute button fades in top-right. Desktop affordance;
+   touch devices use the Participants panel for the same action. */
+.rim-tile-mute {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 6px 12px;
+  background: rgba(196, 60, 60, 0.92);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease, background 0.12s ease;
+  z-index: 6;
+}
+.rim-tile-mute:hover { background: rgba(220, 70, 70, 0.98); }
+.rim-tile-mute:focus-visible { opacity: 1; outline: 2px solid #fff; outline-offset: 1px; }
+.rim-tile-mute:disabled { opacity: 0.6; cursor: default; }
+.rim-tile-wrapper--has-actions:hover .rim-tile-mute { opacity: 1; }
+
+.rim-tile-muted-pill {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 10px;
+  background: rgba(0, 0, 0, 0.55);
+  color: rgba(255, 255, 255, 0.75);
+  border-radius: 4px;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  z-index: 6;
+}
+.rim-tile-wrapper--has-actions:hover .rim-tile-muted-pill { opacity: 1; }
 
 /* ─── Participants panel ─────────────────────────────────────── */
 .rim-pp-backdrop {
