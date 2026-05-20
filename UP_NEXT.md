@@ -6,6 +6,18 @@
 
 ## Active
 
+**Session 118 (2026-05-20)** — Offering model design + Library extraction cleanup. Two threads.
+
+**(1) Library extraction shipped (commit `6c57073`).** Member home cleanup per the approved plan: courses removed from `/account/dashboard`, onboarding welcome moved to `/account/courses` Library page, "My Programs" → "My Registrations," greeting session count fixed to member commitments only, new `Course.publishOnPublicCatalog` flag added (backfill in `prisma/migrate.mjs`), Course editor toggle wired. Follow-up commit `822029f` removed orphaned `db2-courses-line` CSS rules.
+
+**(2) Course access architecture decided — see `RIM_Offering_Model.md`.** Mid-session discussion separated two threads that had been entangled (the cleanup, and the broader question of how Programs and Courses relate as offering types). The architectural decision: **replace `Course.accessLevel` enum with orthogonal flags** (`allowSelfEnroll`, `selfEnrollDanaRequired` + existing `requiredRoles`, `isOnboarding`, `publishOnPublicCatalog`). This lets a single Course carry more than one acquisition path simultaneously — the natural shape for a hybrid that's both bundled with a live Program AND available for standalone dana-enroll after the cohort ends. Decision captured in full at `RIM_Offering_Model.md` (canonical shapes, migration path, role-gate semantics, open questions, connections map). **No code written yet** — this is architecture-first; UX sketching is the next concrete step.
+
+**Next concrete step:** UX-side sketch of `/course/[slug]` as a real pre-access landing page (description, teacher, lesson count, dana ask, enroll CTA) — the entry point that doesn't exist today. Schema work follows from what's needed to render the page. Reference `RIM_Offering_Model.md` for the access model before writing any code.
+
+**Open questions parked in `RIM_Offering_Model.md` "Open questions to resolve before build":** pending-dana behavior, `CourseAccess` vs `SeriesEnrollment` boundary, hybrid transition trigger, refund/cancellation policy, editor presets vs raw flags. Resolve as they come up during UX/build, not pre-emptively.
+
+---
+
 **Session 117 (2026-05-19)** — Session room: six-issue fix → Zoom-aligned redesign → A/V quality + auto-hide. Thirteen commits on `main`. Branch `claude/auto-hide-chrome` is the final stop (locally; merged to main and deleted on origin). See session-log entry for full chronology; the volunteer-facing changelog is at `SESSION_ROOM_FOR_VOLUNTEERS.md`.
 
 **What's now live in the LiveKit session room:**
