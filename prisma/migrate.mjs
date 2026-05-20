@@ -2215,8 +2215,10 @@ Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`;
         return;
       }
 
+      // Raw SQL uses the Postgres table name (via @@map in schema.prisma)
+      // — "email_templates", NOT the Prisma model name "EmailTemplate".
       const updated = await db.$executeRawUnsafe(`
-        UPDATE "EmailTemplate"
+        UPDATE "email_templates"
         SET body = REPLACE(body, 'expires in 10 minutes', 'expires in 30 minutes')
         WHERE slug IN ('sign-in-code-new-user', 'sign-in-code-returning')
           AND body LIKE '%expires in 10 minutes%'
