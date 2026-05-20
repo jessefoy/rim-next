@@ -1,5 +1,49 @@
 ---
 
+## 2026-05-23 (session 120) — Permission UX architectural decision + platform-aware Greenroom/Recovery
+
+One commit (`3ffb294`) on `main`. Small code change, larger architectural moment.
+
+### The architectural question (longer than the code)
+
+Session opened on the queued PWA backlog item (`2026-05-21-001`) — installable RIM app intended to solve Safari's per-session camera/mic permission problem by giving installed PWAs persistent permission storage outside Safari's per-session sandbox. The conversation surfaced the real question hiding under it: **what's the right path for the session room, given who RIM's members are?**
+
+Three paths were named explicitly and weighed against the demographic (sangha members, 65+, tech-phobic, learned helplessness with new digital tools):
+
+- **PWA install** — iOS install ritual is genuinely hard (Share → scroll down in the share sheet → Add to Home Screen → Add), not findable for tech-phobic older users. Even with a platform-specific walkthrough page and annotated screenshots, the population we're designing for won't do it. **Rejected.**
+- **Native iOS/Android app wrapping LiveKit** — would solve permissions permanently; matches the tap-an-icon pattern they already use. But months of work, ongoing maintenance, App Store gates, and the initial install (search the App Store, tap Install, wait for download) is itself a hurdle for the target demographic. **Rejected for the foreseeable future.**
+- **Move sessions back to Zoom** — they already have the Zoom icon; familiar muscle memory. But the custom LiveKit room was a deliberate architectural decision (sessions 86, 117, 119) to *transcend* Zoom's limitations for this community — coordinator authority via HostAssignment, ProgramTeacher integration, hub-membership-as-authority, magic-code auth, deep integration with the rest of RIM. Path C would unwind a foundational decision. **Rejected.**
+
+**Decision:** the browser-based custom LiveKit room is the committed architecture. The Mac Safari permission friction is a known cost we accept. We invest in *softening* the in-browser flow instead of replacing it. Session 119's Greenroom + Recovery already do most of that work; the marginal improvement in this session is making the instructions device-aware.
+
+### What shipped
+
+`lib/detectPlatform.ts` — small client-only helper returning `{ browser, os }` plus `defaultsToPerSessionPermission(platform)`. UA-based detection. Handles iPadOS-as-Macintosh via `"ontouchend" in document`. Handles iOS browser wrappers (`CriOS` / `FxiOS` / `EdgiOS`) by routing them to `ios` before the Macintosh+touch branch — otherwise iPhone Chrome would be misclassified as iPadOS.
+
+`components/session/Greenroom.tsx` — the "Tired of seeing this? Set Safari to remember →" disclosure that previously showed only on Safari Mac now shows on Safari macOS *and* Safari iOS *and* Safari iPadOS (every browser that defaults to per-session permission). The step copy inside the disclosure matches the actual device: menu bar → "Settings for This Website…" on macOS, `AA` icon → "Website Settings" on iOS, `ᴬA` icon → "Website Settings" on iPadOS. On Chrome / Edge / Firefox the disclosure stays hidden — permission persists by default there, the affordance would be noise.
+
+`components/session/Recovery.tsx` — the "Safari Mac primary + collapsed disclosure for other browsers" structure was replaced with a single primary view that matches the detected platform. Six branches: Safari macOS / iOS / iPadOS (per-device steps), Chrome+Edge desktop (camera or padlock icon at the left of the address bar), Chrome Android (padlock → Permissions), Firefox (shield / padlock icon), unrecognized (generic prose). No safety-hatch disclosure. The lead paragraph names the detected platform ("Here's how to fix it on Safari for Mac:") so the user gets a small confirmation that the screen knows where they are.
+
+### Process notes
+
+- **Reviewer sub-agent caught one real bug pre-commit.** iOS browser wrappers (Chrome / Firefox / Edge on iOS) have UAs that include `Macintosh` but don't always include `iPhone`/`iPad`. With touch enabled, they would have landed on the `ipados` branch — wrong for the iPhone case. Reviewer flagged it, fix added an early branch routing those wrappers to `ios`. Default-on reviewer-before-non-trivial-commit continues to earn its keep.
+- **The PWA backlog item is now `status: rejected`** in `data/backlog.json` with a note explaining the architectural reasoning. Keeping the entry rather than deleting it preserves the decision history — a future session that re-asks "should we build a PWA?" can read the rejection and understand why before relitigating.
+
+### What this connects to
+
+- **Session 119's Greenroom + Recovery** — same components, same phase machine in `VideoRoom`, same `<LiveKitRoom>` ancestor placement so click handlers retain `useLocalParticipant()`. Detection runs in a `useEffect` after mount (avoiding SSR/hydration mismatch); the rest of the permission-decision flow is unchanged.
+- **Session 117's Zoom-aligned redesign** — the session room as built is the architecture we're now explicitly committing to. The Safari permission problem is the only persistent friction in that architecture; everything else is operating as designed.
+- **The PWA / native app paths** — both formally rejected in this session. Recorded here, in the backlog item update, and (implicitly) in the absence of any future scaffolding for those paths.
+- **Magic-code auth (session 119)** — was scoped as the prerequisite for the PWA. With the PWA rejected, the magic-code auth becomes its own standalone improvement (multi-browser-friendly sign-in, simpler than magic-link for the demographic). Its value as a PWA prerequisite is moot; its standalone value stands.
+- **Design philosophy.** *Restraint as a Practice* and *Designing for Real Users Under Pressure* both applied: the Recovery screen no longer shows instructions that don't apply to the user's device. One matched view, no disclosure, no clutter. Per CLAUDE.md's design orientation.
+
+### What's next
+
+- **Course offering model build is still the priority for the next session.** Unchanged from sessions 118/119 deferral. `RIM_Offering_Model.md` is the authoritative reference; build order suggestion in `UP_NEXT.md`.
+- **The Mac Safari permission friction is now a watch-and-listen item.** If multiple members hit it in practice, we revisit. The phone dial-in (LiveKit SIP) and a stronger Safari-specific Greenroom pre-warning were named as next-best mitigations should that need arise. Not built yet — held for actual data.
+
+---
+
 ## 2026-05-21 (session 119) — LiveKit Greenroom + magic-code auth (Safari per-session permission fix)
 
 Two threads driven by a real testing incident: a tester clicked "Never for this Website" on the Safari camera/microphone prompt while testing the session room, silently breaking themselves with no recovery path. Diagnosis widened into two changes — one direct fix for the prompt UX, one architectural change that unblocks the future PWA direction.

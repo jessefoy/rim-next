@@ -1,6 +1,6 @@
 # RIM Next — Stack Reference
 
-_Generated 2026-03-11. Last updated 2026-05-21 (session 119 — Greenroom + Recovery for LiveKit join flow; auth switched from magic link to 6-digit sign-in code with 30-min expiry)._
+_Generated 2026-03-11. Last updated 2026-05-23 (session 120 — platform-aware Greenroom/Recovery instructions via new `lib/detectPlatform.ts` helper; browser-based custom LiveKit room formally committed as the architecture, with PWA / native app / Zoom paths explicitly rejected against the 65+ demographic)._
 
 ---
 
@@ -15,7 +15,7 @@ Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfie
 - Programs and registrations management at `/tools/programs` (the Program Manager)
 - Postgres-backed course and lesson library (`/tools/learning` — the Course Manager)
 - Host Community Hub workspace + Host Schedule at `/tools/schedule` with Schedule and Rotations tabs (Standing Host Assignments — session 98)
-- LiveKit Cloud video conferencing (replaced Google Meet in session 86; Zoom-aligned redesign session 117; Greenroom + Recovery permission-safe join flow session 119) — bottom Zoom-style control bar with mic/cam device pickers, Speaker/Gallery view toggle, custom persistent chat with DMs, H.264 video at 2.5 Mbps / 30 fps, three-way audio profile (teacher/speaker/listener) with explicit per-profile bitrates, initials-circle avatar fallback, auto-hide chrome on idle. Pre-prompt Greenroom primes the user before the browser camera/microphone prompt; Recovery screen with Safari Mac fix instructions for users who clicked "Never for this Website."
+- LiveKit Cloud video conferencing (replaced Google Meet in session 86; Zoom-aligned redesign session 117; Greenroom + Recovery permission-safe join flow session 119; platform-aware permission instructions session 120) — bottom Zoom-style control bar with mic/cam device pickers, Speaker/Gallery view toggle, custom persistent chat with DMs, H.264 video at 2.5 Mbps / 30 fps, three-way audio profile (teacher/speaker/listener) with explicit per-profile bitrates, initials-circle avatar fallback, auto-hide chrome on idle. Pre-prompt Greenroom primes the user before the browser camera/microphone prompt; Recovery screen for users who clicked "Never for this Website" with steps matched to their actual browser+OS (Safari macOS/iOS/iPadOS, Chrome+Edge desktop, Chrome Android, Firefox, generic fallback) via `lib/detectPlatform.ts`.
 - Email Template Manager at `/admin/emails` — database-backed
 - Database-driven staff manual (ManualSection records) with audience-grouped index, hub-scoped projection, contextual help icons
 - **Hub Documents** with per-document Basecamp-style notifications, PDF file uploads, three-stage Archive → Trash lifecycle (session 113)
