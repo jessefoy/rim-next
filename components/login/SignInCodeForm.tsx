@@ -5,10 +5,17 @@
  *
  * Visual: six small boxes, one digit each, with a space between cells.
  *
- * Submission: a single hidden `token` field is the actual form field
- * (the visible boxes are unnamed). The form is a GET form to
- * /api/auth/callback/resend, same endpoint magic-link clicks used to hit;
- * the URL params end up as ?token=123456&email=...&callbackUrl=...
+ * Submission: a hidden `token` field is the actual form field (the visible
+ * boxes are unnamed). The token field is **controlled** — its value is
+ * derived from state on every render via `value={code}`, so the DOM value
+ * cannot drift from React state and the form always submits the current
+ * code. The form is a GET to /api/auth/callback/resend (same endpoint
+ * magic-link clicks used to hit) — URL params end up as
+ * ?token=123456&email=...&callbackUrl=...
+ *
+ * Submit is disabled until all six boxes are filled — prevents the empty-
+ * token submission that NextAuth treats as a Configuration error rather
+ * than a verification failure (which would be the surface for a wrong code).
  *
  * Paste & iOS autofill: both arrive as a single value >1 char into the
  * first input (or into any input, depending on browser). We detect any
@@ -31,19 +38,15 @@ interface Props {
 
 export default function SignInCodeForm({ email, callbackUrl = "/account/dashboard" }: Props) {
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
-  const hiddenRef = useRef<HTMLInputElement | null>(null);
   const [boxes, setBoxes] = useState<string[]>(() => Array(BOX_COUNT).fill(""));
-
-  function setBoxValue(next: string[]) {
-    setBoxes(next);
-    if (hiddenRef.current) hiddenRef.current.value = next.join("");
-  }
+  const code = boxes.join("");
+  const isComplete = code.length === BOX_COUNT;
 
   function distribute(rawDigits: string) {
     const digits = rawDigits.replace(/\D/g, "").slice(0, BOX_COUNT);
     const next = Array(BOX_COUNT).fill("");
     for (let i = 0; i < digits.length; i++) next[i] = digits[i];
-    setBoxValue(next);
+    setBoxes(next);
     // Focus the next empty box, or the last box if full.
     const focusIndex = Math.min(digits.length, BOX_COUNT - 1);
     inputRefs.current[focusIndex]?.focus();
@@ -63,12 +66,12 @@ export default function SignInCodeForm({ email, callbackUrl = "/account/dashboar
       // Reject non-digit single chars.
       const next = [...boxes];
       next[index] = "";
-      setBoxValue(next);
+      setBoxes(next);
       return;
     }
     const next = [...boxes];
     next[index] = value;
-    setBoxValue(next);
+    setBoxes(next);
     if (value && index < BOX_COUNT - 1) {
       inputRefs.current[index + 1]?.focus();
     }
@@ -85,7 +88,7 @@ export default function SignInCodeForm({ email, callbackUrl = "/account/dashboar
         e.preventDefault();
         const next = [...boxes];
         next[index - 1] = "";
-        setBoxValue(next);
+        setBoxes(next);
         inputRefs.current[index - 1]?.focus();
       }
       return;
@@ -116,7 +119,8 @@ export default function SignInCodeForm({ email, callbackUrl = "/account/dashboar
     >
       <input type="hidden" name="email" value={email} />
       <input type="hidden" name="callbackUrl" value={callbackUrl} />
-      <input type="hidden" name="token" ref={hiddenRef} defaultValue="" />
+      {/* Controlled hidden field — value re-derived from state on every render. */}
+      <input type="hidden" name="token" value={code} readOnly />
 
       <label className="sic-form__label" htmlFor="sic-box-0">
         6-digit code
@@ -146,7 +150,14 @@ export default function SignInCodeForm({ email, callbackUrl = "/account/dashboar
         ))}
       </div>
 
-      <button type="submit" className="sic-form__submit">Sign in →</button>
+      <button
+        type="submit"
+        className="sic-form__submit"
+        disabled={!isComplete}
+        aria-disabled={!isComplete}
+      >
+        Sign in →
+      </button>
     </form>
   );
 }
