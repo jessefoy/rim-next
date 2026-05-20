@@ -80,6 +80,16 @@ Detection is one batched lookup per surface: `db.hostAssignment.findMany` + `db.
 - **Merge-to-main-by-default held both commits.** No "want me to merge?" gates. Branch created, work committed, push, FF main, delete branch — same flow both times.
 - **Plan mode not used this session.** Conversation-based scoping with the Connections Map was enough. Both commits had a clear shape from the outset; plan-mode formality would have been ceremony.
 
+### Follow-on (same day) — Sign-in form submitting empty token (`1c3d019`)
+
+Jesse reported users hitting `/login/error?error=Configuration` after typing the 6-digit code. NextAuth v5's email-provider callback throws an error named `Configuration` (not `Verification`) from exactly one place: when `?token=` is missing or empty on `/api/auth/callback/resend`. The generic catch-all copy on `/login/error` was masking the real failure.
+
+Root cause was in `components/login/SignInCodeForm.tsx` (built session 119): the hidden token input was uncontrolled (`defaultValue=""` plus `hiddenRef.current.value = boxes.join("")` after each state update). Ref-based DOM sync after every state update is fragile against React reconciliation, iOS autofill paths that bypass `onChange`, and any race where submission happens before the ref-write line lands. Whenever the DOM value drifted from React state, the form serialized `?token=` (empty) and NextAuth threw Configuration.
+
+Fix: make the hidden field controlled — `value={boxes.join("")} readOnly`. DOM value re-derived from state on every render; cannot drift. Also disabled the submit button until all six boxes are filled, which closes the related early-submit hole where a user could click Sign In before finishing the code and hit the same error.
+
+Future-useful diagnostic: `error=Configuration` on a NextAuth v5 email-flow specifically means missing/empty token at the callback — not a generic config issue. The two relevant verification-failure modes on the email provider are `Configuration` (token absent/empty) and `Verification` (token present but doesn't match DB or has expired). Knowing which is which collapses the diagnostic space immediately.
+
 ---
 
 ## 2026-05-23 (session 120) — Permission UX architectural decision + platform-aware Greenroom/Recovery
