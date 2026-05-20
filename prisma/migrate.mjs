@@ -2075,6 +2075,125 @@ Rooted In Mindfulness · Brookfield, WI`,
       }
     },
   },
+  {
+    // Switch authentication from magic-link to magic-code (6-digit code).
+    //
+    // Why: Safari defaults to per-session permission grants, and magic links
+    // open in the OS default browser — neither plays well with the PWA
+    // direction or multi-browser users. Codes work in every context because
+    // the user types them into whichever browser/app they're standing in.
+    //
+    // What this migration does:
+    //   1. Creates two new templates with the new slugs (sign-in-code-new-user,
+    //      sign-in-code-returning). Defensive findUnique→create — does not
+    //      overwrite if a row with the new slug already exists (so admin
+    //      edits via /admin/emails are preserved on re-run).
+    //   2. Deletes the obsolete magic-link templates (magic-link-new-user,
+    //      magic-link-returning) so /admin/emails doesn't show them.
+    //
+    // The new templates are ⚠️ CRITICAL — sendSignInCodeEmail uses
+    // throwOnFailure so a missing or disabled template surfaces an error to
+    // NextAuth (which shows "Please try again" to the user) rather than
+    // silently dropping the sign-in attempt.
+    name: "seed_sign_in_code_email_templates",
+    async run() {
+      const flag = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags"
+        WHERE name = 'seed_sign_in_code_email_templates_v1'
+      `).catch(() => []);
+      if (flag.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      const NEW_USER_BODY = `## Welcome to Rooted In Mindfulness
+
+Enter this code on the sign-in page to complete your account:
+
+<p style="font-size:36px;font-weight:700;letter-spacing:8px;text-align:center;font-family:ui-monospace,'SF Mono','Menlo',monospace;color:#135274;margin:24px 0;">{{code}}</p>
+
+The code expires in 10 minutes.
+
+If you didn't request this, you can safely ignore this email.
+
+---
+Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`;
+
+      const RETURNING_BODY = `## Your sign-in code
+
+Enter this code on the sign-in page to access your account:
+
+<p style="font-size:36px;font-weight:700;letter-spacing:8px;text-align:center;font-family:ui-monospace,'SF Mono','Menlo',monospace;color:#135274;margin:24px 0;">{{code}}</p>
+
+The code expires in 10 minutes.
+
+If you didn't request this, you can safely ignore this email.
+
+---
+Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`;
+
+      const templates = [
+        {
+          slug: "sign-in-code-new-user",
+          name: "Sign-in Code — New User",
+          description: "⚠️ CRITICAL: required for sign-up. Sent by NextAuth when a first-time visitor enters their email. Contains the 6-digit code they need to enter on the sign-in page.",
+          enabled: true,
+          subject: "Your Rooted In Mindfulness sign-in code: {{code}}",
+          variables: ["code"],
+          group: "01-auth",
+          groupLabel: "Sign-in & Authentication",
+          helpText:
+            "⚠️ CRITICAL — required for new-account sign-up.\n\n" +
+            "Sent automatically by NextAuth when a first-time visitor enters their email address. Contains the 6-digit code they enter on the sign-in page to complete account creation. If this template is disabled, OR if the {{code}} variable is removed from the body, sign-up breaks immediately for everyone.\n\n" +
+            "SAFE to edit: subject line, greeting, body copy, surrounding language.\n\n" +
+            "DO NOT: disable the \"Enabled\" toggle, remove or rename {{code}}, or remove the code display block entirely.\n\n" +
+            "If sign-up appears broken: confirm this template is Enabled and the body still contains {{code}}.",
+          body: NEW_USER_BODY,
+        },
+        {
+          slug: "sign-in-code-returning",
+          name: "Sign-in Code — Returning User",
+          description: "⚠️ CRITICAL: required for sign-in. Sent by NextAuth when an existing member enters their email. Contains the 6-digit code they need to enter on the sign-in page.",
+          enabled: true,
+          subject: "Your Rooted In Mindfulness sign-in code: {{code}}",
+          variables: ["code"],
+          group: "01-auth",
+          groupLabel: "Sign-in & Authentication",
+          helpText:
+            "⚠️ CRITICAL — required for member sign-in.\n\n" +
+            "Sent automatically by NextAuth when an existing member enters their email address. Contains the 6-digit code they enter on the sign-in page to access their account. If this template is disabled, OR if the {{code}} variable is removed from the body, sign-in breaks immediately for everyone.\n\n" +
+            "SAFE to edit: subject line, greeting, body copy, surrounding language.\n\n" +
+            "DO NOT: disable the \"Enabled\" toggle, remove or rename {{code}}, or remove the code display block entirely.\n\n" +
+            "If sign-in appears broken: confirm this template is Enabled and the body still contains {{code}}.",
+          body: RETURNING_BODY,
+        },
+      ];
+
+      // Defensive findUnique → create (per CLAUDE.md Email Template Gate):
+      // preserves any admin edits made via /admin/emails on re-run.
+      let createdCount = 0;
+      for (const t of templates) {
+        const existing = await db.emailTemplate.findUnique({ where: { slug: t.slug } });
+        if (!existing) {
+          await db.emailTemplate.create({ data: t });
+          createdCount++;
+        }
+      }
+
+      // Remove the obsolete magic-link templates.
+      const removed = await db.emailTemplate.deleteMany({
+        where: { slug: { in: ["magic-link-new-user", "magic-link-returning"] } },
+      });
+
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
+      `).catch(() => {});
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('seed_sign_in_code_email_templates_v1')
+      `);
+      console.log(`  ✔ Applied: ${this.name} (${createdCount} created, ${removed.count} removed)`);
+    },
+  },
 ];
 
 // ── Server-safe compute helpers (mirror of lib/programUtils.ts) ──────────────

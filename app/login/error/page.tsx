@@ -1,14 +1,14 @@
 export const metadata = { title: "Sign In Error — Rooted In Mindfulness" };
 
-export default function AuthErrorPage({
+export default async function AuthErrorPage({
   searchParams,
 }: {
-  searchParams: { error?: string };
+  searchParams: Promise<{ error?: string }>;
 }) {
-  const error = searchParams?.error;
+  const { error } = await searchParams;
   let message = "An error occurred during sign in. Please try again.";
   if (error === "Verification") {
-    message = "The magic link has expired or has already been used. Please request a new one.";
+    message = "That code is invalid or has expired. Please request a new one.";
   }
 
   return (

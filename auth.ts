@@ -1,8 +1,9 @@
 import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import Resend from "next-auth/providers/resend";
+import { randomInt } from "node:crypto";
 import { db } from "@/lib/db";
-import { sendMagicLinkEmail } from "@/lib/email";
+import { sendSignInCodeEmail } from "@/lib/email";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(db),
@@ -15,15 +16,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       apiKey: process.env.RESEND_API_KEY,
       from: process.env.EMAIL_FROM,
       name: "Rooted In Mindfulness",
-      // Custom magic link email — welcoming for first-timers, simple for returning members.
-      sendVerificationRequest: async ({ identifier: email, url }) => {
+      // 6-digit numeric code instead of the default long random token.
+      // Codes are user-typeable (works across browsers / PWAs / contexts
+      // where a magic link can't reliably route back to the original app).
+      // crypto.randomInt is uniformly distributed across the range — no
+      // modulo bias.
+      generateVerificationToken: async () => randomInt(100000, 1000000).toString(),
+      // Shorter expiry than the default 24h because 6-digit codes have
+      // only 1M combinations; tightening the window reduces brute-force
+      // surface area. 10 minutes is the industry standard (Slack, Apple).
+      maxAge: 10 * 60,
+      // Custom email — code displayed prominently, no magic link.
+      sendVerificationRequest: async ({ identifier: email, token }) => {
         const existing = await db.user.findUnique({
           where: { email },
           select: { agreedToTerms: true },
         });
         // New user = no account yet, OR account exists but hasn't completed onboarding.
         const isNewUser = !existing || !existing.agreedToTerms;
-        await sendMagicLinkEmail({ to: email, url, isNewUser });
+        await sendSignInCodeEmail({ to: email, code: token, isNewUser });
       },
     }),
   ],

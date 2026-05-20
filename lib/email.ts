@@ -140,7 +140,7 @@ export interface TemplatedEmailOptions {
   /**
    * If true, the function rethrows on send failure instead of swallowing.
    * Used for emails where the caller must surface delivery errors
-   * (e.g. NextAuth magic link).
+   * (e.g. NextAuth sign-in code).
    */
   throwOnFailure?: boolean;
 
@@ -166,7 +166,7 @@ export async function sendTemplatedEmail(
       // Critical path (throwOnFailure): rethrow so the caller — typically
       // NextAuth's sendVerificationRequest — surfaces the failure to the
       // user with the same "Please try again" message they'd see on a
-      // network error. Without this, an accidentally-disabled magic-link
+      // network error. Without this, an accidentally-disabled sign-in-code
       // template would silently swallow every sign-in attempt.
       if (options.throwOnFailure) {
         throw new Error(`Email template "${slug}" is missing or disabled`);
@@ -917,13 +917,13 @@ export async function sendKalyanaApplicationEmail(data: KalyanaApplicationEmailD
   });
 }
 
-// ─── Magic link email (authentication) ───────────────────────────────────────
+// ─── Sign-in code email (authentication) ──────────────────────────────────────
 
 /**
- * Sends the NextAuth magic link email for sign-in / account creation.
+ * Sends the NextAuth sign-in code email for sign-in / account creation.
  * Managed via Email Template Manager — two templates:
- *   - "magic-link-new-user"  (subject + copy for first-time visitors)
- *   - "magic-link-returning" (subject + copy for existing members)
+ *   - "sign-in-code-new-user"  (subject + copy for first-time visitors)
+ *   - "sign-in-code-returning" (subject + copy for existing members)
  *
  * Both are flagged ⚠️ CRITICAL in their descriptions because disabling
  * one breaks authentication. We pass throwOnFailure so a disabled or
@@ -931,27 +931,27 @@ export async function sendKalyanaApplicationEmail(data: KalyanaApplicationEmailD
  * "Failed to send sign-in email. Please try again." to the user) rather
  * than silently swallowing the sign-in.
  *
- * The {{url}} variable is the NextAuth-generated time-limited token,
- * injected at call time.
+ * The {{code}} variable is the NextAuth-generated 6-digit verification
+ * token, injected at call time. Codes expire in 10 minutes.
  */
-export async function sendMagicLinkEmail({
+export async function sendSignInCodeEmail({
   to,
-  url,
+  code,
   isNewUser,
 }: {
   to: string;
-  url: string;
+  code: string;
   isNewUser: boolean;
 }): Promise<void> {
   try {
     await sendTemplatedEmail(
-      isNewUser ? "magic-link-new-user" : "magic-link-returning",
+      isNewUser ? "sign-in-code-new-user" : "sign-in-code-returning",
       to,
-      { url },
+      { code },
       { throwOnFailure: true },
     );
   } catch (e) {
-    console.error("[email] Failed to send magic link email:", e);
+    console.error("[email] Failed to send sign-in code email:", e);
     // Re-throw with the user-facing message so NextAuth surfaces it.
     throw new Error("Failed to send sign-in email. Please try again.");
   }
