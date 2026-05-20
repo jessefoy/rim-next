@@ -1,5 +1,62 @@
 ---
 
+## 2026-05-20 (session 118) — Library extraction shipped; Course offering model architecture decided
+
+Two coordinated threads. The first shipped code; the second produced architecture for the next build pass.
+
+### Thread 1 — Library extraction (shipped: `6c57073`, follow-up `822029f`)
+
+The Member Home & Library — Offering-Type Cleanup plan from the prior session executed. Five things landed:
+
+- **Courses removed from `/account/dashboard`.** The "Welcome to RIM" onboarding card and the "Where you're studying" enrollment block both gone. The dashboard now reads as sessions-and-community, not a mix of sessions and courses.
+- **Onboarding welcome moved to `/account/courses` (Library).** `MyCourseLibrary` accepts a new `onboardingCourses` prop and renders the welcome variant at the top when present. The dashboard greeting gained a quiet "Visit your Library →" link alongside the existing community-schedule link.
+- **Honest framing on registrations.** `/account/programs` heading and metadata renamed "My Programs" → "My Registrations" (sidebar already said this). The dashboard greeting's "X sessions today" count now reflects the member's own commitments (registered live + later + in-person), not every community virtual/hybrid program running today. The Today card itself continues to show all community programs — that's its job.
+- **`Course.publishOnPublicCatalog` opt-in flag.** New Boolean field on Course, default false. Public `/courses` catalog filters `publishOnPublicCatalog: true` so onboarding, internal training, and role-assigned courses stay off the catalog unless explicitly published. Backfill migration in `prisma/migrate.mjs` flips `isActive=true AND isOnboarding=false` courses to true to preserve current visibility.
+- **CSS cleanup (`822029f`).** Orphaned `db2-courses-line` rules removed after the dashboard course sections were extracted.
+
+### Thread 2 — Course offering model architecture (no code; doc: `RIM_Offering_Model.md`)
+
+Mid-session, Jesse pulled the conversation back to a broader question that had been entangled with the cleanup plan: how Programs and Courses relate as offering types, and how the access model should evolve to support the four scenarios he cares about — free-for-members, dana-required self-enroll, manual-grant-only, onboarding auto-enroll — plus hybrids with linked Programs.
+
+The architectural decision: **replace `Course.accessLevel` (enum) with orthogonal flags** so a single Course can carry multiple acquisition paths simultaneously. This is the natural shape for a hybrid that's both bundled with a live Program AND available for standalone dana-enroll after the cohort wraps.
+
+New flags on `Course`:
+- `allowSelfEnroll: Boolean`
+- `selfEnrollDanaRequired: Boolean`
+- Existing: `requiredRoles`, `isOnboarding`, `publishOnPublicCatalog`
+
+Plus new content fields needed for a real Course detail landing page:
+- `Course.heroImage`, `Course.pullQuote`, `Course.pullQuoteSource`, `Course.danaText` — mirror Program parallels
+- `Course.accessRestrictionMessage` — authored "friendly message" shown when the visitor can't self-enroll
+
+UX decisions also locked in this session:
+- Lesson titles **shown** to non-enrolled visitors (TOC is part of the offering, not a hidden gate).
+- Hybrid dual-path shown as **primary live-cohort CTA + quiet secondary standalone line**. Resolved live cohort = next linked Program with open registration and a future start date. Standalone path always-active when `allowSelfEnroll=true`; live just disappears when no Program qualifies.
+- Hero image and pull quote **added to Course** parallel to Program, so the visual vocabulary stays consistent.
+- Restricted states (role-gated, manual-grant-only, bundled-only-with-no-open-cohort) **always show the full landing with a friendly contextual message** in the CTA slot. Never 404. Never a one-line wall.
+
+Six states the `/course/[slug]` page must handle, captured in the doc's state matrix. Open questions parked for build (pending-dana behavior, `CourseAccess` vs `SeriesEnrollment` boundary, refund policy, editor presets vs raw flags, default fallback for `accessRestrictionMessage`).
+
+### What this connects to
+
+- **Existing Program system.** The Program detail page (`/programs/[slug]`) is the visual reference — the Course landing mirrors its shape (hero + pull quote + description + details block + CTA + facilitators) but with library framing instead of schedule framing. Dana flow on courses uses the same Stripe Checkout mechanism as programs.
+- **`ProgramCourse` join.** Already exists, already wires hybrid bundling. The new model doesn't change the join — it just composes with the new `allowSelfEnroll` flag so a single Course can have both bundled and standalone paths.
+- **`CourseAccess` table.** Already exists for manual grants. The boundary between `CourseAccess` and `SeriesEnrollment` is one of the open questions to resolve at build time.
+- **`MyCourseLibrary` component.** Will need to surface the dana state (paid / pending) per-enrollment if the dana model differs from program dana.
+- **`/admin/emails` template manager.** New templates needed at build: course-enrollment-confirmation, course-dana-receipt, course-access-granted (manual). Each must ship with a seed entry in `prisma/migrate.mjs` per the Email Template Gate.
+- **`RIM_System_Architecture.md`** updated with a companion-docs pointer so `RIM_Offering_Model.md` is discoverable from the main architecture index.
+
+### What comes next
+
+Build of the orthogonal-flags schema + new Course content fields + `/course/[slug]` pre-enrollment landing state. Reference `RIM_Offering_Model.md` before any code. No timeline; the architecture is committed and durable, so the next session can pick it up cold.
+
+### Collaboration notes
+
+- **Closing-ritual item #8 paid off.** Jesse pushed back when I started talking about UX while the schema decision wasn't on disk — exactly the failure mode item #8 was added to prevent. Capturing the decision in `RIM_Offering_Model.md` mid-session (not waiting for the closing ritual) is the right move when architecture is being decided. Don't let decisions live only in a conversation that will be compacted.
+- **Conflated-threads risk.** Earlier in the session I treated "the cleanup plan" and "the broader offering-type discussion" as one thread, when they were actually two. Jesse named this clearly ("I thought we were still discussing this"). The cleanup was already approved and just needed executing; the broader question was a separate architectural conversation. Separating those next time saves a confused back-and-forth.
+
+---
+
 ## 2026-05-19 (session 117) — Session room: six-issue fix → Zoom-aligned redesign → A/V quality + auto-hide
 
 Single long session with one through-line: bring the LiveKit session room to "feels like Zoom" before Maria's host training. Three phases, thirteen commits, all on `main`.

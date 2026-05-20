@@ -5,6 +5,12 @@ This document records the foundational architectural decisions for how RIM's mem
 
 **Claude Code: Read this before working on any hub, member data, role, or permission-related feature.**
 
+**Companion docs:**
+- `RIM_Offering_Model.md` — the canonical reference for Programs vs Courses as offering types, the orthogonal-flags access model on `Course`, and the Course detail page state matrix. Read this before working on any course/program/registration/enrollment feature.
+- `RIM_Editor_Types.md` — the canonical reference for editor surfaces, blocks, and placements.
+- `RIM_Role_Design.md` — roles, hubs, permissions.
+- `RIM_Hub_Model.md` — hub model.
+
 ---
 
 ## The Two Systems

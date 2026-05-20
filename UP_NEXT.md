@@ -10,11 +10,26 @@
 
 **(1) Library extraction shipped (commit `6c57073`).** Member home cleanup per the approved plan: courses removed from `/account/dashboard`, onboarding welcome moved to `/account/courses` Library page, "My Programs" → "My Registrations," greeting session count fixed to member commitments only, new `Course.publishOnPublicCatalog` flag added (backfill in `prisma/migrate.mjs`), Course editor toggle wired. Follow-up commit `822029f` removed orphaned `db2-courses-line` CSS rules.
 
-**(2) Course access architecture decided — see `RIM_Offering_Model.md`.** Mid-session discussion separated two threads that had been entangled (the cleanup, and the broader question of how Programs and Courses relate as offering types). The architectural decision: **replace `Course.accessLevel` enum with orthogonal flags** (`allowSelfEnroll`, `selfEnrollDanaRequired` + existing `requiredRoles`, `isOnboarding`, `publishOnPublicCatalog`). This lets a single Course carry more than one acquisition path simultaneously — the natural shape for a hybrid that's both bundled with a live Program AND available for standalone dana-enroll after the cohort ends. Decision captured in full at `RIM_Offering_Model.md` (canonical shapes, migration path, role-gate semantics, open questions, connections map). **No code written yet** — this is architecture-first; UX sketching is the next concrete step.
+**(2) Course offering model architecture decided — see `RIM_Offering_Model.md`.** Mid-session discussion separated two threads that had been entangled (the cleanup, and the broader question of how Programs and Courses relate as offering types). Two architectural pillars locked in:
 
-**Next concrete step:** UX-side sketch of `/course/[slug]` as a real pre-access landing page (description, teacher, lesson count, dana ask, enroll CTA) — the entry point that doesn't exist today. Schema work follows from what's needed to render the page. Reference `RIM_Offering_Model.md` for the access model before writing any code.
+- **Schema model: orthogonal flags replace `Course.accessLevel` enum.** New flags: `allowSelfEnroll`, `selfEnrollDanaRequired` (plus existing `requiredRoles`, `isOnboarding`, `publishOnPublicCatalog`). Plus new content fields parallel to Program — `heroImage`, `pullQuote`, `pullQuoteSource`, `danaText`, and a new `accessRestrictionMessage` field for friendly "you can't enter this way" copy. A single Course can now carry multiple acquisition paths simultaneously — the natural shape for a hybrid bundled with a live Program AND available for standalone dana-enroll.
 
-**Open questions parked in `RIM_Offering_Model.md` "Open questions to resolve before build":** pending-dana behavior, `CourseAccess` vs `SeriesEnrollment` boundary, hybrid transition trigger, refund/cancellation policy, editor presets vs raw flags. Resolve as they come up during UX/build, not pre-emptively.
+- **UX model: Course detail page becomes a real landing page.** Six-state matrix locked in (not signed in / can self-enroll free / can self-enroll with dana / role-gated without role / bundled-only / enrolled). Layout mirrors `/programs/[slug]` shape — hero + pull quote + description + about-this-course block + CTA + facilitators. Lesson titles shown to non-enrolled visitors. Hybrids show live cohort as primary + standalone as quiet secondary line. Restricted states always show full landing + friendly message — never 404, never one-line wall.
+
+Resolved-live-cohort rule: live path is "active" whenever a linked Program has open registration with a future start; standalone path always-active when `allowSelfEnroll=true`; live messaging just disappears when no Program qualifies. No admin-flip needed.
+
+**No code written yet** — this is architecture-first. The doc is the authoritative reference for the build.
+
+**Next concrete step:** Begin the build. Order suggestion (revise during work):
+
+1. Schema: add the orthogonal-flag fields and the new content fields to `Course` in `prisma/schema.prisma`. Backfill migration in `prisma/migrate.mjs` mapping the existing `accessLevel` enum to the new flags (rules in `RIM_Offering_Model.md`).
+2. Update `MyCourseLibrary`, `/courses` catalog filter, `/api/courses`, `CourseEditor`, and `/course/[slug]` access logic to read the new flags. Leave the enum in place during transition.
+3. Build the pre-enrollment landing state on `/course/[slug]` for the six states. Reference `pg-` styles from `/programs/[slug]`; adopt parallel `crs-` styles.
+4. Build the dana flow for `selfEnrollDanaRequired` courses (parallel to program registration's Stripe Checkout path; new endpoint).
+5. Surface `publishOnPublicCatalog` and the new fields in `CourseEditor`. Decide presets-vs-raw-flags at build.
+6. Drop the `accessLevel` enum once all reads have migrated.
+
+Reference `RIM_Offering_Model.md` before writing any code. Open questions parked there (pending-dana behavior, `CourseAccess` vs `SeriesEnrollment` boundary, refund/cancellation, editor presets vs raw flags, default fallback for `accessRestrictionMessage`) — resolve as they come up during build, not pre-emptively.
 
 ---
 
