@@ -1,5 +1,6 @@
 import { signIn } from "@/auth";
 import { redirect } from "next/navigation";
+import SignInCodeForm from "@/components/login/SignInCodeForm";
 
 export const metadata = { title: "Enter Your Code — Rooted In Mindfulness" };
 
@@ -47,7 +48,7 @@ export default async function CheckEmailPage({
           <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>📬</div>
           <h1 className="form-header">Enter your code</h1>
           <p style={{ color: "#555", lineHeight: 1.7, marginBottom: "1.5rem" }}>
-            We sent a 6-digit code to <strong>{email}</strong>. It expires in 10 minutes.
+            We sent a 6-digit code to <strong>{email}</strong>. It expires in 30 minutes.
           </p>
 
           {resent && (
@@ -56,43 +57,11 @@ export default async function CheckEmailPage({
             </p>
           )}
 
-          {/* Verification form — GETs the NextAuth Email-provider callback.
-              The token is the code the user types; email + callbackUrl come
-              along as hidden fields. NextAuth processes the GET, verifies
-              the token against the VerificationToken row, sets the session
-              cookie, and redirects to callbackUrl. */}
-          <form
-            method="GET"
-            action="/api/auth/callback/resend"
-            className="form-container-4"
-            style={{ marginBottom: "1.5rem" }}
-          >
-            <input type="hidden" name="email" value={email} />
-            <input type="hidden" name="callbackUrl" value="/account/dashboard" />
-            <div className="text-field-wrapper">
-              <label htmlFor="token" className="input-label-2">6-digit code</label>
-              <input
-                id="token"
-                name="token"
-                className="input w-input"
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                pattern="\d{6}"
-                maxLength={6}
-                placeholder="123456"
-                required
-                autoFocus
-                style={{
-                  fontSize: "1.5rem",
-                  letterSpacing: "0.5rem",
-                  textAlign: "center",
-                  fontFamily: "ui-monospace, 'SF Mono', Menlo, monospace",
-                }}
-              />
-            </div>
-            <input type="submit" className="link-block-3 w-button" value="Sign in →" />
-          </form>
+          {/* Six-box code input — client component. Submits a single
+              hidden `token` field via GET to /api/auth/callback/resend,
+              same NextAuth Email-provider callback that magic-link clicks
+              used to hit. */}
+          <SignInCodeForm email={email} callbackUrl="/account/dashboard" />
 
           <div style={{ marginTop: "1.5rem", fontSize: "0.9rem", color: "#666" }}>
             Didn&apos;t receive it? Check your spam folder, or{" "}
