@@ -417,6 +417,7 @@ model Course {
   sortOrder             Int?
   isActive              Boolean           @default(true)
   isOnboarding          Boolean           @default(false) // auto-enroll all new members
+  publishOnPublicCatalog Boolean          @default(false) // appears on the public /courses catalog when true
 
   // Categorization & access
   categoryId    String?

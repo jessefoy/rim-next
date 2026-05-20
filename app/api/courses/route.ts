@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { title, slug, subheading, description, accessLevel, hideFromMemberProfile, sortOrder, isActive } = body;
+  const { title, slug, subheading, description, accessLevel, hideFromMemberProfile, sortOrder, isActive, publishOnPublicCatalog } = body;
 
   if (!title || !slug) {
     return NextResponse.json({ error: "Title and slug are required" }, { status: 400 });
@@ -80,6 +80,7 @@ export async function POST(request: NextRequest) {
       hideFromMemberProfile: hideFromMemberProfile ?? false,
       sortOrder: sortOrder != null ? Number(sortOrder) : null,
       isActive: isActive ?? true,
+      publishOnPublicCatalog: publishOnPublicCatalog ?? false,
     },
   });
 

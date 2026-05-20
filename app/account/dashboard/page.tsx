@@ -112,7 +112,11 @@ export default async function DashboardPage() {
   const userId = session.user.id;
   const today  = todayCT();
 
-  const [allVirtual, upcomingRegistrations, hubMemberships, onboardingEnrollments, seriesEnrollments] =
+  // Dashboard is sessions-only as of session 117: courses live in the Library
+  // (`/account/courses`). Onboarding welcome and "Where you're studying" both
+  // moved there. The dashboard surfaces today's commitments, upcoming
+  // registrations, and hub presence — nothing else.
+  const [allVirtual, upcomingRegistrations, hubMemberships] =
     await Promise.all([
       db.program.findMany({
         where: {
@@ -162,44 +166,7 @@ export default async function DashboardPage() {
         include: { hub: { select: { id: true, slug: true, name: true, type: true } } },
         orderBy: { joinedAt: "asc" },
       }),
-      db.seriesEnrollment.findMany({
-        where: {
-          userId,
-          enrollmentSource: "ONBOARDING",
-          completedAt: null,
-          course: { isActive: true },
-        },
-        select: {
-          courseId: true,
-          course: { select: { id: true, slug: true, title: true } },
-        },
-      }),
-      db.seriesEnrollment.findMany({
-        where: {
-          userId,
-          enrollmentSource: { not: "ONBOARDING" },
-          course: { isActive: true },
-        },
-        include: {
-          course: {
-            include: {
-              lessons: {
-                select: { lessonId: true, lesson: { select: { slug: true } } },
-                orderBy: { sortOrder: "asc" },
-              },
-            },
-          },
-        },
-        orderBy: { enrolledAt: "desc" },
-      }),
     ]);
-
-  // Series progress
-  const seriesLessonIds = [...new Set(seriesEnrollments.flatMap((e) => e.course.lessons.map((l) => l.lessonId)))];
-  const seriesProgressRecords = seriesLessonIds.length > 0
-    ? await db.lessonProgress.findMany({ where: { userId, lessonId: { in: seriesLessonIds } }, select: { lessonId: true } })
-    : [];
-  const completedLessonIdSet = new Set(seriesProgressRecords.map((p) => p.lessonId));
 
   // Today's sessions
   const todaySessionsRaw = allVirtual.filter((p) => isOccurrenceToday(p, today));
@@ -335,7 +302,14 @@ export default async function DashboardPage() {
 
   // Contextual greeting summary
   const pendingDanaCount = upcomingRegistrations.filter((r) => r.donationStatus === "PENDING").length;
-  const sessionCount = liveSessions.length + laterSessions.length + inPersonTodayRegistrations.length;
+  // sessionCount reflects the member's own commitments — not every community
+  // program running today. The Today card itself still shows all virtual/hybrid
+  // community programs (its job is "what you can drop into today"), but the
+  // greeting reads in first person and must mean what it says.
+  const sessionCount =
+    liveSessions.filter((s) => s.isRegistered).length +
+    laterSessions.filter((s) => s.isRegistered).length +
+    inPersonTodayRegistrations.length;
   const summaryParts: string[] = [];
   if (sessionCount > 0) summaryParts.push(`${sessionCount} session${sessionCount > 1 ? "s" : ""} today`);
   if (pendingDanaCount > 0) summaryParts.push(`${pendingDanaCount} dana offering${pendingDanaCount > 1 ? "s" : ""} to complete`);
@@ -353,6 +327,9 @@ export default async function DashboardPage() {
           <p className="db2-greeting__date">{summaryLine}</p>
           <p className="db2-greeting__schedule">
             <Link href="/this-week">See this week&apos;s community schedule →</Link>
+          </p>
+          <p className="db2-greeting__schedule">
+            <Link href="/account/courses">Visit your Library →</Link>
           </p>
         </div>
 
@@ -451,67 +428,6 @@ export default async function DashboardPage() {
             </div>
           )}
         </div>
-
-        {/* Onboarding welcome */}
-        {onboardingEnrollments.length > 0 && (
-          <div className="db-section">
-            <div className="db2-welcome-prompt">
-              <p className="db2-welcome-prompt__heading">Welcome to RIM — here&apos;s where to begin</p>
-              <div className="db2-welcome-prompt__list">
-                {onboardingEnrollments.map((e) => (
-                  <Link key={e.courseId} href={`/course/${e.course.slug}`} className="db2-welcome-prompt__item">
-                    {e.course.title} <span>Start →</span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Enrolled series */}
-        {seriesEnrollments.length > 0 && (
-          <div className="db-section">
-            <p className="db-section__label">Where you&apos;re studying</p>
-            <div className="ls-dash-list">
-              {seriesEnrollments.map((enrollment) => {
-                const lessons = enrollment.course.lessons;
-                const totalCount = lessons.length;
-                const completedCount = lessons.filter((l) => completedLessonIdSet.has(l.lessonId)).length;
-                const isFullyComplete = enrollment.completedAt != null;
-                const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-                const firstIncomplete = lessons.find((l) => !completedLessonIdSet.has(l.lessonId)) as typeof lessons[0] | undefined;
-
-                return (
-                  <div key={enrollment.id} className="ls-dash-card">
-                    <Link href={`/course/${enrollment.course.slug}`} className="ls-dash-card__title">
-                      {enrollment.course.title}
-                    </Link>
-                    {isFullyComplete ? (
-                      <span className="ls-dash-card__complete">Completed</span>
-                    ) : (
-                      <>
-                        <div className="ls-dash-card__progress">
-                          <div className="ls-dash-card__bar-wrap">
-                            <div className="ls-dash-card__bar" style={{ width: `${progressPct}%` }} />
-                          </div>
-                          <span className="ls-dash-card__count">{completedCount} of {totalCount}</span>
-                        </div>
-                        {firstIncomplete && (
-                          <Link
-                            href={`/lessons/${firstIncomplete.lesson.slug}?course=${enrollment.course.slug}`}
-                            className="ls-dash-card__continue"
-                          >
-                            Continue →
-                          </Link>
-                        )}
-                      </>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
 
         {/* Your Hubs */}
         {dashboardHubs.length > 0 && (

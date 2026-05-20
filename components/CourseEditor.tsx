@@ -53,6 +53,7 @@ interface CourseData {
   accessLevel: "ALL_MEMBERS" | "REGISTRATION_REQUIRED" | "ROLE_REQUIRED";
   requiredRoles: string[];
   isOnboarding: boolean;
+  publishOnPublicCatalog: boolean;
   hideFromMemberProfile: boolean;
   isActive: boolean;
   lessons?: CourseLesson[];
@@ -125,6 +126,9 @@ export default function CourseEditor({ basePath = "/tools/learning", lessonBaseP
     initialData?.requiredRoles ?? []
   );
   const [isOnboarding, setIsOnboarding] = useState(initialData?.isOnboarding ?? false);
+  const [publishOnPublicCatalog, setPublishOnPublicCatalog] = useState(
+    initialData?.publishOnPublicCatalog ?? false
+  );
   const [hideFromMemberProfile, setHideFromMemberProfile] = useState(
     initialData?.hideFromMemberProfile ?? false
   );
@@ -275,6 +279,7 @@ export default function CourseEditor({ basePath = "/tools/learning", lessonBaseP
         accessLevel,
         requiredRoles: accessLevel === "ROLE_REQUIRED" ? requiredRoles : [],
         isOnboarding,
+        publishOnPublicCatalog,
         hideFromMemberProfile,
         isActive,
         completionNote: completionNote.trim() || null,
@@ -443,6 +448,18 @@ export default function CourseEditor({ basePath = "/tools/learning", lessonBaseP
             onChange={(e) => setIsOnboarding(e.target.checked)}
           />
           Auto-enroll new members (onboarding series)
+        </label>
+
+        <label className="th-checkbox">
+          <input
+            type="checkbox"
+            checked={publishOnPublicCatalog}
+            onChange={(e) => setPublishOnPublicCatalog(e.target.checked)}
+          />
+          Show on the public /courses catalog
+          <span className="th-checkbox__hint">
+            Off for onboarding, internal training, and role-assigned courses.
+          </span>
         </label>
 
         <div className="th-section-break" />

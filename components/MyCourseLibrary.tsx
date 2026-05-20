@@ -150,10 +150,18 @@ function EnrollmentCard({ item, section, onLeave }: CourseCardProps) {
   );
 }
 
+interface OnboardingCourse {
+  courseId: string;
+  slug: string;
+  title: string;
+}
+
 export default function MyCourseLibrary({
   enrollments,
+  onboardingCourses = [],
 }: {
   enrollments: EnrollmentItem[];
+  onboardingCourses?: OnboardingCourse[];
 }) {
   const [items, setItems] = useState(enrollments);
 
@@ -171,10 +179,33 @@ export default function MyCourseLibrary({
     setItems((prev) => prev.filter((i) => i.courseSlug !== courseSlug));
   }
 
+  // Onboarding welcome card — shown at the top of the Library when the member
+  // has unfinished onboarding-source enrollments. Moved here from the dashboard
+  // so all on-demand course content lives in the Library.
+  const welcomeBlock = onboardingCourses.length > 0 ? (
+    <div className="mcl-welcome">
+      <p className="mcl-welcome__heading">
+        Welcome to RIM — here&apos;s where to begin
+      </p>
+      <div className="mcl-welcome__list">
+        {onboardingCourses.map((c) => (
+          <Link
+            key={c.courseId}
+            href={`/course/${c.slug}`}
+            className="mcl-welcome__item"
+          >
+            {c.title} <span>Start →</span>
+          </Link>
+        ))}
+      </div>
+    </div>
+  ) : null;
+
   if (items.length === 0) {
     return (
       <div className="mcl-page">
-        <h1 className="mcl-title">My Courses</h1>
+        <h1 className="mcl-title">Library</h1>
+        {welcomeBlock}
         <div className="mcl-empty">
           <p>You haven&apos;t enrolled in any courses yet.</p>
           <Link href="/courses">Browse courses →</Link>
@@ -185,7 +216,9 @@ export default function MyCourseLibrary({
 
   return (
     <div className="mcl-page">
-      <h1 className="mcl-title">My Courses</h1>
+      <h1 className="mcl-title">Library</h1>
+
+      {welcomeBlock}
 
       {inProgress.length > 0 && (
         <div className="mcl-section">

@@ -12,9 +12,12 @@ export default async function CoursesPage() {
   const userRoles = session?.user?.roles ?? [];
   const isAdmin = userRoles.includes("ADMIN");
 
-  // Fetch all active non-onboarding courses with lessons for teacher extraction
+  // Fetch all active non-onboarding courses that are opted in to the public
+  // catalog. publishOnPublicCatalog is the explicit opt-in flag: onboarding,
+  // internal training, and role-assigned courses stay off this page even when
+  // they're isActive and visible to their intended audience elsewhere.
   const courses = await db.course.findMany({
-    where: { isActive: true, isOnboarding: false },
+    where: { isActive: true, isOnboarding: false, publishOnPublicCatalog: true },
     orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
     include: {
       category: { select: { id: true, name: true, slug: true } },

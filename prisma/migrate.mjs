@@ -2046,6 +2046,35 @@ Rooted In Mindfulness · Brookfield, WI`,
       }
     },
   },
+  {
+    // Adds the publishOnPublicCatalog opt-in flag for the public /courses catalog.
+    // Default false means new courses are private by default; admin opts each in.
+    // Backfill flips existing all-members non-onboarding courses to true so the
+    // currently-visible catalog stays visible after the flag ships.
+    name: "add_publish_on_public_catalog_to_courses",
+    async run() {
+      const cols = await db.$queryRawUnsafe(`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'courses' AND column_name = 'publishOnPublicCatalog'
+      `);
+      if (cols.length === 0) {
+        await db.$executeRawUnsafe(`
+          ALTER TABLE "courses"
+          ADD COLUMN "publishOnPublicCatalog" BOOLEAN NOT NULL DEFAULT false
+        `);
+        // Backfill: anything currently visible on /courses (isActive=true,
+        // isOnboarding=false) keeps its visibility.
+        await db.$executeRawUnsafe(`
+          UPDATE "courses"
+          SET "publishOnPublicCatalog" = true
+          WHERE "isActive" = true AND "isOnboarding" = false
+        `);
+        console.log(`  ✔ Applied: ${this.name}`);
+      } else {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+      }
+    },
+  },
 ];
 
 // ── Server-safe compute helpers (mirror of lib/programUtils.ts) ──────────────

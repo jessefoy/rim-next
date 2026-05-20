@@ -53,7 +53,7 @@ interface NavLink {
 const MEMBER_LINKS: NavLink[] = [
   { label: "Home",             href: "/account/dashboard",            icon: Home          },
   { label: "My Registrations", href: "/account/programs",             icon: CalendarCheck },
-  { label: "My Courses",       href: "/account/courses",              icon: BookOpen      },
+  { label: "Library",          href: "/account/courses",              icon: BookOpen      },
   { label: "My Profile",       href: "/account/dashboard-my-profile", icon: UserCircle    },
 ];
 

@@ -85,6 +85,7 @@ export async function PATCH(
   if (fields.sortOrder !== undefined) updateData.sortOrder = fields.sortOrder != null ? Number(fields.sortOrder) : null;
   if (fields.isActive !== undefined) updateData.isActive = fields.isActive;
   if (fields.isOnboarding !== undefined) updateData.isOnboarding = fields.isOnboarding;
+  if (fields.publishOnPublicCatalog !== undefined) updateData.publishOnPublicCatalog = fields.publishOnPublicCatalog;
   if (fields.requiredRoles !== undefined) {
     if (fields.accessLevel === "ROLE_REQUIRED" || course.accessLevel === "ROLE_REQUIRED") {
       if (fields.accessLevel !== "ROLE_REQUIRED" && fields.accessLevel !== undefined) {

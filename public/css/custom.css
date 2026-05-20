@@ -21407,12 +21407,13 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .mcl-empty { text-align: center; padding: 48px 24px; color: var(--rim-text-muted); }
 .mcl-empty a { color: var(--rim-blue); }
 
-/* Dashboard course updates (db2-) */
-.db2-welcome-prompt { background: #f0ebe6; border-radius: 8px; padding: 20px 24px; }
-.db2-welcome-prompt__heading { font-family: var(--font-serif); font-size: 16px; color: var(--rim-blue); margin-bottom: 12px; }
-.db2-welcome-prompt__list { display: flex; flex-direction: column; gap: 8px; }
-.db2-welcome-prompt__item { display: flex; justify-content: space-between; font-size: var(--text-ui); color: var(--rim-mid); text-decoration: none; padding: 6px 0; }
-.db2-welcome-prompt__item:hover { color: var(--rim-blue); }
+/* Library onboarding welcome (mcl-welcome) — moved from the dashboard's
+   db2-welcome-prompt block when courses were extracted to the Library. */
+.mcl-welcome { background: #f0ebe6; border-radius: 8px; padding: 20px 24px; margin-bottom: 24px; }
+.mcl-welcome__heading { font-family: var(--font-serif); font-size: 16px; color: var(--rim-blue); margin-bottom: 12px; }
+.mcl-welcome__list { display: flex; flex-direction: column; gap: 8px; }
+.mcl-welcome__item { display: flex; justify-content: space-between; font-size: var(--text-ui); color: var(--rim-mid); text-decoration: none; padding: 6px 0; }
+.mcl-welcome__item:hover { color: var(--rim-blue); }
 .db2-courses-line { display: flex; align-items: center; gap: 12px; padding: 14px 18px; background: white; border-radius: 8px; }
 .db2-courses-line__label { font-family: var(--font-serif); font-size: var(--text-small); color: var(--rim-blue); font-weight: 600; }
 .db2-courses-line__count { font-size: var(--text-xs); color: var(--rim-text-muted); }
@@ -21672,18 +21673,9 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
 .ls-complete-btn { display: inline-block; font-family: var(--font-sans); font-size: var(--text-small); font-weight: 600; padding: 10px 24px; border-radius: 4px; cursor: pointer; border: none; }
 .ls-completed-state { display: flex; align-items: center; gap: 12px; font-family: var(--font-sans); font-size: var(--text-small); }
 
-/* ── Dashboard series cards ── */
-.ls-dash-list { display: flex; flex-direction: column; gap: 12px; }
-.ls-dash-card { background: #fff; border-radius: 6px; padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; }
-.ls-dash-card__title { font-family: var(--font-sans); font-size: var(--text-small); font-weight: 600; color: var(--rim-blue); text-decoration: none; }
-.ls-dash-card__title:hover { text-decoration: underline; }
-.ls-dash-card__progress { display: flex; align-items: center; gap: 10px; }
-.ls-dash-card__bar-wrap { flex: 1; height: 5px; background: #e4dfd9; border-radius: 3px; overflow: hidden; }
-.ls-dash-card__bar { height: 100%; background: var(--rim-mid); border-radius: 3px; }
-.ls-dash-card__count { font-family: var(--font-sans); font-size: var(--text-xs); color: var(--rim-text-muted); white-space: nowrap; }
-.ls-dash-card__continue { font-family: var(--font-sans); font-size: var(--text-ui); color: var(--rim-blue); text-decoration: none; font-weight: 600; }
-.ls-dash-card__continue:hover { text-decoration: underline; }
-.ls-dash-card__complete { font-family: var(--font-sans); font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--rim-mid); }
+/* Dashboard "Where you're studying" cards (ls-dash-*) removed when courses
+   were extracted to the Library. Course progress now lives on /account/courses
+   (Library) via mcl- styles. */
 
 /* ── Reflection Questions (member UI) ── */
 .ls-questions { display: flex; flex-direction: column; gap: 0; }
@@ -21772,8 +21764,9 @@ ul.check-list { list-style: none; margin: 0 0 0.9em 0; padding: 0; }
 .th-btn--icon:disabled { opacity: 0.35; cursor: not-allowed; }
 .th-btn--icon-danger { color: #a83222; border-color: #e8b8b4; }
 .th-btn--icon-danger:hover { background: #fae9e7; }
-.th-checkbox { display: flex; align-items: flex-start; gap: 10px; font-family: var(--font-sans); font-size: var(--text-ui); line-height: 1.5; color: var(--rim-text); cursor: pointer; }
+.th-checkbox { display: flex; align-items: flex-start; gap: 10px; font-family: var(--font-sans); font-size: var(--text-ui); line-height: 1.5; color: var(--rim-text); cursor: pointer; flex-wrap: wrap; }
 .th-checkbox input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; accent-color: var(--rim-mid); width: 16px; height: 16px; }
+.th-checkbox__hint { display: block; flex-basis: 100%; padding-left: 26px; font-size: var(--text-xs); color: var(--rim-text-muted); margin-top: 2px; }
 
 /* ═══════════════════════════════════════════════════
    ADMIN MEMBER PROFILE — REDESIGN

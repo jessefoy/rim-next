@@ -5,7 +5,7 @@ import AccountLayout from "@/components/AccountLayout";
 import MyCourseLibrary from "@/components/MyCourseLibrary";
 import ManualHelpIcon from "@/components/ManualHelpIcon";
 
-export const metadata = { title: "My Courses — Rooted In Mindfulness" };
+export const metadata = { title: "Library — Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
 
 export default async function MyCoursesPage() {
@@ -13,20 +13,37 @@ export default async function MyCoursesPage() {
   if (!session?.user?.id) redirect("/login");
   const userId = session.user.id;
 
-  const enrollments = await db.seriesEnrollment.findMany({
-    where: { userId, course: { isActive: true } },
-    include: {
-      course: {
-        include: {
-          lessons: {
-            include: { lesson: { select: { slug: true } } },
-            orderBy: { sortOrder: "asc" },
+  // All enrollments power the in-progress / not-started / completed sections.
+  // Onboarding enrollments are also surfaced separately as the welcome card at
+  // the top of the Library (moved here from the dashboard).
+  const [enrollments, onboardingEnrollmentsRaw] = await Promise.all([
+    db.seriesEnrollment.findMany({
+      where: { userId, course: { isActive: true } },
+      include: {
+        course: {
+          include: {
+            lessons: {
+              include: { lesson: { select: { slug: true } } },
+              orderBy: { sortOrder: "asc" },
+            },
           },
         },
       },
-    },
-    orderBy: { enrolledAt: "desc" },
-  });
+      orderBy: { enrolledAt: "desc" },
+    }),
+    db.seriesEnrollment.findMany({
+      where: {
+        userId,
+        enrollmentSource: "ONBOARDING",
+        completedAt: null,
+        course: { isActive: true },
+      },
+      select: {
+        courseId: true,
+        course: { select: { slug: true, title: true } },
+      },
+    }),
+  ]);
 
   // Fetch progress for all lessons across all enrollments
   const allLessonIds = enrollments.flatMap((e) => e.course.lessons.map((cl) => cl.lessonId));
@@ -61,11 +78,20 @@ export default async function MyCoursesPage() {
     };
   });
 
+  const onboardingCourses = onboardingEnrollmentsRaw.map((e) => ({
+    courseId: e.courseId,
+    slug: e.course.slug,
+    title: e.course.title,
+  }));
+
   return (
     <AccountLayout>
       <div style={{ position: "relative" }}>
         <ManualHelpIcon manualSlug="course-hub" />
-        <MyCourseLibrary enrollments={serialized} />
+        <MyCourseLibrary
+          enrollments={serialized}
+          onboardingCourses={onboardingCourses}
+        />
       </div>
     </AccountLayout>
   );

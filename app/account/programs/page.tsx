@@ -6,7 +6,7 @@ import CancelRegistrationButton from "@/components/CancelRegistrationButton";
 import AccountLayout from "@/components/AccountLayout";
 import { buildDateLabel } from "@/lib/dateLabel";
 
-export const metadata = { title: "My Programs — Rooted In Mindfulness" };
+export const metadata = { title: "My Registrations — Rooted In Mindfulness" };
 export const dynamic = "force-dynamic";
 
 const ACTIVE_STATUSES = ["REGISTERED", "APPROVED", "WAITLISTED"];
@@ -90,7 +90,7 @@ export default async function MyProgramsPage() {
   return (
     <AccountLayout>
       <div className="mr-page">
-          <h1 className="mr-heading">My Programs</h1>
+          <h1 className="mr-heading">My Registrations</h1>
 
           {registrations.length === 0 ? (
             <p className="mr-empty">
