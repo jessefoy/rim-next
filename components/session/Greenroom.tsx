@@ -23,6 +23,11 @@ import {
   useConnectionState,
 } from "@livekit/components-react";
 import { ConnectionState } from "livekit-client";
+import {
+  detectPlatform,
+  defaultsToPerSessionPermission,
+  type Platform,
+} from "@/lib/detectPlatform";
 
 const JOINED_BEFORE_KEY = "rim-livekit-joined-before";
 
@@ -38,17 +43,6 @@ async function queryPermission(name: "camera" | "microphone"): Promise<Permissio
   } catch {
     return "unsupported";
   }
-}
-
-function isSafariMac(): boolean {
-  if (typeof navigator === "undefined" || typeof window === "undefined") return false;
-  const ua = navigator.userAgent;
-  const isSafari = /Safari/.test(ua) && !/Chrome|CriOS|FxiOS|EdgiOS|EdgA/.test(ua);
-  const isMac = /Macintosh/.test(ua);
-  // iPadOS 13+ reports as Macintosh; exclude touch devices so this is only
-  // true desktop Safari Mac where "Settings for This Website..." applies.
-  const isTouch = "ontouchend" in document;
-  return isSafari && isMac && !isTouch;
 }
 
 function readJoinedBefore(): boolean {
@@ -83,7 +77,14 @@ export default function Greenroom({ onJoined, onDenied }: Props) {
   const [showRememberInstructions, setShowRememberInstructions] = useState(false);
   const decisionRef = useRef<"granted" | "manual" | null>(null);
   const attemptedRef = useRef(false);
-  const safariMac = isSafariMac();
+  const [platform, setPlatform] = useState<Platform | null>(null);
+
+  // Detect platform once on the client (avoids SSR/hydration mismatch).
+  useEffect(() => {
+    setPlatform(detectPlatform());
+  }, []);
+
+  const showRememberDisclosure = platform ? defaultsToPerSessionPermission(platform) : false;
 
   // Initial permission decision — runs once.
   useEffect(() => {
@@ -210,7 +211,7 @@ export default function Greenroom({ onJoined, onDenied }: Props) {
         </button>
         <p className="gr-card__hint">You can mute yourself anytime once you&apos;re in.</p>
 
-        {safariMac && (
+        {showRememberDisclosure && platform && (
           <div className="gr-remember">
             <button
               type="button"
@@ -223,17 +224,47 @@ export default function Greenroom({ onJoined, onDenied }: Props) {
             {showRememberInstructions && (
               <div className="gr-remember__panel">
                 <p className="gr-remember__intro">Skip this screen on future visits:</p>
-                <ol className="gr-remember__steps">
-                  <li>Click <strong>Safari</strong> in the menu bar at the top of your screen</li>
-                  <li>Choose <strong>Settings for This Website…</strong></li>
-                  <li>Set <strong>Camera</strong> and <strong>Microphone</strong> to <strong>Allow</strong></li>
-                  <li>Refresh — RIM won&apos;t ask again on this Mac</li>
-                </ol>
+                <RememberSteps platform={platform} />
               </div>
             )}
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+function RememberSteps({ platform }: { platform: Platform }) {
+  // Only Safari on macOS / iOS / iPadOS reaches this — guarded by
+  // defaultsToPerSessionPermission above. Branch on OS for the device-matched
+  // affordance: menu bar on Mac, AA icon on iPhone, ᴬA icon on iPad.
+  if (platform.os === "macos") {
+    return (
+      <ol className="gr-remember__steps">
+        <li>Click <strong>Safari</strong> in the menu bar at the top of your screen</li>
+        <li>Choose <strong>Settings for This Website…</strong></li>
+        <li>Set <strong>Camera</strong> and <strong>Microphone</strong> to <strong>Allow</strong></li>
+        <li>Refresh — RIM won&apos;t ask again on this Mac</li>
+      </ol>
+    );
+  }
+  if (platform.os === "ipados") {
+    return (
+      <ol className="gr-remember__steps">
+        <li>Tap the <strong>ᴬA</strong> icon in the address bar</li>
+        <li>Tap <strong>Website Settings</strong></li>
+        <li>Set <strong>Camera</strong> and <strong>Microphone</strong> to <strong>Allow</strong></li>
+        <li>Refresh — RIM won&apos;t ask again on this iPad</li>
+      </ol>
+    );
+  }
+  // ios
+  return (
+    <ol className="gr-remember__steps">
+      <li>Tap the <strong>AA</strong> icon at the left of the address bar</li>
+      <li>Tap <strong>Website Settings</strong></li>
+      <li>Set <strong>Camera</strong> and <strong>Microphone</strong> to <strong>Allow</strong></li>
+      <li>Refresh — RIM won&apos;t ask again on this iPhone</li>
+    </ol>
   );
 }
