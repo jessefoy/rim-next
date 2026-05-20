@@ -1,5 +1,87 @@
 ---
 
+## 2026-05-24 (session 121) — Session room cleanup: three-tier permissions, tile hover-mute, no auto-hide, host early-open
+
+Two commits on `main`. Five small issues Jesse named from a live test, plus one follow-on. The throughline: the previous session-room model had one overloaded `isHost` flag granted to a wide pool, and a fresh test session in the host hub exposed the result — multiple people clicked "Step in as Host" sequentially, each saw the End-for-All button, and only the latest stepper could actually use it. Buttons that don't work are the worst kind of UX for an overwhelmed user. This session was the cleanup.
+
+### Five issues from the test
+
+Jesse listed them; I produced a Connections Map per CLAUDE.md before any code. He answered four scoping questions, including the architectural one — "How does Zoom handle this?" — which redirected the work from a tactical fix into a real model rewrite.
+
+**(1) Tile hover-mute.** The mute button for hosts only lived in the Participants panel — slow to reach during a session. Added a hover-revealed Mute button on any remote tile for Co-host-tier users. "Muted" pill replaces the button when the participant is already muted. Suppressed on the local tile and until LiveKit's `localParticipant.identity` is bound (the reviewer caught a one-frame window where a Co-host could otherwise self-mute via the server path).
+
+**(2) Audio echo.** Diagnosed; nothing to change. `echoCancellation: true` is already on for every audio profile in `buildRoomOptions`. The "I heard my voice" complaint is almost always acoustic (a listener with mic open and speakers on). The Audio Playback prompt already shows "Headphones recommended" copy. Honest scope note for Jesse rather than speculative tuning.
+
+**(3) Share Screen for host/teacher only.** Both UI and server. UI: button hidden in `RIMControlBar` when not Co-host. Server: `createRoomToken` now takes a permissions object; `canPublishSources` at token mint includes `SCREEN_SHARE` only for Session Host. A participant who hacks the UI still cannot publish a screen-share track because the LiveKit grant doesn't allow it.
+
+**(4) End-for-All permissions.** Real mismatch in the previous model: the token route granted `isHost: true` to ADMIN + HOST_MANAGER + HostAssignment + ProgramTeacher (hub-gated); end-session route accepted ADMIN + HOST_MANAGER + HostAssignment; UI showed End-for-All to anyone whose token said `isHost: true`. The right answer wasn't to align the two checks — it was to split the concept.
+
+**(5) Auto-hide chrome.** Test volunteer found the disappearing menu confusing. Removed entirely. The 3s idle JS timer + every `.vs-page--idle` CSS rule deleted. The bottom bar is shallow enough that always-visible costs no usable real estate.
+
+### The architectural rewrite — three permission tiers
+
+The whole shift is in one new module, `lib/livekitAuth.ts::resolveSessionRole`. It returns `{ isSessionHost, isCoHost, isHostTeam, isProgramTeacher }` from a single helper used by every server route that gates a session-room action.
+
+- **Session Host** (singular) = HostAssignment for this exact session, OR ADMIN. Gates **End-for-All** and **Share Screen** at the token. Only person whose tile gets a "Host" badge.
+- **Co-host** = ProgramTeacher OR HOST_MANAGER OR Session Host, gated by the host-team `HubMember` capability. Gates **mute others / Mute All / manage participants** at the token (`roomAdmin: true`). No End-for-All. Carries no badge.
+- **Participant** = everyone else. `canPublishSources: [MICROPHONE, CAMERA]` only. No screen share, no mute-others, no end. The UI doesn't even draw the buttons.
+
+`canPublish: true` is gone; replaced everywhere with `canPublishSources` so Participant tier physically cannot publish a screen-share track regardless of what their UI tries to do. `createRoomToken` signature changed from `(isHost: boolean)` to `(permissions: { roomAdmin, canShareScreen })`. Five routes updated to feed it: `token`, `step-in`, `guest-token`, `mute-participant`, `mute-all`, `end-session`. Step-in's new token explicitly sets both flags true (stepping in promotes you to Session Host for the session by upserting the HostAssignment). Guest tokens are explicit Participant grants.
+
+Client surfaces consume `isSessionHost` and `isCoHost` as separate props through `page.tsx` → `VideoRoom` → `RIMConference`. A new `SessionRoleContext` (in `components/session/sessionRole.tsx`) distributes the tier + `programSlug` + `localIdentity` to descendants of LiveKit's GridLayout — the tile component can't otherwise read them because LiveKit re-mounts tile children and doesn't accept arbitrary props. `RIMControlBar` hides Share unless Co-host; `EndMenu` shows End-for-All only for Session Host; `ParticipantsPanel`'s `isHost` prop was renamed `isCoHost` for semantic clarity (the panel's Mute affordance is a Co-host action, not a Session-Host action).
+
+### Reviewer sub-agent — two real catches pre-commit
+
+Default-on per the established memory. The first review caught:
+- **"Host" badge was being seeded for every Co-host** — would have put a Host pill on teachers and host managers, making the label confusing (it should mean "this is who runs the room"). Tightened to `isSessionHost` only.
+- **`resolveSessionRole` was running the hub-authority DB query twice** for everyone, once for Co-host and once for host-team. Cheap to fix: Co-host implies host-team, so the second call only runs for plain HOST role.
+- **The `localIdentity` race window** noted above.
+
+The second review (on the follow-on early-open work) caught:
+- A `[[], []]` early-return that TypeScript would have typed as `never[][]`, fragile against future use. Replaced with letting Prisma handle empty `in` arrays (which it does correctly — returns `[]`).
+- **Standing assignments silently excluded**: the host-match filter required `sessionDate` to be set, but legacy `sessionDate: null` rows (standing assignments covering every occurrence) should also count. Loosened to include them.
+
+Both reviews ran on the staged diff before any push. Pattern continues to earn its keep.
+
+### Follow-on — host/teacher 10-minute early-open
+
+Same session, separate commit, separate code-review pass. Jesse asked: "The assigned host and teacher should be able to log in 10 minutes before everyone else. On the dashboard, their link should look different than it normally would — instead of 'Live Now,' something relevant to what the host is doing."
+
+Implemented on the member dashboard's Today card. The Session Host (HostAssignment for today's occurrence) and ProgramTeacher (and ADMIN as safety override) now see a distinct **"Open early as host"** row between `start - 22min` and `start - 12min`. Teal accent to distinguish from the green "Live Now". Button reads **"Enter as host"**. Clarifier line: `Live opens at 8:15 AM`. At `start - 12min` the row collapses into the normal "Live Now" state and the host's row looks identical to everyone else's from that moment forward (per Jesse's explicit answer to the second scoping question).
+
+Detection is one batched lookup per surface: `db.hostAssignment.findMany` + `db.programTeacher.findMany` keyed on today's program-list, then matched per session in JS using `ctDateStr`. ADMIN bypass. No N+1.
+
+`DashboardAutoRefresh` now accepts `earlyOpenEpochs` alongside `liveStartEpochs`; the soonest upcoming epoch from the union triggers the next `router.refresh()`. The chain handles both transitions: the row appears at exactly `start - 22min`, then collapses into Live Now at exactly `start - 12min`, then enters live state, all without a manual refresh.
+
+**Deferred and called out for Jesse explicitly:** `/api/livekit/token` has no server-side time gate today. A regular member typing `/session/[slug]` directly could connect before the live window opens. Dashboard is the only thing hiding the link. Adding a token-route gate is a separate decision; left as a backlog item.
+
+### What this connects to
+
+- **Session 117** — the Zoom-aligned redesign was the foundation. This session refines the permission model that was implicit in that redesign. The control bar layout, custom chat, custom tile, view toggle, audio profile axis, device pickers — all unchanged.
+- **Session 92 Phase 3** — Hub Membership as Authority. `getEffectiveHostingCapability` (which gates the Co-host tier against the host-team `HubMember` record) is unchanged. The new `resolveSessionRole` calls it; this preserves the coordinator's ability to pause a member's hosting capability without touching their global Role[].
+- **Session 98** — Standing Host Assignments. The dashboard's host-match logic now honors `sessionDate: null` standing assignments. Caught by the reviewer; reasonable default since standing means "covers every occurrence."
+- **Trash + GUIDING_TEACHER (session 113/115)** — orthogonal. The session-room tier model is independent of `canManageTrash` / `effectiveCoordinator`. GT does not automatically get Session-Host or Co-host on every session; it's a content-authority role, not a session-room role.
+- **The committed architecture (session 120)** — Mac Safari permission friction is still a watch-and-listen item; today's work didn't touch the Greenroom or Recovery. Phone dial-in via SIP and a stronger Safari-Mac pre-warning remain the next-best mitigations if a member hits it.
+
+### What's deferred
+
+- **Stale-state propagation after Step-In.** Multiple steppers in one session leave earlier steppers with stale `isSessionHost: true` UI state. The server is now authoritative — clicking the stale button returns 403 silently — but the UI would benefit from broadcasting a "host changed" data-channel message and re-deriving `isSessionHost` on receipt. Backlog item. Not a real-world problem in production (one assigned host per session); shows up only in test scenarios.
+- **`/api/livekit/token` server-side time gate.** Match the dashboard's early-open window at the API layer so direct-URL access is also gated. Backlog item.
+- **`/session/[slug]` token-route metadata expansion.** If we add the stale-state broadcast, the token route could also publish `hostIdentity` to room metadata so clients derive `isSessionHost` from `localParticipant.identity === hostIdentity` rather than the original token grant. Coupled with the broadcast fix.
+
+### What's next
+
+- **Course offering model build remains the priority.** Unchanged from sessions 118/119/120 deferral. `RIM_Offering_Model.md` is the authoritative reference; build order suggestion in `UP_NEXT.md`.
+- **Test the early-open window on the next live session.** Visual + timing check. If the badge color, button copy, or alignment needs adjustment on mobile, easy follow-up.
+
+### Process notes
+
+- **Reviewer-sub-agent-before-commit ran on both commits.** Two real catches on the first, two more on the second. The pattern continues to be load-bearing.
+- **Merge-to-main-by-default held both commits.** No "want me to merge?" gates. Branch created, work committed, push, FF main, delete branch — same flow both times.
+- **Plan mode not used this session.** Conversation-based scoping with the Connections Map was enough. Both commits had a clear shape from the outset; plan-mode formality would have been ceremony.
+
+---
+
 ## 2026-05-23 (session 120) — Permission UX architectural decision + platform-aware Greenroom/Recovery
 
 One commit (`3ffb294`) on `main`. Small code change, larger architectural moment.

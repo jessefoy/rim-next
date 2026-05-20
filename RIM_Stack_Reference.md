@@ -1,6 +1,6 @@
 # RIM Next — Stack Reference
 
-_Generated 2026-03-11. Last updated 2026-05-23 (session 120 — platform-aware Greenroom/Recovery instructions via new `lib/detectPlatform.ts` helper; browser-based custom LiveKit room formally committed as the architecture, with PWA / native app / Zoom paths explicitly rejected against the 65+ demographic)._
+_Generated 2026-03-11. Last updated 2026-05-24 (session 121 — three-tier session-room permission model via new `lib/livekitAuth.ts::resolveSessionRole`, new `components/session/sessionRole.tsx` React context, tile hover-mute, chrome always visible, host/teacher 10-minute early-open on the dashboard)._
 
 ---
 
@@ -15,7 +15,7 @@ Rooted In Mindfulness (RIM) is a community Insight Meditation center in Brookfie
 - Programs and registrations management at `/tools/programs` (the Program Manager)
 - Postgres-backed course and lesson library (`/tools/learning` — the Course Manager)
 - Host Community Hub workspace + Host Schedule at `/tools/schedule` with Schedule and Rotations tabs (Standing Host Assignments — session 98)
-- LiveKit Cloud video conferencing (replaced Google Meet in session 86; Zoom-aligned redesign session 117; Greenroom + Recovery permission-safe join flow session 119; platform-aware permission instructions session 120) — bottom Zoom-style control bar with mic/cam device pickers, Speaker/Gallery view toggle, custom persistent chat with DMs, H.264 video at 2.5 Mbps / 30 fps, three-way audio profile (teacher/speaker/listener) with explicit per-profile bitrates, initials-circle avatar fallback, auto-hide chrome on idle. Pre-prompt Greenroom primes the user before the browser camera/microphone prompt; Recovery screen for users who clicked "Never for this Website" with steps matched to their actual browser+OS (Safari macOS/iOS/iPadOS, Chrome+Edge desktop, Chrome Android, Firefox, generic fallback) via `lib/detectPlatform.ts`.
+- LiveKit Cloud video conferencing (replaced Google Meet in session 86; Zoom-aligned redesign session 117; Greenroom + Recovery permission-safe join flow session 119; platform-aware permission instructions session 120; three-tier permission model + tile hover-mute + chrome always visible session 121) — bottom Zoom-style control bar with mic/cam device pickers, Speaker/Gallery view toggle, custom persistent chat with DMs, H.264 video at 2.5 Mbps / 30 fps, three-way audio profile (teacher/speaker/listener) with explicit per-profile bitrates, initials-circle avatar fallback. Three-tier permission model gates every action: Session Host (HostAssignment for this exact session or ADMIN) gets End-for-All + Share Screen; Co-host (ProgramTeacher or HOST_MANAGER, hub-gated) gets mute-others / Mute All; Participant gets mic + camera only (no screen share at the token level). Pre-prompt Greenroom primes the user before the browser camera/microphone prompt; Recovery screen for users who clicked "Never for this Website" with steps matched to their actual browser+OS (Safari macOS/iOS/iPadOS, Chrome+Edge desktop, Chrome Android, Firefox, generic fallback) via `lib/detectPlatform.ts`.
 - Email Template Manager at `/admin/emails` — database-backed
 - Database-driven staff manual (ManualSection records) with audience-grouped index, hub-scoped projection, contextual help icons
 - **Hub Documents** with per-document Basecamp-style notifications, PDF file uploads, three-stage Archive → Trash lifecycle (session 113)
@@ -148,6 +148,20 @@ The Gmail OAuth env vars (`GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REDIR
 | `LIVEKIT_API_KEY` | LiveKit Cloud API key |
 | `LIVEKIT_API_SECRET` | LiveKit Cloud API secret |
 | `NEXT_PUBLIC_LIVEKIT_URL` | LiveKit Cloud WebSocket URL (public, used by client SDK) |
+
+**Session room three-tier permission model (session 121):** The previous overloaded `isHost` flag was split into Session Host + Co-host + Participant. One helper — `lib/livekitAuth.ts::resolveSessionRole(userId, programSlug, sessionDate, roles)` — returns `{ isSessionHost, isCoHost, isHostTeam, isProgramTeacher }` and is used by every server route that gates a session-room action (token, step-in, mute-participant, mute-all, end-session). Tier definitions:
+
+- **Session Host** (singular) = `HostAssignment` match for this exact session OR `ADMIN`. Token grant: `roomAdmin: true` + `canPublishSources` includes `SCREEN_SHARE`. Gates End-for-All and Share Screen. Only person whose tile carries the "Host" badge (`seedMeta.host = true` keyed on `isSessionHost`, not `isCoHost`).
+- **Co-host** = `ProgramTeacher` OR `HOST_MANAGER` OR Session Host, hub-gated via `getEffectiveHostingCapability(userId, "host-team", tentative)`. Token grant: `roomAdmin: true`, no screen-share source. Gates mute-others / Mute All / per-tile hover mute / Participants management. No End-for-All. No badge.
+- **Participant** = everyone else. Token grant: `canPublishSources: [MICROPHONE, CAMERA]` only. UI hides Share / Mute-others / End-for-All buttons.
+
+`createRoomToken(userId, userName, roomName, permissions: { roomAdmin, canShareScreen }, metadata?)` — the previous `(isHost: boolean)` signature was removed. `canPublish: true` was replaced everywhere with `canPublishSources` so the participant tier physically cannot publish a screen-share track regardless of what their UI tries to do.
+
+Client-side, `components/session/sessionRole.tsx` provides `SessionRoleContext` with `{ isSessionHost, isCoHost, programSlug, localIdentity: string | null }` — descendants of `RIMConference` (the tile in particular) read it without prop-drilling through LiveKit's GridLayout. `localIdentity` is nullable because LiveKit's `localParticipant.identity` is briefly undefined on first render; consumers must check truthiness before comparing to prevent a one-frame race where a Co-host could self-mute via the server path.
+
+**Auto-hide chrome removed (session 121):** the `.vs-page--idle` class, the 3-second idle JS timer in `app/session/[slug]/page.tsx`, and the `:has()` override matrix in `custom.css` were all deleted after a volunteer test surfaced the disappearing UI as confusing. Chrome stays visible at all times. The bottom bar is shallow enough that always-visible costs no usable real estate.
+
+**Tile hover-mute (session 121):** `RIMParticipantTile` shows a red "Mute" button top-right on hover when `isCoHost && !isLocal && localIdentity` is truthy. "Muted" pill replaces the button when the participant is already muted. Uses the existing `/api/livekit/mute-participant` endpoint. Desktop affordance; mobile / touch hosts continue to use the Participants panel.
 
 **Session room Zoom-aligned redesign (session 117):** The session room UX was reshaped end-to-end to match Zoom's information architecture so Sangha members transitioning from Zoom carry their muscle memory cleanly. Detailed inventory in FEATURES.md §38 ("Zoom-aligned redesign") and `SESSION_ROOM_FOR_VOLUNTEERS.md`. Key components and patterns:
 

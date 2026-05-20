@@ -2664,6 +2664,22 @@ async function main() {
     console.log("  ⏭ Manual host-session-room v3 already applied.");
   }
 
+  // Manual chapter: host-session-room. v4 reflects the session-121 cleanup:
+  // three-tier permission model (Session Host vs Co-host vs Participant),
+  // tile hover-mute, chrome always visible, Share Screen / End-for-All as
+  // Session-Host-only, and the ten-minute early-open window for hosts and
+  // teachers.
+  const updateManualHostSessionRoomV4Flag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_host_session_room_v4'
+  `).catch(() => []);
+
+  if (updateManualHostSessionRoomV4Flag.length === 0) {
+    await updateManualHostSessionRoom(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_session_room_v4')`);
+  } else {
+    console.log("  ⏭ Manual host-session-room v4 already applied.");
+  }
+
   // Manual chapter: conversations. v2 corrects the reactions section:
   // reactions live on replies only, not on the thread's first message.
   // The UI shows a smile-plus picker on each reply that opens a small

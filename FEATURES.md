@@ -454,7 +454,13 @@ The member home page. A single `720px` content column (`db2-wrap`), sections in 
 5. **Where you're studying** — non-onboarding `SeriesEnrollment` records with progress bars + Continue link. Renamed from "Your Series" in session 116.
 6. **Where you're contributing** — hub cards with unread badges; ADMIN sees all hubs; others see only their `HubMember` records. Renamed from "Your Hubs" in session 116.
 
-**Today logic:** `allVirtual` query fetches virtual/hybrid programs with full recurrence fields. JS-side `isOccurrenceToday()` handles weekly (day code + bi-weekly interval + series end), single events, monthly/daily. `shiftToToday()` corrects the live/later window for recurring programs. Sessions split into **Live Now** (Join button; window opens 12 min before start through session end) and **Later Today** (no Join button; countdown text — "Join opens in 23 min"). Join link withheld until Live Now to prevent accidental joins. **In-person today:** strictly-in-person registrations (`programFormat === "in-person"`) whose next occurrence falls on today are merged into the same Today card with a quiet "In-person" tag (no Join button — physical attendance). Hybrid programs are already covered via `allVirtual`. **Auto-refresh:** `DashboardAutoRefresh` fires `router.refresh()` via `setTimeout` exactly when a Later Today session enters its Live Now window. No polling.
+**Today logic:** `allVirtual` query fetches virtual/hybrid programs with full recurrence fields. JS-side `isOccurrenceToday()` handles weekly (day code + bi-weekly interval + series end), single events, monthly/daily. `shiftToToday()` corrects the live/later window for recurring programs. Sessions split into three states for the assigned host / ProgramTeacher / ADMIN (and two states for everyone else):
+
+- **Open early as host** (host/teacher only, session 121) — teal row, "Enter as host" button, "Live opens at X:XX" clarifier. Window: `start - 22min` through `start - 12min`. Hosted today is determined by a single batched lookup per page render: viewer's `HostAssignment` rows (where `sessionDate` is today *or* null for legacy standing assignments) + viewer's `ProgramTeacher` rows, both keyed to today's program list.
+- **Live Now** (everyone) — green pill, "Join now" button. Window: `start - 12min` through session end. Once this opens, the host's row collapses to look identical to everyone else's.
+- **Later Today** — no Join button, countdown text. For host/teacher rows more than 12 minutes out, the countdown reads "Setup opens in N min" (when within the next hour); for everyone else, "Join opens in N min" / "Starts at X:XX".
+
+Join link withheld until each state's window to prevent accidental joins. **In-person today:** strictly-in-person registrations (`programFormat === "in-person"`) whose next occurrence falls on today are merged into the same Today card with a quiet "In-person" tag (no Join button — physical attendance). Hybrid programs are already covered via `allVirtual`. **Auto-refresh:** `DashboardAutoRefresh` accepts both `liveStartEpochs` and `earlyOpenEpochs` and fires `router.refresh()` via `setTimeout` at the soonest upcoming epoch from the union, so a host's row appears at `start - 22min` *and* collapses at `start - 12min` without manual reload. No polling.
 
 **Coming up for you logic:** Each `Registration` is projected to its program's next upcoming occurrence via `nextOccurrenceOnOrAfter()` (new in session 116, `lib/scheduleUtils.ts`) — walks forward up to 365 days from today's CT date, short-circuits for non-recurring programs with past anchors. Rows where `nextDateStr === null` (no future occurrence — completed series, past one-time programs) are filtered out. Rows where `nextDateStr === today` are filtered out (they're in Today above). Remaining rows sorted ascending by next date, sliced to 5. Each row's inline time is the start time projected to the next-occurrence date via `shiftToDate()`.
 
@@ -1820,7 +1826,7 @@ When an application is extracted, the hub may retain a simplified read-only view
 
 ---
 
-## 38. LiveKit Video Conferencing — Phases 1–5 ✅ Built — sessions 76, 86, 117 (Zoom-aligned redesign)
+## 38. LiveKit Video Conferencing — Phases 1–5 ✅ Built — sessions 76, 86, 117 (Zoom-aligned redesign), session 121 (three-tier permission model + cleanup)
 
 ### What it does
 
@@ -1836,6 +1842,22 @@ Embedded video conferencing that replaces Google Meet for virtual and hybrid pro
 - **Phase 5 (Zoom-aligned redesign):** ✅ Complete (session 117). The entire session-room UX was reshaped to mirror Zoom's information architecture so Sangha muscle memory transfers cleanly. See "Zoom-aligned redesign" below.
 - **Phase 6 (recording):** 🔜 Pressing future feature — see below.
 
+### Three-tier permission model (session 121)
+
+The single `isHost` flag was replaced with a three-tier model governed by one helper: `lib/livekitAuth.ts::resolveSessionRole(userId, programSlug, sessionDate, roles)`. Returns `{ isSessionHost, isCoHost, isHostTeam, isProgramTeacher }`. Every server route that gates a session-room action uses this helper (no inlined role checks):
+
+- **Session Host** (singular) — `HostAssignment` for this exact session OR `ADMIN`. Token grant: `roomAdmin: true` + `canPublishSources` includes `SCREEN_SHARE`. Gates **End-for-All** and **Share Screen**. Only person whose tile + roster row carries the "Host" badge (seed metadata `host: true` is now keyed on `isSessionHost`, not `isCoHost`).
+- **Co-host** — `ProgramTeacher` OR `HOST_MANAGER` OR Session Host, gated by the host-team `HubMember` capability (via `getEffectiveHostingCapability`). Token grant: `roomAdmin: true`, no screen-share source. Gates **mute others / Mute All / per-tile hover mute / Participants management**. No End-for-All. No badge.
+- **Participant** — everyone else. Token grant: `canPublishSources: [MICROPHONE, CAMERA]` only. No screen share even if they bypass the UI. UI doesn't draw Share / Mute-others / End-for-All buttons.
+
+`isSessionHost` always implies `isCoHost`. Guests (open-access) are always Participant tier.
+
+`createRoomToken` signature: `(userId, userName, roomName, permissions: { roomAdmin, canShareScreen }, metadata?)`. The previous `(isHost: boolean)` form was removed entirely.
+
+A small `SessionRoleContext` (`components/session/sessionRole.tsx`) provides `{ isSessionHost, isCoHost, programSlug, localIdentity }` to descendants of `RIMConference` so the tile component can read the tier without prop-drilling through LiveKit's GridLayout (which re-mounts children and doesn't accept arbitrary props). `localIdentity` is `string | null` — consumers must check truthiness before comparing (prevents a one-frame race where a Co-host could otherwise self-mute via the server path).
+
+**Files touched in the rewrite:** `lib/livekitAuth.ts` (new), `lib/livekit.ts`, `components/session/sessionRole.tsx` (new), all five `/api/livekit/*` routes (token, step-in, guest-token, mute-participant, mute-all, end-session), `app/session/[slug]/page.tsx`, `components/VideoRoom.tsx`, `components/session/RIMConference.tsx`, `RIMControlBar.tsx`, `RIMParticipantTile.tsx`, `EndMenu.tsx`, `ParticipantsPanel.tsx`, `app/admin/livekit-test/page.tsx`.
+
 ### Emergency Host Step-In
 
 **What it does:** If the assigned host can't make it and there's no time for a normal sub request, any host-team member (HOST, HOST_MANAGER, or ADMIN) can claim host controls mid-session.
@@ -1843,15 +1865,15 @@ Embedded video conferencing that replaces Google Meet for virtual and hybrid pro
 **How it works:**
 1. Host-team member joins the session from the dashboard like any other member
 2. They see a green "Step in as Host" button in the session header bar
-3. They click it — brief reconnect (1-2 seconds) — they now have full host controls (mute, remove, end session)
+3. They click it — brief reconnect (1-2 seconds) — they now have full Session-Host controls
 4. The button disappears once they have host status
 5. The system records "Emergency step-in by [name]" in the HostAssignment notes for coordinator visibility
 
-**Who sees the button:** Anyone with HOST, HOST_MANAGER, or ADMIN role who is NOT already the assigned host for that session. Regular members never see it.
+**Who sees the button:** Anyone whose `resolveSessionRole().isHostTeam` is true and who isn't already the Session Host for this session. Regular members never see it.
 
 **Key files:** `app/api/livekit/step-in/route.ts`, `app/session/[slug]/page.tsx`
 
-🔧 **Technical notes:** The step-in API upserts the HostAssignment (@@unique on [programSlug, sessionDate]), generates a new JWT with `roomAdmin: true`, and returns it. The client cycles state to force a LiveKit reconnect with the new token. The token API returns `isHostTeam` alongside `isHost` so the session page knows whether to show the button.
+🔧 **Technical notes:** The step-in API upserts the HostAssignment (@@unique on [programSlug, sessionDate]), generates a new JWT with `roomAdmin: true` + `canShareScreen: true` (Session-Host grant), and returns `{ isSessionHost: true, isCoHost: true }` alongside the token. The client cycles state to force a LiveKit reconnect with the new token. The token API also returns `isHostTeam` so the page knows whether to show the Step-In button. **Stale-state after sequential step-ins** is a known limitation (backlog item `2026-05-24-001`): earlier steppers keep `isSessionHost: true` in stale client state and may see End-for-All; the server is authoritative and rejects them with 403.
 
 ### Three-Way Audio Profile (session 117)
 
@@ -1879,21 +1901,21 @@ The visual / behavioral language of every session-room surface was reshaped to m
 
 **Reactions popover (`ReactionsMenu`).** Replaces the standalone top-of-room `NonverbalToolbar`. Opens upward from the Reactions button. Five signals (✋ ❤️ 🙏 ✓ ✗); hand persists until toggled, others auto-clear after 5s. "Lower hand" item appears when hand is raised.
 
-**End popover (`EndMenu`).** Red End button opens an upward popover. Hosts see `End Meeting for All` (red) + `Leave Meeting`; non-hosts see just `Leave Meeting`. Server endpoint (`/api/livekit/end-session`) is the security boundary; the popover is the UX boundary.
+**End popover (`EndMenu`).** Red End button opens an upward popover. Session Host sees `End Meeting for All` (red) + `Leave Meeting`; Co-hosts and participants see just `Leave Meeting`. Server endpoint (`/api/livekit/end-session`) is the security boundary; the popover is the UX boundary. Session 121 tightened both sides: previous model showed End-for-All to anyone whose token had `isHost: true` (a wide pool including HOST_MANAGER and ProgramTeacher) while the server only accepted assigned host / HOST_MANAGER / ADMIN — created an "I can see it but clicking does nothing" failure for some Co-hosts. Now both layers consult the same `resolveSessionRole` helper and only the Session Host (assigned HostAssignment + ADMIN) can end.
 
 **Speaker / Gallery view toggle (`ViewToggle`).** Segmented control top-right of the page header. Gallery default. Speaker view auto-pins active speaker via `useSpeakingParticipants` with a ref-gated effect to avoid per-render thrash. Preference persists in `localStorage` under `rim-livekit-view`.
 
 **Page header trim.** Was: Leave / Step-In / Mute All / End for All / Fullscreen / Help. Now: Step-In (left, host-team only) / program name (center) / View toggle + Fullscreen + Help (right). The removed buttons moved to their Zoom-equivalent locations — Mute All to Participants panel footer, Leave + End for All into the control bar's End popover.
 
-**Participants panel.** Sticky local "Me" row at the top with `(you)` tag and `Host` pill (when applicable). Host pill also renders on remote rows whose token metadata marked them as host. Search box at >10 participants. Per-row mute (host) or `Muted` pill (off state). Footer Mute All for hosts. Re-renders driven by `TrackMuted/Unmuted/Published/Unpublished` from `useRemoteParticipants` updateOnlyOn config.
+**Participants panel.** Sticky local "Me" row at the top with `(you)` tag and `Host` pill (when the viewer is Session Host). Host pill on a remote row matches the seed metadata `host: true` (Session Host only as of session 121 — previously Co-hosts also got the pill, which was confusing). Search box at >10 participants. Per-row mute / `Muted` pill for Co-hosts. Footer Mute All for Co-hosts. The `isHost` prop was renamed `isCoHost` in session 121 for semantic clarity. Re-renders driven by `TrackMuted/Unmuted/Published/Unpublished` from `useRemoteParticipants` updateOnlyOn config.
 
 **Custom chat (`RIMChat`).** Replaces LiveKit's stock `<Chat />` (broadcast-only, in-memory). New `SessionChatMessage` Prisma model + `/api/livekit/chat` (GET + POST). On mount, fetches up to 100 prior messages so new joiners and post-refresh users see history. Live via `room.localParticipant.publishData(payload, { destinationIdentities, reliable: true, topic: "rim-chat" })`. Recipient picker above compose: default "Everyone," select a name → private DM. Private messages render with a teal left border and `(private)` tag. Server-side filtering on read so DMs only return to sender + listed recipients. Guests authenticate via `guestKey + guestIdentity` for chat writes.
 
-**Custom tile (`RIMParticipantTile`).** Hides LiveKit's default name bar; renders our own Zoom-style nameplate (white text bottom-left with text-shadow, no pill background; small red mic-off SVG only when muted; small Host pill if applicable). Active-speaker 3px yellow outline via `useIsSpeaking`. 8px rounded corners.
+**Custom tile (`RIMParticipantTile`).** Hides LiveKit's default name bar; renders our own Zoom-style nameplate (white text bottom-left with text-shadow, no pill background; small red mic-off SVG only when muted; small Host pill only for the Session Host). Active-speaker 3px yellow outline via `useIsSpeaking`. 8px rounded corners. **Hover mute (session 121):** when the viewer is `isCoHost`, hovering any remote tile reveals a red "Mute" button top-right; if the participant is already muted, a "Muted" pill appears in the same spot instead. Suppressed on the local tile and until `localParticipant.identity` is bound. Calls the existing `/api/livekit/mute-participant` endpoint. Desktop affordance; mobile / touch hosts use the Participants panel for the same action.
 
 **Initials avatar fallback.** When a participant has video off and no presence photo, renders an initials circle (first letter of first + last name token) on a deterministic muted color hashed from identity — pattern matches Slack / Google Meet / Zoom. LiveKit's generic gray silhouette is hidden unconditionally. Sized to the shorter tile axis via `min(40cqh, 240px)` so it stays circular at any aspect ratio.
 
-**Auto-hide chrome.** Page tracks idle via 3-second timer reset by mousemove / keydown / touchstart / focus. CSS fades the top header and bottom control bar (`opacity: 0` + small `translateY`) on `.vs-page--idle`. `:has()` overrides re-show chrome when any panel or popover is open. `:hover` restores. Touch devices (`hover: none`) never fade. Tile nameplates and the raised-hand banner stay visible (information, not chrome).
+**Chrome always visible (session 121, was: auto-hide).** Earlier sessions had a 3-second idle timer that faded the top header and bottom control bar (`.vs-page--idle` class + a `:has()` override matrix to re-show when any panel was open). Removed entirely after a volunteer test surfaced the disappearing UI as confusing. The bottom bar is shallow enough that always-visible costs no usable real estate. Tile nameplates and the raised-hand banner were always visible and remain so.
 
 **Pure-black background.** Conference root background changed from `#111` to `#000` to match Zoom's depth.
 
