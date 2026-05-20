@@ -21414,11 +21414,6 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .mcl-welcome__list { display: flex; flex-direction: column; gap: 8px; }
 .mcl-welcome__item { display: flex; justify-content: space-between; font-size: var(--text-ui); color: var(--rim-mid); text-decoration: none; padding: 6px 0; }
 .mcl-welcome__item:hover { color: var(--rim-blue); }
-.db2-courses-line { display: flex; align-items: center; gap: 12px; padding: 14px 18px; background: white; border-radius: 8px; }
-.db2-courses-line__label { font-family: var(--font-serif); font-size: var(--text-small); color: var(--rim-blue); font-weight: 600; }
-.db2-courses-line__count { font-size: var(--text-xs); color: var(--rim-text-muted); }
-.db2-courses-line__link { margin-left: auto; font-size: var(--text-xs); color: var(--rim-blue); text-decoration: none; }
-.db2-courses-line__link:hover { text-decoration: underline; }
 
 /* ── Drip / Scheduled Release ─────────────────────────────────────────────── */
 /* Series page — locked lesson cards */
