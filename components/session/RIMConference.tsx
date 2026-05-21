@@ -8,6 +8,14 @@
  * action button. Participants / Chat / Settings open as overlays. The
  * nonverbal signal toolbar lives inside the Reactions menu in the control
  * bar (no longer a separate top toolbar).
+ *
+ * Krisp noise cancellation is enabled by default on every join via the
+ * useKrispNoiseFilter hook from @livekit/components-react/krisp. Co-hosts
+ * (teachers, host managers, the session host) see a "Bell mode" toggle in
+ * the control bar that turns NC off so the full tone of bells, gongs, and
+ * singing bowls passes through unfiltered. The state resets to NC-on at
+ * every session join — Bell mode is a deliberate per-bell action, not a
+ * preference that persists.
  */
 
 import { useState, useEffect, useRef } from "react";
@@ -25,6 +33,7 @@ import {
   CarouselLayout,
   useSpeakingParticipants,
 } from "@livekit/components-react";
+import { useKrispNoiseFilter } from "@livekit/components-react/krisp";
 import { Track, RoomEvent } from "livekit-client";
 import RIMParticipantTile from "./RIMParticipantTile";
 import ParticipantsPanel from "./ParticipantsPanel";
@@ -77,6 +86,32 @@ export default function RIMConference({ isSessionHost, isCoHost, programSlug, gu
       localParticipant.setMetadata(JSON.stringify({ ...meta, avatarUrl }));
     }
   }, [localParticipant, avatarUrl]);
+
+  // Krisp NC — enable by default on every join. Co-host UI exposes a
+  // "Bell mode" toggle in the control bar that flips this off; the state
+  // is component-local so it resets to ON whenever the conference mounts.
+  // The hook's own effect re-runs when the mic publication appears, so
+  // calling setNoiseFilterEnabled(true) before the mic is ready is safe —
+  // the filter will be applied as soon as the local audio track exists.
+  //
+  // `krisp.processor` is undefined until the WASM filter loads successfully.
+  // On unsupported browsers (older Safari, some Firefox configs) the hook
+  // logs a warn and never creates the processor — we use that as the
+  // "Krisp actually available" signal to gate the Bell mode toggle, so
+  // teachers on unsupported browsers don't see a button that would lie
+  // about NC state.
+  const krisp = useKrispNoiseFilter();
+  const noiseFilterAvailable = krisp.processor !== undefined;
+  const krispDefaultRef = useRef(false);
+  useEffect(() => {
+    if (krispDefaultRef.current) return;
+    krispDefaultRef.current = true;
+    krisp.setNoiseFilterEnabled(true);
+    // setNoiseFilterEnabled is stable (the hook wraps it in useCallback with
+    // [] deps), but we depend on the `krisp` object as a whole — the eslint
+    // exhaustive-deps would flag a narrower dep array. The ref guard makes
+    // this safe regardless of how often the effect re-runs.
+  }, [krisp]);
 
   const tracks = useTracks(
     [
@@ -238,6 +273,10 @@ export default function RIMConference({ isSessionHost, isCoHost, programSlug, gu
           onOpenSettings={() => setSettingsOpen(true)}
           participantCount={remoteParticipants.length + 1}
           raisedHandCount={raisedHandCount}
+          noiseFilterAvailable={noiseFilterAvailable}
+          noiseFilterEnabled={krisp.isNoiseFilterEnabled}
+          noiseFilterPending={krisp.isNoiseFilterPending}
+          onToggleNoiseFilter={() => krisp.setNoiseFilterEnabled(!krisp.isNoiseFilterEnabled)}
         />
 
         {/* Audio playback prompt — Safari blocks audio until user interaction */}

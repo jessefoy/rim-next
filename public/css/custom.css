@@ -14024,6 +14024,9 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   color: var(--gr-text-mute);
   margin: 4px 0 0;
 }
+/* Headphones nudge — sangha-tone framing as care for others, not a
+   technical warning. Slightly more spacing so it reads as its own thought. */
+.gr-card__hint--headphones { margin-top: 10px; }
 .gr-card__body strong,
 .gr-card__hint strong {
   color: var(--gr-text);
@@ -14891,6 +14894,17 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   color: #4ade80;
 }
 .rim-cb-btn--share-active:hover { background: rgba(34, 184, 100, 0.28); }
+
+/* Bell mode — amber tint when Krisp noise cancellation is OFF.
+   Default state (NC on, label "Bell mode") uses the standard button styling
+   so it reads as a quiet, available action. When tapped (NC off, label
+   "Clean voice") the amber tint signals "you're in a mode" without the
+   alarmist red treatment of mic-off. Returns to default on re-tap. */
+.rim-cb-btn--bell-active {
+  background: rgba(200, 130, 26, 0.22);
+  color: #f4b461;
+}
+.rim-cb-btn--bell-active:hover { background: rgba(200, 130, 26, 0.32); }
 
 /* End / Leave — red, slightly wider, distinct from the rest */
 .rim-cb-btn--end {

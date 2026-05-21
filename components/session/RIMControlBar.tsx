@@ -4,13 +4,20 @@
  * RIMControlBar — Zoom-aligned bottom control bar.
  *
  * Layout LTR: Mute · Start Video | Participants · Chat | Share · Reactions
- *             · Settings · spacer · End (red)
+ *             · Settings · Bell mode (Co-host) · spacer · End (red)
  *
  * Mic and Video buttons are two-part clusters: main toggle on the left,
  * thin vertical divider, chevron on the right that opens an upward
  * device-picker popover (DevicePickerMenu — added in commit 2).
  *
  * The Reactions and End buttons open upward popovers (ReactionsMenu, EndMenu).
+ *
+ * Bell mode (Co-host only) toggles Krisp noise cancellation OFF so the full
+ * tone of bells, gongs, and singing bowls passes through unfiltered. NC is
+ * on by default at every join; Bell mode is a deliberate per-bell action,
+ * not a persisted preference. The state lives in RIMConference's
+ * useKrispNoiseFilter hook and is passed in as the noiseFilterEnabled /
+ * noiseFilterPending / onToggleNoiseFilter prop trio.
  */
 
 import { useRef, useState, useEffect } from "react";
@@ -30,13 +37,14 @@ import {
   IconReactions,
   IconSettings,
   IconChevronUp,
+  IconBell,
 } from "./ControlBarIcons";
 
 interface Props {
   programSlug: string;
   /** Session Host: gates End-for-All in the End menu and the End button label. */
   isSessionHost: boolean;
-  /** Co-host (or higher): gates Share Screen affordance. */
+  /** Co-host (or higher): gates Share Screen affordance and the Bell mode toggle. */
   isCoHost: boolean;
   participantsOpen: boolean;
   onToggleParticipants: () => void;
@@ -48,6 +56,17 @@ interface Props {
   participantCount: number;
   raisedHandCount: number;
   unreadChatCount?: number;
+  /** True once the Krisp WASM processor has loaded successfully. Browsers
+   *  where Krisp is unsupported (older Safari, some Firefox configs) report
+   *  this as false; we hide the Bell mode toggle entirely in that case so
+   *  it doesn't appear to lie about NC state. */
+  noiseFilterAvailable: boolean;
+  /** Whether Krisp NC is currently active on the local mic track. */
+  noiseFilterEnabled: boolean;
+  /** True while Krisp is loading/swapping; disables the Bell mode toggle. */
+  noiseFilterPending: boolean;
+  /** Flip NC on ↔ off. Bell mode = NC off. */
+  onToggleNoiseFilter: () => void;
 }
 
 function useLocalTrackState() {
@@ -96,6 +115,10 @@ export default function RIMControlBar({
   participantCount,
   raisedHandCount,
   unreadChatCount,
+  noiseFilterAvailable,
+  noiseFilterEnabled,
+  noiseFilterPending,
+  onToggleNoiseFilter,
 }: Props) {
   const room = useRoomContext();
   const { localParticipant } = useLocalParticipant();
@@ -305,6 +328,33 @@ export default function RIMControlBar({
         <span className="rim-cb-btn__icon" aria-hidden="true"><IconSettings /></span>
         <span className="rim-cb-btn__label">Settings</span>
       </button>
+
+      {/* ── Bell mode — Co-host only, only when Krisp is available ──
+          NC on (default) — voice is cleaned, ambient suppressed.
+          NC off (Bell mode active) — bells, gongs, singing bowls pass
+          through unfiltered. Reset to NC-on at every join.
+          Hidden when Krisp isn't supported in the browser, so the
+          button doesn't lie about its state. */}
+      {isCoHost && noiseFilterAvailable && (
+        <button
+          type="button"
+          className={`rim-cb-btn rim-cb-btn--bell${noiseFilterEnabled ? "" : " rim-cb-btn--bell-active"}`}
+          onClick={onToggleNoiseFilter}
+          disabled={noiseFilterPending}
+          aria-pressed={!noiseFilterEnabled}
+          aria-label={noiseFilterEnabled ? "Enable Bell mode" : "Return to clean voice"}
+          title={
+            noiseFilterEnabled
+              ? "Tap before ringing a bell to let its full tone through"
+              : "Bell mode is on — tap to return to clean voice"
+          }
+        >
+          <span className="rim-cb-btn__icon" aria-hidden="true"><IconBell /></span>
+          <span className="rim-cb-btn__label">
+            {noiseFilterEnabled ? "Bell mode" : "Clean voice"}
+          </span>
+        </button>
+      )}
 
       <div className="rim-cb-spacer" aria-hidden="true" />
 

@@ -210,6 +210,9 @@ export default function Greenroom({ onJoined, onDenied }: Props) {
           {ctaLabel}
         </button>
         <p className="gr-card__hint">You can mute yourself anytime once you&apos;re in.</p>
+        <p className="gr-card__hint gr-card__hint--headphones">
+          Headphones recommended — they keep your audio from echoing back to others.
+        </p>
 
         {showRememberDisclosure && platform && (
           <div className="gr-remember">

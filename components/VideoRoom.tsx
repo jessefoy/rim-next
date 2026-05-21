@@ -31,8 +31,26 @@
  * Video codec is H.264 — matches what Zoom uses, with universal hardware
  * encode/decode across laptops/phones/iPads, no CPU spike on older devices.
  * VP8 (our previous default) looked visibly softer at the same bitrate.
- * 720p @ 30fps, capped at 2.5 Mbps with simulcast layers down to 180p for
- * lossy networks.
+ *
+ * Video publish bitrate ceiling is per-profile, sized to Zoom-equivalent
+ * quality without overshooting what residential WiFi reliably sustains:
+ *   teacher  — 2.0 Mbps @ 720p/30fps (Zoom Group HD territory)
+ *   speaker  — 1.5 Mbps @ 720p/30fps (Zoom HD)
+ *   listener — 1.0 Mbps @ 720p/30fps (Zoom standard)
+ * Three explicit simulcast layers [h180, h360, h720] give the SFU a full
+ * adaptation ladder; adaptiveStream + dynacast handle the receiver-side
+ * downscaling and uplink savings respectively. The previous flat 2.5 Mbps
+ * ceiling for everyone was above what most consumer connections could
+ * sustain and produced the layer-switch freezes ("choppy/freezing"
+ * complaints).
+ *
+ * Krisp noise cancellation is wired in RIMConference (via the
+ * useKrispNoiseFilter hook from @livekit/components-react/krisp) and is
+ * enabled by default for every participant. Co-hosts can toggle it OFF
+ * via the "Bell mode" button in the control bar to preserve the full
+ * tone of bells, gongs, and singing bowls. The state resets to ON at
+ * every session join — Bell mode is a deliberate per-bell action, not
+ * a preference.
  *
  * DTX is OFF for all profiles. The bandwidth savings during silence are
  * negligible and DTX can cause perceptible artifacts at the start/end of
@@ -54,6 +72,8 @@ function buildRoomOptions(profile: AudioProfile): RoomOptions {
   const isTeacher = profile === "teacher";
   const audioMaxBitrate =
     profile === "teacher" ? 128_000 : profile === "speaker" ? 96_000 : 64_000;
+  const videoMaxBitrate =
+    profile === "teacher" ? 2_000_000 : profile === "speaker" ? 1_500_000 : 1_000_000;
   return {
     videoCaptureDefaults: {
       resolution: VideoPresets.h720.resolution,
@@ -70,10 +90,10 @@ function buildRoomOptions(profile: AudioProfile): RoomOptions {
           noiseSuppression: true,
         },
     publishDefaults: {
-      videoSimulcastLayers: [VideoPresets.h180, VideoPresets.h360],
+      videoSimulcastLayers: [VideoPresets.h180, VideoPresets.h360, VideoPresets.h720],
       videoCodec: "h264",
       videoEncoding: {
-        maxBitrate: 2_500_000,
+        maxBitrate: videoMaxBitrate,
         maxFramerate: 30,
       },
       audioPreset: { maxBitrate: audioMaxBitrate },
