@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { hasToolAccess } from "@/lib/toolAuth";
+import { flagsFromAccessLevel } from "@/lib/courseAccess";
 
 export async function GET(
   _request: NextRequest,
@@ -80,7 +81,29 @@ export async function PATCH(
   }
   if (fields.subheading !== undefined) updateData.subheading = fields.subheading || null;
   if (fields.description !== undefined) updateData.description = fields.description || null;
-  if (fields.accessLevel !== undefined) updateData.accessLevel = fields.accessLevel;
+
+  // accessLevel writes also derive the new orthogonal flags during
+  // transition. The editor still posts accessLevel; this keeps the new
+  // flags consistent with the legacy enum so the access helper (which
+  // reads only the flags) sees the right state immediately on save.
+  if (fields.accessLevel !== undefined) {
+    updateData.accessLevel = fields.accessLevel;
+    const flags = flagsFromAccessLevel(fields.accessLevel);
+    updateData.allowSelfEnroll = flags.allowSelfEnroll;
+    updateData.selfEnrollDanaRequired = flags.selfEnrollDanaRequired;
+  }
+
+  // Pass-through of the new orthogonal flags + content fields. The
+  // editor will start writing these directly in step 5 of the offering
+  // build; until then they're accepted in case a client wants to.
+  if (fields.allowSelfEnroll !== undefined) updateData.allowSelfEnroll = Boolean(fields.allowSelfEnroll);
+  if (fields.selfEnrollDanaRequired !== undefined) updateData.selfEnrollDanaRequired = Boolean(fields.selfEnrollDanaRequired);
+  if (fields.accessRestrictionMessage !== undefined) updateData.accessRestrictionMessage = fields.accessRestrictionMessage || null;
+  if (fields.heroImage !== undefined) updateData.heroImage = fields.heroImage || null;
+  if (fields.pullQuote !== undefined) updateData.pullQuote = fields.pullQuote || null;
+  if (fields.pullQuoteSource !== undefined) updateData.pullQuoteSource = fields.pullQuoteSource || null;
+  if (fields.danaText !== undefined) updateData.danaText = fields.danaText || null;
+
   if (fields.hideFromMemberProfile !== undefined) updateData.hideFromMemberProfile = fields.hideFromMemberProfile;
   if (fields.sortOrder !== undefined) updateData.sortOrder = fields.sortOrder != null ? Number(fields.sortOrder) : null;
   if (fields.isActive !== undefined) updateData.isActive = fields.isActive;

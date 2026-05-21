@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { renderContentBodyAsync, renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import AudioPlayer from "@/components/AudioPlayer";
 import LessonFooterClient from "@/components/LessonFooterClient";
+import { hasCourseAccess } from "@/lib/courseAccess";
 
 export const dynamic = "force-dynamic";
 
@@ -57,45 +58,42 @@ export default async function LessonPage({
   const isStaff = (session.user.roles ?? []).some((r: string) => ["TEACHER", "ADMIN"].includes(r));
 
   // ── Access check ─────────────────────────────────────────────────────────
-  // MEMBERS lessons: any logged-in user.
-  // REGISTRATION_REQUIRED lessons: must have access via a parent course.
+  // Lesson access derives from the parent course(s). A lesson is reachable
+  // if the user has access (via SeriesEnrollment, CourseAccess grant, or
+  // a linked Program registration) to AT LEAST ONE active parent course.
+  // Lesson.accessLevel is no longer consulted for the gate — the course's
+  // orthogonal flags + the user's enrollments are the source of truth.
+  // (Standalone lessons with no parent course remain accessible to any
+  // signed-in member, as before.)
   if (lesson.accessLevel === "REGISTRATION_REQUIRED") {
     const parentCourses = await db.courseLesson.findMany({
       where: { lessonId: lesson.id, course: { isActive: true } },
-      include: { course: { select: { id: true, slug: true, accessLevel: true } } },
+      include: {
+        course: {
+          select: {
+            id: true,
+            slug: true,
+            allowSelfEnroll: true,
+            selfEnrollDanaRequired: true,
+            requiredRoles: true,
+          },
+        },
+      },
     });
 
-    // Standalone REGISTRATION_REQUIRED: no course to check against — allow any member.
+    // Standalone REGISTRATION_REQUIRED (no active parent course): allow any member.
     let hasAccess = parentCourses.length === 0;
 
-    for (const cl of parentCourses) {
-      if (hasAccess) break;
-      // If the parent course itself allows all members, lesson is accessible
-      if (cl.course.accessLevel === "ALL_MEMBERS") { hasAccess = true; break; }
-
-      // Check program registration
-      const programCourses = await db.programCourse.findMany({
-        where: { courseId: cl.course.id },
-        select: { programId: true },
-      });
-      if (programCourses.length > 0) {
-        const reg = await db.registration.findFirst({
-          where: {
-            userId: session.user.id,
-            programId: { in: programCourses.map((pc) => pc.programId) },
-            status: { in: ["REGISTERED", "APPROVED"] },
-          },
-          select: { id: true },
+    if (!hasAccess) {
+      // OR-check across parent courses — any one granting access is sufficient.
+      for (const cl of parentCourses) {
+        const granted = await hasCourseAccess({
+          userId: session.user.id ?? null,
+          userRoles: session.user.roles ?? [],
+          course: cl.course,
         });
-        if (reg) { hasAccess = true; break; }
+        if (granted) { hasAccess = true; break; }
       }
-
-      // Check manual admin grant
-      const grant = await db.courseAccess.findUnique({
-        where: { userId_courseSlug: { userId: session.user.id, courseSlug: cl.course.slug } },
-        select: { id: true },
-      });
-      if (grant) { hasAccess = true; break; }
     }
 
     if (!hasAccess) {
@@ -109,10 +107,10 @@ export default async function LessonPage({
           </header>
           <div className="lp-content">
             <p style={{ color: "var(--rim-text-muted)", marginBottom: 16, lineHeight: 1.6 }}>
-              Access to this lesson requires registration for the associated program.
+              Access to this lesson requires enrollment in the associated course.
             </p>
-            <Link href="/community-programs" style={{ color: "var(--rim-blue)" }}>
-              View programs →
+            <Link href="/courses" style={{ color: "var(--rim-blue)" }}>
+              View courses →
             </Link>
           </div>
         </div>

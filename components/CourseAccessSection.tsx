@@ -7,7 +7,9 @@ import { useState, useEffect, useMemo } from "react";
 interface AdminCourse {
   slug: string;
   name: string;
-  accessLevel: string | null;
+  allowSelfEnroll: boolean;
+  selfEnrollDanaRequired: boolean;
+  requiredRoles: string[];
   linkedByPrograms: { slug: string; name: string }[];
 }
 
@@ -24,6 +26,7 @@ interface MemberRegistration {
 
 interface Props {
   memberId: string;
+  memberRoles: string[];
   memberRegistrations: MemberRegistration[];
   initialGrants: Grant[];
 }
@@ -31,20 +34,31 @@ interface Props {
 // ── Access status helpers ────────────────────────────────────────────────────
 
 type CourseStatus =
-  | { type: "all_members" }
+  | { type: "free_self_enroll" }
+  | { type: "dana_self_enroll" }
   | { type: "via_registration"; programs: { slug: string; name: string }[] }
   | { type: "manual_grant"; grant: Grant }
   | { type: "no_access" };
 
 function computeStatuses(
   course: AdminCourse,
+  memberRoles: string[],
   activeRegSlugs: Set<string>,
   grantsMap: Map<string, Grant>
 ): CourseStatus[] {
   const statuses: CourseStatus[] = [];
 
-  if (!course.accessLevel || course.accessLevel === "members") {
-    statuses.push({ type: "all_members" });
+  // Self-enroll path — orthogonal-flag model (session 123). The course
+  // is freely available to this member if allowSelfEnroll is true AND
+  // they pass any role gate (empty requiredRoles = no gate). The dana
+  // variant is shown when payment is required first.
+  const roleOk =
+    course.requiredRoles.length === 0 ||
+    course.requiredRoles.some((r) => memberRoles.includes(r));
+  if (course.allowSelfEnroll && roleOk) {
+    statuses.push({
+      type: course.selfEnrollDanaRequired ? "dana_self_enroll" : "free_self_enroll",
+    });
   }
 
   const linkedActive = course.linkedByPrograms.filter((p) =>
@@ -70,6 +84,7 @@ function computeStatuses(
 
 export default function CourseAccessSection({
   memberId,
+  memberRoles,
   memberRegistrations,
   initialGrants,
 }: Props) {
@@ -176,10 +191,12 @@ export default function CourseAccessSection({
   // ── Render helpers ────────────────────────────────────────────────────────
 
   const renderCourse = (course: AdminCourse) => {
-    const statuses = computeStatuses(course, activeRegSlugs, grantsMap);
+    const statuses = computeStatuses(course, memberRoles, activeRegSlugs, grantsMap);
     const uiState = courseUIState[course.slug] ?? "idle";
 
-    const hasAllMembers = statuses.some((s) => s.type === "all_members");
+    const freeSelfEnroll = statuses.some((s) => s.type === "free_self_enroll");
+    const danaSelfEnroll = statuses.some((s) => s.type === "dana_self_enroll");
+    const hasSelfEnroll = freeSelfEnroll || danaSelfEnroll;
     const viaReg = statuses.find((s) => s.type === "via_registration") as
       | Extract<CourseStatus, { type: "via_registration" }>
       | undefined;
@@ -188,9 +205,12 @@ export default function CourseAccessSection({
 
     // Warning text for when grant would be redundant
     let grantWarning: string | null = null;
-    if (hasAllMembers) {
+    if (freeSelfEnroll) {
       grantWarning =
-        "All logged-in members already have access to this course. A manual grant is redundant.";
+        "This member can already self-enroll in this course. A manual grant is redundant.";
+    } else if (danaSelfEnroll) {
+      grantWarning =
+        "This member can self-enroll in this course via dana. A manual grant would bypass the dana step.";
     } else if (viaReg && !hasManualGrant) {
       const names = viaReg.programs.map((p) => p.name).join(", ");
       grantWarning = `This member already has access via their ${names} registration.`;
@@ -198,9 +218,9 @@ export default function CourseAccessSection({
 
     // Warning text shown after revoking when they still have other access
     const revokeNote: string | null =
-      hasManualGrant && (hasAllMembers || viaReg)
-        ? hasAllMembers
-          ? "After revoking, this member will still have access — all members can view this course."
+      hasManualGrant && (hasSelfEnroll || viaReg)
+        ? hasSelfEnroll
+          ? "After revoking, this member will still have access — they can self-enroll in this course."
           : `After revoking, this member will still have access via their ${viaReg!.programs.map((p) => p.name).join(", ")} registration.`
         : null;
 
@@ -212,8 +232,11 @@ export default function CourseAccessSection({
         </div>
 
         <div className="ca-course__status">
-          {hasAllMembers && (
-            <span className="ca-badge ca-badge--members">All Members</span>
+          {freeSelfEnroll && (
+            <span className="ca-badge ca-badge--members">Can self-enroll</span>
+          )}
+          {danaSelfEnroll && (
+            <span className="ca-badge ca-badge--members">Self-enroll (dana)</span>
           )}
           {viaReg && (
             <span className="ca-badge ca-badge--reg">

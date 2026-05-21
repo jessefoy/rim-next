@@ -71,8 +71,14 @@ export async function enrollMemberInProgramCourse(
 }
 
 /**
- * Enroll a member in every active ROLE_REQUIRED series whose requiredRoles
- * array includes the given role. Called when a new role is added to a member.
+ * Enroll a member in every active series whose requiredRoles array
+ * includes the given role. Called when a new role is added to a member.
+ *
+ * Migrated session 123 to the orthogonal-flag model: we now match by
+ * non-empty requiredRoles instead of the legacy accessLevel enum. The
+ * effect is identical for every existing course (the backfill set
+ * requiredRoles to match the old ROLE_REQUIRED rows), but the query
+ * no longer depends on the enum.
  */
 export async function enrollMemberInRoleSeries(
   userId: string,
@@ -81,7 +87,6 @@ export async function enrollMemberInRoleSeries(
   try {
     const courses = await db.course.findMany({
       where: {
-        accessLevel: "ROLE_REQUIRED",
         isActive: true,
         requiredRoles: { has: role as Role },
       },

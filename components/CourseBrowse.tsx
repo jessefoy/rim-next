@@ -8,7 +8,8 @@ interface Course {
   title: string;
   slug: string;
   subheading: string | null;
-  accessLevel: string;
+  allowSelfEnroll: boolean;
+  selfEnrollDanaRequired: boolean;
   categoryId: string | null;
   categoryName: string | null;
   lessonCount: number;
@@ -61,8 +62,15 @@ function CourseCard({ course, isLoggedIn }: { course: Course; isLoggedIn: boolea
         <span className="cls-card__lessons">
           {course.lessonCount} lesson{course.lessonCount !== 1 ? "s" : ""}
         </span>
-        {course.accessLevel === "REGISTRATION_REQUIRED" && (
-          <span className="cls-card__access-label">Registration required</span>
+        {/* Badge logic (orthogonal-flags model, session 123): courses without
+            a self-enroll path are "live-cohort" courses — access comes through
+            a linked program registration. Calling out the path on the card
+            sets accurate expectations before the visitor clicks in. */}
+        {!course.allowSelfEnroll && (
+          <span className="cls-card__access-label">Live cohort</span>
+        )}
+        {course.allowSelfEnroll && course.selfEnrollDanaRequired && (
+          <span className="cls-card__access-label">Dana</span>
         )}
       </div>
 

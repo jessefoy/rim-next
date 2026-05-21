@@ -27,15 +27,14 @@ export async function generateMetadata({
   };
 }
 
-type AccessLevel = "ALL_MEMBERS" | "REGISTRATION_REQUIRED" | "ROLE_REQUIRED";
-
 interface CourseWithCount {
   course: {
     id: string;
     title: string;
     slug: string;
     subheading: string | null;
-    accessLevel: AccessLevel;
+    allowSelfEnroll: boolean;
+    selfEnrollDanaRequired: boolean;
   };
   lessonCount: number;
 }
@@ -99,12 +98,11 @@ export default async function TeacherProfilePage({
                   <span>
                     {lessonCount} lesson{lessonCount !== 1 ? "s" : ""}
                   </span>
-                  {course.accessLevel !== "ALL_MEMBERS" && (
-                    <span className="tpr-course-card__access">
-                      {course.accessLevel === "REGISTRATION_REQUIRED"
-                        ? "Registration required"
-                        : "Members only"}
-                    </span>
+                  {!course.allowSelfEnroll && (
+                    <span className="tpr-course-card__access">Live cohort</span>
+                  )}
+                  {course.allowSelfEnroll && course.selfEnrollDanaRequired && (
+                    <span className="tpr-course-card__access">Dana</span>
                   )}
                 </div>
               </Link>

@@ -4,8 +4,13 @@ import { db } from "@/lib/db";
 import { EnrollmentSource } from "@prisma/client";
 
 /**
- * POST /api/courses/[slug]/enroll  — enroll in a series
- * DELETE /api/courses/[slug]/enroll — unenroll (only allowed for SELF enrollments)
+ * POST   /api/courses/[slug]/enroll — free self-enroll in a course.
+ * DELETE /api/courses/[slug]/enroll — unenroll (only allowed for SELF enrollments).
+ *
+ * Self-enroll gate (session 123, orthogonal-flags model):
+ *   - course.allowSelfEnroll must be true
+ *   - course.selfEnrollDanaRequired must be false (dana goes through Checkout — slice 4)
+ *   - if course.requiredRoles is non-empty, user must hold at least one (ADMIN bypass)
  */
 
 export async function POST(
@@ -19,12 +24,43 @@ export async function POST(
 
   const { slug } = await params;
   const userId = session.user.id;
+  const userRoles = session.user.roles ?? [];
+  const isAdmin = userRoles.includes("ADMIN");
 
   const course = await db.course.findUnique({
     where: { slug, isActive: true },
-    select: { id: true },
+    select: {
+      id: true,
+      allowSelfEnroll: true,
+      selfEnrollDanaRequired: true,
+      requiredRoles: true,
+    },
   });
   if (!course) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  if (!course.allowSelfEnroll) {
+    return NextResponse.json(
+      { error: "This course doesn't support self-enrollment." },
+      { status: 403 }
+    );
+  }
+
+  if (course.selfEnrollDanaRequired) {
+    return NextResponse.json(
+      { error: "This course requires dana before enrollment. Use the checkout flow." },
+      { status: 400 }
+    );
+  }
+
+  if (course.requiredRoles.length > 0 && !isAdmin) {
+    const hasRole = course.requiredRoles.some((r) => userRoles.includes(r));
+    if (!hasRole) {
+      return NextResponse.json(
+        { error: "This course is offered to specific community members." },
+        { status: 403 }
+      );
+    }
+  }
 
   const enrollment = await db.seriesEnrollment.upsert({
     where: { userId_courseId: { userId, courseId: course.id } },

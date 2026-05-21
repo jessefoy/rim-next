@@ -21261,6 +21261,139 @@ a.vol-table__name:hover { color: var(--rim-mid); }
 .crs-continue-btn:hover { opacity: 0.75; }
 
 /* ─────────────────────────────────────────────────────────────────────────────
+   crs- — Pre-enrollment landing page additions (session 123)
+   Used when `.crs-page--landing` modifier is present. Mirrors the
+   .pg- (program) shape — same hero pattern, same float-up pull quote,
+   same details/CTA/facilitators section structure. .pg- styles are
+   reused directly where possible (the markup uses pg- classes); these
+   additions cover the course-specific pieces (hero modifier + lesson
+   preview list + enroll-button error slot).
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.crs-page--landing {
+  background: var(--rim-bg);
+}
+
+/* The landing hero replaces the centered editorial header for non-enrolled
+   visitors. Same pattern as .pg-hero. */
+.crs-hero {
+  position: relative;
+  min-height: 360px;
+  background-size: cover;
+  background-position: center;
+  background-color: #2a2a2a;
+  padding: 80px 24px 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+.crs-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.55) 100%);
+  pointer-events: none;
+}
+.crs-hero__inner {
+  position: relative;
+  max-width: 760px;
+  text-align: center;
+}
+.crs-hero__category {
+  display: inline-block;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  margin-bottom: 14px;
+}
+.crs-hero__category:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+.crs-hero__title {
+  font-family: var(--font-serif);
+  font-size: clamp(36px, 5vw, 52px);
+  font-weight: 500;
+  line-height: 1.15;
+  margin: 0 0 14px;
+  color: #fff;
+}
+.crs-hero__subheading {
+  font-family: var(--font-serif);
+  font-size: 20px;
+  line-height: 1.5;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+}
+
+/* Lesson preview — titles only, non-clickable, shown to non-enrolled visitors */
+.crs-preview {
+  max-width: var(--reading-width);
+  margin: 40px auto 32px;
+}
+.crs-preview__list {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  counter-reset: lesson;
+}
+.crs-preview__item {
+  display: flex;
+  gap: 16px;
+  align-items: baseline;
+  padding: 12px 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  font-family: var(--font-serif);
+  font-size: var(--text-body);
+  line-height: 1.5;
+  color: var(--rim-text);
+}
+.crs-preview__item:last-child {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+.crs-preview__num {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--rim-mid);
+  min-width: 24px;
+  text-align: right;
+}
+.crs-preview__title {
+  flex: 1;
+}
+
+/* Inline error from the enroll button — shown below the button on failure */
+.crs-enroll-error {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--color-error);
+  margin: 8px 0 0;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .crs-hero {
+    min-height: 280px;
+    padding: 64px 20px 80px;
+  }
+  .crs-hero__title {
+    font-size: clamp(30px, 7vw, 40px);
+  }
+  .crs-hero__subheading {
+    font-size: 17px;
+  }
+  .crs-preview {
+    margin: 32px 20px 24px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
    LEARNING SYSTEM — Lesson page additions (session 60)
    ───────────────────────────────────────────────────────────────────────────── */
 

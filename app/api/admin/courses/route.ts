@@ -6,7 +6,13 @@ import { sanityClient } from "@/lib/sanity";
 export interface AdminCourse {
   slug: string;
   name: string;
-  accessLevel: string | null;
+  // Orthogonal-flag model (session 123). The legacy accessLevel field
+  // is no longer surfaced to admin clients — CourseAccessSection
+  // decides "does this member already have access?" from the new flags
+  // + their registrations + manual grants.
+  allowSelfEnroll: boolean;
+  selfEnrollDanaRequired: boolean;
+  requiredRoles: string[];
   linkedByPrograms: { slug: string; name: string }[];
 }
 
@@ -39,7 +45,9 @@ export async function GET() {
   const result: AdminCourse[] = courses.map((c) => ({
     slug: c.slug,
     name: c.title,
-    accessLevel: c.accessLevel,
+    allowSelfEnroll: c.allowSelfEnroll,
+    selfEnrollDanaRequired: c.selfEnrollDanaRequired,
+    requiredRoles: c.requiredRoles as string[],
     linkedByPrograms: c.programs
       .map((pc) => programMap.get(pc.programId))
       .filter((p): p is { slug: string; name: string } => !!p),

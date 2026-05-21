@@ -42,14 +42,13 @@ export default async function CoursesPage() {
     },
   });
 
-  // Filter by access level
+  // Filter by visibility (orthogonal-flags model, session 123).
+  // requiredRoles gates visibility + self-enroll per RIM_Offering_Model.md.
+  // Empty requiredRoles = visible to anyone who reaches the catalog.
   const visibleCourses = courses.filter((c) => {
-    if (c.accessLevel === "ALL_MEMBERS") return true;
-    if (c.accessLevel === "REGISTRATION_REQUIRED") return true;
-    if (c.accessLevel === "ROLE_REQUIRED") {
-      return isAdmin || c.requiredRoles.some((r) => userRoles.includes(r));
-    }
-    return true;
+    if (c.requiredRoles.length === 0) return true;
+    if (isAdmin) return true;
+    return c.requiredRoles.some((r) => userRoles.includes(r));
   });
 
   // Fetch categories that have visible courses
@@ -115,7 +114,8 @@ export default async function CoursesPage() {
       title: c.title,
       slug: c.slug,
       subheading: c.subheading ?? null,
-      accessLevel: c.accessLevel as string,
+      allowSelfEnroll: c.allowSelfEnroll,
+      selfEnrollDanaRequired: c.selfEnrollDanaRequired,
       categoryId: c.categoryId ?? null,
       categoryName: c.category?.name ?? null,
       lessonCount: c._count.lessons,

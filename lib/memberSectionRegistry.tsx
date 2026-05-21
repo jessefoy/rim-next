@@ -160,6 +160,7 @@ export const MEMBER_SECTIONS: MemberSection[] = [
         <h2 className="adm-section__title">Course Access</h2>
         <CourseAccessSection
           memberId={member.id}
+          memberRoles={member.roles}
           memberRegistrations={member.registrations.map((r) => ({
             programSlug: r.programSlug,
             status: r.status,
