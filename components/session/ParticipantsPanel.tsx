@@ -16,7 +16,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { RemoteParticipant } from "livekit-client";
 import { RoomEvent } from "livekit-client";
-import { useRoomContext } from "@livekit/components-react";
+import { useLocalParticipant, useParticipantInfo, useRoomContext } from "@livekit/components-react";
 import type { Signal, ParticipantMetadata } from "./RIMParticipantTile";
 
 const SIGNAL_EMOJI: Record<NonNullable<Signal>, string> = {
@@ -29,8 +29,38 @@ const SIGNAL_EMOJI: Record<NonNullable<Signal>, string> = {
 
 const SEARCH_THRESHOLD = 10;
 
-function getMetadata(p: RemoteParticipant): ParticipantMetadata {
+function getMetadata(p: { metadata?: string }): ParticipantMetadata {
   try { return JSON.parse(p.metadata || "{}"); } catch { return {}; }
+}
+
+/**
+ * Renders the local participant's role pills from their LiveKit metadata.
+ * Mirrors the remote tile pill logic: Host, Teacher, then Co-host (only
+ * when neither of the others applies). Uses `useParticipantInfo` (not the
+ * bare localParticipant.metadata field) so the component re-renders when
+ * metadata changes — without this subscription, a Step-In reconnect that
+ * updates flags mid-session would leave the local pills stale until the
+ * panel was reopened.
+ */
+function LocalRolePills() {
+  const { localParticipant } = useLocalParticipant();
+  const info = useParticipantInfo({ participant: localParticipant });
+  const meta: ParticipantMetadata = info.metadata
+    ? getMetadata({ metadata: info.metadata })
+    : {};
+  return (
+    <>
+      {meta.host && (
+        <span className="rim-pp__role-tag rim-pp__role-tag--host">Host</span>
+      )}
+      {meta.teacher && (
+        <span className="rim-pp__role-tag rim-pp__role-tag--teacher">Teacher</span>
+      )}
+      {meta.cohost && !meta.host && !meta.teacher && (
+        <span className="rim-pp__role-tag rim-pp__role-tag--cohost">Co-host</span>
+      )}
+    </>
+  );
 }
 
 interface Props {
@@ -147,13 +177,16 @@ export default function ParticipantsPanel({ open, onClose, participants, program
         )}
 
         <div className="rim-pp__list">
-          {/* Sticky local "Me" row */}
+          {/* Sticky local "Me" row. Role pills follow the same priority
+              order as remote tiles: Host, Teacher, Co-host. We read the
+              local participant's own metadata (set by RIMConference's
+              seeding effect) so the local view matches what others see. */}
           <div className="rim-pp__row rim-pp__row--self">
             <span className="rim-pp__signal" />
             <span className="rim-pp__name">
               {localName} <span className="rim-pp__self-tag">(you)</span>
             </span>
-            {isCoHost && <span className="rim-pp__role-tag">Host</span>}
+            <LocalRolePills />
           </div>
 
           {filtered.length === 0 && (
@@ -165,14 +198,21 @@ export default function ParticipantsPanel({ open, onClose, participants, program
           {filtered.map((p) => {
             const meta = getMetadata(p);
             const isMicEnabled = p.isMicrophoneEnabled;
-            const isAdmin = meta.host === true;
             return (
               <div key={p.identity} className="rim-pp__row">
                 <span className="rim-pp__signal">
                   {meta.signal ? SIGNAL_EMOJI[meta.signal] : ""}
                 </span>
                 <span className="rim-pp__name">{p.name || p.identity}</span>
-                {isAdmin && <span className="rim-pp__role-tag">Host</span>}
+                {meta.host && (
+                  <span className="rim-pp__role-tag rim-pp__role-tag--host">Host</span>
+                )}
+                {meta.teacher && (
+                  <span className="rim-pp__role-tag rim-pp__role-tag--teacher">Teacher</span>
+                )}
+                {meta.cohost && !meta.host && !meta.teacher && (
+                  <span className="rim-pp__role-tag rim-pp__role-tag--cohost">Co-host</span>
+                )}
                 <span
                   className={`rim-pp__mic${isMicEnabled ? "" : " rim-pp__mic--muted"}`}
                   title={isMicEnabled ? "Mic on" : "Muted"}

@@ -14497,10 +14497,12 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.rim-tile-nameplate__host-tag {
+/* Tile role pills — Zoom-style badges next to the participant name.
+   Three orthogonal variants. cohost is set server-side only when neither
+   host nor teacher applies, so at most two pills render per tile. */
+.rim-tile-nameplate__role-pill {
   display: inline-block;
   padding: 1px 6px;
-  background: rgba(19, 82, 116, 0.85);
   color: #fff;
   border-radius: 3px;
   font-size: 10px;
@@ -14508,6 +14510,16 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   text-transform: uppercase;
   letter-spacing: 0.05em;
   text-shadow: none;
+  margin-left: 4px;
+}
+.rim-tile-nameplate__role-pill--host {
+  background: rgba(19, 82, 116, 0.85);  /* primary teal — same as legacy host tag */
+}
+.rim-tile-nameplate__role-pill--teacher {
+  background: rgba(180, 124, 60, 0.85);  /* warm gold — dharma identity, distinct from host */
+}
+.rim-tile-nameplate__role-pill--cohost {
+  background: rgba(110, 116, 130, 0.85);  /* muted slate — secondary, less dominant */
 }
 
 /* Signal badge — top-left of tile, smaller per Zoom proportions */
@@ -14720,17 +14732,32 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   font-size: var(--text-xs);
   margin-left: 4px;
 }
+/* Participants-panel role tags — same three variants as tile pills, but
+   tuned for the panel's darker background (lower opacity, lighter text). */
 .rim-pp__role-tag {
   display: inline-block;
   padding: 1px 6px;
-  background: rgba(19, 82, 116, 0.4);
-  color: #93c5fd;
   border-radius: 3px;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-left: 4px;
+  /* Default (no modifier) falls back to host styling for back-compat. */
+  background: rgba(19, 82, 116, 0.4);
+  color: #93c5fd;
+}
+.rim-pp__role-tag--host {
+  background: rgba(19, 82, 116, 0.4);
+  color: #93c5fd;
+}
+.rim-pp__role-tag--teacher {
+  background: rgba(180, 124, 60, 0.4);
+  color: #fcd34d;
+}
+.rim-pp__role-tag--cohost {
+  background: rgba(110, 116, 130, 0.4);
+  color: #cbd5e1;
 }
 .rim-pp__search {
   padding: 10px 14px 6px;

@@ -75,19 +75,31 @@ export async function POST(req: NextRequest) {
   const roomName = roomNameForProgram(program.slug, sessionDate);
   const userName = session.user.name || "Member";
 
-  // Seed metadata so it's visible from the moment they connect. The `host`
-  // flag corresponds to Session Host (the singular assigned host) — Co-host
-  // tier (teacher, host manager) gets no badge to keep the visible label
-  // unambiguous: when you see "Host", that is the person who can End for All.
+  // Seed metadata so the role pills render the moment a participant
+  // appears in the room. Three orthogonal flags drive the badge UI:
+  //   host:    Session Host (singular)         → "Host" pill (teal)
+  //   teacher: ProgramTeacher for this program → "Teacher" pill (warm)
+  //   cohost:  Co-host capability, but NOT     → "Co-host" pill (muted)
+  //            Host and NOT Teacher
+  // A Session Host who is also a Teacher gets both `host` and `teacher`
+  // and renders both pills. `cohost` is set only when neither of the
+  // other two applies, so each participant carries at most two pills.
   //
-  // Trust note: `canUpdateOwnMetadata: true` (lib/livekit.ts) means a client
-  // can rewrite their own metadata to claim `host: true`. The badge is a
-  // *UI cue only*, not a security boundary. Real actions (mute, end-for-all)
-  // are gated server-side via the same resolveSessionRole helper that gates
-  // token issuance.
-  const seedMeta: { avatarUrl?: string; host?: boolean } = {};
+  // Trust note: `canUpdateOwnMetadata: true` (lib/livekit.ts) lets a
+  // client rewrite their own metadata to forge any of these flags. The
+  // pills are *UI cues only*, not a security boundary. Real actions (mute,
+  // end-for-all, screen share) are gated server-side via the same
+  // resolveSessionRole helper that gates token issuance.
+  const seedMeta: {
+    avatarUrl?: string;
+    host?: boolean;
+    teacher?: boolean;
+    cohost?: boolean;
+  } = {};
   if (caller?.avatarUrl) seedMeta.avatarUrl = caller.avatarUrl;
   if (isSessionHost) seedMeta.host = true;
+  if (isProgramTeacher) seedMeta.teacher = true;
+  if (isCoHost && !isSessionHost && !isProgramTeacher) seedMeta.cohost = true;
   const initialMeta = Object.keys(seedMeta).length > 0 ? JSON.stringify(seedMeta) : undefined;
 
   const token = await createRoomToken(
@@ -105,6 +117,7 @@ export async function POST(req: NextRequest) {
     isSessionHost,
     isCoHost,
     isHostTeam,
+    isProgramTeacher,
     audioProfile,
     avatarUrl: caller?.avatarUrl ?? null,
   });

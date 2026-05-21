@@ -109,8 +109,10 @@ interface Props {
   wsUrl: string;
   /** Session Host: assigned host for this session, or ADMIN. Gates End-for-All. */
   isSessionHost?: boolean;
-  /** Co-host: teacher, host manager, or session host. Gates mute/share/manage. */
+  /** Co-host: active host-team member, teacher, manager, or session host. Gates mute/share/manage. */
   isCoHost?: boolean;
+  /** ProgramTeacher row exists for this program — drives Teacher pill + audio profile. */
+  isProgramTeacher?: boolean;
   audioProfile?: AudioProfile;
   programSlug: string;
   guestKey?: string;
@@ -119,7 +121,7 @@ interface Props {
   onLeave?: () => void;
 }
 
-export default function VideoRoom({ token, wsUrl, isSessionHost = false, isCoHost = false, audioProfile = "listener", programSlug, guestKey, avatarUrl, view = "gallery", onLeave }: Props) {
+export default function VideoRoom({ token, wsUrl, isSessionHost = false, isCoHost = false, isProgramTeacher = false, audioProfile = "listener", programSlug, guestKey, avatarUrl, view = "gallery", onLeave }: Props) {
   const roomOptions = buildRoomOptions(audioProfile);
   const [phase, setPhase] = useState<Phase>("greenroom");
 
@@ -162,6 +164,7 @@ export default function VideoRoom({ token, wsUrl, isSessionHost = false, isCoHos
           <RIMConference
             isSessionHost={isSessionHost}
             isCoHost={isCoHost}
+            isProgramTeacher={isProgramTeacher}
             programSlug={programSlug}
             guestKey={guestKey}
             view={view}

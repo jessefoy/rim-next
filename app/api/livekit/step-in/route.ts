@@ -84,11 +84,27 @@ export async function POST(req: NextRequest) {
   const roomName = roomNameForProgram(programSlug, sessionDate);
   const userName = session.user.name || "Host";
 
+  // Stepping in makes the caller the Session Host. They may also be a
+  // ProgramTeacher (already teaching this program before stepping in to
+  // run the room) — preserve that signal if so. cohost is never set on a
+  // Step-In token because the caller is now host. Reuses the `program`
+  // already fetched above.
+  const teacher = await db.programTeacher.findFirst({
+    where: { programId: program.id, userId: session.user.id },
+    select: { id: true },
+  });
+  const isProgramTeacher = !!teacher;
+
   const caller = await db.user.findUnique({
     where: { id: session.user.id },
     select: { avatarUrl: true },
   });
-  const seedMeta: { avatarUrl?: string; host?: boolean } = { host: true };
+  const seedMeta: {
+    avatarUrl?: string;
+    host?: boolean;
+    teacher?: boolean;
+  } = { host: true };
+  if (isProgramTeacher) seedMeta.teacher = true;
   if (caller?.avatarUrl) seedMeta.avatarUrl = caller.avatarUrl;
   const initialMeta = JSON.stringify(seedMeta);
 
@@ -106,5 +122,6 @@ export async function POST(req: NextRequest) {
     wsUrl: process.env.NEXT_PUBLIC_LIVEKIT_URL,
     isSessionHost: true,
     isCoHost: true,
+    isProgramTeacher,
   });
 }

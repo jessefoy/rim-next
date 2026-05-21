@@ -29,8 +29,12 @@ export type Signal = "hand" | "heart" | "namaste" | "yes" | "no" | null;
 export interface ParticipantMetadata {
   avatarUrl?: string;
   signal?: Signal;
-  /** Marker placed in the token metadata for participants granted host privileges. */
+  /** Session Host (singular, assigned for this session) — drives the "Host" pill. */
   host?: boolean;
+  /** ProgramTeacher row exists for this program — drives the "Teacher" pill. */
+  teacher?: boolean;
+  /** Co-host capability AND not Session Host AND not Teacher — drives the "Co-host" pill. */
+  cohost?: boolean;
 }
 
 const SIGNAL_EMOJI: Record<NonNullable<Signal>, string> = {
@@ -167,7 +171,10 @@ export default function RIMParticipantTile() {
         </div>
       )}
       {/* Zoom-style name bar — plain white text bottom-left, with a
-          small red mic-off glyph only when the participant is muted. */}
+          small red mic-off glyph only when the participant is muted.
+          Role pills follow the name in priority order: Host, Teacher,
+          Co-host. cohost is set server-side only when neither host nor
+          teacher applies, so at most two pills render. */}
       <div className="rim-tile-nameplate">
         {isMicMuted && (
           <span className="rim-tile-nameplate__mic-off" aria-hidden="true">
@@ -180,7 +187,15 @@ export default function RIMParticipantTile() {
           </span>
         )}
         <span className="rim-tile-nameplate__name">{displayName}</span>
-        {meta.host && <span className="rim-tile-nameplate__host-tag">Host</span>}
+        {meta.host && (
+          <span className="rim-tile-nameplate__role-pill rim-tile-nameplate__role-pill--host">Host</span>
+        )}
+        {meta.teacher && (
+          <span className="rim-tile-nameplate__role-pill rim-tile-nameplate__role-pill--teacher">Teacher</span>
+        )}
+        {meta.cohost && !meta.host && !meta.teacher && (
+          <span className="rim-tile-nameplate__role-pill rim-tile-nameplate__role-pill--cohost">Co-host</span>
+        )}
       </div>
       {/* Nonverbal signal badge */}
       {meta.signal && (

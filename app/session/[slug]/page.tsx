@@ -47,6 +47,7 @@ export default function SessionPage() {
   const [isSessionHost, setIsSessionHost] = useState(false);
   const [isCoHost, setIsCoHost] = useState(false);
   const [isHostTeam, setIsHostTeam] = useState(false);
+  const [isProgramTeacher, setIsProgramTeacher] = useState(false);
   const [audioProfile, setAudioProfile] = useState<"teacher" | "speaker" | "listener">("listener");
   const [steppingIn, setSteppingIn] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -106,6 +107,7 @@ export default function SessionPage() {
         setIsSessionHost(data.isSessionHost ?? false);
         setIsCoHost(data.isCoHost ?? false);
         setIsHostTeam(data.isHostTeam ?? false);
+        setIsProgramTeacher(data.isProgramTeacher ?? false);
         setAudioProfile(data.audioProfile ?? "listener");
         setAvatarUrl(data.avatarUrl ?? null);
         setProgramName(data.roomName.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()));
@@ -171,6 +173,9 @@ export default function SessionPage() {
         setWsUrl(data.wsUrl);
         setIsSessionHost(true);
         setIsCoHost(true);
+        if (typeof data.isProgramTeacher === "boolean") {
+          setIsProgramTeacher(data.isProgramTeacher);
+        }
         // Force reconnect by cycling state
         setState("loading");
         setTimeout(() => setState("ready"), 100);
@@ -309,6 +314,7 @@ export default function SessionPage() {
             wsUrl={wsUrl}
             isSessionHost={isSessionHost}
             isCoHost={isCoHost}
+            isProgramTeacher={isProgramTeacher}
             audioProfile={audioProfile}
             programSlug={slug}
             guestKey={guestKey ?? undefined}

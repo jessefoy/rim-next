@@ -14,6 +14,8 @@ import { createContext, useContext } from "react";
 export interface SessionRoleValue {
   isSessionHost: boolean;
   isCoHost: boolean;
+  /** ProgramTeacher row exists for this program — drives Teacher pill + audio profile. */
+  isProgramTeacher: boolean;
   programSlug: string;
   /**
    * LiveKit identity of the local participant; tiles use it to suppress

@@ -48,6 +48,7 @@ import type { ParticipantMetadata } from "./RIMParticipantTile";
 interface Props {
   isSessionHost: boolean;
   isCoHost: boolean;
+  isProgramTeacher: boolean;
   programSlug: string;
   guestKey?: string;
   view?: "speaker" | "gallery";
@@ -58,7 +59,7 @@ function getMetadata(raw: string | undefined): ParticipantMetadata {
   try { return JSON.parse(raw || "{}"); } catch { return {}; }
 }
 
-export default function RIMConference({ isSessionHost, isCoHost, programSlug, guestKey, view = "gallery", initialAvatarUrl }: Props) {
+export default function RIMConference({ isSessionHost, isCoHost, isProgramTeacher, programSlug, guestKey, view = "gallery", initialAvatarUrl }: Props) {
   const { localParticipant } = useLocalParticipant();
   // updateOnlyOn ensures the component re-renders when metadata changes (for raised hand tracking)
   const remoteParticipants = useRemoteParticipants({
@@ -80,26 +81,40 @@ export default function RIMConference({ isSessionHost, isCoHost, programSlug, gu
   );
   const raisedHandCount = raisedHands.length;
 
-  // Seed avatar + host flag into local participant metadata on connect.
-  // The Host badge ([RIMParticipantTile.tsx]) keys on `meta.host`, which is
-  // normally set by the token route at issuance. After a Step-In reconnect,
-  // even though the new token also seeds `host: true`, this client-side
-  // pass acts as a belt-and-suspenders: if the seed didn't land (e.g. a
-  // race during reconnect, or LiveKit's participant rejoin reusing prior
-  // metadata), the explicit setMetadata call here broadcasts the corrected
-  // state to every other client immediately, so the Host pill appears on
-  // their view of the stepper-in's tile without waiting for another join.
+  // Seed avatar + role pills into local participant metadata on connect.
+  // The pill badges ([RIMParticipantTile.tsx]) key on `meta.host`,
+  // `meta.teacher`, and `meta.cohost` — normally seeded by the token
+  // route at issuance. This client-side pass is belt-and-suspenders for
+  // every reconnect path (Step-In, mid-session token refresh): if the
+  // server seed didn't land (e.g. a race during reconnect, or LiveKit's
+  // participant rejoin reusing prior metadata), the explicit setMetadata
+  // call here broadcasts the corrected state to every other client
+  // immediately, so all three pills appear in the same render that the
+  // capability tier changes.
+  //
+  // The `cohost` flag is the only one with a constraint: it should be
+  // true *only* when the user has Co-host capability AND is neither
+  // Session Host nor a ProgramTeacher (Host/Teacher pills take priority).
+  // We only promote flags upward — we don't clear stale flags here, so
+  // a former host who somehow lost their HostAssignment mid-session would
+  // still show the Host pill until they rejoin. Acceptable; defense-in-
+  // depth lives at the token-issue layer.
   useEffect(() => {
     if (!localParticipant) return;
     const meta = getMetadata(localParticipant.metadata);
+    const wantCohost = isCoHost && !isSessionHost && !isProgramTeacher;
     const needsAvatarUpdate = !!avatarUrl && meta.avatarUrl !== avatarUrl;
     const needsHostUpdate = isSessionHost && meta.host !== true;
-    if (!needsAvatarUpdate && !needsHostUpdate) return;
+    const needsTeacherUpdate = isProgramTeacher && meta.teacher !== true;
+    const needsCohostUpdate = wantCohost && meta.cohost !== true;
+    if (!needsAvatarUpdate && !needsHostUpdate && !needsTeacherUpdate && !needsCohostUpdate) return;
     const next: ParticipantMetadata = { ...meta };
     if (needsAvatarUpdate) next.avatarUrl = avatarUrl ?? undefined;
     if (needsHostUpdate) next.host = true;
+    if (needsTeacherUpdate) next.teacher = true;
+    if (needsCohostUpdate) next.cohost = true;
     localParticipant.setMetadata(JSON.stringify(next));
-  }, [localParticipant, avatarUrl, isSessionHost]);
+  }, [localParticipant, avatarUrl, isSessionHost, isProgramTeacher, isCoHost]);
 
   // Krisp NC — enable by default on every join. Co-host UI exposes a
   // "Bell mode" toggle in the control bar that flips this off; the state
@@ -292,6 +307,7 @@ export default function RIMConference({ isSessionHost, isCoHost, programSlug, gu
       value={{
         isSessionHost,
         isCoHost,
+        isProgramTeacher,
         programSlug,
         localIdentity: localParticipant?.identity ?? null,
       }}
