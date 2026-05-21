@@ -263,7 +263,7 @@ When ADMIN assigns Maria the `HOST_MANAGER` role and marks her `isCoordinator: t
 |---|---|---|---|
 | `/api/cron/apply-standing-assignments` | Daily 8am UTC | Applies all active standing rotations to open future sessions (resolution: leave, never overrides). On the 1st of the month, pre-fills next month too. Sends per-host digest emails for newly-created assignments. | **Yes — primary automation for host scheduling** |
 | `/api/cron/send-reminders` | Daily 14:00 UTC | Program registration reminders to registered members | No |
-| `/api/cron/cleanup-incomplete-accounts` | Daily 5am UTC | Clears stale magic-link sessions | No |
+| `/api/cron/cleanup-incomplete-accounts` | Daily 5am UTC | Deletes abandoned User records (`agreedToTerms = false`, `createdAt < 48h ago`) — people who started sign-in but never completed their welcome page | No |
 
 ### Notes on apply-standing-assignments
 

@@ -163,7 +163,7 @@ export default async function MyProfilePage({
           <div className="mp-field">
             <div className="mp-input mp-input--readonly">{user?.email}</div>
             <p className="mp-note">
-              Your email is used for magic link login. To change it, contact us at{" "}
+              Your email is where we send your sign-in code. To change it, contact us at{" "}
               <a href="mailto:hello@rootedinmindfulness.org">hello@rootedinmindfulness.org</a>.
             </p>
           </div>

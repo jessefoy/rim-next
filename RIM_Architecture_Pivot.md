@@ -131,7 +131,7 @@ API endpoints for Webflow-consumed surfaces should live under a clear public pat
 
 **CORS:** Public endpoints need CORS headers configured to accept requests from the Webflow-hosted domain. Start permissive for the proof; tighten for production.
 
-**Authentication across domains:** The existing NextAuth magic-link session is cookie-based. For Webflow pages to share auth state with the RIM Next app subdomain, cookies need to be scoped to the parent domain (`rootedinmindfulness.org`). This is configurable in NextAuth but requires care. Not needed for v1 (public endpoints only).
+**Authentication across domains:** The existing NextAuth session (6-digit sign-in code, established session 119) is cookie-based. For Webflow pages to share auth state with the RIM Next app subdomain, cookies need to be scoped to the parent domain (`rootedinmindfulness.org`). This is configurable in NextAuth but requires care. Not needed for v1 (public endpoints only).
 
 ---
 

@@ -99,7 +99,7 @@ Hardcoded sends (don't use the template manager, intentionally): `sendHostManage
 ## Stack
 - Next.js **16** (App Router) + TypeScript
 - Sanity v3 (project `xxgvfpjf`, dataset `production`) — content CMS at `rooted-in-mindfulness.sanity.studio`
-- NextAuth v5 — magic-link auth via Resend, no passwords. `auth()` for server components.
+- NextAuth v5 — 6-digit sign-in code auth via Resend, no passwords. `auth()` for server components. (Switched from magic links session 119, 2026-05-21.)
 - Prisma 5 + Neon Postgres — member data, registrations, roles, hub models
 - Stripe (test mode) — dana/payment collection via Checkout
 - LiveKit Cloud — video conferencing for live sessions

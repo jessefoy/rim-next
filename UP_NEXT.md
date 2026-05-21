@@ -117,7 +117,7 @@ Four commits, all merged to `main`. See `session-log.md` entry for full chronolo
 2. **Rate-limit `/api/auth/callback/resend`.** 6-digit keyspace × 30-min window × no IP rate limit = a determined attacker who knows a victim's email could brute-force within the window. Low realistic risk at sangha scale but worth a per-IP or per-email rate limit before this gets meaningful traffic. *(In `data/backlog.json` as `2026-05-21-002`.)*
 3. **Cleanup of dead magic-link migration entries.** `seed_magic_link_email_templates` and the magic-link entries inside `organize_email_templates_with_groups_and_helptext` are now dead code (the followup migration deletes the rows they create). Mechanical cleanup. *(In `data/backlog.json` as `2026-05-21-003`.)*
 
-**One staff-manual touch-up Jesse should do manually:** `/admin/manual/host-hub-team-management` has a sentence telling coordinators how to direct a new person to create an account, and it still references "magic link." Edit that one sentence to say "sign-in code" instead. ~30 seconds in the admin UI; cheaper than a migration entry for one line of copy.
+~~**One staff-manual touch-up Jesse should do manually:** `/admin/manual/host-hub-team-management` has a sentence telling coordinators how to direct a new person to create an account, and it still references "magic link."~~ ✅ **Resolved during the magic-link doc sweep (session 123).** Took the migration route after all — added `update_manual_host_hub_team_management_v2` flag in `prisma/migrate.mjs` that re-runs `updateManualHostHubTeamManagement(db)` to push the corrected body to the live DB row on the next deploy.
 
 ---
 

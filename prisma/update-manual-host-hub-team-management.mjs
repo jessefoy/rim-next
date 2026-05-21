@@ -35,7 +35,7 @@ const TEAM_MANAGEMENT_BODY = `<p>This chapter is for the host coordinator. It ex
 </ul>
 <p>That's it. The whole flow is two screens.</p>
 <h3>What if they're not in RIM yet?</h3>
-<p>The search only shows people who already have a RIM account. If someone wants to host but doesn't have an account, they need to create one first — by signing up for any program, or by visiting the sign-in page and asking for a magic link. Once they have an account, they'll show up in the search.</p>
+<p>The search only shows people who already have a RIM account. If someone wants to host but doesn't have an account, they need to create one first — by signing up for any program, or by visiting the sign-in page and asking for a sign-in code. Once they have an account, they'll show up in the search.</p>
 <p>This is on purpose. Being a host means you're already part of RIM. It keeps the membership boundary clean.</p>
 <h2>Status: active, paused, or away</h2>
 <p>Every host on the team has a status. There are three.</p>

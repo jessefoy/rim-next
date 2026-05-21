@@ -70,7 +70,7 @@ export async function seedManualHostHubTeamManagement(db) {
     sp(),
 
     h(3, "What if the person isn't in RIM yet?"),
-    p("The member picker only shows people who already have a RIM account. If someone has decided to become a host but doesn't have an account yet, they need to create one first — by registering for any program on the site, or by visiting the sign-in page and requesting a magic link. Once they have an account, they'll show up in the picker."),
+    p("The member picker only shows people who already have a RIM account. If someone has decided to become a host but doesn't have an account yet, they need to create one first — by registering for any program on the site, or by visiting the sign-in page and requesting a sign-in code. Once they have an account, they'll show up in the picker."),
     sp(),
     p("This is intentional. It keeps the membership boundary clean — a \"host\" is always someone who has chosen to be part of RIM, not an external invitation."),
     sp(),

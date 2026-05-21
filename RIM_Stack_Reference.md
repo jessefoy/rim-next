@@ -346,7 +346,7 @@ Hub thread filter: `activeHubThreadWhere(hubId)` in `lib/hubQueries.ts` (session
 
 | Service | What it does | Notes |
 |---|---|---|
-| Resend | Magic links + all transactional email | Domain `rootedinmindfulness.org` verified |
+| Resend | 6-digit sign-in codes + all transactional email | Domain `rootedinmindfulness.org` verified |
 | Stripe | Dana/fee collection via Checkout | Test mode — switch to live before launch |
 | Sanity | Non-program content (teams, glossary, magazine, volunteers) | Programs, courses, lessons migrated to Postgres |
 | LiveKit Cloud | Video conferencing | Build tier ($0/mo + usage); token auth via HostAssignment; Krisp NC via `@livekit/krisp-noise-filter` (metered usage). |

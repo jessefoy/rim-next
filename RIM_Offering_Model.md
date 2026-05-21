@@ -151,7 +151,7 @@ The Course detail page at `/course/[slug]` today has two modes: a one-line gate 
 
 | State | Visible to | Page content |
 |---|---|---|
-| **Not signed in** | Anyone | Same landing as a non-enrolled member. Enroll CTA routes through magic-link auth first, then into the enrollment flow. |
+| **Not signed in** | Anyone | Same landing as a non-enrolled member. Enroll CTA routes through the 6-digit sign-in code flow first, then into the enrollment flow. |
 | **Signed in, can self-enroll for free** | Members of a free-for-all course | Full landing + visible **Enroll** button. Click → immediate `SeriesEnrollment`, page reloads in enrolled state. |
 | **Signed in, can self-enroll with dana** | Members of a dana-required course | Full landing + visible **Enroll** button. Click → Stripe Checkout flow, success returns to the page in enrolled state. |
 | **Signed in, role-gated without the role** | Members lacking `requiredRoles` | Full landing minus self-enroll. `Course.accessRestrictionMessage` displayed in the CTA slot. |
@@ -197,7 +197,7 @@ For the bundled-only case when no Program is currently open, the message can be 
 
 ### Authentication
 
-All program participation and all course enrollment require a member account. An unauthenticated visitor clicking "Enroll" on `/course/[slug]` goes through magic-link auth first, then lands in the dana flow (or direct enrollment if `selfEnrollDanaRequired=false`). No guest checkout, no anonymous-purchase edge cases.
+All program participation and all course enrollment require a member account. An unauthenticated visitor clicking "Enroll" on `/course/[slug]` goes through the 6-digit sign-in code flow first (sessions 119/120 architecture), then lands in the dana flow (or direct enrollment if `selfEnrollDanaRequired=false`). No guest checkout, no anonymous-purchase edge cases.
 
 ---
 
@@ -222,6 +222,6 @@ All program participation and all course enrollment require a member account. An
 
 **APIs** — `/api/courses` (read), `/api/courses/[slug]/enroll` (POST for self-enroll, DELETE for leave), course CRUD under `/tools/learning`, plus a new dana/checkout path for self-enroll-with-dana.
 
-**Auth** — Magic-link enrollment flow inherits the existing pattern. Account creation precedes dana checkout.
+**Auth** — Sign-in code enrollment flow inherits the existing pattern (`/login` → 6-digit code → callback → enroll). Account creation precedes dana checkout.
 
 **Email** — New templates likely: course-enrollment-confirmation, course-dana-receipt, course-access-granted (manual). Each must ship with a seed entry in `prisma/migrate.mjs` per the Email Template Gate.

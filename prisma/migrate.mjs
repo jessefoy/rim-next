@@ -2948,6 +2948,22 @@ async function main() {
     console.log("  ⏭ Non-host hub welcomes already seeded.");
   }
 
+  // Manual chapter: host-hub-team-management v2 — replaces a one-line
+  // reference to "request a magic link" with "request a sign-in code"
+  // to match the session-119 auth change (2026-05-21). The
+  // updateManualHostHubTeamManagement source file was edited in the
+  // same commit; re-running it produces the corrected body.
+  const updateManualTeamMgmtV2Flag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_host_hub_team_management_v2'
+  `).catch(() => []);
+
+  if (updateManualTeamMgmtV2Flag.length === 0) {
+    await updateManualHostHubTeamManagement(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_hub_team_management_v2')`);
+  } else {
+    console.log("  ⏭ Manual host-hub-team-management v2 already applied.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

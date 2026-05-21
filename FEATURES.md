@@ -546,7 +546,7 @@ Curated list of dharma learning resources. Currently hardcoded (4 items). Clean 
 
 ### 6e. My Profile (`/account/dashboard-my-profile`)
 
-Form to update firstName, lastName, phone. Uses server action — data writes directly to Postgres. Email is display-only (magic link auth; contact support to change). Success state via `?saved=true` URL param, styled with `mp-success` class.
+Form to update firstName, lastName, phone. Uses server action — data writes directly to Postgres. Email is display-only (it's where the sign-in code goes; contact support to change). Success state via `?saved=true` URL param, styled with `mp-success` class.
 
 ### 6f. Community Care Agreements (`/account/dashboard-member-care-agreements`)
 
@@ -873,7 +873,7 @@ Shared layout primitives used by all redesigned pages:
 - `/admin/members/[id]` — member detail: full profile editing, member status, tags, household, admin notes, roles, course access, registration history, delete (admin only)
 - `/admin/households` — household directory with custom-label frequency table
 - `/admin/households/[id]` — household detail: edit name/address/notes, manage members, set primary contact
-- `/account/reactivate` — self-service reactivation page for Inactive members (magic link → reactivate → dashboard)
+- `/account/reactivate` — self-service reactivation page for Inactive members (sign-in code → reactivate → dashboard)
 
 ### Access control
 - `/admin/*` routes protected at proxy level (`proxy.ts`)
@@ -922,7 +922,7 @@ Available only when `registrations.length === 0`. Hard-deletes User record; casc
 ### Self-service reactivation
 Two re-entry paths for Inactive members:
 1. **Register for a program** — `POST /api/registrations` includes `archivedAt: null` in user upsert; automatic, no friction
-2. **Magic link → `/account/reactivate`** — proxy detects `archivedAt`, redirects to reactivation page; PATCH `/api/account/reactivate` clears `archivedAt` → dashboard
+2. **Sign in → `/account/reactivate`** — proxy detects `archivedAt`, redirects to reactivation page; PATCH `/api/account/reactivate` clears `archivedAt` → dashboard
 
 ### Dashboard integration
 AccountSidebar shows "Members" and "Households" links for REGISTRAR+. ADMIN also sees these plus Manual and Roadmap.
@@ -982,8 +982,8 @@ Archiving is a "sleeping" state, not a permanent lock. Two re-entry paths exist 
 **1. Register for a program (primary path)**
 In `POST /api/registrations`, when a user record is created or upserted, `archivedAt: null` is included in the upsert data. A returning registrant is automatically restored as part of the normal registration flow — no extra step, no friction.
 
-**2. Magic link → `/account/reactivate` (direct login path)**
-When an archived member requests a magic link and clicks it, `proxy.ts` detects `session.user.archivedAt` is set and redirects them to `/account/reactivate` instead of the usual member area. The page shows a warm welcome-back message ("Your account was archived. Click below to reactivate.") with a single "Reactivate" button that calls `PATCH /api/account/reactivate` → clears `archivedAt` → redirects to `/account/dashboard`. Uses `wl-` CSS prefix (same visual language as `/account/welcome`).
+**2. Sign in → `/account/reactivate` (direct login path)**
+When an archived member signs in (requests a sign-in code, enters it on `/login/check-email`), `proxy.ts` detects `session.user.archivedAt` is set and redirects them to `/account/reactivate` instead of the usual member area. The page shows a warm welcome-back message ("Your account was archived. Click below to reactivate.") with a single "Reactivate" button that calls `PATCH /api/account/reactivate` → clears `archivedAt` → redirects to `/account/dashboard`. Uses `wl-` CSS prefix (same visual language as `/account/welcome`).
 
 **Proxy loop guard:** `proxy.ts` checks `!pathname.startsWith("/account/reactivate")` before redirecting archived users — prevents an infinite redirect loop.
 
@@ -1038,7 +1038,7 @@ An admin can update any member's login email address from the member detail page
 - After the PATCH, `router.refresh()` is called in the client to sync the server component (updates the header and restores `originalEmail` to the new value)
 - The admin's own session is unaffected — only the target member's sessions are deleted
 
-**Typo recovery workflow:** If a member mistyped their email at registration (never received the magic link), staff can look them up by name in the volunteer area → copy their correct email → fix it in `/admin/members/[id]`
+**Typo recovery workflow:** If a member mistyped their email at registration (never received the sign-in code), staff can look them up by name in the volunteer area → copy their correct email → fix it in `/admin/members/[id]`
 
 ---
 
@@ -1206,11 +1206,11 @@ There are two natural ways someone enters the RIM community:
 1. Person finds a program (workshop, retreat, drop-in) and registers
 2. Registration form collects first name, last name, email, phone (optional), and a brief community agreements checkbox — all on one form
 3. A User record is created or updated with their name/phone, `agreedToTerms` set to `true`
-4. Confirmation email includes a magic link to their dashboard
-5. They click it — they're in. No additional steps. Profile already populated.
+4. Confirmation email arrives; subsequent visits to `/login` send a 6-digit sign-in code to the same email
+5. They enter the code on `/login/check-email` — they're in. No additional steps. Profile already populated.
 
 **Path B — Directly through the login page (returning members / direct sign-in)**
-1. Person visits `/login`, enters their email, receives magic link
+1. Person visits `/login`, enters their email, receives a 6-digit sign-in code by email, enters the code on `/login/check-email`
 2. On first visit (or if `agreedToTerms` is false): intercepted by profile completion page `/account/welcome` before reaching dashboard
 3. Warm community-voiced page asks for name (required), phone (optional), and shows brief community agreements with checkbox
 4. On submit: profile saved, `agreedToTerms` set to `true`, redirected to dashboard
@@ -1232,7 +1232,7 @@ For convenience, if a member is logged in and viewing a program page that has a 
 
 A User record is considered incomplete if `agreedToTerms` is `false`. This can happen in two ways:
 
-1. **Abandoned mid-welcome-page:** Someone clicked a magic link but closed the browser before completing their profile. A daily cleanup cron deletes User records where `agreedToTerms = false` and `createdAt < 48 hours ago`. Silent, automatic.
+1. **Abandoned mid-welcome-page:** Someone signed in with a code but closed the browser before completing their profile. A daily cleanup cron deletes User records where `agreedToTerms = false` and `createdAt < 48 hours ago`. Silent, automatic.
 
 2. **Explicit decline:** The `/account/welcome` page has a visible "I'd rather not join" link. Clicking it immediately deletes the User record (and any related records), signs them out, and redirects to the public homepage. Clean, no drama.
 
@@ -1240,7 +1240,7 @@ The result: every User record in the system is an intentional community member. 
 
 ### Login page framing
 
-The `/login` page uses "Join or sign in" as the heading — not "Log in." The copy briefly explains the magic link (no password needed, works for new and returning members alike). A note below the form says: *"New to RIM? You'll set up your name and a brief community welcome after your first sign-in."*
+The `/login` page uses "Join or sign in" as the heading — not "Log in." The copy briefly explains the 6-digit sign-in code (no password needed, works for new and returning members alike). A note below the form says: *"New to RIM? You'll set up your name and a brief community welcome after your first sign-in."*
 
 This eliminates the common confusion where a new person sees "Log in" and assumes they need a pre-existing account.
 
@@ -1250,13 +1250,14 @@ When a non-logged-in person submits a registration form:
 - The API finds or creates their User record by email
 - First name, last name, and phone are written to the User record (blank fields only — never overwrites existing data)
 - If the community agreements checkbox was checked: `agreedToTerms = true`, `agreedAt = now()`
-- They receive a confirmation email with a magic link. Clicking it takes them directly to the dashboard (no welcome page — they already agreed)
+- They receive a confirmation email. The next time they visit `/login`, they get a 6-digit sign-in code and entering it takes them directly to the dashboard (no welcome page — they already agreed)
 
 When a logged-in member registers: name/phone already on file, no agreements step, shorter form.
 
 ### Key files
 
-- `app/login/page.tsx` — "Join or sign in" framing, magic link explanation
+- `app/login/page.tsx` — "Join or sign in" framing, 6-digit sign-in code explanation
+- `app/login/check-email/page.tsx` — 6-digit code entry form (six numeric boxes, submits to NextAuth Resend callback)
 - `app/account/welcome/page.tsx` — profile completion + community agreements (required on first login)
 - `app/api/account/complete-profile/route.ts` — POST: saves name/phone/agreements; DELETE: removes account on explicit decline
 - `app/api/registrations/route.ts` — POST: writes name/phone back to User, sets agreedToTerms if checkbox checked
@@ -3681,10 +3682,11 @@ No email copy lives in code for any managed template. The 11 retained hardcoded 
 
 This table documents all 18 email functions in `lib/email.ts`. Keep it current if any function is added, migrated to managed, or removed.
 
-**7 managed — `sendTemplatedEmail()` — editable in Email Template Manager**
+**8 managed — `sendTemplatedEmail()` — editable in Email Template Manager**
 
 | Function | Template slug | Group | Variables | Trigger |
 |---|---|---|---|---|
+| `sendSignInCodeEmail` | `sign-in-code-new-user` / `sign-in-code-returning` | Authentication | code, isNewUser | NextAuth `sendVerificationRequest` — fires when a member enters their email on `/login`. Picks the slug by `isNewUser`. Calls `sendTemplatedEmail` with `throwOnFailure: true` so a missing/disabled template surfaces to the user. Replaced `sendMagicLinkEmail` in session 119 (2026-05-21). |
 | `sendFirstTimeAttendeeEmail` | `first-time-attendee` | Registration & Programs | firstName, programName, sessionDate | First recorded session attendance |
 | `sendReturningAfterAbsenceEmail` | `returning-after-absence` | Registration & Programs | firstName, programName, sessionDate | Attends after 6+ week gap |
 | `sendReminderEmail` | `session-reminder` | Registration & Programs | firstName, programTitle, dateText, locationText, zoomLink, reminderMessage, dashboardUrl | Pre-session reminder (cron or manual). `reminderMessage` → `portableTextToMarkdown()` |
@@ -3707,12 +3709,13 @@ This table documents all 18 email functions in `lib/email.ts`. Keep it current i
 | `sendNewThreadEmail` | `hub-new-thread` | firstName, authorName, threadTitle, categoryLabel, threadUrl | Conditional categoryLabel derived from OPERATIONAL/CONTEMPLATION enum |
 | `sendNewReplyEmail` | `hub-new-reply` | firstName, replierName, threadTitle, threadUrl | Built before template system; simplest candidate for next migration |
 
-**2 hardcoded — must stay (cannot be managed)**
+**1 hardcoded — must stay (cannot be managed)**
 
 | Function | Variables | Reason must stay |
 |---|---|---|
-| `sendMagicLinkEmail` | url (NextAuth token), isNewUser | NextAuth auth contract (`sendVerificationRequest`). Token is signed + time-limited, generated by NextAuth at call time — cannot go through async template pipeline. Also rethrows on failure (unlike all other functions) so NextAuth can surface errors |
 | `sendPostSessionNotification` | programSlug, sessionDate, hostName, flags[], reflection, resourceUrl | Per-recipient routing: one call sends up to 2 separate emails to different recipients based on flag type (GENTLE_FOLLOWUP → Jesse + coordinator; JESSE_ONLY → Jesse; TECHNICAL_ISSUE → coordinator). Consolidates multiple flags per recipient. Not templateable |
+
+*(`sendMagicLinkEmail` was in this table until session 119, 2026-05-21. The 6-digit sign-in code that replaced magic links is templated — see `sendSignInCodeEmail` and the two `sign-in-code-*` templates in the row above.)*
 
 ### Future migration candidates (priority order)
 

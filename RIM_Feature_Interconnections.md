@@ -105,7 +105,7 @@ The canonical record of every person. ADMIN and REGISTRAR only.
 
 | Connected to | How |
 |---|---|
-| **Magic links** | Resend sends login link → NextAuth v5 verifies → session created |
+| **Sign-in codes** | Resend sends 6-digit code → member enters it on `/login/check-email` → NextAuth v5 verifies → session created (switched from magic links session 119) |
 | **Session enrichment** | `auth.ts` callback adds `firstName`, `roles`, `archivedAt`, `agreedToTerms` to session |
 | **Route protection** | `proxy.ts` gates `/account/*` (any session) and checks `agreedToTerms` → `/account/welcome` |
 | **Welcome gate** | `/account/welcome` — terms acceptance flow, required before dashboard access |
