@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
 import stripe from "@/lib/stripe";
 import { db } from "@/lib/db";
 import type Stripe from "stripe";
+import { EnrollmentSource } from "@prisma/client";
 import { enrollMemberInProgramCourse } from "@/lib/enrollment";
+import { sendCourseDanaReceiptEmail } from "@/lib/email";
 
 // POST /api/stripe/webhook
 // Receives Stripe webhook events and updates the database.
@@ -39,7 +42,16 @@ export async function POST(request: NextRequest) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
-    await handleCheckoutCompleted(session);
+    const source = (session.metadata?.source ?? "") as string;
+
+    // Route by source — courses and programs use the same Stripe webhook
+    // but write to different tables. New sources go here.
+    if (source === "course_dana") {
+      await handleCourseDanaCompleted(session);
+    } else {
+      // Default / legacy: registration-dana flow.
+      await handleRegistrationDanaCompleted(session);
+    }
   }
 
   // Other events can be handled here in the future (e.g. payment_intent.payment_failed)
@@ -47,7 +59,7 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ received: true });
 }
 
-async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+async function handleRegistrationDanaCompleted(session: Stripe.Checkout.Session) {
   const {
     registrationId,
     programId,
@@ -125,5 +137,121 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   console.log(
     `[stripe/webhook] Donation recorded: ${registrationId} — $${(amountCents / 100).toFixed(2)}`
+  );
+}
+
+// ── Course self-enroll dana (session 123, slice 4) ──────────────────────────
+async function handleCourseDanaCompleted(session: Stripe.Checkout.Session) {
+  const {
+    courseId,
+    courseSlug,
+    courseTitle,
+    userId,
+    donorName,
+    donorEmail,
+  } = session.metadata ?? {};
+
+  if (!courseId || !userId) {
+    console.error(
+      "[stripe/webhook] course_dana session missing courseId or userId:",
+      session.id
+    );
+    return;
+  }
+
+  const amountCents = session.amount_total ?? 0;
+  const paymentIntentId =
+    typeof session.payment_intent === "string" ? session.payment_intent : null;
+
+  // Pre-check whether this payment_intent has already been ledgered.
+  // Stripe can deliver the same webhook twice; we use this to decide
+  // whether to send the receipt email below (the DB writes themselves
+  // are idempotent — this gates the side-effect that isn't).
+  let donationAlreadyExisted = false;
+  if (paymentIntentId) {
+    const existing = await db.donation.findUnique({
+      where: { stripePaymentIntentId: paymentIntentId },
+      select: { id: true },
+    });
+    donationAlreadyExisted = !!existing;
+  }
+
+  // SeriesEnrollment + Donation atomically — if the ledger write fails,
+  // the member doesn't end up enrolled-without-receipt and vice versa.
+  await db.$transaction(async (tx) => {
+    await tx.seriesEnrollment.upsert({
+      where: { userId_courseId: { userId, courseId } },
+      update: {},
+      create: {
+        userId,
+        courseId,
+        enrollmentSource: EnrollmentSource.SELF,
+      },
+    });
+
+    if (paymentIntentId) {
+      await tx.donation.upsert({
+        where: { stripePaymentIntentId: paymentIntentId },
+        create: {
+          source: "STRIPE",
+          amountCents,
+          currency: session.currency ?? "usd",
+          donatedAt: new Date(),
+          userId,
+          donorName: donorName || null,
+          donorEmail: donorEmail || session.customer_email || null,
+          courseId,
+          courseTitle: courseTitle || null,
+          stripeCheckoutSessionId: session.id,
+          stripePaymentIntentId: paymentIntentId,
+          notes: "Course self-enroll dana",
+        },
+        update: {},
+      });
+    } else {
+      // No payment_intent (e.g. $0 session — checkout endpoint guards against
+      // this, but the fallback exists for safety). No unique key, so we
+      // can't dedup; rely on the checkout-endpoint guard.
+      await tx.donation.create({
+        data: {
+          source: "STRIPE",
+          amountCents,
+          currency: session.currency ?? "usd",
+          donatedAt: new Date(),
+          userId,
+          donorName: donorName || null,
+          donorEmail: donorEmail || session.customer_email || null,
+          courseId,
+          courseTitle: courseTitle || null,
+          stripeCheckoutSessionId: session.id,
+          notes: "Course self-enroll dana ($0 session)",
+        },
+      });
+    }
+  });
+
+  // Receipt email — fire-and-forget via after() so the webhook returns
+  // promptly to Stripe. Gated on donationAlreadyExisted so a duplicate
+  // webhook delivery doesn't double-send (sendTemplatedEmail has no
+  // dedup of its own).
+  const recipientEmail = donorEmail || session.customer_email;
+  if (!donationAlreadyExisted && recipientEmail && courseSlug && courseTitle) {
+    after(async () => {
+      try {
+        await sendCourseDanaReceiptEmail({
+          to: recipientEmail,
+          firstName: (donorName || "").split(" ")[0] || "friend",
+          courseTitle,
+          courseSlug,
+          amountCents,
+        });
+      } catch (err) {
+        console.error("[stripe/webhook] course-dana receipt email failed:", err);
+      }
+    });
+  }
+
+  console.log(
+    `[stripe/webhook] Course dana ${donationAlreadyExisted ? "redelivery" : "completed"}: ${courseSlug} / user ${userId} — $${(amountCents / 100).toFixed(2)}`
   );
 }

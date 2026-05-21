@@ -364,6 +364,38 @@ export async function sendDanaReminderEmail(data: DanaReminderEmailData): Promis
   });
 }
 
+// ─── Course dana receipt (session 123, slice 4) ──────────────────────────────
+
+export interface CourseDanaReceiptEmailData {
+  to: string;
+  firstName: string;
+  courseTitle: string;
+  courseSlug: string;
+  amountCents: number;
+}
+
+/**
+ * Sent by the Stripe webhook when a member completes course self-enroll dana.
+ * Doubles as enrollment confirmation — the SeriesEnrollment row was created
+ * in the same handler, so by the time this lands the member already has access.
+ *
+ * Managed via Email Template Manager — template: "course-dana-receipt".
+ * Email Template Gate: matching seed entry in prisma/migrate.mjs ships with
+ * the same commit.
+ */
+export async function sendCourseDanaReceiptEmail(
+  data: CourseDanaReceiptEmailData
+): Promise<void> {
+  const { to, firstName, courseTitle, courseSlug, amountCents } = data;
+  const amountUsd = (amountCents / 100).toFixed(2);
+  await sendTemplatedEmail("course-dana-receipt", to, {
+    firstName,
+    courseTitle,
+    amountUsd,
+    courseUrl: `${BASE_URL}/course/${courseSlug}`,
+  });
+}
+
 // ─── Program reminder email (to registrant) ──────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

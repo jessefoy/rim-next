@@ -2299,6 +2299,98 @@ Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`;
       );
     },
   },
+  {
+    // Course offering — dana self-enroll columns on Donation (session 123,
+    // slice 4). Adds courseId / courseTitle so a Stripe Checkout payment
+    // for a course self-enroll can be ledgered without overloading the
+    // existing programId field. Both nullable — existing program-dana
+    // rows remain untouched.
+    name: "add_course_columns_to_donations",
+    async run() {
+      const cols = await db.$queryRawUnsafe(`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'donations' AND column_name = 'courseId'
+      `);
+      if (cols.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+      await db.$executeRawUnsafe(`ALTER TABLE "donations" ADD COLUMN "courseId" TEXT`);
+      await db.$executeRawUnsafe(`ALTER TABLE "donations" ADD COLUMN "courseTitle" TEXT`);
+      console.log(`  ✔ Applied: ${this.name}`);
+    },
+  },
+  {
+    // Email Template Gate (CLAUDE.md): sendCourseDanaReceiptEmail's matching
+    // seed entry. Sent by the Stripe webhook when a member completes
+    // course self-enroll dana. Doubles as enrollment confirmation —
+    // the SeriesEnrollment was created in the same handler.
+    //
+    // Defensive findUnique → create so any admin edits at /admin/emails
+    // are preserved on re-run.
+    name: "seed_course_dana_receipt_email_template",
+    async run() {
+      const flag = await db.$queryRawUnsafe(`
+        SELECT name FROM "_migration_flags"
+        WHERE name = 'seed_course_dana_receipt_email_template_v1'
+      `).catch(() => []);
+      if (flag.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      const existing = await db.emailTemplate.findUnique({
+        where: { slug: "course-dana-receipt" },
+      });
+
+      if (!existing) {
+        await db.emailTemplate.create({
+          data: {
+            slug: "course-dana-receipt",
+            name: "Course Dana — Receipt & Welcome",
+            description:
+              "Sent by Stripe webhook when a member completes course self-enroll dana. Confirms the payment AND welcomes them to the course (enrollment is created in the same step).",
+            enabled: true,
+            subject: "Thank you — you're enrolled in {{courseTitle}}",
+            variables: ["firstName", "courseTitle", "amountUsd", "courseUrl"],
+            group: "03-courses",
+            groupLabel: "Courses",
+            helpText:
+              "Sent automatically by the Stripe webhook after a successful course self-enroll dana payment. The member is already enrolled by the time this lands — this email serves as both the receipt and the welcome.\n\n" +
+              "Variables: {{firstName}}, {{courseTitle}}, {{amountUsd}} (e.g. \"50.00\" — no currency symbol), {{courseUrl}} (link to the course page).\n\n" +
+              "SAFE to edit: subject, greeting, framing, the dharma context around dana.\n\n" +
+              "Keep: the amount line, the course link, and the gratitude tone — this is the only confirmation the member receives.",
+            body: `## Thank you, {{firstName}}.
+
+Your dana offering of **\${{amountUsd}}** has been received, and you're now enrolled in **{{courseTitle}}**.
+
+Dana — the practice of generosity — is what allows these teachings to be freely available to those who can't offer dana, and to sustain RIM's work. Your offering supports both. Thank you.
+
+You can begin the course any time:
+
+**[Open {{courseTitle}} →]({{courseUrl}})**
+
+You'll find the full lesson library on that page. Take it at your own pace — there's no schedule to keep up with. Pause for as long as you need between lessons, return when something calls you back.
+
+If anything doesn't work or you have a question about the material, just reply to this email.
+
+---
+Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`,
+          },
+        });
+        console.log(`  ✔ Applied: ${this.name} (created)`);
+      } else {
+        console.log(`  ✔ Applied: ${this.name} (already exists — preserved)`);
+      }
+
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "_migration_flags" (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ DEFAULT NOW())
+      `).catch(() => {});
+      await db.$executeRawUnsafe(`
+        INSERT INTO "_migration_flags" (name) VALUES ('seed_course_dana_receipt_email_template_v1')
+      `);
+    },
+  },
 ];
 
 // ── Server-safe compute helpers (mirror of lib/programUtils.ts) ──────────────

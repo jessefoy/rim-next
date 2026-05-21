@@ -684,6 +684,10 @@ model Donation {
   programId     String?        // Sanity _id
   programTitle  String?
 
+  // Course context (optional — for course self-enroll dana, session 123)
+  courseId      String?
+  courseTitle   String?
+
   // Registration link (for Stripe registration-flow donations)
   registrationId String?
 

@@ -21381,6 +21381,99 @@ a.vol-table__name:hover { color: var(--rim-mid); }
   margin: 8px 0 0;
 }
 
+/* Dana amount picker — shown inline in the CTA slot when a member clicks
+   "Enroll with dana →" (session 123 slice 4). Sits inside .pg-detail-row.
+   Style is calm and conversational — no card, no border, no shadow. */
+.crs-dana-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+.crs-dana-form__label {
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  color: var(--rim-text);
+  margin: 0;
+}
+.crs-dana-form__amounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.crs-dana-form__chip {
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  font-weight: 500;
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: white;
+  color: var(--rim-text);
+  border: 1px solid var(--rim-rule);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  min-height: 44px;
+}
+.crs-dana-form__chip:hover {
+  background: var(--rim-bg-accent);
+}
+.crs-dana-form__chip--active {
+  background: var(--rim-blue);
+  color: white;
+  border-color: var(--rim-blue);
+}
+.crs-dana-form__custom {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: white;
+  border: 1px solid var(--rim-rule);
+  border-radius: 8px;
+  padding: 0 12px;
+  max-width: 160px;
+}
+.crs-dana-form__currency {
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  color: var(--rim-mid);
+}
+.crs-dana-form__custom-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  padding: 10px 4px;
+  width: 100%;
+}
+.crs-dana-form__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.crs-dana-form__cancel {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--rim-mid);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.crs-dana-form__cancel:hover {
+  color: var(--rim-text);
+}
+.crs-dana-form__note {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--rim-mid);
+  line-height: 1.55;
+  margin: 0;
+}
+
 /* Mobile */
 @media (max-width: 768px) {
   .crs-hero {

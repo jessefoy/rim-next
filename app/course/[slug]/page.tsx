@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import EnrollButton from "@/components/EnrollButton";
+import EnrollDanaButton from "@/components/EnrollDanaButton";
 import {
   getCourseAccessState,
   defaultRestrictionMessage,
@@ -371,17 +372,7 @@ function renderCta(
       );
 
     case "can_self_enroll_dana":
-      // Slice 4 (dana self-enroll flow) replaces this placeholder with a
-      // real EnrollDanaButton that opens a Stripe Checkout session. Until
-      // then, the page reads honestly: enrollment is coming, but not via
-      // self-serve. Members can still reach the content if an admin grants
-      // access from /admin/members/[id].
-      return (
-        <span className="pg-detail-cta__text">
-          Dana-supported enrollment will be available soon. In the meantime,
-          contact us if you&rsquo;d like to start.
-        </span>
-      );
+      return <EnrollDanaButton courseSlug={course.slug} />;
 
     case "role_gated": {
       const msg = course.accessRestrictionMessage || defaultRestrictionMessage(state);
