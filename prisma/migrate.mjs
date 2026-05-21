@@ -2680,6 +2680,22 @@ async function main() {
     console.log("  ⏭ Manual host-session-room v4 already applied.");
   }
 
+  // Manual chapter: host-session-room. v5 adds (session 122, 2026-05-20):
+  // - "Headphones are recommended" practical note under Getting into the room
+  // - Bell mode section explaining the bell-button toggle that flips Krisp
+  //   noise cancellation off so bells, singing bowls, and gongs pass
+  //   through with their full tone preserved
+  const updateManualHostSessionRoomV5Flag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_host_session_room_v5'
+  `).catch(() => []);
+
+  if (updateManualHostSessionRoomV5Flag.length === 0) {
+    await updateManualHostSessionRoom(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_session_room_v5')`);
+  } else {
+    console.log("  ⏭ Manual host-session-room v5 already applied.");
+  }
+
   // Manual chapter: conversations. v2 corrects the reactions section:
   // reactions live on replies only, not on the thread's first message.
   // The UI shows a smile-plus picker on each reply that opens a small

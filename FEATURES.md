@@ -1826,7 +1826,7 @@ When an application is extracted, the hub may retain a simplified read-only view
 
 ---
 
-## 38. LiveKit Video Conferencing — Phases 1–5 ✅ Built — sessions 76, 86, 117 (Zoom-aligned redesign), session 121 (three-tier permission model + cleanup)
+## 38. LiveKit Video Conferencing — Phases 1–5 ✅ Built — sessions 76, 86, 117 (Zoom-aligned redesign), session 121 (three-tier permission model + cleanup), session 122 (Krisp NC + per-profile video bitrate + Bell mode)
 
 ### What it does
 
@@ -1841,6 +1841,26 @@ Embedded video conferencing that replaces Google Meet for virtual and hybrid pro
 - **Phase 4 (session room UI):** Custom RIMConference layout, chat, focus/pin, nonverbal signals, raised-hand banner, presence photos, dark theme, audio prompt. ✅ Complete (session 86).
 - **Phase 5 (Zoom-aligned redesign):** ✅ Complete (session 117). The entire session-room UX was reshaped to mirror Zoom's information architecture so Sangha muscle memory transfers cleanly. See "Zoom-aligned redesign" below.
 - **Phase 6 (recording):** 🔜 Pressing future feature — see below.
+
+### A/V tuning pass — Krisp NC + per-profile video bitrate + Bell mode (session 122)
+
+Real test feedback on the deployed Zoom-aligned room surfaced three reproducible issues: choppiness/freezing, fluctuating quality, and audio echo (one participant hearing their own voice from another participant's external speaker). The diagnosis: (1) Krisp Enhanced Noise Cancellation was installed in package.json (`@livekit/track-processors`) but never imported or wired up; (2) the publish bitrate ceiling of 2.5 Mbps for everyone overshot what residential WiFi could sustain and produced the layer-switch freezes; (3) participants without headphones cause echo loops that WebRTC's built-in AEC can't fully suppress.
+
+**Krisp Enhanced Noise Cancellation, default-on.** Installed `@livekit/krisp-noise-filter@^0.3.4` to satisfy the peer-optional dep in `@livekit/components-react@2.9.20` (`^0.2.12 || ^0.3.0`). `RIMConference` now uses the React hook `useKrispNoiseFilter()` from `@livekit/components-react/krisp`. A ref-guarded effect calls `setNoiseFilterEnabled(true)` once on mount — the hook lazy-loads the Krisp WASM, creates the processor, and applies it to the local microphone track. State is component-local, so it resets to NC-on whenever the conference component remounts (every session join). `noiseFilterAvailable = krisp.processor !== undefined` is the "Krisp loaded successfully" signal; on unsupported browsers (older Safari, some Firefox configs) the hook logs a warn and the processor stays undefined — we use that to gate the Bell mode UI so it doesn't lie about NC state on a browser where NC isn't actually running.
+
+**Bell mode — Co-host toggle.** A new "Bell mode" button in `RIMControlBar`, between Settings and the red End, visible only when `isCoHost && noiseFilterAvailable`. Default state: NC on, label "Bell mode" (subtle button, available action). Tapped state: NC off, label "Clean voice", amber tint (`--color-alert: #C8821A` at 22% alpha) — visually signals "you're in a mode" without the alarmist red of mic-off. Tapping calls `setNoiseFilterEnabled(!isNoiseFilterEnabled)`; `disabled={noiseFilterPending}` blocks double-taps during the swap. Use case: teacher rings a bell or strikes a singing bowl, and the bell tone needs to pass through with its full character — Krisp NC would treat it as background noise. State resets at every join so Bell mode is always a deliberate per-bell action, never a setting accidentally left on. Latency from tap to "other participants hear the change" is ~20 ms locally plus normal WebRTC publish/network — effectively instantaneous. `IconBell` Lucide-style SVG added to `ControlBarIcons.tsx`.
+
+**Per-profile video bitrate ceilings.** Replaced the flat `maxBitrate: 2_500_000` with profile-driven values in `buildRoomOptions`: teacher 2.0 Mbps (matches Zoom Group HD), speaker 1.5 Mbps (Zoom HD), listener 1.0 Mbps (Zoom standard). All at 720p / 30 fps. Three explicit simulcast layers `[h180, h360, h720]` (was two: `[h180, h360]`) give the SFU a full adaptation ladder. Counter-intuitive but real: the previous flat 2.5 Mbps was *higher* than what residential WiFi could reliably sustain, which is why uplink saturation produced abrupt layer-switch freezes. Lowering the ceiling to per-tier values that the network actually sustains removes the freezes — the video quality is unchanged at the receiver because adaptiveStream + dynacast handle downscaling and uplink savings on top of the new ceiling.
+
+**Greenroom "Headphones recommended" line.** Sangha-tone framing as care for others: "Headphones recommended — they keep your audio from echoing back to others." Placed near the device-permission disclosure, not stacked on top. Addresses the one echo case Krisp can't fully suppress — a participant with external speakers in an acoustically live room. `.gr-card__hint--headphones` modifier gives it slight extra top margin so it reads as its own thought.
+
+**LiveKit Cloud tier correction.** Stack Reference had said "Ship tier ($50/month)" but we're on Build (`$0/mo + metered usage`). Daily.co was evaluated in this session as an alternative and rejected: ~$110/mo at RIM scale vs $0–50 on LiveKit, plus the rewrite cost of unwinding the custom-room architecture (three-tier permissions, magic-code auth, Greenroom/Recovery, host badges, HostAssignment integration). Decision committed; quality concerns are addressed by tuning passes, not platform changes.
+
+**Reviewer sub-agent caught one real issue pre-commit:** on unsupported browsers, the hook silently no-ops and `isNoiseFilterEnabled` stays `false`, which would make the Bell mode button appear stuck in "Clean voice" amber state from the start (confusing because NC is off but not by user choice). Fixed by gating the button on `krisp.processor !== undefined` so it's hidden entirely when Krisp isn't actually loaded.
+
+**Manual chapter `host-session-room` v5** (`prisma/update-manual-host-session-room.mjs`) adds a Bell mode section explaining the toggle in plain language plus a "Headphones are recommended" practical note under Getting into the room. Migration flag `update_manual_host_session_room_v5` in `prisma/migrate.mjs`.
+
+**Files touched:** `package.json` + lockfile (krisp dep), `components/VideoRoom.tsx` (bitrate + simulcast + comment block), `components/session/RIMConference.tsx` (Krisp hook + default-on effect + prop wiring), `components/session/RIMControlBar.tsx` (Bell mode button + props), `components/session/ControlBarIcons.tsx` (IconBell), `components/session/Greenroom.tsx` (headphones line), `public/css/custom.css` (`.rim-cb-btn--bell-active`, `.gr-card__hint--headphones`), `prisma/update-manual-host-session-room.mjs` (v5 chapter content), `prisma/migrate.mjs` (v5 migration flag).
 
 ### Three-tier permission model (session 121)
 

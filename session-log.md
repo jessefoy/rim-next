@@ -1,5 +1,67 @@
 ---
 
+## 2026-05-20 (session 122) — LiveKit A/V tuning: Krisp NC, per-profile video bitrate, Bell mode
+
+One commit on `main`. Driven by real test feedback Jesse reported at the top of the session: choppiness/freezing, fluctuating video quality, and the most diagnostic complaint — hearing his own voice come back through another participant's external speaker. He asked whether we'd made a mistake choosing LiveKit and asked me to look at Daily.co as an alternative.
+
+### The meta question — did we choose wrong?
+
+Spent the first half of the session honestly assessing whether to switch platforms or tune what we have. Findings:
+
+- **We're not self-hosting.** LiveKit Cloud. Build tier ($0/mo + metered usage). The Stack Reference said "Ship tier ($50/month)" — stale. Corrected as part of closing.
+- **Krisp Enhanced Noise Cancellation was installed but never enabled.** `@livekit/track-processors@0.7.2` is in `package.json`; somebody (probably me in a past session) intended to wire it up and never did. That accounts for the echo complaint directly — WebRTC's built-in NS is genuinely weaker than Krisp for the external-speaker echo case.
+- **The flat 2.5 Mbps publish ceiling was over-shooting Zoom**, not under-shooting it. Zoom Group HD runs ~2 Mbps; Zoom standard 720p runs ~1 Mbps. We were trying to push more than residential WiFi could sustain — which is precisely what produces the layer-switch freezes ("choppiness/freezing") people reported. Counter-intuitive but real.
+- **Daily.co at our scale would cost ~$110/mo vs $0–50 on LiveKit.** Plus the rewrite cost of unwinding the custom-room architecture (three-tier permissions, magic-code auth, Greenroom/Recovery, host badges, HostAssignment integration, persistent chat, host early-open) — months of work, during which the broken-feeling current room remains live.
+
+Recommendation to Jesse: don't switch. Enable the Krisp NC we already paid the package install for, tune the bitrates to where residential WiFi can actually sustain them, add a "Headphones recommended" line in Greenroom. He agreed.
+
+### The work — five changes
+
+1. **Krisp NC default-on for everyone.** Installed `@livekit/krisp-noise-filter@^0.3.4` (had to pick 0.3.x because `@livekit/components-react@2.9.20` peerOptional requires `^0.2.12 || ^0.3.0`; 0.4.x would have conflicted). `RIMConference` now uses `useKrispNoiseFilter()` from `@livekit/components-react/krisp`; a ref-guarded effect calls `setNoiseFilterEnabled(true)` once on mount. State is component-local — every new join begins NC-on.
+
+2. **Bell mode — Co-host toggle.** Mid-session refinement from Jesse: instead of "teacher always has NC off to preserve bells" (which would leave fridge hum and traffic in his audio for the whole session), give the teacher a one-tap toggle so NC is on during teaching and off only for the bell moment. Implemented as a new button in `RIMControlBar` between Settings and the red End. Bell icon, two-state label ("Bell mode" → tap → "Clean voice"), amber tint via `--color-alert` when active. Visible only when `isCoHost && noiseFilterAvailable`. Reset to NC-on at every join — deliberate per-bell action, not a setting that persists.
+
+3. **Per-profile video bitrate ceilings.** Replaced the flat `maxBitrate: 2_500_000` with profile-driven values in `buildRoomOptions`: teacher 2.0 / speaker 1.5 / listener 1.0 Mbps. Three explicit simulcast layers `[h180, h360, h720]` (was two — `[h180, h360]`).
+
+4. **"Headphones recommended" line in Greenroom.** Sangha-tone framing as care for others: "Headphones recommended — they keep your audio from echoing back to others." Placed near the device-permission disclosure, not stacked on top.
+
+5. **Manual chapter v5 (`host-session-room`)** — new Bell mode section in the manual, plus a "Headphones are recommended" note in Getting into the room. Both written at 8th-grade reading level matching the rest of the chapter. Migration flag `update_manual_host_session_room_v5` in `prisma/migrate.mjs`.
+
+### Reviewer sub-agent — one real catch pre-commit
+
+Default-on per the established memory. The reviewer flagged: on unsupported browsers (older Safari, some Firefox configs), the `useKrispNoiseFilter` hook silently no-ops and `isNoiseFilterEnabled` stays `false`. With my initial UI, that would have made the Bell mode button appear stuck in "Clean voice" amber state from the start — confusing because NC is off but not by user choice. Fixed by gating the button on `krisp.processor !== undefined` so it's hidden entirely when Krisp isn't actually loaded.
+
+Other findings (useEffect dep churn, peer-dep verification, race with mic-not-yet-available, rapid-tap safety, aria-pressed polarity, h720 simulcast redundancy) were either safe-to-ship-as-is or non-issues. One real catch in a session where the surface area was small — pattern continues to be load-bearing.
+
+### What this connects to
+
+- **Session 86 (LiveKit foundation).** The room continues to use LiveKit Cloud, no platform change.
+- **Session 117 (Zoom-aligned redesign).** The control bar layout from 117 was the place to add Bell mode — between Settings and End, matching the existing button vocabulary (icon over label, currentColor tinting). The decision to keep H.264 (vs VP9 SVC I'd floated earlier) preserves the universal-hardware-encoding-on-laptops-and-phones property that 117 deliberately chose.
+- **Session 119 (Greenroom + Recovery).** The headphones note lives in Greenroom only, not Recovery. Recovery is for users who've already denied permission and need to recover; a headphone nudge there is the wrong moment.
+- **Session 121 (three-tier permissions).** Bell mode visibility is gated on the existing `isCoHost` tier from `SessionRoleContext`. No new permission concept introduced; just an action on an existing tier.
+
+### What's deferred
+
+- **Test Microphone / Test Speakers in Settings → Audio** — still on the session-117 deferred list. If echo persists after the Krisp NC + headphones changes, this is the next escape hatch (lets a participant self-diagnose pre-session).
+- **Confirm Krisp NC usage rate in the LiveKit Cloud dashboard.** The exact per-minute pricing wasn't openly published; my estimate is $10–30/mo at RIM scale, but reality will show up on the first invoice. Worth checking after the next live session.
+- **Memory file `webflow-cache-and-mcp-limits.md`-style note** for "@livekit/krisp-noise-filter requires the 0.3.x line because components-react@2.9.x peerOptional is constrained to ^0.2.12 || ^0.3.0." Save for later if it comes up again.
+
+### What's next
+
+- **Test on a live session.** Jesse will run the next scheduled session with these changes deployed. The three test signals he should look for:
+  1. Does the external-speaker echo case disappear? (Krisp NC should close it.)
+  2. Does the choppiness/freezing settle? (Per-profile bitrates should resolve it for participants on residential WiFi.)
+  3. Does Bell mode work for him at a real bell moment? (Visual feedback on tap, full tone of the bell preserved while in the mode, return to clean voice on re-tap.)
+- **Course offering model build remains the priority** for the next session unrelated to A/V testing. Unchanged from sessions 118–121 deferral. `RIM_Offering_Model.md` is the authoritative reference.
+
+### Process notes
+
+- **The reviewer-before-commit pattern continues to earn its keep.** One real catch on a single-feature session.
+- **Merge-to-main-by-default held.** Branch created, work committed, push, FF main, delete branch (origin). The closing-ritual docs go in a separate commit on top.
+- **Plan mode was not used this session** — the work was concrete enough from the Connections Map exchange and didn't need a plan-mode pass.
+
+---
+
 ## 2026-05-24 (session 121) — Session room cleanup: three-tier permissions, tile hover-mute, no auto-hide, host early-open
 
 Two commits on `main`. Five small issues Jesse named from a live test, plus one follow-on. The throughline: the previous session-room model had one overloaded `isHost` flag granted to a wide pool, and a fresh test session in the host hub exposed the result — multiple people clicked "Step in as Host" sequentially, each saw the End-for-All button, and only the latest stepper could actually use it. Buttons that don't work are the worst kind of UX for an overwhelmed user. This session was the cleanup.

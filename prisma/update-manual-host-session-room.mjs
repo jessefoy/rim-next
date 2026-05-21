@@ -7,6 +7,12 @@
  * nonverbal signals, member photos, Open Access, and what to do
  * when something misbehaves.
  *
+ * v5 additions over v4 (session 122, 2026-05-20):
+ *   - "Headphones are recommended" practical note under Getting into the room
+ *   - Bell mode section — the small bell button in the control bar that
+ *     turns off the background noise cleanup so bells, bowls, and gongs
+ *     come through with their full tone preserved
+ *
  * v4 additions over v3 (session 121, 2026-05-24):
  *   - Three-tier permission model (Session Host vs. Co-host vs. Participant)
  *   - Hover-mute affordance on any tile
@@ -43,6 +49,7 @@ const SESSION_ROOM_BODY = `<p>The session room is where RIM's online sessions ha
 <p>Your browser will ask permission to use your camera and microphone. Click <strong>Allow</strong>. If you don't see the prompt, look for a small camera or lock icon in your browser's address bar — clicking it lets you grant permission.</p>
 <p>You arrive as host automatically because the system recognizes you from how you signed in. No special code or link is needed.</p>
 <p>If you haven't tested your setup recently, join the room during a quiet moment before a live session — check that your camera and audio work, then leave. Better to find a problem then than at start time.</p>
+<p><strong>Headphones are recommended.</strong> Without headphones, your speakers can broadcast other people's voices back into your microphone — which is why a participant occasionally hears their own voice come back through someone else's connection. It's not a hard requirement, but if you can use headphones, do. Encourage participants who report echo or audio strangeness to try headphones as the first step.</p>
 
 <h2>What you see when you arrive</h2>
 <p>The session room is a full-page video space with a dark header strip across the top and a control bar across the bottom. Both stay visible the whole time — they don't fade out.</p>
@@ -97,6 +104,19 @@ const SESSION_ROOM_BODY = `<p>The session room is where RIM's online sessions ha
 <p><strong>Pin (focus).</strong> Click any participant's tile to pin them — they fill more of the visible screen. Useful when the teacher is leading and their tile should be more prominent, or when a participant is responding and the room should see them clearly. Click the tile again to unpin.</p>
 <p>The Disruption Response document in the Host Hub's Documents tab covers when to use each of these under specific circumstances. This section is about what they are.</p>
 
+<h2>Bell mode — for bells, bowls, and gongs</h2>
+<p>The session room cleans up your audio in the background so background sounds — a fan, traffic, someone typing — don't reach other people. This is on by default for everyone, every session.</p>
+<p>That cleanup is good for voice but works against bells. If you ring a bell, strike a singing bowl, or sound a gong, the cleanup treats the bell tone as noise and suppresses part of its character. <strong>Bell mode</strong> is the small bell-shaped button in the bottom control bar, sitting between Settings and the red End button. Tapping it turns the cleanup off for your microphone so the full tone of the bell passes through clearly.</p>
+<p>A simple rhythm:</p>
+<ol>
+<li>Tap <strong>Bell mode</strong>. The button gets a warm amber tint and the label changes to "Clean voice."</li>
+<li>Pause for a second or two. The change reaches every listener almost instantly, but the pause itself is good practice — it lets the room settle before the bell.</li>
+<li>Ring the bell. Let it decay fully.</li>
+<li>Tap the button again. The amber tint goes away and the label returns to "Bell mode."</li>
+</ol>
+<p>The button is only visible to the assigned host, a co-host, or the teacher. Regular participants don't see it — their audio is always cleaned. The state resets every time you join a session, so you always start in clean-voice mode (cleanup on); Bell mode is a deliberate moment, not a setting you can leave on by accident.</p>
+<p>If you're on a browser where the cleanup feature isn't supported, the Bell mode button won't appear at all. Your voice is going through unprocessed, the same way it would have before the cleanup was added — which is fine, just not Krisp-cleaned. This is rare; the cleanup is supported on every modern browser on Mac, Windows, iPad, and iPhone.</p>
+
 <h2>Step in as Host</h2>
 <p>Any host-team member who joins a session they are <em>not</em> the assigned host for will see a <strong>Step in as Host</strong> button in the header. Regular participants don't see this button.</p>
 <p>Clicking it makes you the assigned host for the session, granting the full control set — including End for All. The system records that you stepped in, so the assigned-host role transfers to you cleanly. Use it when:</p>
@@ -146,7 +166,7 @@ export async function updateManualHostSessionRoom(db) {
 
   const data = {
     title: "The Session Room",
-    description: "What hosts see when they open the room — the twelve-minute welcome window, the ten-minute early-open for hosts and teachers, the three permission tiers, tile hover-mute, Step in as Host, nonverbal signals, and what to do when something misbehaves.",
+    description: "What hosts see when they open the room — the twelve-minute welcome window, the ten-minute early-open for hosts and teachers, the three permission tiers, tile hover-mute, Bell mode for bells and bowls, Step in as Host, nonverbal signals, and what to do when something misbehaves.",
     hubSlug: "host-team",
     body: SESSION_ROOM_BODY,
     relations: ["host-hub", "host-schedule"],
