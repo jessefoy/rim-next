@@ -29,19 +29,25 @@ export default async function EditCoursePage({
   const session = await auth();
   if (!session) redirect("/login");
 
-  const course = await db.course.findUnique({
-    where: { slug: courseSlug },
-    include: {
-      lessons: {
-        include: {
-          lesson: {
-            select: { id: true, titleInternal: true, titleDisplayed: true, slug: true },
+  const [course, categories] = await Promise.all([
+    db.course.findUnique({
+      where: { slug: courseSlug },
+      include: {
+        lessons: {
+          include: {
+            lesson: {
+              select: { id: true, titleInternal: true, titleDisplayed: true, slug: true },
+            },
           },
+          orderBy: { sortOrder: "asc" },
         },
-        orderBy: { sortOrder: "asc" },
       },
-    },
-  });
+    }),
+    db.courseCategory.findMany({
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true, slug: true, sortOrder: true },
+    }),
+  ]);
 
   if (!course) notFound();
 
@@ -53,7 +59,6 @@ export default async function EditCoursePage({
     description: course.description ?? null,
     // Orthogonal-flag access model (session 123).
     allowSelfEnroll: course.allowSelfEnroll,
-    selfEnrollDanaRequired: course.selfEnrollDanaRequired,
     accessRestrictionMessage: course.accessRestrictionMessage ?? "",
     requiredRoles: course.requiredRoles as string[],
     // Landing-page content
@@ -61,6 +66,14 @@ export default async function EditCoursePage({
     pullQuote: course.pullQuote ?? "",
     pullQuoteSource: course.pullQuoteSource ?? "",
     danaText: course.danaText ?? "",
+    // Category
+    categoryId: course.categoryId ?? "",
+    // Dana model — Program-parallel (session 123, slice 5)
+    danaMode: course.danaMode ?? "none",
+    suggestedDana: course.suggestedDana != null ? String(course.suggestedDana) : "",
+    danaBaseAmount: course.danaBaseAmount != null ? String(course.danaBaseAmount) : "",
+    danaFixedAmount: course.danaFixedAmount != null ? String(course.danaFixedAmount) : "",
+    danaMessage: course.danaMessage ?? null,
     // Existing flags
     isOnboarding: course.isOnboarding,
     publishOnPublicCatalog: course.publishOnPublicCatalog,
@@ -83,7 +96,7 @@ export default async function EditCoursePage({
 
   return (
     <div>
-      <CourseEditor initialData={initialData} isEditing />
+      <CourseEditor initialData={initialData} categories={categories} isEditing />
     </div>
   );
 }

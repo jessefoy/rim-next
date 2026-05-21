@@ -18569,6 +18569,84 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .pe-dialog__text { font-size: var(--text-small); line-height: 1.6; margin: 0 0 20px; color: var(--rim-text); }
 .pe-dialog__actions { display: flex; gap: 10px; justify-content: flex-end; }
 
+/* ── Additions for CourseEditor tabs (session 123, slice 5) ────────────────
+   Shared chrome that the Program editor never needed but the Course editor
+   does: a structured category list, empty-state copy, in-card section help. */
+
+.pe-card__help {
+  font-size: var(--text-xs);
+  color: var(--rim-text-muted);
+  margin: 0 0 12px;
+  line-height: 1.55;
+}
+
+.pe-empty {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  color: var(--rim-text-muted);
+  text-align: center;
+  padding: 24px;
+  margin: 0;
+}
+
+.pe-checkbox__hint {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--rim-text-muted);
+  margin-top: 2px;
+  line-height: 1.55;
+}
+.pe-checkbox--sm { font-size: var(--text-ui); }
+.pe-checkbox--sm .pe-checkbox__label { font-weight: 500; }
+
+.pe-field__error {
+  font-size: var(--text-small);
+  color: var(--color-error);
+  margin: 4px 0 0;
+}
+
+.pe-field__hint {
+  font-size: var(--text-xs);
+  color: var(--rim-text-muted);
+  margin: 0 0 6px;
+}
+
+.pe-roles-select {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 4px 0 0 28px;
+  padding: 12px 14px;
+  background: var(--rim-bg-accent);
+  border-radius: 6px;
+}
+
+.pe-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pe-list__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--rim-bg-accent);
+  border-radius: 6px;
+  font-size: var(--text-ui);
+}
+.pe-list__name {
+  flex: 1;
+  color: var(--rim-text);
+}
+.pe-list__meta {
+  font-size: var(--text-xs);
+  color: var(--rim-text-muted);
+}
+
 /* Program card wrapper + edit link */
 .vol-card-wrap { position: relative; }
 .vol-card__edit-link {

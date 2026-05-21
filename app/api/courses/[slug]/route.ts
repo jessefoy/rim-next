@@ -93,16 +93,50 @@ export async function PATCH(
     updateData.selfEnrollDanaRequired = flags.selfEnrollDanaRequired;
   }
 
-  // Pass-through of the new orthogonal flags + content fields. The
-  // editor will start writing these directly in step 5 of the offering
-  // build; until then they're accepted in case a client wants to.
+  // Pass-through of orthogonal flags + content fields. The editor writes
+  // these directly (slice 5 — tabbed restructure).
   if (fields.allowSelfEnroll !== undefined) updateData.allowSelfEnroll = Boolean(fields.allowSelfEnroll);
-  if (fields.selfEnrollDanaRequired !== undefined) updateData.selfEnrollDanaRequired = Boolean(fields.selfEnrollDanaRequired);
+
+  // Legacy pass-through. New writers send danaMode directly (below);
+  // this branch only fires if an older client sends only the boolean.
+  // Derive a danaMode so the source-of-truth and mirror don't drift —
+  // turning the boolean on yields "voluntary" (the safest default) when
+  // there's no current mode; turning it off forces "none".
+  if (fields.selfEnrollDanaRequired !== undefined && fields.danaMode === undefined) {
+    const onNow = Boolean(fields.selfEnrollDanaRequired);
+    updateData.selfEnrollDanaRequired = onNow;
+    updateData.danaMode = onNow
+      ? course.danaMode === "none" ? "voluntary" : course.danaMode
+      : "none";
+  }
   if (fields.accessRestrictionMessage !== undefined) updateData.accessRestrictionMessage = fields.accessRestrictionMessage || null;
   if (fields.heroImage !== undefined) updateData.heroImage = fields.heroImage || null;
   if (fields.pullQuote !== undefined) updateData.pullQuote = fields.pullQuote || null;
   if (fields.pullQuoteSource !== undefined) updateData.pullQuoteSource = fields.pullQuoteSource || null;
   if (fields.danaText !== undefined) updateData.danaText = fields.danaText || null;
+  if (fields.categoryId !== undefined) updateData.categoryId = fields.categoryId || null;
+
+  // Dana model (slice 5). If the client sends danaMode, derive
+  // selfEnrollDanaRequired as a mirror so legacy reads stay consistent.
+  if (fields.danaMode !== undefined) {
+    updateData.danaMode = fields.danaMode;
+    updateData.selfEnrollDanaRequired = fields.danaMode !== "none";
+  }
+  if (fields.suggestedDana !== undefined) {
+    updateData.suggestedDana =
+      fields.suggestedDana == null ? null : Number(fields.suggestedDana);
+  }
+  if (fields.danaBaseAmount !== undefined) {
+    updateData.danaBaseAmount =
+      fields.danaBaseAmount == null ? null : Number(fields.danaBaseAmount);
+  }
+  if (fields.danaFixedAmount !== undefined) {
+    updateData.danaFixedAmount =
+      fields.danaFixedAmount == null ? null : Number(fields.danaFixedAmount);
+  }
+  if (fields.danaMessage !== undefined) {
+    updateData.danaMessage = fields.danaMessage ?? null;
+  }
 
   if (fields.hideFromMemberProfile !== undefined) updateData.hideFromMemberProfile = fields.hideFromMemberProfile;
   if (fields.sortOrder !== undefined) updateData.sortOrder = fields.sortOrder != null ? Number(fields.sortOrder) : null;

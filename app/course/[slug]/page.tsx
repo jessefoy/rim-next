@@ -347,7 +347,14 @@ function renderLandingView({
 
 function renderCta(
   state: CourseAccessState,
-  course: { slug: string; accessRestrictionMessage: string | null }
+  course: {
+    slug: string;
+    accessRestrictionMessage: string | null;
+    danaMode: string;
+    suggestedDana: number | null;
+    danaBaseAmount: number | null;
+    danaFixedAmount: number | null;
+  }
 ) {
   switch (state.kind) {
     case "anonymous": {
@@ -371,8 +378,25 @@ function renderCta(
         />
       );
 
-    case "can_self_enroll_dana":
-      return <EnrollDanaButton courseSlug={course.slug} />;
+    case "can_self_enroll_dana": {
+      // Map the course's danaMode to the button's prop. The "none" case
+      // never reaches here (state would have been can_self_enroll_free).
+      const mode =
+        course.danaMode === "fixed"
+          ? "fixed"
+          : course.danaMode === "base_plus_dana"
+          ? "base_plus_dana"
+          : "voluntary";
+      return (
+        <EnrollDanaButton
+          courseSlug={course.slug}
+          danaMode={mode}
+          suggestedDana={course.suggestedDana}
+          danaBaseAmount={course.danaBaseAmount}
+          danaFixedAmount={course.danaFixedAmount}
+        />
+      );
+    }
 
     case "role_gated": {
       const msg = course.accessRestrictionMessage || defaultRestrictionMessage(state);

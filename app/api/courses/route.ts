@@ -67,6 +67,8 @@ export async function POST(request: NextRequest) {
     title, slug, subheading, description, accessLevel,
     allowSelfEnroll, selfEnrollDanaRequired, accessRestrictionMessage,
     heroImage, pullQuote, pullQuoteSource, danaText,
+    danaMode, suggestedDana, danaBaseAmount, danaFixedAmount, danaMessage,
+    categoryId,
     requiredRoles,
     hideFromMemberProfile, sortOrder, isActive, publishOnPublicCatalog,
   } = body;
@@ -90,6 +92,19 @@ export async function POST(request: NextRequest) {
   const resolvedAllowSelfEnroll = allowSelfEnroll ?? derived.allowSelfEnroll;
   const resolvedSelfEnrollDanaRequired = selfEnrollDanaRequired ?? derived.selfEnrollDanaRequired;
 
+  // Dana model (slice 5). If danaMode is provided, use it; otherwise derive
+  // from selfEnrollDanaRequired (true → "voluntary", false → "none") for
+  // backwards compatibility.
+  const resolvedDanaMode =
+    typeof danaMode === "string"
+      ? danaMode
+      : resolvedSelfEnrollDanaRequired
+      ? "voluntary"
+      : "none";
+  // Mirror derived from danaMode — keeps the boolean in sync as new code
+  // writes danaMode directly.
+  const finalSelfEnrollDanaRequired = resolvedDanaMode !== "none";
+
   const course = await db.course.create({
     data: {
       title,
@@ -98,12 +113,18 @@ export async function POST(request: NextRequest) {
       description: description || null,
       accessLevel: resolvedAccessLevel,
       allowSelfEnroll: resolvedAllowSelfEnroll,
-      selfEnrollDanaRequired: resolvedSelfEnrollDanaRequired,
+      selfEnrollDanaRequired: finalSelfEnrollDanaRequired,
       accessRestrictionMessage: accessRestrictionMessage || null,
       heroImage: heroImage || null,
       pullQuote: pullQuote || null,
       pullQuoteSource: pullQuoteSource || null,
       danaText: danaText || null,
+      danaMode: resolvedDanaMode,
+      suggestedDana: typeof suggestedDana === "number" ? suggestedDana : null,
+      danaBaseAmount: typeof danaBaseAmount === "number" ? danaBaseAmount : null,
+      danaFixedAmount: typeof danaFixedAmount === "number" ? danaFixedAmount : null,
+      danaMessage: danaMessage ?? null,
+      categoryId: categoryId || null,
       requiredRoles: Array.isArray(requiredRoles) ? requiredRoles : [],
       hideFromMemberProfile: hideFromMemberProfile ?? false,
       sortOrder: sortOrder != null ? Number(sortOrder) : null,

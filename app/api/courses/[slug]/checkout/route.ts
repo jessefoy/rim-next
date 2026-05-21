@@ -49,18 +49,51 @@ export async function POST(
         allowSelfEnroll: true,
         selfEnrollDanaRequired: true,
         requiredRoles: true,
+        danaMode: true,
+        danaBaseAmount: true,
+        danaFixedAmount: true,
       },
     });
     if (!course) {
       return NextResponse.json({ error: "Course not found" }, { status: 404 });
     }
 
-    if (!course.allowSelfEnroll || !course.selfEnrollDanaRequired) {
+    if (!course.allowSelfEnroll || course.danaMode === "none") {
       return NextResponse.json(
         { error: "This course doesn't use the dana self-enroll path." },
         { status: 400 }
       );
     }
+
+    // Mode-specific amount validation (slice 5).
+    if (course.danaMode === "base_plus_dana") {
+      const baseCents = Math.round((course.danaBaseAmount ?? 0) * 100);
+      if (baseCents > 0 && amountCents < baseCents) {
+        return NextResponse.json(
+          {
+            error: `This course requires a minimum offering of $${course.danaBaseAmount}. Please choose ${course.danaBaseAmount} or more.`,
+          },
+          { status: 400 }
+        );
+      }
+    } else if (course.danaMode === "fixed") {
+      const fixedCents = Math.round((course.danaFixedAmount ?? 0) * 100);
+      if (fixedCents === 0) {
+        return NextResponse.json(
+          { error: "This course is set to fixed-amount dana but no amount is configured." },
+          { status: 400 }
+        );
+      }
+      if (amountCents !== fixedCents) {
+        return NextResponse.json(
+          {
+            error: `This course is a fixed-amount enrollment of $${course.danaFixedAmount}. The amount sent didn't match.`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+    // "voluntary" — any amount ≥ $1 is accepted.
 
     if (course.requiredRoles.length > 0 && !isAdmin) {
       const hasRole = course.requiredRoles.some((r) => userRoles.includes(r));

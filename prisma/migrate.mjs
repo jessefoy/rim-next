@@ -2321,6 +2321,48 @@ Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`;
     },
   },
   {
+    // Course offering — full dana model (session 123, slice 5). Mirrors the
+    // Program dana fields so the two offering types feel like peers.
+    //
+    //   danaMode        "none" | "voluntary" | "base_plus_dana" | "fixed"
+    //   suggestedDana   Float?  — default for voluntary mode
+    //   danaBaseAmount  Float?  — minimum for base_plus_dana mode
+    //   danaFixedAmount Float?  — exact amount for fixed mode
+    //   danaMessage     Jsonb?  — Tiptap rich-text shown at checkout
+    //
+    // Backfill: existing courses with selfEnrollDanaRequired = true map to
+    // "voluntary" (the safest interpretation — admin sets a suggestedDana
+    // later if they want). All others become "none". selfEnrollDanaRequired
+    // is preserved as a derived mirror; the new flag (danaMode !== "none")
+    // is the source of truth going forward.
+    name: "add_course_dana_model",
+    async run() {
+      const cols = await db.$queryRawUnsafe(`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'courses' AND column_name = 'danaMode'
+      `);
+      if (cols.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      await db.$executeRawUnsafe(`ALTER TABLE "courses" ADD COLUMN "danaMode" TEXT NOT NULL DEFAULT 'none'`);
+      await db.$executeRawUnsafe(`ALTER TABLE "courses" ADD COLUMN "suggestedDana" DOUBLE PRECISION`);
+      await db.$executeRawUnsafe(`ALTER TABLE "courses" ADD COLUMN "danaBaseAmount" DOUBLE PRECISION`);
+      await db.$executeRawUnsafe(`ALTER TABLE "courses" ADD COLUMN "danaFixedAmount" DOUBLE PRECISION`);
+      await db.$executeRawUnsafe(`ALTER TABLE "courses" ADD COLUMN "danaMessage" JSONB`);
+
+      // Backfill from selfEnrollDanaRequired.
+      const voluntaryCount = await db.$executeRawUnsafe(`
+        UPDATE "courses"
+        SET "danaMode" = 'voluntary'
+        WHERE "selfEnrollDanaRequired" = true
+      `);
+
+      console.log(`  ✔ Applied: ${this.name} (voluntary=${voluntaryCount})`);
+    },
+  },
+  {
     // Email Template Gate (CLAUDE.md): sendCourseDanaReceiptEmail's matching
     // seed entry. Sent by the Stripe webhook when a member completes
     // course self-enroll dana. Doubles as enrollment confirmation —

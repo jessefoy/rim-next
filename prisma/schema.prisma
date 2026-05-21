@@ -440,8 +440,23 @@ model Course {
   pullQuote       String? // floating quote card on the landing
   pullQuoteSource String? // attribution for the pull quote
 
-  // Dana
-  danaText String? // free-form dana ask shown on the landing + read by the self-enroll dana flow
+  // ── Dana ──────────────────────────────────────────────────────────────────
+  // Parallel to Program (session 123, slice 5). One mode per course; the
+  // EnrollDanaButton + /api/courses/[slug]/checkout adapt their UI and
+  // validation to the chosen mode. selfEnrollDanaRequired (above) stays
+  // as a derived mirror — true whenever danaMode !== "none".
+  //
+  // Modes:
+  //   "none"           — no dana step (free / onboarding / manual-grant courses)
+  //   "voluntary"      — pay what you want; suggestedDana is the default
+  //   "base_plus_dana" — minimum required (danaBaseAmount) + optional extra
+  //   "fixed"          — exact amount (danaFixedAmount), no picker
+  danaMode        String  @default("none")
+  suggestedDana   Float?  // default for voluntary mode
+  danaBaseAmount  Float?  // minimum for base_plus_dana mode
+  danaFixedAmount Float?  // exact amount for fixed mode
+  danaMessage     Json?   // RimTiptapEditor output (HTML string serialized to JSON) — rich-text dana explanation shown on the landing
+  danaText        String? // free-form short note shown on the course landing page
 
   // Completion & presentation
   completionNote    String?  // shown when member completes the series
