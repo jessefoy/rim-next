@@ -28,13 +28,15 @@ import {
   LayoutContextProvider,
   useCreateLayoutContext,
   useStartAudio,
+  useRoomContext,
   FocusLayout,
   FocusLayoutContainer,
   CarouselLayout,
   useSpeakingParticipants,
 } from "@livekit/components-react";
 import { useKrispNoiseFilter } from "@livekit/components-react/krisp";
-import { Track, RoomEvent } from "livekit-client";
+import { Track, RoomEvent, LocalAudioTrack } from "livekit-client";
+import type { LocalTrackPublication } from "livekit-client";
 import RIMParticipantTile from "./RIMParticipantTile";
 import ParticipantsPanel from "./ParticipantsPanel";
 import VideoSettingsPanel from "./VideoSettingsPanel";
@@ -78,21 +80,30 @@ export default function RIMConference({ isSessionHost, isCoHost, programSlug, gu
   );
   const raisedHandCount = raisedHands.length;
 
-  // Seed avatar into local participant metadata on connect
+  // Seed avatar + host flag into local participant metadata on connect.
+  // The Host badge ([RIMParticipantTile.tsx]) keys on `meta.host`, which is
+  // normally set by the token route at issuance. After a Step-In reconnect,
+  // even though the new token also seeds `host: true`, this client-side
+  // pass acts as a belt-and-suspenders: if the seed didn't land (e.g. a
+  // race during reconnect, or LiveKit's participant rejoin reusing prior
+  // metadata), the explicit setMetadata call here broadcasts the corrected
+  // state to every other client immediately, so the Host pill appears on
+  // their view of the stepper-in's tile without waiting for another join.
   useEffect(() => {
     if (!localParticipant) return;
     const meta = getMetadata(localParticipant.metadata);
-    if (avatarUrl && meta.avatarUrl !== avatarUrl) {
-      localParticipant.setMetadata(JSON.stringify({ ...meta, avatarUrl }));
-    }
-  }, [localParticipant, avatarUrl]);
+    const needsAvatarUpdate = !!avatarUrl && meta.avatarUrl !== avatarUrl;
+    const needsHostUpdate = isSessionHost && meta.host !== true;
+    if (!needsAvatarUpdate && !needsHostUpdate) return;
+    const next: ParticipantMetadata = { ...meta };
+    if (needsAvatarUpdate) next.avatarUrl = avatarUrl ?? undefined;
+    if (needsHostUpdate) next.host = true;
+    localParticipant.setMetadata(JSON.stringify(next));
+  }, [localParticipant, avatarUrl, isSessionHost]);
 
   // Krisp NC — enable by default on every join. Co-host UI exposes a
   // "Bell mode" toggle in the control bar that flips this off; the state
   // is component-local so it resets to ON whenever the conference mounts.
-  // The hook's own effect re-runs when the mic publication appears, so
-  // calling setNoiseFilterEnabled(true) before the mic is ready is safe —
-  // the filter will be applied as soon as the local audio track exists.
   //
   // `krisp.processor` is undefined until the WASM filter loads successfully.
   // On unsupported browsers (older Safari, some Firefox configs) the hook
@@ -100,18 +111,101 @@ export default function RIMConference({ isSessionHost, isCoHost, programSlug, gu
   // "Krisp actually available" signal to gate the Bell mode toggle, so
   // teachers on unsupported browsers don't see a button that would lie
   // about NC state.
+  //
+  // **Mic-track race.** In principle, calling `setNoiseFilterEnabled(true)`
+  // before the mic publishes is safe — the hook's own attach effect re-runs
+  // when the mic publication arrives. In practice we hit a case where the
+  // processor was loaded but never attached, and the symptom was invisible
+  // (no UI signal, no thrown error — the hook's Promise swallows). The
+  // verification effect below subscribes to LocalTrackPublished, waits
+  // 500ms after the mic publishes, reads `track.getProcessor()` directly,
+  // and retries the enable if nothing is attached. Belt-and-suspenders for
+  // the hook's happy-path assumption.
+  //
+  // Diagnostic logs (`[rim-krisp]` prefix) document the full lifecycle.
+  // These are intentionally unconditional — they need to fire in production
+  // (Vercel) for Jesse to verify Krisp on the deployed site via DevTools.
+  // Remove once Krisp's runtime state is confirmed solid in real sessions.
   const krisp = useKrispNoiseFilter();
   const noiseFilterAvailable = krisp.processor !== undefined;
   const krispDefaultRef = useRef(false);
+  const krispRef = useRef(krisp);
+  useEffect(() => { krispRef.current = krisp; });
+
+  // Initial enable — fires once on mount with explicit error handling.
   useEffect(() => {
     if (krispDefaultRef.current) return;
     krispDefaultRef.current = true;
-    krisp.setNoiseFilterEnabled(true);
-    // setNoiseFilterEnabled is stable (the hook wraps it in useCallback with
-    // [] deps), but we depend on the `krisp` object as a whole — the eslint
-    // exhaustive-deps would flag a narrower dep array. The ref guard makes
-    // this safe regardless of how often the effect re-runs.
+    console.log("[rim-krisp] requesting initial enable");
+    Promise.resolve(krisp.setNoiseFilterEnabled(true))
+      .then(() => {
+        console.log("[rim-krisp] initial enable returned");
+      })
+      .catch((err) => {
+        console.error("[rim-krisp] initial enable failed:", err);
+      });
   }, [krisp]);
+
+  // State diagnostic — logs whenever the hook's reported state transitions
+  // (WASM loaded, enable flipped, pending true/false). Filter the console
+  // by `[rim-krisp]` to see the full timeline.
+  useEffect(() => {
+    console.log("[rim-krisp] state:", {
+      processorReady: !!krisp.processor,
+      enabled: krisp.isNoiseFilterEnabled,
+      pending: krisp.isNoiseFilterPending,
+    });
+  }, [krisp.processor, krisp.isNoiseFilterEnabled, krisp.isNoiseFilterPending]);
+
+  // Mic-track attach verification — when the local mic actually publishes,
+  // give the hook ~500ms to attach its processor, then read
+  // `track.getProcessor()` directly to verify. Catches the race where the
+  // initial setNoiseFilterEnabled landed before the mic existed and the
+  // hook's internal effect didn't re-fire correctly. One retry on miss.
+  // krispRef keeps the closure pointed at the current hook return without
+  // re-subscribing the room event listener on every render.
+  const roomCtx = useRoomContext();
+  useEffect(() => {
+    if (!roomCtx) return;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    function onLocalTrackPublished(pub: LocalTrackPublication) {
+      if (pub.source !== Track.Source.Microphone) return;
+      console.log("[rim-krisp] local mic published, scheduling 500ms attach verify");
+      const t = setTimeout(() => {
+        const track = pub.track;
+        const k = krispRef.current;
+        if (!(track instanceof LocalAudioTrack)) {
+          console.warn("[rim-krisp] verify: mic track is not LocalAudioTrack");
+          return;
+        }
+        const proc = track.getProcessor();
+        const attached = proc?.name === "livekit-noise-filter";
+        console.log("[rim-krisp] verify (500ms after publish):", {
+          processorName: proc?.name ?? "(none)",
+          attached,
+          krispProcessorReady: !!k.processor,
+          krispEnabled: k.isNoiseFilterEnabled,
+          krispPending: k.isNoiseFilterPending,
+        });
+        // Gate retry on "not currently enabled or pending" — a republish
+        // (mute → unmute → publish) re-fires this effect and we don't want
+        // to spam setNoiseFilterEnabled when the hook is already actively
+        // managing the attach.
+        if (!attached && k.processor && !k.isNoiseFilterEnabled && !k.isNoiseFilterPending) {
+          console.warn("[rim-krisp] verify: WASM loaded but NOT attached to mic — retrying enable");
+          Promise.resolve(k.setNoiseFilterEnabled(true))
+            .then(() => console.log("[rim-krisp] retry enable returned"))
+            .catch((err) => console.error("[rim-krisp] retry enable failed:", err));
+        }
+      }, 500);
+      timers.push(t);
+    }
+    roomCtx.on(RoomEvent.LocalTrackPublished, onLocalTrackPublished);
+    return () => {
+      timers.forEach(clearTimeout);
+      roomCtx.off(RoomEvent.LocalTrackPublished, onLocalTrackPublished);
+    };
+  }, [roomCtx]);
 
   const tracks = useTracks(
     [

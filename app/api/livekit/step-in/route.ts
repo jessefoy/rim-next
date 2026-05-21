@@ -75,14 +75,29 @@ export async function POST(req: NextRequest) {
 
   // Generate a new token: stepping in upserts the HostAssignment, so this
   // user is now the Session Host (full grant: roomAdmin + screen share).
+  //
+  // Seed `host: true` in the token metadata so the Host badge renders on
+  // their tile in every other client's view. Without this, the stepper-in
+  // would appear to themselves as Session Host but to other participants
+  // as just a regular member — the symptom Jesse saw in real-world use.
+  // Mirrors the seedMeta pattern in /api/livekit/token.
   const roomName = roomNameForProgram(programSlug, sessionDate);
   const userName = session.user.name || "Host";
+
+  const caller = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { avatarUrl: true },
+  });
+  const seedMeta: { avatarUrl?: string; host?: boolean } = { host: true };
+  if (caller?.avatarUrl) seedMeta.avatarUrl = caller.avatarUrl;
+  const initialMeta = JSON.stringify(seedMeta);
 
   const token = await createRoomToken(
     session.user.id,
     userName,
     roomName,
     { roomAdmin: true, canShareScreen: true },
+    initialMeta,
   );
 
   return NextResponse.json({
