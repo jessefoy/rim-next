@@ -2230,6 +2230,75 @@ Rooted In Mindfulness · Brookfield, WI · rootedinmindfulness.org`;
       console.log(`  ✔ Applied: ${this.name} (${updated} rows updated)`);
     },
   },
+  {
+    // Course offering model — orthogonal-flags slice (session 123).
+    //
+    // Per RIM_Offering_Model.md (decided session 118), Course is moving from
+    // a single `accessLevel` enum to orthogonal flags so one Course can carry
+    // multiple acquisition paths simultaneously (e.g. live cohort + standalone
+    // dana). Plus new content fields for the /course/[slug] landing-page
+    // redesign that mirrors /programs/[slug].
+    //
+    // This migration ADDS the columns and BACKFILLS the flag values from the
+    // existing accessLevel for every current course. The accessLevel enum
+    // stays in the schema — reads migrate to the flags first (next slice),
+    // then the enum drops in a later pass. No silent behavior changes:
+    // every current course preserves its current access semantics.
+    //
+    // Backfill rules (from RIM_Offering_Model.md):
+    //   ALL_MEMBERS           → allowSelfEnroll=true,  selfEnrollDanaRequired=false
+    //   REGISTRATION_REQUIRED → allowSelfEnroll=false  (rely on ProgramCourse linkage)
+    //   ROLE_REQUIRED         → allowSelfEnroll=true   (existing requiredRoles carries over)
+    //
+    // Idempotent: the information_schema check guards the ADD COLUMN, and
+    // the UPDATE statements are inside the same guard so they only run on
+    // the first application (when the columns are freshly added and all
+    // flag values are at their false/null defaults). Re-running is a no-op.
+    name: "add_course_offering_flags",
+    async run() {
+      const cols = await db.$queryRawUnsafe(`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'courses' AND column_name = 'allowSelfEnroll'
+      `);
+      if (cols.length > 0) {
+        console.log(`  ⏭ Already applied: ${this.name}`);
+        return;
+      }
+
+      // Raw SQL uses the Postgres table name (via @@map in schema.prisma)
+      // — "courses", NOT the Prisma model name "Course".
+      await db.$executeRawUnsafe(`ALTER TABLE "courses" ADD COLUMN "allowSelfEnroll" BOOLEAN NOT NULL DEFAULT false`);
+      await db.$executeRawUnsafe(`ALTER TABLE "courses" ADD COLUMN "selfEnrollDanaRequired" BOOLEAN NOT NULL DEFAULT false`);
+      await db.$executeRawUnsafe(`ALTER TABLE "courses" ADD COLUMN "accessRestrictionMessage" TEXT`);
+      await db.$executeRawUnsafe(`ALTER TABLE "courses" ADD COLUMN "heroImage" TEXT`);
+      await db.$executeRawUnsafe(`ALTER TABLE "courses" ADD COLUMN "pullQuote" TEXT`);
+      await db.$executeRawUnsafe(`ALTER TABLE "courses" ADD COLUMN "pullQuoteSource" TEXT`);
+      await db.$executeRawUnsafe(`ALTER TABLE "courses" ADD COLUMN "danaText" TEXT`);
+
+      // Backfill from the existing accessLevel enum. Order matters only for
+      // human readability — the three WHERE clauses are disjoint.
+      const allMembersCount = await db.$executeRawUnsafe(`
+        UPDATE "courses"
+        SET "allowSelfEnroll" = true, "selfEnrollDanaRequired" = false
+        WHERE "accessLevel" = 'ALL_MEMBERS'
+      `);
+      const regRequiredCount = await db.$executeRawUnsafe(`
+        UPDATE "courses"
+        SET "allowSelfEnroll" = false
+        WHERE "accessLevel" = 'REGISTRATION_REQUIRED'
+      `);
+      const roleRequiredCount = await db.$executeRawUnsafe(`
+        UPDATE "courses"
+        SET "allowSelfEnroll" = true
+        WHERE "accessLevel" = 'ROLE_REQUIRED'
+      `);
+
+      console.log(
+        `  ✔ Applied: ${this.name} ` +
+        `(ALL_MEMBERS=${allMembersCount}, REGISTRATION_REQUIRED=${regRequiredCount}, ROLE_REQUIRED=${roleRequiredCount})`
+      );
+    },
+  },
 ];
 
 // ── Server-safe compute helpers (mirror of lib/programUtils.ts) ──────────────

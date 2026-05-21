@@ -412,16 +412,36 @@ model Course {
   slug                  String            @unique
   subheading            String?
   description           Json?             // BlockNote JSON
-  accessLevel           CourseAccessLevel @default(ALL_MEMBERS)
-  hideFromMemberProfile Boolean           @default(false)
-  sortOrder             Int?
-  isActive              Boolean           @default(true)
-  isOnboarding          Boolean           @default(false) // auto-enroll all new members
-  publishOnPublicCatalog Boolean          @default(false) // appears on the public /courses catalog when true
+
+  // ── Access model ──────────────────────────────────────────────────────────
+  // Transitioning from the single `accessLevel` enum to orthogonal flags
+  // (RIM_Offering_Model.md, decided session 118, schema slice session 123).
+  // The enum is preserved during transition; reads migrate to flags first,
+  // then the enum drops in a later pass. Backfill rules in migrate.mjs
+  // (add_course_offering_flags) — every existing course preserves its
+  // current access semantics under the new flags.
+  accessLevel              CourseAccessLevel @default(ALL_MEMBERS) // PHASING OUT — reads migrate to flags below
+  allowSelfEnroll          Boolean           @default(false)        // member sees an Enroll CTA on /course/[slug]
+  selfEnrollDanaRequired   Boolean           @default(false)        // self-enroll routes through dana checkout first
+  accessRestrictionMessage String?                                  // friendly per-course copy shown when visitor can't self-enroll
+
+  hideFromMemberProfile  Boolean @default(false)
+  sortOrder              Int?
+  isActive               Boolean @default(true)
+  isOnboarding           Boolean @default(false) // auto-enroll all new members
+  publishOnPublicCatalog Boolean @default(false) // appears on the public /courses catalog when true
 
   // Categorization & access
   categoryId    String?
-  requiredRoles Role[]    // only used when accessLevel = ROLE_REQUIRED
+  requiredRoles Role[]    // when non-empty, only members with one listed role (or ADMIN) can self-enroll / see the course
+
+  // ── Landing-page content (mirrors Program — RIM_Offering_Model.md) ────────
+  heroImage       String? // background image URL for the /course/[slug] landing hero
+  pullQuote       String? // floating quote card on the landing
+  pullQuoteSource String? // attribution for the pull quote
+
+  // Dana
+  danaText String? // free-form dana ask shown on the landing + read by the self-enroll dana flow
 
   // Completion & presentation
   completionNote    String?  // shown when member completes the series
