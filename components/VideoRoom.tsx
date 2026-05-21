@@ -36,7 +36,11 @@
  * quality without overshooting what residential WiFi reliably sustains:
  *   teacher  — 2.0 Mbps @ 720p/30fps (Zoom Group HD territory)
  *   speaker  — 1.5 Mbps @ 720p/30fps (Zoom HD)
- *   listener — 1.0 Mbps @ 720p/30fps (Zoom standard)
+ *   listener — 1.5 Mbps @ 720p/30fps (session 124 — bumped from 1.0
+ *              into the bottom of the recommended 1.5–2.5 band so
+ *              a listener who gets pinned by anyone still looks decent;
+ *              also keeps us comfortably under the 2.5 ceiling that
+ *              caused the original freezes)
  * Three explicit simulcast layers [h180, h360, h720] give the SFU a full
  * adaptation ladder; adaptiveStream + dynacast handle the receiver-side
  * downscaling and uplink savings respectively. The previous flat 2.5 Mbps
@@ -72,8 +76,11 @@ function buildRoomOptions(profile: AudioProfile): RoomOptions {
   const isTeacher = profile === "teacher";
   const audioMaxBitrate =
     profile === "teacher" ? 128_000 : profile === "speaker" ? 96_000 : 64_000;
+  // Listener now matches speaker at 1.5 Mbps (was 1.0). See the comment
+  // block above for the rationale — kept the ternary shape for clarity
+  // even though speaker and listener happen to share a value.
   const videoMaxBitrate =
-    profile === "teacher" ? 2_000_000 : profile === "speaker" ? 1_500_000 : 1_000_000;
+    profile === "teacher" ? 2_000_000 : profile === "speaker" ? 1_500_000 : 1_500_000;
   return {
     videoCaptureDefaults: {
       resolution: VideoPresets.h720.resolution,
