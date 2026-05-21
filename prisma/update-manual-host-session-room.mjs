@@ -7,6 +7,16 @@
  * nonverbal signals, member photos, Open Access, and what to do
  * when something misbehaves.
  *
+ * v6 additions over v5 (session 124, 2026-05-25):
+ *   - Three role pills: Host / Teacher / Co-host (was a single Host badge)
+ *   - "Who can do what" rewritten — any active host-team member is now
+ *     automatically a Co-host (Zoom-style); plain HOST role no longer
+ *     requires Step-In to gain mute / share / Bell mode capabilities
+ *   - Bell mode caveat — the bell-cleanup is only fully effective when
+ *     the person ringing is on the teacher audio profile (i.e. listed
+ *     as a ProgramTeacher for that program); for other hosts the
+ *     browser's own noise filter still runs upstream of Bell mode
+ *
  * v5 additions over v4 (session 122, 2026-05-20):
  *   - "Headphones are recommended" practical note under Getting into the room
  *   - Bell mode section — the small bell button in the control bar that
@@ -73,17 +83,17 @@ const SESSION_ROOM_BODY = `<p>The session room is where RIM's online sessions ha
 <p>In the main area:</p>
 <ul>
 <li><strong>Tiles</strong> — one per person in the room, with their name. Yours is there too.</li>
-<li><strong>The host badge</strong> — a small "Host" pill appears on the tile and roster row of the assigned host so members can see who's holding the room.</li>
+<li><strong>Role pills</strong> — small colored labels next to a person's name on their tile (and in the Participants panel) so everyone can see who's holding what role. There are three: <strong>Host</strong> (teal — the assigned host of this specific session), <strong>Teacher</strong> (warm gold — anyone listed as a teacher of this program), and <strong>Co-host</strong> (muted gray — anyone on the host team who is helping run the room but isn't the assigned host or a teacher). A person who is both the assigned host and a teacher of the program shows both Host and Teacher pills side by side. Regular participants don't show any pill.</li>
 <li><strong>Active speaker outline</strong> — a yellow border appears around the tile of whoever is currently speaking.</li>
 </ul>
 <p>If your browser asks for permission to play audio — a full-screen prompt that blocks the view — click yes. Some browsers, especially Safari, require this once each session. It's normal.</p>
 
 <h2>Who can do what</h2>
 <p>The session room has three permission levels, not just "host" and "everyone else." Knowing which level you're at tells you which buttons you'll see.</p>
-<p><strong>The assigned host</strong> (you, on the day you're scheduled) and any RIM admin can do everything: mute people, share the screen, end the session for everyone. The "Host" badge marks this person in the room.</p>
-<p><strong>The teacher and the host coordinator</strong> are co-hosts. They can mute people, share the screen, and manage the participant list — but they can't end the session for everyone. That stays with the assigned host. This is intentional: only one person is the steward of the room at any moment, and the End button respects that.</p>
+<p><strong>The assigned host</strong> (you, on the day you're scheduled) and any RIM admin can do everything: mute people, share the screen, end the session for everyone. The "Host" pill marks this person.</p>
+<p><strong>Co-hosts</strong> are everyone else who's on the host team. If you're an active member of the Host Hub, you're a Co-host automatically — you can mute people, share the screen, toggle Bell mode, and manage the participant list. The teacher of the program is also a Co-host. <strong>Co-hosts cannot end the session for everyone.</strong> That stays with the assigned host. This is intentional: only one person is the steward of the room at any moment, and the End button respects that. The "Teacher" pill marks the program's teacher; the "Co-host" pill marks every other active host-team member who joins. (If you're both the assigned host and a teacher, you'll show both Host and Teacher pills side by side; the Co-host pill is replaced by whichever of the higher pills applies.)</p>
 <p><strong>Everyone else</strong> — regular participants — can mute themselves, turn their own camera on or off, react, and chat. They don't see Share Screen, Mute All, or End for All at all. There's no temptation to click something they shouldn't.</p>
-<p>If multiple host-team members join together to test, only one of them is the assigned host at any moment. The others see "Leave Meeting" where the assigned host sees "End Meeting for All." This is by design.</p>
+<p>If multiple host-team members join together to test, only one of them is the assigned host at any moment — the others see "Leave Meeting" where the assigned host sees "End Meeting for All," and they show the Co-host pill while the assigned host shows the Host pill. This is by design.</p>
 
 <h2>During the session</h2>
 <p>The teacher leads the content. You hold the room. For most of the session, that means doing very little — staying present, attentive, and available.</p>
@@ -114,8 +124,9 @@ const SESSION_ROOM_BODY = `<p>The session room is where RIM's online sessions ha
 <li>Ring the bell. Let it decay fully.</li>
 <li>Tap the button again. The amber tint goes away and the label returns to "Bell mode."</li>
 </ol>
-<p>The button is only visible to the assigned host, a co-host, or the teacher. Regular participants don't see it — their audio is always cleaned. The state resets every time you join a session, so you always start in clean-voice mode (cleanup on); Bell mode is a deliberate moment, not a setting you can leave on by accident.</p>
+<p>The button is only visible to the assigned host and Co-hosts. Regular participants don't see it — their audio is always cleaned. The state resets every time you join a session, so you always start in clean-voice mode (cleanup on); Bell mode is a deliberate moment, not a setting you can leave on by accident.</p>
 <p>If you're on a browser where the cleanup feature isn't supported, the Bell mode button won't appear at all. Your voice is going through unprocessed, the same way it would have before the cleanup was added — which is fine, just not Krisp-cleaned. This is rare; the cleanup is supported on every modern browser on Mac, Windows, iPad, and iPhone.</p>
+<p><strong>One caveat for hosts who aren't program teachers.</strong> Bell mode turns off the room's added audio cleanup. But your <em>browser</em> also has its own background-noise filter, which runs first — before Bell mode even sees the audio. The browser filter is turned off automatically only for people listed as the <em>teacher</em> of the program (the Teacher pill). For everyone else, the browser filter is on by default and may still soften bells even when Bell mode is engaged. If you ring bells regularly during a program, ask Jesse to add you as a teacher of that program — the Teacher pill comes with bell-friendly capture, and Bell mode then works exactly as described. For one-off sessions where the regular host is ringing the bell, the same fix applies on the day.</p>
 
 <h2>Step in as Host</h2>
 <p>Any host-team member who joins a session they are <em>not</em> the assigned host for will see a <strong>Step in as Host</strong> button in the header. Regular participants don't see this button.</p>

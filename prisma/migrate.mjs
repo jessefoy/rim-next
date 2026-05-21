@@ -3185,6 +3185,21 @@ async function main() {
     console.log("  ⏭ Manual course-hub v2 already applied.");
   }
 
+  // Manual chapter: host-session-room v6 — three role pills, widened
+  // Co-host net, Bell mode + teacher-profile interaction. Source edits
+  // are in update-manual-host-session-room.mjs; re-running the function
+  // pushes the corrected body to the live DB row.
+  const updateHostSessionRoomV6Flag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_host_session_room_v6'
+  `).catch(() => []);
+
+  if (updateHostSessionRoomV6Flag.length === 0) {
+    await updateManualHostSessionRoom(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_session_room_v6')`);
+  } else {
+    console.log("  ⏭ Manual host-session-room v6 already applied.");
+  }
+
   // Session 124 — backfill ProgramTeacher rows for the five programs
   // where the named teacher has a real User account in the system.
   // The legacy Program.teacherFacilitators free-text field was the only

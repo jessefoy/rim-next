@@ -6,6 +6,62 @@
 
 ## Active
 
+### Session 124 (2026-05-25) — LiveKit hardening shipped; verification pending on deployed site
+
+Five commits on `main`. The Step-In bug Jesse reported in real-world use is fixed, the Krisp pipeline is now observable, the host architecture is the Zoom-style "trust the team" model with three visible role pills, and the operational programs are at audio-profile parity.
+
+**The five commits:**
+
+1. `18a67c9` — Krisp lifecycle instrumentation + attach verify + Step-In host metadata fix
+2. `2d0098b` — Zoom-style tier model + three visible role pills (Host / Teacher / Co-host); Co-host net widens to active host-team HubMembers; hub authority gate consolidated
+3. `1d0151d` — ProgramTeacher backfill for 5 programs (Jesse on Essential Dharma Study + Meditation and Dharma Talk + Private Teacher Meetings + The Art of Meditation; Maria Sprecher on Qigong at RIM with `isTeacher=true`)
+4. `8f00ac1` — Backlog: Silent Meditation Hub + per-program `teacherLabel` dropdown
+5. `5b2cd16` — Step-In's 100ms `setTimeout` replaced with actual `Disconnected`-event-wait (5s safety fallback)
+
+See `session-log.md` session 124 entry for the full chronology.
+
+**What testing on the deployed site should confirm:**
+
+1. **`[rim-krisp]` console output in DevTools.** Open Chrome DevTools → Console *before* clicking Join. Filter the console with `[rim-krisp]`. You'll see the lifecycle: `requesting initial enable` → `state: { processorReady: ..., enabled: ..., pending: ... }` → `initial enable returned` (good) or `failed:` (bad — Krisp isn't loading) → `local mic published, scheduling 500ms attach verify` → `verify (500ms after publish): { attached: true|false, ... }`. **The signal to watch is `attached: true` in the verify log.** If true, Krisp is actually filtering audio in production. Also check DevTools Network tab filtered by `wasm` — at least one WASM file should download on first join.
+2. **Step-In Host badge propagation.** Have someone Step-In, confirm the Host pill renders on their tile *from your side* (not just theirs). The metadata fix + client-side broadcast should make this immediate, no longer requiring a refresh.
+3. **Three pills render correctly.** Host pill on the assigned host (teal). Teacher pill on you when you join one of the four programs you teach (warm gold). Co-host pill on a host-team member who is neither Host nor Teacher (muted slate). A Host who is also a Teacher should show both pills side-by-side.
+4. **Maria appears in `/tools/programs/qigong-at-rim/edit`.** Confirm she's listed in the Teachers section and is editable like any other field (the backfill created a real DB record; not hardcoded).
+5. **Bell mode actually does something.** Toggle Bell mode during one of your four dharma programs (where you're now on the `teacher` audio profile with NS off). Compare with someone in the room: bells should pass through with their full tone when Bell mode is engaged, and be cleaned up when it's not. Previously, native browser NS was filtering bells at the capture layer regardless of Bell mode state — that's now closed for your programs.
+6. **Step-In timing on a slow network.** Lower priority. The previous 100ms `setTimeout` is replaced with a Promise resolved by the actual `Disconnected` event. Should work better on slow networks where the disconnect needed longer than 100ms to complete.
+
+**Known limitations / parked items:**
+
+- **`@livekit/krisp-noise-filter` local install drift** — `npm ls` confirmed the package was missing from local `node_modules` despite being in package.json and the lockfile. `npm install` pulled 52 packages that were missing. Production deploys via `npm ci` so this was a local-only drift; production almost certainly has Krisp. The instrumentation logs will confirm definitively in your next test session.
+- **The browser-vs-Zoom audio ceiling** — your A/B comparison (Zoom session right before LiveKit test, same room, same hardware, Zoom handled the echo) confirmed the gap is real. Our wiring is correct for what LiveKit + browser provide; the missing piece is what Zoom does in their native audio engine (long-delay AEC for room-coupling, aggressive residual suppression). No LiveKit AEC processor exists to slot in. Closing the gap from here requires hardware (USB conference device with hardware AEC at the center) or a hybrid (Zoom for sessions originating from the center; LiveKit for individual home participants). The choice is a non-code decision parked for when you're ready.
+- **Manual chapter `host-session-room` needs a v6.** The session-122 v5 chapter doesn't mention the three-pill model, the widened Co-host net, or the Bell-mode-needs-teacher-profile interaction. Not done this session; queued.
+
+---
+
+### Next priority — Per-program `teacherLabel` dropdown (backlog `2026-05-25-002`)
+
+Small, contained, lights up better behavior immediately. Add a nullable `Program.teacherLabel` field, a dropdown in the Program editor (Teacher / Guide / Facilitator / Instructor + custom), thread through to the token metadata and pill renderer. Mechanism stays the same — a `ProgramTeacher` row still drives the bell-friendly audio profile and still puts the pill on the tile — only the display string varies per program. Should ship before the Silent Meditation Hub so peer-led offerings can carry "Guide" pills when that hub goes live.
+
+Roughly: one new field in `prisma/schema.prisma`, one migration to add the column, one dropdown in `components/registrar/ProgramEditor.tsx`, one prop addition to the data path (token route → page → VideoRoom → RIMConference → metadata → pill), one comment update on ParticipantMetadata.
+
+---
+
+### Then — Silent Meditation Hub (backlog `2026-05-25-003`)
+
+Larger structural piece. New Hub for peer-led offerings (Good Morning / Good Evening Silent Meditation, expandable to Recovery Dharma etc.). Self-claim + standing rotations reuse host-team infrastructure. The new pieces are the Hub record (created via `/admin/hubs`), a coordinator decision about which programs the hub is allowed to claim, and possibly extending `/tools/schedule` to surface open silent-sit sessions alongside host-team ones.
+
+**Open design question parked inside this item's backlog notes:** should the bell-friendly audio profile be granted to *any* Session Host (regardless of ProgramTeacher status)? Would help Nancy on Awakening The Heart and any peer-leader of a silent sit without needing per-row teacher data. Counter-argument: non-teaching session hosts (logistics calls) sound better with NS on. Resolve when this hub or the teacherLabel slice is built.
+
+---
+
+### Smaller items still parked
+
+- **Manual chapter `host-session-room` v6** — describe three-pill model, widened Co-host net, Bell-mode-needs-teacher-profile interaction, the Krisp instrumentation logs (or, after the logs are removed post-verification, just the runtime behavior).
+- **The PWA / native-app conversation** — `2026-05-21-001` is explicitly rejected; the architecture decision parked at session 120 stands. Re-litigate only if real signal emerges.
+- **`/api/livekit/token` server-side time gate** — backlog `2026-05-24-002`. Direct URL access to `/session/[slug]` is currently ungated.
+- **Rate-limit `/api/auth/callback/resend`** — backlog `2026-05-21-002`. Sign-in code brute-force defense-in-depth.
+
+---
+
 ### Session 123 (2026-05-25) — Course offering model: full build shipped
 
 Six commits on `main`. The Course offering architecture from `RIM_Offering_Model.md` (decided session 118) is now real code, end-to-end. Programs and Courses are structural peers — same editor chrome, same dana model, same landing-page shape, same content vocabulary.
