@@ -155,7 +155,23 @@ export default function SessionPage() {
     setJoiningAsGuest(false);
   }
 
+  // When a Step-In flow is awaiting the prior LiveKitRoom disconnect,
+  // this ref holds the resolver. handleLeave checks it before treating
+  // the disconnect as a "user has left the session" event — if a
+  // Step-In is in flight, the disconnect is part of the reconnect
+  // sequence and the page should stay put while the new token mounts.
+  const stepInDisconnectResolverRef = useRef<(() => void) | null>(null);
+
   function handleLeave() {
+    // If a Step-In flow is awaiting disconnect, satisfy its Promise
+    // and stay on the page — the handler will mount a new LiveKitRoom
+    // with the new token in a moment. Otherwise this is a real leave.
+    const pendingResolver = stepInDisconnectResolverRef.current;
+    if (pendingResolver) {
+      stepInDisconnectResolverRef.current = null;
+      pendingResolver();
+      return;
+    }
     setState("left");
   }
 
@@ -169,6 +185,29 @@ export default function SessionPage() {
       });
       if (res.ok) {
         const data = await res.json();
+
+        // Wait for the actual LiveKit Disconnected event before mounting
+        // the new token. Setting state to "loading" unmounts LiveKitRoom,
+        // which triggers `room.disconnect()` and ultimately the
+        // Disconnected event → onLeave → handleLeave → resolve. The 5s
+        // safety timeout is a fallback for the rare case where the event
+        // never fires (room already gone, network failure mid-disconnect).
+        // Replaces the previous 100ms setTimeout — which could race on
+        // slow networks and leave the new connection colliding with the
+        // tail of the old one under the same user identity.
+        const disconnectPromise = new Promise<void>((resolve) => {
+          stepInDisconnectResolverRef.current = resolve;
+          setTimeout(() => {
+            if (stepInDisconnectResolverRef.current === resolve) {
+              stepInDisconnectResolverRef.current = null;
+              resolve();
+            }
+          }, 5000);
+        });
+        setState("loading");
+        await disconnectPromise;
+
+        // Disconnect confirmed; safe to mount the new connection.
         setToken(data.token);
         setWsUrl(data.wsUrl);
         setIsSessionHost(true);
@@ -176,9 +215,7 @@ export default function SessionPage() {
         if (typeof data.isProgramTeacher === "boolean") {
           setIsProgramTeacher(data.isProgramTeacher);
         }
-        // Force reconnect by cycling state
-        setState("loading");
-        setTimeout(() => setState("ready"), 100);
+        setState("ready");
       }
     } catch {}
     setSteppingIn(false);
