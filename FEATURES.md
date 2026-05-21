@@ -54,6 +54,7 @@ Two audiences:
 39. [Open Access — Guest Join for Virtual Programs](#39-open-access--guest-join-for-virtual-programs)
 40. [ProgramTeacher — Linked Teacher Accounts](#40-programteacher--linked-teacher-accounts)
 49. [Hub System — Audit Findings + Cleanup (session 115)](#49-hub-system--audit-findings--cleanup--built--session-115-2026-05-14)
+50. [Course Offering Model — Orthogonal Flags + Tabbed Editor + Dana Parity (session 123)](#50-course-offering-model--orthogonal-flags--tabbed-editor--dana-parity--built--session-123-2026-05-25)
 
 ---
 
@@ -2628,6 +2629,162 @@ Activity is the first item in the hub sidebar below Home, above Conversations.
 **Where:** `/account/hub/[slug]/activity`. Accessible to all hub members.
 
 🔧 **Implementation:** No new DB model — the stream is a computed union query: five parallel `findMany` calls (hub docs, hub threads, hub replies, doc threads, doc replies), merged, sorted by `ts`, sliced to 30. API route `GET /api/hub/[slug]/activity` handles cursor pagination. New server page `app/account/hub/[slug]/activity/page.tsx` passes initial 30 items to `HubActivityClient`. CSS prefix `hub-act-`. `Activity` icon (lucide-react) added to `HubWorkspaceSidebar`.
+
+---
+
+## 50. Course Offering Model — Orthogonal Flags + Tabbed Editor + Dana Parity ✅ Built — session 123 (2026-05-25)
+
+The Course offering architecture from `RIM_Offering_Model.md` (decided session 118) is now real, end-to-end. Courses are structural peers of Programs: same editor chrome, same dana model, same landing-page shape, same content vocabulary. The previous single `accessLevel` enum is replaced by a small set of orthogonal flags so one Course can carry multiple acquisition paths simultaneously (free-self-enroll + linked to a live cohort, dana-required + bundled, role-locked + standalone, etc.).
+
+### What changed for users
+
+- **`/course/[slug]` is a real public landing page.** Was auth-gated with a one-line "registration required" wall for non-enrolled visitors. Now it's a marketing surface: hero image, pull quote, description, "About this course" block (lesson count, teacher byline, dana ask), state-aware CTA, lesson preview (titles only — Substack/Coursera pattern), facilitators. Mirrors `/programs/[slug]` shape exactly.
+- **Six visitor states are handled gracefully.** Anonymous (sign-in-first CTA), enrolled (TOC view), free self-enroll (button), dana self-enroll (mode-aware picker), role-gated-without-role (friendly restriction message), bundled-only (link to the registering live cohort, or friendly fallback when no cohort is open). Never a 404; never a one-line wall.
+- **The CourseEditor is a peer of the ProgramEditor.** Tabbed (Content / Lessons / Landing / Categories / Access / Schedule / Dana / Visibility) using the same `pe-` chrome. Same voice, same structure, same field types.
+- **Dana works the same way as Programs.** Four modes — None / Voluntary / Base + Dana / Fixed — with conditional amount fields per mode and a rich-text Dana Message editor. The Dana Mode picker uses the same option-card pattern as Program's Dana tab.
+- **Course categories are first-class.** Inline CRUD in the editor's Categories tab; the public catalog at `/courses` reads the category records. Previously the model existed but had no management UI.
+- **Self-enroll with dana works end-to-end.** Stripe Checkout → webhook → atomic SeriesEnrollment + Donation write → receipt email that doubles as enrollment welcome.
+
+### How a course is set up — the canonical shapes
+
+The flags are independent. Combining them expresses the standard course patterns:
+
+| Shape | Flag pattern | Practical use |
+|---|---|---|
+| **Free for all members** | `allowSelfEnroll=true`, `danaMode="none"`, `requiredRoles=[]` | A Library entry every member can open. |
+| **Dana self-enroll (voluntary)** | `allowSelfEnroll=true`, `danaMode="voluntary"`, `suggestedDana=50` | Pay-what-you-want with a suggested amount. |
+| **Dana self-enroll (base + extra)** | `allowSelfEnroll=true`, `danaMode="base_plus_dana"`, `danaBaseAmount=50` | Minimum $50, add more on top if you'd like. |
+| **Paid course (fixed price)** | `allowSelfEnroll=true`, `danaMode="fixed"`, `danaFixedAmount=300` | A specific price; no picker, no extra. |
+| **Manual grant only** | `allowSelfEnroll=false`, `publishOnPublicCatalog=false` | Private content; admin grants access from `/admin/members/[id]`. |
+| **Onboarding** | `isOnboarding=true`, others off | Every new member auto-enrolls at signup. |
+| **Bundled with a live Program** | `allowSelfEnroll=false`, linked via `ProgramCourse` | Access comes from registering for the live cohort. |
+| **Hybrid (live + standalone)** | `allowSelfEnroll=true`, `danaMode="voluntary"`, linked via `ProgramCourse` | Both paths active — register for the live cohort if you can, or enroll standalone for dana. |
+| **Role-locked** | `requiredRoles=["TEACHER_TRAINEE"]`, others as needed | Only members with the role can see or enroll. |
+
+### Schema additions (`prisma/schema.prisma`)
+
+**Course gets 12 new fields** across two slices (1 + 5):
+
+```
+// Access model
+allowSelfEnroll          Boolean   @default(false)
+selfEnrollDanaRequired   Boolean   @default(false)   // derived mirror of danaMode !== "none"
+accessRestrictionMessage String?
+
+// Landing-page content (mirrors Program)
+heroImage       String?
+pullQuote       String?
+pullQuoteSource String?
+danaText        String?
+
+// Dana model (parallel to Program)
+danaMode        String  @default("none")  // "none"|"voluntary"|"base_plus_dana"|"fixed"
+suggestedDana   Float?
+danaBaseAmount  Float?
+danaFixedAmount Float?
+danaMessage     Json?
+```
+
+**Donation gets `courseId` and `courseTitle`** so course-dana payments ledger cleanly without overloading the program fields.
+
+**The legacy `accessLevel` enum stays in the schema during transition.** Reads migrate to flags first; the enum drops in a later pass after production observation. The API write paths derive a coherent `accessLevel` from the flags on every save so the column stays in sync.
+
+### Single source of truth: `lib/courseAccess.ts`
+
+```ts
+getCourseAccessState({ userId, userRoles, course }) → CourseAccessState
+```
+
+Returns a discriminated union — exactly one of:
+
+- `{ kind: "anonymous" }`
+- `{ kind: "enrolled"; source: "SERIES" | "ACCESS_GRANT" | "PROGRAM" }`
+- `{ kind: "can_self_enroll_free" }`
+- `{ kind: "can_self_enroll_dana" }`
+- `{ kind: "role_gated"; requiredRoles: string[] }`
+- `{ kind: "bundled_only"; liveCohort: LiveCohort | null }`
+
+Plus `hasCourseAccess()` (boolean for lesson pages), `defaultRestrictionMessage()` (derived copy when the per-course override is empty), `flagsFromAccessLevel()` and `accessLevelFromFlags()` (transition helpers for the legacy enum).
+
+### CourseEditor — 8 tabs
+
+| Tab | Fields |
+|---|---|
+| **Content** | title, slug, subheading, description (Tiptap message variant), completion note |
+| **Lessons** | the existing lesson list manager — drag-reorder, inline create, search-and-add, section dividers (edit mode only; create mode shows "save first") |
+| **Landing** | hero image URL, pull quote, pull quote source, dana page note |
+| **Categories** | category picker + inline "Add a new category" form + list of existing categories with course-count badges and disabled-when-non-empty delete buttons |
+| **Access** | allowSelfEnroll checkbox, role-gate checkbox + role picker, accessRestrictionMessage textarea |
+| **Schedule** | **placeholder tab** — explains drip release was removed in session 100 and is coming as the next slice; lists the design questions the real implementation will answer |
+| **Dana** | four-mode option-card picker + conditional amount fields per mode + `RimTiptapEditor` for danaMessage |
+| **Visibility** | isActive, publishOnPublicCatalog, isOnboarding, hideFromMemberProfile |
+
+CSS classes used: shared `pe-` chrome from ProgramEditor (`pe-editor`, `pe-tabs`, `pe-card`, `pe-form`, `pe-field`, `pe-checkbox`, `pe-option-cards`, `pe-actions`). Session 123 added `pe-card__help`, `pe-empty`, `pe-checkbox__hint`, `pe-checkbox--sm`, `pe-field__error`, `pe-field__hint`, `pe-roles-select`, `pe-list*`.
+
+### API endpoints
+
+- `GET /api/courses` — public catalog. Visibility filter is requiredRoles-only (empty = visible). Returns `allowSelfEnroll` and `selfEnrollDanaRequired` for badge rendering.
+- `POST /api/courses` — create. Accepts new flag + dana + category fields. Falls back to `flagsFromAccessLevel` for older clients that still send `accessLevel`.
+- `GET /api/courses/[slug]` — auth-gated, full course shape.
+- `PATCH /api/courses/[slug]` — write the new fields directly. `requiredRoles` is independent (no enum coupling). The endpoint derives `accessLevel` from the resulting flags + `selfEnrollDanaRequired` from `danaMode !== "none"` so the legacy columns stay coherent.
+- `DELETE /api/courses/[slug]` — refuses when programs are linked.
+- `POST /api/courses/[slug]/enroll` — free self-enroll. Validates `allowSelfEnroll && !selfEnrollDanaRequired && (no role gate OR has role OR is admin)`.
+- `DELETE /api/courses/[slug]/enroll` — leave (only allowed for `SELF`-sourced enrollments).
+- `POST /api/courses/[slug]/checkout` — **new (session 123)**. Creates a Stripe Checkout session for dana self-enroll. Validates `amountCents` per mode: voluntary ≥ $1; base_plus_dana ≥ base; fixed exactly = fixed.
+- `GET /api/courses/categories` — public, returns categories with at least one visible course.
+- `GET /api/courses/categories?all=true` — **new (session 123)**, admin-gated, returns ALL categories with course counts.
+- `POST /api/courses/categories` — **new**, create a category. Slug auto-generated, collision-suffixed.
+- `PATCH /api/courses/categories` — **new**, rename or reorder. Slug is preserved (stable external link).
+- `DELETE /api/courses/categories?id=…` — **new**, refuses non-empty categories.
+- `GET /api/admin/courses` — admin sidebar `CourseAccessSection` data. Returns flags + requiredRoles + linkedByPrograms. (No longer returns `accessLevel`.)
+
+### Stripe Checkout + Webhook — course dana flow
+
+1. Member clicks dana picker on `/course/[slug]` → `EnrollDanaButton` POSTs `amountCents` to `/api/courses/[slug]/checkout`.
+2. Server validates flags, role gate, not-already-enrolled, mode-specific amount. Creates Stripe Checkout session with `metadata.source = "course_dana"` and `courseId / courseSlug / courseTitle / userId / donorName / donorEmail`.
+3. Member completes payment on Stripe-hosted page.
+4. Webhook (`/api/stripe/webhook`) routes by `metadata.source`. `handleCourseDanaCompleted`:
+   - Pre-checks whether the Donation row for this `payment_intent` already exists (dedup signal for the email).
+   - Wraps `SeriesEnrollment.upsert` + `Donation.upsert/create` in `db.$transaction` for atomicity.
+   - Fires `sendCourseDanaReceiptEmail` via `after()` from `next/server` (Next 16's fire-and-forget API), but ONLY when the donation was newly created — duplicate webhook deliveries do not re-send the receipt.
+5. Stripe redirects the user back to `/course/[slug]?dana=success&session_id=…`. The landing page now sees them as enrolled and renders the TOC view.
+
+### Email Template — `course-dana-receipt`
+
+Sent automatically by the webhook on payment success. Doubles as receipt + welcome — by the time it arrives, the SeriesEnrollment row already exists. Variables: `firstName`, `courseTitle`, `amountUsd`, `courseUrl`. Group `03-courses` ("Courses") in the Email Template Manager.
+
+Email Template Gate satisfied: matching seed entry shipped in `prisma/migrate.mjs` in the same commit, defensive `findUnique → create` so admin edits at `/admin/emails` are preserved on re-run.
+
+### Lesson access (`/lessons/[slug]`)
+
+Unchanged in shape, simplified in implementation. Calls `hasCourseAccess()` per parent course (OR across parents — any one granting access is sufficient). The legacy lesson-access-level enum is preserved (lessons can still be marked `ALL_MEMBERS` vs `REGISTRATION_REQUIRED`); only the course-side check changed.
+
+### 🔧 Technical notes
+
+- **The dana mirror story.** `selfEnrollDanaRequired` is derived from `danaMode !== "none"`. The editor writes both. The PATCH endpoint derives one from the other if a legacy client sends only the boolean (drift prevention). New code reads `danaMode` for richer mode info.
+- **Public surface is opt-in.** Visibility on `/courses` requires `publishOnPublicCatalog=true`. Onboarding, internal training, and role-assigned courses stay off the public catalog even when active.
+- **`accessRestrictionMessage` fallback.** When empty for a role-gated or bundled-no-cohort state, the page shows a derived default from `defaultRestrictionMessage(state)`. Authored per-course messages override.
+- **`renderCta` switch** in `app/course/[slug]/page.tsx` is exhaustive over `state.kind`. TypeScript catches missing cases; the `enrolled` branch is unreachable here (`renderEnrolledView` handles it) but must return null for the type system.
+- **Hero image fallback.** `course.heroImage || "/images/Bodhi-Leaves.jpg"` (the lowercase `.jpg` — pre-commit reviewer caught a `.jpeg` typo).
+- **Categories are seeded by usage**, not by migration. No initial categories exist in the DB; the first one is created via the Categories tab in the CourseEditor.
+- **Hero image upload** is a plain URL input. Real upload via Vercel Blob is a follow-up pass; the rest of the editor file follows the pattern lesson editor uses.
+- **Drip release** was removed in session 100. The Schedule tab is a placeholder explaining the next slice. Schema fields and cron infrastructure will be added when the design decisions land (release model, locked-lesson UX, email cadence, bundled-with-program behavior).
+
+### Connections — what this touches
+
+**Models:** Course (new flags + content + dana fields), Lesson (untouched), ProgramCourse (read for hybrid detection), SeriesEnrollment (creation source `SELF` for self-enroll, `PROGRAM` for live-cohort), CourseAccess (admin-grant path, unchanged), Donation (new courseId / courseTitle columns), Registration (read for "enrolled via linked program" detection), CourseCategory (now has full CRUD).
+
+**Routes:** `/courses`, `/course/[slug]`, `/lessons/[slug]`, `/account/courses`, `/account/courses/[slug]`, `/tools/learning`, `/tools/learning/new`, `/tools/learning/[courseSlug]`.
+
+**API:** all the endpoints listed above, plus the existing Stripe webhook.
+
+**Auth:** Sign-in code flow (session 119) used for the anonymous → enroll path; no special hooks.
+
+**Email:** `course-dana-receipt` new in `lib/email.ts`. Existing `sendDanaReminderEmail` (programs) untouched; courses don't have a pending-dana reminder pattern yet (open question #1 in `RIM_Offering_Model.md`).
+
+**Other features it connects to:** Course Hub (workspace), Program registration (the hybrid path), Member Library (`/account/courses`), Admin Member Registry (`CourseAccessSection`), Email Template Manager.
+
+**Design principles that govern:** Clear seeing (full landing replaces the impoverished gate). Restraint (one button dominates each state; one source of truth for access). Designed for overwhelmed users (no 404s for restricted states; friendly contextual messages everywhere). Two-scale typography (public editorial 18px on `.rim-content`, admin compact 16px on editor). Mobile-first 360px minimum.
 
 ---
 

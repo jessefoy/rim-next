@@ -25,6 +25,7 @@ import { updateManualConversations } from "./update-manual-conversations.mjs";
 import { updateManualConversationsV2 } from "./update-manual-conversations-v2.mjs";
 import { updateManualConversationsV3 } from "./update-manual-conversations-v3.mjs";
 import { updateManualCourseHub } from "./update-manual-course-hub.mjs";
+import { updateManualCourseHubV2 } from "./update-manual-course-hub-v2.mjs";
 import { updateManualRegistration } from "./update-manual-registration.mjs";
 import { updateManualPrograms } from "./update-manual-programs.mjs";
 import { updateManualProgramsRewrite } from "./update-manual-programs-rewrite.mjs";
@@ -3165,6 +3166,23 @@ async function main() {
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_hub_team_management_v2')`);
   } else {
     console.log("  ⏭ Manual host-hub-team-management v2 already applied.");
+  }
+
+  // Manual chapter: course-hub v2 — full rewrite for the session-123
+  // offering model build. Replaces the legacy 3-tier access description
+  // with the orthogonal-flag model, four dana modes, categories CRUD,
+  // and the eight-tab editor walkthrough. The v1 chapter (from
+  // update-manual-course-hub.mjs) is kept in the file for historical
+  // reference but is no longer wired — this v2 supersedes it.
+  const updateManualCourseHubV2Flag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_course_hub_v2'
+  `).catch(() => []);
+
+  if (updateManualCourseHubV2Flag.length === 0) {
+    await updateManualCourseHubV2(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_course_hub_v2')`);
+  } else {
+    console.log("  ⏭ Manual course-hub v2 already applied.");
   }
 
   await db.$disconnect();

@@ -6,6 +6,80 @@
 
 ## Active
 
+### Session 123 (2026-05-25) — Course offering model: full build shipped
+
+Six commits on `main`. The Course offering architecture from `RIM_Offering_Model.md` (decided session 118) is now real code, end-to-end. Programs and Courses are structural peers — same editor chrome, same dana model, same landing-page shape, same content vocabulary.
+
+**The six commits:**
+
+1. `0c996fd` — Magic-link → sign-in-code doc sweep
+2. `927a804` — Schema slice (orthogonal flags + landing fields + backfill migration)
+3. `6951694` — Access helper (`lib/courseAccess.ts`) + read migration + public landing page
+4. `f4d8534` — CourseEditor first surfacing (superseded by slice 5)
+5. `40b603b` — Dana self-enroll flow (Stripe Checkout + webhook + receipt email)
+6. `363701a` — Dana parity + tabbed editor (8 tabs) + category CRUD + Schedule placeholder
+
+See `session-log.md` session 123 entry for the full chronology.
+
+**What testing on the deployed site should confirm:**
+
+1. **`/course/[slug]` rendering as logged-out** — should show the full landing page (hero, pull quote, description, lesson preview titles, facilitators) with a "Sign in to enroll →" CTA pointing to `/login?callbackUrl=/course/[slug]`.
+2. **`/course/[slug]` rendering as logged-in non-enrolled** — landing page with the correct state-aware CTA per the course's flags (free Enroll button / dana picker / "Register for the live cohort" link / role-restriction message).
+3. **`/course/[slug]` rendering as enrolled** — existing TOC view (enrollment transitions should be automatic via `router.refresh()` after self-enroll).
+4. **CourseEditor at `/tools/learning/[slug]`** — eight tabs, all behaviors working. The Dana tab's four modes (None / Voluntary / Base + Dana / Fixed) with conditional amount fields + the rich `danaMessage` editor. The Categories tab can create, list (with course counts), and delete-when-empty.
+5. **Dana self-enroll end-to-end** — create a course with `danaMode="voluntary"` + `suggestedDana=50`; visit `/course/[slug]`; the picker should default to $50. Complete checkout with `4242 4242 4242 4242`; the webhook should create the SeriesEnrollment + Donation row + send the receipt; the success redirect lands back on the course page with the dana banner. Confirm in Stripe test dashboard, in `db.donation` / `db.seriesEnrollment` via Prisma Studio, and that the receipt email arrived.
+6. **Fixed-mode dana** — try a course with `danaMode="fixed"` + `danaFixedAmount=300`. The button should show "Enroll for $300 →" with no picker. The checkout endpoint should reject any other amount.
+7. **base_plus_dana** — try a course with base=100, suggested=25. The picker should show chips `[$100, $125, $150]`, with $100 as the enforced minimum.
+8. **Sign-in code flow** — test the magic-link → sign-in-code language fix in the profile page (`/account/dashboard-my-profile`). The staff manual at `/admin/manual/host-hub-team-management` should self-heal to "sign-in code" wording on the next Vercel deploy.
+
+**Known limitations / acknowledged gaps:**
+
+- **Hero image** is a plain URL field (no upload). Follow the lesson editor's Vercel Blob pattern when ready.
+- **Drip release** (Schedule tab) is a placeholder explaining the next slice. See "Next priority" below.
+- **The manual chapter `/admin/manual/course-hub`** still describes the legacy 3-tier model and needs a content rewrite for the new orthogonal flags + dana modes + categories. Either edit at `/admin/manual/course-hub/edit` in the admin UI, or write a small migration to update the DB row.
+- **The `accessLevel` enum** stays in the schema during transition. The editor derives a coherent value on save. Drop comes in a later slice after production observation confirms no readers remain.
+- **Existing courses with `selfEnrollDanaRequired=true`** got backfilled to `danaMode="voluntary"`. Their `suggestedDana` is null until you set one — until then, the picker shows default $20/$50/$100 chips.
+- **Categories don't exist yet** in the DB. Create the first one via the Categories tab when you edit your first course.
+
+---
+
+### Next priority — Drip release (Course Schedule tab)
+
+The Schedule tab placeholder in the CourseEditor explains drip release is coming. The real implementation is the natural next slice. **Design decisions to make before code:**
+
+1. **Release model** — relative ("Lesson 2 unlocks 7 days after enrollment") or absolute ("Lesson 2 unlocks Oct 15") or both?
+2. **Locked-lesson UX** — hide entirely / show title with "Unlocks in 3 days" countdown / show title + content but block the Complete button?
+3. **Email cadence** — notify when each lesson unlocks / weekly digest / disabled?
+4. **Onboarding courses** — auto-enrolled members get drip the same way, or full immediate access?
+5. **Bundled with a live Program** — drip schedule tied to the Program start date when bundled? Or independent?
+
+**Schema changes the slice would need** (roughly mirroring what was removed in session 100):
+
+- `Course.dripEnabled Boolean @default(false)`
+- `Course.dripIntervalDays Int?` — relative-cadence default
+- `Course.hideLockedLessons Boolean @default(false)` — UX preference
+- `Lesson.releaseDate DateTime?` — absolute release per lesson (override)
+- `Lesson.releaseDelayDays Int?` — relative override per lesson
+
+Plus a cron job (likely `/api/cron/drip-release`) that walks enrolled members daily, checks if any lesson has just become available, sends the `drip-lesson-available` email (the template row from the session 100 seed is still in the DB and ready to use — the helper just needs rebuilding in `lib/email.ts`).
+
+Reference `RIM_Offering_Model.md` if/when the doc gets a drip section. The doc doesn't currently address drip — that conversation needs to happen first.
+
+---
+
+### Manual chapter update — `/admin/manual/course-hub`
+
+Still describes the legacy 3-tier access model (`ALL_MEMBERS` / `REGISTRATION_REQUIRED` / `ROLE_REQUIRED`). After session 123 the model is orthogonal flags + four dana modes + categories. Needs a content rewrite that:
+
+- Explains the seven canonical course shapes from `RIM_Offering_Model.md` (Free, Dana self-enroll, Manual grant only, Onboarding, Bundled with Program, Hybrid, Role-locked)
+- Walks the coordinator through the new CourseEditor tabs
+- Explains the four dana modes with examples
+- Documents category creation + assignment
+
+Two paths: edit at `/admin/manual/course-hub/edit` in the admin UI (quick, one chapter), or write a small `update-manual-course-hub-v2.mjs` script with a migration flag (durable, self-healing on future deploys). Lean toward the migration script — it's the same pattern used for the session-119 manual self-heal.
+
+---
+
 ### Session 122 (2026-05-20) — LiveKit A/V tuning: Krisp NC + per-profile video bitrate + Bell mode (shipped)
 
 One code commit on `main` (`913def9`) plus a docs commit. All work shipped. No in-progress code.

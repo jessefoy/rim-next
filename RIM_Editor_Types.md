@@ -388,11 +388,20 @@ Uses `RimTiptapEditor` with `variant="message"`. The message variant has no top-
 
 #### `course-description`
 - **Schema field:** `Course.description`
-- **Component:** `CourseEditor.tsx`
+- **Component:** `CourseEditor.tsx` — Content tab (session 123 tabbed restructure)
 - **Variant:** message
 - **Output destination:** web template
-- **Output wrapper:** `rim-content crs-desc`
+- **Output wrapper:** `rim-content rim-content--program` (on landing) / `rim-content rim-content--program crs-desc` (enrolled view)
+- **Route:** `/course/[slug]` (public landing for non-enrolled; TOC for enrolled — same description renders in both)
+
+#### `course-dana-message`
+- **Schema field:** `Course.danaMessage`
+- **Component:** `CourseEditor.tsx` — Dana tab (session 123)
+- **Variant:** message
+- **Output destination:** web template
+- **Output wrapper:** rendered inline on the course landing's "About this course" block near the dana ask
 - **Route:** `/course/[slug]`
+- **Notes:** Parallel to `Program.danaMessage`. Visible only when `Course.danaMode !== "none"`. Mirrors the Program dana-message pattern in shape and intent.
 
 #### `schedule-submessage`
 - **Schema field:** `SubRequest.message`

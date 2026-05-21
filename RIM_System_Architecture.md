@@ -38,7 +38,7 @@ Tools are full-featured staff applications extracted from hubs. They serve one w
 **Current tools (3):**
 - `/tools/programs` — Program Manager (REGISTRAR/ADMIN)
 - `/tools/schedule` — Host Schedule (mini-cal + card list; HOST/HOST_MANAGER/ADMIN/hub coordinator). Rotations tab gated to `isManager` = HOST_MANAGER/ADMIN or host-team hub coordinator (session 111).
-- `/tools/learning` — Course Manager: Series + Lessons (TEACHER/ADMIN)
+- `/tools/learning` — Course Manager: Courses + Lessons (TEACHER/ADMIN). As of session 123, the Course editor is a structural peer of the Program editor — same `pe-` chrome, same tab pattern (Content / Lessons / Landing / Categories / Access / Schedule / Dana / Visibility), same four-mode dana model, same category CRUD shape. The hub:tool boundary is intact: team coordination happens in the Course Hub (`/account/hub/courses`); course management happens in this tool.
 
 **Tool access:** Role-based (via `hasToolAccess()`) OR individual `UserToolAccess` grants. Tool registry: `lib/toolRegistry.ts`. Hub awareness: `getToolHubContext()` resolves `?hub=` param to hub + members. Notifications: `getHubNotificationRecipients()` queries hub members (not roles).
 
