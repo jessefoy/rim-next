@@ -3185,6 +3185,101 @@ async function main() {
     console.log("  ⏭ Manual course-hub v2 already applied.");
   }
 
+  // Session 124 — backfill ProgramTeacher rows for the five programs
+  // where the named teacher has a real User account in the system.
+  // The legacy Program.teacherFacilitators free-text field was the only
+  // source of "who teaches this" before ProgramTeacher existed; the
+  // session-79 introduction of ProgramTeacher only got applied to three
+  // programs (Awakening The Heart, Day of Mindfulness, The Heart of
+  // Wisdom). This migration brings the operational programs to parity.
+  //
+  // Effect on the room: a ProgramTeacher row makes the joining teacher's
+  // tile carry the "Teacher" pill and puts them on the `teacher` audio
+  // profile (no native noise suppression, no AGC, bell-friendly). Without
+  // a row, even the teacher of the session lands on the speaker profile.
+  //
+  // Programs whose named teacher has no User account yet (Gina/Sam/Kerry/
+  // Christine/Sara/etc.) are intentionally NOT migrated — their hosts
+  // will continue on the speaker profile until they create accounts and
+  // a coordinator adds them as ProgramTeacher. Peer-led silent sits and
+  // service events stay teacher-less by design.
+  //
+  // Defensive: every assignment guards with findFirst → create so re-runs
+  // are no-ops. Aborts cleanly if either user can't be resolved (probably
+  // an email change worth investigating before rerunning).
+  const backfillProgramTeachersFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'backfill_program_teachers_v1'
+  `).catch(() => []);
+
+  if (backfillProgramTeachersFlag.length === 0) {
+    const jesse = await db.user.findFirst({
+      where: { email: "jessefoy@icloud.com" },
+      select: { id: true },
+    });
+    const maria = await db.user.findFirst({
+      where: { email: "maria.sprecher@gothandgeek.com" },
+      select: { id: true },
+    });
+
+    if (!jesse) {
+      throw new Error(
+        "backfill_program_teachers_v1: Jesse Foy user not found at jessefoy@icloud.com — update the email lookup or investigate before re-running.",
+      );
+    }
+    if (!maria) {
+      throw new Error(
+        "backfill_program_teachers_v1: Maria Sprecher user not found at maria.sprecher@gothandgeek.com — update the email lookup or investigate before re-running.",
+      );
+    }
+
+    const assignments = [
+      { slug: "essential-dharma-study", userId: jesse.id, displayName: "Jesse" },
+      { slug: "meditation-and-dharma-talk", userId: jesse.id, displayName: "Jesse" },
+      { slug: "private-teacher-meetings", userId: jesse.id, displayName: "Jesse" },
+      { slug: "the-art-of-meditation", userId: jesse.id, displayName: "Jesse" },
+      { slug: "qigong-at-rim", userId: maria.id, displayName: "Maria" },
+    ];
+
+    for (const a of assignments) {
+      const program = await db.program.findFirst({
+        where: { slug: a.slug },
+        select: { id: true },
+      });
+      if (!program) {
+        console.log(`    ↪ skipped ${a.slug}: program not found in DB`);
+        continue;
+      }
+      const existing = await db.programTeacher.findFirst({
+        where: { programId: program.id, userId: a.userId },
+        select: { id: true },
+      });
+      if (existing) {
+        console.log(`    ⏭ ${a.slug}: ${a.displayName} already ProgramTeacher`);
+        continue;
+      }
+      await db.programTeacher.create({
+        data: { programId: program.id, userId: a.userId, order: 0 },
+      });
+      console.log(`    ✔ ${a.slug}: added ${a.displayName} as ProgramTeacher`);
+    }
+
+    // Ensure Maria's isTeacher flag is set so she appears in the public
+    // teacher directory and in member-search results filtered to teachers.
+    // Idempotent — update is a no-op if the value is already true.
+    await db.user.update({
+      where: { id: maria.id },
+      data: { isTeacher: true },
+    });
+    console.log("    ✔ Maria Sprecher: isTeacher = true");
+
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('backfill_program_teachers_v1')`,
+    );
+    console.log("  ✔ ProgramTeacher backfill applied.");
+  } else {
+    console.log("  ⏭ ProgramTeacher backfill already applied.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

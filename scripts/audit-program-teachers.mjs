@@ -63,7 +63,7 @@ async function main() {
     select: {
       programSlug: true,
       sessionDate: true,
-      user: { select: { firstName: true, lastName: true } },
+      user: { select: { id: true, firstName: true, lastName: true } },
     },
     orderBy: [{ sessionDate: "asc" }],
     take: 30,
