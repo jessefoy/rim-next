@@ -17949,6 +17949,11 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .th-section__title { font-family: var(--font-serif); font-size: var(--text-body); font-weight: 400; margin: 0 0 16px; }
 .th-section__help { color: var(--rim-text-muted); font-size: var(--text-xs); margin: -8px 0 16px; }
 
+/* Inline group heading within a form (no top border — used for landing-page
+   content + access sections in CourseEditor, session 123) */
+.th-form__group-heading { font-family: var(--font-serif); font-size: var(--text-body); font-weight: 400; margin: 8px 0 4px; color: var(--rim-text); }
+.th-form__group-hint { color: var(--rim-text-muted); font-size: var(--text-xs); margin: 0 0 8px; }
+
 /* Form fields */
 .th-form { display: flex; flex-direction: column; gap: 16px; }
 .th-field { display: flex; flex-direction: column; gap: 5px; }

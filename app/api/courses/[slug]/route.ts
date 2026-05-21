@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { hasToolAccess } from "@/lib/toolAuth";
-import { flagsFromAccessLevel } from "@/lib/courseAccess";
+import { flagsFromAccessLevel, accessLevelFromFlags } from "@/lib/courseAccess";
 
 export async function GET(
   _request: NextRequest,
@@ -109,30 +109,39 @@ export async function PATCH(
   if (fields.isActive !== undefined) updateData.isActive = fields.isActive;
   if (fields.isOnboarding !== undefined) updateData.isOnboarding = fields.isOnboarding;
   if (fields.publishOnPublicCatalog !== undefined) updateData.publishOnPublicCatalog = fields.publishOnPublicCatalog;
+  // requiredRoles is now an independent orthogonal field (session 123).
+  // Empty array = no role gate; non-empty = visible/enrollable only to
+  // members holding at least one listed role (ADMIN bypass). The editor
+  // writes this directly. Legacy accessLevel-coupled coercion has been
+  // removed — the new model treats requiredRoles as the source of truth.
   if (fields.requiredRoles !== undefined) {
-    if (fields.accessLevel === "ROLE_REQUIRED" || course.accessLevel === "ROLE_REQUIRED") {
-      if (fields.accessLevel !== "ROLE_REQUIRED" && fields.accessLevel !== undefined) {
-        // Switching away from ROLE_REQUIRED — clear requiredRoles
-        updateData.requiredRoles = [];
-      } else {
-        if (!Array.isArray(fields.requiredRoles) || fields.requiredRoles.length === 0) {
-          return NextResponse.json(
-            { error: "At least one role is required when access level is Role Required" },
-            { status: 400 }
-          );
-        }
-        updateData.requiredRoles = fields.requiredRoles;
-      }
-    } else {
-      updateData.requiredRoles = [];
-    }
-  }
-  // If switching away from ROLE_REQUIRED without explicit requiredRoles, clear them
-  if (fields.accessLevel !== undefined && fields.accessLevel !== "ROLE_REQUIRED" && fields.requiredRoles === undefined) {
-    updateData.requiredRoles = [];
+    updateData.requiredRoles = Array.isArray(fields.requiredRoles)
+      ? fields.requiredRoles
+      : [];
   }
 
   if (fields.completionNote !== undefined) updateData.completionNote = fields.completionNote || null;
+
+  // ── Keep the legacy accessLevel column in sync with the new flags ──
+  // When the editor writes the new flags directly (and doesn't send
+  // accessLevel), derive a legacy value from the resulting flag state.
+  // Without this, the enum column can drift away from the flags after
+  // any flag edit. Lossy by design — the enum drops in a later pass.
+  if (
+    fields.accessLevel === undefined &&
+    (updateData.allowSelfEnroll !== undefined ||
+      updateData.requiredRoles !== undefined)
+  ) {
+    const finalAllowSelfEnroll =
+      updateData.allowSelfEnroll !== undefined
+        ? Boolean(updateData.allowSelfEnroll)
+        : course.allowSelfEnroll;
+    const finalRequiredRoles = (updateData.requiredRoles as string[] | undefined) ?? (course.requiredRoles as string[]);
+    updateData.accessLevel = accessLevelFromFlags({
+      allowSelfEnroll: finalAllowSelfEnroll,
+      requiredRoles: finalRequiredRoles,
+    });
+  }
 
   const updated = await db.course.update({
     where: { slug },

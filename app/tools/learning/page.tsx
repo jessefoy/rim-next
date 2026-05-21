@@ -58,9 +58,22 @@ export default async function SeriesListPage() {
                 </td>
                 <td className="th-table__muted">{course.slug}</td>
                 <td>
-                  <span className={`th-badge ${course.accessLevel === "ALL_MEMBERS" ? "th-badge--green" : "th-badge--blue"}`}>
-                    {course.accessLevel === "ALL_MEMBERS" ? "All Members" : "Registration Required"}
-                  </span>
+                  {/* Orthogonal-flag badges (session 123). The list shows the
+                      primary acquisition path at a glance. */}
+                  {course.allowSelfEnroll ? (
+                    course.selfEnrollDanaRequired ? (
+                      <span className="th-badge th-badge--blue">Dana self-enroll</span>
+                    ) : (
+                      <span className="th-badge th-badge--green">Self-enroll</span>
+                    )
+                  ) : (
+                    <span className="th-badge th-badge--blue">Live cohort</span>
+                  )}
+                  {course.requiredRoles.length > 0 && (
+                    <span className="th-badge th-badge--muted" style={{ marginLeft: 6 }}>
+                      Role-gated
+                    </span>
+                  )}
                 </td>
                 <td>{course._count.lessons}</td>
                 <td>

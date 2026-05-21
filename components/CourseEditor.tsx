@@ -50,8 +50,17 @@ interface CourseData {
   slug: string;
   subheading: string;
   description: any; // Tiptap JSON
-  accessLevel: "ALL_MEMBERS" | "REGISTRATION_REQUIRED" | "ROLE_REQUIRED";
+  // Orthogonal-flag access model (session 123).
+  allowSelfEnroll: boolean;
+  selfEnrollDanaRequired: boolean;
+  accessRestrictionMessage: string;
   requiredRoles: string[];
+  // Landing-page content
+  heroImage: string;
+  pullQuote: string;
+  pullQuoteSource: string;
+  danaText: string;
+  // Existing flags
   isOnboarding: boolean;
   publishOnPublicCatalog: boolean;
   hideFromMemberProfile: boolean;
@@ -119,12 +128,30 @@ export default function CourseEditor({ basePath = "/tools/learning", lessonBaseP
     if (isHtmlString(v)) return v;
     return renderBlockNoteHtml(v) || "";
   });
-  const [accessLevel, setAccessLevel] = useState<"ALL_MEMBERS" | "REGISTRATION_REQUIRED" | "ROLE_REQUIRED">(
-    initialData?.accessLevel ?? "ALL_MEMBERS"
+  // ── Orthogonal-flag access controls (session 123) ──
+  const [allowSelfEnroll, setAllowSelfEnroll] = useState(
+    initialData?.allowSelfEnroll ?? false
+  );
+  const [selfEnrollDanaRequired, setSelfEnrollDanaRequired] = useState(
+    initialData?.selfEnrollDanaRequired ?? false
+  );
+  const [accessRestrictionMessage, setAccessRestrictionMessage] = useState(
+    initialData?.accessRestrictionMessage ?? ""
   );
   const [requiredRoles, setRequiredRoles] = useState<string[]>(
     initialData?.requiredRoles ?? []
   );
+  const [roleGateOn, setRoleGateOn] = useState(
+    (initialData?.requiredRoles?.length ?? 0) > 0
+  );
+
+  // ── Landing-page content ──
+  const [heroImage, setHeroImage] = useState(initialData?.heroImage ?? "");
+  const [pullQuote, setPullQuote] = useState(initialData?.pullQuote ?? "");
+  const [pullQuoteSource, setPullQuoteSource] = useState(
+    initialData?.pullQuoteSource ?? ""
+  );
+  const [danaText, setDanaText] = useState(initialData?.danaText ?? "");
   const [isOnboarding, setIsOnboarding] = useState(initialData?.isOnboarding ?? false);
   const [publishOnPublicCatalog, setPublishOnPublicCatalog] = useState(
     initialData?.publishOnPublicCatalog ?? false
@@ -271,13 +298,24 @@ export default function CourseEditor({ basePath = "/tools/learning", lessonBaseP
     setSaving(true);
 
     try {
+      // Orthogonal-flag payload (session 123). The API derives the legacy
+      // accessLevel from these on write, so we don't need to send it.
       const payload: Record<string, unknown> = {
         title,
         slug,
         subheading,
         description,
-        accessLevel,
-        requiredRoles: accessLevel === "ROLE_REQUIRED" ? requiredRoles : [],
+        // Access model
+        allowSelfEnroll,
+        selfEnrollDanaRequired: allowSelfEnroll && selfEnrollDanaRequired,
+        requiredRoles: roleGateOn ? requiredRoles : [],
+        accessRestrictionMessage: accessRestrictionMessage.trim() || null,
+        // Landing-page content
+        heroImage: heroImage.trim() || null,
+        pullQuote: pullQuote.trim() || null,
+        pullQuoteSource: pullQuoteSource.trim() || null,
+        danaText: danaText.trim() || null,
+        // Existing flags
         isOnboarding,
         publishOnPublicCatalog,
         hideFromMemberProfile,
@@ -392,54 +430,163 @@ export default function CourseEditor({ basePath = "/tools/learning", lessonBaseP
 
         <div className="th-section-break" />
 
-        <fieldset className="th-field">
-          <legend className="th-field__label">Who can access this series?</legend>
-          <label className="th-radio">
+        {/* ── Landing-page content ──
+            Surfaces on /course/[slug] when a visitor lands without being
+            enrolled. Mirrors the Program landing fields so the two offering
+            types feel like peers. */}
+        <h3 className="th-form__group-heading">Landing page</h3>
+        <p className="th-form__group-hint">
+          Shown on <code>/course/[slug]</code> to non-enrolled visitors. All optional;
+          a course with no hero image falls back to the default Bodhi-Leaves background.
+        </p>
+
+        <label className="th-field">
+          <span className="th-field__label">Hero image URL</span>
+          <span className="th-field__help">
+            Background image for the landing hero. Paste a full URL — image upload
+            arrives in a later pass.
+          </span>
+          <input
+            type="text"
+            value={heroImage}
+            onChange={(e) => setHeroImage(e.target.value)}
+            className="th-input"
+            placeholder="https://…"
+          />
+        </label>
+
+        <label className="th-field">
+          <span className="th-field__label">Pull quote</span>
+          <span className="th-field__help">A short quote shown as a float-up card between the hero and description.</span>
+          <textarea
+            value={pullQuote}
+            onChange={(e) => setPullQuote(e.target.value)}
+            className="th-input th-input--textarea"
+            rows={2}
+            placeholder="e.g. The mind is everything. What you think, you become."
+          />
+        </label>
+
+        <label className="th-field">
+          <span className="th-field__label">Pull quote source</span>
+          <input
+            type="text"
+            value={pullQuoteSource}
+            onChange={(e) => setPullQuoteSource(e.target.value)}
+            className="th-input"
+            placeholder="e.g. The Buddha"
+          />
+        </label>
+
+        <label className="th-field">
+          <span className="th-field__label">Dana text</span>
+          <span className="th-field__help">
+            The dana ask shown in the "About this course" block on the landing.
+            Mirrors the same field on Programs.
+          </span>
+          <textarea
+            value={danaText}
+            onChange={(e) => setDanaText(e.target.value)}
+            className="th-input th-input--textarea"
+            rows={3}
+            placeholder="e.g. This course is offered freely. Dana — generosity — is welcomed."
+          />
+        </label>
+
+        <div className="th-section-break" />
+
+        {/* ── Access model ──
+            Orthogonal flags (session 123). The legacy "Who can access?"
+            radio group was replaced by these checkboxes; the API derives
+            a legacy accessLevel value from them on save. */}
+        <h3 className="th-form__group-heading">Access</h3>
+        <p className="th-form__group-hint">
+          Each control is independent. Combine them to express different course shapes
+          (free for all, dana-required, role-locked, bundled with a live program, etc.).
+          See the <a href="/admin/manual/course-hub" target="_blank" rel="noopener noreferrer" className="th-link th-link--sm">Course Hub manual chapter</a> for examples.
+        </p>
+
+        <label className="th-checkbox">
+          <input
+            type="checkbox"
+            checked={allowSelfEnroll}
+            onChange={(e) => setAllowSelfEnroll(e.target.checked)}
+          />
+          Members can self-enroll
+          <span className="th-checkbox__hint">
+            Shows an "Enroll" button on the course landing page. Leave off for
+            courses that are only available through a live program registration
+            or admin grant.
+          </span>
+        </label>
+
+        {allowSelfEnroll && (
+          <label className="th-checkbox" style={{ marginLeft: 24 }}>
             <input
-              type="radio"
-              checked={accessLevel === "ALL_MEMBERS"}
-              onChange={() => { setAccessLevel("ALL_MEMBERS"); setRequiredRoles([]); }}
+              type="checkbox"
+              checked={selfEnrollDanaRequired}
+              onChange={(e) => setSelfEnrollDanaRequired(e.target.checked)}
             />
-            All Members
+            Require dana before enrolling
+            <span className="th-checkbox__hint">
+              Self-enrollment routes through Stripe Checkout before granting access.
+              Use the Dana text field above to describe the offering.
+            </span>
           </label>
-          <label className="th-radio">
-            <input
-              type="radio"
-              checked={accessLevel === "REGISTRATION_REQUIRED"}
-              onChange={() => { setAccessLevel("REGISTRATION_REQUIRED"); setRequiredRoles([]); }}
-            />
-            Registration Required
-          </label>
-          <label className="th-radio">
-            <input
-              type="radio"
-              checked={accessLevel === "ROLE_REQUIRED"}
-              onChange={() => setAccessLevel("ROLE_REQUIRED")}
-            />
-            Role Required
-          </label>
-          {accessLevel === "ROLE_REQUIRED" && (
-            <div className="th-roles-select">
-              <p className="th-field__hint">Members with any of these roles can access this series:</p>
-              {ROLE_OPTIONS.map((opt) => (
-                <label key={opt.value} className="th-checkbox th-checkbox--sm">
-                  <input
-                    type="checkbox"
-                    checked={requiredRoles.includes(opt.value)}
-                    onChange={(e) => {
-                      setRequiredRoles((prev) =>
-                        e.target.checked
-                          ? [...prev, opt.value]
-                          : prev.filter((r) => r !== opt.value)
-                      );
-                    }}
-                  />
-                  {opt.label}
-                </label>
-              ))}
-            </div>
-          )}
-        </fieldset>
+        )}
+
+        <label className="th-checkbox">
+          <input
+            type="checkbox"
+            checked={roleGateOn}
+            onChange={(e) => {
+              setRoleGateOn(e.target.checked);
+              if (!e.target.checked) setRequiredRoles([]);
+            }}
+          />
+          Restrict to specific roles
+          <span className="th-checkbox__hint">
+            Only members holding at least one selected role can see or enroll in
+            this course. Admin always bypasses.
+          </span>
+        </label>
+
+        {roleGateOn && (
+          <div className="th-roles-select">
+            <p className="th-field__hint">Eligible roles:</p>
+            {ROLE_OPTIONS.map((opt) => (
+              <label key={opt.value} className="th-checkbox th-checkbox--sm">
+                <input
+                  type="checkbox"
+                  checked={requiredRoles.includes(opt.value)}
+                  onChange={(e) => {
+                    setRequiredRoles((prev) =>
+                      e.target.checked
+                        ? [...prev, opt.value]
+                        : prev.filter((r) => r !== opt.value)
+                    );
+                  }}
+                />
+                {opt.label}
+              </label>
+            ))}
+          </div>
+        )}
+
+        <label className="th-field">
+          <span className="th-field__label">Access restriction message</span>
+          <span className="th-field__help">
+            Friendly message shown to visitors who can&rsquo;t enroll (no role, no live cohort
+            open, manual-grant-only). Leave blank to use a derived default.
+          </span>
+          <textarea
+            value={accessRestrictionMessage}
+            onChange={(e) => setAccessRestrictionMessage(e.target.value)}
+            className="th-input th-input--textarea"
+            rows={2}
+            placeholder="e.g. This course is offered to teacher trainees. If you're considering training, get in touch."
+          />
+        </label>
 
         <label className="th-checkbox">
           <input

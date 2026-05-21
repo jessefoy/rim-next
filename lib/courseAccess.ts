@@ -235,3 +235,25 @@ export function flagsFromAccessLevel(accessLevel: string): {
       return { allowSelfEnroll: false, selfEnrollDanaRequired: false };
   }
 }
+
+/**
+ * Reverse direction — collapse the orthogonal flags back to a single
+ * legacy CourseAccessLevel value. Used by API write endpoints during
+ * the transition to keep the `accessLevel` column from drifting away
+ * from the flags. Lossy by definition (the enum can't express
+ * "self-enroll with dana"); after the enum drops in a later pass,
+ * this helper is no longer needed.
+ *
+ * Rules:
+ *   any requiredRoles → ROLE_REQUIRED  (preserves the legacy semantic)
+ *   !allowSelfEnroll  → REGISTRATION_REQUIRED  (access via ProgramCourse)
+ *   else              → ALL_MEMBERS
+ */
+export function accessLevelFromFlags(args: {
+  allowSelfEnroll: boolean;
+  requiredRoles: readonly string[];
+}): "ALL_MEMBERS" | "REGISTRATION_REQUIRED" | "ROLE_REQUIRED" {
+  if (args.requiredRoles.length > 0) return "ROLE_REQUIRED";
+  if (!args.allowSelfEnroll) return "REGISTRATION_REQUIRED";
+  return "ALL_MEMBERS";
+}

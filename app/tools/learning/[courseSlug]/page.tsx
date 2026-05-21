@@ -51,8 +51,17 @@ export default async function EditCoursePage({
     slug: course.slug,
     subheading: course.subheading ?? "",
     description: course.description ?? null,
-    accessLevel: course.accessLevel as "ALL_MEMBERS" | "REGISTRATION_REQUIRED" | "ROLE_REQUIRED",
+    // Orthogonal-flag access model (session 123).
+    allowSelfEnroll: course.allowSelfEnroll,
+    selfEnrollDanaRequired: course.selfEnrollDanaRequired,
+    accessRestrictionMessage: course.accessRestrictionMessage ?? "",
     requiredRoles: course.requiredRoles as string[],
+    // Landing-page content
+    heroImage: course.heroImage ?? "",
+    pullQuote: course.pullQuote ?? "",
+    pullQuoteSource: course.pullQuoteSource ?? "",
+    danaText: course.danaText ?? "",
+    // Existing flags
     isOnboarding: course.isOnboarding,
     publishOnPublicCatalog: course.publishOnPublicCatalog,
     hideFromMemberProfile: course.hideFromMemberProfile,

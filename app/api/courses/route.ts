@@ -63,7 +63,13 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { title, slug, subheading, description, accessLevel, hideFromMemberProfile, sortOrder, isActive, publishOnPublicCatalog } = body;
+  const {
+    title, slug, subheading, description, accessLevel,
+    allowSelfEnroll, selfEnrollDanaRequired, accessRestrictionMessage,
+    heroImage, pullQuote, pullQuoteSource, danaText,
+    requiredRoles,
+    hideFromMemberProfile, sortOrder, isActive, publishOnPublicCatalog,
+  } = body;
 
   if (!title || !slug) {
     return NextResponse.json({ error: "Title and slug are required" }, { status: 400 });
@@ -75,13 +81,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "A course with this slug already exists" }, { status: 409 });
   }
 
-  // Derive the new orthogonal flags from the legacy accessLevel during
-  // transition so a brand-new course created by the existing editor has
-  // self-enroll semantics consistent with what the legacy enum implied.
-  // (Step 5 of the offering build will let the editor write the flags
-  // directly, at which point this derivation can be removed.)
+  // The editor (post-slice-3) sends the new orthogonal flags directly.
+  // For requests that still send accessLevel (older clients or programmatic
+  // creates), derive the flags via flagsFromAccessLevel. Flag values
+  // explicitly present in the body win over the derived defaults.
   const resolvedAccessLevel = accessLevel || "ALL_MEMBERS";
-  const flags = flagsFromAccessLevel(resolvedAccessLevel);
+  const derived = flagsFromAccessLevel(resolvedAccessLevel);
+  const resolvedAllowSelfEnroll = allowSelfEnroll ?? derived.allowSelfEnroll;
+  const resolvedSelfEnrollDanaRequired = selfEnrollDanaRequired ?? derived.selfEnrollDanaRequired;
 
   const course = await db.course.create({
     data: {
@@ -90,8 +97,14 @@ export async function POST(request: NextRequest) {
       subheading: subheading || null,
       description: description || null,
       accessLevel: resolvedAccessLevel,
-      allowSelfEnroll: flags.allowSelfEnroll,
-      selfEnrollDanaRequired: flags.selfEnrollDanaRequired,
+      allowSelfEnroll: resolvedAllowSelfEnroll,
+      selfEnrollDanaRequired: resolvedSelfEnrollDanaRequired,
+      accessRestrictionMessage: accessRestrictionMessage || null,
+      heroImage: heroImage || null,
+      pullQuote: pullQuote || null,
+      pullQuoteSource: pullQuoteSource || null,
+      danaText: danaText || null,
+      requiredRoles: Array.isArray(requiredRoles) ? requiredRoles : [],
       hideFromMemberProfile: hideFromMemberProfile ?? false,
       sortOrder: sortOrder != null ? Number(sortOrder) : null,
       isActive: isActive ?? true,
