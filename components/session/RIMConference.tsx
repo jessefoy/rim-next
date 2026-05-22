@@ -18,13 +18,14 @@
  * preference that persists.
  */
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   GridLayout,
   RoomAudioRenderer,
   useLocalParticipant,
   useRemoteParticipants,
   useTracks,
+  useParticipantInfo,
   LayoutContextProvider,
   useCreateLayoutContext,
   useStartAudio,
@@ -230,6 +231,54 @@ export default function RIMConference({ isSessionHost, isCoHost, isProgramTeache
     { onlySubscribed: false }
   );
 
+  // Subscribe to local metadata changes so the sort below re-runs when the
+  // local user raises/lowers their own hand. useRemoteParticipants already
+  // covers remote metadata changes via its updateOnlyOn config above; this
+  // adds the symmetric reactivity for the local participant.
+  const { metadata: localMetadataRaw } = useParticipantInfo({ participant: localParticipant });
+
+  // Zoom-style speaking queue: hand-raised tiles sort to the top-left of
+  // the grid in the order they were raised (ascending raisedHandAt). Tiles
+  // are not enlarged — the reordering itself is the focus mechanism, which
+  // matches how Zoom actually solves this. Non-hand tiles preserve their
+  // original order (Array.prototype.sort is stable since ES2019).
+  //
+  // The sort runs against the live `tracks` array returned by useTracks,
+  // reading each participant's current metadata. We resolve the local
+  // participant's metadata from the reactive `localMetadataRaw` source so
+  // the local user's own raise reorders their tile too; remote tiles read
+  // directly from `participant.metadata` and re-render via the
+  // remoteParticipants subscription above.
+  const sortedTracks = useMemo(() => {
+    const localIdentity = localParticipant?.identity;
+    function metaFor(identity: string, fallback: string | undefined): ParticipantMetadata {
+      if (localIdentity && identity === localIdentity) {
+        return getMetadata(localMetadataRaw ?? fallback);
+      }
+      return getMetadata(fallback);
+    }
+    return [...tracks].sort((a, b) => {
+      const aMeta = metaFor(a.participant.identity, a.participant.metadata);
+      const bMeta = metaFor(b.participant.identity, b.participant.metadata);
+      const aHand = aMeta.signal === "hand";
+      const bHand = bMeta.signal === "hand";
+      if (aHand && !bHand) return -1;
+      if (bHand && !aHand) return 1;
+      if (aHand && bHand) {
+        const at = (aMeta.raisedHandAt ?? 0) - (bMeta.raisedHandAt ?? 0);
+        if (at !== 0) return at;
+        // Secondary sort by identity for cross-client determinism: if two
+        // people raise their hands within the same millisecond, every
+        // client agrees on the order (otherwise queue numbers can disagree
+        // between participants, which makes "Marsha is #2" untrustworthy).
+        return a.participant.identity.localeCompare(b.participant.identity);
+      }
+      return 0; // stable: preserve original order for non-hand tiles
+    });
+    // remoteParticipants is in deps to retrigger the memo when any remote
+    // metadata changes (the hook re-runs on ParticipantMetadataChanged).
+  }, [tracks, localParticipant, localMetadataRaw, remoteParticipants]);
+
   const speakers = useSpeakingParticipants();
 
   // Track the last identity we asked to pin, so the effect can short-circuit
@@ -340,13 +389,13 @@ export default function RIMConference({ isSessionHost, isCoHost, isProgramTeache
           <div className="rim-conference__video">
             {inSpeakerView ? (
               <FocusLayoutContainer>
-                <CarouselLayout tracks={tracks}>
+                <CarouselLayout tracks={sortedTracks}>
                   <RIMParticipantTile />
                 </CarouselLayout>
                 <FocusLayout trackRef={layoutContext.pin.state![0]} />
               </FocusLayoutContainer>
             ) : (
-              <GridLayout tracks={tracks}>
+              <GridLayout tracks={sortedTracks}>
                 <RIMParticipantTile />
               </GridLayout>
             )}

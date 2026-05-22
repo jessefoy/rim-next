@@ -34,33 +34,17 @@ function getMetadata(p: { metadata?: string }): ParticipantMetadata {
 }
 
 /**
- * Renders the local participant's role pills from their LiveKit metadata.
- * Mirrors the remote tile pill logic: Host, Teacher, then Co-host (only
- * when neither of the others applies). Uses `useParticipantInfo` (not the
- * bare localParticipant.metadata field) so the component re-renders when
- * metadata changes — without this subscription, a Step-In reconnect that
- * updates flags mid-session would leave the local pills stale until the
- * panel was reopened.
+ * Subscribes to the local participant's metadata reactively. Used by the
+ * panel to keep the local "Me" row in sync with role pills AND raised-hand
+ * state — without this, a Step-In reconnect or a raise/lower from the
+ * Reactions menu would leave the local row stale until the panel was
+ * reopened. Returns the parsed metadata once, so callers can read every
+ * field (signal, raisedHandAt, role flags) without re-subscribing.
  */
-function LocalRolePills() {
+function useLocalMetadata(): ParticipantMetadata {
   const { localParticipant } = useLocalParticipant();
   const info = useParticipantInfo({ participant: localParticipant });
-  const meta: ParticipantMetadata = info.metadata
-    ? getMetadata({ metadata: info.metadata })
-    : {};
-  return (
-    <>
-      {meta.host && (
-        <span className="rim-pp__role-tag rim-pp__role-tag--host">Host</span>
-      )}
-      {meta.teacher && (
-        <span className="rim-pp__role-tag rim-pp__role-tag--teacher">Teacher</span>
-      )}
-      {meta.cohost && !meta.host && !meta.teacher && (
-        <span className="rim-pp__role-tag rim-pp__role-tag--cohost">Co-host</span>
-      )}
-    </>
-  );
+  return info.metadata ? getMetadata({ metadata: info.metadata }) : {};
 }
 
 interface Props {
@@ -128,7 +112,12 @@ export default function ParticipantsPanel({ open, onClose, participants, program
     setMutingAll(false);
   }
 
-  // Sort + filter
+  const localMeta = useLocalMetadata();
+  const localId = room?.localParticipant?.identity ?? localIdentity;
+
+  // Sort + filter remotes. Hand-raised participants float to the top in
+  // raise order (ascending raisedHandAt) — same ordering rule the grid
+  // uses, so the panel and the tile layout tell the same story.
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const list = q
@@ -137,14 +126,51 @@ export default function ParticipantsPanel({ open, onClose, participants, program
     return [...list].sort((a, b) => {
       const aMeta = getMetadata(a);
       const bMeta = getMetadata(b);
-      const aHand = aMeta.signal === "hand" ? 0 : 1;
-      const bHand = bMeta.signal === "hand" ? 0 : 1;
-      if (aHand !== bHand) return aHand - bHand;
+      const aHand = aMeta.signal === "hand";
+      const bHand = bMeta.signal === "hand";
+      if (aHand && !bHand) return -1;
+      if (bHand && !aHand) return 1;
+      if (aHand && bHand) {
+        const at = (aMeta.raisedHandAt ?? 0) - (bMeta.raisedHandAt ?? 0);
+        if (at !== 0) return at;
+        // Secondary sort by identity — matches RIMConference.sortedTracks
+        // so the panel order agrees with the grid order on every client
+        // even when two hands go up in the same millisecond.
+        return a.identity.localeCompare(b.identity);
+      }
       return (a.name || "").localeCompare(b.name || "");
     });
   }, [participants, search]);
 
-  const handCount = participants.filter((p) => getMetadata(p).signal === "hand").length;
+  // Numbered speaking queue — a 1-based position for every raised hand,
+  // computed across local + remote participants and ordered by
+  // raisedHandAt. The identity → number map drives the small "1 ✋",
+  // "2 ✋" prefix shown next to each hand-raised row, so the host can
+  // call on people in order without parsing timestamps. Single source of
+  // truth: same sort the grid uses (see RIMConference.sortedTracks).
+  const queueMap = useMemo(() => {
+    const queue: { identity: string; at: number }[] = [];
+    if (localId && localMeta.signal === "hand") {
+      queue.push({ identity: localId, at: localMeta.raisedHandAt ?? 0 });
+    }
+    for (const p of participants) {
+      const m = getMetadata(p);
+      if (m.signal === "hand") {
+        queue.push({ identity: p.identity, at: m.raisedHandAt ?? 0 });
+      }
+    }
+    queue.sort((a, b) => {
+      if (a.at !== b.at) return a.at - b.at;
+      // Tie-break on identity so every client computes the same queue
+      // numbers when two people raise within the same millisecond.
+      return a.identity.localeCompare(b.identity);
+    });
+    const map = new Map<string, number>();
+    queue.forEach((entry, i) => map.set(entry.identity, i + 1));
+    return map;
+  }, [participants, localId, localMeta.signal, localMeta.raisedHandAt]);
+
+  const handCount = queueMap.size;
   const totalCount = participants.length + 1;
   const showSearch = totalCount > SEARCH_THRESHOLD;
 
@@ -180,13 +206,30 @@ export default function ParticipantsPanel({ open, onClose, participants, program
           {/* Sticky local "Me" row. Role pills follow the same priority
               order as remote tiles: Host, Teacher, Co-host. We read the
               local participant's own metadata (set by RIMConference's
-              seeding effect) so the local view matches what others see. */}
+              seeding effect) so the local view matches what others see.
+              The signal slot also displays the local user's own queue
+              position when their hand is raised — so they can see where
+              they are in line. */}
           <div className="rim-pp__row rim-pp__row--self">
-            <span className="rim-pp__signal" />
+            <span className="rim-pp__signal">
+              {localMeta.signal === "hand"
+                ? `${queueMap.get(localId ?? "") ?? ""} ✋`.trim()
+                : localMeta.signal
+                ? SIGNAL_EMOJI[localMeta.signal]
+                : ""}
+            </span>
             <span className="rim-pp__name">
               {localName} <span className="rim-pp__self-tag">(you)</span>
             </span>
-            <LocalRolePills />
+            {localMeta.host && (
+              <span className="rim-pp__role-tag rim-pp__role-tag--host">Host</span>
+            )}
+            {localMeta.teacher && (
+              <span className="rim-pp__role-tag rim-pp__role-tag--teacher">Teacher</span>
+            )}
+            {localMeta.cohost && !localMeta.host && !localMeta.teacher && (
+              <span className="rim-pp__role-tag rim-pp__role-tag--cohost">Co-host</span>
+            )}
           </div>
 
           {filtered.length === 0 && (
@@ -198,10 +241,15 @@ export default function ParticipantsPanel({ open, onClose, participants, program
           {filtered.map((p) => {
             const meta = getMetadata(p);
             const isMicEnabled = p.isMicrophoneEnabled;
+            const queuePos = queueMap.get(p.identity);
             return (
               <div key={p.identity} className="rim-pp__row">
                 <span className="rim-pp__signal">
-                  {meta.signal ? SIGNAL_EMOJI[meta.signal] : ""}
+                  {meta.signal === "hand" && queuePos != null
+                    ? `${queuePos} ✋`
+                    : meta.signal
+                    ? SIGNAL_EMOJI[meta.signal]
+                    : ""}
                 </span>
                 <span className="rim-pp__name">{p.name || p.identity}</span>
                 {meta.host && (

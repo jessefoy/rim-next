@@ -14695,7 +14695,13 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   padding: 8px 16px;
   border-bottom: 1px solid rgba(255,255,255,0.05);
 }
-.rim-pp__signal { width: 20px; text-align: center; font-size: 16px; }
+.rim-pp__signal {
+  min-width: 32px;
+  text-align: center;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 .rim-pp__name { flex: 1; font-size: var(--text-ui); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rim-pp__mic { font-size: 14px; }
 .rim-pp__mic--muted { opacity: 0.4; }

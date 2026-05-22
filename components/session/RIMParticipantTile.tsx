@@ -29,6 +29,12 @@ export type Signal = "hand" | "heart" | "namaste" | "yes" | "no" | null;
 export interface ParticipantMetadata {
   avatarUrl?: string;
   signal?: Signal;
+  /** Epoch ms at which the hand was raised. Present only when
+   *  `signal === "hand"`. Used to (a) sort hand-raised tiles to the top of
+   *  the grid in raise order (Zoom-style speaking queue), and (b) compute
+   *  the numbered queue position shown in the Participants panel.
+   *  Cleared whenever `signal` transitions away from "hand". */
+  raisedHandAt?: number;
   /** Session Host (singular, assigned for this session) — drives the "Host" pill. */
   host?: boolean;
   /** ProgramTeacher row exists for this program — drives the "Teacher" pill. */

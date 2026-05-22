@@ -5,12 +5,25 @@
  *
  * Replaces the top-of-room NonverbalToolbar. Matches Zoom's "Reactions"
  * popover behavior: a horizontal row of emoji that fly briefly above the
- * sender's tile, plus a "Lower hand" item at the top when hand is raised.
+ * sender's tile, plus a contextual "Clear" item at the top when the local
+ * user is currently showing a persistent signal.
  *
- * Behavior unchanged from NonverbalToolbar:
- *   - signals broadcast via participant metadata
- *   - hand persists until toggled
- *   - others auto-clear after 5s
+ * Signal model — single signal per participant at a time (mutually
+ * exclusive). Persistence varies by signal:
+ *
+ *   ✋ Raised hand — persistent. Click to set, click again (or the Clear
+ *       row) to lower. Reorders the tile to the top-left of the grid in
+ *       raise order (handled in RIMConference).
+ *   ✓ / ✗      — persistent (voting). Same toggle semantics as the hand.
+ *                Does NOT reorder the tile — the badge stays in place so
+ *                the host can read votes without the grid shuffling.
+ *   ❤️ / 🙏    — timed reaction (~5s auto-clear). Quick acknowledgment;
+ *                no commitment expected from the sender, so no clear-up
+ *                step is needed.
+ *
+ * Component-local `active` state syncs from metadata on mount and resets
+ * on session rejoin (the component remounts), matching the Bell-mode
+ * "reset on join" convention from session 122.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -24,13 +37,40 @@ interface Props {
   anchorRef: React.RefObject<HTMLButtonElement | null>;
 }
 
-const SIGNALS: { signal: Signal; emoji: string; label: string; momentary: boolean }[] = [
-  { signal: "hand",    emoji: "✋",  label: "Raise hand", momentary: false },
-  { signal: "heart",   emoji: "❤️", label: "Heart",      momentary: true  },
-  { signal: "namaste", emoji: "🙏", label: "Namaste",    momentary: true  },
-  { signal: "yes",     emoji: "✓",  label: "Yes",        momentary: true  },
-  { signal: "no",      emoji: "✗",  label: "No",         momentary: true  },
+type SignalDef = {
+  signal: NonNullable<Signal>;
+  emoji: string;
+  label: string;
+  /** Persistent signals toggle on/off and require an explicit clear.
+   *  Non-persistent signals auto-clear after AUTO_CLEAR_MS. */
+  persistent: boolean;
+};
+
+// Order matters — this is the order rendered in the popover row.
+// Persistent signals come first (hand, then votes), then quick reactions.
+const SIGNALS: SignalDef[] = [
+  { signal: "hand",    emoji: "✋",  label: "Raise hand", persistent: true  },
+  { signal: "yes",     emoji: "✓",  label: "Yes",        persistent: true  },
+  { signal: "no",      emoji: "✗",  label: "No",         persistent: true  },
+  { signal: "heart",   emoji: "❤️", label: "Heart",      persistent: false },
+  { signal: "namaste", emoji: "🙏", label: "Namaste",    persistent: false },
 ];
+
+const AUTO_CLEAR_MS = 5000;
+
+type PersistentSignal = "hand" | "yes" | "no";
+
+/** Plain-language label for the contextual "Clear" row at the top of the
+ *  popover. Shown only when the local user has a persistent signal active. */
+const CLEAR_LABEL: Record<PersistentSignal, string> = {
+  hand: "✋ Lower hand",
+  yes:  "✓ Clear Yes",
+  no:   "✗ Clear No",
+};
+
+function isPersistentSignal(s: Signal): s is PersistentSignal {
+  return s === "hand" || s === "yes" || s === "no";
+}
 
 function getMetadata(p: LocalParticipant): ParticipantMetadata {
   try { return JSON.parse(p.metadata || "{}"); } catch { return {}; }
@@ -62,56 +102,84 @@ export default function ReactionsMenu({ localParticipant, open, onClose, anchorR
     return () => document.removeEventListener("mousedown", handler);
   }, [open, onClose, anchorRef]);
 
-  function sendSignal(signal: Signal, momentary: boolean) {
+  function sendSignal(signal: NonNullable<Signal>, persistent: boolean) {
     if (!localParticipant) return;
     if (clearTimer.current) clearTimeout(clearTimer.current);
 
     const meta = getMetadata(localParticipant);
-    const next: Signal = active === signal && signal === "hand" ? null : signal;
+    // Toggle off on second tap for any persistent signal (hand / yes / no).
+    // Non-persistent signals (heart / namaste) always replace whatever is
+    // active — re-tapping doesn't clear because the timer will.
+    const next: Signal = active === signal && persistent ? null : signal;
 
-    localParticipant.setMetadata(JSON.stringify({ ...meta, signal: next }));
+    const nextMeta: ParticipantMetadata = { ...meta, signal: next };
+    if (next === "hand") {
+      // Stamp the moment the hand went up so the grid can sort by it.
+      // Only set when transitioning into the hand state; existing hand
+      // raises preserve their original timestamp (a no-op toggle is a
+      // clear, handled above).
+      nextMeta.raisedHandAt = Date.now();
+    } else {
+      // Any non-hand state clears the queue stamp. Safe to delete an
+      // absent property.
+      delete nextMeta.raisedHandAt;
+    }
+
+    localParticipant.setMetadata(JSON.stringify(nextMeta));
     setActive(next);
 
-    if (next && momentary) {
+    if (next && !persistent) {
       clearTimer.current = setTimeout(() => {
         const current = getMetadata(localParticipant);
-        localParticipant.setMetadata(JSON.stringify({ ...current, signal: null }));
+        const cleared: ParticipantMetadata = { ...current, signal: null };
+        delete cleared.raisedHandAt;
+        localParticipant.setMetadata(JSON.stringify(cleared));
         setActive(null);
-      }, 5000);
+      }, AUTO_CLEAR_MS);
     }
     // Close popover after any selection (Zoom behavior)
     onClose();
   }
 
-  function lowerHand() {
+  function clearSignal() {
     if (!localParticipant) return;
+    if (clearTimer.current) clearTimeout(clearTimer.current);
     const meta = getMetadata(localParticipant);
-    localParticipant.setMetadata(JSON.stringify({ ...meta, signal: null }));
+    const cleared: ParticipantMetadata = { ...meta, signal: null };
+    delete cleared.raisedHandAt;
+    localParticipant.setMetadata(JSON.stringify(cleared));
     setActive(null);
     onClose();
   }
 
   if (!open) return null;
 
+  // The clear affordance is only meaningful for the three persistent
+  // signals. Timed reactions clear themselves; surfacing a clear row for
+  // them would offer the user a button that races with the auto-timer.
+  // Type predicate narrows `active` to PersistentSignal inside the branch
+  // so the label lookup type-checks without a cast.
+  const showClear = isPersistentSignal(active);
+
   return (
     <div ref={menuRef} className="rim-cb-popover rim-cb-popover--reactions" role="menu">
-      {active === "hand" && (
+      {showClear && (
         <button
           type="button"
-          className="rim-cb-popover__item rim-cb-popover__item--lower-hand"
-          onClick={lowerHand}
+          className="rim-cb-popover__item rim-cb-popover__item--clear-signal"
+          onClick={clearSignal}
           role="menuitem"
         >
-          ✋ Lower hand
+          {CLEAR_LABEL[active]}
         </button>
       )}
       <div className="rim-cb-popover__reactions-row">
-        {SIGNALS.map(({ signal, emoji, label, momentary }) => (
+        {SIGNALS.map(({ signal, emoji, label, persistent }) => (
           <button
             key={signal}
             type="button"
             className={`rim-cb-popover__reaction${active === signal ? " rim-cb-popover__reaction--active" : ""}`}
-            onClick={() => sendSignal(signal, momentary)}
+            onClick={() => sendSignal(signal, persistent)}
             title={label}
             aria-label={label}
             aria-pressed={active === signal}
