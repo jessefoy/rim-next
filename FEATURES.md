@@ -1828,7 +1828,7 @@ When an application is extracted, the hub may retain a simplified read-only view
 
 ---
 
-## 38. LiveKit Video Conferencing — Phases 1–5 ✅ Built — sessions 76, 86, 117 (Zoom-aligned redesign), session 121 (three-tier permission model + cleanup), session 122 (Krisp NC + per-profile video bitrate + Bell mode), session 124 (full audit, Zoom-style tier widening + three visible pills, Krisp instrumentation, Step-In propagation + timing fix, ProgramTeacher backfill)
+## 38. LiveKit Video Conferencing — Phases 1–5 ✅ Built — sessions 76, 86, 117 (Zoom-aligned redesign), session 121 (three-tier permission model + cleanup), session 122 (Krisp NC + per-profile video bitrate + Bell mode), session 124 (full audit, Zoom-style tier widening + three visible pills, Krisp instrumentation, Step-In propagation + timing fix, ProgramTeacher backfill), session 125 (identity vs. capability split, Host Volunteer rename, raised-hand speaking queue, persistent vote signals), session 126 (server-side time gate on the token route + per-session rooms with per-session chat scoping)
 
 ### What it does
 
@@ -1843,6 +1843,24 @@ Embedded video conferencing that replaces Google Meet for virtual and hybrid pro
 - **Phase 4 (session room UI):** Custom RIMConference layout, chat, focus/pin, nonverbal signals, raised-hand banner, presence photos, dark theme, audio prompt. ✅ Complete (session 86).
 - **Phase 5 (Zoom-aligned redesign):** ✅ Complete (session 117). The entire session-room UX was reshaped to mirror Zoom's information architecture so Sangha muscle memory transfers cleanly. See "Zoom-aligned redesign" below.
 - **Phase 6 (recording):** 🔜 Pressing future feature — see below.
+
+### Time-gated tokens + per-session rooms (session 126)
+
+Two coupled changes completing one design intent: every session is a discrete event with its own LiveKit room and its own chat history. Closes backlog `2026-05-24-002`.
+
+**Server-side time gate.** `/api/livekit/token` and `/api/livekit/guest-token` now refuse to issue tokens outside a session's open window. Window opens 22 min before `Program.startDatetime` (matches the dashboard host early-open epoch from session 121) and closes 30 min after `Program.endDatetime`, with a +90 min fallback when `endDatetime` is null. ADMIN and GUIDING_TEACHER bypass as a safety override (mirrors `hasEndAllAuthority`); guests have no bypass. Outside the window the route returns `403 { error: "session-closed", message, nextOpensAt, nextStartsAt }` — the session page surfaces `message` directly as the user-facing copy ("This session isn't open yet — it begins at 7:00 PM", "This session has ended", "No session right now. The next one is Tuesday at 8:15 AM"). Direct-URL access to `/session/[slug]` is no longer ungated.
+
+**Per-session room names.** Recurring programs used to share one LiveKit room name across every occurrence forever. The schema was already half-set-up for per-session scoping (`SessionChatMessage.sessionDate`, `roomNameForProgram(slug, sessionDate)` already designed to produce `slug-YYYY-MM-DD`) — only the call site never passed the date. Now the server computes today's `sessionDate` via the new `lib/sessionWindow.ts::getActiveSessionWindow` and uses it for the room name. Today's room is `good-morning-sangha-2026-05-26`; tomorrow's is `good-morning-sangha-2026-05-27`. Chat (filtered only by `roomName`) scopes per-session automatically. The token response now carries `sessionDate`; the session page stores it and threads it through `RIMChat` (chat history) and `SessionRoleContext` (so `RIMParticipantTile`'s mute action can include it), and into the request bodies for the four action callsites: mute-participant, mute-all, end-session, step-in.
+
+**Forgot-to-End fallback (three layers).** Explicit End-for-All deletes the LiveKit room and disconnects everyone. If the last participant just leaves without ending, LiveKit Cloud's empty-room idle cleanup destroys the room after ~5 min. And the time gate at the door refuses to issue new tokens after the close window. Tomorrow's room is a fresh name regardless. Yesterday's chat stays in the DB as orphan rows nobody queries.
+
+**Policy: every program follows the per-session pattern.** Confirmed mid-session — drop-ins like Good Morning Silent Meditation included. No exceptions for "continuous community spaces."
+
+**Defense-in-depth assertion on the action routes.** New `lib/sessionWindow.ts::assertSessionDateInWindow` helper wired into mute-participant, mute-all, end-session, and step-in. Refuses if the caller-supplied `sessionDate` doesn't match the currently open window (ADMIN/GT bypass). Step-In is the highest-stakes route (it writes a `HostAssignment` row); the others have low blast radius but the assertion is consistent. Pre-commit reviewer sub-agent flagged this gap.
+
+**Format alignment with the schedule UI.** The session window helper uses `scheduleUtils.shiftToDate(...).toISOString()` so the `sessionDate` it produces matches the format the schedule tool writes to `HostAssignment.sessionDate`. `resolveSessionRole`'s exact-match assignment lookup hits existing rows correctly. The DST drift in `shiftToDate` is a pre-existing platform-wide limitation; this helper inherits it deliberately rather than forking.
+
+**Files touched:** `lib/sessionWindow.ts` (new), `app/api/livekit/token/route.ts`, `app/api/livekit/guest-token/route.ts`, `app/api/livekit/end-session/route.ts`, `app/api/livekit/mute-participant/route.ts`, `app/api/livekit/mute-all/route.ts`, `app/api/livekit/step-in/route.ts`, `app/session/[slug]/page.tsx`, `components/VideoRoom.tsx`, `components/session/RIMConference.tsx`, `components/session/sessionRole.tsx`, `components/session/RIMControlBar.tsx`, `components/session/EndMenu.tsx`, `components/session/ParticipantsPanel.tsx`, `components/session/RIMParticipantTile.tsx`. Commit `463f3bb`.
 
 ### A/V tuning pass — Krisp NC + per-profile video bitrate + Bell mode (session 122)
 

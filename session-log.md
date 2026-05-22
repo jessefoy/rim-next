@@ -1,5 +1,65 @@
 ---
 
+## 2026-05-26 (session 126) — LiveKit time-gated tokens + per-session rooms (chat clears each session)
+
+One code commit on `main` (`463f3bb`) plus this closing-ritual doc sweep. The session resolved one parked backlog item (server-side time gate on the token route) and quietly fixed an unintended-feature gap that surfaced while we were in there — recurring programs were sharing one LiveKit room name across every occurrence forever, and the chat was scoped only by room name, so today's chat showed last week's messages. The schema was already half-set-up for per-session scoping; the read query just never finished wiring. Jesse confirmed mid-session that *every* program — including drop-ins like Good Morning Silent Meditation — should follow the same per-session pattern. No exceptions.
+
+### What shipped
+
+**Two coupled changes that complete one design intent: every session is a discrete event with its own room and its own chat history.**
+
+1. **Server-side time gate** on `/api/livekit/token` and `/api/livekit/guest-token`. Refuses to issue tokens outside a session's open window. Window opens 22 min before `Program.startDatetime` (matches the dashboard host early-open epoch from session 121) and closes 30 min after `Program.endDatetime`, falling back to +90 min when `endDatetime` is null. ADMIN and GUIDING_TEACHER bypass as a safety override (mirrors `hasEndAllAuthority`); guests have no bypass. Outside the window, the route returns `403 { error: "session-closed", message, nextOpensAt }` — the session page surfaces `message` to the user as "This session isn't open yet — it begins at 7:00 PM" or "This session has ended" or "No session right now. The next one is Tuesday at 8:15 AM." Closes backlog `2026-05-24-002`.
+
+2. **Per-session room names.** `roomNameForProgram(slug, sessionDate)` was already designed to produce `slug-YYYY-MM-DD` when given a date, and the schema's `SessionChatMessage.sessionDate` was already ready — the session page just never passed `sessionDate` to the token route, so `roomNameForProgram` returned the bare slug for every recurring program. Now the server computes today's `sessionDate` (via the new `lib/sessionWindow.ts::getActiveSessionWindow`) and uses it for the room name. Today's room is `good-morning-sangha-2026-05-26`; tomorrow's is `good-morning-sangha-2026-05-27`. Chat (filtered by `roomName`) scopes itself per session automatically — no chat query change needed.
+
+3. **`sessionDate` threaded through the client.** Token response now carries `sessionDate`. The session page stores it and passes it to `RIMChat` (so chat history is per-session) and into `SessionRoleContext` (so `RIMParticipantTile`'s mute action can include it). All four action callsites — mute-participant, mute-all, end-session, step-in — now send `sessionDate` in their request bodies so the server resolves the same room the client is connected to.
+
+4. **Defense-in-depth assertion on the action routes.** The reviewer sub-agent flagged that the action routes were trusting whatever `sessionDate` the client sent. Without validation, a holder of a host-team role could POST an arbitrary `sessionDate` and have the server construct a room name targeting an arbitrary "session" — most concerning for `step-in` which WRITES a `HostAssignment` row. New `lib/sessionWindow.ts::assertSessionDateInWindow` helper wired into all four action routes refuses if the supplied `sessionDate` doesn't match the currently open window (ADMIN/GT bypass; mirrors the token-route model).
+
+5. **Format alignment with the schedule UI.** Two formats for `sessionDate` exist in the codebase: bare `YYYY-MM-DD` (date only, used in some helpers) and full ISO `YYYY-MM-DDTHH:MM:SS.SSSZ` (used by the schedule tool when it writes `HostAssignment.sessionDate`). `resolveSessionRole`'s assignment lookup uses exact-match `new Date(sessionDate)`. The session window helper uses `scheduleUtils.shiftToDate(...).toISOString()` — the same path the schedule tool uses — so the resulting `sessionDate` matches existing assignment rows exactly. The DST drift in `shiftToDate` (24-hour increments, not wall-clock-preserving) is a pre-existing limitation of the schedule subsystem; this helper inherits it deliberately rather than forking to a DST-correct shift that would mismatch existing data.
+
+### Forgot-to-End fallback (the design question that surfaced mid-session)
+
+Jesse asked: what happens if someone forgets to click End for All? Three layers cover it now:
+
+- **Explicit End-for-All** — the host taps the red End button, picks "End Meeting for All", LiveKit's `deleteRoom` runs, every participant disconnects.
+- **LiveKit's empty-room idle cleanup** — if the last participant just leaves without ending, LiveKit Cloud destroys empty rooms after a short idle timeout (~5 min default).
+- **The time gate at the door** — even if some stale state lingered, the token route refuses to issue new tokens after the close window. Nobody can rejoin a stale abandoned room.
+
+Tomorrow's room is a fresh name regardless. Chat from yesterday's session stays in the DB (orphan rows with the old room name) but is invisible because nobody queries for that room name anymore. Optional future cleanup: a small cron purging `SessionChatMessage` rows older than N days. Not urgent — rows are tiny.
+
+### Discoveries worth preserving
+
+**The chat-persistence bug was a half-finished feature, not a code bug.** The schema (`SessionChatMessage.sessionDate`) and the room-naming function (`roomNameForProgram(slug, sessionDate)`) were both written for the per-session model. Only the call site (the session page) never passed the date. This is the second time in recent sessions where the diagnosis was "the design is already there, it just wasn't wired" — session 124's ProgramTeacher backfill was the other one (the audio-profile derivation depended on `ProgramTeacher` rows, but 13 of 16 programs had no rows). Pattern: when a feature exists in the schema and the helpers but does nothing visible, check whether the call site is passing the parameter.
+
+**Pre-existing DST drift in `shiftToDate`.** While building the time-window helper, I initially wrote a DST-correct `ctTimeOnDate` using `Intl.DateTimeFormat` — then realized it would produce timestamps that disagreed with `HostAssignment` rows the schedule tool had already written. Reverted to using `shiftToDate` for consistency. The platform-wide DST drift (an 8 AM CT program would appear at 7 AM or 9 AM for 1–2 days twice a year in absolute UTC, but the displayed wall-clock time stays correct) is a real limitation in the schedule subsystem. Not in scope for this session. Worth a future pass.
+
+**Reviewer caught a real defense-in-depth gap.** Spawned a reviewer sub-agent before commit (per the session-117 promoted pattern). It flagged that the four action routes trusted the client's `sessionDate` verbatim without validating against the open window. Real attack model is narrow (already-authorized host-team members; the mute/end calls are mostly no-ops on empty rooms; step-in is the one that writes data), but the fix is cheap and consistent. Added the assertion helper and wired it into all four routes. The reviewer also identified one off-by-one risk in date-string arithmetic that I traced through and confirmed was safe (the "noon UTC + 24h" pattern is the standard DST-safe day increment).
+
+### Connections (what this work touches)
+
+- **`/api/livekit/token`, `/api/livekit/guest-token`** — new time gate, per-session room name, returns `sessionDate` in the response.
+- **`/api/livekit/end-session`, `/api/livekit/mute-participant`, `/api/livekit/mute-all`, `/api/livekit/step-in`** — all now run `assertSessionDateInWindow` before doing their work, then use the computed `effectiveSessionDate` for `roomNameForProgram`.
+- **`lib/sessionWindow.ts`** — new file. `getActiveSessionWindow`, `describeInactiveWindow`, `assertSessionDateInWindow`.
+- **`/session/[slug]/page.tsx`** — captures `sessionDate` from token response, threads it to `VideoRoom` and the step-in fetch. Surfaces the time-gate `message` directly to the user via the existing error state.
+- **`components/VideoRoom.tsx`, `components/session/RIMConference.tsx`, `components/session/sessionRole.tsx`, `components/session/RIMControlBar.tsx`, `components/session/EndMenu.tsx`, `components/session/ParticipantsPanel.tsx`, `components/session/RIMParticipantTile.tsx`** — `sessionDate` prop added (or `sessionDate` field added to `SessionRoleContext`); passed to chat history queries and every action route call.
+- **Schedule tool format alignment** — `lib/sessionWindow.ts` uses `scheduleUtils.shiftToDate(...).toISOString()` so its `sessionDate` matches existing `HostAssignment.sessionDate` rows. `resolveSessionRole`'s exact-match lookup hits correctly.
+- **HostAssignment data integrity** — the step-in route now derives `sessionDate` from the validated window, not the client. New rows have aligned ISO timestamps.
+- **Webflow / public surface** — none. This change is entirely member-area / session-room.
+
+### Backlog moves
+
+- **Closed: `2026-05-24-002`** (server-side time gate on `/api/livekit/token`). Implemented as a unified window across hosts + members (no two-epoch split — the per-session room model makes the 22/12 split unnecessary).
+- **Still open: `2026-05-21-002`** (rate-limit `/api/auth/callback/resend`). Deferred per the discussion this session — preventive, not urgent. Worth building before the platform goes public on `rootedinmindfulness.org`.
+- **Still open and re-confirmed parked: EndMenu audit-trail soft nudge.** No real signal yet that ending-without-assignment is happening operationally. Step-In is the explicit audit path; ADMIN/GT bypass cases are infrequent.
+- **Still open: `2026-05-25-002`** (per-program `teacherLabel` dropdown). Next priority once Jesse confirms today's deploy is correct.
+
+### Next priority
+
+Per UP_NEXT: **per-program `teacherLabel` dropdown** (backlog `2026-05-25-002`). Small, contained, should ship before the Silent Meditation Hub so peer-led offerings carry "Guide" pills when that hub goes live.
+
+---
+
 ## 2026-05-26 (session 125) — Session room refinements: raised-hand speaking queue, persistent vote signals, host identity-vs-capability split, Host Volunteer rename
 
 Four code commits on `main` plus two doc commits. Started with two distinct UX questions from Jesse — could the raised hand and the vote signals work more like Zoom — and ended with a structural fix to a real host-designation bug he'd been seeing, plus a full doc sweep to keep the four canonical sources (System Architecture, Stack Reference, FEATURES, the volunteer-facing changelog) and the staff manual all aligned with the new model. The two threads turned out to be related: both were about making the session room tell the truth more clearly about who is who and what is happening.

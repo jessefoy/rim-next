@@ -6,6 +6,56 @@
 
 ## Active
 
+### Session 126 (2026-05-26) — LiveKit time-gated tokens + per-session rooms shipped; verification pending on deployed site
+
+One code commit on `main` (`463f3bb`) plus a closing-ritual doc sweep. Closed one parked backlog item (server-side time gate) and quietly resolved a long-standing gap that surfaced mid-session — recurring programs were sharing one LiveKit room name across every occurrence, and chat scoped only by room name meant today's chat showed last week's messages. Jesse confirmed the policy mid-session: *every* program follows the per-session pattern, drop-ins included. No exceptions.
+
+**What shipped (commit `463f3bb`):**
+
+1. **Server-side time gate** on `/api/livekit/token` and `/api/livekit/guest-token`. Opens at `Program.startDatetime - 22 min`, closes at `Program.endDatetime + 30 min` (or `startDatetime + 90 min` when endDatetime is null). ADMIN and GUIDING_TEACHER bypass; guests have no bypass. Outside the window the route returns 403 with a plain-English `message` that the session page surfaces directly. Closes backlog `2026-05-24-002`.
+
+2. **Per-session LiveKit room names.** Every program — recurring or one-off — now produces a room name like `slug-YYYY-MM-DD`. The schema (`SessionChatMessage.sessionDate`, `roomNameForProgram(slug, sessionDate)`) was already half-set-up for this; only the call site never passed the date. Token route now computes today's `sessionDate` via the new `lib/sessionWindow.ts::getActiveSessionWindow` and uses it for the room name. Chat (filtered by `roomName`) scopes per-session automatically with no query change. The session page captures `sessionDate` from the token response and threads it through `RIMChat`, `SessionRoleContext`, and the four action route callsites (mute-participant, mute-all, end-session, step-in).
+
+3. **Defense-in-depth assertion** `assertSessionDateInWindow` on all four action routes. Refuses if the caller-supplied `sessionDate` doesn't match the currently open window (ADMIN/GT bypass). Step-In is the highest-stakes route (it writes a HostAssignment row); the others have low blast radius but the assertion is consistent. Caught by the reviewer sub-agent pre-commit.
+
+4. **Forgot-to-End fallback (three layers).** Explicit End-for-All; LiveKit's empty-room idle cleanup (~5 min); the time gate at the door refusing new tokens after close. Tomorrow's room is a fresh name regardless.
+
+5. **Format alignment.** Session window helper uses `scheduleUtils.shiftToDate(...).toISOString()` so the `sessionDate` it produces matches the format the schedule tool writes to `HostAssignment.sessionDate` — `resolveSessionRole`'s exact-match lookup hits existing rows correctly.
+
+6. **Manual chapter v8 self-heal.** `host-session-room` chapter gains two paragraphs in "Your room opens early" explaining the time gate and per-session room policy. Migration flag `update_manual_host_session_room_v8` fires on next deploy.
+
+**What testing on the deployed site should confirm:**
+
+1. **The time gate refuses direct-URL access outside the window.** Sign in as a regular member, navigate to `/session/good-morning-sangha` (or similar) at 3am. Should show the calm "This session isn't open yet — it begins at X:XX" message. Repeat as ADMIN (you) — should let you in (bypass).
+2. **The room actually opens 22 minutes before start.** Watch the dashboard around 22 min before a program. The "Open early as host" affordance shows up, and clicking through successfully connects (the page used to do this; verify it still does after the gate).
+3. **Chat is per-session.** Join a recurring program, send a message in chat. Note the room name in the URL or the network tab (`good-morning-sangha-2026-05-26`). Next time that program meets (tomorrow if daily, next week if weekly), join and confirm yesterday's chat is *not* visible. The chat history should be empty/fresh.
+4. **End-for-All still works.** As host, click End → "End for all". Everyone disconnects. Tomorrow's session opens in a fresh room.
+5. **Mute-participant / Mute All still work.** Co-host hovers a tile, clicks the red Mute button. Participant gets server-side muted. Mute All button in the Participants panel footer mutes everyone.
+6. **Step-In still works.** As a host-team member who isn't the assigned host, click "Step in as Host" in the header. The HostAssignment row gets written for the correct sessionDate (same ISO format the schedule tool uses); your tile now shows the Host pill.
+7. **Manual chapter v8 self-heals on next deploy.** Visit `/admin/manual/host-session-room` after Vercel finishes; "Your room opens early" should have the two new paragraphs about the time gate and per-session rooms.
+
+**Known limitations / parked items:**
+
+- **Chat is not time-gated.** Chat reads and writes are high-frequency and the practical harm of an out-of-window write is small (an orphan message that nobody reads). If consistency matters more than perf, we can gate it as a follow-up.
+- **Yesterday's chat rows are orphans, not deleted.** They stay in `SessionChatMessage` with the old slug-only `roomName` ("good-morning-sangha" instead of "good-morning-sangha-2026-05-25"). Nobody queries them. Harmless. A future cleanup cron could prune rows older than N days if storage ever matters.
+- **Pre-existing DST drift in `scheduleUtils.shiftToDate`.** I inherited it deliberately for format alignment with existing HostAssignment rows. Effect: an 8 AM CT program could appear at 7 or 9 AM in absolute UTC for 1–2 days after a DST transition. Wall-clock CT display stays correct everywhere; only the underlying ISO timestamp drifts. A future pass on `shiftToDate` would fix this platform-wide.
+- **Rate-limit on `/api/auth/callback/resend`** (`2026-05-21-002`) is still open. Discussed this session; deferred per Jesse's call — preventive, not urgent. Worth building before the platform goes public on `rootedinmindfulness.org`.
+- **Audit-trail soft nudge in EndMenu** — re-confirmed parked. Step-In is the explicit audit path; ADMIN/GT bypass cases are infrequent. No real signal yet that ending-without-assignment is happening operationally.
+
+---
+
+### Next priority — Per-program `teacherLabel` dropdown (backlog `2026-05-25-002`)
+
+Carried over from session 124–125, unchanged. Small, contained, lights up better behavior immediately. Add a nullable `Program.teacherLabel` field, a dropdown in the Program editor (Teacher / Guide / Facilitator / Instructor + custom), thread through to the token metadata and pill renderer. Should ship before the Silent Meditation Hub so peer-led offerings carry "Guide" pills when that hub goes live.
+
+---
+
+### Then — Silent Meditation Hub (backlog `2026-05-25-003`)
+
+Unchanged. New Hub for peer-led offerings. Self-claim + standing rotations reuse host-team infrastructure.
+
+---
+
 ### Session 125 (2026-05-26) — Session room refinements + host model audit fix shipped; verification pending on deployed site
 
 Four code commits plus two doc commits on `main`. Two threads merged: the raised-hand / vote-signal UX refinements Jesse asked for, and the host-designation audit that surfaced when he reported seeing both Host + Teacher pills on a program he wasn't assigned to host. The fix is the cleanest version of "Session Host (singular)" the system has ever had — identity (pill) is now genuinely separate from capability (button), and the conflation that was misleading him in real-world use is closed.

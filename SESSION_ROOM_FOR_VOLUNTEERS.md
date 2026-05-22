@@ -1,6 +1,6 @@
 # The RIM Session Room — Plain-English Notes for Volunteers
 
-_Last updated May 2026 (refreshed 2026-05-26 — three role pills, persistent vote signals, raised-hand speaking queue)_
+_Last updated May 2026 (refreshed 2026-05-26 — three role pills, persistent vote signals, raised-hand speaking queue, time-gated room access + per-session rooms)_
 
 This doc is for hosts, teachers, registrars, and anyone else in the Sangha who'll be running or attending sessions in the RIM session room — the video space that replaces Zoom for our online programs.
 
@@ -129,6 +129,8 @@ Things Zoom hosts have that we don't: spotlight (a host-driven global pin that e
 - **Video quality** uses the H.264 codec — the same one Zoom uses — at up to 2.5 Mbps and 30 fps. Should look noticeably sharper than what we had before. The room background is pure black to match Zoom's depth.
 - **Pills (identity) vs. buttons (capability)** are separated so the room can tell the truth on both axes. The Host pill goes only to the person actually assigned to this session — no role-based bypass. End-for-All authority is a separate capability check that includes assigned host plus admins, guiding teachers, and (when no host is assigned) the teacher of the program. All gated server-side: pills are UI cues; every real action is validated by the server on the request.
 - **Guests** can join Open Access programs via a guest link without an account. They show up in chat and the participants panel with the name they typed at the door.
+- **The room only opens during the session.** From twenty-two minutes before start through thirty minutes after end. Outside that window, anyone clicking the link sees a calm message ("This session isn't open yet — it begins at 7:00 PM") instead of a working room. Admins and guiding teachers can still get in outside the window — that's a safety override so the system never locks itself out of itself.
+- **Each session is its own room with its own chat.** Recurring programs used to share one room across every meeting — meaning last week's chat was visible in this week's session. Not anymore. Every meeting opens a fresh room, and the chat starts clean. If you forget to click <em>End for All</em>, the room cleans itself up on its own and tomorrow's session is still fresh.
 
 ---
 

@@ -45,9 +45,10 @@
     "description": "The dashboard's Today card now correctly gates link visibility — regular members see Join only when start - 12min ≤ now ≤ end, hosts and teachers see Enter as Host from start - 22min. But the token route itself has no time gate. A regular member who knows the URL pattern `/session/<slug>` can navigate directly at any time and connect. Real-world risk is low (URL isn't surfaced anywhere else, sangha-scale community), but the dashboard is the only thing enforcing the time policy. Fix: in `/api/livekit/token`, compute today's occurrence's `liveStart` and `earlyOpenStart` (reuse the dashboard's date math by extracting into `lib/scheduleUtils.ts`), and gate token issuance: non-host/non-teacher → 403 before `liveStart`; host/teacher → 403 before `earlyOpenStart`. ADMIN bypass. Pair with backlog item 2026-05-24-001 if both are built — same token route, same `resolveSessionRole` helper.",
     "category": "LiveKit / Session Room",
     "priority": "low",
-    "status": "open",
+    "status": "closed",
     "addedAt": "2026-05-24",
-    "notes": "Defense-in-depth, not a security fix. The room exists on LiveKit Cloud regardless of when the first participant connects — early connection just costs LiveKit minutes. Worth building if any session-room URL ever gets surfaced more publicly (e.g. embedded in a marketing page, shared via QR code at a hybrid event)."
+    "closedAt": "2026-05-26",
+    "notes": "Closed 2026-05-26 (session 126). Implemented as a unified window helper `lib/sessionWindow.ts::getActiveSessionWindow` shared by both /api/livekit/token and /api/livekit/guest-token, with ADMIN/GUIDING_TEACHER bypass. Window opens 22 min before startDatetime and closes 30 min after endDatetime (+90 min fallback if endDatetime is null) — same shape for hosts and members rather than two epochs, since the per-session room model (also landed in this commit) makes the 22/12 split unnecessary. Defense-in-depth assertion `assertSessionDateInWindow` also wired into mute-participant, mute-all, end-session, and step-in so a client can't POST an arbitrary sessionDate. Commit 463f3bb."
   },
   {
     "id": "2026-05-21-001",

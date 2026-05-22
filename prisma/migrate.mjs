@@ -3219,6 +3219,24 @@ async function main() {
     console.log("  ⏭ Manual host-session-room v7 already applied.");
   }
 
+  // Session 126 — host-session-room chapter v8. Adds a paragraph to "Your room
+  // opens early" explaining the time-gated session room (opens 22 min before
+  // start, closes 30 min after end; calm 403 message outside the window;
+  // ADMIN/GT bypass) and a paragraph announcing the per-session room policy
+  // (every recurring program meeting opens a fresh room; chat starts clean;
+  // forgot-to-End fallbacks make the carryover impossible). Re-runs the
+  // upsert against the live DB row.
+  const updateHostSessionRoomV8Flag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_host_session_room_v8'
+  `).catch(() => []);
+
+  if (updateHostSessionRoomV8Flag.length === 0) {
+    await updateManualHostSessionRoom(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_session_room_v8')`);
+  } else {
+    console.log("  ⏭ Manual host-session-room v8 already applied.");
+  }
+
   // Session 124 — backfill ProgramTeacher rows for the five programs
   // where the named teacher has a real User account in the system.
   // The legacy Program.teacherFacilitators free-text field was the only
