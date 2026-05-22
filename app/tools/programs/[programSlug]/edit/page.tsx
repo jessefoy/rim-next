@@ -60,6 +60,7 @@ export default async function EditProgramToolPage({
       firstName: pt.user.preferredName || pt.user.firstName || "",
       lastName: pt.user.lastName || "",
     })) ?? [],
+    teacherLabel: program.teacherLabel ?? null,
     categoryId: program.categoryId ?? "",
     dateText: program.dateText ?? "",
     timeText: program.timeText ?? "",

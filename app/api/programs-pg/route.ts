@@ -9,6 +9,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { centralToUtc } from "@/lib/timezone";
 import { computeTimeText, computeDateText } from "@/lib/programUtils";
+import { sanitizeTeacherLabel } from "@/lib/programUtils";
 import { sendNewProgramNeedsHostEmail } from "@/lib/email";
 import { getHubNotificationRecipients } from "@/lib/toolAuth";
 
@@ -54,6 +55,7 @@ export async function POST(request: NextRequest) {
       pullQuote: body.pullQuote || null,
       pullQuoteSource: body.pullQuoteSource || null,
       teacherFacilitators: body.teacherFacilitators ?? [],
+      teacherLabel: sanitizeTeacherLabel(body.teacherLabel),
       categoryId: body.categoryId || null,
       // dateText / timeText are server-computed from the source fields so they
       // never drift. Any value the client sends is ignored.

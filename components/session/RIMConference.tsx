@@ -54,6 +54,10 @@ interface Props {
   hasEndAllAuthority: boolean;
   isCoHost: boolean;
   isProgramTeacher: boolean;
+  /** Per-program override for the Teacher pill text ("Guide", "Facilitator",
+   *  etc.). Null/undefined means the pill renders the default "Teacher".
+   *  Seeded into participant metadata when the user is a ProgramTeacher. */
+  teacherLabel?: string | null;
   programSlug: string;
   /** YYYY-MM-DD in CT — scopes chat to this session. */
   sessionDate?: string;
@@ -66,7 +70,7 @@ function getMetadata(raw: string | undefined): ParticipantMetadata {
   try { return JSON.parse(raw || "{}"); } catch { return {}; }
 }
 
-export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoHost, isProgramTeacher, programSlug, sessionDate, guestKey, view = "gallery", initialAvatarUrl }: Props) {
+export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoHost, isProgramTeacher, teacherLabel, programSlug, sessionDate, guestKey, view = "gallery", initialAvatarUrl }: Props) {
   const { localParticipant } = useLocalParticipant();
   // updateOnlyOn ensures the component re-renders when metadata changes (for raised hand tracking)
   const remoteParticipants = useRemoteParticipants({
@@ -114,14 +118,28 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
     const needsHostUpdate = isSessionHost && meta.host !== true;
     const needsTeacherUpdate = isProgramTeacher && meta.teacher !== true;
     const needsCohostUpdate = wantCohost && meta.cohost !== true;
-    if (!needsAvatarUpdate && !needsHostUpdate && !needsTeacherUpdate && !needsCohostUpdate) return;
+    // teacherLabel piggybacks on the teacher flag. We only update it when
+    // a label is supplied AND the user is a ProgramTeacher AND the metadata
+    // doesn't already carry the same string. We don't *clear* the label on
+    // its own (cleared only by a full meta reset). Keeps the propagation
+    // narrow — same shape as host/teacher/cohost: promote, don't demote.
+    const needsTeacherLabelUpdate =
+      isProgramTeacher && !!teacherLabel && meta.teacherLabel !== teacherLabel;
+    if (
+      !needsAvatarUpdate &&
+      !needsHostUpdate &&
+      !needsTeacherUpdate &&
+      !needsCohostUpdate &&
+      !needsTeacherLabelUpdate
+    ) return;
     const next: ParticipantMetadata = { ...meta };
     if (needsAvatarUpdate) next.avatarUrl = avatarUrl ?? undefined;
     if (needsHostUpdate) next.host = true;
     if (needsTeacherUpdate) next.teacher = true;
+    if (needsTeacherLabelUpdate) next.teacherLabel = teacherLabel ?? undefined;
     if (needsCohostUpdate) next.cohost = true;
     localParticipant.setMetadata(JSON.stringify(next));
-  }, [localParticipant, avatarUrl, isSessionHost, isProgramTeacher, isCoHost]);
+  }, [localParticipant, avatarUrl, isSessionHost, isProgramTeacher, teacherLabel, isCoHost]);
 
   // Krisp NC — enable by default on every join. Co-host UI exposes a
   // "Bell mode" toggle in the control bar that flips this off; the state

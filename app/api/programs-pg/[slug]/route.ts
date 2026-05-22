@@ -9,7 +9,7 @@ import { randomBytes } from "crypto";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { centralToUtc, toCentralDatetime } from "@/lib/timezone";
-import { computeTimeText, computeDateText } from "@/lib/programUtils";
+import { computeTimeText, computeDateText, sanitizeTeacherLabel } from "@/lib/programUtils";
 
 export async function GET(
   _req: NextRequest,
@@ -109,6 +109,7 @@ export async function PUT(
   if (body.pullQuoteSource !== undefined) data.pullQuoteSource = body.pullQuoteSource || null;
   if (body.programNotes !== undefined) data.programNotes = body.programNotes || null;
   if (body.teacherFacilitators !== undefined) data.teacherFacilitators = body.teacherFacilitators;
+  if (body.teacherLabel !== undefined) data.teacherLabel = sanitizeTeacherLabel(body.teacherLabel);
   if (body.categoryId !== undefined) data.categoryId = body.categoryId || null;
   // dateText / timeText are server-computed below from the source fields,
   // so we ignore whatever the client sends here.

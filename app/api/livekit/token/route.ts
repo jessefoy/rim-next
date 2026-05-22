@@ -70,6 +70,7 @@ export async function POST(req: NextRequest) {
       recurrenceInterval: true,
       recurrenceDays: true,
       recurrenceCount: true,
+      teacherLabel: true,
     },
   });
   if (!program) {
@@ -172,11 +173,18 @@ export async function POST(req: NextRequest) {
     avatarUrl?: string;
     host?: boolean;
     teacher?: boolean;
+    teacherLabel?: string;
     cohost?: boolean;
   } = {};
   if (caller?.avatarUrl) seedMeta.avatarUrl = caller.avatarUrl;
   if (isSessionHost) seedMeta.host = true;
-  if (isProgramTeacher) seedMeta.teacher = true;
+  if (isProgramTeacher) {
+    seedMeta.teacher = true;
+    // Override the default "Teacher" pill label if the coordinator set one
+    // on this program ("Guide" / "Facilitator" / "Instructor" / custom).
+    // Null stays null on the wire — the pill renderer falls back to "Teacher".
+    if (program.teacherLabel) seedMeta.teacherLabel = program.teacherLabel;
+  }
   if (isCoHost && !isSessionHost && !isProgramTeacher) seedMeta.cohost = true;
   const initialMeta = Object.keys(seedMeta).length > 0 ? JSON.stringify(seedMeta) : undefined;
 
@@ -206,5 +214,6 @@ export async function POST(req: NextRequest) {
     isProgramTeacher,
     audioProfile,
     avatarUrl: caller?.avatarUrl ?? null,
+    teacherLabel: program.teacherLabel ?? null,
   });
 }

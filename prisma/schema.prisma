@@ -221,6 +221,7 @@ model Program {
   programNotes        Json?            // BlockNote JSON (RimProseEditor) — Webflow "Program Notes" section
   specialNotes        Json?            // DEPRECATED (session 91) — content migrated into description as Aside block by the fold_special_notes_into_description_as_aside migration. Field kept for one release as safety net; remove in a later migration. Do not write new data to this field.
   teacherFacilitators String[]         // plain text names
+  teacherLabel        String?          // pill label for ProgramTeachers in the session room. Null = "Teacher" (default). Coordinator can set per program — "Guide" for peer-led silent sits, "Facilitator" for Recovery Dharma, "Instructor" for Qigong, custom for anything else.
 
   // ── Schedule & Location ────────────────────────────────
   categoryId          String?

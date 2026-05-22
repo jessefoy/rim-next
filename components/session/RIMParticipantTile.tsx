@@ -39,6 +39,11 @@ export interface ParticipantMetadata {
   host?: boolean;
   /** ProgramTeacher row exists for this program — drives the "Teacher" pill. */
   teacher?: boolean;
+  /** Per-program override for the Teacher pill text. Coordinator-set on
+   *  Program.teacherLabel: "Guide", "Facilitator", "Instructor", or any
+   *  custom label. Absent or null means the pill renders the default
+   *  "Teacher". Only meaningful when `teacher === true`. */
+  teacherLabel?: string;
   /** Co-host capability AND not Session Host AND not Teacher — drives the "Co-host" pill. */
   cohost?: boolean;
 }
@@ -201,7 +206,7 @@ export default function RIMParticipantTile() {
           <span className="rim-tile-nameplate__role-pill rim-tile-nameplate__role-pill--host">Host</span>
         )}
         {meta.teacher && (
-          <span className="rim-tile-nameplate__role-pill rim-tile-nameplate__role-pill--teacher">Teacher</span>
+          <span className="rim-tile-nameplate__role-pill rim-tile-nameplate__role-pill--teacher">{meta.teacherLabel || "Teacher"}</span>
         )}
         {meta.cohost && !meta.host && !meta.teacher && (
           <span className="rim-tile-nameplate__role-pill rim-tile-nameplate__role-pill--cohost">Host Volunteer</span>

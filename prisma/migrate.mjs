@@ -3332,6 +3332,30 @@ async function main() {
     console.log("  ⏭ ProgramTeacher backfill already applied.");
   }
 
+  // Session 127 — per-program teacherLabel. Adds a nullable String column to
+  // Program so coordinators can override the "Teacher" pill on the session-
+  // room participant tile per program ("Guide" for peer-led silent sits,
+  // "Facilitator" for Recovery Dharma, "Instructor" for Qigong, custom for
+  // anything else). Null = "Teacher" (the existing behavior). No backfill
+  // needed — every existing row stays at null and continues to render as
+  // "Teacher" until a coordinator sets the field. Pure additive change.
+  const teacherLabelColumnFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'add_program_teacher_label'
+  `).catch(() => []);
+
+  if (teacherLabelColumnFlag.length === 0) {
+    console.log("→ Adding Program.teacherLabel column…");
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "teacherLabel" TEXT`,
+    );
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('add_program_teacher_label')`,
+    );
+    console.log("  ✔ Program.teacherLabel column added.");
+  } else {
+    console.log("  ⏭ Program.teacherLabel column already added.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

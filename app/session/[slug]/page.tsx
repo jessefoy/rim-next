@@ -58,6 +58,7 @@ export default function SessionPage() {
   const [audioProfile, setAudioProfile] = useState<"teacher" | "speaker" | "listener">("listener");
   const [steppingIn, setSteppingIn] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [teacherLabel, setTeacherLabel] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [view, setView] = useState<SessionView>("gallery");
 
@@ -122,6 +123,7 @@ export default function SessionPage() {
         setIsProgramTeacher(data.isProgramTeacher ?? false);
         setAudioProfile(data.audioProfile ?? "listener");
         setAvatarUrl(data.avatarUrl ?? null);
+        setTeacherLabel(data.teacherLabel ?? null);
         // Strip the trailing -YYYY-MM-DD date from the per-session room name
         // when deriving the program label.
         const labelSource = (data.roomName as string).replace(/-\d{4}-\d{2}-\d{2}$/, "");
@@ -233,6 +235,9 @@ export default function SessionPage() {
         setIsCoHost(true);
         if (typeof data.isProgramTeacher === "boolean") {
           setIsProgramTeacher(data.isProgramTeacher);
+        }
+        if (data.teacherLabel !== undefined) {
+          setTeacherLabel(data.teacherLabel ?? null);
         }
         setState("ready");
       }
@@ -372,6 +377,7 @@ export default function SessionPage() {
             hasEndAllAuthority={hasEndAllAuthority}
             isCoHost={isCoHost}
             isProgramTeacher={isProgramTeacher}
+            teacherLabel={teacherLabel}
             audioProfile={audioProfile}
             programSlug={slug}
             sessionDate={sessionDate}

@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
 
   const program = await db.program.findFirst({
     where: { slug: programSlug },
-    select: { id: true, slug: true, name: true },
+    select: { id: true, slug: true, name: true, teacherLabel: true },
   });
   if (!program) {
     return NextResponse.json({ error: "Program not found" }, { status: 404 });
@@ -117,8 +117,12 @@ export async function POST(req: NextRequest) {
     avatarUrl?: string;
     host?: boolean;
     teacher?: boolean;
+    teacherLabel?: string;
   } = { host: true };
-  if (isProgramTeacher) seedMeta.teacher = true;
+  if (isProgramTeacher) {
+    seedMeta.teacher = true;
+    if (program.teacherLabel) seedMeta.teacherLabel = program.teacherLabel;
+  }
   if (caller?.avatarUrl) seedMeta.avatarUrl = caller.avatarUrl;
   const initialMeta = JSON.stringify(seedMeta);
 
@@ -141,5 +145,10 @@ export async function POST(req: NextRequest) {
     hasEndAllAuthority: true,
     isCoHost: true,
     isProgramTeacher,
+    // Returned for parity with /api/livekit/token so the client can refresh
+    // its local copy. In practice teacherLabel is invariant across a single
+    // user's session — ProgramTeacher membership doesn't change on step-in —
+    // but parity keeps the response shapes interchangeable.
+    teacherLabel: program.teacherLabel ?? null,
   });
 }

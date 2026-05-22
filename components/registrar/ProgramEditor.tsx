@@ -59,6 +59,7 @@ export interface ProgramData {
   programNotes: any;
   teacherFacilitators: string[];
   programTeachers: { id: string; firstName: string; lastName: string }[];
+  teacherLabel: string | null;
   categoryId: string;
   dateText: string;
   timeText: string;
@@ -563,6 +564,25 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
   const [teacherSearching, setTeacherSearching] = useState(false);
   const teacherDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // teacherLabel — the pill label shown on a ProgramTeacher's tile in the
+  // session room. Stored as a single nullable string on Program (null =
+  // "Teacher"). The editor presents it as a dropdown with three preset
+  // alternates ("Guide", "Facilitator", "Instructor") plus a "Custom…"
+  // option that reveals a free-text input. "Teacher" itself stores as null
+  // to keep the DB clean of redundant defaults.
+  const PRESET_LABELS = ["Guide", "Facilitator", "Instructor"] as const;
+  const initialTeacherLabel = initialData?.teacherLabel ?? null;
+  const initialChoice: "default" | "Guide" | "Facilitator" | "Instructor" | "Custom" =
+    initialTeacherLabel === null
+      ? "default"
+      : (PRESET_LABELS as readonly string[]).includes(initialTeacherLabel)
+        ? (initialTeacherLabel as "Guide" | "Facilitator" | "Instructor")
+        : "Custom";
+  const [teacherLabelChoice, setTeacherLabelChoice] = useState<typeof initialChoice>(initialChoice);
+  const [teacherLabelCustom, setTeacherLabelCustom] = useState(
+    initialChoice === "Custom" ? (initialTeacherLabel ?? "") : "",
+  );
+
   const [categoryId, setCategoryId] = useState(initialData?.categoryId ?? "");
   const [dateText, setDateText] = useState(initialData?.dateText ?? "");
   const [timeText, setTimeText] = useState(initialData?.timeText ?? "");
@@ -772,6 +792,12 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
         teacherFacilitators: teacherFacilitatorsText
           ? teacherFacilitatorsText.split(",").map((s) => s.trim()).filter(Boolean)
           : [],
+        teacherLabel:
+          teacherLabelChoice === "default"
+            ? null
+            : teacherLabelChoice === "Custom"
+              ? teacherLabelCustom.trim() || null
+              : teacherLabelChoice,
         teacherIds: selectedTeachers.map((t) => t.id),
         categoryId: categoryId || null,
         dateText,
@@ -1072,6 +1098,44 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                       </button>
                     ))}
                   </div>
+                )}
+              </div>
+
+              <div className="pe-field">
+                <span className="pe-field__label">Pill label for linked teachers</span>
+                <span className="pe-field__help">
+                  How the role pill reads on a linked teacher&apos;s tile in the session room. Defaults to &quot;Teacher.&quot; Use &quot;Guide&quot; for peer-led silent sits, &quot;Facilitator&quot; for recovery offerings, &quot;Instructor&quot; for skills-based classes, or set a custom label.
+                </span>
+                <select
+                  className="pe-input"
+                  value={teacherLabelChoice}
+                  onChange={(e) =>
+                    setTeacherLabelChoice(
+                      e.target.value as
+                        | "default"
+                        | "Guide"
+                        | "Facilitator"
+                        | "Instructor"
+                        | "Custom",
+                    )
+                  }
+                >
+                  <option value="default">Teacher (default)</option>
+                  <option value="Guide">Guide</option>
+                  <option value="Facilitator">Facilitator</option>
+                  <option value="Instructor">Instructor</option>
+                  <option value="Custom">Custom…</option>
+                </select>
+                {teacherLabelChoice === "Custom" && (
+                  <input
+                    type="text"
+                    className="pe-input"
+                    placeholder="e.g. Co-Leader"
+                    value={teacherLabelCustom}
+                    onChange={(e) => setTeacherLabelCustom(e.target.value)}
+                    maxLength={20}
+                    style={{ marginTop: 8 }}
+                  />
                 )}
               </div>
             </div>

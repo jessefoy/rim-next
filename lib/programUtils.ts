@@ -106,6 +106,34 @@ export function computeDateText(
   return "";
 }
 
+/**
+ * Sanitize a coordinator-supplied teacherLabel before persisting. Allows
+ * Unicode letters and marks (for accented characters and non-Latin scripts
+ * like rōshi, ācārya, etc.), digits, spaces, hyphens, and apostrophes.
+ * Trims, collapses whitespace, then caps at 20 chars. Empty → null.
+ *
+ * Order matters: strip disallowed characters first so the slice doesn't
+ * keep a now-too-long string after stripping (e.g. "Co-Leader-12345678901"
+ * → "Co-Leader-" after digit strip, well under 20).
+ *
+ * Defense-in-depth against accidental paste of HTML, a wall of characters
+ * that would break the pill layout, or other content that doesn't belong
+ * in a role pill. The pill is a UI cue, not a security boundary — but the
+ * sanitizer makes the cue trustworthy. The character set is permissive
+ * enough for realistic role names ("Teacher's Aide", "Co-Leader 1",
+ * "Roshi", "Senpai") while still blocking obvious garbage.
+ */
+export function sanitizeTeacherLabel(input: unknown): string | null {
+  if (typeof input !== "string") return null;
+  const cleaned = input
+    .replace(/[^\p{L}\p{M}\d\s'\-]/gu, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 20)
+    .trim();
+  return cleaned.length > 0 ? cleaned : null;
+}
+
 export function fmtLabel(fmt: string): string {
   switch (fmt) {
     case "virtual":   return "Zoom Only";

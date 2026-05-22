@@ -124,6 +124,9 @@ interface Props {
   isCoHost?: boolean;
   /** ProgramTeacher row exists for this program — drives Teacher pill + audio profile. */
   isProgramTeacher?: boolean;
+  /** Per-program override for the Teacher pill text. Threaded into
+   *  RIMConference's metadata seeder. */
+  teacherLabel?: string | null;
   audioProfile?: AudioProfile;
   programSlug: string;
   /** YYYY-MM-DD in CT — scopes chat to this session. */
@@ -134,7 +137,7 @@ interface Props {
   onLeave?: () => void;
 }
 
-export default function VideoRoom({ token, wsUrl, isSessionHost = false, hasEndAllAuthority = false, isCoHost = false, isProgramTeacher = false, audioProfile = "listener", programSlug, sessionDate, guestKey, avatarUrl, view = "gallery", onLeave }: Props) {
+export default function VideoRoom({ token, wsUrl, isSessionHost = false, hasEndAllAuthority = false, isCoHost = false, isProgramTeacher = false, teacherLabel = null, audioProfile = "listener", programSlug, sessionDate, guestKey, avatarUrl, view = "gallery", onLeave }: Props) {
   const roomOptions = buildRoomOptions(audioProfile);
   const [phase, setPhase] = useState<Phase>("greenroom");
 
@@ -179,6 +182,7 @@ export default function VideoRoom({ token, wsUrl, isSessionHost = false, hasEndA
             hasEndAllAuthority={hasEndAllAuthority}
             isCoHost={isCoHost}
             isProgramTeacher={isProgramTeacher}
+            teacherLabel={teacherLabel}
             programSlug={programSlug}
             sessionDate={sessionDate}
             guestKey={guestKey}
