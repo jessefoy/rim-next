@@ -65,7 +65,7 @@ export default function LiveKitTestPage() {
           </button>
         </div>
         <div style={{ height: "calc(100vh - 160px)", borderRadius: 12, overflow: "hidden", border: "1px solid #ddd" }}>
-          <VideoRoom token={token} wsUrl={wsUrl} programSlug="test-room" isSessionHost isCoHost onLeave={disconnect} />
+          <VideoRoom token={token} wsUrl={wsUrl} programSlug="test-room" isSessionHost hasEndAllAuthority isCoHost onLeave={disconnect} />
         </div>
       </div>
     );

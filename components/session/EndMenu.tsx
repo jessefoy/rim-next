@@ -3,12 +3,14 @@
 /**
  * EndMenu — upward popover from the control bar's red End button.
  *
- * Session Host: "End Meeting for All" (red) + "Leave Meeting"
- * Everyone else: single "Leave Meeting" item
+ * Has End-for-All authority: "End Meeting for All" (red) + "Leave Meeting"
+ * Everyone else:               single "Leave Meeting" item
  *
- * "End for All" is Session-Host-only (the assigned host or ADMIN) — Co-host
- * tier (teacher, host manager) can mute and share but cannot tear down the
- * room.
+ * End-for-All authority is held by the assigned Session Host, ADMIN,
+ * GUIDING_TEACHER, and the Teacher when no host is assigned for this
+ * session (see lib/livekitAuth.ts). Host Volunteers (other host-team
+ * members, HOST_MANAGER) can mute, share, and use Bell mode but cannot
+ * tear down the room.
  *
  * Matches Zoom's two-step end affordance — the destructive action requires a
  * second tap, on a clearly distinct item.
@@ -20,12 +22,12 @@ import { useRoomContext } from "@livekit/components-react";
 interface Props {
   open: boolean;
   onClose: () => void;
-  isSessionHost: boolean;
+  hasEndAllAuthority: boolean;
   programSlug: string;
   anchorRef: React.RefObject<HTMLButtonElement | null>;
 }
 
-export default function EndMenu({ open, onClose, isSessionHost, programSlug, anchorRef }: Props) {
+export default function EndMenu({ open, onClose, hasEndAllAuthority, programSlug, anchorRef }: Props) {
   const room = useRoomContext();
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [ending, setEnding] = useState(false);
@@ -67,7 +69,7 @@ export default function EndMenu({ open, onClose, isSessionHost, programSlug, anc
 
   return (
     <div ref={menuRef} className="rim-cb-popover rim-cb-popover--end" role="menu">
-      {isSessionHost && (
+      {hasEndAllAuthority && (
         <button
           type="button"
           className="rim-cb-popover__item rim-cb-popover__item--destructive"

@@ -114,8 +114,12 @@ function buildRoomOptions(profile: AudioProfile): RoomOptions {
 interface Props {
   token: string;
   wsUrl: string;
-  /** Session Host: assigned host for this session, or ADMIN. Gates End-for-All. */
+  /** Session Host identity: has a HostAssignment for this session. Drives the "Host" pill. */
   isSessionHost?: boolean;
+  /** End-for-All capability: assigned host OR ADMIN OR GUIDING_TEACHER OR
+   *  (Teacher when no host assigned). Separate from identity so the pill
+   *  doesn't lie when a safety-override role is doing the ending. */
+  hasEndAllAuthority?: boolean;
   /** Co-host: active host-team member, teacher, manager, or session host. Gates mute/share/manage. */
   isCoHost?: boolean;
   /** ProgramTeacher row exists for this program — drives Teacher pill + audio profile. */
@@ -128,7 +132,7 @@ interface Props {
   onLeave?: () => void;
 }
 
-export default function VideoRoom({ token, wsUrl, isSessionHost = false, isCoHost = false, isProgramTeacher = false, audioProfile = "listener", programSlug, guestKey, avatarUrl, view = "gallery", onLeave }: Props) {
+export default function VideoRoom({ token, wsUrl, isSessionHost = false, hasEndAllAuthority = false, isCoHost = false, isProgramTeacher = false, audioProfile = "listener", programSlug, guestKey, avatarUrl, view = "gallery", onLeave }: Props) {
   const roomOptions = buildRoomOptions(audioProfile);
   const [phase, setPhase] = useState<Phase>("greenroom");
 
@@ -170,6 +174,7 @@ export default function VideoRoom({ token, wsUrl, isSessionHost = false, isCoHos
         {phase === "conference" && (
           <RIMConference
             isSessionHost={isSessionHost}
+            hasEndAllAuthority={hasEndAllAuthority}
             isCoHost={isCoHost}
             isProgramTeacher={isProgramTeacher}
             programSlug={programSlug}

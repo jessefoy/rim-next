@@ -121,6 +121,10 @@ export async function POST(req: NextRequest) {
     roomName,
     wsUrl: process.env.NEXT_PUBLIC_LIVEKIT_URL,
     isSessionHost: true,
+    // Stepping in writes the HostAssignment for the caller, so they hold
+    // End-for-All authority by virtue of being the assigned host — no
+    // role-based override needed. Returned for the client's button label.
+    hasEndAllAuthority: true,
     isCoHost: true,
     isProgramTeacher,
   });

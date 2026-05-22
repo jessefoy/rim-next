@@ -179,8 +179,11 @@ export default function RIMParticipantTile() {
       {/* Zoom-style name bar — plain white text bottom-left, with a
           small red mic-off glyph only when the participant is muted.
           Role pills follow the name in priority order: Host, Teacher,
-          Co-host. cohost is set server-side only when neither host nor
-          teacher applies, so at most two pills render. */}
+          Host Volunteer. The `cohost` metadata field is set server-side
+          only when neither host nor teacher applies, so at most two
+          pills render. (Field name kept as `cohost` for stability; the
+          displayed label is "Host Volunteer" — the sangha-tone name
+          for "co-host" decided 2026-05-26.) */}
       <div className="rim-tile-nameplate">
         {isMicMuted && (
           <span className="rim-tile-nameplate__mic-off" aria-hidden="true">
@@ -200,7 +203,7 @@ export default function RIMParticipantTile() {
           <span className="rim-tile-nameplate__role-pill rim-tile-nameplate__role-pill--teacher">Teacher</span>
         )}
         {meta.cohost && !meta.host && !meta.teacher && (
-          <span className="rim-tile-nameplate__role-pill rim-tile-nameplate__role-pill--cohost">Co-host</span>
+          <span className="rim-tile-nameplate__role-pill rim-tile-nameplate__role-pill--cohost">Host Volunteer</span>
         )}
       </div>
       {/* Nonverbal signal badge */}

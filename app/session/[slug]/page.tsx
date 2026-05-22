@@ -43,8 +43,14 @@ export default function SessionPage() {
   const [wsUrl, setWsUrl] = useState<string | null>(null);
   const [programName, setProgramName] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
-  // Permission tiers — see lib/livekitAuth.ts. isSessionHost ⇒ isCoHost.
+  // Permission model — see lib/livekitAuth.ts. Identity (isSessionHost) is
+  // separate from capability (hasEndAllAuthority). The pill on a tile is
+  // driven by identity; the End button label and end-session gate use
+  // capability. An ADMIN joining without an assignment will have
+  // hasEndAllAuthority=true but isSessionHost=false — they keep the safety
+  // override without misrepresenting themselves as the assigned host.
   const [isSessionHost, setIsSessionHost] = useState(false);
+  const [hasEndAllAuthority, setHasEndAllAuthority] = useState(false);
   const [isCoHost, setIsCoHost] = useState(false);
   const [isHostTeam, setIsHostTeam] = useState(false);
   const [isProgramTeacher, setIsProgramTeacher] = useState(false);
@@ -105,6 +111,7 @@ export default function SessionPage() {
         setToken(data.token);
         setWsUrl(data.wsUrl);
         setIsSessionHost(data.isSessionHost ?? false);
+        setHasEndAllAuthority(data.hasEndAllAuthority ?? false);
         setIsCoHost(data.isCoHost ?? false);
         setIsHostTeam(data.isHostTeam ?? false);
         setIsProgramTeacher(data.isProgramTeacher ?? false);
@@ -211,6 +218,9 @@ export default function SessionPage() {
         setToken(data.token);
         setWsUrl(data.wsUrl);
         setIsSessionHost(true);
+        // Stepping in writes the HostAssignment for the caller, so they
+        // become the assigned host — full End authority follows.
+        setHasEndAllAuthority(true);
         setIsCoHost(true);
         if (typeof data.isProgramTeacher === "boolean") {
           setIsProgramTeacher(data.isProgramTeacher);
@@ -350,6 +360,7 @@ export default function SessionPage() {
             token={token}
             wsUrl={wsUrl}
             isSessionHost={isSessionHost}
+            hasEndAllAuthority={hasEndAllAuthority}
             isCoHost={isCoHost}
             isProgramTeacher={isProgramTeacher}
             audioProfile={audioProfile}

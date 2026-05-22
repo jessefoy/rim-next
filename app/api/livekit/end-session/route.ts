@@ -6,10 +6,17 @@ import { resolveSessionRole } from "@/lib/livekitAuth";
 /**
  * POST /api/livekit/end-session
  *
- * End a session for all participants by deleting the LiveKit room.
- * Session Host only (assigned HostAssignment for this session, OR ADMIN as
- * safety override). HOST_MANAGER and ProgramTeacher do NOT end sessions —
- * they are Co-host tier; ending is a Session-Host action.
+ * End a session for all participants by deleting the LiveKit room. Gated
+ * on `hasEndAllAuthority`, which is held by (see lib/livekitAuth.ts):
+ *   • the assigned Session Host (HostAssignment row), OR
+ *   • ADMIN as safety override, OR
+ *   • GUIDING_TEACHER as safety override, OR
+ *   • the Teacher when no Host is assigned (teacher-teaching-alone fallback).
+ *
+ * HOST_MANAGER and Host Volunteers without an assignment do NOT end sessions
+ * — they hold Co-host capability (mute, share, Bell mode) but not End-for-
+ * All. If they need to end a session, they Step-In first (writes the
+ * HostAssignment, creating an audit trail).
  *
  * Body: { programSlug: string, sessionDate?: string }
  */
@@ -24,13 +31,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "programSlug required" }, { status: 400 });
   }
 
-  const { isSessionHost } = await resolveSessionRole(
+  // Re-resolve at call time — this is the authoritative gate. The
+  // teacher-fallback in resolveSessionRole is reactive at token-issue, so a
+  // teacher's token issued when no host was assigned carries the End button
+  // label; if a host later claims the session, the teacher's token is stale
+  // (still shows "End") but this server-side re-check will reject the call.
+  // Stale UI button → 403 → mild confusion, no security issue.
+  const { hasEndAllAuthority } = await resolveSessionRole(
     session.user.id,
     programSlug,
     sessionDate,
     session.user.roles ?? [],
   );
-  if (!isSessionHost) {
+  if (!hasEndAllAuthority) {
     return NextResponse.json(
       { error: "Only the assigned host can end this session" },
       { status: 403 },

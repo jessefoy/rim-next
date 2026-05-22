@@ -42,8 +42,10 @@ import {
 
 interface Props {
   programSlug: string;
-  /** Session Host: gates End-for-All in the End menu and the End button label. */
-  isSessionHost: boolean;
+  /** End-for-All capability — drives the End button label ("End" vs "Leave")
+   *  and the EndMenu's "End for all" option. Held by the assigned host,
+   *  ADMIN, GUIDING_TEACHER, and the Teacher when no host is assigned. */
+  hasEndAllAuthority: boolean;
   /** Co-host (or higher): gates Share Screen affordance and the Bell mode toggle. */
   isCoHost: boolean;
   participantsOpen: boolean;
@@ -103,7 +105,7 @@ function useLocalTrackState() {
 
 export default function RIMControlBar({
   programSlug,
-  isSessionHost,
+  hasEndAllAuthority,
   isCoHost,
   participantsOpen,
   onToggleParticipants,
@@ -369,12 +371,12 @@ export default function RIMControlBar({
           aria-expanded={endOpen}
           aria-label="End"
         >
-          <span className="rim-cb-btn__label">{isSessionHost ? "End" : "Leave"}</span>
+          <span className="rim-cb-btn__label">{hasEndAllAuthority ? "End" : "Leave"}</span>
         </button>
         <EndMenu
           open={endOpen}
           onClose={() => setEndOpen(false)}
-          isSessionHost={isSessionHost}
+          hasEndAllAuthority={hasEndAllAuthority}
           programSlug={programSlug}
           anchorRef={endAnchor}
         />

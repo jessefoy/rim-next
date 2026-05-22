@@ -9,13 +9,19 @@ import { resolveSessionRole } from "@/lib/livekitAuth";
  *
  * Generate a LiveKit room token for an authenticated user.
  *
- * Permission tiers are resolved by lib/livekitAuth.ts::resolveSessionRole:
- *   Session Host → roomAdmin + screen share (HostAssignment match OR ADMIN)
- *   Co-host      → roomAdmin only           (ProgramTeacher OR HOST_MANAGER, hub-gated)
- *   Participant  → mic + camera only        (everyone else)
+ * Identity and capability are separated — see lib/livekitAuth.ts for the
+ * full model:
+ *   isSessionHost      identity: HostAssignment for this exact session.
+ *                      Drives the "Host" pill. No role-based bypass.
+ *   hasEndAllAuthority capability: End-for-All. Assigned host OR ADMIN OR
+ *                      GUIDING_TEACHER OR (Teacher when no host assigned).
+ *                      Drives the End button label + the end-session gate.
+ *   isCoHost           capability: mute, share, Bell mode, manage participants.
+ *                      Held by Host, Teacher, and Host Volunteers.
  *
  * Body: { programSlug: string, sessionDate?: string }
- * Returns: { token, roomName, wsUrl, isSessionHost, isCoHost, isHostTeam, audioProfile, avatarUrl }
+ * Returns: { token, roomName, wsUrl, isSessionHost, hasEndAllAuthority,
+ *            isCoHost, isHostTeam, isProgramTeacher, audioProfile, avatarUrl }
  */
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -62,7 +68,7 @@ export async function POST(req: NextRequest) {
     select: { avatarUrl: true },
   });
 
-  const { isSessionHost, isCoHost, isHostTeam, isProgramTeacher } =
+  const { isSessionHost, hasEndAllAuthority, isCoHost, isHostTeam, isProgramTeacher } =
     await resolveSessionRole(session.user.id, program.slug, sessionDate, roles);
 
   // Audio profile — drives RoomOptions.audioCaptureDefaults in the client:
@@ -79,11 +85,19 @@ export async function POST(req: NextRequest) {
   // appears in the room. Three orthogonal flags drive the badge UI:
   //   host:    Session Host (singular)         → "Host" pill (teal)
   //   teacher: ProgramTeacher for this program → "Teacher" pill (warm)
-  //   cohost:  Co-host capability, but NOT     → "Co-host" pill (muted)
-  //            Host and NOT Teacher
+  //   cohost:  Co-host capability, but NOT     → "Host Volunteer" pill
+  //            Host and NOT Teacher              (muted slate; metadata
+  //                                               field kept as `cohost`
+  //                                               for stability)
   // A Session Host who is also a Teacher gets both `host` and `teacher`
   // and renders both pills. `cohost` is set only when neither of the
   // other two applies, so each participant carries at most two pills.
+  //
+  // Identity-only — `host` is seeded ONLY when `isSessionHost` (assignment
+  // exists). ADMIN/GT capability lives in `hasEndAllAuthority`, returned
+  // separately in the response and used to gate the End button. Without
+  // this split, every joining ADMIN showed the Host pill on every session
+  // regardless of who was actually assigned (audit finding 2026-05-26).
   //
   // Trust note: `canUpdateOwnMetadata: true` (lib/livekit.ts) lets a
   // client rewrite their own metadata to forge any of these flags. The
@@ -102,11 +116,17 @@ export async function POST(req: NextRequest) {
   if (isCoHost && !isSessionHost && !isProgramTeacher) seedMeta.cohost = true;
   const initialMeta = Object.keys(seedMeta).length > 0 ? JSON.stringify(seedMeta) : undefined;
 
+  // Token grants. canShareScreen extended to all Co-hosts (was Session-Host-
+  // only) — closes a latent bug where Co-hosts saw the Share Screen button
+  // in the control bar but the underlying token didn't grant the source,
+  // so taps silently failed. The Share Screen action is socially Co-host
+  // capability across the board (matches Zoom/Meet behavior), and the
+  // session 121 "Session-Host-only" restriction was over-tight.
   const token = await createRoomToken(
     session.user.id,
     userName,
     roomName,
-    { roomAdmin: isCoHost, canShareScreen: isSessionHost },
+    { roomAdmin: isCoHost, canShareScreen: isCoHost },
     initialMeta,
   );
 
@@ -115,6 +135,7 @@ export async function POST(req: NextRequest) {
     roomName,
     wsUrl: process.env.NEXT_PUBLIC_LIVEKIT_URL,
     isSessionHost,
+    hasEndAllAuthority,
     isCoHost,
     isHostTeam,
     isProgramTeacher,

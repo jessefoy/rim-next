@@ -228,7 +228,7 @@ export default function ParticipantsPanel({ open, onClose, participants, program
               <span className="rim-pp__role-tag rim-pp__role-tag--teacher">Teacher</span>
             )}
             {localMeta.cohost && !localMeta.host && !localMeta.teacher && (
-              <span className="rim-pp__role-tag rim-pp__role-tag--cohost">Co-host</span>
+              <span className="rim-pp__role-tag rim-pp__role-tag--cohost">Host Volunteer</span>
             )}
           </div>
 
@@ -259,7 +259,7 @@ export default function ParticipantsPanel({ open, onClose, participants, program
                   <span className="rim-pp__role-tag rim-pp__role-tag--teacher">Teacher</span>
                 )}
                 {meta.cohost && !meta.host && !meta.teacher && (
-                  <span className="rim-pp__role-tag rim-pp__role-tag--cohost">Co-host</span>
+                  <span className="rim-pp__role-tag rim-pp__role-tag--cohost">Host Volunteer</span>
                 )}
                 <span
                   className={`rim-pp__mic${isMicEnabled ? "" : " rim-pp__mic--muted"}`}

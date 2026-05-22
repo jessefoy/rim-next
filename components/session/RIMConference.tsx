@@ -48,6 +48,10 @@ import type { ParticipantMetadata } from "./RIMParticipantTile";
 
 interface Props {
   isSessionHost: boolean;
+  /** End-for-All capability. Drives the End button label and the EndMenu
+   *  "End for all" option. Distinct from `isSessionHost` (identity), held
+   *  by assigned hosts, ADMIN, GUIDING_TEACHER, and Teacher-when-no-host. */
+  hasEndAllAuthority: boolean;
   isCoHost: boolean;
   isProgramTeacher: boolean;
   programSlug: string;
@@ -60,7 +64,7 @@ function getMetadata(raw: string | undefined): ParticipantMetadata {
   try { return JSON.parse(raw || "{}"); } catch { return {}; }
 }
 
-export default function RIMConference({ isSessionHost, isCoHost, isProgramTeacher, programSlug, guestKey, view = "gallery", initialAvatarUrl }: Props) {
+export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoHost, isProgramTeacher, programSlug, guestKey, view = "gallery", initialAvatarUrl }: Props) {
   const { localParticipant } = useLocalParticipant();
   // updateOnlyOn ensures the component re-renders when metadata changes (for raised hand tracking)
   const remoteParticipants = useRemoteParticipants({
@@ -418,10 +422,13 @@ export default function RIMConference({ isSessionHost, isCoHost, isProgramTeache
           )}
         </div>
 
-        {/* Zoom-aligned bottom control bar — every action button lives here. */}
+        {/* Zoom-aligned bottom control bar — every action button lives here.
+            hasEndAllAuthority (capability) drives the End button label and
+            the End-for-All option in EndMenu; isSessionHost is identity-only
+            now and not consumed by the control bar. */}
         <RIMControlBar
           programSlug={programSlug}
-          isSessionHost={isSessionHost}
+          hasEndAllAuthority={hasEndAllAuthority}
           isCoHost={isCoHost}
           participantsOpen={participantsOpen}
           onToggleParticipants={() => setParticipantsOpen((v) => !v)}

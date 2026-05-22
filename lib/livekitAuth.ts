@@ -1,30 +1,49 @@
 /**
- * Session-room permission tiers (Zoom-style, evolved 2026-05-25).
+ * Session-room permission tiers (Zoom-style, evolved 2026-05-25 → 2026-05-26).
  *
- * Three capability tiers govern what a user can do inside a LiveKit session:
+ * The resolver splits **identity** from **capability** — the two used to be
+ * conflated under a single `isSessionHost` flag with an ADMIN bypass, which
+ * made every joining ADMIN show the "Host" pill even when no `HostAssignment`
+ * existed for the session. Identity is now assignment-only; capability has
+ * its own flag with the safety override.
  *
- *   Session Host (singular)
- *     The HostAssignment for this exact session, OR ADMIN as safety override.
- *     Can End-for-All, Share Screen, and everything Co-host can do.
- *     Renders as the "Host" pill on their tile.
+ * Three identity pills can render on a tile (at most two at once, because
+ * `cohost` is mutually exclusive with the other two):
  *
- *   Co-host (multiple)
- *     Any active host-team HubMember with hostingCapability, OR HOST_MANAGER,
- *     OR ProgramTeacher for this program, OR Session Host. ADMIN bypass.
- *     Can mute others, Mute All, Share Screen, toggle Bell mode, manage
- *     participants. Cannot End-for-All. Renders as the "Co-host" pill
- *     unless they're also Host or Teacher (whichever takes pill priority).
+ *   Host
+ *     The `HostAssignment` for this exact session. Singular. The assigned
+ *     steward of the room. No ADMIN bypass — identity is about who was
+ *     actually assigned, not who has authority.
  *
- *   Participant
- *     Everyone else, including guests. Self-mute, video, chat, reactions
- *     only. No badge.
+ *   Teacher (orthogonal identity, layered on top)
+ *     `ProgramTeacher` row for this program. Drives the bell-friendly
+ *     audio profile (NS off, AGC off, 128 kbps) and the Teacher pill.
  *
- * `isSessionHost` always implies `isCoHost`.
+ *   Host Volunteer (the renamed "Co-host" — same field, new label)
+ *     Co-host capability AND not Host AND not Teacher. Catches host-team
+ *     `HubMember` records (active + hostingCapability), HOST_MANAGER,
+ *     ADMIN, GUIDING_TEACHER. Pill text is "Host Volunteer" in the UI.
  *
- * Teacher is an orthogonal identity, not a capability tier — anyone with a
- * `ProgramTeacher` row for this program is "Teacher" (renders the Teacher
- * pill) and gets the bell-friendly audio profile. A Teacher who is also
- * Session Host shows both Host + Teacher pills.
+ * Capability is separate:
+ *
+ *   hasEndAllAuthority
+ *     Can perform End-for-All. Held by:
+ *       • the assigned Host (singular session steward), OR
+ *       • ADMIN as safety override, OR
+ *       • GUIDING_TEACHER as safety override, OR
+ *       • the Teacher when no Host is assigned for this session
+ *         (the "teacher teaching alone" fallback — Maria leading a course
+ *         with no host present should be able to close the room without
+ *         tapping Step-In first).
+ *     The teacher-fallback is reactive at token-issue time only; a host
+ *     assigned mid-session does not retroactively strip the teacher's
+ *     authority on tokens already issued. Acceptable: the teacher still
+ *     has the capability they expected when they joined.
+ *
+ *   isCoHost
+ *     Mute others, Mute All, Share Screen, Bell mode, manage participants.
+ *     Held by anyone with Host pill, Teacher pill, or Host Volunteer pill.
+ *     ADMIN bypass.
  *
  * Hub authority. The host-team `HubMember` record is the authoritative
  * source for Co-host on plain HOST role members. `getEffectiveHostingCapability`
@@ -38,7 +57,15 @@ import { db } from "@/lib/db";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
 
 export interface SessionRole {
+  /** Identity: HostAssignment for this exact session. No role-based bypass.
+   *  Drives the "Host" pill on the participant's tile. */
   isSessionHost: boolean;
+  /** Capability: can perform End-for-All and the actions reserved to it
+   *  (the End button label, the End-for-All menu item, the server gate on
+   *  /api/livekit/end-session). Distinct from `isSessionHost` so the pill
+   *  doesn't lie about identity when a role-based safety override applies. */
+  hasEndAllAuthority: boolean;
+  /** Co-host capability: mute others, share screen, Bell mode, manage. */
   isCoHost: boolean;
   /** True if user is on the host team for the host-team hub (used for Step-In UI). */
   isHostTeam: boolean;
@@ -53,24 +80,25 @@ export async function resolveSessionRole(
   roles: string[],
 ): Promise<SessionRole> {
   const isAdmin = roles.includes("ADMIN");
+  const isGuidingTeacher = roles.includes("GUIDING_TEACHER");
   const isManager = roles.includes("HOST_MANAGER");
 
-  // ── Session Host: HostAssignment match for this exact session, OR ADMIN.
-  let isSessionHost = isAdmin;
-  if (!isSessionHost) {
-    const assignment = await db.hostAssignment.findFirst({
-      where: {
-        programSlug,
-        userId,
-        ...(sessionDate ? { sessionDate: new Date(sessionDate) } : {}),
-      },
-      select: { id: true },
-    });
-    if (assignment) isSessionHost = true;
-  }
+  // ── Session Host (identity): HostAssignment match for this exact session.
+  // No role-based bypass — identity is who was assigned, not who has authority.
+  // Capability for ADMIN/GT is handled below via hasEndAllAuthority.
+  const myAssignment = await db.hostAssignment.findFirst({
+    where: {
+      programSlug,
+      userId,
+      ...(sessionDate ? { sessionDate: new Date(sessionDate) } : {}),
+    },
+    select: { id: true },
+  });
+  const isSessionHost = !!myAssignment;
 
   // ── ProgramTeacher: needed both for audio-profile selection and the
-  // Teacher pill.
+  // Teacher pill. Resolves the program record once; reused below for the
+  // "any host assigned" check.
   const program = await db.program.findFirst({
     where: { slug: programSlug },
     select: { id: true },
@@ -83,6 +111,45 @@ export async function resolveSessionRole(
     });
     if (teacher) isProgramTeacher = true;
   }
+
+  // ── Teacher-as-fallback-host: if no host is assigned for this session and
+  // the caller is the teacher, they hold End-for-All as a structural
+  // fallback. This covers the "Maria teaches alone" case and the
+  // peer-led-but-someone-stepped-up case in community sits.
+  //
+  // We check for ANY assignment (any user) on this exact session — not just
+  // the caller's own. If a host is already assigned and the caller is the
+  // teacher, the host gets End authority; the teacher does not (they teach;
+  // the host runs the room). If no one is assigned, the teacher fills the
+  // gap automatically — no Step-In required.
+  //
+  // When `sessionDate` is omitted, the query matches any HostAssignment for
+  // this program — including standing rotations (sessionDate: null) AND
+  // specific-date rows. This is intentional: a standing rotation is "there
+  // is a host," so the teacher fallback should not fire even if no one has
+  // explicitly claimed *today's* instance yet.
+  //
+  // Stale-token note: this flag is reactive at token-issue only. A teacher
+  // who joined while alone keeps their End button label even if a host
+  // claims later — but the server-side re-check at /api/livekit/end-session
+  // will reject the call, so the worst case is a 403 on a stale button tap.
+  let teacherIsFallbackHost = false;
+  if (isProgramTeacher && !isSessionHost) {
+    const anyHostAssigned = await db.hostAssignment.findFirst({
+      where: {
+        programSlug,
+        ...(sessionDate ? { sessionDate: new Date(sessionDate) } : {}),
+      },
+      select: { id: true },
+    });
+    if (!anyHostAssigned) teacherIsFallbackHost = true;
+  }
+
+  // ── End-for-All authority: identity OR role-based safety override OR
+  // teacher-fallback. The button label and the server gate on
+  // /api/livekit/end-session both key on this flag.
+  const hasEndAllAuthority =
+    isSessionHost || isAdmin || isGuidingTeacher || teacherIsFallbackHost;
 
   // ── Co-host: anyone with capabilities. The hub authority gate is the
   // single source of truth — `getEffectiveHostingCapability` returns true
@@ -112,5 +179,5 @@ export async function resolveSessionRole(
     ? true
     : await getEffectiveHostingCapability(userId, "host-team", isManager);
 
-  return { isSessionHost, isCoHost, isHostTeam, isProgramTeacher };
+  return { isSessionHost, hasEndAllAuthority, isCoHost, isHostTeam, isProgramTeacher };
 }
