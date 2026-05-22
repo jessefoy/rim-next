@@ -3200,6 +3200,25 @@ async function main() {
     console.log("  ⏭ Manual host-session-room v6 already applied.");
   }
 
+  // Manual chapter: host-session-room v7 (2026-05-26) — identity / capability
+  // split landed: the Host pill is now identity-only (HostAssignment required,
+  // no ADMIN bypass); End-for-All is a separate `hasEndAllAuthority` flag held
+  // by Assigned Host + ADMIN + GUIDING_TEACHER + Teacher-when-no-host. The
+  // "Co-host" pill was renamed to "Host Volunteer" (sangha-tone label). Share
+  // Screen is now a Co-host capability across the board. The Reactions and
+  // votes section was rewritten for the persistent ✓ / ✗ model + speaking
+  // queue from the same session. Re-runs the upsert against the live DB row.
+  const updateHostSessionRoomV7Flag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_host_session_room_v7'
+  `).catch(() => []);
+
+  if (updateHostSessionRoomV7Flag.length === 0) {
+    await updateManualHostSessionRoom(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_session_room_v7')`);
+  } else {
+    console.log("  ⏭ Manual host-session-room v7 already applied.");
+  }
+
   // Session 124 — backfill ProgramTeacher rows for the five programs
   // where the named teacher has a real User account in the system.
   // The legacy Program.teacherFacilitators free-text field was the only

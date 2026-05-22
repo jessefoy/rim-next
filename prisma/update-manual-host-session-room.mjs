@@ -7,6 +7,23 @@
  * nonverbal signals, member photos, Open Access, and what to do
  * when something misbehaves.
  *
+ * v7 additions over v6 (2026-05-26):
+ *   - Three pills are now Host / Teacher / **Host Volunteer** (the
+ *     "Co-host" label was renamed; it read like Zoom-jargon in a
+ *     sangha-first interface)
+ *   - "Who can do what" rewritten around identity vs. capability —
+ *     the Host pill is identity (assigned only), the End button is
+ *     capability (assigned + ADMIN + GUIDING_TEACHER + Teacher-when-
+ *     no-host). An ADMIN/GT visiting a session no longer shows the
+ *     Host pill but still has End-for-All as a safety override.
+ *   - Teacher-as-fallback-host explained — a teacher running a session
+ *     with no host assigned holds End-for-All without needing to
+ *     Step-In first
+ *   - Share Screen is now a Co-host capability (held by Host, Teacher,
+ *     and any Host Volunteer) — was Session-Host-only in v6
+ *   - "Reactions and votes" section added — the persistent ✓ / ✗ voting
+ *     signals and the speaking queue (raised-hand reordering)
+ *
  * v6 additions over v5 (session 124, 2026-05-25):
  *   - Three role pills: Host / Teacher / Co-host (was a single Host badge)
  *   - "Who can do what" rewritten — any active host-team member is now
@@ -75,7 +92,7 @@ const SESSION_ROOM_BODY = `<p>The session room is where RIM's online sessions ha
 <li><strong>Mute</strong> and <strong>Start Video</strong> — toggle your own mic and camera. The small chevrons next to each open a device picker (pick a different mic, camera, or speaker).</li>
 <li><strong>Participants</strong> — opens a side panel listing everyone in the room.</li>
 <li><strong>Chat</strong> — opens a chat sidebar. Send messages to the whole room or to a specific person.</li>
-<li><strong>Share Screen</strong> — appears only if you're the assigned host or the teacher. Regular participants can't share their screen.</li>
+<li><strong>Share Screen</strong> — appears for anyone with a role pill (Host, Teacher, or Host Volunteer). Regular participants can't share their screen.</li>
 <li><strong>Reactions</strong> — opens the nonverbal signal popup (raise hand, heart, gratitude, yes, no).</li>
 <li><strong>Settings</strong> — opens audio, video, and presence-photo settings.</li>
 <li><strong>End</strong> (red, far right) — opens a small menu with two items if you're the assigned host (<strong>End Meeting for All</strong> and <strong>Leave Meeting</strong>) or just one if you're not (<strong>Leave Meeting</strong>).</li>
@@ -83,17 +100,28 @@ const SESSION_ROOM_BODY = `<p>The session room is where RIM's online sessions ha
 <p>In the main area:</p>
 <ul>
 <li><strong>Tiles</strong> — one per person in the room, with their name. Yours is there too.</li>
-<li><strong>Role pills</strong> — small colored labels next to a person's name on their tile (and in the Participants panel) so everyone can see who's holding what role. There are three: <strong>Host</strong> (teal — the assigned host of this specific session), <strong>Teacher</strong> (warm gold — anyone listed as a teacher of this program), and <strong>Co-host</strong> (muted gray — anyone on the host team who is helping run the room but isn't the assigned host or a teacher). A person who is both the assigned host and a teacher of the program shows both Host and Teacher pills side by side. Regular participants don't show any pill.</li>
+<li><strong>Role pills</strong> — small colored labels next to a person's name on their tile (and in the Participants panel) so everyone can see who's holding what role. There are three: <strong>Host</strong> (teal — the assigned host of this specific session), <strong>Teacher</strong> (warm gold — anyone listed as a teacher of this program), and <strong>Host Volunteer</strong> (muted gray — anyone on the host team who's helping run the room but isn't the assigned host or a teacher; this is also what coordinators, guiding teachers, and admins show when they visit a session they're not formally hosting). A person who is both the assigned host and a teacher of the program shows both Host and Teacher pills side by side. Regular participants don't show any pill.</li>
 <li><strong>Active speaker outline</strong> — a yellow border appears around the tile of whoever is currently speaking.</li>
 </ul>
 <p>If your browser asks for permission to play audio — a full-screen prompt that blocks the view — click yes. Some browsers, especially Safari, require this once each session. It's normal.</p>
 
 <h2>Who can do what</h2>
-<p>The session room has three permission levels, not just "host" and "everyone else." Knowing which level you're at tells you which buttons you'll see.</p>
-<p><strong>The assigned host</strong> (you, on the day you're scheduled) and any RIM admin can do everything: mute people, share the screen, end the session for everyone. The "Host" pill marks this person.</p>
-<p><strong>Co-hosts</strong> are everyone else who's on the host team. If you're an active member of the Host Hub, you're a Co-host automatically — you can mute people, share the screen, toggle Bell mode, and manage the participant list. The teacher of the program is also a Co-host. <strong>Co-hosts cannot end the session for everyone.</strong> That stays with the assigned host. This is intentional: only one person is the steward of the room at any moment, and the End button respects that. The "Teacher" pill marks the program's teacher; the "Co-host" pill marks every other active host-team member who joins. (If you're both the assigned host and a teacher, you'll show both Host and Teacher pills side by side; the Co-host pill is replaced by whichever of the higher pills applies.)</p>
-<p><strong>Everyone else</strong> — regular participants — can mute themselves, turn their own camera on or off, react, and chat. They don't see Share Screen, Mute All, or End for All at all. There's no temptation to click something they shouldn't.</p>
-<p>If multiple host-team members join together to test, only one of them is the assigned host at any moment — the others see "Leave Meeting" where the assigned host sees "End Meeting for All," and they show the Co-host pill while the assigned host shows the Host pill. This is by design.</p>
+<p>The session room separates two ideas that used to be tangled together: <em>identity</em> (who is the assigned steward of this session) and <em>capability</em> (who can do which actions). The pills on the tiles tell you the first. The buttons you see tell you the second.</p>
+
+<h3>Identity — the three pills</h3>
+<p><strong>Host</strong> (teal). The person who was assigned to steward this session — either pre-assigned from the Host Schedule, or someone who tapped <strong>Step in as Host</strong>. Singular. Only one Host per session. The Host pill marks the assigned steward, not "anyone who could end the room." If you're a coordinator or admin visiting a session you didn't sign up to host, you <em>don't</em> show the Host pill — that label belongs to the person who took on the responsibility for this specific session.</p>
+<p><strong>Teacher</strong> (warm gold). Anyone listed as a teacher of the program. This pill rides alongside the Host pill if the same person holds both roles; otherwise it stands on its own. The Teacher pill also unlocks the bell-friendly audio setting (see Bell mode below).</p>
+<p><strong>Host Volunteer</strong> (muted gray). Everyone else who is part of the leadership constellation in the room: other active members of the Host Hub, host managers, the coordinator, admins, the guiding teacher. They're not the formal Host of this session, but they're here and they can help. The pill makes that visible to everyone — participants can see who they could go to with a question; the assigned Host can see who's around to support them.</p>
+<p>Regular participants don't show any pill.</p>
+
+<h3>Capability — what each button does</h3>
+<p><strong>Mute someone, Mute All, Share Screen, Bell mode, manage participants.</strong> Held by anyone with a pill — Host, Teacher, or Host Volunteer. If you're an active member of the Host Hub, you have these capabilities automatically; the system doesn't require you to be the formally assigned host to step in and help.</p>
+<p><strong>End the session for everyone.</strong> Held by the assigned Host. Also held by admins and guiding teachers as a safety override (so the session can always be closed in an emergency, even if the assigned host vanishes mid-session). And held by a Teacher running a session that has no assigned host — so a teacher who finds themselves alone leading a course can close the room naturally without first tapping Step-In. The End button reads "End" if you have this capability and "Leave" if you don't.</p>
+<p><strong>Everything else</strong> (mute yourself, camera on/off, react, chat) is available to everyone in the room, including guests.</p>
+
+<h3>Why the split</h3>
+<p>The pill is identity. The button is capability. An admin visiting a session has the safety override on End — but they don't show the Host pill, because they're not the assigned steward. A teacher teaching alone has End on their button — but the Teacher pill stays as their identity, because that's what they are in the room. A host volunteer helping out has full capability to mute, share, and use Bell mode — but they're labeled Host Volunteer, because the Host of <em>this</em> session is someone else (or no one yet, if they want to step in and become it).</p>
+<p>If multiple host-team members are in a session together, only one of them holds the Host pill at a time — the assigned one. The others all show Host Volunteer. Everyone with a pill can help; only the Host (or the safety overrides) sees "End" instead of "Leave."</p>
 
 <h2>During the session</h2>
 <p>The teacher leads the content. You hold the room. For most of the session, that means doing very little — staying present, attentive, and available.</p>
@@ -110,7 +138,7 @@ const SESSION_ROOM_BODY = `<p>The session room is where RIM's online sessions ha
 <p><strong>Mute one person — from their tile.</strong> Hover over any participant's tile with your mouse. A small red <strong>Mute</strong> button appears in the top-right corner. Click it and their audio is silenced. They can unmute themselves whenever they want to speak. If they're already muted, the same spot shows a "Muted" pill instead. This is the fastest way during a session — you don't have to open a panel.</p>
 <p><strong>Mute one person — from the participants panel.</strong> Open the Participants panel from the bottom control bar. Each row has a Mute button next to it. Same effect as hovering the tile. Use whichever feels more natural.</p>
 <p><strong>Mute All.</strong> In the participants panel footer. Mutes every non-host at once. Use it when background noise is coming from multiple places and individual muting isn't practical, or when you need everyone quiet immediately. It's a blunt instrument — use it purposefully.</p>
-<p><strong>End for All.</strong> The red End button in the bottom-right of the control bar. If you're the assigned host, click it to open a small menu; choose "End Meeting for All" to close the room for everyone. Reserve this for genuine emergencies — a coordinated disruption, a situation the room can't recover from. A normal end to a session does not need this button. Choosing "Leave Meeting" instead exits you while the room stays open for whoever is still there.</p>
+<p><strong>End for All.</strong> The red End button in the bottom-right of the control bar. If your button reads "End" (you're the assigned host, an admin, a guiding teacher, or a teacher running a session that has no assigned host), clicking it opens a small menu; choose "End Meeting for All" to close the room for everyone. Reserve this for genuine emergencies — a coordinated disruption, a situation the room can't recover from — or for the cleanest way to close a session when everyone has settled and it's clearly over. Choosing "Leave Meeting" instead exits you while the room stays open for whoever is still there. If your button reads "Leave," you don't see the "End for All" menu — only Leave.</p>
 <p><strong>Pin (focus).</strong> Click any participant's tile to pin them — they fill more of the visible screen. Useful when the teacher is leading and their tile should be more prominent, or when a participant is responding and the room should see them clearly. Click the tile again to unpin.</p>
 <p>The Disruption Response document in the Host Hub's Documents tab covers when to use each of these under specific circumstances. This section is about what they are.</p>
 
@@ -124,23 +152,28 @@ const SESSION_ROOM_BODY = `<p>The session room is where RIM's online sessions ha
 <li>Ring the bell. Let it decay fully.</li>
 <li>Tap the button again. The amber tint goes away and the label returns to "Bell mode."</li>
 </ol>
-<p>The button is only visible to the assigned host and Co-hosts. Regular participants don't see it — their audio is always cleaned. The state resets every time you join a session, so you always start in clean-voice mode (cleanup on); Bell mode is a deliberate moment, not a setting you can leave on by accident.</p>
+<p>The button is visible to anyone with a pill — Host, Teacher, or Host Volunteer. Regular participants don't see it — their audio is always cleaned. The state resets every time you join a session, so you always start in clean-voice mode (cleanup on); Bell mode is a deliberate moment, not a setting you can leave on by accident.</p>
 <p>If you're on a browser where the cleanup feature isn't supported, the Bell mode button won't appear at all. Your voice is going through unprocessed, the same way it would have before the cleanup was added — which is fine, just not Krisp-cleaned. This is rare; the cleanup is supported on every modern browser on Mac, Windows, iPad, and iPhone.</p>
 <p><strong>One caveat for hosts who aren't program teachers.</strong> Bell mode turns off the room's added audio cleanup. But your <em>browser</em> also has its own background-noise filter, which runs first — before Bell mode even sees the audio. The browser filter is turned off automatically only for people listed as the <em>teacher</em> of the program (the Teacher pill). For everyone else, the browser filter is on by default and may still soften bells even when Bell mode is engaged. If you ring bells regularly during a program, ask Jesse to add you as a teacher of that program — the Teacher pill comes with bell-friendly capture, and Bell mode then works exactly as described. For one-off sessions where the regular host is ringing the bell, the same fix applies on the day.</p>
 
 <h2>Step in as Host</h2>
-<p>Any host-team member who joins a session they are <em>not</em> the assigned host for will see a <strong>Step in as Host</strong> button in the header. Regular participants don't see this button.</p>
-<p>Clicking it makes you the assigned host for the session, granting the full control set — including End for All. The system records that you stepped in, so the assigned-host role transfers to you cleanly. Use it when:</p>
+<p>Any host-team member — and any admin or guiding teacher visiting a session — sees a <strong>Step in as Host</strong> button in the header when they're not the assigned host of the current session. Regular participants don't see this button.</p>
+<p>Clicking it formally makes you the assigned Host for this session: the system writes a host-assignment record, the Host pill appears on your tile, and the End controls are now fully yours (rather than relying on the safety override). Use it when:</p>
 <ul>
 <li>The assigned host hasn't shown up and someone needs to hold the room.</li>
 <li>The host coordinator wants to step in and take over coverage mid-session.</li>
+<li>You're an admin or coordinator and you've decided to actually run this session — Step-In is how you take that responsibility on the record, rather than helping informally as a Host Volunteer.</li>
 </ul>
-<p>The transition is invisible to participants — no notification appears. You simply gain the controls and can use them from that point forward. If a previous host had also stepped in earlier, stepping in again transfers the role to you; the room only has one assigned host at a time.</p>
+<p>The transition is invisible to participants — no notification appears. Your pill changes from Host Volunteer (or no pill) to Host, and you gain the full control set from that point forward. If a previous host had also stepped in earlier, stepping in again transfers the role to you; the room only has one assigned Host at a time.</p>
 <p>If you're already the assigned host, you won't see this button. You have host controls from the moment you join.</p>
 
-<h2>Nonverbal signals</h2>
-<p>Participants can communicate without speaking — a raised hand, a heart for thanks, a folded-hands gesture of gratitude, a check for yes, an x for no. When someone uses one, a small symbol appears on their tile. The raised hand also triggers a banner at the top of the screen so it doesn't get lost in a full room.</p>
-<p>You don't need to respond to every signal. Being present and aware — letting people see that you see them — is often enough.</p>
+<h2>Reactions and votes</h2>
+<p>Participants can communicate without speaking. The Reactions button on the bottom control bar opens a small popover with five signals: a raised hand, a check for yes, an x for no, a heart for thanks, and folded hands for gratitude. They behave differently from each other on purpose.</p>
+<p><strong>Raised hand</strong> (✋) reorders the room. When someone raises their hand, their tile moves to the top-left of the grid, in the order people raised. The Participants panel shows the same order with a number next to each name — "1 ✋", "2 ✋", "3 ✋" — so you can call on people in the order they asked. The hand persists until they lower it (they re-tap the same button, or open Reactions and choose "Lower hand"). A banner also appears at the top of the screen when at least one hand is up — it doesn't get lost in a full room.</p>
+<p><strong>Yes / No</strong> (✓ / ✗) are persistent votes. Tapping ✓ leaves a small ✓ badge on the voter's tile that stays there until they clear it. Tapping ✗ behaves the same way. The vote doesn't move their tile. Use these when the teacher asks a yes/no question to the room and you want to see who's responding what without going around the room verbally. Voters can clear their own vote by re-tapping the same button, or by opening Reactions and choosing "Clear ✓" / "Clear ✗" at the top of the popover.</p>
+<p><strong>Heart / Gratitude</strong> (❤️ / 🙏) are brief reactions. The badge appears for about five seconds and then clears itself. No commitment expected — these are passing acknowledgments, not statements.</p>
+<p>You don't need to respond to every signal. Being present and aware — letting people see that you see them — is often enough. For the raised hand, the speaking queue takes the burden off you: you don't have to remember who raised first, you just look at the numbers.</p>
+<p>All signals reset when someone leaves and rejoins the session. Nothing carries over from yesterday's gathering.</p>
 
 <h2>Member photos</h2>
 <p>Members who have uploaded a profile photo will show that photo in their tile when their camera is off, instead of initials in a colored circle. It keeps the room feeling like a gathering of people rather than a grid of names.</p>
@@ -177,7 +210,7 @@ export async function updateManualHostSessionRoom(db) {
 
   const data = {
     title: "The Session Room",
-    description: "What hosts see when they open the room — the twelve-minute welcome window, the ten-minute early-open for hosts and teachers, the three permission tiers, tile hover-mute, Bell mode for bells and bowls, Step in as Host, nonverbal signals, and what to do when something misbehaves.",
+    description: "What hosts see when they open the room — the twelve-minute welcome window, the ten-minute early-open for hosts and teachers, the three role pills (Host, Teacher, Host Volunteer), identity vs. capability, tile hover-mute, Bell mode for bells and bowls, Step in as Host, the speaking queue for raised hands, persistent yes/no votes, and what to do when something misbehaves.",
     hubSlug: "host-team",
     body: SESSION_ROOM_BODY,
     relations: ["host-hub", "host-schedule"],
