@@ -1,5 +1,86 @@
 ---
 
+## 2026-05-26 (session 125) — Session room refinements: raised-hand speaking queue, persistent vote signals, host identity-vs-capability split, Host Volunteer rename
+
+Four code commits on `main` plus two doc commits. Started with two distinct UX questions from Jesse — could the raised hand and the vote signals work more like Zoom — and ended with a structural fix to a real host-designation bug he'd been seeing, plus a full doc sweep to keep the four canonical sources (System Architecture, Stack Reference, FEATURES, the volunteer-facing changelog) and the staff manual all aligned with the new model. The two threads turned out to be related: both were about making the session room tell the truth more clearly about who is who and what is happening.
+
+### Commit chain
+
+1. **`28d1298` — Raised-hand reorder + persistent vote signals.** Two related changes:
+   - **Raised hand reorders tiles to top-left in raise order.** New `raisedHandAt: number` epoch-ms stamp on `ParticipantMetadata`. `RIMConference.tsx` computes a `sortedTracks` from `useTracks`, sorting hand-raised participants first by ascending timestamp (secondary sort by identity for cross-client determinism on same-ms collisions — so "Marsha is #2" is trustworthy from every viewer's perspective). Tiles are not enlarged; the reordering itself is the focus mechanism. Matches how Zoom actually solves this. Local participant's own raise also reorders their tile (via `useParticipantInfo({ participant: localParticipant })` to subscribe reactively to local metadata changes — `useRemoteParticipants` only covers remotes).
+   - **Persistent ✓/✗ vote signals.** `ReactionsMenu.tsx` rewritten with a `persistent` flag per signal. Three persistent: ✋ (hand), ✓ (yes), ✗ (no) — toggle on/off, badge stays until cleared. Two timed: ❤️, 🙏 — auto-clear after ~5s. A contextual "Clear my signal" row appears at the top of the popover when the user has any persistent signal active (label reads "Lower hand" / "Clear ✓" / "Clear ✗"). One tap to clean up regardless of which is active — the "people forget to click it again" worry Jesse named, addressed without losing the persistent semantics.
+   - **Numbered queue in Participants panel.** Hand-raisers show "1 ✋", "2 ✋", "3 ✋" derived from the same `raisedHandAt` sort. Local participant included in the queue. Single source of truth — panel order and grid order always agree.
+   - **CSS tweak**: `.rim-pp__signal` widened from 20px fixed to 32px min-width with tabular-nums + nowrap to accommodate the queue numbers without breaking layout.
+
+2. **`bb951e1` — Host identity/capability split + Host Volunteer rename.** The structural fix to Jesse's reported bug. Jesse joined a program where he was ProgramTeacher and ADMIN but not assigned host — and the room showed him with both Host + Teacher pills. The audit traced it to the ADMIN bypass in `resolveSessionRole`: `isSessionHost = isAdmin` skipped the HostAssignment check entirely, conflating *who is the assigned steward* (identity) with *who has the safety override on End-for-All* (capability).
+
+   The refactor split them:
+
+   - **`isSessionHost` is now identity-only.** `HostAssignment` match required. No role bypass. Drives the "Host" pill — an ADMIN visiting a session no longer shows it.
+   - **New `hasEndAllAuthority` flag** carries the safety override. True for: assigned Host OR ADMIN OR GUIDING_TEACHER OR (Teacher when no `HostAssignment` exists for this session). Drives the End button label ("End" vs. "Leave"), the EndMenu's "End for all" option, and the `/api/livekit/end-session` server gate.
+   - **Teacher-as-fallback-host rule (new).** Triggered by the conversation about Maria teaching alone on a course with no host assigned, and the planned Silent Meditation Hub (peer-led sits). Reactive at token-issue only — `anyHostAssigned` query for this exact session, including standing rotations (a standing row counts as "host present"). Authoritative gate stays the server-side re-check on `/end-session` — stale "End" buttons after a host claims later just yield 403.
+   - **"Co-host" pill renamed to "Host Volunteer"** in user-facing text. Sangha-tone label for the same identity: host-team members who aren't the assigned host. Metadata field name (`cohost`) and CSS class (`--cohost`) kept stable to avoid churn.
+   - **Share Screen extended from Session-Host-only to all Co-hosts.** Closes a latent bug from session 121 where Host Volunteers (and even teachers) saw the share button in the control bar but the token didn't grant the source — taps silently failed. The session-121 "Session-Host-only" restriction on share was over-tight; share is socially a Co-host capability across the board (matches Zoom/Meet).
+   - **Step-In visibility broadens to ADMIN/GT without assignment.** Since they no longer auto-grant Host identity, they now correctly see the Step-In button and can write an actual `HostAssignment` row when they want to formally take the session — closes an audit-trail gap where ADMIN ending a session left no record.
+
+   The reviewer subagent found no blockers; two cheap clarifying comments were added before commit (the server-side-re-check note in `/end-session`, the standing-assignment scope note in `livekitAuth.ts`).
+
+3. **`984d5ed` — Docs alignment (FEATURES, System Architecture, Stack Reference, manual chapter v7).** Pure doc + migration commit. Five files:
+   - `RIM_System_Architecture.md` — "Permission tiers" section rewritten around identity vs. capability. Pill priority Host → Teacher → Host Volunteer. Session-features paragraph updated for raised-hand queue + persistent vote signals.
+   - `RIM_Stack_Reference.md` — long permission section replaced; top `_Last updated_` block summarizes the 2026-05-26 changes.
+   - `FEATURES.md §38` — "Three-tier permission model" subsection replaced with the identity/capability model. End popover, Participants panel, Custom tile paragraphs refreshed.
+   - `prisma/update-manual-host-session-room.mjs` — v7 rewrite of the staff manual chapter for hosts. New "Identity vs. capability" framing in "Who can do what". Three pills explained with the Host Volunteer name. Bell mode visibility broadened to anyone with a pill. Step-In description includes ADMIN/GT visiting a session. End-for-All button label explained around `hasEndAllAuthority`. New "Reactions and votes" section covers the speaking queue + persistent ✓/✗ + 5-second timed ❤️/🙏.
+   - `prisma/migrate.mjs` — added the `update_manual_host_session_room_v7` flag entry. Self-heals on next Vercel deploy.
+
+4. **`49da69c` — Volunteer-facing changelog refresh.** `SESSION_ROOM_FOR_VOLUNTEERS.md` brought current with the new model. Surgical edits to bring the host-identity language into line; bonus fix on the auto-hide description that had been stale since session 121.
+
+### Architectural calls made this session
+
+**Identity is not capability.** The audit found the real conflation: `isSessionHost` was returning true for both "you have a HostAssignment row" and "you're an ADMIN with the safety override." One flag, two meanings. The pill (identity) and the End button (capability) were both keyed on the same flag, so the pill misrepresented identity whenever the safety-override role joined. The fix names the two concerns separately: `isSessionHost` for identity, `hasEndAllAuthority` for capability. The pattern generalizes — *anytime a role-based bypass is bolted onto a flag that has both an identity meaning and a capability meaning, split the flag.*
+
+**Teacher-as-fallback-host rule.** New, surfaced by Jesse's question about teachers teaching alone and peer-led community sits. The rule: a `ProgramTeacher` with no `HostAssignment` on the session holds End-for-All. The check looks for ANY assignment (any user) on this session — so a standing rotation counts as "host present" and the fallback doesn't fire even on an unclaimed-today instance. Reactive at token-issue; the server re-runs the check on every `/end-session` call, so the worst stale-token case is a 403 on a stale button tap. Honest about the edge case rather than papering over it.
+
+**Share Screen is a Co-host capability across the board.** The session-121 restriction to Session-Host-only created a silent-failure mode (button visible, token didn't grant). Two ways to fix: hide the button for non-assigned-Hosts, or extend the grant. Took the latter — share is socially a Co-host action in every comparable product (Zoom, Meet, Teams), and host-team volunteers helping out should be able to show something on screen without needing to Step-In first. Hub authority gate still applies: a paused volunteer loses Co-host (and thus Share) automatically.
+
+**"Co-host" renamed to "Host Volunteer."** Visible text only — metadata field and CSS class kept stable for code-side stability. The sangha-tone label decision came directly from Jesse's framing: "in a class with multiple host-team volunteers, maybe we can just identify them as Host Volunteer from the primary host." The label change reads more honestly in a sangha-first interface than the Zoom-borrowed "Co-host." Aligns with the broader pattern in `RIM_Web_Design_Philosophy.md` of using plain-language sangha vocabulary over platform jargon.
+
+**Reactions and votes have three distinct behaviors on purpose.** Persistent + reordering (hand). Persistent without reordering (vote). Timed (emotional reaction). The three modes match three different social functions: the hand is a queue, the vote is a position, the reaction is a passing acknowledgment. Treating them all the same (the original behavior — only the hand was persistent) collapsed the distinctions and made votes useless. The new "Clear my signal" affordance at the top of the popover handles the "people forget" worry without giving up the persistent semantics.
+
+### What this connects to
+
+- **`lib/livekitAuth.ts::resolveSessionRole`** is the single source of truth — every server route that gates a session-room action calls it. Adding `hasEndAllAuthority` to its return shape was the contained way to introduce the capability concept without scattering role checks across the codebase.
+- **The host-team Hub authority gate** (`getEffectiveHostingCapability`) was preserved unchanged. Co-host capability flows through it; the new End-for-All authority sits parallel as a different concern (the gate is about "is this person allowed to help in the room," not "is this person allowed to close the room").
+- **Backlog item `2026-05-24-001`** (stale `isSessionHost` propagation after Step-In) is now less consequential. The original failure mode was that a previous host's client kept End-for-All visible after someone else stepped in, clicked it, got 403. With the identity/capability split, the End button is keyed on `hasEndAllAuthority` (which they may legitimately have via ADMIN/GT/teacher-fallback), and the server re-check on every `/end-session` call is the authoritative gate. The item still describes a real UI-staleness case worth fixing eventually (the Host pill on someone's tile can also go stale), but the security/correctness concern is fully closed.
+- **Backlog item `2026-05-25-002`** (per-program `teacherLabel` dropdown) is the natural next slice — it builds on the same metadata pipeline. The work today added one more flag to `ParticipantMetadata`; that dropdown adds one more string. Cheap and contained.
+- **`RIM_System_Architecture.md`** is now the authoritative reference for the identity/capability model. The doc was rewritten as part of this commit chain, so future sessions will see the current model before the historical one.
+- **`SESSION_ROOM_FOR_VOLUNTEERS.md`** is the human-facing companion to the manual chapter. It gets updated separately because volunteers may be reading the markdown directly outside the app (Jesse shares it in trainings); the manual chapter inside the app is the source-of-truth on the live site.
+
+### Collaboration moments worth preserving
+
+**"Can you look at the setup really clearly for this aspect? Please do an audit."** The pivot of the session. The same engagement standard from session 124 — when there's a symptom you don't fully understand, audit before diagnosing — held again. Today's audit traced the bug through five files (resolver, token route, end-session route, RIMConference seeding, EndMenu) and named the architectural conflation cleanly. Then Jesse's follow-up questions ("isn't the admin the guiding teacher? aren't they on the same roles as hub admins/manager?" — "should the teacher have the same permissions as the host?") reframed the audit. The fix that landed wasn't the fix I'd have proposed if I'd jumped straight to code from the first read.
+
+**Plain-English explanation pattern, repeated.** When Jesse asked "wouldn't they have the same authority as the host hub team?" — the right response was to lay out the two concepts (Host pill = identity, End button = capability) with concrete scenarios (Maria assigned, Jesse visits as ADMIN; teacher teaching alone; Silent Meditation peer-led) and let him weigh the rules from there. The proposal that emerged was sharper than either of us would have written from scratch.
+
+**"Let's address both of those now to avoid drift."** Closing the doc gap immediately rather than letting it accumulate. The closing ritual's "don't let the docs lie" instruction landed mid-arc, not at session end — and the right call was to do the full doc sweep (four files plus the manual migration plus the volunteer changelog) as a single coherent pass, not piecemeal. The result is five sources that all describe the same model. Drift-avoidance done in real time.
+
+### What comes next
+
+**Verify on the deployed site:**
+- Join a program where you're ProgramTeacher but not assigned host. Confirm: Teacher pill only (no Host pill). End button reads "End" (via ADMIN safety override). Step-In button visible.
+- Join a program where you're NOT teaching and NOT assigned. Should show Host Volunteer pill (you're on host-team hub). End reads "End." Step-In visible.
+- Step-In and confirm the Host pill appears and propagates to other clients. HostAssignment row should exist in `/tools/schedule`.
+- Have a host-team volunteer join an assigned session. They should show **Host Volunteer** (not "Co-host"). Confirm Share Screen works for them — closes the latent bug.
+- Raise a hand and watch the tile move top-left + queue number appear in Participants panel.
+- Set ✓ in Reactions; confirm badge persists and the "Clear ✓" row appears at the top of the popover when you reopen it.
+
+**Per-program `teacherLabel` dropdown** (backlog `2026-05-25-002`) is the next priority. Small, contained, builds on today's metadata pipeline. Adds one nullable field on Program, one dropdown in the editor, one prop on the rendering chain. Should ship before the Silent Meditation Hub so peer-led programs can render "Guide" pills cleanly when that hub goes live.
+
+**Silent Meditation Hub** (backlog `2026-05-25-003`) is the larger structural piece. Reuses host-team infrastructure (HubMember, HostAssignment, self-claim, standing rotations). The open question about whether all Session Hosts should get the bell-friendly audio profile (vs. requiring per-program ProgramTeacher data) probably resolves during that build.
+
+**Audit-trail observation.** After this refactor, an ADMIN ending a session with no `HostAssignment` row still leaves no audit row. If audit trails become important (e.g., for reviewing what happened in a difficult session), the Step-In flow is the answer — ADMIN/GT/teacher-fallback users can use it to formally claim the role before acting. May warrant a soft nudge in the EndMenu ("End for all without an assignment? Step in first to leave a record.") — but only if real signal emerges that audit trails matter operationally.
+
+---
+
 ## 2026-05-25 (session 124) — LiveKit hardening: full audit, Krisp instrumentation, Step-In propagation, Zoom-style tier model, ProgramTeacher backfill, Step-In timing fix
 
 Five code commits on `main` plus a backlog addition. Started as a follow-up to Jesse's first real test of the post-session-122 LiveKit stack with another host (Nancy) — surfaced echo, video pixelation, and an apparent host-status sync bug where she "claimed host" but Jesse didn't see her as Host. Began with a narrow read of the relevant files, then escalated into a full systematic audit when Jesse asked "did you do an audit of our implementation?" and I admitted I'd done informed analysis from partial reads, not a real audit. The audit found real bugs and a Zoom-style tier model emerged from the architectural conversation that followed.

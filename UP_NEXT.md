@@ -6,6 +6,64 @@
 
 ## Active
 
+### Session 125 (2026-05-26) — Session room refinements + host model audit fix shipped; verification pending on deployed site
+
+Four code commits plus two doc commits on `main`. Two threads merged: the raised-hand / vote-signal UX refinements Jesse asked for, and the host-designation audit that surfaced when he reported seeing both Host + Teacher pills on a program he wasn't assigned to host. The fix is the cleanest version of "Session Host (singular)" the system has ever had — identity (pill) is now genuinely separate from capability (button), and the conflation that was misleading him in real-world use is closed.
+
+**The four code commits and two doc commits, in order:**
+
+1. `28d1298` — Raised-hand reorder + persistent vote signals + numbered speaking queue
+2. `bb951e1` — Host identity/capability split + Host Volunteer rename + Share Screen widening + teacher-fallback rule
+3. `984d5ed` — Docs alignment (FEATURES §38, System Architecture, Stack Reference, manual chapter v7 migration)
+4. `49da69c` — Volunteer-facing changelog refresh
+
+See `session-log.md` session 125 entry for the full chronology.
+
+**What testing on the deployed site should confirm:**
+
+1. **The host-designation bug Jesse reported.** Join one of the four programs you teach (Essential Dharma Study, Meditation and Dharma Talk, Private Teacher Meetings, The Art of Meditation) where no `HostAssignment` exists for the session. **Expected:** Teacher pill only (no more misleading Host pill). End button reads "End" — via the ADMIN safety override OR the teacher-fallback (both fire, either grants authority). Step-In button visible in the header. Tapping Step-In writes a real `HostAssignment` and your pill becomes Host.
+2. **Joining as ADMIN on a program someone else hosts.** When Maria runs Qigong at RIM, joining as ADMIN should show: Maria with the Host pill (singular). You show **Host Volunteer** pill (since you're an active host-team HubMember). End button reads "End" because of ADMIN safety override, but the pill stops misrepresenting you. Maria sees "End" because she's the assigned host. The button label differs based on capability; both can act.
+3. **Three pills render with correct priority.** Host (teal) singular on assigned host. Teacher (warm gold) on ProgramTeacher. Host Volunteer (muted slate, renamed from "Co-host") on other host-team members. Maximum two pills per tile (Host + Teacher; never three) — the `cohost` flag is suppressed when either Host or Teacher applies.
+4. **Share Screen works for host-team volunteers** who aren't the assigned host. Pre-this-deploy they saw the button but the token didn't grant the source — taps silently failed. Now it should work end-to-end.
+5. **Raised-hand reordering + queue.** Have someone raise their hand. Their tile should move to top-left of the grid. Have a second person raise — their tile sits next to the first, in that order. Open the Participants panel; the rows should show "1 ✋", "2 ✋". From any other participant's view, the order should match (cross-client determinism via secondary identity sort).
+6. **Persistent vote signals.** Tap ✓ — badge persists on your tile, doesn't move you, doesn't auto-clear. Open Reactions popover again; the top row should read "Clear ✓" — one tap to clean up. Repeat with ✗. Confirm ❤️ and 🙏 still auto-clear after ~5 seconds (they're meant to be timed, not persistent).
+7. **Manual chapter v7 self-heal.** Visit `/admin/manual/host-session-room` after the Vercel deploy completes. The chapter should reflect the new model: identity vs. capability section, three pills (Host / Teacher / Host Volunteer), Bell mode broadened visibility, ADMIN/GT in the Step-In description, new "Reactions and votes" section. The `update_manual_host_session_room_v7` migration flag fires on the next deploy.
+
+**Known limitations / parked items:**
+
+- **Audit-trail gap when ADMIN ends without assignment.** ADMIN/GT/teacher-fallback users can End-for-All without leaving a `HostAssignment` row. Step-In is the explicit path that creates the audit row. Watching for real signal that audit trails matter operationally before adding a soft nudge in the EndMenu.
+- **Backlog `2026-05-24-001`** (stale `isSessionHost` propagation after Step-In) is *narrower* in impact now but still open. The original failure (stale End button → silent 403) is closed because the server-side re-check is authoritative. The remaining UI-staleness case is the Host pill on a previous host's tile lingering until reload — pure visual, no consequence.
+- **The browser-vs-Zoom audio ceiling** carries over from session 124. Unchanged by this session.
+
+---
+
+### Next priority — Per-program `teacherLabel` dropdown (backlog `2026-05-25-002`)
+
+Carried over from session 124, unchanged. Small, contained, lights up better behavior immediately. Add a nullable `Program.teacherLabel` field, a dropdown in the Program editor (Teacher / Guide / Facilitator / Instructor + custom), thread through to the token metadata and pill renderer.
+
+The session-125 metadata pipeline makes this even cheaper to add: `ParticipantMetadata` already carries the `teacher` flag; adding `teacherLabel` is one more string. The pill renderer (`RIMParticipantTile.tsx`, `ParticipantsPanel.tsx`) already reads `meta` — would just need `meta.teacherLabel ?? "Teacher"` in the pill text. One new column in `prisma/schema.prisma`, one migration, one dropdown in `components/registrar/ProgramEditor.tsx`, one prop addition to the data path.
+
+Should ship before the Silent Meditation Hub so peer-led offerings carry "Guide" pills when that hub goes live.
+
+---
+
+### Then — Silent Meditation Hub (backlog `2026-05-25-003`)
+
+Unchanged from session 124. Larger structural piece. New Hub for peer-led offerings. Self-claim + standing rotations reuse host-team infrastructure.
+
+**Open design question parked inside that backlog entry:** should the bell-friendly audio profile be granted to *any* Session Host (regardless of ProgramTeacher status)? Would help Nancy on Awakening The Heart and any peer-leader of a silent sit without needing per-row teacher data. Counter-argument from the role-design doc: non-teaching session hosts (logistics calls) sound better with NS on. Resolve when this hub or the teacherLabel slice is built — the teacherLabel build is probably the natural place since it touches the audio-profile derivation chain anyway.
+
+---
+
+### Smaller items still parked
+
+- **`/api/livekit/token` server-side time gate** — backlog `2026-05-24-002`. Direct URL access to `/session/[slug]` is currently ungated. Not closed by today's work.
+- **Rate-limit `/api/auth/callback/resend`** — backlog `2026-05-21-002`. Sign-in code brute-force defense-in-depth.
+- **The PWA / native-app conversation** — `2026-05-21-001` is explicitly rejected; the architecture decision parked at session 120 stands.
+- **Audit-trail soft nudge in EndMenu** — if real operational signal emerges that ending-without-assignment is happening regularly and we need the record, add a "Step in first to leave a record" hint above the "End Meeting for All" item. Speculative; don't build until the signal is real.
+
+---
+
 ### Session 124 (2026-05-25) — LiveKit hardening shipped; verification pending on deployed site
 
 Five commits on `main`. The Step-In bug Jesse reported in real-world use is fixed, the Krisp pipeline is now observable, the host architecture is the Zoom-style "trust the team" model with three visible role pills, and the operational programs are at audio-profile parity.
