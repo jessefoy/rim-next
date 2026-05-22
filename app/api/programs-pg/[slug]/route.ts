@@ -110,6 +110,29 @@ export async function PUT(
   if (body.programNotes !== undefined) data.programNotes = body.programNotes || null;
   if (body.teacherFacilitators !== undefined) data.teacherFacilitators = body.teacherFacilitators;
   if (body.teacherLabel !== undefined) data.teacherLabel = sanitizeTeacherLabel(body.teacherLabel);
+  if (body.hostingHubSlug !== undefined) {
+    // Empty string from the form (or the "Host Team (default)" option that
+    // sends ""/null) normalises to null. Null is the implicit default and
+    // resolves to "host-team" at read time via getProgramHubSlug.
+    const raw = body.hostingHubSlug;
+    const requestedSlug =
+      typeof raw === "string" && raw.trim() ? raw.trim() : null;
+    // Validate non-null slugs against the hub table to prevent orphan state
+    // (typo / stale client / payload tampering). Null is always accepted.
+    if (requestedSlug) {
+      const hub = await db.hub.findUnique({
+        where: { slug: requestedSlug },
+        select: { id: true },
+      });
+      if (!hub) {
+        return NextResponse.json(
+          { error: `Unknown hub: ${requestedSlug}` },
+          { status: 422 },
+        );
+      }
+    }
+    data.hostingHubSlug = requestedSlug;
+  }
   if (body.categoryId !== undefined) data.categoryId = body.categoryId || null;
   // dateText / timeText are server-computed below from the source fields,
   // so we ignore whatever the client sends here.

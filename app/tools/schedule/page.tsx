@@ -17,6 +17,7 @@ import {
   ctDateStr, shiftToDate, isOccurrenceOnDate,
   type ScheduleProgram,
 } from "@/lib/scheduleUtils";
+import { DEFAULT_HOSTING_HUB_SLUG } from "@/lib/programHub";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Host Schedule — Tools" };
@@ -36,17 +37,24 @@ export default async function ScheduleToolPage({
   const roles = session.user.roles ?? [];
   const isHostManager = roles.includes("HOST_MANAGER") || roles.includes("ADMIN");
 
-  // isManager = HOST_MANAGER/ADMIN OR a hub coordinator — governs rotation
-  // clear/reset controls. Checked against the host-team hub specifically.
+  // Resolve which hosting hub this schedule view is scoped to. Defaults to
+  // host-team when ?hub= is absent. After Slice 1, peer-led hubs (Silent
+  // Meditation, etc.) can reach this page via `?hub=peer-led-silent-meditation`
+  // and see only their hub's programs and rotations.
+  const { hub: hubSlug } = await searchParams;
+  const activeHubSlug = hubSlug || DEFAULT_HOSTING_HUB_SLUG;
+
+  // isManager = HOST_MANAGER/ADMIN OR a coordinator of *this* hub. Routed by
+  // active hub so a Silent Meditation coordinator sees rotation controls
+  // there without holding HOST_MANAGER globally.
   const coordinatorRecord = await db.hubMember.findFirst({
-    where: { userId: session.user.id, hub: { slug: "host-team" }, isCoordinator: true },
+    where: { userId: session.user.id, hub: { slug: activeHubSlug }, isCoordinator: true },
     select: { id: true },
   });
   const isManager = isHostManager || !!coordinatorRecord;
 
-  // Fetch hub context (members, coordinator) from ?hub= param or fall back to host-team
-  const { hub: hubSlug } = await searchParams;
-  const hubContext = await getToolHubContext(hubSlug || "host-team");
+  // Fetch hub context (members, coordinator) for the active hub
+  const hubContext = await getToolHubContext(activeHubSlug);
 
   const coordinators = (hubContext?.members ?? [])
     .filter((m) => m.isCoordinator)
@@ -75,11 +83,26 @@ export default async function ScheduleToolPage({
   const startOfMonth = new Date(year, month, 1);
   const endOfMonth   = new Date(year, month + 1, 0, 23, 59, 59, 999);
 
+  // Program filter for the active hub. host-team includes programs with
+  // null `hostingHubSlug` (the default state — every existing program before
+  // Slice 1 reads as host-team-hosted). Non-host-team hubs see only programs
+  // explicitly transferred to them.
+  const programHubFilter =
+    activeHubSlug === DEFAULT_HOSTING_HUB_SLUG
+      ? {
+          OR: [
+            { hostingHubSlug: null },
+            { hostingHubSlug: DEFAULT_HOSTING_HUB_SLUG },
+          ],
+        }
+      : { hostingHubSlug: activeHubSlug };
+
   const [pgPrograms, assignments, myRotationsRaw] = await Promise.all([
     db.program.findMany({
       where: {
         programFormat: { in: ["virtual", "hybrid"] },
         archivedAt: null,
+        ...programHubFilter,
       },
       select: {
         id: true, name: true, slug: true,
@@ -111,14 +134,17 @@ export default async function ScheduleToolPage({
   ]);
 
   // Build pause-state map: userId → "paused" | "inactive"
-  // A single HubMember query covers all assigned hosts in the initial month load.
+  // A single HubMember query covers all assigned hosts in the initial month
+  // load. Scoped to the active hub: a Silent Meditation peer leader who is
+  // also a host-team member shows their pause state from the hub the
+  // schedule is currently scoped to, not the other one.
   const assignedUserIds = [...new Set(assignments.map((a) => a.userId).filter(Boolean))] as string[];
   const pauseMap = new Map<string, "paused" | "inactive">();
   if (assignedUserIds.length > 0) {
-    const hostHub = await db.hub.findUnique({ where: { slug: "host-team" }, select: { id: true } });
-    if (hostHub) {
+    const activeHub = await db.hub.findUnique({ where: { slug: activeHubSlug }, select: { id: true } });
+    if (activeHub) {
       const hubMembers = await db.hubMember.findMany({
-        where: { hubId: hostHub.id, userId: { in: assignedUserIds } },
+        where: { hubId: activeHub.id, userId: { in: assignedUserIds } },
         select: { userId: true, status: true, hostingCapability: true },
       });
       for (const m of hubMembers) {

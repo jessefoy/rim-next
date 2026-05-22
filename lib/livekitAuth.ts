@@ -55,6 +55,11 @@
 
 import { db } from "@/lib/db";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
+import {
+  DEFAULT_HOSTING_HUB_SLUG,
+  getProgramHostingHub,
+  type ProgramHostingHub,
+} from "@/lib/programHub";
 
 export interface SessionRole {
   /** Identity: HostAssignment for this exact session. No role-based bypass.
@@ -67,10 +72,19 @@ export interface SessionRole {
   hasEndAllAuthority: boolean;
   /** Co-host capability: mute others, share screen, Bell mode, manage. */
   isCoHost: boolean;
-  /** True if user is on the host team for the host-team hub (used for Step-In UI). */
+  /** True if user is on the host team for the program's hosting hub (used for Step-In UI). */
   isHostTeam: boolean;
-  /** Whether the user is the teacher for this program (drives audio profile + Teacher pill). */
+  /** Whether the user is the teacher for this program (drives audio profile + Teacher pill).
+   *  Either: a `ProgramTeacher` row exists for the user on this program (the
+   *  original path), OR the program's hosting hub has `assignmentGrantsTeacher: true`
+   *  AND the user holds an active HostAssignment for this exact session (the
+   *  Silent Meditation Hub path — peer leaders become "teachers" by virtue of
+   *  signing up to lead a session in a teacher-granting hub). */
   isProgramTeacher: boolean;
+  /** The program's resolved hosting hub. Returned so callers can compose the
+   *  pill label hierarchy (`program.teacherLabel ?? hub.teacherLabel ?? null`)
+   *  without re-fetching. Null only when the program doesn't exist. */
+  programHub: ProgramHostingHub | null;
 }
 
 export async function resolveSessionRole(
@@ -78,10 +92,28 @@ export async function resolveSessionRole(
   programSlug: string,
   sessionDate: string | undefined,
   roles: string[],
+  /**
+   * Optional pre-fetched hub info. Token + step-in routes already query the
+   * program for time-gate fields and metadata; they can include the hub join
+   * in that fetch and pass the resolved record here to avoid a redundant
+   * query. Other callers (mute, end-session, sub-request actions) let the
+   * resolver fetch it.
+   */
+  programHubOverride?: ProgramHostingHub | null,
 ): Promise<SessionRole> {
   const isAdmin = roles.includes("ADMIN");
   const isGuidingTeacher = roles.includes("GUIDING_TEACHER");
   const isManager = roles.includes("HOST_MANAGER");
+
+  // ── Resolve which hub hosts this program. Defaults to "host-team" when
+  // Program.hostingHubSlug is null. Callers that already fetched the join
+  // can pass it in to avoid a second query. The resolved record carries
+  // `assignmentGrantsTeacher` and the hub-level pill label fallback.
+  const programHub =
+    programHubOverride !== undefined
+      ? programHubOverride
+      : await getProgramHostingHub(programSlug);
+  const hostingHubSlug = programHub?.hubSlug ?? DEFAULT_HOSTING_HUB_SLUG;
 
   // ── Session Host (identity): HostAssignment match for this exact session.
   // No role-based bypass — identity is who was assigned, not who has authority.
@@ -99,6 +131,24 @@ export async function resolveSessionRole(
   // ── ProgramTeacher: needed both for audio-profile selection and the
   // Teacher pill. Resolves the program record once; reused below for the
   // "any host assigned" check.
+  //
+  // Two paths into the Teacher capability:
+  //
+  //   1. A `ProgramTeacher` row exists for this user on this program
+  //      (the operational path: Jesse on Essential Dharma Study, Maria on
+  //      Qigong, etc.). Same lookup as before.
+  //
+  //   2. The program's hosting hub has `assignmentGrantsTeacher: true` AND
+  //      the user holds an active HostAssignment for this exact session
+  //      (the Silent Meditation Hub path: peer leaders are not teachers
+  //      in the public/editorial sense, but they take on teacher-room
+  //      capability — bell-friendly audio, Teacher pill — for the session
+  //      they're leading because the hub establishes that role).
+  //
+  // The two paths layer cleanly: if both apply, either alone would
+  // produce the same effect — Teacher pill, teacher audio profile, End
+  // fallback if no other host is assigned (which is moot when path 2
+  // applies, since path 2 requires an assignment).
   const program = await db.program.findFirst({
     where: { slug: programSlug },
     select: { id: true },
@@ -110,6 +160,9 @@ export async function resolveSessionRole(
       select: { id: true },
     });
     if (teacher) isProgramTeacher = true;
+  }
+  if (!isProgramTeacher && isSessionHost && programHub?.assignmentGrantsTeacher) {
+    isProgramTeacher = true;
   }
 
   // ── Teacher-as-fallback-host: if no host is assigned for this session and
@@ -168,16 +221,28 @@ export async function resolveSessionRole(
   const tentativeRoleGrant = isManager || isProgramTeacher;
   const hubCheckedCoHost = isAdmin
     ? true
-    : await getEffectiveHostingCapability(userId, "host-team", tentativeRoleGrant);
+    : await getEffectiveHostingCapability(userId, hostingHubSlug, tentativeRoleGrant);
   const isCoHost = isAdmin || isSessionHost || hubCheckedCoHost;
 
   // ── Host team membership: drives the "Step In as Host" affordance.
   // Same hub gate, narrower fallback — visiting teachers don't see
   // Step-In (they teach in the room; they don't run it). HOST_MANAGER
   // does, as a fallback for managers not yet hub-synced.
+  //
+  // Routed by program's hub: a peer-leader who is hosting-capable in
+  // `peer-led-silent-meditation` but not in `host-team` correctly sees
+  // Step-In on programs in their hub and does not see it on host-team
+  // programs they have no business stepping into.
   const isHostTeam = isAdmin
     ? true
-    : await getEffectiveHostingCapability(userId, "host-team", isManager);
+    : await getEffectiveHostingCapability(userId, hostingHubSlug, isManager);
 
-  return { isSessionHost, hasEndAllAuthority, isCoHost, isHostTeam, isProgramTeacher };
+  return {
+    isSessionHost,
+    hasEndAllAuthority,
+    isCoHost,
+    isHostTeam,
+    isProgramTeacher,
+    programHub,
+  };
 }

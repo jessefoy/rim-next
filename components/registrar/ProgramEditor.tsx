@@ -98,6 +98,9 @@ export interface ProgramData {
   hideFromWeeklySchedule: boolean;
   isOpenAccess: boolean;
   guestAccessKey: string;
+  /** Which hub hosts this program. Null = "host-team" (the implicit default).
+   *  Coordinator can transfer hosting to another hub via the Hosting & Access tab. */
+  hostingHubSlug: string | null;
 }
 
 interface Props {
@@ -107,6 +110,15 @@ interface Props {
   initialData?: ProgramData;
   isEditing: boolean;
   categories: Category[];
+  /** Active hubs for the "Hosting & Access" tab dropdown. Server fetches
+   *  `db.hub.findMany({ where: { status: "ACTIVE" } })`. host-team is in
+   *  the list as a regular option but rendered with the "(default)" label. */
+  hubs: { slug: string; name: string }[];
+  /** Count of HostAssignment rows for this program with `sessionDate >= now`.
+   *  Drives the mid-flight change warning when a coordinator switches
+   *  `hostingHubSlug`. Zero or unset means no warning. Only meaningful in
+   *  edit mode. */
+  futureHostAssignmentCount?: number;
 }
 
 /* ── Dana message templates ────────────────────────────────────────────────
@@ -416,8 +428,21 @@ function CategoryOrderInline({ categories: initial }: { categories: Category[] }
   );
 }
 
-const TABS = ["Content", "Schedule", "Categories", "Registration", "Dana", "Home Card", "Visibility"] as const;
+const TABS = [
+  "Content",
+  "Schedule",
+  "Hosting & Access",
+  "Categories",
+  "Registration",
+  "Dana",
+  "Home Card",
+  "Visibility",
+] as const;
 type Tab = (typeof TABS)[number];
+
+/** The implicit default hub when `Program.hostingHubSlug` is null.
+ *  Mirrors `lib/programHub.ts::DEFAULT_HOSTING_HUB_SLUG`. */
+const DEFAULT_HOSTING_HUB_SLUG = "host-team" as const;
 
 const DAY_OPTIONS = [
   { value: "SU", label: "Sun" },
@@ -530,7 +555,15 @@ function deriveDayOfWeek(freq: string, days: string[], start: string): string[] 
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export default function ProgramEditor({ hubSlug, basePath: basePathProp, initialData, isEditing, categories }: Props) {
+export default function ProgramEditor({
+  hubSlug,
+  basePath: basePathProp,
+  initialData,
+  isEditing,
+  categories,
+  hubs,
+  futureHostAssignmentCount = 0,
+}: Props) {
   const basePath = basePathProp ?? `/account/hub/${hubSlug}/programs`;
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("Content");
@@ -638,6 +671,16 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
   const [guestAccessKey, setGuestAccessKey] = useState(initialData?.guestAccessKey ?? "");
   const [resettingKey, setResettingKey] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+
+  // Hosting hub — which volunteer/peer-leader team hosts the live session
+  // for this program. Empty string in state represents the "default (host-
+  // team)" choice and serialises to null over the wire. Coordinator can
+  // transfer hosting to a different hub via the Hosting & Access tab; the
+  // mid-flight warning fires when the choice changes and future
+  // HostAssignment rows exist on this program.
+  const initialHostingHubSlug = initialData?.hostingHubSlug ?? "";
+  const [hostingHubSlug, setHostingHubSlug] = useState<string>(initialHostingHubSlug);
+  const hostingHubChanged = hostingHubSlug !== initialHostingHubSlug;
 
   // ── Unsaved changes tracking ────────────────────────────────────────────
   const [dirty, setDirty] = useState(false);
@@ -836,6 +879,9 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
         hideFromProgramPageList,
         hideFromWeeklySchedule,
         isOpenAccess,
+        // Empty string serialises as null (the implicit "host-team" default).
+        // Server-side `getProgramHubSlug` falls through to host-team when null.
+        hostingHubSlug: hostingHubSlug || null,
       };
 
       const url = isEditing ? `/api/programs-pg/${initialData?.slug}` : "/api/programs-pg";
@@ -1101,43 +1147,11 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
                 )}
               </div>
 
-              <div className="pe-field">
-                <span className="pe-field__label">Pill label for linked teachers</span>
-                <span className="pe-field__help">
-                  How the role pill reads on a linked teacher&apos;s tile in the session room. Defaults to &quot;Teacher.&quot; Use &quot;Guide&quot; for peer-led silent sits, &quot;Facilitator&quot; for recovery offerings, &quot;Instructor&quot; for skills-based classes, or set a custom label.
-                </span>
-                <select
-                  className="pe-input"
-                  value={teacherLabelChoice}
-                  onChange={(e) =>
-                    setTeacherLabelChoice(
-                      e.target.value as
-                        | "default"
-                        | "Guide"
-                        | "Facilitator"
-                        | "Instructor"
-                        | "Custom",
-                    )
-                  }
-                >
-                  <option value="default">Teacher (default)</option>
-                  <option value="Guide">Guide</option>
-                  <option value="Facilitator">Facilitator</option>
-                  <option value="Instructor">Instructor</option>
-                  <option value="Custom">Custom…</option>
-                </select>
-                {teacherLabelChoice === "Custom" && (
-                  <input
-                    type="text"
-                    className="pe-input"
-                    placeholder="e.g. Co-Leader"
-                    value={teacherLabelCustom}
-                    onChange={(e) => setTeacherLabelCustom(e.target.value)}
-                    maxLength={20}
-                    style={{ marginTop: 8 }}
-                  />
-                )}
-              </div>
+              {/* Teacher pill label moved to the "Hosting & Access" tab —
+                  it sits with the other live-session controls (hosting hub,
+                  open-access link) rather than alongside editorial content.
+                  See RIM_System_Architecture.md "Hosting & Access tab
+                  (session 128)". */}
             </div>
           </div>
 
@@ -1213,6 +1227,198 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
               </>
             )}
 
+            {/* Open Access (guest link) moved to the "Hosting & Access" tab —
+                it controls who can join a live session, not when/where the
+                program runs. See RIM_System_Architecture.md "Hosting & Access
+                tab (session 128)". */}
+
+            <div className="pe-field">
+              <span className="pe-field__label">Start Date &amp; Time</span>
+              <span className="pe-field__help">The date range for this program. For single-day events, set both to the same date.</span>
+              <DateTimePicker value={startDatetime} onChange={(v) => { setStartDatetime(v); markDirty(); }} />
+            </div>
+
+            <div className="pe-field">
+              <span className="pe-field__label">End Date &amp; Time</span>
+              <DateTimePicker value={endDatetime} onChange={(v) => { setEndDatetime(v); markDirty(); }} />
+            </div>
+
+            <div className="pe-field">
+              <span className="pe-field__label">Recurrence</span>
+              <span className="pe-field__help">For repeating programs. Sets the pattern (weekly, daily, etc.) and how many times it occurs.</span>
+              <div className="pe-option-cards">
+                {[
+                  { value: "", label: "One-time" },
+                  { value: "DAILY", label: "Daily" },
+                  { value: "WEEKLY", label: "Weekly" },
+                  { value: "MONTHLY", label: "Monthly" },
+                ].map((opt) => (
+                  <label key={opt.value} className={`pe-option-card${recurrenceFreq === opt.value ? " pe-option-card--active" : ""}`}>
+                    <input type="radio" name="recurrenceFreq" checked={recurrenceFreq === opt.value} onChange={() => { setRecurrenceFreq(opt.value); markDirty(); }} />
+                    <span className="pe-option-card__mark" />
+                    {opt.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {recurrenceFreq && (
+              <label className="pe-field">
+                <span className="pe-field__label">Repeat every</span>
+                <div className="pe-inline-row">
+                  <input
+                    type="number"
+                    min="1"
+                    max="52"
+                    value={recurrenceInterval}
+                    onChange={(e) => { setRecurrenceInterval(e.target.value); markDirty(); }}
+                    className="pe-input pe-input--narrow"
+                  />
+                  <span>{recurrenceFreq === "DAILY" ? "day(s)" : recurrenceFreq === "WEEKLY" ? "week(s)" : "month(s)"}</span>
+                </div>
+              </label>
+            )}
+
+            {recurrenceFreq === "WEEKLY" && (
+              <div className="pe-field">
+                <span className="pe-field__label">On days</span>
+                <div className="pe-day-grid">
+                  {DAY_OPTIONS.map((d) => (
+                    <label key={d.value} className="pe-day-toggle">
+                      <input
+                        type="checkbox"
+                        checked={recurrenceDays.includes(d.value)}
+                        onChange={() => { setRecurrenceDays(toggleDay(recurrenceDays, d.value)); markDirty(); }}
+                      />
+                      {d.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {recurrenceFreq && (
+              <label className="pe-field">
+                <span className="pe-field__label">Number of occurrences</span>
+                <span className="pe-field__help">Leave blank for ongoing.</span>
+                <input
+                  type="number"
+                  min="2"
+                  value={recurrenceCount}
+                  onChange={(e) => setRecurrenceCount(e.target.value)}
+                  className="pe-input pe-input--narrow"
+                />
+              </label>
+            )}
+
+          </div></div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════════
+           TAB 3 — Hosting & Access (session 128, Silent Meditation Hub slice 1)
+           ══════════════════════════════════════════════════════════════════ */}
+        {tab === "Hosting & Access" && (
+          <div className="pe-card"><div className="pe-form">
+
+            {/* ── Hosting hub ────────────────────────────────────────── */}
+            <div className="pe-field">
+              <span className="pe-field__label">Hosting team</span>
+              <span className="pe-field__help">
+                Which volunteer team coordinates this program&rsquo;s live sessions —
+                who self-claims, fields sub requests, and receives notifications.
+                Defaults to the Host Team. Peer-led offerings can be transferred
+                to a hub that grants peer leaders teacher-room capability
+                (bell-friendly audio, &ldquo;Guide&rdquo; pill on their tile).
+              </span>
+              <select
+                className="pe-input"
+                value={hostingHubSlug}
+                onChange={(e) => { setHostingHubSlug(e.target.value); markDirty(); }}
+              >
+                <option value="">Host Team (default)</option>
+                {hubs
+                  .filter((h) => h.slug !== DEFAULT_HOSTING_HUB_SLUG)
+                  .map((h) => (
+                    <option key={h.slug} value={h.slug}>
+                      {h.name}
+                    </option>
+                  ))}
+              </select>
+
+              {/* Mid-flight change warning. Fires when the editor's current
+                  choice differs from what was loaded AND future
+                  HostAssignment rows exist on this program. Grandfather
+                  policy: existing future assignments stay valid in the
+                  prior hub; only new self-claims route through the new
+                  hub. */}
+              {isEditing && hostingHubChanged && futureHostAssignmentCount > 0 && (
+                <div
+                  style={{
+                    marginTop: 10,
+                    padding: "10px 12px",
+                    borderRadius: 6,
+                    background: "var(--color-warning-bg, #fdf6e3)",
+                    color: "var(--color-warning, #8a6d3b)",
+                    fontSize: "var(--text-xs)",
+                    lineHeight: 1.55,
+                  }}
+                >
+                  <strong>Heads up:</strong> {futureHostAssignmentCount} upcoming
+                  {futureHostAssignmentCount === 1 ? " host assignment" : " host assignments"}
+                  {" "}already exist for this program. Those assignments will stay
+                  valid after the change — the assigned hosts keep their sessions.
+                  Only new claims and rotations after you save will route through
+                  the new team.
+                </div>
+              )}
+            </div>
+
+            {/* ── Teacher pill label (moved from Content tab) ─────────── */}
+            <div className="pe-field">
+              <span className="pe-field__label">Pill label for linked teachers</span>
+              <span className="pe-field__help">
+                How the role pill reads on a linked teacher&apos;s tile in the
+                session room. Defaults to &quot;Teacher.&quot; Use &quot;Guide&quot;
+                for peer-led silent sits, &quot;Facilitator&quot; for recovery
+                offerings, &quot;Instructor&quot; for skills-based classes, or
+                set a custom label. (If the hosting team grants teacher
+                capability and has its own default, that fills in here when this
+                is left at &quot;Teacher (default).&quot;)
+              </span>
+              <select
+                className="pe-input"
+                value={teacherLabelChoice}
+                onChange={(e) =>
+                  setTeacherLabelChoice(
+                    e.target.value as
+                      | "default"
+                      | "Guide"
+                      | "Facilitator"
+                      | "Instructor"
+                      | "Custom",
+                  )
+                }
+              >
+                <option value="default">Teacher (default)</option>
+                <option value="Guide">Guide</option>
+                <option value="Facilitator">Facilitator</option>
+                <option value="Instructor">Instructor</option>
+                <option value="Custom">Custom…</option>
+              </select>
+              {teacherLabelChoice === "Custom" && (
+                <input
+                  type="text"
+                  className="pe-input"
+                  placeholder="e.g. Co-Leader"
+                  value={teacherLabelCustom}
+                  onChange={(e) => setTeacherLabelCustom(e.target.value)}
+                  maxLength={20}
+                  style={{ marginTop: 8 }}
+                />
+              )}
+            </div>
+
+            {/* ── Open Access guest link (moved from Schedule tab) ────── */}
             {isVirtual && (
               <fieldset className="pe-field">
                 <legend className="pe-field__label">Open Access</legend>
@@ -1320,90 +1526,11 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
               </fieldset>
             )}
 
-            <div className="pe-field">
-              <span className="pe-field__label">Start Date &amp; Time</span>
-              <span className="pe-field__help">The date range for this program. For single-day events, set both to the same date.</span>
-              <DateTimePicker value={startDatetime} onChange={(v) => { setStartDatetime(v); markDirty(); }} />
-            </div>
-
-            <div className="pe-field">
-              <span className="pe-field__label">End Date &amp; Time</span>
-              <DateTimePicker value={endDatetime} onChange={(v) => { setEndDatetime(v); markDirty(); }} />
-            </div>
-
-            <div className="pe-field">
-              <span className="pe-field__label">Recurrence</span>
-              <span className="pe-field__help">For repeating programs. Sets the pattern (weekly, daily, etc.) and how many times it occurs.</span>
-              <div className="pe-option-cards">
-                {[
-                  { value: "", label: "One-time" },
-                  { value: "DAILY", label: "Daily" },
-                  { value: "WEEKLY", label: "Weekly" },
-                  { value: "MONTHLY", label: "Monthly" },
-                ].map((opt) => (
-                  <label key={opt.value} className={`pe-option-card${recurrenceFreq === opt.value ? " pe-option-card--active" : ""}`}>
-                    <input type="radio" name="recurrenceFreq" checked={recurrenceFreq === opt.value} onChange={() => { setRecurrenceFreq(opt.value); markDirty(); }} />
-                    <span className="pe-option-card__mark" />
-                    {opt.label}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {recurrenceFreq && (
-              <label className="pe-field">
-                <span className="pe-field__label">Repeat every</span>
-                <div className="pe-inline-row">
-                  <input
-                    type="number"
-                    min="1"
-                    max="52"
-                    value={recurrenceInterval}
-                    onChange={(e) => { setRecurrenceInterval(e.target.value); markDirty(); }}
-                    className="pe-input pe-input--narrow"
-                  />
-                  <span>{recurrenceFreq === "DAILY" ? "day(s)" : recurrenceFreq === "WEEKLY" ? "week(s)" : "month(s)"}</span>
-                </div>
-              </label>
-            )}
-
-            {recurrenceFreq === "WEEKLY" && (
-              <div className="pe-field">
-                <span className="pe-field__label">On days</span>
-                <div className="pe-day-grid">
-                  {DAY_OPTIONS.map((d) => (
-                    <label key={d.value} className="pe-day-toggle">
-                      <input
-                        type="checkbox"
-                        checked={recurrenceDays.includes(d.value)}
-                        onChange={() => { setRecurrenceDays(toggleDay(recurrenceDays, d.value)); markDirty(); }}
-                      />
-                      {d.label}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {recurrenceFreq && (
-              <label className="pe-field">
-                <span className="pe-field__label">Number of occurrences</span>
-                <span className="pe-field__help">Leave blank for ongoing.</span>
-                <input
-                  type="number"
-                  min="2"
-                  value={recurrenceCount}
-                  onChange={(e) => setRecurrenceCount(e.target.value)}
-                  className="pe-input pe-input--narrow"
-                />
-              </label>
-            )}
-
           </div></div>
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
-           TAB 3 — Categories
+           TAB 4 — Categories
            ══════════════════════════════════════════════════════════════════ */}
         {tab === "Categories" && (
           <div className="pe-card"><div className="pe-form">
@@ -1427,7 +1554,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
-           TAB 4 — Registration
+           TAB 5 — Registration
            ══════════════════════════════════════════════════════════════════ */}
         {tab === "Registration" && (
           <div className="pe-card">
@@ -1579,7 +1706,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
-           TAB 5 — Dana
+           TAB 6 — Dana
            ══════════════════════════════════════════════════════════════════ */}
         {tab === "Dana" && (
           <div className="pe-card"><div className="pe-form">
@@ -1685,7 +1812,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
-           TAB 6 — Home Card
+           TAB 7 — Home Card
            ══════════════════════════════════════════════════════════════════ */}
         {tab === "Home Card" && (
           <div className="pe-card">
@@ -1719,7 +1846,7 @@ export default function ProgramEditor({ hubSlug, basePath: basePathProp, initial
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
-           TAB 7 — Visibility
+           TAB 8 — Visibility
            ══════════════════════════════════════════════════════════════════ */}
         {tab === "Visibility" && (
           <div className="pe-card"><div className="pe-form">

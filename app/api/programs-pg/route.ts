@@ -12,6 +12,7 @@ import { computeTimeText, computeDateText } from "@/lib/programUtils";
 import { sanitizeTeacherLabel } from "@/lib/programUtils";
 import { sendNewProgramNeedsHostEmail } from "@/lib/email";
 import { getHubNotificationRecipients } from "@/lib/toolAuth";
+import { DEFAULT_HOSTING_HUB_SLUG } from "@/lib/programHub";
 
 export async function GET() {
   const session = await auth();
@@ -45,6 +46,28 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "A program with this slug already exists" }, { status: 409 });
   }
 
+  // Validate `hostingHubSlug` against the hub table when supplied. Null /
+  // empty stays the default (host-team). Prevents orphan state where a
+  // typo or stale client writes a slug that doesn't resolve to any hub —
+  // schedule filtering would silently return zero programs, and the
+  // hub-grants-teacher path would degrade quietly.
+  const requestedHostingHubSlug =
+    typeof body.hostingHubSlug === "string" && body.hostingHubSlug.trim()
+      ? body.hostingHubSlug.trim()
+      : null;
+  if (requestedHostingHubSlug) {
+    const hub = await db.hub.findUnique({
+      where: { slug: requestedHostingHubSlug },
+      select: { id: true },
+    });
+    if (!hub) {
+      return NextResponse.json(
+        { error: `Unknown hub: ${requestedHostingHubSlug}` },
+        { status: 422 },
+      );
+    }
+  }
+
   const program = await db.program.create({
     data: {
       name,
@@ -56,6 +79,11 @@ export async function POST(request: NextRequest) {
       pullQuoteSource: body.pullQuoteSource || null,
       teacherFacilitators: body.teacherFacilitators ?? [],
       teacherLabel: sanitizeTeacherLabel(body.teacherLabel),
+      // `hostingHubSlug`: null defaults to host-team at read time. Coordinator
+      // can transfer hosting authority to a different hub (Silent Meditation,
+      // etc.) by setting this field via the editor's Hosting & Access tab.
+      // Slug validated above; non-existent slugs were already rejected with 422.
+      hostingHubSlug: requestedHostingHubSlug,
       categoryId: body.categoryId || null,
       // dateText / timeText are server-computed from the source fields so they
       // never drift. Any value the client sends is ignored.
@@ -125,7 +153,9 @@ export async function POST(request: NextRequest) {
   if (program.programFormat === "virtual" || program.programFormat === "hybrid") {
     after(async () => {
       try {
-        const recipients = await getHubNotificationRecipients("host-team", {
+        const notifyHubSlug =
+          program.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG;
+        const recipients = await getHubNotificationRecipients(notifyHubSlug, {
           excludeUserId: session.user.id,
         });
         const formatLabel =

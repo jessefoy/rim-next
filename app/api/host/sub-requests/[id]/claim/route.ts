@@ -9,10 +9,15 @@ import {
 } from "@/lib/email";
 import { extractTextAsync } from "@/lib/renderRichContentServer";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
+import { getProgramHubSlug } from "@/lib/programHub";
 
 // POST /api/host/sub-requests/[id]/claim — claim an open sub request
 // Body: { message? }
 // Side-effect: updates assignment.userId to claimer (so session shows new host)
+//
+// Capability gate routes by the program's hosting hub. A peer-leader can
+// claim a sub for a peer-led sit; a host-team volunteer can claim subs for
+// host-team programs. ADMIN bypasses.
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -20,15 +25,6 @@ export async function POST(
   const session = await auth();
   if (!session?.user?.id) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const roles = session.user.roles ?? [];
-  const isAdmin = roles.includes("ADMIN");
-  const tentativeHost = isAdmin || roles.includes("HOST") || roles.includes("HOST_MANAGER");
-  const canClaim = isAdmin
-    ? true
-    : await getEffectiveHostingCapability(session.user.id, "host-team", tentativeHost);
-  if (!canClaim) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { id } = await params;
@@ -55,6 +51,18 @@ export async function POST(
   // Can't claim your own request
   if (subRequest.assignment.userId === session.user.id) {
     return Response.json({ error: "You cannot claim your own sub request" }, { status: 409 });
+  }
+
+  // Capability gate, scoped to the program's hosting hub.
+  const roles = session.user.roles ?? [];
+  const isAdmin = roles.includes("ADMIN");
+  const programHubSlug = await getProgramHubSlug(subRequest.programSlug);
+  const tentativeHost = isAdmin || roles.includes("HOST") || roles.includes("HOST_MANAGER");
+  const canClaim = isAdmin
+    ? true
+    : await getEffectiveHostingCapability(session.user.id, programHubSlug, tentativeHost);
+  if (!canClaim) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
   // Fetch claimer's name for notifications

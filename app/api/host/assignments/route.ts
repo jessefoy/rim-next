@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
 import { getHubNotificationRecipients } from "@/lib/toolAuth";
 import { sendHostAssignmentConfirmationEmail } from "@/lib/email";
+import { DEFAULT_HOSTING_HUB_SLUG, getProgramHubSlug } from "@/lib/programHub";
 
 /**
  * Format a session date for use in host emails.
@@ -48,10 +49,20 @@ function isManager(roles: string[]) {
   return roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
 }
 
-async function hasEffectiveHostAccess(userId: string, roles: string[]): Promise<boolean> {
+/**
+ * Capability gate. For the program-aware POST handler, callers pass the
+ * program's hosting hub slug. GET handlers (which surface schedules across
+ * potentially many programs) keep the legacy host-team gate for Slice 1 —
+ * broadening the schedule UI to surface multiple hubs is a Slice 2 follow-on.
+ */
+async function hasEffectiveHostAccess(
+  userId: string,
+  roles: string[],
+  hubSlug: string = DEFAULT_HOSTING_HUB_SLUG,
+): Promise<boolean> {
   if (roles.includes("ADMIN")) return true;
   const tentative = roles.includes("HOST") || roles.includes("HOST_MANAGER");
-  return getEffectiveHostingCapability(userId, "host-team", tentative);
+  return getEffectiveHostingCapability(userId, hubSlug, tentative);
 }
 
 // ── Date helpers (duplicated from schedule/page.tsx — same logic) ─────────────
@@ -286,10 +297,6 @@ export async function POST(request: Request) {
   if (!session?.user?.id) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const roles = session.user.roles ?? [];
-  if (!(await hasEffectiveHostAccess(session.user.id, roles))) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
 
   const body = await request.json().catch(() => null);
   if (!body?.programSlug) {
@@ -303,6 +310,17 @@ export async function POST(request: Request) {
     notes?: string | null;
     action?: "claim";
   };
+
+  // Capability gate routes by the program's hosting hub. A peer-leader can
+  // self-claim a peer-led silent sit; a host-team volunteer can self-claim
+  // host-team programs. Manager operations (create-unclaimed,
+  // assign-to-others) still require the system-role manager check.
+  const programHubSlug = await getProgramHubSlug(programSlug);
+
+  const roles = session.user.roles ?? [];
+  if (!(await hasEffectiveHostAccess(session.user.id, roles, programHubSlug))) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   // Self-claim: any HOST can create+claim for themselves.
   // Manager operations (create unclaimed, assign to others): manager-only.
@@ -341,9 +359,10 @@ export async function POST(request: Request) {
     );
   }
 
-  // If assigning a specific user (manager only), verify they can host.
-  // Hub authority applies: a member whose host-team capability is revoked
-  // or who is paused/inactive cannot be assigned, even if the HOST role is present.
+  // If assigning a specific user (manager only), verify they can host in
+  // the program's hub. Hub authority applies: a member whose capability is
+  // revoked or who is paused/inactive in the target hub cannot be assigned,
+  // even if the HOST role is present.
   if (assignedUserId && assignedUserId !== session.user.id) {
     const targetUser = await db.user.findUnique({
       where: { id: assignedUserId },
@@ -352,9 +371,9 @@ export async function POST(request: Request) {
     if (!targetUser) {
       return Response.json({ error: "User not found" }, { status: 404 });
     }
-    if (!(await hasEffectiveHostAccess(assignedUserId, targetUser.roles))) {
+    if (!(await hasEffectiveHostAccess(assignedUserId, targetUser.roles, programHubSlug))) {
       return Response.json(
-        { error: "This member can't host right now — they are paused, inactive, or have had hosting revoked on the Host Team." },
+        { error: "This member can't host right now — they are paused, inactive, or have had hosting revoked on this hub." },
         { status: 422 }
       );
     }

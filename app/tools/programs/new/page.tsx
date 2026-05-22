@@ -16,7 +16,14 @@ export default async function NewProgramToolPage() {
   const session = await auth();
   if (!session) redirect("/login");
 
-  const categories = await db.programCategory.findMany({ orderBy: { sortOrder: "asc" } });
+  const [categories, hubs] = await Promise.all([
+    db.programCategory.findMany({ orderBy: { sortOrder: "asc" } }),
+    db.hub.findMany({
+      where: { status: "ACTIVE" },
+      select: { slug: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   return (
     <div className="vol-page">
@@ -28,6 +35,7 @@ export default async function NewProgramToolPage() {
           basePath="/tools/programs"
           isEditing={false}
           categories={categories.map((c) => ({ id: c.id, slug: c.slug, name: c.name }))}
+          hubs={hubs}
         />
       </div>
     </div>

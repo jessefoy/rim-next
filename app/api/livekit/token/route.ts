@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { createRoomToken, roomNameForProgram } from "@/lib/livekit";
 import { resolveSessionRole } from "@/lib/livekitAuth";
+import { DEFAULT_HOSTING_HUB_SLUG, resolveTeacherPillLabel } from "@/lib/programHub";
 import { getActiveSessionWindow, describeInactiveWindow } from "@/lib/sessionWindow";
 import { ctDateStr, shiftToDate } from "@/lib/scheduleUtils";
 
@@ -71,11 +72,29 @@ export async function POST(req: NextRequest) {
       recurrenceDays: true,
       recurrenceCount: true,
       teacherLabel: true,
+      hostingHubSlug: true,
     },
   });
   if (!program) {
     return NextResponse.json({ error: "Program not found" }, { status: 404 });
   }
+
+  // Resolve the program's hosting hub (default: host-team) and its
+  // teacher-capability flags. Done in-line so we can share the result with
+  // `resolveSessionRole` below without a second query. A peer-led program
+  // in the Silent Meditation Hub will read `assignmentGrantsTeacher: true`
+  // and a hub-level pill label here; host-team programs keep the defaults.
+  const resolvedHostingHubSlug =
+    program.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG;
+  const hostingHub = await db.hub.findUnique({
+    where: { slug: resolvedHostingHubSlug },
+    select: { assignmentGrantsTeacher: true, teacherLabel: true },
+  });
+  const programHubInfo = {
+    hubSlug: resolvedHostingHubSlug,
+    assignmentGrantsTeacher: hostingHub?.assignmentGrantsTeacher ?? false,
+    hubTeacherLabel: hostingHub?.teacherLabel ?? null,
+  };
 
   // Time gate — refuse token issuance outside the session window. ADMIN and
   // GUIDING_TEACHER bypass as a safety override (mirrors the End-for-All
@@ -126,7 +145,22 @@ export async function POST(req: NextRequest) {
   });
 
   const { isSessionHost, hasEndAllAuthority, isCoHost, isHostTeam, isProgramTeacher } =
-    await resolveSessionRole(session.user.id, program.slug, effectiveSessionDate, roles);
+    await resolveSessionRole(
+      session.user.id,
+      program.slug,
+      effectiveSessionDate,
+      roles,
+      programHubInfo,
+    );
+
+  // Pill label hierarchy: program override > hub default > built-in "Teacher".
+  // `null` here means "use the built-in default" — the client renderer falls
+  // through to "Teacher" when teacherLabel is absent from metadata, so we
+  // leave it unset rather than seed the literal string.
+  const effectiveTeacherLabel = resolveTeacherPillLabel(
+    program.teacherLabel,
+    programHubInfo.hubTeacherLabel,
+  );
 
   // Audio profile — drives RoomOptions.audioCaptureDefaults in the client:
   //   teacher  → preserve bells/music (no noise suppression, no AGC)
@@ -180,10 +214,10 @@ export async function POST(req: NextRequest) {
   if (isSessionHost) seedMeta.host = true;
   if (isProgramTeacher) {
     seedMeta.teacher = true;
-    // Override the default "Teacher" pill label if the coordinator set one
-    // on this program ("Guide" / "Facilitator" / "Instructor" / custom).
-    // Null stays null on the wire — the pill renderer falls back to "Teacher".
-    if (program.teacherLabel) seedMeta.teacherLabel = program.teacherLabel;
+    // Override the default "Teacher" pill label using the resolved hierarchy
+    // (program override → hub default → built-in default). Null stays null
+    // on the wire — the pill renderer falls back to "Teacher".
+    if (effectiveTeacherLabel) seedMeta.teacherLabel = effectiveTeacherLabel;
   }
   if (isCoHost && !isSessionHost && !isProgramTeacher) seedMeta.cohost = true;
   const initialMeta = Object.keys(seedMeta).length > 0 ? JSON.stringify(seedMeta) : undefined;
@@ -214,6 +248,6 @@ export async function POST(req: NextRequest) {
     isProgramTeacher,
     audioProfile,
     avatarUrl: caller?.avatarUrl ?? null,
-    teacherLabel: program.teacherLabel ?? null,
+    teacherLabel: effectiveTeacherLabel,
   });
 }

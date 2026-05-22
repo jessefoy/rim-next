@@ -3372,6 +3372,51 @@ async function main() {
     console.log("  ⏭ Program.teacherLabel column already added.");
   }
 
+  // Session 128 — Silent Meditation Hub architecture (Slice 1).
+  // Three additive columns; no backfill. Pure structural additions:
+  //   programs.hostingHubSlug   — null defaults to "host-team" at read time
+  //   hubs.assignmentGrantsTeacher — false default; opt-in per hub
+  //   hubs.teacherLabel         — null default; hub-level fallback for the pill label
+  // Existing rows remain valid: every program reads as host-hosted (null), every
+  // hub reads as non-teacher-granting (false). The new Silent Meditation hub is
+  // created in Slice 2 via /admin/hubs with both fields explicitly set.
+  const hostingHubSlugFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'add_program_hosting_hub_slug'
+  `).catch(() => []);
+
+  if (hostingHubSlugFlag.length === 0) {
+    console.log("→ Adding Program.hostingHubSlug column…");
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "programs" ADD COLUMN IF NOT EXISTS "hostingHubSlug" TEXT`,
+    );
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('add_program_hosting_hub_slug')`,
+    );
+    console.log("  ✔ Program.hostingHubSlug column added.");
+  } else {
+    console.log("  ⏭ Program.hostingHubSlug column already added.");
+  }
+
+  const hubTeacherCapabilityFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'add_hub_teacher_capability_fields'
+  `).catch(() => []);
+
+  if (hubTeacherCapabilityFlag.length === 0) {
+    console.log("→ Adding Hub.assignmentGrantsTeacher + Hub.teacherLabel columns…");
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "hubs" ADD COLUMN IF NOT EXISTS "assignmentGrantsTeacher" BOOLEAN NOT NULL DEFAULT false`,
+    );
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "hubs" ADD COLUMN IF NOT EXISTS "teacherLabel" TEXT`,
+    );
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('add_hub_teacher_capability_fields')`,
+    );
+    console.log("  ✔ Hub.assignmentGrantsTeacher + Hub.teacherLabel columns added.");
+  } else {
+    console.log("  ⏭ Hub.assignmentGrantsTeacher + Hub.teacherLabel columns already added.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

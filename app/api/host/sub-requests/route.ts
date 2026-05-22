@@ -9,11 +9,23 @@ import {
 import { extractTextAsync } from "@/lib/renderRichContentServer";
 import { getHubNotificationRecipients } from "@/lib/toolAuth";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
+import { DEFAULT_HOSTING_HUB_SLUG, getProgramHubSlug } from "@/lib/programHub";
 
-async function hasEffectiveHostAccess(userId: string, roles: string[]): Promise<boolean> {
+/**
+ * Capability gate, scoped to a specific hub. For the program-aware POST
+ * handler, callers pass the program's `hostingHubSlug`. The GET handler
+ * (list-all-open sub-requests) keeps the legacy host-team gate — broadening
+ * it to "host-capable in any hub" is a Slice 2 concern when the second
+ * hosting hub goes live and its surface is wired into the schedule tool.
+ */
+async function hasEffectiveHostAccess(
+  userId: string,
+  roles: string[],
+  hubSlug: string = DEFAULT_HOSTING_HUB_SLUG,
+): Promise<boolean> {
   if (roles.includes("ADMIN")) return true;
   const tentative = roles.includes("HOST") || roles.includes("HOST_MANAGER");
-  return getEffectiveHostingCapability(userId, "host-team", tentative);
+  return getEffectiveHostingCapability(userId, hubSlug, tentative);
 }
 
 // GET /api/host/sub-requests — all OPEN sub requests (visible to all hub members)
@@ -72,9 +84,6 @@ export async function POST(request: Request) {
   if (!session?.user?.id) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
-  if (!(await hasEffectiveHostAccess(session.user.id, session.user.roles ?? []))) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
 
   const body = await request.json().catch(() => null);
   if (!body?.assignmentId) {
@@ -95,7 +104,17 @@ export async function POST(request: Request) {
   if (!assignment) {
     return Response.json({ error: "Assignment not found" }, { status: 404 });
   }
+
+  // Resolve the program's hosting hub. The capability gate and the
+  // notification recipient pool both route through it — a peer-leader in
+  // `peer-led-silent-meditation` requesting a sub for a peer-led sit
+  // notifies their hub, not host-team.
+  const programHubSlug = await getProgramHubSlug(assignment.programSlug);
+
   const roles = session.user.roles ?? [];
+  if (!(await hasEffectiveHostAccess(session.user.id, roles, programHubSlug))) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
   const isManager = roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
   if (!isManager && assignment.userId !== session.user.id) {
     return Response.json({ error: "You can only request subs for your own assignments" }, { status: 403 });
@@ -138,7 +157,7 @@ export async function POST(request: Request) {
   // intermittently, or not at all).
   after(async () => {
     try {
-      const recipientUsers = await getHubNotificationRecipients("host-team", {
+      const recipientUsers = await getHubNotificationRecipients(programHubSlug, {
         excludeUserId: assignment.userId ?? undefined,
       });
 

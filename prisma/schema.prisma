@@ -222,6 +222,7 @@ model Program {
   specialNotes        Json?            // DEPRECATED (session 91) — content migrated into description as Aside block by the fold_special_notes_into_description_as_aside migration. Field kept for one release as safety net; remove in a later migration. Do not write new data to this field.
   teacherFacilitators String[]         // plain text names
   teacherLabel        String?          // pill label for ProgramTeachers in the session room. Null = "Teacher" (default). Coordinator can set per program — "Guide" for peer-led silent sits, "Facilitator" for Recovery Dharma, "Instructor" for Qigong, custom for anything else.
+  hostingHubSlug      String?          // which hub hosts this program. Null = "host-team" (the default). Set to e.g. "peer-led-silent-meditation" to transfer hosting authority to a different hub. Slug-based join (not FK) for stability — mirrors HostAssignment.programSlug. See RIM_System_Architecture.md "Hub-as-authority for programs (session 128)".
 
   // ── Schedule & Location ────────────────────────────────
   categoryId          String?
@@ -928,6 +929,18 @@ model Hub {
   homeContent            Json?
   documentCategories     String[]      @default([])
   conversationCategories String[]      @default(["General"])
+  // Hub-as-authority for programs (session 128 — Silent Meditation Hub).
+  // When `assignmentGrantsTeacher` is true, an active HostAssignment for a
+  // program whose `hostingHubSlug` matches this hub's slug confers teacher
+  // capability on the assignee — Teacher pill, bell-friendly audio profile,
+  // End-for-All fallback. Peer-led offerings (silent meditation, Recovery
+  // Dharma) opt in; host-team stays at the default (false) since hosts on
+  // operational programs are not teachers.
+  // `teacherLabel` is the default pill text when this flag is true; the
+  // pill hierarchy is `program.teacherLabel ?? hub.teacherLabel ?? "Teacher"`
+  // (most specific wins).
+  assignmentGrantsTeacher Boolean @default(false)
+  teacherLabel           String?
   createdAt              DateTime      @default(now())
   updatedAt              DateTime      @updatedAt
 

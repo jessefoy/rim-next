@@ -22,7 +22,7 @@ export default async function EditProgramToolPage({
   const session = await auth();
   if (!session) redirect("/login");
 
-  const [program, categories] = await Promise.all([
+  const [program, categories, hubs] = await Promise.all([
     db.program.findUnique({
       where: { slug: programSlug },
       include: {
@@ -33,6 +33,15 @@ export default async function EditProgramToolPage({
       },
     }),
     db.programCategory.findMany({ orderBy: { sortOrder: "asc" } }),
+    // Active hubs feed the Hosting & Access tab dropdown. Coordinator
+    // chooses which hub hosts this program's live sessions; the dropdown
+    // shows every active hub so the field is discoverable as new hubs
+    // come online (Silent Meditation, Recovery Dharma, etc.).
+    db.hub.findMany({
+      where: { status: "ACTIVE" },
+      select: { slug: true, name: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   if (!program) {
@@ -44,6 +53,19 @@ export default async function EditProgramToolPage({
       </div>
     );
   }
+
+  // Future HostAssignment count drives the mid-flight change warning when
+  // a coordinator transfers hosting to another hub. The grandfather policy
+  // keeps existing future assignments valid; the warning surfaces how many
+  // assignments are about to grandfather so the coordinator's decision is
+  // informed. Standing rotations live in a separate table and aren't part
+  // of this count — they ride forward on the new hub automatically.
+  const futureHostAssignmentCount = await db.hostAssignment.count({
+    where: {
+      programSlug,
+      sessionDate: { gte: new Date() },
+    },
+  });
 
   const initialData: ProgramData = {
     id: program.id,
@@ -100,6 +122,7 @@ export default async function EditProgramToolPage({
     isOpenAccess: program.isOpenAccess,
     guestAccessKey: program.guestAccessKey ?? "",
     programNotes: program.programNotes ?? null,
+    hostingHubSlug: program.hostingHubSlug ?? null,
   };
 
   return (
@@ -113,6 +136,8 @@ export default async function EditProgramToolPage({
           initialData={initialData}
           isEditing={true}
           categories={categories.map((c) => ({ id: c.id, slug: c.slug, name: c.name }))}
+          hubs={hubs}
+          futureHostAssignmentCount={futureHostAssignmentCount}
         />
       </div>
     </div>
