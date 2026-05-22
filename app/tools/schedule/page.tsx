@@ -124,6 +124,10 @@ export default async function ScheduleToolPage({
     // summary at the top of the schedule. Coordinators see all rotations via the
     // Rotations tab; hosts see just their own rotations here so they understand
     // the recurring pattern that's putting sessions on their calendar.
+    // The hub-scope filter is applied after the Promise.all (we don't yet
+    // know the hub's program slugs at query time without sequencing the
+    // queries). Filtering in memory is cheap — a user's rotation list is
+    // tiny — and keeps the parallel fetch.
     db.standingAssignment.findMany({
       where: {
         userId: session.user.id,
@@ -132,6 +136,16 @@ export default async function ScheduleToolPage({
       orderBy: [{ programSlug: "asc" }, { occurrence: "asc" }],
     }),
   ]);
+
+  // Hub-scope the rotations: only keep those whose program belongs to the
+  // active hub. Without this, a peer-led-silent-meditation coordinator
+  // viewing their hub's Scheduler would see host-team standing rotations
+  // leaking into the "Your Rotations" panel (the bug Jesse caught in the
+  // first Slice 2 test).
+  const hubProgramSlugs = new Set(pgPrograms.map((p) => p.slug));
+  const myRotationsRawScoped = myRotationsRaw.filter((r) =>
+    hubProgramSlugs.has(r.programSlug),
+  );
 
   // Build pause-state map: userId → "paused" | "inactive"
   // A single HubMember query covers all assigned hosts in the initial month
@@ -250,8 +264,10 @@ export default async function ScheduleToolPage({
   }
 
   // Serialize the current user's active rotations for the host-side summary.
+  // Uses the hub-scoped list so cross-hub rotations don't leak into the
+  // Your Rotations panel.
   const programNameBySlug = new Map(pgPrograms.map((p) => [p.slug, p.name]));
-  const myRotations = myRotationsRaw.map((r) => ({
+  const myRotations = myRotationsRawScoped.map((r) => ({
     id:          r.id,
     programSlug: r.programSlug,
     programName: programNameBySlug.get(r.programSlug) ?? r.programSlug,
@@ -261,8 +277,10 @@ export default async function ScheduleToolPage({
   }));
 
   // Next upcoming HostAssignment per rotation program for this user.
-  // Drives the "Next" column in the Your Rotations panel.
-  const rotationSlugs = [...new Set(myRotationsRaw.map((r) => r.programSlug))];
+  // Drives the "Next" column in the Your Rotations panel.  Uses the
+  // hub-scoped rotation list so we don't fetch upcoming sessions for
+  // programs that belong to other hubs.
+  const rotationSlugs = [...new Set(myRotationsRawScoped.map((r) => r.programSlug))];
   const nextSessionBySlug: Record<string, string> = {};
   if (rotationSlugs.length > 0) {
     const upcoming = await db.hostAssignment.findMany({
