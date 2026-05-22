@@ -3,6 +3,8 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { createRoomToken, roomNameForProgram } from "@/lib/livekit";
 import { resolveSessionRole } from "@/lib/livekitAuth";
+import { getActiveSessionWindow, describeInactiveWindow } from "@/lib/sessionWindow";
+import { ctDateStr, shiftToDate } from "@/lib/scheduleUtils";
 
 /**
  * POST /api/livekit/token
@@ -57,10 +59,64 @@ export async function POST(req: NextRequest) {
 
   const program = await db.program.findFirst({
     where: { slug: programSlug },
-    select: { id: true, slug: true, name: true, programFormat: true },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      programFormat: true,
+      startDatetime: true,
+      endDatetime: true,
+      recurrenceFreq: true,
+      recurrenceInterval: true,
+      recurrenceDays: true,
+      recurrenceCount: true,
+    },
   });
   if (!program) {
     return NextResponse.json({ error: "Program not found" }, { status: 404 });
+  }
+
+  // Time gate — refuse token issuance outside the session window. ADMIN and
+  // GUIDING_TEACHER bypass as a safety override (mirrors the End-for-All
+  // authority model: the safety surface stays open to the people responsible
+  // for the platform). Bypass is required so direct-URL access remains
+  // possible for testing and emergency room recovery outside hours.
+  const isAdminOrGT = isAdmin || roles.includes("GUIDING_TEACHER");
+  const sessionWindow = getActiveSessionWindow(program);
+  let effectiveSessionDate: string | undefined;
+  if (sessionWindow.active) {
+    effectiveSessionDate = sessionWindow.sessionDate;
+  } else if (isAdminOrGT) {
+    // Bypass: use the caller-supplied sessionDate verbatim if provided
+    // (matches an existing assignment's stored format). Otherwise project
+    // the program's start moment onto today's CT date using the same
+    // shiftToDate the schedule tool uses, so the resulting timestamp
+    // aligns with HostAssignment rows for today and the roomName suffix
+    // is correct.
+    if (sessionDate) {
+      effectiveSessionDate = sessionDate;
+    } else if (program.startDatetime) {
+      const todayCT = ctDateStr(new Date().toISOString());
+      effectiveSessionDate = shiftToDate(
+        program.startDatetime.toISOString(),
+        todayCT,
+      ).toISOString();
+    } else {
+      // No startDatetime at all — fall back to bare ISO; chat/room name
+      // are still per-day via the slice in roomNameForProgram.
+      effectiveSessionDate = new Date().toISOString();
+    }
+  } else {
+    return NextResponse.json(
+      {
+        error: "session-closed",
+        message: describeInactiveWindow(sessionWindow),
+        nextSessionDate: sessionWindow.nextSessionDate,
+        nextOpensAt: sessionWindow.nextOpensAt?.toISOString() ?? null,
+        nextStartsAt: sessionWindow.nextStartsAt?.toISOString() ?? null,
+      },
+      { status: 403 },
+    );
   }
 
   const caller = await db.user.findUnique({
@@ -69,7 +125,7 @@ export async function POST(req: NextRequest) {
   });
 
   const { isSessionHost, hasEndAllAuthority, isCoHost, isHostTeam, isProgramTeacher } =
-    await resolveSessionRole(session.user.id, program.slug, sessionDate, roles);
+    await resolveSessionRole(session.user.id, program.slug, effectiveSessionDate, roles);
 
   // Audio profile — drives RoomOptions.audioCaptureDefaults in the client:
   //   teacher  → preserve bells/music (no noise suppression, no AGC)
@@ -78,7 +134,15 @@ export async function POST(req: NextRequest) {
   const audioProfile: "teacher" | "speaker" | "listener" =
     isProgramTeacher ? "teacher" : isCoHost ? "speaker" : "listener";
 
-  const roomName = roomNameForProgram(program.slug, sessionDate);
+  // Per-session room name. Every session gets a fresh roomName ending in
+  // the CT date — recurring programs no longer share one room across all
+  // occurrences. Session-scoped chat (SessionChatMessage rows are filtered
+  // by roomName) inherits this scoping automatically: today's chat is
+  // invisible to tomorrow's session because tomorrow's room has a new
+  // name. Three layers cover the "forgot to End for All" fallback:
+  // explicit End-for-All, LiveKit's empty-room idle cleanup, and this
+  // time gate refusing to issue tokens after the close window.
+  const roomName = roomNameForProgram(program.slug, effectiveSessionDate);
   const userName = session.user.name || "Member";
 
   // Seed metadata so the role pills render the moment a participant
@@ -133,6 +197,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     token,
     roomName,
+    sessionDate: effectiveSessionDate,
     wsUrl: process.env.NEXT_PUBLIC_LIVEKIT_URL,
     isSessionHost,
     hasEndAllAuthority,

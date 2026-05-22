@@ -126,6 +126,7 @@ export default function RIMParticipantTile() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           programSlug: sessionRole.programSlug,
+          sessionDate: sessionRole.sessionDate,
           participantIdentity,
         }),
       });

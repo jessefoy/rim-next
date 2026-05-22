@@ -42,6 +42,7 @@ export default function SessionPage() {
   const [token, setToken] = useState<string | null>(null);
   const [wsUrl, setWsUrl] = useState<string | null>(null);
   const [programName, setProgramName] = useState<string>("");
+  const [sessionDate, setSessionDate] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   // Permission model — see lib/livekitAuth.ts. Identity (isSessionHost) is
   // separate from capability (hasEndAllAuthority). The pill on a tile is
@@ -105,11 +106,15 @@ export default function SessionPage() {
         }
         if (!res.ok) {
           const data = await res.json();
-          throw new Error(data.error || "Failed to connect");
+          // Prefer the human-readable `message` from the time-gate (e.g.
+          // "This session isn't open yet — it begins at 7:00 PM") over the
+          // machine-readable `error` slug.
+          throw new Error(data.message || data.error || "Failed to connect");
         }
         const data = await res.json();
         setToken(data.token);
         setWsUrl(data.wsUrl);
+        setSessionDate(data.sessionDate ?? undefined);
         setIsSessionHost(data.isSessionHost ?? false);
         setHasEndAllAuthority(data.hasEndAllAuthority ?? false);
         setIsCoHost(data.isCoHost ?? false);
@@ -117,7 +122,10 @@ export default function SessionPage() {
         setIsProgramTeacher(data.isProgramTeacher ?? false);
         setAudioProfile(data.audioProfile ?? "listener");
         setAvatarUrl(data.avatarUrl ?? null);
-        setProgramName(data.roomName.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()));
+        // Strip the trailing -YYYY-MM-DD date from the per-session room name
+        // when deriving the program label.
+        const labelSource = (data.roomName as string).replace(/-\d{4}-\d{2}-\d{2}$/, "");
+        setProgramName(labelSource.replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()));
         setState("ready");
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong");
@@ -147,12 +155,13 @@ export default function SessionPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Unable to join");
+        throw new Error(data.message || data.error || "Unable to join");
       }
 
       const data = await res.json();
       setToken(data.token);
       setWsUrl(data.wsUrl);
+      setSessionDate(data.sessionDate ?? undefined);
       setProgramName(data.programName);
       setState("ready");
     } catch (e) {
@@ -188,7 +197,7 @@ export default function SessionPage() {
       const res = await fetch("/api/livekit/step-in", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ programSlug: slug }),
+        body: JSON.stringify({ programSlug: slug, sessionDate }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -365,6 +374,7 @@ export default function SessionPage() {
             isProgramTeacher={isProgramTeacher}
             audioProfile={audioProfile}
             programSlug={slug}
+            sessionDate={sessionDate}
             guestKey={guestKey ?? undefined}
             avatarUrl={avatarUrl}
             view={view}

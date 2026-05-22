@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { endRoom, roomNameForProgram } from "@/lib/livekit";
 import { resolveSessionRole } from "@/lib/livekitAuth";
+import { assertSessionDateInWindow } from "@/lib/sessionWindow";
 
 /**
  * POST /api/livekit/end-session
@@ -31,7 +32,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "programSlug required" }, { status: 400 });
   }
 
-  // Re-resolve at call time — this is the authoritative gate. The
+  const roles = session.user.roles ?? [];
+
+  // Defense-in-depth: refuse if sessionDate doesn't line up with the current
+  // open window (or no window is open and the caller isn't ADMIN/GT). This
+  // closes the hole where a client could POST an arbitrary sessionDate to
+  // target a room they were never connected to.
+  const assertion = await assertSessionDateInWindow(programSlug, sessionDate, roles);
+  if (!assertion.ok) {
+    return NextResponse.json(
+      { error: assertion.error, message: assertion.message },
+      { status: assertion.status },
+    );
+  }
+  const effectiveSessionDate = assertion.window.sessionDate;
+
+  // Re-resolve at call time — this is the authoritative auth gate. The
   // teacher-fallback in resolveSessionRole is reactive at token-issue, so a
   // teacher's token issued when no host was assigned carries the End button
   // label; if a host later claims the session, the teacher's token is stale
@@ -40,8 +56,8 @@ export async function POST(req: NextRequest) {
   const { hasEndAllAuthority } = await resolveSessionRole(
     session.user.id,
     programSlug,
-    sessionDate,
-    session.user.roles ?? [],
+    effectiveSessionDate,
+    roles,
   );
   if (!hasEndAllAuthority) {
     return NextResponse.json(
@@ -50,7 +66,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const roomName = roomNameForProgram(programSlug, sessionDate);
+  const roomName = roomNameForProgram(programSlug, effectiveSessionDate);
 
   try {
     await endRoom(roomName);

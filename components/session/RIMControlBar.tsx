@@ -42,6 +42,8 @@ import {
 
 interface Props {
   programSlug: string;
+  /** YYYY-MM-DD in CT — scopes End-for-All to this session's room. */
+  sessionDate: string | undefined;
   /** End-for-All capability — drives the End button label ("End" vs "Leave")
    *  and the EndMenu's "End for all" option. Held by the assigned host,
    *  ADMIN, GUIDING_TEACHER, and the Teacher when no host is assigned. */
@@ -105,6 +107,7 @@ function useLocalTrackState() {
 
 export default function RIMControlBar({
   programSlug,
+  sessionDate,
   hasEndAllAuthority,
   isCoHost,
   participantsOpen,
@@ -378,6 +381,7 @@ export default function RIMControlBar({
           onClose={() => setEndOpen(false)}
           hasEndAllAuthority={hasEndAllAuthority}
           programSlug={programSlug}
+          sessionDate={sessionDate}
           anchorRef={endAnchor}
         />
       </div>

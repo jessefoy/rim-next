@@ -18,6 +18,14 @@ export interface SessionRoleValue {
   isProgramTeacher: boolean;
   programSlug: string;
   /**
+   * Session date (YYYY-MM-DD in CT) — issued by the token route to scope
+   * the LiveKit room and chat to a single occurrence. Action routes
+   * (mute-participant, mute-all, end-session, step-in) must include this
+   * in their body so the server resolves the same room name the client
+   * is connected to.
+   */
+  sessionDate: string | undefined;
+  /**
    * LiveKit identity of the local participant; tiles use it to suppress
    * self-affordances. Null until LiveKit's localParticipant is bound — any
    * consumer must check truthiness before comparing.

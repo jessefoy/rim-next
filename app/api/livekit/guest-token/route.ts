@@ -6,12 +6,17 @@
  * controlled by the guest access key in the URL.
  *
  * Body: { programSlug: string, guestKey: string, guestName: string }
- * Returns: { token: string, wsUrl: string, roomName: string, programName: string }
+ * Returns: { token, wsUrl, roomName, sessionDate, programName }
+ *
+ * Time-gated by the same window as the member token route. Guests have
+ * no role-based bypass — they can only join during the open session
+ * window, never outside it.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { createRoomToken, roomNameForProgram } from "@/lib/livekit";
+import { getActiveSessionWindow, describeInactiveWindow } from "@/lib/sessionWindow";
 
 export async function POST(req: NextRequest) {
   const { programSlug, guestKey, guestName } = await req.json();
@@ -29,7 +34,18 @@ export async function POST(req: NextRequest) {
       isOpenAccess: true,
       guestAccessKey: guestKey,
     },
-    select: { id: true, slug: true, name: true, programFormat: true },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      programFormat: true,
+      startDatetime: true,
+      endDatetime: true,
+      recurrenceFreq: true,
+      recurrenceInterval: true,
+      recurrenceDays: true,
+      recurrenceCount: true,
+    },
   });
 
   if (!program) {
@@ -39,7 +55,21 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const roomName = roomNameForProgram(program.slug);
+  const sessionWindow = getActiveSessionWindow(program);
+  if (!sessionWindow.active) {
+    return NextResponse.json(
+      {
+        error: "session-closed",
+        message: describeInactiveWindow(sessionWindow),
+        nextSessionDate: sessionWindow.nextSessionDate,
+        nextOpensAt: sessionWindow.nextOpensAt?.toISOString() ?? null,
+        nextStartsAt: sessionWindow.nextStartsAt?.toISOString() ?? null,
+      },
+      { status: 403 },
+    );
+  }
+
+  const roomName = roomNameForProgram(program.slug, sessionWindow.sessionDate);
   const guestId = `guest-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   const displayName = guestName.trim();
 
@@ -55,6 +85,7 @@ export async function POST(req: NextRequest) {
     token,
     wsUrl: process.env.NEXT_PUBLIC_LIVEKIT_URL,
     roomName,
+    sessionDate: sessionWindow.sessionDate,
     programName: program.name,
   });
 }

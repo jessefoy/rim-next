@@ -24,10 +24,12 @@ interface Props {
   onClose: () => void;
   hasEndAllAuthority: boolean;
   programSlug: string;
+  /** YYYY-MM-DD in CT — scopes End-for-All to this session's room. */
+  sessionDate: string | undefined;
   anchorRef: React.RefObject<HTMLButtonElement | null>;
 }
 
-export default function EndMenu({ open, onClose, hasEndAllAuthority, programSlug, anchorRef }: Props) {
+export default function EndMenu({ open, onClose, hasEndAllAuthority, programSlug, sessionDate, anchorRef }: Props) {
   const room = useRoomContext();
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [ending, setEnding] = useState(false);
@@ -56,7 +58,7 @@ export default function EndMenu({ open, onClose, hasEndAllAuthority, programSlug
       await fetch("/api/livekit/end-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ programSlug }),
+        body: JSON.stringify({ programSlug, sessionDate }),
       });
     } catch {}
     // The server delete-room triggers all participants to disconnect, which

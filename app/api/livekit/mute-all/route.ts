@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { RoomServiceClient } from "livekit-server-sdk";
 import { roomNameForProgram } from "@/lib/livekit";
 import { resolveSessionRole } from "@/lib/livekitAuth";
+import { assertSessionDateInWindow } from "@/lib/sessionWindow";
 
 /**
  * POST /api/livekit/mute-all
@@ -24,11 +25,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "programSlug required" }, { status: 400 });
   }
 
+  const roles = session.user.roles ?? [];
+  const assertion = await assertSessionDateInWindow(programSlug, sessionDate, roles);
+  if (!assertion.ok) {
+    return NextResponse.json(
+      { error: assertion.error, message: assertion.message },
+      { status: assertion.status },
+    );
+  }
+  const effectiveSessionDate = assertion.window.sessionDate;
+
   const { isCoHost } = await resolveSessionRole(
     session.user.id,
     programSlug,
-    sessionDate,
-    session.user.roles ?? [],
+    effectiveSessionDate,
+    roles,
   );
   if (!isCoHost) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -37,7 +48,7 @@ export async function POST(req: NextRequest) {
   const wsUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL!;
   const httpUrl = wsUrl.replace("wss://", "https://");
   const svc = new RoomServiceClient(httpUrl, process.env.LIVEKIT_API_KEY!, process.env.LIVEKIT_API_SECRET!);
-  const roomName = roomNameForProgram(programSlug, sessionDate);
+  const roomName = roomNameForProgram(programSlug, effectiveSessionDate);
 
   const participants = await svc.listParticipants(roomName);
   let muted = 0;

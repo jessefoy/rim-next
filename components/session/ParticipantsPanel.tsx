@@ -52,12 +52,14 @@ interface Props {
   onClose: () => void;
   participants: RemoteParticipant[];
   programSlug: string;
+  /** YYYY-MM-DD in CT — scopes mute requests to this session's room. */
+  sessionDate: string | undefined;
   localIdentity: string;
   /** Co-host or higher: gates the per-row Mute and the Mute All footer. */
   isCoHost: boolean;
 }
 
-export default function ParticipantsPanel({ open, onClose, participants, programSlug, localIdentity, isCoHost }: Props) {
+export default function ParticipantsPanel({ open, onClose, participants, programSlug, sessionDate, localIdentity, isCoHost }: Props) {
   const room = useRoomContext();
   const [muting, setMuting] = useState<Record<string, boolean>>({});
   const [mutingAll, setMutingAll] = useState(false);
@@ -88,7 +90,7 @@ export default function ParticipantsPanel({ open, onClose, participants, program
       await fetch("/api/livekit/mute-participant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ programSlug, participantIdentity: identity }),
+        body: JSON.stringify({ programSlug, sessionDate, participantIdentity: identity }),
       });
     } catch {}
     setMuting((prev) => ({ ...prev, [identity]: false }));
@@ -101,7 +103,7 @@ export default function ParticipantsPanel({ open, onClose, participants, program
       const res = await fetch("/api/livekit/mute-all", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ programSlug }),
+        body: JSON.stringify({ programSlug, sessionDate }),
       });
       if (res.ok) {
         const data = await res.json();

@@ -126,13 +126,15 @@ interface Props {
   isProgramTeacher?: boolean;
   audioProfile?: AudioProfile;
   programSlug: string;
+  /** YYYY-MM-DD in CT — scopes chat to this session. */
+  sessionDate?: string;
   guestKey?: string;
   avatarUrl?: string | null;
   view?: "speaker" | "gallery";
   onLeave?: () => void;
 }
 
-export default function VideoRoom({ token, wsUrl, isSessionHost = false, hasEndAllAuthority = false, isCoHost = false, isProgramTeacher = false, audioProfile = "listener", programSlug, guestKey, avatarUrl, view = "gallery", onLeave }: Props) {
+export default function VideoRoom({ token, wsUrl, isSessionHost = false, hasEndAllAuthority = false, isCoHost = false, isProgramTeacher = false, audioProfile = "listener", programSlug, sessionDate, guestKey, avatarUrl, view = "gallery", onLeave }: Props) {
   const roomOptions = buildRoomOptions(audioProfile);
   const [phase, setPhase] = useState<Phase>("greenroom");
 
@@ -178,6 +180,7 @@ export default function VideoRoom({ token, wsUrl, isSessionHost = false, hasEndA
             isCoHost={isCoHost}
             isProgramTeacher={isProgramTeacher}
             programSlug={programSlug}
+            sessionDate={sessionDate}
             guestKey={guestKey}
             view={view}
             initialAvatarUrl={avatarUrl ?? null}

@@ -55,6 +55,8 @@ interface Props {
   isCoHost: boolean;
   isProgramTeacher: boolean;
   programSlug: string;
+  /** YYYY-MM-DD in CT — scopes chat to this session. */
+  sessionDate?: string;
   guestKey?: string;
   view?: "speaker" | "gallery";
   initialAvatarUrl: string | null;
@@ -64,7 +66,7 @@ function getMetadata(raw: string | undefined): ParticipantMetadata {
   try { return JSON.parse(raw || "{}"); } catch { return {}; }
 }
 
-export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoHost, isProgramTeacher, programSlug, guestKey, view = "gallery", initialAvatarUrl }: Props) {
+export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoHost, isProgramTeacher, programSlug, sessionDate, guestKey, view = "gallery", initialAvatarUrl }: Props) {
   const { localParticipant } = useLocalParticipant();
   // updateOnlyOn ensures the component re-renders when metadata changes (for raised hand tracking)
   const remoteParticipants = useRemoteParticipants({
@@ -362,6 +364,7 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
         isCoHost,
         isProgramTeacher,
         programSlug,
+        sessionDate,
         localIdentity: localParticipant?.identity ?? null,
       }}
     >
@@ -417,7 +420,7 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
                   ✕
                 </button>
               </div>
-              <RIMChat programSlug={programSlug} guestKey={guestKey} />
+              <RIMChat programSlug={programSlug} sessionDate={sessionDate} guestKey={guestKey} />
             </div>
           )}
         </div>
@@ -428,6 +431,7 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
             now and not consumed by the control bar. */}
         <RIMControlBar
           programSlug={programSlug}
+          sessionDate={sessionDate}
           hasEndAllAuthority={hasEndAllAuthority}
           isCoHost={isCoHost}
           participantsOpen={participantsOpen}
@@ -457,6 +461,7 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
           onClose={() => setParticipantsOpen(false)}
           participants={remoteParticipants}
           programSlug={programSlug}
+          sessionDate={sessionDate}
           localIdentity={localParticipant?.identity ?? ""}
           isCoHost={isCoHost}
         />

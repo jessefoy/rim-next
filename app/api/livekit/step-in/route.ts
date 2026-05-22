@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { createRoomToken, roomNameForProgram } from "@/lib/livekit";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
+import { assertSessionDateInWindow } from "@/lib/sessionWindow";
 
 /**
  * POST /api/livekit/step-in
@@ -44,6 +45,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "programSlug required" }, { status: 400 });
   }
 
+  // Step-In writes a HostAssignment row, so the integrity of the supplied
+  // sessionDate matters more here than for mute/end. Refuse if the date
+  // doesn't line up with the current open window. ADMIN/GT bypass for
+  // out-of-window emergency room recovery.
+  const assertion = await assertSessionDateInWindow(programSlug, sessionDate, roles);
+  if (!assertion.ok) {
+    return NextResponse.json(
+      { error: assertion.error, message: assertion.message },
+      { status: assertion.status },
+    );
+  }
+  const effectiveSessionDate = assertion.window.sessionDate;
+
   const program = await db.program.findFirst({
     where: { slug: programSlug },
     select: { id: true, slug: true, name: true },
@@ -58,13 +72,13 @@ export async function POST(req: NextRequest) {
     where: {
       programSlug_sessionDate: {
         programSlug,
-        sessionDate: sessionDate ? new Date(sessionDate) : new Date(0),
+        sessionDate: new Date(effectiveSessionDate),
       },
     },
     create: {
       programSlug,
       userId: session.user.id,
-      ...(sessionDate ? { sessionDate: new Date(sessionDate) } : {}),
+      sessionDate: new Date(effectiveSessionDate),
       notes: `Emergency step-in by ${session.user.name || session.user.id}`,
     },
     update: {
@@ -81,7 +95,7 @@ export async function POST(req: NextRequest) {
   // would appear to themselves as Session Host but to other participants
   // as just a regular member — the symptom Jesse saw in real-world use.
   // Mirrors the seedMeta pattern in /api/livekit/token.
-  const roomName = roomNameForProgram(programSlug, sessionDate);
+  const roomName = roomNameForProgram(programSlug, effectiveSessionDate);
   const userName = session.user.name || "Host";
 
   // Stepping in makes the caller the Session Host. They may also be a
