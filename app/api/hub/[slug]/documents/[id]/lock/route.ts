@@ -18,7 +18,7 @@ export async function POST(
   const { slug, id } = await params;
   const { hub, member } = await getHubMembership(slug, session.user.id);
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
-  if (!hub || (!member && !isAdmin)) {
+  if (!hub || (!member)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

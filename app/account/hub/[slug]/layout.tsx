@@ -46,7 +46,14 @@ export default async function HubLayout({ children, params }: Props) {
 
   const isMember = hub.members.some((m) => m.userId === session.user.id);
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
-  const hasAccess = isMember || isAdmin;
+  // ADMIN no longer bypasses hub access (session 128 follow-up).  A hub is
+  // a team space; the team is defined by membership.  ADMIN configures
+  // hubs from /admin/hubs without being a member, but to interact with
+  // hub content (conversations, documents, etc.) they need a HubMember
+  // row like everyone else.  Matches GUIDING_TEACHER's existing behavior.
+  // Technical-admin actions (hard-remove member, hub create/delete) are
+  // gated separately in their own routes — those still require ADMIN role.
+  const hasAccess = isMember;
 
   if (!hasAccess) {
     return (

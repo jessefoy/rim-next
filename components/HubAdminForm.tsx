@@ -36,6 +36,15 @@ interface HubData {
   description: string;
   type: "OPERATIONAL" | "GOVERNANCE" | "COMMUNITY_GROUP";
   status: "ACTIVE" | "ARCHIVED";
+  /** Session 128 — when true, an active HostAssignment from this hub
+   *  confers Teacher capability (bell-friendly audio + Teacher pill) on
+   *  the assigned leader. Used by peer-led hubs where the act of claiming
+   *  a session IS the teacher role for that session. */
+  assignmentGrantsTeacher: boolean;
+  /** Hub-level fallback for the Teacher pill text. Used when
+   *  assignmentGrantsTeacher is true and the program doesn't override.
+   *  Pill hierarchy: program.teacherLabel ?? hub.teacherLabel ?? "Teacher". */
+  teacherLabel: string | null;
   appLinks: AppLink[];
   coordinators: CoordinatorInfo[];
   welcomeHeadline: string;
@@ -64,6 +73,10 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug }: Props)
   const [description, setDescription] = useState(initialData?.description ?? "");
   const [type, setType] = useState<HubData["type"]>(initialData?.type ?? "OPERATIONAL");
   const [status, setStatus] = useState<HubData["status"]>(initialData?.status ?? "ACTIVE");
+  const [assignmentGrantsTeacher, setAssignmentGrantsTeacher] = useState<boolean>(
+    initialData?.assignmentGrantsTeacher ?? false,
+  );
+  const [teacherLabel, setTeacherLabel] = useState<string>(initialData?.teacherLabel ?? "");
   const [appLinks, setAppLinks] = useState<AppLink[]>(initialData?.appLinks ?? []);
   const [welcomeHeadline, setWelcomeHeadline] = useState(initialData?.welcomeHeadline ?? "");
   const [welcomeBody, setWelcomeBody] = useState<string>(
@@ -127,6 +140,8 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug }: Props)
       description,
       type,
       status,
+      assignmentGrantsTeacher,
+      teacherLabel: teacherLabel.trim() || null,
       appLinks: appLinks.filter((l) => l.label && (l.toolSlug || l.href)),
       welcomeHeadline: welcomeHeadline || null,
       welcomeBody: welcomeBody,
@@ -233,6 +248,58 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug }: Props)
           <option value="ARCHIVED">Archived</option>
         </select>
       </div>
+
+      {/* Assignment confers Teacher capability — session 128 */}
+      <div className="adm-hubs-field">
+        <label className="adm-hubs-label">
+          <input
+            type="checkbox"
+            checked={assignmentGrantsTeacher}
+            onChange={(e) => {
+              const next = e.target.checked;
+              setAssignmentGrantsTeacher(next);
+              // Unchecking clears any typed label so a stale value can't
+              // ride along on submit. The conditional input renders this
+              // moot for UI purposes, but the state shouldn't carry it.
+              if (!next) setTeacherLabel("");
+            }}
+            style={{ marginRight: 8 }}
+          />
+          Hub assignments grant Teacher capability
+        </label>
+        <p className="adm-hubs-help">
+          When enabled, anyone assigned to lead a session in this hub
+          automatically gets the Teacher pill and bell-friendly audio in
+          the session room — without needing to be a ProgramTeacher of the
+          program. Use this for peer-led offerings (silent meditation, Recovery
+          Dharma, etc.) where the leader rotates each week. Leave off for
+          host-team-style hubs where teachers are attributed per-program.
+        </p>
+      </div>
+
+      {/* Teacher pill label — only meaningful when assignmentGrantsTeacher is true */}
+      {assignmentGrantsTeacher && (
+        <div className="adm-hubs-field">
+          <label className="adm-hubs-label">Default pill label</label>
+          <input
+            type="text"
+            className="adm-hubs-input"
+            value={teacherLabel}
+            onChange={(e) => setTeacherLabel(e.target.value)}
+            placeholder="Guide"
+            maxLength={20}
+          />
+          <p className="adm-hubs-hint">
+            What the role pill reads on a leader&rsquo;s tile in the session
+            room when they&rsquo;ve been assigned via this hub. Common choices:
+            &ldquo;Guide&rdquo; for silent meditation, &ldquo;Facilitator&rdquo;
+            for Recovery Dharma, &ldquo;Instructor&rdquo; for skills-based
+            offerings. Per-program override on the program record takes
+            priority; this is the hub-wide fallback. Leave blank to default
+            to &ldquo;Teacher.&rdquo;
+          </p>
+        </div>
+      )}
 
       {/* Coordinator — read only */}
       {isEditing && (

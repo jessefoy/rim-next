@@ -19,7 +19,7 @@ export async function GET(
   const { slug, id } = await params;
   const { hub, member } = await getHubMembership(slug, session.user.id);
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
-  if (!hub || (!member && !isAdmin)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!hub || (!member)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const doc = await db.hubDocument.findUnique({
     where: { id },
@@ -53,7 +53,7 @@ export async function PATCH(
   const { hub, member } = await getHubMembership(slug, session.user.id);
   if (!hub) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const isAdminPatch = (session.user.roles ?? []).includes("ADMIN");
-  if (!member && !isAdminPatch) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   // Author or coordinator can edit
   const doc = await db.hubDocument.findFirst({ where: { id, hubId: hub.id } });
@@ -198,7 +198,7 @@ export async function DELETE(
   const { hub, member } = await getHubMembership(slug, session.user.id);
   if (!hub) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const isAdminDelete = (session.user.roles ?? []).includes("ADMIN");
-  if (!member && !isAdminDelete) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   // Author or coordinator can soft-delete
   const doc = await db.hubDocument.findFirst({ where: { id, hubId: hub.id } });

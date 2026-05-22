@@ -26,7 +26,7 @@ export async function GET(
 
   const isMember = hub.members.some((m) => m.userId === session.user.id);
   const isAdmin  = (session.user.roles ?? []).includes("ADMIN");
-  if (!isMember && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!isMember) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const member = hub.members.find((m) => m.userId === session.user.id);
   return NextResponse.json({ hub, member: member ?? null });

@@ -42,7 +42,7 @@ export async function GET(
   const { hub, member } = await getHubMembership(slug, session.user.id);
   if (!hub) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
-  if (!member && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const url    = new URL(req.url);
   const filter = (url.searchParams.get("filter") ?? "all") as "all" | "documents" | "conversations";

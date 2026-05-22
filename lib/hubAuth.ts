@@ -17,25 +17,35 @@ import { db } from "@/lib/db";
  *                      RIM_Role_Design.md for the rationale.
  *
  * Helpers in this module:
- *  - getHubMembership()    — returns isAdmin (callers gate on !member && !isAdmin)
- *  - requireCoordinator()  — bypasses for ADMIN + GUIDING_TEACHER
+ *  - getHubMembership()    — returns { hub, member, isAdmin }; callers gate
+ *                            ACCESS on !member alone (ADMIN no longer bypasses
+ *                            content access — session 128 follow-up).  The
+ *                            returned isAdmin is still useful for the few
+ *                            ADMIN-required actions (hard-remove member, etc.).
+ *  - requireCoordinator()  — bypasses for ADMIN + GUIDING_TEACHER.  Coordinator-
+ *                            level authority within a hub; distinct from access.
  *  - effectiveCoordinator()— the canonical "is this user acting as coordinator
  *                            on this hub?" computation. Use it everywhere
  *                            that previously inlined
  *                              (member?.isCoordinator ?? false) || isAdmin
  *  - canManageTrash()      — trash-bin authority (coordinator/ADMIN/GT)
  *
- * Post-launch decision: revisit whether ADMIN should be auto-added to all hubs
- * as a HubMember (coordinator) via syncHubMembership, or whether the bypass
- * approach is sufficient. The bypass is clean and low-maintenance for now.
+ * Access policy (session 128 follow-up): ADMIN no longer bypasses hub
+ * content access.  A hub is a team space and the team is defined by
+ * membership.  An ADMIN who wants to interact with hub content (read or
+ * post threads, view docs, etc.) must be a HubMember just like everyone
+ * else — same as GUIDING_TEACHER.  Hub administration (configure hub,
+ * hard-remove member, hub create/delete) stays at /admin/hubs and remains
+ * ADMIN-gated.  The boundary: ADMIN configures hubs from outside; ADMIN
+ * participates from inside (as a member).
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
 /**
- * Fetch hub + membership for the current user. Returns null if hub doesn't
- * exist or user is not a member. Caller decides whether to 404 or 403.
- * ADMIN users can access any hub even without a HubMember record —
- * isAdmin is returned so callers can skip the member redirect for admins.
+ * Fetch hub + membership for the current user. Returns null hub if it
+ * doesn't exist. Caller gates access on `member` — if null, return 403/404.
+ * The `isAdmin` flag is returned for the routes that genuinely need ADMIN
+ * authority (hard-remove member, etc.) but not as a content-access bypass.
  */
 export async function getHubMembership(slug: string, userId: string, roles: string[] = []) {
   const hub = await db.hub.findUnique({

@@ -23,7 +23,7 @@ function normalize(name: string): string {
 async function loadContext(slug: string, userId: string, roles: string[]) {
   const { hub, member, isAdmin } = await getHubMembership(slug, userId, roles);
   if (!hub) return { error: NextResponse.json({ error: "Not found" }, { status: 404 }) };
-  if (!member && !isAdmin) {
+  if (!member) {
     return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
   }
   if (member && member.status !== "ACTIVE" && !isAdmin) {

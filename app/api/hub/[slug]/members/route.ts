@@ -16,7 +16,7 @@ export async function GET(
   const { hub, member } = await getHubMembership(slug, session.user.id);
   if (!hub) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
-  if (!member && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const members = await db.hubMember.findMany({
     where: { hubId: hub.id },
@@ -64,7 +64,7 @@ export async function POST(
   const roles = session.user.roles ?? [];
   const { hub, member, isAdmin } = await getHubMembership(slug, session.user.id, roles);
   if (!hub) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (!member && !isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!member) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const isCoordinator = effectiveCoordinator(member, roles);
   try { requireCoordinator(isCoordinator, roles); }

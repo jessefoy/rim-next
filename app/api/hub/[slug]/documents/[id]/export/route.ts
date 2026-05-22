@@ -78,7 +78,7 @@ export async function GET(
   const { slug, id } = await params;
   const { hub, member } = await getHubMembership(slug, session.user.id);
   const isAdmin = (session.user.roles ?? []).includes("ADMIN");
-  if (!hub || (!member && !isAdmin)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!hub || (!member)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const doc = await db.hubDocument.findUnique({ where: { id } });
   if (!doc || doc.hubId !== hub.id || !doc.isNative) {

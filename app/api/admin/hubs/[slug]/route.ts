@@ -46,7 +46,7 @@ export async function PATCH(
 
   const { slug } = await params;
   const body = await req.json();
-  const { name, slug: newSlug, description, type, status, appLinks, welcomeHeadline, welcomeBody, homeContent } = body;
+  const { name, slug: newSlug, description, type, status, assignmentGrantsTeacher, teacherLabel, appLinks, welcomeHeadline, welcomeBody, homeContent } = body;
 
   const hub = await db.hub.findUnique({ where: { slug } });
   if (!hub) {
@@ -86,6 +86,23 @@ export async function PATCH(
       ...(description !== undefined && { description: description || null }),
       ...(type !== undefined && { type }),
       ...(status !== undefined && { status }),
+      ...(assignmentGrantsTeacher !== undefined && { assignmentGrantsTeacher: !!assignmentGrantsTeacher }),
+      // teacherLabel: trim + cap at 20, null when empty.  Effective capability
+      // for this update = the body's flag if present, otherwise the hub's
+      // stored value.  When the effective capability is false, force the label
+      // to null so a stale label can't sit on a hub where the capability is
+      // off (covers BOTH the explicit-off PATCH AND the "send only label, hub
+      // already off" case).
+      ...(teacherLabel !== undefined && {
+        teacherLabel:
+          (assignmentGrantsTeacher !== undefined
+            ? !!assignmentGrantsTeacher
+            : hub.assignmentGrantsTeacher) === false
+            ? null
+            : typeof teacherLabel === "string" && teacherLabel.trim().length > 0
+              ? teacherLabel.trim().slice(0, 20)
+              : null,
+      }),
       ...(welcomeHeadline !== undefined && { welcomeHeadline: welcomeHeadline || null }),
       ...(welcomeBody !== undefined && { welcomeBody }),
       ...(homeContent !== undefined && { homeContent }),

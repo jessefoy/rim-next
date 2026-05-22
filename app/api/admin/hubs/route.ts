@@ -30,7 +30,7 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const { name, slug, description, type, status, appLinks } = body;
+  const { name, slug, description, type, status, assignmentGrantsTeacher, teacherLabel, appLinks } = body;
 
   if (!name || !slug) {
     return NextResponse.json({ error: "Name and slug are required." }, { status: 400 });
@@ -42,6 +42,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "A hub with this slug already exists." }, { status: 409 });
   }
 
+  // teacherLabel only meaningful when assignmentGrantsTeacher is true;
+  // strip it otherwise so we don't store dead state. Sanitize: trim, max 20.
+  const grantsTeacher = !!assignmentGrantsTeacher;
+  const sanitizedLabel =
+    grantsTeacher && typeof teacherLabel === "string" && teacherLabel.trim().length > 0
+      ? teacherLabel.trim().slice(0, 20)
+      : null;
+
   const hub = await db.hub.create({
     data: {
       name,
@@ -49,6 +57,8 @@ export async function POST(req: Request) {
       description: description || null,
       type: type || "OPERATIONAL",
       status: status || "ACTIVE",
+      assignmentGrantsTeacher: grantsTeacher,
+      teacherLabel: sanitizedLabel,
       conversationCategories: ["General"],
       appLinks: appLinks?.length
         ? {
