@@ -18,9 +18,9 @@ export interface ToolDefinition {
 export const TOOL_REGISTRY: ToolDefinition[] = [
   {
     slug: "schedule",
-    label: "Host Schedule",
+    label: "Scheduler",
     path: "/tools/schedule",
-    description: "Session calendar, host assignments, sub requests",
+    description: "Session calendar, assignments, sub requests — scoped per hub",
   },
   {
     slug: "programs",

@@ -3435,6 +3435,30 @@ async function main() {
     console.log("  ⏭ Manual peer-led-silent-meditation chapter already seeded.");
   }
 
+  // Rename the Scheduler tool's default label from "Host Schedule" to
+  // "Scheduler" (session 128 follow-up).  The registry name was historical —
+  // when the tool only served the host team it made sense; now that
+  // multiple hubs claim it, the generic name reads correctly in every
+  // context.  We update existing HubAppLink rows that still carry the old
+  // default; rows where a coordinator has manually customized the label
+  // are left alone.
+  const renameSchedulerFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'rename_scheduler_app_link_label_v1'
+  `).catch(() => []);
+
+  if (renameSchedulerFlag.length === 0) {
+    const result = await db.hubAppLink.updateMany({
+      where: { toolSlug: "schedule", label: "Host Schedule" },
+      data: { label: "Scheduler" },
+    });
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('rename_scheduler_app_link_label_v1')`,
+    );
+    console.log(`  ✔ Renamed ${result.count} Scheduler app-link label(s) from "Host Schedule" → "Scheduler".`);
+  } else {
+    console.log("  ⏭ Scheduler app-link label rename already applied.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }
