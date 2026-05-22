@@ -42,6 +42,16 @@ export default async function AdminHubEditPage({
 
   if (!hub) notFound();
 
+  // Is the admin viewing this page already a coordinator of this hub?
+  // Drives the "Add me as coordinator" button — hidden when already one.
+  // Separate query because the include above filters to all coordinators.
+  const selfMembership = await db.hubMember.findUnique({
+    where: { hubId_userId: { hubId: hub.id, userId: session.user.id } },
+    select: { isCoordinator: true, status: true },
+  });
+  const isCurrentUserCoordinator =
+    !!selfMembership && selfMembership.isCoordinator && selfMembership.status === "ACTIVE";
+
   const initialData = {
     name: hub.name,
     slug: hub.slug,
@@ -70,7 +80,12 @@ export default async function AdminHubEditPage({
     <div className="adm-page">
       <div className="adm-content">
         <h1 className="adm-hubs-title">Edit Hub: {hub.name}</h1>
-        <HubAdminForm isEditing initialData={initialData} hubSlug={slug} />
+        <HubAdminForm
+          isEditing
+          initialData={initialData}
+          hubSlug={slug}
+          isCurrentUserCoordinator={isCurrentUserCoordinator}
+        />
       </div>
     </div>
   );

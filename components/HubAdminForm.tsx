@@ -56,6 +56,12 @@ interface Props {
   isEditing: boolean;
   initialData?: HubData;
   hubSlug?: string;
+  /** True when the admin viewing this page is already an active coordinator
+   *  of this hub.  Drives whether the "Add me as coordinator" affordance
+   *  appears.  Session 128 follow-up: ADMIN no longer bypasses hub content
+   *  access, so an admin who creates a new hub must bootstrap themselves
+   *  in via this button before they can reach /account/hub/[slug]. */
+  isCurrentUserCoordinator?: boolean;
 }
 
 function slugify(text: string) {
@@ -65,7 +71,7 @@ function slugify(text: string) {
     .replace(/^-|-$/g, "");
 }
 
-export default function HubAdminForm({ isEditing, initialData, hubSlug }: Props) {
+export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurrentUserCoordinator = false }: Props) {
   const router = useRouter();
 
   const [name, setName] = useState(initialData?.name ?? "");
@@ -108,6 +114,31 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug }: Props)
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
+  const [addingMe, setAddingMe] = useState(false);
+  const [iAmCoordinator, setIAmCoordinator] = useState(isCurrentUserCoordinator);
+
+  async function handleAddMeAsCoordinator() {
+    if (!hubSlug) return;
+    setAddingMe(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/admin/hubs/${hubSlug}/add-me-as-coordinator`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to add yourself as coordinator.");
+      }
+      setIAmCoordinator(true);
+      setSuccess("You're now a coordinator of this hub.");
+      // Refresh to repopulate the coordinator list display.
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setAddingMe(false);
+    }
+  }
 
   function handleNameChange(val: string) {
     setName(val);
@@ -374,6 +405,22 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug }: Props)
               <Link href={`/account/hub/${hubSlug}/members`} className="adm-hubs-coordinator__link">
                 Assign in hub Members tab
               </Link>
+            </div>
+          )}
+          {/* Bootstrap affordance: ADMIN no longer bypasses hub access
+              (session 128), so an admin who just created a hub needs a way
+              to add themselves before they can reach the Members tab. */}
+          {!iAmCoordinator && (
+            <div className="adm-hubs-coordinator" style={{ marginTop: 8 }}>
+              <button
+                type="button"
+                onClick={handleAddMeAsCoordinator}
+                disabled={addingMe}
+                className="adm-hubs-coordinator__link"
+                style={{ background: "none", border: 0, cursor: "pointer", padding: 0 }}
+              >
+                {addingMe ? "Adding…" : "+ Add me as coordinator"}
+              </button>
             </div>
           )}
         </div>
