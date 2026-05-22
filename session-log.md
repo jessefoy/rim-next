@@ -1,5 +1,51 @@
 ---
 
+## 2026-05-26 (session 127) — Per-program teacherLabel — Teacher / Guide / Facilitator / Instructor / Custom
+
+One code commit on `main` (`fbbf955`) plus this closing-ritual doc sweep. Closes backlog `2026-05-25-002`. Lands before the Silent Meditation Hub (`2026-05-25-003`) so peer-led offerings can carry "Guide" pills when that hub goes live.
+
+### What shipped
+
+A nullable `Program.teacherLabel` column lets a coordinator override the "Teacher" pill text on the session-room participant tile per program. Null is the existing default — the renderer falls back to "Teacher" everywhere. The mechanism is unchanged: a `ProgramTeacher` row still drives the bell-friendly audio profile and the Teacher pill; only the display string varies.
+
+**Editor surface.** The Program editor's Content tab gains a dropdown below the Teacher / Facilitators field: *Teacher (default) · Guide · Facilitator · Instructor · Custom…*. Picking Custom reveals a 20-character text input. The initial-state derivation handles all three save shapes — null → "default", one of the three preset literals → that preset, anything else → "Custom" with the saved text preserved.
+
+**Server-side sanitization.** New `sanitizeTeacherLabel(input)` in `lib/programUtils.ts`. Allows Unicode letters and marks (for accented characters and non-Latin scripts), digits, spaces, hyphens, and apostrophes. Order matters: strip first, collapse whitespace, then trim, then slice — so a long string doesn't survive the slice because of disallowed characters that get stripped later. The reviewer sub-agent caught the original strip-after-slice ordering bug.
+
+**Token-route plumbing.** `/api/livekit/token` and `/api/livekit/step-in` add `teacherLabel: true` to their Program select. When `isProgramTeacher` is true AND `program.teacherLabel` is non-null, they seed `teacherLabel` into participant metadata alongside `teacher: true`. Both responses also include `teacherLabel: program.teacherLabel ?? null` for client-state parity.
+
+**Client pipeline.** Token response → `app/session/[slug]/page.tsx` stores `teacherLabel` in state → `VideoRoom` → `RIMConference` (new prop). `RIMConference`'s belt-and-suspenders metadata seeder (from session 124) gains a `needsTeacherLabelUpdate` branch that broadcasts the label via `localParticipant.setMetadata` after connect. The pattern matches the existing `host` / `teacher` / `cohost` flags: promote, don't demote.
+
+**Renderers.** `ParticipantMetadata` interface gains `teacherLabel?: string`. `RIMParticipantTile` and `ParticipantsPanel` (both local Me row and remote rows) render `meta.teacherLabel || "Teacher"` instead of the hardcoded string. Same CSS class — color and shape are unchanged; only the text varies.
+
+### Reviewer-caught issues (all fixed pre-commit)
+
+The reviewer sub-agent flagged three real concerns:
+
+1. **Sanitizer order.** Original code did `.trim().slice(0, 20).replace(strip-stuff)` — meaning a string like "Co-Leader-12345678901" would survive the 20-char slice with digits still in, then have digits stripped after, ending up shorter than intended. Fixed by reordering: strip → collapse whitespace → trim → slice → trim.
+2. **Regex too tight.** Original `/[^A-Za-z\s\-]/g` blocked apostrophes, digits, accented characters, and non-Latin scripts. Widened to `/[^\p{L}\p{M}\d\s'\-]/gu` so realistic role names like "Teacher's Aide", "Co-Leader 1", "rōshi", and "Senpai" all pass. The 20-char cap is the real layout safety; the character set restriction is paranoia and was overcalibrated.
+3. **Step-in response parity.** `/api/livekit/token` returned `teacherLabel`; `/api/livekit/step-in` selected it for the metadata seed but didn't include it in the response JSON. In practice teacherLabel is invariant across a single user's session (ProgramTeacher membership doesn't change on step-in), but for shape parity and future-proofing, step-in now also returns it and the page updates state from it.
+
+The reviewer also confirmed: the dropdown's preset-vs-custom logic is correct, and the "promote-don't-demote" pattern in the metadata seeder is fine (coordinator edits mid-session are rare and the seeder runs once per join — not worth bidirectional sync).
+
+### What this connects to
+
+- **`ProgramTeacher` model** — unchanged. The label is purely cosmetic; the underlying ProgramTeacher row is what drives the audio profile (`teacher`), the metadata flag (`teacher: true`), and the Teacher pill (`meta.teacher`). teacherLabel is only consulted when `meta.teacher` is already true.
+- **Silent Meditation Hub (`2026-05-25-003`)** — this slice is the prerequisite. Peer leaders of silent sits can now be ProgramTeachers whose pill reads "Guide" instead of "Teacher" — exactly what that hub needs when it goes live.
+- **Manual chapter `host-session-room`** — needs a one-line aside in the pills section noting that some programs may show "Guide" / "Facilitator" / "Instructor" instead of "Teacher". v9 self-heal added.
+- **`/admin/livekit-test`** — unaffected. The test room doesn't carry a Program record, so there's no teacherLabel to surface.
+
+### Backlog moves
+
+- **Closed: `2026-05-25-002`** (per-program teacherLabel dropdown). Implemented per the original spec.
+- **Next priority: `2026-05-25-003`** (Silent Meditation Hub) — now unblocked. Peer-leaders can carry "Guide" pills when the hub is live.
+
+### Next priority
+
+Silent Meditation Hub. New Hub for peer-led offerings (Good Morning / Good Evening Silent Meditation, expandable to Recovery Dharma etc.). Self-claim + standing rotations reuse host-team infrastructure. Open design question parked there: should the bell-friendly audio profile be granted to *any* Session Host, regardless of ProgramTeacher status? Worth resolving when the hub is built.
+
+---
+
 ## 2026-05-26 (session 126) — LiveKit time-gated tokens + per-session rooms (chat clears each session)
 
 One code commit on `main` (`463f3bb`) plus this closing-ritual doc sweep. The session resolved one parked backlog item (server-side time gate on the token route) and quietly fixed an unintended-feature gap that surfaced while we were in there — recurring programs were sharing one LiveKit room name across every occurrence forever, and the chat was scoped only by room name, so today's chat showed last week's messages. The schema was already half-set-up for per-session scoping; the read query just never finished wiring. Jesse confirmed mid-session that *every* program — including drop-ins like Good Morning Silent Meditation — should follow the same per-session pattern. No exceptions.

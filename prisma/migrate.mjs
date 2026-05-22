@@ -3237,6 +3237,22 @@ async function main() {
     console.log("  ⏭ Manual host-session-room v8 already applied.");
   }
 
+  // Session 127 — host-session-room chapter v9. Adds a one-line note to the
+  // Role pills section + the Teacher pill paragraph noting that some
+  // programs may show "Guide" / "Facilitator" / "Instructor" instead of
+  // "Teacher" (per the new per-program teacherLabel field). The pill's
+  // color and meaning don't change; only the label varies per program.
+  const updateHostSessionRoomV9Flag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_host_session_room_v9'
+  `).catch(() => []);
+
+  if (updateHostSessionRoomV9Flag.length === 0) {
+    await updateManualHostSessionRoom(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_session_room_v9')`);
+  } else {
+    console.log("  ⏭ Manual host-session-room v9 already applied.");
+  }
+
   // Session 124 — backfill ProgramTeacher rows for the five programs
   // where the named teacher has a real User account in the system.
   // The legacy Program.teacherFacilitators free-text field was the only

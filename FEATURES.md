@@ -1828,7 +1828,7 @@ When an application is extracted, the hub may retain a simplified read-only view
 
 ---
 
-## 38. LiveKit Video Conferencing — Phases 1–5 ✅ Built — sessions 76, 86, 117 (Zoom-aligned redesign), session 121 (three-tier permission model + cleanup), session 122 (Krisp NC + per-profile video bitrate + Bell mode), session 124 (full audit, Zoom-style tier widening + three visible pills, Krisp instrumentation, Step-In propagation + timing fix, ProgramTeacher backfill), session 125 (identity vs. capability split, Host Volunteer rename, raised-hand speaking queue, persistent vote signals), session 126 (server-side time gate on the token route + per-session rooms with per-session chat scoping)
+## 38. LiveKit Video Conferencing — Phases 1–5 ✅ Built — sessions 76, 86, 117 (Zoom-aligned redesign), session 121 (three-tier permission model + cleanup), session 122 (Krisp NC + per-profile video bitrate + Bell mode), session 124 (full audit, Zoom-style tier widening + three visible pills, Krisp instrumentation, Step-In propagation + timing fix, ProgramTeacher backfill), session 125 (identity vs. capability split, Host Volunteer rename, raised-hand speaking queue, persistent vote signals), session 126 (server-side time gate on the token route + per-session rooms with per-session chat scoping), session 127 (per-program teacherLabel — Teacher / Guide / Facilitator / Instructor / Custom)
 
 ### What it does
 
@@ -1843,6 +1843,22 @@ Embedded video conferencing that replaces Google Meet for virtual and hybrid pro
 - **Phase 4 (session room UI):** Custom RIMConference layout, chat, focus/pin, nonverbal signals, raised-hand banner, presence photos, dark theme, audio prompt. ✅ Complete (session 86).
 - **Phase 5 (Zoom-aligned redesign):** ✅ Complete (session 117). The entire session-room UX was reshaped to mirror Zoom's information architecture so Sangha muscle memory transfers cleanly. See "Zoom-aligned redesign" below.
 - **Phase 6 (recording):** 🔜 Pressing future feature — see below.
+
+### Per-program teacherLabel (session 127)
+
+A nullable `Program.teacherLabel` column lets a coordinator override the "Teacher" pill text on the session-room participant tile per program. Null = default "Teacher". Closes backlog `2026-05-25-002`. Lands as the prerequisite for the Silent Meditation Hub (`2026-05-25-003`) so peer-led offerings can carry "Guide" pills when that hub goes live.
+
+**Mechanism is unchanged.** A `ProgramTeacher` row still drives the bell-friendly audio profile (`teacher`), the metadata flag (`teacher: true`), and the Teacher pill (`meta.teacher`). teacherLabel is only consulted when `meta.teacher` is already true. The label is purely cosmetic — same CSS class, same color (warm gold), only the text varies per program.
+
+**Editor.** Program editor's Content tab gains a dropdown below Teacher / Facilitators: *Teacher (default) · Guide · Facilitator · Instructor · Custom…*. Custom reveals a 20-char text input. Initial-state derivation handles all save shapes — null → "default", preset literal → that preset, anything else → "Custom" with text preserved.
+
+**Server-side sanitization.** `lib/programUtils.ts::sanitizeTeacherLabel(input)` allows Unicode letters and marks, digits, spaces, hyphens, apostrophes. Strips first, collapses whitespace, trims, then slices at 20 chars. Realistic role names ("Teacher's Aide", "Co-Leader 1", "rōshi", "Senpai") all pass.
+
+**Pipeline.** `/api/livekit/token` and `/api/livekit/step-in` add `teacherLabel: true` to their Program select. When `isProgramTeacher` AND `program.teacherLabel` non-null, they seed `teacherLabel` into participant metadata alongside `teacher: true`. Both responses also include `teacherLabel` for client-state parity. Session page → `VideoRoom` → `RIMConference` carries the prop; RIMConference's belt-and-suspenders metadata seeder broadcasts the label via `localParticipant.setMetadata` after connect.
+
+**Renderers.** `ParticipantMetadata.teacherLabel?: string`. `RIMParticipantTile` and `ParticipantsPanel` (both local Me row and remote rows) render `meta.teacherLabel || "Teacher"` instead of the hardcoded string.
+
+**Files touched:** `prisma/schema.prisma`, `prisma/migrate.mjs` (`add_program_teacher_label`), `lib/programUtils.ts` (sanitizer), `app/api/programs-pg/route.ts`, `app/api/programs-pg/[slug]/route.ts`, `app/api/livekit/token/route.ts`, `app/api/livekit/step-in/route.ts`, `components/registrar/ProgramEditor.tsx`, `components/session/RIMParticipantTile.tsx` (ParticipantMetadata type + render), `components/session/ParticipantsPanel.tsx`, `components/session/RIMConference.tsx` (seeder), `components/VideoRoom.tsx`, `app/session/[slug]/page.tsx`, `app/tools/programs/[programSlug]/edit/page.tsx`. Commit `fbbf955`.
 
 ### Time-gated tokens + per-session rooms (session 126)
 
