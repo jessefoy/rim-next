@@ -42,6 +42,10 @@ At this point the hub exists but has no members, no tools, and no content. The f
 - `homeContent` → `null`
 - `documentCategories` → `[]`
 - `conversationCategories` → `["General"]`
+- `assignmentGrantsTeacher` → `false` (added session 128 — see below)
+- `teacherLabel` → `null`
+
+**Hub-as-source-of-teacher-capability (session 128).** When `assignmentGrantsTeacher: true`, an active `HostAssignment` from this hub confers Teacher capability in `resolveSessionRole` — bell-friendly audio profile + the Teacher pill (label from `Hub.teacherLabel`, falling through to "Teacher"). This is how peer-led hubs work: the act of claiming a session IS the teacher capability for that session. No per-user `ProgramTeacher` row is required. The first hub to set this is `peer-led-silent-meditation` (Slice 2 setup) with `teacherLabel: "Guide"`. The host-team hub keeps `assignmentGrantsTeacher: false` — its assigned hosts get host capability only; Teacher capability for host-team programs comes from `ProgramTeacher` rows.
 
 ### Step 2: Admin adds members
 
@@ -148,6 +152,38 @@ An admin connects a tool to a hub by adding an app link in the hub's settings at
 Once added, the tool link appears in the hub sidebar under Tools and as a card on the hub's Home screen. The Home screen card will eventually surface live context — "3 new registrations" or "2 sessions need hosts" — so the team sees what needs attention before they even open the tool. (See §10 for the planned evolution.)
 
 Any tool can be linked from any hub. A single tool can be linked from multiple hubs.
+
+---
+
+## 4½. Connecting Programs to a Hosting Hub (session 128)
+
+App links connect a *tool* to a hub (UI navigation). Programs connect to a *hosting hub* (data ownership) via a separate mechanism: the `Program.hostingHubSlug String?` field. This declares which hub's members are responsible for hosting this program — claiming sessions, holding sub-requests, receiving notifications when the program needs coverage, and (when the hub grants teacher capability) carrying the Teacher pill in the session room.
+
+**Null defaults to `"host-team"`** — every existing program in the system stays with the Host Team without any backfill. The field is purely additive.
+
+**Why a direct field, not the program's category?** Categories are coordinator-editable UI groupings. If a coordinator deletes/renames a category, hosting policy would silently break. Same lesson as the session 125 identity-vs-capability audit: don't overload one field with two meanings. The hosting hub is structural; the category is editorial.
+
+**Lookup helpers (`lib/programHub.ts`):**
+
+- `getProgramHubSlug(programSlug)` → `string` (always returns a slug; `"host-team"` for null)
+- `getProgramHostingHub(programSlug)` → `{ slug, assignmentGrantsTeacher, teacherLabel } | null`
+- `resolveTeacherPillLabel(programLabel, hubLabel)` — pill hierarchy `program.teacherLabel ?? hub.teacherLabel ?? "Teacher"`
+- `DEFAULT_HOSTING_HUB_SLUG = "host-team"`
+
+**Which routes consult this:**
+
+- LiveKit token + step-in (pill hierarchy + capability gates)
+- `/api/host/assignments` POST self-claim (capability gate routes by program's hub)
+- `/api/host/sub-requests` POST + `[id]/claim` (capability + notification recipient pool)
+- `/api/programs-pg` POST (new-program host-needed notification routes to program's hub)
+- `/tools/schedule?hub=...` (filters programs by `hostingHubSlug`)
+- `lib/livekitAuth.ts::resolveSessionRole` (Co-host + Step-In gates)
+
+**Editor surface.** The Program editor's "Hosting & Access" tab carries the hub dropdown. Default option "Host Team (default)" stores null. Mid-flight warning fires when changing the hub on a program with future HostAssignments — those assignments stay valid (grandfather policy); new claims route to the new hub.
+
+**Slug validation.** POST + PUT on `programs-pg` reject non-existent hub slugs with 422.
+
+**Slice 2 of the Silent Meditation Hub (queued).** This architecture is inert until a hub is created with `assignmentGrantsTeacher: true` and programs are moved. The first such hub will be `peer-led-silent-meditation`.
 
 ---
 

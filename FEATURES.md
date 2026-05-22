@@ -1828,7 +1828,7 @@ When an application is extracted, the hub may retain a simplified read-only view
 
 ---
 
-## 38. LiveKit Video Conferencing — Phases 1–5 ✅ Built — sessions 76, 86, 117 (Zoom-aligned redesign), session 121 (three-tier permission model + cleanup), session 122 (Krisp NC + per-profile video bitrate + Bell mode), session 124 (full audit, Zoom-style tier widening + three visible pills, Krisp instrumentation, Step-In propagation + timing fix, ProgramTeacher backfill), session 125 (identity vs. capability split, Host Volunteer rename, raised-hand speaking queue, persistent vote signals), session 126 (server-side time gate on the token route + per-session rooms with per-session chat scoping), session 127 (per-program teacherLabel — Teacher / Guide / Facilitator / Instructor / Custom)
+## 38. LiveKit Video Conferencing — Phases 1–5 ✅ Built — sessions 76, 86, 117 (Zoom-aligned redesign), session 121 (three-tier permission model + cleanup), session 122 (Krisp NC + per-profile video bitrate + Bell mode), session 124 (full audit, Zoom-style tier widening + three visible pills, Krisp instrumentation, Step-In propagation + timing fix, ProgramTeacher backfill), session 125 (identity vs. capability split, Host Volunteer rename, raised-hand speaking queue, persistent vote signals), session 126 (server-side time gate on the token route + per-session rooms with per-session chat scoping), session 127 (per-program teacherLabel — Teacher / Guide / Facilitator / Instructor / Custom), session 128 (Silent Meditation Hub Slice 1 — hub-grants-teacher capability path + ProgramEditor "Hosting & Access" tab restructure)
 
 ### What it does
 
@@ -1843,6 +1843,49 @@ Embedded video conferencing that replaces Google Meet for virtual and hybrid pro
 - **Phase 4 (session room UI):** Custom RIMConference layout, chat, focus/pin, nonverbal signals, raised-hand banner, presence photos, dark theme, audio prompt. ✅ Complete (session 86).
 - **Phase 5 (Zoom-aligned redesign):** ✅ Complete (session 117). The entire session-room UX was reshaped to mirror Zoom's information architecture so Sangha muscle memory transfers cleanly. See "Zoom-aligned redesign" below.
 - **Phase 6 (recording):** 🔜 Pressing future feature — see below.
+
+### Silent Meditation Hub — Slice 1 architecture (session 128)
+
+The two-slice plan documented at the end of session 127. **Slice 1 = architecture (code).** Slice 2 = configuration via `/admin/hubs` (admin-only, no code) — creating the actual `peer-led-silent-meditation` hub and moving the silent-sit programs onto it. Slice 2 is queued.
+
+**The shape.** Every program now declares which hub claims its hosting. The default is `host-team` (null on the column), preserving existing behavior for every program in the system. When a coordinator transfers a program to a peer-led hub via the new ProgramEditor field, two things change:
+
+1. The claim flow, sub-requests, and notifications all route to that hub's members instead of host-team.
+2. If the hub has `assignmentGrantsTeacher: true`, the act of claiming the session confers Teacher capability — bell-friendly audio + the hub's pill label — on whoever leads. No `ProgramTeacher` row needed; the hub establishes the role.
+
+The two paths into Teacher capability now coexist: (a) the existing `ProgramTeacher` row (used for Jesse's four programs and any other per-user teacher attribution) and (b) the new hub-assignment path (clean for peer-led offerings where the leader rotates each week).
+
+**Schema.** Three new columns, idempotent `ALTER TABLE ADD COLUMN IF NOT EXISTS` migrations, no backfill:
+
+- `Program.hostingHubSlug String?` — which hub claims this program's hosting. Null = `host-team`.
+- `Hub.assignmentGrantsTeacher Boolean @default(false)` — when true, active assignments from this hub confer teacher capability.
+- `Hub.teacherLabel String?` — hub-level fallback for the Teacher pill text.
+
+**Pill label hierarchy.** `program.teacherLabel ?? hub.teacherLabel ?? "Teacher"`. Per-program override (session 127) stays the most specific; hub default is the fallback for hub-granted teacher capability. Helper `lib/programHub.ts::resolveTeacherPillLabel(programLabel, hubLabel)`.
+
+**`resolveSessionRole` broadens.** `isProgramTeacher` becomes true if EITHER (existing) a `ProgramTeacher` row exists OR (new) the user has an active HostAssignment for this session AND the program's hub has `assignmentGrantsTeacher: true`. Audio profile and Teacher pill rendering inherit naturally. Co-host and Step-In gates now route by program's hub instead of hardcoded `"host-team"`.
+
+**LiveKit routes.** `/api/livekit/token` and `/api/livekit/step-in` fetch the program with `hostingHubSlug` plus a nested hub join for `assignmentGrantsTeacher` + `teacherLabel`. Pill hierarchy applied in seedMeta. Mute and end-session inherit via `resolveSessionRole`.
+
+**Host operation routes route by program's hub.** `/api/host/assignments` POST (self-claim), `/api/host/sub-requests` POST + `[id]/claim` all derive the hub from the program. Sub-request notification recipient pool routes to the program's hub. `/api/programs-pg` POST fires the new-program host-needed notification to the program's hub.
+
+**Schedule page filter.** `/tools/schedule?hub=...` filters programs by `hostingHubSlug`. Host-team scope (no `?hub=` or `?hub=host-team`) uses a Prisma `OR` to catch both null and explicit `"host-team"` so existing programs stay visible.
+
+**ProgramEditor restructure — new "Hosting & Access" tab.** Between Schedule and Categories. Three fields consolidated:
+
+- `hostingHubSlug` (new) — "Hosting team" dropdown. Default option "Host Team (default)" stores null.
+- `teacherLabel` (moved from Content) — pill text dropdown shipped session 127.
+- `isOpenAccess` + `guestAccessKey` (moved from Schedule) — non-member guest access.
+
+**Mid-flight warning.** When a coordinator changes a program's hosting hub on a program with future HostAssignments, the editor shows a notice listing the count + clarifying the grandfather policy (existing assignments stay valid; new claims route to the new hub). Helps coordinators see consequences before saving.
+
+**Slug validation.** POST + PUT on `programs-pg` reject non-existent hub slugs with 422 — defense against typos creating orphan state. Reviewer sub-agent caught this pre-commit.
+
+**Deferred to Slice 2 (intentional, by commit body):** standing-rotation routes and the assignments-GET pause map still gate by `"host-team"`. Peer-led hub doesn't surface standing rotations yet; when it does, broaden the same way.
+
+**New helper file:** `lib/programHub.ts` carries `getProgramHubSlug`, `getProgramHostingHub`, `resolveTeacherPillLabel`, `DEFAULT_HOSTING_HUB_SLUG`. Cleanly separated from `lib/hubMemberAuth.ts` (which is about user↔hub permissions) — this is about program↔hub structural lookup.
+
+**Files touched (16 files, 809 insertions, 202 deletions):** `prisma/schema.prisma`, `prisma/migrate.mjs`, `lib/programHub.ts` (new), `lib/livekitAuth.ts`, `app/api/livekit/token/route.ts`, `app/api/livekit/step-in/route.ts`, `app/api/host/assignments/route.ts`, `app/api/host/sub-requests/route.ts`, `app/api/host/sub-requests/[id]/claim/route.ts`, `app/api/programs-pg/route.ts`, `app/api/programs-pg/[slug]/route.ts`, `app/tools/programs/[programSlug]/edit/page.tsx`, `app/tools/programs/new/page.tsx`, `app/tools/schedule/page.tsx`, `app/tools/schedule/layout.tsx`, `components/registrar/ProgramEditor.tsx`. Commit `500fa64`.
 
 ### Per-program teacherLabel (session 127)
 

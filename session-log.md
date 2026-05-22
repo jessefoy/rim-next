@@ -1,5 +1,83 @@
 ---
 
+## 2026-05-22 (session 128) — Silent Meditation Hub — Slice 1 architecture
+
+One code commit on `main` (`500fa64`). Slice 1 of the two-slice plan documented at the end of session 127. The full design was settled in conversation; this session was straight-through implementation — schema, helper, route updates, editor restructure, schedule filter — with one reviewer-caught nit addressed before commit.
+
+### What shipped
+
+**Per-program hosting-hub override + hub-grants-teacher capability path.** Every program now reads a hosting hub (defaults to `host-team`); coordinators can transfer a program to a peer-led hub that confers Teacher capability — bell-friendly audio + the hub's pill label — on whoever signs up to lead a session. No `ProgramTeacher` row needed for peer leaders; the act of claiming the session IS the teacher capability when the hub grants it.
+
+**Schema (three idempotent `ALTER TABLE ADD COLUMN IF NOT EXISTS` adds via `_migration_flags`, no backfill):**
+
+- `Program.hostingHubSlug String?` — null defaults to `host-team`. Set per program when a coordinator wants to transfer hosting to a peer-led hub.
+- `Hub.assignmentGrantsTeacher Boolean @default(false)` — when true, an active HostAssignment from this hub confers `isProgramTeacher: true` in `resolveSessionRole`.
+- `Hub.teacherLabel String?` — hub-level fallback for the Teacher pill text. Used when the hub grants teacher capability and the program doesn't override.
+
+**New helper `lib/programHub.ts`:**
+
+- `getProgramHubSlug(programSlug)` → `string` (defaults to `"host-team"` when null)
+- `getProgramHostingHub(programSlug)` → `{ slug, assignmentGrantsTeacher, teacherLabel } | null`
+- `resolveTeacherPillLabel(programLabel, hubLabel)` → `string` (pill hierarchy: `program.teacherLabel ?? hub.teacherLabel ?? "Teacher"`)
+- `DEFAULT_HOSTING_HUB_SLUG = "host-team"` constant for the rare direct comparison
+
+**`resolveSessionRole` broadened (`lib/livekitAuth.ts`).** `isProgramTeacher` now layers two paths: (1) existing `ProgramTeacher` row OR (2) `assignmentGrantsTeacher: true` on the program's hub AND active HostAssignment for this session. Co-host and Step-In gates route by the program's hub instead of hardcoded `"host-team"`. Returns the resolved hub config to callers so they can apply the pill hierarchy without a second fetch.
+
+**LiveKit token + step-in.** Both fetch the program with `hostingHubSlug` plus a nested hub join for `assignmentGrantsTeacher` + `teacherLabel`. Pill hierarchy applied consistently in seedMeta. `Mute*` and `end-session` inherit the new behavior via `resolveSessionRole` — no direct changes.
+
+**Host operation routes route by program's hub.** `/api/host/assignments` POST (self-claim), `/api/host/sub-requests` POST + `[id]/claim` all gate by `program.hostingHubSlug ?? "host-team"`. Sub-request notification recipient pool routes to the program's hub. `/api/programs-pg` POST also fires the new-program notification to the program's hub.
+
+**ProgramEditor restructure (per the design conversation):**
+
+- New tab **"Hosting & Access"** between Schedule and Categories.
+- `teacherLabel` moved out of Content tab into Hosting & Access.
+- `isOpenAccess` + `guestAccessKey` moved out of Schedule tab into Hosting & Access.
+- New `hostingHubSlug` dropdown — "Host Team (default)" stores null, plus every active hub.
+- **Mid-flight warning** when changing the hub on a program with future HostAssignments: the edit page fetches the count, shows a notice clarifying the grandfather policy (existing assignments stay; new claims route to the new hub). Helps coordinators see the consequence before they save.
+
+**Schedule page filter.** `/tools/schedule?hub=...` now filters programs by `hostingHubSlug`. Host-team scope (the default, or explicit `?hub=host-team`) uses a Prisma `OR` to catch both `null` and `"host-team"` so existing programs without an explicit field stay visible. Coordinator-record lookup and pause-state map both routed to the active hub.
+
+**Slug validation.** POST + PUT on `programs-pg` reject non-existent hub slugs with 422 — the reviewer flagged that without validation a typo'd slug would create an orphan state. The check is one cheap DB lookup.
+
+### Reviewer sub-agent (per the session-117 promoted pattern)
+
+Spawned on the staged diff. Found one important item (slug validation) and a few stylistic nits. Validation added; nits left.
+
+### Deferred to Slice 2 (intentional, documented in commit body)
+
+- Standing-rotation routes still gate by `host-team`. Peer-led hub doesn't surface standing rotations yet — when it does, broaden the same way.
+- `/api/host/assignments` GET handler's pause map still scoped to `host-team`. Slice 2 generalizes when needed.
+
+### Connections (what this work touches)
+
+- **Schema** — `Program`, `Hub`. No new tables; three columns.
+- **Authority resolution** — `lib/livekitAuth.ts::resolveSessionRole` is the central gate; broadening it cascades to mute/end/step-in/token without per-route changes.
+- **Program ownership** — the `hostingHubSlug` field is the source of truth for "which hub claims this program." Rejected category-based join earlier because categories are coordinator-editable UI groupings (session 125 lesson: don't overload one field with two meanings).
+- **Pill label hierarchy** — `program.teacherLabel ?? hub.teacherLabel ?? "Teacher"`. Session 127's per-program override stays the most specific layer; hub default is the fallback for hub-granted teacher capability.
+- **Editor structure** — the new "Hosting & Access" tab consolidates fields that share one concern (how the live session behaves and who has authority in it). Sets the precedent for future fields in this category (per-program audio profile, time-gate adjustments, recording policy, etc.).
+- **Grandfather policy** — existing HostAssignments survive hub changes. The mid-flight warning makes this explicit at the editor.
+- **Hub-as-authority (session 92)** — extends naturally. `getEffectiveHostingCapability(userId, hubSlug, fallback)` already takes a `hubSlug`; we're just passing it the one derived from the program.
+
+### What's next — Slice 2 (admin-only, no code)
+
+1. `/admin/hubs` → create `peer-led-silent-meditation` with `assignmentGrantsTeacher: true`, `teacherLabel: "Guide"`, type OPERATIONAL, pick coordinators.
+2. Add a `HubAppLink` to `/tools/schedule?hub=peer-led-silent-meditation`.
+3. Edit Good Morning / Good Evening Silent Meditation programs → Hosting & Access tab → set Hosting team to the new hub. Confirm the grandfather warning behaves correctly if upcoming HostAssignments exist.
+4. Add peer leaders as HubMembers (active, hostingCapability: true).
+5. First peer-leader test end-to-end: claim a session from `/tools/schedule?hub=peer-led-silent-meditation` → confirm HostAssignment row written → join the session → confirm Teacher pill reads "Guide" with bell-friendly audio.
+6. Staff manual: extend `host-hub` chapter or create a new `peer-leader-hub` chapter explaining the model + claim flow + Guide pill semantics. v10 manual self-heal.
+7. After Slice 2 lands, close backlog `2026-05-25-003`.
+
+### What testing on the deployed site should confirm (backward compat — Slice 1 should be inert until programs move)
+
+1. Open any existing program in `/tools/programs/[slug]/edit`. New "Hosting & Access" tab sits between Schedule and Categories. Dropdown reads "Host Team (default)". Save without changing anything — behavior identical.
+2. teacherLabel still works after the move from Content. Existing programs (Essential Dharma Study etc.) keep whatever was set in session 127.
+3. Open Access fields moved from Schedule to Hosting & Access for virtual/hybrid programs; guest links still work.
+4. `/tools/schedule` (no `?hub=`) still shows every host-team program — no disappearances. The Prisma `OR` filter catches both null and explicit `"host-team"`.
+5. The new hub field is wired but inert. No hub has `assignmentGrantsTeacher: true` yet, so no behavior change anywhere. Slice 2 turns it on.
+
+---
+
 ## 2026-05-26 (session 127) — Per-program teacherLabel — Teacher / Guide / Facilitator / Instructor / Custom
 
 One code commit on `main` (`fbbf955`) plus this closing-ritual doc sweep. Closes backlog `2026-05-25-002`. Lands before the Silent Meditation Hub (`2026-05-25-003`) so peer-led offerings can carry "Guide" pills when that hub goes live.
