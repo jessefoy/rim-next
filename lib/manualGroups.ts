@@ -49,6 +49,12 @@ export const MANUAL_GROUPS: ManualGroup[] = [
     ],
   },
   {
+    id:          "peer-led",
+    label:       "For peer-led facilitators",
+    description: "Peer-led offerings — silent meditation, with room to grow.",
+    slugs:       ["peer-led-silent-meditation"],
+  },
+  {
     id:          "registration-team",
     label:       "For the registration team",
     description: "Programs and registration management.",

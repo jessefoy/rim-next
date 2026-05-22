@@ -31,6 +31,7 @@ import { updateManualPrograms } from "./update-manual-programs.mjs";
 import { updateManualProgramsRewrite } from "./update-manual-programs-rewrite.mjs";
 import { updateManualRegistrationRewrite } from "./update-manual-registration-rewrite.mjs";
 import { seedManualHostFirstWeek } from "./seed-manual-host-first-week.mjs";
+import { seedManualPeerLedSilentMeditation } from "./seed-manual-peer-led-silent-meditation.mjs";
 import { updateHostHubWelcomeBody } from "./update-host-hub-welcome-body.mjs";
 import { seedHostHubTrainingDoc } from "./seed-host-hub-training-doc.mjs";
 import { seedNonHostHubHomeContent } from "./seed-non-host-hub-home-content.mjs";
@@ -3415,6 +3416,23 @@ async function main() {
     console.log("  ✔ Hub.assignmentGrantsTeacher + Hub.teacherLabel columns added.");
   } else {
     console.log("  ⏭ Hub.assignmentGrantsTeacher + Hub.teacherLabel columns already added.");
+  }
+
+  // Manual chapter — Peer-Led Silent Meditation hub (Slice 2 manual deliverable).
+  // Single chapter that explains the hub model, the claim flow, the Facilitator
+  // pill semantics, and the sub-request etiquette.  Audience: members of the
+  // peer-led-silent-meditation hub.  Idempotent via flag.
+  const seedPeerLedSilentMeditationFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'seed_manual_peer_led_silent_meditation_v1'
+  `).catch(() => []);
+
+  if (seedPeerLedSilentMeditationFlag.length === 0) {
+    await seedManualPeerLedSilentMeditation(db);
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('seed_manual_peer_led_silent_meditation_v1')`,
+    );
+  } else {
+    console.log("  ⏭ Manual peer-led-silent-meditation chapter already seeded.");
   }
 
   await db.$disconnect();
