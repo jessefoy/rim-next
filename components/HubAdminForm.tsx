@@ -76,7 +76,24 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug }: Props)
   const [assignmentGrantsTeacher, setAssignmentGrantsTeacher] = useState<boolean>(
     initialData?.assignmentGrantsTeacher ?? false,
   );
-  const [teacherLabel, setTeacherLabel] = useState<string>(initialData?.teacherLabel ?? "");
+  // Mirror the ProgramEditor's teacherLabel UX so the field reads the same
+  // way coordinators encounter it in both places.  Dropdown of preset
+  // alternates plus a Custom… reveal.  Initial-state derivation handles
+  // all save shapes — null → "default", exact preset match → preset,
+  // anything else → "Custom" with text preserved.
+  const HUB_LABEL_PRESETS = ["Guide", "Facilitator", "Instructor"] as const;
+  const initialHubLabel = initialData?.teacherLabel ?? null;
+  const initialHubLabelChoice: "default" | "Guide" | "Facilitator" | "Instructor" | "Custom" =
+    initialHubLabel === null
+      ? "default"
+      : (HUB_LABEL_PRESETS as readonly string[]).includes(initialHubLabel)
+        ? (initialHubLabel as "Guide" | "Facilitator" | "Instructor")
+        : "Custom";
+  const [teacherLabelChoice, setTeacherLabelChoice] =
+    useState<typeof initialHubLabelChoice>(initialHubLabelChoice);
+  const [teacherLabelCustom, setTeacherLabelCustom] = useState(
+    initialHubLabelChoice === "Custom" ? (initialHubLabel ?? "") : "",
+  );
   const [appLinks, setAppLinks] = useState<AppLink[]>(initialData?.appLinks ?? []);
   const [welcomeHeadline, setWelcomeHeadline] = useState(initialData?.welcomeHeadline ?? "");
   const [welcomeBody, setWelcomeBody] = useState<string>(
@@ -134,6 +151,17 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug }: Props)
     setError("");
     setSuccess("");
 
+    // Resolve teacherLabel from the dropdown state.
+    //   "default" stores null (renderer falls through to "Teacher")
+    //   preset literals store as themselves
+    //   "Custom" stores the trimmed custom string, or null if empty
+    const resolvedTeacherLabel: string | null =
+      teacherLabelChoice === "default"
+        ? null
+        : teacherLabelChoice === "Custom"
+          ? teacherLabelCustom.trim() || null
+          : teacherLabelChoice;
+
     const payload = {
       name,
       slug,
@@ -141,7 +169,7 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug }: Props)
       type,
       status,
       assignmentGrantsTeacher,
-      teacherLabel: teacherLabel.trim() || null,
+      teacherLabel: resolvedTeacherLabel,
       appLinks: appLinks.filter((l) => l.label && (l.toolSlug || l.href)),
       welcomeHeadline: welcomeHeadline || null,
       welcomeBody: welcomeBody,
@@ -258,16 +286,18 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug }: Props)
             onChange={(e) => {
               const next = e.target.checked;
               setAssignmentGrantsTeacher(next);
-              // Unchecking clears any typed label so a stale value can't
-              // ride along on submit. The conditional input renders this
-              // moot for UI purposes, but the state shouldn't carry it.
-              if (!next) setTeacherLabel("");
+              // Unchecking resets the label choice so a stale value
+              // can't ride along on submit.
+              if (!next) {
+                setTeacherLabelChoice("default");
+                setTeacherLabelCustom("");
+              }
             }}
             style={{ marginRight: 8 }}
           />
           Hub assignments grant Teacher capability
         </label>
-        <p className="adm-hubs-help">
+        <p className="adm-hubs-hint">
           When enabled, anyone assigned to lead a session in this hub
           automatically gets the Teacher pill and bell-friendly audio in
           the session room — without needing to be a ProgramTeacher of the
@@ -277,27 +307,49 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug }: Props)
         </p>
       </div>
 
-      {/* Teacher pill label — only meaningful when assignmentGrantsTeacher is true */}
+      {/* Teacher pill label — only meaningful when assignmentGrantsTeacher is true.
+          Mirrors the ProgramEditor's Hosting & Access dropdown UX. */}
       {assignmentGrantsTeacher && (
         <div className="adm-hubs-field">
           <label className="adm-hubs-label">Default pill label</label>
-          <input
-            type="text"
-            className="adm-hubs-input"
-            value={teacherLabel}
-            onChange={(e) => setTeacherLabel(e.target.value)}
-            placeholder="Guide"
-            maxLength={20}
-          />
           <p className="adm-hubs-hint">
             What the role pill reads on a leader&rsquo;s tile in the session
-            room when they&rsquo;ve been assigned via this hub. Common choices:
-            &ldquo;Guide&rdquo; for silent meditation, &ldquo;Facilitator&rdquo;
-            for Recovery Dharma, &ldquo;Instructor&rdquo; for skills-based
-            offerings. Per-program override on the program record takes
-            priority; this is the hub-wide fallback. Leave blank to default
-            to &ldquo;Teacher.&rdquo;
+            room when they&rsquo;ve been assigned via this hub. Per-program
+            override (on the program record itself) takes priority over this
+            hub default; if both are unset, the pill falls back to
+            &ldquo;Teacher.&rdquo;
           </p>
+          <select
+            className="adm-hubs-input"
+            value={teacherLabelChoice}
+            onChange={(e) =>
+              setTeacherLabelChoice(
+                e.target.value as
+                  | "default"
+                  | "Guide"
+                  | "Facilitator"
+                  | "Instructor"
+                  | "Custom",
+              )
+            }
+          >
+            <option value="default">Teacher (default)</option>
+            <option value="Guide">Guide</option>
+            <option value="Facilitator">Facilitator</option>
+            <option value="Instructor">Instructor</option>
+            <option value="Custom">Custom…</option>
+          </select>
+          {teacherLabelChoice === "Custom" && (
+            <input
+              type="text"
+              className="adm-hubs-input"
+              placeholder="e.g. Co-Leader"
+              value={teacherLabelCustom}
+              onChange={(e) => setTeacherLabelCustom(e.target.value)}
+              maxLength={20}
+              style={{ marginTop: 8 }}
+            />
+          )}
         </div>
       )}
 
