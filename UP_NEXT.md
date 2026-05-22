@@ -45,9 +45,89 @@ One code commit on `main` (`fbbf955`) plus a closing-ritual doc sweep. Closes ba
 
 ### Next priority — Silent Meditation Hub (backlog `2026-05-25-003`)
 
-Now unblocked. New Hub for peer-led offerings (Good Morning / Good Evening Silent Meditation, expandable to Recovery Dharma and other peer-led offerings). Self-claim + standing rotations reuse host-team infrastructure. Peer leaders can be wired up as ProgramTeachers whose pill reads "Guide" — exactly what teacherLabel just enabled.
+**Design fully decided in session 127 follow-up conversation. Build can begin cold.** Hub is specific to peer-led silent meditation; the *pattern* it establishes will template future peer-led hubs.
 
-**Open design question parked inside this backlog entry:** should the bell-friendly audio profile be granted to *any* Session Host (regardless of ProgramTeacher status)? Would help Nancy on Awakening The Heart and any peer-leader of a silent sit without forcing per-row teacher data. Counter-argument: non-teaching session hosts (logistics calls) sound better with NS on. Worth resolving when this hub is built.
+#### Final design
+
+**Hub name:** `peer-led-silent-meditation` (long but explicit; this hub is specific to the silent meditation offerings).
+
+**Program ↔ Hub link.** New column **`Program.hostingHubSlug String?`** on Program. Null defaults to `host-team` (the implicit default; preserves every existing program's behavior — pure additive, no backfill needed). Set to `peer-led-silent-meditation` on silent-sit programs to transfer hosting authority.
+
+> **Why not the category?** Categories are coordinator-editable UI groupings. If a coordinator deletes/renames a category, the hosting policy would silently break. Same lesson as session 125 (identity vs. capability): don't overload one field with two meanings. Direct field on Program is explicit, survives category restructuring, and matches how `HostAssignment.programSlug` already works (slugs are stable join keys per CLAUDE.md).
+
+**Hub grants teacher capability.** Two new fields on Hub:
+
+- **`Hub.assignmentGrantsTeacher Boolean @default(false)`** — when true, an active HostAssignment from this hub confers teacher capability on top of host capability. Host-team stays false (existing behavior). Peer-led-silent-meditation hub sets true.
+- **`Hub.teacherLabel String?`** — default pill text for assignments from this hub when `assignmentGrantsTeacher` is true. Peer-led hub sets `"Guide"`.
+
+**`resolveSessionRole` broadens.** `isProgramTeacher` becomes true if EITHER (existing) a `ProgramTeacher` row exists OR (new) the user has an active HostAssignment for this session AND the program's hub has `assignmentGrantsTeacher: true`. Audio-profile derivation and Teacher pill rendering inherit naturally.
+
+**Teacher pill label hierarchy.** `program.teacherLabel ?? hub.teacherLabel ?? "Teacher"` — most specific wins. Program-level override (session 127) still takes priority; hub default is the fallback when the assignment grants teacher capability.
+
+**Capability gates broaden by hub.** `getEffectiveHostingCapability` is per-hub already; the change is in *which* hub is consulted for a given program — derived from `program.hostingHubSlug ?? "host-team"`. Self-claim, sub-request, mute-*, end-session, step-in all route by program → hub.
+
+**Sub-requests work the same flow, scoped to program's hub.** Recipient pool is `getHubNotificationRecipients(program.hostingHubSlug ?? "host-team")`. UI/routes unchanged in shape; only the hub-scope of who-gets-notified changes.
+
+**Schedule view: strict per-hub.** `/tools/schedule?hub=peer-led-silent-meditation` shows only programs whose `hostingHubSlug` is this hub. No unified view — multi-hub members switch via the sidebar. The page already takes `?hub=` context via `getToolHubContext`.
+
+**Mid-flight migration policy: grandfather existing HostAssignments.** When a program transitions from one hub to another (`hostingHubSlug` changes), existing future HostAssignments stay (the assigned person keeps their session). New self-claims route to the new hub. Editor shows a warning when changing the field on a program with upcoming assignments.
+
+#### Editor UX — new tab "Hosting & Access"
+
+ProgramEditor gets a new tab between Schedule and Categories. **Tab name: "Hosting & Access".** Most coordinator-friendly because the label tells you exactly what's there: hosting (who runs it) and access (who can join). Decided after rejecting "Session" (ambiguous), "Hosting" (overloads with Host Team), "Live Event" (loses the "who can come" dimension), and "Session Room" (codebase-familiar but Zoom-y).
+
+**Order:** Content · Schedule · **Hosting & Access** · Categories · Registration · Dana · Home Card · Visibility
+
+**What lives there:**
+
+- `hostingHubSlug` (new) — "Hosting team" dropdown. Default option reads "Host Team (default)" and stores null. Options pulled from the active hub list. Always applies (in-person or virtual). Mid-flight change shows a warning if upcoming HostAssignments exist on the program.
+- `teacherLabel` — **moved from Content tab.** Closely tied to who-runs-the-session, not editorial. The teacher search itself stays in Content (the teacher is editorial — they appear on the public program page); only the pill label moves.
+- `isOpenAccess` + `guestAccessKey` — **moved from Schedule tab.** They're about who can join, not when/where.
+
+**Why the moves.** Three fields scattered across two tabs share one concern: how the live session behaves and who has authority in it. The trend will continue (per-program audio profile, time-gate adjustments, recording policy, participant cap, chat permissions are all plausibly coming). Better to relocate two fields now than to keep adding to the wrong places. teacherLabel just shipped two commits ago — this is the cheapest possible moment to relocate it.
+
+#### Open design question — bell-friendly audio fallback
+
+**Resolved.** Earlier-parked question ("should *any* Session Host get bell-friendly audio, regardless of ProgramTeacher status?") is closed by this design. The hub-grants-teacher mechanism makes per-row teacher data unnecessary for peer-led offerings: being assigned to lead a session in this hub IS the teacher capability. No flag needed on the audio-profile derivation itself. The architecture is cleaner than per-program "bellFriendlyForHost" flags would have been.
+
+#### Build plan — two slices
+
+**Slice 1 — Architecture (code, no new hub yet).**
+
+1. Schema: add `Program.hostingHubSlug String?`, `Hub.assignmentGrantsTeacher Boolean @default(false)`, `Hub.teacherLabel String?`. Migration in `prisma/migrate.mjs` — three `ALTER TABLE` adds, no backfill.
+2. `resolveSessionRole` (`lib/livekitAuth.ts`): broaden `isProgramTeacher` to include the hub-assignment path. Update the comment header.
+3. Pill label hierarchy in token + step-in seeds: `program.teacherLabel ?? hub.teacherLabel ?? null`. Fetch hub when needed; cache the join in the program select where possible.
+4. Capability gate broadening: helper `getProgramHubSlug(programSlug): string` that returns `program.hostingHubSlug ?? "host-team"`. Use it in mute-*, end-session, step-in, sub-request, self-claim, schedule tool.
+5. ProgramEditor: add the "Hosting & Access" tab. Move teacherLabel out of Content. Move isOpenAccess + guestAccessKey out of Schedule. Add hostingHubSlug dropdown.
+6. `/tools/schedule` filter: when `?hub=...` is set, filter to programs where `hostingHubSlug === that hub` (or fall through to host-team for null when hub is host-team).
+7. Mid-flight change warning in ProgramEditor: when coordinator picks a different hub on a program with upcoming HostAssignments, show a notice listing the count + clarifying the grandfather policy.
+8. Type-check, reviewer sub-agent, commit, push.
+
+**Slice 2 — Configuration (no code; admin actions + first run).**
+
+1. Create `peer-led-silent-meditation` via `/admin/hubs`. Set `assignmentGrantsTeacher: true`, `teacherLabel: "Guide"`. Type OPERATIONAL. Pick coordinator(s).
+2. Add an `HubAppLink` to `/tools/schedule?hub=peer-led-silent-meditation`.
+3. Decide which silent meditation programs (Good Morning, Good Evening) get `hostingHubSlug: "peer-led-silent-meditation"`. Set via the new dropdown. Confirm the grandfather warning behaves correctly if any host-team assignments exist.
+4. Add the first peer leader(s) as HubMembers (active, hostingCapability true, communicationsEnabled per preference).
+5. Have a peer leader test the claim flow end-to-end: `/tools/schedule?hub=peer-led-silent-meditation` → see open sessions → click claim → confirm HostAssignment row written → join the session → confirm Teacher pill reads "Guide" with bell-friendly audio.
+6. Manual chapter — extend `host-hub` or create `peer-leader-hub` chapter explaining the model + claim flow. Closing-ritual update.
+
+#### Files this will touch (slice 1)
+
+- `prisma/schema.prisma` — Program.hostingHubSlug, Hub.assignmentGrantsTeacher, Hub.teacherLabel
+- `prisma/migrate.mjs` — three ALTER TABLE entries with migration flags
+- `lib/livekitAuth.ts` — broaden isProgramTeacher, update comments
+- `lib/hubMemberAuth.ts` (possibly) — helper `getProgramHubSlug` or similar
+- `app/api/livekit/token/route.ts` — fetch hub teacherLabel, fall through label hierarchy
+- `app/api/livekit/step-in/route.ts` — same
+- `app/api/livekit/mute-participant/route.ts`, `app/api/livekit/mute-all/route.ts`, `app/api/livekit/end-session/route.ts` — route by program hub
+- `app/api/host/assignments/route.ts` — self-claim respects program.hostingHubSlug
+- `app/api/host/sub-requests/route.ts` — recipient pool routes by program hub
+- `components/registrar/ProgramEditor.tsx` — new tab; move teacherLabel + Open Access; add hostingHubSlug dropdown; mid-flight warning
+- `app/api/programs-pg/route.ts` + `app/api/programs-pg/[slug]/route.ts` — accept hostingHubSlug
+- `app/tools/schedule/page.tsx` — filter programs by hub
+- `app/tools/programs/[programSlug]/edit/page.tsx` — pass hostingHubSlug to ProgramEditor initialData
+- Doc sweep at closing: session-log, FEATURES.md §38, Stack Reference, System Architecture, manual chapter, backlog (close `2026-05-25-003` after slice 2), UP_NEXT
 
 ---
 
