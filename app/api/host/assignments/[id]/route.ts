@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { after } from "next/server";
 import { db } from "@/lib/db";
 import { sendHostAssignmentConfirmationEmail } from "@/lib/email";
+import { DEFAULT_HOSTING_HUB_SLUG } from "@/lib/programHub";
 
 function fmtDate(d: Date | null): string | null {
   return d ? d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : null;
@@ -59,7 +60,10 @@ export async function PATCH(
     after(async () => {
       try {
         const [program, claimer] = await Promise.all([
-          db.program.findUnique({ where: { slug: assignment.programSlug }, select: { name: true } }),
+          db.program.findUnique({
+            where: { slug: assignment.programSlug },
+            select: { name: true, hostingHubSlug: true },
+          }),
           db.user.findUnique({ where: { id: session.user.id }, select: { email: true, firstName: true } }),
         ]);
         if (claimer?.email) {
@@ -68,6 +72,7 @@ export async function PATCH(
             firstName: claimer.firstName,
             programName: program?.name || assignment.programSlug,
             dateText: fmtDate(assignment.sessionDate),
+            hubSlug: program?.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG,
           });
         }
       } catch (e) {

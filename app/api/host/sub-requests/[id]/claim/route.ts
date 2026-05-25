@@ -131,6 +131,7 @@ export async function POST(
           programName,
           sessionDate: sessionLabel,
           message: requesterNote,
+          hubSlug: programHubSlug,
         } as SubClaimedEmailData);
       }
 
@@ -141,6 +142,7 @@ export async function POST(
           programName,
           dateText: sessionLabel,
           requesterNote,
+          hubSlug: programHubSlug,
         });
       }
     } catch (e) {

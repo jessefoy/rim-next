@@ -170,6 +170,7 @@ export async function POST(request: NextRequest) {
               firstName: u.firstName,
               programName: program.name,
               programFormat: formatLabel,
+              hubSlug: program.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG,
             }),
           ),
         );

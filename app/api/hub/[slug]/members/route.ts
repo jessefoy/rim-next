@@ -1,8 +1,8 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { getHubMembership, requireCoordinator, effectiveCoordinator } from "@/lib/hubAuth";
-import { sendHubWelcomeEmail } from "@/lib/email";
+import { sendHubWelcomeEmail, hubHomeUrl } from "@/lib/email";
 
 // GET /api/hub/[slug]/members — list hub members
 export async function GET(
@@ -102,14 +102,26 @@ export async function POST(
     include: { user: { select: { firstName: true, lastName: true, preferredName: true, title: true, email: true, avatarUrl: true } } },
   });
 
-  // Fire-and-forget: welcome email
+  // Welcome email — wrapped in after() so the in-flight Resend call survives
+  // the response teardown.  Bare `.catch(() => {})` (the previous pattern)
+  // was silently killed by Vercel's serverless lifecycle (the symptom Jesse
+  // caught in the first peer-led hub test: Nancy didn't get her welcome
+  // email).  Errors are now logged via console.error rather than swallowed.
   if (newMember.user.email) {
-    sendHubWelcomeEmail({
-      to: newMember.user.email,
-      firstName: newMember.user.firstName,
-      hubName: hub.name,
-      hubUrl: `https://rim-next.vercel.app/account/hub/${slug}`,
-    }).catch(() => {});
+    const email = newMember.user.email;
+    const firstName = newMember.user.firstName;
+    after(async () => {
+      try {
+        await sendHubWelcomeEmail({
+          to: email,
+          firstName,
+          hubName: hub.name,
+          hubUrl: hubHomeUrl(slug),
+        });
+      } catch (e) {
+        console.error("[hub-members] welcome email error:", e);
+      }
+    });
   }
 
   return NextResponse.json({

@@ -30,7 +30,10 @@ async function notifyAssignedHost(
 ): Promise<void> {
   try {
     const [program, assignee] = await Promise.all([
-      db.program.findUnique({ where: { slug: programSlug }, select: { name: true } }),
+      db.program.findUnique({
+        where: { slug: programSlug },
+        select: { name: true, hostingHubSlug: true },
+      }),
       db.user.findUnique({ where: { id: assignedUserId }, select: { email: true, firstName: true } }),
     ]);
     if (!assignee?.email) return;
@@ -39,6 +42,7 @@ async function notifyAssignedHost(
       firstName: assignee.firstName,
       programName: program?.name || programSlug,
       dateText: formatSessionDate(sessionDate),
+      hubSlug: program?.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG,
     });
   } catch (e) {
     console.error("[host-assignment] confirmation email error:", e);

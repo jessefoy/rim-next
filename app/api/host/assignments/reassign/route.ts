@@ -5,6 +5,7 @@ import {
   sendHostAssignmentConfirmationEmail,
   sendHostAssignmentRemovedEmail,
 } from "@/lib/email";
+import { DEFAULT_HOSTING_HUB_SLUG } from "@/lib/programHub";
 
 function fmtDate(d: Date | null): string | null {
   return d ? d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : null;
@@ -100,10 +101,11 @@ export async function POST(request: Request) {
     try {
       const program = await db.program.findUnique({
         where:  { slug: programSlug },
-        select: { name: true },
+        select: { name: true, hostingHubSlug: true },
       });
       const programName = program?.name || programSlug;
       const dateText = fmtDate(parsedDate);
+      const hubSlug = program?.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG;
 
       const newHost = await db.user.findUnique({
         where:  { id: newHostId },
@@ -116,6 +118,7 @@ export async function POST(request: Request) {
           firstName: newHost.firstName,
           programName,
           dateText,
+          hubSlug,
         });
       }
 
@@ -135,6 +138,7 @@ export async function POST(request: Request) {
             programName,
             dateText,
             byName,
+            hubSlug,
           });
         }
       }

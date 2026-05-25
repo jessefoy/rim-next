@@ -172,6 +172,7 @@ export async function POST(request: Request) {
             sessionDate: sessionLabel,
             message: messageText,
             subRequestId: subRequest.id,
+            hubSlug: programHubSlug,
           } as SubRequestEmailData)
         )
       );

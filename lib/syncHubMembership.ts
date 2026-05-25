@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { sendHubWelcomeEmail } from "@/lib/email";
+import { sendHubWelcomeEmail, hubHomeUrl } from "@/lib/email";
 
 /**
  * Maps system roles to the hub memberships they imply.
@@ -99,14 +99,28 @@ export async function syncHubMembership(userId: string, roles: string[]): Promis
     });
     if (user?.email) {
       const newHubs = managedHubs.filter((h) => newlyCreatedSlugs.includes(h.slug));
-      for (const hub of newHubs) {
-        sendHubWelcomeEmail({
-          to: user.email,
-          firstName: user.firstName,
-          hubName: hub.name,
-          hubUrl: `https://rim-next.vercel.app/account/hub/${hub.slug}`,
-        }).catch(() => {});
-      }
+      // Await sends instead of fire-and-forget.  The caller (admin role
+      // grant) already awaits this whole function, so awaiting here just
+      // converts "fire-and-forget Promise" (which Vercel may kill at
+      // teardown) into "awaited Promise" — same execution time on the
+      // happy path, reliable delivery, errors logged via console.error
+      // rather than swallowed.  See RIM_Email_Engineering.md.
+      const userEmail = user.email;
+      const userFirstName = user.firstName;
+      await Promise.all(
+        newHubs.map(async (hub) => {
+          try {
+            await sendHubWelcomeEmail({
+              to: userEmail,
+              firstName: userFirstName,
+              hubName: hub.name,
+              hubUrl: hubHomeUrl(hub.slug),
+            });
+          } catch (e) {
+            console.error(`[syncHubMembership] welcome email failed for hub ${hub.slug}:`, e);
+          }
+        }),
+      );
     }
   }
 }

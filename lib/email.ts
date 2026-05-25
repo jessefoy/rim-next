@@ -3,6 +3,7 @@ import { portableTextToMarkdown } from "@/lib/portableTextEmail";
 import { isBlockNoteJSON } from "@/lib/renderRichContent";
 import { extractTextAsync, renderFormattedTextAsync } from "@/lib/renderRichContentServer";
 import { db } from "@/lib/db";
+import { DEFAULT_HOSTING_HUB_SLUG } from "@/lib/programHub";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -21,6 +22,70 @@ const FROM = `Rooted In Mindfulness <${process.env.EMAIL_FROM ?? "onboarding@res
 // Falls back to EMAIL_FROM if not set.
 const REGISTRAR_EMAIL =
   process.env.REGISTRAR_EMAIL ?? process.env.EMAIL_FROM ?? "onboarding@resend.dev";
+
+// ─── URL helpers for hub-scoped links ────────────────────────────────────────
+//
+// Slice 2.5 (2026-05-22) discovered every outbound email URL was hub-agnostic
+// — the link in a sub-request notification just said /tools/schedule, so a
+// multi-hub member (Nancy, both host-team + peer-led-silent-meditation) would
+// land in the default host-team view regardless of which hub the email was
+// about. Closed by these two helpers:
+//
+//   hubScopedUrl(path, hubSlug)
+//     For /tools/* and similar paths where the hub is a query-param scope
+//     of a shared tool. Appends ?hub=<slug> when slug is given and isn't
+//     the host-team default (the schedule page treats null/missing/host-team
+//     as the same; skipping the param keeps URLs clean in host-team emails).
+//
+//   hubHomeUrl(hubSlug)
+//     For /account/hub/<slug>/* paths where the hub IS the path. Always
+//     uses the supplied slug; never falls back to a default.
+//
+// Both compose with BASE_URL so the trailing-whitespace defense (line 14)
+// is honored automatically. See RIM_Email_Engineering.md for the full
+// pattern + when to use which.
+
+/**
+ * NOTE: pass `path` without a `#fragment` — fragments must come AFTER query
+ * parameters in valid URLs, and this helper appends `?hub=` / `&hub=` so a
+ * fragment in `path` would land in the wrong position.  No callsite uses
+ * fragments today; revisit if one needs to.
+ */
+export function hubScopedUrl(path: string, hubSlug?: string | null): string {
+  const base = `${BASE_URL}${path}`;
+  if (!hubSlug || hubSlug === DEFAULT_HOSTING_HUB_SLUG) return base;
+  const sep = path.includes("?") ? "&" : "?";
+  return `${base}${sep}hub=${encodeURIComponent(hubSlug)}`;
+}
+
+export function hubHomeUrl(hubSlug: string): string {
+  return `${BASE_URL}/account/hub/${hubSlug}`;
+}
+
+/**
+ * Canonical CTA button for emails.  Inline-styled (email clients strip
+ * stylesheets) and centered.  Use this for any "do the thing" link that
+ * deserves visual emphasis — sub-request cover, claim, enroll, etc.
+ *
+ * Templates pass this rendered HTML as a variable (e.g. `{{coverButton}}`)
+ * rather than building the markup themselves, so the visual style stays
+ * consistent across every email and updates here propagate automatically.
+ *
+ * Per RIM_Email_Engineering.md.  Color tokens chosen to render correctly in
+ * Gmail / Outlook / Apple Mail — `--rim-blue` (#135274) at full opacity.
+ */
+export function emailButtonHtml(label: string, url: string): string {
+  // Outer table is the Outlook-safe centering trick — div text-align fails
+  // there.  Padded anchor is the button itself; bgcolor mirrors the CSS bg
+  // for clients that strip CSS.
+  return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:24px auto;">
+  <tr>
+    <td bgcolor="#135274" style="border-radius:6px;background-color:#135274;">
+      <a href="${url}" style="display:inline-block;padding:14px 32px;font-family:'Open Sans',Arial,sans-serif;font-size:16px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:6px;letter-spacing:0.2px;">${label}</a>
+    </td>
+  </tr>
+</table>`;
+}
 
 // TEAM_EMAIL — the general team inbox. Used by public-form submission notifications
 // (volunteer interest, Kalyana Mitta application, etc.). Configurable via env var.
@@ -552,6 +617,10 @@ export interface SubRequestEmailData {
   sessionDate: string | null; // formatted date string, or null for standing
   message: string | null;
   subRequestId: string;       // for deep-link "Cover this session" button
+  /** Hub the program belongs to (Program.hostingHubSlug or "host-team").
+   *  Passed to hubScopedUrl so the email link lands the recipient in the
+   *  right hub view, not the default host-team. Slice 2.5. */
+  hubSlug: string;
 }
 
 /**
@@ -566,14 +635,19 @@ export interface SubRequestEmailData {
  */
 export async function sendSubRequestEmail(data: SubRequestEmailData): Promise<void> {
   const sessionLabel = data.sessionDate ? ` on ${data.sessionDate}` : "";
+  const coverUrl = hubScopedUrl(`/tools/schedule?action=cover&id=${data.subRequestId}`, data.hubSlug);
   await sendTemplatedEmail("sub-request-posted", data.to, {
     firstName:     data.firstName ?? "there",
     requesterName: data.requesterName,
     programName:   data.programName,
     sessionDate:   sessionLabel,
     message:       data.message ?? "",
-    hubUrl:        `${BASE_URL}/tools/schedule`,
-    coverUrl:      `${BASE_URL}/tools/schedule?action=cover&id=${data.subRequestId}`,
+    hubUrl:        hubScopedUrl("/tools/schedule", data.hubSlug),
+    coverUrl,
+    // New as of Slice 2.5 — canonical CTA button.  Templates can paste
+    // {{coverButton}} where they want a prominent "Cover this session"
+    // affordance, in place of (or alongside) the plain coverUrl link.
+    coverButton:   emailButtonHtml("Cover this session", coverUrl),
   });
 }
 
@@ -584,6 +658,8 @@ export interface SubClaimedEmailData {
   programName: string;
   sessionDate: string | null;
   message: string | null;
+  /** Hub the program belongs to. Slice 2.5. */
+  hubSlug: string;
 }
 
 /**
@@ -593,13 +669,17 @@ export interface SubClaimedEmailData {
  */
 export async function sendSubClaimedEmail(data: SubClaimedEmailData): Promise<void> {
   const sessionLabel = data.sessionDate ? ` on ${data.sessionDate}` : "";
+  const hubUrl = hubScopedUrl("/tools/schedule", data.hubSlug);
   await sendTemplatedEmail("sub-request-claimed", data.to, {
-    firstName:   data.firstName ?? "there",
-    claimerName: data.claimerName,
-    programName: data.programName,
-    sessionDate: sessionLabel,
-    message:     data.message ?? "",
-    hubUrl:      `${BASE_URL}/tools/schedule`,
+    firstName:    data.firstName ?? "there",
+    claimerName:  data.claimerName,
+    programName:  data.programName,
+    sessionDate:  sessionLabel,
+    message:      data.message ?? "",
+    hubUrl,
+    // New as of Slice 2.5 — paste {{scheduleButton}} in the template
+    // for a prominent "View your schedule" affordance.
+    scheduleButton: emailButtonHtml("View your schedule", hubUrl),
   });
 }
 
@@ -608,6 +688,8 @@ export interface NewProgramNeedsHostEmailData {
   firstName: string | null;
   programName: string;
   programFormat: string; // "Virtual" or "In-person and virtual"
+  /** Hub the program belongs to. Slice 2.5. */
+  hubSlug: string;
 }
 
 /**
@@ -617,11 +699,13 @@ export interface NewProgramNeedsHostEmailData {
  * Fire-and-forget — errors caught inside sendTemplatedEmail.
  */
 export async function sendNewProgramNeedsHostEmail(data: NewProgramNeedsHostEmailData): Promise<void> {
+  const scheduleUrl = hubScopedUrl("/tools/schedule", data.hubSlug);
   await sendTemplatedEmail("new-program-needs-host", data.to, {
-    firstName:     data.firstName,
-    programName:   data.programName,
-    programFormat: data.programFormat,
-    scheduleUrl:   `${BASE_URL}/tools/schedule`,
+    firstName:      data.firstName,
+    programName:    data.programName,
+    programFormat:  data.programFormat,
+    scheduleUrl,
+    scheduleButton: emailButtonHtml("Sign up to host", scheduleUrl),
   });
 }
 
@@ -646,17 +730,21 @@ export interface HostAssignmentConfirmationEmailData {
   dateText: string | null;
   /** Optional note from the original sub-request, when this confirmation is for a sub-claim. */
   requesterNote?: string | null;
+  /** Hub the program belongs to. Slice 2.5. */
+  hubSlug: string;
 }
 
 export async function sendHostAssignmentConfirmationEmail(
   data: HostAssignmentConfirmationEmailData,
 ): Promise<void> {
+  const scheduleUrl = hubScopedUrl("/tools/schedule", data.hubSlug);
   await sendTemplatedEmail("host-assignment-confirmation", data.to, {
     firstName:     data.firstName ?? "there",
     programName:   data.programName,
     dateText:      data.dateText ?? "",
     requesterNote: data.requesterNote ?? "",
-    scheduleUrl:   `${BASE_URL}/tools/schedule`,
+    scheduleUrl,
+    scheduleButton: emailButtonHtml("View your schedule", scheduleUrl),
   });
 }
 
@@ -673,21 +761,33 @@ export interface HostAssignmentRemovedEmailData {
   dateText: string | null;
   /** Name of the person who reassigned (the manager). */
   byName: string;
+  /** Hub the program belongs to. Slice 2.5. */
+  hubSlug: string;
 }
 
 export async function sendHostAssignmentRemovedEmail(
   data: HostAssignmentRemovedEmailData,
 ): Promise<void> {
+  const scheduleUrl = hubScopedUrl("/tools/schedule", data.hubSlug);
   await sendTemplatedEmail("host-assignment-removed", data.to, {
     firstName:   data.firstName ?? "there",
     programName: data.programName,
     dateText:    data.dateText ?? "",
     byName:      data.byName,
-    scheduleUrl: `${BASE_URL}/tools/schedule`,
+    scheduleUrl,
+    scheduleButton: emailButtonHtml("View your schedule", scheduleUrl),
   });
 }
 
 // ─── Standing assignment scheduled notification ───────────────────────────────
+//
+// Hub scope note (Slice 2.5): standing-assignment emails are still
+// host-team-scoped — the standing-rotation system itself was deferred from
+// the Slice 1 hub-routing pass. The schedule link inside these emails goes
+// to /tools/schedule (default = host-team) which is correct so long as
+// standing rotations only exist on host-team programs. When peer-led hubs
+// gain standing-rotation support, group sessions by hub and send one email
+// per hub, scoping each link with hubScopedUrl. See RIM_Scheduler.md.
 
 export interface StandingAssignmentScheduledEmailData {
   to: string;
@@ -869,6 +969,7 @@ export async function sendHubWelcomeEmail(data: HubWelcomeEmailData): Promise<vo
     firstName: data.firstName,
     hubName:   data.hubName,
     hubUrl:    data.hubUrl,
+    hubButton: emailButtonHtml("Open your hub", data.hubUrl),
   });
 }
 
