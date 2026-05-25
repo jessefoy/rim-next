@@ -37,6 +37,8 @@ import { after } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
+import { isHubCoordinator } from "@/lib/hubAuth";
+import { getProgramHubSlug, DEFAULT_HOSTING_HUB_SLUG } from "@/lib/programHub";
 import { applyStandingAssignments, getApplyMonthRange } from "@/lib/applyStandingAssignments";
 import { sendStandingAssignmentScheduledEmail } from "@/lib/email";
 import type { StandingOccurrence } from "@prisma/client";
@@ -67,17 +69,14 @@ function isManager(roles: string[]) {
   return roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
 }
 
-async function isCoordinator(userId: string): Promise<boolean> {
-  const membership = await db.hubMember.findFirst({
-    where: { userId, hub: { slug: "host-team" }, isCoordinator: true },
-  });
-  return !!membership;
-}
-
-async function hasEffectiveHostAccess(userId: string, roles: string[]): Promise<boolean> {
+async function hasEffectiveHostAccess(
+  userId: string,
+  roles: string[],
+  hubSlug: string,
+): Promise<boolean> {
   if (roles.includes("ADMIN")) return true;
   const tentative = roles.includes("HOST") || roles.includes("HOST_MANAGER");
-  return getEffectiveHostingCapability(userId, "host-team", tentative);
+  return getEffectiveHostingCapability(userId, hubSlug, tentative);
 }
 
 // ── GET ───────────────────────────────────────────────────────────────────────
@@ -86,23 +85,60 @@ export async function GET(request: Request) {
   const session = await auth();
   if (!session?.user?.id) return Response.json({ error: "Unauthorized" }, { status: 401 });
   const roles = session.user.roles ?? [];
-  if (!(await hasEffectiveHostAccess(session.user.id, roles))) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
 
   const { searchParams } = new URL(request.url);
   const programSlug   = searchParams.get("programSlug");
   const userId        = searchParams.get("userId");
+  // ?hub= scopes the query to one hub's programs and gates auth by that hub.
+  // Defaults to host-team for backward compat with existing callers that
+  // don't yet pass it. Slice 2.6.
+  const hubSlug       = searchParams.get("hub") || DEFAULT_HOSTING_HUB_SLUG;
   // ?includeEnded=1 returns ended rotations too. Default: active only — ended
   // rotations would otherwise display in the grid as if active and let users
   // edit/save them with stale endsOn=today values.
   const includeEnded  = searchParams.get("includeEnded") === "1";
 
+  // If a programSlug filter is given, the effective hub is THAT program's
+  // hub (so a peer-led-silent-meditation coordinator can read rotations for
+  // their hub's programs even without passing ?hub=). Otherwise use the
+  // ?hub= param (or host-team default).
+  const effectiveHubSlug = programSlug
+    ? await getProgramHubSlug(programSlug)
+    : hubSlug;
+
+  if (!(await hasEffectiveHostAccess(session.user.id, roles, effectiveHubSlug))) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const now = new Date();
+
+  // StandingAssignment doesn't have a Program FK (only programSlug as a
+  // string), so we can't filter by program.hostingHubSlug in the where
+  // clause. Pre-fetch the hub's program slugs, then filter rotations to
+  // that set. Coordinator-only path; list sizes are small.
+  //
+  // Auth precedence note: when programSlug is provided, the auth check
+  // above used getProgramHubSlug(programSlug) — i.e. auth follows the
+  // PROGRAM's hub, not the ?hub= param. A peer-led coordinator querying a
+  // program that belongs to a different hub will fail the auth gate, so
+  // by the time we get here with programSlug given, the caller is
+  // legitimately authorized for that program's hub. The IN-filter is
+  // skipped in that branch.
+  const hubProgramSlugSet: string[] = programSlug
+    ? []
+    : await db.program
+        .findMany({
+          where:
+            effectiveHubSlug === DEFAULT_HOSTING_HUB_SLUG
+              ? { OR: [{ hostingHubSlug: null }, { hostingHubSlug: DEFAULT_HOSTING_HUB_SLUG }] }
+              : { hostingHubSlug: effectiveHubSlug },
+          select: { slug: true },
+        })
+        .then((rows) => rows.map((r) => r.slug));
 
   const assignments = await db.standingAssignment.findMany({
     where: {
-      ...(programSlug ? { programSlug } : {}),
+      ...(programSlug ? { programSlug } : { programSlug: { in: hubProgramSlugSet } }),
       ...(userId      ? { userId      } : {}),
       ...(includeEnded
         ? {}
@@ -192,16 +228,20 @@ export async function POST(request: Request) {
   if (!session?.user?.id) return Response.json({ error: "Unauthorized" }, { status: 401 });
   const roles = session.user.roles ?? [];
 
-  if (!isManager(roles) && !(await isCoordinator(session.user.id))) {
-    return Response.json({ error: "Forbidden — coordinator or manager required" }, { status: 403 });
-  }
-
   const body = await request.json().catch(() => null) as BundleInput | null;
   if (!body?.programSlug || !body?.dayOfWeek || !body?.pattern || !body?.hosts) {
     return Response.json(
       { error: "programSlug, dayOfWeek, pattern, and hosts are required" },
       { status: 400 }
     );
+  }
+
+  // Hub-route the coordinator check: a peer-led-silent-meditation
+  // coordinator can manage rotations for peer-led programs even without
+  // host-team coordinator status. Slice 2.6.
+  const programHubSlug = await getProgramHubSlug(body.programSlug);
+  if (!isManager(roles) && !(await isHubCoordinator(session.user.id, programHubSlug))) {
+    return Response.json({ error: "Forbidden — coordinator or manager required" }, { status: 403 });
   }
   if (!VALID_DAYS.includes(body.dayOfWeek)) {
     return Response.json({ error: `Invalid dayOfWeek: ${body.dayOfWeek}` }, { status: 400 });
@@ -323,6 +363,9 @@ export async function POST(request: Request) {
         to: userEmail,
         firstName,
         sessions: sessions.map((s) => ({ programName: s.programName, dateLabel: s.dateLabel })),
+        // POST is always scoped to one program — pass its hub so the email
+        // link lands in the right hub view. Slice 2.6.
+        hubSlug: programHubSlug,
       });
     }
   });

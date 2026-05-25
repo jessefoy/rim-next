@@ -23,6 +23,8 @@ import { after } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
+import { isHubCoordinator } from "@/lib/hubAuth";
+import { getProgramHubSlug } from "@/lib/programHub";
 import {
   applyStandingAssignments,
   getApplyMonthRange,
@@ -39,30 +41,20 @@ function isManager(roles: string[]) {
   return roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
 }
 
-async function isCoordinator(userId: string): Promise<boolean> {
-  const m = await db.hubMember.findFirst({
-    where: { userId, hub: { slug: "host-team" }, isCoordinator: true },
-  });
-  return !!m;
-}
-
-async function hasEffectiveHostAccess(userId: string, roles: string[]): Promise<boolean> {
+async function hasEffectiveHostAccess(
+  userId: string,
+  roles: string[],
+  hubSlug: string,
+): Promise<boolean> {
   if (roles.includes("ADMIN")) return true;
   const tentative = roles.includes("HOST") || roles.includes("HOST_MANAGER");
-  return getEffectiveHostingCapability(userId, "host-team", tentative);
+  return getEffectiveHostingCapability(userId, hubSlug, tentative);
 }
 
 export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) return Response.json({ error: "Unauthorized" }, { status: 401 });
   const roles = session.user.roles ?? [];
-
-  if (!isManager(roles) && !(await isCoordinator(session.user.id))) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
-  if (!(await hasEffectiveHostAccess(session.user.id, roles))) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
 
   const body = await request.json().catch(() => ({}));
   const {
@@ -76,6 +68,29 @@ export async function POST(request: Request) {
     dayOfWeek?:   string | null;
     resolution?:  ResolutionMode;
   };
+
+  // Resolve once, reuse for both auth + email scoping below.
+  const programHubSlug = programSlug ? await getProgramHubSlug(programSlug) : undefined;
+
+  // Auth gate. When programSlug is provided, route by that program's hub
+  // (any hub's coordinator can apply their own program's rotations).
+  // When programSlug is NOT provided ("apply all"), require ADMIN or
+  // HOST_MANAGER — that's a cross-hub global action. Slice 2.6.
+  if (programHubSlug) {
+    if (!isManager(roles) && !(await isHubCoordinator(session.user.id, programHubSlug))) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
+    if (!(await hasEffectiveHostAccess(session.user.id, roles, programHubSlug))) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
+  } else {
+    if (!isManager(roles)) {
+      return Response.json(
+        { error: "Forbidden — apply-all requires HOST_MANAGER or ADMIN" },
+        { status: 403 },
+      );
+    }
+  }
 
   // Light shape-validation on resolution
   if (
@@ -126,6 +141,9 @@ export async function POST(request: Request) {
   }
 
   // ── Notification emails (fire-and-forget) ──────────────────────────────
+  // hubSlug is the program's hub when a single-program apply, undefined for
+  // the rare apply-all case (link falls through to host-team). Slice 2.6.
+  const emailHubSlug = programHubSlug;
   after(async () => {
     for (const [, sessions] of byUser) {
       if (sessions.length === 0) continue;
@@ -134,6 +152,7 @@ export async function POST(request: Request) {
         to: userEmail,
         firstName,
         sessions: sessions.map((s) => ({ programName: s.programName, dateLabel: s.dateLabel })),
+        hubSlug: emailHubSlug,
       });
     }
     for (const [, sessions] of byDisplacedUser) {
@@ -143,6 +162,7 @@ export async function POST(request: Request) {
         to: userEmail,
         firstName,
         sessions: sessions.map((s) => ({ programName: s.programName, dateLabel: s.dateLabel })),
+        hubSlug: emailHubSlug,
       });
     }
   });

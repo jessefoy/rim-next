@@ -103,6 +103,23 @@ export function effectiveCoordinator(
 }
 
 /**
+ * Is this user a coordinator of the named hub? Looks up the HubMember row
+ * and checks isCoordinator. Does NOT consider ADMIN / GUIDING_TEACHER —
+ * callers should check role-based bypass separately, then fall back to
+ * this for hub-specific coordinator authority.
+ *
+ * Added Slice 2.6 to replace inline hardcoded-hub coordinator checks
+ * scattered across the standing-rotation routes.
+ */
+export async function isHubCoordinator(userId: string, hubSlug: string): Promise<boolean> {
+  const membership = await db.hubMember.findFirst({
+    where: { userId, hub: { slug: hubSlug }, isCoordinator: true },
+    select: { id: true },
+  });
+  return !!membership;
+}
+
+/**
  * Trash-management authority for hub documents + conversations.
  *
  * A user can see the per-hub Trash, restore items, or permanently delete them

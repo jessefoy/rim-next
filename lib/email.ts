@@ -781,18 +781,20 @@ export async function sendHostAssignmentRemovedEmail(
 
 // ─── Standing assignment scheduled notification ───────────────────────────────
 //
-// Hub scope note (Slice 2.5): standing-assignment emails are still
-// host-team-scoped — the standing-rotation system itself was deferred from
-// the Slice 1 hub-routing pass. The schedule link inside these emails goes
-// to /tools/schedule (default = host-team) which is correct so long as
-// standing rotations only exist on host-team programs. When peer-led hubs
-// gain standing-rotation support, group sessions by hub and send one email
-// per hub, scoping each link with hubScopedUrl. See RIM_Scheduler.md.
+// Hub scope (Slice 2.6): standing-assignment emails accept an optional
+// hubSlug. Per-program apply paths pass the program's hub so the schedule
+// link in the email lands the recipient in the correct hub view. The
+// apply-all path (manager-only cross-hub action) doesn't pass it — the
+// link falls through to host-team scope, which is acceptable for the rare
+// cross-hub case. When the same user's batched sessions span multiple
+// hubs, splitting into per-hub emails could be a follow-up.
 
 export interface StandingAssignmentScheduledEmailData {
   to: string;
   firstName: string | null;
   sessions: Array<{ programName: string; dateLabel: string }>;
+  /** Hub the rotation belongs to. Omit for cross-hub apply-all calls. */
+  hubSlug?: string;
 }
 
 /**
@@ -815,12 +817,13 @@ export async function sendStandingAssignmentScheduledEmail(
     count === 1
       ? `You're scheduled to host ${data.sessions[0].programName}`
       : `You're scheduled to host ${count} sessions this month`;
+  const scheduleUrl = hubScopedUrl("/tools/schedule", data.hubSlug);
   const html = `
 <p>Hi ${data.firstName ?? "there"},</p>
 <p>Your standing rotation has been applied. You're scheduled to host the following ${count === 1 ? "session" : "sessions"}:</p>
 <ul style="font-size:16px;line-height:1.7;padding-left:20px;">${listHtml}</ul>
-<p>If you need coverage for any of these, <a href="${BASE_URL}/tools/schedule" style="color:#135274;">post a sub-request</a> from the Host Schedule.</p>
-<p style="color:#666;font-size:14px;">This is an automated message from your standing host rotation.</p>`;
+<p>If you need coverage for any of these, <a href="${scheduleUrl}" style="color:#135274;">post a sub-request</a> from the Schedule.</p>
+<p style="color:#666;font-size:14px;">This is an automated message from your standing rotation.</p>`;
 
   try {
     await resend.emails.send({ from: FROM, to: data.to, subject, html });
@@ -847,12 +850,13 @@ export async function sendStandingAssignmentReplacedEmail(
     count === 1
       ? `You're no longer hosting ${data.sessions[0].programName} on ${data.sessions[0].dateLabel}`
       : `You've been replaced on ${count} upcoming sessions`;
+  const scheduleUrl = hubScopedUrl("/tools/schedule", data.hubSlug);
   const html = `
 <p>Hi ${data.firstName ?? "there"},</p>
 <p>Your hosting coordinator has updated the standing rotation. You're no longer scheduled to host the following ${count === 1 ? "session" : "sessions"}:</p>
 <ul style="font-size:16px;line-height:1.7;padding-left:20px;">${listHtml}</ul>
-<p>If you have questions about this change, please reach out to your coordinator. You can see your current schedule any time on the <a href="${BASE_URL}/tools/schedule" style="color:#135274;">Host Schedule</a>.</p>
-<p style="color:#666;font-size:14px;">This is an automated message from your standing host rotation.</p>`;
+<p>If you have questions about this change, please reach out to your coordinator. You can see your current schedule any time on the <a href="${scheduleUrl}" style="color:#135274;">Schedule</a>.</p>
+<p style="color:#666;font-size:14px;">This is an automated message from your standing rotation.</p>`;
 
   try {
     await resend.emails.send({ from: FROM, to: data.to, subject, html });

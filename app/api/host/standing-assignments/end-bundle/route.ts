@@ -36,6 +36,8 @@ import { after } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
+import { isHubCoordinator } from "@/lib/hubAuth";
+import { getProgramHubSlug } from "@/lib/programHub";
 import { sendStandingAssignmentReleasedEmail } from "@/lib/email";
 
 const TZ = "America/Chicago";
@@ -44,30 +46,20 @@ function isManager(roles: string[]) {
   return roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
 }
 
-async function isCoordinator(userId: string): Promise<boolean> {
-  const m = await db.hubMember.findFirst({
-    where: { userId, hub: { slug: "host-team" }, isCoordinator: true },
-  });
-  return !!m;
-}
-
-async function hasEffectiveHostAccess(userId: string, roles: string[]): Promise<boolean> {
+async function hasEffectiveHostAccess(
+  userId: string,
+  roles: string[],
+  hubSlug: string,
+): Promise<boolean> {
   if (roles.includes("ADMIN")) return true;
   const tentative = roles.includes("HOST") || roles.includes("HOST_MANAGER");
-  return getEffectiveHostingCapability(userId, "host-team", tentative);
+  return getEffectiveHostingCapability(userId, hubSlug, tentative);
 }
 
 export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) return Response.json({ error: "Unauthorized" }, { status: 401 });
   const roles = session.user.roles ?? [];
-
-  if (!isManager(roles) && !(await isCoordinator(session.user.id))) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
-  if (!(await hasEffectiveHostAccess(session.user.id, roles))) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
 
   const body = await request.json().catch(() => ({}));
   const programSlug   = body?.programSlug as string | undefined;
@@ -77,6 +69,15 @@ export async function POST(request: Request) {
 
   if (!programSlug || !dayOfWeek) {
     return Response.json({ error: "programSlug and dayOfWeek are required" }, { status: 400 });
+  }
+
+  // Hub-route by the program's hub. Slice 2.6.
+  const programHubSlug = await getProgramHubSlug(programSlug);
+  if (!isManager(roles) && !(await isHubCoordinator(session.user.id, programHubSlug))) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
+  if (!(await hasEffectiveHostAccess(session.user.id, roles, programHubSlug))) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
   // Validate the specific end date if provided
@@ -209,6 +210,7 @@ export async function POST(request: Request) {
           to:        u.email,
           firstName: u.preferredName || u.firstName || null,
           sessions,
+          hubSlug:   programHubSlug,
         });
       }
     });

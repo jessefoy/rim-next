@@ -323,6 +323,7 @@ export default async function ScheduleToolPage({
         myRotations={myRotations}
         nextSessionBySlug={nextSessionBySlug}
         apiBase="/api/host"
+        hubSlug={activeHubSlug}
       />
     </div>
   );

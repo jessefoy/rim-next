@@ -99,6 +99,8 @@ interface Props {
   /** Next upcoming HostAssignment ISO datetime per programSlug — drives the "Next" column. */
   nextSessionBySlug?: Record<string, string>;
   apiBase?: string;
+  /** Active hub slug — drives the hub-scoped rotation list lookup. Slice 2.6. */
+  hubSlug?: string;
 }
 
 const TZ = "America/Chicago";
@@ -510,7 +512,7 @@ export default function HubScheduleClient({
   initialSessions, programs, teamMembers, initialYear, initialMonth,
   currentUserId, currentUserName,
   isHostManager = false, isManager = false, myRotations = [],
-  nextSessionBySlug = {}, apiBase = "/api/host",
+  nextSessionBySlug = {}, apiBase = "/api/host", hubSlug,
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -896,6 +898,7 @@ export default function HubScheduleClient({
           year={year}
           month={month + 1}
           isManager={isManager}
+          hubSlug={hubSlug}
           onScheduleStale={() => loadMonth(year, month)}
         />
       )}

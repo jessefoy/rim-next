@@ -120,6 +120,10 @@ interface Props {
   month:       number;
   /** HOST_MANAGER / ADMIN / hub coordinator — shows per-program and global reset controls. */
   isManager?: boolean;
+  /** Active hub slug — passed as ?hub= on the rotation-list fetch so the
+   *  API filters rotations to programs in this hub. Defaults to host-team
+   *  on the server when omitted. Slice 2.6. */
+  hubSlug?: string;
   /** Called after any rotation change that may have created/modified HostAssignment
    *  rows so the parent (Schedule view) can refresh its display. */
   onScheduleStale?: () => void;
@@ -209,7 +213,7 @@ function detectPattern(rows: Rotation[]): { pattern: Pattern; hosts: FormState["
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export default function RotationsClient({ programs, teamMembers, year, month, isManager = false, onScheduleStale }: Props) {
+export default function RotationsClient({ programs, teamMembers, year, month, isManager = false, hubSlug, onScheduleStale }: Props) {
   const [rotations, setRotations] = useState<Rotation[]>([]);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState<string | null>(null);
@@ -361,7 +365,11 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
   // ── Load existing rotations ────────────────────────────────────────────
   const loadRotations = useCallback(async () => {
     try {
-      const res = await fetch("/api/host/standing-assignments");
+      // Pass hubSlug so the API filters rotations to programs in the active
+      // hub. Without this, the call defaults to host-team scope and we'd
+      // get the wrong rotation list when viewing a peer-led hub. Slice 2.6.
+      const qs = hubSlug ? `?hub=${encodeURIComponent(hubSlug)}` : "";
+      const res = await fetch(`/api/host/standing-assignments${qs}`);
       if (!res.ok) throw new Error("load failed");
       const data: Rotation[] = await res.json();
       setRotations(data);
@@ -370,7 +378,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [hubSlug]);
 
   useEffect(() => {
     loadRotations();
