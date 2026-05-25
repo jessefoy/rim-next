@@ -157,9 +157,21 @@ export async function POST(request: Request) {
   // intermittently, or not at all).
   after(async () => {
     try {
-      const recipientUsers = await getHubNotificationRecipients(programHubSlug, {
-        excludeUserId: assignment.userId ?? undefined,
-      });
+      // Resolve the human-readable program name (slugs look ugly in email
+      // bodies — "Jesse needs a sub for good-evening-silent-meditation"
+      // versus "Jesse needs a sub for Good Evening Silent Meditation").
+      // Per CLAUDE.md: resolve Program.name from the slug before sending
+      // any host email.
+      const [recipientUsers, program] = await Promise.all([
+        getHubNotificationRecipients(programHubSlug, {
+          excludeUserId: assignment.userId ?? undefined,
+        }),
+        db.program.findUnique({
+          where: { slug: assignment.programSlug },
+          select: { name: true },
+        }),
+      ]);
+      const programName = program?.name || assignment.programSlug;
 
       const messageText = message ? (await extractTextAsync(message as any) || null) : null;
       await Promise.all(
@@ -168,7 +180,7 @@ export async function POST(request: Request) {
             to: u.email,
             firstName: u.firstName,
             requesterName,
-            programName: assignment.programSlug,
+            programName,
             sessionDate: sessionLabel,
             message: messageText,
             subRequestId: subRequest.id,
