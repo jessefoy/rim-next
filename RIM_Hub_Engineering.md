@@ -1,0 +1,137 @@
+# RIM Hub Engineering — rules for code that touches a hub
+
+**Read this before writing or modifying any code that interacts with hubs, hub members, tool access, hub-scoped routing, or anything that emits a notification on behalf of a hub action.**
+
+This document is the engineering checklist. It is distinct from `RIM_Hub_Model.md` (which describes *what hubs are*) and from per-tool engineering docs like `RIM_Scheduler.md` (which describe *one specific surface*). The rules here apply to *every* hub-related callsite.
+
+If you're learning the system, read `RIM_Hub_Model.md` first. If you're writing code, read this.
+
+---
+
+## The core principle
+
+> **Shared infrastructure, hub-scoped data.**
+
+RIM uses one set of code, one set of routes, one set of UI for every hub. Each hub gets its own scoped slice of the data those shared components display.
+
+This is the right architecture for RIM's scale (low double-digit hubs eventually, with the same coordinator practice across all of them). It's also the architecture with a sharp edge: **every callsite that touches hub context must honor scoping. Any one that doesn't creates a cross-hub leak.**
+
+Slice 1 (session 128) routed the *data* layer correctly. Slice 2.5 (session 128 follow-up) caught and fixed the *email URL* layer that Slice 1 missed. Future slices will surface other layers we didn't think of. The discipline below is how we keep the architecture honest.
+
+---
+
+## The four routing layers
+
+Every hub-related action touches up to four layers. **Every layer must honor the hub for the action to be correctly isolated.**
+
+| Layer | Question | Slice 1 surface | Where the rule lives |
+|---|---|---|---|
+| **Capability** | Can this user perform this action in this hub? | `lib/livekitAuth.ts::resolveSessionRole`, `lib/hubMemberAuth.ts::getEffectiveHostingCapability` | API route handlers gate by `program.hostingHubSlug` |
+| **Recipients** | When this action sends notifications, who gets them? | `lib/toolAuth.ts::getHubNotificationRecipients(hubSlug, …)` | Caller passes the *program's* hub, not the actor's hub |
+| **UI filter** | What does the schedule / hub workspace show? | Filtered by `Program.hostingHubSlug === hub.slug` in queries | List queries always include the hub filter |
+| **Outbound URLs** | When the email's recipient clicks through, where do they land? | `lib/email.ts::hubScopedUrl(path, hubSlug)` and `hubHomeUrl(hubSlug)` | Every URL variable in an email passes through a helper |
+
+The leak class: forgetting any one of these.
+
+Real example from Slice 2.5: capability gates routed correctly to peer-led-silent-meditation. Recipient pool routed correctly to peer-led members. UI scoped correctly. **But the URL in the sub-request email was `/tools/schedule` with no `?hub=`**, so Nancy (who's in both hubs) landed in host-team. Three layers right, one wrong, action looked broken.
+
+---
+
+## Helpers and where they live
+
+| Helper | File | Purpose |
+|---|---|---|
+| `getProgramHubSlug(programSlug)` | `lib/programHub.ts` | Returns the program's hub slug. Null `hostingHubSlug` defaults to `"host-team"`. Use this every time you need to route a per-program action by hub. |
+| `getProgramHostingHub(programSlug)` | `lib/programHub.ts` | Returns `{ slug, assignmentGrantsTeacher, teacherLabel }`. Use when you also need the hub's teacher-capability config. |
+| `resolveTeacherPillLabel(programLabel, hubLabel)` | `lib/programHub.ts` | Pill hierarchy: `program.teacherLabel ?? hub.teacherLabel ?? "Teacher"`. |
+| `DEFAULT_HOSTING_HUB_SLUG` | `lib/programHub.ts` | The constant `"host-team"`. Use this everywhere you need the default — never inline the string. |
+| `getEffectiveHostingCapability(userId, hubSlug, fallback)` | `lib/hubMemberAuth.ts` | "Is this user an active hosting-capable member of this hub?" Pass `program.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG`. |
+| `getHubNotificationRecipients(hubSlug, opts)` | `lib/toolAuth.ts` | Active members of a hub with `communicationsEnabled`. Use for notification recipient pools. |
+| `getHubMembership(slug, userId, roles)` | `lib/hubAuth.ts` | Returns `{ hub, member, isAdmin }`. Access gate is `!member` only — ADMIN no longer bypasses content access (see *ADMIN policy* below). |
+| `effectiveCoordinator(member, roles)` | `lib/hubAuth.ts` | "Is this user acting as coordinator on this hub?" True for the coordinator flag, ADMIN, or GUIDING_TEACHER. Use everywhere you would have written `(member?.isCoordinator ?? false) || isAdmin`. |
+| `hubScopedUrl(path, hubSlug)` | `lib/email.ts` | Append `?hub=<slug>` to a `/tools/*` URL when the slug isn't the host-team default. Use for every email link to a hub-scoped tool view. |
+| `hubHomeUrl(hubSlug)` | `lib/email.ts` | Build `/account/hub/<slug>` (the hub's own workspace URL). |
+| `emailButtonHtml(label, url)` | `lib/email.ts` | Canonical CTA button HTML for emails. See `RIM_Email_Engineering.md`. |
+
+When you find yourself reaching for a fresh `${BASE_URL}/tools/schedule` or hardcoding `"host-team"`, stop. There's a helper.
+
+---
+
+## The ADMIN policy
+
+**ADMIN no longer bypasses hub content access** (session 128 follow-up).
+
+A hub is a team space. The team is defined by membership. ADMIN configures hubs from `/admin/hubs` (still ADMIN-gated) but to interact with hub content — read or post conversations, view documents, claim sessions — an ADMIN must be a HubMember just like everyone else. This matches GUIDING_TEACHER's existing behavior.
+
+What's still ADMIN-only:
+- `/admin/hubs/*` configuration (hub create, edit, delete)
+- Hard-remove member at `/api/hub/[slug]/members/[userId]` DELETE
+- The `/admin/hubs/[slug]/add-me-as-coordinator` endpoint (bootstrap path for an admin who just created a hub)
+- Anywhere `effectiveCoordinator` or `requireCoordinator` is consulted — those still ADMIN/GT-bypass because they're coordinator-level authority, not access
+
+The mental model: **ADMIN configures hubs from outside; ADMIN participates from inside (as a member).**
+
+---
+
+## Common pitfalls
+
+**Hardcoding `"host-team"`.** It's the historical default but it's no longer the only option. Use `DEFAULT_HOSTING_HUB_SLUG`. When routing capability or notifications, always derive the hub from the *thing being acted on* — usually `program.hostingHubSlug`.
+
+**Routing by the actor's hub instead of the resource's hub.** A peer-leader of `peer-led-silent-meditation` might also be on the host-team. If they take an action on a peer-led program, capability + notifications + URLs should all route by the **program's** hub, not the actor's. The actor's current viewing context (`?hub=` in URL) is a UI affordance, not an authoritative routing input.
+
+**Bare `.catch(() => {})` for fire-and-forget emails.** Vercel's serverless lifecycle kills in-flight Promises when the response returns. Use `after()` from `next/server` — that's the canonical fire-and-forget for route handlers. For functions called by routes (`syncHubMembership` etc.), either `await` the sends so the parent route waits, or accept an `after()` callback the route can wrap. Bare `.catch(() => {})` also swallows errors silently — even if delivery worked, we'd lose observability.
+
+**Filtering at the page level without filtering at the API.** A common shortcut: page query returns all data, page UI filters by hub. Wrong — the API should filter, because (a) it's where security boundaries live and (b) downstream consumers (counts, badges, exports) shouldn't have to re-implement the filter. See `app/tools/schedule/page.tsx` for the canonical pattern of filtering programs by hub in the Prisma query.
+
+**Forgetting the host-team-null edge.** Old programs (and any program where the coordinator hasn't set a hub) have `Program.hostingHubSlug === null`. The convention is null = host-team. UI queries for the host-team hub use Prisma's `OR` to catch both null and explicit `"host-team"`:
+```ts
+where: { OR: [{ hostingHubSlug: null }, { hostingHubSlug: "host-team" }] }
+```
+Other hubs filter by exact match. Don't omit the `OR` for host-team or existing programs disappear.
+
+---
+
+## The closing-ritual addition (session 128 follow-up)
+
+When a slice touches a hub, member, tool access, or any hub-scoped route, the closing ritual MUST include an audit of all four routing layers across every callsite the slice touched.
+
+Specifically:
+
+- [ ] Every API route that gates an action: does the gate route by the **program's** hub (or the resource's hub), not the actor's?
+- [ ] Every notification recipient pool: does it use `getHubNotificationRecipients(programHubSlug, …)`?
+- [ ] Every page or query that lists items: does it filter by hub?
+- [ ] Every email-template URL variable: does the calling code build the URL with `hubScopedUrl()` or `hubHomeUrl()`?
+- [ ] Every hardcoded `"host-team"` string: was it intentional (host-team-specific behavior) or did you miss `DEFAULT_HOSTING_HUB_SLUG`?
+
+Slice 1 (session 128) addressed layers 1–3. Slice 2.5 (session 128 follow-up) found and fixed layer 4. The next slice that touches hubs should treat all four as a single checklist item.
+
+---
+
+## Grandfather policy on `Program.hostingHubSlug` changes
+
+When a coordinator transfers a program to a different hub via the ProgramEditor "Hosting & Access" tab, **existing future HostAssignments stay** — they don't migrate. New self-claims route to the new hub.
+
+The editor surfaces a mid-flight warning before the save commits, showing the count of affected upcoming HostAssignments. The warning is enforced server-side by counting future rows with `userId: { not: null }` on the program. Same pattern applies if you build other mid-flight migration affordances.
+
+---
+
+## When standing rotations need hub-awareness
+
+As of Slice 1, standing-rotation routes still gate by `"host-team"`. They were intentionally deferred — peer-led-silent-meditation doesn't expose a Rotations UI yet, and the route gates would be dead code if generalized prematurely.
+
+When a peer-led hub or any other hub needs standing-rotation support:
+- `/api/host/standing-assignments` and its sub-routes need hub-routing
+- The `app/tools/schedule/page.tsx` "Your Rotations" panel is already hub-scoped (Slice 2 fix), but the Rotations tab itself needs the same treatment
+- `lib/applyStandingAssignments.ts` doesn't need changes — it operates on whatever rotations are already in the DB
+
+Add this as a third slice when the need is real.
+
+---
+
+## Engineering rules in one paragraph
+
+When you touch a hub: derive the hub from the resource (usually a program), pass it through every layer (capability, recipients, UI filter, URLs), use the canonical helpers (`getProgramHubSlug`, `getHubNotificationRecipients`, `hubScopedUrl`, etc.), never hardcode `"host-team"`, never bypass hub membership for ADMIN on content access, use `after()` for fire-and-forget emails from route handlers, await emails from non-route functions whose callers already await, and at closing audit all four layers across every callsite you touched.
+
+---
+
+*RIM Hub Engineering · September 2026 · Written during session 128 Slice 2.5 as the institutional response to the email-URL leak.*

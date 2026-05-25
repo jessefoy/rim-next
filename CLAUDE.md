@@ -9,7 +9,9 @@ RIM's design is rooted in a Dharma principle: **clear seeing is the prerequisite
 | Task | Required reading |
 |------|-----------------|
 | Any UI, CSS, or page work | `RIM_Web_Design_Philosophy.md` + existing patterns in `custom.css` for that area |
-| Hub, tool, or sidebar work | `RIM_System_Architecture.md` + `RIM_Hub_Model.md` |
+| Hub, tool, sidebar, or anything that touches hub-scoped data | `RIM_System_Architecture.md` + `RIM_Hub_Model.md` + **`RIM_Hub_Engineering.md`** (the engineering checklist — rules every callsite must follow) |
+| Any code that sends an email or modifies an email template | **`RIM_Email_Engineering.md`** — URL helpers, fire-and-forget pattern, template gate, CTA button convention |
+| Scheduler tool (`/tools/schedule` and its routes) | **`RIM_Scheduler.md`** — the per-tool reference |
 | Role, permission, or member data | `RIM_Role_Design.md` + `RIM_System_Architecture.md` |
 | Editor, text field, block, or rich content work | `RIM_Editor_Types.md` — canonical reference. Supersedes the older `RIM_Editor_Design.md`. |
 | New feature of any kind | `FEATURES.md` — check what already exists and what it connects to |
@@ -202,6 +204,12 @@ When Jesse says **"closing prompt"**, **"let's document everything"**, or simila
 4. **RIM_System_Architecture.md** — Update if any hub, tool, role, or permission logic changed.
 
 4a. **RIM_Editor_Types.md** — Update if any editor surface, block, or placement changed. New blocks go into the Block Library section; new placements go into the Placement Registry. If an editor surface changed type or wrapper class, update the registry entry. The doc must match the code at session end — no drift.
+
+4b. **Hub / Email / per-tool engineering docs** — Update the relevant engineering doc(s) if any rule, pattern, helper, or pitfall was added, changed, or invalidated during this session. The docs (`RIM_Hub_Engineering.md`, `RIM_Email_Engineering.md`, `RIM_Scheduler.md`, etc.) are the institutional memory — when a slice produces a new rule or surfaces a new pitfall, that rule lives in the doc, not just in the commit message or session log. The doc must match the code at session end.
+
+4c. **Hub audit (when this slice touched hubs).** If this slice modified anything in `lib/hubAuth.ts`, `lib/hubMemberAuth.ts`, `lib/programHub.ts`, `lib/email.ts`, `/app/api/hub/*`, `/app/api/host/*`, `/app/account/hub/*`, `/admin/hubs`, or any tool that has a HubAppLink, audit all four routing layers per `RIM_Hub_Engineering.md`: (1) capability gates route by program/resource hub, (2) notification recipient pools use `getHubNotificationRecipients(programHubSlug, …)`, (3) UI / list queries filter by hub, (4) every email-template URL variable passes through `hubScopedUrl()` or `hubHomeUrl()`. Slice 1 (session 128) addressed layers 1–3; Slice 2.5 (session 128 follow-up) found and fixed layer 4. Don't skip the audit just because the change felt small — layer 4 was the leak nobody noticed for a full slice.
+
+4d. **Per-tool engineering doc creation.** If this slice touched a tool or component without its own engineering doc (e.g. ProgramEditor, SessionRoom, HubAdmin, CourseEditor, Manual), create one as part of closing. The doc is the per-tool reference — its routes, hub-scoping story, common pitfalls, what's deferred. Name pattern: `RIM_<ToolName>.md`. Update the Design Orientation table to reference it. Self-perpetuating: every slice that touches a new surface produces its reference doc.
 
 5. **Staff Manual** (`app/admin/manual/page.tsx`) — Update any affected chapters. The manual is not optional. Writing documentation forces understanding.
 
