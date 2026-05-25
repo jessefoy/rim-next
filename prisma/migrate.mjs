@@ -3459,6 +3459,96 @@ async function main() {
     console.log("  ⏭ Scheduler app-link label rename already applied.");
   }
 
+  // Slice 2.5 — swap canonical CTA links for the {{*Button}} variables
+  // shipped earlier in this slice.  Conservative: only replaces the body
+  // when the canonical link pattern is present.  If a coordinator has
+  // customized a template body so the canonical line is no longer there,
+  // the migration logs a notice and leaves the body alone — they keep
+  // their edit and can swap in the button variable manually via
+  // /admin/emails when ready.  Variables array is always updated so the
+  // new {{*Button}} variable shows in the admin UI variable list.
+  const swapButtonsFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'swap_email_cta_to_buttons_v1'
+  `).catch(() => []);
+
+  if (swapButtonsFlag.length === 0) {
+    // Each entry: slug, canonical line to replace, button variable to use,
+    // and the canonical variable list with the new button variable added.
+    const swaps = [
+      {
+        slug: "sub-request-posted",
+        find: "**[Cover this session →]({{coverUrl}})**",
+        replace: "{{coverButton}}",
+        variables: ["firstName", "requesterName", "programName", "sessionDate", "message", "hubUrl", "coverUrl", "coverButton"],
+      },
+      {
+        slug: "sub-request-claimed",
+        find: "**[View the schedule →]({{hubUrl}})**",
+        replace: "{{scheduleButton}}",
+        variables: ["firstName", "claimerName", "programName", "sessionDate", "message", "hubUrl", "scheduleButton"],
+      },
+      {
+        slug: "host-assignment-confirmation",
+        find: "**[View the Host Schedule →]({{scheduleUrl}})**",
+        replace: "{{scheduleButton}}",
+        variables: ["firstName", "programName", "dateText", "requesterNote", "scheduleUrl", "scheduleButton"],
+      },
+      {
+        slug: "host-assignment-removed",
+        find: "**[View the Host Schedule →]({{scheduleUrl}})**",
+        replace: "{{scheduleButton}}",
+        variables: ["firstName", "programName", "dateText", "byName", "scheduleUrl", "scheduleButton"],
+      },
+      {
+        slug: "new-program-needs-host",
+        find: "**[View the schedule →]({{scheduleUrl}})**",
+        replace: "{{scheduleButton}}",
+        variables: ["firstName", "programName", "programFormat", "scheduleUrl", "scheduleButton"],
+      },
+      {
+        slug: "hub-welcome",
+        find: "**[Visit {{hubName}} →]({{hubUrl}})**",
+        replace: "{{hubButton}}",
+        variables: ["firstName", "hubName", "hubUrl", "hubButton"],
+      },
+    ];
+
+    let bodyUpdates = 0;
+    let varOnlyUpdates = 0;
+    let skipped = 0;
+    for (const swap of swaps) {
+      const tmpl = await db.emailTemplate.findUnique({ where: { slug: swap.slug } });
+      if (!tmpl) {
+        console.log(`  ⚠ ${swap.slug}: template not found, skipping.`);
+        continue;
+      }
+      const hasLine = typeof tmpl.body === "string" && tmpl.body.includes(swap.find);
+      if (hasLine) {
+        const newBody = tmpl.body.replace(swap.find, swap.replace);
+        await db.emailTemplate.update({
+          where: { slug: swap.slug },
+          data: { body: newBody, variables: swap.variables },
+        });
+        bodyUpdates++;
+      } else {
+        // Body has been customized — leave it alone but still update the
+        // variables array so the new button variable appears in the admin UI.
+        await db.emailTemplate.update({
+          where: { slug: swap.slug },
+          data: { variables: swap.variables },
+        });
+        varOnlyUpdates++;
+        console.log(`  ⚠ ${swap.slug}: body customized; variables updated, body left as-is. Paste ${swap.replace} via /admin/emails when ready.`);
+      }
+    }
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('swap_email_cta_to_buttons_v1')`,
+    );
+    console.log(`  ✔ Email CTA buttons: ${bodyUpdates} body+variable swap(s), ${varOnlyUpdates} variable-only update(s).`);
+  } else {
+    console.log("  ⏭ Email CTA button swap already applied.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }
