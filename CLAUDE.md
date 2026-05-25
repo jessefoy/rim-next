@@ -93,7 +93,7 @@ Every `sendTemplatedEmail("slug", …)` call site MUST have a corresponding seed
 When adding a notification:
 1. Add the template body, subject, variables, and group/groupLabel to `prisma/migrate.mjs` (new migration entry).
 2. Use `enabled: true` so the email actually sends on first deploy.
-3. Use the defensive `findUnique` → `create` pattern, NOT `upsert`, so re-running doesn't overwrite manual edits Jesse has made via the admin UI.
+3. Use `findUnique` → `create` when *seeding* a brand-new template (don't overwrite if it already exists). When *intentionally updating* an existing template — adding a new variable, swapping a link for a button, fixing a typo — explicit `update` is fine *with Jesse's consent for that specific change*. The protection the gate provides is against accidental silent overwrites of Jesse's customizations, not against intentional template work. Print per-template log lines at apply time so the change is visible in the deploy output. See `RIM_Email_Engineering.md` for the full nuance.
 4. The `groupLabel` and numeric prefix (e.g. `04-hosts`, `05-hubs`) determines where it shows up in `/admin/emails`.
 
 Hardcoded sends (don't use the template manager, intentionally): `sendHostManagerRoleAssignmentEmail`, the three `sendStandingAssignment*` functions. These render markdown inline — long-form, set-and-forget content that doesn't need coordinator editing. If you add a new hardcoded send, write a one-line justification in the function's JSDoc explaining why it bypasses the manager.

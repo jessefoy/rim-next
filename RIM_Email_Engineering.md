@@ -30,7 +30,23 @@ When adding a notification:
 3. Use the defensive `findUnique → create` pattern, NOT `upsert`, so re-running doesn't overwrite manual edits Jesse has made via the admin UI.
 4. The `groupLabel` and numeric prefix (e.g. `04-hosts`, `05-hubs`) determines where it shows up in `/admin/emails`.
 
-**Never overwrite an existing template body via migration.** Once a row exists, the coordinator's edits are authoritative. If you need a new variable, you add the variable to the code and document it in the template's `variables` array via a migration that only updates the metadata fields (not the body). Coordinators see the new variable in the admin UI and can update the body to use it.
+**Overwrite an existing template body only with explicit consent.** The Email Template Gate's "never `upsert`" rule exists to prevent *silent* overwrites — a developer ships a migration without thinking about the fact that Jesse may have customized the template, his edit disappears, nobody notices. The protection is against accidents, not against intentional template work.
+
+**The actual rule, in two halves:**
+
+- **Default (no explicit consent):** seed-only. `findUnique → create` for brand-new templates; for existing ones, update only the metadata fields (variables array, group label, etc.), never the body. Coordinator's edits are authoritative.
+- **With explicit consent from Jesse for a specific change:** direct `update` is fine. "Swap the canonical CTA link for `{{coverButton}}` in the six email templates" — Jesse explicitly asked for this in Slice 2.5. The migration ran an `update` directly, with per-template log output so the deploy log shows what changed.
+
+When you do an intentional update:
+
+- Print a per-template log line at apply time (`Updated body of sub-request-posted`). The deploy output is the audit trail.
+- For each template, check whether the canonical body pattern is still present. If yes, swap. If no (coordinator customized), leave the body alone and only update the variables/metadata. Print a notice telling the coordinator what to swap in manually.
+- Guard the migration with a `_migration_flags` entry so it runs exactly once.
+- Document the change in `session-log.md` so future sessions know the templates were touched.
+
+**Adding a new variable to an existing template** is a related case. The pattern: add the variable to the `variables` array via metadata-only update (so the variable appears in the admin UI list), keep the body untouched. The coordinator decides whether and where to use the new variable in the body. Slice 2.5's `swap_email_cta_to_buttons_v1` migration did this for the customized-body case — body left alone, variables array updated, log notice telling Jesse what to paste.
+
+When in doubt about whether you have consent, ask before shipping. The cost of asking is one round-trip; the cost of an unexpected overwrite is a lost edit.
 
 Hardcoded sends (don't use the template manager, intentionally): `sendHostManagerRoleAssignmentEmail`, `sendStandingAssignmentScheduledEmail`, `sendStandingAssignmentReplacedEmail`. These render markdown inline — long-form, set-and-forget content that doesn't need coordinator editing. If you add a new hardcoded send, write a one-line justification in the function's JSDoc explaining why it bypasses the manager.
 
