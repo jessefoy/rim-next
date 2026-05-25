@@ -89,17 +89,34 @@ All three emails carry `hubSlug` derived from `program.hostingHubSlug` so every 
 
 ---
 
-## Standing rotations (currently host-team-only)
+## Standing rotations
 
 Standing rotations are recurring patterns: "Maria hosts every 2nd and 4th Thursday." They're stored as `StandingAssignment` rows keyed `(programSlug, dayOfWeek, occurrence)`. A cron job (`/api/cron/apply-standing-assignments`) walks forward, creating `HostAssignment` rows from each rotation.
 
-**Hub-scope status:** as of Slice 1, the standing-rotation routes still gate by hardcoded `"host-team"`. The Rotations tab is gated by `isManager` (HOST_MANAGER, ADMIN, or host-team coordinator) at the page level. Peer-led-silent-meditation doesn't yet expose rotations.
+**Hub-scoped as of Slice 2.6.** Every standing-rotation route derives its hub from `program.hostingHubSlug` via `getProgramHubSlug`. A peer-led-silent-meditation coordinator can edit rotations for peer-led programs the same way a host-team coordinator can edit them for host-team programs. The pattern is symmetric across hubs.
 
-**When you need to generalize:**
-- `/api/host/standing-assignments` and its sub-routes — broaden the gate the same way Slice 1 did for the per-session routes (route by `program.hostingHubSlug`).
-- `lib/applyStandingAssignments.ts` — no changes needed; it operates on whatever rotations exist.
-- `RotationsClient.tsx` — already accepts a program filter; just needs to filter by hub's programs the way the Schedule tab does.
-- `sendStandingAssignmentScheduledEmail` and `sendStandingAssignmentReplacedEmail` — currently hub-agnostic with a comment. When peer-led hubs gain rotations, group sessions by hub and send one email per hub, scoping each link with `hubScopedUrl`.
+**Auth model per route:**
+
+| Route | Hub source | Gate |
+|---|---|---|
+| `POST /api/host/standing-assignments` | `body.programSlug` → hub | manager OR `isHubCoordinator` for that hub |
+| `GET /api/host/standing-assignments?hub=&programSlug=` | `?hub=` (or `programSlug`'s hub if given) | hosting capability in that hub |
+| `POST .../apply` (per-program) | `body.programSlug` → hub | manager OR `isHubCoordinator` for that hub |
+| `POST .../apply` (apply-all) | none | HOST_MANAGER or ADMIN only |
+| `POST .../preview` | same as apply | same as apply |
+| `POST .../release-host` | `body.programSlug` → hub | manager OR `isHubCoordinator` |
+| `POST .../end-bundle` | `body.programSlug` → hub | manager OR `isHubCoordinator` |
+| `DELETE /api/host/standing-assignments/[id]` | `rotation.programSlug` → hub | manager OR `isHubCoordinator` |
+
+**Auth precedence in GET.** When `programSlug` is given, auth follows the *program's* hub, not the `?hub=` query parameter. A peer-led coordinator querying a host-team program will fail the auth gate before any data is returned. The `?hub=` param only applies when there's no `programSlug` filter (the "list all rotations in this hub" path).
+
+**StandingAssignment has no Program FK** (only `programSlug` as a string), so the GET filters rotations to hub programs via a two-step query: fetch program slugs that belong to the hub, then `where: { programSlug: { in: [...] } }` on the rotation list. Coordinator-only path; list sizes are small.
+
+**Emails carry hubSlug.** `sendStandingAssignmentScheduledEmail`, `sendStandingAssignmentReplacedEmail`, and `sendStandingAssignmentReleasedEmail` all accept an optional `hubSlug` and build the "view schedule" link via `hubScopedUrl`. Per-program callers pass `programHubSlug`. Apply-all callers leave it undefined — link falls through to host-team scope, acceptable for the rare cross-hub case.
+
+**`lib/applyStandingAssignments.ts`** — operates on whatever rotations exist; no hub-awareness needed (it doesn't run auth, just executes the rotation logic). Hub-routing is handled at the API boundary.
+
+**`RotationsClient.tsx`** receives `hubSlug` as a prop and passes `?hub=<active>` to its rotation-list fetch. The Rotations tab in `peer-led-silent-meditation` now loads only that hub's rotations.
 
 ---
 
@@ -138,11 +155,10 @@ The picker is scoped to one hub at a time — multi-hub members appear in whiche
 
 | Item | Status | Why |
 |---|---|---|
-| Standing-rotation routes hub-routing | Deferred (Slice 3) | Peer-led-silent-meditation doesn't expose Rotations yet — generalizing now would be dead code |
-| Assignments-GET pause-map hub-routing | Deferred (Slice 3) | Same — the map only matters for the Rotations tab |
+| Assignments-GET pause-map hub-routing | Deferred | Pause-state lookup is currently scoped to host-team in the GET handler; low impact since the map is consumed by UI affordances not security gates. Revisit when peer-led members start being paused via their hub. |
 | PDF export hub-scoping | Deferred | "My schedule" is personal; revisit if peer-led members ask |
 | Time-gate adjustments per-program | Deferred (parked) | The 22/30-min window is currently uniform across all programs; if dharma retreats want a longer pre-open, add per-program override |
-| Hub-mixed standing-rotation emails | Deferred (Slice 3) | When standing rotations exist on multiple hubs, group + one email per hub instead of one email with mixed-hub schedule |
+| Hub-mixed standing-rotation emails | Edge case | When a single user's batched apply-all emails span multiple hubs, the link falls through to host-team scope. Acceptable for the rare manager-only apply-all case; could split into per-hub emails if signal emerges. |
 
 ---
 
