@@ -865,8 +865,13 @@ export default function HubScheduleClient({
   return (
     <div className="hs-page">
 
-      {/* View tab strip — Schedule | Rotations (manager/coordinator only) */}
-      {isHostManager && (
+      {/* View tab strip — Schedule | Rotations (manager/coordinator only).
+          Gated by isManager (the broader hub-aware check that includes
+          coordinators of the active hub), NOT isHostManager (which is
+          the global HOST_MANAGER role only). The previous gate hid the
+          Rotations tab from peer-led-silent-meditation coordinators who
+          weren't also global HOST_MANAGERs — Jesse caught this post-2.6. */}
+      {isManager && (
         <div className="hs-viewtabs" role="tablist" aria-label="Schedule views">
           <button
             role="tab"
