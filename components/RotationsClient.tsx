@@ -304,7 +304,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       const res = await fetch(`/api/host/programs/${slug}/clear-rotations`, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ mode: "reset" }),
+        body:    JSON.stringify({ mode: "reset", hubSlug }),
       });
       if (!res.ok) throw new Error("reset failed");
       const data = await res.json();
@@ -331,9 +331,13 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
     setClearing(true);
     setError(null);
     try {
+      // Hub-scoped (session 129 audit) — only THIS hub's data is reset.
+      // hubSlug defaults to host-team on the server when the client
+      // hasn't been hub-mounted yet, but for the Rotations UI it
+      // should always be the active hub. Required field on the route.
       const payload = mode === "soft"
-        ? { scope: "future", endRotations: false }
-        : { scope: "all",    endRotations: true  };
+        ? { scope: "future", endRotations: false, hubSlug: hubSlug ?? "host-team" }
+        : { scope: "all",    endRotations: true,  hubSlug: hubSlug ?? "host-team" };
       const res = await fetch("/api/host/assignments/clear", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
@@ -775,14 +779,19 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
         />
       )}
 
-      {/* Danger zone — manager/coordinator access only.
-          Nuclear reset: wipes every assignment (past + future) AND every
-          rotation rule. Use only when redoing the host system from scratch. */}
+      {/* Danger zone — hub coordinator / HOST_MANAGER / ADMIN access.
+          Hub-scoped nuclear reset (session 129 audit): wipes every
+          assignment + rotation FOR THIS HUB ONLY. Other hubs' data is
+          untouched. Use only when redoing the schedule for this team
+          from scratch. */}
       {isManager && (
         <div className="hs-rot__danger">
           <h3 className="hs-rot__danger-h">Reset</h3>
           <p className="hs-rot__danger-hint">
-            For redoing the entire host schedule from scratch during setup or testing.
+            For redoing this team&rsquo;s schedule from scratch during
+            setup or testing. Only this hub&rsquo;s assignments and
+            rotations are affected — other teams&rsquo; data stays
+            intact.
           </p>
 
           {clearConfirm === null ? (
@@ -790,16 +799,16 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
               className="hs-rot__danger-btn hs-rot__danger-btn--all"
               onClick={() => setClearConfirm("nuclear")}
             >
-              Reset everything
+              Reset this team
             </button>
           ) : (
             <div className="hs-rot__danger-confirm">
               <p className="hs-rot__danger-q">
-                <strong>Reset everything?</strong><br />
-                Deletes <em>every</em> host assignment (past and future) AND
-                deletes <em>every</em> standing rotation rule. The schedule
-                becomes blank and the Rotations grid becomes empty. Use only
-                when redoing the entire host system from scratch. Cannot be
+                <strong>Reset everything for this team?</strong><br />
+                Deletes <em>every</em> assignment in this hub (past and
+                future) AND deletes <em>every</em> standing rotation
+                rule in this hub. This hub&rsquo;s schedule and Rotations
+                grid become empty. Other hubs are unaffected. Cannot be
                 undone.
               </p>
               <div className="hs-rot__danger-confirm-actions">
@@ -808,7 +817,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                   onClick={() => handleClear("nuclear")}
                   disabled={clearing}
                 >
-                  {clearing ? "Working…" : "Yes, reset everything"}
+                  {clearing ? "Working…" : "Yes, reset this team"}
                 </button>
                 <button
                   className="hs-rot__danger-cancel"

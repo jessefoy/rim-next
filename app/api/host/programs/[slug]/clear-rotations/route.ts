@@ -27,6 +27,8 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
+import { isHubCoordinator } from "@/lib/hubAuth";
+import { getProgramHubSlug } from "@/lib/programHub";
 
 const TZ = "America/Chicago";
 
@@ -34,17 +36,14 @@ function isManager(roles: string[]) {
   return roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
 }
 
-async function isCoordinator(userId: string): Promise<boolean> {
-  const m = await db.hubMember.findFirst({
-    where: { userId, hub: { slug: "host-team" }, isCoordinator: true },
-  });
-  return !!m;
-}
-
-async function hasEffectiveHostAccess(userId: string, roles: string[]): Promise<boolean> {
+async function hasEffectiveHostAccess(
+  userId: string,
+  roles: string[],
+  hubSlug: string,
+): Promise<boolean> {
   if (roles.includes("ADMIN")) return true;
   const tentative = roles.includes("HOST") || roles.includes("HOST_MANAGER");
-  return getEffectiveHostingCapability(userId, "host-team", tentative);
+  return getEffectiveHostingCapability(userId, hubSlug, tentative);
 }
 
 export async function POST(
@@ -55,19 +54,27 @@ export async function POST(
   if (!session?.user?.id) return Response.json({ error: "Unauthorized" }, { status: 401 });
   const roles = session.user.roles ?? [];
 
-  if (!isManager(roles) && !(await isCoordinator(session.user.id))) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
-  if (!(await hasEffectiveHostAccess(session.user.id, roles))) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
-
   const { slug: programSlug } = await params;
   const body = await request.json().catch(() => ({}));
   const mode = body?.mode as string | undefined;
+  const bodyHubSlug = body?.hubSlug as string | undefined;
 
   if (mode !== "clear" && mode !== "reset") {
     return Response.json({ error: "mode must be 'clear' or 'reset'" }, { status: 400 });
+  }
+
+  // Hub scope (session 129 audit fix). Body wins so a coordinator
+  // clearing rotations from their own hub's RotationsClient affects
+  // only that hub. Defaults to the program's primary hosting hub for
+  // backward compat with any caller that didn't yet pass hubSlug.
+  const programHubSlug = await getProgramHubSlug(programSlug);
+  const targetHubSlug = bodyHubSlug || programHubSlug;
+
+  if (!isManager(roles) && !(await isHubCoordinator(session.user.id, targetHubSlug))) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
+  if (!(await hasEffectiveHostAccess(session.user.id, roles, targetHubSlug))) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
   // CT-anchored today cutoff — past sessions are never touched
@@ -77,23 +84,26 @@ export async function POST(
   let deletedAssignments = 0;
   let deletedRotations   = 0;
 
-  // SubRequest FK has no cascade — cancel open ones before deleting assignments
+  // SubRequest FK has no cascade — cancel open ones before deleting
+  // assignments. Hub-scoped (session 129 audit) so an AV coordinator
+  // clearing AV rotations doesn't cancel host-team sub-requests on
+  // the same program.
   await db.subRequest.updateMany({
     where: {
-      assignment: { programSlug, sessionDate: { gte: todayCt } },
+      assignment: { programSlug, hubSlug: targetHubSlug, sessionDate: { gte: todayCt } },
       status: "OPEN",
     },
     data: { status: "CANCELLED" },
   });
 
   const assignResult = await db.hostAssignment.deleteMany({
-    where: { programSlug, sessionDate: { gte: todayCt } },
+    where: { programSlug, hubSlug: targetHubSlug, sessionDate: { gte: todayCt } },
   });
   deletedAssignments = assignResult.count;
 
   if (mode === "reset") {
     const rotResult = await db.standingAssignment.deleteMany({
-      where: { programSlug },
+      where: { programSlug, hubSlug: targetHubSlug },
     });
     deletedRotations = rotResult.count;
   }

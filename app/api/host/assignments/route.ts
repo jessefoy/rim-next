@@ -2,7 +2,6 @@ import { auth } from "@/auth";
 import { after } from "next/server";
 import { db } from "@/lib/db";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
-import { getHubNotificationRecipients } from "@/lib/toolAuth";
 import { sendHostAssignmentConfirmationEmail } from "@/lib/email";
 import {
   DEFAULT_HOSTING_HUB_SLUG,

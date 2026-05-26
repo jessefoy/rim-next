@@ -16,6 +16,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
+import { DEFAULT_HOSTING_HUB_SLUG } from "@/lib/programHub";
 
 const RimTiptapEditor = dynamic(
   () => import("@/components/rim-tiptap/RimTiptapEditor"),
@@ -1000,7 +1001,7 @@ export default function HubScheduleClient({
   const emptyMsg = (() => {
     if (filteredSessions.length > 0) return null;
     if (filter === "all") {
-      if (programs.length === 0 && hubSlug && hubSlug !== "host-team") {
+      if (programs.length === 0 && hubSlug && hubSlug !== DEFAULT_HOSTING_HUB_SLUG) {
         return `No programs are scheduled with this team yet. A coordinator can tag a program in the Program editor → Hosting & Access → Auxiliary role coverage.`;
       }
       return `No sessions in ${MONTHS[month]}.`;
@@ -1225,7 +1226,7 @@ export default function HubScheduleClient({
             The `from` query carries the active hub so the manual chapter's
             back-link returns the user to their own hub workspace. */}
         <a
-          href={`/admin/manual/host-schedule?from=${encodeURIComponent(hubSlug ?? "host-team")}`}
+          href={`/admin/manual/host-schedule?from=${encodeURIComponent(hubSlug ?? DEFAULT_HOSTING_HUB_SLUG)}`}
           target="_blank"
           rel="noopener noreferrer"
           className="hs-help-icon"
