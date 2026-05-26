@@ -1,5 +1,74 @@
 ---
 
+## 2026-05-26 (session 130) — Maria's beta-test fixes: sub-request discoverability, release semantics, destructive UX
+
+Jesse opened with a four-bug report from Maria's first real beta test of the Host Hub Scheduler. Maria couldn't find the "Ask the team to cover" affordance after clicking the confirmation email link, perceived a "reset" action as having shifted her Tuesday rotation to Wednesday, found that a full reset didn't change the visible schedule, and got a "your schedule was reset" email that didn't describe what actually happened. Out of the four, two had high-confidence root causes I could fix directly and two could not be diagnosed without screenshots or DB state — for those, the slice landed defensive UX hardening that makes the next test self-diagnosing.
+
+One commit on `main` (`960968b`). 12 files, +441 / -99. Reviewer sub-agent caught three issues pre-commit (all addressed before the commit).
+
+### What this work connects to
+
+This is the first user-facing test of the auxiliary-hub coverage architecture shipped in session 129. The Scheduler, the standing-rotation pipeline, the host email builders, and the Rotations management UI all sit on top of the session-129 work. The bugs Maria found weren't with the new architecture — they were pre-existing issues in how the system communicates with hosts about their rotation membership. The session-129 audit was code-correctness-only; it didn't stress-test end-to-end user flow, which is what Maria's beta surfaced.
+
+### Bug A — sub-request affordance not visible
+
+**Root cause:** `HubScheduleClient.tsx` renders "Ask the team to cover" only when `kind === "mine"` AND `!isPast`. The page server-side defaults to the current month. `applyStandingAssignments.ts:268` explicitly skips past dates when creating HostAssignments — so a host whose rotation lands in a future month has zero `HostAssignment` rows in the current month and zero "mine" rows on the default schedule view. The confirmation email's "Open the Schedule" link went to `/tools/schedule?hub=…` with no month, so Maria landed on May 2026 (current), saw no actionable rows, and concluded the affordance didn't exist.
+
+**Fix:** Two surfaces touched.
+
+1. `sendStandingAssignmentScheduledEmail` accepts a new optional `firstSessionMonth` field and deep-links the CTA URL to `/tools/schedule?month=YYYY-MM&hub=…`. Every caller (standing-assignments POST, apply route, cron) now computes the earliest session date from the apply result and passes it. The schedule page reads `?month=YYYY-MM` (permissive parsing, falls back to current month on bad input).
+2. The Your Rotations panel's "Next" block becomes a clickable button. Clicking jumps the calendar to that month via the existing month-state machine (new `jumpToMonth` helper).
+
+**`ApplyResultSession` interface gained a required `dateStr: string` field** so apply paths can compute the earliest-month deep-link cleanly. All in-repo callers were updated. (Reviewer flagged this as a potential hidden API break for any future consumer — accepted for now since the in-repo consumers are exhaustive.)
+
+### Bug C — release email was lying
+
+**Root cause:** `release-host` deleted future `HostAssignment` rows for one user but **left the `StandingAssignment` rule active with their userId**. The next morning at 8am UTC, the apply cron walked the rules, found the user still in the rotation rule with empty future slots, and re-created the HostAssignments. The "released" effect silently undid itself. Meanwhile the email subject claimed "Your hosting rotation has ended" and body said "The following upcoming sessions have been cleared from your schedule." Both statements were wrong on multiple axes: the rotation hadn't ended, and the cleared sessions weren't staying cleared.
+
+**Fix:** Behavior + email both changed coherently.
+
+1. `release-host` now deletes the released user's `StandingAssignment` rows in the bundle AND their future HostAssignments. Other people in the bundle (an alternate-pattern co-host) keep their rules untouched. The rotation continues for them.
+2. New `sendStandingAssignmentReleasedEmail` signature (now `programName`-aware, sends a no-list body variant when no future HostAssignments existed yet so the user isn't silently dropped). Subject: "You've been removed from the {programName} rotation."
+3. New `sendStandingAssignmentEndedEmail` builder takes over the truly-ending case (used by `end-bundle`'s "End this rotation" with `releaseFuture=true`, and by the `[id]` DELETE route). Subject preserved as "Your hosting rotation has ended."
+4. UI labels in `RotationsClient` updated to match the new semantic: "Release their dates" → "Remove from rotation"; the panel copy now explains that per-date "can't make THIS one" is the job of the sub-request affordance on the Schedule tab, not this destructive-rotation action.
+
+This makes the two exits architecturally distinct:
+- **Per-date** — Maria can't make June 2 → post a sub-request on that session's row. Rotation rule stays.
+- **Whole rotation** — Maria stepping out of the rotation → "Remove from rotation." Rule deleted for her; others stay.
+
+### Bugs B + D — defensive hardening (no root cause found)
+
+I read every code path that could plausibly produce Maria's symptoms (clear-rotations, assignments/clear, release-host, end-bundle, the inline rotation form save, the apply paths). None of them mutate `dayOfWeek` on a StandingAssignment. None shift a HostAssignment by a day. None of the clear/reset routes silently no-op. Without Maria's screenshot or a DB snapshot of Art of Meditation's rotation state I couldn't pin the root cause — so the slice landed defensive UX that makes the next test self-diagnosing instead of trying to fix code that may not be wrong.
+
+**Hardening that landed:**
+
+- **Specific success toasts.** "Reset · Art of Meditation (host-team) · 1 rotation rule and 4 upcoming sessions removed." Names the program, day-of-week (via context), hub, and counts explicitly. If Maria reproduces the "day shift" perception, the toast will tell her exactly what was just deleted.
+- **`router.refresh()` after every destructive action.** `loadRotations()` (rotations grid) + `onScheduleStale?.()` (client month re-fetch) were already there; added `router.refresh()` to re-fetch the schedule page's SSR data — Your Rotations panel, "Next" labels, pause-map. A stale parent server component was a plausible source of the "full reset didn't change anything" symptom.
+- **0/0 race-path refresh.** When `release-host` returns `{released:0, removedRules:0}` (concurrent coordinator, double-click), the grid still refreshes so a stale row doesn't persist. (Reviewer caught this gap pre-commit.)
+
+### Reviewer sub-agent findings
+
+Three caught pre-commit, all addressed before the commit:
+
+1. **CONFIRMED.** `release-host` had a guard `if (host && sessions.length > 0)` that silently skipped the email when only a rotation rule was removed (no future HostAssignments yet) — contradicting an inline comment promising "we still send when only the rule was removed." Fix: email builder now renders a no-list body variant and the guard sends regardless.
+2. **PLAUSIBLE.** `RotationsClient`'s 0/0 toast branch didn't call `loadRotations()` or `fullRefresh()`. Two concurrent coordinators could see stale rows. Fix: refresh in both branches.
+3. **PLAUSIBLE.** `HubScheduleClient`'s `jumpToMonth` target month was extracted via `new Date(d.toLocaleString("en-US", { timeZone: TZ }))` — locale-string parsing is not in the ECMA spec and Safari has historically failed on common shapes. Fix: switched to `Intl.DateTimeFormat(...).formatToParts()`, which is engine-agnostic.
+
+A fourth (PLAUSIBLE behavior-change) was flagged and left intentional: `release-host`'s narrowed query no longer frees HostAssignments where the user was reassigned via sub-claim (their `standingAssignmentId` points at someone else's rule). Sub-claims are individual commitments, not rotation membership — the user can post their own sub-request for those single dates. Documented in the route's docstring.
+
+### Open follow-ons
+
+- **DB diagnostic on Maria's account.** Three SQL queries Jesse will run when he has DB access (in UP_NEXT). If Maria's StandingAssignment state turns out to have been on Wednesday all along (data, not code), the day-shift perception is explained. If the data was Tuesday, the hardened toasts on her next test will pinpoint what action she's clicking.
+- **Manual chapter.** `host-hub-team-management` or a new `host-rotations` chapter needs to explain: rotation sessions appear in their actual calendar month; use Your Rotations → Next to jump; the difference between Remove from rotation, End this rotation, and per-session Ask the team to cover.
+
+### Architectural calls worth carrying forward
+
+- **Audit at the user-flow layer, not just the code-correctness layer.** The session-129 audit verified hub-scoping correctness across all four routing layers but didn't stress-test end-to-end user flow. Maria's report is the kind of gap that audit pass missed. Worth adding to the closing ritual: when touching a tool, walk the user's flow as the actual user, not just the code paths.
+- **The "released vs ended" distinction is permanent.** Two distinct builders forever — Released (rule removed for one person, others stay) vs Ended (rule deleted entirely). Don't merge them again.
+- **Per-date vs whole-rotation are two exits, not one.** Per-session sub-request for "I can't make this date"; remove-from-rotation for "I'm leaving the rotation." UI surfaces them in distinct places and copy spells out the distinction.
+
+---
+
 ## 2026-05-25 (session 129 continued) — Post-ship fixes + thorough scheduler audit
 
 After session 129's first ship, real-world testing surfaced a series of issues. Each got fixed in turn, then Jesse asked for a "thorough audit to make sure the integrity is sound." The audit ran clean (every routing layer hub-correct) except for two real bugs in the destructive-reset routes which were then fixed.

@@ -112,7 +112,7 @@ CSS lives in `public/css/custom.css` under `.hs-row__multi*`. The card itself is
 
 A host who can't make a session they're committed to posts a sub-request:
 
-1. They open the session in `/tools/schedule?hub=<their-hub>`, click "Request a sub" on their assignment.
+1. They open the session in `/tools/schedule?hub=<their-hub>`, click **"Ask the team to cover"** on their assignment.
 2. The POST to `/api/host/sub-requests` creates the `SubRequest` row, then notifies other active members of the program's hub via `sendSubRequestEmail`.
 3. The email contains:
    - Context: who's requesting, what program, what date, the requester's optional note
@@ -122,6 +122,17 @@ A host who can't make a session they're committed to posts a sub-request:
 5. The claim writes the new userId to the HostAssignment + closes the SubRequest. Two emails go out: a `sub-request-claimed` to the original host ("your session is covered"), and a `host-assignment-confirmation` to the new host.
 
 All three emails carry `hubSlug` derived from `program.hostingHubSlug` so every link lands the recipient in the correct hub view. Slice 2.5 fix.
+
+### Sub-request discoverability — `?month=YYYY-MM` deep-link
+
+Affordance gates: `kind === "mine"` AND `!isPast`. `kind === "mine"` requires `hostUserId === currentUserId`. The Schedule page defaults to the current month; the apply path (`applyStandingAssignments.ts`) skips past dates when creating HostAssignments — so a host whose rotation starts in a future month has no "mine" rows in the current-month default view, and the "Ask the team to cover" button never appears.
+
+Session 130 closed this with two layers of discoverability:
+
+- **`sendStandingAssignmentScheduledEmail`** now takes `firstSessionMonth?: string` (the YYYY-MM of the earliest scheduled session) and deep-links the CTA URL to `/tools/schedule?month=<that>&hub=<slug>`. Computed at the apply / standing-assignments POST / cron call sites from the apply result's `sessions[].dateStr`. The schedule page reads `?month=` permissively (bad input falls back to current month).
+- **The Your Rotations panel's "Next" block** is a clickable `<button>` that jumps the calendar to the target month via `jumpToMonth(year, month)` in `HubScheduleClient`. Use `Intl.DateTimeFormat(..., { timeZone: TZ }).formatToParts()` to extract year/month from the next-session ISO — locale-string parsing through `new Date()` is not in the ECMA spec and is unreliable on Safari.
+
+When adding any feature that points a user at a specific session by URL, prefer `?month=YYYY-MM` (deep-link the month) over relying on the current-month default. The URL is the contract.
 
 ---
 
@@ -146,9 +157,35 @@ Standing rotations are recurring patterns: "Maria hosts every 2nd and 4th Thursd
 
 **`lib/applyStandingAssignments.ts`** — `Candidate` carries `hubSlug` so applied HostAssignments inherit the source rotation's hub. Conflict detection scoped per `(programSlug, dateStr, hubSlug)` — an AV rotation candidate doesn't conflict with a host-team HostAssignment on the same date. Apply takes an optional `hubSlugFilter` so per-hub callers can narrow the apply to one team's rotations.
 
-**Emails carry hubSlug.** `sendStandingAssignmentScheduledEmail`, `sendStandingAssignmentReplacedEmail`, and `sendStandingAssignmentReleasedEmail` all accept an optional `hubSlug` and build the "view schedule" link via `hubScopedUrl`. The apply route groups byUser sessions by `hubSlug` so a user with rotations in two hubs gets one email per hub, each linking to the right Scheduler view.
+**Emails carry hubSlug.** `sendStandingAssignmentScheduledEmail`, `sendStandingAssignmentReplacedEmail`, `sendStandingAssignmentReleasedEmail`, and `sendStandingAssignmentEndedEmail` all accept an optional `hubSlug` and build the "view schedule" link via `hubScopedUrl`. The apply route groups byUser sessions by `hubSlug` so a user with rotations in two hubs gets one email per hub, each linking to the right Scheduler view. `sendStandingAssignmentScheduledEmail` (session 130) also accepts `firstSessionMonth?: string` and deep-links the CTA URL to that month.
 
 **`RotationsClient.tsx`** receives `hubSlug` as a prop and passes `?hub=<active>` to its rotation-list fetch. Each hub's Rotations tab loads only that hub's rotations.
+
+### Released vs Ended — two distinct semantics (session 130)
+
+Two distinct exits, two distinct email builders, two distinct UI actions. Don't conflate them.
+
+| Action | Route | Behavior | Email |
+|---|---|---|---|
+| Remove one person from a still-active rotation | `POST /standing-assignments/release-host` | Deletes the user's `StandingAssignment` rules in the bundle + their future `HostAssignment` rows. Other people in the bundle keep their rules. The rotation continues. | `sendStandingAssignmentReleasedEmail` — subject "You've been removed from the {programName} rotation." Renders a no-list body variant when no future HostAssignments existed yet (rule just created, cron hadn't applied) so the user still hears about the removal. |
+| End an entire rotation rule | `POST /standing-assignments/end-bundle` (with `releaseFuture=true`) or `DELETE /standing-assignments/[id]` | Sets `endsOn` (or deletes the rule entirely on the [id] DELETE path). Future HostAssignments tied to that rule are deleted. Cron honors `endsOn` and won't re-apply. | `sendStandingAssignmentEndedEmail` — subject "Your hosting rotation has ended." |
+
+**Pre-session-130 history (don't reintroduce):** `release-host` used to delete only the HostAssignments and leave the `StandingAssignment` row active. The daily cron at 8am UTC would re-apply the released user the next morning — the "release" silently undid itself. Maria's beta test surfaced this. The fix is the now-canonical "release means actually remove this person."
+
+**Where each is wired:**
+
+- `RotationsClient`'s "Manage rotation" panel → "Remove from rotation" (per-host) → `release-host` → Released email.
+- `RotationsClient`'s "Manage rotation" panel → "End this rotation" (whole bundle) → `end-bundle` with `releaseFuture: true` → Ended email.
+- `RotationsClient`'s "End on a specific date" → `end-bundle` with `endsOn` (no `releaseFuture`) → no email (set-end-date is non-disruptive).
+- The `[id]` DELETE route (legacy) — same Ended email.
+
+**Per-date "I can't make this one" is a separate exit.** Hosts who can't make a single specific date should use the per-session "Ask the team to cover" affordance on the Schedule tab, not the rotation-management Remove. The Manage panel's copy spells this out. Keep them visually distinct in any future UI work.
+
+### Sub-claim rows on rotation removal — intentional behavior (session 130)
+
+`release-host` queries the user's `StandingAssignment` rules in the bundle (`where: { programSlug, dayOfWeek, hubSlug, userId }`) and then deletes future `HostAssignment` rows tied to *those specific rules* AND held by the user. A future row where the user took over via sub-claim (HostAssignment's `userId = X` but `standingAssignmentId` points at someone else's rule) is **not** freed.
+
+This is intentional: sub-claims are deliberate single-date opt-ins, not rotation membership. Removing X from "the rotation" shouldn't auto-release a session X voluntarily took. The pre-session-130 code did free those rows, but the new behavior is more semantically correct. If the held sub-claim is also a problem, X can post their own sub-request for it.
 
 ---
 

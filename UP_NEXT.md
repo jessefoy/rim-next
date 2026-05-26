@@ -6,6 +6,62 @@
 
 ## Active
 
+### Session 130 (2026-05-26) — Maria's beta-test fixes shipped; verification pending
+
+Four-bug fix from Maria's first real beta of the Host Hub Scheduler. One commit on `main` (`960968b`). 12 files, +441 / -99.
+
+**What shipped:**
+- **Bug A** — sub-request affordance discoverable: standing-assignment confirmation email deep-links to `?month=YYYY-MM` of the earliest scheduled session; Your Rotations panel "Next" block is now a clickable button that jumps the calendar to that month.
+- **Bug C** — release-host behavior + email rewritten. The route now deletes the user's StandingAssignment rules in the bundle (so the cron can't re-apply); two distinct email builders (Released for release-host, Ended for end-bundle); "Release their dates" UI label → "Remove from rotation" with explanatory copy.
+- **Bugs B + D** — defensive UX hardening since neither could be diagnosed without Maria's screenshot or DB state. Every destructive action calls `router.refresh()` after `loadRotations()` so the schedule page's SSR data re-fetches; success toasts name program/day/hub/counts explicitly; 0/0 race path also refreshes.
+
+**Reviewer sub-agent caught three issues pre-commit:** missing email when only the rule was removed (no future HostAssignments yet); missing refresh on the 0/0 race path; fragile `new Date(d.toLocaleString(...))` for CT month extraction (switched to `Intl.DateTimeFormat.formatToParts()`).
+
+### What to verify on the deployed site once Vercel finishes
+
+1. **Sub-request flow end-to-end.** Set up a rotation for yourself starting in a future month. Confirmation email arrives. Click the "Open the Schedule" CTA — should land directly on the month of your earliest session. "Ask the team to cover" affordance visible on your rotation rows.
+2. **Your Rotations panel "Next" is clickable.** From any month, click the "Next →" block on a rotation card. Calendar jumps to that month.
+3. **"Remove from rotation" semantic.** Add a second host to one of your rotation bundles. Click "Remove from rotation" on the second host — they should be removed and the other host (you) should remain in the rotation. Run the apply-standing-assignments cron manually — the removed host should NOT be re-applied.
+4. **Truthful emails.** Trigger a release-host: the email should read "You've been removed from the {programName} rotation" (not "your standing rotation has ended"). Trigger an end-bundle "End this rotation" with releaseFuture=true: that email DOES say "Your hosting rotation has ended."
+5. **Toasts are specific.** Click "Reset rotations" on a program — toast names program, hub, counts. Click "Reset this team" — toast names the hub explicitly. If anything looks off, the toast text is now the artifact to share.
+6. **Schedule page deep-link.** Try `/tools/schedule?month=2026-08&hub=host-team` directly — should land on August 2026 view. Bad input (`?month=foo`) should silently fall back to current month.
+
+### DB diagnostic queries — run when you have DB access
+
+Run these against Maria's account to definitively diagnose the "Tuesday → Wednesday" symptom from Bug B:
+
+```sql
+-- What rotations does Maria actually have for Art of Meditation right now?
+SELECT id, "programSlug", "dayOfWeek", occurrence, "hubSlug", "userId", "endsOn", "startsOn"
+FROM standing_assignments
+WHERE "programSlug" = 'the-art-of-meditation';
+
+-- What HostAssignments exist for Art of Meditation in the future?
+SELECT id, "programSlug", "sessionDate", "hubSlug", "userId", "standingAssignmentId"
+FROM host_assignments
+WHERE "programSlug" = 'the-art-of-meditation'
+  AND "sessionDate" >= NOW()
+ORDER BY "sessionDate";
+
+-- What are Art of Meditation's recurrenceDays?
+SELECT slug, "recurrenceDays", "recurrenceFreq", "startDatetime"
+FROM programs WHERE slug = 'the-art-of-meditation';
+```
+
+If Maria's StandingAssignment turns out to have been on Wednesday in the data all along (data, not code), the perception is explained. If it was Tuesday, the hardened toasts on her next test will pinpoint which action she's clicking.
+
+### Known follow-ons (queued)
+
+- **Manual chapter.** `host-hub-team-management` or new `host-rotations` chapter needs to explain: rotation sessions appear in their actual calendar month; use Your Rotations → Next to jump; difference between Remove from rotation, End this rotation, and per-session Ask the team to cover. Not done this slice.
+- **Behavior change re: sub-claim rows on rotation removal.** `release-host` no longer frees future HostAssignments where the user took the row via sub-claim (`standingAssignmentId` points at someone else's rule but `userId` is the removed user). Intentional — sub-claims are individual commitments. Documented in the route's docstring and `RIM_Scheduler.md`. Revisit if it causes operational confusion.
+- **Replaced-user email parity.** `sendStandingAssignmentReplacedEmail` doesn't yet use `firstSessionMonth` — but a displaced user has no future rows in those months so the deep-link wouldn't help. Leave as-is unless signal emerges.
+
+### Memory candidate from this session
+
+The audit-at-user-flow-layer principle is documented in `RIM_Hub_Engineering.md` ("Audit at the user-flow layer, not just the code-correctness layer"). Worth a corresponding short memory file if the pattern keeps surfacing.
+
+---
+
 ### Session 129 + follow-ups (2026-05-25) — Auxiliary-hub coverage shipped, refined, and audited
 
 The session-129 architecture is now operational + post-ship-tested + audited. Six commits beyond the original ship:

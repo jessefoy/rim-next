@@ -1869,6 +1869,20 @@ Generalizes the program↔hub relationship from 1:1 (Slice 1's `Program.hostingH
 - **Helpful empty-state copy** on the Scheduler when no programs are tagged for the hub.
 - **Hub-aware destructive routes (audit fixes).** Both `/api/host/programs/[slug]/clear-rotations` (was hardcoded to host-team) and `/api/host/assignments/clear` (was global ADMIN-only nuclear reset) are now hub-scoped, gated by `isHubCoordinator + ADMIN`. RotationsClient's "Reset this team" button copy makes the per-hub scope plain.
 
+### Scheduler beta-test fixes — Maria's report (session 130, 2026-05-26)
+
+First real beta of the Scheduler from a non-Jesse coordinator (Maria, hosting coordinator). Four-bug report. Two had high-confidence root causes; two could not be diagnosed without screenshots or DB state, so the slice landed defensive UX that makes the next test self-diagnosing. Commit `960968b`.
+
+**Sub-request affordance discoverable.** "Ask the team to cover" only renders for `kind === "mine"` AND `!isPast` rows. Apply skips past dates, and the schedule page defaults to the current month — so a host with a rotation in a future month sees no actionable rows on the default view. Fixed at two surfaces: `sendStandingAssignmentScheduledEmail` accepts a new `firstSessionMonth?: string` and deep-links the "Open the Schedule" CTA to `/tools/schedule?month=YYYY-MM&hub=…`; the Your Rotations panel's "Next" block becomes a clickable button that jumps the calendar to that month via new `jumpToMonth(y, m)` helper. Year/month extraction uses `Intl.DateTimeFormat(..., {timeZone: TZ}).formatToParts()` because `new Date(d.toLocaleString(...))` is unreliable on Safari. Schedule page reads `?month=YYYY-MM` permissively. `ApplyResultSession` interface gained a required `dateStr: string` field so apply call sites can compute the earliest-month deep-link.
+
+**Released vs Ended — two distinct email semantics.** Previously `release-host` deleted future HostAssignments but left the StandingAssignment rule active. The daily cron silently re-applied the released user the next morning. The "released" email lied on multiple axes. Fixed: `release-host` now also deletes the user's StandingAssignment rules in the bundle (other people in the bundle stay on the rotation). New email builder `sendStandingAssignmentReleasedEmail({programName, sessions})` with two body variants (date-list when assignments existed; no-list when only the rule was removed) — sends even when sessions is empty so users aren't silently dropped. New `sendStandingAssignmentEndedEmail` takes over the truly-ending case (`end-bundle` + `[id]` DELETE). UI: "Release their dates" → "Remove from rotation" with explanatory copy spelling out that per-date "can't make this one" belongs in the per-session sub-request affordance, not the destructive-rotation action.
+
+**Defensive destructive UX.** Every destructive action in `RotationsClient` now calls `router.refresh()` after `loadRotations()` so the schedule page's SSR data re-fetches (Your Rotations panel, "Next" labels, pause-map). Toasts name program/day/hub/counts explicitly. 0/0 race-path also refreshes. Manage-panel copy clarifies the difference between Remove-from-rotation, End-this-rotation, and per-session Ask-the-team-to-cover.
+
+**Reviewer sub-agent caught three pre-commit:** missing email when only a rule was removed; missing refresh on the 0/0 race path; fragile locale-string round-trip for CT month extraction. All addressed before the commit.
+
+**Behavior change documented:** `release-host` no longer frees HostAssignments where the user took over via sub-claim (the row's `standingAssignmentId` points at someone else's rule). Intentional — sub-claims are individual commitments, not rotation membership.
+
 ### Silent Meditation Hub — Slice 2 + 2.5 + 2.6 operational + hub-isolation hardening (session 128 continued)
 
 After Slice 1's architecture landed, the next phase took the system live for the first peer-led hub end-to-end. Three layers landed:

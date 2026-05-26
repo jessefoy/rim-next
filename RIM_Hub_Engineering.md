@@ -105,6 +105,19 @@ Specifically:
 
 Slice 1 (session 128) addressed layers 1–3. Slice 2.5 (session 128 follow-up) found and fixed layer 4. The next slice that touches hubs should treat all four as a single checklist item.
 
+## Audit at the user-flow layer, not just the code-correctness layer (session 130)
+
+The code-correctness audit above is necessary but not sufficient. Session 129's five-phase audit verified hub-scoping correctness across every routing layer and ran clean. The next slice (session 130, Maria's beta test) immediately surfaced four real bugs in the *user flow*:
+
+- Sub-request affordance technically present but undiscoverable because the email link landed on the wrong month.
+- "Release their dates" route silently undone by the next cron run because the rotation rule wasn't deleted.
+- Destructive-action toasts didn't name what was deleted, so a coordinator couldn't verify their intent.
+- An email body claimed an action that didn't match what the route did.
+
+None of these would fail a routing-layer audit. They're all gaps at the user-flow layer: what happens when a real person follows the actual path the UI offers?
+
+**Add to the closing ritual when a slice touches a tool with a human-facing flow:** walk the user's flow as the actual user, end to end. Click the affordance the system tells them to click. Read the email the system sends. Reach the destination the link lands on. Verify the success toast tells the truth. If any of those layers lies to the user — even when the code is "correct" — that's a real bug in scope for this slice, not a polish item for later.
+
 ---
 
 ## Grandfather policy on `Program.hostingHubSlug` changes
