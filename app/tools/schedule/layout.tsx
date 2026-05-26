@@ -31,14 +31,11 @@ export default async function ScheduleToolLayout({
     );
   }
 
-  // Back link defaults to host-team but a future enhancement can read the
-  // active hub from `?hub=` and route the back-link to the matching hub
-  // (Silent Meditation, etc.). Slice 1 ships the schedule scoping; the
-  // ToolsProvider context API doesn't currently take searchParams at the
-  // layout level, and threading the active hub from the page would be a
-  // larger ToolsContext refactor than Slice 1 warrants. Hold the back link
-  // at host-team for now — peer-leaders following the link land on their
-  // overlap with the host-team workspace, which is harmless.
+  // The layout can't read `?hub=` (Next 16 layouts have no searchParams),
+  // so the back-link starts at host-team as the safe default. When the
+  // user is *in* a hub view (?hub= present), `WorkspaceShell` renders
+  // its own hub sidebar with a hub-scoped back affordance, so this
+  // fallback is only seen by direct-entry admins.
   let backHref = "/account/dashboard";
   let backLabel = "Home";
 
@@ -58,7 +55,12 @@ export default async function ScheduleToolLayout({
 
   return (
     <ToolsProvider value={{
-      toolName: "Host Schedule",
+      // Generic across hubs — the hub name itself is in the sidebar
+      // ("OPERATIONAL HUB / Greeter"), so "Scheduler" reads correctly
+      // whether the user is in host-team, peer-led, audio-visual, or
+      // greeter. Renamed from "Host Schedule" in session 129 once
+      // multiple hubs started using this tool.
+      toolName: "Scheduler",
       backHref,
       backLabel,
     }}>

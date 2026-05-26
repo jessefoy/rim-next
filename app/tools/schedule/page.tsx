@@ -1,11 +1,13 @@
 /**
- * /tools/schedule — Host Schedule calendar.
+ * /tools/schedule — Scheduler calendar.
  * Role gate: HOST, HOST_MANAGER, or ADMIN (handled by layout).
  *
  * Programs drive the schedule — not HostAssignment records.
- * Every virtual/hybrid program that has an occurrence this month appears
- * on the calendar. HostAssignment records are joined in to show who's
- * covering each session. Sessions with no assignment show as "Needs Coverage."
+ * Every program with the active hub's `appliesToFormats` that has an
+ * occurrence this month appears on the calendar. HostAssignment records
+ * are joined in (scoped to the active hub) to show who's covering each
+ * session. Sessions with no assignment show as "Needs Coverage" in
+ * single-slot hubs or "No one yet — be the first?" in multi-claim hubs.
  */
 
 import { auth } from "@/auth";
@@ -24,7 +26,7 @@ import {
 } from "@/lib/programHub";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Host Schedule — Tools" };
+export const metadata = { title: "Scheduler — Tools" };
 
 type PgProgram = ScheduleProgram;
 
