@@ -38,7 +38,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
 import { isHubCoordinator } from "@/lib/hubAuth";
-import { getProgramHubSlug, DEFAULT_HOSTING_HUB_SLUG, getProgramSlugsForHub } from "@/lib/programHub";
+import { getProgramHubSlug, DEFAULT_HOSTING_HUB_SLUG, getProgramSlugsForHub, getHubCoverageConfig } from "@/lib/programHub";
 import { applyStandingAssignments, getApplyMonthRange } from "@/lib/applyStandingAssignments";
 import { sendStandingAssignmentScheduledEmail } from "@/lib/email";
 import type { StandingOccurrence } from "@prisma/client";
@@ -230,6 +230,18 @@ export async function POST(request: Request) {
   const targetHubSlug = body.hubSlug || programHubSlug;
   if (!isManager(roles) && !(await isHubCoordinator(session.user.id, targetHubSlug))) {
     return Response.json({ error: "Forbidden — coordinator or manager required" }, { status: 403 });
+  }
+  // Multi-claim hubs (greeter — `allowsMultipleAssignments = true`) don't use
+  // the rotation model. Open sign-up means anyone can volunteer for any
+  // date; pinning a specific person to every 1st & 3rd Tuesday doesn't map
+  // to that semantic. The UI already hides the Rotations tab for these
+  // hubs; this server-side gate is the defense for direct POSTs.
+  const hubConfig = await getHubCoverageConfig(targetHubSlug);
+  if (hubConfig?.allowsMultipleAssignments) {
+    return Response.json(
+      { error: `${targetHubSlug} uses open sign-up — rotation rules don't apply. Volunteers sign up per session via the Schedule tab.` },
+      { status: 400 },
+    );
   }
   if (!VALID_DAYS.includes(body.dayOfWeek)) {
     return Response.json({ error: `Invalid dayOfWeek: ${body.dayOfWeek}` }, { status: 400 });
