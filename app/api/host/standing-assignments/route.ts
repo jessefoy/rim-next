@@ -343,7 +343,7 @@ export async function POST(request: Request) {
 
   // Aggregate filled count and merge byUser for one email per host
   let totalFilled = 0;
-  type SessSum = { programName: string; dateLabel: string; userEmail: string; firstName: string | null };
+  type SessSum = { programName: string; dateLabel: string; userEmail: string; firstName: string | null; dateStr: string };
   const merged = new Map<string, SessSum[]>();
   for (const r of results) {
     totalFilled += r.filled;
@@ -356,6 +356,16 @@ export async function POST(request: Request) {
     for (const [, sessions] of merged) {
       if (sessions.length === 0) continue;
       const { userEmail, firstName } = sessions[0];
+      // Deep-link the email's "Open the Schedule" CTA to the month of the
+      // earliest scheduled session. The Schedule defaults to the current
+      // month, where the recipient's rotation rows usually don't exist
+      // (apply skips past dates) — without this, they land on a view with
+      // no "mine" rows and the sub-request affordance never appears.
+      const earliest = sessions
+        .map((s) => s.dateStr)
+        .filter(Boolean)
+        .sort()[0];
+      const firstSessionMonth = earliest ? earliest.slice(0, 7) : undefined;
       await sendStandingAssignmentScheduledEmail({
         to: userEmail,
         firstName,
@@ -366,6 +376,7 @@ export async function POST(request: Request) {
         // an AV-rotation email points an AV volunteer at /tools/schedule?
         // hub=audio-visual rather than host-team.
         hubSlug: targetHubSlug,
+        firstSessionMonth,
       });
     }
   });

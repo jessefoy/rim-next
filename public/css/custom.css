@@ -16532,6 +16532,13 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   font-weight: 500;
 }
 .hs-rot__release-q span { color: var(--rim-mid); font-weight: 400; }
+.hs-rot__release-sub {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  line-height: var(--lh-body);
+  color: var(--rim-mid);
+  margin: 0;
+}
 .hs-rot__release-hosts { display: flex; flex-direction: column; gap: 6px; }
 .hs-rot__release-row {
   display: flex;
@@ -17136,6 +17143,35 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   font-weight: 500;
   color: var(--rim-text);
   margin: 0;
+}
+/* "Next" as a button — jumps the calendar to the month containing the
+   user's next rotation-derived session. Session 130: closes the
+   discoverability gap where a host couldn't find the sub-request affordance
+   from the current month because their rotation rows were all in a future
+   month. Reset button-default styling so the visual is identical to the
+   non-button variant except for the cursor + hover affordance. */
+.hs-myrot__right--jump {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  cursor: pointer;
+  color: inherit;
+  min-height: 44px;
+}
+.hs-myrot__right--jump:hover .hs-myrot__next-label,
+.hs-myrot__right--jump:focus-visible .hs-myrot__next-label {
+  color: var(--rim-blue);
+}
+.hs-myrot__right--jump:hover .hs-myrot__next-date,
+.hs-myrot__right--jump:focus-visible .hs-myrot__next-date {
+  color: var(--rim-blue);
+}
+.hs-myrot__right--jump:focus-visible {
+  outline: 2px solid var(--rim-blue);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* ── "Print my schedule" link below filter pills ──────────────────────── */

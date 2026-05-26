@@ -25,6 +25,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import RotationConflictModal from "./RotationConflictModal";
 
 type Occurrence = "FIRST" | "SECOND" | "THIRD" | "FOURTH" | "FIFTH" | "LAST" | "ALL";
@@ -214,10 +215,25 @@ function detectPattern(rows: Rotation[]): { pattern: Pattern; hosts: FormState["
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export default function RotationsClient({ programs, teamMembers, year, month, isManager = false, hubSlug, onScheduleStale }: Props) {
+  const router = useRouter();
   const [rotations, setRotations] = useState<Rotation[]>([]);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState<string | null>(null);
   const [toast, setToast]         = useState<string | null>(null);
+
+  /**
+   * Force the parent server component to re-run after a destructive
+   * operation. Both `loadRotations()` and `onScheduleStale?.()` refresh
+   * client-side state, but the schedule page's SSR data (sessions,
+   * pause-map, Your Rotations panel) is computed server-side and a stale
+   * cache after a hub-wide reset was Maria's "the schedule didn't change"
+   * symptom in her beta test (session 130 Bug D). `router.refresh()` flushes
+   * the route cache so the next render re-fetches from the database.
+   */
+  const fullRefresh = useCallback(() => {
+    onScheduleStale?.();
+    router.refresh();
+  }, [onScheduleStale, router]);
 
   // Editing state — only one bundle (programSlug, dayOfWeek) edits at a time
   const [editing, setEditing] = useState<{ programSlug: string; dayOfWeek: DayOfWeek } | null>(null);
@@ -243,7 +259,12 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
     setTimeout(() => setToast(null), 4000);
   };
 
-  // ── Release-host (called from inside the manage panel) ───────────────────
+  // ── Remove-host (called from inside the manage panel) ───────────────────
+  //
+  // Session 130: the route now also deletes the user's StandingAssignment
+  // rules in the bundle, so this is genuinely "remove this person from the
+  // rotation" rather than the misleading "release their dates" semantic
+  // that the cron silently undid every morning.
   const handleReleaseHost = async (programSlug: string, dayOfWeek: DayOfWeek, userId: string) => {
     setReleasing(true);
     setError(null);
@@ -251,19 +272,29 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       const res = await fetch("/api/host/standing-assignments/release-host", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ programSlug, dayOfWeek, userId }),
+        body:    JSON.stringify({ programSlug, dayOfWeek, userId, hubSlug }),
       });
       if (!res.ok) throw new Error("release failed");
-      const data = await res.json().catch(() => ({ released: 0 }));
+      const data = await res.json().catch(() => ({ released: 0, removedRules: 0 }));
       setEndingBundle(null);
-      if (data.released > 0) {
-        showToast(`Released · ${data.released} upcoming session${data.released === 1 ? "" : "s"} freed`);
-        onScheduleStale?.();
+      const removed = data.removedRules ?? 0;
+      const freed   = data.released ?? 0;
+      if (removed > 0 || freed > 0) {
+        const parts: string[] = [];
+        if (removed > 0) parts.push(`${removed} rotation rule${removed === 1 ? "" : "s"} removed`);
+        if (freed > 0)   parts.push(`${freed} upcoming session${freed === 1 ? "" : "s"} freed`);
+        showToast(`Done · ${parts.join(" · ")}`);
       } else {
-        showToast("No upcoming sessions found for this host");
+        showToast("Nothing to remove — this host has no rules in this rotation");
       }
+      // Refresh both branches: in the 0/0 case the grid is probably stale
+      // (a concurrent coordinator may have removed the host already), so a
+      // re-fetch is just as important as on success. Code-review note —
+      // session 130 reviewer caught this in finding #2.
+      await loadRotations();
+      fullRefresh();
     } catch {
-      setError("Could not release sessions. Please try again.");
+      setError("Could not remove this host from the rotation. Please try again.");
     } finally {
       setReleasing(false);
     }
@@ -288,7 +319,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       setEndingBundle(null);
       setEndOnInput("");
       showToast(`End date set · rotation stops after ${new Date(endOnInput + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`);
-      onScheduleStale?.();
+      fullRefresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not set end date. Please try again.");
     } finally {
@@ -310,10 +341,20 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       const data = await res.json();
       const aCount = data.deletedAssignments ?? 0;
       const rCount = data.deletedRotations   ?? 0;
-      showToast(`Reset · ${aCount} session${aCount === 1 ? "" : "s"} and ${rCount} rotation${rCount === 1 ? "" : "s"} removed`);
+      // Toast names the program + scope explicitly so the coordinator can
+      // verify the action did what they expected. Session 130 defensive UX:
+      // Maria's beta test reported a "reset shifted my day" symptom that
+      // could plausibly have been a coexisting rotation on another day; an
+      // unambiguous toast makes that case self-diagnosing on the next test.
+      const program = programs.find((p) => p.slug === slug);
+      const programName = program?.name ?? slug;
+      const teamLabel = hubSlug && hubSlug !== "host-team" ? ` (${hubSlug})` : "";
+      showToast(
+        `Reset · ${programName}${teamLabel} · ${rCount} rotation rule${rCount === 1 ? "" : "s"} and ${aCount} upcoming session${aCount === 1 ? "" : "s"} removed`
+      );
       setProgResetConfirm(null);
       await loadRotations();
-      onScheduleStale?.();
+      fullRefresh();
     } catch {
       setError("Could not reset rotations. Please try again.");
     } finally {
@@ -350,15 +391,23 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       const data = await res.json();
       const aCount = data.deletedAssignments ?? 0;
       const rCount = data.deletedRotations   ?? 0;
+      // Session 130 defensive UX: name the hub explicitly so the
+      // coordinator can verify scope. Maria's beta test reported a "full
+      // reset didn't change anything" symptom; an unambiguous toast makes
+      // any "wrong hub view" case self-diagnosing on the next test.
+      const teamLabel = hubSlug ?? "host-team";
       const summary = mode === "soft"
-        ? `Cleared · ${aCount} upcoming host assignment${aCount === 1 ? "" : "s"} removed`
-        : `Reset · ${aCount} assignment${aCount === 1 ? "" : "s"} and ${rCount} rotation${rCount === 1 ? "" : "s"} removed`;
+        ? `Cleared upcoming schedule in ${teamLabel} · ${aCount} host assignment${aCount === 1 ? "" : "s"} removed`
+        : `Reset ${teamLabel} · ${aCount} assignment${aCount === 1 ? "" : "s"} and ${rCount} rotation rule${rCount === 1 ? "" : "s"} removed`;
       showToast(summary);
       setClearConfirm(null);
       // Refresh both: rotations grid (in case rotations were ended) and
-      // schedule view (host assignments changed).
+      // schedule view (host assignments changed). `fullRefresh` also calls
+      // `router.refresh()` so the parent server component re-fetches —
+      // a stale Your Rotations panel or "Next" link would otherwise hide
+      // the fact that the reset worked.
       await loadRotations();
-      onScheduleStale?.();
+      fullRefresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not clear assignments.");
     } finally {
@@ -500,7 +549,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
         // Conflicts remain — open modal for coordinator decision. Opens
         // already filled by the leave-apply that just ran.
         setPendingApply(bundle);
-        if (filled > 0) onScheduleStale?.();  // refresh anyway since opens were filled
+        if (filled > 0) fullRefresh();  // refresh anyway since opens were filled
       } else if (filled > 0) {
         const monthsSpanned = data.monthsSpanned ?? 1;
         const horizonText = monthsSpanned === 1
@@ -509,7 +558,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
             ? "this month and next"
             : `the next ${monthsSpanned} months`;
         showToast(`Rotation saved · ${filled} session${filled === 1 ? "" : "s"} filled across ${horizonText}`);
-        onScheduleStale?.();
+        fullRefresh();
       } else {
         showToast("Rotation saved · all matching sessions already covered");
       }
@@ -536,12 +585,12 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       setEndingBundle(null);
       if (releaseFuture && data.released > 0) {
         showToast(`Rotation ended · ${data.released} future session${data.released === 1 ? "" : "s"} released`);
-        onScheduleStale?.();
+        fullRefresh();
       } else {
         showToast("Rotation ended");
         // Even when not releasing, the rotation's endsOn changed — schedule's
         // "via rotation" pill / future cron behavior is affected. Refresh to be safe.
-        onScheduleStale?.();
+        fullRefresh();
       }
     } catch {
       setError("Could not end this rotation. Please try again.");
@@ -654,7 +703,13 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
 
                           {isManager && distinctHosts.length > 0 && (
                             <div className="hs-rot__release-panel">
-                              <p className="hs-rot__release-q">Release one person&rsquo;s upcoming dates — rotation stays active</p>
+                              <p className="hs-rot__release-q">Remove one person from this rotation</p>
+                              <p className="hs-rot__release-sub">
+                                Their rotation rule is deleted and their upcoming dates on this
+                                day are freed. The rotation continues for everyone else in the
+                                bundle. For &ldquo;I can&rsquo;t make one specific date,&rdquo; use the
+                                Schedule tab&rsquo;s &ldquo;Ask the team to cover&rdquo; affordance instead.
+                              </p>
                               <div className="hs-rot__release-hosts">
                                 {distinctHosts.map((uid) => (
                                   <div key={uid} className="hs-rot__release-row">
@@ -664,7 +719,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                                       onClick={() => handleReleaseHost(program.slug, d, uid)}
                                       disabled={releasing || saving}
                                     >
-                                      {releasing ? "Releasing…" : "Release their dates"}
+                                      {releasing ? "Removing…" : "Remove from rotation"}
                                     </button>
                                   </div>
                                 ))}
@@ -739,8 +794,11 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                     <div className="hs-rot__prog-danger-confirm">
                       <p className="hs-rot__prog-danger-q">
                         <strong>Reset rotations for {program.name}?</strong><br />
-                        Deletes all rotation rules <em>and</em> removes all upcoming assignments
-                        for this program. The rotation grid becomes empty.
+                        Deletes <em>every</em> rotation rule for this program in
+                        {" "}<strong>{hubSlug ?? "host-team"}</strong>, and removes
+                        every upcoming session this program has in this team.
+                        Other teams scheduling this program are unaffected.
+                        Past sessions stay in the historical record.
                       </p>
                       <div className="hs-rot__prog-danger-confirm-actions">
                         <button
@@ -775,7 +833,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
           year={year}
           month={month}
           onClose={() => setPendingApply(null)}
-          onApplied={() => onScheduleStale?.()}
+          onApplied={() => fullRefresh()}
         />
       )}
 

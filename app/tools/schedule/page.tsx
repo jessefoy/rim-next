@@ -35,7 +35,7 @@ type PgProgram = ScheduleProgram;
 export default async function ScheduleToolPage({
   searchParams,
 }: {
-  searchParams: Promise<{ hub?: string }>;
+  searchParams: Promise<{ hub?: string; month?: string }>;
 }) {
   const session = await auth();
   if (!session) redirect("/login");
@@ -47,7 +47,11 @@ export default async function ScheduleToolPage({
   // host-team when ?hub= is absent. After Slice 1, peer-led hubs (Silent
   // Meditation, etc.) can reach this page via `?hub=peer-led-silent-meditation`
   // and see only their hub's programs and rotations.
-  const { hub: hubSlug } = await searchParams;
+  // `?month=YYYY-MM` (session 130) deep-links to a specific month — the
+  // standing-assignment confirmation email and the Your Rotations panel's
+  // "Next" affordance both pass it so hosts land on the actual month
+  // containing their next session.
+  const { hub: hubSlug, month: monthParam } = await searchParams;
   const activeHubSlug = hubSlug || DEFAULT_HOSTING_HUB_SLUG;
 
   // isManager = HOST_MANAGER/ADMIN OR a coordinator of *this* hub. Routed by
@@ -83,8 +87,24 @@ export default async function ScheduleToolPage({
     .sort((a, b) => a.displayName.localeCompare(b.displayName));
 
   const now = new Date();
-  const year  = now.getFullYear();
-  const month = now.getMonth();
+  // `?month=YYYY-MM` (session 130) lets emails and in-app links deep-link
+  // to a specific month. Validation is permissive — bad input falls back
+  // to the current month rather than 404ing.
+  const parsedMonth = (() => {
+    if (!monthParam) return null;
+    const match = /^(\d{4})-(\d{2})$/.exec(monthParam);
+    if (!match) return null;
+    const y = parseInt(match[1], 10);
+    const m = parseInt(match[2], 10);
+    if (!Number.isFinite(y) || !Number.isFinite(m)) return null;
+    if (m < 1 || m > 12) return null;
+    // Sanity clamp — within a decade of "now" in either direction.
+    const nowY = now.getFullYear();
+    if (y < nowY - 10 || y > nowY + 10) return null;
+    return { year: y, month: m - 1 }; // JS month is 0-indexed
+  })();
+  const year  = parsedMonth?.year  ?? now.getFullYear();
+  const month = parsedMonth?.month ?? now.getMonth();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const startOfMonth = new Date(year, month, 1);
   const endOfMonth   = new Date(year, month + 1, 0, 23, 59, 59, 999);

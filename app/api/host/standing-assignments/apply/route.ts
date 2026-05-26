@@ -133,7 +133,7 @@ export async function POST(request: Request) {
   let totalFilled   = 0;
   let totalReplaced = 0;
   let totalKept     = 0;
-  type SessSum = { programName: string; dateLabel: string; userEmail: string; firstName: string | null; hubSlug: string };
+  type SessSum = { programName: string; dateLabel: string; userEmail: string; firstName: string | null; hubSlug: string; dateStr: string };
   const byUser          = new Map<string, SessSum[]>();
   const byDisplacedUser = new Map<string, SessSum[]>();
 
@@ -167,6 +167,13 @@ export async function POST(request: Request) {
     }
     return out;
   }
+  // First-session-month per group (session 130): deep-links the Schedule
+  // CTA to the month of the earliest session so the recipient lands on
+  // their actual rows, not the current month's view.
+  function earliestMonth(sessions: SessSum[]): string | undefined {
+    const earliest = sessions.map((s) => s.dateStr).filter(Boolean).sort()[0];
+    return earliest ? earliest.slice(0, 7) : undefined;
+  }
   after(async () => {
     for (const [, sessions] of byUser) {
       if (sessions.length === 0) continue;
@@ -177,6 +184,7 @@ export async function POST(request: Request) {
           firstName,
           sessions: group.map((s) => ({ programName: s.programName, dateLabel: s.dateLabel })),
           hubSlug: perHubSlug,
+          firstSessionMonth: earliestMonth(group),
         });
       }
     }

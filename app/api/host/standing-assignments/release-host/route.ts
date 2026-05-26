@@ -1,18 +1,32 @@
 /**
  * POST /api/host/standing-assignments/release-host
  *
- * Releases one person's future HostAssignment rows within a (programSlug,
- * dayOfWeek) rotation bundle — without ending or touching the rotation rules.
- * The rotation stays active; the freed slots return to the unclaimed pool.
+ * Removes one person from a (programSlug, dayOfWeek) rotation bundle in a
+ * single hub. Deletes:
+ *   - the user's StandingAssignment row(s) in the bundle (one per occurrence
+ *     they held: FIRST / SECOND / ALL / etc.); and
+ *   - every future HostAssignment row that pointed at one of those deleted
+ *     rules and was held by this user.
  *
- * Use case: a host can no longer cover their rotation dates. The coordinator
- * releases their upcoming sessions so the slots can be reassigned, then
- * optionally edits the rotation to replace them.
+ * Other people in the same bundle (e.g. an alternate-pattern co-host) keep
+ * their StandingAssignment rows AND their future HostAssignments. The rotation
+ * stays active for them.
+ *
+ * Session 130 behavior change: previously this only deleted HostAssignment
+ * rows and left the StandingAssignment row intact, so the next apply-cron run
+ * (8 AM UTC daily) would re-create the HostAssignments from the still-active
+ * rule — the "release" silently undid itself. Maria's beta test surfaced this
+ * because the email said the rotation had ended but the cron kept her on it.
+ *
+ * Coordinators who want "I can't make THIS date but stay in the rotation"
+ * should use the per-session sub-request affordance on the Schedule tab,
+ * not this route. That preserves the rotation rule and only frees the one
+ * date for someone else to cover.
  *
  * Body:
- *   { programSlug: string, dayOfWeek: string, userId: string }
+ *   { programSlug: string, dayOfWeek: string, userId: string, hubSlug?: string }
  *
- * Returns: { released: number }
+ * Returns: { released: number, removedRules: number }
  *
  * Access: HOST_MANAGER / ADMIN / hub coordinator (same as end-bundle).
  */
@@ -69,37 +83,38 @@ export async function POST(request: Request) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Find all StandingAssignment IDs in this (program, day, hub) bundle.
-  // Hub-scoped (session 129) so an AV release doesn't terminate the
-  // host-team rotation on the same program/day.
-  const rotations = await db.standingAssignment.findMany({
-    where: { programSlug, dayOfWeek, hubSlug: targetHubSlug },
+  // Find this user's StandingAssignment rows in the (program, day, hub)
+  // bundle. Hub-scoped (session 129) so an AV release doesn't terminate
+  // the host-team rotation on the same program/day. Person-scoped so an
+  // alternate-pattern co-host stays on the rotation.
+  const userRotations = await db.standingAssignment.findMany({
+    where: { programSlug, dayOfWeek, hubSlug: targetHubSlug, userId },
     select: { id: true },
   });
 
-  if (rotations.length === 0) {
-    return Response.json({ released: 0 });
+  if (userRotations.length === 0) {
+    return Response.json({ released: 0, removedRules: 0 });
   }
 
-  const rotationIds = rotations.map((r) => r.id);
+  const userRotationIds = userRotations.map((r) => r.id);
 
   // CT-anchored today — only future sessions are affected
   const todayCt = new Date(new Date().toLocaleString("en-US", { timeZone: TZ }));
   todayCt.setHours(0, 0, 0, 0);
 
-  // Find the future assignments for this specific host in this bundle
+  // Find the future assignments tied to THIS user's rules in the bundle.
+  // We don't need to filter by userId here (the rule's userId IS this user
+  // by query construction), but doing so is defense-in-depth against any
+  // future code that lets the cron-applied row carry a different userId
+  // than the source rule.
   const toRelease = await db.hostAssignment.findMany({
     where: {
-      standingAssignmentId: { in: rotationIds },
+      standingAssignmentId: { in: userRotationIds },
       userId,
       sessionDate: { gte: todayCt },
     },
     select: { id: true, programSlug: true, sessionDate: true },
   });
-
-  if (toRelease.length === 0) {
-    return Response.json({ released: 0 });
-  }
 
   const assignmentIds = toRelease.map((a) => a.id);
 
@@ -119,18 +134,33 @@ export async function POST(request: Request) {
       : "(no date)",
   }));
 
-  // Cancel open sub requests on these assignments first (FK: no cascade)
-  await db.subRequest.updateMany({
-    where: { assignmentId: { in: assignmentIds }, status: "OPEN" },
-    data:  { status: "CANCELLED" },
+  // Atomic cleanup: drop the user's HostAssignments in the bundle AND the
+  // StandingAssignment rules that backed them. Order matters — sub-requests
+  // → assignments → rules — because of FK chains.
+  await db.$transaction(async (tx) => {
+    if (assignmentIds.length > 0) {
+      // Cancel open sub requests on these assignments first (no FK cascade)
+      await tx.subRequest.updateMany({
+        where: { assignmentId: { in: assignmentIds }, status: "OPEN" },
+        data:  { status: "CANCELLED" },
+      });
+      await tx.hostAssignment.deleteMany({
+        where: { id: { in: assignmentIds } },
+      });
+    }
+    // Delete the user's rules in the bundle. Any past HostAssignments
+    // remain in the historical record — `standingAssignmentId` FK is
+    // SetNull on delete, so they lose the link but stay.
+    await tx.standingAssignment.deleteMany({
+      where: { id: { in: userRotationIds } },
+    });
   });
 
-  // Delete the assignments — slots return to the unclaimed pool
-  await db.hostAssignment.deleteMany({
-    where: { id: { in: assignmentIds } },
-  });
-
-  // Email the displaced host
+  // Email the released host. By here at least one of (rule removed,
+  // assignment released) is true — the early return above caught the
+  // "no rule" case. Session 130: send even when sessions is empty (rule
+  // existed but cron hadn't applied yet) so the user isn't silently
+  // dropped. The email builder renders a no-list variant in that case.
   const host = await db.user.findUnique({
     where: { id: userId },
     select: { firstName: true, preferredName: true, email: true },
@@ -139,13 +169,17 @@ export async function POST(request: Request) {
   if (host) {
     after(async () => {
       await sendStandingAssignmentReleasedEmail({
-        to:        host.email,
-        firstName: host.preferredName || host.firstName || null,
+        to:          host.email,
+        firstName:   host.preferredName || host.firstName || null,
+        programName,
         sessions,
-        hubSlug:   targetHubSlug,
+        hubSlug:     targetHubSlug,
       });
     });
   }
 
-  return Response.json({ released: toRelease.length });
+  return Response.json({
+    released:     toRelease.length,
+    removedRules: userRotations.length,
+  });
 }

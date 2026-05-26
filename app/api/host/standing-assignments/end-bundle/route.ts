@@ -38,7 +38,7 @@ import { db } from "@/lib/db";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
 import { isHubCoordinator } from "@/lib/hubAuth";
 import { getProgramHubSlug } from "@/lib/programHub";
-import { sendStandingAssignmentReleasedEmail } from "@/lib/email";
+import { sendStandingAssignmentEndedEmail } from "@/lib/email";
 
 const TZ = "America/Chicago";
 
@@ -212,7 +212,7 @@ export async function POST(request: Request) {
       for (const u of users) {
         const sessions = byUser.get(u.id);
         if (!sessions || sessions.length === 0) continue;
-        await sendStandingAssignmentReleasedEmail({
+        await sendStandingAssignmentEndedEmail({
           to:        u.email,
           firstName: u.preferredName || u.firstName || null,
           sessions,

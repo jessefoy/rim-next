@@ -171,13 +171,18 @@ export type ResolutionMode =
 /** One row in the apply summary's per-user list. `hubSlug` (session 129)
  *  carries the source rotation's hub so the notification email link points
  *  at the right scheduler view — an AV rotation email lands the recipient
- *  at /tools/schedule?hub=audio-visual rather than host-team. */
+ *  at /tools/schedule?hub=audio-visual rather than host-team. `dateStr`
+ *  (session 130) is the session's calendar date in CT (`YYYY-MM-DD`); the
+ *  email builder uses the earliest of these to deep-link the Schedule URL
+ *  to the right month, so the recipient lands on the actual rows they're
+ *  hosting instead of the current month's view. */
 export interface ApplyResultSession {
   programName: string;
   dateLabel:   string;
   userEmail:   string;
   firstName:   string | null;
   hubSlug:     string;
+  dateStr:     string;
 }
 
 export interface ApplyResult {
@@ -635,6 +640,7 @@ export async function applyStandingAssignments(
       programName: c.programName, dateLabel: c.dateLabel,
       userEmail:   c.userEmail,   firstName: c.firstName,
       hubSlug:     c.hubSlug,
+      dateStr:     c.dateStr,
     });
   };
   for (const c of toCreate) pushUser(c);
@@ -654,6 +660,7 @@ export async function applyStandingAssignments(
       userEmail:   u.email,
       firstName:   u.preferredName || u.firstName || null,
       hubSlug:     r.cand.hubSlug,
+      dateStr:     r.cand.dateStr,
     });
   }
 

@@ -22,7 +22,7 @@ import { after } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
-import { sendStandingAssignmentReleasedEmail } from "@/lib/email";
+import { sendStandingAssignmentEndedEmail } from "@/lib/email";
 import { isHubCoordinator } from "@/lib/hubAuth";
 import { getProgramHubSlug } from "@/lib/programHub";
 
@@ -141,7 +141,12 @@ export async function DELETE(
     if (releasedSessions.length > 0) {
       const u = rotation.user;
       after(async () => {
-        await sendStandingAssignmentReleasedEmail({
+        // This route ends a single rotation rule by setting endsOn=today
+        // and deletes the user's future HostAssignments. The cron honors
+        // endsOn and won't re-apply — "rotation has ended" is accurate
+        // here. Distinct from release-host's "remove one person from a
+        // still-active multi-person rotation" semantic. Session 130.
+        await sendStandingAssignmentEndedEmail({
           to:        u.email,
           firstName: u.preferredName || u.firstName || null,
           sessions:  releasedSessions,

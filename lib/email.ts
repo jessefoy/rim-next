@@ -795,6 +795,15 @@ export interface StandingAssignmentScheduledEmailData {
   sessions: Array<{ programName: string; dateLabel: string }>;
   /** Hub the rotation belongs to. Omit for cross-hub apply-all calls. */
   hubSlug?: string;
+  /** First scheduled session's month in `YYYY-MM` form (CT). When supplied,
+   *  the email's "Schedule" link deep-links to that month so the recipient
+   *  lands on the actual rows they're hosting rather than the current month,
+   *  which usually has no rotation-derived rows for them yet. Surfaced to
+   *  fix Maria's beta-test report (session 130): a host with a rotation
+   *  starting next month clicks the confirmation email link and sees no
+   *  "mine" rows in the current month, so the sub-request affordance never
+   *  appears. */
+  firstSessionMonth?: string;
 }
 
 /**
@@ -817,12 +826,21 @@ export async function sendStandingAssignmentScheduledEmail(
     count === 1
       ? `You're scheduled to host ${data.sessions[0].programName}`
       : `You're scheduled to host ${count} sessions this month`;
-  const scheduleUrl = hubScopedUrl("/tools/schedule", data.hubSlug);
+  // Deep-link to the month of the FIRST scheduled session when provided.
+  // The Schedule page defaults to the current month, where rotation-derived
+  // rows usually don't exist yet (apply skips past dates); deep-linking
+  // makes the "mine" rows visible immediately so the sub-request affordance
+  // is one click away.
+  const schedulePath = data.firstSessionMonth
+    ? `/tools/schedule?month=${data.firstSessionMonth}`
+    : "/tools/schedule";
+  const scheduleUrl = hubScopedUrl(schedulePath, data.hubSlug);
   const html = `
 <p>Hi ${data.firstName ?? "there"},</p>
 <p>Your standing rotation has been applied. You're scheduled to host the following ${count === 1 ? "session" : "sessions"}:</p>
 <ul style="font-size:16px;line-height:1.7;padding-left:20px;">${listHtml}</ul>
-<p>If you need coverage for any of these, <a href="${scheduleUrl}" style="color:#135274;">post a sub-request</a> from the Schedule.</p>
+<p>${emailButtonHtml("Open the Schedule", scheduleUrl)}</p>
+<p>If you can't make any of these dates, open the Schedule and use <strong>Ask the team to cover</strong> on that session's row.</p>
 <p style="color:#666;font-size:14px;">This is an automated message from your standing rotation.</p>`;
 
   try {
@@ -866,11 +884,85 @@ export async function sendStandingAssignmentReplacedEmail(
 }
 
 /**
- * Sent to a host when a coordinator ENDS their rotation with the "release
- * future assignments" option. Tells them which upcoming sessions were cleared
- * from their schedule so they're not surprised.
+ * Sent to a host when a coordinator REMOVES them from a rotation via the
+ * "Remove from rotation" action (release-host). The user's rotation rule in
+ * the bundle is deleted AND their future HostAssignment rows in the bundle
+ * are freed. Other people in the same bundle (e.g. an alternate-pattern
+ * co-host) remain in the rotation — only the released user is removed.
+ *
+ * Subject + body match the actual operation (session 130 fix): previously
+ * this builder claimed "your standing rotation has been ended," which was
+ * misleading on two counts — the bundle's rotation often continued for other
+ * people, AND the cron would re-apply the released user the next morning
+ * because the StandingAssignment row was untouched. Both issues are closed by
+ * session 130's behavior change in release-host plus this rewrite.
  */
+export interface StandingAssignmentReleasedEmailData {
+  to: string;
+  firstName: string | null;
+  /** The program the user was removed from. Required so the subject/body can
+   *  speak in program-specific terms even when no session dates are listed
+   *  (the rule existed but the cron hadn't applied any HostAssignments yet). */
+  programName: string;
+  /** Future-session dates being freed up. May be empty when the user had a
+   *  rotation rule but no materialized HostAssignment rows yet — in that case
+   *  we send a shorter no-list variant so the user still hears about the
+   *  removal. */
+  sessions: Array<{ programName: string; dateLabel: string }>;
+  /** Hub the rotation belonged to. */
+  hubSlug?: string;
+}
+
 export async function sendStandingAssignmentReleasedEmail(
+  data: StandingAssignmentReleasedEmailData
+): Promise<void> {
+  const count = data.sessions.length;
+  const programName = data.programName;
+  const subject =
+    count === 0
+      ? `You've been removed from the ${programName} rotation`
+      : count === 1
+        ? `You've been removed from the ${programName} rotation`
+        : `You've been removed from the ${programName} rotation (${count} dates freed)`;
+  const scheduleUrl = hubScopedUrl("/tools/schedule", data.hubSlug);
+  // Two body variants — with or without a list of dates. The no-list case is
+  // session 130's fix for "rule exists, no future HostAssignments yet" so the
+  // user still hears about the removal instead of being silently dropped.
+  const listHtml = count === 0
+    ? ""
+    : `<ul style="font-size:16px;line-height:1.7;padding-left:20px;">${data.sessions
+        .map((s) => `<li style="margin-bottom:6px;">${s.programName} &mdash; ${s.dateLabel}</li>`)
+        .join("")}</ul>`;
+  const datesIntro = count === 0
+    ? `<p>You won't be scheduled for upcoming sessions of this program through this rotation.</p>`
+    : `<p>The following upcoming ${count === 1 ? "date is" : "dates are"} no longer assigned to you:</p>
+${listHtml}
+<p>These slots are now open for other hosts to claim.</p>`;
+  const html = `
+<p>Hi ${data.firstName ?? "there"},</p>
+<p>A coordinator has removed you from the standing rotation for <strong>${programName}</strong>.</p>
+${datesIntro}
+<p>If this was unexpected or you'd like to talk about it, please reach out to your coordinator.</p>
+<p style="color:#666;font-size:14px;"><a href="${scheduleUrl}" style="color:#135274;">View the Schedule</a> &middot; This is an automated message from your standing host rotation.</p>`;
+
+  try {
+    await resend.emails.send({ from: FROM, to: data.to, subject, html });
+  } catch (e) {
+    console.error("[email] sendStandingAssignmentReleasedEmail failed:", e);
+  }
+}
+
+/**
+ * Sent to every host in a rotation bundle when a coordinator ENDS the entire
+ * rotation rule (end-bundle's "End this rotation" with releaseFuture=true).
+ * Distinct from `sendStandingAssignmentReleasedEmail`, which only removes one
+ * person from a still-active rotation.
+ *
+ * Subject + body claim the rotation has ended because — for this code path —
+ * it actually has: the StandingAssignment record is deleted, so the cron has
+ * nothing left to re-apply.
+ */
+export async function sendStandingAssignmentEndedEmail(
   data: StandingAssignmentScheduledEmailData
 ): Promise<void> {
   if (data.sessions.length === 0) return;
@@ -892,7 +984,7 @@ export async function sendStandingAssignmentReleasedEmail(
   try {
     await resend.emails.send({ from: FROM, to: data.to, subject, html });
   } catch (e) {
-    console.error("[email] sendStandingAssignmentReleasedEmail failed:", e);
+    console.error("[email] sendStandingAssignmentEndedEmail failed:", e);
   }
 }
 

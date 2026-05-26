@@ -729,6 +729,14 @@ export default function HubScheduleClient({
     const y = month === 11 ? year + 1 : year;
     setYear(y); setMonth(m); loadMonth(y, m);
   }
+  /** Jump to an arbitrary year+month (CT). Used by the Your Rotations
+   *  panel's "Next" affordance so a host can land directly on the month
+   *  containing their next rotation-derived session — session 130 fix
+   *  for the discoverability gap Maria's beta test surfaced. */
+  function jumpToMonth(targetYear: number, targetMonth: number) {
+    if (targetYear === year && targetMonth === month) return;
+    setYear(targetYear); setMonth(targetMonth); loadMonth(targetYear, targetMonth);
+  }
   function goToCurrentMonth() {
     const t = new Date();
     setYear(t.getFullYear()); setMonth(t.getMonth());
@@ -1095,18 +1103,61 @@ export default function HubScheduleClient({
                 ? new Date(g.endsOn).toLocaleDateString("en-US", { month: "short", year: "numeric" })
                 : null;
               const meta      = [patLabel, endsLabel ? `until ${endsLabel}` : null].filter(Boolean).join(" · ");
-              const nextLabel = nextSessionBySlug[slug] ? formatNextSession(nextSessionBySlug[slug]) : null;
+              const nextIso   = nextSessionBySlug[slug] ?? null;
+              const nextLabel = nextIso ? formatNextSession(nextIso) : null;
+              // Compute the target month (in CT) so the "Next" button can
+              // jump the calendar there. Session 130 — closes the
+              // discoverability gap where Maria couldn't find the
+              // sub-request affordance from the current month because her
+              // rotation rows were all in a future month.
+              //
+              // Use `Intl.DateTimeFormat(..., { timeZone }).formatToParts()`
+              // rather than round-tripping a locale-formatted string through
+              // `new Date()`. Locale-string parsing is not in the ECMA spec
+              // and Safari has historically failed on common shapes —
+              // reviewer flagged in finding #3. This pattern is engine-
+              // agnostic and gives integers directly.
+              const nextTarget = (() => {
+                if (!nextIso) return null;
+                const d = new Date(nextIso);
+                if (Number.isNaN(d.getTime())) return null;
+                const parts = new Intl.DateTimeFormat("en-US", {
+                  timeZone: TZ,
+                  year:  "numeric",
+                  month: "numeric",
+                }).formatToParts(d);
+                const y = parseInt(parts.find((p) => p.type === "year")?.value ?? "", 10);
+                const m = parseInt(parts.find((p) => p.type === "month")?.value ?? "", 10);
+                if (!Number.isFinite(y) || !Number.isFinite(m)) return null;
+                return { year: y, month: m - 1 }; // JS month is 0-indexed
+              })();
+              const isAlreadyHere =
+                nextTarget !== null &&
+                nextTarget.year === year &&
+                nextTarget.month === month;
               return (
                 <div key={slug} className="hs-myrot__card">
                   <div className="hs-myrot__left">
                     <p className="hs-myrot__prog">{g.programName}</p>
                     <p className="hs-myrot__meta">{meta}</p>
                   </div>
-                  {nextLabel && (
-                    <div className="hs-myrot__right">
-                      <p className="hs-myrot__next-label">Next</p>
-                      <p className="hs-myrot__next-date">{nextLabel}</p>
-                    </div>
+                  {nextLabel && nextTarget && (
+                    isAlreadyHere ? (
+                      <div className="hs-myrot__right">
+                        <p className="hs-myrot__next-label">Next</p>
+                        <p className="hs-myrot__next-date">{nextLabel}</p>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        className="hs-myrot__right hs-myrot__right--jump"
+                        onClick={() => jumpToMonth(nextTarget.year, nextTarget.month)}
+                        aria-label={`Jump to ${nextLabel}`}
+                      >
+                        <p className="hs-myrot__next-label">Next →</p>
+                        <p className="hs-myrot__next-date">{nextLabel}</p>
+                      </button>
+                    )
                   )}
                 </div>
               );
