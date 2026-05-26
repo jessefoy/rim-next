@@ -20,6 +20,8 @@ import { updateManualHostScheduleV4 } from "./update-manual-host-schedule-v4.mjs
 import { updateManualHostRotations } from "./update-manual-host-rotations.mjs";
 import { updateManualHostRotationsV3 } from "./update-manual-host-rotations-v3.mjs";
 import { updateManualHostRotationsV4 } from "./update-manual-host-rotations-v4.mjs";
+import { updateManualHostRotationsV5 } from "./update-manual-host-rotations-v5.mjs";
+import { updateManualHostScheduleV6 } from "./update-manual-host-schedule-v6.mjs";
 import { updateManualHostSessionRoom } from "./update-manual-host-session-room.mjs";
 import { updateManualConversations } from "./update-manual-conversations.mjs";
 import { updateManualConversationsV2 } from "./update-manual-conversations-v2.mjs";
@@ -2832,6 +2834,49 @@ async function main() {
     await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_rotations_v4')`);
   } else {
     console.log("  ⏭ Manual host-rotations v4 already applied.");
+  }
+
+  // Manual chapter: host-rotations v5 — session 130 follow-up rewrite.
+  // Covers what Maria's beta test surfaced as gaps: the "End" → "Reset
+  // [Day]" rename throughout (row button, manage panel header, destructive
+  // option label, toast); the "Release their dates" → "Remove from
+  // rotation" rename plus the new semantic (rule deleted, cron can't
+  // re-apply); a new "Hubs as functional roles" framing paragraph so
+  // coordinators working across host-team/peer-led/AV/greeter understand
+  // each hub holds its own rotation pool; explicit Per-day vs Per-program
+  // reset section so coordinators don't accidentally nuke all days; the
+  // new cross-hub staffing view ("View all roles →" link on each program
+  // card); per-session "Ask the team to cover" called out as the right
+  // exit for one-date issues vs. whole-rotation removal.
+  const updateManualHostRotationsV5Flag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_host_rotations_v5'
+  `).catch(() => []);
+
+  if (updateManualHostRotationsV5Flag.length === 0) {
+    await updateManualHostRotationsV5(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_rotations_v5')`);
+  } else {
+    console.log("  ⏭ Manual host-rotations v5 already applied.");
+  }
+
+  // Manual chapter: host-schedule v6 — session 130 follow-up. Three
+  // updates: (1) tool renamed in session 128 from "Host Schedule" to
+  // "Scheduler" — chapter title + "Getting there" section now match;
+  // (2) Your Rotations panel "Next" block is now a clickable button that
+  // jumps the calendar to the month of the user's earliest upcoming
+  // session — new copy makes this discoverable; (3) the standing-
+  // assignment confirmation email now deep-links to that month — new
+  // paragraph in the Emails section explains why the "Open the Schedule"
+  // button lands them on their actual rows, not a blank current month.
+  const updateManualHostScheduleV6Flag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'update_manual_host_schedule_v6'
+  `).catch(() => []);
+
+  if (updateManualHostScheduleV6Flag.length === 0) {
+    await updateManualHostScheduleV6(db);
+    await db.$executeRawUnsafe(`INSERT INTO "_migration_flags" (name) VALUES ('update_manual_host_schedule_v6')`);
+  } else {
+    console.log("  ⏭ Manual host-schedule v6 already applied.");
   }
 
   // Manual chapter: host-session-room. v2 corrects drift between the
