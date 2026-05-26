@@ -72,15 +72,31 @@ export async function PATCH(
   const nextHostingCapability =
     hostingCapability !== undefined ? hostingCapability : existing.hostingCapability;
 
+  // "Uses Scheduler" = has an enabled Scheduler HubAppLink. Authoritative
+  // signal (session 129) for whether revoking hosting capability matters;
+  // decoupled from `hub.hasSchedule` (which is now narrow — "show the
+  // Host Hub home view"). AV and greeter members can still have upcoming
+  // HostAssignments that warrant the destructive-action warning.
+  const schedulerAppLink = await db.hubAppLink.findFirst({
+    where: { hubId: hub.id, toolSlug: "schedule", isEnabled: true },
+    select: { id: true },
+  });
+  const hubUsesScheduler = !!schedulerAppLink;
+
   const willRevokeHosting =
-    hub.hasSchedule &&
+    hubUsesScheduler &&
     (existing.status === "ACTIVE" && existing.hostingCapability) &&
     !(nextStatus === "ACTIVE" && nextHostingCapability);
 
   if (willRevokeHosting && !force) {
+    // Scope the destructive-action lookup to THIS hub (session 129).
+    // A coordinator pausing an AV member's hosting capability should
+    // see their AV assignments, not host-team assignments they have
+    // no authority over.
     const upcoming = await db.hostAssignment.findMany({
       where: {
         userId,
+        hubSlug: hub.slug,
         sessionDate: { gte: new Date() },
       },
       select: {
@@ -133,10 +149,12 @@ export async function PATCH(
     data,
   });
 
-  // Optional: release this user's upcoming host assignments back to the pool
+  // Optional: release this user's upcoming host assignments back to the pool.
+  // Hub-scoped (session 129) so an AV coordinator pausing an AV member
+  // doesn't accidentally release that member's host-team assignments.
   if (willRevokeHosting && force && releaseAssignments) {
     await db.hostAssignment.updateMany({
-      where: { userId, sessionDate: { gte: new Date() } },
+      where: { userId, hubSlug: hub.slug, sessionDate: { gte: new Date() } },
       data: { userId: null },
     });
   }

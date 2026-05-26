@@ -37,11 +37,23 @@ export default async function EditProgramToolPage({
     // chooses which hub hosts this program's live sessions; the dropdown
     // shows every active hub so the field is discoverable as new hubs
     // come online (Silent Meditation, Recovery Dharma, etc.).
-    // `hasSchedule` is surfaced so the Auxiliary coverage section can
-    // filter to hubs that actually use the Scheduler.
+    //
+    // The Auxiliary coverage section filters by `usesScheduler` — true
+    // when the hub has an enabled HubAppLink with toolSlug = "schedule".
+    // That's the authoritative source of "this hub uses the Scheduler"
+    // (a coordinator added the link to their sidebar). Slot it as a
+    // derived boolean below the findMany so the editor can filter.
     db.hub.findMany({
       where: { status: "ACTIVE" },
-      select: { slug: true, name: true, hasSchedule: true },
+      select: {
+        slug: true,
+        name: true,
+        appLinks: {
+          where: { toolSlug: "schedule", isEnabled: true },
+          select: { id: true },
+          take: 1,
+        },
+      },
       orderBy: { name: "asc" },
     }),
     // Auxiliary-coverage rows for this program (session 129). Empty array
@@ -146,7 +158,11 @@ export default async function EditProgramToolPage({
           initialData={initialData}
           isEditing={true}
           categories={categories.map((c) => ({ id: c.id, slug: c.slug, name: c.name }))}
-          hubs={hubs}
+          hubs={hubs.map((h) => ({
+            slug: h.slug,
+            name: h.name,
+            usesScheduler: h.appLinks.length > 0,
+          }))}
           futureHostAssignmentCount={futureHostAssignmentCount}
         />
       </div>

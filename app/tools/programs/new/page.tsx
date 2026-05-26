@@ -20,7 +20,15 @@ export default async function NewProgramToolPage() {
     db.programCategory.findMany({ orderBy: { sortOrder: "asc" } }),
     db.hub.findMany({
       where: { status: "ACTIVE" },
-      select: { slug: true, name: true, hasSchedule: true },
+      select: {
+        slug: true,
+        name: true,
+        appLinks: {
+          where: { toolSlug: "schedule", isEnabled: true },
+          select: { id: true },
+          take: 1,
+        },
+      },
       orderBy: { name: "asc" },
     }),
   ]);
@@ -35,7 +43,11 @@ export default async function NewProgramToolPage() {
           basePath="/tools/programs"
           isEditing={false}
           categories={categories.map((c) => ({ id: c.id, slug: c.slug, name: c.name }))}
-          hubs={hubs}
+          hubs={hubs.map((h) => ({
+            slug: h.slug,
+            name: h.name,
+            usesScheduler: h.appLinks.length > 0,
+          }))}
         />
       </div>
     </div>

@@ -36,6 +36,16 @@ export default async function HubMembersPage({
     orderBy: [{ isCoordinator: "desc" }, { joinedAt: "asc" }],
   });
 
+  // "Uses the Scheduler" = has an enabled HubAppLink with toolSlug schedule.
+  // Authoritative signal (session 129) for whether the Members tab should
+  // surface hosting-capability affordances. Decoupled from `hub.hasSchedule`
+  // which is now narrow ("show the Host Hub home view").
+  const schedulerAppLink = await db.hubAppLink.findFirst({
+    where: { hubId: hub.id, toolSlug: "schedule", isEnabled: true },
+    select: { id: true },
+  });
+  const usesScheduler = !!schedulerAppLink;
+
   const serialized = members.map((m) => ({
     id:            m.id,
     userId:        m.userId,
@@ -62,7 +72,7 @@ export default async function HubMembersPage({
   return (
     <HubMembersClient
       hubSlug={slug}
-      hasSchedule={hub.hasSchedule}
+      hasSchedule={usesScheduler}
       members={serialized}
       isCoordinator={isCoordinator}
       isAdmin={isAdmin}

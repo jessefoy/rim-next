@@ -3677,13 +3677,20 @@ async function main() {
     // 9. Set appliesToFormats and allowsMultipleAssignments for the new
     //    in-person hubs if they exist. Idempotent — only updates when the
     //    hub is present. Safe to run before Jesse creates them too (no-op).
+    //
+    //    NOTE: do NOT set `hasSchedule: true` here. That flag carries a
+    //    second meaning we don't want for AV / greeter — it routes the
+    //    hub's Home view to `HostHubHomeClient` (host-team-specific,
+    //    hardcoded "Our offerings this month" panel + /admin/manual/host-hub
+    //    link). The session-129-fix migration step (next entry) walks
+    //    this back if we accidentally set it on an earlier run.
     const avUpdate = await db.hub.updateMany({
       where: { slug: "audio-visual" },
-      data: { appliesToFormats: ["in-person", "hybrid"], allowsMultipleAssignments: false, hasSchedule: true },
+      data: { appliesToFormats: ["in-person", "hybrid"], allowsMultipleAssignments: false },
     });
     const greeterUpdate = await db.hub.updateMany({
       where: { slug: "greeter" },
-      data: { appliesToFormats: ["in-person", "hybrid"], allowsMultipleAssignments: true, hasSchedule: true },
+      data: { appliesToFormats: ["in-person", "hybrid"], allowsMultipleAssignments: true },
     });
     if (avUpdate.count > 0) console.log("  ✔ audio-visual hub configured (single-slot, in-person+hybrid).");
     if (greeterUpdate.count > 0) console.log("  ✔ greeter hub configured (multi-claimant, in-person+hybrid).");
@@ -3694,6 +3701,41 @@ async function main() {
     console.log("  ✔ Auxiliary-hub coverage migration complete.");
   } else {
     console.log("  ⏭ Auxiliary-hub coverage already applied.");
+  }
+
+  // ───────────────────────────────────────────────────────────────────────
+  // Session 129 follow-up — undo Hub.hasSchedule on AV + Greeter.
+  //
+  // The original session-129 migration set `hasSchedule: true` on
+  // audio-visual + greeter so the ProgramEditor's Auxiliary coverage
+  // fieldset would list them. But `hasSchedule` carries a second
+  // meaning we didn't account for: it routes the hub's Home view to
+  // `HostHubHomeClient` (host-team-specific UI, hardcoded
+  // /admin/manual/host-hub link, "Our offerings this month" panel
+  // that queries host-team data).
+  //
+  // The fix: separate the two concerns. `hasSchedule` stays narrow
+  // ("host-style hub Home view") for host-team + peer-led-silent-
+  // meditation. The ProgramEditor uses HubAppLink existence
+  // (toolSlug = "schedule") as the authoritative "uses Scheduler"
+  // signal instead.
+  // ───────────────────────────────────────────────────────────────────────
+  const auxHubHasScheduleFixFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'auxiliary_hub_has_schedule_fix_v1'
+  `).catch(() => []);
+
+  if (auxHubHasScheduleFixFlag.length === 0) {
+    console.log("→ Walking back hub.hasSchedule on AV + Greeter (session 129 follow-up)…");
+    const reverted = await db.hub.updateMany({
+      where: { slug: { in: ["audio-visual", "greeter"] }, hasSchedule: true },
+      data: { hasSchedule: false },
+    });
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('auxiliary_hub_has_schedule_fix_v1')`,
+    );
+    console.log(`  ✔ Reverted hasSchedule on ${reverted.count} hub(s).`);
+  } else {
+    console.log("  ⏭ Hub.hasSchedule walk-back already applied.");
   }
 
   await db.$disconnect();

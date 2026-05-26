@@ -118,9 +118,10 @@ interface Props {
   /** Active hubs for the "Hosting & Access" tab dropdown. Server fetches
    *  `db.hub.findMany({ where: { status: "ACTIVE" } })`. host-team is in
    *  the list as a regular option but rendered with the "(default)" label.
-   *  `hasSchedule` flags hubs that use the Scheduler tool — only these can
-   *  appear as auxiliary coverage. */
-  hubs: { slug: string; name: string; hasSchedule?: boolean }[];
+   *  `usesScheduler` is true when the hub has an enabled Scheduler
+   *  HubAppLink — the authoritative signal of "this hub uses the
+   *  Scheduler tool." Only these can appear as auxiliary coverage. */
+  hubs: { slug: string; name: string; usesScheduler?: boolean }[];
   /** Count of HostAssignment rows for this program with `sessionDate >= now`.
    *  Drives the mid-flight change warning when a coordinator switches
    *  `hostingHubSlug`. Zero or unset means no warning. Only meaningful in
@@ -1400,13 +1401,13 @@ export default function ProgramEditor({
             {/* ── Auxiliary coverage (session 129 — AV + Greeter hubs) ── */}
             {(() => {
               // Eligible auxiliary hubs: every active hub with a Scheduler
-              // tool, minus the primary hosting hub for this program (host-
-              // team when hostingHubSlug is blank). A coordinator picks
-              // which other teams provide role coverage for the in-person
-              // component of this offering.
+              // HubAppLink, minus the primary hosting hub for this program
+              // (host-team when hostingHubSlug is blank). A coordinator
+              // picks which other teams provide role coverage for the
+              // in-person component of this offering.
               const primarySlug = hostingHubSlug || DEFAULT_HOSTING_HUB_SLUG;
               const eligible = hubs.filter(
-                (h) => h.hasSchedule && h.slug !== primarySlug,
+                (h) => h.usesScheduler && h.slug !== primarySlug,
               );
               if (eligible.length === 0) return null;
               return (
