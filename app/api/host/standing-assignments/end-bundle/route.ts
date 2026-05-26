@@ -169,30 +169,59 @@ export async function POST(request: Request) {
     }
   }
 
-  // Single transaction: delete out-of-range assignments + set endsOn
+  // Single transaction: delete out-of-range assignments + set endsOn.
+  // SubRequest.assignmentId FK is Restrict — must delete SubClaim +
+  // SubRequest before the parent HostAssignment. Session 130 follow-up
+  // pattern audit (feedback-pattern-audit.md).
   await db.$transaction(async (tx) => {
     if (endsOnParam) {
       // Set-end-date mode: delete pre-generated sessions AFTER the new end date.
       // Sessions up to the end date stay. No email sent.
       const cutoff = new Date(endsOnParam + "T23:59:59Z");
-      await tx.hostAssignment.deleteMany({
+      const outOfRange = await tx.hostAssignment.findMany({
         where: {
           standingAssignmentId: { in: rotationIds },
           sessionDate:          { gt: cutoff },
         },
+        select: { id: true },
       });
+      const outOfRangeIds = outOfRange.map((a) => a.id);
+      if (outOfRangeIds.length > 0) {
+        await tx.subClaim.deleteMany({
+          where: { request: { assignmentId: { in: outOfRangeIds } } },
+        });
+        await tx.subRequest.deleteMany({
+          where: { assignmentId: { in: outOfRangeIds } },
+        });
+        await tx.hostAssignment.deleteMany({
+          where: { id: { in: outOfRangeIds } },
+        });
+      }
       await tx.standingAssignment.updateMany({
         where: { id: { in: rotationIds } },
         data:  { endsOn: new Date(endsOnParam + "T23:59:59Z") },
       });
     } else {
       if (releaseFuture && releasedCount > 0) {
-        await tx.hostAssignment.deleteMany({
+        const futureAssns = await tx.hostAssignment.findMany({
           where: {
             standingAssignmentId: { in: rotationIds },
             sessionDate:          { gte: todayCt },
           },
+          select: { id: true },
         });
+        const futureAssnIds = futureAssns.map((a) => a.id);
+        if (futureAssnIds.length > 0) {
+          await tx.subClaim.deleteMany({
+            where: { request: { assignmentId: { in: futureAssnIds } } },
+          });
+          await tx.subRequest.deleteMany({
+            where: { assignmentId: { in: futureAssnIds } },
+          });
+          await tx.hostAssignment.deleteMany({
+            where: { id: { in: futureAssnIds } },
+          });
+        }
       }
       await tx.standingAssignment.updateMany({
         where: { id: { in: rotationIds } },

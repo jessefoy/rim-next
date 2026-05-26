@@ -122,14 +122,30 @@ export async function DELETE(
       releasedCount = futureRows.length;
     }
 
-    // Cascade-clear in a transaction with the rotation end
+    // Cascade-clear in a transaction with the rotation end.
+    // SubRequest.assignmentId FK is Restrict — must delete SubClaim +
+    // SubRequest before the parent HostAssignment. Session 130 follow-up
+    // pattern audit (feedback-pattern-audit.md).
     await db.$transaction(async (tx) => {
-      await tx.hostAssignment.deleteMany({
+      const futureAssns = await tx.hostAssignment.findMany({
         where: {
           standingAssignmentId: id,
           sessionDate:          { gte: todayCt },
         },
+        select: { id: true },
       });
+      const futureAssnIds = futureAssns.map((a) => a.id);
+      if (futureAssnIds.length > 0) {
+        await tx.subClaim.deleteMany({
+          where: { request: { assignmentId: { in: futureAssnIds } } },
+        });
+        await tx.subRequest.deleteMany({
+          where: { assignmentId: { in: futureAssnIds } },
+        });
+        await tx.hostAssignment.deleteMany({
+          where: { id: { in: futureAssnIds } },
+        });
+      }
       // End the rotation (don't fully delete — keep history of past assignments)
       await tx.standingAssignment.update({
         where: { id },

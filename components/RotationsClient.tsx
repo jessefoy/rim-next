@@ -621,11 +621,14 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       const data = await res.json().catch(() => ({ ended: 0, released: 0 }));
       await loadRotations();
       setEndingBundle(null);
+      const dayLabel = DAY_LABEL[dayOfWeek] ?? dayOfWeek;
       if (releaseFuture && data.released > 0) {
-        showToast(`Rotation ended · ${data.released} future session${data.released === 1 ? "" : "s"} released`);
+        showToast(
+          `Reset ${dayLabel}’s rotation · ${data.released} upcoming ${dayLabel}${data.released === 1 ? "" : "s"} released. Other days untouched.`,
+        );
         fullRefresh();
       } else {
-        showToast("Rotation ended");
+        showToast(`${dayLabel}’s rotation ended. Past sessions stay on the record.`);
         // Even when not releasing, the rotation's endsOn changed — schedule's
         // "via rotation" pill / future cron behavior is affected. Refresh to be safe.
         fullRefresh();
@@ -681,6 +684,15 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                   {program.programFormat === "virtual" ? "Virtual" : "In-person and virtual"}
                 </span>
               )}
+              {/* Cross-hub program staffing view (session 130 follow-up) —
+                  see this program's coverage across every hub (host, AV,
+                  greeter) in one place. */}
+              <a
+                href={`/tools/schedule/program/${encodeURIComponent(program.slug)}`}
+                className="hs-rot__prog-staffing-link"
+              >
+                View all roles →
+              </a>
             </div>
 
             <div className={`hs-rot__grid${editingHere ? " hs-rot__grid--editing" : ""}`}>
@@ -721,7 +733,13 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                         {rows.length > 0 ? (
                           <>
                             <button className="hs-rot__action" onClick={() => { setEndingBundle(null); setEndOnInput(""); startEdit(program.slug, d); }}>Edit</button>
-                            <button className="hs-rot__action hs-rot__action--end" onClick={() => { cancelForm(); setEndOnInput(""); setEndingBundle({ programSlug: program.slug, dayOfWeek: d }); }}>End</button>
+                            <button
+                              className="hs-rot__action hs-rot__action--end"
+                              onClick={() => { cancelForm(); setEndOnInput(""); setEndingBundle({ programSlug: program.slug, dayOfWeek: d }); }}
+                              aria-label={`Reset ${DAY_LABEL[d]}'s rotation`}
+                            >
+                              Reset {DAY_LABEL[d]}
+                            </button>
                           </>
                         ) : (
                           <button className="hs-rot__action" onClick={() => startEdit(program.slug, d)}>Set up</button>
@@ -737,15 +755,16 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                       )];
                       return (
                         <div className="hs-rot__end-confirm">
-                          <p className="hs-rot__end-q">Manage this rotation</p>
+                          <p className="hs-rot__end-q">Manage {DAY_LABEL[d]}&rsquo;s rotation for {program.name}</p>
 
                           {isManager && distinctHosts.length > 0 && (
                             <div className="hs-rot__release-panel">
-                              <p className="hs-rot__release-q">Remove one person from this rotation</p>
+                              <p className="hs-rot__release-q">Remove one person from {DAY_LABEL[d]}&rsquo;s rotation</p>
                               <p className="hs-rot__release-sub">
-                                Their rotation rule is deleted and their upcoming dates on this
-                                day are freed. The rotation continues for everyone else in the
-                                bundle. For &ldquo;I can&rsquo;t make one specific date,&rdquo; use the
+                                Their rule for {DAY_LABEL[d]}s is deleted and their upcoming
+                                {" "}{DAY_LABEL[d]}s are freed. Other days (and other people on
+                                this same day) are untouched. Past sessions stay on the record.
+                                For &ldquo;I can&rsquo;t make one specific date,&rdquo; use the
                                 Schedule tab&rsquo;s &ldquo;Ask the team to cover&rdquo; affordance instead.
                               </p>
                               <div className="hs-rot__release-hosts">
@@ -766,7 +785,10 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                           )}
 
                           <div className="hs-rot__end-date-section">
-                            <p className="hs-rot__end-date-label">End on a specific date — sessions up to that date stay scheduled</p>
+                            <p className="hs-rot__end-date-label">
+                              End {DAY_LABEL[d]}&rsquo;s rotation on a specific date — sessions
+                              up to and including that date stay scheduled
+                            </p>
                             <div className="hs-rot__end-date-row">
                               <input
                                 type="date"
@@ -787,8 +809,13 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                           </div>
 
                           <button className="hs-rot__end-opt hs-rot__end-opt--release" onClick={() => handleEnd(program.slug, d, true)} disabled={saving || releasing || settingEndDate}>
-                            <strong>End this rotation.</strong>
-                            <span>Stops generating new sessions and clears all upcoming dates from hosts&rsquo; schedules. Each affected host is emailed.</span>
+                            <strong>Reset {DAY_LABEL[d]}&rsquo;s rotation.</strong>
+                            <span>
+                              Deletes the {DAY_LABEL[d]} rotation rule and clears upcoming
+                              {" "}{DAY_LABEL[d]}s from hosts&rsquo; schedules. Other days for
+                              {" "}{program.name} are untouched. Past sessions stay on the
+                              record. Each affected host is emailed.
+                            </span>
                           </button>
                           <button className="hs-rot__end-cancel" onClick={() => { setEndingBundle(null); setEndOnInput(""); }} disabled={saving || releasing || settingEndDate}>Cancel</button>
                         </div>
