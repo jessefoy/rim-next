@@ -39,6 +39,12 @@ interface Props {
   welcomeHtml: string;
   welcomeBody: string;
   thisMonth: ThisMonthGlance;
+  /** Slug of this hub's orientation manual chapter. For host-team this is
+   *  "host-hub" (legacy chapter name); for every other hosting hub it
+   *  matches the hub's own slug (peer-led-silent-meditation, etc).
+   *  Resolved server-side in the parent page so this component doesn't
+   *  need to know the mapping. */
+  manualSlug: string;
 }
 
 export default function HostHubHomeClient({
@@ -48,6 +54,7 @@ export default function HostHubHomeClient({
   welcomeHtml,
   welcomeBody,
   thisMonth,
+  manualSlug,
 }: Props) {
   const [editingWelcome, setEditingWelcome] = useState(false);
 
@@ -60,12 +67,12 @@ export default function HostHubHomeClient({
             as the schedule tool's hs-help-icon — discoverable without competing
             for visual weight. */}
         <a
-          href="/admin/manual/host-hub?from=host-team"
+          href={`/admin/manual/${manualSlug}?from=${encodeURIComponent(slug)}`}
           target="_blank"
           rel="noopener noreferrer"
           className="mh-icon"
-          title="About the host hub"
-          aria-label="About the host hub (opens in a new tab)"
+          title={`About ${hubName}`}
+          aria-label={`About ${hubName} (opens in a new tab)`}
           style={{ position: "absolute", top: 0, right: 0 }}
         >
           ?
@@ -107,7 +114,7 @@ export default function HostHubHomeClient({
         )}
       </section>
 
-      <ThisMonthGlancePanel data={thisMonth} />
+      <ThisMonthGlancePanel data={thisMonth} hubSlug={slug} />
     </div>
   );
 }
@@ -116,7 +123,7 @@ export default function HostHubHomeClient({
    Shown to everyone. Sangha-friendly framing: work is collective, members
    not yet on the schedule are described as "available" — not absent. */
 
-function ThisMonthGlancePanel({ data }: { data: ThisMonthGlance }) {
+function ThisMonthGlancePanel({ data, hubSlug }: { data: ThisMonthGlance; hubSlug: string }) {
   if (data.totalSessions === 0 && data.hostingMembers.length === 0 && data.availableMembers.length === 0) {
     return null;
   }
@@ -180,7 +187,14 @@ function ThisMonthGlancePanel({ data }: { data: ThisMonthGlance }) {
       )}
 
       {data.openSessions > 0 && (
-        <Link href="/tools/schedule" className="hh-month__cta">
+        <Link
+          href={
+            hubSlug === "host-team"
+              ? "/tools/schedule"
+              : `/tools/schedule?hub=${encodeURIComponent(hubSlug)}`
+          }
+          className="hh-month__cta"
+        >
           See the schedule →
         </Link>
       )}

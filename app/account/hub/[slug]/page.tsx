@@ -66,6 +66,13 @@ export default async function HubHomePage({
       loadHostHubThisMonth(hub.id),
     ]);
 
+    // Orientation chapter slug: host-team's manual chapter is named "host-hub"
+    // (legacy from before the hub naming convention settled); every other
+    // hosting hub uses its own slug as the chapter slug
+    // (e.g. peer-led-silent-meditation). Resolved here so the client
+    // component doesn't have to know the mapping.
+    const manualSlug = slug === "host-team" ? "host-hub" : slug;
+
     return (
       <HostHubHomeClient
         slug={slug}
@@ -74,6 +81,7 @@ export default async function HubHomePage({
         welcomeHtml={welcomeHtml}
         welcomeBody={isCoordinator ? (typeof hub.welcomeBody === "string" ? hub.welcomeBody : "") : ""}
         thisMonth={thisMonth}
+        manualSlug={manualSlug}
       />
     );
   }

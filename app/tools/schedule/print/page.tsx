@@ -21,9 +21,19 @@ function fmtDateLong(d: Date): string {
   });
 }
 
-export default async function PrintPage() {
+export default async function PrintPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ hub?: string }>;
+}) {
   const session = await auth();
   if (!session) redirect("/login");
+
+  // Preserve the hub context across the Print page so the "Back to schedule"
+  // link returns to the same hub view the user came from. Session 130
+  // follow-up — Jesse flagged that hub-scoped links in non-host hubs were
+  // collapsing to host-team.
+  const { hub: hubSlug } = await searchParams;
 
   // Defaults: today → end of next month (CT)
   const now = new Date(new Date().toLocaleString("en-US", { timeZone: TZ }));
@@ -44,7 +54,7 @@ export default async function PrintPage() {
         </p>
       </div>
 
-      <PrintControls fromStr={fromStr} toStr={toStr} />
+      <PrintControls fromStr={fromStr} toStr={toStr} hubSlug={hubSlug ?? null} />
     </div>
   );
 }

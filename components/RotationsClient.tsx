@@ -688,7 +688,11 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                   see this program's coverage across every hub (host, AV,
                   greeter) in one place. */}
               <a
-                href={`/tools/schedule/program/${encodeURIComponent(program.slug)}`}
+                href={
+                  hubSlug && hubSlug !== "host-team"
+                    ? `/tools/schedule/program/${encodeURIComponent(program.slug)}?hub=${encodeURIComponent(hubSlug)}`
+                    : `/tools/schedule/program/${encodeURIComponent(program.slug)}`
+                }
                 className="hs-rot__prog-staffing-link"
               >
                 View all roles →

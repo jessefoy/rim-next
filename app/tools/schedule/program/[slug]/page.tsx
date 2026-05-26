@@ -71,13 +71,23 @@ function formatPattern(occurrences: string[]): string {
 
 export default async function ProgramStaffingPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ hub?: string }>;
 }) {
   const session = await auth();
   if (!session) redirect("/login");
 
   const { slug } = await params;
+  // Preserve hub context across the staffing page so the "Back to Scheduler"
+  // link returns to the same hub view the user came from. Session 130
+  // follow-up — links in non-host hubs were collapsing to host-team.
+  const { hub: fromHubSlug } = await searchParams;
+  const backUrl =
+    fromHubSlug && fromHubSlug !== "host-team"
+      ? `/tools/schedule?hub=${encodeURIComponent(fromHubSlug)}`
+      : "/tools/schedule";
 
   // Load the program plus the data we need to render every hub's coverage.
   const program = await db.program.findUnique({
@@ -243,7 +253,7 @@ export default async function ProgramStaffingPage({
   return (
     <div className="hub-content hub-content--wide ps-page">
       <header className="ps-page__header">
-        <Link href="/tools/schedule" className="ps-page__back">
+        <Link href={backUrl} className="ps-page__back">
           ← Back to Scheduler
         </Link>
         <h1 className="ps-page__title">Program staffing</h1>
