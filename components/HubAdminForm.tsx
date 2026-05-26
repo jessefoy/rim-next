@@ -36,6 +36,15 @@ interface HubData {
   description: string;
   type: "OPERATIONAL" | "GOVERNANCE" | "COMMUNITY_GROUP";
   status: "ACTIVE" | "ARCHIVED";
+  /** True for hubs that run live sessions (host-team, peer-led-silent-
+   *  meditation). Drives two things: the hub's Home view shows the
+   *  host-team-style "Our offerings this month" panel, AND the hub
+   *  is selectable as a primary hosting team in the Program editor.
+   *  Leave off for AV / greeter / future supporting-role hubs.
+   *  Note: a hub having a Scheduler app link in its sidebar is a
+   *  separate concern — supporting-role hubs use the Scheduler too,
+   *  they just don't run the live session. */
+  hasSchedule: boolean;
   /** Session 128 — when true, an active HostAssignment from this hub
    *  confers Teacher capability (bell-friendly audio + Teacher pill) on
    *  the assigned leader. Used by peer-led hubs where the act of claiming
@@ -79,6 +88,9 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
   const [description, setDescription] = useState(initialData?.description ?? "");
   const [type, setType] = useState<HubData["type"]>(initialData?.type ?? "OPERATIONAL");
   const [status, setStatus] = useState<HubData["status"]>(initialData?.status ?? "ACTIVE");
+  const [hasSchedule, setHasSchedule] = useState<boolean>(
+    initialData?.hasSchedule ?? false,
+  );
   const [assignmentGrantsTeacher, setAssignmentGrantsTeacher] = useState<boolean>(
     initialData?.assignmentGrantsTeacher ?? false,
   );
@@ -199,6 +211,7 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
       description,
       type,
       status,
+      hasSchedule,
       assignmentGrantsTeacher,
       teacherLabel: resolvedTeacherLabel,
       appLinks: appLinks.filter((l) => l.label && (l.toolSlug || l.href)),
@@ -306,6 +319,31 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
           <option value="ACTIVE">Active</option>
           <option value="ARCHIVED">Archived</option>
         </select>
+      </div>
+
+      {/* Runs live sessions — session 129 follow-up. Drives the hub's
+          Home view (host-team-flavored vs generic) and whether the hub
+          is selectable as a primary Hosting team in the Program editor.
+          Pure auxiliary hubs (AV, greeter) leave this off — they staff
+          supporting roles on top of a hosting team that's elsewhere. */}
+      <div className="adm-hubs-field">
+        <label className="adm-hubs-label">
+          <input
+            type="checkbox"
+            checked={hasSchedule}
+            onChange={(e) => setHasSchedule(e.target.checked)}
+            style={{ marginRight: 8 }}
+          />
+          This hub runs live sessions
+        </label>
+        <p className="adm-hubs-hint">
+          Check this for hubs that own the live session itself — Host
+          Team, Peer-Led Silent Meditation, future hosting hubs. These
+          hubs appear in the Program editor&rsquo;s Hosting team
+          dropdown and get the host-team-style Home view (with the
+          &ldquo;Our offerings this month&rdquo; panel). Leave off
+          for AV, greeter, and other supporting-role hubs.
+        </p>
       </div>
 
       {/* Assignment confers Teacher capability — session 128 */}

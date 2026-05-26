@@ -30,7 +30,7 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const { name, slug, description, type, status, assignmentGrantsTeacher, teacherLabel, appLinks } = body;
+  const { name, slug, description, type, status, hasSchedule, assignmentGrantsTeacher, teacherLabel, appLinks } = body;
 
   if (!name || !slug) {
     return NextResponse.json({ error: "Name and slug are required." }, { status: 400 });
@@ -57,6 +57,7 @@ export async function POST(req: Request) {
       description: description || null,
       type: type || "OPERATIONAL",
       status: status || "ACTIVE",
+      hasSchedule: !!hasSchedule,
       assignmentGrantsTeacher: grantsTeacher,
       teacherLabel: sanitizedLabel,
       conversationCategories: ["General"],

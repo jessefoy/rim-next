@@ -3704,6 +3704,42 @@ async function main() {
   }
 
   // ───────────────────────────────────────────────────────────────────────
+  // Session 129 follow-up — set Hub.hasSchedule on peer-led-silent-meditation.
+  //
+  // The admin form at /admin/hubs never exposed `hasSchedule`, so the
+  // peer-led-silent-meditation hub was created with the schema default
+  // (false). That meant:
+  //   - Its Home view routed to the generic HubHomeClient instead of
+  //     HostHubHomeClient (the host-team-flavored view with "Our
+  //     offerings this month")
+  //   - It didn't appear in the ProgramEditor's Hosting team dropdown
+  //     after the session-129 cleanup added a `hasSchedule` filter
+  //
+  // Fix: peer-led IS a hosting-style hub (runs live silent sit
+  // sessions, owns LiveKit rooms, holds dharma authority). Set
+  // hasSchedule=true so it gets the host-style Home view and is
+  // selectable as a Hosting team. Idempotent — only updates if
+  // currently false.
+  // ───────────────────────────────────────────────────────────────────────
+  const peerLedHasScheduleFixFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'peer_led_has_schedule_fix_v1'
+  `).catch(() => []);
+
+  if (peerLedHasScheduleFixFlag.length === 0) {
+    console.log("→ Setting hasSchedule=true on peer-led-silent-meditation (session 129 follow-up)…");
+    const fixed = await db.hub.updateMany({
+      where: { slug: "peer-led-silent-meditation", hasSchedule: false },
+      data: { hasSchedule: true },
+    });
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('peer_led_has_schedule_fix_v1')`,
+    );
+    console.log(`  ✔ Fixed hasSchedule on ${fixed.count} hub(s).`);
+  } else {
+    console.log("  ⏭ peer-led-silent-meditation hasSchedule already fixed.");
+  }
+
+  // ───────────────────────────────────────────────────────────────────────
   // Session 129 follow-up — undo Hub.hasSchedule on AV + Greeter.
   //
   // The original session-129 migration set `hasSchedule: true` on

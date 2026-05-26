@@ -46,7 +46,7 @@ export async function PATCH(
 
   const { slug } = await params;
   const body = await req.json();
-  const { name, slug: newSlug, description, type, status, assignmentGrantsTeacher, teacherLabel, appLinks, welcomeHeadline, welcomeBody, homeContent } = body;
+  const { name, slug: newSlug, description, type, status, hasSchedule, assignmentGrantsTeacher, teacherLabel, appLinks, welcomeHeadline, welcomeBody, homeContent } = body;
 
   const hub = await db.hub.findUnique({ where: { slug } });
   if (!hub) {
@@ -86,6 +86,7 @@ export async function PATCH(
       ...(description !== undefined && { description: description || null }),
       ...(type !== undefined && { type }),
       ...(status !== undefined && { status }),
+      ...(hasSchedule !== undefined && { hasSchedule: !!hasSchedule }),
       ...(assignmentGrantsTeacher !== undefined && { assignmentGrantsTeacher: !!assignmentGrantsTeacher }),
       // teacherLabel: trim + cap at 20, null when empty.  Effective capability
       // for this update = the body's flag if present, otherwise the hub's
