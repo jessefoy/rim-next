@@ -105,6 +105,38 @@ Specifically:
 
 Slice 1 (session 128) addressed layers 1–3. Slice 2.5 (session 128 follow-up) found and fixed layer 4. The next slice that touches hubs should treat all four as a single checklist item.
 
+## Reviewer findings that identify a *pattern* require a codebase-wide audit (session 130 follow-up)
+
+When the reviewer sub-agent flags a class of bug (not a single local mistake), the fix is not done until the same pattern has been grepped across the codebase and addressed everywhere it lives.
+
+The lesson came from session 130's same-day follow-ups. The reviewer flagged a SubRequest FK-Restrict violation in the heal migration and the program-transfer PUT handler. I fixed both — but didn't ask "where else does this pattern exist?" Three production routes (`clear-rotations`, `release-host`, `assignments/[id]` DELETE, `assignments/reassign`) had the same FK-Restrict shape latent. Jesse hit the next one in production within an hour of the heal landing.
+
+Specifically:
+
+- The reviewer's finding **2** described "SubRequest FK is Restrict; cancel-OPEN-then-delete will FK-violate."
+- I read that as "fix this in the migration and the PUT handler."
+- The correct read was "audit every site that does cancel-OPEN-then-delete on HostAssignments."
+
+When closing a reviewer finding, ask: **is this a local bug or a pattern?** If a pattern, the resolution is `grep` + audit, not just patching the cited line.
+
+## Destructive routes — the deletion pattern (session 130 follow-up)
+
+Every destructive route in the hub-scoped API touches three tables in a fixed order. Documented in detail at the bottom of `RIM_Scheduler.md`. The short version: **SubClaim → SubRequest → HostAssignment → (optional) StandingAssignment**, all `deleteMany` (never `updateMany` cancel for the SubRequest step), wrapped in `$transaction`. The `cancel-OPEN-then-delete` pattern that historically lived in some routes was unsafe — any non-OPEN SubRequest (CLAIMED, CANCELLED) on a target HostAssignment FK-Restrict-blocks the parent delete.
+
+Add this to the closing checklist when touching any destructive route:
+
+- [ ] Does the route do a `delete` or `deleteMany` on `HostAssignment`?
+- [ ] If yes, are SubClaim + SubRequest rows for those HostAssignments deleted first (not just cancelled)?
+- [ ] Are the deletes wrapped in a single `$transaction`?
+
+## State changes that span multiple writes must be atomic (session 130 follow-up)
+
+When a route's correctness depends on two or more writes succeeding together (e.g. "cleanup the old state + commit the new state"), wrap them in a single `$transaction`. The session 130 program-transfer route is the canonical example: it deletes the old hub's StandingAssignment rules + future HostAssignments AND updates `Program.hostingHubSlug` atomically. If the cleanup throws, the transfer rolls back together and the coordinator can retry.
+
+The pre-session-130 (and pre-reviewer) version did them sequentially: `program.update` first, then cleanup. A cleanup failure left the program on the new hub with orphan rules on the old hub — exactly the bug session 130 was healing.
+
+**Rule:** if step 2 depends on step 1's outcome to be coherent, and a partial failure produces an invalid system state, both belong in the same `$transaction`.
+
 ## Audit at the user-flow layer, not just the code-correctness layer (session 130)
 
 The code-correctness audit above is necessary but not sufficient. Session 129's five-phase audit verified hub-scoping correctness across every routing layer and ran clean. The next slice (session 130, Maria's beta test) immediately surfaced four real bugs in the *user flow*:

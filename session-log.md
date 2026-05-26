@@ -67,6 +67,41 @@ A fourth (PLAUSIBLE behavior-change) was flagged and left intentional: `release-
 - **The "released vs ended" distinction is permanent.** Two distinct builders forever — Released (rule removed for one person, others stay) vs Ended (rule deleted entirely). Don't merge them again.
 - **Per-date vs whole-rotation are two exits, not one.** Per-session sub-request for "I can't make this date"; remove-from-rotation for "I'm leaving the rotation." UI surfaces them in distinct places and copy spells out the distinction.
 
+### Same-day follow-ups — orphan-hub heal + the FK-Restrict pattern bug
+
+Three additional commits landed after the original session-130 ship as real-world testing surfaced deeper issues that the first pass missed.
+
+**Commit `11864f2` — self-diagnosing Reset rotations.** Jesse reported the per-program Reset on multi-day programs (Good Morning / Good Evening Silent Meditation) wasn't working — "no toast, rotations still there." Without screenshots or DB state I couldn't pin the failure mode from code alone (the route is a straightforward `deleteMany` on `programSlug + hubSlug` with no day filter). Shipped a diagnostic patch: client-side `console.log` under `[reset]` for every step; server-side `[reset-rotations]` log with counts; **inline result line next to the Reset button** so the outcome is at the click point (the page-level toast renders at the top of the rotations area — if the coordinator is scrolled to the bottom of a program card the toast is off-screen and the action looks like it did nothing).
+
+**Commit `93f985e` — heal migration + atomic transfer.** Jesse confirmed the diagnostic patch's inline error caught what we needed. Root cause: orphan `StandingAssignment` rules on hubs that no longer matched the program's `hostingHubSlug`. Sequence: program set up on hub A, rotation created (hubSlug=A), program later transferred to hub B, but the rotation rule + applied future HostAssignments stayed on hub A. Invisible in every UI view (hub A's grid filters its program list by hostingHubSlug=A, so the program is no longer there; hub B's grid filters by hubSlug=B, so the orphans don't render). The apply cron walks every rule regardless of hub and keeps re-creating HostAssignments under the old hubSlug each morning. Click Reset on hub B and the route correctly clears hub B's rules — but the orphans persist and the cron repopulates. Symptom: "reset doesn't work."
+
+Two changes shipped together:
+
+1. **One-shot heal migration `heal_orphan_standing_assignments_v1`** in `prisma/migrate.mjs`. Walks every `StandingAssignment` whose `hubSlug` isn't in the program's valid hub set (primary `hostingHubSlug` OR any `ProgramCoverageHub` row). Deletes orphan rules + their future HostAssignment rows. Then walks future HostAssignments not tied to any rule (direct claims, SetNull cascade orphans) and applies the same heal. Past HostAssignments stay as historical record. Logs per-program before deleting so the deploy log is auditable. Idempotent via `_migration_flags`.
+
+2. **Atomic transfer in `/api/programs-pg/[slug]` PUT handler.** When a coordinator changes a program's `hostingHubSlug`, the route now purges the old hub's `StandingAssignment` rules + future `HostAssignment` rows in the SAME `$transaction` as the `program.update`. Atomic — if cleanup throws, the transfer rolls back together. Without this, future transfers would silently recreate the orphan state the migration just healed.
+
+**Reviewer sub-agent caught three showstoppers pre-commit on `93f985e`**, all addressed before the commit:
+
+1. **Auxiliary-hub rotations would have been wiped.** Initial detection only consulted the program's primary `hostingHubSlug`. Every legitimate session-129 AV/greeter rotation would have been classified as orphan and deleted. Fix: valid-hubs set per program now includes the primary hub AND every `ProgramCoverageHub` row.
+2. **`SubRequest.assignmentId` FK is Restrict (no cascade).** The earlier version cancelled OPEN SubRequests via `updateMany` then deleted the parent HostAssignment — FK-violates the moment any non-OPEN SubRequest (CLAIMED, CANCELLED) references the row. Fix: delete SubClaim → SubRequest → HostAssignment in that order (matches `/api/host/assignments/clear` canonical pattern).
+3. **`program.update` ran outside the cleanup transaction.** If cleanup threw, the program would be on the new hub but rules/assignments stayed on the old hub — recreating the orphan state. Fix: cleanup + update wrapped in a single `$transaction` so they commit or roll back together.
+
+**Commit `3117833` — the FK-Restrict pattern, codebase-wide audit.** After `93f985e` landed and the heal cleaned the orphans, Jesse clicked Reset on The Art of Meditation and saw `HTTP 500` (the diagnostic patch's inline result line surfaced it perfectly). Same FK-Restrict bug from reviewer finding #2 — but in the pre-existing `clear-rotations` route, which I hadn't touched in session 130 and therefore hadn't audited. Triggered by a historic CANCELLED sub-request lingering on one of the Art of Meditation HostAssignments.
+
+The lesson: **when a reviewer finding identifies a *pattern* (not a local bug), the fix needs a codebase-wide audit of that pattern, not just a local patch.** Grepped `subRequest.updateMany` across the API and found four routes with the same shape: `clear-rotations`, `release-host`, `assignments/[id]` DELETE, `assignments/reassign`. All four replaced with the canonical SubClaim → SubRequest → HostAssignment deleteMany pattern in `$transaction`. (PATCH unclaim on `assignments/[id]` keeps the cancel-OPEN behavior because it only sets `userId = null` — no parent delete, no FK violation possible.)
+
+### What this work connects to
+
+This is direct follow-on from the session-130 four-bug fix and session-129's auxiliary-hub coverage architecture. The orphan-heal closes the gap that made the per-program Reset appear broken on multi-day programs that had been migrated between hubs. The atomic transfer change in the PUT handler prevents new orphans on future program transfers. The FK-Restrict audit closes a class of bug that was latent in the codebase well before session 130 — Jesse just didn't have programs with historic non-OPEN sub-requests to trigger it before.
+
+### Architectural calls + lessons
+
+- **Reviewer findings that identify a pattern need a codebase-wide audit.** The FK-Restrict bug was caught by the reviewer in the heal migration and the PUT handler. I fixed those two but didn't ask "where else does this pattern live?" Three production routes had the same bug latent until Jesse hit one of them. New memory file `feedback-pattern-audit.md` captures the rule: when the reviewer flags a *class* of error, grep the codebase for the pattern before considering the finding closed.
+- **Destructive routes must use `SubClaim → SubRequest → HostAssignment` delete chain, atomic.** The cancel-OPEN-then-delete pattern is unsafe given FK Restrict. New section in `RIM_Scheduler.md` codifies the pattern with a checklist for future destructive routes.
+- **Atomic data-state changes that span multiple writes (cleanup + update) must be wrapped in a single `$transaction`.** Sequential awaits across writes can leave inconsistent state on partial failure — exactly the failure mode that would have recreated the bug we just healed.
+- **Diagnostic patches at the click point are worth shipping early.** Surfacing the actual HTTP error inline (instead of a page-level toast that may be off-screen) made the failure self-diagnosing on Jesse's next click. The page-level toast wasn't lying — it was just invisible from where he was looking. Worth keeping in mind when designing future destructive-action affordances.
+
 ---
 
 ## 2026-05-25 (session 129 continued) — Post-ship fixes + thorough scheduler audit

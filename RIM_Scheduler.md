@@ -220,6 +220,70 @@ The picker is scoped to one hub at a time — multi-hub members appear in whiche
 
 ---
 
+## Destructive-route deletion pattern (session 130 follow-up)
+
+Every destructive route in the Scheduler API touches three tables in a fixed order. **Don't deviate from this pattern.** Skipping a step or reordering it produces FK-Restrict violations (HTTP 500) the moment a historic non-OPEN SubRequest exists on a target HostAssignment.
+
+```ts
+await db.$transaction(async (tx) => {
+  // 1. Collect target HostAssignment ids first.
+  const targetIds = (await tx.hostAssignment.findMany({
+    where: { /* hub-scoped + program-scoped + future-scoped */ },
+    select: { id: true },
+  })).map((a) => a.id);
+
+  if (targetIds.length > 0) {
+    // 2. SubClaim cascades on SubRequest delete, but delete explicitly for
+    //    consistency with /api/host/assignments/clear and to make the
+    //    intent obvious to future maintainers.
+    await tx.subClaim.deleteMany({
+      where: { request: { assignmentId: { in: targetIds } } },
+    });
+    // 3. SubRequest.assignmentId FK is Restrict — MUST delete (not cancel)
+    //    before the parent. Pre-session-130 routes that used updateMany
+    //    cancel-OPEN-then-delete worked only when no non-OPEN SubRequests
+    //    existed; the moment a CLAIMED or CANCELLED row appeared on a
+    //    target HostAssignment, the next destructive call returned 500.
+    await tx.subRequest.deleteMany({
+      where: { assignmentId: { in: targetIds } },
+    });
+    // 4. Now the parent can be deleted.
+    await tx.hostAssignment.deleteMany({
+      where: { id: { in: targetIds } },
+    });
+  }
+
+  // 5. (Optional) Then any related StandingAssignment rules.
+});
+```
+
+**Why `updateMany`-cancel was wrong.** `cancel-OPEN-then-delete` was the historical pattern. It assumed every SubRequest pointing at a doomed HostAssignment was OPEN (and that cancelling closed-state rows was wrong because of audit-trail concerns). Both assumptions broke down: CLAIMED rows are real sub-cover arrangements that survived their session, and CANCELLED rows are routine history. Either status will FK-Restrict-block the parent delete.
+
+**Why delete (not nullify) SubRequest.** `SubRequest.assignmentId` is non-nullable (`String`, not `String?`). The row can't be orphaned from its assignment; it has to die with it. The audit-trail concern that motivated `updateMany`-cancel is moot — the parent assignment is being deleted, so the SubRequest is referencing a row that won't exist anymore. Better to delete cleanly than to leave dangling pointers.
+
+**Where this pattern is now applied:**
+- `/api/host/assignments/clear` (canonical — was already correct)
+- `/api/host/programs/[slug]/clear-rotations` (session 130 follow-up)
+- `/api/host/standing-assignments/release-host` (session 130 follow-up)
+- `/api/host/assignments/[id]` DELETE (session 130 follow-up)
+- `/api/host/assignments/reassign` (session 130 follow-up — the `previousUserId` cleanup path)
+- `/api/programs-pg/[slug]` PUT, hub-change branch (session 130 follow-up — atomic with the program.update)
+- `heal_orphan_standing_assignments_v1` migration (session 130 — same pattern at data-heal layer)
+
+**PATCH unclaim on `/api/host/assignments/[id]` keeps the cancel-OPEN behavior** because it only sets `userId = null` (no parent delete). No FK violation possible. Other routes that update HostAssignment but don't delete it can also keep the cancel pattern.
+
+## Orphan-hub rotations + atomic program transfer (session 130 follow-up)
+
+A program's `hostingHubSlug` is the primary hub. Its `ProgramCoverageHub` rows list auxiliary hubs (session 129 — AV team, greeter team). A `StandingAssignment` or `HostAssignment` is **valid** on the program if its `hubSlug` is the primary OR is in the auxiliary set.
+
+Pre-session-130, transferring a program from hub A to hub B left every rule and future assignment on hub A intact. They became invisible in every UI (hub A's grid filters its program list by `hostingHubSlug = A`, but the program is no longer there; hub B's grid filters by `hubSlug = B`, but the orphans are still on A). The apply cron walks every rule regardless of hub, so the orphans kept producing new HostAssignments under the old `hubSlug` daily. Coordinator-visible symptom: "the Reset rotations button doesn't work — it cleans up, but the rotation comes back."
+
+**The one-shot heal:** migration `heal_orphan_standing_assignments_v1` in `prisma/migrate.mjs` deletes orphan rules + their future HostAssignments site-wide. Past HostAssignments stay as historical record. The valid-hubs set per program includes BOTH primary and every auxiliary coverage row (reviewer caught the initial implementation that only checked primary — it would have wiped every legitimate AV/greeter rotation).
+
+**The recurrence-prevention:** the PUT handler at `/api/programs-pg/[slug]` now detects a hub change and runs the cleanup + the `program.update` in a single `$transaction`. Atomic — if cleanup throws, the transfer doesn't commit. **Don't add new mid-flight hub-change side effects outside this transaction.** They'd open the door to the same orphan state the migration just healed.
+
+**Why we don't auto-migrate the rotation users.** A rotation rule for user X on hub A says "X hosts this program from hub A's pool." When the program transfers to hub B, X may not be a member of hub B at all. Silently moving X's rule to hub B would mean X starts getting emails for a hub they can't see, can't claim sessions in, and can't manage. Cleaner: delete the rule, let the new-hub coordinator set up fresh rotations with hosts from their hub.
+
 ## Destructive-route hub-scoping (session 129 audit)
 
 Both destructive routes the Scheduler exposes are now hub-aware. Pattern matches the rest of the standing-assignment routes:

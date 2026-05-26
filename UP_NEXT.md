@@ -6,9 +6,34 @@
 
 ## Active
 
-### Session 130 (2026-05-26) — Maria's beta-test fixes shipped; verification pending
+### Session 130 (2026-05-26) — Maria's beta-test fixes + same-day follow-ups (orphan-heal, FK-Restrict pattern fix)
 
-Four-bug fix from Maria's first real beta of the Host Hub Scheduler. One commit on `main` (`960968b`). 12 files, +441 / -99.
+Four-bug fix from Maria's first real beta + three follow-up commits triggered by Jesse's real-world testing. Five commits total on `main`: `960968b` → `38f4582` → `11864f2` → `93f985e` → `3117833`.
+
+**The follow-up arc (same day):**
+
+1. **Diagnostic patch (`11864f2`).** Jesse reported the per-program Reset wasn't working on multi-day programs. Couldn't pin the failure from code alone — shipped client-side `console.log` under `[reset]`, server-side `[reset-rotations]` log, and **an inline result line at the click point** so the next test would be self-diagnosing.
+2. **Orphan-heal migration + atomic transfer (`93f985e`).** Root cause located: orphan `StandingAssignment` rules on hubs that no longer matched the program's current `hostingHubSlug` (programs that had been transferred between hubs after rotations were set up). One-shot heal migration `heal_orphan_standing_assignments_v1` deletes orphan rules + their future HostAssignments site-wide. Program-transfer PUT handler now wraps cleanup + update in a single `$transaction` so this can't recur. Reviewer caught three showstoppers pre-commit (auxiliary-hub-aware detection, SubRequest FK violation, non-atomic transfer); all three addressed before the commit.
+3. **FK-Restrict pattern fix (`3117833`).** After the heal landed and Jesse retested, the inline diagnostic patch from step 1 surfaced `HTTP 500` on a different program's Reset — a historic CANCELLED sub-request was FK-Restrict-blocking the parent HostAssignment delete. Same SubRequest-FK bug the reviewer flagged for the migration, but in four pre-existing production routes. Audited the codebase with `grep subRequest.updateMany`, found four offenders (`clear-rotations`, `release-host`, `assignments/[id]` DELETE, `assignments/reassign`), all replaced with the canonical SubClaim → SubRequest → HostAssignment deleteMany pattern in `$transaction`. PATCH unclaim keeps cancel-OPEN behavior because it doesn't delete the parent.
+
+**What to verify on the deployed site once `3117833` lands:**
+
+1. **Reset rotations works on The Art of Meditation.** Inline result line is green: "Reset · The Art of Meditation · 5 rotation rules and N upcoming sessions removed." Tuesday row collapses to empty. Program card disappears from the Rotations grid.
+2. **No more orphan rotations.** Awakening The Heart (previously had ghost rotations) shows empty grid with Set up buttons. Peer-led-silent-meditation programs only show rotations that exist on the peer-led hub.
+3. **Future program transfer is atomic.** Pick a program with rotations, change its Hosting team via the Program editor → Hosting & Access tab. Old hub's rotations + future HostAssignments are gone in one save. If the save fails for any reason, both rolls back together (no orphan state).
+4. **Reassign + per-host delete + remove-from-rotation all work.** No HTTP 500s on routes that delete HostAssignments now that the FK-Restrict pattern is fixed across the board.
+
+**Original session-130 four-bug fix (first commit `960968b`):**
+
+- **Bug A** — sub-request affordance discoverable: standing-assignment confirmation email deep-links to `?month=YYYY-MM` of the earliest scheduled session; Your Rotations panel "Next" block is now a clickable button that jumps the calendar to that month.
+- **Bug C** — release-host behavior + email rewritten. The route now deletes the user's StandingAssignment rules in the bundle (so the cron can't re-apply); two distinct email builders (Released for release-host, Ended for end-bundle); "Release their dates" UI label → "Remove from rotation" with explanatory copy.
+- **Bugs B + D** — defensive UX hardening. Every destructive action calls `router.refresh()` after `loadRotations()` so the schedule page's SSR data re-fetches; success toasts name program/day/hub/counts explicitly; 0/0 race path also refreshes.
+
+**Reviewer sub-agent track record this session:**
+
+- Pre-commit on `960968b`: caught 3 issues (missing email when only rule removed; missing refresh on 0/0 path; fragile locale-string parsing).
+- Pre-commit on `93f985e`: caught 3 showstoppers (auxiliary-hub-blind detection; SubRequest FK; non-atomic transfer).
+- Post-commit on `3117833`: pattern not generalized from the prior review — the reviewer correctly flagged "this is a pattern, audit the codebase," I read it as "fix this site." Lesson recorded in `RIM_Hub_Engineering.md`.
 
 **What shipped:**
 - **Bug A** — sub-request affordance discoverable: standing-assignment confirmation email deep-links to `?month=YYYY-MM` of the earliest scheduled session; Your Rotations panel "Next" block is now a clickable button that jumps the calendar to that month.
@@ -17,38 +42,16 @@ Four-bug fix from Maria's first real beta of the Host Hub Scheduler. One commit 
 
 **Reviewer sub-agent caught three issues pre-commit:** missing email when only the rule was removed (no future HostAssignments yet); missing refresh on the 0/0 race path; fragile `new Date(d.toLocaleString(...))` for CT month extraction (switched to `Intl.DateTimeFormat.formatToParts()`).
 
-### What to verify on the deployed site once Vercel finishes
+### Additional verification (full session-130 arc on the deployed site)
 
-1. **Sub-request flow end-to-end.** Set up a rotation for yourself starting in a future month. Confirmation email arrives. Click the "Open the Schedule" CTA — should land directly on the month of your earliest session. "Ask the team to cover" affordance visible on your rotation rows.
+These are the verifications carried from the original four-bug fix, still pending end-to-end:
+
+1. **Sub-request flow end-to-end.** Set up a rotation starting in a future month. Confirmation email arrives. Click the "Open the Schedule" CTA — should land directly on the month of the earliest session. "Ask the team to cover" affordance visible on your rotation rows.
 2. **Your Rotations panel "Next" is clickable.** From any month, click the "Next →" block on a rotation card. Calendar jumps to that month.
-3. **"Remove from rotation" semantic.** Add a second host to one of your rotation bundles. Click "Remove from rotation" on the second host — they should be removed and the other host (you) should remain in the rotation. Run the apply-standing-assignments cron manually — the removed host should NOT be re-applied.
-4. **Truthful emails.** Trigger a release-host: the email should read "You've been removed from the {programName} rotation" (not "your standing rotation has ended"). Trigger an end-bundle "End this rotation" with releaseFuture=true: that email DOES say "Your hosting rotation has ended."
-5. **Toasts are specific.** Click "Reset rotations" on a program — toast names program, hub, counts. Click "Reset this team" — toast names the hub explicitly. If anything looks off, the toast text is now the artifact to share.
-6. **Schedule page deep-link.** Try `/tools/schedule?month=2026-08&hub=host-team` directly — should land on August 2026 view. Bad input (`?month=foo`) should silently fall back to current month.
-
-### DB diagnostic queries — run when you have DB access
-
-Run these against Maria's account to definitively diagnose the "Tuesday → Wednesday" symptom from Bug B:
-
-```sql
--- What rotations does Maria actually have for Art of Meditation right now?
-SELECT id, "programSlug", "dayOfWeek", occurrence, "hubSlug", "userId", "endsOn", "startsOn"
-FROM standing_assignments
-WHERE "programSlug" = 'the-art-of-meditation';
-
--- What HostAssignments exist for Art of Meditation in the future?
-SELECT id, "programSlug", "sessionDate", "hubSlug", "userId", "standingAssignmentId"
-FROM host_assignments
-WHERE "programSlug" = 'the-art-of-meditation'
-  AND "sessionDate" >= NOW()
-ORDER BY "sessionDate";
-
--- What are Art of Meditation's recurrenceDays?
-SELECT slug, "recurrenceDays", "recurrenceFreq", "startDatetime"
-FROM programs WHERE slug = 'the-art-of-meditation';
-```
-
-If Maria's StandingAssignment turns out to have been on Wednesday in the data all along (data, not code), the perception is explained. If it was Tuesday, the hardened toasts on her next test will pinpoint which action she's clicking.
+3. **"Remove from rotation" semantic.** Add a second host to a rotation bundle. Click "Remove from rotation" on the second host. They should be removed and the other host stays. Run the apply-standing-assignments cron manually — the removed host should NOT be re-applied.
+4. **Truthful emails.** Trigger a release-host: subject "You've been removed from the {programName} rotation." Trigger an end-bundle "End this rotation" with releaseFuture=true: subject "Your hosting rotation has ended."
+5. **Toasts are specific.** Click "Reset rotations" on a program — toast names program, hub, counts. Click "Reset this team" — toast names the hub explicitly.
+6. **Schedule page deep-link.** Try `/tools/schedule?month=2026-08&hub=host-team` directly — should land on August 2026 view. Bad input (`?month=foo`) silently falls back to current month.
 
 ### Known follow-ons (queued)
 
@@ -56,9 +59,9 @@ If Maria's StandingAssignment turns out to have been on Wednesday in the data al
 - **Behavior change re: sub-claim rows on rotation removal.** `release-host` no longer frees future HostAssignments where the user took the row via sub-claim (`standingAssignmentId` points at someone else's rule but `userId` is the removed user). Intentional — sub-claims are individual commitments. Documented in the route's docstring and `RIM_Scheduler.md`. Revisit if it causes operational confusion.
 - **Replaced-user email parity.** `sendStandingAssignmentReplacedEmail` doesn't yet use `firstSessionMonth` — but a displaced user has no future rows in those months so the deep-link wouldn't help. Leave as-is unless signal emerges.
 
-### Memory candidate from this session
+### Memory files added this session
 
-The audit-at-user-flow-layer principle is documented in `RIM_Hub_Engineering.md` ("Audit at the user-flow layer, not just the code-correctness layer"). Worth a corresponding short memory file if the pattern keeps surfacing.
+- `feedback-pattern-audit.md` — when the reviewer sub-agent identifies a class of bug (not a single local mistake), the fix is not done until the same pattern has been grepped across the codebase. Triggered by the FK-Restrict pattern surfacing in three production routes after I fixed it only in the migration + PUT handler.
 
 ---
 
