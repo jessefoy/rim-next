@@ -84,29 +84,40 @@ export async function POST(
   let deletedAssignments = 0;
   let deletedRotations   = 0;
 
-  // SubRequest FK has no cascade — cancel open ones before deleting
-  // assignments. Hub-scoped (session 129 audit) so an AV coordinator
-  // clearing AV rotations doesn't cancel host-team sub-requests on
-  // the same program.
-  await db.subRequest.updateMany({
-    where: {
-      assignment: { programSlug, hubSlug: targetHubSlug, sessionDate: { gte: todayCt } },
-      status: "OPEN",
-    },
-    data: { status: "CANCELLED" },
-  });
-
-  const assignResult = await db.hostAssignment.deleteMany({
-    where: { programSlug, hubSlug: targetHubSlug, sessionDate: { gte: todayCt } },
-  });
-  deletedAssignments = assignResult.count;
-
-  if (mode === "reset") {
-    const rotResult = await db.standingAssignment.deleteMany({
-      where: { programSlug, hubSlug: targetHubSlug },
+  // Atomic cleanup. SubRequest.assignmentId FK is Restrict (no cascade),
+  // so the parent HostAssignment delete will FK-violate if any SubRequest
+  // (any status — OPEN, CLAIMED, CANCELLED) still references the row.
+  // The pre-session-130 version cancelled OPEN sub-requests with
+  // updateMany and left non-OPEN ones in place — that was the bug Jesse
+  // hit (HTTP 500) on programs with historic sub-requests. Matches the
+  // canonical pattern in /api/host/assignments/clear/route.ts.
+  await db.$transaction(async (tx) => {
+    const futureAssns = await tx.hostAssignment.findMany({
+      where: { programSlug, hubSlug: targetHubSlug, sessionDate: { gte: todayCt } },
+      select: { id: true },
     });
-    deletedRotations = rotResult.count;
-  }
+    const futureAssnIds = futureAssns.map((a) => a.id);
+
+    if (futureAssnIds.length > 0) {
+      await tx.subClaim.deleteMany({
+        where: { request: { assignmentId: { in: futureAssnIds } } },
+      });
+      await tx.subRequest.deleteMany({
+        where: { assignmentId: { in: futureAssnIds } },
+      });
+      const assignResult = await tx.hostAssignment.deleteMany({
+        where: { id: { in: futureAssnIds } },
+      });
+      deletedAssignments = assignResult.count;
+    }
+
+    if (mode === "reset") {
+      const rotResult = await tx.standingAssignment.deleteMany({
+        where: { programSlug, hubSlug: targetHubSlug },
+      });
+      deletedRotations = rotResult.count;
+    }
+  });
 
   // Diagnostic log to correlate with the client's `[reset]` console output
   // when a coordinator reports the action "not working." Session 130

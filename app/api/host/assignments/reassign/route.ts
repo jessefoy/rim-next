@@ -77,12 +77,20 @@ export async function POST(request: Request) {
       );
     }
 
-    await db.subRequest.updateMany({
-      where: { assignmentId: existing.id, status: "OPEN" },
-      data: { status: "CANCELLED" },
+    // Atomic cascade-delete. SubRequest.assignmentId FK is Restrict — a
+    // bare hostAssignment.delete would FK-violate on any historic non-OPEN
+    // SubRequest. SubClaim cascades on SubRequest delete; explicit for
+    // clarity. Session 130 follow-up — same FK-pattern fix applied to
+    // clear-rotations, release-host, and assignments/[id] DELETE.
+    await db.$transaction(async (tx) => {
+      await tx.subClaim.deleteMany({
+        where: { request: { assignmentId: existing.id } },
+      });
+      await tx.subRequest.deleteMany({
+        where: { assignmentId: existing.id },
+      });
+      await tx.hostAssignment.delete({ where: { id: existing.id } });
     });
-
-    await db.hostAssignment.delete({ where: { id: existing.id } });
   }
 
   const fallbackHubSlug = await (async () => {

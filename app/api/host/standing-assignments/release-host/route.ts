@@ -135,14 +135,20 @@ export async function POST(request: Request) {
   }));
 
   // Atomic cleanup: drop the user's HostAssignments in the bundle AND the
-  // StandingAssignment rules that backed them. Order matters — sub-requests
-  // → assignments → rules — because of FK chains.
+  // StandingAssignment rules that backed them. Order matters — SubClaim →
+  // SubRequest → HostAssignment → StandingAssignment — because of FK chains.
+  // SubRequest.assignmentId FK is Restrict (no cascade), so we MUST delete
+  // SubRequest rows (not cancel) before deleting their parent assignment.
+  // Pre-session-130-followup version only cancelled OPEN sub-requests; the
+  // reviewer flagged that a CLAIMED or CANCELLED sub-request would FK-block
+  // the assignment delete.
   await db.$transaction(async (tx) => {
     if (assignmentIds.length > 0) {
-      // Cancel open sub requests on these assignments first (no FK cascade)
-      await tx.subRequest.updateMany({
-        where: { assignmentId: { in: assignmentIds }, status: "OPEN" },
-        data:  { status: "CANCELLED" },
+      await tx.subClaim.deleteMany({
+        where: { request: { assignmentId: { in: assignmentIds } } },
+      });
+      await tx.subRequest.deleteMany({
+        where: { assignmentId: { in: assignmentIds } },
       });
       await tx.hostAssignment.deleteMany({
         where: { id: { in: assignmentIds } },

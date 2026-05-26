@@ -131,12 +131,20 @@ export async function DELETE(
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Cancel open sub requests on this assignment first
-  await db.subRequest.updateMany({
-    where: { assignmentId: id, status: "OPEN" },
-    data: { status: "CANCELLED" },
+  // Atomic cascade-delete. SubRequest.assignmentId FK is Restrict — a
+  // bare hostAssignment.delete would FK-violate the moment any historic
+  // SubRequest (CLAIMED, CANCELLED) referenced this row. SubClaim cascades
+  // on SubRequest delete but we delete explicitly for clarity. Pattern
+  // matches /api/host/assignments/clear (session 130 follow-up — this
+  // route had the same FK gap that surfaced as HTTP 500 elsewhere).
+  await db.$transaction(async (tx) => {
+    await tx.subClaim.deleteMany({
+      where: { request: { assignmentId: id } },
+    });
+    await tx.subRequest.deleteMany({
+      where: { assignmentId: id },
+    });
+    await tx.hostAssignment.delete({ where: { id } });
   });
-
-  await db.hostAssignment.delete({ where: { id } });
   return Response.json({ ok: true });
 }
