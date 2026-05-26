@@ -6,7 +6,82 @@
 
 ## Active
 
-### Session 128 (2026-05-22) — Silent Meditation Hub Slice 1 shipped; Slice 2 (admin-only, no code) is next
+### Session 128 cumulative (2026-05-22) — Silent Meditation Hub fully operational + hub-isolation hardening + engineering reference docs
+
+Single long arc: Slice 1 architecture (already documented in last close), then Slice 2 operational rollout, then Slice 2.5 hub-isolation hardening (the gap Slice 1 missed — email URLs + welcome-email reliability), then Slice 2.6 standing-rotation generalization (the gap Slice 1 had deferred), then three engineering reference docs to prevent the same class of gap from recurring.
+
+**State of the architecture:** the Silent Meditation Hub is fully operational and properly isolated end-to-end. Closes backlog `2026-05-25-003`.
+
+**Commits on `main` from this arc (chronological):** `aba2e60` (Hub admin form dropdown UX), `47141e2` (Add-me-as-coordinator endpoint), `3fba168` (ADMIN no longer bypasses hub content), `5a7c7ed` (manual chapter), `cccf020` (Scheduler tool rename), `dafc409` (Your Rotations panel hub-scope), `fdb441d` (Slice 2.5 code), `86ce52e` (Slice 2.5 engineering docs + CLAUDE.md updates), `e446213` (sub-request email program name fix), `a80dc17` (CTA button template swap migration), `03f8537` (Email Template Gate policy clarification), `51d1207` (Slice 2.6 standing-rotation generalization), `d5ad0fc` (Scheduler doc post-2.6 update), `89051f3` (Rotations tab visibility fix).
+
+**What's now operational:**
+
+- `peer-led-silent-meditation` hub exists with `assignmentGrantsTeacher: true`, `teacherLabel: "Facilitator"`, Jesse as coordinator
+- Good Morning + Good Evening Silent Meditation programs transferred to the hub
+- Peer leaders can claim sessions; act of claiming confers Teacher capability (Facilitator pill + bell-friendly audio) without needing a ProgramTeacher row
+- Every email sent from a peer-led action carries `?hub=peer-led-silent-meditation` so recipients land in the correct hub view
+- Welcome emails actually deliver (was silently killed by Vercel teardown pre-fix)
+- Rotations tab visible in the peer-led hub for coordinators; API gates by program's hub via the new `isHubCoordinator` helper
+- ADMIN must be a HubMember to interact with hub content (matches GUIDING_TEACHER pattern; "+ Add me as coordinator" admin affordance closes the bootstrap catch-22)
+
+**Three new modular engineering reference docs** loaded via the Design Orientation table:
+
+- `RIM_Hub_Engineering.md` — every rule for hub-touching code (the four routing layers, helpers, ADMIN policy, common pitfalls)
+- `RIM_Email_Engineering.md` — every rule for outbound email code (template gate, URL helpers, after() pattern, CTA convention)
+- `RIM_Scheduler.md` — per-tool reference for `/tools/schedule` and its routes
+
+CLAUDE.md closing ritual gains four new steps: 4b (engineering-doc updates), 4c (hub audit across the four routing layers), 4d (per-tool engineering doc creation when a slice touches a tool without one — self-perpetuating, grows the docset organically).
+
+**What testing on the deployed site should confirm (cumulative):**
+
+1. **Nancy's end-to-end flow.** Add Nancy as peer-led-silent-meditation member → she gets a welcome email pointing to `/account/hub/peer-led-silent-meditation`. Someone requests a sub on a Good Morning session → Nancy gets a sub-request email reading "X needs a sub for **Good Morning Silent Meditation**" (human-readable program name) with the "Cover this session" link landing her at `/tools/schedule?action=cover&id=...&hub=peer-led-silent-meditation`. She claims → joins the session room → sees Facilitator pill (warm gold) + bell-friendly audio + End-for-All authority.
+2. **Rotations tab visible in peer-led hub.** Open `/tools/schedule?hub=peer-led-silent-meditation` as coordinator. Schedule | Rotations tab strip at the top. Click Rotations. Empty rotations grid. Create a rotation, save (no 403), apply. Affected peer leader gets the standing-rotation scheduled email with the link scoped to peer-led hub.
+3. **CTA buttons render after template edit.** At `/admin/emails/sub-request-posted` (and the other five touched templates), swap the plain markdown CTA link for `{{coverButton}}` / `{{scheduleButton}}` / `{{hubButton}}`. Save. Next email renders the canonical button (RIM-blue, white bold, centered).
+4. **Welcome email actually delivers.** Add a new member to any hub; confirm the email lands. If failure occurs, the Vercel log shows the error (no more silent swallow).
+5. **ADMIN-without-membership is correctly blocked from hub content** but can still configure hubs from `/admin/hubs`. The "+ Add me as coordinator" button on the admin edit page bootstraps you in.
+
+**Known limitations / parked:**
+
+- **Apply-all standing-assignment emails span hubs.** When a single user's batched emails cover sessions across hubs (rare manager-only case), the schedule link falls through to host-team scope. Acceptable for now; could split into per-hub emails if signal emerges.
+- **Assignments-GET pause-map still host-team-scoped.** Low impact (UI affordance, not security gate); revisit when peer-led members start being paused via their hub.
+- **PDF schedule export not hub-scoped.** "My schedule" is personal; revisit if peer-led members ask.
+- **9 other fire-and-forget patterns** in the codebase (enrollment side-effects in `/api/admin/members`, `/api/account/complete-profile`, `/api/registrations`, `/api/stripe/webhook`). Same `after()` treatment as the welcome-email fix. Queued for a focused reliability sweep.
+- **Hub creation could auto-add the creator as coordinator.** Removes the "+ Add me as coordinator" extra step. Small polish.
+- **Friendly "no access" message for admins.** When an admin lands at a hub they're not a member of, link them back to the admin edit page. Small UX polish.
+
+---
+
+### Next priority — Voice extraction (`RIM_Voice.md`)
+
+Discussed at the end of this session in response to Jesse's "Co-work OS blueprint" prompt. The pattern RIM is missing: a writing-voice profile extracted from Jesse's actual writing samples, loaded contextually for any prose-producing task (manual chapter drafts, session-log entries, UP_NEXT rewrites, email body drafts).
+
+**Process:** Jesse gathers 5–10 things he's written that sound most like him — manual chapter edits, conversation thread replies in hubs, sangha emails, a personal blog post if he has one. Run the analysis: extract mechanics (sentence structure, cadence), tone attributes, vocabulary choices, structural quirks, avoid-list. Save as `RIM_Voice.md`. Add to CLAUDE.md Design Orientation table: *"Any task that produces prose for the RIM voice (manual chapters, sangha emails, public copy, session-log entries) — read `RIM_Voice.md`."*
+
+Expected 15–20 minutes of focused work when Jesse has the samples ready. Compounds with the engineering-docs investment — Claude's output across all docs and email drafts becomes measurably closer to Jesse's voice.
+
+---
+
+### Then — choose one
+
+A) **Behavior-audit at closing.** Add step 9b to CLAUDE.md closing ritual: *"Scan the session for corrections that should become memory files. Propose new memory entries or updates."* Five-minute change. Makes the existing memory system more rigorous.
+
+B) **Fire-and-forget reliability sweep.** The 9 remaining `.catch(() => {})` patterns in the codebase (non-email enrollment side-effects). Same shape as the welcome-email fix; codebase-wide. Could lose enrollments, role-side-effects, or payment-completed actions today. Not urgent until something breaks operationally, but the pattern is identified.
+
+C) **Hub-creation auto-coordinator polish.** Removes the "+ Add me as coordinator" extra step. Every future hub creation just works.
+
+D) **Rate-limit on `/api/auth/callback/resend`** (`2026-05-21-002`). Defense-in-depth. Worth doing before the platform goes public on `rootedinmindfulness.org`.
+
+---
+
+### Smaller items still parked
+
+- **Rate-limit `/api/auth/callback/resend`** — `2026-05-21-002`. Still open.
+- **Audit-trail soft nudge in EndMenu** — speculative; don't build until real signal.
+- **The PWA / native-app conversation** — `2026-05-21-001` rejected; architecture decision parked at session 120.
+
+---
+
+### Previously — Session 128 (2026-05-22) — Silent Meditation Hub Slice 1 architecture shipped (now superseded by the cumulative entry above)
 
 One code commit on `main` (`500fa64`). All of Slice 1 of the two-slice plan documented at the end of session 127. The architecture is now in place; the actual `peer-led-silent-meditation` hub doesn't exist yet — Slice 2 creates it via `/admin/hubs` and moves the silent-sit programs onto it.
 

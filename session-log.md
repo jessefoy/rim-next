@@ -1,5 +1,103 @@
 ---
 
+## 2026-05-22 (session 128 continued) — Slice 2 + 2.5 + 2.6 — Silent Meditation Hub operational + hub-isolation hardening + standing-rotation generalization + engineering reference docs
+
+Long arc, several commits, three architectural layers landed.  Started with the operational Slice 2 walk-through (create the hub, transfer programs, add coordinator), then surfaced a hub-isolation gap in the email-URL layer that Slice 1 had missed (Slice 2.5), then surfaced a "shows up but doesn't work" gap in the standing-rotation API that Slice 1 had deferred (Slice 2.6), then built three engineering reference docs to prevent the same class of gap from recurring.  By the end the architecture for peer-led hubs is fully isolated end-to-end and the institutional memory is in place to keep it that way.
+
+### The commit chain
+
+1. **`463f3bb` (Slice 1)** — already documented in the session-128 entry below.
+
+2. **Slice 2 — operational rollout** (multiple commits between session-128-first and now):
+   - `aba2e60` — Mirror ProgramEditor's teacherLabel dropdown UX in the Hub admin form (Jesse caught the inconsistency: plain text input on the hub form vs. dropdown-with-presets on the program form)
+   - `47141e2` — `"+ Add me as coordinator"` admin affordance.  Closed the catch-22 created when removing ADMIN's hub-content bypass: an admin who creates a new hub can't enter it (no membership), can't add themselves via the members tab (which is inside the hub).  New POST endpoint upserts a HubMember row for the calling ADMIN with `isCoordinator: true` + ACTIVE + hostingCapability + communicationsEnabled.  Idempotent.
+   - `5a7c7ed` — Manual chapter for the Peer-Led Silent Meditation hub (`prisma/seed-manual-peer-led-silent-meditation.mjs`) + new `peer-led` group in `lib/manualGroups.ts`.  Plain-language: how rotation works, claiming a session, what the Facilitator pill means, sub-request etiquette, what the role does and doesn't ask of you.
+   - `cccf020` — Renamed the Scheduler tool's default label from "Host Schedule" to "Scheduler" (in the tool registry) plus a one-time migration that updated existing HubAppLink rows still carrying the old default.
+   - `dafc409` — Hub-scope the "Your Rotations" panel on `/tools/schedule`.  Was fetching all of the caller's rotations regardless of hub; Jesse caught it in the first peer-led test (Art of Meditation rotation leaking into the peer-led hub's Scheduler view).  In-memory filter by `pgPrograms.map(p => p.slug)` — Slice 1 had only addressed the data layer; this closed the UI panel.
+   - The big ADMIN-bypass-on-hub-content removal: layout gate + 18 API routes changed from `!member && !isAdmin` to `!member`.  ADMIN no longer bypasses hub content; only `/admin/hubs` administration stays ADMIN-gated.  (Commit `3fba168`, before the cumulative ones documented here.)
+
+3. **`fdb441d` (Slice 2.5 code)** — Hub-scope every outbound email URL + welcome-email reliability.  Closed the gap Slice 1 missed: every email link constructed in `lib/email.ts` was hub-agnostic, so multi-hub members (Nancy in both host-team and peer-led-silent-meditation) landed in default host-team view from any email.  Two new helpers: `hubScopedUrl(path, hubSlug)` for /tools/* paths (appends `?hub=` when slug isn't host-team default; auto-handles `?` vs `&`) and `hubHomeUrl(hubSlug)` for `/account/hub/<slug>` paths.  Every send* function in lib/email.ts now accepts `hubSlug`; every callsite passes `program.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG`.  Welcome email fire-and-forget bug fixed: `/api/hub/[slug]/members` POST now uses `after()` from `next/server` and `syncHubMembership` awaits its sends.  New `emailButtonHtml(label, url)` canonical CTA button helper.  Existing `{{coverUrl}}` etc. variables retained for backward compat; new `{{coverButton}}` / `{{scheduleButton}}` / `{{hubButton}}` variables added so templates can be edited at `/admin/emails` to render the prominent button.
+
+4. **`86ce52e` (Slice 2.5 docs)** — Three new modular engineering reference docs:
+   - **`RIM_Hub_Engineering.md`** — the four routing layers (capability, recipients, UI filter, URLs), helpers, ADMIN policy, common pitfalls, grandfather policy, closing-ritual addition
+   - **`RIM_Email_Engineering.md`** — template gate, URL construction rules, after() pattern, CTA convention, env-var trimming
+   - **`RIM_Scheduler.md`** — per-tool reference for `/tools/schedule`
+   - CLAUDE.md Design Orientation table gets three new rows pointing each task type at the right doc.  Closing ritual gets new steps 4b (engineering-doc updates), 4c (hub audit on hub-related slices), 4d (per-tool doc creation when a slice touches a tool without one — self-perpetuating mechanism).
+
+5. **`e446213`** — Fix sub-request email: was passing `assignment.programSlug` as `programName`, rendered as "Jesse needs a sub for **good-evening-silent-meditation**" instead of "Good Evening Silent Meditation."  Per CLAUDE.md's permanent reminder: resolve Program.name from slug before sending any host email.
+
+6. **`a80dc17`** — Conservative template-body migration: swap the canonical CTA links to the new `{{*Button}}` variables across 6 templates.  Only swap when the canonical body pattern is still present (preserves any coordinator customizations).  Per-template log output as the audit trail.  Jesse explicitly consented to the update via "do the email coding for me."
+
+7. **`03f8537`** — Refine the Email Template Gate stance in CLAUDE.md + RIM_Email_Engineering.md.  Jesse pushed back on the "never upsert" framing — the real concern is *silent* overwrites, not all overwrites.  Now: seed-only by default; intentional `update` is fine with explicit consent, with per-template log output as the audit trail.
+
+8. **`51d1207` (Slice 2.6 code)** — Generalize the standing-rotation API to be hub-aware.  Was deferred from Slice 1 with a "still gates by host-team" note, but Jesse noticed the Rotations tab UI was already visible to coordinators of any hub (post-Slice 2 fix) while the API was 403-ing — "shows up but doesn't work" inconsistency.  All 6 standing-assignment routes now derive their hub from the rotation's `programSlug` via `getProgramHubSlug` and gate by `isHubCoordinator(userId, programHubSlug)` (new helper in `lib/hubAuth.ts`).  Apply-all (no programSlug) requires HOST_MANAGER/ADMIN as a cross-hub global action.  Email functions accept optional `hubSlug` and use `hubScopedUrl` for the schedule link.  UI plumbing: schedule page passes hubSlug to HubScheduleClient → RotationsClient → `?hub=` on the rotation-list fetch.
+
+9. **`d5ad0fc`** — Update RIM_Scheduler.md with the post-2.6 standing-rotation model.  Auth-per-route table; auth-follows-the-program precedence rule for the GET; StandingAssignment has no Program FK note.
+
+10. **`89051f3`** — One-line fix that completed Slice 2.6's wiring.  Jesse opened the Rotations tab in peer-led-silent-meditation as coordinator and didn't see it.  The view-tab strip in HubScheduleClient.tsx was gated by `isHostManager` (global HOST_MANAGER role only) instead of `isManager` (the hub-aware flag that includes coordinators of the active hub).  API capability + UI visibility now match.
+
+### Architectural calls made this session
+
+**"Shared infrastructure, hub-scoped data" is the right architecture.**  Jesse questioned it twice ("should these be duplicated instead of sharing?" — once during the design conversation, once after the Nancy bug).  The shared approach is correct because RIM scales to low-double-digit hubs with the same coordinator practice across all of them.  But the sharp edge is real: every callsite that touches hub context must honor scoping.  Slice 2.5 + 2.6 surfaced two layers Slice 1 had missed (email URLs, standing-rotation routes).  The new engineering docs are the institutional response — every future hub-related slice now has a checklist to follow, and the closing ritual requires auditing all four routing layers before commit.
+
+**Modularity per tool, manual chapters per hub, behavior feedback in `memory/`.**  After we built the three engineering docs (Hub + Email + Scheduler), Jesse raised the broader meta-question: "these tools have their own document that can be thoroughly created."  We codified the modular split — per-tool engineering docs (`RIM_<Tool>.md`) for the developer/Claude, per-hub `ManualSection` chapters for the human members, cross-cutting `RIM_<Concern>_Engineering.md` for shared rules, behavior memory files for collaboration patterns.  Self-perpetuating via closing-ritual step 4d.
+
+**ADMIN no longer bypasses hub content access.**  Jesse's memory was right: hubs are team spaces and the team is defined by membership.  ADMIN configures hubs from `/admin/hubs` but participates as a member.  Matches GUIDING_TEACHER's existing pattern.  The "+ Add me as coordinator" affordance on the admin edit page closes the catch-22 this creates for the first admin into a new hub.
+
+**Standing rotations are a generally-useful pattern, not host-team-specific.**  Every team that holds recurring sessions might want one.  Jesse pushed back on the "deferred until peer-led needs it" framing — Slice 2.6 made the generalization happen now so future hubs just work.
+
+**Email Template Gate: protect against silent overwrites, not against intentional consented updates.**  The original rule was over-defensive.  Refined to "seed-only by default; intentional `update` with consent is fine, with per-template log output as the audit trail."
+
+### What testing on the deployed site should confirm
+
+(Cumulative across Slice 2.5 + 2.6 + the tab-visibility fix.)
+
+1. **Nancy's end-to-end flow.**  Add Nancy as peer-led-silent-meditation member.  She gets a welcome email pointing to `/account/hub/peer-led-silent-meditation`.  Someone requests a sub on a Good Morning session — Nancy gets a sub-request email reading "**X** needs a sub for **Good Morning Silent Meditation**" (human-readable program name) with a "Cover this session" button (once you swap `{{coverUrl}}` for `{{coverButton}}` in the template body).  She clicks → lands on `/tools/schedule?action=cover&id=...&hub=peer-led-silent-meditation` (correct hub view).  She claims → joins the session → sees Facilitator pill + bell-friendly audio.
+2. **Rotations tab visible in peer-led hub.**  Open `/tools/schedule?hub=peer-led-silent-meditation`.  You should see Schedule | Rotations tabs at the top (Slice 2.6 fix).  Click Rotations.  Empty rotations grid for peer-led programs.  Create a rotation pattern (e.g. Nancy every other Tuesday morning) — save succeeds (Slice 2.6 API generalization).  Apply — creates HostAssignment rows.  Nancy gets `sendStandingAssignmentScheduledEmail` with the schedule link scoped to peer-led hub.
+3. **Welcome email actually arrives.**  Slice 1's `.catch(() => {})` was killing the email via Vercel teardown.  Add a new member to any hub; confirm the email lands in their inbox.  If it fails, the Vercel log shows the error (no more silent swallow).
+4. **CTA buttons render after you edit templates.**  At `/admin/emails/sub-request-posted` (and the other five), swap the plain markdown CTA link for `{{coverButton}}` / `{{scheduleButton}}` / `{{hubButton}}`.  Save.  Next email of that type renders the canonical button (RIM-blue, white bold, centered).
+
+### Connections (what this work touches)
+
+- **`lib/email.ts`** — every send* function in the file now hub-aware.  Two new helpers (`hubScopedUrl`, `hubHomeUrl`).  CTA button helper (`emailButtonHtml`).
+- **`lib/hubAuth.ts`** — new `isHubCoordinator(userId, hubSlug)` helper.  ADMIN-policy comment header rewritten (no content-access bypass).
+- **`lib/programHub.ts`** — unchanged from Slice 1; now used by far more callsites.
+- **`/api/hub/[slug]/members/route.ts`** — `after()` wrap; uses `hubHomeUrl`.
+- **`/api/admin/hubs/[slug]/add-me-as-coordinator/route.ts`** — new; admin bootstrap into a hub.
+- **`/api/host/sub-requests/*`, `/api/host/assignments/*`** — every send* call passes `hubSlug` from program.
+- **`/api/host/standing-assignments/*`** — all 6 routes hub-routed by `getProgramHubSlug`.  Helpers consolidated to use the shared `lib/hubAuth.ts::isHubCoordinator`.
+- **`/api/admin/hubs/*`** — HubAdminForm + API now expose `assignmentGrantsTeacher` + `teacherLabel` form fields (Slice 1 added the schema columns; Slice 2 added the UI).
+- **`components/HubAdminForm.tsx`** — checkbox + dropdown (mirrors ProgramEditor's pattern); "+ Add me as coordinator" affordance.
+- **`components/RotationsClient.tsx`** — `hubSlug` prop; `?hub=` on rotation-list fetch.
+- **`components/HubScheduleClient.tsx`** — `hubSlug` prop pass-through; Rotations tab gated by `isManager` not `isHostManager`.
+- **`app/account/hub/[slug]/layout.tsx`** — ADMIN-bypass removed; `hasAccess = isMember` only.
+- **18 hub API routes** — `!member && !isAdmin` → `!member` (content access).  Coordinator-level checks unchanged.
+- **`lib/syncHubMembership.ts`** — awaits sends instead of fire-and-forget; uses `hubHomeUrl`.
+- **`prisma/migrate.mjs`** — three new flagged migration entries: scheduler-label-rename, peer-led-silent-meditation manual chapter seed, email-CTA-button swap.
+- **`lib/toolRegistry.ts`** — "Host Schedule" → "Scheduler" default label.
+- **`lib/manualGroups.ts`** — new `peer-led` group.
+- **`CLAUDE.md`** — Design Orientation table + closing ritual updated.
+- **`RIM_Hub_Engineering.md`, `RIM_Email_Engineering.md`, `RIM_Scheduler.md`** — three new engineering reference docs.
+
+### Backlog moves
+
+- **Closed: `2026-05-25-003`** (Silent Meditation Hub).  Architecture is fully operational + isolated end-to-end.  Pending only Jesse's live verification.
+- **Still open: `2026-05-21-002`** (rate-limit on `/api/auth/callback/resend`).  Defense-in-depth, queued.
+- **Still open: 9 fire-and-forget patterns** in the codebase (enrollment side-effects).  Same `after()` treatment as the welcome email; queued for a focused reliability sweep slice.
+
+### Smaller items parked
+
+- **Hub creation should auto-add the creator as coordinator.**  Removes the "+ Add me as coordinator" extra step.  Small follow-up.
+- **Friendly "no access" message** when an admin lands at a hub they're not a member of — link them back to the admin edit page.  Small UX polish.
+- **Voice-extraction (`RIM_Voice.md`)** — Jesse's writing-voice profile.  Per the blueprint-pattern discussion at the end of this session.  Queued as a small focused task.
+- **Behavior-audit at closing.**  CLAUDE.md closing ritual could add step 9b: "Scan the session for corrections that should become memory files."  Five-minute change.
+
+### Next priority
+
+Either the **voice extraction** (~15 min focused work; produces a real reference doc that compounds the engineering-docs investment) or whatever's most pressing for the live site.  Backlog priorities to consider: rate-limit on the resend callback (`2026-05-21-002`), the fire-and-forget reliability sweep, or the hub-creation auto-coordinator polish.
+
+---
+
 ## 2026-05-22 (session 128) — Silent Meditation Hub — Slice 1 architecture
 
 One code commit on `main` (`500fa64`). Slice 1 of the two-slice plan documented at the end of session 127. The full design was settled in conversation; this session was straight-through implementation — schema, helper, route updates, editor restructure, schedule filter — with one reviewer-caught nit addressed before commit.
