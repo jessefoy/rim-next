@@ -1858,7 +1858,16 @@ Generalizes the program↔hub relationship from 1:1 (Slice 1's `Program.hostingH
 
 **Standing rotations hub-scoped per record.** Every standing-assignment route accepts a `hubSlug` body field; gates by `isHubCoordinator(userId, hubSlug)`. Conflict detection in `lib/applyStandingAssignments.ts` scoped per `(programSlug, dateStr, hubSlug)` so an AV rotation candidate doesn't collide with a host-team HostAssignment. Apply-time emails group per-user-and-hub so a user with cross-hub rotations gets one email per hub, each linking to the right Scheduler view.
 
-**Migration `auxiliary_hub_coverage_v1`.** Idempotent + value-preserving. Adds columns with safe defaults, backfills `host_assignments.hubSlug` and `standing_assignments.hubSlug` from `programs.hostingHubSlug`, drops the old unique on host_assignments and replaces with composite indexes for query performance, widens the standing_assignments unique to include `hubSlug`, creates the `program_coverage_hubs` table, then `updateMany`s the audio-visual and greeter hubs (if those rows exist) to set their format filters + multi-claim flags + `hasSchedule = true`.
+**Migration `auxiliary_hub_coverage_v1`.** Idempotent + value-preserving. Adds columns with safe defaults, backfills `host_assignments.hubSlug` and `standing_assignments.hubSlug` from `programs.hostingHubSlug`, drops the old unique on host_assignments and replaces with composite indexes for query performance, widens the standing_assignments unique to include `hubSlug`, creates the `program_coverage_hubs` table, then `updateMany`s the audio-visual and greeter hubs (if those rows exist) to set their format filters + multi-claim flags.
+
+**Post-ship cleanup (same-day follow-ups).** A series of fixes after first ship surfaced the real shape of the architecture:
+
+- "Host Schedule" tool title renamed to **"Scheduler"** (generic across all four hubs since the hub name itself is in the sidebar).
+- **`hasSchedule` vs `usesScheduler` separation.** Initially conflated — caused AV/greeter hubs to inadvertently render the host-team-style Home view. Fix: `hasSchedule` stays narrow ("hub runs live sessions" — host-team, peer-led only); the new `usesScheduler` signal (derived from `HubAppLink` with `toolSlug = "schedule"`) is the authoritative "this hub uses the Scheduler tool" check. ProgramEditor + Members tab + destructive-action warning all use the new signal.
+- **Admin form exposes `hasSchedule`** as "This hub runs live sessions" checkbox. Previously it was inaccessible — peer-led-silent-meditation had been false in the DB the whole time.
+- **Hosting & Access tab cleanup.** Hosting team dropdown filters to `hasSchedule = true`. Auxiliary fieldset filters to `hasSchedule = false && usesScheduler = true && appliesToFormats overlap`. Intro paragraph spells out the distinction. Virtual-only programs show "Not applicable" in the Auxiliary section.
+- **Helpful empty-state copy** on the Scheduler when no programs are tagged for the hub.
+- **Hub-aware destructive routes (audit fixes).** Both `/api/host/programs/[slug]/clear-rotations` (was hardcoded to host-team) and `/api/host/assignments/clear` (was global ADMIN-only nuclear reset) are now hub-scoped, gated by `isHubCoordinator + ADMIN`. RotationsClient's "Reset this team" button copy makes the per-hub scope plain.
 
 ### Silent Meditation Hub — Slice 2 + 2.5 + 2.6 operational + hub-isolation hardening (session 128 continued)
 

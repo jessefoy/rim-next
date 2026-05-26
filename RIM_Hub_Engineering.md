@@ -115,6 +115,36 @@ The editor surfaces a mid-flight warning before the save commits, showing the co
 
 ---
 
+## Two hub signals — `hasSchedule` vs `usesScheduler`
+
+These are distinct concerns. Conflating them in session 129's first ship caused two visible bugs (AV/greeter hubs rendering the host-team Home view; peer-led-silent-meditation disappearing from the Hosting team dropdown after a tightening fix).
+
+| Signal | Storage | Means | Drives |
+|---|---|---|---|
+| `Hub.hasSchedule` | column on Hub (boolean) | "this hub runs live sessions" — it owns the LiveKit room, holds dharma authority | Home view (`HostHubHomeClient` vs generic), ProgramEditor's Hosting team dropdown eligibility |
+| `usesScheduler` | derived (`HubAppLink` with `toolSlug = "schedule"` exists on the hub) | "this hub uses the Scheduler tool to staff roles" | ProgramEditor's Auxiliary coverage eligibility, Members tab hosting affordances, destructive-action warning |
+
+Rule of thumb when adding a hub-aware feature:
+- Asking "is this a hosting hub?" → use `hasSchedule`
+- Asking "does this hub schedule volunteers?" → use the HubAppLink lookup (or pass it through as `usesScheduler`)
+- Asking "does this hub schedule volunteers for *this program*?" → use `getProgramSlugsForHub(hubSlug)` (covers primary + auxiliary)
+
+The admin form at `/admin/hubs` exposes `hasSchedule` directly; `usesScheduler` is derived per-hub from the app links (not a separate column).
+
+---
+
+## Destructive routes need hub-scoping discipline
+
+The session-129 audit found that the destructive routes (`/api/host/programs/[slug]/clear-rotations` and `/api/host/assignments/clear`) were both unscoped or hardcoded to host-team. The blast radius of a destructive route is bigger than a read route's, so the four routing layers from the table below apply *more* strictly there, not less.
+
+Pattern for any destructive route:
+1. Take `hubSlug` as a required body field (or derive from a resource the user explicitly identified).
+2. Gate by `isHubCoordinator(userId, hubSlug)` plus ADMIN bypass.
+3. Scope every `deleteMany` / `updateMany` by `hubSlug`.
+4. Update UI copy to make the hub scope plain ("Reset this team" not "Reset everything").
+
+---
+
 ## Auxiliary-hub coverage (session 129 — many-to-many)
 
 The Slice 1 / 2.5 / 2.6 model assumed **one program ↔ one hub** via `Program.hostingHubSlug`. Session 129 generalised this to **one program ↔ many hubs, each covering a different role**. An in-person Saturday Sit can now be: host-team (or peer-led) for the live session + audio-visual for the AV slot + greeter for the greeter signup. Three hubs, three independent scheduler views, three sets of HostAssignment rows.

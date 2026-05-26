@@ -42,7 +42,8 @@ The tool was originally named "Host Schedule" when host-team was the only hub. R
 | `app/api/host/sub-requests/route.ts` | GET + POST (create a sub request). |
 | `app/api/host/sub-requests/[id]/claim/route.ts` | POST (claim an open sub request). |
 | `app/api/host/standing-assignments/*` | Standing-rotation CRUD. Currently host-team-only at the gate level. |
-| `app/api/host/programs/[slug]/clear-rotations/route.ts` | Coordinator: clear all rotations on a program. |
+| `app/api/host/programs/[slug]/clear-rotations/route.ts` | Coordinator: clear all rotations on a program. Hub-scoped (session 129 audit) — accepts `hubSlug` body field, gates by `isHubCoordinator + ADMIN`, scopes deletes per hub so an AV coordinator clearing AV rotations doesn't touch host-team data on the same program. |
+| `app/api/host/assignments/clear/route.ts` | "Reset this team" — hub-scoped nuclear reset (session 129 audit). Requires `hubSlug` body field. Gate: hub coordinator OR ADMIN. Scope `future` deletes upcoming HostAssignments; `all + endRotations` wipes everything in this hub. Other hubs untouched. |
 | `app/api/host/schedule/pdf/route.ts` | PDF export of "my schedule" — uses `@react-pdf/renderer`. |
 
 ---
@@ -182,6 +183,25 @@ The picker is scoped to one hub at a time — multi-hub members appear in whiche
 
 ---
 
+## Destructive-route hub-scoping (session 129 audit)
+
+Both destructive routes the Scheduler exposes are now hub-aware. Pattern matches the rest of the standing-assignment routes:
+
+**Per-program reset** (`POST /api/host/programs/[slug]/clear-rotations`):
+- Body: `{ mode: "clear" | "reset", hubSlug?: string }`. `hubSlug` defaults to the program's primary hosting hub if omitted.
+- Gate: `isHubCoordinator(userId, targetHubSlug) || ADMIN`.
+- `mode: "clear"` deletes upcoming HostAssignment rows for this `(programSlug, hubSlug)`. `mode: "reset"` also deletes StandingAssignment rows for this `(programSlug, hubSlug)`. Other hubs covering the same program are untouched.
+
+**Whole-hub reset** (`POST /api/host/assignments/clear`):
+- Body: `{ hubSlug: string (required), scope: "future" | "all", endRotations?: boolean }`.
+- Gate: `isHubCoordinator(userId, hubSlug) || ADMIN`.
+- `scope: "future"` deletes upcoming HostAssignment in this hub. `scope: "all"` adds past assignments. `endRotations: true` also wipes StandingAssignment in this hub.
+- RotationsClient calls this with the active hub. UI copy reads "Reset this team" with explanatory text that other teams' data stays intact.
+
+The pre-audit versions of both routes were either hardcoded to `host-team` or globally unscoped — clicking from greeter's UI would have wiped host-team's data. After the audit, the blast radius is contained per hub.
+
+---
+
 ## What's deferred
 
 | Item | Status | Why |
@@ -190,6 +210,7 @@ The picker is scoped to one hub at a time — multi-hub members appear in whiche
 | Time-gate adjustments per-program | Deferred (parked) | The 22/30-min window is currently uniform across all programs; if dharma retreats want a longer pre-open, add per-program override |
 | Sub-request flow on AV (in-person) | Edge case to verify | Sub-requests still work in single-slot AV; verify on live deploy that the in-person hub's coordinator notifications behave correctly |
 | Manual chapter for AV + greeter hubs | Open follow-on | Write a hub-specific manual chapter explaining the AV / greeter flow, the difference between single-slot and multi-claim, sub-request semantics. Can be done via `/admin/manual/<slug>/edit` once the hubs are configured. |
+| Hub-aware new-program notifications | Open | When a coordinator creates a hybrid program AND ticks AV/greeter auxiliary coverage, only the primary hub gets the "new program needs a host" email. The auxiliary teams don't yet. Worth a separate slice when the need is real. |
 
 ---
 

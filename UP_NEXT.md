@@ -6,7 +6,50 @@
 
 ## Active
 
-### Session 129 (2026-05-25) — Auxiliary-hub coverage: AV + Greeter hubs shipped
+### Session 129 + follow-ups (2026-05-25) — Auxiliary-hub coverage shipped, refined, and audited
+
+The session-129 architecture is now operational + post-ship-tested + audited. Six commits beyond the original ship:
+
+1. `10cf18d` — "Host Schedule" h1 renamed to "Scheduler" (generic across hubs)
+2. `0c03e03` — `hasSchedule` vs `usesScheduler` separation (real bug — AV/greeter were rendering the host-team-style Home view)
+3. `4a8ac15` — Helpful empty-state copy on Scheduler + Rotations when no programs are tagged for the hub
+4. `d3efc57` — Hosting & Access tab UX cleanup (clean filters on Hosting team dropdown + Auxiliary fieldset, intro paragraph, format-aware Auxiliary list)
+5. `c9598bb` — `hasSchedule` exposed in admin form + data fix for peer-led-silent-meditation (had been false in DB since admin form never exposed it)
+6. `cc265a8` — Audit fixes: `clear-rotations` route is now hub-aware; "Reset everything" is now per-hub + hub-coordinator-gated
+
+**Architecture is now sound across all four scheduler-using hubs** (host-team, peer-led-silent-meditation, audio-visual, greeter). The five-phase audit confirmed every routing layer is hub-correct and every edge case behaves.
+
+### What to verify on the deployed site once `cc265a8` lands
+
+1. **Peer-Led Silent Meditation appears in the Hosting team dropdown** on any program editor → Hosting & Access tab.
+2. **Auxiliary coverage is cleanly filtered.** In-person/hybrid programs show only AV + Greeter under "Auxiliary role coverage." Virtual-only programs show "Not applicable" copy. Peer-Led Silent Meditation no longer appears in Auxiliary.
+3. **The "This hub runs live sessions" checkbox** appears in `/admin/hubs/[slug]/edit`. Checked on host-team + peer-led; unchecked on AV + greeter.
+4. **"Reset this team" works per-hub.** Open `/tools/schedule?hub=greeter` → Rotations tab → Reset wipes only greeter's data. Host-team Scheduler stays intact.
+5. **Per-program Reset is also per-hub.** A hybrid program tagged for AV: clicking Reset rotations from `?hub=audio-visual` only clears AV's rotations on that program. The program's host-team rotations are untouched.
+6. **Empty Scheduler reads correctly.** A hub with no tagged programs shows the helpful "No programs are scheduled with this team yet" copy rather than a blank page.
+
+### Setup steps still pending (not blocking)
+
+To get programs flowing into the AV + Greeter Schedulers:
+
+1. **Add Scheduler `HubAppLink`** to `/admin/hubs/audio-visual/edit` and `/admin/hubs/greeter/edit`. Path: `/tools/schedule`. The sidebar auto-appends `?hub=<slug>`.
+2. **Tag programs.** Open in-person or hybrid programs in `/tools/programs/[slug]/edit` → Hosting & Access tab → tick "Audio Visual" and/or "Greeter" under Auxiliary role coverage.
+3. **Add hub members** via each hub's Members tab.
+
+### Known follow-ons (queued, not urgent)
+
+- **Hub-aware new-program notifications.** When a coordinator creates a hybrid program AND ticks AV/greeter auxiliary coverage, only the primary hub gets the "new program needs a host" email. The auxiliary teams don't yet. Worth a separate slice when the operational need is real.
+- **Manual chapters for AV + Greeter hubs.** Not seeded this session. Can be authored via `/admin/manual/<slug>/edit` after the hubs go live, or as a follow-on migration seed. The greeter chapter should explain the open-sign-up model.
+- **AV sub-request flow live test.** Single-slot AV inherits sub-requests automatically. Verify on first live test that the AV team's notification pool routes correctly (should — code uses `assignment.hubSlug`).
+- **PDF schedule export hub-scoping.** Currently exports all of the requesting user's HostAssignments regardless of hub. Probably fine since it's a personal export; revisit if AV/greeter members ask.
+
+### Memory files added in this session
+
+- `feedback-clear-seeing-is-correctness.md` — for RIM UI work, visual hierarchy + plain-language state + self-recognition are correctness criteria, not polish to defer. Triggered by my initial "minimum viable + refine later" framing of the multi-claim Scheduler row. Already indexed in MEMORY.md.
+
+---
+
+### Session 129 (2026-05-25) — Auxiliary-hub coverage: AV + Greeter hubs shipped (original entry below for cross-reference)
 
 One coherent slice landed all in one push: the program↔hub model generalized from 1:1 to many-to-many with a role dimension, AV + Greeter hubs configured + wired into the Scheduler, multi-claim sign-up UX added for the greeter hub.
 

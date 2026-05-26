@@ -1,5 +1,81 @@
 ---
 
+## 2026-05-25 (session 129 continued) — Post-ship fixes + thorough scheduler audit
+
+After session 129's first ship, real-world testing surfaced a series of issues. Each got fixed in turn, then Jesse asked for a "thorough audit to make sure the integrity is sound." The audit ran clean (every routing layer hub-correct) except for two real bugs in the destructive-reset routes which were then fixed.
+
+### The fix sequence
+
+**1. "Host Schedule" → "Scheduler" rename** (commit `10cf18d`). The tool layout's `toolName: "Host Schedule"` was a leftover from when host-team was the only hub. Renamed to "Scheduler" — generic across all four hubs since the hub name itself sits in the sidebar already. JSDoc + metadata title updated in tandem.
+
+**2. The hasSchedule conflation bug** (commit `0c03e03`). My session-129 migration set `hasSchedule: true` on audio-visual + greeter so they'd appear in the ProgramEditor's Auxiliary coverage fieldset. But `hasSchedule` had a second meaning I didn't account for — `app/account/hub/[slug]/page.tsx:61` uses it to route the hub's Home view to `HostHubHomeClient` (host-team-specific UI with hardcoded `/admin/manual/host-hub` links). Opening the Audio Visual hub home showed Jesse the host-team home view. Fix: separated the two concerns. `hasSchedule` stays narrow ("show the Host Hub home view") for host-team + peer-led; the new authoritative signal for "this hub uses the Scheduler" is HubAppLink existence (`toolSlug = "schedule"`). ProgramEditor + Members tab + destructive-action warning all updated to use the new signal. Migration `auxiliary_hub_has_schedule_fix_v1` walked hasSchedule back to false on AV + greeter.
+
+**3. Helpful empty state** (commit `4a8ac15`). The empty Greeter Scheduler read as broken when it was actually correct ("no programs tagged yet"). Both Schedule and Rotations tabs now show a calm sentence pointing at the Program editor when no programs are scoped to the hub.
+
+**4. Hosting & Access tab UX cleanup** (commit `d3efc57`). Real bug Jesse spotted in the editor: peer-led-silent-meditation appeared in BOTH the Hosting team dropdown AND the Auxiliary coverage checkboxes. Similarly AV / greeter appeared in the Hosting dropdown despite being incoherent choices for primary hosting. Fix: tightened both filters. Hosting team dropdown shows only `hasSchedule = true` hubs. Auxiliary fieldset shows only `hasSchedule = false && usesScheduler = true` AND filters by program format overlap so a virtual-only program doesn't surface AV/Greeter checkboxes. Added an intro paragraph at the top of the tab spelling out the difference between the two sections.
+
+**5. peer-led-silent-meditation invisible in dropdown** (commit `c9598bb`). After commit 4, Jesse reported peer-led didn't appear in the Hosting team dropdown. Investigation: `hasSchedule` was never exposed in the admin form at `/admin/hubs`, so peer-led had been created with the schema default (false). It was *also* never getting the host-team-style Home view despite being a hosting hub — Jesse just didn't notice. Two-part fix: migration `peer_led_has_schedule_fix_v1` set hasSchedule=true on the existing peer-led row; the admin form now exposes "This hub runs live sessions" as a checkbox above the existing teacher-capability toggle. POST/PATCH routes accept hasSchedule; edit page wires it through initialData.
+
+### The audit
+
+Jesse asked for a thorough integrity audit. I worked through five phases, each tracked as a task:
+
+| Phase | Result |
+|---|---|
+| Hub config matrix (4 hubs × 4 flags) | ✓ All correct |
+| Layer 1: capability gates on every Scheduler API route | 🔧 1 bug found |
+| Layer 2: notification recipient pools | ✓ Clean |
+| Layer 3: UI filters across page + components | ✓ Clean (2 cosmetic items) |
+| Layer 4: outbound URLs in emails | ✓ Clean |
+| Edge cases (multi-claim, grandfather, cross-hub rotations, reassign, step-in) | ✓ All sound |
+
+### The audit fixes (commit `cc265a8`)
+
+**Bug A — `/api/host/programs/[slug]/clear-rotations`** was hardcoded to host-team in three places: coordinator gate, hosting-access fallback, and the `deleteMany` calls. If a hybrid program was tagged for AV/greeter auxiliary coverage, hitting the per-program Reset button would have wiped ALL hubs' rotations + future assignments on that program. Fix: accept `hubSlug` in body, gate by `isHubCoordinator + ADMIN`, scope every delete by `hubSlug`. Matches the pattern of every other standing-assignment route. RotationsClient updated to pass the active hub.
+
+**Bug B (per Jesse's call) — "Reset everything"** was a global ADMIN-only nuclear reset that wiped HostAssignment / SubRequest / SubClaim / StandingAssignment across every hub. After the auxiliary-hub model that was a sharp edge — clicking Reset from greeter's UI would wipe host-team's data. Fix: hub-scope the reset (`hubSlug` required body field), widen the gate to hub coordinator OR ADMIN. Each hub's coordinator can now reset their own hub independently. Button copy in RotationsClient updated to "Reset this team" with help text spelling out the hub scope.
+
+**Bonus cleanup**: removed dead `getHubNotificationRecipients` import in `assignments/route.ts`; migrated two `"host-team"` string literals in `HubScheduleClient.tsx` to use `DEFAULT_HOSTING_HUB_SLUG`.
+
+### Architectural calls + lessons
+
+**`hasSchedule` and `usesScheduler` are two different concerns.** Both signals are now distinct in the code:
+- `Hub.hasSchedule` (boolean column) = "this hub runs live sessions" — drives Home view + Hosting team dropdown eligibility. True for host-team and peer-led. Now exposed in the admin form.
+- `usesScheduler` (derived from `HubAppLink` with `toolSlug = "schedule"`) = "this hub uses the Scheduler tool" — drives ProgramEditor's Auxiliary coverage eligibility, Members tab hosting affordances, and the destructive-action warning. True for all four scheduler-using hubs.
+
+Conflating them was the root cause of two visible bugs.
+
+**Clear-seeing UI is correctness, not polish.** This was the cumulative lesson from the cluster of UX-confusion bugs Jesse hit. The multi-claim row's first version was a comma-list; the Auxiliary coverage and Hosting team distinction wasn't visually plain; the empty Scheduler state read as broken. Saved as memory file `feedback-clear-seeing-is-correctness.md` earlier in the session.
+
+**Destructive routes need the same hub-scoping discipline as read routes.** The two bugs in the audit were both in destructive routes (clear-rotations, clear-everything). The four-layer routing model from `RIM_Hub_Engineering.md` applies to deletes as much as reads — arguably more, since the blast radius is bigger.
+
+### What to verify on the deployed site
+
+1. **Peer-led shows in dropdown.** Open any program → Hosting & Access → "Peer-Led Silent Meditation" should appear in the Hosting team dropdown alongside "Host Team (default)."
+2. **Auxiliary coverage filtered correctly.** On an in-person or hybrid program, Auxiliary fieldset shows only AV + Greeter. On a virtual program, the section reads "Not applicable — virtual-only program." Peer-Led Silent Meditation no longer appears in Auxiliary.
+3. **Reset this team works per-hub.** Open `/tools/schedule?hub=greeter` → Rotations tab → Reset button reads "Reset this team." Clicking through wipes greeter's data only; host-team's Scheduler is untouched.
+4. **Per-program Reset works for auxiliary hubs.** Open a program tagged for AV in `/tools/schedule?hub=audio-visual` → Rotations tab → per-program Reset clears only AV's future assignments + standing rotations for that program. Host-team's data on that program is untouched.
+5. **Empty hub Scheduler reads correctly.** A hub with no tagged programs shows the helpful "No programs are scheduled with this team yet" copy with a pointer to the Program editor.
+6. **Admin form exposes hasSchedule.** `/admin/hubs/new` and `/admin/hubs/[slug]/edit` both show the "This hub runs live sessions" checkbox.
+
+### Files touched in this follow-up arc
+
+API: `app/api/host/assignments/clear/route.ts`, `app/api/host/programs/[slug]/clear-rotations/route.ts`, `app/api/host/assignments/route.ts` (dead import), `app/api/hub/[slug]/members/[userId]/route.ts`, `app/api/admin/hubs/route.ts`, `app/api/admin/hubs/[slug]/route.ts`.
+
+Pages: `app/tools/schedule/layout.tsx`, `app/tools/schedule/page.tsx`, `app/tools/programs/[programSlug]/edit/page.tsx`, `app/tools/programs/new/page.tsx`, `app/account/hub/[slug]/members/page.tsx`, `app/admin/hubs/[slug]/edit/page.tsx`.
+
+Components: `components/HubScheduleClient.tsx`, `components/RotationsClient.tsx`, `components/registrar/ProgramEditor.tsx`, `components/HubAdminForm.tsx`.
+
+Migrations: `prisma/migrate.mjs` (`auxiliary_hub_has_schedule_fix_v1`, `peer_led_has_schedule_fix_v1`, plus revised `auxiliary_hub_coverage_v1` to omit the hasSchedule conflation).
+
+### Connections (what this work touches)
+
+- **Hub admin form is now configuration-complete** — every Hub config field that affects scheduler behavior is exposed (hasSchedule, assignmentGrantsTeacher, teacherLabel; appliesToFormats + allowsMultipleAssignments still managed by migration since AV/Greeter are the only auxiliary hubs today).
+- **Destructive routes are now hub-isolated** — both clear-rotations and Reset everything respect hub boundaries; no cross-hub wipe is possible from a hub-scoped UI.
+- **The four-layer audit checklist from `RIM_Hub_Engineering.md` is proven**. Running it surfaced two real bugs that would have leaked across hubs in production. The pattern stays in the closing ritual.
+
+---
+
 ## 2026-05-25 (session 129) — Auxiliary-hub coverage: AV + Greeter hubs (one-program-many-hubs generalization)
 
 Jesse asked for two more hubs — `audio-visual` (one AV volunteer per in-person session) and `greeter` (open multi-claim sign-up for in-person greeting) — both using the existing Scheduler tool. The right answer wasn't "copy the Silent Meditation Hub pattern" because that pattern committed to one program ↔ one hub via `Program.hostingHubSlug`. Real in-person offerings need multiple parallel role pools — a Saturday Sit needs the dharma teacher + AV + greeters as three independent role coverage scopes against the same Program record. So session 129 generalized the architecture: one program ↔ many hubs, each covering a different role.
