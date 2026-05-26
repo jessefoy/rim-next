@@ -1041,15 +1041,7 @@ export default function HubScheduleClient({
           the global HOST_MANAGER role only). The previous gate hid the
           Rotations tab from peer-led-silent-meditation coordinators who
           weren't also global HOST_MANAGERs — Jesse caught this post-2.6. */}
-      {/* Tab strip — coordinator-only AND only for single-slot hubs.
-          Multi-claim hubs (greeter) don't use the rotation concept at all:
-          their sessions are open sign-up, where each person volunteers for
-          individual dates. A "rotation" rule that pins one specific person
-          to every 1st & 3rd Tuesday doesn't map to that model. Hiding the
-          tab strip entirely is cleaner than showing it with a disabled or
-          confusing Rotations option — the Schedule view is the only
-          relevant view for multi-claim hubs. */}
-      {isManager && !allowsMultipleAssignments && (
+      {isManager && (
         <div className="hs-viewtabs" role="tablist" aria-label="Schedule views">
           <button
             role="tab"
@@ -1073,10 +1065,8 @@ export default function HubScheduleClient({
       {/* Rotations view */}
       {/* When rotations apply changes, refresh the schedule's local sessions
           state so the new HostAssignments + via-rotation markers appear when
-          the user switches back to Schedule. Defensively gated on
-          allowsMultipleAssignments too — the tab is hidden for multi-claim
-          hubs, but a stale state value shouldn't render the panel either. */}
-      {view === "rotations" && !allowsMultipleAssignments && (
+          the user switches back to Schedule. */}
+      {view === "rotations" && (
         <RotationsClient
           programs={programs}
           teamMembers={teamMembers}
