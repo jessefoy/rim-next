@@ -249,6 +249,12 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
   // Per-program Reset confirm
   const [progResetConfirm, setProgResetConfirm] = useState<string | null>(null);
   const [progClearing, setProgClearing]          = useState(false);
+  /** Inline result line at the per-program Reset click point. Session 130
+   *  follow-up — Jesse reported the toast wasn't visible after clicking
+   *  Reset on multi-day programs (likely because the toast renders at the
+   *  top of the page and the click happens at the bottom of the card).
+   *  Showing the result inline at the click location is unmissable. */
+  const [progResetResult, setProgResetResult] = useState<{ slug: string; kind: "ok" | "error"; message: string } | null>(null);
 
   // Conflict modal — shown ONLY when there are real conflicts to decide.
   // Empty previews and conflict-free fills get a toast instead.
@@ -328,35 +334,67 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
   };
 
   // ── Per-program Reset ──────────────────────────────────────────────────────
+  //
+  // Session 130 follow-up: a Jesse beta-test surfaced a "no toast, rotations
+  // still there" failure on multi-day programs that couldn't be diagnosed
+  // from the code (the route is a straightforward `deleteMany`). Until we
+  // see the failure on the wire we can't fix the root cause — this version
+  // makes the next click self-diagnosing:
+  //   • console.log every step under `[reset]` (Jesse opens DevTools)
+  //   • surface the API response (status, count, error body) in a visible
+  //     in-card result line so the success/failure is at the click point
+  //     (the old toast renders at the top of the page; if you're scrolled
+  //     to a card you don't see it)
+  //   • catch passes the actual error message, not a generic string
   const handleProgReset = async (slug: string) => {
     setProgClearing(true);
     setError(null);
+    setProgResetResult(null);
+    // eslint-disable-next-line no-console
+    console.log("[reset] click", { slug, hubSlug });
     try {
       const res = await fetch(`/api/host/programs/${slug}/clear-rotations`, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ mode: "reset", hubSlug }),
       });
-      if (!res.ok) throw new Error("reset failed");
-      const data = await res.json();
-      const aCount = data.deletedAssignments ?? 0;
-      const rCount = data.deletedRotations   ?? 0;
-      // Toast names the program + scope explicitly so the coordinator can
-      // verify the action did what they expected. Session 130 defensive UX:
-      // Maria's beta test reported a "reset shifted my day" symptom that
-      // could plausibly have been a coexisting rotation on another day; an
-      // unambiguous toast makes that case self-diagnosing on the next test.
+      // eslint-disable-next-line no-console
+      console.log("[reset] response status", res.status, res.statusText);
+      const data = await res.json().catch((e) => {
+        // eslint-disable-next-line no-console
+        console.log("[reset] response not JSON", e);
+        return null;
+      });
+      // eslint-disable-next-line no-console
+      console.log("[reset] response body", data);
+      if (!res.ok) {
+        const msg = (data && (data.error || data.message)) || `HTTP ${res.status} ${res.statusText}`;
+        throw new Error(msg);
+      }
+      const aCount = data?.deletedAssignments ?? 0;
+      const rCount = data?.deletedRotations   ?? 0;
       const program = programs.find((p) => p.slug === slug);
       const programName = program?.name ?? slug;
       const teamLabel = hubSlug && hubSlug !== "host-team" ? ` (${hubSlug})` : "";
-      showToast(
-        `Reset · ${programName}${teamLabel} · ${rCount} rotation rule${rCount === 1 ? "" : "s"} and ${aCount} upcoming session${aCount === 1 ? "" : "s"} removed`
-      );
+      const summary = `Reset · ${programName}${teamLabel} · ${rCount} rotation rule${rCount === 1 ? "" : "s"} and ${aCount} upcoming session${aCount === 1 ? "" : "s"} removed`;
+      showToast(summary);
+      // Inline result at the click point — survives until next reset attempt.
+      setProgResetResult({ slug, kind: "ok", message: summary });
       setProgResetConfirm(null);
+      // eslint-disable-next-line no-console
+      console.log("[reset] reloading rotations…");
       await loadRotations();
+      // eslint-disable-next-line no-console
+      console.log("[reset] reloaded; calling router.refresh()");
       fullRefresh();
-    } catch {
-      setError("Could not reset rotations. Please try again.");
+      // eslint-disable-next-line no-console
+      console.log("[reset] done");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Could not reset rotations.";
+      // eslint-disable-next-line no-console
+      console.error("[reset] failed", msg, e);
+      setError(`Could not reset rotations — ${msg}`);
+      setProgResetResult({ slug, kind: "error", message: msg });
     } finally {
       setProgClearing(false);
     }
@@ -779,18 +817,43 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
               const hasRotations = days.some((d) =>
                 (rotationsByBundle.get(`${program.slug}::${d}`) ?? []).length > 0
               );
-              if (!hasRotations) return null;
+              const resultForThis =
+                progResetResult && progResetResult.slug === program.slug
+                  ? progResetResult
+                  : null;
+              // When the program just got reset successfully, `hasRotations`
+              // becomes false on next render → the whole block would unmount
+              // and the result line would vanish before the user reads it.
+              // Keep the block mounted while a result is showing so the
+              // success message stays visible.
+              if (!hasRotations && !resultForThis) return null;
               const confirming = progResetConfirm === program.slug;
               return (
                 <div className="hs-rot__prog-danger">
-                  {!confirming ? (
+                  {resultForThis && (
+                    <p
+                      className={
+                        "hs-rot__prog-reset-result " +
+                        (resultForThis.kind === "ok"
+                          ? "hs-rot__prog-reset-result--ok"
+                          : "hs-rot__prog-reset-result--err")
+                      }
+                      role={resultForThis.kind === "error" ? "alert" : "status"}
+                    >
+                      {resultForThis.message}
+                    </p>
+                  )}
+                  {!confirming && hasRotations ? (
                     <button
                       className="hs-rot__prog-danger-btn hs-rot__prog-danger-btn--reset"
-                      onClick={() => setProgResetConfirm(program.slug)}
+                      onClick={() => {
+                        setProgResetResult(null);
+                        setProgResetConfirm(program.slug);
+                      }}
                     >
                       Reset rotations
                     </button>
-                  ) : (
+                  ) : confirming ? (
                     <div className="hs-rot__prog-danger-confirm">
                       <p className="hs-rot__prog-danger-q">
                         <strong>Reset rotations for {program.name}?</strong><br />
@@ -817,7 +880,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
                         </button>
                       </div>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               );
             })()}

@@ -108,5 +108,17 @@ export async function POST(
     deletedRotations = rotResult.count;
   }
 
+  // Diagnostic log to correlate with the client's `[reset]` console output
+  // when a coordinator reports the action "not working." Session 130
+  // follow-up. Visible in `vercel logs` for the deployment.
+  console.log("[reset-rotations]", {
+    programSlug,
+    targetHubSlug,
+    mode,
+    deletedAssignments,
+    deletedRotations,
+    userId: session.user.id,
+  });
+
   return Response.json({ deletedAssignments, deletedRotations });
 }

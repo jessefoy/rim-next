@@ -16532,6 +16532,26 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   font-weight: 500;
 }
 .hs-rot__release-q span { color: var(--rim-mid); font-weight: 400; }
+/* Per-program Reset inline result — sits next to the Reset button so the
+   outcome is unmissable at the click point. Session 130 follow-up after
+   "no toast visible" report on multi-day programs. */
+.hs-rot__prog-reset-result {
+  font-family: var(--font-sans);
+  font-size: var(--text-small);
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+.hs-rot__prog-reset-result--ok {
+  color: var(--rim-text);
+  background: var(--color-success-bg);
+  border-left: 3px solid var(--color-success);
+}
+.hs-rot__prog-reset-result--err {
+  color: var(--rim-text);
+  background: var(--color-error-bg);
+  border-left: 3px solid var(--color-error);
+}
 .hs-rot__release-sub {
   font-family: var(--font-sans);
   font-size: var(--text-xs);
