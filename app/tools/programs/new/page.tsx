@@ -23,6 +23,8 @@ export default async function NewProgramToolPage() {
       select: {
         slug: true,
         name: true,
+        hasSchedule: true,
+        appliesToFormats: true,
         appLinks: {
           where: { toolSlug: "schedule", isEnabled: true },
           select: { id: true },
@@ -46,6 +48,8 @@ export default async function NewProgramToolPage() {
           hubs={hubs.map((h) => ({
             slug: h.slug,
             name: h.name,
+            hasSchedule: h.hasSchedule,
+            appliesToFormats: h.appliesToFormats,
             usesScheduler: h.appLinks.length > 0,
           }))}
         />

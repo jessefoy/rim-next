@@ -48,6 +48,19 @@ export default async function EditProgramToolPage({
       select: {
         slug: true,
         name: true,
+        // `hasSchedule` flags hosting-style hubs (host-team, peer-led-
+        // silent-meditation) — those that run the live session, own
+        // LiveKit, hold dharma authority. Only these are valid choices
+        // for the "Hosting team" dropdown.
+        hasSchedule: true,
+        // `appliesToFormats` (virtual/hybrid for hosting hubs, in-person/
+        // hybrid for AV+greeter) lets the Auxiliary fieldset filter
+        // by overlap with the program's `programFormat` so a virtual-
+        // only program doesn't show AV/Greeter checkboxes.
+        appliesToFormats: true,
+        // A Scheduler HubAppLink is the authoritative "uses the
+        // Scheduler tool" signal — required for a hub to appear as
+        // auxiliary coverage.
         appLinks: {
           where: { toolSlug: "schedule", isEnabled: true },
           select: { id: true },
@@ -161,6 +174,8 @@ export default async function EditProgramToolPage({
           hubs={hubs.map((h) => ({
             slug: h.slug,
             name: h.name,
+            hasSchedule: h.hasSchedule,
+            appliesToFormats: h.appliesToFormats,
             usesScheduler: h.appLinks.length > 0,
           }))}
           futureHostAssignmentCount={futureHostAssignmentCount}

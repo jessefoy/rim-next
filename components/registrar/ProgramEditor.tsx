@@ -115,13 +115,23 @@ interface Props {
   initialData?: ProgramData;
   isEditing: boolean;
   categories: Category[];
-  /** Active hubs for the "Hosting & Access" tab dropdown. Server fetches
-   *  `db.hub.findMany({ where: { status: "ACTIVE" } })`. host-team is in
-   *  the list as a regular option but rendered with the "(default)" label.
-   *  `usesScheduler` is true when the hub has an enabled Scheduler
-   *  HubAppLink — the authoritative signal of "this hub uses the
-   *  Scheduler tool." Only these can appear as auxiliary coverage. */
-  hubs: { slug: string; name: string; usesScheduler?: boolean }[];
+  /** Active hubs for the "Hosting & Access" tab. Filtered by role:
+   *  - Hosting team dropdown: hubs where `hasSchedule` is true
+   *    (hosting-style hubs that run live sessions — host-team,
+   *    peer-led-silent-meditation).
+   *  - Auxiliary fieldset: hubs where `hasSchedule` is false AND
+   *    `usesScheduler` is true AND `appliesToFormats` overlaps with
+   *    the program's `programFormat` (pure auxiliary hubs like AV
+   *    and greeter that staff supporting roles, only relevant to
+   *    in-person or hybrid programs).
+   *  These two filters give clean, non-overlapping menus. */
+  hubs: {
+    slug: string;
+    name: string;
+    hasSchedule?: boolean;
+    appliesToFormats?: string[];
+    usesScheduler?: boolean;
+  }[];
   /** Count of HostAssignment rows for this program with `sessionDate >= now`.
    *  Drives the mid-flight change warning when a coordinator switches
    *  `hostingHubSlug`. Zero or unset means no warning. Only meaningful in
@@ -1340,12 +1350,35 @@ export default function ProgramEditor({
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
-           TAB 3 — Hosting & Access (session 128, Silent Meditation Hub slice 1)
+           TAB 3 — Hosting & Access (session 128 Slice 1; session 129 expanded)
            ══════════════════════════════════════════════════════════════════ */}
         {tab === "Hosting & Access" && (
           <div className="pe-card"><div className="pe-form">
 
-            {/* ── Hosting hub ────────────────────────────────────────── */}
+            {/* Intro: two separate sections with different semantics.
+                Spelled out at the top of the tab so coordinators have a
+                mental model before they touch the controls. */}
+            <div
+              style={{
+                marginBottom: 16,
+                padding: "12px 14px",
+                background: "#f5f1ea",
+                borderRadius: 6,
+                fontSize: "var(--text-xs)",
+                lineHeight: 1.6,
+                color: "var(--rim-text)",
+              }}
+            >
+              <strong>Two things on this tab.</strong><br />
+              <strong>Hosting team</strong> — the single team that runs the live
+              session (owns the room, gets sub-request notifications, holds the
+              dharma role).<br />
+              <strong>Auxiliary role coverage</strong> — additional teams that
+              staff supporting roles (AV, greeters) for in-person or hybrid
+              offerings. Layered on top of the hosting team; not a substitute.
+            </div>
+
+            {/* ── Hosting team ───────────────────────────────────────── */}
             <div className="pe-field">
               <span className="pe-field__label">Hosting team</span>
               <span className="pe-field__help">
@@ -1362,7 +1395,11 @@ export default function ProgramEditor({
               >
                 <option value="">Host Team (default)</option>
                 {hubs
-                  .filter((h) => h.slug !== DEFAULT_HOSTING_HUB_SLUG)
+                  // Only hosting-style hubs (hasSchedule=true) belong here —
+                  // those that actually run live sessions. AV/greeter-style
+                  // hubs (hasSchedule=false) staff supporting roles and
+                  // can't be a primary hosting team.
+                  .filter((h) => h.hasSchedule && h.slug !== DEFAULT_HOSTING_HUB_SLUG)
                   .map((h) => (
                     <option key={h.slug} value={h.slug}>
                       {h.name}
@@ -1400,27 +1437,55 @@ export default function ProgramEditor({
 
             {/* ── Auxiliary coverage (session 129 — AV + Greeter hubs) ── */}
             {(() => {
-              // Eligible auxiliary hubs: every active hub with a Scheduler
-              // HubAppLink, minus the primary hosting hub for this program
-              // (host-team when hostingHubSlug is blank). A coordinator
-              // picks which other teams provide role coverage for the
-              // in-person component of this offering.
+              // Eligible auxiliary hubs:
+              //   1. NOT a hosting-style hub (hasSchedule=false). The
+              //      Hosting team dropdown above is for those; here we
+              //      list only pure auxiliary hubs.
+              //   2. Uses the Scheduler tool (HubAppLink exists).
+              //   3. Format overlap: the hub's `appliesToFormats` must
+              //      include the program's current `programFormat`.
+              //      A virtual-only program shows no AV/Greeter checks
+              //      because those hubs don't cover virtual; a hybrid
+              //      or in-person program shows them.
               const primarySlug = hostingHubSlug || DEFAULT_HOSTING_HUB_SLUG;
-              const eligible = hubs.filter(
-                (h) => h.usesScheduler && h.slug !== primarySlug,
-              );
-              if (eligible.length === 0) return null;
+              const eligible = hubs.filter((h) => {
+                if (h.hasSchedule) return false;
+                if (!h.usesScheduler) return false;
+                if (h.slug === primarySlug) return false;
+                const formats = h.appliesToFormats ?? [];
+                return formats.includes(programFormat);
+              });
+              if (eligible.length === 0) {
+                // Show a calm note when the program's format means no
+                // auxiliary teams apply (typically a virtual-only
+                // program). Better than rendering nothing — coordinator
+                // sees the section exists and why it's empty for this
+                // program.
+                if (programFormat === "virtual") {
+                  return (
+                    <fieldset className="pe-field">
+                      <legend className="pe-field__label">Auxiliary role coverage</legend>
+                      <span className="pe-field__help">
+                        Not applicable — this is a virtual-only program. AV
+                        and greeter teams cover in-person and hybrid
+                        offerings.
+                      </span>
+                    </fieldset>
+                  );
+                }
+                return null;
+              }
               return (
                 <fieldset className="pe-field">
                   <legend className="pe-field__label">Auxiliary role coverage</legend>
                   <span className="pe-field__help">
-                    Other volunteer teams that schedule supporting roles for
-                    this program — AV, greeters, future expansions. Only
-                    relevant for programs with an in-person component. Each
-                    team gets its own claim/sign-up flow inside its own
-                    hub&rsquo;s Scheduler view; the hub&rsquo;s configuration
-                    decides single-slot (one volunteer) vs.&nbsp;multi-claimant
-                    (open sign-up).
+                    Additional volunteer teams that staff supporting roles
+                    for this program — AV, greeters, future expansions.
+                    Each team gets its own claim/sign-up flow inside its
+                    own hub&rsquo;s Scheduler view; the hub&rsquo;s
+                    configuration decides single-slot (one volunteer) vs.
+                    multi-claimant (open sign-up). Layered on top of the
+                    Hosting team above; not a substitute.
                   </span>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 6 }}>
                     {eligible.map((h) => {
