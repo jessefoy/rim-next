@@ -58,7 +58,7 @@ These are the verifications carried from the original four-bug fix, still pendin
 
 ### Known follow-ons (queued)
 
-- **Manual chapter.** `host-hub-team-management` or new `host-rotations` chapter needs to explain: rotation sessions appear in their actual calendar month; use Your Rotations → Next to jump; per-day Reset semantics; the cross-hub staffing view; difference between Remove from rotation, Reset Day's rotation, and per-session Ask the team to cover. Bigger now that the staffing view is live — coordinators have more to learn.
+- ~~**Manual chapter.**~~ ✅ Closed in commit `71822d0`. Wrote `host-rotations` v5 (major rewrite — hubs-as-roles framing, per-day Reset rename, Remove-from-rotation rename, two-reset-levels section, per-date-vs-whole-rotation distinction, cross-hub staffing view section) and `host-schedule` v6 (tool rename to "Scheduler," clickable "Next" affordance, deep-link email behavior). Both self-heal on next deploy via migration flags.
 - **Push the `endDatetime` check into `isOccurrenceOnDate`.** The staffing view fixes it locally for itself; `/tools/schedule` and `/this-week` share the helper and have the same blind spot. Small refactor, removes a future-bug class.
 - **Editing in the staffing view.** Currently read-only with deep-link to per-hub editing. A future iteration could allow inline editing — but it requires careful UX about which hub the action is scoped to, because the same surface shows multiple hubs.
 - **Behavior change re: sub-claim rows on rotation removal.** `release-host` no longer frees future HostAssignments where the user took the row via sub-claim. Intentional — sub-claims are individual commitments. Documented. Revisit if it causes operational confusion.
