@@ -265,12 +265,39 @@ await db.$transaction(async (tx) => {
 - `/api/host/assignments/clear` (canonical — was already correct)
 - `/api/host/programs/[slug]/clear-rotations` (session 130 follow-up)
 - `/api/host/standing-assignments/release-host` (session 130 follow-up)
+- `/api/host/standing-assignments/end-bundle` — both branches: set-end-date and release-future (session 130 follow-up)
+- `/api/host/standing-assignments/[id]` DELETE (session 130 follow-up)
 - `/api/host/assignments/[id]` DELETE (session 130 follow-up)
 - `/api/host/assignments/reassign` (session 130 follow-up — the `previousUserId` cleanup path)
 - `/api/programs-pg/[slug]` PUT, hub-change branch (session 130 follow-up — atomic with the program.update)
 - `heal_orphan_standing_assignments_v1` migration (session 130 — same pattern at data-heal layer)
 
 **PATCH unclaim on `/api/host/assignments/[id]` keeps the cancel-OPEN behavior** because it only sets `userId = null` (no parent delete). No FK violation possible. Other routes that update HostAssignment but don't delete it can also keep the cancel pattern.
+
+## Per-day Reset is a first-class affordance (session 130 follow-up)
+
+For multi-day programs (Good Morning / Good Evening Silent Meditation, etc.), a coordinator usually wants to reset *one day's* rotation while leaving the other days intact. The row-level destructive button is named for the day: **"Reset Monday"**, **"Reset Tuesday"**, etc. (programmatically derived from `DAY_LABEL[d]` in `RotationsClient.tsx`). Clicking it opens the manage panel whose copy is also day-named ("Manage Tuesday's rotation for [Program]"). The destructive option inside the panel reads "Reset Tuesday's rotation. Deletes the Tuesday rotation rule and clears upcoming Tuesdays from hosts' schedules. Other days for [Program] are untouched. Past sessions stay on the record. Each affected host is emailed."
+
+The success toast also carries the day: "Reset Tuesday's rotation · 4 upcoming Tuesdays released. Other days untouched."
+
+The per-program "Reset rotations" button at the bottom of each program card is still the nuke-all-days option (deletes every rotation rule + future HostAssignment for this program in this hub). Its confirmation copy spells out the scope: "Deletes *every* rotation rule for this program in [hubSlug], and removes every upcoming session this program has in this team. Other teams scheduling this program are unaffected. Past sessions stay in the historical record."
+
+## Cross-hub program-staffing view (session 130 follow-up)
+
+A program is staffed by multiple hubs in parallel: the primary hub holds the live session (Host role), and any `ProgramCoverageHub` row adds an auxiliary role (Audio Visual, Greeter, etc). Coordinators planning a week want to see all of those roles for one program in one place — not switch hub tabs to assemble the picture.
+
+The view: **`/tools/schedule/program/[slug]`**. Read-only. One section per hub covering the program:
+
+- **Single-slot hubs** (host-team, peer-led, audio-visual): a per-day table with columns *Day · Host(s) · Pattern*. Each host's pattern is summarized via `formatPattern`: "1st & 3rd," "2nd & 4th," "every," "last," etc.
+- **Multi-claim hubs** (greeter): the next four upcoming sessions with signup counts. No rotation pattern semantic — these are open sign-up.
+
+Each section's header shows the hub role badge (`Primary host` for the primary hub, `Auxiliary coverage` for others), a `Open sign-up` italicized hint for multi-claim hubs, and an "Edit in [hub] →" link that deep-links to `/tools/schedule?hub=<slug>` for actual editing. The page itself does not allow inline editing.
+
+Access gating: inherited from the parent layout (`/tools/schedule`) — HOST / HOST_MANAGER / ADMIN / individual `UserToolAccess` grant. The view is read-only so broad access is appropriate; a coordinator on host-team can see how Saturday Sit is staffed across host-team + AV + greeter even if they're not a member of every hub.
+
+Discoverability: each program card in the Rotations grid carries a `View all roles →` link in its header that opens the staffing view.
+
+**Edge case fixed pre-commit:** `isOccurrenceOnDate` doesn't honor `Program.endDatetime` (only `recurrenceCount`), so ended programs would have surfaced phantom "upcoming" sessions in the multi-claim block. The staffing-view's `findUpcomingDates` clips its walk at `endDatetime` locally. Follow-up: push the same check into the shared `isOccurrenceOnDate` helper since `/tools/schedule` and `/this-week` have the same blind spot.
 
 ## Orphan-hub rotations + atomic program transfer (session 130 follow-up)
 

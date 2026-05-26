@@ -6,9 +6,9 @@
 
 ## Active
 
-### Session 130 (2026-05-26) — Maria's beta-test fixes + same-day follow-ups (orphan-heal, FK-Restrict pattern fix)
+### Session 130 (2026-05-26) — Maria's beta-test fixes + the full follow-up arc
 
-Four-bug fix from Maria's first real beta + three follow-up commits triggered by Jesse's real-world testing. Five commits total on `main`: `960968b` → `38f4582` → `11864f2` → `93f985e` → `3117833`.
+Four-bug fix from Maria's beta + four follow-up commits triggered by Jesse's real-world testing. **Seven commits total on `main`:** `960968b` → `38f4582` → `11864f2` → `93f985e` → `3117833` → `313beff` → `fc041ea`.
 
 **The follow-up arc (same day):**
 
@@ -16,12 +16,15 @@ Four-bug fix from Maria's first real beta + three follow-up commits triggered by
 2. **Orphan-heal migration + atomic transfer (`93f985e`).** Root cause located: orphan `StandingAssignment` rules on hubs that no longer matched the program's current `hostingHubSlug` (programs that had been transferred between hubs after rotations were set up). One-shot heal migration `heal_orphan_standing_assignments_v1` deletes orphan rules + their future HostAssignments site-wide. Program-transfer PUT handler now wraps cleanup + update in a single `$transaction` so this can't recur. Reviewer caught three showstoppers pre-commit (auxiliary-hub-aware detection, SubRequest FK violation, non-atomic transfer); all three addressed before the commit.
 3. **FK-Restrict pattern fix (`3117833`).** After the heal landed and Jesse retested, the inline diagnostic patch from step 1 surfaced `HTTP 500` on a different program's Reset — a historic CANCELLED sub-request was FK-Restrict-blocking the parent HostAssignment delete. Same SubRequest-FK bug the reviewer flagged for the migration, but in four pre-existing production routes. Audited the codebase with `grep subRequest.updateMany`, found four offenders (`clear-rotations`, `release-host`, `assignments/[id]` DELETE, `assignments/reassign`), all replaced with the canonical SubClaim → SubRequest → HostAssignment deleteMany pattern in `$transaction`. PATCH unclaim keeps cancel-OPEN behavior because it doesn't delete the parent.
 
-**What to verify on the deployed site once `3117833` lands:**
+4. **Per-day Reset rename + cross-hub program-staffing view + two more FK gaps (`fc041ea`).** Jesse named two design issues that emerged once the system worked: multi-day programs need a per-day Reset as a first-class affordance, and hubs are functional roles per program that should be viewable in one place. Three things landed: (a) row-level "End" button → "Reset [Day]" (programmatically day-named) with day-aware copy through the manage panel and toasts; (b) new read-only page at `/tools/schedule/program/[slug]` showing one program across every covering hub — per-day rotation tables for single-slot hubs, signup counts for multi-claim. Linked from each program card via "View all roles →"; (c) two more FK-Restrict gaps closed (`standing-assignments/[id]` DELETE rotation + both branches of `end-bundle`) — completing the FK-Restrict pattern audit for the Scheduler API. Reviewer caught one medium (`findUpcomingDates` ignoring `Program.endDatetime`) and two cleanest lows pre-commit; all addressed.
 
-1. **Reset rotations works on The Art of Meditation.** Inline result line is green: "Reset · The Art of Meditation · 5 rotation rules and N upcoming sessions removed." Tuesday row collapses to empty. Program card disappears from the Rotations grid.
-2. **No more orphan rotations.** Awakening The Heart (previously had ghost rotations) shows empty grid with Set up buttons. Peer-led-silent-meditation programs only show rotations that exist on the peer-led hub.
-3. **Future program transfer is atomic.** Pick a program with rotations, change its Hosting team via the Program editor → Hosting & Access tab. Old hub's rotations + future HostAssignments are gone in one save. If the save fails for any reason, both rolls back together (no orphan state).
-4. **Reassign + per-host delete + remove-from-rotation all work.** No HTTP 500s on routes that delete HostAssignments now that the FK-Restrict pattern is fixed across the board.
+**What to verify on the deployed site once `fc041ea` lands:**
+
+1. **Per-day Reset.** Open a multi-day program's row in the Rotations grid. The right-side red button reads "Reset Monday" / "Reset Tuesday" etc, day-named. Clicking it opens a manage panel whose copy is day-scoped throughout. The destructive option reads "Reset Tuesday's rotation. … Other days for [Program] are untouched. Past sessions stay on the record."
+2. **Cross-hub staffing view.** Click "View all roles →" on a program card in the Rotations grid. Lands at `/tools/schedule/program/[slug]`. Each hub covering this program (primary + auxiliary) gets its own section. Single-slot hubs show a per-day table with host(s) and pattern; multi-claim hubs show the next 4 upcoming sessions with signup counts. Every section has an "Edit in [hub] →" deep-link back to that hub's Rotations tab.
+3. **Reset rotations works on The Art of Meditation** (carry-over from `3117833`): inline result line is green, Tuesday row collapses to empty, program card disappears.
+4. **No more orphan rotations** (carry-over from `93f985e`): Awakening The Heart shows empty grid; peer-led-silent-meditation programs only show rotations that exist on the peer-led hub.
+5. **End-bundle and standing-[id] DELETE no longer 500** on programs with historic non-OPEN SubRequests. Try ending a rotation that's been around long enough to have a CANCELLED sub-request on it — should now complete cleanly.
 
 **Original session-130 four-bug fix (first commit `960968b`):**
 
@@ -55,9 +58,11 @@ These are the verifications carried from the original four-bug fix, still pendin
 
 ### Known follow-ons (queued)
 
-- **Manual chapter.** `host-hub-team-management` or new `host-rotations` chapter needs to explain: rotation sessions appear in their actual calendar month; use Your Rotations → Next to jump; difference between Remove from rotation, End this rotation, and per-session Ask the team to cover. Not done this slice.
-- **Behavior change re: sub-claim rows on rotation removal.** `release-host` no longer frees future HostAssignments where the user took the row via sub-claim (`standingAssignmentId` points at someone else's rule but `userId` is the removed user). Intentional — sub-claims are individual commitments. Documented in the route's docstring and `RIM_Scheduler.md`. Revisit if it causes operational confusion.
-- **Replaced-user email parity.** `sendStandingAssignmentReplacedEmail` doesn't yet use `firstSessionMonth` — but a displaced user has no future rows in those months so the deep-link wouldn't help. Leave as-is unless signal emerges.
+- **Manual chapter.** `host-hub-team-management` or new `host-rotations` chapter needs to explain: rotation sessions appear in their actual calendar month; use Your Rotations → Next to jump; per-day Reset semantics; the cross-hub staffing view; difference between Remove from rotation, Reset Day's rotation, and per-session Ask the team to cover. Bigger now that the staffing view is live — coordinators have more to learn.
+- **Push the `endDatetime` check into `isOccurrenceOnDate`.** The staffing view fixes it locally for itself; `/tools/schedule` and `/this-week` share the helper and have the same blind spot. Small refactor, removes a future-bug class.
+- **Editing in the staffing view.** Currently read-only with deep-link to per-hub editing. A future iteration could allow inline editing — but it requires careful UX about which hub the action is scoped to, because the same surface shows multiple hubs.
+- **Behavior change re: sub-claim rows on rotation removal.** `release-host` no longer frees future HostAssignments where the user took the row via sub-claim. Intentional — sub-claims are individual commitments. Documented. Revisit if it causes operational confusion.
+- **Replaced-user email parity.** `sendStandingAssignmentReplacedEmail` doesn't use `firstSessionMonth` — but a displaced user has no future rows in those months so the deep-link wouldn't help. Leave as-is unless signal emerges.
 
 ### Memory files added this session
 

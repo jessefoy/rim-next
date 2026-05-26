@@ -102,6 +102,30 @@ This is direct follow-on from the session-130 four-bug fix and session-129's aux
 - **Atomic data-state changes that span multiple writes (cleanup + update) must be wrapped in a single `$transaction`.** Sequential awaits across writes can leave inconsistent state on partial failure — exactly the failure mode that would have recreated the bug we just healed.
 - **Diagnostic patches at the click point are worth shipping early.** Surfacing the actual HTTP error inline (instead of a page-level toast that may be off-screen) made the failure self-diagnosing on Jesse's next click. The page-level toast wasn't lying — it was just invisible from where he was looking. Worth keeping in mind when designing future destructive-action affordances.
 
+### Same-day follow-ups (continued) — per-day Reset rename + cross-hub program-staffing view
+
+After `3117833` landed and the FK-Restrict pattern fix shipped, Jesse named two design issues that emerged once the system actually worked: **(a)** for multi-day programs (Good Morning / Good Evening Silent Meditation), you can't reset a single day's rotation without using the buried "End" → manage panel path — there's no obvious per-day affordance, just a per-program nuke; **(b)** hubs are functional roles per program (Host / AV / Greeter), and there's no place to see all of those roles for one program in one view — you have to switch hub tabs.
+
+**Commit `fc041ea`.** Three things landed together:
+
+1. **Per-day Reset rename.** The row-level "End" button on each day in the Rotations grid becomes "Reset [Day]" — programmatically named via `DAY_LABEL[d]`. Manage panel header, the per-host removal sub-panel copy, the date-picker label, the destructive button, and the success toast all gain day-of-week context. Underlying route behavior unchanged (it was already correct — `end-bundle` keys to `(programSlug, dayOfWeek, hubSlug)`); only the UI was misleading. Toast example: "Reset Tuesday's rotation · 4 upcoming Tuesdays released. Other days untouched."
+
+2. **Cross-hub program-staffing view.** New page at `/tools/schedule/program/[slug]`. Read-only. One section per hub covering the program (primary `hostingHubSlug` + every `ProgramCoverageHub` row). Single-slot hubs render a per-day table with host(s) and rotation pattern (e.g., "Maria · 1st & 3rd," "Nancy · 2nd & 4th"). Multi-claim hubs (greeter) render the next four upcoming sessions with signup counts. Each hub section's header has an "Edit in [hub] →" link that deep-links to `/tools/schedule?hub=<slug>` for actual editing. New `ps-` CSS prefix. Page is access-gated by the parent layout (same as the rest of `/tools/schedule`). Linked from each program card in the Rotations grid via a "View all roles →" affordance.
+
+3. **Two more FK-Restrict gaps closed.** The audit in `3117833` caught four routes but missed two more sites doing `hostAssignment.deleteMany` without prior SubClaim/SubRequest cleanup: `standing-assignments/[id]` DELETE rotation path, and both branches of `end-bundle` (set-end-date AND release-future). Applied the canonical SubClaim → SubRequest → HostAssignment chain in `$transaction` to all three. **The FK-Restrict pattern audit for the Scheduler API is now complete.**
+
+Reviewer sub-agent on `fc041ea` caught one medium and four lows. Fixed the medium (`findUpcomingDates` was walking past `Program.endDatetime` for ended programs — the shared `isOccurrenceOnDate` helper doesn't honor `endDatetime`, only `recurrenceCount`. Fix is local for now; pushing the check into the shared helper is a worthwhile follow-up since `/tools/schedule` and `/this-week` have the same blind spot) plus two of the lows (unused import; redundant second `db.user.findMany`). The remaining lows are belt-and-suspenders and a pre-existing pattern; documented and left.
+
+### What this work connects to (full session-130 arc)
+
+This is the final ship in the session-130 arc, which started with Maria's beta-test report and grew into a six-commit slice covering Maria's four bugs + the orphan-hub heal + the codebase-wide FK-Restrict audit + the per-day Reset clarity + the cross-hub staffing view. Every layer of the Scheduler — capability gates, notification recipients, UI filters, outbound URLs, destructive-route deletion patterns, multi-day per-rotation UX, and now cross-hub program-coordination view — was touched. The Scheduler is operationally sound across all four hubs (host-team, peer-led-silent-meditation, audio-visual, greeter) and ready for Maria to drive without ghost rotations or FK-Restrict surprises.
+
+### Architectural calls + lessons (continued)
+
+- **Hubs as functional roles per program.** The cross-hub staffing view is the first surface that respects this conceptually. It's read-only first ship — a coordinator can plan a week by looking at one program across every hub. Editing still happens per-hub via deep-link. Future iterations could allow editing-from-here, but that requires careful UX work to avoid confusion about which hub the action is scoped to.
+- **Day-named labels matter for multi-day programs.** Renaming "End" → "Reset Monday" / "Reset Tuesday" etc converted a buried, ambiguous action into a clearly day-scoped one. Generic destructive-action labels work when there's only one thing they could mean; once the action is per-day in a multi-day grid, the day belongs in the label.
+- **FK-Restrict pattern audit is now complete** for the Scheduler API. Six routes share the canonical SubClaim → SubRequest → HostAssignment delete-in-transaction pattern. Documented at length in `RIM_Scheduler.md`.
+
 ---
 
 ## 2026-05-25 (session 129 continued) — Post-ship fixes + thorough scheduler audit

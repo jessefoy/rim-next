@@ -1893,6 +1893,18 @@ FK-Restrict pattern fix across four routes (`3117833`): after the heal landed an
 
 **Reviewer sub-agent track record this slice:** caught 3 issues pre-commit on the first ship (missing email when only rule removed; missing refresh on 0/0 path; fragile locale-string parsing); caught 3 showstoppers pre-commit on the heal migration (auxiliary-hub-blind detection; SubRequest FK; non-atomic transfer). Post-commit: the FK-Restrict pattern surfaced in three other routes because I read the reviewer's finding as a local bug instead of a class of bug. New memory file `feedback-pattern-audit.md` codifies the lesson: when a reviewer finding describes a pattern, audit the codebase before closing. `RIM_Hub_Engineering.md` gained a new section "Reviewer findings that identify a *pattern* require a codebase-wide audit" + a new "Destructive routes — the deletion pattern" checklist. `RIM_Scheduler.md` documents the SubClaim → SubRequest → HostAssignment pattern in full with the list of routes where it's now applied.
 
+**Final commit in the arc (`fc041ea`).** Once the underlying system was operationally sound, Jesse named two design issues the original ship had missed: (a) per-day Reset for multi-day programs wasn't a first-class affordance (you had to click "End" → manage panel → "End this rotation" — buried and confusingly labeled); (b) hubs are functional roles per program (Host / AV / Greeter) and there was no place to see a program's whole staffing picture across hubs without switching tabs.
+
+Three changes landed together:
+
+1. **Per-day Reset rename.** The row-level "End" button on each day in the Rotations grid becomes "Reset [Day]" — programmatically day-named via `DAY_LABEL`. Manage panel header, the per-host removal sub-panel copy, the date-picker label, the destructive button, and the success toast all gain day-of-week context. Underlying route behavior unchanged. The per-program "Reset rotations" button at the bottom of each program card stays as the nuke-all-days option.
+
+2. **Cross-hub program-staffing view.** New read-only page at `/tools/schedule/program/[slug]` showing one program across every covering hub (primary + auxiliary). Single-slot hubs render a per-day rotation pattern table; multi-claim hubs render the next 4 upcoming sessions with signup counts. Each hub's section deep-links back to its own Rotations tab for editing. New `ps-` CSS prefix. Linked from each program card in the Rotations grid via "View all roles →."
+
+3. **Final FK-Restrict gaps closed.** The prior audit caught four routes but missed two more sites: `standing-assignments/[id]` DELETE rotation path, and both branches of `end-bundle` (set-end-date AND release-future). Applied the canonical SubClaim → SubRequest → HostAssignment chain in `$transaction` to all three. **The FK-Restrict pattern audit for the Scheduler API is now complete.** Six routes share the canonical pattern; documented at length in `RIM_Scheduler.md`.
+
+Reviewer caught one medium (`findUpcomingDates` ignoring `Program.endDatetime` — fixed locally; worth a follow-up to push the check into the shared `isOccurrenceOnDate` since `/tools/schedule` and `/this-week` share the same blind spot) and two cleanest lows (unused import, redundant second `db.user.findMany`); all addressed.
+
 ### Silent Meditation Hub — Slice 2 + 2.5 + 2.6 operational + hub-isolation hardening (session 128 continued)
 
 After Slice 1's architecture landed, the next phase took the system live for the first peer-led hub end-to-end. Three layers landed:
