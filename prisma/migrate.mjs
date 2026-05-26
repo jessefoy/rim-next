@@ -3774,6 +3774,203 @@ async function main() {
     console.log("  ⏭ Hub.hasSchedule walk-back already applied.");
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // Session 130 follow-up — heal orphan StandingAssignment + HostAssignment
+  // rows whose `hubSlug` doesn't match the program's current `hostingHubSlug`.
+  //
+  // Root cause (Jesse's beta-test report): when a program was originally on
+  // hub A, a rotation was set up there (StandingAssignment.hubSlug = A),
+  // future HostAssignments were applied (hubSlug = A), and then the program
+  // was transferred to hub B (Program.hostingHubSlug = B), the rotation rule
+  // and its applied rows stayed on hub A. They become invisible in every UI
+  // view: hub B's Rotations grid filters by hubSlug=B (doesn't show A's
+  // rules); hub A's grid filters its program list by hostingHubSlug=A (this
+  // program is no longer in hub A's list, so the rules don't render either).
+  // But the apply-standing-assignments cron walks every rule regardless of
+  // hub, so it keeps re-creating future HostAssignments from the orphan
+  // rule. The coordinator clicks "Reset rotations" in hub B, the route
+  // correctly clears hub B's rules — and the next morning the cron repopu-
+  // lates from hub A's invisible orphan. From the coordinator's viewpoint
+  // the reset "doesn't work."
+  //
+  // Heal strategy:
+  //   1. Delete orphan StandingAssignment rules (and their open SubRequests
+  //      from the future HostAssignments tied to them).
+  //   2. Delete future orphan HostAssignment rows (sessionDate >= today CT).
+  //      Past ones stay as historical record — they represent sessions
+  //      already hosted; deleting them would erase community history.
+  //   3. Log per-program counts so the deploy log shows exactly what was
+  //      healed.
+  //
+  // Idempotent: re-runs find nothing because every program's standing
+  // assignments now match its current hostingHubSlug. The migration flag
+  // skips it on subsequent deploys anyway.
+  // ───────────────────────────────────────────────────────────────────────
+  const healOrphanFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'heal_orphan_standing_assignments_v1'
+  `).catch(() => []);
+
+  if (healOrphanFlag.length === 0) {
+    console.log("→ Healing orphan StandingAssignment + HostAssignment rows (session 130)…");
+
+    // Build the "valid hubs per program" map. A rotation/HostAssignment is
+    // valid on any of: (a) the program's primary `hostingHubSlug`, or (b)
+    // any hub listed in ProgramCoverageHub for that program (session 129
+    // auxiliary coverage — AV team, greeter team, etc). Reviewer caught
+    // this — without ProgramCoverageHub, every legitimate auxiliary
+    // rotation would be classified as orphan and deleted.
+    const allPrograms = await db.program.findMany({
+      select: { slug: true, name: true, hostingHubSlug: true },
+    });
+    const allCoverage = await db.programCoverageHub.findMany({
+      select: { programSlug: true, hubSlug: true },
+    });
+    const validHubsByProgram = new Map();
+    for (const p of allPrograms) {
+      validHubsByProgram.set(p.slug, new Set([p.hostingHubSlug ?? "host-team"]));
+    }
+    for (const c of allCoverage) {
+      const set = validHubsByProgram.get(c.programSlug);
+      if (set) set.add(c.hubSlug);
+    }
+
+    // Cutoff: "now" — anything strictly in the future is in scope for
+    // deletion. Past + already-happened-today sessions stay as historical
+    // record. Reviewer caught this — the earlier `setHours(0,0,0,0)`
+    // pattern produces midnight-UTC-of-CT-date on Vercel which can include
+    // sessions that already happened earlier today CT.
+    const futureCutoff = new Date();
+
+    function describeProgramHubs(programSlug) {
+      const set = validHubsByProgram.get(programSlug);
+      if (!set) return "(program deleted)";
+      return [...set].sort().join(", ");
+    }
+
+    function isOrphan(programSlug, hubSlug) {
+      const set = validHubsByProgram.get(programSlug);
+      if (!set) return true; // program no longer exists
+      return !set.has(hubSlug);
+    }
+
+    // ── 1. Find every StandingAssignment whose hubSlug isn't in the
+    //       program's valid set (primary or any auxiliary coverage hub).
+    const allRules = await db.standingAssignment.findMany({
+      select: { id: true, programSlug: true, hubSlug: true, dayOfWeek: true, userId: true },
+    });
+    const orphanRules = allRules.filter((r) => isOrphan(r.programSlug, r.hubSlug));
+
+    let phase1RulesDeleted = 0;
+    let phase1AssnsDeleted = 0;
+
+    if (orphanRules.length === 0) {
+      console.log("  ✔ No orphan StandingAssignment rows found.");
+    } else {
+      // Group orphans by (programSlug, hubSlug) so the log is readable.
+      const groups = new Map();
+      for (const r of orphanRules) {
+        const key = `${r.programSlug}::${r.hubSlug}`;
+        if (!groups.has(key)) groups.set(key, { programSlug: r.programSlug, hubSlug: r.hubSlug, ids: [] });
+        groups.get(key).ids.push(r.id);
+      }
+      console.log(`  Found ${orphanRules.length} orphan StandingAssignment row(s) across ${groups.size} (program, hub) bundles:`);
+      for (const g of groups.values()) {
+        console.log(`    - ${g.programSlug} · orphan-hub=${g.hubSlug} · valid-hubs=[${describeProgramHubs(g.programSlug)}] · ${g.ids.length} rule(s)`);
+      }
+
+      const orphanRuleIds = orphanRules.map((r) => r.id);
+
+      // Transaction: SubClaim → SubRequest → HostAssignment → Standing-
+      // Assignment. SubRequest.assignmentId FK is Restrict, so we MUST
+      // delete SubRequest rows (not cancel) before deleting their parent
+      // HostAssignments. SubClaim.subRequestId FK cascades on SubRequest
+      // delete, but we delete SubClaim explicitly first for consistency
+      // with /api/host/assignments/clear/route.ts (in-house pattern for
+      // hub-scoped destructive cleanup). Reviewer caught this — the
+      // previous version cancelled OPEN sub-requests only and would have
+      // FK-violated on the very first CLAIMED or CANCELLED row.
+      const txResult = await db.$transaction(async (tx) => {
+        const futureAssns = await tx.hostAssignment.findMany({
+          where: {
+            standingAssignmentId: { in: orphanRuleIds },
+            sessionDate: { gte: futureCutoff },
+          },
+          select: { id: true },
+        });
+        const futureAssnIds = futureAssns.map((a) => a.id);
+        let assnsDeleted = 0;
+        if (futureAssnIds.length > 0) {
+          await tx.subClaim.deleteMany({
+            where: { request: { assignmentId: { in: futureAssnIds } } },
+          });
+          await tx.subRequest.deleteMany({
+            where: { assignmentId: { in: futureAssnIds } },
+          });
+          const delAssn = await tx.hostAssignment.deleteMany({
+            where: { id: { in: futureAssnIds } },
+          });
+          assnsDeleted = delAssn.count;
+        }
+        // Delete the orphan rules themselves. Past HostAssignments
+        // keep their historical record but lose their FK to the rule
+        // (standingAssignmentId is SetNull-on-delete).
+        const delRules = await tx.standingAssignment.deleteMany({
+          where: { id: { in: orphanRuleIds } },
+        });
+        return { rulesDeleted: delRules.count, assnsDeleted };
+      });
+      phase1RulesDeleted = txResult.rulesDeleted;
+      phase1AssnsDeleted = txResult.assnsDeleted;
+      console.log(`  ✔ Deleted ${phase1AssnsDeleted} future HostAssignment row(s) tied to orphan rules.`);
+      console.log(`  ✔ Deleted ${phase1RulesDeleted} orphan StandingAssignment rule(s).`);
+    }
+
+    // ── 2. Also heal any orphan future HostAssignment rows that aren't
+    //       tied to a rule (created via direct claim before the program
+    //       transferred hubs, or whose rule was independently deleted
+    //       earlier and standingAssignmentId got SetNull'd).
+    const allFutureAssns = await db.hostAssignment.findMany({
+      where: {
+        sessionDate: { gte: futureCutoff },
+        standingAssignmentId: null,
+      },
+      select: { id: true, programSlug: true, hubSlug: true },
+    });
+    const orphanAssns = allFutureAssns.filter((a) => isOrphan(a.programSlug, a.hubSlug));
+
+    let phase2AssnsDeleted = 0;
+
+    if (orphanAssns.length === 0) {
+      console.log("  ✔ No orphan (non-rotation) future HostAssignment rows found.");
+    } else {
+      console.log(`  Found ${orphanAssns.length} orphan future HostAssignment row(s) not tied to a rotation rule.`);
+      const orphanAssnIds = orphanAssns.map((a) => a.id);
+      const tx2Result = await db.$transaction(async (tx) => {
+        await tx.subClaim.deleteMany({
+          where: { request: { assignmentId: { in: orphanAssnIds } } },
+        });
+        await tx.subRequest.deleteMany({
+          where: { assignmentId: { in: orphanAssnIds } },
+        });
+        const delAssn = await tx.hostAssignment.deleteMany({
+          where: { id: { in: orphanAssnIds } },
+        });
+        return { assnsDeleted: delAssn.count };
+      });
+      phase2AssnsDeleted = tx2Result.assnsDeleted;
+      console.log(`  ✔ Deleted ${phase2AssnsDeleted} orphan HostAssignment row(s).`);
+    }
+
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('heal_orphan_standing_assignments_v1')`,
+    );
+    console.log(
+      `  ✔ Orphan-row heal complete. Totals: ${phase1RulesDeleted} rule(s), ${phase1AssnsDeleted + phase2AssnsDeleted} future assignment(s) deleted.`,
+    );
+  } else {
+    console.log("  ⏭ Orphan-row heal already applied.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

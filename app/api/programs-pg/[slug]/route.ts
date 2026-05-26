@@ -211,10 +211,72 @@ export async function PUT(
   data.dateText = computeDateText(startSource, freqSource, daysSource, intervalSource) || null;
   data.timeText = computeTimeText(startSource, endSource) || null;
 
-  const updated = await db.program.update({
-    where: { slug },
-    data,
-  });
+  // Detect hub transfer and run cleanup BEFORE program.update so the two
+  // become a coherent unit. If cleanup throws (FK violation, network blip),
+  // the transfer doesn't commit and the coordinator can retry. Doing the
+  // update first and then cleaning up would mean a cleanup failure leaves
+  // the program on the new hub with orphan rules on the old hub — exactly
+  // the bug session 130 is fixing.
+  //
+  // Session 130: without this clause, transferring a program leaves the
+  // rotation rules in the old hub. The cron walks them daily and keeps
+  // re-creating HostAssignments under the old hubSlug — invisible in every
+  // UI view but surfacing as ghost emails to hosts who can no longer manage
+  // them. The heal_orphan_standing_assignments_v1 migration cleans up
+  // existing damage; this clause prevents it from recurring.
+  const oldHubSlug = existing.hostingHubSlug ?? "host-team";
+  const newHubSlug =
+    data.hostingHubSlug !== undefined
+      ? ((data.hostingHubSlug as string | null) ?? "host-team")
+      : oldHubSlug;
+  const hubChanged = data.hostingHubSlug !== undefined && oldHubSlug !== newHubSlug;
+
+  let updated;
+  if (hubChanged) {
+    const futureCutoff = new Date(); // strictly future — past stays as history
+    // Atomic: cleanup + program.update in one transaction. If anything
+    // throws, both roll back together and the route returns 500.
+    //
+    // Deletion order: SubClaim → SubRequest → HostAssignment, then
+    // StandingAssignment. SubRequest.assignmentId FK is Restrict, so the
+    // SubRequest row must go before its HostAssignment. SubClaim cascades
+    // on SubRequest delete but we delete explicitly for consistency with
+    // /api/host/assignments/clear/route.ts.
+    updated = await db.$transaction(async (tx) => {
+      const futureAssns = await tx.hostAssignment.findMany({
+        where: { programSlug: slug, hubSlug: oldHubSlug, sessionDate: { gte: futureCutoff } },
+        select: { id: true },
+      });
+      const futureAssnIds = futureAssns.map((a) => a.id);
+
+      if (futureAssnIds.length > 0) {
+        await tx.subClaim.deleteMany({
+          where: { request: { assignmentId: { in: futureAssnIds } } },
+        });
+        await tx.subRequest.deleteMany({
+          where: { assignmentId: { in: futureAssnIds } },
+        });
+        await tx.hostAssignment.deleteMany({
+          where: { id: { in: futureAssnIds } },
+        });
+      }
+
+      await tx.standingAssignment.deleteMany({
+        where: { programSlug: slug, hubSlug: oldHubSlug },
+      });
+
+      return tx.program.update({ where: { slug }, data });
+    });
+
+    console.log("[program-transfer]", {
+      programSlug: slug,
+      from: oldHubSlug,
+      to: newHubSlug,
+      message: "orphan rules + future HostAssignments purged on old hub",
+    });
+  } else {
+    updated = await db.program.update({ where: { slug }, data });
+  }
 
   // Handle teacher assignments if provided
   if (body.teacherIds !== undefined) {
