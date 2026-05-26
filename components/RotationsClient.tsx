@@ -564,7 +564,11 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       {toast && <div className="hs-rot__toast">{toast}</div>}
 
       {programs.length === 0 && (
-        <p className="hs-rot__empty">No programs available.</p>
+        <p className="hs-rot__empty">
+          {hubSlug && hubSlug !== "host-team"
+            ? "No programs are scheduled with this team yet. A coordinator can tag a program in the Program editor → Hosting & Access → Auxiliary role coverage."
+            : "No programs available."}
+        </p>
       )}
 
       {programs.map((program) => {

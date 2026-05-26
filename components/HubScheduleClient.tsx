@@ -991,9 +991,20 @@ export default function HubScheduleClient({
 
   const monthLabel = `${MONTHS[month]} ${year}`;
 
+  // Empty state. When there are no sessions, the message is filter-aware so
+  // a "no results in this filter" reads differently from "no programs at
+  // all in this hub." For non-host-team hubs (peer-led, audio-visual,
+  // greeter) the all-empty case usually means no programs have been
+  // tagged with this hub's coverage yet — surface a concrete next step
+  // so the page reads as "ready for setup" rather than broken.
   const emptyMsg = (() => {
     if (filteredSessions.length > 0) return null;
-    if (filter === "all") return `No sessions in ${MONTHS[month]}.`;
+    if (filter === "all") {
+      if (programs.length === 0 && hubSlug && hubSlug !== "host-team") {
+        return `No programs are scheduled with this team yet. A coordinator can tag a program in the Program editor → Hosting & Access → Auxiliary role coverage.`;
+      }
+      return `No sessions in ${MONTHS[month]}.`;
+    }
     if (filter === "needs") return "Everything is covered. Thank you, team.";
     if (filter === "mine") return "You're not hosting anything here.";
     if (filter === "my-requests") return "You haven't asked the team to cover any sessions.";
