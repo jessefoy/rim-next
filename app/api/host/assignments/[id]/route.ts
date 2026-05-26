@@ -56,13 +56,15 @@ export async function PATCH(
       where: { id },
       data: { userId: session.user.id, assignedBy: session.user.id },
     });
-    // Confirmation email to the claimer.
+    // Confirmation email to the claimer. The email link is scoped to
+    // the assignment's hub (session 129) so an AV claim lands the
+    // recipient at /tools/schedule?hub=audio-visual, not host-team.
     after(async () => {
       try {
         const [program, claimer] = await Promise.all([
           db.program.findUnique({
             where: { slug: assignment.programSlug },
-            select: { name: true, hostingHubSlug: true },
+            select: { name: true },
           }),
           db.user.findUnique({ where: { id: session.user.id }, select: { email: true, firstName: true } }),
         ]);
@@ -72,7 +74,7 @@ export async function PATCH(
             firstName: claimer.firstName,
             programName: program?.name || assignment.programSlug,
             dateText: fmtDate(assignment.sessionDate),
-            hubSlug: program?.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG,
+            hubSlug: assignment.hubSlug || DEFAULT_HOSTING_HUB_SLUG,
           });
         }
       } catch (e) {

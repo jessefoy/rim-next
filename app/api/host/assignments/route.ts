@@ -4,7 +4,12 @@ import { db } from "@/lib/db";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
 import { getHubNotificationRecipients } from "@/lib/toolAuth";
 import { sendHostAssignmentConfirmationEmail } from "@/lib/email";
-import { DEFAULT_HOSTING_HUB_SLUG, getProgramHubSlug } from "@/lib/programHub";
+import {
+  DEFAULT_HOSTING_HUB_SLUG,
+  getProgramHubSlug,
+  getHubCoverageConfig,
+  getProgramSlugsForHub,
+} from "@/lib/programHub";
 
 /**
  * Format a session date for use in host emails.
@@ -20,19 +25,23 @@ function formatSessionDate(date: Date | null): string | null {
 
 /**
  * Fire-and-forget: send "you're hosting" confirmation to the assignee.
- * Resolves the program's human name from the slug. Wrapped in after() by
- * the caller — this helper assumes it's running in deferred work.
+ * The `hubSlug` argument is the assignment's hub (session 129) so the
+ * email link lands the recipient in the right Scheduler view — an AV
+ * volunteer's confirmation points at /tools/schedule?hub=audio-visual.
+ * Wrapped in after() by the caller — this helper assumes it's running
+ * in deferred work.
  */
 async function notifyAssignedHost(
   assignedUserId: string,
   programSlug: string,
   sessionDate: Date | null,
+  hubSlug: string,
 ): Promise<void> {
   try {
     const [program, assignee] = await Promise.all([
       db.program.findUnique({
         where: { slug: programSlug },
-        select: { name: true, hostingHubSlug: true },
+        select: { name: true },
       }),
       db.user.findUnique({ where: { id: assignedUserId }, select: { email: true, firstName: true } }),
     ]);
@@ -42,7 +51,7 @@ async function notifyAssignedHost(
       firstName: assignee.firstName,
       programName: program?.name || programSlug,
       dateText: formatSessionDate(sessionDate),
-      hubSlug: program?.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG,
+      hubSlug,
     });
   } catch (e) {
     console.error("[host-assignment] confirmation email error:", e);
@@ -152,16 +161,22 @@ export async function GET(request: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
   const roles = session.user.roles ?? [];
-  if (!(await hasEffectiveHostAccess(session.user.id, roles))) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
 
   const { searchParams } = new URL(request.url);
   const monthParam = searchParams.get("month"); // e.g. "2026-03"
+  // ?hub= scopes the query to one hub's view. Defaults to host-team for
+  // backward-compat with the legacy callers. Session 129.
+  const requestedHubSlug = searchParams.get("hub") || DEFAULT_HOSTING_HUB_SLUG;
+
+  if (!(await hasEffectiveHostAccess(session.user.id, roles, requestedHubSlug))) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   if (!monthParam) {
-    // No month param — return raw assignments (backward compat for any direct callers)
+    // No month param — return raw assignments scoped to this hub
+    // (backward compat for any direct callers).
     const assignments = await db.hostAssignment.findMany({
+      where: { hubSlug: requestedHubSlug },
       include: {
         user: { select: { id: true, firstName: true, lastName: true, preferredName: true, email: true } },
         subRequests: { where: { status: "OPEN" }, select: { id: true, message: true }, take: 1 },
@@ -176,6 +191,7 @@ export async function GET(request: Request) {
         return {
           id: a.id, programSlug: a.programSlug,
           sessionDate: a.sessionDate?.toISOString() ?? null,
+          hubSlug: a.hubSlug,
           status, hostUserId: a.userId ?? null,
           hostName: a.user
             ? (a.user.preferredName || [a.user.firstName, a.user.lastName].filter(Boolean).join(" ") || a.user.email)
@@ -191,9 +207,21 @@ export async function GET(request: Request) {
   const endOfMonth   = new Date(yearN, monthN, 0, 23, 59, 59, 999);
   const daysInMonth  = new Date(yearN, monthN, 0).getDate();
 
+  // Hub-scoped program filter: primary + auxiliary coverage, then the
+  // hub's appliesToFormats. Session 129. The page does the same filter
+  // for SSR; this branch handles client-side month nav.
+  const hubConfig = await getHubCoverageConfig(requestedHubSlug);
+  const appliesToFormats = hubConfig?.appliesToFormats ?? ["virtual", "hybrid"];
+  const allowsMultipleAssignments = hubConfig?.allowsMultipleAssignments ?? false;
+  const eligibleSlugs = await getProgramSlugsForHub(requestedHubSlug);
+
   const [pgPrograms, assignments] = await Promise.all([
     db.program.findMany({
-      where: { programFormat: { in: ["virtual", "hybrid"] }, archivedAt: null },
+      where: {
+        programFormat: { in: appliesToFormats },
+        archivedAt: null,
+        slug: { in: eligibleSlugs },
+      },
       select: {
         id: true, name: true, slug: true,
         programFormat: true, startDatetime: true, endDatetime: true,
@@ -203,7 +231,10 @@ export async function GET(request: Request) {
       orderBy: { sortOrder: "asc" },
     }),
     db.hostAssignment.findMany({
-      where: { sessionDate: { gte: startOfMonth, lte: endOfMonth } },
+      where: {
+        sessionDate: { gte: startOfMonth, lte: endOfMonth },
+        hubSlug: requestedHubSlug,
+      },
       include: {
         user: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
         subRequests: { where: { status: "OPEN" }, select: { id: true, message: true }, take: 1 },
@@ -212,15 +243,14 @@ export async function GET(request: Request) {
     }),
   ]);
 
-  // Build pause-state map: userId → "paused" | "inactive" | null
-  // A single query covers all assigned hosts in this month's sessions.
+  // Pause-state map for the active hub.
   const assignedUserIds = [...new Set(assignments.map((a) => a.userId).filter(Boolean))] as string[];
   const pauseMap = new Map<string, "paused" | "inactive">();
   if (assignedUserIds.length > 0) {
-    const hostHub = await db.hub.findUnique({ where: { slug: "host-team" }, select: { id: true } });
-    if (hostHub) {
+    const activeHub = await db.hub.findUnique({ where: { slug: requestedHubSlug }, select: { id: true } });
+    if (activeHub) {
       const hubMembers = await db.hubMember.findMany({
-        where: { hubId: hostHub.id, userId: { in: assignedUserIds } },
+        where: { hubId: activeHub.id, userId: { in: assignedUserIds } },
         select: { userId: true, status: true, hostingCapability: true },
       });
       for (const m of hubMembers) {
@@ -233,15 +263,24 @@ export async function GET(request: Request) {
     }
   }
 
-  const assignmentMap = new Map(
-    assignments.map((a) => {
-      const dateStr = a.sessionDate ? ctDateStr(a.sessionDate.toISOString()) : "";
-      return [`${a.programSlug}::${dateStr}`, a];
-    })
-  );
+  // Group assignments by (programSlug, dateStr) for multi-claim support.
+  type AssignmentRow = typeof assignments[number];
+  const assignmentsByKey = new Map<string, AssignmentRow[]>();
+  for (const a of assignments) {
+    const dateStr = a.sessionDate ? ctDateStr(a.sessionDate.toISOString()) : "";
+    const key = `${a.programSlug}::${dateStr}`;
+    const bucket = assignmentsByKey.get(key);
+    if (bucket) bucket.push(a);
+    else assignmentsByKey.set(key, [a]);
+  }
 
   type SessionStatus = "unclaimed" | "claimed" | "sub_needed";
   const sessions: object[] = [];
+
+  function nameOf(u: { firstName: string | null; lastName: string | null; preferredName: string | null } | null): string | null {
+    if (!u) return null;
+    return u.preferredName || [u.firstName, u.lastName].filter(Boolean).join(" ") || null;
+  }
 
   for (let day = 1; day <= daysInMonth; day++) {
     const dateStr = `${yearN}-${String(monthN).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -252,39 +291,64 @@ export async function GET(request: Request) {
         ? shiftToDate(p.startDatetime.toISOString(), dateStr)
         : null;
       const key = `${p.slug}::${dateStr}`;
-      const a = assignmentMap.get(key);
+      const bucket = assignmentsByKey.get(key);
 
-      if (a) {
-        const openSub = a.subRequests[0] ?? null;
-        const status: SessionStatus = !a.userId
-          ? "unclaimed" : openSub ? "sub_needed" : "claimed";
-        sessions.push({
-          id: a.id,
-          programSlug: p.slug, programName: p.name,
-          sessionDate: shiftedDate?.toISOString() ?? null,
-          status, hostUserId: a.userId ?? null,
-          hostName: a.user
-            ? (a.user.preferredName || [a.user.firstName, a.user.lastName].filter(Boolean).join(" ") || null)
-            : null,
-          subRequestId: openSub?.id ?? null, subMessage: openSub?.message ?? null,
-          programFormat: p.programFormat ?? null, programId: p.id,
-          livekitRoom: p.livekitRoom ?? null,
-          standingAssignmentId: a.standingAssignmentId ?? null,
-          hostBadge: a.userId ? (pauseMap.get(a.userId) ?? null) : null,
-        });
-      } else {
+      if (!bucket || bucket.length === 0) {
         sessions.push({
           id: `unassigned::${p.slug}::${dateStr}`,
           programSlug: p.slug, programName: p.name,
           sessionDate: shiftedDate?.toISOString() ?? null,
           status: "unclaimed", hostUserId: null, hostName: null,
+          claimants: [],
           subRequestId: null, subMessage: null,
           programFormat: p.programFormat ?? null, programId: p.id,
           livekitRoom: p.livekitRoom ?? null,
           standingAssignmentId: null,
           hostBadge: null,
         });
+        continue;
       }
+
+      if (allowsMultipleAssignments) {
+        const claimants = bucket.map((a) => ({
+          assignmentId: a.id,
+          userId: a.userId ?? null,
+          userName: nameOf(a.user),
+          badge: a.userId ? (pauseMap.get(a.userId) ?? null) : null,
+        }));
+        const first = bucket[0];
+        sessions.push({
+          id: `multi::${p.slug}::${dateStr}`,
+          programSlug: p.slug, programName: p.name,
+          sessionDate: shiftedDate?.toISOString() ?? null,
+          status: "claimed", hostUserId: null, hostName: null,
+          claimants,
+          subRequestId: null, subMessage: null,
+          programFormat: p.programFormat ?? null, programId: p.id,
+          livekitRoom: p.livekitRoom ?? null,
+          standingAssignmentId: first?.standingAssignmentId ?? null,
+          hostBadge: null,
+        });
+        continue;
+      }
+
+      const a = bucket[0];
+      const openSub = a.subRequests[0] ?? null;
+      const status: SessionStatus = !a.userId
+        ? "unclaimed" : openSub ? "sub_needed" : "claimed";
+      sessions.push({
+        id: a.id,
+        programSlug: p.slug, programName: p.name,
+        sessionDate: shiftedDate?.toISOString() ?? null,
+        status, hostUserId: a.userId ?? null,
+        hostName: nameOf(a.user),
+        claimants: [],
+        subRequestId: openSub?.id ?? null, subMessage: openSub?.message ?? null,
+        programFormat: p.programFormat ?? null, programId: p.id,
+        livekitRoom: p.livekitRoom ?? null,
+        standingAssignmentId: a.standingAssignmentId ?? null,
+        hostBadge: a.userId ? (pauseMap.get(a.userId) ?? null) : null,
+      });
     }
   }
 
@@ -307,26 +371,34 @@ export async function POST(request: Request) {
     return Response.json({ error: "programSlug is required" }, { status: 400 });
   }
 
-  const { programSlug, userId, sessionDate, notes, action } = body as {
+  const { programSlug, userId, sessionDate, notes, action, hubSlug: bodyHubSlug } = body as {
     programSlug: string;
     userId?: string | null;
     sessionDate?: string | null;
     notes?: string | null;
     action?: "claim";
+    /** Hub the assignment lands in. Defaults to the program's primary
+     *  hosting hub for backward compat; auxiliary callers (AV /
+     *  greeter views) pass their own slug. Session 129. */
+    hubSlug?: string | null;
   };
 
-  // Capability gate routes by the program's hosting hub. A peer-leader can
-  // self-claim a peer-led silent sit; a host-team volunteer can self-claim
-  // host-team programs. Manager operations (create-unclaimed,
-  // assign-to-others) still require the system-role manager check.
+  // Resolve the target hub. Body wins; otherwise fall through to the
+  // program's primary hosting hub.
   const programHubSlug = await getProgramHubSlug(programSlug);
+  const targetHubSlug = bodyHubSlug || programHubSlug;
 
+  // Capability gate routes by the resolved hub. A peer-leader can
+  // self-claim a peer-led silent sit; a host-team volunteer can self-claim
+  // host-team programs; a greeter signs themselves up in the greeter hub.
+  // Manager operations (create-unclaimed, assign-to-others) still require
+  // the system-role manager check.
   const roles = session.user.roles ?? [];
-  if (!(await hasEffectiveHostAccess(session.user.id, roles, programHubSlug))) {
+  if (!(await hasEffectiveHostAccess(session.user.id, roles, targetHubSlug))) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Self-claim: any HOST can create+claim for themselves.
+  // Self-claim: any active hub-team member can create+claim for themselves.
   // Manager operations (create unclaimed, assign to others): manager-only.
   if (action !== "claim" && !isManager(roles)) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
@@ -335,22 +407,75 @@ export async function POST(request: Request) {
   const assignedUserId = action === "claim" ? session.user.id : (userId ?? null);
   const parsedDate = sessionDate ? new Date(sessionDate) : null;
 
-  // Uniqueness check: one assignment per (programSlug, sessionDate)
+  // Hub-coverage config decides whether (programSlug, sessionDate, hubSlug)
+  // is single-slot or multi-claim. Single-slot (host-team / AV / peer-led):
+  // one claimed row per session; the existing "claim the unclaimed seed"
+  // pattern stays. Multi-claim (greeter): each sign-up is a fresh insert;
+  // dedupe is per (slug, date, hub, userId).
+  const hubConfig = await getHubCoverageConfig(targetHubSlug);
+  const multiClaim = hubConfig?.allowsMultipleAssignments ?? false;
+
+  if (multiClaim) {
+    if (action !== "claim" || !assignedUserId) {
+      return Response.json(
+        { error: "This hub uses open sign-up — only the self-claim action is supported." },
+        { status: 400 },
+      );
+    }
+    // Already signed up?
+    const dup = await db.hostAssignment.findFirst({
+      where: {
+        programSlug, sessionDate: parsedDate, hubSlug: targetHubSlug, userId: assignedUserId,
+      },
+      select: { id: true },
+    });
+    if (dup) {
+      return Response.json({ error: "You're already signed up." }, { status: 409 });
+    }
+    const created = await db.hostAssignment.create({
+      data: {
+        programSlug,
+        hubSlug: targetHubSlug,
+        userId: assignedUserId,
+        sessionDate: parsedDate,
+        notes: notes ?? null,
+        assignedBy: session.user.id,
+      },
+      include: {
+        user: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
+      },
+    });
+    after(() => notifyAssignedHost(assignedUserId, created.programSlug, created.sessionDate, created.hubSlug));
+    return Response.json({
+      id: created.id,
+      programSlug: created.programSlug,
+      sessionDate: created.sessionDate?.toISOString() ?? null,
+      hubSlug: created.hubSlug,
+      status: "claimed",
+      hostUserId: created.userId,
+      hostName: created.user
+        ? (created.user.preferredName || [created.user.firstName, created.user.lastName].filter(Boolean).join(" ") || null)
+        : null,
+    });
+  }
+
+  // Single-slot path. Look up any existing row in this hub for the
+  // session; either claim its unclaimed seed or reject as already filled.
   const existing = await db.hostAssignment.findFirst({
-    where: { programSlug, sessionDate: parsedDate },
+    where: { programSlug, sessionDate: parsedDate, hubSlug: targetHubSlug },
   });
   if (existing) {
-    // If a record already exists and action is "claim", just claim it if unclaimed
     if (action === "claim" && !existing.userId) {
       const updated = await db.hostAssignment.update({
         where: { id: existing.id },
         data: { userId: session.user.id, assignedBy: session.user.id },
         include: { user: { select: { id: true, firstName: true, lastName: true, preferredName: true } } },
       });
-      after(() => notifyAssignedHost(session.user.id, updated.programSlug, updated.sessionDate));
+      after(() => notifyAssignedHost(session.user.id, updated.programSlug, updated.sessionDate, updated.hubSlug));
       return Response.json({
         id: updated.id, programSlug: updated.programSlug,
         sessionDate: updated.sessionDate?.toISOString() ?? null,
+        hubSlug: updated.hubSlug,
         status: "claimed", hostUserId: updated.userId,
         hostName: updated.user
           ? (updated.user.preferredName || [updated.user.firstName, updated.user.lastName].filter(Boolean).join(" ") || null)
@@ -364,7 +489,7 @@ export async function POST(request: Request) {
   }
 
   // If assigning a specific user (manager only), verify they can host in
-  // the program's hub. Hub authority applies: a member whose capability is
+  // the target hub. Hub authority applies: a member whose capability is
   // revoked or who is paused/inactive in the target hub cannot be assigned,
   // even if the HOST role is present.
   if (assignedUserId && assignedUserId !== session.user.id) {
@@ -375,7 +500,7 @@ export async function POST(request: Request) {
     if (!targetUser) {
       return Response.json({ error: "User not found" }, { status: 404 });
     }
-    if (!(await hasEffectiveHostAccess(assignedUserId, targetUser.roles, programHubSlug))) {
+    if (!(await hasEffectiveHostAccess(assignedUserId, targetUser.roles, targetHubSlug))) {
       return Response.json(
         { error: "This member can't host right now — they are paused, inactive, or have had hosting revoked on this hub." },
         { status: 422 }
@@ -386,6 +511,7 @@ export async function POST(request: Request) {
   const assignment = await db.hostAssignment.create({
     data: {
       programSlug,
+      hubSlug: targetHubSlug,
       userId: assignedUserId ?? null,
       sessionDate: parsedDate,
       notes: notes ?? null,
@@ -399,13 +525,14 @@ export async function POST(request: Request) {
   // Confirmation email when someone becomes the host: self-claim AND
   // manager-assigns-to-another-user both flow through here.
   if (assignment.userId) {
-    after(() => notifyAssignedHost(assignment.userId!, assignment.programSlug, assignment.sessionDate));
+    after(() => notifyAssignedHost(assignment.userId!, assignment.programSlug, assignment.sessionDate, assignment.hubSlug));
   }
 
   return Response.json({
     id: assignment.id,
     programSlug: assignment.programSlug,
     sessionDate: assignment.sessionDate?.toISOString() ?? null,
+    hubSlug: assignment.hubSlug,
     status: assignment.userId ? "claimed" : "unclaimed",
     hostUserId: assignment.userId ?? null,
     hostName: assignment.user

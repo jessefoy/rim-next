@@ -101,6 +101,11 @@ export interface ProgramData {
   /** Which hub hosts this program. Null = "host-team" (the implicit default).
    *  Coordinator can transfer hosting to another hub via the Hosting & Access tab. */
   hostingHubSlug: string | null;
+  /** Auxiliary hubs providing supporting-role coverage for this program
+   *  (session 129 — AV + Greeter). Empty array is the default; each slug
+   *  here gets a row in program_coverage_hubs on save. Primary hub
+   *  (hostingHubSlug) is implicit and never appears in this list. */
+  coverageHubSlugs?: string[];
 }
 
 interface Props {
@@ -112,8 +117,10 @@ interface Props {
   categories: Category[];
   /** Active hubs for the "Hosting & Access" tab dropdown. Server fetches
    *  `db.hub.findMany({ where: { status: "ACTIVE" } })`. host-team is in
-   *  the list as a regular option but rendered with the "(default)" label. */
-  hubs: { slug: string; name: string }[];
+   *  the list as a regular option but rendered with the "(default)" label.
+   *  `hasSchedule` flags hubs that use the Scheduler tool — only these can
+   *  appear as auxiliary coverage. */
+  hubs: { slug: string; name: string; hasSchedule?: boolean }[];
   /** Count of HostAssignment rows for this program with `sessionDate >= now`.
    *  Drives the mid-flight change warning when a coordinator switches
    *  `hostingHubSlug`. Zero or unset means no warning. Only meaningful in
@@ -682,6 +689,20 @@ export default function ProgramEditor({
   const [hostingHubSlug, setHostingHubSlug] = useState<string>(initialHostingHubSlug);
   const hostingHubChanged = hostingHubSlug !== initialHostingHubSlug;
 
+  // Auxiliary-hub coverage. A program's primary hub (hostingHubSlug above)
+  // runs the live session; auxiliary hubs schedule supporting roles —
+  // AV volunteer, greeters — for the in-person component. Each checked
+  // slug here becomes a ProgramCoverageHub row on save.
+  const [coverageHubSlugs, setCoverageHubSlugs] = useState<string[]>(
+    initialData?.coverageHubSlugs ?? [],
+  );
+  function toggleCoverageHub(slug: string, checked: boolean) {
+    setCoverageHubSlugs((prev) =>
+      checked ? [...prev.filter((s) => s !== slug), slug] : prev.filter((s) => s !== slug),
+    );
+    markDirty();
+  }
+
   // ── Unsaved changes tracking ────────────────────────────────────────────
   const [dirty, setDirty] = useState(false);
   const [pendingNav, setPendingNav] = useState<string | null>(null);
@@ -882,6 +903,9 @@ export default function ProgramEditor({
         // Empty string serialises as null (the implicit "host-team" default).
         // Server-side `getProgramHubSlug` falls through to host-team when null.
         hostingHubSlug: hostingHubSlug || null,
+        // Auxiliary hubs providing role coverage. Empty array means no
+        // additional coverage. Server replaces the full set on each save.
+        coverageHubSlugs,
       };
 
       const url = isEditing ? `/api/programs-pg/${initialData?.slug}` : "/api/programs-pg";
@@ -1372,6 +1396,49 @@ export default function ProgramEditor({
                 </div>
               )}
             </div>
+
+            {/* ── Auxiliary coverage (session 129 — AV + Greeter hubs) ── */}
+            {(() => {
+              // Eligible auxiliary hubs: every active hub with a Scheduler
+              // tool, minus the primary hosting hub for this program (host-
+              // team when hostingHubSlug is blank). A coordinator picks
+              // which other teams provide role coverage for the in-person
+              // component of this offering.
+              const primarySlug = hostingHubSlug || DEFAULT_HOSTING_HUB_SLUG;
+              const eligible = hubs.filter(
+                (h) => h.hasSchedule && h.slug !== primarySlug,
+              );
+              if (eligible.length === 0) return null;
+              return (
+                <fieldset className="pe-field">
+                  <legend className="pe-field__label">Auxiliary role coverage</legend>
+                  <span className="pe-field__help">
+                    Other volunteer teams that schedule supporting roles for
+                    this program — AV, greeters, future expansions. Only
+                    relevant for programs with an in-person component. Each
+                    team gets its own claim/sign-up flow inside its own
+                    hub&rsquo;s Scheduler view; the hub&rsquo;s configuration
+                    decides single-slot (one volunteer) vs.&nbsp;multi-claimant
+                    (open sign-up).
+                  </span>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 6 }}>
+                    {eligible.map((h) => {
+                      const checked = coverageHubSlugs.includes(h.slug);
+                      return (
+                        <label key={h.slug} className="pe-checkbox">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) => toggleCoverageHub(h.slug, e.target.checked)}
+                          />
+                          <span>{h.name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+              );
+            })()}
 
             {/* ── Teacher pill label (moved from Content tab) ─────────── */}
             <div className="pe-field">

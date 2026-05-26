@@ -1844,6 +1844,22 @@ Embedded video conferencing that replaces Google Meet for virtual and hybrid pro
 - **Phase 5 (Zoom-aligned redesign):** ✅ Complete (session 117). The entire session-room UX was reshaped to mirror Zoom's information architecture so Sangha muscle memory transfers cleanly. See "Zoom-aligned redesign" below.
 - **Phase 6 (recording):** 🔜 Pressing future feature — see below.
 
+### Auxiliary-hub coverage — AV + Greeter hubs (session 129, 2026-05-25)
+
+Generalizes the program↔hub relationship from 1:1 (Slice 1's `Program.hostingHubSlug`) to many-to-many with a role dimension. An in-person Saturday Sit can now be claimed simultaneously by host-team (or peer-led) for the live session + audio-visual for the AV slot + greeter for greeter signup. Three independent role pools, three Scheduler views, three sets of `HostAssignment` rows — all against the same `Program` record.
+
+**Two new hubs**, both pre-created by Jesse and auto-configured by the migration: `audio-visual` (single-slot, in-person/hybrid — one AV volunteer per session) and `greeter` (multi-claim, in-person/hybrid — open sign-up, many greeters per session).
+
+**Schema model.** `Program.hostingHubSlug` stays as the *primary* hub (who runs the live session, owns the LiveKit room, holds dharma authority). Auxiliary hubs are recorded in the new `ProgramCoverageHub` join table. Two new fields on Hub: `allowsMultipleAssignments` (drives single-slot vs open-signup semantics) and `appliesToFormats` (`["virtual","hybrid"]` default for host-team/peer-led; `["in-person","hybrid"]` for AV/greeter). `HostAssignment.hubSlug` and `StandingAssignment.hubSlug` columns carry the assignment's / rotation's owning hub directly. The old `HostAssignment.@@unique([programSlug, sessionDate])` was dropped — app-layer enforcement handles single-slot uniqueness per `(programSlug, sessionDate, hubSlug)`. `StandingAssignment.@@unique` was widened to include `hubSlug` so a program can hold parallel rotations across hubs.
+
+**Multi-claim Scheduler UX (greeter hub).** When `Hub.allowsMultipleAssignments` is true, the Scheduler renders each session as a community of people, not a one-host-with-actions row. Plain-language state-header sentence ("3 signed up · you're one of them"), stacked names with a "YOU" self-recognition mark on the signed-in user's row, action buttons that read as invitation ("I'll be the first" / "I'll be there too" / "Cancel my signup"). No sub-request flow — release-my-claim is the only exit. POST `/api/host/sub-requests` returns 400 on multi-claim hubs. The visual hierarchy here is correctness, not polish — see `feedback-clear-seeing-is-correctness.md` in memory.
+
+**Auxiliary coverage in the ProgramEditor.** The "Hosting & Access" tab gains an "Auxiliary role coverage" fieldset listing every active scheduler-enabled hub minus the primary. Checked boxes write `ProgramCoverageHub` rows; full-replace semantics on save (POST/PUT validates against the hub table, returns 422 on unknown slugs).
+
+**Standing rotations hub-scoped per record.** Every standing-assignment route accepts a `hubSlug` body field; gates by `isHubCoordinator(userId, hubSlug)`. Conflict detection in `lib/applyStandingAssignments.ts` scoped per `(programSlug, dateStr, hubSlug)` so an AV rotation candidate doesn't collide with a host-team HostAssignment. Apply-time emails group per-user-and-hub so a user with cross-hub rotations gets one email per hub, each linking to the right Scheduler view.
+
+**Migration `auxiliary_hub_coverage_v1`.** Idempotent + value-preserving. Adds columns with safe defaults, backfills `host_assignments.hubSlug` and `standing_assignments.hubSlug` from `programs.hostingHubSlug`, drops the old unique on host_assignments and replaces with composite indexes for query performance, widens the standing_assignments unique to include `hubSlug`, creates the `program_coverage_hubs` table, then `updateMany`s the audio-visual and greeter hubs (if those rows exist) to set their format filters + multi-claim flags + `hasSchedule = true`.
+
 ### Silent Meditation Hub — Slice 2 + 2.5 + 2.6 operational + hub-isolation hardening (session 128 continued)
 
 After Slice 1's architecture landed, the next phase took the system live for the first peer-led hub end-to-end. Three layers landed:

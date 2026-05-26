@@ -20,7 +20,7 @@ export default async function NewProgramToolPage() {
     db.programCategory.findMany({ orderBy: { sortOrder: "asc" } }),
     db.hub.findMany({
       where: { status: "ACTIVE" },
-      select: { slug: true, name: true },
+      select: { slug: true, name: true, hasSchedule: true },
       orderBy: { name: "asc" },
     }),
   ]);

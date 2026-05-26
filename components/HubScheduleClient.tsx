@@ -27,6 +27,14 @@ const RotationsClient = dynamic(
   { ssr: false, loading: () => <p className="hs-loading">Loading rotations…</p> },
 );
 
+/** One signed-up volunteer on a multi-claim session (greeter hub). */
+interface Claimant {
+  assignmentId: string;
+  userId: string | null;
+  userName: string | null;
+  badge: "paused" | "inactive" | null;
+}
+
 interface Session {
   id: string;
   programId: string | null;
@@ -36,6 +44,10 @@ interface Session {
   status: "unclaimed" | "claimed" | "sub_needed";
   hostUserId: string | null;
   hostName: string | null;
+  /** Populated only in multi-claim hubs (greeter). Empty in single-slot
+   *  hubs (host-team, AV, peer-led). When non-empty the row renders as
+   *  a sign-up stack instead of one-host-with-actions. */
+  claimants?: Claimant[];
   subRequestId: string | null;
   subMessage: any;
   programFormat: string | null;
@@ -101,6 +113,10 @@ interface Props {
   apiBase?: string;
   /** Active hub slug — drives the hub-scoped rotation list lookup. Slice 2.6. */
   hubSlug?: string;
+  /** When true, the hub is multi-claimant (greeter): one session card
+   *  lists every signed-up volunteer and the action is "Sign up" /
+   *  "Cancel my signup" instead of "claim/cover". Session 129. */
+  allowsMultipleAssignments?: boolean;
 }
 
 const TZ = "America/Chicago";
@@ -110,7 +126,7 @@ const MONTHS = [
 ];
 
 type FilterKey = "all" | "needs" | "mine" | "my-requests";
-type RowKind = "needs-host" | "needs-sub" | "mine" | "mine-asking" | "covered";
+type RowKind = "needs-host" | "needs-sub" | "mine" | "mine-asking" | "covered" | "multi";
 
 // ── Formatters ──────────────────────────────────────────────
 
@@ -171,6 +187,12 @@ function getWeekLabel(weekStart: Date, todayWeekStart: Date, isCurrentMonth: boo
 }
 
 function rowKind(s: Session, currentUserId: string): RowKind {
+  // Multi-claim sessions (greeter) carry a `claimants` array and don't
+  // use the single-host/sub-request shape at all. They always render
+  // through the dedicated multi-claim row variant. Session 129.
+  if (s.claimants && s.claimants.length > 0 || (s.id.startsWith("multi::"))) {
+    return "multi";
+  }
   if (s.hostUserId === currentUserId) {
     return s.subRequestId ? "mine-asking" : "mine";
   }
@@ -335,17 +357,23 @@ interface RowProps {
   session: Session;
   kind: RowKind;
   isPast: boolean;
+  currentUserId: string;
   onTake: (s: Session) => void;
   onCover: (s: Session) => void;
   onAskCover: (s: Session) => void;
   onCancelRequest: (s: Session) => void;
   onReassign: (s: Session) => void;
+  /** Multi-claim hubs only: sign me up for this session. */
+  onSignUp?: (s: Session) => void;
+  /** Multi-claim hubs only: cancel my signup on this session. */
+  onCancelSignUp?: (s: Session, assignmentId: string) => void;
   isHostManager: boolean;
 }
 
 function HsRow({
-  session, kind, isPast,
+  session, kind, isPast, currentUserId,
   onTake, onCover, onAskCover, onCancelRequest, onReassign,
+  onSignUp, onCancelSignUp,
   isHostManager,
 }: RowProps) {
   const dateShort = fmtDateShort(session.sessionDate);
@@ -419,6 +447,81 @@ function HsRow({
         </span>
       );
       break;
+    case "multi": {
+      // Multi-claim hubs (greeter): the row reads as a community of
+      // signed-up people, not a CSV. Plain-language state sentence,
+      // names stacked vertically, "you" mark on the signed-in user's
+      // row, and one dominant action that reads as invitation when no
+      // one's signed up. Open sign-up — no sub-request flow.
+      const claimants = session.claimants ?? [];
+      const count = claimants.length;
+      const mine = claimants.find((c) => c.userId === currentUserId);
+
+      let headerText: string;
+      if (count === 0) {
+        headerText = isPast ? "No one signed up" : "No one yet — be the first?";
+      } else if (count === 1) {
+        headerText = mine ? "You're signed up" : "1 person signed up";
+      } else {
+        headerText = mine
+          ? `${count} signed up · you're one of them`
+          : `${count} signed up`;
+      }
+
+      statusEl = (
+        <div className="hs-row__multi">
+          <div
+            className={
+              "hs-row__multi-header" +
+              (count === 0 ? " hs-row__multi-header--empty" : "")
+            }
+          >
+            {headerText}
+          </div>
+          {count > 0 && (
+            <ul className="hs-row__multi-list">
+              {claimants.map((c) => {
+                const isMe = c.userId === currentUserId;
+                return (
+                  <li
+                    key={c.assignmentId}
+                    className={
+                      "hs-row__multi-item" + (isMe ? " hs-row__multi-item--mine" : "")
+                    }
+                  >
+                    <span className="hs-row__multi-name">{c.userName ?? "—"}</span>
+                    {isMe && <span className="hs-row__multi-you">you</span>}
+                    {c.badge && (
+                      <span className="hs-row__paused-badge">
+                        {c.badge === "inactive" ? "inactive" : "paused"}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      );
+
+      if (!isPast) {
+        actionEl = mine
+          ? (
+            <button
+              className="hs-row__quiet"
+              onClick={() => onCancelSignUp?.(session, mine.assignmentId)}
+            >
+              Cancel my signup
+            </button>
+          )
+          : (
+            <button className="lr-btn lr-btn--host" onClick={() => onSignUp?.(session)}>
+              {count === 0 ? "I’ll be the first" : "I’ll be there too"}
+            </button>
+          );
+      }
+      break;
+    }
   }
 
   // "NEW" badge: program was created within the last NEW_PROGRAM_DAYS.
@@ -513,6 +616,7 @@ export default function HubScheduleClient({
   currentUserId, currentUserName,
   isHostManager = false, isManager = false, myRotations = [],
   nextSessionBySlug = {}, apiBase = "/api/host", hubSlug,
+  allowsMultipleAssignments = false,
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -553,7 +657,8 @@ export default function HubScheduleClient({
     setLoading(true);
     try {
       const monthStr = `${y}-${String(m + 1).padStart(2, "0")}`;
-      const res = await fetch(`${apiBase}/assignments?month=${monthStr}`);
+      const hubQuery = hubSlug ? `&hub=${encodeURIComponent(hubSlug)}` : "";
+      const res = await fetch(`${apiBase}/assignments?month=${monthStr}${hubQuery}`);
       if (!res.ok) return;
       const data: Session[] = await res.json();
       setSessions(data);
@@ -562,7 +667,7 @@ export default function HubScheduleClient({
     } finally {
       setLoading(false);
     }
-  }, [apiBase]);
+  }, [apiBase, hubSlug]);
 
   // ── Deep-link handling ──
   // ?action=take&id=<sessionId>     — open take modal
@@ -635,7 +740,12 @@ export default function HubScheduleClient({
     if (s.id.startsWith("unassigned::")) {
       const res = await fetch(`${apiBase}/assignments`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ programSlug: s.programSlug, sessionDate: s.sessionDate, action: "claim" }),
+        body: JSON.stringify({
+          programSlug: s.programSlug,
+          sessionDate: s.sessionDate,
+          action: "claim",
+          hubSlug,
+        }),
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
@@ -729,6 +839,43 @@ export default function HubScheduleClient({
       ? { ...row, id: data.id, status: "claimed", hostUserId: currentUserId, hostName: currentUserName, subRequestId: null, subMessage: null }
       : row
     ));
+  }
+
+  // ── Multi-claim sign-up (greeter hub) ──
+  // No modal. No sub-request. Open sign-up: POST creates a new
+  // HostAssignment scoped to the active hub; reload the month to pick
+  // up the new row in the right shape.
+  async function signUp(s: Session) {
+    if (!s.sessionDate) return;
+    const res = await fetch(`${apiBase}/assignments`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        programSlug: s.programSlug,
+        sessionDate: s.sessionDate,
+        action: "claim",
+        hubSlug,
+      }),
+    });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setToast(d.error ?? "Couldn't sign up. Try again.");
+      return;
+    }
+    setToast("Signed up. Thank you!");
+    await loadMonth(year, month);
+  }
+
+  async function cancelSignUp(_s: Session, assignmentId: string) {
+    const res = await fetch(`${apiBase}/assignments/${assignmentId}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      setToast(d.error ?? "Couldn't cancel. Try again.");
+      return;
+    }
+    setToast("Signup cancelled.");
+    await loadMonth(year, month);
   }
 
   // ── Modal openers ──
@@ -859,6 +1006,9 @@ export default function HubScheduleClient({
     onAskCover: openAskCover,
     onCancelRequest: openCancelRequest,
     onReassign: openReassign,
+    onSignUp: signUp,
+    onCancelSignUp: cancelSignUp,
+    currentUserId,
     isHostManager,
   };
 

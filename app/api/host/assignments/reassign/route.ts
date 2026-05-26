@@ -54,6 +54,11 @@ export async function POST(request: Request) {
   const parsedDate = sessionDate ? new Date(sessionDate) : null;
 
   let previousUserId: string | null = null;
+  // Preserve the existing assignment's hub on reassign (session 129) so
+  // an AV reassign doesn't accidentally route the new row to host-team.
+  // Falls back to the program's primary hub when there's no existing
+  // assignment to inherit from.
+  let preservedHubSlug: string | null = null;
 
   if (currentAssignmentId) {
     const existing = await db.hostAssignment.findUnique({
@@ -63,6 +68,7 @@ export async function POST(request: Request) {
       return Response.json({ error: "Session not found." }, { status: 404 });
     }
     previousUserId = existing.userId ?? null;
+    preservedHubSlug = existing.hubSlug;
 
     if (previousUserId === session.user.id) {
       return Response.json(
@@ -79,9 +85,19 @@ export async function POST(request: Request) {
     await db.hostAssignment.delete({ where: { id: existing.id } });
   }
 
+  const fallbackHubSlug = await (async () => {
+    if (preservedHubSlug) return preservedHubSlug;
+    const program = await db.program.findUnique({
+      where: { slug: programSlug },
+      select: { hostingHubSlug: true },
+    });
+    return program?.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG;
+  })();
+
   const created = await db.hostAssignment.create({
     data: {
       programSlug,
+      hubSlug: fallbackHubSlug,
       userId: session.user.id,
       sessionDate: parsedDate,
       assignedBy: session.user.id,
@@ -101,11 +117,13 @@ export async function POST(request: Request) {
     try {
       const program = await db.program.findUnique({
         where:  { slug: programSlug },
-        select: { name: true, hostingHubSlug: true },
+        select: { name: true },
       });
       const programName = program?.name || programSlug;
       const dateText = fmtDate(parsedDate);
-      const hubSlug = program?.hostingHubSlug ?? DEFAULT_HOSTING_HUB_SLUG;
+      // Use the created row's hub (session 129) so reassigns in AV /
+      // peer-led hubs send their links back to the right scheduler view.
+      const hubSlug = created.hubSlug;
 
       const newHost = await db.user.findUnique({
         where:  { id: newHostId },

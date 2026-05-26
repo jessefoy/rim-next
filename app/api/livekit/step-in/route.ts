@@ -95,26 +95,39 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Update the existing HostAssignment to this user, or create one if none exists.
-  // HostAssignment is @@unique([programSlug, sessionDate]) — one assignment per session.
-  await db.hostAssignment.upsert({
+  // Step-In writes a HostAssignment for the *primary* hosting hub. After
+  // session 129 the database unique on (programSlug, sessionDate) was
+  // dropped in favor of app-layer enforcement; the lookup is now scoped
+  // to (programSlug, sessionDate, hubSlug) and uses findFirst + update/
+  // create instead of upsert.
+  const sessionDateObj = new Date(effectiveSessionDate);
+  const existingAssignment = await db.hostAssignment.findFirst({
     where: {
-      programSlug_sessionDate: {
-        programSlug,
-        sessionDate: new Date(effectiveSessionDate),
-      },
-    },
-    create: {
       programSlug,
-      userId: session.user.id,
-      sessionDate: new Date(effectiveSessionDate),
-      notes: `Emergency step-in by ${session.user.name || session.user.id}`,
+      sessionDate: sessionDateObj,
+      hubSlug: resolvedHostingHubSlug,
     },
-    update: {
-      userId: session.user.id,
-      notes: `Emergency step-in by ${session.user.name || session.user.id}`,
-    },
+    select: { id: true },
   });
+  if (existingAssignment) {
+    await db.hostAssignment.update({
+      where: { id: existingAssignment.id },
+      data: {
+        userId: session.user.id,
+        notes: `Emergency step-in by ${session.user.name || session.user.id}`,
+      },
+    });
+  } else {
+    await db.hostAssignment.create({
+      data: {
+        programSlug,
+        hubSlug: resolvedHostingHubSlug,
+        userId: session.user.id,
+        sessionDate: sessionDateObj,
+        notes: `Emergency step-in by ${session.user.name || session.user.id}`,
+      },
+    });
+  }
 
   // Generate a new token: stepping in upserts the HostAssignment, so this
   // user is now the Session Host (full grant: roomAdmin + screen share).

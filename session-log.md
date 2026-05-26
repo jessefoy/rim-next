@@ -1,5 +1,75 @@
 ---
 
+## 2026-05-25 (session 129) — Auxiliary-hub coverage: AV + Greeter hubs (one-program-many-hubs generalization)
+
+Jesse asked for two more hubs — `audio-visual` (one AV volunteer per in-person session) and `greeter` (open multi-claim sign-up for in-person greeting) — both using the existing Scheduler tool. The right answer wasn't "copy the Silent Meditation Hub pattern" because that pattern committed to one program ↔ one hub via `Program.hostingHubSlug`. Real in-person offerings need multiple parallel role pools — a Saturday Sit needs the dharma teacher + AV + greeters as three independent role coverage scopes against the same Program record. So session 129 generalized the architecture: one program ↔ many hubs, each covering a different role.
+
+### What shipped
+
+**Schema** — `Program.hostingHubSlug` stays as the *primary* hub (who runs the live session, owns the LiveKit room). Two new fields on Hub: `allowsMultipleAssignments` (false = single-slot like host-team/AV, true = open multi-claim like greeter) and `appliesToFormats` (which `programFormat` values this hub schedules — virtual/hybrid for host-team and peer-led, in-person/hybrid for AV and greeter). New join table `ProgramCoverageHub` records auxiliary-hub coverage per program. `HostAssignment.hubSlug` and `StandingAssignment.hubSlug` columns carry the assignment's owning hub directly. The old `HostAssignment.@@unique([programSlug, sessionDate])` was dropped in favor of app-layer enforcement (single-slot hubs enforce uniqueness per `(programSlug, sessionDate, hubSlug)`; multi-claim hubs allow many rows). `StandingAssignment.@@unique` widened to include `hubSlug` so a program can have parallel rotations in different hubs.
+
+**Migration** — `auxiliary_hub_coverage_v1`. Idempotent. Backfills `host_assignments.hubSlug` and `standing_assignments.hubSlug` from `programs.hostingHubSlug` (preserving every existing row's effective hub). Auto-configures `audio-visual` (single-slot + in-person/hybrid + hasSchedule) and `greeter` (multi-claim + in-person/hybrid + hasSchedule) the moment those hub rows exist.
+
+**Helpers** in `lib/programHub.ts`: `getProgramCoverageHubs`, `getProgramSlugsForHub` (returns the union of primary + auxiliary programs), `getHubCoverageConfig` (returns the format filter + multi-claim flag).
+
+**Scheduler page + API GET** — both now union primary + auxiliary programs for the active hub via `getProgramSlugsForHub`, apply the hub's `appliesToFormats`, and scope HostAssignment queries by `hubSlug`. Multi-claim sessions render as a community of people — plain-language state header sentence ("3 signed up · you're one of them"), stacked names with a "YOU" self-recognition mark on the signed-in user's row, action labels that read as invitation ("I'll be the first" / "I'll be there too" / "Cancel my signup"). Single-slot hubs keep the historical one-host-with-actions shape.
+
+**ProgramEditor** — new "Auxiliary role coverage" fieldset in the Hosting & Access tab. Lists every active hub with `hasSchedule=true` minus the primary. Checked boxes write `ProgramCoverageHub` rows on save. POST/PUT in `/api/programs-pg` validate hub slugs and full-replace the coverage set.
+
+**Assignments POST** branches on `Hub.allowsMultipleAssignments`. Single-slot: existing claim-the-seed pattern, scoped per hub. Multi-claim: each sign-up is a fresh insert, deduped per `(programSlug, sessionDate, hubSlug, userId)`. Sub-request POST refuses on multi-claim hubs ("cancel your signup instead").
+
+**Standing rotations** — every route accepts a `hubSlug` body field (default = program's primary hub), gates by `isHubCoordinator(userId, hubSlug)`. Bundle scope `(programSlug, dayOfWeek, hubSlug)` so an AV rotation and a host-team rotation can coexist on the same program/day. `applyStandingAssignments.ts::Candidate` carries `hubSlug`; conflict detection scoped per `(programSlug, dateStr, hubSlug)` so an AV rotation candidate doesn't collide with a host-team assignment. Apply-time emails group per-user-and-hub so a user with cross-hub rotations gets one email per hub, each linking to the right Scheduler view.
+
+**Reassign + Step-In** — both refactored from `upsert` (which required the dropped composite unique key) to `findFirst + update/create`. Reassign preserves the existing assignment's hub on the rewrite; emails route via the new row's `hubSlug`.
+
+### Architectural calls made this session
+
+**The one-program-many-hubs generalization is the architecturally honest shape.** Three hub slices in two weeks (Slices 1, 2.6, 129) ratcheting toward the same truth: hubs are role pools, not program owners. After 129 every layer of the stack — schema, helpers, API gates, UI, emails, standing rotations — speaks the same many-to-many vocabulary.
+
+**Multi-claim UI is correctness, not polish.** I shipped a comma-separated list of names first and framed it as "minimum viable; refine after testing." Jesse pushed back: that framing is wrong for RIM. The design philosophy doc makes clear-seeing-at-a-glance, plain-language state sentences, and self-recognition part of correctness, not refinement. Multi-claim row was rebuilt with a state header sentence, a stacked list, a "YOU" mark on the signed-in user's row, and invitation-phrased actions. Saved as memory file `feedback-clear-seeing-is-correctness.md` so the lesson doesn't have to be re-learned.
+
+**Sub-requests don't apply to open sign-up.** Multi-claim hubs have no "need a sub" semantic — the only exit is self-cancel. POST `/api/host/sub-requests` returns 400 on multi-claim hubs. The UI hides the affordance entirely (no "Ask the team to cover" button on greeter rows).
+
+**Format filter declared on the hub, not hardcoded.** `Hub.appliesToFormats` lets each hub declare which `programFormat` values it schedules. Avoids brittle slug-string dispatch in the page and makes future hubs (a cleanup-crew hub for in-person, a livestream-tech hub for virtual) configuration rather than code.
+
+### What testing on the deployed site should confirm
+
+1. **Run migration on next push.** Vercel deploy runs `auxiliary_hub_coverage_v1`. Check the build log for the per-step output (column adds, backfills, unique-constraint swap, table create, hub auto-config). The two hubs you've already created (`audio-visual`, `greeter`) should be auto-configured by the migration's `updateMany` step.
+
+2. **Assign the Scheduler tool to both new hubs.** `/admin/hubs/audio-visual/edit` and `/admin/hubs/greeter/edit` → add an `HubAppLink` to `/tools/schedule?hub=audio-visual` and `/tools/schedule?hub=greeter` respectively.
+
+3. **Tag programs with auxiliary coverage.** Open an in-person or hybrid program in `/tools/programs/[slug]/edit` → Hosting & Access tab → check the "Audio Visual" and "Greeter" boxes under Auxiliary role coverage → save. The `ProgramCoverageHub` rows are written.
+
+4. **Add members to each hub.** AV team members and greeter signups via `/account/hub/audio-visual/members` / `/account/hub/greeter/members`.
+
+5. **AV flow (single-slot).** Sign in as an AV member, open `/tools/schedule?hub=audio-visual`. The Schedule tab shows the in-person/hybrid programs that have AV coverage enabled. Click "Yes, I can host" on a session → confirm a HostAssignment row is created with `hubSlug = "audio-visual"`. Email confirmation arrives with link `/tools/schedule?hub=audio-visual`.
+
+6. **Greeter flow (multi-claim).** Sign in as a greeter, open `/tools/schedule?hub=greeter`. Each session card reads "No one yet — be the first?" if empty, or shows a stacked list of names with your own row marked "YOU" if you've signed up. Click "I'll be the first" → page reloads, the same row now reads "You're signed up" with your name and a "Cancel my signup" button. A second greeter signs up → row reads "2 signed up · you're one of them" for the first greeter; "2 signed up" for someone viewing as a non-claimant.
+
+7. **Same program, different hubs.** Pick a hybrid program tagged for both host-team (primary) AND audio-visual + greeter (auxiliary). Verify three separate Scheduler views, each showing only that hub's assignments for the same session date. Three independent role pools, no cross-leak.
+
+8. **Standing rotations per hub.** As an AV coordinator (you, or whoever you appoint), open `/tools/schedule?hub=audio-visual` → Rotations tab → set up a rotation for an AV program. Save + apply. The standing-assignment rows + applied HostAssignments all carry `hubSlug = "audio-visual"`. Verify a same-program same-day host-team rotation can coexist independently.
+
+### Connections (what this work touches)
+
+- **Schema:** `Hub.allowsMultipleAssignments`, `Hub.appliesToFormats`, `HostAssignment.hubSlug`, `StandingAssignment.hubSlug`, new `ProgramCoverageHub` join. Old `HostAssignment.@@unique([programSlug, sessionDate])` dropped.
+- **Helpers:** `lib/programHub.ts` gains 3 new exports.
+- **Migration:** `prisma/migrate.mjs` `auxiliary_hub_coverage_v1` — idempotent, value-preserving.
+- **API routes touched:** `/api/host/assignments`, `/api/host/assignments/[id]`, `/api/host/assignments/reassign`, `/api/host/sub-requests`, `/api/host/sub-requests/[id]/claim`, all 6 `/api/host/standing-assignments/*`, `/api/programs-pg`, `/api/programs-pg/[slug]`, `/api/livekit/step-in`.
+- **Pages + components:** `app/tools/schedule/page.tsx`, `app/tools/programs/[programSlug]/edit/page.tsx`, `app/tools/programs/new/page.tsx`, `components/HubScheduleClient.tsx`, `components/registrar/ProgramEditor.tsx`, `lib/applyStandingAssignments.ts`.
+- **CSS:** `public/css/custom.css` `.hs-row__multi*` block for multi-claim rendering.
+- **Docs:** `RIM_Hub_Engineering.md` (new "Auxiliary-hub coverage" section), `RIM_Scheduler.md` (multi-claim rendering, hub modes, format filter), this session-log, FEATURES.md, RIM_Stack_Reference.md, RIM_System_Architecture.md, UP_NEXT.md.
+- **Memory:** `feedback-clear-seeing-is-correctness.md` new.
+
+### What's deferred / known follow-ons
+
+- **Manual chapters for AV and Greeter hubs.** Not seeded this session. Can be done via `/admin/manual/<slug>/edit` after the hubs go live, or as a follow-on migration seed.
+- **Multi-claim sub-request semantics.** Intentionally absent — release-my-claim is the only exit on greeter sessions. If a coordinator ever needs to remove an inactive greeter from a session, it's a manager-only DELETE on the assignment id (existing route, already gated to owner/manager).
+- **Assignments-GET pause-map.** Still scoped per-hub via `requestedHubSlug` lookup; verify the AV/greeter view renders paused-member badges correctly on first live test.
+- **Cross-hub member coordinator UX.** No special UI yet for the case where the same person is in host-team AND audio-visual; they'll see the active hub from the URL and switch via the sidebar. Reasonable default; revisit if it becomes friction.
+
+---
+
 ## 2026-05-22 (session 128 continued) — Slice 2 + 2.5 + 2.6 — Silent Meditation Hub operational + hub-isolation hardening + standing-rotation generalization + engineering reference docs
 
 Long arc, several commits, three architectural layers landed.  Started with the operational Slice 2 walk-through (create the hub, transfer programs, add coordinator), then surfaced a hub-isolation gap in the email-URL layer that Slice 1 had missed (Slice 2.5), then surfaced a "shows up but doesn't work" gap in the standing-rotation API that Slice 1 had deferred (Slice 2.6), then built three engineering reference docs to prevent the same class of gap from recurring.  By the end the architecture for peer-led hubs is fully isolated end-to-end and the institutional memory is in place to keep it that way.

@@ -6,6 +6,44 @@
 
 ## Active
 
+### Session 129 (2026-05-25) — Auxiliary-hub coverage: AV + Greeter hubs shipped
+
+One coherent slice landed all in one push: the program↔hub model generalized from 1:1 to many-to-many with a role dimension, AV + Greeter hubs configured + wired into the Scheduler, multi-claim sign-up UX added for the greeter hub.
+
+**What you'll do on the deployed site after this push completes:**
+
+1. **Wait ~2 min for Vercel.** Watch the build log for the `auxiliary_hub_coverage_v1` migration output — column adds, backfills, unique-constraint swap, table create, hub auto-config. The two hubs you pre-created (`audio-visual`, `greeter`) get auto-configured by the migration's `updateMany` step (formats + multi-claim flag + `hasSchedule`).
+
+2. **Assign the Scheduler tool to both new hubs.** `/admin/hubs/audio-visual/edit` and `/admin/hubs/greeter/edit` → add a `HubAppLink` to `/tools/schedule?hub=audio-visual` and `/tools/schedule?hub=greeter` respectively. (Held off intentionally during the build — assigning before the code landed would have shown empty calendars; now there's a destination.)
+
+3. **Tag programs with auxiliary coverage.** Open any in-person or hybrid program in `/tools/programs/[slug]/edit` → Hosting & Access tab → check "Audio Visual" and "Greeter" under the new "Auxiliary role coverage" fieldset → save. `ProgramCoverageHub` rows written.
+
+4. **Add members.** AV team members and greeter signups via each hub's Members tab. Standard hub-membership flow.
+
+5. **Exercise the two flows.**
+   - **AV (single-slot):** sign in as an AV member → `/tools/schedule?hub=audio-visual` → click "Yes, I can host" on an open session → confirm HostAssignment row in `hubSlug = audio-visual`. Email confirmation links back to `/tools/schedule?hub=audio-visual`.
+   - **Greeter (multi-claim):** sign in as a greeter → `/tools/schedule?hub=greeter` → each session card reads "No one yet — be the first?" when empty. Click "I'll be the first" → row updates to "You're signed up" with your name plus a "YOU" mark. A second greeter signs up → "2 signed up · you're one of them" / "2 signed up" depending on who's viewing.
+
+6. **Verify three independent role pools on a hybrid program.** Pick a program tagged for host-team (primary) + audio-visual + greeter. Three Scheduler views (`?hub=host-team`, `?hub=audio-visual`, `?hub=greeter`), each showing only its own claims for the same session date.
+
+7. **Standing rotations per hub.** As coordinator, open `/tools/schedule?hub=audio-visual` → Rotations tab → set up an AV rotation. Save + apply. Verify the applied HostAssignments land in `hubSlug = audio-visual`; verify a same-program same-day host-team rotation can coexist independently.
+
+**Architectural calls made this session worth carrying forward:**
+
+- **One program ↔ many hubs is the right shape.** This is the third hub generalization in two weeks (Slices 1, 2.6, 129) ratcheting toward the same truth: hubs are role pools, not program owners. After 129 every layer — schema, helpers, API gates, UI, emails, standing rotations — speaks the same many-to-many vocabulary. Future hubs (cleanup crew, livestream tech, etc.) are configuration on top of this architecture, not new code.
+- **Clear-seeing UI is correctness, not polish.** Jesse pushed back on my framing of the first multi-claim row as "minimum viable; refine after testing." For RIM specifically, plain-language state sentences + visual hierarchy + self-recognition are correctness criteria per the design philosophy doc, not refinement to defer. Saved as memory file `feedback-clear-seeing-is-correctness.md`.
+- **Sub-requests don't apply to open sign-up.** Greeter hub has no "need a sub" semantic — release-my-claim is the only exit. API enforces; UI hides the affordance.
+- **Format filter declared on the hub, not hardcoded.** `Hub.appliesToFormats` makes future hubs configuration rather than code changes.
+
+**Known follow-ons (not blocking; do when signal emerges):**
+
+- **Manual chapters for AV + Greeter.** Not seeded this session. Can be authored via `/admin/manual/<slug>/edit` or as a follow-on migration seed. The greeter chapter especially should explain the open-sign-up model (no sub-requests; cancel-my-signup is the only exit).
+- **Cross-hub coordinator UX.** No special UI yet for someone who's in host-team + audio-visual + greeter. They see the active hub from the URL and switch via the sidebar. Probably fine; revisit if it becomes friction.
+- **AV sub-request flow.** Single-slot AV inherits sub-requests automatically. Verify on first live test that the AV team's notification pool routes correctly (it should — uses `assignment.hubSlug`).
+- **Assignments-GET pause-map.** Already scoped per-requested-hub; verify on first live test that AV/greeter paused-member badges render correctly.
+
+---
+
 ### Session 128 cumulative (2026-05-22) — Silent Meditation Hub fully operational + hub-isolation hardening + engineering reference docs
 
 Single long arc: Slice 1 architecture (already documented in last close), then Slice 2 operational rollout, then Slice 2.5 hub-isolation hardening (the gap Slice 1 missed — email URLs + welcome-email reliability), then Slice 2.6 standing-rotation generalization (the gap Slice 1 had deferred), then three engineering reference docs to prevent the same class of gap from recurring.

@@ -115,16 +115,31 @@ The editor surfaces a mid-flight warning before the save commits, showing the co
 
 ---
 
-## When standing rotations need hub-awareness
+## Auxiliary-hub coverage (session 129 — many-to-many)
 
-As of Slice 1, standing-rotation routes still gate by `"host-team"`. They were intentionally deferred — peer-led-silent-meditation doesn't expose a Rotations UI yet, and the route gates would be dead code if generalized prematurely.
+The Slice 1 / 2.5 / 2.6 model assumed **one program ↔ one hub** via `Program.hostingHubSlug`. Session 129 generalised this to **one program ↔ many hubs, each covering a different role**. An in-person Saturday Sit can now be: host-team (or peer-led) for the live session + audio-visual for the AV slot + greeter for the greeter signup. Three hubs, three independent scheduler views, three sets of HostAssignment rows.
 
-When a peer-led hub or any other hub needs standing-rotation support:
-- `/api/host/standing-assignments` and its sub-routes need hub-routing
-- The `app/tools/schedule/page.tsx` "Your Rotations" panel is already hub-scoped (Slice 2 fix), but the Rotations tab itself needs the same treatment
-- `lib/applyStandingAssignments.ts` doesn't need changes — it operates on whatever rotations are already in the DB
+**Schema model** — `Program.hostingHubSlug` is the **primary** hub (who runs the live session, owns the LiveKit room, holds dharma authority). Auxiliary hubs are listed in the `ProgramCoverageHub` join table (`programSlug` + `hubSlug`). `HostAssignment.hubSlug` and `StandingAssignment.hubSlug` columns carry the assignment's owning hub directly — the database-level unique on `(programSlug, sessionDate)` was dropped; app-layer enforcement handles single-slot uniqueness per `(programSlug, sessionDate, hubSlug)`.
 
-Add this as a third slice when the need is real.
+**Two hub modes** — `Hub.allowsMultipleAssignments` flips the model:
+- **False (single-slot)** — host-team, peer-led, audio-visual. One claimant per session per hub. Existing claim-the-seed pattern, sub-requests, standing rotations all apply.
+- **True (multi-claim)** — greeter. Open sign-up: every claim is a fresh row keyed `(programSlug, sessionDate, hubSlug, userId)`. No sub-request flow — release-my-claim is the only exit. Multi-claim rows render as a community of people (stacked names + self-recognition + plain-language state header), never as a comma list.
+
+**Two format buckets** — `Hub.appliesToFormats` declares which `programFormat` values a hub schedules. Host-team / peer-led: `["virtual","hybrid"]`. Audio-visual / greeter: `["in-person","hybrid"]`. Drives the Scheduler page's program filter.
+
+**Five-question routing checklist** for any hub-touching API:
+1. Capability gates by the **resource's** hub (HostAssignment.hubSlug or program.hostingHubSlug, depending on what the action operates on).
+2. Notification recipient pool uses `getHubNotificationRecipients(<that hub>, …)`.
+3. UI / list queries filter by `hubSlug`.
+4. Every email URL variable passes through `hubScopedUrl()` / `hubHomeUrl()`.
+5. **(session 129)** Multi-claim hubs honor `Hub.allowsMultipleAssignments` — single-slot semantics (uniqueness, sub-requests, claim-the-seed) do not apply.
+
+**Helpers added in session 129** (`lib/programHub.ts`):
+- `getProgramCoverageHubs(programSlug)` — auxiliary hub slugs for a program
+- `getProgramSlugsForHub(hubSlug)` — union of primary + auxiliary programs for a hub
+- `getHubCoverageConfig(hubSlug)` — `{ slug, appliesToFormats, allowsMultipleAssignments }`
+
+**Standing rotations now hub-scoped per-record.** Slice 1's "still gates by host-team" warning is closed: every standing-assignments route accepts a `hubSlug` body field (defaults to program's primary hub), `StandingAssignment.@@unique` was widened to include `hubSlug`, and `lib/applyStandingAssignments.ts::Candidate` carries `hubSlug` so applied HostAssignments inherit the source rotation's hub. A program can hold parallel rotations on the same day in different hubs (host-team on first-Saturday + AV on first-Saturday is two records, no conflict). Apply-time emails group per-user-and-hub so each notification's CTA points at the right Scheduler view.
 
 ---
 

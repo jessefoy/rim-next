@@ -112,6 +112,10 @@ export function getApplyMonthRange(
 
 export interface Candidate {
   programSlug:          string;
+  /** Hub that owns this candidate (session 129). Inherited from the source
+   *  StandingAssignment.hubSlug — drives which hub's HostAssignment row is
+   *  written and which hub's link the notification email points at. */
+  hubSlug:              string;
   userId:               string;
   sessionDate:          Date;
   dateStr:              string;       // "YYYY-MM-DD"
@@ -164,14 +168,26 @@ export type ResolutionMode =
   | "replace-all"
   | { perDate: Record<string, "keep" | "replace"> };
 
+/** One row in the apply summary's per-user list. `hubSlug` (session 129)
+ *  carries the source rotation's hub so the notification email link points
+ *  at the right scheduler view — an AV rotation email lands the recipient
+ *  at /tools/schedule?hub=audio-visual rather than host-team. */
+export interface ApplyResultSession {
+  programName: string;
+  dateLabel:   string;
+  userEmail:   string;
+  firstName:   string | null;
+  hubSlug:     string;
+}
+
 export interface ApplyResult {
   filled:    number;
   replaced:  number;
   kept:      number;
   /** Map of userId → sessions newly assigned to them — for notification email */
-  byUser:    Map<string, Array<{ programName: string; dateLabel: string; userEmail: string; firstName: string | null }>>;
+  byUser:    Map<string, ApplyResultSession[]>;
   /** Map of displaced userId → sessions taken from them — for "you've been replaced" email */
-  byDisplacedUser: Map<string, Array<{ programName: string; dateLabel: string; userEmail: string; firstName: string | null }>>;
+  byDisplacedUser: Map<string, ApplyResultSession[]>;
 }
 
 // ─── STAGE 1: GENERATE CANDIDATES ──────────────────────────────────────────
@@ -191,7 +207,9 @@ export async function generateCandidates(
   year:               number,
   month:              number,
   standingFilterId:   string | null = null,
-  dayOfWeekFilter:    string | null = null
+  dayOfWeekFilter:    string | null = null,
+  /** Restrict to a single hub's rotations (session 129). null = all hubs. */
+  hubSlugFilter:      string | null = null,
 ): Promise<{ candidates: Candidate[]; pastIgnored: number }> {
   // CT-anchored "today" — we treat anything strictly before today (CT) as past.
   const todayCt = new Date(new Date().toLocaleString("en-US", { timeZone: TZ }));
@@ -203,6 +221,7 @@ export async function generateCandidates(
       ...(programSlugFilter ? { programSlug: programSlugFilter } : {}),
       ...(standingFilterId  ? { id: standingFilterId }            : {}),
       ...(dayOfWeekFilter   ? { dayOfWeek:   dayOfWeekFilter   } : {}),
+      ...(hubSlugFilter     ? { hubSlug:     hubSlugFilter     } : {}),
       OR: [{ endsOn: null }, { endsOn: { gte: todayCt } }],
     },
     include: {
@@ -309,7 +328,10 @@ export async function generateCandidates(
 
       // De-dupe within this generation pass — first (most-specific) wins.
       // The specificity sort above ensures FIRST/.../FIFTH come before ALL.
-      const key = `${sa.programSlug}::${dateStr}`;
+      // Keyed by hubSlug too (session 129) so an AV rotation and a host-team
+      // rotation on the same program/date don't crowd each other out — they
+      // claim independent slots in different hubs.
+      const key = `${sa.programSlug}::${dateStr}::${sa.hubSlug}`;
       if (claimedKeys.has(key)) continue;
       claimedKeys.add(key);
 
@@ -320,6 +342,7 @@ export async function generateCandidates(
 
       candidates.push({
         programSlug:          sa.programSlug,
+        hubSlug:              sa.hubSlug,
         userId:               sa.userId,
         sessionDate,
         dateStr,
@@ -347,10 +370,11 @@ export async function previewStandingAssignments(
   year:               number,
   month:              number,
   standingFilterId:   string | null = null,
-  dayOfWeekFilter:    string | null = null
+  dayOfWeekFilter:    string | null = null,
+  hubSlugFilter:      string | null = null,
 ): Promise<PreviewResult> {
   const { candidates, pastIgnored } = await generateCandidates(
-    programSlugFilter, year, month, standingFilterId, dayOfWeekFilter
+    programSlugFilter, year, month, standingFilterId, dayOfWeekFilter, hubSlugFilter,
   );
 
   if (candidates.length === 0) {
@@ -359,18 +383,23 @@ export async function previewStandingAssignments(
 
   // Load existing assignments for the candidate slots.
   //
-  // CRITICAL: query by date RANGE, not exact DateTime match. The
-  // host_assignments unique constraint is `(programSlug, sessionDate)` on the
-  // full DateTime, but two writes on the same calendar date with even a
-  // millisecond difference would BOTH violate "one host per date" intent
-  // while passing the constraint. We must catch any existing row whose
-  // ctDateStr matches our candidate's calendar date, regardless of the
-  // stored time-of-day. Otherwise:
+  // CRITICAL: query by date RANGE, not exact DateTime match. The previous
+  // host_assignments unique constraint was `(programSlug, sessionDate)` on
+  // the full DateTime, where two writes on the same calendar date with
+  // even a millisecond difference would BOTH violate "one host per date"
+  // intent while passing the constraint. The unique was dropped in session
+  // 129 in favor of app-layer enforcement scoped per hub. We must catch
+  // any existing row whose ctDateStr matches our candidate's calendar
+  // date, regardless of the stored time-of-day. Otherwise:
   //   1. Preview misses zombies (any pre-existing row at a different t-o-d)
-  //   2. createMany skipDuplicates silently drops the new write
+  //   2. createMany silently drops the new write
   //   3. Coordinator sees "saved" but no host appears
   // DST drift in shiftToDate also produces sessionDates whose UTC instant
   // straddles midnight CT, which the exact-match query was missing.
+  //
+  // The conflict key now includes hubSlug (session 129) — an AV rotation
+  // candidate doesn't conflict with a host-team HostAssignment on the
+  // same date, because they cover different roles in different hubs.
   const slugs = [...new Set(candidates.map((c) => c.programSlug))];
   const sessionDates = candidates.map((c) => c.sessionDate.getTime());
   // Pad ±1 day to absorb any DST or time-of-day variance
@@ -391,18 +420,17 @@ export async function previewStandingAssignments(
     },
   });
 
-  // Key by (programSlug, calendarDate-in-CT). Within the loaded window we may
-  // find rows for adjacent dates we don't care about — those just won't have
-  // matching candidates so they're harmless. Multiple rows on the same calendar
-  // date for the same program is a data anomaly; keep the first (earliest by
-  // sessionDate) so we have something stable to compare against.
+  // Key by (programSlug, calendarDate-in-CT, hubSlug). Multi-claimant hubs
+  // (greeter) may have many rows per (programSlug, dateStr, hubSlug); only
+  // the first claimant matters for conflict detection — a candidate
+  // colliding with any existing row in that hub triggers the conflict.
   const existingByKey = new Map<string, typeof existingRaw[number]>();
   for (const a of existingRaw.sort(
     (x, y) => (x.sessionDate?.getTime() ?? 0) - (y.sessionDate?.getTime() ?? 0)
   )) {
     if (!a.sessionDate) continue;
     const dStr = ctDateStr(a.sessionDate.toISOString());
-    const key  = `${a.programSlug}::${dStr}`;
+    const key  = `${a.programSlug}::${dStr}::${a.hubSlug}`;
     if (!existingByKey.has(key)) existingByKey.set(key, a);
   }
 
@@ -410,7 +438,7 @@ export async function previewStandingAssignments(
   const conflicts:    Conflict[] = [];
 
   for (const cand of candidates) {
-    const key = `${cand.programSlug}::${cand.dateStr}`;
+    const key = `${cand.programSlug}::${cand.dateStr}::${cand.hubSlug}`;
     const existing = existingByKey.get(key);
 
     if (!existing || existing.userId === null) {
@@ -488,10 +516,11 @@ export async function applyStandingAssignments(
   month:              number,
   resolution:         ResolutionMode = "leave",
   standingFilterId:   string | null = null,
-  dayOfWeekFilter:    string | null = null
+  dayOfWeekFilter:    string | null = null,
+  hubSlugFilter:      string | null = null,
 ): Promise<ApplyResult> {
   const preview = await previewStandingAssignments(
-    programSlugFilter, year, month, standingFilterId, dayOfWeekFilter
+    programSlugFilter, year, month, standingFilterId, dayOfWeekFilter, hubSlugFilter,
   );
 
   // Collect candidate user info from the preview's candidates (for emails)
@@ -543,27 +572,29 @@ export async function applyStandingAssignments(
 
   // ── Writes ─────────────────────────────────────────────────────────────
   await db.$transaction(async (tx) => {
-    // 1. Create rows for slots that don't have any existing row at all
+    // 1. Create rows for slots that don't have any existing row at all.
+    //    `hubSlug` carries the candidate's hub (session 129) so the row
+    //    lands in the right team's scope — AV rotations write into the
+    //    audio-visual hub, host-team rotations into host-team, etc.
     if (toCreate.length > 0) {
       await tx.hostAssignment.createMany({
         data: toCreate.map((c) => ({
           programSlug:          c.programSlug,
+          hubSlug:              c.hubSlug,
           userId:               c.userId,
           sessionDate:          c.sessionDate,
           assignedBy:           c.userId, // self for standing — no manual assigner
           standingAssignmentId: c.standingAssignmentId,
         })),
-        // skipDuplicates as a safety net only — toCreate is already filtered
-        // to slots without existing rows. If we hit this, it indicates either
-        // a race condition or DST drift the date-range lookup didn't catch.
         skipDuplicates: true,
       });
     }
 
     // 2. Update placeholder rows (userId=null) to point at the rotation host.
     //    These rows already exist in the DB so we can't CREATE — must UPDATE
-    //    by id. Without this branch the createMany above would silently skip
-    //    them via skipDuplicates, leaving the rotation invisible on schedule.
+    //    by id. We don't reset hubSlug here: the existing row's hubSlug
+    //    is what bound it to the open-slot lookup in the first place,
+    //    so it already matches the candidate's hub.
     for (const u of toUpdate) {
       await tx.hostAssignment.update({
         where: { id: u.existingHostAssignmentId! },
@@ -597,19 +628,20 @@ export async function applyStandingAssignments(
   const replaced = toReplace.length;
   const kept     = preview.conflicts.length - toReplace.length;
 
-  const byUser = new Map<string, Array<{ programName: string; dateLabel: string; userEmail: string; firstName: string | null }>>();
+  const byUser = new Map<string, ApplyResultSession[]>();
   const pushUser = (c: Candidate) => {
     if (!byUser.has(c.userId)) byUser.set(c.userId, []);
     byUser.get(c.userId)!.push({
       programName: c.programName, dateLabel: c.dateLabel,
       userEmail:   c.userEmail,   firstName: c.firstName,
+      hubSlug:     c.hubSlug,
     });
   };
   for (const c of toCreate) pushUser(c);
   for (const c of toUpdate) pushUser(c);
   for (const r of toReplace) pushUser(r.cand);
 
-  const byDisplacedUser = new Map<string, Array<{ programName: string; dateLabel: string; userEmail: string; firstName: string | null }>>();
+  const byDisplacedUser = new Map<string, ApplyResultSession[]>();
   for (const r of toReplace) {
     const uid = r.conflict.currentHost.userId;
     if (!uid) continue;
@@ -621,6 +653,7 @@ export async function applyStandingAssignments(
       dateLabel:   r.cand.dateLabel,
       userEmail:   u.email,
       firstName:   u.preferredName || u.firstName || null,
+      hubSlug:     r.cand.hubSlug,
     });
   }
 

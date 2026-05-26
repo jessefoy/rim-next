@@ -105,14 +105,29 @@ export async function POST(request: Request) {
     return Response.json({ error: "Assignment not found" }, { status: 404 });
   }
 
-  // Resolve the program's hosting hub. The capability gate and the
-  // notification recipient pool both route through it — a peer-leader in
-  // `peer-led-silent-meditation` requesting a sub for a peer-led sit
-  // notifies their hub, not host-team.
-  const programHubSlug = await getProgramHubSlug(assignment.programSlug);
+  // Resolve the assignment's hub (session 129). The capability gate and
+  // the notification recipient pool both route by the assignment's own
+  // hub — an AV sub-request notifies AV teammates, not host-team. Fall
+  // back to the program's primary hub for legacy rows whose hubSlug
+  // somehow didn't get backfilled.
+  const assignmentHubSlug =
+    assignment.hubSlug || (await getProgramHubSlug(assignment.programSlug));
+
+  // Sub-requests don't apply to multi-claim hubs (greeter — open
+  // sign-up). The user just cancels their own signup directly.
+  const hub = await db.hub.findUnique({
+    where: { slug: assignmentHubSlug },
+    select: { allowsMultipleAssignments: true },
+  });
+  if (hub?.allowsMultipleAssignments) {
+    return Response.json(
+      { error: "This hub uses open sign-up — cancel your signup instead of asking for a sub." },
+      { status: 400 },
+    );
+  }
 
   const roles = session.user.roles ?? [];
-  if (!(await hasEffectiveHostAccess(session.user.id, roles, programHubSlug))) {
+  if (!(await hasEffectiveHostAccess(session.user.id, roles, assignmentHubSlug))) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
   const isManager = roles.some((r) => ["HOST_MANAGER", "ADMIN"].includes(r));
@@ -163,7 +178,7 @@ export async function POST(request: Request) {
       // Per CLAUDE.md: resolve Program.name from the slug before sending
       // any host email.
       const [recipientUsers, program] = await Promise.all([
-        getHubNotificationRecipients(programHubSlug, {
+        getHubNotificationRecipients(assignmentHubSlug, {
           excludeUserId: assignment.userId ?? undefined,
         }),
         db.program.findUnique({
@@ -184,7 +199,7 @@ export async function POST(request: Request) {
             sessionDate: sessionLabel,
             message: messageText,
             subRequestId: subRequest.id,
-            hubSlug: programHubSlug,
+            hubSlug: assignmentHubSlug,
           } as SubRequestEmailData)
         )
       );

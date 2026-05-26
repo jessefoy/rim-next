@@ -3549,6 +3549,153 @@ async function main() {
     console.log("  ⏭ Email CTA button swap already applied.");
   }
 
+  // ───────────────────────────────────────────────────────────────────────
+  // Session 129 — Auxiliary-hub coverage (AV + Greeter hubs).
+  //
+  // Generalizes Program ↔ Hub from the 1:1 `hostingHubSlug` model to a
+  // many-to-many with a role dimension. A program retains one *primary*
+  // hub (the existing `hostingHubSlug`) and may add auxiliary hubs that
+  // schedule supporting roles — AV volunteer, greeters, future expansions.
+  //
+  // Schema changes (all additive; backfill is value-preserving):
+  //   - hubs.allowsMultipleAssignments BOOLEAN DEFAULT false
+  //   - hubs.appliesToFormats          TEXT[] DEFAULT ARRAY['virtual','hybrid']
+  //   - host_assignments.hubSlug       TEXT DEFAULT 'host-team'
+  //                                    (backfilled from programs.hostingHubSlug)
+  //   - standing_assignments.hubSlug   TEXT DEFAULT 'host-team'
+  //                                    (backfilled from programs.hostingHubSlug)
+  //   - host_assignments unique constraint dropped (now (programSlug, sessionDate,
+  //     hubSlug) tuple is allowed multiple times for multi-claimant hubs); a
+  //     composite index replaces it
+  //   - standing_assignments unique constraint widened to include hubSlug
+  //   - new table program_coverage_hubs (programSlug, hubSlug)
+  //
+  // Existing rows: every HostAssignment lands on its program's hub. Existing
+  // primary scheduling behavior is unchanged.
+  // ───────────────────────────────────────────────────────────────────────
+  const auxiliaryHubCoverageFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'auxiliary_hub_coverage_v1'
+  `).catch(() => []);
+
+  if (auxiliaryHubCoverageFlag.length === 0) {
+    console.log("→ Auxiliary-hub coverage schema (session 129)…");
+
+    // 1. Hub.allowsMultipleAssignments
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "hubs" ADD COLUMN IF NOT EXISTS "allowsMultipleAssignments" BOOLEAN NOT NULL DEFAULT false`,
+    );
+
+    // 2. Hub.appliesToFormats — default preserves host-team / peer-led behavior.
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "hubs" ADD COLUMN IF NOT EXISTS "appliesToFormats" TEXT[] NOT NULL DEFAULT ARRAY['virtual','hybrid']::TEXT[]`,
+    );
+
+    // 3. HostAssignment.hubSlug — additive column with safe default. Existing
+    //    rows take "host-team" via the default; the backfill below moves
+    //    rows belonging to programs that were transferred to a non-default
+    //    hub (peer-led-silent-meditation) to their actual hub.
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "host_assignments" ADD COLUMN IF NOT EXISTS "hubSlug" TEXT NOT NULL DEFAULT 'host-team'`,
+    );
+
+    // 4. Backfill HostAssignment.hubSlug from programs.hostingHubSlug. Only
+    //    rows whose program has a non-null hostingHubSlug need updating;
+    //    everyone else is already at "host-team" via the default.
+    const haUpdate = await db.$executeRawUnsafe(`
+      UPDATE "host_assignments" ha
+      SET "hubSlug" = p."hostingHubSlug"
+      FROM "programs" p
+      WHERE ha."programSlug" = p."slug"
+        AND p."hostingHubSlug" IS NOT NULL
+        AND ha."hubSlug" = 'host-team'
+    `);
+    console.log(`  ✔ HostAssignment.hubSlug backfilled (${haUpdate} row(s) moved off default).`);
+
+    // 5. StandingAssignment.hubSlug — same shape.
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "standing_assignments" ADD COLUMN IF NOT EXISTS "hubSlug" TEXT NOT NULL DEFAULT 'host-team'`,
+    );
+    const saUpdate = await db.$executeRawUnsafe(`
+      UPDATE "standing_assignments" sa
+      SET "hubSlug" = p."hostingHubSlug"
+      FROM "programs" p
+      WHERE sa."programSlug" = p."slug"
+        AND p."hostingHubSlug" IS NOT NULL
+        AND sa."hubSlug" = 'host-team'
+    `);
+    console.log(`  ✔ StandingAssignment.hubSlug backfilled (${saUpdate} row(s) moved off default).`);
+
+    // 6. Drop the old HostAssignment unique (programSlug, sessionDate). Two
+    //    Prisma versions of Postgres produce two different constraint
+    //    names; try both. Replaced by app-layer uniqueness enforcement
+    //    (single-slot hubs check before insert) plus the composite index
+    //    below for query performance.
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "host_assignments" DROP CONSTRAINT IF EXISTS "host_assignments_programSlug_sessionDate_key"`,
+    );
+    await db.$executeRawUnsafe(
+      `DROP INDEX IF EXISTS "host_assignments_programSlug_sessionDate_key"`,
+    );
+    await db.$executeRawUnsafe(
+      `CREATE INDEX IF NOT EXISTS "host_assignments_programSlug_sessionDate_hubSlug_idx"
+       ON "host_assignments" ("programSlug", "sessionDate", "hubSlug")`,
+    );
+    await db.$executeRawUnsafe(
+      `CREATE INDEX IF NOT EXISTS "host_assignments_hubSlug_sessionDate_idx"
+       ON "host_assignments" ("hubSlug", "sessionDate")`,
+    );
+    console.log("  ✔ HostAssignment uniqueness migrated to composite indexes.");
+
+    // 7. Widen StandingAssignment unique to include hubSlug. Drop the
+    //    old constraint (try both naming conventions); add the new one.
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "standing_assignments" DROP CONSTRAINT IF EXISTS "standing_assignments_programSlug_dayOfWeek_occurrence_key"`,
+    );
+    await db.$executeRawUnsafe(
+      `DROP INDEX IF EXISTS "standing_assignments_programSlug_dayOfWeek_occurrence_key"`,
+    );
+    await db.$executeRawUnsafe(
+      `CREATE UNIQUE INDEX IF NOT EXISTS "standing_assignments_programSlug_dayOfWeek_occurrence_hubSlug_key"
+       ON "standing_assignments" ("programSlug", "dayOfWeek", "occurrence", "hubSlug")`,
+    );
+    console.log("  ✔ StandingAssignment unique widened to include hubSlug.");
+
+    // 8. ProgramCoverageHub join table.
+    await db.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "program_coverage_hubs" (
+        "programSlug" TEXT NOT NULL,
+        "hubSlug"     TEXT NOT NULL,
+        "createdAt"   TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY ("programSlug", "hubSlug")
+      )
+    `);
+    await db.$executeRawUnsafe(
+      `CREATE INDEX IF NOT EXISTS "program_coverage_hubs_hubSlug_idx" ON "program_coverage_hubs" ("hubSlug")`,
+    );
+    console.log("  ✔ program_coverage_hubs table ready.");
+
+    // 9. Set appliesToFormats and allowsMultipleAssignments for the new
+    //    in-person hubs if they exist. Idempotent — only updates when the
+    //    hub is present. Safe to run before Jesse creates them too (no-op).
+    const avUpdate = await db.hub.updateMany({
+      where: { slug: "audio-visual" },
+      data: { appliesToFormats: ["in-person", "hybrid"], allowsMultipleAssignments: false, hasSchedule: true },
+    });
+    const greeterUpdate = await db.hub.updateMany({
+      where: { slug: "greeter" },
+      data: { appliesToFormats: ["in-person", "hybrid"], allowsMultipleAssignments: true, hasSchedule: true },
+    });
+    if (avUpdate.count > 0) console.log("  ✔ audio-visual hub configured (single-slot, in-person+hybrid).");
+    if (greeterUpdate.count > 0) console.log("  ✔ greeter hub configured (multi-claimant, in-person+hybrid).");
+
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('auxiliary_hub_coverage_v1')`,
+    );
+    console.log("  ✔ Auxiliary-hub coverage migration complete.");
+  } else {
+    console.log("  ⏭ Auxiliary-hub coverage already applied.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

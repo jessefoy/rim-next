@@ -53,14 +53,16 @@ export async function POST(
     return Response.json({ error: "You cannot claim your own sub request" }, { status: 409 });
   }
 
-  // Capability gate, scoped to the program's hosting hub.
+  // Capability gate, scoped to the assignment's hub (session 129) so an
+  // AV sub-request claim is gated against the AV team — not host-team.
   const roles = session.user.roles ?? [];
   const isAdmin = roles.includes("ADMIN");
-  const programHubSlug = await getProgramHubSlug(subRequest.programSlug);
+  const assignmentHubSlug =
+    subRequest.assignment.hubSlug || (await getProgramHubSlug(subRequest.programSlug));
   const tentativeHost = isAdmin || roles.includes("HOST") || roles.includes("HOST_MANAGER");
   const canClaim = isAdmin
     ? true
-    : await getEffectiveHostingCapability(session.user.id, programHubSlug, tentativeHost);
+    : await getEffectiveHostingCapability(session.user.id, assignmentHubSlug, tentativeHost);
   if (!canClaim) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -131,7 +133,7 @@ export async function POST(
           programName,
           sessionDate: sessionLabel,
           message: requesterNote,
-          hubSlug: programHubSlug,
+          hubSlug: assignmentHubSlug,
         } as SubClaimedEmailData);
       }
 
@@ -142,7 +144,7 @@ export async function POST(
           programName,
           dateText: sessionLabel,
           requesterNote,
-          hubSlug: programHubSlug,
+          hubSlug: assignmentHubSlug,
         });
       }
     } catch (e) {

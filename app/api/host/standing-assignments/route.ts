@@ -38,7 +38,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
 import { isHubCoordinator } from "@/lib/hubAuth";
-import { getProgramHubSlug, DEFAULT_HOSTING_HUB_SLUG } from "@/lib/programHub";
+import { getProgramHubSlug, DEFAULT_HOSTING_HUB_SLUG, getProgramSlugsForHub } from "@/lib/programHub";
 import { applyStandingAssignments, getApplyMonthRange } from "@/lib/applyStandingAssignments";
 import { sendStandingAssignmentScheduledEmail } from "@/lib/email";
 import type { StandingOccurrence } from "@prisma/client";
@@ -112,33 +112,15 @@ export async function GET(request: Request) {
 
   const now = new Date();
 
-  // StandingAssignment doesn't have a Program FK (only programSlug as a
-  // string), so we can't filter by program.hostingHubSlug in the where
-  // clause. Pre-fetch the hub's program slugs, then filter rotations to
-  // that set. Coordinator-only path; list sizes are small.
-  //
-  // Auth precedence note: when programSlug is provided, the auth check
-  // above used getProgramHubSlug(programSlug) — i.e. auth follows the
-  // PROGRAM's hub, not the ?hub= param. A peer-led coordinator querying a
-  // program that belongs to a different hub will fail the auth gate, so
-  // by the time we get here with programSlug given, the caller is
-  // legitimately authorized for that program's hub. The IN-filter is
-  // skipped in that branch.
-  const hubProgramSlugSet: string[] = programSlug
-    ? []
-    : await db.program
-        .findMany({
-          where:
-            effectiveHubSlug === DEFAULT_HOSTING_HUB_SLUG
-              ? { OR: [{ hostingHubSlug: null }, { hostingHubSlug: DEFAULT_HOSTING_HUB_SLUG }] }
-              : { hostingHubSlug: effectiveHubSlug },
-          select: { slug: true },
-        })
-        .then((rows) => rows.map((r) => r.slug));
-
+  // StandingAssignment now carries its own `hubSlug` column (session 129),
+  // so we filter directly on the record. When a coordinator narrows by
+  // programSlug, the program's primary hub is the implicit filter for
+  // host-team / peer-led cases; aux hubs (AV, greeter) get their own
+  // rotation records and pass through naturally via hubSlug.
   const assignments = await db.standingAssignment.findMany({
     where: {
-      ...(programSlug ? { programSlug } : { programSlug: { in: hubProgramSlugSet } }),
+      hubSlug: effectiveHubSlug,
+      ...(programSlug ? { programSlug } : {}),
       ...(userId      ? { userId      } : {}),
       ...(includeEnded
         ? {}
@@ -172,6 +154,10 @@ export async function GET(request: Request) {
 interface BundleInput {
   programSlug: string;
   dayOfWeek:   DayOfWeek;
+  /** Hub that owns this rotation (session 129). Omitted = program's
+   *  primary hosting hub. AV / greeter hub callers must pass their own
+   *  hub slug so the rotation lands on the right team. */
+  hubSlug?:    string;
   pattern:     "same" | "alternate" | "custom";
   hosts: {
     every?:  string;
@@ -236,11 +222,13 @@ export async function POST(request: Request) {
     );
   }
 
-  // Hub-route the coordinator check: a peer-led-silent-meditation
-  // coordinator can manage rotations for peer-led programs even without
-  // host-team coordinator status. Slice 2.6.
+  // Resolve the rotation's hub. Body wins when supplied (AV / greeter
+  // hubs save into their own scope); otherwise fall back to the program's
+  // primary hosting hub. Slice 2.6 (peer-led) routed by program; session
+  // 129 generalises to allow any hub to own a rotation.
   const programHubSlug = await getProgramHubSlug(body.programSlug);
-  if (!isManager(roles) && !(await isHubCoordinator(session.user.id, programHubSlug))) {
+  const targetHubSlug = body.hubSlug || programHubSlug;
+  if (!isManager(roles) && !(await isHubCoordinator(session.user.id, targetHubSlug))) {
     return Response.json({ error: "Forbidden — coordinator or manager required" }, { status: 403 });
   }
   if (!VALID_DAYS.includes(body.dayOfWeek)) {
@@ -272,10 +260,16 @@ export async function POST(request: Request) {
   const endsOn = body.endsOn ? endOfCalendarDay(body.endsOn) : null;
 
   // Single transaction: delete any existing records in the bundle that aren't
-  // in the new set, then upsert each target record.
+  // in the new set, then upsert each target record. The bundle is now
+  // scoped by hubSlug too (session 129) — an AV rotation and a host-team
+  // rotation can coexist for the same program/day independently.
   const saved = await db.$transaction(async (tx) => {
     const existing = await tx.standingAssignment.findMany({
-      where: { programSlug: body.programSlug, dayOfWeek: body.dayOfWeek },
+      where: {
+        programSlug: body.programSlug,
+        dayOfWeek: body.dayOfWeek,
+        hubSlug: targetHubSlug,
+      },
       select: { id: true, occurrence: true },
     });
 
@@ -287,20 +281,23 @@ export async function POST(request: Request) {
       }
     }
 
-    // UPSERT each target record
+    // UPSERT each target record on the (programSlug, dayOfWeek,
+    // occurrence, hubSlug) composite unique.
     const out: Array<{ id: string; occurrence: StandingOccurrence; userId: string }> = [];
     for (const [occurrence, userId] of targets.entries()) {
       const rec = await tx.standingAssignment.upsert({
         where: {
-          programSlug_dayOfWeek_occurrence: {
+          programSlug_dayOfWeek_occurrence_hubSlug: {
             programSlug: body.programSlug,
             dayOfWeek:   body.dayOfWeek,
             occurrence,
+            hubSlug:     targetHubSlug,
           },
         },
         create: {
           programSlug: body.programSlug,
           dayOfWeek:   body.dayOfWeek,
+          hubSlug:     targetHubSlug,
           occurrence,
           userId,
           endsOn,
@@ -363,9 +360,12 @@ export async function POST(request: Request) {
         to: userEmail,
         firstName,
         sessions: sessions.map((s) => ({ programName: s.programName, dateLabel: s.dateLabel })),
-        // POST is always scoped to one program — pass its hub so the email
-        // link lands in the right hub view. Slice 2.6.
-        hubSlug: programHubSlug,
+        // POST is always scoped to one rotation bundle — pass its hub so
+        // the email link lands in the right hub view. Session 129: this
+        // is the standing record's hub, not the program's primary, so
+        // an AV-rotation email points an AV volunteer at /tools/schedule?
+        // hub=audio-visual rather than host-team.
+        hubSlug: targetHubSlug,
       });
     }
   });

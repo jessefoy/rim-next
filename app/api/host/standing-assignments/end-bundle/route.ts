@@ -64,6 +64,7 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const programSlug   = body?.programSlug as string | undefined;
   const dayOfWeek     = body?.dayOfWeek   as string | undefined;
+  const bodyHubSlug   = body?.hubSlug     as string | undefined;
   const endsOnParam   = body?.endsOn      as string | undefined;  // YYYY-MM-DD, takes precedence
   const releaseFuture = !endsOnParam && body?.releaseFuture === true;
 
@@ -71,12 +72,14 @@ export async function POST(request: Request) {
     return Response.json({ error: "programSlug and dayOfWeek are required" }, { status: 400 });
   }
 
-  // Hub-route by the program's hub. Slice 2.6.
+  // Hub-route. Body wins (session 129 — AV/greeter Rotations UI passes
+  // its hub); fall back to the program's primary hub for legacy callers.
   const programHubSlug = await getProgramHubSlug(programSlug);
-  if (!isManager(roles) && !(await isHubCoordinator(session.user.id, programHubSlug))) {
+  const targetHubSlug = bodyHubSlug || programHubSlug;
+  if (!isManager(roles) && !(await isHubCoordinator(session.user.id, targetHubSlug))) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
-  if (!(await hasEffectiveHostAccess(session.user.id, roles, programHubSlug))) {
+  if (!(await hasEffectiveHostAccess(session.user.id, roles, targetHubSlug))) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -93,9 +96,12 @@ export async function POST(request: Request) {
     }
   }
 
-  // Load all rotation records in this bundle
+  // Load all rotation records in this bundle, scoped to the target hub.
+  // Bundle key after session 129 is (programSlug, dayOfWeek, hubSlug) —
+  // so end-bundle on host-team doesn't accidentally terminate an AV
+  // rotation on the same program/day.
   const rotations = await db.standingAssignment.findMany({
-    where: { programSlug, dayOfWeek },
+    where: { programSlug, dayOfWeek, hubSlug: targetHubSlug },
     select: { id: true, userId: true },
   });
 
@@ -210,7 +216,7 @@ export async function POST(request: Request) {
           to:        u.email,
           firstName: u.preferredName || u.firstName || null,
           sessions,
-          hubSlug:   programHubSlug,
+          hubSlug:   targetHubSlug,
         });
       }
     });

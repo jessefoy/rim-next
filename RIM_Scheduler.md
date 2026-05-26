@@ -14,9 +14,17 @@ The Scheduler is the team tool for managing live session coverage. Every hub tha
 
 Two top-level tabs:
 - **Schedule** — month-by-month view of upcoming sessions, claim/release affordances, sub-request UI, the "Your Rotations" panel summarizing the current user's standing assignments scoped to this hub.
-- **Rotations** — coordinator-only editor for standing host assignments (recurring rotation patterns). Currently host-team-only at the route level; will generalize to other hubs when those hubs need rotations.
+- **Rotations** — coordinator-only editor for standing host assignments. Hub-scoped per record as of session 129; any hub's coordinator can manage rotations in their own hub.
 
 The tool was originally named "Host Schedule" when host-team was the only hub. Renamed to "Scheduler" in Slice 2 to read correctly across multiple hubs.
+
+**Two hub modes** (session 129):
+- **Single-slot** (host-team, peer-led, audio-visual). One claimant per session per hub. Rows render the historical "Host: Maria" + claim/sub-request affordances.
+- **Multi-claim** (greeter). `Hub.allowsMultipleAssignments = true`. Open sign-up — many people on one session, no sub-request flow, "I'll be there" / "Cancel my signup" actions. Rows render as a community of people with plain-language state header, stacked names, and self-recognition marks. See *Multi-claim rendering* below.
+
+**Two format buckets** (session 129) — `Hub.appliesToFormats` drives which `programFormat` values surface:
+- Host-team / peer-led: `["virtual","hybrid"]`
+- Audio-visual / greeter: `["in-person","hybrid"]`
 
 ---
 
@@ -43,22 +51,26 @@ The tool was originally named "Host Schedule" when host-team was the only hub. R
 
 Per `RIM_Hub_Engineering.md`'s "four routing layers" model:
 
-**Capability gates (layer 1).** Self-claim, sub-claim, and sub-request creation all route by the program's hub via `getProgramHubSlug(programSlug)` and `getEffectiveHostingCapability(userId, hubSlug, fallback)`. A peer-leader of `peer-led-silent-meditation` can claim sessions on peer-led programs; they cannot claim sessions on host-team programs (and vice versa). ADMIN bypasses.
+**Capability gates (layer 1).** Self-claim, sub-claim, sub-request creation, and standing-rotation writes all route by the **resource's** hub. After session 129, the resource is the assignment itself (`HostAssignment.hubSlug`) or the rotation record (`StandingAssignment.hubSlug`) — not the program's primary hub. A peer-leader of `peer-led-silent-meditation` can claim sessions on peer-led programs; an AV volunteer can claim AV slots on hybrid programs whose primary is host-team. ADMIN bypasses.
 
-**Notification recipients (layer 2).** Sub-request notifications route to `getHubNotificationRecipients(programHubSlug, …)` — active members of the program's hub with `communicationsEnabled`. Slice 1 changed this from hardcoded `"host-team"` to per-program.
+**Notification recipients (layer 2).** Sub-request notifications route to `getHubNotificationRecipients(assignment.hubSlug, …)` — active members of the assignment's hub with `communicationsEnabled`. Slice 1 changed this from hardcoded `"host-team"` to per-program; session 129 narrows further to per-assignment (an AV sub-request notifies AV teammates, not host-team).
 
-**UI filter (layer 3).** The Schedule page filters programs in its main Prisma query:
+**UI filter (layer 3).** The Schedule page unions primary + auxiliary programs for the active hub via `getProgramSlugsForHub(activeHubSlug)`, then filters by the hub's `appliesToFormats`:
 ```ts
-const programHubFilter =
-  activeHubSlug === DEFAULT_HOSTING_HUB_SLUG
-    ? { OR: [{ hostingHubSlug: null }, { hostingHubSlug: DEFAULT_HOSTING_HUB_SLUG }] }
-    : { hostingHubSlug: activeHubSlug };
+const eligibleSlugs = await getProgramSlugsForHub(activeHubSlug);
+const programs = await db.program.findMany({
+  where: {
+    programFormat: { in: hubConfig.appliesToFormats },
+    archivedAt: null,
+    slug: { in: eligibleSlugs },
+  },
+});
 ```
-Host-team scope uses `OR` to catch both null (legacy programs that pre-date `hostingHubSlug`) and the explicit slug. Other hubs filter by exact match.
+Primary-hub coverage: programs with `hostingHubSlug = hub` (host-team picks up null + explicit via Prisma `OR`).  Auxiliary-hub coverage: programs with a matching `ProgramCoverageHub` row.
 
-**Outbound URLs (layer 4).** Every email sent from a Scheduler action constructs URLs via `hubScopedUrl(path, programHubSlug)`. Slice 2.5 fix. See `RIM_Email_Engineering.md` for the full pattern.
+**Outbound URLs (layer 4).** Every email sent from a Scheduler action constructs URLs via `hubScopedUrl(path, hubSlug)` where `hubSlug` is the assignment's / rotation's own hub. Slice 2.5 established the helper; session 129 routes by the resource's hub so AV emails land in AV, etc.
 
-**Your Rotations panel (a layer-3 detail).** The user's standing assignments are fetched globally (`db.standingAssignment.findMany({ where: { userId } })`) then **filtered in memory** by the active hub's program list (`pgPrograms.map(p => p.slug)`). The in-memory filter avoids sequencing the queries and is cheap because a user's rotation count is tiny.
+**Your Rotations panel (a layer-3 detail).** Hub-scoped via the new `StandingAssignment.hubSlug` column — the query is now `where: { userId, hubSlug: activeHubSlug }` directly, no in-memory filtering needed (replaces the Slice 2 in-memory filter).
 
 ---
 
@@ -69,6 +81,29 @@ When a coordinator transfers a program to a different hub via the ProgramEditor 
 The ProgramEditor surfaces a mid-flight warning before save — count of affected upcoming HostAssignments + explanation of the grandfather policy.
 
 Operational consequence: if a host-team member has claimed Good Morning Silent Meditation sessions before a coordinator transfers it to peer-led-silent-meditation, those host-team-claimed sessions remain on the host-team member's `/tools/schedule?hub=host-team` view. New claims will only come from peer-led members. The mixed-hub state resolves as the grandfathered sessions complete.
+
+---
+
+## Multi-claim rendering (greeter hub, session 129)
+
+When `Hub.allowsMultipleAssignments` is true, the Schedule page renders one card per session that contains every signed-up volunteer rather than one card per claim. The row uses a **plain-language state header sentence** plus a **stacked list of names** with a **self-recognition mark** ("YOU" badge in `--rim-blue`) on the signed-in user's row. This is correctness-level UI, not polish — see `feedback-clear-seeing-is-correctness.md` for why the comma-separated CSV version was rejected.
+
+State header sentences:
+- `count === 0` (not past): "No one yet — be the first?"
+- `count === 0` (past): "No one signed up"
+- `count === 1 && mine`: "You're signed up"
+- `count === 1 && !mine`: "1 person signed up"
+- `count > 1 && mine`: "<count> signed up · you're one of them"
+- `count > 1 && !mine`: "<count> signed up"
+
+Action button labels read as invitation, not transaction:
+- Not signed up, no one else: "I'll be the first"
+- Not signed up, others present: "I'll be there too"
+- Signed up: "Cancel my signup"
+
+No sub-request flow in multi-claim hubs — the open sign-up model doesn't have a "need a sub" semantic; the only exit is self-cancel. `/api/host/sub-requests` POST refuses on multi-claim hubs with a 400.
+
+CSS lives in `public/css/custom.css` under `.hs-row__multi*`. The card itself is the standard `.hs-row` chrome; only the right-hand block (status + action) differs.
 
 ---
 
@@ -91,32 +126,28 @@ All three emails carry `hubSlug` derived from `program.hostingHubSlug` so every 
 
 ## Standing rotations
 
-Standing rotations are recurring patterns: "Maria hosts every 2nd and 4th Thursday." They're stored as `StandingAssignment` rows keyed `(programSlug, dayOfWeek, occurrence)`. A cron job (`/api/cron/apply-standing-assignments`) walks forward, creating `HostAssignment` rows from each rotation.
+Standing rotations are recurring patterns: "Maria hosts every 2nd and 4th Thursday." They're stored as `StandingAssignment` rows keyed `(programSlug, dayOfWeek, occurrence, hubSlug)` as of session 129 — the unique was widened to allow a program to have parallel rotations in different hubs (a host-team rotation + an AV rotation on the same first-Saturday is two records). A cron job (`/api/cron/apply-standing-assignments`) walks forward, creating `HostAssignment` rows from each rotation.
 
-**Hub-scoped as of Slice 2.6.** Every standing-rotation route derives its hub from `program.hostingHubSlug` via `getProgramHubSlug`. A peer-led-silent-meditation coordinator can edit rotations for peer-led programs the same way a host-team coordinator can edit them for host-team programs. The pattern is symmetric across hubs.
+**Hub-scoped per record (session 129).** Every standing-rotation route accepts a `hubSlug` body field. When omitted, falls back to the program's primary hub for backward compat. Slice 2.6 routed by program's primary hub; session 129 lets the caller scope to the rotation's own hub, which matters when the same program has rotations in multiple hubs.
 
 **Auth model per route:**
 
 | Route | Hub source | Gate |
 |---|---|---|
-| `POST /api/host/standing-assignments` | `body.programSlug` → hub | manager OR `isHubCoordinator` for that hub |
+| `POST /api/host/standing-assignments` | `body.hubSlug` (else program's primary) | manager OR `isHubCoordinator` for that hub |
 | `GET /api/host/standing-assignments?hub=&programSlug=` | `?hub=` (or `programSlug`'s hub if given) | hosting capability in that hub |
-| `POST .../apply` (per-program) | `body.programSlug` → hub | manager OR `isHubCoordinator` for that hub |
+| `POST .../apply` (per-program) | `body.hubSlug` (else program's primary) | manager OR `isHubCoordinator` |
 | `POST .../apply` (apply-all) | none | HOST_MANAGER or ADMIN only |
-| `POST .../preview` | same as apply | same as apply |
-| `POST .../release-host` | `body.programSlug` → hub | manager OR `isHubCoordinator` |
-| `POST .../end-bundle` | `body.programSlug` → hub | manager OR `isHubCoordinator` |
-| `DELETE /api/host/standing-assignments/[id]` | `rotation.programSlug` → hub | manager OR `isHubCoordinator` |
+| `POST .../preview` | `body.hubSlug` (else program's primary) | manager OR `isHubCoordinator` |
+| `POST .../release-host` | `body.hubSlug` (else program's primary) | manager OR `isHubCoordinator` |
+| `POST .../end-bundle` | `body.hubSlug` (else program's primary) | manager OR `isHubCoordinator` |
+| `DELETE /api/host/standing-assignments/[id]` | `rotation.hubSlug` | manager OR `isHubCoordinator` |
 
-**Auth precedence in GET.** When `programSlug` is given, auth follows the *program's* hub, not the `?hub=` query parameter. A peer-led coordinator querying a host-team program will fail the auth gate before any data is returned. The `?hub=` param only applies when there's no `programSlug` filter (the "list all rotations in this hub" path).
+**`lib/applyStandingAssignments.ts`** — `Candidate` carries `hubSlug` so applied HostAssignments inherit the source rotation's hub. Conflict detection scoped per `(programSlug, dateStr, hubSlug)` — an AV rotation candidate doesn't conflict with a host-team HostAssignment on the same date. Apply takes an optional `hubSlugFilter` so per-hub callers can narrow the apply to one team's rotations.
 
-**StandingAssignment has no Program FK** (only `programSlug` as a string), so the GET filters rotations to hub programs via a two-step query: fetch program slugs that belong to the hub, then `where: { programSlug: { in: [...] } }` on the rotation list. Coordinator-only path; list sizes are small.
+**Emails carry hubSlug.** `sendStandingAssignmentScheduledEmail`, `sendStandingAssignmentReplacedEmail`, and `sendStandingAssignmentReleasedEmail` all accept an optional `hubSlug` and build the "view schedule" link via `hubScopedUrl`. The apply route groups byUser sessions by `hubSlug` so a user with rotations in two hubs gets one email per hub, each linking to the right Scheduler view.
 
-**Emails carry hubSlug.** `sendStandingAssignmentScheduledEmail`, `sendStandingAssignmentReplacedEmail`, and `sendStandingAssignmentReleasedEmail` all accept an optional `hubSlug` and build the "view schedule" link via `hubScopedUrl`. Per-program callers pass `programHubSlug`. Apply-all callers leave it undefined — link falls through to host-team scope, acceptable for the rare cross-hub case.
-
-**`lib/applyStandingAssignments.ts`** — operates on whatever rotations exist; no hub-awareness needed (it doesn't run auth, just executes the rotation logic). Hub-routing is handled at the API boundary.
-
-**`RotationsClient.tsx`** receives `hubSlug` as a prop and passes `?hub=<active>` to its rotation-list fetch. The Rotations tab in `peer-led-silent-meditation` now loads only that hub's rotations.
+**`RotationsClient.tsx`** receives `hubSlug` as a prop and passes `?hub=<active>` to its rotation-list fetch. Each hub's Rotations tab loads only that hub's rotations.
 
 ---
 
@@ -155,10 +186,10 @@ The picker is scoped to one hub at a time — multi-hub members appear in whiche
 
 | Item | Status | Why |
 |---|---|---|
-| Assignments-GET pause-map hub-routing | Deferred | Pause-state lookup is currently scoped to host-team in the GET handler; low impact since the map is consumed by UI affordances not security gates. Revisit when peer-led members start being paused via their hub. |
-| PDF export hub-scoping | Deferred | "My schedule" is personal; revisit if peer-led members ask |
+| PDF export hub-scoping | Deferred | "My schedule" is personal; revisit if AV/greeter members ask |
 | Time-gate adjustments per-program | Deferred (parked) | The 22/30-min window is currently uniform across all programs; if dharma retreats want a longer pre-open, add per-program override |
-| Hub-mixed standing-rotation emails | Edge case | When a single user's batched apply-all emails span multiple hubs, the link falls through to host-team scope. Acceptable for the rare manager-only apply-all case; could split into per-hub emails if signal emerges. |
+| Sub-request flow on AV (in-person) | Edge case to verify | Sub-requests still work in single-slot AV; verify on live deploy that the in-person hub's coordinator notifications behave correctly |
+| Manual chapter for AV + greeter hubs | Open follow-on | Write a hub-specific manual chapter explaining the AV / greeter flow, the difference between single-slot and multi-claim, sub-request semantics. Can be done via `/admin/manual/<slug>/edit` once the hubs are configured. |
 
 ---
 

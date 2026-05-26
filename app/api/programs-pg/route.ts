@@ -145,6 +145,35 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  // Auxiliary-hub coverage (session 129). New programs may declare
+  // coverage hubs immediately. Validated against the hub table; unknown
+  // slugs return 422 and the program creation is rolled back at the
+  // application level by letting the error bubble.
+  if (Array.isArray(body.coverageHubSlugs) && body.coverageHubSlugs.length > 0) {
+    const requestedSlugs: string[] = body.coverageHubSlugs.filter(
+      (s: unknown): s is string => typeof s === "string" && s.trim().length > 0,
+    );
+    if (requestedSlugs.length > 0) {
+      const validHubs = await db.hub.findMany({
+        where: { slug: { in: requestedSlugs } },
+        select: { slug: true },
+      });
+      const validSlugs = new Set(validHubs.map((h) => h.slug));
+      const unknown = requestedSlugs.filter((s) => !validSlugs.has(s));
+      if (unknown.length > 0) {
+        // The program row already exists at this point; leave it but
+        // surface the bad slug so the editor can show an error.
+        return NextResponse.json(
+          { error: `Unknown auxiliary hub(s): ${unknown.join(", ")}` },
+          { status: 422 },
+        );
+      }
+      await db.programCoverageHub.createMany({
+        data: requestedSlugs.map((hubSlug) => ({ programSlug: slug, hubSlug })),
+      });
+    }
+  }
+
   // Notify the host team when a new virtual/hybrid program lands.
   // In-person programs don't need host coverage on the LiveKit side, so we
   // only fire for virtual/hybrid. Recipients exclude the registrar who

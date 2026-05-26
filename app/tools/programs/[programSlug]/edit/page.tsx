@@ -22,7 +22,7 @@ export default async function EditProgramToolPage({
   const session = await auth();
   if (!session) redirect("/login");
 
-  const [program, categories, hubs] = await Promise.all([
+  const [program, categories, hubs, coverageRows] = await Promise.all([
     db.program.findUnique({
       where: { slug: programSlug },
       include: {
@@ -37,10 +37,19 @@ export default async function EditProgramToolPage({
     // chooses which hub hosts this program's live sessions; the dropdown
     // shows every active hub so the field is discoverable as new hubs
     // come online (Silent Meditation, Recovery Dharma, etc.).
+    // `hasSchedule` is surfaced so the Auxiliary coverage section can
+    // filter to hubs that actually use the Scheduler.
     db.hub.findMany({
       where: { status: "ACTIVE" },
-      select: { slug: true, name: true },
+      select: { slug: true, name: true, hasSchedule: true },
       orderBy: { name: "asc" },
+    }),
+    // Auxiliary-coverage rows for this program (session 129). Empty array
+    // when no auxiliary hubs are tagged. Editor renders these as checked
+    // checkboxes in the "Auxiliary role coverage" section.
+    db.programCoverageHub.findMany({
+      where: { programSlug },
+      select: { hubSlug: true },
     }),
   ]);
 
@@ -123,6 +132,7 @@ export default async function EditProgramToolPage({
     guestAccessKey: program.guestAccessKey ?? "",
     programNotes: program.programNotes ?? null,
     hostingHubSlug: program.hostingHubSlug ?? null,
+    coverageHubSlugs: coverageRows.map((r) => r.hubSlug),
   };
 
   return (

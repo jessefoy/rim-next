@@ -15920,6 +15920,56 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .hs-row__status--asking  { color: #b56b05; font-weight: 600; }
 .hs-row__status--covered { color: var(--rim-mid); }
 
+/* ── Multi-claimant Scheduler row (greeter hub — session 129) ─────────────
+   Open sign-up surface where many people claim the same session. Reads as
+   a community of people, not a transactional list: plain-language state
+   header sentence, names stacked vertically, "you" mark for self-recognition.
+   The hs-row__multi-header is the calm sentence the philosophy doc asks
+   for — readable at a glance to an overwhelmed user without parsing a list. */
+.hs-row__multi {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.hs-row__multi-header {
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--rim-text);
+}
+.hs-row__multi-header--empty {
+  color: var(--rim-mid);
+  font-weight: 500;
+}
+.hs-row__multi-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: right;
+}
+.hs-row__multi-item {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--rim-text);
+  line-height: 1.4;
+}
+.hs-row__multi-item--mine .hs-row__multi-name {
+  font-weight: 600;
+}
+.hs-row__multi-you {
+  font-size: var(--text-xxs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--rim-blue);
+  font-weight: 700;
+}
+
 .hs-row__do {
   display: flex;
   flex-direction: column;

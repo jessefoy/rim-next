@@ -289,6 +289,30 @@ model Program {
   @@map("programs")
 }
 
+// Auxiliary-hub coverage for a program (session 129 — AV + Greeter hubs).
+//
+// `Program.hostingHubSlug` is the *primary* hub for a program — who runs the
+// live session, owns the LiveKit room, holds dharma authority. A program may
+// additionally need role coverage from other hubs (AV volunteer, greeters) for
+// its in-person component. Each such relationship is one row here, keyed by
+// program slug (matching the rest of the host-system slug-as-join-key
+// convention — never change a program's slug after coverage exists).
+//
+// Read pattern: `getProgramCoverageHubs(programSlug)` returns the slugs of the
+// auxiliary hubs covering this program. The Scheduler page unions a hub's
+// primary programs (where `hostingHubSlug` matches) with its auxiliary
+// programs (where a coverage row exists) and applies the hub's
+// `appliesToFormats` filter on top.
+model ProgramCoverageHub {
+  programSlug String
+  hubSlug     String
+  createdAt   DateTime @default(now())
+
+  @@id([programSlug, hubSlug])
+  @@index([hubSlug])
+  @@map("program_coverage_hubs")
+}
+
 // ─── PROGRAM REGISTRATIONS ────────────────────────────────────────────────────
 
 model Registration {
@@ -744,6 +768,14 @@ model HostAssignment {
   id          String    @id @default(cuid())
   programSlug String    // Sanity slug — treated as a stable, permanent identifier
   sessionDate DateTime? // null = standing; set = specific session date
+  // Hub that owns this assignment (session 129 — auxiliary coverage).
+  // Defaults to "host-team" — every row prior to the migration is the
+  // primary hosting hub. After session 129, a single (programSlug,
+  // sessionDate) may have multiple HostAssignment rows scoped to
+  // different hubs: one host-team claim, one AV claim, N greeter claims.
+  // Uniqueness within a hub is enforced app-layer; the database-level
+  // unique (programSlug, sessionDate) was dropped to allow this.
+  hubSlug     String    @default("host-team")
   userId      String?   // null = unclaimed session
   user        User?     @relation("HostAssignments", fields: [userId], references: [id], onDelete: SetNull)
   assignedBy  String?   // userId of HOST_MANAGER/ADMIN who created this
@@ -758,7 +790,8 @@ model HostAssignment {
 
   createdAt   DateTime  @default(now())
 
-  @@unique([programSlug, sessionDate])
+  @@index([programSlug, sessionDate, hubSlug])
+  @@index([hubSlug, sessionDate])
   @@map("host_assignments")
 }
 
@@ -831,6 +864,12 @@ model StandingAssignment {
   /// Null for legacy rows or single-day programs where the day is implicit.
   /// New rotations created via the editor always set this.
   dayOfWeek   String?
+  /// Hub that owns this rotation (session 129 — auxiliary coverage).
+  /// Defaults to "host-team". A single program can have parallel rotations
+  /// in different hubs: a host-team rotation on first-Saturday plus an AV
+  /// rotation on the same first-Saturday is two records, scoped by hubSlug.
+  /// Applied HostAssignments inherit this hubSlug.
+  hubSlug     String             @default("host-team")
   userId      String
   occurrence  StandingOccurrence
   startsOn    DateTime           @default(now())
@@ -845,8 +884,10 @@ model StandingAssignment {
   // Reverse relation: HostAssignments derived from this rotation rule
   hostAssignments HostAssignment[] @relation("StandingDerivedAssignments")
 
-  // Bundle = (programSlug, dayOfWeek). Inside a bundle, one record per occurrence.
-  @@unique([programSlug, dayOfWeek, occurrence])
+  // Bundle = (programSlug, dayOfWeek, hubSlug). Inside a bundle, one record
+  // per occurrence. The hubSlug element of the key lets parallel hubs hold
+  // independent rotations on the same program/day/occurrence.
+  @@unique([programSlug, dayOfWeek, occurrence, hubSlug])
   @@map("standing_assignments")
 }
 
@@ -941,6 +982,21 @@ model Hub {
   // (most specific wins).
   assignmentGrantsTeacher Boolean @default(false)
   teacherLabel           String?
+  // Auxiliary-hub coverage model (session 129 — AV + Greeter hubs).
+  // When `allowsMultipleAssignments` is true, the Scheduler treats this
+  // hub as a multi-claimant sign-up surface (greeter hub): many users can
+  // claim the same session, each producing one HostAssignment row. False
+  // is the historical single-slot model (host-team, peer-led, AV): one
+  // user per session per hub. Enforced app-layer in /api/host/assignments
+  // since Prisma can't express partial uniques.
+  allowsMultipleAssignments Boolean @default(false)
+  // Program formats this hub schedules. Host-team and peer-led hubs cover
+  // virtual+hybrid (their work is the live online session). AV and greeter
+  // hubs cover in-person+hybrid (their work is the room). A hub whose
+  // formats don't match a program will not surface that program in its
+  // Scheduler view even if the program is otherwise tagged for coverage.
+  // Default preserves existing behavior for host-team and peer-led.
+  appliesToFormats       String[] @default(["virtual", "hybrid"])
   createdAt              DateTime      @default(now())
   updatedAt              DateTime      @updatedAt
 

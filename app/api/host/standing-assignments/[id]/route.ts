@@ -61,12 +61,15 @@ export async function DELETE(
   });
   if (!rotation) return Response.json({ error: "Not found" }, { status: 404 });
 
-  // Hub-route the auth check via the rotation's program. Slice 2.6.
-  const programHubSlug = await getProgramHubSlug(rotation.programSlug);
-  if (!isManager(roles) && !(await isHubCoordinator(session.user.id, programHubSlug))) {
+  // Hub-route the auth check via the rotation's own hubSlug (session 129).
+  // The standing record carries its hub directly now — no program lookup
+  // needed for routing. The program-hub helper is kept as a fallback for
+  // any legacy row whose hubSlug was somehow left at the default.
+  const rotationHubSlug = rotation.hubSlug || await getProgramHubSlug(rotation.programSlug);
+  if (!isManager(roles) && !(await isHubCoordinator(session.user.id, rotationHubSlug))) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
-  if (!(await hasEffectiveHostAccess(session.user.id, roles, programHubSlug))) {
+  if (!(await hasEffectiveHostAccess(session.user.id, roles, rotationHubSlug))) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -142,7 +145,7 @@ export async function DELETE(
           to:        u.email,
           firstName: u.preferredName || u.firstName || null,
           sessions:  releasedSessions,
-          hubSlug:   programHubSlug,
+          hubSlug:   rotationHubSlug,
         });
       });
     }

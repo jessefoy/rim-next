@@ -17,7 +17,11 @@ import {
   ctDateStr, shiftToDate, isOccurrenceOnDate,
   type ScheduleProgram,
 } from "@/lib/scheduleUtils";
-import { DEFAULT_HOSTING_HUB_SLUG } from "@/lib/programHub";
+import {
+  DEFAULT_HOSTING_HUB_SLUG,
+  getHubCoverageConfig,
+  getProgramSlugsForHub,
+} from "@/lib/programHub";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Host Schedule — Tools" };
@@ -83,26 +87,29 @@ export default async function ScheduleToolPage({
   const startOfMonth = new Date(year, month, 1);
   const endOfMonth   = new Date(year, month + 1, 0, 23, 59, 59, 999);
 
-  // Program filter for the active hub. host-team includes programs with
-  // null `hostingHubSlug` (the default state — every existing program before
-  // Slice 1 reads as host-team-hosted). Non-host-team hubs see only programs
-  // explicitly transferred to them.
-  const programHubFilter =
-    activeHubSlug === DEFAULT_HOSTING_HUB_SLUG
-      ? {
-          OR: [
-            { hostingHubSlug: null },
-            { hostingHubSlug: DEFAULT_HOSTING_HUB_SLUG },
-          ],
-        }
-      : { hostingHubSlug: activeHubSlug };
+  // Hub config drives the program-format filter + the multi-claim flag.
+  // host-team / peer-led: ["virtual","hybrid"]; AV / greeter: ["in-person","hybrid"].
+  // Falls back to virtual/hybrid for unknown hubs so the page stays usable
+  // even if config is incomplete.
+  const hubConfig = await getHubCoverageConfig(activeHubSlug);
+  const appliesToFormats = hubConfig?.appliesToFormats ?? ["virtual", "hybrid"];
+  const allowsMultipleAssignments = hubConfig?.allowsMultipleAssignments ?? false;
+
+  // Program filter for the active hub. Unions:
+  //   1. Primary: programs whose `hostingHubSlug` is this hub (or null for
+  //      host-team, which is the implicit default).
+  //   2. Auxiliary: programs with a ProgramCoverageHub row pointing here
+  //      (session 129 — AV / greeter coverage).
+  // Format filter applied on top so an in-person-only program doesn't
+  // surface in host-team's virtual-session view.
+  const eligibleSlugs = await getProgramSlugsForHub(activeHubSlug);
 
   const [pgPrograms, assignments, myRotationsRaw] = await Promise.all([
     db.program.findMany({
       where: {
-        programFormat: { in: ["virtual", "hybrid"] },
+        programFormat: { in: appliesToFormats },
         archivedAt: null,
-        ...programHubFilter,
+        slug: { in: eligibleSlugs },
       },
       select: {
         id: true, name: true, slug: true,
@@ -112,8 +119,14 @@ export default async function ScheduleToolPage({
       },
       orderBy: { sortOrder: "asc" },
     }),
+    // HostAssignments are scoped per-hub (session 129) — only this hub's
+    // rows surface. An AV claim and a host-team claim on the same session
+    // are independent rows; the AV view shows the AV one.
     db.hostAssignment.findMany({
-      where: { sessionDate: { gte: startOfMonth, lte: endOfMonth } },
+      where: {
+        sessionDate: { gte: startOfMonth, lte: endOfMonth },
+        hubSlug: activeHubSlug,
+      },
       include: {
         user: { select: { id: true, firstName: true, lastName: true, preferredName: true } },
         subRequests: { where: { status: "OPEN" }, select: { id: true, message: true }, take: 1 },
@@ -124,28 +137,22 @@ export default async function ScheduleToolPage({
     // summary at the top of the schedule. Coordinators see all rotations via the
     // Rotations tab; hosts see just their own rotations here so they understand
     // the recurring pattern that's putting sessions on their calendar.
-    // The hub-scope filter is applied after the Promise.all (we don't yet
-    // know the hub's program slugs at query time without sequencing the
-    // queries). Filtering in memory is cheap — a user's rotation list is
-    // tiny — and keeps the parallel fetch.
+    // Hub-scoped via the StandingAssignment.hubSlug column (session 129) so
+    // a user with both a host-team rotation and an AV rotation sees only
+    // the active hub's panel.
     db.standingAssignment.findMany({
       where: {
         userId: session.user.id,
+        hubSlug: activeHubSlug,
         OR: [{ endsOn: null }, { endsOn: { gte: now } }],
       },
       orderBy: [{ programSlug: "asc" }, { occurrence: "asc" }],
     }),
   ]);
 
-  // Hub-scope the rotations: only keep those whose program belongs to the
-  // active hub. Without this, a peer-led-silent-meditation coordinator
-  // viewing their hub's Scheduler would see host-team standing rotations
-  // leaking into the "Your Rotations" panel (the bug Jesse caught in the
-  // first Slice 2 test).
-  const hubProgramSlugs = new Set(pgPrograms.map((p) => p.slug));
-  const myRotationsRawScoped = myRotationsRaw.filter((r) =>
-    hubProgramSlugs.has(r.programSlug),
-  );
+  // Already hub-scoped via the query; the in-memory filter Slice 2.6
+  // needed is no longer required.
+  const myRotationsRawScoped = myRotationsRaw;
 
   // Build pause-state map: userId → "paused" | "inactive"
   // A single HubMember query covers all assigned hosts in the initial month
@@ -171,14 +178,26 @@ export default async function ScheduleToolPage({
     }
   }
 
-  const assignmentMap = new Map(
-    assignments.map((a) => {
-      const dateStr = a.sessionDate ? ctDateStr(a.sessionDate.toISOString()) : "";
-      return [`${a.programSlug}::${dateStr}`, a];
-    })
-  );
+  // Group assignments by (programSlug, dateStr) so multi-claimant hubs
+  // (greeter) can render a stack of claimants on one card while single-
+  // slot hubs (host-team, AV) get the historical one-host-per-card shape.
+  const assignmentsByKey = new Map<string, typeof assignments>();
+  for (const a of assignments) {
+    const dateStr = a.sessionDate ? ctDateStr(a.sessionDate.toISOString()) : "";
+    const key = `${a.programSlug}::${dateStr}`;
+    const bucket = assignmentsByKey.get(key);
+    if (bucket) bucket.push(a);
+    else assignmentsByKey.set(key, [a]);
+  }
 
   type SessionStatus = "unclaimed" | "claimed" | "sub_needed";
+  interface ClaimantSummary {
+    assignmentId: string;
+    userId: string | null;
+    userName: string | null;
+    /** Coordinator-facing status badge for this claimant, if not fully active. */
+    badge: "paused" | "inactive" | null;
+  }
   interface SessionItem {
     id: string;
     programSlug: string;
@@ -187,6 +206,10 @@ export default async function ScheduleToolPage({
     status: SessionStatus;
     hostUserId: string | null;
     hostName: string | null;
+    /** Multi-claim hubs (greeter) populate this with every signed-up
+     *  volunteer for the session. Single-slot hubs leave it empty and
+     *  use hostUserId/hostName as before. */
+    claimants: ClaimantSummary[];
     subRequestId: string | null;
     subMessage: any;
     programFormat: string | null;
@@ -202,6 +225,15 @@ export default async function ScheduleToolPage({
 
   const sessions: SessionItem[] = [];
 
+  function nameOf(u: { firstName: string | null; lastName: string | null; preferredName: string | null } | null): string | null {
+    if (!u) return null;
+    return (
+      u.preferredName ||
+      [u.firstName, u.lastName].filter(Boolean).join(" ") ||
+      null
+    );
+  }
+
   for (let day = 1; day <= daysInMonth; day++) {
     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     for (const p of pgPrograms) {
@@ -211,37 +243,12 @@ export default async function ScheduleToolPage({
         ? shiftToDate(p.startDatetime.toISOString(), dateStr)
         : null;
       const key = `${p.slug}::${dateStr}`;
-      const a = assignmentMap.get(key);
+      const bucket = assignmentsByKey.get(key);
 
-      if (a) {
-        const openSub = a.subRequests[0] ?? null;
-        const status: SessionStatus = !a.userId
-          ? "unclaimed"
-          : openSub
-          ? "sub_needed"
-          : "claimed";
-        sessions.push({
-          id: a.id,
-          programSlug: p.slug,
-          programName: p.name,
-          sessionDate: shiftedDate?.toISOString() ?? null,
-          status,
-          hostUserId: a.userId ?? null,
-          hostName: a.user
-            ? (a.user.preferredName ||
-                [a.user.firstName, a.user.lastName].filter(Boolean).join(" ") ||
-                null)
-            : null,
-          subRequestId: openSub?.id ?? null,
-          subMessage: openSub?.message ?? null,
-          programFormat: p.programFormat ?? null,
-          programId: p.id,
-          livekitRoom: p.livekitRoom ?? null,
-          programCreatedAt: p.createdAt?.toISOString() ?? null,
-          standingAssignmentId: a.standingAssignmentId ?? null,
-          hostBadge: a.userId ? (pauseMap.get(a.userId) ?? null) : null,
-        });
-      } else {
+      if (!bucket || bucket.length === 0) {
+        // No rows in this hub for this session — render the empty card.
+        // Single-slot hubs (host-team, AV) call this "Needs Coverage"; the
+        // multi-claim view labels it "No one yet" via the client.
         sessions.push({
           id: `unassigned::${p.slug}::${dateStr}`,
           programSlug: p.slug,
@@ -250,6 +257,7 @@ export default async function ScheduleToolPage({
           status: "unclaimed",
           hostUserId: null,
           hostName: null,
+          claimants: [],
           subRequestId: null,
           subMessage: null,
           programFormat: p.programFormat ?? null,
@@ -259,7 +267,69 @@ export default async function ScheduleToolPage({
           standingAssignmentId: null,
           hostBadge: null,
         });
+        continue;
       }
+
+      if (allowsMultipleAssignments) {
+        // Multi-claim render: one card per session, listing every signed-up
+        // volunteer. Sub-request flow doesn't apply here (open sign-up
+        // semantics — release-my-claim is the only exit).
+        const claimants: ClaimantSummary[] = bucket.map((a) => ({
+          assignmentId: a.id,
+          userId: a.userId ?? null,
+          userName: nameOf(a.user),
+          badge: a.userId ? (pauseMap.get(a.userId) ?? null) : null,
+        }));
+        const first = bucket[0];
+        sessions.push({
+          // Card id uses the synthetic key so the client can address it
+          // even when many real assignment rows back it.
+          id: `multi::${p.slug}::${dateStr}`,
+          programSlug: p.slug,
+          programName: p.name,
+          sessionDate: shiftedDate?.toISOString() ?? null,
+          status: "claimed",
+          hostUserId: null,
+          hostName: null,
+          claimants,
+          subRequestId: null,
+          subMessage: null,
+          programFormat: p.programFormat ?? null,
+          programId: p.id,
+          livekitRoom: p.livekitRoom ?? null,
+          programCreatedAt: p.createdAt?.toISOString() ?? null,
+          standingAssignmentId: first?.standingAssignmentId ?? null,
+          hostBadge: null,
+        });
+        continue;
+      }
+
+      // Single-slot render (host-team, AV, peer-led) — historical shape.
+      const a = bucket[0];
+      const openSub = a.subRequests[0] ?? null;
+      const status: SessionStatus = !a.userId
+        ? "unclaimed"
+        : openSub
+        ? "sub_needed"
+        : "claimed";
+      sessions.push({
+        id: a.id,
+        programSlug: p.slug,
+        programName: p.name,
+        sessionDate: shiftedDate?.toISOString() ?? null,
+        status,
+        hostUserId: a.userId ?? null,
+        hostName: nameOf(a.user),
+        claimants: [],
+        subRequestId: openSub?.id ?? null,
+        subMessage: openSub?.message ?? null,
+        programFormat: p.programFormat ?? null,
+        programId: p.id,
+        livekitRoom: p.livekitRoom ?? null,
+        programCreatedAt: p.createdAt?.toISOString() ?? null,
+        standingAssignmentId: a.standingAssignmentId ?? null,
+        hostBadge: a.userId ? (pauseMap.get(a.userId) ?? null) : null,
+      });
     }
   }
 
@@ -277,15 +347,16 @@ export default async function ScheduleToolPage({
   }));
 
   // Next upcoming HostAssignment per rotation program for this user.
-  // Drives the "Next" column in the Your Rotations panel.  Uses the
-  // hub-scoped rotation list so we don't fetch upcoming sessions for
-  // programs that belong to other hubs.
+  // Drives the "Next" column in the Your Rotations panel. Hub-scoped
+  // (session 129) so an AV volunteer's "Next" reads their AV assignment,
+  // not a host-team assignment on the same program.
   const rotationSlugs = [...new Set(myRotationsRawScoped.map((r) => r.programSlug))];
   const nextSessionBySlug: Record<string, string> = {};
   if (rotationSlugs.length > 0) {
     const upcoming = await db.hostAssignment.findMany({
       where: {
         userId: session.user.id,
+        hubSlug: activeHubSlug,
         programSlug: { in: rotationSlugs },
         sessionDate: { gte: now },
       },
@@ -324,6 +395,7 @@ export default async function ScheduleToolPage({
         nextSessionBySlug={nextSessionBySlug}
         apiBase="/api/host"
         hubSlug={activeHubSlug}
+        allowsMultipleAssignments={allowsMultipleAssignments}
       />
     </div>
   );

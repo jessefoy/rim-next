@@ -54,20 +54,26 @@ export async function POST(request: Request) {
     programSlug = null,
     standingId  = null,
     dayOfWeek   = null,
+    hubSlug     = null,
   } = body as {
     programSlug?: string | null;
     standingId?:  string | null;
     dayOfWeek?:   string | null;
+    /** Optional hub scope (session 129). When set, narrows the preview to
+     *  that hub's rotations. AV/greeter Rotations UI passes this so the
+     *  conflict modal reflects the hub the coordinator is actually in. */
+    hubSlug?:     string | null;
   };
 
-  // Hub-route by program (when given); fall through to manager-only for
-  // the "preview all" case. Slice 2.6.
-  if (programSlug) {
-    const programHubSlug = await getProgramHubSlug(programSlug);
-    if (!isManager(roles) && !(await isHubCoordinator(session.user.id, programHubSlug))) {
+  // Hub-route by body.hubSlug if supplied, else by program's primary hub
+  // (when programSlug given), else manager-only ("preview all").
+  const programHubSlug = programSlug ? await getProgramHubSlug(programSlug) : undefined;
+  const authHubSlug = hubSlug || programHubSlug;
+  if (authHubSlug) {
+    if (!isManager(roles) && !(await isHubCoordinator(session.user.id, authHubSlug))) {
       return Response.json({ error: "Forbidden" }, { status: 403 });
     }
-    if (!(await hasEffectiveHostAccess(session.user.id, roles, programHubSlug))) {
+    if (!(await hasEffectiveHostAccess(session.user.id, roles, authHubSlug))) {
       return Response.json({ error: "Forbidden" }, { status: 403 });
     }
   } else {
@@ -84,12 +90,15 @@ export async function POST(request: Request) {
   const month = body.month ?? now.getMonth() + 1;
 
   // Span the same horizon the save+apply uses: through the bundle's endsOn,
-  // or end-of-year if no end date. This keeps the conflict modal's view
-  // consistent with what the save actually does.
+  // or end-of-year if no end date. Hub-scoped (session 129).
   let bundleEndsOn: Date | null = null;
   if (programSlug && dayOfWeek) {
     const sample = await db.standingAssignment.findFirst({
-      where: { programSlug, dayOfWeek },
+      where: {
+        programSlug,
+        dayOfWeek,
+        ...(authHubSlug ? { hubSlug: authHubSlug } : {}),
+      },
       select: { endsOn: true },
     });
     bundleEndsOn = sample?.endsOn ?? null;
@@ -98,7 +107,7 @@ export async function POST(request: Request) {
 
   const previews = await Promise.all(
     months.map(({ year: y, month: m }) =>
-      previewStandingAssignments(programSlug, y, m, standingId, dayOfWeek)
+      previewStandingAssignments(programSlug, y, m, standingId, dayOfWeek, hubSlug),
     )
   );
   const allOpens     = previews.flatMap((p) => p.openSessions);

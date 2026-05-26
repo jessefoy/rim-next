@@ -232,6 +232,36 @@ export async function PUT(
     }
   }
 
+  // Auxiliary-hub coverage (session 129). Full-replace semantics: the
+  // client sends the complete desired set; we delete all existing rows
+  // for this program and recreate. Slugs are validated against existing
+  // hubs to prevent orphan rows from stale or tampered payloads.
+  if (body.coverageHubSlugs !== undefined) {
+    const requestedSlugs: string[] = Array.isArray(body.coverageHubSlugs)
+      ? body.coverageHubSlugs.filter((s: unknown): s is string => typeof s === "string" && s.trim().length > 0)
+      : [];
+    if (requestedSlugs.length > 0) {
+      const validHubs = await db.hub.findMany({
+        where: { slug: { in: requestedSlugs } },
+        select: { slug: true },
+      });
+      const validSlugs = new Set(validHubs.map((h) => h.slug));
+      const unknown = requestedSlugs.filter((s) => !validSlugs.has(s));
+      if (unknown.length > 0) {
+        return NextResponse.json(
+          { error: `Unknown auxiliary hub(s): ${unknown.join(", ")}` },
+          { status: 422 },
+        );
+      }
+    }
+    await db.programCoverageHub.deleteMany({ where: { programSlug: slug } });
+    if (requestedSlugs.length > 0) {
+      await db.programCoverageHub.createMany({
+        data: requestedSlugs.map((hubSlug) => ({ programSlug: slug, hubSlug })),
+      });
+    }
+  }
+
   return NextResponse.json(updated);
 }
 

@@ -50,6 +50,7 @@ export async function POST(request: Request) {
   const programSlug = body?.programSlug as string | undefined;
   const dayOfWeek   = body?.dayOfWeek   as string | undefined;
   const userId      = body?.userId      as string | undefined;
+  const bodyHubSlug = body?.hubSlug     as string | undefined;
 
   if (!programSlug || !dayOfWeek || !userId) {
     return Response.json(
@@ -58,18 +59,21 @@ export async function POST(request: Request) {
     );
   }
 
-  // Hub-route by the program's hub. Slice 2.6.
+  // Hub-route. Body wins (session 129); fall back to the program's primary.
   const programHubSlug = await getProgramHubSlug(programSlug);
-  if (!isManager(roles) && !(await isHubCoordinator(session.user.id, programHubSlug))) {
+  const targetHubSlug = bodyHubSlug || programHubSlug;
+  if (!isManager(roles) && !(await isHubCoordinator(session.user.id, targetHubSlug))) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
-  if (!(await hasEffectiveHostAccess(session.user.id, roles, programHubSlug))) {
+  if (!(await hasEffectiveHostAccess(session.user.id, roles, targetHubSlug))) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Find all StandingAssignment IDs in this (program, day) bundle
+  // Find all StandingAssignment IDs in this (program, day, hub) bundle.
+  // Hub-scoped (session 129) so an AV release doesn't terminate the
+  // host-team rotation on the same program/day.
   const rotations = await db.standingAssignment.findMany({
-    where: { programSlug, dayOfWeek },
+    where: { programSlug, dayOfWeek, hubSlug: targetHubSlug },
     select: { id: true },
   });
 
@@ -138,7 +142,7 @@ export async function POST(request: Request) {
         to:        host.email,
         firstName: host.preferredName || host.firstName || null,
         sessions,
-        hubSlug:   programHubSlug,
+        hubSlug:   targetHubSlug,
       });
     });
   }

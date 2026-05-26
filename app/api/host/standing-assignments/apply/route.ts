@@ -61,26 +61,32 @@ export async function POST(request: Request) {
     programSlug = null,
     standingId  = null,
     dayOfWeek   = null,
+    hubSlug     = null,
     resolution  = "leave",
   } = body as {
     programSlug?: string | null;
     standingId?:  string | null;
     dayOfWeek?:   string | null;
+    /** Hub scope for the apply. Session 129 — when the Rotations UI sits
+     *  in an auxiliary hub (AV, greeter), this is the rotation's hub.
+     *  Body wins; otherwise we fall back to the program's primary hub. */
+    hubSlug?:     string | null;
     resolution?:  ResolutionMode;
   };
 
-  // Resolve once, reuse for both auth + email scoping below.
+  // Resolve the hub used for auth + email scoping.
   const programHubSlug = programSlug ? await getProgramHubSlug(programSlug) : undefined;
+  const authHubSlug = hubSlug || programHubSlug;
 
-  // Auth gate. When programSlug is provided, route by that program's hub
-  // (any hub's coordinator can apply their own program's rotations).
-  // When programSlug is NOT provided ("apply all"), require ADMIN or
-  // HOST_MANAGER — that's a cross-hub global action. Slice 2.6.
-  if (programHubSlug) {
-    if (!isManager(roles) && !(await isHubCoordinator(session.user.id, programHubSlug))) {
+  // Auth gate. When a hub or program is provided, route by that hub
+  // (any hub's coordinator can apply their own rotations).
+  // When neither is provided ("apply all"), require ADMIN or
+  // HOST_MANAGER — that's a cross-hub global action.
+  if (authHubSlug) {
+    if (!isManager(roles) && !(await isHubCoordinator(session.user.id, authHubSlug))) {
       return Response.json({ error: "Forbidden" }, { status: 403 });
     }
-    if (!(await hasEffectiveHostAccess(session.user.id, roles, programHubSlug))) {
+    if (!(await hasEffectiveHostAccess(session.user.id, roles, authHubSlug))) {
       return Response.json({ error: "Forbidden" }, { status: 403 });
     }
   } else {
@@ -107,10 +113,16 @@ export async function POST(request: Request) {
 
   // Look up the rotation's endsOn so the apply spans the same horizon the
   // save did (current month → endsOn, or end-of-year if no end date).
+  // Hub-scoped (session 129) so AV's rotation endsOn isn't read off
+  // host-team's rotation for the same (programSlug, dayOfWeek).
   let bundleEndsOn: Date | null = null;
   if (programSlug && dayOfWeek) {
     const sample = await db.standingAssignment.findFirst({
-      where: { programSlug, dayOfWeek },
+      where: {
+        programSlug,
+        dayOfWeek,
+        ...(authHubSlug ? { hubSlug: authHubSlug } : {}),
+      },
       select: { endsOn: true },
     });
     bundleEndsOn = sample?.endsOn ?? null;
@@ -121,12 +133,12 @@ export async function POST(request: Request) {
   let totalFilled   = 0;
   let totalReplaced = 0;
   let totalKept     = 0;
-  type SessSum = { programName: string; dateLabel: string; userEmail: string; firstName: string | null };
+  type SessSum = { programName: string; dateLabel: string; userEmail: string; firstName: string | null; hubSlug: string };
   const byUser          = new Map<string, SessSum[]>();
   const byDisplacedUser = new Map<string, SessSum[]>();
 
   for (const { year: y, month: m } of months) {
-    const r = await applyStandingAssignments(programSlug, y, m, resolution, standingId, dayOfWeek);
+    const r = await applyStandingAssignments(programSlug, y, m, resolution, standingId, dayOfWeek, hubSlug);
     totalFilled   += r.filled;
     totalReplaced += r.replaced;
     totalKept     += r.kept;
@@ -141,29 +153,44 @@ export async function POST(request: Request) {
   }
 
   // ── Notification emails (fire-and-forget) ──────────────────────────────
-  // hubSlug is the program's hub when a single-program apply, undefined for
-  // the rare apply-all case (link falls through to host-team). Slice 2.6.
-  const emailHubSlug = programHubSlug;
+  // Emails are grouped per user-and-hub: a user with both a host-team and
+  // an AV rotation gets two separate emails, each linking to the right
+  // scheduler view. Session 129 — previously one email used the program's
+  // primary hub for all sessions, which leaked AV/greeter scheduling under
+  // a host-team link.
+  function groupByHub(sessions: SessSum[]): Map<string, SessSum[]> {
+    const out = new Map<string, SessSum[]>();
+    for (const s of sessions) {
+      const key = s.hubSlug;
+      if (!out.has(key)) out.set(key, []);
+      out.get(key)!.push(s);
+    }
+    return out;
+  }
   after(async () => {
     for (const [, sessions] of byUser) {
       if (sessions.length === 0) continue;
-      const { userEmail, firstName } = sessions[0];
-      await sendStandingAssignmentScheduledEmail({
-        to: userEmail,
-        firstName,
-        sessions: sessions.map((s) => ({ programName: s.programName, dateLabel: s.dateLabel })),
-        hubSlug: emailHubSlug,
-      });
+      for (const [perHubSlug, group] of groupByHub(sessions)) {
+        const { userEmail, firstName } = group[0];
+        await sendStandingAssignmentScheduledEmail({
+          to: userEmail,
+          firstName,
+          sessions: group.map((s) => ({ programName: s.programName, dateLabel: s.dateLabel })),
+          hubSlug: perHubSlug,
+        });
+      }
     }
     for (const [, sessions] of byDisplacedUser) {
       if (sessions.length === 0) continue;
-      const { userEmail, firstName } = sessions[0];
-      await sendStandingAssignmentReplacedEmail({
-        to: userEmail,
-        firstName,
-        sessions: sessions.map((s) => ({ programName: s.programName, dateLabel: s.dateLabel })),
-        hubSlug: emailHubSlug,
-      });
+      for (const [perHubSlug, group] of groupByHub(sessions)) {
+        const { userEmail, firstName } = group[0];
+        await sendStandingAssignmentReplacedEmail({
+          to: userEmail,
+          firstName,
+          sessions: group.map((s) => ({ programName: s.programName, dateLabel: s.dateLabel })),
+          hubSlug: perHubSlug,
+        });
+      }
     }
   });
 

@@ -110,3 +110,88 @@ export function resolveTeacherPillLabel(
 ): string | null {
   return programTeacherLabel ?? hubTeacherLabel ?? null;
 }
+
+// ───────────────────────────────────────────────────────────────────────────
+// Auxiliary-hub coverage (session 129 — AV + Greeter hubs).
+//
+// A program has one primary hosting hub (above) plus zero-or-more auxiliary
+// hubs that schedule supporting roles for it. Auxiliary hubs are joined via
+// the `ProgramCoverageHub` table; the program's slug is the join key.
+// ───────────────────────────────────────────────────────────────────────────
+
+/**
+ * List the slugs of every auxiliary hub providing coverage for a program.
+ * Does not include the primary hub. Returns [] when nothing's configured.
+ *
+ * Used by the Scheduler page to union primary + auxiliary programs for the
+ * active hub's view, and by the ProgramEditor's "Hosting & Access" tab to
+ * pre-populate the checkbox list.
+ */
+export async function getProgramCoverageHubs(
+  programSlug: string,
+): Promise<string[]> {
+  const rows = await db.programCoverageHub.findMany({
+    where: { programSlug },
+    select: { hubSlug: true },
+  });
+  return rows.map((r) => r.hubSlug);
+}
+
+/**
+ * The reverse direction: list every program slug that a given hub covers
+ * (whether primary or auxiliary). Used by the Scheduler page query.
+ *
+ * The result is the union of:
+ *   1. Programs where `hostingHubSlug` equals this hub (or null + this is host-team)
+ *   2. Programs that have an explicit `ProgramCoverageHub` row pointing here
+ */
+export async function getProgramSlugsForHub(hubSlug: string): Promise<string[]> {
+  const primaryFilter = hubSlug === DEFAULT_HOSTING_HUB_SLUG
+    ? { OR: [{ hostingHubSlug: null }, { hostingHubSlug: DEFAULT_HOSTING_HUB_SLUG }] }
+    : { hostingHubSlug: hubSlug };
+
+  const [primaryRows, coverageRows] = await Promise.all([
+    db.program.findMany({
+      where: { ...primaryFilter, archivedAt: null },
+      select: { slug: true },
+    }),
+    db.programCoverageHub.findMany({
+      where: { hubSlug },
+      select: { programSlug: true },
+    }),
+  ]);
+
+  const slugs = new Set<string>();
+  for (const p of primaryRows) slugs.add(p.slug);
+  for (const c of coverageRows) slugs.add(c.programSlug);
+  return [...slugs];
+}
+
+/** Resolved coverage config for one hub in one place — fetched once per page. */
+export interface HubCoverageConfig {
+  slug: string;
+  appliesToFormats: string[];
+  allowsMultipleAssignments: boolean;
+}
+
+/**
+ * Load coverage-relevant config for a hub. Returns null when the hub doesn't
+ * exist (caller decides whether that's an error or a fallthrough to defaults).
+ *
+ * Used by the Scheduler page (format filter), the assignments POST (multi-claim
+ * gate), and the standing-assignments routes.
+ */
+export async function getHubCoverageConfig(
+  hubSlug: string,
+): Promise<HubCoverageConfig | null> {
+  const hub = await db.hub.findUnique({
+    where: { slug: hubSlug },
+    select: { slug: true, appliesToFormats: true, allowsMultipleAssignments: true },
+  });
+  if (!hub) return null;
+  return {
+    slug: hub.slug,
+    appliesToFormats: hub.appliesToFormats ?? ["virtual", "hybrid"],
+    allowsMultipleAssignments: hub.allowsMultipleAssignments ?? false,
+  };
+}
