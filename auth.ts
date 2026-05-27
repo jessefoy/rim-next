@@ -32,10 +32,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       sendVerificationRequest: async ({ identifier: email, token }) => {
         const existing = await db.user.findUnique({
           where: { email },
-          select: { agreedToTerms: true },
+          select: { emailVerified: true },
         });
-        // New user = no account yet, OR account exists but hasn't completed onboarding.
-        const isNewUser = !existing || !existing.agreedToTerms;
+        // "New user" here means "has never completed a code verification" —
+        // not "has never agreed to terms." `/join` sets agreedToTerms BEFORE
+        // the code email goes out, so branching on agreedToTerms would send
+        // every /join user the routine returning-member code email. Branching
+        // on emailVerified (which NextAuth's PrismaAdapter sets only after
+        // first successful verification) correctly classifies:
+        //   - Door B /join user, first sign-in: emailVerified is null → warm welcome variant
+        //   - Door A first-time visitor (no /join): no User row → warm welcome variant
+        //   - Door A returning member: emailVerified is set → quiet code variant
+        const isNewUser = !existing || existing.emailVerified === null;
         await sendSignInCodeEmail({ to: email, code: token, isNewUser });
       },
     }),

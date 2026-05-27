@@ -27,8 +27,12 @@ import {
  *      gently route them to /login (no point creating a duplicate threshold).
  *   3. Otherwise upsert the User with names + agreedToTerms: true + agreedAt.
  *   4. Trigger signIn("resend", …) so NextAuth issues the 6-digit code email.
- *      The auth.ts sendVerificationRequest checks agreedToTerms — since we
- *      just set it, the user receives the QUIET returning-user code template.
+ *      The auth.ts sendVerificationRequest branches on emailVerified — since
+ *      the user has NOT yet completed a verification at this point, they
+ *      receive the warm "Welcome to Rooted In Mindfulness" template, not
+ *      the routine returning-member one. (Branching on agreedToTerms would
+ *      misclassify them since /join sets that to true before the code is
+ *      sent.)
  *   5. In after(), send the warm welcome letter and enroll them in the
  *      onboarding course series.
  */
@@ -142,8 +146,9 @@ export async function POST(request: Request) {
   // Trigger the NextAuth sign-in code flow. redirect:false so we keep control
   // of the response (the page navigates the client to /login/check-email).
   // The Resend provider's sendVerificationRequest fires inside signIn() and
-  // delivers the 6-digit code email. agreedToTerms is true at this point, so
-  // the quiet returning-user template fires — see auth.ts:38.
+  // delivers the 6-digit code email. emailVerified is null at this point
+  // (the User just got upserted; no verification has completed yet), so the
+  // WARM sign-in-code-new-user template fires — see auth.ts:38.
   //
   // Defensive pattern mirrors app/login/page.tsx: signIn with redirect:false
   // does NOT always throw on email-send failure — it can also return an

@@ -71,7 +71,7 @@ Two audiences:
 
 **Door B — `/join` (new members):**
 1. User visits `/join`, reads the four Community Care Agreements in the integrated panel, fills in first name + last name + email + optional phone, ticks the agreement checkbox, submits
-2. `POST /api/account/join` validates, applies rate-limits, upserts the User with `agreedToTerms: true` + `agreedAt: now`, then triggers `signIn("resend", { redirect: false })` so the 6-digit code email goes out — same template path as Door A, but the quiet "returning user" variant fires (the warm welcome has already happened on the page)
+2. `POST /api/account/join` validates, applies rate-limits, upserts the User with `agreedToTerms: true` + `agreedAt: now`, then triggers `signIn("resend", { redirect: false })` so the 6-digit code email goes out — same template path as Door A; the warm "Welcome to Rooted In Mindfulness" variant fires because `emailVerified` is `null` at this point (the discriminator in `auth.ts::sendVerificationRequest` is `emailVerified === null`, not `agreedToTerms`)
 3. In `after()` callbacks: a separate warm welcome letter is sent via the `join-welcome` template, and the user is enrolled in the onboarding course series
 4. Client navigates to `/login/check-email?email=ENCODED` to type the code (same code-entry surface as Door A)
 5. NextAuth verifies the token, sets the session cookie, redirects to `/account/dashboard` — bypassing `/account/welcome` because `agreedToTerms` is already `true`
@@ -93,8 +93,8 @@ Two audiences:
 - `prisma/schema.prisma` — `VerificationToken` table (NextAuth standard). No schema change for the code switch; the token value is just a 6-digit string instead of a long random one.
 
 **Email templates (Email Template Gate — see CLAUDE.md):**
-- `sign-in-code-new-user` — sent to first-time visitors (no account, or account without `agreedToTerms`). After session 132, `/join` users do NOT receive this — they've already been welcomed on the page itself, so they receive the quiet returning-user variant and the separate welcome letter (below). This template fires only for the rare case of someone hitting `/login` as a first-time visitor (didn't come through `/join`).
-- `sign-in-code-returning` — sent to existing members AND to all `/join` users (since their `agreedToTerms` is `true` by the time the email goes out).
+- `sign-in-code-new-user` — sent the first time a user receives a sign-in code, regardless of which door they came through. Both `/join` users (whose `User` row exists with `emailVerified === null`) AND first-time `/login` visitors (no `User` row yet) receive this warm "Welcome to Rooted In Mindfulness" variant on their first code email. The discriminator in `auth.ts::sendVerificationRequest` is `emailVerified === null`, not `agreedToTerms` — `/join` sets `agreedToTerms: true` BEFORE the code goes out, so branching on agreed status would mis-classify joiners as returning members. (Fixed mid-session 132.)
+- `sign-in-code-returning` — sent on every subsequent sign-in (`emailVerified` is `Date` once NextAuth's PrismaAdapter verifies the first code). Quiet utility tone, no welcome framing.
 - `join-welcome` (new — session 132) — sent ONCE per new member, immediately after they complete `/join`. The warm one-time letter. Lands alongside the code email. Templated via `lib/email.ts::sendJoinWelcomeEmail`. Variables: `firstName`, `dashboardButton` (canonical RIM-blue HTML button — use triple braces `{{{dashboardButton}}}`), `dashboardUrl`, `supportEmail`. Group: `01-auth` ("Sign-in & Authentication").
 - All three seeded in `prisma/migrate.mjs` via defensive `findUnique → create` so admin edits at `/admin/emails` are preserved on re-run. All `enabled: true`.
 - The old `magic-link-new-user` / `magic-link-returning` templates were deleted by the session-119 migration.

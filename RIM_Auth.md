@@ -21,7 +21,7 @@ Sign-in and sign-up are two distinct surfaces over the same passwordless 6-digit
 1. User visits `/login`, enters their email
 2. Server action calls `signIn("resend", { email, redirect: false })`, triggering `POST /api/auth/signin/resend`
 3. NextAuth's Resend provider calls `generateVerificationToken` (we override it to a 6-digit code via `crypto.randomInt(100000, 1000000)`)
-4. Our `sendVerificationRequest` callback sends an email via Resend containing the code (no magic link). Template branches on `agreedToTerms`: `sign-in-code-new-user` if the user doesn't yet have an account or hasn't agreed; `sign-in-code-returning` otherwise.
+4. Our `sendVerificationRequest` callback sends an email via Resend containing the code (no magic link). Template branches on `emailVerified`: `sign-in-code-new-user` (warm welcome variant) if the user doesn't yet have an account OR has never completed a code verification; `sign-in-code-returning` (utility variant) otherwise.
 5. User lands at `/login/check-email?email=<encoded>`, types the code
 6. Form submits a GET to `/api/auth/callback/resend?token=CODE&email=EMAIL&callbackUrl=...`
 7. NextAuth verifies the token against the `VerificationToken` table, sets the session cookie, redirects. If `agreedToTerms` is `false`, proxy.ts intercepts the redirect and sends them to `/account/welcome` for the threshold ritual.
@@ -30,7 +30,7 @@ Sign-in and sign-up are two distinct surfaces over the same passwordless 6-digit
 
 1. User visits `/join` (linked from Nav as "Become a Member"), reads the four Community Care Agreements in the integrated panel, fills first name + last name + email + optional phone, ticks the agreement checkbox, submits
 2. Client POSTs to `/api/account/join`. Handler validates fields, applies rate-limits (same keys as Door A — see below), upserts the User with `agreedToTerms: true` + `agreedAt: now`
-3. Handler calls `signIn("resend", { email, redirect: false })` — same code-issuance path as Door A. Since `agreedToTerms` is true at this point, the quiet `sign-in-code-returning` template fires (the welcoming has already happened on the page).
+3. Handler calls `signIn("resend", { email, redirect: false })` — same code-issuance path as Door A. Since `emailVerified` is still `null` at this point (the User was just upserted; no verification has completed yet), the warm `sign-in-code-new-user` template fires. The user's first code email reads "Welcome to Rooted In Mindfulness," matching the threshold tone of the page they just left. Subsequent sign-ins flip to `sign-in-code-returning` because `emailVerified` is set on first successful verification.
 4. In `after()` callbacks: a separate warm welcome letter is sent via the `join-welcome` template, and the user is enrolled in the onboarding course series via `enrollMemberInOnboardingSeries`
 5. Client navigates to `/login/check-email?email=<encoded>` to type the code — same code-entry surface as Door A
 6. NextAuth verifies, redirects to `/account/dashboard` directly (proxy.ts does NOT route them through `/account/welcome` because `agreedToTerms` is already `true`)
