@@ -26,9 +26,10 @@ export async function GET() {
 export async function POST(req: Request) {
   const session = await auth();
   const roles = session?.user?.roles ?? [];
-  if (!roles.includes("ADMIN")) {
+  if (!roles.includes("ADMIN") || !session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
+  const creatorId = session.user.id;
 
   const body = await req.json();
   const { name, slug, description, type, status, hasSchedule, assignmentGrantsTeacher, teacherLabel, coverageNoun, coverageVerb, coverageAction, appLinks } = body;
@@ -86,6 +87,23 @@ export async function POST(req: Request) {
             })),
           }
         : undefined,
+      // Bootstrap the creating admin as the first coordinator + active
+      // member.  Closes the catch-22 introduced in session 128 when ADMIN
+      // lost its content-access bypass: without this row, the admin who
+      // just created a hub couldn't enter it without then clicking the
+      // "+ Add me as coordinator" affordance on the edit page.  Values
+      // mirror /admin/hubs/[slug]/add-me-as-coordinator so behavior is
+      // identical between the two entry points.
+      members: {
+        create: {
+          userId: creatorId,
+          isCoordinator: true,
+          status: "ACTIVE",
+          hostingCapability: true,
+          communicationsEnabled: true,
+          position: "Coordinator",
+        },
+      },
     },
     include: {
       _count: { select: { members: true } },
