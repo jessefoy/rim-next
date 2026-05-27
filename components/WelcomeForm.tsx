@@ -2,6 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  COMMUNITY_AGREEMENTS,
+  COMMUNITY_AGREEMENTS_LEAD_IN,
+  COMMUNITY_AGREEMENTS_CHECKBOX_LABEL,
+} from "@/lib/communityAgreements";
 
 interface WelcomeFormProps {
   defaultFirstName?: string;
@@ -109,39 +114,16 @@ export default function WelcomeForm({
       </div>
 
       <div className="wl-agreements">
-        <p className="wl-agreements__text">
-          Rooted In Mindfulness is a community held by shared values of presence, care, and
-          respect. We practice together, support one another, and create a container of trust.
-          We ask that everyone participate using their real name and show up with the same
-          care and attention they would bring to a sitting practice.
-        </p>
-        <details className="wl-agreements__details">
-          <summary className="wl-agreements__summary">Read our community care agreements</summary>
-          <div className="wl-agreements__body">
-            <h4>1. Care for Yourself</h4>
-            <p>Meditation and mindful living allow us to transform unhealthy patterns of the
-            heart and mind, helping us realize authentic health, well-being, meaning, and
-            happiness. While a community, teachers, and supportive friends can be powerful
-            allies on the path of awakening, it is ultimately up to each of us to take the
-            necessary steps along the journey.</p>
-            <h4>2. Care for Others</h4>
-            <p>The work of self-discovery and development can be challenging to undertake alone.
-            Being part of a loving community where each member genuinely cares for one another&apos;s
-            well-being offers a true refuge. Showing up and sharing an intentional space to learn
-            and practice with friends is immeasurably beneficial for both ourselves and our shared world.</p>
-            <h4>3. Care for RIM: Our Shared Refuge</h4>
-            <p>RIM is co-created through the generosity, goodwill, and appreciation of its community.
-            As a living expression of generosity, RIM is 100% community-funded and entirely dependent
-            on donations. These cover all operating costs, contribute to teacher livelihoods, and
-            maintain the building. RIM does not charge fixed fees — we ask that members contribute
-            an ongoing amount (RIM Dana) that feels right to them.</p>
-            <h4>4. Care for Our Shared Mission and Vision</h4>
-            <p>RIM is a community refuge dedicated to learning and practicing the dharma, meditation,
-            and mindful living. We do this to understand ourselves, others, and the world — aiming to
-            free ourselves from unhealthy thoughts, words, and actions in order to realize a world
-            where all beings live with great wisdom and great compassion.</p>
-          </div>
-        </details>
+        <h3 className="wl-agreements__heading">Community Care Agreements</h3>
+        <p className="wl-agreements__text">{COMMUNITY_AGREEMENTS_LEAD_IN}</p>
+        <ol className="wl-agreements__list">
+          {COMMUNITY_AGREEMENTS.map((a) => (
+            <li key={a.title} className="wl-agreements__item">
+              <strong className="wl-agreements__title">{a.title}</strong>
+              <span className="wl-agreements__summary">{a.summary}</span>
+            </li>
+          ))}
+        </ol>
         <label className="wl-checkbox-label">
           <input
             type="checkbox"
@@ -150,7 +132,7 @@ export default function WelcomeForm({
             onChange={(e) => setAgreed(e.target.checked)}
             required
           />
-          <span>I&apos;m entering this community in a spirit of care and respect.</span>
+          <span>{COMMUNITY_AGREEMENTS_CHECKBOX_LABEL}</span>
         </label>
       </div>
 

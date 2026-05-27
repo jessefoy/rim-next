@@ -1,6 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import {
+  COMMUNITY_AGREEMENTS,
+  COMMUNITY_AGREEMENTS_LEAD_IN,
+  COMMUNITY_AGREEMENTS_CHECKBOX_LABEL,
+} from "@/lib/communityAgreements";
 
 // Auto-formats digits into (XXX) XXX-XXXX as the user types
 function formatPhoneInput(value: string): string {
@@ -603,38 +608,16 @@ export default function RegistrationForm({
       {/* ── Community agreements — shown for non-logged-in registrants who haven't agreed yet ── */}
       {!sessionUserId && !(emailCheckStatus === "found" && foundMember?.agreedToTerms) && (
         <div className="pg-form__agreements">
-          <p className="pg-form__agreements-text">
-            Rooted In Mindfulness is an intentional community held by shared values of
-            presence, care, and respect. We ask that everyone participate using their
-            real name and engage with the same care they would bring to a sitting practice.
-          </p>
-          <details className="pg-form__agreements-details">
-            <summary className="pg-form__agreements-summary">Read our community care agreements</summary>
-            <div className="pg-form__agreements-body">
-              <h4>1. Care for Yourself</h4>
-              <p>Meditation and mindful living allow us to transform unhealthy patterns of the
-              heart and mind, helping us realize authentic health, well-being, meaning, and
-              happiness. While a community, teachers, and supportive friends can be powerful
-              allies on the path of awakening, it is ultimately up to each of us to take the
-              necessary steps along the journey.</p>
-              <h4>2. Care for Others</h4>
-              <p>The work of self-discovery and development can be challenging to undertake alone.
-              Being part of a loving community where each member genuinely cares for one another&apos;s
-              well-being offers a true refuge. Showing up and sharing an intentional space to learn
-              and practice with friends is immeasurably beneficial for both ourselves and our shared world.</p>
-              <h4>3. Care for RIM: Our Shared Refuge</h4>
-              <p>RIM is co-created through the generosity, goodwill, and appreciation of its community.
-              As a living expression of generosity, RIM is 100% community-funded and entirely dependent
-              on donations. These cover all operating costs, contribute to teacher livelihoods, and
-              maintain the building. RIM does not charge fixed fees — we ask that members contribute
-              an ongoing amount (RIM Dana) that feels right to them.</p>
-              <h4>4. Care for Our Shared Mission and Vision</h4>
-              <p>RIM is a community refuge dedicated to learning and practicing the dharma, meditation,
-              and mindful living. We do this to understand ourselves, others, and the world — aiming to
-              free ourselves from unhealthy thoughts, words, and actions in order to realize a world
-              where all beings live with great wisdom and great compassion.</p>
-            </div>
-          </details>
+          <h4 className="pg-form__agreements-heading">Community Care Agreements</h4>
+          <p className="pg-form__agreements-text">{COMMUNITY_AGREEMENTS_LEAD_IN}</p>
+          <ol className="pg-form__agreements-list">
+            {COMMUNITY_AGREEMENTS.map((a) => (
+              <li key={a.title} className="pg-form__agreements-item">
+                <strong className="pg-form__agreements-title">{a.title}</strong>
+                <span className="pg-form__agreements-summary">{a.summary}</span>
+              </li>
+            ))}
+          </ol>
           <label className="pg-form__agreements-check">
             <input
               type="checkbox"
@@ -642,7 +625,7 @@ export default function RegistrationForm({
               onChange={(e) => setAgreedToTerms(e.target.checked)}
               required
             />
-            <span>I&apos;m entering this community in a spirit of care and respect.</span>
+            <span>{COMMUNITY_AGREEMENTS_CHECKBOX_LABEL}</span>
           </label>
         </div>
       )}

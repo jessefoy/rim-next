@@ -2,10 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  COMMUNITY_AGREEMENTS_LONG,
-  COMMUNITY_AGREEMENTS_CHECKBOX_LABEL,
-} from "@/lib/communityAgreements";
+import { COMMUNITY_AGREEMENTS_CHECKBOX_LABEL } from "@/lib/communityAgreements";
 
 function formatPhone(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 10);
@@ -141,16 +138,6 @@ export default function JoinForm() {
           autoComplete="tel"
           placeholder="(414) 555-0100"
         />
-      </div>
-
-      <div className="jn-agreements-long">
-        <h3 className="jn-agreements-long__heading">The agreements in full</h3>
-        {COMMUNITY_AGREEMENTS_LONG.map((a) => (
-          <div key={a.title} className="jn-agreements-long__item">
-            <h4 className="jn-agreements-long__title">{a.title}</h4>
-            <p className="jn-agreements-long__body">{a.body}</p>
-          </div>
-        ))}
       </div>
 
       <label className="jn-checkbox-label">

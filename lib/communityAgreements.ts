@@ -3,37 +3,58 @@
  * that asks someone to commit to RIM's community ethos.
  *
  * Used by:
- *   - /join (new-member threshold) — both SHORT cards + LONG paragraphs
- *   - /account/welcome (post-login welcome ritual) — LONG paragraphs
- *   - components/RegistrationForm.tsx (program registration) — LONG paragraphs
+ *   - /join (new-member threshold)
+ *   - /account/welcome (post-sign-in welcome ritual fallback)
+ *   - components/RegistrationForm.tsx (program registration)
  *
- * Editing the text here changes the agreement everywhere. Keep it that way.
+ * One agreement, three surfaces. Editing the text here changes it
+ * everywhere — keep it that way.
+ *
+ * Text mirrors the live Rooted In Mindfulness Community Membership page:
+ * https://www.rootedinmindfulness.org/community-membership
  */
 
-export interface CommunityAgreementShort {
+export interface CommunityAgreement {
   title: string;
-  /** One-sentence orientation, scannable at a glance. */
+  /** One-sentence framing. The agreement IS the sentence — keep it tight. */
   summary: string;
 }
 
-export interface CommunityAgreementLong {
-  title: string;
-  /** Paragraph-length expansion explaining the why. */
-  body: string;
-}
+/**
+ * Page-opening copy for /join — the warm orientation that introduces what
+ * RIM is before asking for anything. Mirrors the Webflow hero verbatim.
+ */
+export const JOIN_HERO_TITLE = "Become a member";
+export const JOIN_HERO_INTRO =
+  "RIM is a refuge we create together — a place for learning, practice, " +
+  "and genuine friendship. Everyone is welcome, from all backgrounds and " +
+  "phases of life. Come as you are.";
 
-/** Lead-in paragraph rendered above the agreements on every surface. */
+/**
+ * Lead-in paragraph rendered immediately above the agreements list.
+ * Same wording on every surface so the agreement feels like the same thing
+ * wherever it appears.
+ */
 export const COMMUNITY_AGREEMENTS_LEAD_IN =
-  "Rooted In Mindfulness is an intentional community held by shared values of " +
-  "presence, care, and respect. We ask that everyone participate using their " +
-  "real name and engage with the same care they would bring to a sitting practice.";
+  "We ask members to hold these four shared intentions, which together " +
+  "create a safe and supportive environment for all.";
 
-/** Checkbox label rendered alongside the agreement acceptance checkbox. */
+/**
+ * Form-section lead rendered above the form fields on /join. Tells the
+ * reader why the form follows the agreements.
+ */
+export const JOIN_FORM_LEAD =
+  "If these intentions resonate with you, we'd be honored to have you join us.";
+
+/** Checkbox label next to the agreement-acceptance checkbox. */
 export const COMMUNITY_AGREEMENTS_CHECKBOX_LABEL =
   "I'm entering this community in a spirit of care and respect.";
 
-/** Short, scannable version — four cards for orientation. */
-export const COMMUNITY_AGREEMENTS_SHORT: CommunityAgreementShort[] = [
+/**
+ * The four agreements. Rendered as an ordered list on every surface;
+ * each item carries a bold title and a one-sentence summary.
+ */
+export const COMMUNITY_AGREEMENTS: CommunityAgreement[] = [
   {
     title: "Care for Yourself",
     summary:
@@ -53,42 +74,5 @@ export const COMMUNITY_AGREEMENTS_SHORT: CommunityAgreementShort[] = [
     title: "Care for Our Shared Vision",
     summary:
       "We practice to cultivate wisdom and compassion — for ourselves, each other, and all beings.",
-  },
-];
-
-/** Long-form version — full paragraphs for substance. */
-export const COMMUNITY_AGREEMENTS_LONG: CommunityAgreementLong[] = [
-  {
-    title: "1. Care for Yourself",
-    body:
-      "Meditation and mindful living allow us to transform unhealthy patterns of the heart and mind, " +
-      "helping us realize authentic health, well-being, meaning, and happiness. While a community, " +
-      "teachers, and supportive friends can be powerful allies on the path of awakening, it is " +
-      "ultimately up to each of us to take the necessary steps along the journey.",
-  },
-  {
-    title: "2. Care for Others",
-    body:
-      "The work of self-discovery and development can be challenging to undertake alone. Being part " +
-      "of a loving community where each member genuinely cares for one another's well-being offers a " +
-      "true refuge. Showing up and sharing an intentional space to learn and practice with friends " +
-      "is immeasurably beneficial for both ourselves and our shared world.",
-  },
-  {
-    title: "3. Care for RIM: Our Shared Refuge",
-    body:
-      "RIM is co-created through the generosity, goodwill, and appreciation of its community. As a " +
-      "living expression of generosity, RIM is 100% community-funded and entirely dependent on " +
-      "donations. These cover all operating costs, contribute to teacher livelihoods, and maintain " +
-      "the building. RIM does not charge fixed fees — we ask that members contribute an ongoing " +
-      "amount (RIM Dana) that feels right to them.",
-  },
-  {
-    title: "4. Care for Our Shared Mission and Vision",
-    body:
-      "RIM is a community refuge dedicated to learning and practicing the dharma, meditation, and " +
-      "mindful living. We do this to understand ourselves, others, and the world — aiming to free " +
-      "ourselves from unhealthy thoughts, words, and actions in order to realize a world where all " +
-      "beings live with great wisdom and great compassion.",
   },
 ];
