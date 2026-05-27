@@ -275,7 +275,7 @@ export default async function ProgramDetailPage({
                       </Link>
                     ) : (
                       <span className="pg-detail-cta__text">
-                        Members access Zoom via their <Link href="/community-membership" className="pg-detail-cta__inline-link">member home</Link>
+                        Members access Zoom via their <Link href="/account/dashboard" className="pg-detail-cta__inline-link">member home</Link>
                       </span>
                     )
                   ) : session?.user ? (
@@ -284,7 +284,7 @@ export default async function ProgramDetailPage({
                     </span>
                   ) : (
                     <span className="pg-detail-cta__text">
-                      Simply arrive in person · Members join online via their <Link href="/community-membership" className="pg-detail-cta__inline-link">member home</Link>
+                      Simply arrive in person · Members join online via their <Link href="/account/dashboard" className="pg-detail-cta__inline-link">member home</Link>
                     </span>
                   )
                 )}

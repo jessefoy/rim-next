@@ -33,8 +33,8 @@ export default async function CommunityProgramsPage() {
             Our programs are offered in person at the center and online — drop-ins, courses, and
             community groups for every stage of practice. No experience needed. No fees.
           </p>
-          <Link href="/community-membership" className="pl-hero__cta">
-            Learn How to Join Us
+          <Link href="/join" className="pl-hero__cta">
+            Become a Member
           </Link>
         </div>
       </section>

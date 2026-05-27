@@ -1,4 +1,3 @@
-import Link from "next/link";
 import AccountLayout from "@/components/AccountLayout";
 
 export const metadata = { title: "Community Care Agreements — Rooted In Mindfulness" };
@@ -40,11 +39,6 @@ export default function MemberCareAgreementsPage() {
             <p className="mc-agreement__body">{a.body}</p>
           </div>
         ))}
-
-        <p className="mc-footer-link">
-          Read more about our community on the{" "}
-          <Link href="/community-membership">Community Membership page</Link>.
-        </p>
       </div>
     </div>
     </AccountLayout>

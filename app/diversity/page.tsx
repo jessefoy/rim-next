@@ -70,7 +70,7 @@ export default function DiversityPage() {
               happiness, peace, and well-being to all beings.
             </p>
           </div>
-          <Link href="/community-membership" className="button-2 no-top-margin w-button">
+          <Link href="/join" className="button-2 no-top-margin w-button">
             Join Us!
           </Link>
         </div>

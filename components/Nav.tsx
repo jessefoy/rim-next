@@ -180,13 +180,13 @@ export default function Nav() {
                       </>
                     ) : (
                       <>
-                        <Link href="/login" className="nav__dropdown-link">
-                          <div className="nav__dropdown-title">Login</div>
-                          <div className="nav__dropdown-desc">Access Community Resources</div>
+                        <Link href="/join" className="nav__dropdown-link">
+                          <div className="nav__dropdown-title">Become a Member</div>
+                          <div className="nav__dropdown-desc">Read our community care agreements and join</div>
                         </Link>
-                        <Link href="/community-membership" className="nav__dropdown-link">
-                          <div className="nav__dropdown-title">Join Us</div>
-                          <div className="nav__dropdown-desc">Community values &amp; how to join</div>
+                        <Link href="/login" className="nav__dropdown-link">
+                          <div className="nav__dropdown-title">Sign in</div>
+                          <div className="nav__dropdown-desc">Already a member? Continue here</div>
                         </Link>
                       </>
                     )}
@@ -243,8 +243,13 @@ export default function Nav() {
           ) : (
             <>
               {!isLoggedIn && (
+                <Link href="/join" className="nav__mobile-link">
+                  Become a Member
+                </Link>
+              )}
+              {!isLoggedIn && (
                 <Link href="/login" className="nav__mobile-link">
-                  Login
+                  Sign in
                 </Link>
               )}
               <Link
@@ -283,11 +288,6 @@ export default function Nav() {
               >
                 Start A Community Group
               </Link>
-              {!isLoggedIn && (
-                <Link href="/community-membership" className="nav__mobile-link">
-                  Join RIM
-                </Link>
-              )}
               {isLoggedIn && (
                 <Link href="/account/dashboard" className="nav__mobile-link">
                   My Dashboard
