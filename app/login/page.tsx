@@ -46,16 +46,28 @@ export default async function LoginPage({
     // /account/welcome, send them gently to /join via /login's own
     // not-found state.
     //
+    // Fail-safe on DB error: if the lookup throws (transient Postgres
+    // hiccup, connection limit, etc.), proceed with signIn() anyway. A
+    // real member during a DB blip is better served by getting their code
+    // than by being falsely told they don't have an account.
+    //
     // Privacy note: this does reveal whether a given email has a User row
     // (different page content per email). The leak already exists via the
     // public /api/account/check-email endpoint used by the registration
     // form's pre-fill, and for a community-membership site the UX win is
     // worth the modest disclosure.
-    const existing = await db.user.findUnique({
-      where: { email: email! },
-      select: { id: true },
-    });
-    if (!existing) {
+    let existing: { id: string } | null = null;
+    let lookupFailed = false;
+    try {
+      existing = await db.user.findUnique({
+        where: { email: email! },
+        select: { id: true },
+      });
+    } catch (err) {
+      console.error("[login] User existence check failed", err);
+      lookupFailed = true;
+    }
+    if (!existing && !lookupFailed) {
       redirect(`/login?notMember=1&email=${encodeURIComponent(email!)}`);
     }
 

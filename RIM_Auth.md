@@ -64,6 +64,24 @@ Edit messages in `app/login/error/page.tsx`. Add new branches there when a new f
 
 ---
 
+## Membership existence check on `/login` (session 132 follow-up)
+
+`/login` is the door for existing members; `/join` is the door for new ones. To prevent a visitor from accidentally creating an account by typing an unknown email at `/login`, the sign-in flow checks for a `User` row BEFORE issuing a code. Two places enforce this, in defense-in-depth:
+
+1. **`/login` page server action** (`app/login/page.tsx::handleSignIn`) — the primary UX gate. After validating the email format, runs `db.user.findUnique({ where: { email } })` and if no row exists, redirects to `/login?notMember=1&email=ENCODED` with a warm not-found panel and a "become a member →" link to `/join` (carrying the email forward).
+
+2. **NextAuth catch-all wrapper** (`app/api/auth/[...nextauth]/route.ts`) — the API-level gate. For direct `POST /api/auth/signin/resend` requests that bypass the `/login` form (scripted callers, external POSTs), the same existence check runs after the rate-limit check. Unknown emails get a 303 redirect to the same `/login?notMember=1&email=…` page.
+
+**Why both.** When the `/login` form is submitted, NextAuth's server-side `signIn()` runs in-process — no HTTP roundtrip to `/api/auth/signin/resend`, so the catch-all wrapper doesn't fire. The server-action check is therefore the FIRST line of defense for the form flow. The catch-all check covers everything else.
+
+**Fail-safe behavior.** Both checks fail-safe on DB error: if the `findUnique` throws (Postgres hiccup, connection limit), the flow falls through to the standard handler. A real member during a transient DB blip is better served by getting their code than by being falsely told they don't have an account. The `(authenticated)/` layout still gates dashboard access on `agreedToTerms`, so the worst case is one extra User row that the 48h cleanup cron will sweep.
+
+**Privacy disclosure.** This reveals whether a given email has a `User` row (different page content per email). The leak already exists via the public `/api/account/check-email` endpoint used by the program registration form's pre-fill, and for a community-membership site the UX win of "you typed an email we don't recognize → here's the door to membership" is worth the modest disclosure. For a banking-grade auth surface the calculus would be different.
+
+**Rate-limit ordering.** The existence check happens AFTER the rate-limit check in both places. So a probe-the-DB-for-emails attack costs rate-limit budget per probe — bounded by 20 probes per IP per 10min via `signin-ip:<ip>`.
+
+---
+
 ## Rate limiting (session 131; extended to `/join` session 132)
 
 **Closes backlog `2026-05-21-002`.** Defense-in-depth for the public-launch surface.

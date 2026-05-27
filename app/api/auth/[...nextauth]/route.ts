@@ -1,5 +1,6 @@
 import { handlers } from "@/auth";
 import { NextResponse, type NextRequest } from "next/server";
+import { db } from "@/lib/db";
 import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
 import {
   EMAIL_MAX,
@@ -39,6 +40,18 @@ import {
 function rateLimitResponse(reqUrl: string): Response {
   const url = new URL("/login/error", reqUrl);
   url.searchParams.set("error", "RateLimit");
+  return NextResponse.redirect(url, 303);
+}
+
+/**
+ * Redirect helper for the not-a-member case. Mirrors the /login server
+ * action's behavior: lands the user on the warm not-found panel with their
+ * email carried through to /join.
+ */
+function notMemberResponse(reqUrl: string, email: string): Response {
+  const url = new URL("/login", reqUrl);
+  url.searchParams.set("notMember", "1");
+  url.searchParams.set("email", email);
   return NextResponse.redirect(url, 303);
 }
 
@@ -87,6 +100,37 @@ export async function POST(req: NextRequest): Promise<Response> {
     );
     if (!ipCheck.allowed) {
       return rateLimitResponse(req.url);
+    }
+
+    // Membership existence check. The /login server action already does
+    // this BEFORE calling signIn() in-process, so form submissions short-
+    // circuit there. This catch-all check protects every OTHER path that
+    // could trigger a code send via the HTTP endpoint — direct external
+    // POSTs, scripted probes, or any future caller. With both checks in
+    // place, a User row cannot be created via the /signin/resend → callback
+    // chain without the visitor having an existing membership.
+    //
+    // Fail-safe on DB error: if the lookup throws, fall through to the
+    // standard handler. Better to send a code to a real member during a
+    // transient DB blip than to lock them out entirely. The
+    // (authenticated)/ layout still gates dashboard access on
+    // agreedToTerms, so the worst case is one extra User row that the
+    // 48h cleanup cron will sweep.
+    if (email && email.length > 0) {
+      let existing: { id: string } | null = null;
+      let lookupFailed = false;
+      try {
+        existing = await db.user.findUnique({
+          where: { email },
+          select: { id: true },
+        });
+      } catch (err) {
+        console.error("[auth catch-all] User existence check failed", err);
+        lookupFailed = true;
+      }
+      if (!existing && !lookupFailed) {
+        return notMemberResponse(req.url, email);
+      }
     }
   }
 
