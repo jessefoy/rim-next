@@ -24,7 +24,7 @@ Sign-in and sign-up are two distinct surfaces over the same passwordless 6-digit
 4. Our `sendVerificationRequest` callback sends an email via Resend containing the code (no magic link). Template branches on `emailVerified`: `sign-in-code-new-user` (warm welcome variant) if the user doesn't yet have an account OR has never completed a code verification; `sign-in-code-returning` (utility variant) otherwise.
 5. User lands at `/login/check-email?email=<encoded>`, types the code
 6. Form submits a GET to `/api/auth/callback/resend?token=CODE&email=EMAIL&callbackUrl=...`
-7. NextAuth verifies the token against the `VerificationToken` table, sets the session cookie, redirects. If `agreedToTerms` is `false`, proxy.ts intercepts the redirect and sends them to `/account/welcome` for the threshold ritual.
+7. NextAuth verifies the token against the `VerificationToken` table, sets the session cookie, redirects to `/account/dashboard`. The `app/account/(authenticated)/layout.tsx` route-group layout then enforces the agreement and archive gates: if `agreedToTerms` is `false` the user is redirected to `/account/welcome` for the threshold ritual; if `archivedAt` is set they're redirected to `/account/reactivate`.
 
 ### Door B — `/join` (new members, added session 132)
 
@@ -33,7 +33,7 @@ Sign-in and sign-up are two distinct surfaces over the same passwordless 6-digit
 3. Handler calls `signIn("resend", { email, redirect: false })` — same code-issuance path as Door A. Since `emailVerified` is still `null` at this point (the User was just upserted; no verification has completed yet), the warm `sign-in-code-new-user` template fires. The user's first code email reads "Welcome to Rooted In Mindfulness," matching the threshold tone of the page they just left. Subsequent sign-ins flip to `sign-in-code-returning` because `emailVerified` is set on first successful verification.
 4. In `after()` callbacks: a separate warm welcome letter is sent via the `join-welcome` template, and the user is enrolled in the onboarding course series via `enrollMemberInOnboardingSeries`
 5. Client navigates to `/login/check-email?email=<encoded>` to type the code — same code-entry surface as Door A
-6. NextAuth verifies, redirects to `/account/dashboard` directly (proxy.ts does NOT route them through `/account/welcome` because `agreedToTerms` is already `true`)
+6. NextAuth verifies, redirects to `/account/dashboard`. The `(authenticated)/` layout's agreement gate passes immediately (`agreedToTerms` is already `true` from the `/join` POST), the archive gate passes (`archivedAt` is null on a brand-new account), and the dashboard renders.
 
 ### Already-member soft-redirect
 

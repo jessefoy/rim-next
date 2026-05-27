@@ -106,7 +106,7 @@ Hardcoded sends (don't use the template manager, intentionally): `sendHostManage
 - Prisma 5 + Neon Postgres — member data, registrations, roles, hub models
 - Stripe (test mode) — dana/payment collection via Checkout
 - LiveKit Cloud — video conferencing for live sessions
-- Route protection: `proxy.ts` (not `middleware.ts` — Next.js 16)
+- Route protection: per-page via `auth()` from `auth.ts`, plus shared layouts at the route-group level (e.g. `app/account/(authenticated)/layout.tsx` gates the agreement + archive checks for the entire authenticated member area). `proxy.ts` is intentionally a no-op — NextAuth v5 with the Prisma adapter cannot verify sessions in Edge runtime, so route-protection cannot run in `proxy.ts` without causing login loops. (The Next.js 16 filename is `proxy.ts`, not `middleware.ts`.)
 - `params` is `Promise<{slug}>` — must `await params` before destructuring
 
 ## CSS Rules
@@ -142,7 +142,8 @@ Hardcoded sends (don't use the template manager, intentionally): `sendHostManage
 
 ## Key Files
 - `app/layout.tsx` — root layout (CSS, Nav, Footer, SessionProvider)
-- `proxy.ts` — route protection for `/account/*`, `/admin/*`, `/course/*`
+- `proxy.ts` — intentional no-op (see Route protection above); auth-gating lives per-page via `auth()` and at the route-group layout level
+- `app/account/(authenticated)/layout.tsx` — structural gate for the authenticated member area (session + agreedToTerms + archivedAt)
 - `auth.ts` — NextAuth config; session callback enriches `session.user` with firstName, roles, archivedAt, agreedToTerms
 - `prisma/schema.prisma` — full schema (User, Registration, CourseAccess, Donation, Household, HouseholdMember, HostAssignment, SubRequest, SubClaim)
 - `lib/queries.ts` — all Sanity GROQ queries

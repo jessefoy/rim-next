@@ -1003,9 +1003,9 @@ Archiving is a "sleeping" state, not a permanent lock. Two re-entry paths exist 
 In `POST /api/registrations`, when a user record is created or upserted, `archivedAt: null` is included in the upsert data. A returning registrant is automatically restored as part of the normal registration flow — no extra step, no friction.
 
 **2. Sign in → `/account/reactivate` (direct login path)**
-When an archived member signs in (requests a sign-in code, enters it on `/login/check-email`), `proxy.ts` detects `session.user.archivedAt` is set and redirects them to `/account/reactivate` instead of the usual member area. The page shows a warm welcome-back message ("Your account was archived. Click below to reactivate.") with a single "Reactivate" button that calls `PATCH /api/account/reactivate` → clears `archivedAt` → redirects to `/account/dashboard`. Uses `wl-` CSS prefix (same visual language as `/account/welcome`).
+When an archived member signs in (requests a sign-in code, enters it on `/login/check-email`), NextAuth redirects them to `/account/dashboard` as usual. The `app/account/(authenticated)/layout.tsx` route-group layout intercepts: it detects `session.user.archivedAt` is set and redirects to `/account/reactivate`. The page shows a warm welcome-back message ("Your account was archived. Click below to reactivate.") with a single "Reactivate" button that calls `PATCH /api/account/reactivate` → clears `archivedAt` → redirects to `/account/dashboard`. Uses `wl-` CSS prefix (same visual language as `/account/welcome`).
 
-**Proxy loop guard:** `proxy.ts` checks `!pathname.startsWith("/account/reactivate")` before redirecting archived users — prevents an infinite redirect loop.
+**Loop guard:** `/account/reactivate` is structurally OUTSIDE the `(authenticated)/` route group, so the layout's archive-check redirect doesn't fire on the reactivate page itself — no loop possible. Previously this guard lived in `proxy.ts`; the route-group placement is the structural replacement, established session 132.
 
 ### Dashboard integration
 - `STAFF_LINKS` in `dashboard/page.tsx` maps each role to an array of cards
@@ -1306,8 +1306,8 @@ When a logged-in member registers: name/phone already on file, no agreements ste
 - `app/api/account/complete-profile/route.ts` — POST: saves name/phone/agreements (Path C completion); DELETE: removes account on explicit decline
 - `app/api/registrations/route.ts` — POST: writes name/phone back to User, sets agreedToTerms if checkbox checked (Path B)
 - `prisma/schema.prisma` — `agreedToTerms Boolean @default(false)`, `agreedAt DateTime?` on User model
-- `auth.ts` — session callback includes `agreedToTerms` so proxy.ts can check it
-- `proxy.ts` — redirects to `/account/welcome` if session exists but `agreedToTerms` is false
+- `auth.ts` — session callback enriches `session.user` with `agreedToTerms` + `archivedAt` so the layout gate can read them without a DB query
+- `app/account/(authenticated)/layout.tsx` — the structural enforcement: redirects to `/login` if no session, to `/account/welcome` if `agreedToTerms` is false, to `/account/reactivate` if `archivedAt` is set. Every route under `app/account/(authenticated)/` is gated. (Established session 132. Prior to this, FEATURES.md claimed `proxy.ts` performed this enforcement — that was stale documentation; proxy.ts is a no-op because NextAuth v5 with the Prisma adapter cannot run in Edge.)
 - `app/api/cron/cleanup-incomplete-accounts/route.ts` — daily cron: two-path sweep (false-agreedToTerms OR true-agreedToTerms-but-unverified, both > 48h)
 - `public/css/custom.css` — `jn-` prefix (`/join` page), `wl-` prefix (`/account/welcome`)
 
@@ -1320,8 +1320,8 @@ When a logged-in member registers: name/phone already on file, no agreements ste
 
 ### 🔧 Technical notes
 
-- `agreedToTerms` is read from the DB in the `auth.ts` session callback and attached to `session.user.agreedToTerms` — this lets proxy.ts check it without a DB query in the edge runtime
-- proxy.ts exempts `/account/welcome` from the `agreedToTerms` check — otherwise the redirect would loop
+- `agreedToTerms` is read from the DB in the `auth.ts` session callback and attached to `session.user.agreedToTerms` — this lets the `(authenticated)/` layout gate read it from the JWT without a DB query on every render
+- `/account/welcome` and `/account/reactivate` sit OUTSIDE the `(authenticated)/` route group, so the layout's redirects to those pages can't loop. The placement is structural rather than convention-based
 - The welcome page is a server component; the form submit is a client component (`WelcomeForm`) that POSTs to the API
 - DELETE on `/api/account/complete-profile` deletes the User record with `onDelete: Cascade` — this automatically removes all related Sessions, Accounts, Registrations, CourseAccess records
 - The cleanup cron uses the same `CRON_SECRET` Bearer header pattern as the reminder cron. Schedule: `0 15 * * *` (15:00 UTC daily). Configured in `vercel.json` alongside the reminder cron.
