@@ -1291,3 +1291,25 @@ model SessionChatMessage {
   @@index([roomName, sentAt])
   @@map("session_chat_messages")
 }
+
+// ─── RATE LIMITING ────────────────────────────────────────────────────────────
+//
+// Postgres-backed counter for fixed-window rate limits. One row per
+// (limit-key) — e.g. "signin-email:foo@bar.com" or "signin-ip:1.2.3.4".
+// `count` increments on each call; when `expiresAt` passes, the next call
+// resets the window. Cleanup cron deletes expired rows daily so the table
+// stays small.
+//
+// Used by lib/rateLimit.ts to protect the NextAuth signin + callback
+// endpoints from email-bombing and brute-force code-guessing.
+
+model RateLimitWindow {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  count       Int      @default(0)
+  windowStart DateTime @default(now())
+  expiresAt   DateTime
+
+  @@index([expiresAt])
+  @@map("rate_limit_windows")
+}

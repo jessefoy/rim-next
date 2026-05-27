@@ -4083,6 +4083,38 @@ async function main() {
     console.log("  ⏭ Orphan-row heal already applied.");
   }
 
+  // ────────────────────────────────────────────────────────────────────────
+  // Rate-limit table (defense-in-depth for NextAuth signin + callback).
+  // Idempotent: CREATE TABLE IF NOT EXISTS; flag prevents log noise on
+  // re-runs.
+  // ────────────────────────────────────────────────────────────────────────
+  const rateLimitFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'rate_limit_windows_v1'
+  `).catch(() => []);
+
+  if (rateLimitFlag.length === 0) {
+    console.log("→ Rate-limit windows table…");
+    await db.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "rate_limit_windows" (
+        "id"          TEXT PRIMARY KEY,
+        "key"         TEXT NOT NULL UNIQUE,
+        "count"       INTEGER NOT NULL DEFAULT 0,
+        "windowStart" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        "expiresAt"   TIMESTAMPTZ NOT NULL
+      )
+    `);
+    await db.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "rate_limit_windows_expiresAt_idx"
+        ON "rate_limit_windows" ("expiresAt")
+    `);
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('rate_limit_windows_v1')`,
+    );
+    console.log("  ✔ rate_limit_windows table ready.");
+  } else {
+    console.log("  ⏭ rate_limit_windows table already applied.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

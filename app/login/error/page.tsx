@@ -9,6 +9,9 @@ export default async function AuthErrorPage({
   let message = "An error occurred during sign in. Please try again.";
   if (error === "Verification") {
     message = "That code is invalid or has expired. Please request a new one.";
+  } else if (error === "RateLimit") {
+    message =
+      "You've made several sign-in attempts in a short time. Please wait a few minutes, then try again.";
   }
 
   return (
