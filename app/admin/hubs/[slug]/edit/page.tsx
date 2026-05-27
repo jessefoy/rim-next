@@ -61,6 +61,9 @@ export default async function AdminHubEditPage({
     hasSchedule: hub.hasSchedule,
     assignmentGrantsTeacher: hub.assignmentGrantsTeacher,
     teacherLabel: hub.teacherLabel,
+    coverageNoun: hub.coverageNoun,
+    coverageVerb: hub.coverageVerb,
+    coverageAction: hub.coverageAction,
     appLinks: hub.appLinks.map((l) => ({
       toolSlug: l.toolSlug ?? null,
       label: l.label,

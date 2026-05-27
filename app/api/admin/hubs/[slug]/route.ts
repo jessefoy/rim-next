@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { DEFAULT_COVERAGE_COPY } from "@/lib/programHub";
 
 /** GET /api/admin/hubs/[slug] — fetch one hub with appLinks (ADMIN only) */
 export async function GET(
@@ -46,7 +47,17 @@ export async function PATCH(
 
   const { slug } = await params;
   const body = await req.json();
-  const { name, slug: newSlug, description, type, status, hasSchedule, assignmentGrantsTeacher, teacherLabel, appLinks, welcomeHeadline, welcomeBody, homeContent } = body;
+  const { name, slug: newSlug, description, type, status, hasSchedule, assignmentGrantsTeacher, teacherLabel, coverageNoun, coverageVerb, coverageAction, appLinks, welcomeHeadline, welcomeBody, homeContent } = body;
+
+  // Coverage strings: trim, cap at 40. Empty input falls through to the
+  // host-team default for that field — clearing an input in the form
+  // restores "Host" / "hosting" / "host this" rather than leaving an empty
+  // string in the column (which is non-nullable per the schema).
+  const cleanCoverageInput = (raw: unknown, fallback: string): string => {
+    if (typeof raw !== "string") return fallback;
+    const t = raw.trim();
+    return t.length > 0 ? t.slice(0, 40) : fallback;
+  };
 
   const hub = await db.hub.findUnique({ where: { slug } });
   if (!hub) {
@@ -104,6 +115,9 @@ export async function PATCH(
               ? teacherLabel.trim().slice(0, 20)
               : null,
       }),
+      ...(coverageNoun   !== undefined && { coverageNoun:   cleanCoverageInput(coverageNoun,   DEFAULT_COVERAGE_COPY.noun) }),
+      ...(coverageVerb   !== undefined && { coverageVerb:   cleanCoverageInput(coverageVerb,   DEFAULT_COVERAGE_COPY.verb) }),
+      ...(coverageAction !== undefined && { coverageAction: cleanCoverageInput(coverageAction, DEFAULT_COVERAGE_COPY.action) }),
       ...(welcomeHeadline !== undefined && { welcomeHeadline: welcomeHeadline || null }),
       ...(welcomeBody !== undefined && { welcomeBody }),
       ...(homeContent !== undefined && { homeContent }),

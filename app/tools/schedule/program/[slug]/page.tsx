@@ -188,24 +188,14 @@ export default async function ProgramStaffingPage({
   }
 
   // Find the next 4 occurrence dates of the program (CT) for the multi-claim
-  // summary. Walk forward from today. Honors `endDatetime` so an ended
-  // program doesn't surface phantom "upcoming" sessions past its end —
-  // `isOccurrenceOnDate` itself doesn't check endDatetime (it only honors
-  // recurrenceCount), so we clip the walk here. Reviewer-caught finding;
-  // worth a follow-up to push the check into the shared helper since the
-  // other surfaces using `isOccurrenceOnDate` (/tools/schedule, /this-week)
-  // have the same blind spot.
-  // Capture endDatetime outside the closure so TS knows it's the narrowed
-  // value (the `notFound()` above eliminated null but doesn't carry into
-  // the function body's inference scope).
-  const programEndDate: Date | null = program.endDatetime ?? null;
+  // summary. Walk forward from today. `isOccurrenceOnDate` honors
+  // `endDatetime` natively, so ended programs return no future occurrences.
   function findUpcomingDates(p: ScheduleProgram, count: number): string[] {
     const out: string[] = [];
     const start = new Date();
     for (let i = 0; out.length < count && i < 365; i++) {
       const d = new Date(start);
       d.setDate(start.getDate() + i);
-      if (programEndDate && d > programEndDate) break; // program has ended
       const dateStr = ctDateStr(d.toISOString());
       if (isOccurrenceOnDate(p, dateStr)) out.push(dateStr);
     }

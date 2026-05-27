@@ -178,6 +178,10 @@ export function isOccurrenceOnDate(p: ScheduleProgram, dateStr: string): boolean
   if (!p.startDatetime) return false;
   const anchor = ctDateStr(p.startDatetime.toISOString());
   if (anchor > dateStr) return false;
+  // A program with an endDatetime no longer occurs past that calendar date.
+  // Without this guard, ended courses and retreats surface phantom future
+  // sessions on every page that walks the calendar forward.
+  if (p.endDatetime && dateStr > ctDateStr(p.endDatetime.toISOString())) return false;
   if (!p.recurrenceFreq) return anchor === dateStr;
 
   const freq = p.recurrenceFreq.toUpperCase();

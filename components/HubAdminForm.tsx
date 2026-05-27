@@ -54,6 +54,14 @@ interface HubData {
    *  assignmentGrantsTeacher is true and the program doesn't override.
    *  Pill hierarchy: program.teacherLabel ?? hub.teacherLabel ?? "Teacher". */
   teacherLabel: string | null;
+  /** Role-aware copy fields (session 130 follow-up). Drive the Scheduler
+   *  UI and email body strings so each hub speaks its own language
+   *  ("AV needed" / "You're covering AV" / "I can cover AV"). Schema
+   *  defaults are the host-team strings; clearing a field in the form
+   *  restores the matching default on save. */
+  coverageNoun: string;
+  coverageVerb: string;
+  coverageAction: string;
   appLinks: AppLink[];
   coordinators: CoordinatorInfo[];
   welcomeHeadline: string;
@@ -111,6 +119,15 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
     useState<typeof initialHubLabelChoice>(initialHubLabelChoice);
   const [teacherLabelCustom, setTeacherLabelCustom] = useState(
     initialHubLabelChoice === "Custom" ? (initialHubLabel ?? "") : "",
+  );
+  const [coverageNoun, setCoverageNoun] = useState<string>(
+    initialData?.coverageNoun ?? "",
+  );
+  const [coverageVerb, setCoverageVerb] = useState<string>(
+    initialData?.coverageVerb ?? "",
+  );
+  const [coverageAction, setCoverageAction] = useState<string>(
+    initialData?.coverageAction ?? "",
   );
   const [appLinks, setAppLinks] = useState<AppLink[]>(initialData?.appLinks ?? []);
   const [welcomeHeadline, setWelcomeHeadline] = useState(initialData?.welcomeHeadline ?? "");
@@ -205,6 +222,8 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
           ? teacherLabelCustom.trim() || null
           : teacherLabelChoice;
 
+    // Coverage strings sent as-is (trimmed). Server resolves blank ↦
+    // schema default. Server also clamps length.
     const payload = {
       name,
       slug,
@@ -214,6 +233,9 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
       hasSchedule,
       assignmentGrantsTeacher,
       teacherLabel: resolvedTeacherLabel,
+      coverageNoun: coverageNoun.trim(),
+      coverageVerb: coverageVerb.trim(),
+      coverageAction: coverageAction.trim(),
       appLinks: appLinks.filter((l) => l.label && (l.toolSlug || l.href)),
       welcomeHeadline: welcomeHeadline || null,
       welcomeBody: welcomeBody,
@@ -421,6 +443,66 @@ export default function HubAdminForm({ isEditing, initialData, hubSlug, isCurren
           )}
         </div>
       )}
+
+      {/* Role-aware copy — session 130 follow-up. These three strings let
+          the Scheduler UI and email bodies speak in each hub's own
+          language ("AV needed" / "You're covering AV" / "I can cover AV")
+          without code branches per hub. Leave blank to inherit the
+          host-team defaults ("Host" / "hosting" / "host this"). */}
+      <div className="adm-hubs-field">
+        <label className="adm-hubs-label">Role-aware copy</label>
+        <p className="adm-hubs-hint">
+          How this hub&rsquo;s role appears in Scheduler UI and emails.
+          Leave any field blank to use the host-team defaults
+          (<em>Host</em> / <em>hosting</em> / <em>host this</em>).
+        </p>
+
+        <label className="adm-hubs-label" style={{ marginTop: 12 }}>
+          Role name (noun)
+        </label>
+        <input
+          type="text"
+          className="adm-hubs-input"
+          placeholder="Host"
+          value={coverageNoun}
+          onChange={(e) => setCoverageNoun(e.target.value)}
+          maxLength={40}
+        />
+        <p className="adm-hubs-hint">
+          Fills sentences like &ldquo;<strong>{coverageNoun.trim() || "Host"}</strong> needed&rdquo;
+          and &ldquo;<strong>{coverageNoun.trim() || "Host"}</strong>: Bob.&rdquo;
+        </p>
+
+        <label className="adm-hubs-label" style={{ marginTop: 12 }}>
+          Role verb (-ing form)
+        </label>
+        <input
+          type="text"
+          className="adm-hubs-input"
+          placeholder="hosting"
+          value={coverageVerb}
+          onChange={(e) => setCoverageVerb(e.target.value)}
+          maxLength={40}
+        />
+        <p className="adm-hubs-hint">
+          Fills sentences like &ldquo;You&rsquo;re <strong>{coverageVerb.trim() || "hosting"}</strong>.&rdquo;
+        </p>
+
+        <label className="adm-hubs-label" style={{ marginTop: 12 }}>
+          Role action (claim phrasing)
+        </label>
+        <input
+          type="text"
+          className="adm-hubs-input"
+          placeholder="host this"
+          value={coverageAction}
+          onChange={(e) => setCoverageAction(e.target.value)}
+          maxLength={40}
+        />
+        <p className="adm-hubs-hint">
+          Fills sentences like &ldquo;Yes, I can <strong>{coverageAction.trim() || "host this"}</strong>.&rdquo;
+        </p>
+      </div>
 
       {/* Coordinator — read only */}
       {isEditing && (

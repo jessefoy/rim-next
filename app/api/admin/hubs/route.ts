@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { DEFAULT_COVERAGE_COPY } from "@/lib/programHub";
 
 /** GET /api/admin/hubs — list all hubs with member count (ADMIN only) */
 export async function GET() {
@@ -30,7 +31,7 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const { name, slug, description, type, status, hasSchedule, assignmentGrantsTeacher, teacherLabel, appLinks } = body;
+  const { name, slug, description, type, status, hasSchedule, assignmentGrantsTeacher, teacherLabel, coverageNoun, coverageVerb, coverageAction, appLinks } = body;
 
   if (!name || !slug) {
     return NextResponse.json({ error: "Name and slug are required." }, { status: 400 });
@@ -50,6 +51,16 @@ export async function POST(req: Request) {
       ? teacherLabel.trim().slice(0, 20)
       : null;
 
+  // Coverage strings: trim, cap at 40. Empty input falls through to the
+  // host-team default for that field, so clearing an input in the form
+  // restores "Host" / "hosting" / "host this" rather than leaving an empty
+  // string in the column (which is non-nullable per the schema).
+  const cleanCoverageInput = (raw: unknown, fallback: string): string => {
+    if (typeof raw !== "string") return fallback;
+    const t = raw.trim();
+    return t.length > 0 ? t.slice(0, 40) : fallback;
+  };
+
   const hub = await db.hub.create({
     data: {
       name,
@@ -60,6 +71,9 @@ export async function POST(req: Request) {
       hasSchedule: !!hasSchedule,
       assignmentGrantsTeacher: grantsTeacher,
       teacherLabel: sanitizedLabel,
+      coverageNoun:   cleanCoverageInput(coverageNoun,   DEFAULT_COVERAGE_COPY.noun),
+      coverageVerb:   cleanCoverageInput(coverageVerb,   DEFAULT_COVERAGE_COPY.verb),
+      coverageAction: cleanCoverageInput(coverageAction, DEFAULT_COVERAGE_COPY.action),
       conversationCategories: ["General"],
       appLinks: appLinks?.length
         ? {
