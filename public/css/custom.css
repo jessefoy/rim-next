@@ -8056,80 +8056,15 @@ details[open] > .adm-man-summary .adm-man-summary__caret { transform: rotate(180
   margin-top: 8px;
 }
 
-/* ═══════════════════════════════════════════════════
-   COMMUNITY AGREEMENTS PAGE  (mc- prefix)
-   /account/dashboard-member-care-agreements
-═══════════════════════════════════════════════════ */
-
-.mc-page {
-  padding-top: 48px;
-  padding-bottom: 80px;
-}
-
-.mc-heading {
-  font-family: var(--font-serif);
-  font-size: 32px;
-  font-weight: 400;
-  color: var(--rim-blue);
-  margin: 0 0 12px;
-  line-height: 1.2;
-}
-
-.mc-intro {
-  font-family: var(--font-sans);
-  font-size: var(--text-small);
-  color: var(--rim-text-muted);
-  line-height: 1.7;
-  margin: 0 0 48px;
-}
-
-.mc-agreement {
-  margin-bottom: 36px;
-  padding-bottom: 36px;
-  border-bottom: 1px solid var(--rim-rule);
-}
-
-.mc-agreement:last-of-type {
-  border-bottom: none;
-}
-
-.mc-agreement__title {
-  font-family: var(--font-serif);
-  font-size: 22px;
-  font-weight: 400;
-  color: var(--rim-blue);
-  margin: 0 0 12px;
-  line-height: 1.3;
-}
-
-.mc-agreement__body {
-  font-family: var(--font-sans);
-  font-size: var(--text-small);
-  line-height: 1.7;
-  color: var(--rim-text);
-  margin: 0;
-}
-
-.mc-footer-link {
-  margin-top: 40px;
-  font-family: var(--font-sans);
-  font-size: var(--text-ui);
-  color: var(--rim-text-muted);
-}
-
-.mc-footer-link a {
-  color: var(--rim-mid);
-}
-
-/* ── Mobile  (shared breakpoint for all new db-/mr-/ml-/mp-/mc- blocks) ── */
+/* ── Mobile  (shared breakpoint for all new db-/mr-/ml-/mp- blocks) ── */
 @media (max-width: 768px) {
   .db-page { padding: 32px 20px 60px; }
   .db-welcome__greeting { font-size: 26px; }
   .db-nav { grid-template-columns: 1fr; gap: 12px; }
   .db-nav__card { padding: 20px 18px 16px; }
 
-  .mr-page, .ml-page, .mc-page { padding: 32px 20px 60px; }
-  .mr-heading, .ml-heading, .mp-heading, .mc-heading { font-size: 26px; }
+  .mr-page, .ml-page { padding: 32px 20px 60px; }
+  .mr-heading, .ml-heading, .mp-heading { font-size: 26px; }
   .mr-card { padding: 16px 18px; }
   .mr-card__header { flex-direction: column; align-items: flex-start; gap: 8px; }
   .mr-card__dana { flex-direction: column; align-items: flex-start; gap: 8px; }
@@ -17920,7 +17855,6 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 .mr-heading,
 .ml-heading,
 .mp-heading,
-.mc-heading, .mc-agreement__title,
 .vol-heading-2,
 .adm-header__title,
 .adm-section__title,
@@ -17970,8 +17904,7 @@ a.hub-home-act__row:hover { background: #fafaf9; }
 }
 
 /* ── Weight 400 — prose/body using serif in member area ── */
-.wl-welcome-intro,
-.mc-intro, .mc-list-item, .mc-confirm-text {
+.wl-welcome-intro {
   font-family: var(--font-source-sans);
   font-weight: 400;
 }
