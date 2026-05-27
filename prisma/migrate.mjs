@@ -3820,6 +3820,73 @@ async function main() {
   }
 
   // ───────────────────────────────────────────────────────────────────────
+  // Session 130 follow-up — role-aware UI/email copy per hub.
+  //
+  // Each hub now carries three copy fields:
+  //   coverageNoun   — "Host" / "AV" / "Greeter" / "Facilitator"
+  //   coverageVerb   — "hosting" / "covering AV" / "greeting" / "facilitating"
+  //   coverageAction — "host this" / "cover AV" / "greet" / "facilitate"
+  //
+  // Defaults match host-team so existing behavior carries through. This
+  // migration backfills the three other configured hubs so copy is
+  // role-accurate at first sight.
+  // ───────────────────────────────────────────────────────────────────────
+  const hubCoverageCopyFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'add_hub_coverage_copy_v1'
+  `).catch(() => []);
+
+  if (hubCoverageCopyFlag.length === 0) {
+    console.log("→ Hub coverage copy (session 130 follow-up)…");
+
+    // ALTER TABLE — additive columns with safe defaults. Idempotent.
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "hubs" ADD COLUMN IF NOT EXISTS "coverageNoun" TEXT NOT NULL DEFAULT 'Host'`,
+    );
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "hubs" ADD COLUMN IF NOT EXISTS "coverageVerb" TEXT NOT NULL DEFAULT 'hosting'`,
+    );
+    await db.$executeRawUnsafe(
+      `ALTER TABLE "hubs" ADD COLUMN IF NOT EXISTS "coverageAction" TEXT NOT NULL DEFAULT 'host this'`,
+    );
+
+    // Backfill role copy for the three non-host-team hubs.
+    const peerLedUpdate = await db.hub.updateMany({
+      where: { slug: "peer-led-silent-meditation" },
+      data: {
+        coverageNoun:   "Facilitator",
+        coverageVerb:   "facilitating",
+        coverageAction: "facilitate",
+      },
+    });
+    const avUpdate = await db.hub.updateMany({
+      where: { slug: "audio-visual" },
+      data: {
+        coverageNoun:   "AV",
+        coverageVerb:   "covering AV",
+        coverageAction: "cover AV",
+      },
+    });
+    const greeterUpdate = await db.hub.updateMany({
+      where: { slug: "greeter" },
+      data: {
+        coverageNoun:   "Greeter",
+        coverageVerb:   "greeting",
+        coverageAction: "greet",
+      },
+    });
+    if (peerLedUpdate.count > 0) console.log("  ✔ peer-led-silent-meditation copy configured (Facilitator).");
+    if (avUpdate.count > 0)      console.log("  ✔ audio-visual copy configured (AV).");
+    if (greeterUpdate.count > 0) console.log("  ✔ greeter copy configured (Greeter).");
+
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('add_hub_coverage_copy_v1')`,
+    );
+    console.log("  ✔ Hub coverage copy migration complete.");
+  } else {
+    console.log("  ⏭ Hub coverage copy already applied.");
+  }
+
+  // ───────────────────────────────────────────────────────────────────────
   // Session 130 follow-up — heal orphan StandingAssignment + HostAssignment
   // rows whose `hubSlug` doesn't match the program's current `hostingHubSlug`.
   //

@@ -797,13 +797,14 @@ export interface StandingAssignmentScheduledEmailData {
   hubSlug?: string;
   /** First scheduled session's month in `YYYY-MM` form (CT). When supplied,
    *  the email's "Schedule" link deep-links to that month so the recipient
-   *  lands on the actual rows they're hosting rather than the current month,
-   *  which usually has no rotation-derived rows for them yet. Surfaced to
-   *  fix Maria's beta-test report (session 130): a host with a rotation
-   *  starting next month clicks the confirmation email link and sees no
-   *  "mine" rows in the current month, so the sub-request affordance never
-   *  appears. */
+   *  lands on the actual rows they're scheduled for rather than the current
+   *  month, which usually has no rotation-derived rows for them yet. */
   firstSessionMonth?: string;
+  /** Role-aware copy (session 130 follow-up). When omitted, defaults to
+   *  host-team language ("hosting", "Host"). When the rotation is on AV
+   *  / greeter / peer-led, callers should pass the hub's copy so the
+   *  email subject + body speak the role's language. */
+  coverageCopy?: { noun: string; verb: string; action: string };
 }
 
 /**
@@ -822,22 +823,21 @@ export async function sendStandingAssignmentScheduledEmail(
   const listHtml = data.sessions
     .map((s) => `<li style="margin-bottom:6px;">${s.programName} &mdash; ${s.dateLabel}</li>`)
     .join("");
+  // Role-aware copy: "hosting" → "covering AV" / "greeting" / "facilitating"
+  // when the rotation is on a non-host-team hub. Defaults to host language.
+  const copy = data.coverageCopy ?? { noun: "Host", verb: "hosting", action: "host this" };
   const subject =
     count === 1
-      ? `You're scheduled to host ${data.sessions[0].programName}`
-      : `You're scheduled to host ${count} sessions this month`;
+      ? `You're scheduled — ${data.sessions[0].programName}`
+      : `You're scheduled for ${count} sessions this month`;
   // Deep-link to the month of the FIRST scheduled session when provided.
-  // The Schedule page defaults to the current month, where rotation-derived
-  // rows usually don't exist yet (apply skips past dates); deep-linking
-  // makes the "mine" rows visible immediately so the sub-request affordance
-  // is one click away.
   const schedulePath = data.firstSessionMonth
     ? `/tools/schedule?month=${data.firstSessionMonth}`
     : "/tools/schedule";
   const scheduleUrl = hubScopedUrl(schedulePath, data.hubSlug);
   const html = `
 <p>Hi ${data.firstName ?? "there"},</p>
-<p>Your standing rotation has been applied. You're scheduled to host the following ${count === 1 ? "session" : "sessions"}:</p>
+<p>Your standing rotation has been applied. You're scheduled to be ${copy.verb} the following ${count === 1 ? "session" : "sessions"}:</p>
 <ul style="font-size:16px;line-height:1.7;padding-left:20px;">${listHtml}</ul>
 <p>${emailButtonHtml("Open the Schedule", scheduleUrl)}</p>
 <p>If you can't make any of these dates, open the Schedule and use <strong>Ask the team to cover</strong> on that session's row.</p>
@@ -864,14 +864,15 @@ export async function sendStandingAssignmentReplacedEmail(
   const listHtml = data.sessions
     .map((s) => `<li style="margin-bottom:6px;">${s.programName} &mdash; ${s.dateLabel}</li>`)
     .join("");
+  const copy = data.coverageCopy ?? { noun: "Host", verb: "hosting", action: "host this" };
   const subject =
     count === 1
-      ? `You're no longer hosting ${data.sessions[0].programName} on ${data.sessions[0].dateLabel}`
+      ? `You're no longer ${copy.verb} ${data.sessions[0].programName} on ${data.sessions[0].dateLabel}`
       : `You've been replaced on ${count} upcoming sessions`;
   const scheduleUrl = hubScopedUrl("/tools/schedule", data.hubSlug);
   const html = `
 <p>Hi ${data.firstName ?? "there"},</p>
-<p>Your hosting coordinator has updated the standing rotation. You're no longer scheduled to host the following ${count === 1 ? "session" : "sessions"}:</p>
+<p>Your coordinator has updated the standing rotation. You're no longer scheduled to be ${copy.verb} the following ${count === 1 ? "session" : "sessions"}:</p>
 <ul style="font-size:16px;line-height:1.7;padding-left:20px;">${listHtml}</ul>
 <p>If you have questions about this change, please reach out to your coordinator. You can see your current schedule any time on the <a href="${scheduleUrl}" style="color:#135274;">Schedule</a>.</p>
 <p style="color:#666;font-size:14px;">This is an automated message from your standing rotation.</p>`;
@@ -911,6 +912,9 @@ export interface StandingAssignmentReleasedEmailData {
   sessions: Array<{ programName: string; dateLabel: string }>;
   /** Hub the rotation belonged to. */
   hubSlug?: string;
+  /** Role-aware copy (session 130 follow-up) — used so the body reads "AV
+   *  rotation" / "facilitator rotation" instead of host-team default. */
+  coverageCopy?: { noun: string; verb: string; action: string };
 }
 
 export async function sendStandingAssignmentReleasedEmail(
@@ -938,12 +942,15 @@ export async function sendStandingAssignmentReleasedEmail(
     : `<p>The following upcoming ${count === 1 ? "date is" : "dates are"} no longer assigned to you:</p>
 ${listHtml}
 <p>These slots are now open for other hosts to claim.</p>`;
+  // Role-aware role noun in the body ("standing rotation as Host / AV /
+  // Greeter / Facilitator"). Defaults to host language when not supplied.
+  const copy = data.coverageCopy ?? { noun: "Host", verb: "hosting", action: "host this" };
   const html = `
 <p>Hi ${data.firstName ?? "there"},</p>
-<p>A coordinator has removed you from the standing rotation for <strong>${programName}</strong>.</p>
+<p>A coordinator has removed you from the standing rotation as <strong>${copy.noun}</strong> for <strong>${programName}</strong>.</p>
 ${datesIntro}
 <p>If this was unexpected or you'd like to talk about it, please reach out to your coordinator.</p>
-<p style="color:#666;font-size:14px;"><a href="${scheduleUrl}" style="color:#135274;">View the Schedule</a> &middot; This is an automated message from your standing host rotation.</p>`;
+<p style="color:#666;font-size:14px;"><a href="${scheduleUrl}" style="color:#135274;">View the Schedule</a> &middot; This is an automated message from your standing rotation.</p>`;
 
   try {
     await resend.emails.send({ from: FROM, to: data.to, subject, html });
@@ -970,16 +977,17 @@ export async function sendStandingAssignmentEndedEmail(
   const listHtml = data.sessions
     .map((s) => `<li style="margin-bottom:6px;">${s.programName} &mdash; ${s.dateLabel}</li>`)
     .join("");
+  const copy = data.coverageCopy ?? { noun: "Host", verb: "hosting", action: "host this" };
   const subject =
     count === 1
-      ? `Your hosting rotation has ended`
-      : `Your hosting rotation has ended (${count} sessions cleared)`;
+      ? `Your ${copy.verb} rotation has ended`
+      : `Your ${copy.verb} rotation has ended (${count} sessions cleared)`;
   const html = `
 <p>Hi ${data.firstName ?? "there"},</p>
 <p>Your standing rotation has been ended. The following upcoming ${count === 1 ? "session has" : "sessions have"} been cleared from your schedule:</p>
 <ul style="font-size:16px;line-height:1.7;padding-left:20px;">${listHtml}</ul>
 <p>Thank you for the time you've contributed. If this was unexpected or you'd like to talk about it, please reach out to your coordinator.</p>
-<p style="color:#666;font-size:14px;">This is an automated message from your standing host rotation.</p>`;
+<p style="color:#666;font-size:14px;">This is an automated message from your standing rotation.</p>`;
 
   try {
     await resend.emails.send({ from: FROM, to: data.to, subject, html });

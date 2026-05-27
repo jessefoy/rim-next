@@ -37,7 +37,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
 import { isHubCoordinator } from "@/lib/hubAuth";
-import { getProgramHubSlug } from "@/lib/programHub";
+import { getProgramHubSlug, getHubCoverageCopy } from "@/lib/programHub";
 import { sendStandingAssignmentEndedEmail } from "@/lib/email";
 
 const TZ = "America/Chicago";
@@ -237,6 +237,8 @@ export async function POST(request: Request) {
       where:  { id: { in: userIds } },
       select: { id: true, firstName: true, preferredName: true, email: true },
     });
+    // Role-aware copy for the target hub — single bundle scope, single resolve.
+    const coverageCopy = await getHubCoverageCopy(targetHubSlug);
     after(async () => {
       for (const u of users) {
         const sessions = byUser.get(u.id);
@@ -246,6 +248,7 @@ export async function POST(request: Request) {
           firstName: u.preferredName || u.firstName || null,
           sessions,
           hubSlug:   targetHubSlug,
+          coverageCopy,
         });
       }
     });

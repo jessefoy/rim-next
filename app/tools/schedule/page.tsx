@@ -22,6 +22,7 @@ import {
 import {
   DEFAULT_HOSTING_HUB_SLUG,
   getHubCoverageConfig,
+  getHubCoverageCopy,
   getProgramSlugsForHub,
 } from "@/lib/programHub";
 
@@ -116,6 +117,10 @@ export default async function ScheduleToolPage({
   const hubConfig = await getHubCoverageConfig(activeHubSlug);
   const appliesToFormats = hubConfig?.appliesToFormats ?? ["virtual", "hybrid"];
   const allowsMultipleAssignments = hubConfig?.allowsMultipleAssignments ?? false;
+  // Role-aware copy for this hub (session 130 follow-up). Threaded into
+  // HubScheduleClient so UI strings ("You're hosting" / "Needs a host" /
+  // toasts) speak the active hub's role rather than the host-team default.
+  const coverageCopy = await getHubCoverageCopy(activeHubSlug);
 
   // Program filter for the active hub. Unions:
   //   1. Primary: programs whose `hostingHubSlug` is this hub (or null for
@@ -412,6 +417,7 @@ export default async function ScheduleToolPage({
         currentUserName={session.user.name || session.user.email?.split("@")[0] || ""}
         coordinatorName={coordinatorName}
         isHostManager={isHostManager}
+        coverageCopy={coverageCopy}
         isManager={isManager}
         myRotations={myRotations}
         nextSessionBySlug={nextSessionBySlug}

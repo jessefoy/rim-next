@@ -118,6 +118,12 @@ interface Props {
    *  lists every signed-up volunteer and the action is "Sign up" /
    *  "Cancel my signup" instead of "claim/cover". Session 129. */
   allowsMultipleAssignments?: boolean;
+  /** Role-aware copy for the active hub (session 130 follow-up). Drives
+   *  user-facing strings: "{Noun} needed" / "You're {verb}" / "Yes, I
+   *  can {action}" — so the AV hub reads "AV needed" / "You're covering
+   *  AV" / "Yes, I can cover AV" instead of the host-team default.
+   *  Defaults to host-team values if absent. */
+  coverageCopy?: { noun: string; verb: string; action: string };
 }
 
 const TZ = "America/Chicago";
@@ -369,6 +375,8 @@ interface RowProps {
   /** Multi-claim hubs only: cancel my signup on this session. */
   onCancelSignUp?: (s: Session, assignmentId: string) => void;
   isHostManager: boolean;
+  /** Role-aware copy for the active hub (session 130 follow-up). */
+  coverageCopy: { noun: string; verb: string; action: string };
 }
 
 function HsRow({
@@ -376,6 +384,7 @@ function HsRow({
   onTake, onCover, onAskCover, onCancelRequest, onReassign,
   onSignUp, onCancelSignUp,
   isHostManager,
+  coverageCopy,
 }: RowProps) {
   const dateShort = fmtDateShort(session.sessionDate);
   const timeStr = fmtTime(session.sessionDate);
@@ -389,13 +398,20 @@ function HsRow({
   let statusEl: React.ReactNode = null;
   let actionEl: React.ReactNode = null;
 
+  // Lowercase form of the role noun for natural inline use ("No host (missed)"
+  // / "Needs a host" reads with lowercase). Capitalize-on-use for statuses.
+  const nounLower = coverageCopy.noun.toLowerCase() === "av"
+    ? "AV" // AV stays uppercase regardless
+    : coverageCopy.noun.toLowerCase();
+  const nounCap   = coverageCopy.noun;
+
   switch (kind) {
     case "needs-host":
-      statusEl = <span className="hs-row__status hs-row__status--needs">{isPast ? "No host (missed)" : "Needs a host"}</span>;
+      statusEl = <span className="hs-row__status hs-row__status--needs">{isPast ? `No ${nounLower} (missed)` : `${nounCap} needed`}</span>;
       if (!isPast) {
         actionEl = (
           <button className="lr-btn lr-btn--host" onClick={() => onTake(session)}>
-            Yes, I can host
+            Yes, I can {coverageCopy.action}
           </button>
         );
       }
@@ -417,7 +433,7 @@ function HsRow({
       }
       break;
     case "mine":
-      statusEl = <span className="hs-row__status hs-row__status--mine">You're hosting</span>;
+      statusEl = <span className="hs-row__status hs-row__status--mine">You&apos;re {coverageCopy.verb}</span>;
       if (!isPast) {
         actionEl = (
           <button className="hs-row__quiet" onClick={() => onAskCover(session)}>
@@ -439,7 +455,7 @@ function HsRow({
     case "covered":
       statusEl = (
         <span className="hs-row__status hs-row__status--covered">
-          Hosted by {session.hostName ?? "—"}
+          {nounCap}: {session.hostName ?? "—"}
           {session.hostBadge && (
             <span className="hs-row__paused-badge">
               {session.hostBadge === "inactive" ? "inactive" : "paused"}
@@ -618,6 +634,7 @@ export default function HubScheduleClient({
   isHostManager = false, isManager = false, myRotations = [],
   nextSessionBySlug = {}, apiBase = "/api/host", hubSlug,
   allowsMultipleAssignments = false,
+  coverageCopy = { noun: "Host", verb: "hosting", action: "host this" },
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -907,7 +924,7 @@ export default function HubScheduleClient({
     try {
       if (modal.kind === "take") {
         await takeSession(modal.session);
-        showToast("You're hosting. The team has been notified.");
+        showToast(`You're ${coverageCopy.verb}. The team has been notified.`);
       } else if (modal.kind === "cover") {
         await coverSession(modal.session);
         showToast("You're covering this session. The original host has been notified.");
@@ -1030,6 +1047,7 @@ export default function HubScheduleClient({
     onCancelSignUp: cancelSignUp,
     currentUserId,
     isHostManager,
+    coverageCopy,
   };
 
   return (

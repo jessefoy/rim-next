@@ -16,6 +16,7 @@ import {
   type ApplyResultSession,
 } from "@/lib/applyStandingAssignments";
 import { sendStandingAssignmentScheduledEmail } from "@/lib/email";
+import { getHubCoverageCopy } from "@/lib/programHub";
 
 export const dynamic = "force-dynamic";
 
@@ -74,6 +75,14 @@ export async function GET(request: Request) {
     return earliest ? earliest.slice(0, 7) : undefined;
   }
 
+  // Cache coverage copy per hub — cron may walk many hubs in one run.
+  const copyByHub = new Map<string, { noun: string; verb: string; action: string }>();
+  async function copyFor(hubSlug: string) {
+    if (copyByHub.has(hubSlug)) return copyByHub.get(hubSlug)!;
+    const c = await getHubCoverageCopy(hubSlug);
+    copyByHub.set(hubSlug, c);
+    return c;
+  }
   after(async () => {
     for (const [, sessions] of allByUser) {
       if (sessions.length === 0) continue;
@@ -85,6 +94,7 @@ export async function GET(request: Request) {
           sessions: group.map((s) => ({ programName: s.programName, dateLabel: s.dateLabel })),
           hubSlug: perHubSlug,
           firstSessionMonth: earliestMonth(group),
+          coverageCopy: await copyFor(perHubSlug),
         });
       }
     }

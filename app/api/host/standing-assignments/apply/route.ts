@@ -24,7 +24,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
 import { isHubCoordinator } from "@/lib/hubAuth";
-import { getProgramHubSlug } from "@/lib/programHub";
+import { getProgramHubSlug, getHubCoverageCopy } from "@/lib/programHub";
 import {
   applyStandingAssignments,
   getApplyMonthRange,
@@ -174,6 +174,14 @@ export async function POST(request: Request) {
     const earliest = sessions.map((s) => s.dateStr).filter(Boolean).sort()[0];
     return earliest ? earliest.slice(0, 7) : undefined;
   }
+  // Cache coverage copy per hub so we don't re-query per email batch.
+  const copyByHub = new Map<string, { noun: string; verb: string; action: string }>();
+  async function copyFor(hubSlug: string) {
+    if (copyByHub.has(hubSlug)) return copyByHub.get(hubSlug)!;
+    const c = await getHubCoverageCopy(hubSlug);
+    copyByHub.set(hubSlug, c);
+    return c;
+  }
   after(async () => {
     for (const [, sessions] of byUser) {
       if (sessions.length === 0) continue;
@@ -185,6 +193,7 @@ export async function POST(request: Request) {
           sessions: group.map((s) => ({ programName: s.programName, dateLabel: s.dateLabel })),
           hubSlug: perHubSlug,
           firstSessionMonth: earliestMonth(group),
+          coverageCopy: await copyFor(perHubSlug),
         });
       }
     }
@@ -197,6 +206,7 @@ export async function POST(request: Request) {
           firstName,
           sessions: group.map((s) => ({ programName: s.programName, dateLabel: s.dateLabel })),
           hubSlug: perHubSlug,
+          coverageCopy: await copyFor(perHubSlug),
         });
       }
     }

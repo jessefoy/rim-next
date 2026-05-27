@@ -36,7 +36,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
 import { isHubCoordinator } from "@/lib/hubAuth";
-import { getProgramHubSlug } from "@/lib/programHub";
+import { getProgramHubSlug, getHubCoverageCopy } from "@/lib/programHub";
 import { sendStandingAssignmentReleasedEmail } from "@/lib/email";
 
 const TZ = "America/Chicago";
@@ -173,6 +173,7 @@ export async function POST(request: Request) {
   });
 
   if (host) {
+    const coverageCopy = await getHubCoverageCopy(targetHubSlug);
     after(async () => {
       await sendStandingAssignmentReleasedEmail({
         to:          host.email,
@@ -180,6 +181,7 @@ export async function POST(request: Request) {
         programName,
         sessions,
         hubSlug:     targetHubSlug,
+        coverageCopy,
       });
     });
   }

@@ -174,6 +174,42 @@ export interface HubCoverageConfig {
   allowsMultipleAssignments: boolean;
 }
 
+/** Role-aware copy strings for one hub. Session 130 follow-up — UI and email
+ *  copy that used to hardcode "host" now reads from these. Defaults preserve
+ *  host-team language. */
+export interface HubCoverageCopy {
+  noun:   string; // "Host" / "AV" / "Greeter" / "Facilitator"
+  verb:   string; // "hosting" / "covering AV" / "greeting" / "facilitating"
+  action: string; // "host this" / "cover AV" / "greet" / "facilitate"
+}
+
+export const DEFAULT_COVERAGE_COPY: HubCoverageCopy = {
+  noun:   "Host",
+  verb:   "hosting",
+  action: "host this",
+};
+
+/**
+ * Load role-aware copy for a hub. Returns defaults ("Host" / "hosting" /
+ * "host this") when the hub doesn't exist or its config is missing. UI
+ * surfaces (Schedule cards, toasts) and email builders read from this
+ * so each hub speaks its own language without code branches per hub.
+ * Configured per-hub via `/admin/hubs` and seeded by the migration
+ * `add_hub_coverage_copy_v1`.
+ */
+export async function getHubCoverageCopy(hubSlug: string): Promise<HubCoverageCopy> {
+  const hub = await db.hub.findUnique({
+    where: { slug: hubSlug },
+    select: { coverageNoun: true, coverageVerb: true, coverageAction: true },
+  });
+  if (!hub) return DEFAULT_COVERAGE_COPY;
+  return {
+    noun:   hub.coverageNoun   ?? DEFAULT_COVERAGE_COPY.noun,
+    verb:   hub.coverageVerb   ?? DEFAULT_COVERAGE_COPY.verb,
+    action: hub.coverageAction ?? DEFAULT_COVERAGE_COPY.action,
+  };
+}
+
 /**
  * Load coverage-relevant config for a hub. Returns null when the hub doesn't
  * exist (caller decides whether that's an error or a fallthrough to defaults).

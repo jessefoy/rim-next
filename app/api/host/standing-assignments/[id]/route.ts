@@ -24,7 +24,7 @@ import { db } from "@/lib/db";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
 import { sendStandingAssignmentEndedEmail } from "@/lib/email";
 import { isHubCoordinator } from "@/lib/hubAuth";
-import { getProgramHubSlug } from "@/lib/programHub";
+import { getProgramHubSlug, getHubCoverageCopy } from "@/lib/programHub";
 
 const TZ = "America/Chicago";
 
@@ -156,6 +156,7 @@ export async function DELETE(
     // Email the displaced host
     if (releasedSessions.length > 0) {
       const u = rotation.user;
+      const coverageCopy = await getHubCoverageCopy(rotationHubSlug);
       after(async () => {
         // This route ends a single rotation rule by setting endsOn=today
         // and deletes the user's future HostAssignments. The cron honors
@@ -167,6 +168,7 @@ export async function DELETE(
           firstName: u.preferredName || u.firstName || null,
           sessions:  releasedSessions,
           hubSlug:   rotationHubSlug,
+          coverageCopy,
         });
       });
     }

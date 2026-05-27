@@ -38,7 +38,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getEffectiveHostingCapability } from "@/lib/hubMemberAuth";
 import { isHubCoordinator } from "@/lib/hubAuth";
-import { getProgramHubSlug, DEFAULT_HOSTING_HUB_SLUG, getProgramSlugsForHub } from "@/lib/programHub";
+import { getProgramHubSlug, DEFAULT_HOSTING_HUB_SLUG, getProgramSlugsForHub, getHubCoverageCopy } from "@/lib/programHub";
 import { applyStandingAssignments, getApplyMonthRange } from "@/lib/applyStandingAssignments";
 import { sendStandingAssignmentScheduledEmail } from "@/lib/email";
 import type { StandingOccurrence } from "@prisma/client";
@@ -358,15 +358,14 @@ export async function POST(request: Request) {
       merged.get(uid)!.push(...sessions);
     }
   }
+  // Role-aware copy for the target hub (session 130 follow-up). Resolved
+  // once; passed to every per-user email so the subject + body match the
+  // hub's role ("scheduled to be covering AV" vs. "scheduled to be hosting").
+  const coverageCopy = await getHubCoverageCopy(targetHubSlug);
   after(async () => {
     for (const [, sessions] of merged) {
       if (sessions.length === 0) continue;
       const { userEmail, firstName } = sessions[0];
-      // Deep-link the email's "Open the Schedule" CTA to the month of the
-      // earliest scheduled session. The Schedule defaults to the current
-      // month, where the recipient's rotation rows usually don't exist
-      // (apply skips past dates) — without this, they land on a view with
-      // no "mine" rows and the sub-request affordance never appears.
       const earliest = sessions
         .map((s) => s.dateStr)
         .filter(Boolean)
@@ -376,13 +375,9 @@ export async function POST(request: Request) {
         to: userEmail,
         firstName,
         sessions: sessions.map((s) => ({ programName: s.programName, dateLabel: s.dateLabel })),
-        // POST is always scoped to one rotation bundle — pass its hub so
-        // the email link lands in the right hub view. Session 129: this
-        // is the standing record's hub, not the program's primary, so
-        // an AV-rotation email points an AV volunteer at /tools/schedule?
-        // hub=audio-visual rather than host-team.
         hubSlug: targetHubSlug,
         firstSessionMonth,
+        coverageCopy,
       });
     }
   });
