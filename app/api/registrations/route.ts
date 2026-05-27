@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { db } from "@/lib/db";
 import { sendRegistrationEmail } from "@/lib/email";
 import { renderFormattedTextAsync } from "@/lib/renderRichContentServer";
@@ -106,10 +106,21 @@ export async function POST(request: NextRequest) {
             agreedAt: agreedToTerms === true ? now : null,
           },
         });
-        // Fire-and-forget: match any existing support threads to this new member
-        // Auto-enroll new member in onboarding series (fire-and-forget)
+        // Auto-enroll new member in onboarding series. `after()` keeps the
+        // work alive past the response (session 96 — bare .catch(() => {})
+        // silently lost work to Vercel's serverless teardown).
         if (agreedToTerms === true) {
-          enrollMemberInOnboardingSeries(user.id).catch(() => {});
+          const newUserId = user.id;
+          after(async () => {
+            try {
+              await enrollMemberInOnboardingSeries(newUserId);
+            } catch (err) {
+              console.error(
+                "[registrations POST] enrollMemberInOnboardingSeries failed",
+                err,
+              );
+            }
+          });
         }
       } else {
         // Existing account: use the account's stored values for the registration record.
@@ -184,9 +195,21 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Enroll member in series linked to this program (fire-and-forget)
+    // Enroll member in series linked to this program. `after()` keeps the
+    // work alive past the response (session 96).
     if (registration.status === "REGISTERED" && programId) {
-      enrollMemberInProgramCourse(resolvedUserId, programId).catch(() => {});
+      const enrollUserId = resolvedUserId;
+      const enrollProgramId = programId;
+      after(async () => {
+        try {
+          await enrollMemberInProgramCourse(enrollUserId, enrollProgramId);
+        } catch (err) {
+          console.error(
+            "[registrations POST] enrollMemberInProgramCourse failed",
+            err,
+          );
+        }
+      });
     }
 
     // Build confirmation email data from Postgres program
@@ -239,7 +262,11 @@ export async function POST(request: NextRequest) {
       console.error("[registration] Failed to build confirmation data:", err);
     }
 
-    // Send confirmation email — fire-and-forget, never blocks the response
+    // Send confirmation email. Awaited intentionally — registration is
+    // not considered fully complete from the user's perspective until the
+    // email is on its way. Failures are surfaced in the response so the
+    // form can retry or display an error rather than leave the user
+    // wondering whether they're confirmed.
     await sendRegistrationEmail({
       to:              normalizedEmail,
       firstName:       firstName.trim(),

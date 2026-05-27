@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { Role, MemberStatus } from "@prisma/client";
@@ -171,33 +171,65 @@ export async function PATCH(
     await syncHubMembership(id, roles as string[]);
   }
 
-  // Auto-enroll in role-gated series for each newly added role — fire-and-forget
-  for (const role of newlyAddedRoles) {
-    enrollMemberInRoleSeries(id, role).catch(() => {});
+  // Auto-enroll in role-gated series for each newly added role.
+  // `after()` keeps this alive past the response — bare `.catch(() => {})`
+  // (the pre-2026-05-27 pattern) silently lost work to Vercel's serverless
+  // teardown (session 96 lesson).
+  if (newlyAddedRoles.length > 0) {
+    after(async () => {
+      for (const role of newlyAddedRoles) {
+        try {
+          await enrollMemberInRoleSeries(id, role);
+        } catch (err) {
+          console.error(
+            `[admin/members PATCH] enrollMemberInRoleSeries failed for ${id}/${role}`,
+            err,
+          );
+        }
+      }
+    });
   }
 
-  // Notify newly-promoted registrar — fire-and-forget
+  // Notify newly-promoted registrar.
   if (addingRegistrar) {
-    sendRoleAssignmentEmail({
-      to: updated.email,
-      firstName: updated.firstName,
-    }).catch(() => {});
+    after(async () => {
+      try {
+        await sendRoleAssignmentEmail({
+          to: updated.email,
+          firstName: updated.firstName,
+        });
+      } catch (err) {
+        console.error("[admin/members PATCH] sendRoleAssignmentEmail failed", err);
+      }
+    });
   }
 
-  // Notify newly-added host — fire-and-forget
+  // Notify newly-added host.
   if (addingHost) {
-    sendHostRoleAssignmentEmail({
-      to: updated.email,
-      firstName: updated.firstName,
-    }).catch(() => {});
+    after(async () => {
+      try {
+        await sendHostRoleAssignmentEmail({
+          to: updated.email,
+          firstName: updated.firstName,
+        });
+      } catch (err) {
+        console.error("[admin/members PATCH] sendHostRoleAssignmentEmail failed", err);
+      }
+    });
   }
 
-  // Notify newly-added host coordinator — fire-and-forget
+  // Notify newly-added host coordinator.
   if (addingHostManager) {
-    sendHostManagerRoleAssignmentEmail({
-      to: updated.email,
-      firstName: updated.firstName,
-    }).catch(() => {});
+    after(async () => {
+      try {
+        await sendHostManagerRoleAssignmentEmail({
+          to: updated.email,
+          firstName: updated.firstName,
+        });
+      } catch (err) {
+        console.error("[admin/members PATCH] sendHostManagerRoleAssignmentEmail failed", err);
+      }
+    });
   }
 
   return NextResponse.json({

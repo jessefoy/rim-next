@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { enrollMemberInOnboardingSeries } from "@/lib/enrollment";
 
 // POST — save name/phone and mark community agreements accepted
@@ -30,8 +30,18 @@ export async function POST(request: Request) {
     },
   });
 
-  // Auto-enroll in onboarding series — fire-and-forget
-  enrollMemberInOnboardingSeries(session.user.id).catch(() => {});
+  // Auto-enroll in onboarding series. `after()` keeps the work alive past
+  // the response (session 96 — Vercel tears the function down otherwise).
+  after(async () => {
+    try {
+      await enrollMemberInOnboardingSeries(session.user.id);
+    } catch (err) {
+      console.error(
+        "[account/complete-profile] enrollMemberInOnboardingSeries failed",
+        err,
+      );
+    }
+  });
 
   return NextResponse.json({ ok: true });
 }

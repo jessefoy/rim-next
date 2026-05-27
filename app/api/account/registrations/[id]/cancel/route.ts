@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { sendCancellationNotificationEmail } from "@/lib/email";
@@ -38,13 +38,24 @@ export async function POST(
     data: { status: "CANCELLED" },
   });
 
-  // Notify registrar — fire-and-forget, never blocks the response
-  sendCancellationNotificationEmail({
-    registrantName: `${registration.firstName} ${registration.lastName}`,
-    registrantEmail: registration.email,
-    programTitle: registration.programTitle,
-    programSlug: registration.programSlug,
-  }).catch(() => {});
+  // Notify registrar. `after()` keeps the email send alive past the
+  // response (session 96 — bare .catch(() => {}) silently lost work to
+  // Vercel's serverless teardown).
+  after(async () => {
+    try {
+      await sendCancellationNotificationEmail({
+        registrantName: `${registration.firstName} ${registration.lastName}`,
+        registrantEmail: registration.email,
+        programTitle: registration.programTitle,
+        programSlug: registration.programSlug,
+      });
+    } catch (err) {
+      console.error(
+        "[account/registrations cancel] sendCancellationNotificationEmail failed",
+        err,
+      );
+    }
+  });
 
   return NextResponse.json({ id, status: "CANCELLED" });
 }

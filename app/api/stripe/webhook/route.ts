@@ -1,5 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
-import { after } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import stripe from "@/lib/stripe";
 import { db } from "@/lib/db";
 import type Stripe from "stripe";
@@ -88,9 +87,22 @@ async function handleRegistrationDanaCompleted(session: Stripe.Checkout.Session)
     select: { userId: true, programId: true },
   });
 
-  // Enroll in series linked to this program — fire-and-forget
+  // Enroll in series linked to this program. `after()` keeps the work
+  // alive past the response — bare .catch(() => {}) silently lost work
+  // to Vercel's serverless teardown (session 96 lesson).
   if (updatedReg.userId && updatedReg.programId) {
-    enrollMemberInProgramCourse(updatedReg.userId, updatedReg.programId).catch(() => {});
+    const enrollUserId = updatedReg.userId;
+    const enrollProgramId = updatedReg.programId;
+    after(async () => {
+      try {
+        await enrollMemberInProgramCourse(enrollUserId, enrollProgramId);
+      } catch (err) {
+        console.error(
+          "[stripe/webhook] enrollMemberInProgramCourse failed",
+          err,
+        );
+      }
+    });
   }
 
   // Write to the Donation ledger — upsert for idempotency (Stripe can deliver webhooks twice)
