@@ -15,11 +15,23 @@ export const metadata = {
     "Join the Rooted In Mindfulness community. Read our four community care agreements and create your member account.",
 };
 
-export default async function JoinPage() {
+export default async function JoinPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ email?: string }>;
+}) {
   const session = await auth();
   if (session?.user?.id) {
     redirect("/account/dashboard");
   }
+
+  // Accept a pre-filled email from /login's not-found soft-redirect (when a
+  // visitor types an unknown email at /login, we route them here with their
+  // email carried across so they don't have to retype it). Trim + cap
+  // defensively — value lands in a server-rendered input attribute.
+  const { email: emailRaw } = await searchParams;
+  const prefillEmail =
+    typeof emailRaw === "string" ? emailRaw.trim().slice(0, 256) : "";
 
   return (
     <div className="jn-page">
@@ -58,7 +70,7 @@ export default async function JoinPage() {
               Create your member account
             </h3>
             <p className="jn-panel__lead">{JOIN_FORM_LEAD}</p>
-            <JoinForm />
+            <JoinForm defaultEmail={prefillEmail} />
           </section>
         </div>
       </div>

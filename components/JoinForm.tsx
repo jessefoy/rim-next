@@ -11,11 +11,20 @@ function formatPhone(value: string) {
   return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
 }
 
-export default function JoinForm() {
+interface JoinFormProps {
+  /**
+   * Pre-fill the email field. Set when a visitor reaches /join via
+   * /login's not-found soft-redirect — they already typed their email
+   * at /login, no reason to make them retype it here.
+   */
+  defaultEmail?: string;
+}
+
+export default function JoinForm({ defaultEmail = "" }: JoinFormProps) {
   const router = useRouter();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(defaultEmail);
   const [phone, setPhone] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [status, setStatus] = useState<"idle" | "submitting" | "error">("idle");
