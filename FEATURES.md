@@ -60,30 +60,44 @@ Two audiences:
 
 ## 1. Authentication
 
-**What it does:** Members sign in by typing a 6-digit code sent to their email — no password, no magic link. Entering the code on the sign-in page logs them in and redirects to their dashboard. Switched from magic link to code in session 119 (2026-05-21).
+**What it does:** Sign-in and sign-up are two doors over the same passwordless 6-digit code flow. Existing members visit `/login`; new members visit `/join` (introduced in session 132 — see also §14). Both doors send a 6-digit code by email; both share the same rate-limit windows. No password, no magic link. Switched from magic link to code in session 119 (2026-05-21); split into two doors in session 132 (2026-05-27).
 
-**Flow:**
+**Door A — `/login` (existing members):**
 1. User visits `/login`, enters email
 2. Resend sends an email with a 6-digit code (large, centered, no link)
 3. User lands at `/login/check-email?email=ENCODED` with the code-entry form
 4. User types the code → form GETs `/api/auth/callback/resend?token=CODE&email=EMAIL&callbackUrl=/account/dashboard`
 5. NextAuth verifies the token, sets the session cookie, redirects to `/account/dashboard`
 
+**Door B — `/join` (new members):**
+1. User visits `/join`, reads the four Community Care Agreements in the integrated panel, fills in first name + last name + email + optional phone, ticks the agreement checkbox, submits
+2. `POST /api/account/join` validates, applies rate-limits, upserts the User with `agreedToTerms: true` + `agreedAt: now`, then triggers `signIn("resend", { redirect: false })` so the 6-digit code email goes out — same template path as Door A, but the quiet "returning user" variant fires (the warm welcome has already happened on the page)
+3. In `after()` callbacks: a separate warm welcome letter is sent via the `join-welcome` template, and the user is enrolled in the onboarding course series
+4. Client navigates to `/login/check-email?email=ENCODED` to type the code (same code-entry surface as Door A)
+5. NextAuth verifies the token, sets the session cookie, redirects to `/account/dashboard` — bypassing `/account/welcome` because `agreedToTerms` is already `true`
+
 **Why code, not magic link:** magic links route to the OS default browser regardless of where the user wants to be (a Safari user who prefers Chrome ends up authenticated in Safari with no way to "send to Chrome"). PWAs on iOS can't reliably receive magic-link clicks either — the OS routes the click to Safari, not the installed PWA. Codes work in every context because the user types them into the app/browser they're standing in. Industry-standard pattern (Slack, Apple, Mercury, Notion all do this).
 
 **Key files:**
 - `auth.ts` — NextAuth v5 config (Resend provider, Prisma adapter, session callbacks). Overrides `generateVerificationToken` to return a 6-digit code via `crypto.randomInt(100000, 1000000)`. `maxAge: 30 * 60` on the Resend provider (30-min code expiry).
 - `lib/email.ts::sendSignInCodeEmail` — sends the templated email with the code as a Handlebars variable. Calls `sendTemplatedEmail` with `throwOnFailure: true` so a missing/disabled template surfaces to the user rather than silently swallowing the sign-in.
-- `app/login/page.tsx` — server action calls `signIn("resend", { email, redirect: false })`, detects email-send failure via the returned error-URL (signIn with `redirect: false` does NOT throw on failure — it returns an error-page URL string), and redirects to `/login/check-email?email=ENCODED` on success.
-- `app/login/check-email/page.tsx` — reads `email` from URL params (redirects to `/login` if missing), shows a 6-digit input form, includes an inline "send a new code" affordance.
+- `lib/email.ts::sendJoinWelcomeEmail` — sends the warm welcome letter when Door B completes (session 132).
+- `lib/authRateLimits.ts` — shared rate-limit constants + key helpers used by both Door A and Door B (session 132).
+- `lib/communityAgreements.ts` — canonical agreement text used by `/join`, `/account/welcome`, and program registration (session 132).
+- `app/login/page.tsx` — Door A: server action calls `signIn("resend", { email, redirect: false })`. Accepts `?email=` query for soft-redirect from Door B's already-member case (session 132).
+- `app/join/page.tsx` — Door B: server component with hero + integrated panel containing agreements + form (session 132).
+- `components/JoinForm.tsx` — Door B client form (session 132).
+- `app/api/account/join/route.ts` — Door B POST handler (session 132).
+- `app/login/check-email/page.tsx` — reads `email` from URL params (redirects to `/login` if missing), shows a 6-digit input form, includes an inline "send a new code" affordance. Shared by both doors.
 - `app/login/error/page.tsx` — sign-in error landing page.
 - `prisma/schema.prisma` — `VerificationToken` table (NextAuth standard). No schema change for the code switch; the token value is just a 6-digit string instead of a long random one.
 
 **Email templates (Email Template Gate — see CLAUDE.md):**
-- `sign-in-code-new-user` — sent to first-time visitors (no account, or account without `agreedToTerms`)
-- `sign-in-code-returning` — sent to existing members
-- Both seeded in `prisma/migrate.mjs` (`seed_sign_in_code_email_templates`) via defensive `findUnique → create` so admin edits at `/admin/emails` are preserved on re-run. Both `enabled: true` — required for sign-in to work.
-- The old `magic-link-new-user` / `magic-link-returning` templates were deleted by the same migration.
+- `sign-in-code-new-user` — sent to first-time visitors (no account, or account without `agreedToTerms`). After session 132, `/join` users do NOT receive this — they've already been welcomed on the page itself, so they receive the quiet returning-user variant and the separate welcome letter (below). This template fires only for the rare case of someone hitting `/login` as a first-time visitor (didn't come through `/join`).
+- `sign-in-code-returning` — sent to existing members AND to all `/join` users (since their `agreedToTerms` is `true` by the time the email goes out).
+- `join-welcome` (new — session 132) — sent ONCE per new member, immediately after they complete `/join`. The warm one-time letter. Lands alongside the code email. Templated via `lib/email.ts::sendJoinWelcomeEmail`. Variables: `firstName`, `dashboardButton` (canonical RIM-blue HTML button — use triple braces `{{{dashboardButton}}}`), `dashboardUrl`, `supportEmail`. Group: `01-auth` ("Sign-in & Authentication").
+- All three seeded in `prisma/migrate.mjs` via defensive `findUnique → create` so admin edits at `/admin/emails` are preserved on re-run. All `enabled: true`.
+- The old `magic-link-new-user` / `magic-link-returning` templates were deleted by the session-119 migration.
 
 **🔧 Technical notes:**
 - NextAuth v5 uses `auth()` (not `getServerSession`) for server components
@@ -1206,25 +1220,39 @@ This shapes everything:
 
 ### Membership paths
 
-There are two natural ways someone enters the RIM community:
+There are three natural ways someone enters the RIM community. All three pass through the same Community Care Agreements (see below) — one canonical text, three doors.
 
-**Path A — Through a program (the primary path)**
+**Path A — Intentional sign-up at `/join` (the threshold ritual, added session 132)**
+1. Person visits `/join` (linked from the Nav as "Become a Member" and from public surfaces like the diversity page and community-programs hero)
+2. Reads the four Community Care Agreements in the integrated panel — agreements appear in the foreground as a numbered list, the form follows below
+3. Fills in first name + last name + email + optional phone, ticks the agreement checkbox, submits
+4. `POST /api/account/join` upserts the User with `agreedToTerms: true` + `agreedAt: now`, triggers the sign-in code email, sends a separate warm welcome letter via the `join-welcome` template, and enrolls them in the onboarding course series (all in `after()` callbacks)
+5. Client navigates to `/login/check-email` to type the code — they land on `/account/dashboard` directly (no `/account/welcome` step, because `agreedToTerms` is already true)
+
+**Path B — Through a program (the incidental path)**
 1. Person finds a program (workshop, retreat, drop-in) and registers
-2. Registration form collects first name, last name, email, phone (optional), and a brief community agreements checkbox — all on one form
+2. Registration form collects first name, last name, email, phone (optional), and the same four Community Care Agreements with checkbox — all on one form
 3. A User record is created or updated with their name/phone, `agreedToTerms` set to `true`
 4. Confirmation email arrives; subsequent visits to `/login` send a 6-digit sign-in code to the same email
 5. They enter the code on `/login/check-email` — they're in. No additional steps. Profile already populated.
 
-**Path B — Directly through the login page (returning members / direct sign-in)**
-1. Person visits `/login`, enters their email, receives a 6-digit sign-in code by email, enters the code on `/login/check-email`
+**Path C — Through `/login` as a first-time visitor (the safety-net path)**
+1. Person who didn't come through `/join` or a program visits `/login`, enters their email, receives a 6-digit sign-in code, enters the code on `/login/check-email`
 2. On first visit (or if `agreedToTerms` is false): intercepted by profile completion page `/account/welcome` before reaching dashboard
-3. Warm community-voiced page asks for name (required), phone (optional), and shows brief community agreements with checkbox
+3. Warm community-voiced page asks for name (required), phone (optional), and shows the same four Community Care Agreements as a numbered list with checkbox
 4. On submit: profile saved, `agreedToTerms` set to `true`, redirected to dashboard
 5. Never shown again
 
 ### The community agreements
 
-A brief, warm statement — 3–4 lines — reflecting RIM's values. Not a legal document. Something close to what you'd hear at the opening of a retreat. The exact wording is set by RIM staff and lives on the `/account/welcome` page and registration form. A checkbox confirms: *"I'm entering this community in a spirit of care and respect."*
+Four brief intentions — title + one-sentence summary each — reflecting RIM's values. Not a legal document. Something close to what you'd hear at the opening of a retreat. A required checkbox confirms: *"I'm entering this community in a spirit of care and respect."*
+
+**Canonical source: `lib/communityAgreements.ts`** (session 132). One text, three surfaces:
+- `/join` — agreements in the foreground of the integrated panel, four-item numbered list above the form
+- `/account/welcome` — same numbered list, inside the `wl-agreements` block in `WelcomeForm`
+- Program registration — same numbered list, inside the `pg-form__agreements` block in `RegistrationForm`
+
+Editing the text in `lib/communityAgreements.ts` propagates to all three surfaces. The deprecated long-paragraph version (previously hardcoded separately in each form's `<details>` collapsed block) was removed session 132 — one agreement, one shape.
 
 This is not an uncommon practice for intentional communities. It is minimal, meaningful, and done once.
 
@@ -1236,19 +1264,21 @@ For convenience, if a member is logged in and viewing a program page that has a 
 
 ### Incomplete accounts — cleanup
 
-A User record is considered incomplete if `agreedToTerms` is `false`. This can happen in two ways:
+A User record is considered incomplete in two ways (as of session 132, both swept by the same daily cron):
 
-1. **Abandoned mid-welcome-page:** Someone signed in with a code but closed the browser before completing their profile. A daily cleanup cron deletes User records where `agreedToTerms = false` and `createdAt < 48 hours ago`. Silent, automatic.
+1. **Abandoned mid-welcome-page (Path C):** Someone signed in with a code but closed the browser before completing `/account/welcome`. `agreedToTerms` stays `false`. Cron deletes records older than 48 hours.
 
-2. **Explicit decline:** The `/account/welcome` page has a visible "I'd rather not join" link. Clicking it immediately deletes the User record (and any related records), signs them out, and redirects to the public homepage. Clean, no drama.
+2. **Abandoned mid-verify (Path A):** Someone submitted `/join` but never typed the 6-digit code. `agreedToTerms` is `true`, but `emailVerified` is still `NULL`. Cron deletes records older than 48 hours.
+
+3. **Explicit decline:** The `/account/welcome` page has a visible "I'd rather not join" link. Clicking it immediately deletes the User record (and any related records), signs them out, and redirects to the public homepage. Clean, no drama.
 
 The result: every User record in the system is an intentional community member. The admin member list reflects reality.
 
 ### Login page framing
 
-The `/login` page uses "Join or sign in" as the heading — not "Log in." The copy briefly explains the 6-digit sign-in code (no password needed, works for new and returning members alike). A note below the form says: *"New to RIM? You'll set up your name and a brief community welcome after your first sign-in."*
+After session 132, `/login` is the door for existing members — heading reads simply "Sign in". The copy explains the 6-digit code briefly. A "New to RIM? Become a member →" link below the form points new visitors to `/join`. The dual-purpose "Join or sign in" framing from sessions 119–131 was replaced once the threshold became its own page.
 
-This eliminates the common confusion where a new person sees "Log in" and assumes they need a pre-existing account.
+If a new visitor still arrives at `/login` first (Path C), they receive the code, type it, and land on `/account/welcome` to complete the threshold ritual there. Same agreements, same checkbox, just collected after sign-in rather than before.
 
 ### Registration → member account connection
 
@@ -1262,16 +1292,24 @@ When a logged-in member registers: name/phone already on file, no agreements ste
 
 ### Key files
 
-- `app/login/page.tsx` — "Join or sign in" framing, 6-digit sign-in code explanation
-- `app/login/check-email/page.tsx` — 6-digit code entry form (six numeric boxes, submits to NextAuth Resend callback)
-- `app/account/welcome/page.tsx` — profile completion + community agreements (required on first login)
-- `app/api/account/complete-profile/route.ts` — POST: saves name/phone/agreements; DELETE: removes account on explicit decline
-- `app/api/registrations/route.ts` — POST: writes name/phone back to User, sets agreedToTerms if checkbox checked
+- `app/join/page.tsx` — new-member threshold page, integrated panel with agreements + form (session 132)
+- `components/JoinForm.tsx` — `/join` client form
+- `app/api/account/join/route.ts` — POST: upsert User with agreedToTerms, trigger sign-in code, fire welcome letter + onboarding enrollment in `after()`
+- `lib/communityAgreements.ts` — canonical agreement text + hero copy + checkbox label, used by all three paths
+- `lib/authRateLimits.ts` — shared rate-limit constants + key helpers used by both `/login`'s NextAuth catch-all and `/api/account/join`
+- `lib/email.ts::sendJoinWelcomeEmail` — warm one-time welcome letter sent immediately after `/join`
+- `app/login/page.tsx` — "Sign in" framing for existing members; accepts `?email=` for soft-redirect from `/join`'s already-member case
+- `app/login/check-email/page.tsx` — 6-digit code entry form (used by both doors)
+- `app/account/welcome/page.tsx` — profile completion + agreements (Path C only, for visitors who came through `/login` as first-time)
+- `components/WelcomeForm.tsx` — uses the shared agreements text via numbered list
+- `components/RegistrationForm.tsx` — uses the shared agreements text via numbered list (Path B)
+- `app/api/account/complete-profile/route.ts` — POST: saves name/phone/agreements (Path C completion); DELETE: removes account on explicit decline
+- `app/api/registrations/route.ts` — POST: writes name/phone back to User, sets agreedToTerms if checkbox checked (Path B)
 - `prisma/schema.prisma` — `agreedToTerms Boolean @default(false)`, `agreedAt DateTime?` on User model
 - `auth.ts` — session callback includes `agreedToTerms` so proxy.ts can check it
 - `proxy.ts` — redirects to `/account/welcome` if session exists but `agreedToTerms` is false
-- `app/api/cron/cleanup-incomplete-accounts/route.ts` — daily cron: deletes User records older than 48h with `agreedToTerms = false`
-- `public/css/custom.css` — `wl-` prefix for welcome page styles
+- `app/api/cron/cleanup-incomplete-accounts/route.ts` — daily cron: two-path sweep (false-agreedToTerms OR true-agreedToTerms-but-unverified, both > 48h)
+- `public/css/custom.css` — `jn-` prefix (`/join` page), `wl-` prefix (`/account/welcome`)
 
 ### Database fields added to User
 

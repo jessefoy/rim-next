@@ -1,5 +1,25 @@
 [
   {
+    "id": "2026-05-27-002",
+    "title": "Banyan tree image on /join page",
+    "description": "The Webflow Community Membership page has a banyan-tree image on the right side of the hero — part of the warmth and intentionality of the threshold experience. Not ported to /join in the session-132 slice because the asset wasn't in the repo. When ready: drop the image into public/images/ or Vercel Blob, wire it into app/join/page.tsx as a left/right grid (hero + intro on left, image on right) at desktop, stack on mobile. ~10-line CSS change to add .jn-hero--with-image and adjust .jn-container max-width. Source asset on the live Webflow site at https://www.rootedinmindfulness.org/community-membership — the banyan-tree photo.",
+    "category": "CSS & Design",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-05-27",
+    "notes": ""
+  },
+  {
+    "id": "2026-05-27-001",
+    "title": "Add 'Become a Member' link to footer",
+    "description": "The /join page is currently linked from the Nav (signed-out Member Area dropdown) and from the community-programs hero CTA and the diversity page. A quiet, always-on entry from the footer would let visitors find it from anywhere on the site without expanding a nav dropdown. Add to components/Footer.tsx as a low-emphasis text link in the appropriate column. Probably worth pairing with a footer-design pass since the footer hasn't been formally designed yet.",
+    "category": "Nav & Layout",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-05-27",
+    "notes": ""
+  },
+  {
     "id": "2026-05-25-003",
     "title": "Silent Meditation Hub — peer-led self-claim for Good Morning / Good Evening sits",
     "description": "New Hub (working name: silent-sit-team or similar) for the peer-led silent meditation offerings — currently Good Morning Silent Meditation and Good Evening Silent Meditation, with room to grow to Recovery Dharma and any future peer-led offering. Members of the hub can self-claim individual sessions or commit to a standing rotation, mirroring how the Host Team works. The infrastructure mostly already exists and can be reused as-is: HubMember (active members with hostingCapability), HostAssignment (per-session assignment), the self-claim flow at /api/host/assignments POST, the Standing Host Assignments system for recurring patterns, and Step-In to take over a session mid-flight. The new pieces are the Hub record itself (created via /admin/hubs), a coordinator decision about which programs the hub is allowed to claim, and possibly a tweak to the schedule tool (/tools/schedule) so it can also display open silent-sit sessions alongside the host team's. Closely related to backlog 2026-05-25-002 (per-program teacherLabel): together those two items make peer-led offerings first-class in the system — the hub solves 'who's allowed to lead' and teacherLabel solves 'what do we call them when they do.' Build order suggestion: teacherLabel first (small, lights up better audio profile + correct pill name as soon as ProgramTeacher rows exist), then this hub (larger structural piece).",

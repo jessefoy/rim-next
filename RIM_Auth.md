@@ -2,24 +2,42 @@
 
 **Per-area reference for the sign-in flow, session model, and rate limiting.**
 
-Read this before working on anything in `/api/auth/*`, `auth.ts`, `lib/rateLimit.ts`, `app/login/*`, or anything that touches sign-in or NextAuth callbacks.
+Read this before working on anything in `/api/auth/*`, `auth.ts`, `lib/rateLimit.ts`, `lib/authRateLimits.ts`, `app/login/*`, `app/join/*`, `app/api/account/join/*`, or anything that touches sign-in, sign-up, or NextAuth callbacks.
 
 Companion docs:
 - `RIM_Stack_Reference.md` — the NextAuth row + the rate-limit row at a glance.
 - `FEATURES.md §1 Authentication` — feature-level overview of the sign-in flow.
+- `FEATURES.md §14 Community Onboarding & Membership Philosophy` — the three membership paths.
 - `auth.ts` — the live NextAuth config.
 
 ---
 
-## The flow at a glance
+## Two doors, one code flow
+
+Sign-in and sign-up are two distinct surfaces over the same passwordless 6-digit code mechanism. Both doors share the same rate-limit windows via `lib/authRateLimits.ts` so alternating between them does NOT double an attacker's budget.
+
+### Door A — `/login` (existing members)
 
 1. User visits `/login`, enters their email
-2. `signIn("resend", { email, redirect: false })` triggers a POST to `/api/auth/signin/resend`
+2. Server action calls `signIn("resend", { email, redirect: false })`, triggering `POST /api/auth/signin/resend`
 3. NextAuth's Resend provider calls `generateVerificationToken` (we override it to a 6-digit code via `crypto.randomInt(100000, 1000000)`)
-4. Our `sendVerificationRequest` callback sends an email via Resend containing the code (no magic link)
+4. Our `sendVerificationRequest` callback sends an email via Resend containing the code (no magic link). Template branches on `agreedToTerms`: `sign-in-code-new-user` if the user doesn't yet have an account or hasn't agreed; `sign-in-code-returning` otherwise.
 5. User lands at `/login/check-email?email=<encoded>`, types the code
 6. Form submits a GET to `/api/auth/callback/resend?token=CODE&email=EMAIL&callbackUrl=...`
-7. NextAuth verifies the token against the `VerificationToken` table, sets the session cookie, redirects
+7. NextAuth verifies the token against the `VerificationToken` table, sets the session cookie, redirects. If `agreedToTerms` is `false`, proxy.ts intercepts the redirect and sends them to `/account/welcome` for the threshold ritual.
+
+### Door B — `/join` (new members, added session 132)
+
+1. User visits `/join` (linked from Nav as "Become a Member"), reads the four Community Care Agreements in the integrated panel, fills first name + last name + email + optional phone, ticks the agreement checkbox, submits
+2. Client POSTs to `/api/account/join`. Handler validates fields, applies rate-limits (same keys as Door A — see below), upserts the User with `agreedToTerms: true` + `agreedAt: now`
+3. Handler calls `signIn("resend", { email, redirect: false })` — same code-issuance path as Door A. Since `agreedToTerms` is true at this point, the quiet `sign-in-code-returning` template fires (the welcoming has already happened on the page).
+4. In `after()` callbacks: a separate warm welcome letter is sent via the `join-welcome` template, and the user is enrolled in the onboarding course series via `enrollMemberInOnboardingSeries`
+5. Client navigates to `/login/check-email?email=<encoded>` to type the code — same code-entry surface as Door A
+6. NextAuth verifies, redirects to `/account/dashboard` directly (proxy.ts does NOT route them through `/account/welcome` because `agreedToTerms` is already `true`)
+
+### Already-member soft-redirect
+
+If `/api/account/join` finds an existing User with `agreedToTerms: true` at the submitted email, it returns `{ alreadyMember: true }` instead of duplicating the threshold ritual. The client navigates to `/login?email=...`; `/login` reads the `?email=` query param, pre-fills the input via `defaultValue`, and renders a calm one-liner ("It looks like you already have an account with us. Sign in to continue.") above the form.
 
 **Why 6-digit codes instead of magic links.** Magic links route to the OS default browser regardless of where the user wants to be (a Safari user who prefers Chrome ends up authenticated in Safari with no way to "send to Chrome"). PWAs on iOS can't reliably receive magic-link clicks either. Codes work in every context because the user types them into the browser they're standing in. Industry-standard pattern (Slack, Apple, Mercury, Notion). Switched in session 119 (2026-05-21).
 
@@ -46,9 +64,11 @@ Edit messages in `app/login/error/page.tsx`. Add new branches there when a new f
 
 ---
 
-## Rate limiting (session 131, 2026-05-27)
+## Rate limiting (session 131; extended to `/join` session 132)
 
 **Closes backlog `2026-05-21-002`.** Defense-in-depth for the public-launch surface.
+
+**Door-sharing.** Both `/api/auth/signin/resend` (Door A) and `/api/account/join` (Door B) call `checkRateLimit` with keys produced by `lib/authRateLimits.ts`. Same key namespace, same thresholds. An attacker can't alternate between the two doors to double their per-window budget for a given email or IP.
 
 ### Two attack vectors
 
@@ -59,7 +79,8 @@ Edit messages in `app/login/error/page.tsx`. Add new branches there when a new f
 
 | Surface | Per-email | Per-IP | Window |
 |---|---|---|---|
-| `signin/resend` (email send) | 5 | 20 | 10 min |
+| `signin/resend` (Door A — email send) | 5 | 20 | 10 min |
+| `account/join` (Door B — email send) | 5 (shared key) | 20 (shared key) | 10 min |
 | `callback/resend` (code verify) | n/a | 20 | 10 min |
 
 **Why these numbers.** A real user retrying after a typo'd email triggers 2–3 sends in a session — well below 5. A botnet hammering one IP across many addresses hits the per-IP gate. For the code-verify path, 20 attempts per 10 minutes against a 900K keyspace means exhausting the space takes ~350 days at the limited rate (versus instant without limiting). Combined with the 30-minute code expiry per individual code, brute-forcing a *specific* code is also economically dead.
@@ -96,6 +117,8 @@ No read-modify-write race: the read and write happen in one statement under row 
 
 Limit-tripped requests return a 303 redirect to `/login/error?error=RateLimit`. 303 forces GET on the redirect target (correct, since the error page is GET-only). Other auth paths (signout, providers, csrf, session) pass through untouched.
 
+**`/api/account/join` (Door B)** calls the same `checkRateLimit` helper directly, using the same keys via `signinEmailKey(email)` + `signinIpKey(ip)` from `lib/authRateLimits.ts`. Limit-tripped requests return JSON `{ rateLimited: true, error: "..." }` with HTTP 429; the client's `JoinForm` navigates to `/login/error?error=RateLimit` for UX parity with Door A.
+
 **Cleanup: daily cron `/api/cron/cleanup-rate-limits`** at 10:15 UTC (5:15 AM CT, after the existing 5 AM CT cleanup-incomplete-accounts). Deletes rows where `expiresAt < NOW()`. Lazy reset on read means stale rows are functionally harmless, but the cron keeps the table small and the unique-key lookup fast.
 
 ### Key naming convention
@@ -113,7 +136,7 @@ All keys in `rate_limit_windows.key` follow `<surface>:<dimension>:<value>`:
 ### Operational notes
 
 - **Clearing a stuck user.** If a real user reports being locked out, delete their row(s) by key in the Neon console: `DELETE FROM rate_limit_windows WHERE key LIKE 'signin-email:<their-email>' OR key LIKE 'signin-ip:<their-ip>';`
-- **Adjusting thresholds.** Constants live at the top of `app/api/auth/[...nextauth]/route.ts` (`EMAIL_MAX`, `IP_SEND_MAX`, `IP_VERIFY_MAX`, `WINDOW_SECONDS`). No env vars — the numbers are deliberately code-visible so changes show up in commit history.
+- **Adjusting thresholds.** Constants live in `lib/authRateLimits.ts` (`EMAIL_MAX`, `IP_SEND_MAX`, `IP_VERIFY_MAX`, `WINDOW_SECONDS`). Both Door A and Door B import from there. No env vars — the numbers are deliberately code-visible so changes show up in commit history. Same module also exports `signinEmailKey`, `signinIpKey`, `verifyIpKey` so callers don't reinvent the key namespace.
 - **Adding a new rate-limited surface.** Use the same `checkRateLimit(key, max, windowSeconds)` helper; namespace the key (`<surface>:<dimension>:<value>`); decide on fail-open vs. fail-closed behavior at the call site. The helper itself returns `{ allowed, resetAt, remaining }` — caller decides what to do with `!allowed`.
 
 ### What NOT to do
@@ -129,12 +152,19 @@ All keys in `rate_limit_windows.key` follow `<surface>:<dimension>:<value>`:
 | File | Role |
 |---|---|
 | `auth.ts` | NextAuth v5 config: Resend provider, generateVerificationToken override, sendVerificationRequest, session callback |
-| `app/api/auth/[...nextauth]/route.ts` | NextAuth catch-all + the rate-limit POST wrapper |
+| `app/api/auth/[...nextauth]/route.ts` | NextAuth catch-all + the rate-limit POST wrapper (Door A) |
+| `app/api/account/join/route.ts` | `/join` POST handler (Door B): upsert User, signIn, fire welcome letter + onboarding enrollment in `after()` |
 | `lib/rateLimit.ts` | `checkRateLimit()` + `getRequestIp()` |
-| `app/api/cron/cleanup-rate-limits/route.ts` | Daily expired-row sweep |
+| `lib/authRateLimits.ts` | Shared rate-limit thresholds + key namespace helpers (used by both doors) |
+| `lib/communityAgreements.ts` | Canonical agreement text used by both doors + `/account/welcome` + program registration |
 | `lib/email.ts::sendSignInCodeEmail` | Sends the templated sign-in code email |
-| `app/login/page.tsx` | Sign-in form (server action calls `signIn("resend", { redirect: false })`) |
-| `app/login/check-email/page.tsx` | Code-entry form |
+| `lib/email.ts::sendJoinWelcomeEmail` | Sends the warm welcome letter (Door B only) |
+| `app/api/cron/cleanup-rate-limits/route.ts` | Daily expired-row sweep |
+| `app/api/cron/cleanup-incomplete-accounts/route.ts` | Daily sweep of abandoned User records: two paths since session 132 (false-agreedToTerms OR true-agreedToTerms-but-unverified) |
+| `app/login/page.tsx` | Sign-in form (Door A); accepts `?email=` for soft-redirect from Door B's already-member case |
+| `app/join/page.tsx` | Threshold page (Door B): hero + integrated panel with agreements + form |
+| `components/JoinForm.tsx` | Door B client form |
+| `app/login/check-email/page.tsx` | Code-entry form (shared by both doors) |
 | `app/login/error/page.tsx` | Error landing page with per-code copy |
 | `prisma/schema.prisma` | `User`, `VerificationToken`, `RateLimitWindow` models |
 | `vercel.json` | The `cleanup-rate-limits` cron schedule |
@@ -151,4 +181,4 @@ All keys in `rate_limit_windows.key` follow `<surface>:<dimension>:<value>`:
 
 ---
 
-*Working document. Updated 2026-05-27 (Session 131 — rate-limit slice).*
+*Working document. Updated 2026-05-27 (Session 132 — `/join` slice: two-door model, shared rate-limit module).*

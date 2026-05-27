@@ -6,7 +6,51 @@
 
 ## Active
 
-### Session 131 (2026-05-27) — final close — four parked-item closures + closing-ritual step 8b
+### Session 132 (2026-05-27) — `/join` slice: new-member threshold door shipped
+
+Four commits on `main`. The slice rebuilt the new-member sign-up flow end-to-end. Sign-in and sign-up are now two doors over the same passwordless code mechanism: `/login` for existing members, `/join` for new ones. The agreement text is consolidated into a single canonical source used by every surface; two orphan pages were deleted in the process.
+
+**Commits:**
+1. `28ab0f5` — Add `/join` page, `/api/account/join` endpoint, `join-welcome` email template, `lib/authRateLimits.ts` shared rate-limit module
+2. `22a3210` — Integrate agreements + form into one panel on `/join`; consolidate to one canonical agreement text; refactor WelcomeForm + RegistrationForm to use it
+3. `21f14cf` — Nav repointed to `/join`; orphan `/community-membership` page deleted; four stale link references swept (including a pre-existing "member home" bug on program pages)
+4. `120badd` — Second orphan deleted (`/account/dashboard-member-care-agreements`) + entire `.mc-*` CSS prefix removed
+
+### What to verify on the deployed site
+
+1. **`/join` signed out** — confirm the integrated panel: hero with "Become a member" + warm intro, single cream-toned panel with the four agreements as a numbered list (title bold, one-sentence summary each), soft divider, then form. No card grid, no long paragraphs below the form.
+2. **Submit `/join` with a test email** — within seconds, both emails should arrive: the 6-digit code (quiet returning-user template) AND the warm welcome letter (`join-welcome` template). Typing the code at `/login/check-email` should land you on `/account/dashboard` directly, skipping `/account/welcome` because `agreedToTerms` is already true.
+3. **Already-member soft-redirect** — re-submit `/join` with the same email. Should land at `/login?email=…` with the input pre-filled and the calm one-liner "It looks like you already have an account with us. Sign in to continue." above the form.
+4. **Rate-limit shared with `/login`** — six `/join` submissions from the same email in a row should hit the calm `/login/error?error=RateLimit` page on the sixth. Six `/login` requests from the same email (without `/join`) should hit the same gate.
+5. **Nav (signed out)** — "Member Area" dropdown should show "Become a Member" first, "Sign in" second. Both desktop dropdown and mobile menu.
+6. **`/community-membership` and `/account/dashboard-member-care-agreements` 404** — verify the deleted routes return 404 (hard-refresh or incognito if needed for the Vercel edge cache).
+7. **Welcome letter copy** — at `/admin/emails`, find "Join — Community Welcome Letter" under the "Sign-in & Authentication" group. Body is a first-draft in RIM's voice; edit freely. Variables available: `{{firstName}}`, `{{{dashboardButton}}}` (triple-brace HTML), `{{dashboardUrl}}`, `{{supportEmail}}`.
+
+### Memory file candidates from step 8b behavior audit (pending Jesse's confirmation at closing)
+
+- **`feedback-community-not-anonymous.md`** — *"A community isn't a community if it's anonymous."* Generalizes to: RIM community surfaces always require real names; never default to anonymous or single-field flows for community membership.
+- **`feedback-honor-the-reference.md`** — When Jesse points at a specific reference page or design, match its actual choices. Don't combine its content with structure or text from other contexts and call that "comprehensive." Triggered by the long-paragraph redundancy on `/join`.
+
+### Known follow-ons (queued, none urgent)
+
+- **Voice extraction (`RIM_Voice.md`).** Still parked from session 128. Pending Jesse gathering 5–10 writing samples. The new `join-welcome` template is one of the best candidates for a first voice-rewrite pass.
+- **Banyan tree image on `/join`.** The Webflow Community Membership page has a banyan-tree image on the right. Not ported because we don't have the asset in the repo. Easy 10-line wire when the asset is available.
+- **Footer link to `/join`.** Quiet, always-on entry. Worth adding once the footer cleanup pass comes around.
+- **Home page join CTA.** Currently `/` is a rough draft; Jesse said no formal CTA work yet. Revisit when home is designed.
+- **Verification of sessions 125–131 on the deployed site.** A whole accumulated test pass.
+- **Magic-link migration cleanup** (backlog `2026-05-21-003`). Remove dead seed entries from `prisma/migrate.mjs`. Mechanical.
+- **Noindex headers on member-only pages** (backlog `2026-05-25-001`). Belt-and-suspenders pass on `/lessons/*` and the enrolled branch of `/course/[slug]`.
+
+### Smaller items still parked
+
+- **Replaced-user email parity** in `sendStandingAssignmentReplacedEmail` — doesn't use `firstSessionMonth` for the deep-link. Documented in session-130 close; no signal to act on.
+- **Inline editing in the cross-hub staffing view** — read-only with deep-links to per-hub editing. Requires careful UX about which hub a given action is scoped to.
+- **Audit-trail soft nudge in EndMenu** — speculative; don't build until real signal.
+- **The PWA / native-app conversation** — `2026-05-21-001` rejected at session 120; architecture parked.
+
+---
+
+### Previously — Session 131 (2026-05-27) — final close — four parked-item closures + closing-ritual step 8b
 
 Five commits on `main` (`a8fbe60`, `2d1c8d1`, `377d0f4`, `ba1f67e`, `1d46c25`) plus the closing-ritual doc sweep. Each commit closed a parked item from the session-130 backlog. No new work started; today was a sustained knock-it-off-the-list pace.
 

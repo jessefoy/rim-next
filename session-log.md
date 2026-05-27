@@ -1,5 +1,101 @@
 ---
 
+## 2026-05-27 (session 132) — `/join` slice: new-member threshold door, consolidated agreement text, two orphans deleted
+
+Four commits on `main`. The slice rebuilt the new-member sign-up flow end-to-end: a separate threshold page distinct from `/login`, the agreement text consolidated to one canonical source used by every surface, and two orphan pages (plus an entire CSS prefix) removed from the codebase.
+
+**Commits, in order:**
+1. `28ab0f5` — Add `/join` — new-member threshold page distinct from `/login`
+2. `22a3210` — `/join`: integrate agreements + form into one panel; consolidate to one canonical agreement text
+3. `21f14cf` — Nav: link to `/join`; delete orphan `/community-membership` page
+4. `120badd` — Delete orphan `/account/dashboard-member-care-agreements` page + `.mc-*` CSS
+
+### What this work connects to
+
+Touches every surface that previously asked someone to commit to RIM's community ethos: `/login` (was the single dual-purpose door), `/account/welcome` (post-sign-in welcome ritual), program registration (inline agreements section for non-signed-in registrants). The Nav, public Programs listing, the diversity page, and three orphan reference pages all carried stale references to `/community-membership` from the Webflow era. Closes FEATURES.md §14 "Community Onboarding & Membership Philosophy" gap — the section described a two-path model (Path A through programs, Path B through `/login`), but a third path (intentional sign-up through a dedicated threshold page) wasn't represented either in code or in the doc.
+
+### Commit 1 — `28ab0f5` — `/join` threshold page + shared rate-limit module
+
+New files:
+- `app/join/page.tsx` — server component, hero ("Become a member") + the Webflow intro paragraph, four agreements as cards (initial cut; restructured in commit 2), sign-up form section below.
+- `components/JoinForm.tsx` — client component: first name, last name, email, optional phone, agreement checkbox, submit. Calls a new POST `/api/account/join`.
+- `app/api/account/join/route.ts` — POST handler. Validates name + email + agreement. Upserts the User with `agreedToTerms: true` + `agreedAt: now`. Triggers `signIn("resend", { redirect: false })` to send the 6-digit code. Sends a warm welcome letter and enrolls in the onboarding course series in `after()` callbacks (session 96 reliability pattern). If a member with `agreedToTerms: true` already exists at the email, soft-redirects them to `/login?email=…` instead of duplicating the threshold ritual.
+- `lib/authRateLimits.ts` — shared constants + key helpers (`signinEmailKey`, `signinIpKey`, `verifyIpKey`, `EMAIL_MAX = 5`, `IP_SEND_MAX = 20`, `WINDOW_SECONDS = 600`). Both `/api/auth/signin/resend` (the NextAuth catch-all) and `/api/account/join` import from here so alternating between doors does NOT double an attacker's budget. The catch-all was refactored to import from the same module.
+- `lib/communityAgreements.ts` — canonical agreement text (short version, four items: title + one-sentence summary), shared lead-in copy, shared checkbox label.
+- `lib/email.ts::sendJoinWelcomeEmail` — new email helper.
+- `prisma/migrate.mjs` — defensive `findUnique → create` seed for the `join-welcome` template (Email Template Gate compliance).
+
+Modified files:
+- `app/login/page.tsx` — accepts `?email=` from searchParams and pre-fills via `defaultValue`, renders a calm one-liner above the form ("It looks like you already have an account with us. Sign in to continue.") when arriving from /join's soft-redirect. H1 simplified from "Join or sign in" → "Sign in". Subhead trimmed; new "New to RIM? Become a member →" link points to `/join`.
+- `app/api/cron/cleanup-incomplete-accounts/route.ts` — widened from one path to two: existing `agreedToTerms = false AND createdAt > 48h` PLUS new `agreedToTerms = true AND emailVerified IS NULL AND createdAt > 48h` (the `/join` user who got a code but never verified). Without the second path, abandoned-mid-verify accounts would linger indefinitely.
+
+**Reviewer sub-agent caught two showstoppers + one low pre-commit.** Showstopper 1: the join endpoint bypassed the session-131 rate-limit (which lives in the NextAuth catch-all) — an attacker could email-bomb arbitrary recipients via this new door. Fixed by extracting rate-limit constants to `lib/authRateLimits.ts` and applying them in the join endpoint with the same keys. Showstopper 2: `/login` didn't read `?email=` from searchParams, so the soft-redirect promise from `/join` was broken end-to-end — users landed on an empty form. Fixed. Low: re-fetch of user.id inside `after()` callback when the upsert already had it; captured directly.
+
+### Commit 2 — `22a3210` — integrate agreements + form into one panel; consolidate to ONE canonical agreement text
+
+Jesse spotted that the first cut rendered the four agreements twice on `/join` — once as four cards in the foreground, then again as full long-form paragraphs inside the form. Same idea, twice. Worse: `WelcomeForm` and `RegistrationForm` each kept their own collapsed `<details>` copies of the long paragraphs, so a single edit to the agreement text meant editing it in three different places with three different shapes.
+
+The fix mirrored the Webflow Community Membership page: agreements + form live in ONE integrated panel; the agreements are a numbered list with bold titles + one-sentence summaries.
+
+Changes:
+- `lib/communityAgreements.ts` dropped the LONG paragraph version. The SHORT version is now THE canonical agreement text (renamed `COMMUNITY_AGREEMENTS_SHORT` → `COMMUNITY_AGREEMENTS`). Lead-in updated to the Webflow phrasing. Three new constants — `JOIN_HERO_TITLE`, `JOIN_HERO_INTRO`, `JOIN_FORM_LEAD` — carry the page's hero + form-section copy verbatim from the Webflow page.
+- `/join` page rebuilt: header on top ("Become a member" + intro), then ONE `jn-panel` containing agreements + form together, divided by a soft rule. The agreements are an `<ol>` with title + summary per item. No more cards-and-paragraphs duplication.
+- `JoinForm` dropped its long-form agreements section entirely. The form is just fields + checkbox + submit + "Already have an account →".
+- `WelcomeForm` replaced its collapsed `<details>` long paragraphs with the same visible numbered list. Imports from communityAgreements.
+- `RegistrationForm` did the same.
+- CSS: `.jn-card`, `.jn-card__title`, `.jn-card__body`, `.jn-formwrap`, `.jn-agreements__grid`, `.jn-agreements-long__*` removed (now-unused). `.jn-panel`, `.jn-panel__heading`, `.jn-panel__subheading`, `.jn-panel__divider`, `.jn-agreements-list` added. Same numbered-list shape adapted into `.wl-agreements__list` and `.pg-form__agreements-list`. The dead `.wl-agreements__details`, `__body`, and `::-webkit-details-marker` rules (and the matching `.pg-form__agreements-*` set) removed.
+
+Net: 219 insertions, 345 deletions. One agreement text. Three surfaces showing it identically in shape, sized for their context.
+
+### Commit 3 — `21f14cf` — Nav repointed to /join; orphan /community-membership deleted
+
+The Nav had a "Join Us" entry pointing at `/community-membership` — a Webflow-port read-only page that displayed the long-form agreements with no path to actually join. Now that `/join` is the threshold ritual, the read-only page is redundant. Per Jesse's call: "site's not live yet... feels safe to just get rid of it to keep our system clean."
+
+Nav (`components/Nav.tsx`):
+- Desktop "Member Area" dropdown for signed-out viewers: order swapped so "Become a Member" appears first (the threshold is the more important door for someone discovering RIM), then "Sign in" below. Copy refreshed.
+- Mobile menu for signed-out viewers: "Join RIM" link replaced with "Become a Member" + a separate "Sign in" entry. Same ordering.
+- Both surfaces now point at `/join`.
+
+Orphan page removed (`app/community-membership/page.tsx`): Webflow-shim CSS classes, out-of-date long-form copy of the agreement paragraphs (which we'd just deleted from `lib/communityAgreements.ts` in commit 2).
+
+Stale link cleanup — every other reference to `/community-membership` in active code:
+- `app/community-programs/page.tsx`: hero CTA → `/join`, copy updated to "Become a Member" for consistency with the nav.
+- `app/diversity/page.tsx`: "Join Us!" button → `/join`.
+- `app/programs/[slug]/page.tsx` (lines 278, 287): two "member home" links that said "Members access Zoom via their **member home**" with the href pointing at `/community-membership` — a pre-existing bug where link text didn't match destination. Fixed both to `/account/dashboard`, which is what "member home" actually is and what the signed-in branch one ternary up already uses.
+- `app/account/dashboard-member-care-agreements/page.tsx`: removed the dead "Read more about our community on the Community Membership page" footer link (would 404 after this commit).
+
+### Commit 4 — `120badd` — second orphan deletion + `.mc-*` CSS cleanup
+
+Surfaced while sweeping `/community-membership` references: `/account/dashboard-member-care-agreements` was ALSO an orphan. Nothing linked to it. Its own hard-coded copy of the deprecated long-form agreement paragraphs. Same pattern as `/community-membership` — orphan, redundant, drifted text.
+
+Jesse confirmed deletion. Removed:
+- The page file
+- The entire `.mc-*` CSS block (header + `.mc-page`, `.mc-heading`, `.mc-intro`, `.mc-agreement`, `.mc-agreement__title`, `.mc-agreement__body`, `.mc-footer-link`)
+- Two stragglers in shared typography selector lists: `.mc-heading + .mc-agreement__title` in the member-area headings list, `.mc-intro + .mc-list-item + .mc-confirm-text` in the member-area serif-prose list
+- `.mc-page` and `.mc-heading` in the shared mobile media query
+
+Every reference to the `.mc-` prefix and the `/dashboard-member-care-agreements` URL is gone.
+
+### Reviewer sub-agent track record this session
+
+- Commit 1 (`28ab0f5`): two showstoppers caught (rate-limit bypass, `/login` `?email=` missing) + one low (re-fetch user inside `after()`). All three addressed before commit.
+- Commit 2 (`22a3210`): skipped — focused consolidation refactor with grep-confirmed no orphan refs, type-check + lint clean.
+- Commit 3 (`21f14cf`): skipped — nav repoint + dead-link sweep, mechanical.
+- Commit 4 (`120badd`): skipped — orphan deletion + CSS prefix sweep, mechanical.
+
+### Memory candidates from step 8b behavior audit
+
+Proposed for Jesse's confirmation at closing:
+
+- **`feedback-community-not-anonymous.md`** — *"A community isn't a community if it's anonymous."* Triggered by Jesse's explicit statement when confirming name collection on `/join`. Generalizes to: RIM community surfaces always require real names; never default to anonymous or single-field flows for community membership.
+- **`feedback-honor-the-reference.md`** — When Jesse points at a specific reference page or design ("look at the actual page"), match its actual choices. Don't combine its content with structure or text from other contexts and call that "comprehensive." Triggered by the long-paragraph redundancy on `/join` (I had rendered Webflow's short cards AND the long paragraphs from elsewhere, instead of honoring what the Webflow page actually shows).
+
+### What comes next
+
+UP_NEXT.md rewritten to reflect the new state. The slice is shipped, but end-to-end verification on the deployed site is pending (Jesse will walk the three paths: `/join`, the two emails landing, and Nav placement). Voice extraction for the welcome email letter remains parked until writing samples are gathered. Sessions 125–131 verification pass also still queued.
+
+---
+
 ## 2026-05-27 (session 131) — Four small follow-ups: endDatetime guard, hub coverage editor, reliability sweep, rate-limit, auto-coordinator, closing-ritual step 8b
 
 Five commits on `main`. Each closes a parked item from the session-130 backlog rather than starting new work. The session was a sustained "knock items off" pace: each follow-up arrived with a known shape, was implemented in 15–60 minutes including reviewer + commit, and shipped in isolation. No surprises.
