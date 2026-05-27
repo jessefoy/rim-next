@@ -219,6 +219,8 @@ When Jesse says **"closing prompt"**, **"let's document everything"**, or simila
 
 8. **Architectural decisions.** If a significant architectural or strategic decision was made or reversed during this session, identify the authoritative document for that decision and update or supersede it before closing. This is the step the closing ritual was missing when the Webflow directive went stale — a directive going out of date is nobody's job unless it's explicitly someone's job. Don't let the docs lie.
 
+8b. **Behavior audit — scan the session for memory candidates.** Re-read the session transcript with a single question: *did Jesse correct, validate, or surface anything that future-me should not have to learn again?* Look for three signals: (1) corrections ("don't," "stop doing that," "no, the other way") — these go in `feedback-*` memory files; (2) validated approaches that surprised me or weren't obvious ("yes, exactly," accepting an unusual choice without pushback) — these also go in `feedback-*` files, with a *Why* line capturing what made it the right call; (3) surprises about project state, external systems, or user role — these go in `project-*`, `reference-*`, or `user-*` files. Don't write the memory files silently. List each proposed entry with a one-line summary and ask Jesse to confirm or discard. The five-minute audit is what keeps the memory system from drifting into "only what Claude noticed mid-flight." Most sessions will produce zero memory updates; that's fine — the value is in the scan, not in always finding something.
+
 9. **Commit and push all documentation changes together.**
 
 If any of these files do not need updating for this session, say so explicitly. Do not silently skip them.
