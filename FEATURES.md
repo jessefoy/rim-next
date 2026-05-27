@@ -1905,6 +1905,13 @@ Three changes landed together:
 
 Reviewer caught one medium (`findUpcomingDates` ignoring `Program.endDatetime` — fixed locally; worth a follow-up to push the check into the shared `isOccurrenceOnDate` since `/tools/schedule` and `/this-week` share the same blind spot) and two cleanest lows (unused import, redundant second `db.user.findMany`); all addressed.
 
+**Final follow-ons (commits `b0614e9` + `adc51e2`).** Two more bugs surfaced during testing of the new affordances:
+
+- **Missing `hubSlug` in client save handlers.** `RotationsClient.handleSave`, `handleEnd`, and `handleSetEndDate` POSTed without `hubSlug`. The server's fallback to the program's primary hub silently wrote rotations into the wrong hub. A Greeter coordinator saving a Greeter rotation on a hybrid program found the rule landing on host-team. All three handlers now explicitly pass `hubSlug`. Also: the apply call inside the standing-assignments POST now scopes to `targetHubSlug` to avoid re-firing other hubs' rules on the same program+day. Documented in `RIM_Hub_Engineering.md` as a new rule.
+- **Role-aware copy across all hubs.** UI and email copy were still host-team-centric (the Audio Visual schedule said "You're hosting" on AV assignments). Added three fields to the `Hub` model — `coverageNoun` / `coverageVerb` / `coverageAction` — defaulting to host-team values. Migration `add_hub_coverage_copy_v1` backfilled the three non-host-team hubs by slug. New helper `getHubCoverageCopy` returns the strings or defaults. `HubScheduleClient.tsx` and all six standing-assignment email send sites now read from the hub's copy: "AV needed" / "You're covering AV" / "AV: Bob" on the AV hub, "Facilitator needed" / "You're facilitating" / "Facilitator: Nancy" on peer-led, etc. Email subjects + bodies follow the same logic. Documented in `RIM_Scheduler.md`. Future hubs with `allowsMultipleAssignments=false` and the right coverage copy read naturally without code changes.
+
+After these last two commits, the session-130 arc is closed. Every layer — schema, capability gates, notification recipients, UI filters, outbound URLs, destructive-route deletion patterns, multi-day per-rotation UX, cross-hub program-coordination view, and user-facing copy across UI + emails — speaks the four-hubs vocabulary consistently. The Scheduler is configurable per-hub via the six Hub config fields with no code branches per slug.
+
 ### Silent Meditation Hub — Slice 2 + 2.5 + 2.6 operational + hub-isolation hardening (session 128 continued)
 
 After Slice 1's architecture landed, the next phase took the system live for the first peer-led hub end-to-end. Three layers landed:

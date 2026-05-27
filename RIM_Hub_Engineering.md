@@ -137,6 +137,38 @@ The pre-session-130 (and pre-reviewer) version did them sequentially: `program.u
 
 **Rule:** if step 2 depends on step 1's outcome to be coherent, and a partial failure produces an invalid system state, both belong in the same `$transaction`.
 
+## Client mutations must explicitly pass `hubSlug` (session 130 follow-up)
+
+The server-side fallback in standing-assignment routes:
+
+```ts
+const programHubSlug = await getProgramHubSlug(body.programSlug);
+const targetHubSlug = body.hubSlug || programHubSlug;
+```
+
+…is **backward-compat for legacy callers**, not a default for new client code. When `body.hubSlug` is missing, the server falls back to the program's primary hub. For a coordinator on an auxiliary hub (AV, greeter), that means the mutation silently writes to the wrong hub — invisible in the view that submitted it.
+
+The session-130 bug: `RotationsClient.handleSave`, `handleEnd`, and `handleSetEndDate` all POSTed without `hubSlug`. A coordinator on Greeter trying to save a rotation found their rule written into host-team. The UI looked broken — the save returned 200, but the new rotation was in a different hub than the one they were viewing.
+
+**Rule:** every client-side mutation that targets a hub-scoped resource MUST pass `hubSlug` in its body. The server's primary-hub fallback should only ever fire for legacy callers that pre-date the field (and those should be migrated when found). Treat a missing `hubSlug` in new code as a client bug.
+
+**Closing checklist:** when touching a client handler that POSTs to a hub-scoped route, grep its body string for `hubSlug` before committing. If it's not there, the fallback is masking a bug.
+
+## Hub config is the right granularity for behavior variance (session 130 follow-up)
+
+After session 130's final commits, six hub-config fields drive every per-hub behavior in the Scheduler with no code branches per slug:
+
+| Field | Drives |
+|---|---|
+| `hasSchedule` | Hub Home view (HostHubHomeClient vs generic) + Hosting team dropdown eligibility |
+| `allowsMultipleAssignments` | Single-slot vs open-signup Schedule UX |
+| `appliesToFormats` | Which programs surface (virtual/hybrid vs in-person/hybrid) |
+| `assignmentGrantsTeacher` + `teacherLabel` | Session-room pill semantics |
+| `coverageNoun` + `coverageVerb` + `coverageAction` | User-facing UI + email copy |
+| `ProgramCoverageHub` (join table) | Primary + auxiliary program coverage |
+
+When adding a new hub-aware behavior, the first question is: **is this a code branch per slug, or a new hub-config field?** Default to the config field. New hubs become configuration on top of the architecture, not new code. A code branch per slug is a hint that a missing config field hasn't been articulated yet.
+
 ## Audit at the user-flow layer, not just the code-correctness layer (session 130)
 
 The code-correctness audit above is necessary but not sufficient. Session 129's five-phase audit verified hub-scoping correctness across every routing layer and ran clean. The next slice (session 130, Maria's beta test) immediately surfaced four real bugs in the *user flow*:

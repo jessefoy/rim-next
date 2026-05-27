@@ -299,6 +299,43 @@ Discoverability: each program card in the Rotations grid carries a `View all rol
 
 **Edge case fixed pre-commit:** `isOccurrenceOnDate` doesn't honor `Program.endDatetime` (only `recurrenceCount`), so ended programs would have surfaced phantom "upcoming" sessions in the multi-claim block. The staffing-view's `findUpcomingDates` clips its walk at `endDatetime` locally. Follow-up: push the same check into the shared `isOccurrenceOnDate` helper since `/tools/schedule` and `/this-week` have the same blind spot.
 
+## Role-aware copy (session 130 final follow-up)
+
+Each hub represents a functional role per the programs it covers — host, AV, greeter, facilitator — and the user-facing copy in the Schedule tab, the Rotations grid, and outbound emails reads from the hub's configured language rather than the host-team default.
+
+Three fields on `Hub` carry this:
+
+| Field | Form | Examples |
+|---|---|---|
+| `coverageNoun` | Capitalized noun | "Host" / "AV" / "Greeter" / "Facilitator" |
+| `coverageVerb` | Present-continuous verb phrase | "hosting" / "covering AV" / "greeting" / "facilitating" |
+| `coverageAction` | Base-form action phrase | "host this" / "cover AV" / "greet" / "facilitate" |
+
+All three default to host-team values, so existing behavior is preserved when a hub is missing values. Configured per-hub at `/admin/hubs` (form fields are an open follow-on; for now configured via migration).
+
+Helper: `lib/programHub.ts::getHubCoverageCopy(hubSlug)` returns `{ noun, verb, action }` or `DEFAULT_COVERAGE_COPY` for unknown slugs.
+
+### Where the copy is used
+
+**UI (HubScheduleClient.tsx):**
+- "{Noun} needed" — empty session card
+- "Yes, I can {action}" — claim button
+- "You're {verb}" — own assignment status
+- "{Noun}: [Name]" — covered session
+- Toast: "You're {verb}. The team has been notified."
+
+**Emails (lib/email.ts):**
+- `sendStandingAssignmentScheduledEmail` body — "scheduled to be {verb} the following sessions"
+- `sendStandingAssignmentReplacedEmail` subject — "You're no longer {verb} {program}"
+- `sendStandingAssignmentEndedEmail` subject — "Your {verb} rotation has ended"
+- `sendStandingAssignmentReleasedEmail` body — "removed from the standing rotation as {Noun}"
+
+### When adding new user-facing copy to the Scheduler
+
+Default to using `coverageCopy` if the copy is about the user's role on a session. If the copy is hub-agnostic (filter labels, modal titles, calendar nav), use generic language.
+
+A rule of thumb: if the same string would read awkwardly on the AV hub or the greeter hub, it probably needs `coverageCopy`.
+
 ## Orphan-hub rotations + atomic program transfer (session 130 follow-up)
 
 A program's `hostingHubSlug` is the primary hub. Its `ProgramCoverageHub` rows list auxiliary hubs (session 129 — AV team, greeter team). A `StandingAssignment` or `HostAssignment` is **valid** on the program if its `hubSlug` is the primary OR is in the auxiliary set.

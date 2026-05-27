@@ -126,6 +126,73 @@ This is the final ship in the session-130 arc, which started with Maria's beta-t
 - **Day-named labels matter for multi-day programs.** Renaming "End" → "Reset Monday" / "Reset Tuesday" etc converted a buried, ambiguous action into a clearly day-scoped one. Generic destructive-action labels work when there's only one thing they could mean; once the action is per-day in a multi-day grid, the day belongs in the label.
 - **FK-Restrict pattern audit is now complete** for the Scheduler API. Six routes share the canonical SubClaim → SubRequest → HostAssignment delete-in-transaction pattern. Documented at length in `RIM_Scheduler.md`.
 
+### Final closing arc (post-manual-update follow-ons)
+
+Three more commits landed after the manual rewrite, each surfacing real bugs that real-world testing exposed.
+
+**Multi-claim Rotations tab over-correction + revert (`10a161a` → `418e11f`).** Jesse sent a screenshot from the Greeter hub's Rotations tab where "Set up" wasn't letting him add people. I misread the situation — assumed greeter (multi-claim) shouldn't have a Rotations tab at all, and hid the tab entirely. That was the wrong move. Jesse corrected: he was trying to put greeters on a recurring schedule the same way you'd put hosts on a rotation, and the right framing is "the tab exists, the action failed." Reverted the hide-the-tab change in `418e11f`. This is the second time in the session-130 arc that I jumped to a wrong fix based on screenshot context instead of focusing on the user's described failure. New data point for `feedback-pattern-audit.md` — *user's description of the failure is the primary signal; supporting visual context is supporting evidence, not the framing.*
+
+**Missing `hubSlug` in client save handlers (`b0614e9`).** The actual bug behind Jesse's "I can't save a Greeter rotation" report. The save POST in `RotationsClient.handleSave` was missing the `hubSlug` field in the body. Server-side fallback in the standing-assignments POST handler:
+
+```ts
+const programHubSlug = await getProgramHubSlug(body.programSlug);
+const targetHubSlug = body.hubSlug || programHubSlug;
+```
+
+When `body.hubSlug` is undefined, `targetHubSlug` falls back to the program's **primary** hub. So saving a Greeter rotation on The Art of Meditation was silently writing the `StandingAssignment` with `hubSlug = "host-team"` (the program's primary). The Greeter view filters by `hubSlug = "greeter"` — so the new rotation never appeared on the page that submitted it. From the coordinator's perspective the action just didn't work.
+
+Same gap in `handleEnd` and `handleSetEndDate` — both POSTed to end-bundle without `hubSlug`. Same silent wrong-hub effect. All three handlers fixed in this commit. `handleReleaseHost`, `handleProgReset`, and `handleClear` already passed `hubSlug` correctly from earlier session-130 commits; my client-side audit then was incomplete.
+
+Also: the apply call inside the standing-assignments POST route was passing no `hubSlugFilter` to `applyStandingAssignments`, so saving one hub's rotation would re-fire apply for every other hub's rules on the same `(programSlug, dayOfWeek)`. "leave" mode is no-op when slots are filled, but the broader walk could still send spurious emails to users in unrelated hubs. Now scopes to `targetHubSlug`.
+
+This pattern — client forgets to send a hub-scoping field, server fallback masks it — is worth specifically documenting. Adds to `RIM_Hub_Engineering.md`: *every hub-scoped client mutation must explicitly pass `hubSlug` in its body. The server's "fall back to program's primary hub" path is for backward-compat with legacy callers, not a default for new code. Treat the missing field as a client bug, not a server convenience.*
+
+**Role-aware copy across all hubs (`adc51e2`).** Jesse pointed out (with an Audio Visual hub screenshot showing "You're hosting" on an AV assignment) that the entire UI and email copy was still host-team-centric. Hubs are functional roles per program — host, AV, greeter, facilitator — and the copy should match.
+
+Three new fields on `Hub`:
+- `coverageNoun` — "Host" / "AV" / "Greeter" / "Facilitator"
+- `coverageVerb` — "hosting" / "covering AV" / "greeting" / "facilitating"
+- `coverageAction` — "host this" / "cover AV" / "greet" / "facilitate"
+
+All default to host-team values. Migration `add_hub_coverage_copy_v1` backfills the three non-host-team hubs by slug. New helper `getHubCoverageCopy(hubSlug)` returns the three strings or defaults.
+
+UI replacements in `HubScheduleClient.tsx`:
+- "Needs a host" → "{Noun} needed" ("AV needed")
+- "Yes, I can host" → "Yes, I can {action}" ("Yes, I can cover AV")
+- "You're hosting" → "You're {verb}" ("You're covering AV")
+- "Hosted by [Name]" → "{Noun}: [Name]" ("AV: Bob")
+- Toast: "You're hosting. The team has been notified." → "You're {verb}. The team has been notified."
+
+Email replacements in `lib/email.ts`:
+- `sendStandingAssignmentScheduledEmail` body: "scheduled to be {verb}" 
+- `sendStandingAssignmentReplacedEmail` subject: "You're no longer {verb} {program}"
+- `sendStandingAssignmentEndedEmail` subject: "Your {verb} rotation has ended"
+- `sendStandingAssignmentReleasedEmail` body: "removed from the standing rotation as {Noun}"
+
+Six email callsites (`standing-assignments` POST, `apply`, `release-host`, `end-bundle`, `[id]` DELETE, `cron`) now resolve coverage copy from the hub. Apply route + cron cache per-hub in a Map to avoid re-querying within a single email batch.
+
+### What this work connects to
+
+The orphan-heal + FK-Restrict + per-day Reset + cross-hub staffing view + role-aware copy together cover every "host"-centric assumption in the Scheduler that wasn't sound across the four hubs. The architecture established in session 128–129 (program ↔ hub many-to-many, single-slot vs multi-claim, hub-scoped routes) is now fully matched at the user-facing layer.
+
+Hub configuration is the source of truth for behavior across the system:
+- `hasSchedule` → renders the Host-style hub home
+- `allowsMultipleAssignments` → single-slot vs open-signup Schedule UX
+- `appliesToFormats` → which programs surface
+- `assignmentGrantsTeacher` + `teacherLabel` → session-room pill semantics
+- `coverageNoun` + `coverageVerb` + `coverageAction` → user-facing copy
+- `ProgramCoverageHub` join table → primary + auxiliary program coverage
+
+Future hubs are configuration on top of this architecture, not new code. Anyone creating a new hub in `/admin/hubs` (with the upcoming form fields, or for now via a one-off migration) gets the right behavior across the entire Scheduler.
+
+### Final architectural calls
+
+- **Hub config fields are the right granularity for behavior variance.** Five booleans/strings on the Hub model now drive what each hub looks and sounds like. No code branches per hub slug anywhere in the Scheduler.
+- **The "user's description of the failure" beats "screenshot context" as the framing signal.** Twice in this session arc I picked the wrong fix because I led with what the screenshot was showing instead of what the user said had failed. Recorded in `feedback-pattern-audit.md`.
+- **Missing-hub-scoping-field on client mutations is its own bug class.** The server's fallback to program's primary hub was designed for backward-compat. New client code should never rely on that fallback — explicit `hubSlug` is the contract. Worth a closing checklist item.
+
+---
+
 ---
 
 ## 2026-05-25 (session 129 continued) — Post-ship fixes + thorough scheduler audit

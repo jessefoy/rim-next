@@ -6,9 +6,9 @@
 
 ## Active
 
-### Session 130 (2026-05-26) — Maria's beta-test fixes + the full follow-up arc
+### Session 130 (2026-05-26) — final close — Maria's beta-test fixes + the full follow-up arc
 
-Four-bug fix from Maria's beta + four follow-up commits triggered by Jesse's real-world testing. **Seven commits total on `main`:** `960968b` → `38f4582` → `11864f2` → `93f985e` → `3117833` → `313beff` → `fc041ea`.
+Four-bug fix from Maria's beta + six follow-up commits triggered by Jesse's real-world testing across multiple hubs. **Ten commits total on `main`:** `960968b` → `38f4582` → `11864f2` → `93f985e` → `3117833` → `313beff` → `fc041ea` → `f263194` → `71822d0` → `418e11f` → `b0614e9` → `adc51e2` → final closing doc sweep.
 
 **The follow-up arc (same day):**
 
@@ -17,6 +17,14 @@ Four-bug fix from Maria's beta + four follow-up commits triggered by Jesse's rea
 3. **FK-Restrict pattern fix (`3117833`).** After the heal landed and Jesse retested, the inline diagnostic patch from step 1 surfaced `HTTP 500` on a different program's Reset — a historic CANCELLED sub-request was FK-Restrict-blocking the parent HostAssignment delete. Same SubRequest-FK bug the reviewer flagged for the migration, but in four pre-existing production routes. Audited the codebase with `grep subRequest.updateMany`, found four offenders (`clear-rotations`, `release-host`, `assignments/[id]` DELETE, `assignments/reassign`), all replaced with the canonical SubClaim → SubRequest → HostAssignment deleteMany pattern in `$transaction`. PATCH unclaim keeps cancel-OPEN behavior because it doesn't delete the parent.
 
 4. **Per-day Reset rename + cross-hub program-staffing view + two more FK gaps (`fc041ea`).** Jesse named two design issues that emerged once the system worked: multi-day programs need a per-day Reset as a first-class affordance, and hubs are functional roles per program that should be viewable in one place. Three things landed: (a) row-level "End" button → "Reset [Day]" (programmatically day-named) with day-aware copy through the manage panel and toasts; (b) new read-only page at `/tools/schedule/program/[slug]` showing one program across every covering hub — per-day rotation tables for single-slot hubs, signup counts for multi-claim. Linked from each program card via "View all roles →"; (c) two more FK-Restrict gaps closed (`standing-assignments/[id]` DELETE rotation + both branches of `end-bundle`) — completing the FK-Restrict pattern audit for the Scheduler API. Reviewer caught one medium (`findUpcomingDates` ignoring `Program.endDatetime`) and two cleanest lows pre-commit; all addressed.
+
+5. **Manual chapter rewrite (`71822d0`).** Host Rotations chapter rewritten as v5 to match session-130 reality — hubs-as-roles framing, per-day Reset rename, Remove-from-rotation rename, two-reset-levels section, per-date-vs-whole-rotation distinction, cross-hub staffing view. Host Schedule chapter rewritten as v6 — tool rename to "Scheduler," clickable "Next" affordance, deep-link email behavior, multi-hub framing.
+
+6. **Wrong move + revert: hide Rotations tab on multi-claim hubs (`10a161a` → `418e11f`).** Jesse sent a screenshot from Greeter showing Rotations didn't let him add people. I misread — assumed greeter (multi-claim) shouldn't have a Rotations tab at all and hid the tab. Wrong fix. Jesse corrected: he was trying to put greeters on a recurring schedule via the rotation pattern, and the tab is the right place. Reverted. Second time in the arc I led with screenshot context over the user's described failure mode. Lesson recorded in `feedback-pattern-audit.md`: *user's description of the failure is the primary signal; supporting visual context is supporting evidence, not the framing.*
+
+7. **The actual bug: missing `hubSlug` in client save handlers (`b0614e9`).** `RotationsClient.handleSave`, `handleEnd`, and `handleSetEndDate` were POSTing without `hubSlug`. Server fell back to the program's primary hub, silently writing rotations into the wrong hub. A Greeter coordinator saving a Greeter rotation on a hybrid program found the rule landing in host-team. All three handlers fixed. Apply call inside standing-assignments POST also scoped to `targetHubSlug`. New rule in `RIM_Hub_Engineering.md`: every client-side mutation targeting a hub-scoped resource must explicitly pass `hubSlug`.
+
+8. **Role-aware copy across all hubs (`adc51e2`).** Jesse spotted (with an AV hub screenshot) that the UI still said "You're hosting" on Audio Visual assignments. Three new fields on `Hub` — `coverageNoun` / `coverageVerb` / `coverageAction` — defaulting to host-team values. Migration `add_hub_coverage_copy_v1` backfilled the three non-host-team hubs. New helper `getHubCoverageCopy(hubSlug)`. UI and email copy now read from the hub's config: "AV needed" / "You're covering AV" / "AV: Bob" on AV; "Facilitator needed" / "You're facilitating" / "Facilitator: Nancy" on peer-led. Six email send sites updated. Future hubs are configuration on top of the architecture, not new code.
 
 **What to verify on the deployed site once `fc041ea` lands:**
 
@@ -58,7 +66,8 @@ These are the verifications carried from the original four-bug fix, still pendin
 
 ### Known follow-ons (queued)
 
-- ~~**Manual chapter.**~~ ✅ Closed in commit `71822d0`. Wrote `host-rotations` v5 (major rewrite — hubs-as-roles framing, per-day Reset rename, Remove-from-rotation rename, two-reset-levels section, per-date-vs-whole-rotation distinction, cross-hub staffing view section) and `host-schedule` v6 (tool rename to "Scheduler," clickable "Next" affordance, deep-link email behavior). Both self-heal on next deploy via migration flags.
+- ~~**Manual chapter.**~~ ✅ Closed in `71822d0`.
+- **Admin form exposure for hub coverage copy.** `/admin/hubs/[slug]/edit` doesn't yet have inputs for the three new `coverage*` fields. New hubs created via the form get host-team defaults. Currently the only way to change them is a one-off migration. ~15 min slice — three text inputs + POST/PATCH wiring.
 - **Push the `endDatetime` check into `isOccurrenceOnDate`.** The staffing view fixes it locally for itself; `/tools/schedule` and `/this-week` share the helper and have the same blind spot. Small refactor, removes a future-bug class.
 - **Editing in the staffing view.** Currently read-only with deep-link to per-hub editing. A future iteration could allow inline editing — but it requires careful UX about which hub the action is scoped to, because the same surface shows multiple hubs.
 - **Behavior change re: sub-claim rows on rotation removal.** `release-host` no longer frees future HostAssignments where the user took the row via sub-claim. Intentional — sub-claims are individual commitments. Documented. Revisit if it causes operational confusion.
@@ -66,7 +75,7 @@ These are the verifications carried from the original four-bug fix, still pendin
 
 ### Memory files added this session
 
-- `feedback-pattern-audit.md` — when the reviewer sub-agent identifies a class of bug (not a single local mistake), the fix is not done until the same pattern has been grepped across the codebase. Triggered by the FK-Restrict pattern surfacing in three production routes after I fixed it only in the migration + PUT handler.
+- `feedback-pattern-audit.md` — when the reviewer sub-agent identifies a class of bug (not a single local mistake), the fix is not done until the same pattern has been grepped across the codebase. Triggered by the FK-Restrict pattern surfacing in three production routes after I fixed it only in the migration + PUT handler. **Second data point added at the end of the arc:** *the user's described failure mode is the primary framing signal; supporting screenshot context is supporting evidence, not the framing.* Two over-corrections in the arc traced to this — multi-claim Rotations-tab hide (revert) and the broader "is this UI conceptually wrong" reading instead of "this specific click failed."
 
 ---
 
