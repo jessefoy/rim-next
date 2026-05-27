@@ -337,7 +337,13 @@ export async function POST(request: Request) {
   const results: Awaited<ReturnType<typeof applyStandingAssignments>>[] = [];
   for (const { year: y, month: m } of months) {
     results.push(
-      await applyStandingAssignments(body.programSlug, y, m, "leave", null, body.dayOfWeek)
+      // Scope the apply to the target hub so saving a greeter rotation
+      // doesn't re-fire host-team rules for the same (program, day). The
+      // client now passes hubSlug (session 130 follow-up); this scopes
+      // the side effects correctly. "leave" mode means no-op anyway when
+      // slots are filled, but we'd still spurious-email users in other
+      // hubs on the same program+day.
+      await applyStandingAssignments(body.programSlug, y, m, "leave", null, body.dayOfWeek, targetHubSlug)
     );
   }
 

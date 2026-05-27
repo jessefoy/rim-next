@@ -315,7 +315,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       const res = await fetch("/api/host/standing-assignments/end-bundle", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ programSlug, dayOfWeek, endsOn: endOnInput }),
+        body:    JSON.stringify({ programSlug, dayOfWeek, endsOn: endOnInput, hubSlug }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
@@ -569,6 +569,13 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
           hosts:       form.hosts,
           fifthHost:   form.fifthHost || null,
           endsOn:      form.endsOn || null,
+          // hubSlug MUST be passed — without it the route falls back to
+          // the program's PRIMARY hosting hub, silently writing the
+          // rotation into the wrong hub. The greeter coordinator's
+          // attempt to save a greeter rotation on The Art of Meditation
+          // landed in host-team because of this gap. Same fix applied
+          // to handleEnd and handleSetEndDate.
+          hubSlug,
         }),
       });
       if (!saveRes.ok) {
@@ -615,7 +622,7 @@ export default function RotationsClient({ programs, teamMembers, year, month, is
       const res = await fetch("/api/host/standing-assignments/end-bundle", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ programSlug, dayOfWeek, releaseFuture }),
+        body:    JSON.stringify({ programSlug, dayOfWeek, releaseFuture, hubSlug }),
       });
       if (!res.ok) throw new Error("end failed");
       const data = await res.json().catch(() => ({ ended: 0, released: 0 }));
