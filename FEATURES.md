@@ -96,6 +96,11 @@ Two audiences:
 - The callback URL is constructed entirely client-side (form GETs `/api/auth/callback/resend`) so the `NEXTAUTH_URL` trimming concern from `UP_NEXT.md` doesn't apply here
 - `signIn` with `redirect: false` returns a URL string rather than throwing on failure — when adapting this pattern elsewhere, always inspect the returned URL for `error=` query params
 
+**Rate-limiting (session 131, 2026-05-27 — closes backlog `2026-05-21-002`):** the catch-all NextAuth POST handler at `app/api/auth/[...nextauth]/route.ts` is wrapped to apply Postgres-backed fixed-window rate limits before delegating to NextAuth's standard handler.
+- `POST /api/auth/signin/resend` (email send) — limited per-email at 5 / 10 min AND per-IP at 20 / 10 min. Defends against email-bombing and botnet hammering.
+- `POST /api/auth/callback/resend` (code verify) — limited per-IP at 20 / 10 min. Combined with the 30-min code expiry, this caps brute-force economics at ~350 days to exhaust the 900K code space.
+- Blocked requests redirect to `/login/error?error=RateLimit` (303) with a calm plain-language message. Per-area engineering reference: `RIM_Auth.md`. Implementation: `lib/rateLimit.ts::checkRateLimit` uses a single atomic UPSERT with three-branch CASE expressions to handle new-row / expired-window-reset / active-window-increment in one round-trip (no read-modify-write race). Cross-instance enforcement via Neon — no Upstash or Redis required. Daily cleanup cron at 10:15 UTC (`/api/cron/cleanup-rate-limits`) sweeps expired rows. Table `rate_limit_windows` (migration `rate_limit_windows_v1`).
+
 ---
 
 ## 2. Roles & Permissions

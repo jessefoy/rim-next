@@ -66,10 +66,12 @@ A hub is a team space. The team is defined by membership. ADMIN configures hubs 
 What's still ADMIN-only:
 - `/admin/hubs/*` configuration (hub create, edit, delete)
 - Hard-remove member at `/api/hub/[slug]/members/[userId]` DELETE
-- The `/admin/hubs/[slug]/add-me-as-coordinator` endpoint (bootstrap path for an admin who just created a hub)
+- The `/admin/hubs/[slug]/add-me-as-coordinator` endpoint (bootstrap path for an admin who needs to enter a hub someone else created — see auto-coordinator note below)
 - Anywhere `effectiveCoordinator` or `requireCoordinator` is consulted — those still ADMIN/GT-bypass because they're coordinator-level authority, not access
 
 The mental model: **ADMIN configures hubs from outside; ADMIN participates from inside (as a member).**
+
+**Auto-coordinator on hub creation (session 131).** `POST /api/admin/hubs` writes a `HubMember` row for the calling admin atomically alongside the hub itself, via Prisma nested `members.create`. Values mirror `/api/admin/hubs/[slug]/add-me-as-coordinator` exactly (`isCoordinator: true`, `status: ACTIVE`, `hostingCapability: true`, `communicationsEnabled: true`, `position: "Coordinator"`). The standard creator flow no longer requires the post-create "Add me as coordinator" click. The safety-net endpoint stays for the case where an admin needs to bootstrap into a hub someone else created. **Implication for new code:** when a hub exists, its creating admin is *always* a coordinator-member. Don't write defensive code that assumes "the creator might not be a member."
 
 ---
 
@@ -79,7 +81,7 @@ The mental model: **ADMIN configures hubs from outside; ADMIN participates from 
 
 **Routing by the actor's hub instead of the resource's hub.** A peer-leader of `peer-led-silent-meditation` might also be on the host-team. If they take an action on a peer-led program, capability + notifications + URLs should all route by the **program's** hub, not the actor's. The actor's current viewing context (`?hub=` in URL) is a UI affordance, not an authoritative routing input.
 
-**Bare `.catch(() => {})` for fire-and-forget emails.** Vercel's serverless lifecycle kills in-flight Promises when the response returns. Use `after()` from `next/server` — that's the canonical fire-and-forget for route handlers. For functions called by routes (`syncHubMembership` etc.), either `await` the sends so the parent route waits, or accept an `after()` callback the route can wrap. Bare `.catch(() => {})` also swallows errors silently — even if delivery worked, we'd lose observability.
+**Bare `.catch(() => {})` for fire-and-forget side-effects** — NOT just emails. Vercel's serverless lifecycle kills in-flight Promises when the response returns. Use `after()` from `next/server` — that's the canonical fire-and-forget for route handlers. For functions called by routes (`syncHubMembership` etc.), either `await` the sends so the parent route waits, or accept an `after()` callback the route can wrap. Bare `.catch(() => {})` also swallows errors silently — even if delivery worked, we'd lose observability. The pattern applies to **every** fire-and-forget — emails, enrollment side-effects, alert dispatch, role-side-effects, payment-completed actions. Session 131 swept the codebase and converted 9 remaining sites; structured `console.error("[route-name] fnName failed", err)` makes future failures discoverable in Vercel logs.
 
 **Filtering at the page level without filtering at the API.** A common shortcut: page query returns all data, page UI filters by hub. Wrong — the API should filter, because (a) it's where security boundaries live and (b) downstream consumers (counts, badges, exports) shouldn't have to re-implement the filter. See `app/tools/schedule/page.tsx` for the canonical pattern of filtering programs by hub in the Prisma query.
 

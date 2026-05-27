@@ -1,5 +1,86 @@
 ---
 
+## 2026-05-27 (session 131) — Four small follow-ups: endDatetime guard, hub coverage editor, reliability sweep, rate-limit, auto-coordinator, closing-ritual step 8b
+
+Five commits on `main`. Each closes a parked item from the session-130 backlog rather than starting new work. The session was a sustained "knock items off" pace: each follow-up arrived with a known shape, was implemented in 15–60 minutes including reviewer + commit, and shipped in isolation. No surprises.
+
+**Commits, in order:**
+1. `a8fbe60` — `endDatetime` guard in shared helper + hub coverage-copy admin form
+2. `2d1c8d1` — Fire-and-forget reliability sweep (9 sites in 5 files)
+3. `377d0f4` — Rate-limit on NextAuth signin + callback endpoints
+4. `ba1f67e` — Hub-creation auto-coordinator
+5. `1d46c25` — `CLAUDE.md` step 8b behavior audit added to closing ritual
+
+### What this work connects to
+
+All five connect to existing systems rather than introducing new ones. The endDatetime guard generalizes a local fix from the session-130 cross-hub staffing view to the entire scheduler ecosystem (Scheduler page, This Week page, applyStandingAssignments). The hub coverage-copy editor finishes the session-130 promise that "future hubs are configuration on top of the architecture, not new code" — without it, every new hub still required a migration to set its role-aware copy. The reliability sweep generalizes the session-96 `after()` fix from the welcome-email site to every remaining `.catch(() => {})` fire-and-forget pattern in the codebase. The rate-limit slice closes backlog `2026-05-21-002` ahead of the eventual `rootedinmindfulness.org` public cutover. The auto-coordinator polish closes the session-128 catch-22 at its origin. The closing-ritual step 8b is a process refinement that makes the existing memory system more rigorous.
+
+### Commit 1 — `a8fbe60` — endDatetime guard + coverage copy editor
+
+**The endDatetime fix.** `lib/scheduleUtils.ts::isOccurrenceOnDate()` previously didn't honor `program.endDatetime`. Ended courses surfaced phantom future sessions on every page that walked the calendar forward — Scheduler, This Week, and all 6 standing-assignment routes that consume the helper indirectly through `lib/applyStandingAssignments`. The session-130 cross-hub staffing view (commit `fc041ea`) patched the blind spot locally inside `findUpcomingDates` with a `programEndDate` clip; the comment on that local guard explicitly flagged the helper-level fix as a follow-up. Today's slice pushes the guard into the shared helper (`if (p.endDatetime && dateStr > ctDateStr(p.endDatetime.toISOString())) return false;` right after the startDatetime check, before any recurrence branch) and removes the now-redundant local clip. The interface didn't change — `endDatetime` was already on `ScheduleProgram` — so callers got the fix transparently. Strict `>` comparison so a program whose endDatetime is exactly today still shows today's session.
+
+**The hub coverage-copy editor.** Session 130 added three new columns to the Hub model — `coverageNoun` / `coverageVerb` / `coverageAction` — and a `getHubCoverageCopy(hubSlug)` helper that resolves them with host-team defaults ("Host" / "hosting" / "host this") as fallback. A migration backfilled values for the four existing hubs. But the admin form at `/admin/hubs/[slug]/edit` had no way to change them, so any new hub created via the admin UI silently inherited host-team's words. Today's slice adds three text inputs to `HubAdminForm.tsx` in a "Role-aware copy" fieldset positioned below the Teacher pill label area. Inputs are 40-char-capped, with live hint sentences that show what each field fills (e.g. "*Fills sentences like 'Yes, I can {action}'*"). Server-side, both POST (create) and PATCH (update) destructure the three fields, sanitize via a shared `cleanCoverageInput` helper that trims + caps + falls through to `DEFAULT_COVERAGE_COPY` from `lib/programHub.ts` on empty input. **Mid-flight surprise:** I initially designed the form payload to send `null` on empty input and the API to store null, then typecheck failed because the columns are `String @default()` (non-nullable). Spent ~10 minutes redesigning the form contract to send-empty / resolve-default. Lesson recorded as a memory candidate at closing — *read the schema column types before designing the empty-value semantics for a form input*. Reviewer caught zero blocking issues; one informational observation about per-email rate-limit key cardinality (bounded by per-IP limit anyway).
+
+### Commit 2 — `2d1c8d1` — fire-and-forget reliability sweep
+
+Session 96 (2026-04-27) discovered that `void (async () => { … })()` after a route handler returns silently dies on Vercel — the serverless function tears down once the response goes out, killing in-flight async work. The fix was `after()` from `next/server`. Session 96 patched the welcome-email instance. Session 128 patched a few more in the host-team flows. Nine sites remained — all enrollment side-effects and role-assignment emails that had been fired with `.catch(() => {})` and were sitting there as silent-failure-waiting-to-happen.
+
+The sweep converted all nine, in 5 files:
+
+- `app/api/admin/members/[id]/route.ts` — role-series enrollment loop + three role-assignment emails (REGISTRAR, HOST, HOST_MANAGER). The loop was wrapped in a single `after()` block (sequential, one log line per failure) rather than N parallel `after()` calls — cleaner log output, fewer scheduled callbacks.
+- `app/api/account/complete-profile/route.ts` — onboarding-series enrollment
+- `app/api/account/registrations/[id]/cancel/route.ts` — cancellation notification to registrar
+- `app/api/registrations/route.ts` — onboarding-series enrollment (new guest signup branch) + program-course enrollment
+- `app/api/stripe/webhook/route.ts` — program-course enrollment on payment-completed event
+
+Every conversion adds structured `console.error("[route-name] fnName failed", err)` so future failures show up in Vercel logs instead of vanishing into the old bare swallow. Reviewer-caught drive-by: a stale `// Send confirmation email — fire-and-forget, never blocks the response` comment in registrations/route.ts on a line that's actually `await`-blocking. Rewrote the comment to reflect reality (the registration flow intentionally blocks on confirmation email delivery — the user shouldn't see "you're registered" until the email is on its way).
+
+Sites deliberately NOT touched: `request.json().catch(() => null)` parse-fallback patterns (14+ sites; deliberate, not fire-and-forget), client-side `.catch(() => {})` in `HubHomeClient` and `BrightnessProcessor` (browser code, no serverless teardown), prisma/*.ts scripts (not route handlers).
+
+### Commit 3 — `377d0f4` — rate-limit on NextAuth signin + callback
+
+Closes backlog `2026-05-21-002`. Two attack surfaces hardened ahead of the eventual `rootedinmindfulness.org` cutover:
+
+- **POST /api/auth/signin/resend** — the email-send endpoint. Limited per-email (5 requests / 10 min) AND per-IP (20 requests / 10 min). The dual limit catches both an attacker spraying one address (per-email gate) and a botnet hammering many addresses from one IP (per-IP gate). A typing-error retry pattern (~1–3 sends in a sangha-aged user's session) sits well below the threshold.
+- **POST /api/auth/callback/resend** — the code-verify endpoint. Limited per-IP (20 attempts / 10 min). Combined with the existing 30-minute code expiry, exhausting 1M six-digit codes would take ~350 days at the limited rate — economically dead as an attack vector.
+
+**Storage choice — Postgres-backed.** Three options were on the table: in-memory (per-instance, weak on Vercel), Postgres-backed (Neon, already wired), Upstash Redis (textbook production-grade, new service + env vars). Postgres-backed won because RIM's sign-in volume is very low (<100/day expected), the ~5–10ms DB round-trip is negligible at that scale, and it's cross-instance without introducing a new external service. Decision is documented in the new `RIM_Auth.md`.
+
+**Architecture:** new `RateLimitWindow` table with `key` (e.g. `signin-email:foo@bar.com`), `count`, `windowStart`, `expiresAt`, unique on `key`, indexed on `expiresAt`. New `lib/rateLimit.ts::checkRateLimit(key, max, windowSeconds)` uses a single atomic UPSERT with three parallel `CASE WHEN expiresAt <= NOW()` branches to handle "new row / expired-window-reset / active-window-increment" in one round-trip — no read-modify-write race. The `RETURNING` clause gives the post-write `count` so the caller knows immediately whether the request is allowed. Fail-open if the DB query throws (DB-down already means nothing else works either).
+
+**The wrapper:** `app/api/auth/[...nextauth]/route.ts` was previously `export const { GET, POST } = handlers`. Replaced with a POST wrapper that inspects `url.pathname`, applies the appropriate limits (per-email via `req.clone().formData()` to read the email field, per-IP via `x-forwarded-for`), and delegates to `handlers.POST(req)` if allowed. Blocked requests redirect to `/login/error?error=RateLimit` (303) with a calm message instead of a raw 429. GET stays untouched — auth GET endpoints (CSRF, session) have no abuse vector worth limiting.
+
+**Cleanup:** new daily cron at 10:15 UTC (5:15 AM CT) deletes expired rows. Schedule chosen to come after the existing 5:00 AM CT cleanup-incomplete-accounts cron so all daily cleanups cluster in one window.
+
+Reviewer caught zero blocking issues. One informational note about per-email key cardinality — bounded by the per-IP limit at 20 emails/IP/window anyway.
+
+### Commit 4 — `ba1f67e` — hub-creation auto-coordinator
+
+Closes the session-128 catch-22 at its origin. When ADMIN lost its content-access bypass in session 128 ("ADMIN must be a HubMember to interact with hub content"), the admin who creates a new hub at POST `/admin/hubs` could no longer enter that hub without first clicking "+ Add me as coordinator" on the edit page. That button was added in session 128 as the safety-net endpoint and remains — still useful when an admin needs to bootstrap into a hub someone else created. Today's slice removes the extra click for the standard creator flow: the POST handler now writes a `HubMember` row for the calling admin atomically alongside the hub itself, via Prisma's nested `members.create` inside the same `db.hub.create`. Values mirror the existing `/api/admin/hubs/[slug]/add-me-as-coordinator` endpoint exactly so behavior is identical between the two entry points.
+
+### Commit 5 — `1d46c25` — closing-ritual step 8b
+
+`CLAUDE.md` closing ritual gains step 8b: at session close, re-read the transcript with one question — *did Jesse correct, validate, or surface anything that future-me should not have to learn again?* Three signals to watch for: (1) corrections ("don't," "stop"), (2) validated approaches that weren't obvious, (3) surprises about project state or external systems. Don't write the memory files silently — list each proposed entry with a one-line summary and ask Jesse to confirm or discard. Most sessions will produce zero updates; the value is in the scan, not in always finding something. The step is positioned between "Architectural decisions" (8) and "Commit and push" (9). Memory files live at `~/.claude/projects/-Users-jessefoy-Sites-rim-next/memory/` and don't get committed to git, so ordering relative to the commit step doesn't matter functionally — only reflectively.
+
+### Reviewer sub-agent track record this session
+
+- Commit 1 (`a8fbe60`): zero blocking findings; one informational placement note (end-of-period strict-inequality semantics).
+- Commit 2 (`2d1c8d1`): one stale-comment observation (incorporated as a drive-by).
+- Commit 3 (`377d0f4`): zero blocking findings; one informational cardinality note.
+- Commit 4 (`ba1f67e`): skipped — single-file mirror of a known-good endpoint, well below the non-trivial threshold.
+
+### Memory candidate from step 8b behavior audit
+
+Proposed for Jesse's confirmation at closing:
+
+- **`feedback-read-schema-before-form-design.md`** — when a slice adds form inputs for existing schema columns, READ the column types from `prisma/schema.prisma` before designing the empty-value semantics. UX phrasing like "leave blank to use default" doesn't tell you whether the column is `String?` (nullable) or `String @default("X")` (non-null). Triggered by ~10 minutes of rework during commit 1 when I had to redesign the form/API contract after typecheck failed against the non-nullable `coverageNoun/Verb/Action` columns.
+
+### What comes next
+
+Today closes the four parked items A/B/C/D from UP_NEXT. The remaining queued follow-ons (most from session 130) are smaller — admin form for hub coverage was today's #1; the verification work for sessions 125–130 remains, and the Voice extraction (`RIM_Voice.md`) prompt from session 128 is still parked pending Jesse gathering writing samples. New `RIM_Auth.md` documents the sign-in flow + rate-limit + cleanup as the authoritative per-area reference.
+
+---
+
 ## 2026-05-26 (session 130) — Maria's beta-test fixes: sub-request discoverability, release semantics, destructive UX
 
 Jesse opened with a four-bug report from Maria's first real beta test of the Host Hub Scheduler. Maria couldn't find the "Ask the team to cover" affordance after clicking the confirmation email link, perceived a "reset" action as having shifted her Tuesday rotation to Wednesday, found that a full reset didn't change the visible schedule, and got a "your schedule was reset" email that didn't describe what actually happened. Out of the four, two had high-confidence root causes I could fix directly and two could not be diagnosed without screenshots or DB state — for those, the slice landed defensive UX hardening that makes the next test self-diagnosing.

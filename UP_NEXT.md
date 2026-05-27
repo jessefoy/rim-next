@@ -6,7 +6,48 @@
 
 ## Active
 
-### Session 130 (2026-05-26) — final close — Maria's beta-test fixes + the full follow-up arc
+### Session 131 (2026-05-27) — final close — four parked-item closures + closing-ritual step 8b
+
+Five commits on `main` (`a8fbe60`, `2d1c8d1`, `377d0f4`, `ba1f67e`, `1d46c25`) plus the closing-ritual doc sweep. Each commit closed a parked item from the session-130 backlog. No new work started; today was a sustained knock-it-off-the-list pace.
+
+**What's now live (verification pending on the deployed site):**
+
+1. **`isOccurrenceOnDate` honors `endDatetime`** (`a8fbe60`). Ended courses no longer surface phantom future sessions on `/tools/schedule`, `/this-week`, or any of the 6 standing-assignment routes. The local clip in the cross-hub staffing view (session 130's `fc041ea` patch) was removed — the shared helper now does the right thing everywhere.
+2. **Hub coverage-copy editor** (`a8fbe60`). The "Role-aware copy" fieldset at `/admin/hubs/[slug]/edit` exposes `coverageNoun` / `coverageVerb` / `coverageAction` with live hint sentences. Blank input resolves to host-team defaults from `DEFAULT_COVERAGE_COPY`. Finishes the session-130 promise that future hubs are configuration on top of the architecture, not new code.
+3. **Fire-and-forget reliability sweep** (`2d1c8d1`). 9 sites in 5 files converted from `.catch(() => {})` to `after()` from `next/server` with structured `console.error` logging. Generalizes the session-96 welcome-email fix. Sites: admin/members PATCH (role-series enrollment + 3 role emails), account/complete-profile, account/registrations cancel, registrations POST (2 sites), stripe webhook.
+4. **Rate-limit on NextAuth signin + callback** (`377d0f4`). Postgres-backed, cross-instance, no new external service. Thresholds: signin/resend at 5/10min per email + 20/10min per IP; callback/resend at 20/10min per IP. Blocked → calm message at `/login/error?error=RateLimit`. New per-area engineering doc `RIM_Auth.md`. Closes backlog `2026-05-21-002`.
+5. **Hub-creation auto-coordinator** (`ba1f67e`). `POST /api/admin/hubs` writes a `HubMember` row for the calling admin atomically alongside the hub. Closes the session-128 catch-22 at its origin. Safety-net `/api/admin/hubs/[slug]/add-me-as-coordinator` stays for the inherited-hub case.
+6. **`CLAUDE.md` step 8b** (`1d46c25`). Closing ritual gains a behavior-audit step — scan the session for corrections, validated approaches, and surprises that should become memory files. Propose for confirmation before commit.
+
+**Memory file added this session:** `feedback-read-schema-before-form-design.md` (pending Jesse's confirmation at closing — propose-and-confirm pattern from new step 8b).
+
+### What to verify on the deployed site
+
+1. **Open `/admin/hubs/audio-visual/edit`.** The "Role-aware copy" section sits below the Teacher pill area. Three inputs pre-filled with "AV" / "covering AV" / "cover AV" (backfilled by session 130's migration). Clear one, save, reload — should read the host-team default back ("Host" / "hosting" / "host this").
+2. **Pick a recurring program with an `endDatetime` in the past** (or set one temporarily on a test program). Confirm `/tools/schedule` and `/this-week` no longer show sessions past that date.
+3. **Add a HOST role to a test member from `/admin/members`.** They should receive the host-role welcome email reliably (was probably working before but unreliable; the `after()` wrap closes the silent-fail mode).
+4. **Cancel a test registration from `/account/programs/[slug]`.** Registrar should get the cancellation email.
+5. **Request 6 sign-in codes in a row from `/login` using the same email.** The 6th should land on `/login/error?error=RateLimit` with the calm message. The other code paths (single typo retry, regular daily sign-in) should be unaffected.
+6. **Create a new test hub at `/admin/hubs/new`.** Immediately go to `/account/hub/<slug>` — should land you inside without the bootstrap step.
+7. **Vercel logs:** the next daily run at 5:15 AM CT should show `[cleanup-rate-limits] Deleted N expired window(s).`
+
+### Known follow-ons (queued, none urgent)
+
+- **Voice extraction (`RIM_Voice.md`).** Still parked since session 128. Pending Jesse gathering 5–10 writing samples that sound most like him; ~15–20 minutes of focused work once samples are ready.
+- **Verification of sessions 125–130 on the deployed site.** A whole accumulated test pass. Worth a dedicated session — host a real practice session, exercise each surface (raised-hand queue, persistent vote signals, time-gated tokens, per-session rooms, per-program teacherLabel, hub-coverage routing, multi-claim Scheduler, role-aware copy, per-day Reset, cross-hub staffing view, rate-limit, auto-coordinator).
+- **Magic-link migration cleanup** (backlog `2026-05-21-003`). Remove the dead `seed_magic_link_email_templates` migration entries from `prisma/migrate.mjs`. Mechanical cleanup; no user impact.
+- **Noindex headers on member-only pages** (backlog `2026-05-25-001`). Belt-and-suspenders pass — auth gate already prevents content delivery; this prevents indexing in case of misconfiguration. Add `metadata.robots = "noindex, nofollow"` to `/lessons/[slug]/page.tsx` and the enrolled-state branch of `/course/[slug]/page.tsx`. Possibly add `app/robots.ts` to declare site-wide crawler allow/disallow paths.
+
+### Smaller items still parked
+
+- **Replaced-user email parity** in `sendStandingAssignmentReplacedEmail` — doesn't use `firstSessionMonth` for the deep-link. Documented in session-130 close; no signal to act on.
+- **Inline editing in the cross-hub staffing view** — currently read-only; deep-links to per-hub editing. Requires careful UX about which hub a given action is scoped to (the same surface shows multiple hubs). Parked.
+- **Audit-trail soft nudge in EndMenu** — speculative; don't build until real signal.
+- **The PWA / native-app conversation** — `2026-05-21-001` rejected at session 120; architecture parked.
+
+---
+
+### Previously — Session 130 (2026-05-26) — Maria's beta-test fixes + the full follow-up arc
 
 Four-bug fix from Maria's beta + six follow-up commits triggered by Jesse's real-world testing across multiple hubs. **Ten commits total on `main`:** `960968b` → `38f4582` → `11864f2` → `93f985e` → `3117833` → `313beff` → `fc041ea` → `f263194` → `71822d0` → `418e11f` → `b0614e9` → `adc51e2` → final closing doc sweep.
 

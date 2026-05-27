@@ -1,0 +1,154 @@
+# RIM Auth — Engineering Reference
+
+**Per-area reference for the sign-in flow, session model, and rate limiting.**
+
+Read this before working on anything in `/api/auth/*`, `auth.ts`, `lib/rateLimit.ts`, `app/login/*`, or anything that touches sign-in or NextAuth callbacks.
+
+Companion docs:
+- `RIM_Stack_Reference.md` — the NextAuth row + the rate-limit row at a glance.
+- `FEATURES.md §1 Authentication` — feature-level overview of the sign-in flow.
+- `auth.ts` — the live NextAuth config.
+
+---
+
+## The flow at a glance
+
+1. User visits `/login`, enters their email
+2. `signIn("resend", { email, redirect: false })` triggers a POST to `/api/auth/signin/resend`
+3. NextAuth's Resend provider calls `generateVerificationToken` (we override it to a 6-digit code via `crypto.randomInt(100000, 1000000)`)
+4. Our `sendVerificationRequest` callback sends an email via Resend containing the code (no magic link)
+5. User lands at `/login/check-email?email=<encoded>`, types the code
+6. Form submits a GET to `/api/auth/callback/resend?token=CODE&email=EMAIL&callbackUrl=...`
+7. NextAuth verifies the token against the `VerificationToken` table, sets the session cookie, redirects
+
+**Why 6-digit codes instead of magic links.** Magic links route to the OS default browser regardless of where the user wants to be (a Safari user who prefers Chrome ends up authenticated in Safari with no way to "send to Chrome"). PWAs on iOS can't reliably receive magic-link clicks either. Codes work in every context because the user types them into the browser they're standing in. Industry-standard pattern (Slack, Apple, Mercury, Notion). Switched in session 119 (2026-05-21).
+
+**Code expiry: 30 minutes.** Was 10 minutes in the first ship; bumped after users hit expiry on the walk-away-and-come-back pattern. 30 minutes is humane without expanding brute-force surface much (combined with rate-limiting, the math is fine — see below).
+
+**Multiple unconsumed codes can coexist** per user. Each `signIn` call creates a fresh `VerificationToken` row; all are independently valid until consumed (single-use) or expired. Kept intentionally — Jesse uses this himself when he requests a new code after losing track of an earlier one.
+
+**Session expiry: 90 days.** `updateAge: 24h` so the session cookie refreshes at most once per day on activity. Sign-in friction is once per device, not every visit.
+
+---
+
+## The 5 sign-in error states
+
+When sign-in fails, NextAuth redirects to `/login/error?error=<code>`. The error codes the app renders calm copy for:
+
+| Error code | When | Message rendered |
+|---|---|---|
+| `Verification` | Token mismatch / expired / already consumed | "That code is invalid or has expired. Please request a new one." |
+| `Configuration` | Empty `?token=` at the callback (form bug) | "An error occurred during sign in. Please try again." (generic — this should not happen in practice; if it does, it's a form regression) |
+| `RateLimit` | Rate-limit window exceeded (see below) | "You've made several sign-in attempts in a short time. Please wait a few minutes, then try again." |
+| _everything else_ | Falls through to generic | "An error occurred during sign in. Please try again." |
+
+Edit messages in `app/login/error/page.tsx`. Add new branches there when a new failure mode warrants distinct copy.
+
+---
+
+## Rate limiting (session 131, 2026-05-27)
+
+**Closes backlog `2026-05-21-002`.** Defense-in-depth for the public-launch surface.
+
+### Two attack vectors
+
+1. **Email bombing** — POST `/api/auth/signin/resend` repeatedly with a victim's email to spam their inbox with sign-in codes
+2. **Brute-force code guessing** — POST `/api/auth/callback/resend` with code candidates against a known email (900K keyspace; without limiting, exhaustible in minutes at high request rate)
+
+### Thresholds
+
+| Surface | Per-email | Per-IP | Window |
+|---|---|---|---|
+| `signin/resend` (email send) | 5 | 20 | 10 min |
+| `callback/resend` (code verify) | n/a | 20 | 10 min |
+
+**Why these numbers.** A real user retrying after a typo'd email triggers 2–3 sends in a session — well below 5. A botnet hammering one IP across many addresses hits the per-IP gate. For the code-verify path, 20 attempts per 10 minutes against a 900K keyspace means exhausting the space takes ~350 days at the limited rate (versus instant without limiting). Combined with the 30-minute code expiry per individual code, brute-forcing a *specific* code is also economically dead.
+
+### Architecture
+
+**Storage: Postgres-backed (Neon), not Upstash or in-memory.** RIM's sign-in volume is very low (<100/day expected). The ~5–10ms DB round-trip is negligible at that scale. Cross-instance enforcement without adding a new external service. In-memory would be too weak (each Vercel instance has its own memory; an attacker triggering cold-starts dilutes the limit). Upstash would be textbook production-grade but adds setup overhead for what amounts to a low-traffic defense-in-depth surface.
+
+**Table: `rate_limit_windows`** (migration `rate_limit_windows_v1`):
+
+```sql
+CREATE TABLE rate_limit_windows (
+  id          TEXT PRIMARY KEY,
+  key         TEXT NOT NULL UNIQUE,
+  count       INTEGER NOT NULL DEFAULT 0,
+  windowStart TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expiresAt   TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX rate_limit_windows_expiresAt_idx ON rate_limit_windows(expiresAt);
+```
+
+**Helper: `lib/rateLimit.ts::checkRateLimit(key, max, windowSeconds)`.** Single atomic `INSERT … ON CONFLICT (key) DO UPDATE … RETURNING count, expiresAt`. Three parallel `CASE WHEN expiresAt <= NOW()` branches handle:
+
+1. **New row** (INSERT path) → `count = 1`
+2. **Expired window** (UPDATE path, `expiresAt <= NOW()`) → reset: `count = 1`, fresh `windowStart` + `expiresAt`
+3. **Active window** (UPDATE path, `expiresAt > NOW()`) → `count = existing + 1`, keep existing window timestamps
+
+No read-modify-write race: the read and write happen in one statement under row lock. Returns `{ allowed, resetAt, remaining }`. **Fail-open** if the DB query throws (DB-down already means nothing else works — the User table is in the same DB).
+
+**Wrapper: `app/api/auth/[...nextauth]/route.ts`.** Previously `export const { GET, POST } = handlers`. Now `GET` is still untouched (auth GET endpoints — CSRF cookie, session — have no abuse vector worth limiting) but `POST` is a wrapper that inspects `url.pathname`:
+
+- `signin/resend` → read email via `req.clone().formData()`, extract IP via `x-forwarded-for`, check per-email AND per-IP. Limits are independent — either trips the rate-limit response.
+- `callback/resend` → extract IP only, check per-IP.
+
+Limit-tripped requests return a 303 redirect to `/login/error?error=RateLimit`. 303 forces GET on the redirect target (correct, since the error page is GET-only). Other auth paths (signout, providers, csrf, session) pass through untouched.
+
+**Cleanup: daily cron `/api/cron/cleanup-rate-limits`** at 10:15 UTC (5:15 AM CT, after the existing 5 AM CT cleanup-incomplete-accounts). Deletes rows where `expiresAt < NOW()`. Lazy reset on read means stale rows are functionally harmless, but the cron keeps the table small and the unique-key lookup fast.
+
+### Key naming convention
+
+All keys in `rate_limit_windows.key` follow `<surface>:<dimension>:<value>`:
+
+| Surface | Key pattern | Example |
+|---|---|---|
+| Sign-in email send | `signin-email:<email>` | `signin-email:foo@bar.com` |
+| Sign-in IP send | `signin-ip:<ip>` | `signin-ip:192.0.2.1` |
+| Code verify IP | `verify-ip:<ip>` | `verify-ip:192.0.2.1` |
+
+**Email keys MUST be lowercased + trimmed** before calling `checkRateLimit` — the wrapper does this at the call site (`raw.toLowerCase().trim()`). Don't trust raw form input to already be normalized; a bot can send `Foo@Bar.com` and `foo@bar.com` and bypass per-email limiting without this normalization.
+
+### Operational notes
+
+- **Clearing a stuck user.** If a real user reports being locked out, delete their row(s) by key in the Neon console: `DELETE FROM rate_limit_windows WHERE key LIKE 'signin-email:<their-email>' OR key LIKE 'signin-ip:<their-ip>';`
+- **Adjusting thresholds.** Constants live at the top of `app/api/auth/[...nextauth]/route.ts` (`EMAIL_MAX`, `IP_SEND_MAX`, `IP_VERIFY_MAX`, `WINDOW_SECONDS`). No env vars — the numbers are deliberately code-visible so changes show up in commit history.
+- **Adding a new rate-limited surface.** Use the same `checkRateLimit(key, max, windowSeconds)` helper; namespace the key (`<surface>:<dimension>:<value>`); decide on fail-open vs. fail-closed behavior at the call site. The helper itself returns `{ allowed, resetAt, remaining }` — caller decides what to do with `!allowed`.
+
+### What NOT to do
+
+- **Don't add rate-limiting via Vercel edge middleware** (`middleware.ts` / `proxy.ts`). The path inspection + body parsing pattern needs the full Node runtime, not the edge. The wrapper at `app/api/auth/[...nextauth]/route.ts` is the right place.
+- **Don't fail-closed on DB errors.** The User table is in the same DB; if it's down, sign-in is already broken. Failing closed on the rate-limit check would add a second failure mode (every error becomes "you're rate-limited"). The current fail-open behavior is correct.
+- **Don't use the helper for high-traffic surfaces** without first measuring DB load. At RIM's <100 sign-ins/day, a few extra UPSERTs is invisible. At meaningful traffic, consider moving to Upstash or in-memory + sticky sessions.
+
+---
+
+## Key files
+
+| File | Role |
+|---|---|
+| `auth.ts` | NextAuth v5 config: Resend provider, generateVerificationToken override, sendVerificationRequest, session callback |
+| `app/api/auth/[...nextauth]/route.ts` | NextAuth catch-all + the rate-limit POST wrapper |
+| `lib/rateLimit.ts` | `checkRateLimit()` + `getRequestIp()` |
+| `app/api/cron/cleanup-rate-limits/route.ts` | Daily expired-row sweep |
+| `lib/email.ts::sendSignInCodeEmail` | Sends the templated sign-in code email |
+| `app/login/page.tsx` | Sign-in form (server action calls `signIn("resend", { redirect: false })`) |
+| `app/login/check-email/page.tsx` | Code-entry form |
+| `app/login/error/page.tsx` | Error landing page with per-code copy |
+| `prisma/schema.prisma` | `User`, `VerificationToken`, `RateLimitWindow` models |
+| `vercel.json` | The `cleanup-rate-limits` cron schedule |
+
+---
+
+## Common pitfalls
+
+1. **The callback URL is constructed client-side** (the code-entry form GETs `/api/auth/callback/resend`) — so `NEXTAUTH_URL` trimming concerns from session 96 don't apply here. Don't add server-side URL building to this flow.
+2. **`signIn` with `redirect: false` returns a URL string on failure, doesn't throw.** Always inspect the returned URL for `error=` query params when adapting this pattern. The signin/login server action does this; mirror it.
+3. **`generateVerificationToken` is lower-inclusive / upper-exclusive** — `crypto.randomInt(100000, 1000000)` produces codes 100000–999999. Codes never start with `0`. Keyspace 900K, not 1M. The "900K codes / 30 min" math in this doc reflects that.
+4. **Don't lock the rate-limit wrapper to specific NextAuth paths by full URL.** Use `endsWith("/signin/resend")` / `endsWith("/callback/resend")` so the check still works under base-path changes. The provider id is `"resend"` (lowercased from the `Resend` import); production paths are `/api/auth/signin/resend` and `/api/auth/callback/resend`.
+5. **The 30-minute code expiry is set on the Resend provider's `maxAge`** (in `auth.ts`), not on the rate-limit window. Don't conflate them — the rate-limit window is independent and protects against attack rate; the code expiry protects against attacks that already have a code in hand.
+
+---
+
+*Working document. Updated 2026-05-27 (Session 131 — rate-limit slice).*

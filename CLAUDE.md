@@ -13,6 +13,7 @@ RIM's design is rooted in a Dharma principle: **clear seeing is the prerequisite
 | Any code that sends an email or modifies an email template | **`RIM_Email_Engineering.md`** — URL helpers, fire-and-forget pattern, template gate, CTA button convention |
 | Scheduler tool (`/tools/schedule` and its routes) | **`RIM_Scheduler.md`** — the per-tool reference |
 | Role, permission, or member data | `RIM_Role_Design.md` + `RIM_System_Architecture.md` |
+| Auth, sign-in, NextAuth callbacks, rate-limit | **`RIM_Auth.md`** — sign-in flow, code generation, error states, rate-limit thresholds, key namespacing, common pitfalls |
 | Editor, text field, block, or rich content work | `RIM_Editor_Types.md` — canonical reference. Supersedes the older `RIM_Editor_Design.md`. |
 | New feature of any kind | `FEATURES.md` — check what already exists and what it connects to |
 | Program-related changes | Trace the full program ecosystem (registration, hosts, teachers, LiveKit, dana, pages, dashboard) |
