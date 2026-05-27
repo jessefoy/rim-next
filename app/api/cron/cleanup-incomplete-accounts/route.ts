@@ -1,13 +1,27 @@
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
 
-// Daily cron: remove User records where agreedToTerms is false
-// and the account was created more than 48 hours ago.
-// These are abandoned magic-link sign-ins where the person never
-// completed the community welcome step.
+// Daily cron: remove User records whose threshold/sign-in never completed.
 //
-// Schedule: add to vercel.json alongside send-reminders cron.
-// Vercel passes CRON_SECRET as Authorization: Bearer <secret>.
+// Two paths catch the same lifecycle gap from opposite ends:
+//
+//   1. User exists but agreedToTerms = false and was created > 48h ago.
+//      Pre-/join path: someone hit /login as a brand-new visitor (no /join
+//      page run), NextAuth created the User row at sign-in, but they never
+//      finished /account/welcome and never accepted the agreements.
+//
+//   2. User exists with agreedToTerms = true but emailVerified IS NULL and
+//      was created > 48h ago. /join path: they submitted the /join form
+//      (so we wrote agreedToTerms + name), but never typed the 6-digit code
+//      to verify the email. Without this branch these accounts linger
+//      indefinitely.
+//
+// 48h gives a generous tail for someone who genuinely intended to finish
+// but got distracted; emails take seconds, so anything older than this is
+// abandoned, not in-flight.
+//
+// Schedule: see vercel.json. Vercel passes CRON_SECRET as
+// Authorization: Bearer <secret>.
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
@@ -19,8 +33,13 @@ export async function GET(request: Request) {
 
   const { count } = await db.user.deleteMany({
     where: {
-      agreedToTerms: false,
       createdAt: { lt: cutoff },
+      OR: [
+        // Path 1 — never agreed
+        { agreedToTerms: false },
+        // Path 2 — agreed via /join but never verified the code
+        { agreedToTerms: true, emailVerified: null },
+      ],
     },
   });
 

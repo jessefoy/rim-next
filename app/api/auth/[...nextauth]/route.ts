@@ -1,6 +1,15 @@
 import { handlers } from "@/auth";
 import { NextResponse, type NextRequest } from "next/server";
 import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
+import {
+  EMAIL_MAX,
+  IP_SEND_MAX,
+  IP_VERIFY_MAX,
+  WINDOW_SECONDS,
+  signinEmailKey,
+  signinIpKey,
+  verifyIpKey,
+} from "@/lib/authRateLimits";
 
 /**
  * NextAuth catch-all route — wraps POST with rate-limiting before
@@ -16,33 +25,15 @@ import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
  * untouched. GET is also untouched — its endpoints are read-only and don't
  * carry an abuse vector worth limiting.
  *
+ * The /join door (POST /api/account/join) also calls signIn() internally and
+ * shares the same rate-limit keys via lib/authRateLimits — alternating
+ * between /join and /login does NOT double an attacker's budget.
+ *
  * Defense-in-depth choice (session 131): Postgres-backed instead of
  * Upstash/in-memory. Cross-instance enforcement on Vercel without a new
  * external service. Sign-in volume at RIM is low enough that the ~5–10ms
  * DB round-trip is negligible. See lib/rateLimit.ts.
- *
- * Thresholds tuned for RIM's audience — a typing-error retry should never
- * trip them, but a determined attacker is throttled hard. Adjust here as
- * traffic patterns dictate.
  */
-
-// Email-send window: 5 attempts per email per 10 minutes.
-// Real-user pattern: 1 send, maybe 1 retry. 5 leaves slack for "typed wrong
-// email, retried, hit spam folder, requested again" without locking out.
-const EMAIL_MAX = 5;
-
-// Email-send IP window: 20 per IP per 10 minutes.
-// Lets a shared-IP office (corporate gateway, sangha center) sign in several
-// users in a row; throttles a botnet hammering distinct addresses.
-const IP_SEND_MAX = 20;
-
-// Code-verify IP window: 20 per IP per 10 minutes.
-// At 20/10min, exhausting 1M six-digit codes takes ~350 days — versus
-// instant without a limit. Combined with the 30-min code expiry this
-// makes a single-code brute force economically dead.
-const IP_VERIFY_MAX = 20;
-
-const WINDOW_SECONDS = 10 * 60;
 
 /** Redirect helper — keeps the calm error page contract intact. */
 function rateLimitResponse(reqUrl: string): Response {
@@ -79,7 +70,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     // Per-email check (skip when we couldn't parse one — IP gate still applies).
     if (email && email.length > 0) {
       const emailCheck = await checkRateLimit(
-        `signin-email:${email}`,
+        signinEmailKey(email),
         EMAIL_MAX,
         WINDOW_SECONDS,
       );
@@ -90,7 +81,7 @@ export async function POST(req: NextRequest): Promise<Response> {
 
     // Per-IP check.
     const ipCheck = await checkRateLimit(
-      `signin-ip:${ip}`,
+      signinIpKey(ip),
       IP_SEND_MAX,
       WINDOW_SECONDS,
     );
@@ -103,7 +94,7 @@ export async function POST(req: NextRequest): Promise<Response> {
   if (path.endsWith("/callback/resend")) {
     const ip = getRequestIp(req);
     const ipCheck = await checkRateLimit(
-      `verify-ip:${ip}`,
+      verifyIpKey(ip),
       IP_VERIFY_MAX,
       WINDOW_SECONDS,
     );

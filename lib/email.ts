@@ -461,6 +461,38 @@ export async function sendCourseDanaReceiptEmail(
   });
 }
 
+// ─── Join welcome email ─────────────────────────────────────────────────────
+
+export interface JoinWelcomeEmailData {
+  to: string;
+  firstName: string;
+}
+
+/**
+ * Sent immediately after a new member completes the /join threshold (name +
+ * email + agreements). Lands alongside the sign-in code email — the code is
+ * the door, this is the embrace. Tone: warm, unhurried, like a letter from a
+ * teacher.
+ *
+ * The onboarding course drip series starts firing separately via
+ * enrollMemberInOnboardingSeries; this email is the single one-time letter.
+ *
+ * Managed via Email Template Manager — template: "join-welcome".
+ * Email Template Gate: matching seed entry in prisma/migrate.mjs ships with
+ * the same commit.
+ */
+export async function sendJoinWelcomeEmail(
+  data: JoinWelcomeEmailData
+): Promise<void> {
+  const { to, firstName } = data;
+  await sendTemplatedEmail("join-welcome", to, {
+    firstName,
+    dashboardButton: emailButtonHtml("Visit your dashboard", `${BASE_URL}/account/dashboard`),
+    dashboardUrl: `${BASE_URL}/account/dashboard`,
+    supportEmail: "support@rootedinmindfulness.org",
+  });
+}
+
 // ─── Program reminder email (to registrant) ──────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

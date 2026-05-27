@@ -4115,6 +4115,79 @@ async function main() {
     console.log("  ⏭ rate_limit_windows table already applied.");
   }
 
+  // ────────────────────────────────────────────────────────────────────────
+  // Seed the "join-welcome" email template (sent alongside the sign-in code
+  // when a new member completes the /join threshold). Defensive
+  // findUnique → create per CLAUDE.md Email Template Gate — preserves any
+  // admin edits made via /admin/emails on re-run.
+  // ────────────────────────────────────────────────────────────────────────
+  const joinWelcomeFlag = await db.$queryRawUnsafe(`
+    SELECT name FROM "_migration_flags" WHERE name = 'seed_join_welcome_email_template_v1'
+  `).catch(() => []);
+
+  if (joinWelcomeFlag.length === 0) {
+    console.log("→ Seeding join-welcome email template…");
+
+    const JOIN_WELCOME_BODY = `## Welcome, {{firstName}}.
+
+We're so glad you've joined our community.
+
+Whether you're new to meditation or have been practicing for years, our hope is that RIM becomes a place where you feel held — by the teachings, by the practice, and by the people walking this path alongside you.
+
+There's no rush to do anything in particular. The community is here when you're ready.
+
+### A few things to know
+
+**Online sessions every morning and evening.** Most of our offerings are drop-ins — no registration needed. You'll find them on your dashboard.
+
+**Programs and courses.** Structured learning, dharma study, qigong, meditation foundations. Some run as series; some are one-offs. Browse what's on at your own pace.
+
+**Dana.** RIM is 100% community-funded. We don't charge fixed fees — we ask that you contribute in a way that feels right to you. That practice of generosity is part of what makes this community possible. There's no pressure and no right amount.
+
+**Questions, anytime.** If something feels confusing, or you'd just like to say hello, write to us at [{{supportEmail}}](mailto:{{supportEmail}}). A real person will write back.
+
+Over the next little while, you'll also receive a short series of welcome notes — a gentle orientation to the community and the practice. Take them at your pace.
+
+{{{dashboardButton}}}
+
+With care,
+Rooted In Mindfulness
+Brookfield, Wisconsin`;
+
+    const existing = await db.emailTemplate.findUnique({
+      where: { slug: "join-welcome" },
+    });
+    if (!existing) {
+      await db.emailTemplate.create({
+        data: {
+          slug: "join-welcome",
+          name: "Join — Community Welcome Letter",
+          description:
+            "Sent immediately when a new member completes the /join threshold. Lands alongside the sign-in code; the code is the door, this is the embrace.",
+          enabled: true,
+          subject: "Welcome to Rooted In Mindfulness, {{firstName}}",
+          variables: ["firstName", "dashboardButton", "dashboardUrl", "supportEmail"],
+          group: "01-auth",
+          groupLabel: "Sign-in & Authentication",
+          helpText:
+            "Sent once, immediately, when a new member completes the /join page (name + email + community agreements). Distinct from the sign-in code email — the code is short and functional; this letter is the warm welcome that lands alongside it.\n\n" +
+            "Available variables: {{firstName}}, {{dashboardButton}} (canonical RIM-blue button — use triple braces {{{dashboardButton}}} to render the HTML), {{dashboardUrl}} (plain URL fallback), {{supportEmail}}.\n\n" +
+            "Safe to edit: subject, greeting, body copy, the closing signature. Free to rewrite this entirely in your own voice — it's the first email of the community arc.",
+          body: JOIN_WELCOME_BODY,
+        },
+      });
+      console.log("  ✔ join-welcome template created.");
+    } else {
+      console.log("  ⏭ join-welcome template already exists; preserving admin edits.");
+    }
+
+    await db.$executeRawUnsafe(
+      `INSERT INTO "_migration_flags" (name) VALUES ('seed_join_welcome_email_template_v1')`,
+    );
+  } else {
+    console.log("  ⏭ join-welcome template seed already applied.");
+  }
+
   await db.$disconnect();
   console.log("Migrations complete.");
 }

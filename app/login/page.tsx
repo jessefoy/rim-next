@@ -6,16 +6,24 @@ export const metadata = { title: "Sign in — Rooted In Mindfulness" };
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; email?: string }>;
 }) {
   const session = await auth();
   if (session) redirect("/account/dashboard");
 
-  const { error } = await searchParams;
+  const { error, email: prefillEmailRaw } = await searchParams;
   const errorMessage =
     error === "send-failed"
       ? "We couldn't send the code. Please check your email address and try again."
       : null;
+
+  // Allow /join to soft-redirect already-joined members here with their email
+  // pre-filled, so they don't have to retype. Trim + cap defensively — this
+  // value lands in a server-rendered input attribute.
+  const prefillEmail =
+    typeof prefillEmailRaw === "string"
+      ? prefillEmailRaw.trim().slice(0, 256)
+      : "";
 
   async function handleSignIn(formData: FormData) {
     "use server";
@@ -59,11 +67,15 @@ export default async function LoginPage({
         <div className="login-box">
           <div className="w-form">
             <form action={handleSignIn} className="form-container-4">
-              <h1 className="form-header">Join or sign in</h1>
+              <h1 className="form-header">Sign in</h1>
               <p style={{ marginBottom: "1.5rem", color: "#666", fontSize: "0.95rem" }}>
-                Enter your email and we&apos;ll send you a 6-digit code — whether you&apos;re new or
-                returning, it works the same way. No password needed.
+                Enter your email and we&apos;ll send you a 6-digit code. No password needed.
               </p>
+              {prefillEmail && (
+                <p style={{ marginBottom: "1rem", color: "#666", fontSize: "0.9rem" }}>
+                  It looks like you already have an account with us. Sign in to continue.
+                </p>
+              )}
               {errorMessage && (
                 <p style={{ marginBottom: "1rem", color: "#c44", fontSize: "0.9rem" }}>
                   {errorMessage}
@@ -78,6 +90,7 @@ export default async function LoginPage({
                   placeholder="e.g. howard.thurman@gmail.com"
                   type="email"
                   id="email"
+                  defaultValue={prefillEmail}
                   required
                 />
               </div>
@@ -85,7 +98,10 @@ export default async function LoginPage({
             </form>
           </div>
           <div style={{ marginTop: "1.5rem", textAlign: "center", fontSize: "0.9rem", color: "#666" }}>
-            New to RIM? You&apos;ll set up your name and a brief community welcome after your first sign-in.
+            New to RIM?{" "}
+            <a href="/join" style={{ color: "#39607a", textDecoration: "underline", textUnderlineOffset: "2px" }}>
+              Become a member →
+            </a>
           </div>
         </div>
       </div>
