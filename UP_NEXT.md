@@ -6,7 +6,74 @@
 
 ## Active
 
-### Session 132 (2026-05-27) — `/join` slice: new-member threshold door shipped
+### Session 132 + continuation (2026-05-27) — `/join` slice + threshold integrity pass
+
+Nine commits on `main` across one long day. Morning shipped the visible UX of the new-member threshold (`/join` page, integrated panel, agreement consolidation, two orphans deleted). Afternoon closed the invisible integrity (post-`/join` warmth across check-email + emails, route-group layout enforcing agreement + archive, soft-redirects in both directions between `/login` and `/join`).
+
+**Commits, in order:**
+
+Original `/join` slice (covered in the prior closing-ritual commit `c44aba1`):
+1. `28ab0f5` — `/join` page + `/api/account/join` endpoint + `join-welcome` email + shared `lib/authRateLimits.ts`
+2. `22a3210` — Integrate agreements + form into one panel; consolidate to one canonical agreement text
+3. `21f14cf` — Nav repointed to `/join`; orphan `/community-membership` deleted; four stale links swept
+4. `120badd` — Second orphan deleted (`/account/dashboard-member-care-agreements`) + `.mc-*` CSS removed
+
+Continuation (covered by this closing-ritual commit):
+5. `6fce1e5` — `/login/check-email` warm post-`/join` variant (state-driven 5-min window)
+6. `e840b68` — `auth.ts` template branching corrected: `emailVerified` not `agreedToTerms`
+7. `893d698` — `(authenticated)/` route-group layout enforcing 3 gates structurally
+8. `795129e` — `/login` not-found soft-redirect to `/join` when email doesn't exist
+9. `9dcbc32` — Catch-all hardening (existence check at HTTP entry) + DB-error fail-safe
+
+### What to verify on the deployed site
+
+The full sequence to walk for a new joiner:
+
+1. **`/join` signed out.** Hero + integrated panel with the four agreements (numbered list, title bold + one-sentence summary) above the form. Submit with a brand-new test email.
+2. **Two emails arrive.** Subject: "Your Rooted In Mindfulness sign-in code: …" (with the WARM "Welcome to Rooted In Mindfulness" body — this was fixed in `e840b68`). And the separate `join-welcome` letter "Welcome to Rooted In Mindfulness, `{firstName}`" alongside.
+3. **`/login/check-email` shows the warm variant.** No mailbox emoji. Headline "Almost there, `{firstName}`." Body: "Two things just arrived in your inbox: your sign-in code, and a short welcome letter. Type the code below to enter…"
+4. **Type the code.** Should land DIRECTLY at `/account/dashboard` (skipping `/account/welcome` because `agreedToTerms` is already true). The `(authenticated)/` layout passes all three gates (session ✓, agreed ✓, not archived ✓).
+
+The full sequence to walk for an unknown-email attempt at `/login`:
+
+5. **Type a never-used email at `/login`.** Should land back at `/login?notMember=1&email=…` with the warm panel: "We don't have an account for `<email>`. If you're new to RIM, you're warmly welcome — become a member →" The link carries the email forward.
+6. **Click "become a member."** Lands on `/join?email=…` with the email field pre-filled.
+
+The full sequence to walk for an already-member at `/join`:
+
+7. **Type an already-joined email at `/join`.** Form submits; API returns `{ alreadyMember: true }`; client navigates to `/login?email=…` with the warm "It looks like you already have an account with us" message and the email pre-filled.
+
+Defense-in-depth verification:
+
+8. **Direct `POST /api/auth/signin/resend` with an unknown email** (e.g., via `curl` or a script) — should get a 303 redirect to `/login?notMember=1&email=…` from the catch-all wrapper.
+9. **Direct attempt to reach `/account/dashboard` as an un-agreed account** — should redirect to `/account/welcome`. (Hard to test without an artificially-created un-agreed account; the cleanup cron will create one transiently if you abandon `/join`.)
+10. **Archived test member signing in** — should redirect to `/account/reactivate`, not the dashboard.
+
+### Memory candidates from step 8b
+
+Scanned the continuation arc; no new memory candidates. The "stale documentation drift" pattern (proxy.ts and `auth.ts` template routing) is already covered implicitly by existing memory files about reading actual code (`feedback-inventory-first`, `feedback-engagement`). The structural-vs-per-page-helper architectural choice is covered by `feedback-clear-seeing-is-correctness`. The existing memory files held up.
+
+### Known follow-ons (queued, none urgent)
+
+- **Voice extraction (`RIM_Voice.md`).** Still parked. Pending Jesse gathering 5–10 writing samples. The `join-welcome` and (now) `sign-in-code-new-user` templates are the best candidates for a first voice rewrite when ready.
+- **Beat 4 — `/account/dashboard` first-visit framing.** A first-time member sees the same dashboard as a tenth-time member. A short "Here's where things live" panel that fades after a few visits would close the warmth arc end-to-end. Deferred until the home/dashboard formal design pass.
+- **Banyan tree image on `/join`.** Webflow has one; we don't have the asset in the repo. ~10 line wire when available. Backlog `2026-05-27-002`.
+- **Footer link to `/join`.** Quiet always-on entry. Backlog `2026-05-27-001`.
+- **Per-page session redirects under `(authenticated)/` are now redundant.** Each gated page still has its own `if (!session) redirect("/login")`; the layout already does this. Harmless but cluttering. New backlog item.
+- **Sessions 125–131 verification on the deployed site.** Still queued.
+- **Magic-link migration cleanup** (backlog `2026-05-21-003`). Mechanical.
+- **Noindex headers on member-only pages** (backlog `2026-05-25-001`). Belt-and-suspenders.
+
+### Smaller items still parked
+
+- **Replaced-user email parity** in `sendStandingAssignmentReplacedEmail` — no signal to act on.
+- **Inline editing in the cross-hub staffing view** — currently read-only; deep-links to per-hub editing.
+- **Audit-trail soft nudge in EndMenu** — speculative.
+- **The PWA / native-app conversation** — `2026-05-21-001` rejected at session 120.
+
+---
+
+### Previously — Session 132 (2026-05-27) — `/join` slice: new-member threshold door shipped
 
 Four commits on `main`. The slice rebuilt the new-member sign-up flow end-to-end. Sign-in and sign-up are now two doors over the same passwordless code mechanism: `/login` for existing members, `/join` for new ones. The agreement text is consolidated into a single canonical source used by every surface; two orphan pages were deleted in the process.
 

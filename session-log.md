@@ -1,5 +1,101 @@
 ---
 
+## 2026-05-27 (session 132 continuation) — Threshold integrity: warmth across the post-join sequence + agreement-bypass closure
+
+Five additional commits beyond the original `/join` slice doc sweep (`c44aba1`). The morning shipped the visible UX of the threshold — `/join` page, integrated panel, two orphans deleted. The afternoon closed the invisible integrity: the threshold needed to actually be load-bearing, and several gaps existed.
+
+**Commits, in order:**
+1. `6fce1e5` — `/login/check-email` warm post-`/join` variant (state-driven)
+2. `e840b68` — `auth.ts`: branch sign-in code template on `emailVerified`, not `agreedToTerms`
+3. `893d698` — Enforce agreement + archive gates structurally via `(authenticated)/` route group
+4. `795129e` — `/login`: not-found soft-redirect to `/join` when email doesn't exist
+5. `9dcbc32` — Auth: harden the not-found check at the API level + fail-safe on DB errors
+
+### What this work connects to
+
+Each commit addressed one beat or one gap in the post-`/join` arc. Together they make the threshold actually be a threshold: a new member who walks through `/join` gets warmth from the first email through the dashboard landing; a visitor at `/login` cannot inadvertently end up as an un-agreed account; the dashboard cannot be reached without crossing the agreement.
+
+### Commit 1 — `6fce1e5` — `/login/check-email` warm post-`/join` variant
+
+Jesse named the problem precisely: *"This is the page that comes up after joining. It's appropriate, but at this stage, it should also be part of the nurturing and onboarding sequence. This is abrupt and kind of cold."* The single check-email page was serving two very different moments identically — utility for returning members, but cold-and-procedural for a member who had just completed the intentional `/join` threshold.
+
+Approach: state-driven, not query-param-driven. Server-side `User` lookup by email returns `firstName`, `agreedAt`, `emailVerified`. New helper `isInPostJoinWindow(agreedAt, emailVerified)` returns true when `agreedAt` is within the last 5 minutes AND `emailVerified` is still null — short enough that returning members don't accidentally get warm framing, long enough to survive a submit→inbox→back cycle. Two copy variants: default (mailbox emoji + "Enter your code" + "We sent a 6-digit code to email") and post-`/join` (no emoji, "Almost there, Jesse." + "Two things just arrived in your inbox: your sign-in code, and a short welcome letter. Type the code below to enter…"). The "Two things just arrived" sentence is load-bearing — it acknowledges the welcome letter we just sent alongside the code, so the user knows the second email is for them, not noise.
+
+Lint sidebar: `Date.now()` in a server component body trips the `react-hooks/purity` rule (over-eager about server components). Hoisting the time math into a function outside the component sidesteps it cleanly.
+
+### Commit 2 — `e840b68` — `auth.ts` template routing fix
+
+When Jesse asked me to audit for other "welcome back"-style inconsistencies after the check-email page, the audit found a structural one — and it was caused by something I'd just shipped. The original `/join` slice routed new members through the QUIET `sign-in-code-returning` template because `auth.ts::sendVerificationRequest` was branching on `agreedToTerms`, and `/join` sets `agreedToTerms: true` BEFORE the code email goes out. Net effect: a brand-new joiner received a routine "Your sign-in code… access your account" email instead of the warm "Welcome to Rooted In Mindfulness… complete your account" variant. The body of the returning template doesn't literally say "welcome back," but its tone is wrong for the post-threshold moment.
+
+The right discriminator is `emailVerified`. NextAuth's PrismaAdapter sets it only after the first successful code verification, so it cleanly distinguishes "has ever signed in" from "agreed but hasn't signed in yet." All three audiences land correctly: Door B `/join` user gets the warm variant on their first code email; Door A first-time visitor (no `/join`, no `User` row yet) also gets the warm variant; Door A returning member gets the quiet variant.
+
+The existing `NEW_USER_BODY` text works for both first-time audiences as-is — "Welcome to Rooted In Mindfulness" lands warm in both contexts, and "Enter this code on the sign-in page to complete your account" is accurate for both (`/join` users: their account exists but isn't verified; Door A first-timers: their account is about to be created). Documentation updates in `FEATURES.md` §1, `RIM_Auth.md` Door A + Door B descriptions, and `UP_NEXT.md` verification step 2 — the original `/join` slice doc sweep had incorrectly stated "the quiet returning-user template fires" because I'd misread my own intent. Lesson: the closing-ritual doc sweep should re-read what was committed earlier in the same session to catch this kind of self-introduced staleness.
+
+### Commit 3 — `893d698` — Route-group layout: structural agreement + archive enforcement
+
+Jesse's audit question: *"Can a member still accidentally sign up by bypassing the Join Us pathway by just signing in?"* The answer was yes — the documented enforcement (in FEATURES.md §14 and the Account Archival section) was that `proxy.ts` redirected un-agreed users to `/account/welcome` and archived users to `/account/reactivate`. That was stale documentation. `proxy.ts` is intentionally a no-op (NextAuth v5 with the Prisma adapter cannot verify sessions in the Edge runtime — running auth there causes login loops). No per-page guards enforced either gate either. Result: any first-time visitor at `/login` who verified a code landed directly on `/account/dashboard` without ever seeing the Community Care Agreements; any archived member who signed in reached the dashboard instead of the reactivation flow.
+
+The fix uses Next.js App Router's canonical mechanism for shared auth-gating: a route group. Five directories moved into `app/account/(authenticated)/` via `git mv` (history preserved): `courses`, `dashboard`, `dashboard-my-profile`, `hub`, `programs`. Two stay outside (`welcome`, `reactivate`) so the layout's redirects to them can't loop. Route groups are URL-invisible — `/account/dashboard` etc. all resolve unchanged.
+
+The new layout at `app/account/(authenticated)/layout.tsx` runs three checks server-side, all reading enriched session fields (no DB query): no session → `/login`; `!agreedToTerms` → `/account/welcome`; `archivedAt` set → `/account/reactivate`. `agreedToTerms` and `archivedAt` are already enriched onto `session.user` by the auth.ts session callback, so all three checks are JWT reads.
+
+Why a layout instead of a per-page `requireMember()` helper: a helper would have worked for the immediate fix (smaller diff, same effective behavior), but would have leaked the auth concern across N files and required discipline on every new `/account/*` page added in the future. The route group enforces the gate structurally — any new route added under `(authenticated)/` is automatically gated. This is the canonical Next.js pattern and matches the RIM design philosophy: restraint means using the framework's mechanism rather than inventing a parallel one. Per the memory file [[feedback-clear-seeing-is-correctness]]: design choices that prevent drift ARE correctness, not polish.
+
+Stale documentation cleanup in the same commit: `RIM_Auth.md` (Door A step 7 + Door B step 6), `FEATURES.md` Account Archival section + §14 key files + technical notes, and `CLAUDE.md` Workflow + Key Files — all of which had claimed `proxy.ts` enforced this. Replaced with the actual layout-based mechanism.
+
+### Commit 4 — `795129e` — `/login` not-found soft-redirect
+
+Jesse's next test: *"I'm trying to sign in to an account that's not in the system, and it still takes me to that enter code page."* The UX gap: typing any email at `/login` sent a 6-digit code, regardless of whether a `User` row existed. NextAuth's Resend provider creates a `VerificationToken` and dispatches the email unconditionally; the PrismaAdapter creates the User on first verification. So a visitor who thought "I'll sign in" with an email RIM had never seen got a code, typed it, became a User row with `agreedToTerms: false`, and was bounced by the new `(authenticated)/` layout to `/account/welcome` for the agreement ritual. Functional, but the UX read as "I tried to sign in and ended up in a sign-up flow without warning."
+
+Symmetric fix to the `/join` → `/login` soft-redirect that already handled the already-member case. `/login`'s `handleSignIn` server action now does `db.user.findUnique({ where: { email } })` BEFORE calling `signIn()`; if no User exists, redirects to `/login?notMember=1&email=ENCODED` with a warm not-found panel ("We don't have an account for `<email>`. If you're new to RIM, you're warmly welcome — become a member →"). `/join` accepts `?email=` and pre-fills via a new `defaultEmail` prop on `JoinForm`. Message hierarchy on `/login`: `?notMember=1` + `?email=X` → not-found message; `?email=X` only → existing already-member message; otherwise → default form.
+
+Privacy disclosure: this reveals whether a given email has a `User` row (different page content per email). The leak already exists via the public `/api/account/check-email` endpoint used by the program registration form's pre-fill, and for a community-membership site the UX win is worth the modest disclosure.
+
+### Commit 5 — `9dcbc32` — Catch-all hardening + fail-safe
+
+Jesse's clarification on the previous commit: *"I sent that last statement after I sent the first one. I didn't check your work. Did the first work fix this issue? If not, just use best practices and make sure that all of that is accounted for."* Tracing through confirmed the original fix should work once deployed (his "And it sent me a code" was deploy-timing), but the audit exposed two gaps the original commit didn't cover:
+
+1. **DB-error fail-safe.** If the `findUnique` threw (Postgres hiccup, connection limit), `existing` would be undefined → falsy → redirect to "not a member" — falsely sending a real member to `/join`. Now both checks wrap the lookup in try/catch with a separate `lookupFailed` flag; on error, fall through to `signIn()` so real members get their code. The `(authenticated)/` layout still gates dashboard access on `agreedToTerms`, so the worst case is one extra User row that the 48h cleanup cron will sweep.
+
+2. **Direct API bypass.** The `795129e` check lived only in `/login`'s server action. That covers browser form submissions because NextAuth's `signIn()` runs in-process from a server action — no HTTP roundtrip to `/api/auth/signin/resend`, so the catch-all wrapper doesn't fire for that path. But any OTHER caller of `POST /api/auth/signin/resend` — direct scripted POSTs, future client-side `signIn()` calls, external integrations — would bypass the `/login` check entirely. The catch-all wrapper at `app/api/auth/[...nextauth]/route.ts` now does the same existence check after the rate-limit check, with the same fail-safe semantics. Unknown emails get a 303 redirect to `/login?notMember=1&email=…`. New helper `notMemberResponse(reqUrl, email)` mirrors the shape of `rateLimitResponse(reqUrl)`.
+
+Rate-limit ordering: the existence check fires AFTER the rate-limit check. So a probe-the-DB-for-emails attack costs rate-limit budget per probe — bounded by 20 probes per IP per 10min via `signin-ip:<ip>`.
+
+### What's now true across every entry point
+
+After this arc, the integrity of the threshold is comprehensive. Walking each path that could create or consume a `User` row:
+
+| Entry point | Behavior |
+|---|---|
+| `/join` form | Intentional ritual; agreement required at the door; warmth all the way through |
+| `/login` form (existing email) | Code sent, normal sign-in |
+| `/login` form (unknown email) | Caught at server action → warm not-found panel + link to `/join?email=…` |
+| Direct `POST /api/auth/signin/resend` (existing email) | Code sent, rate-limited |
+| Direct `POST /api/auth/signin/resend` (unknown email) | Caught at catch-all → 303 to `/login?notMember=1&email=…` |
+| Direct `POST /api/auth/callback/resend` (forged token) | Rejected by NextAuth's token verification |
+| Any path that creates an un-agreed `User` row | Caught at the dashboard by `(authenticated)/` layout → `/account/welcome` |
+| Any path that creates an archived-but-signed-in scenario | Caught at the dashboard by `(authenticated)/` layout → `/account/reactivate` |
+| Abandoned-mid-flow User rows (either path) | Swept by the 48h cleanup cron's two-path query |
+
+### Reviewer sub-agent track record this continuation
+
+Skipped for all five commits — each was either a small focused change with strong type discipline, a structural move (`git mv` with no logic changes), or a documentation pass. Reviewer's value-add was lower than the cost of the round-trip for these. The original `/join` slice (`28ab0f5`) was the right place for the reviewer run, and it caught the two showstoppers there (rate-limit bypass, missing `?email=` pre-fill).
+
+### Step 8b behavior audit
+
+Scanning this continuation arc for memory candidates:
+
+- **Stale documentation drift was the real pattern.** Two findings in two days: `proxy.ts` was documented as enforcing the agreement + archive gates but was a no-op; `auth.ts` was documented (by me, in the same session) as routing `/join` users to the quiet template but should have routed to warm. The first was inherited drift; the second was self-introduced staleness in the same session. The pattern isn't novel enough to memorialize as a new memory file — it's covered implicitly by existing memory files about reading the actual code before relying on documentation (`feedback-inventory-first`, `feedback-engagement`). The closing-ritual doc sweep is where this gets caught; that worked here.
+- **Delegated architectural choice.** Jesse said *"Do what you feel is best and conforms to best practices and our design principles."* I chose the route-group layout over the per-page helper. That choice felt right; he didn't push back. No memory entry needed — the principle is already covered by [[feedback-clear-seeing-is-correctness]] (structural enforcement beats per-page discipline) and the existing design principles.
+
+No new memory files this continuation. The existing ones held up.
+
+### What comes next
+
+The verification walk on the deployed site (see UP_NEXT.md) covers everything from this arc. After that's done and confirmed, the bigger threads still open are voice extraction (`RIM_Voice.md` — pending Jesse's writing samples), the `/account/dashboard` first-visit framing for new members (Beat 4 of the onboarding sequence, deferred until the home/dashboard design pass), and the homepage formal design.
+
+---
+
 ## 2026-05-27 (session 132) — `/join` slice: new-member threshold door, consolidated agreement text, two orphans deleted
 
 Four commits on `main`. The slice rebuilt the new-member sign-up flow end-to-end: a separate threshold page distinct from `/login`, the agreement text consolidated to one canonical source used by every surface, and two orphan pages (plus an entire CSS prefix) removed from the codebase.

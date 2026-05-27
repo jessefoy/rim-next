@@ -1,5 +1,15 @@
 [
   {
+    "id": "2026-05-27-003",
+    "title": "Remove redundant session checks from /account/(authenticated)/ pages",
+    "description": "After session 132's route-group layout at app/account/(authenticated)/layout.tsx enforces session + agreedToTerms + archivedAt for the entire authenticated member area, the individual per-page checks like `if (!session) redirect('/login')` inside dashboard/page.tsx and the other (authenticated)/ pages are redundant. The layout runs before the page renders, so by the time any page body executes the user is already authenticated. Leaving them in place is harmless but clutters the code and creates a false sense of where the auth gate lives. Sweep all pages under app/account/(authenticated)/ and remove the now-redundant `if (!session) redirect('/login')` blocks. Pages still need to call auth() to get the session object for their own use (the user's id, roles, etc.) — that part stays. Just drop the redirect-if-null defensive check. Low priority, mechanical cleanup. Could be paired with adding a small `requireSession()` helper if pages want a typed non-null session — but that's optional.",
+    "category": "Infrastructure",
+    "priority": "low",
+    "status": "open",
+    "addedAt": "2026-05-27",
+    "notes": ""
+  },
+  {
     "id": "2026-05-27-002",
     "title": "Banyan tree image on /join page",
     "description": "The Webflow Community Membership page has a banyan-tree image on the right side of the hero — part of the warmth and intentionality of the threshold experience. Not ported to /join in the session-132 slice because the asset wasn't in the repo. When ready: drop the image into public/images/ or Vercel Blob, wire it into app/join/page.tsx as a left/right grid (hero + intro on left, image on right) at desktop, stack on mobile. ~10-line CSS change to add .jn-hero--with-image and adjust .jn-container max-width. Source asset on the live Webflow site at https://www.rootedinmindfulness.org/community-membership — the banyan-tree photo.",
