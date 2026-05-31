@@ -15254,6 +15254,57 @@ a.hub-home-act__row:hover { background: #fafaf9; }
   border-color: rgba(255,255,255,0.25);
 }
 
+/* Share-screen primer variant — wider, wrapping text + two buttons. Frames the
+   browser's own (unstylable) screen picker so it doesn't appear cold. */
+.rim-cb-popover--share {
+  min-width: 280px;
+  max-width: 320px;
+  padding: 14px 16px;
+  text-align: left;
+  white-space: normal;
+}
+.rim-cb-share__title {
+  font-family: var(--font-sans);
+  font-size: var(--text-ui);
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 6px;
+}
+.rim-cb-share__body {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: #d8d8d8;
+  margin: 0 0 12px;
+}
+.rim-cb-share__body strong { color: #fff; font-weight: 600; }
+.rim-cb-share__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.rim-cb-share__cancel,
+.rim-cb-share__confirm {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  padding: 8px 14px;
+  min-height: 44px;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+}
+.rim-cb-share__cancel {
+  background: rgba(255,255,255,0.1);
+  color: #e8e8e8;
+}
+.rim-cb-share__cancel:hover { background: rgba(255,255,255,0.18); }
+.rim-cb-share__confirm {
+  background: #135274;
+  color: #fff;
+  font-weight: 600;
+}
+.rim-cb-share__confirm:hover { background: #0f4360; }
+
 /* Mobile: keep 44px tap targets, allow wrap */
 @media (max-width: 430px) {
   .rim-cb {

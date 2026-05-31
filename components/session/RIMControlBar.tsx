@@ -28,6 +28,7 @@ import { useRoomContext, useLocalParticipant } from "@livekit/components-react";
 import { RoomEvent } from "livekit-client";
 import ReactionsMenu from "./ReactionsMenu";
 import EndMenu from "./EndMenu";
+import ShareScreenPrimer from "./ShareScreenPrimer";
 import {
   IconMicOn,
   IconMicOff,
@@ -132,9 +133,11 @@ export default function RIMControlBar({
   const [pendingShare, setPendingShare] = useState(false);
   const [reactionsOpen, setReactionsOpen] = useState(false);
   const [endOpen, setEndOpen] = useState(false);
+  const [shareIntroOpen, setShareIntroOpen] = useState(false);
 
   const reactionsAnchor = useRef<HTMLButtonElement | null>(null);
   const endAnchor = useRef<HTMLButtonElement | null>(null);
+  const shareAnchor = useRef<HTMLButtonElement | null>(null);
 
   async function toggleMic() {
     if (!room) return;
@@ -154,11 +157,24 @@ export default function RIMControlBar({
     setPendingCam(false);
   }
 
-  async function toggleScreenShare() {
+  // Start is initiated from the primer's "Choose what to share" button — that
+  // click is the user gesture getDisplayMedia requires, so the call must run
+  // directly from it. Stop is immediate (no primer).
+  async function startScreenShare() {
+    if (!room) return;
+    setShareIntroOpen(false);
+    setPendingShare(true);
+    try {
+      await room.localParticipant.setScreenShareEnabled(true);
+    } catch {}
+    setPendingShare(false);
+  }
+
+  async function stopScreenShare() {
     if (!room) return;
     setPendingShare(true);
     try {
-      await room.localParticipant.setScreenShareEnabled(!screenShareEnabled);
+      await room.localParticipant.setScreenShareEnabled(false);
     } catch {}
     setPendingShare(false);
   }
@@ -237,21 +253,36 @@ export default function RIMControlBar({
         ) : null}
       </button>
 
-      {/* ── Share Screen — Co-host or higher only ───────────────── */}
+      {/* ── Share Screen — Co-host or higher only ───────────────────
+          Sharing fires the browser's own screen picker (web security won't
+          let us restyle it). When not sharing, the button opens a short primer
+          first so the browser dialog doesn't appear cold; the primer's button
+          provides the gesture getDisplayMedia needs. Stopping is immediate. */}
       {isCoHost && (
-        <button
-          type="button"
-          className={`rim-cb-btn rim-cb-btn--share${screenShareEnabled ? " rim-cb-btn--share-active" : ""}`}
-          onClick={toggleScreenShare}
-          disabled={pendingShare}
-          aria-pressed={screenShareEnabled}
-          aria-label={screenShareEnabled ? "Stop Share" : "Share Screen"}
-        >
-          <span className="rim-cb-btn__icon" aria-hidden="true"><IconShare /></span>
-          <span className="rim-cb-btn__label">
-            {screenShareEnabled ? "Stop Share" : "Share Screen"}
-          </span>
-        </button>
+        <div className="rim-cb-anchor">
+          <button
+            ref={shareAnchor}
+            type="button"
+            className={`rim-cb-btn rim-cb-btn--share${screenShareEnabled ? " rim-cb-btn--share-active" : ""}`}
+            onClick={() => (screenShareEnabled ? stopScreenShare() : setShareIntroOpen((v) => !v))}
+            disabled={pendingShare}
+            aria-pressed={screenShareEnabled}
+            aria-haspopup={screenShareEnabled ? undefined : "dialog"}
+            aria-expanded={screenShareEnabled ? undefined : shareIntroOpen}
+            aria-label={screenShareEnabled ? "Stop Share" : "Share Screen"}
+          >
+            <span className="rim-cb-btn__icon" aria-hidden="true"><IconShare /></span>
+            <span className="rim-cb-btn__label">
+              {screenShareEnabled ? "Stop Share" : "Share Screen"}
+            </span>
+          </button>
+          <ShareScreenPrimer
+            open={shareIntroOpen && !screenShareEnabled}
+            onClose={() => setShareIntroOpen(false)}
+            onConfirm={startScreenShare}
+            anchorRef={shareAnchor}
+          />
+        </div>
       )}
 
       {/* ── Reactions ───────────────────────────────────────────── */}

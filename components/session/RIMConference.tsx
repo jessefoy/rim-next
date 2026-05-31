@@ -316,7 +316,11 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
       }
       return getMetadata(fallback);
     }
-    return [...tracks].sort((a, b) => {
+    // Camera tiles only — screen-share tracks are auto-focused (handled in the
+    // pin-orchestration effect below), never shown as a grid/filmstrip tile.
+    return [...tracks]
+      .filter((t) => t.source === Track.Source.Camera)
+      .sort((a, b) => {
       const aMeta = metaFor(a.participant.identity, a.participant.metadata);
       const bMeta = metaFor(b.participant.identity, b.participant.metadata);
       const aHand = aMeta.signal === "hand";
@@ -383,6 +387,25 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
       return;
     }
 
+    // Active screen share auto-focuses (Zoom-style), overriding gallery/speaker
+    // — but not a manual pin (handled above). Everyone with no manual pin sees
+    // the share fill the main view; camera tiles drop to the filmstrip.
+    const shareTrack = tracks.find(
+      (t) => t.source === Track.Source.ScreenShare && !!t.publication,
+    );
+    if (shareTrack) {
+      const pinnedRef = layoutContext.pin.state?.[0];
+      const sameShare =
+        !!pinnedRef &&
+        pinnedRef.source === Track.Source.ScreenShare &&
+        pinnedRef.publication?.trackSid === shareTrack.publication?.trackSid;
+      if (!sameShare) {
+        lastPinnedIdentityRef.current = shareTrack.participant.identity;
+        layoutContext.pin.dispatch?.({ msg: "set_pin", trackReference: shareTrack });
+      }
+      return;
+    }
+
     if (view === "gallery") {
       if (layoutContext.pin.state && layoutContext.pin.state.length > 0) {
         layoutContext.pin.dispatch?.({ msg: "clear_pin" });
@@ -400,16 +423,24 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
         ),
       );
 
-    const currentlyPinnedIdentity = layoutContext.pin.state?.[0]?.participant.identity;
+    const currentPinnedRef = layoutContext.pin.state?.[0];
+    const currentlyPinnedIdentity = currentPinnedRef?.participant.identity;
+    // Only "keep" the current pin if it's actually a camera track. When a
+    // screen share stops in speaker view, the pin still holds the (now-dead)
+    // ScreenShare ref for the sharer's identity; without this guard the
+    // identity-only checks below would keep it and focus a blank tile. Treating
+    // a non-camera pin as "not keepable" forces a re-pin to a camera track.
+    const currentPinIsCamera = currentPinnedRef?.source === Track.Source.Camera;
 
-    // If an active speaker already matches the current pin, nothing to do.
-    if (activeSpeakerIdentity && activeSpeakerIdentity === currentlyPinnedIdentity) {
+    // If an active speaker already matches the current camera pin, nothing to do.
+    if (currentPinIsCamera && activeSpeakerIdentity && activeSpeakerIdentity === currentlyPinnedIdentity) {
       lastPinnedIdentityRef.current = activeSpeakerIdentity;
       return;
     }
 
-    // If the current pin is still present and no one else is speaking, keep it.
+    // If the current camera pin is still present and no one else is speaking, keep it.
     if (
+      currentPinIsCamera &&
       currentlyPinnedIdentity &&
       tracks.some(
         (t) => t.source === Track.Source.Camera && t.participant.identity === currentlyPinnedIdentity,
@@ -438,10 +469,14 @@ export default function RIMConference({ isSessionHost, hasEndAllAuthority, isCoH
     layoutContext.pin.dispatch?.({ msg: "set_pin", trackReference: nextTrack });
   }, [view, speakers, tracks, layoutContext.pin, localParticipant?.identity, pinnedIdentity]);
 
-  // Render focus layout when there's a pinned track — either from a manual pin
-  // (any view) or from speaker view's active-speaker follow. Otherwise gallery.
+  // Render focus layout when there's a pinned track — from a manual pin (any
+  // view), an active screen share (any view, Zoom-style), or speaker view's
+  // active-speaker follow. Otherwise gallery.
+  const hasScreenShare = tracks.some(
+    (t) => t.source === Track.Source.ScreenShare && !!t.publication,
+  );
   const inFocusView =
-    (!!pinnedIdentity || view === "speaker") &&
+    (!!pinnedIdentity || hasScreenShare || view === "speaker") &&
     !!layoutContext.pin.state &&
     layoutContext.pin.state.length > 0;
 
